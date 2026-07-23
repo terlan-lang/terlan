@@ -9,6 +9,7 @@ use crate::runtime::native_image::managed::{
     encode_response_cookie_jar_operation, encode_response_security_headers_operation,
     encode_session_option_is_none_operation, encode_string_append_operation,
     encode_string_equal_operation, encode_string_map_get_option_operation,
+    encode_string_prepend_literal_operation, encode_string_prepend_projected_literal_operation,
     ManagedCollectionDescriptor, ManagedCookieHeaderOperation, ManagedFieldType, SemanticTypeId,
 };
 use crate::terlan_typeck::{CoreCaseClause, CoreExpr, CoreModule, CoreType};
@@ -18,10 +19,12 @@ use super::NativeType;
 mod body_json;
 mod constructors;
 mod cookies;
+mod core_helpers;
 mod error;
 mod layout;
 mod option_string;
 mod receiver;
+mod response;
 mod security;
 mod session;
 
@@ -31,7 +34,7 @@ use body_json::{
     body_json_layouts, body_json_operation_type, lower_body_json_case,
     lower_managed_body_json_operation,
 };
-use cookies::{cookie_delete_args, cookie_option_args, cookie_set_args};
+use core_helpers::{bool_expr, core_string_runtime_value, managed_http_call};
 use error::{error_call, error_method_arity, error_operation_type, lower_error_operation};
 use layout::{
     cookie_jar_descriptor, encoded_descriptor, http_error_descriptor, imports,
@@ -40,9 +43,8 @@ use layout::{
 };
 use option_string::lower_request_option_case;
 use receiver::{is_jar_expr, is_managed_string_expr, jar_method_arity, response_method_arity};
-use security::{
-    lower_security_constructor_args, security_headers_constructor, SECURITY_CONSTRUCTOR,
-};
+use response::{cookie_call, jar_mutation, response_call, response_constructor, response_mutation};
+use security::{lower_security_constructor_args, SECURITY_CONSTRUCTOR};
 
 const REQUEST_MODULE: &str = "std.http.Request";
 const RESPONSE_MODULE: &str = "std.http.Response";
@@ -197,6 +199,19 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
                 }
             }
             Ok(CoreExpr::Case { scrutinee, clauses })
+        }
+        CoreExpr::BinaryOp {
+            operator,
+            left,
+            right,
+        } if operator == "+"
+            && matches!(&*left, CoreExpr::Binary(_))
+            && is_managed_string_expr(&right) =>
+        {
+            Ok(managed_http_call(
+                "string_prepend_literal",
+                vec![*left, *right],
+            ))
         }
         CoreExpr::BinaryOp {
             operator,
@@ -543,6 +558,7 @@ pub(super) fn managed_http_operation_type(expr: &CoreExpr) -> Option<NativeType>
         }
         ("string_equal", 2) => Some(NativeType::Bool),
         ("string_append", 2) => Some(NativeType::StringRef),
+        ("string_prepend_literal", 2) => Some(NativeType::StringRef),
         ("method" | "path" | "query_string" | "body_text", 1) => Some(NativeType::StringRef),
         ("param" | "query" | "header" | "cookie", 2) => {
             semantic(STRING_OPTION).ok().map(NativeType::ManagedRef)
@@ -619,6 +635,49 @@ pub(super) fn lower_managed_http_operation(
         return Ok(Some(super::NativeExpr::ManagedOperation {
             encoded: Arc::from(encode_string_append_operation()),
             args: args.iter().map(&mut lower).collect::<Result<Vec<_>, _>>()?,
+        }));
+    }
+    if function == "string_prepend_literal" && args.len() == 2 {
+        let CoreExpr::Binary(literal) = &args[0] else {
+            return Err(
+                "error[native_ir.http_string_prepend]: expected a string literal prefix"
+                    .to_string(),
+            );
+        };
+        let literal = core_string_runtime_value(literal)?;
+        if let CoreExpr::RemoteCall {
+            module,
+            function,
+            args: projection_args,
+        } = &args[1]
+        {
+            if module == MANAGED_HTTP_MODULE
+                && function == "body_text"
+                && projection_args.len() == 1
+            {
+                let request_semantic =
+                    semantic(&CoreType::Named("Request".to_string()).contract_text())?;
+                return Ok(Some(super::NativeExpr::ManagedOperation {
+                    encoded: Arc::from(
+                        encode_string_prepend_projected_literal_operation(
+                            request_semantic,
+                            4,
+                            &literal,
+                        )
+                        .map_err(|error| {
+                            format!("error[native_ir.http_string_prepend]: {error}")
+                        })?,
+                    ),
+                    args: vec![lower(&projection_args[0])?],
+                }));
+            }
+        }
+        return Ok(Some(super::NativeExpr::ManagedOperation {
+            encoded: Arc::from(
+                encode_string_prepend_literal_operation(&literal)
+                    .map_err(|error| format!("error[native_ir.http_string_prepend]: {error}"))?,
+            ),
+            args: vec![lower(&args[1])?],
         }));
     }
     if function == "empty_headers" && args.is_empty() {
@@ -778,218 +837,4 @@ fn string_map_lookup(
         )),
         args: vec![projection, lower(key)?],
     })
-}
-
-/// Creates one managed response constructor call with an explicit status.
-fn response_call(name: &str, args: Vec<CoreExpr>) -> Result<CoreExpr, String> {
-    match (name, args.len()) {
-        ("default_security_headers", 0) => Ok(security_headers_constructor(0, false)),
-        ("production_security_headers", 0) => Ok(security_headers_constructor(31_536_000, true)),
-        _ => response_builder(name, args),
-    }
-}
-
-/// Rewrites maintained cookie serializers into bounded managed HTTP operations.
-fn cookie_call(name: &str, args: Vec<CoreExpr>) -> Result<CoreExpr, String> {
-    let (function, args) = match name {
-        "set_header" => ("cookie_set_header", cookie_set_args(args)?),
-        "set_header_with_options" => ("cookie_set_options_header", cookie_option_args(args)?),
-        "delete_header" => ("cookie_delete_header", cookie_delete_args(args)?),
-        _ => {
-            return Ok(CoreExpr::RemoteCall {
-                module: COOKIES_MODULE.to_string(),
-                function: name.to_string(),
-                args,
-            })
-        }
-    };
-    Ok(managed_http_call(function, args))
-}
-
-/// Creates one fixed managed response constructor call with an explicit status.
-fn response_builder(name: &str, mut args: Vec<CoreExpr>) -> Result<CoreExpr, String> {
-    let (kind, default_status) = match name {
-        "text" => (0, 200),
-        "html" => (1, 200),
-        "json_text" => (2, 200),
-        "redirect" => (3, 302),
-        "file" => return file_response(args),
-        _ => {
-            return Err(format!(
-                "error[native_ir.http_response_builder]: Response.{name} is not in the native managed HTTP profile"
-            ))
-        }
-    };
-    let (body, status) = match args.len() {
-        1 => (args.remove(0), CoreExpr::Int(default_status)),
-        2 => (args.remove(0), args.remove(0)),
-        count => return response_arity_error(name, count),
-    };
-    Ok(CoreExpr::ConstructorCall {
-        constructor: response_constructor(name),
-        constructor_identity: Some(response_constructor(name)),
-        args: vec![
-            CoreExpr::Int(0),
-            CoreExpr::Int(kind),
-            body,
-            status,
-            CoreExpr::Binary("\"\"".to_string()),
-            empty_response_headers(),
-        ],
-    })
-}
-
-/// Creates one managed file-response constructor call with explicit defaults.
-fn file_response(mut args: Vec<CoreExpr>) -> Result<CoreExpr, String> {
-    if args.is_empty() || args.len() > 3 {
-        return response_arity_error("file", args.len());
-    }
-    let path = args.remove(0);
-    let status = if args.is_empty() {
-        CoreExpr::Int(200)
-    } else {
-        args.remove(0)
-    };
-    let content_type = if args.is_empty() {
-        CoreExpr::Binary("\"\"".to_string())
-    } else {
-        args.remove(0)
-    };
-    Ok(CoreExpr::ConstructorCall {
-        constructor: response_constructor("file"),
-        constructor_identity: Some(response_constructor("file")),
-        args: vec![
-            CoreExpr::Int(0),
-            CoreExpr::Int(4),
-            path,
-            status,
-            content_type,
-            empty_response_headers(),
-        ],
-    })
-}
-
-/// Returns one stable response-builder arity diagnostic.
-fn response_arity_error(name: &str, count: usize) -> Result<CoreExpr, String> {
-    Err(format!(
-        "error[native_ir.http_response_arity]: Response.{name} received {count} arguments"
-    ))
-}
-
-/// Builds one compiler-private response constructor identity.
-fn response_constructor(name: &str) -> String {
-    format!("{RESPONSE_CONSTRUCTOR_PREFIX}{name}")
-}
-
-/// Rewrites one immutable response update into a compiler-private heap operation.
-fn response_mutation(
-    receiver: CoreExpr,
-    method: &str,
-    mut args: Vec<CoreExpr>,
-    effects: crate::terlan_typeck::CoreEffectSet,
-) -> Result<CoreExpr, String> {
-    let (function, mut operation_args) = match method {
-        "status" | "with_status" if args.len() == 1 => ("response_status", vec![receiver]),
-        "header" | "with_header" if args.len() == 2 => ("response_header", vec![receiver]),
-        "set_cookie_header" if args.len() == 1 => {
-            ("response_header", vec![receiver, string_expr("Set-Cookie")])
-        }
-        "cookie" | "with_cookie" => {
-            let serialized = managed_http_call("cookie_set_header", cookie_set_args(args)?);
-            return Ok(response_cookie_header(receiver, serialized));
-        }
-        "cookie_with_options" | "with_cookie_options" => {
-            let serialized =
-                managed_http_call("cookie_set_options_header", cookie_option_args(args)?);
-            return Ok(response_cookie_header(receiver, serialized));
-        }
-        "delete_cookie" | "with_deleted_cookie" => {
-            let serialized = managed_http_call("cookie_delete_header", cookie_delete_args(args)?);
-            return Ok(response_cookie_header(receiver, serialized));
-        }
-        "security_headers" | "with_security_headers" if args.len() == 1 => {
-            return Ok(managed_http_call(
-                "response_security_headers",
-                vec![receiver, args.remove(0)],
-            ));
-        }
-        "with_cookies" if args.len() == 1 => {
-            return Ok(managed_http_call(
-                "response_cookie_jar",
-                vec![receiver, args.remove(0)],
-            ));
-        }
-        _ => {
-            return Ok(CoreExpr::MutableReceiverCall {
-                receiver: Box::new(receiver),
-                method: method.to_string(),
-                args,
-                effects,
-            })
-        }
-    };
-    operation_args.append(&mut args);
-    Ok(CoreExpr::RemoteCall {
-        module: MANAGED_HTTP_MODULE.to_string(),
-        function: function.to_string(),
-        args: operation_args,
-    })
-}
-
-/// Rewrites one known cookie-jar mutation into an immutable persistent update.
-fn jar_mutation(
-    receiver: CoreExpr,
-    method: &str,
-    args: Vec<CoreExpr>,
-    effects: crate::terlan_typeck::CoreEffectSet,
-) -> Result<CoreExpr, String> {
-    let serialized = match method {
-        "set" => managed_http_call("cookie_set_header", cookie_set_args(args)?),
-        "delete" => managed_http_call("cookie_delete_header", cookie_delete_args(args)?),
-        _ => {
-            return Ok(CoreExpr::MutableReceiverCall {
-                receiver: Box::new(receiver),
-                method: method.to_string(),
-                args,
-                effects,
-            })
-        }
-    };
-    Ok(managed_http_call("jar_append", vec![receiver, serialized]))
-}
-
-/// Wraps one serialized cookie value in a repeated response-header update.
-fn response_cookie_header(receiver: CoreExpr, value: CoreExpr) -> CoreExpr {
-    managed_http_call(
-        "response_header",
-        vec![receiver, string_expr("Set-Cookie"), value],
-    )
-}
-
-/// Builds one compiler-private managed HTTP call.
-pub(super) fn managed_http_call(function: &str, args: Vec<CoreExpr>) -> CoreExpr {
-    CoreExpr::RemoteCall {
-        module: MANAGED_HTTP_MODULE.to_string(),
-        function: function.to_string(),
-        args,
-    }
-}
-
-/// Builds one canonical CoreIR string literal.
-fn string_expr(value: &str) -> CoreExpr {
-    CoreExpr::Binary(format!("\"{value}\""))
-}
-
-/// Builds one canonical CoreIR Boolean literal.
-fn bool_expr(value: bool) -> CoreExpr {
-    CoreExpr::Atom(value.to_string())
-}
-
-/// Builds the private zero-argument persistent response-header list operation.
-fn empty_response_headers() -> CoreExpr {
-    CoreExpr::RemoteCall {
-        module: MANAGED_HTTP_MODULE.to_string(),
-        function: "empty_headers".to_string(),
-        args: Vec::new(),
-    }
 }

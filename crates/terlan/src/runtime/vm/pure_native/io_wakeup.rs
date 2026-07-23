@@ -78,7 +78,6 @@ impl PureNativeIoWait {
     }
 
     /// Rebinds the same continuation authority after an admitted shard migration.
-    #[allow(dead_code)] // Called by the hidden MC-5 explicit migration surface.
     pub(crate) fn migrated_to(&self, shard: VmExecutionShardId, epoch: VmShardEpoch) -> Self {
         Self {
             shard,

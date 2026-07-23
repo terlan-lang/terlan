@@ -8,10 +8,7 @@ use super::ReplValue;
 #[path = "process/actor_ownership.rs"]
 mod actor_ownership;
 #[path = "process/transfer.rs"]
-mod transfer;
-
-#[allow(unused_imports)] // Public to staged MC-5 tests before migration orchestration lands.
-pub(crate) use transfer::{VmProcessImportFailure, VmProcessTransfer};
+pub(crate) mod transfer;
 
 /// VM-owned process identifier.
 ///

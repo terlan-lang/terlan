@@ -4,6 +4,7 @@ mod direct_backend;
 pub(super) mod execution;
 mod execution_runtime;
 mod execution_shard;
+mod http_request;
 mod io_wakeup;
 mod thread_neutral;
 
@@ -14,6 +15,7 @@ mod multicore_model_test;
 use std::path::Path;
 use std::sync::Arc;
 
+use crate::runtime::native::http::{RequestFieldProjection, RequestParts};
 use crate::runtime::native_image::control::TvmControlFrame;
 use crate::runtime::native_image::managed::ManagedExecutionRuntime;
 use crate::runtime::native_image::{
@@ -143,6 +145,23 @@ pub(crate) trait NativeImageBackend: std::fmt::Debug + Send + Sync {
         export_id: u64,
         args: &[ReplValue],
     ) -> Result<TvmControlFrame, String>;
+
+    /// Admits one compiler-projected HTTP request without first rebuilding
+    /// the opaque source Request as a generic public-value tree.
+    fn call_projected_http_request_frame(
+        &mut self,
+        context: &mut PureNativeExecutionContext<'_>,
+        request_id: u64,
+        export_id: u64,
+        request: RequestParts,
+        projection: RequestFieldProjection,
+    ) -> Result<TvmControlFrame, String> {
+        let _ = (context, request_id, export_id, request, projection);
+        Err(
+            "error[pure_native.http_request_projection]: backend does not support typed HTTP request admission"
+                .to_string(),
+        )
+    }
 
     fn resume_frame(
         &mut self,
@@ -362,41 +381,69 @@ impl PureNativeBoundary {
         trace_enabled: bool,
         result_projection: NativeResultProjection,
     ) -> Result<PreparedNativeCall, String> {
+        let prepared = self.prepare_call_arity(
+            context,
+            function,
+            args.len(),
+            trace_enabled,
+            result_projection,
+        )?;
+        let artifact = self
+            .artifact
+            .as_ref()
+            .expect("prepared call retains its admitted artifact");
+        let export = artifact
+            .exports
+            .iter()
+            .find(|export| export.id == prepared.export_id)
+            .expect("prepared call retains its resolved export");
+        validate_arguments(export, args)?;
+        Ok(prepared)
+    }
+
+    fn prepare_call_arity(
+        &mut self,
+        context: &mut PureNativeExecutionContext<'_>,
+        function: &str,
+        arity: usize,
+        trace_enabled: bool,
+        result_projection: NativeResultProjection,
+    ) -> Result<PreparedNativeCall, String> {
         let owner_id = context.owner_id();
         let artifact = self.artifact.as_ref().ok_or_else(|| {
             format!(
                 "error[pure_native_artifact_missing]: native_pure function `{function}/{}` has no loaded AOT artifact",
-                args.len()
+                arity
             )
         })?;
         let cached_index = self.call_cache.as_ref().and_then(|cached| {
-            (cached.arity == args.len() && cached.requested_function == function)
+            (cached.arity == arity && cached.requested_function == function)
                 .then_some(cached.export_index)
         });
         let export_index = match cached_index {
             Some(index) => index,
             None => {
                 let mut matches = artifact.exports.iter().enumerate().filter(|(_, export)| {
-                    export.arity == args.len() && export_matches(export, function)
+                    export.arity == arity && export_matches(export, function)
                 });
                 let (index, _) = match matches.next() {
                     Some(found) => found,
                     None => {
                         return Err(format!(
                             "error[pure_native_export_missing]: AOT artifact does not export `{function}/{}`",
-                            args.len()
+                            arity
                         ));
                     }
                 };
                 if matches.next().is_some() {
                     return Err(format!(
                         "error[pure_native_export_ambiguous]: native entry `{function}/{}` exists in multiple modules; use its qualified name",
-                        args.len()
+                        arity
                     ));
                 }
                 self.call_cache = Some(NativeCallCache {
                     requested_function: function.to_owned(),
-                    arity: args.len(),
+                    arity,
                     export_index: index,
                     continuations: Arc::from(artifact.continuations.clone()),
                 });
@@ -408,7 +455,6 @@ impl PureNativeBoundary {
             .as_ref()
             .expect("artifact remains admitted while resolving its cached export");
         let export = &artifact.exports[export_index];
-        validate_arguments(export, args)?;
         if self.backend.is_none() {
             return Err(
                 "error[execution_shard.backend_missing]: admitted AOT image has no in-shard backend"

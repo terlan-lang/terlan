@@ -29,7 +29,6 @@ use super::{
 };
 
 #[path = "execution_shard/actor_transfer.rs"]
-#[allow(dead_code)] // Staged MC-5 migration API precedes production orchestration.
 mod actor_transfer;
 
 #[path = "execution_shard/generation_lifetime.rs"]
@@ -57,7 +56,6 @@ use admission::{
 use generation_lifetime::PureNativeGenerationTransferTracker;
 use lifecycle_replay::PureNativeShardLifecycleReplay;
 
-#[allow(unused_imports)] // Re-exported for staged MC-5 transfer tests.
 pub(crate) use actor_transfer::{PureNativeActorImportFailure, PureNativeActorTransfer};
 pub(crate) use capability_ingress::PureNativeCapabilityWait;
 pub(crate) use timer_ingress::{PureNativeTimerTick, PureNativeTimerWait};

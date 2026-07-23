@@ -4,6 +4,8 @@
 mod managed_http_response;
 #[path = "direct_backend/managed_values.rs"]
 mod managed_values;
+#[path = "direct_backend/projected_http_request.rs"]
+mod projected_http_request;
 
 use std::ffi::c_void;
 use std::path::Path;
@@ -12,6 +14,7 @@ use std::sync::Arc;
 use libloading::{Library, Symbol};
 use smallvec::SmallVec;
 
+use crate::runtime::native::http::{RequestFieldProjection, RequestParts};
 use crate::runtime::native_image::control::{TvmControlFrame, TvmTransitionOperation};
 use crate::runtime::native_image::managed::{ManagedExecutionRuntime, SemanticTypeId};
 use crate::runtime::native_image::{
@@ -389,6 +392,32 @@ impl NativeImageBackend for DirectNativeBackend {
             })
             .collect::<Result<SmallVec<[i64; 4]>, _>>()?;
         self.dispatch(context, request_id, export_id, &arguments)
+    }
+
+    fn call_projected_http_request_frame(
+        &mut self,
+        context: &mut PureNativeExecutionContext<'_>,
+        request_id: u64,
+        export_id: u64,
+        request: RequestParts,
+        projection: RequestFieldProjection,
+    ) -> Result<TvmControlFrame, String> {
+        let [TvmBoundaryType::Managed(identity)] = self.entry_parameters(export_id)? else {
+            return Err(
+                "error[execution_shard.http_request_projection]: projected Request entry must accept one managed argument"
+                    .to_string(),
+            );
+        };
+        let semantic = SemanticTypeId::from_bytes(*identity);
+        let owner_id = context.owner_id();
+        let argument = context
+            .managed()
+            .with_public_allocation(owner_id, |heap, layouts| {
+                projected_http_request::allocate_projected_request(
+                    heap, layouts, semantic, request, projection,
+                )
+            })?;
+        self.dispatch(context, request_id, export_id, &[argument])
     }
 
     fn resume_frame(

@@ -6,14 +6,12 @@ use super::{ActorHeap, ActorId, ManagedExecutionRuntime, ManagedMailboxFragment}
 
 /// Complete movable managed state for one actor generation.
 #[derive(Debug)]
-#[allow(dead_code)] // Consumed by the staged MC-5 pure-native transfer layer.
 pub(crate) struct ManagedActorTransfer {
     owner: ActorId,
     heap: Option<ActorHeap>,
     mailbox_fragments: Vec<(u32, ManagedMailboxFragment)>,
 }
 
-#[allow(dead_code)] // Wired into scheduler-owner transfer in the next MC-5 slice.
 impl ManagedActorTransfer {
     /// Returns the actor identity shared by the heap and all precise roots.
     pub(crate) fn owner_id(&self) -> u64 {
@@ -37,13 +35,11 @@ impl ManagedActorTransfer {
 
 /// Failed destination admission that returns the complete transfer unchanged.
 #[derive(Debug)]
-#[allow(dead_code)] // Consumed by the staged MC-5 pure-native transfer layer.
 pub(crate) struct ManagedActorImportFailure {
     reason: String,
     transfer: ManagedActorTransfer,
 }
 
-#[allow(dead_code)] // Wired into scheduler-owner transfer in the next MC-5 slice.
 impl ManagedActorImportFailure {
     /// Returns the stable destination-admission reason.
     pub(crate) fn reason(&self) -> &str {
@@ -64,7 +60,6 @@ impl fmt::Display for ManagedActorImportFailure {
 
 impl std::error::Error for ManagedActorImportFailure {}
 
-#[allow(dead_code)] // Wired into scheduler-owner transfer in the next MC-5 slice.
 impl ManagedExecutionRuntime {
     /// Detaches one actor heap and all roots that point into it.
     pub(crate) fn detach_actor(&mut self, owner_id: u64) -> Result<ManagedActorTransfer, String> {

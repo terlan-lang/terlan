@@ -124,6 +124,7 @@ def validate_performance_report(report: dict[str, object]) -> None:
     provenance = require_mapping(report.get("provenance"), "performance provenance")
     provenance_expected = {
         "execution_environment": "github-actions",
+        "source_tree_clean": True,
         "repository": platform_matrix.OFFICIAL_REPOSITORY,
         "commit_sha": revision,
         "runner_environment": "self-hosted",
@@ -264,6 +265,36 @@ def build_closeout(
     }
 
 
+def validate_closeout(report: dict[str, object]) -> None:
+    """Validate one sealed MC-9 report for downstream release composition."""
+
+    expected = {
+        "schema": SCHEMA,
+        "decision": "pass",
+        "repository": platform_matrix.OFFICIAL_REPOSITORY,
+        "dedicated_runner_label": DEDICATED_RUNNER,
+        "sanitizer_toolchain": sanitizer.TOOLCHAIN,
+        "sanitizer_target": sanitizer.TARGET,
+    }
+    for field, value in expected.items():
+        if report.get(field) != value:
+            raise AssertionError(f"MC-9 closeout has invalid `{field}`")
+    if not is_revision(report.get("source_revision")):
+        raise AssertionError("MC-9 closeout has an invalid source revision")
+    for field in ("performance_report_sha256", "sanitizer_report_sha256"):
+        if not is_sha256(report.get(field)):
+            raise AssertionError(f"MC-9 closeout has invalid `{field}`")
+    if not isinstance(report.get("workflow_ref"), str) or not report["workflow_ref"]:
+        raise AssertionError("MC-9 closeout has no workflow reference")
+    if not isinstance(report.get("performance_runner_name"), str) or not report[
+        "performance_runner_name"
+    ]:
+        raise AssertionError("MC-9 closeout has no performance runner")
+    for field in ("run_id", "run_attempt"):
+        if not isinstance(report.get(field), int) or isinstance(report.get(field), bool):
+            raise AssertionError(f"MC-9 closeout has invalid `{field}`")
+
+
 def load_report(path: Path) -> dict[str, object]:
     """Load one required JSON evidence object."""
 
@@ -282,6 +313,7 @@ def seal() -> Path:
         file_sha256(PERFORMANCE_REPORT),
         file_sha256(SANITIZER_REPORT),
     )
+    validate_closeout(closeout)
     OUTPUT_REPORT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_REPORT.write_text(
         json.dumps(closeout, indent=2, sort_keys=True) + "\n",
@@ -307,6 +339,7 @@ def synthetic_performance() -> dict[str, object]:
         "hardware": {"effective_parallelism": 4},
         "provenance": {
             "execution_environment": "github-actions",
+            "source_tree_clean": True,
             "repository": platform_matrix.OFFICIAL_REPOSITORY,
             "workflow_ref": "terlan-lang/terlan/.github/workflows/release.yml@refs/tags/v0.0.7",
             "run_id": 7,
@@ -370,6 +403,7 @@ def synthetic_sanitizer() -> dict[str, object]:
         "seed_count": sanitizer.SEED_COUNT,
         "stress_report_sha256": "c" * 64,
         "source_revision": revision,
+        "source_tree_clean": True,
         "execution_environment": "github-actions",
         "repository": platform_matrix.OFFICIAL_REPOSITORY,
         "workflow_ref": "terlan-lang/terlan/.github/workflows/release.yml@refs/tags/v0.0.7",
@@ -387,6 +421,7 @@ def validate_contract_files() -> None:
         "vm-multicore-mc9-evidence-contract-check:",
         "vm-multicore-mc9-evidence-check:",
         "tools/check_vm_multicore_mc9_evidence.py seal",
+        "$(MAKE) vm-multicore-mc9-evidence-check",
     ):
         if fragment not in makefile:
             raise AssertionError(f"Makefile omits `{fragment}`")
@@ -395,7 +430,7 @@ def validate_contract_files() -> None:
         "runs-on: [self-hosted, linux, x64, terlan-linux-x86_64-multicore-v1]",
         "TERLAN_VM_MULTICORE_DEDICATED_RUNNER: terlan-linux-x86_64-multicore-v1",
         "TERLAN_BENCH_BACKGROUND_LOAD: controlled",
-        "make vm-multicore-mc9-evidence-check",
+        "make vm-multicore-release-check",
         "vm-multicore-mc9-evidence.json",
     ):
         if fragment not in release:
@@ -422,8 +457,17 @@ def self_test() -> None:
     performance = synthetic_performance()
     sanitizer_report = synthetic_sanitizer()
     closeout = build_closeout(performance, sanitizer_report, "d" * 64, "e" * 64)
+    validate_closeout(closeout)
     if closeout.get("decision") != "pass":
         raise AssertionError("valid MC-9 evidence did not pass")
+    invalid_closeout = dict(closeout)
+    invalid_closeout["run_attempt"] = False
+    try:
+        validate_closeout(invalid_closeout)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("MC-9 closeout accepted a boolean run attempt")
 
     for field, value in (
         ("eligible_for_parallel_assertion", False),
@@ -445,6 +489,7 @@ def self_test() -> None:
         }
         expect_rejected(invalid, sanitizer_report, field)
     for field, value in (
+        ("source_tree_clean", False),
         ("runner_environment", "github-hosted"),
         ("run_id", 8),
         ("run_attempt", False),
@@ -457,6 +502,7 @@ def self_test() -> None:
         }
         expect_rejected(invalid, sanitizer_report, field)
     for field, value in (
+        ("source_tree_clean", False),
         ("source_revision", "f" * 40),
         ("run_id", 8),
         ("toolchain", "stable"),

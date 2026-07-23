@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 use std::num::NonZeroUsize;
 use std::ops::Range;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
 use super::{
@@ -350,6 +350,51 @@ impl ActorHeap {
         self.space.reserve(end.saturating_sub(original_len));
         self.space.resize(offset, 0);
         self.space.extend_from_slice(prefix);
+        for range in ranges {
+            self.space.extend_from_within(range.clone());
+        }
+        self.objects.insert(offset, ObjectMetadata { descriptor });
+        self.reference_for_offset(offset)
+    }
+
+    /// Bump-allocates a reference-free object from fixed byte parts followed
+    /// by ranges already owned by this heap.
+    pub(super) fn allocate_reference_free_parts_ranges<T>(
+        &mut self,
+        descriptor: Arc<ManagedTypeDescriptor>,
+        parts: &[&[u8]],
+        ranges: &[Range<usize>],
+    ) -> Result<TvmRef<T>, ManagedMemoryError> {
+        if !descriptor.reference_offsets().is_empty() {
+            return Err(ManagedMemoryError::InvalidReferenceMap);
+        }
+        let original_len = self.space.len();
+        let fixed_size = parts.iter().try_fold(0_usize, |size, part| {
+            size.checked_add(part.len())
+                .ok_or(ManagedMemoryError::AllocationLimitExceeded)
+        })?;
+        let payload_size = ranges.iter().try_fold(fixed_size, |size, range| {
+            if range.start > range.end || range.end > original_len {
+                return Err(ManagedMemoryError::UnknownReference);
+            }
+            size.checked_add(range.len())
+                .ok_or(ManagedMemoryError::AllocationLimitExceeded)
+        })?;
+        if payload_size != descriptor.size() {
+            return Err(ManagedMemoryError::LayoutMismatch);
+        }
+        let offset = align_up(original_len, descriptor.alignment())?;
+        let end = offset
+            .checked_add(payload_size)
+            .ok_or(ManagedMemoryError::AllocationLimitExceeded)?;
+        if end > self.limits.hard_bytes || end > OFFSET_MASK {
+            return Err(ManagedMemoryError::AllocationLimitExceeded);
+        }
+        self.space.reserve(end.saturating_sub(original_len));
+        self.space.resize(offset, 0);
+        for part in parts {
+            self.space.extend_from_slice(part);
+        }
         for range in ranges {
             self.space.extend_from_within(range.clone());
         }
@@ -807,26 +852,6 @@ impl ActorHeap {
     fn retire_token(&mut self, token: u32) {
         if let Some(previous) = self.latest_retired_token.replace(token) {
             self.retired_tokens.insert(previous);
-        }
-    }
-
-    /// Draws a fresh generation from an owner-local reservation.
-    ///
-    /// The global allocator is touched only once per block, avoiding cache-line
-    /// contention when independent shards reset request heaps concurrently.
-    fn next_reuse_token(&mut self) -> u32 {
-        loop {
-            if self.reserved_tokens_remaining == 0 {
-                self.next_reserved_token =
-                    NEXT_HEAP_TOKEN.fetch_add(TOKEN_RESERVATION_SIZE, Ordering::Relaxed);
-                self.reserved_tokens_remaining = TOKEN_RESERVATION_SIZE;
-            }
-            let token = self.next_reserved_token;
-            self.next_reserved_token = self.next_reserved_token.wrapping_add(1);
-            self.reserved_tokens_remaining -= 1;
-            if token != 0 {
-                return token;
-            }
         }
     }
 

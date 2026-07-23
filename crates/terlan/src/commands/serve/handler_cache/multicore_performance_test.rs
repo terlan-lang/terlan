@@ -126,6 +126,8 @@ struct RuntimeWorkloadMeasurement {
 struct PerformanceProvenance {
     /// Local or GitHub Actions execution environment.
     execution_environment: &'static str,
+    /// Whether tracked and untracked source state exactly matches the commit.
+    source_tree_clean: bool,
     /// Official GitHub repository for hosted evidence.
     repository: Option<String>,
     /// Exact workflow reference that launched hosted evidence.
@@ -520,9 +522,11 @@ fn source_revision() -> Result<String, String> {
 
 /// Captures local identity or validates complete official hosted provenance.
 fn performance_provenance(source_revision: &str) -> Result<PerformanceProvenance, String> {
+    let source_tree_clean = source_tree_clean()?;
     if env::var("GITHUB_ACTIONS").as_deref() != Ok("true") {
         return Ok(PerformanceProvenance {
             execution_environment: "local",
+            source_tree_clean,
             repository: None,
             workflow_ref: None,
             run_id: None,
@@ -531,6 +535,11 @@ fn performance_provenance(source_revision: &str) -> Result<PerformanceProvenance
             runner_name: None,
             runner_environment: None,
         });
+    }
+    if !source_tree_clean {
+        return Err(
+            "official performance evidence requires a clean checked-out source tree".to_string(),
+        );
     }
     let repository = required_environment("GITHUB_REPOSITORY")?;
     let workflow_ref = required_environment("GITHUB_WORKFLOW_REF")?;
@@ -560,6 +569,7 @@ fn performance_provenance(source_revision: &str) -> Result<PerformanceProvenance
     }
     Ok(PerformanceProvenance {
         execution_environment: "github-actions",
+        source_tree_clean,
         repository: Some(repository),
         workflow_ref: Some(workflow_ref),
         run_id: Some(run_id),
@@ -568,6 +578,18 @@ fn performance_provenance(source_revision: &str) -> Result<PerformanceProvenance
         runner_name: Some(runner_name),
         runner_environment: Some(runner_environment),
     })
+}
+
+/// Returns whether the working tree exactly matches its checked-out commit.
+fn source_tree_clean() -> Result<bool, String> {
+    let output = Command::new("git")
+        .args(["status", "--porcelain=v1", "--untracked-files=all"])
+        .output()
+        .map_err(|error| format!("failed to inspect benchmark source tree: {error}"))?;
+    if !output.status.success() {
+        return Err("failed to inspect benchmark source tree".to_string());
+    }
+    Ok(output.stdout.is_empty())
 }
 
 /// Reads one required nonempty environment variable.

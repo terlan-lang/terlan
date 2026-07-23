@@ -10,7 +10,6 @@ pub(crate) use self::actor_timer::VmActorTimerDelivery;
 #[path = "actor/transfer.rs"]
 mod transfer;
 
-#[allow(unused_imports)] // Public to staged MC-5 tests before migration orchestration lands.
 pub(crate) use transfer::{VmActorRuntimeImportFailure, VmActorRuntimeTransfer};
 
 vm_capability_component! {

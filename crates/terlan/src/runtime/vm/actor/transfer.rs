@@ -4,12 +4,14 @@ use std::collections::BTreeSet;
 use std::fmt;
 
 use super::{VmActorRuntime, VmDelayedActorMessage, VmProcessId};
-use crate::runtime::vm::memory::VmMemoryTransfer;
-use crate::runtime::vm::process::{VmProcessState, VmProcessTransfer};
-use crate::runtime::vm::process_alias::VmProcessAliasTransfer;
-use crate::runtime::vm::resource::VmResourceTransfer;
-use crate::runtime::vm::scheduler::VmSchedulerPlacementTransfer;
-use crate::runtime::vm::timer::{VmTimerId, VmTimerTransfer};
+use crate::runtime::vm::memory::transfer::VmMemoryTransfer;
+use crate::runtime::vm::process::transfer::VmProcessTransfer;
+use crate::runtime::vm::process::VmProcessState;
+use crate::runtime::vm::process_alias::transfer::VmProcessAliasTransfer;
+use crate::runtime::vm::resource::transfer::VmResourceTransfer;
+use crate::runtime::vm::scheduler::transfer::VmSchedulerPlacementTransfer;
+use crate::runtime::vm::timer::transfer::VmTimerTransfer;
+use crate::runtime::vm::timer::VmTimerId;
 
 /// Process and scheduler state detached for one parked native actor.
 #[derive(Debug)]

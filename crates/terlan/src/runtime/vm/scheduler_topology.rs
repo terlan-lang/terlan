@@ -133,7 +133,6 @@ impl VmFixedActorRoute {
     }
 
     /// Returns the actor's immutable placement preference.
-    #[allow(dead_code)] // Used by the MC-5 migration protocol before handler integration.
     pub(crate) const fn home_scheduler(self) -> VmSchedulerId {
         self.home_scheduler
     }
@@ -144,7 +143,6 @@ impl VmFixedActorRoute {
     }
 
     /// Creates the next route while preserving actor and home identity.
-    #[allow(dead_code)] // Used by the MC-5 migration protocol before handler integration.
     pub(crate) fn migrated_to(self, destination: VmSchedulerId) -> Result<Self, String> {
         if destination == self.scheduler {
             return Err(format!(
@@ -293,6 +291,7 @@ fn physical_core_count(cpuinfo: &str) -> Option<usize> {
 }
 
 /// Converts a cgroup v2 CPU quota into a conservative scheduler count.
+#[cfg(test)]
 fn cgroup_v2_quota(value: &str) -> Option<usize> {
     parse_cgroup_v2_quota(value)?.scheduler_limit
 }

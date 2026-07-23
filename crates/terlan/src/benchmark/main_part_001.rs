@@ -40,7 +40,6 @@ pub(crate) mod runtime {
         #[cfg(test)]
         pub(crate) use crate::resource;
         pub(crate) use crate::scheduler;
-        pub(crate) use crate::vm_runtime::scheduler_topology;
         pub(crate) use crate::timer;
         pub(crate) use crate::vm_runtime::native_boundary;
         pub(crate) use crate::vm_runtime::native_image_diagnostics;

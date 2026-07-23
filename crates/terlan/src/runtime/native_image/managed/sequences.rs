@@ -134,6 +134,46 @@ impl ActorHeap {
         )
     }
 
+    /// Prepends one compiler-admitted UTF-8 literal without first allocating
+    /// that literal as a managed heap object.
+    pub(super) fn prepend_string_literal(
+        &mut self,
+        literal: &str,
+        right: TvmRef<ManagedString>,
+    ) -> Result<TvmRef<ManagedString>, ManagedMemoryError> {
+        let right_length = self.read_string(right)?.len();
+        let value_length = literal
+            .len()
+            .checked_add(right_length)
+            .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
+        let mut right_range = self.payload_range(right)?;
+        right_range.start = right_range
+            .start
+            .checked_add(MANAGED_SEQUENCE_HEADER_BYTES)
+            .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
+        if right_range.len() != right_length {
+            return Err(ManagedMemoryError::InvalidSequenceLength);
+        }
+        let length =
+            u64::try_from(value_length).map_err(|_| ManagedMemoryError::InvalidSequenceLength)?;
+        let size = MANAGED_SEQUENCE_HEADER_BYTES
+            .checked_add(value_length)
+            .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
+        let allocation_class = if size > 64 * 1024 {
+            AllocationClass::Large
+        } else {
+            AllocationClass::Young
+        };
+        let descriptor =
+            self.sequence_descriptor(managed_string_semantic_id(), size, allocation_class)?;
+        let length = length.to_le_bytes();
+        self.allocate_reference_free_parts_ranges(
+            descriptor,
+            &[&length, literal.as_bytes()],
+            &[right_range],
+        )
+    }
+
     /// Allocates one immutable byte sequence in this actor's managed heap.
     pub fn allocate_bytes(
         &mut self,

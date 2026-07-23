@@ -8,6 +8,9 @@ use crate::terlan_quality::{render_failure, QualityResult};
 
 const ROADMAP_RELATIVE_PATH: &str = "docs/roadmap/ROADMAP_0_0_7.md";
 const IMPLEMENTED_ARCHIVE_FILE: &str = "archive/ROADMAP_0_0_7_IMPLEMENTED.md";
+const MULTICORE_ROADMAP_FILE: &str = "ROADMAP_0_0_7_MULTICORE_VM.md";
+const PLANNED_GATES_HEADING: &str = "## Planned Gates";
+const MULTICORE_GATES_HEADING: &str = "## Complete Multicore Gate Set";
 const MAKE_FILES: &[&str] = &[
     "Makefile",
     "crates/terlan/cli.mk",
@@ -54,8 +57,20 @@ pub fn run_roadmap_gate_integrity(root: &Path) -> QualityResult<RoadmapGateInteg
             archive_path.display()
         )
     })?;
+    let multicore_path = roadmap_path
+        .parent()
+        .expect("roadmap path has a parent")
+        .join(MULTICORE_ROADMAP_FILE);
+    let multicore_roadmap = fs::read_to_string(&multicore_path).map_err(|err| {
+        format!(
+            "{}: failed to read multicore roadmap: {err}",
+            multicore_path.display()
+        )
+    })?;
     let make_targets = collect_make_targets(root)?;
-    let planned_gates = parse_planned_gates(&roadmap);
+    let planned_gate_order = parse_gate_block(&roadmap, PLANNED_GATES_HEADING);
+    let planned_gates = planned_gate_order.iter().cloned().collect::<BTreeSet<_>>();
+    let multicore_gate_order = parse_gate_block(&multicore_roadmap, MULTICORE_GATES_HEADING);
     let unchecked_slices = parse_roadmap_slices(&roadmap, false);
     let active_completed_slices = parse_roadmap_slices(&roadmap, true);
     let archived_completed_slices = parse_roadmap_slices(&implemented_archive, true);
@@ -69,6 +84,7 @@ pub fn run_roadmap_gate_integrity(root: &Path) -> QualityResult<RoadmapGateInteg
         make_targets.len(),
         &mut diagnostics,
     );
+    validate_multicore_gate_sync(&planned_gate_order, &multicore_gate_order, &mut diagnostics);
     diagnostics.extend(validate_roadmap_gate_integrity(
         &planned_gates,
         &unchecked_slices,
@@ -156,17 +172,28 @@ fn collect_make_targets(root: &Path) -> QualityResult<BTreeSet<String>> {
     Ok(targets)
 }
 
-/// Parses the planned gates fenced block.
-fn parse_planned_gates(roadmap: &str) -> BTreeSet<String> {
+/// Parses one roadmap gate section while preserving declaration order.
+///
+/// Inputs:
+/// - Complete roadmap text.
+/// - Exact level-two heading that owns a fenced Make command inventory.
+///
+/// Output:
+/// - Every first target following `make`, in declaration order.
+///
+/// Transformation:
+/// - Retains ordering and duplicates so cross-roadmap contracts can reject
+///   drift that an unordered set would hide.
+fn parse_gate_block(roadmap: &str, heading: &str) -> Vec<String> {
     let mut in_planned = false;
     let mut in_fence = false;
-    let mut gates = BTreeSet::new();
+    let mut gates = Vec::new();
     for line in roadmap.lines() {
-        if line.trim() == "## Planned Gates" {
+        if line.trim() == heading {
             in_planned = true;
             continue;
         }
-        if in_planned && line.starts_with("## ") && line.trim() != "## Planned Gates" {
+        if in_planned && line.starts_with("## ") && line.trim() != heading {
             break;
         }
         if !in_planned {
@@ -179,12 +206,91 @@ fn parse_planned_gates(roadmap: &str) -> BTreeSet<String> {
         if in_fence {
             if let Some(rest) = line.trim().strip_prefix("make ") {
                 if let Some(name) = rest.split_whitespace().next() {
-                    gates.insert(name.to_string());
+                    gates.push(name.to_string());
                 }
             }
         }
     }
     gates
+}
+
+/// Validates the multicore closeout inventory is canonical in the main roadmap.
+///
+/// Inputs:
+/// - Ordered main-roadmap planned gates.
+/// - Ordered multicore mini-roadmap complete gate set.
+/// - Mutable diagnostic collection.
+///
+/// Output:
+/// - No diagnostics only when both inventories are duplicate-free and the
+///   complete multicore sequence appears contiguously in the main inventory.
+///
+/// Transformation:
+/// - Makes the mini-roadmap an executable source of truth while ensuring the
+///   release roadmap cannot omit, reorder, or partially copy its closeout.
+fn validate_multicore_gate_sync(
+    planned_gates: &[String],
+    multicore_gates: &[String],
+    diagnostics: &mut Vec<String>,
+) {
+    if multicore_gates.is_empty() {
+        diagnostics.push(format!(
+            "`{MULTICORE_GATES_HEADING}` contains no `make ...` commands"
+        ));
+        return;
+    }
+    report_duplicate_gates("main planned gate inventory", planned_gates, diagnostics);
+    report_duplicate_gates(
+        "multicore complete gate inventory",
+        multicore_gates,
+        diagnostics,
+    );
+
+    if planned_gates
+        .windows(multicore_gates.len())
+        .any(|window| window == multicore_gates)
+    {
+        return;
+    }
+
+    let planned = planned_gates.iter().collect::<BTreeSet<_>>();
+    let missing = multicore_gates
+        .iter()
+        .filter(|gate| !planned.contains(gate))
+        .cloned()
+        .collect::<Vec<_>>();
+    if missing.is_empty() {
+        diagnostics.push(
+            "main planned gate inventory must contain the complete multicore gate set in exact contiguous order"
+                .to_string(),
+        );
+    } else {
+        diagnostics.push(format!(
+            "main planned gate inventory is missing multicore gates: {}",
+            missing.join(", ")
+        ));
+    }
+}
+
+/// Reports repeated gate commands that would make roadmap ownership ambiguous.
+fn report_duplicate_gates(label: &str, gates: &[String], diagnostics: &mut Vec<String>) {
+    let mut seen = BTreeSet::new();
+    let mut duplicates = BTreeSet::new();
+    for gate in gates {
+        if !seen.insert(gate) {
+            duplicates.insert(gate);
+        }
+    }
+    if !duplicates.is_empty() {
+        diagnostics.push(format!(
+            "{label} contains duplicate gates: {}",
+            duplicates
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
 }
 
 /// Parses active roadmap checklist slices.

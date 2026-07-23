@@ -192,8 +192,8 @@ jobs:
           name: release-vm-multicore-performance
           path: target/quality
 
-      - name: Join MC-9 release-candidate evidence
-        run: make vm-multicore-mc9-evidence-check
+      - name: Validate complete multicore release
+        run: make vm-multicore-release-check
 
       - name: Validate and seal complete AOT closeout
         run: make tvm-aot-release-closeout-check
@@ -211,6 +211,7 @@ jobs:
             target/quality/vm-multicore-memory-model-tsan.json
             target/quality/vm-multicore-performance.json
             target/quality/vm-multicore-mc9-evidence.json
+            target/quality/vm-multicore-release-closeout.json
             target/quality/aot-compilation-benchmark.json
             target/quality/http-aot-performance-comparison.json
             target/quality/tvm-managed-list-profile.json

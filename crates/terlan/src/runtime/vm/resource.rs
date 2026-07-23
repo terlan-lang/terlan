@@ -5,10 +5,7 @@ use std::collections::BTreeMap;
 use super::process::{VmProcessId, VmProcessState, VmProcessTable};
 
 #[path = "resource/transfer.rs"]
-mod transfer;
-
-#[allow(unused_imports)] // Public to staged MC-5 tests before migration orchestration lands.
-pub(crate) use transfer::{VmResourceImportFailure, VmResourceTransfer};
+pub(crate) mod transfer;
 
 /// VM-owned native resource identifier.
 ///

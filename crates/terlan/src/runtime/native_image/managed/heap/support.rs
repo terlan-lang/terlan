@@ -4,7 +4,32 @@ use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
 use std::sync::atomic::Ordering;
 
-use super::{ManagedMemoryError, ObjectTable, TvmRef, NEXT_HEAP_TOKEN, OFFSET_MASK, TOKEN_SHIFT};
+use super::{
+    ActorHeap, ManagedMemoryError, ObjectTable, TvmRef, NEXT_HEAP_TOKEN, OFFSET_MASK,
+    TOKEN_RESERVATION_SIZE, TOKEN_SHIFT,
+};
+
+impl ActorHeap {
+    /// Draws a fresh generation from an owner-local reservation.
+    ///
+    /// The global allocator is touched only once per block, avoiding cache-line
+    /// contention when independent shards reset request heaps concurrently.
+    pub(super) fn next_reuse_token(&mut self) -> u32 {
+        loop {
+            if self.reserved_tokens_remaining == 0 {
+                self.next_reserved_token =
+                    NEXT_HEAP_TOKEN.fetch_add(TOKEN_RESERVATION_SIZE, Ordering::Relaxed);
+                self.reserved_tokens_remaining = TOKEN_RESERVATION_SIZE;
+            }
+            let token = self.next_reserved_token;
+            self.next_reserved_token = self.next_reserved_token.wrapping_add(1);
+            self.reserved_tokens_remaining -= 1;
+            if token != 0 {
+                return token;
+            }
+        }
+    }
+}
 
 /// Returns a fresh nonzero heap-generation token.
 pub(super) fn next_token() -> u32 {

@@ -236,6 +236,7 @@ fn least_loaded_admission_rotates_ties_and_skips_full_shards() {
     assert_eq!(admission_target(&ingresses, 0, 2), Some(0));
     ingresses[0].load.store(1, Ordering::Release);
     assert_eq!(admission_target(&ingresses, 0, 2), Some(2));
+    assert_eq!(admission_target(&ingresses, 0, 0), Some(1));
     ingresses[0].load.store(2, Ordering::Release);
     assert_eq!(admission_target(&ingresses, 0, 2), Some(2));
     ingresses[0]

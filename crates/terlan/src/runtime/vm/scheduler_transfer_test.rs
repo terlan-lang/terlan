@@ -1,3 +1,4 @@
+use super::transfer::VmSchedulerPlacementTransfer;
 use super::*;
 use crate::runtime::vm::process::VmProcessSource;
 

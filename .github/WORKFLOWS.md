@@ -46,8 +46,10 @@ execute, reload, crash, and reject incompatible images, while local closeout
 always executes the complete cycle on the current host. The strict contract
 self-test rejects incomplete target rows and malformed aggregate data without
 making artifact upload or hosted retention a completion requirement.
-Compiler CI also runs `make tvm-aot-roadmap-reconciliation-check` so the
-completed AOT boundary cannot drift through documentation-only validation.
+Final AOT roadmap retirement runs
+`make tvm-aot-roadmap-reconciliation-check` only after every owned AOT slice is
+complete. Ordinary compiler CI keeps running the implementation gates while an
+AOT slice is deliberately open.
 
 A separate Linux x86-64 job installs Rust's fully instrumented
 `x86_64-unknown-linux-gnutsan` standard library target and runs:

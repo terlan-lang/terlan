@@ -1,6 +1,5 @@
 use super::super::actor_directory::{
-    VmActorDirectoryError, VmActorLifecycle, VmActorMutatorToken, VmActorStealClaim,
-    VmActorTransitionEvent,
+    VmActorDirectoryError, VmActorLifecycle, VmActorMutatorToken, VmActorTransitionEvent,
 };
 use super::{VmExitReason, VmProcess, VmProcessId, VmProcessState, VmProcessTable};
 
@@ -92,33 +91,6 @@ impl VmProcessTable {
         self.processes
             .mark_queued(pid)
             .map_err(actor_directory_error)
-    }
-
-    /// Claims one fully published queued actor for a victim-owned steal.
-    pub(crate) fn claim_actor_for_steal(
-        &self,
-        pid: VmProcessId,
-    ) -> Result<VmActorStealClaim, String> {
-        self.processes
-            .claim_queued_for_steal(pid)
-            .map_err(actor_directory_error)
-    }
-
-    /// Restores one rejected steal claim to queued execution eligibility.
-    pub(crate) fn abort_actor_steal(&self, claim: VmActorStealClaim) -> Result<(), String> {
-        self.processes
-            .abort_steal_claim(claim)
-            .map_err(actor_directory_error)
-    }
-
-    /// Publishes one accepted actor steal on its destination scheduler.
-    pub(crate) fn complete_actor_steal(
-        &self,
-        claim: VmActorStealClaim,
-    ) -> Result<(), (String, VmActorStealClaim)> {
-        self.processes
-            .complete_steal_claim(claim)
-            .map_err(|(error, claim)| (actor_directory_error(error), claim))
     }
 
     /// Returns actor lifecycle for focused scheduler ownership tests.

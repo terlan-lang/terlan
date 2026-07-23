@@ -45,6 +45,7 @@ pub(in crate::commands::serve) fn vm_request_descriptor_owned(
 }
 
 /// Replaces one fixed Request envelope while retaining its aggregate vectors.
+#[cfg(test)]
 pub(in crate::commands::serve) fn replace_vm_request_descriptor(
     value: &mut ReplValue,
     request: RequestParts,
@@ -113,6 +114,7 @@ pub(in crate::commands::serve) fn replace_vm_request_descriptor(
     }
 }
 
+#[cfg(test)]
 fn replace_projected_map(
     value: &mut ReplValue,
     projection: RequestFieldProjection,
@@ -128,6 +130,7 @@ fn replace_projected_map(
     );
 }
 
+#[cfg(test)]
 fn replace_string_map(value: &mut ReplValue, entries: Vec<(String, String)>) {
     let ReplValue::Map(existing) = value else {
         *value = owned_string_map(entries);
@@ -141,6 +144,7 @@ fn replace_string_map(value: &mut ReplValue, entries: Vec<(String, String)>) {
     );
 }
 
+#[cfg(test)]
 fn replace_cookie_jar(value: &mut ReplValue, entries: Vec<(String, String)>) {
     let ReplValue::Tuple(fields) = value else {
         return;

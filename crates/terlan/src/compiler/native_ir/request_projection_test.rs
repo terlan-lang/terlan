@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use crate::runtime::native::http::RequestFieldProjection;
 use crate::runtime::native_image::managed::{
-    encode_aggregate_field_operation, encode_string_append_operation, SemanticTypeId,
+    encode_aggregate_field_operation, encode_string_append_operation,
+    encode_string_prepend_projected_literal_operation, SemanticTypeId,
 };
 use crate::terlan_typeck::CoreType;
 
@@ -64,6 +65,26 @@ fn exact_accessors_produce_a_narrow_field_set() {
     assert!(fields.requires(RequestFieldProjection::METHOD));
     assert!(fields.requires(RequestFieldProjection::BODY));
     assert!(!fields.requires(RequestFieldProjection::HEADERS));
+}
+
+#[test]
+fn fused_projected_string_operation_retains_a_narrow_field_set() {
+    let fields = projection(NativeExpr::ManagedOperation {
+        encoded: Arc::from(
+            encode_string_prepend_projected_literal_operation(
+                request_semantic(),
+                RequestFieldProjection::BODY,
+                "prefix:",
+            )
+            .expect("fused projection"),
+        ),
+        args: vec![NativeExpr::Param(0)],
+    });
+
+    assert_eq!(
+        fields,
+        RequestFieldProjection::Fields(1 << RequestFieldProjection::BODY)
+    );
 }
 
 #[test]

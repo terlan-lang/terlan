@@ -27,11 +27,9 @@ mod publication;
 #[path = "memory/shared.rs"]
 mod shared;
 #[path = "memory/transfer.rs"]
-mod transfer;
+pub(crate) mod transfer;
 
 pub(crate) use publication::{VmAccountedMessageSend, VmMailboxPublication};
-#[allow(unused_imports)] // Public to staged MC-5 tests before migration orchestration lands.
-pub(crate) use transfer::{VmMemoryImportFailure, VmMemoryTransfer};
 
 /// Per-process logical heap limits enforced before host allocation paths run.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

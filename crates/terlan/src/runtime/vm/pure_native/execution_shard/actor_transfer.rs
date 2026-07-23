@@ -25,21 +25,6 @@ impl PureNativeActorTransfer {
     pub(crate) const fn owner(&self) -> VmProcessId {
         self.owner
     }
-
-    /// Returns the exact generated continuation identity.
-    pub(crate) const fn continuation_id(&self) -> u64 {
-        self.execution.continuation_id()
-    }
-
-    /// Returns the source generation retained by this detached envelope.
-    pub(crate) const fn source_generation(&self) -> u64 {
-        self.generation.source_epoch().as_u64()
-    }
-
-    /// Returns the sealed native image required at destination admission.
-    pub(crate) fn image_identity(&self) -> &str {
-        self.generation.image().identity()
-    }
 }
 
 /// Failed shard import retaining every component for source rollback.

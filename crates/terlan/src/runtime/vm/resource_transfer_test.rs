@@ -1,3 +1,4 @@
+use super::transfer::VmResourceTransfer;
 use super::*;
 use crate::runtime::vm::process::{VmProcessSource, VmProcessTable};
 

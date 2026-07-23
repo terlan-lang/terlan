@@ -1,16 +1,7 @@
 //! Bounded shard-wide policy for scheduler work stealing.
 
-#![cfg_attr(not(test), allow(dead_code))]
-
-use super::actor_directory::VmActorLifecycle;
 use super::scheduler::VmSchedulerClass;
-use super::scheduler_topology::{VmFixedActorRoute, VmSchedulerId};
-
-#[path = "work_stealing/runtime.rs"]
-mod runtime;
-
-#[allow(unused_imports)] // Activated by the MC-6 multicore scheduler pool.
-pub(crate) use runtime::{VmWorkStealingCycle, VmWorkStealingRuntime};
+use super::scheduler_topology::VmSchedulerId;
 
 const CLASS_COUNT: usize = 3;
 const SERVICE_CYCLE: [VmSchedulerClass; 6] = [
@@ -64,11 +55,6 @@ impl VmWorkStealingConfig {
             starvation_bounds,
         })
     }
-
-    /// Returns the maximum number of actors transferred by one steal.
-    pub(crate) const fn steal_batch_size(self) -> usize {
-        self.steal_batch_size
-    }
 }
 
 impl Default for VmWorkStealingConfig {
@@ -85,7 +71,6 @@ pub(crate) struct VmSchedulerWorkSnapshot {
     scheduler: VmSchedulerId,
     runnable: [usize; CLASS_COUNT],
     oldest_wait_ticks: [u64; CLASS_COUNT],
-    accepting: bool,
 }
 
 impl VmSchedulerWorkSnapshot {
@@ -99,14 +84,7 @@ impl VmSchedulerWorkSnapshot {
             scheduler,
             runnable,
             oldest_wait_ticks,
-            accepting: true,
         }
-    }
-
-    /// Marks the scheduler unavailable as a source or destination during shutdown.
-    pub(crate) const fn stopped(mut self) -> Self {
-        self.accepting = false;
-        self
     }
 
     /// Returns the scheduler that published this evidence.
@@ -122,85 +100,6 @@ impl VmSchedulerWorkSnapshot {
     /// Returns runnable entries for one scheduling class.
     pub(crate) const fn runnable_in(self, class: VmSchedulerClass) -> usize {
         self.runnable[class_index(class)]
-    }
-
-    /// Returns the oldest accumulated queue wait for one scheduling class.
-    pub(crate) const fn oldest_wait_in(self, class: VmSchedulerClass) -> u64 {
-        self.oldest_wait_ticks[class_index(class)]
-    }
-}
-
-/// One yielded actor considered for an atomic steal claim.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct VmStealCandidate {
-    route: VmFixedActorRoute,
-    class: VmSchedulerClass,
-    lifecycle: VmActorLifecycle,
-    publication_complete: bool,
-    mutator_owned: bool,
-    lookup_pins: u32,
-    pinned: bool,
-}
-
-impl VmStealCandidate {
-    /// Creates candidate evidence captured by its current scheduler owner.
-    pub(crate) const fn new(
-        route: VmFixedActorRoute,
-        class: VmSchedulerClass,
-        lifecycle: VmActorLifecycle,
-    ) -> Self {
-        Self {
-            route,
-            class,
-            lifecycle,
-            publication_complete: true,
-            mutator_owned: false,
-            lookup_pins: 0,
-            pinned: false,
-        }
-    }
-
-    /// Records that queue or actor-state publication has not completed.
-    pub(crate) const fn unpublished(mut self) -> Self {
-        self.publication_complete = false;
-        self
-    }
-
-    /// Records an outstanding actor mutator owner.
-    pub(crate) const fn borrowed(mut self) -> Self {
-        self.mutator_owned = true;
-        self
-    }
-
-    /// Records directory readers that prevent a linear ownership handoff.
-    pub(crate) const fn with_lookup_pins(mut self, lookup_pins: u32) -> Self {
-        self.lookup_pins = lookup_pins;
-        self
-    }
-
-    /// Records a compiler or runtime affinity constraint.
-    pub(crate) const fn pinned(mut self) -> Self {
-        self.pinned = true;
-        self
-    }
-
-    /// Returns the actor route represented by this candidate.
-    pub(crate) const fn route(self) -> VmFixedActorRoute {
-        self.route
-    }
-
-    /// Returns the scheduling class preserved by a successful steal.
-    pub(crate) const fn class(self) -> VmSchedulerClass {
-        self.class
-    }
-
-    /// Accepts only a fully published, unowned queued actor.
-    pub(crate) const fn is_eligible(self) -> bool {
-        matches!(self.lifecycle, VmActorLifecycle::Queued)
-            && self.publication_complete
-            && !self.mutator_owned
-            && self.lookup_pins == 0
-            && !self.pinned
     }
 }
 
@@ -233,13 +132,6 @@ impl VmStealPlan {
     pub(crate) const fn maximum_actors(self) -> usize {
         self.maximum_actors
     }
-
-    /// Checks source ownership, class, and actor eligibility for this plan.
-    pub(crate) fn accepts(self, candidate: VmStealCandidate) -> bool {
-        candidate.is_eligible()
-            && candidate.route().scheduler() == self.victim
-            && candidate.class() == self.class
-    }
 }
 
 /// One scheduler action selected without mutating actor state.
@@ -253,8 +145,6 @@ pub(crate) enum VmWorkDirective {
     Backoff(u32),
     /// Sleep after proving the shard has no currently runnable work.
     Sleep,
-    /// Stop selecting work because this scheduler no longer accepts execution.
-    Stopped,
 }
 
 /// Stateful deterministic work-stealing policy for one scheduler pool.
@@ -267,7 +157,6 @@ pub(crate) struct VmWorkStealingPolicy {
     local_services: Vec<u32>,
     failed_steals: Vec<u32>,
     backoff_remaining: Vec<u32>,
-    sleeping: Vec<bool>,
 }
 
 impl VmWorkStealingPolicy {
@@ -284,7 +173,6 @@ impl VmWorkStealingPolicy {
             local_services: vec![0; width],
             failed_steals: vec![0; width],
             backoff_remaining: vec![0; width],
-            sleeping: vec![false; width],
         })
     }
 
@@ -296,10 +184,6 @@ impl VmWorkStealingPolicy {
     ) -> Result<VmWorkDirective, String> {
         let thief_index = self.validate_snapshots(thief, snapshots)?;
         let local = snapshots[thief_index];
-        if !local.accepting {
-            self.sleeping[thief_index] = false;
-            return Ok(VmWorkDirective::Stopped);
-        }
         if self.backoff_remaining[thief_index] > 0 {
             self.backoff_remaining[thief_index] -= 1;
             return Ok(VmWorkDirective::Backoff(
@@ -308,13 +192,12 @@ impl VmWorkStealingPolicy {
         }
 
         let remote_starved = snapshots.iter().enumerate().any(|(index, snapshot)| {
-            index != thief_index && snapshot.accepting && self.starved_class(*snapshot).is_some()
+            index != thief_index && self.starved_class(*snapshot).is_some()
         });
         if local.runnable_total() > 0
             && self.local_services[thief_index] < self.config.local_service_budget
             && !remote_starved
         {
-            self.sleeping[thief_index] = false;
             self.local_services[thief_index] += 1;
             return Ok(VmWorkDirective::ServeLocal(
                 self.next_service_class(thief_index, local),
@@ -322,18 +205,15 @@ impl VmWorkStealingPolicy {
         }
 
         if let Some(plan) = self.select_steal(thief_index, snapshots) {
-            self.sleeping[thief_index] = false;
             self.local_services[thief_index] = 0;
             return Ok(VmWorkDirective::Steal(plan));
         }
         if local.runnable_total() > 0 {
-            self.sleeping[thief_index] = false;
             self.local_services[thief_index] = 1;
             return Ok(VmWorkDirective::ServeLocal(
                 self.next_service_class(thief_index, local),
             ));
         }
-        self.sleeping[thief_index] = true;
         Ok(VmWorkDirective::Sleep)
     }
 
@@ -366,18 +246,6 @@ impl VmWorkStealingPolicy {
         Ok(())
     }
 
-    /// Publishes runnable work and reports whether a sleeping owner needs one wake.
-    pub(crate) fn publish_runnable(&mut self, scheduler: VmSchedulerId) -> Result<bool, String> {
-        let index = self.scheduler_index(scheduler)?;
-        Ok(std::mem::take(&mut self.sleeping[index]))
-    }
-
-    /// Returns whether one scheduler is currently eligible for an external wake.
-    pub(crate) fn is_sleeping(&self, scheduler: VmSchedulerId) -> Result<bool, String> {
-        self.scheduler_index(scheduler)
-            .map(|index| self.sleeping[index])
-    }
-
     /// Selects a victim using starvation urgency, load, and rotated tie-breaking.
     fn select_steal(
         &mut self,
@@ -390,7 +258,7 @@ impl VmWorkStealingPolicy {
         for distance in 0..self.width {
             let index = (start + distance) % self.width;
             let snapshot = snapshots[index];
-            if index == thief_index || !snapshot.accepting || snapshot.runnable_total() == 0 {
+            if index == thief_index || snapshot.runnable_total() == 0 {
                 continue;
             }
             let starved = self.starved_class(snapshot);

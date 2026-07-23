@@ -75,6 +75,7 @@ pub use operation_abi::{
     encode_string_append_operation, encode_string_equal_operation,
     encode_string_escape_html_attribute_operation, encode_string_escape_html_text_operation,
     encode_string_list_join_operation, encode_string_map_get_option_operation,
+    encode_string_prepend_literal_operation, encode_string_prepend_projected_literal_operation,
     encode_template_render_operation, is_managed_operation, ManagedBinaryPatternEndian,
     ManagedBinaryPatternField, ManagedCookieHeaderOperation, ManagedSessionMutation,
     ManagedTemplateValueKind,

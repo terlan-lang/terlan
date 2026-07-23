@@ -7,10 +7,6 @@ use crate::runtime::vm::ReplValue;
 use crate::runtime::vm::VmHttpCallResult;
 
 use super::invocation;
-use crate::commands::serve::handler::request_materialization::{
-    replace_vm_request_descriptor, vm_request_descriptor_owned,
-};
-
 pub(super) struct LocalImmediateShard {
     shard: PureNativeExecutionShard,
     owner: VmProcessId,
@@ -18,7 +14,6 @@ pub(super) struct LocalImmediateShard {
     export: String,
     #[allow(dead_code)] // Read by single-argument fast paths selected by code generation.
     argument_scratch: Vec<ReplValue>,
-    request_scratch: Option<ReplValue>,
 }
 
 impl LocalImmediateShard {
@@ -36,7 +31,6 @@ impl LocalImmediateShard {
             function: function.to_owned(),
             export,
             argument_scratch: Vec::with_capacity(4),
-            request_scratch: None,
         })
     }
 
@@ -119,21 +113,14 @@ impl LocalImmediateShard {
         projection: RequestFieldProjection,
     ) -> Result<VmHttpCallResult, String> {
         self.select_export(module, function);
-        match self.request_scratch.as_mut() {
-            Some(scratch) => replace_vm_request_descriptor(scratch, request, projection),
-            None => {
-                self.request_scratch = Some(vm_request_descriptor_owned(request, projection));
-            }
-        }
-        let result = self.shard.call_on_admitted_fixed_owner_http_response(
-            self.owner,
-            &self.export,
-            std::slice::from_ref(
-                self.request_scratch
-                    .as_ref()
-                    .expect("projected request scratch is initialized"),
-            ),
-        );
+        let result = self
+            .shard
+            .call_on_admitted_fixed_owner_projected_http_request(
+                self.owner,
+                &self.export,
+                request,
+                projection,
+            );
         self.finish_http_call(result, 1)
     }
 

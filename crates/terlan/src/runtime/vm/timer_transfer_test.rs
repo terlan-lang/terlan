@@ -1,3 +1,4 @@
+use super::transfer::VmTimerTransfer;
 use super::*;
 use crate::runtime::vm::process::VmProcessSource;
 

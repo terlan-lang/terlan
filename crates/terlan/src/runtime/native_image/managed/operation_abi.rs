@@ -66,6 +66,8 @@ const PROJECT_SCALAR: u8 = 9;
 const STRING_LIST_JOIN: u8 = 10;
 const STRING_ESCAPE_HTML_TEXT: u8 = 11;
 const STRING_ESCAPE_HTML_ATTRIBUTE: u8 = 12;
+const STRING_PREPEND_LITERAL: u8 = 13;
+const STRING_PREPEND_PROJECTED_LITERAL: u8 = 14;
 const SEMANTIC_BYTES: usize = 16;
 const PROJECT_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES + 4;
 const MAP_GET_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES * 2;
@@ -211,6 +213,35 @@ pub fn encode_string_equal_operation() -> Vec<u8> {
 /// Encodes checked concatenation of two managed UTF-8 strings.
 pub fn encode_string_append_operation() -> Vec<u8> {
     header(STRING_APPEND)
+}
+
+/// Encodes concatenation of one image-owned UTF-8 prefix and one managed string.
+pub fn encode_string_prepend_literal_operation(
+    literal: &str,
+) -> Result<Vec<u8>, ManagedMemoryError> {
+    let length =
+        u32::try_from(literal.len()).map_err(|_| ManagedMemoryError::InvalidAggregateAbi)?;
+    let mut encoded = header(STRING_PREPEND_LITERAL);
+    encoded.extend_from_slice(&length.to_le_bytes());
+    encoded.extend_from_slice(literal.as_bytes());
+    Ok(encoded)
+}
+
+/// Encodes projection and literal-prefix concatenation as one managed call.
+pub fn encode_string_prepend_projected_literal_operation(
+    semantic: SemanticTypeId,
+    field: usize,
+    literal: &str,
+) -> Result<Vec<u8>, ManagedMemoryError> {
+    let field = u32::try_from(field).map_err(|_| ManagedMemoryError::InvalidAggregateAbi)?;
+    let length =
+        u32::try_from(literal.len()).map_err(|_| ManagedMemoryError::InvalidAggregateAbi)?;
+    let mut encoded = header(STRING_PREPEND_PROJECTED_LITERAL);
+    encoded.extend_from_slice(&semantic.bytes());
+    encoded.extend_from_slice(&field.to_le_bytes());
+    encoded.extend_from_slice(&length.to_le_bytes());
+    encoded.extend_from_slice(literal.as_bytes());
+    Ok(encoded)
 }
 
 /// Encodes checked concatenation of one managed list of UTF-8 strings.
@@ -368,6 +399,23 @@ pub(crate) fn execute_managed_operation_with_context(
             };
             append_strings(heap, *left, *right)?.erase()
         }
+        ManagedOperation::StringPrependLiteral(literal) => {
+            let [right] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            prepend_string_literal(heap, literal, *right)?.erase()
+        }
+        ManagedOperation::StringPrependProjectedLiteral {
+            semantic,
+            field,
+            literal,
+        } => {
+            let [aggregate] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let right = project_field(heap, layouts, semantic, field, *aggregate)?;
+            prepend_string_literal(heap, literal, i64::from_ne_bytes(right.to_ne_bytes()))?.erase()
+        }
         ManagedOperation::StringListJoin => {
             let [list] = words else {
                 return Err(ManagedMemoryError::InvalidAggregateArity);
@@ -392,7 +440,7 @@ pub(crate) fn execute_managed_operation_with_context(
 
 /// Closed operation payload decoded from immutable image data.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ManagedOperation {
+enum ManagedOperation<'a> {
     /// Projects one physical field from an aggregate with the expected identity.
     Project {
         semantic: SemanticTypeId,
@@ -432,6 +480,14 @@ enum ManagedOperation {
     StringEqual,
     /// Allocates the UTF-8 concatenation of two validated managed strings.
     StringAppend,
+    /// Prepends one image-owned UTF-8 literal to a validated managed string.
+    StringPrependLiteral(&'a str),
+    /// Projects a managed string field and prepends one image-owned literal.
+    StringPrependProjectedLiteral {
+        semantic: SemanticTypeId,
+        field: usize,
+        literal: &'a str,
+    },
     /// Allocates the UTF-8 concatenation of a checked managed string list.
     StringListJoin,
     /// Escapes one checked string for HTML text context.
@@ -451,7 +507,7 @@ fn header(operation: u8) -> Vec<u8> {
 }
 
 /// Decodes one exact operation payload and rejects extensions or truncation.
-fn decode_operation(encoded: &[u8]) -> Result<ManagedOperation, ManagedMemoryError> {
+fn decode_operation(encoded: &[u8]) -> Result<ManagedOperation<'_>, ManagedMemoryError> {
     if encoded.len() < HEADER_BYTES
         || encoded.get(..4) != Some(MAGIC)
         || encoded.get(4..6) != Some(&VERSION.to_le_bytes())
@@ -507,6 +563,19 @@ fn decode_operation(encoded: &[u8]) -> Result<ManagedOperation, ManagedMemoryErr
         }
         STRING_EQUAL if encoded.len() == HEADER_BYTES => Ok(ManagedOperation::StringEqual),
         STRING_APPEND if encoded.len() == HEADER_BYTES => Ok(ManagedOperation::StringAppend),
+        STRING_PREPEND_LITERAL if encoded.len() >= HEADER_BYTES + 4 => Ok(
+            ManagedOperation::StringPrependLiteral(literal_at(encoded, HEADER_BYTES)?),
+        ),
+        STRING_PREPEND_PROJECTED_LITERAL if encoded.len() >= HEADER_BYTES + SEMANTIC_BYTES + 8 => {
+            let semantic = semantic_at(encoded, HEADER_BYTES)?;
+            let field = field_at(encoded, HEADER_BYTES + SEMANTIC_BYTES)?;
+            let literal = literal_at(encoded, HEADER_BYTES + SEMANTIC_BYTES + 4)?;
+            Ok(ManagedOperation::StringPrependProjectedLiteral {
+                semantic,
+                field,
+                literal,
+            })
+        }
         STRING_LIST_JOIN if encoded.len() == HEADER_BYTES => Ok(ManagedOperation::StringListJoin),
         STRING_ESCAPE_HTML_TEXT if encoded.len() == HEADER_BYTES => {
             Ok(ManagedOperation::StringEscapeHtmlText)
@@ -524,7 +593,10 @@ fn decode_operation(encoded: &[u8]) -> Result<ManagedOperation, ManagedMemoryErr
 /// callers must then retain their conservative full-value behavior.
 pub(crate) fn decode_aggregate_field_projection(encoded: &[u8]) -> Option<(SemanticTypeId, usize)> {
     match decode_operation(encoded).ok()? {
-        ManagedOperation::Project { semantic, field } => Some((semantic, field)),
+        ManagedOperation::Project { semantic, field }
+        | ManagedOperation::StringPrependProjectedLiteral {
+            semantic, field, ..
+        } => Some((semantic, field)),
         _ => None,
     }
 }
@@ -546,6 +618,15 @@ fn append_strings(
         reference_word(left)?.cast::<ManagedString>(),
         reference_word(right)?.cast::<ManagedString>(),
     )
+}
+
+/// Prepends an image-owned string literal to one actor-owned managed string.
+fn prepend_string_literal(
+    heap: &mut ActorHeap,
+    literal: &str,
+    right: i64,
+) -> Result<TvmRef<ManagedString>, ManagedMemoryError> {
+    heap.prepend_string_literal(literal, reference_word(right)?.cast::<ManagedString>())
 }
 
 /// Allocates the ordered concatenation of one actor-owned managed string list.
@@ -605,6 +686,21 @@ fn field_at(encoded: &[u8], offset: usize) -> Result<usize, ManagedMemoryError> 
         .map(u32::from_le_bytes)
         .and_then(|value| usize::try_from(value).ok())
         .ok_or(ManagedMemoryError::InvalidAggregateAbi)
+}
+
+/// Reads one exact trailing UTF-8 literal prefixed by its little-endian length.
+fn literal_at(encoded: &[u8], offset: usize) -> Result<&str, ManagedMemoryError> {
+    let length = encoded
+        .get(offset..offset + 4)
+        .and_then(|bytes| <[u8; 4]>::try_from(bytes).ok())
+        .map(u32::from_le_bytes)
+        .and_then(|value| usize::try_from(value).ok())
+        .ok_or(ManagedMemoryError::InvalidAggregateAbi)?;
+    let literal = encoded
+        .get(offset + 4..)
+        .filter(|literal| literal.len() == length)
+        .ok_or(ManagedMemoryError::InvalidAggregateAbi)?;
+    std::str::from_utf8(literal).map_err(|_| ManagedMemoryError::InvalidUtf8)
 }
 
 /// Reads one fixed-width semantic identity from encoded operation bytes.

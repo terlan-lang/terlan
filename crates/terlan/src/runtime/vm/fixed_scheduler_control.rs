@@ -18,7 +18,6 @@ pub(crate) struct VmFixedActorLease {
 
 /// Linear authority to transfer one unowned actor between explicit schedulers.
 #[derive(Debug)]
-#[allow(dead_code)] // Becomes live when the MC-5 actor-state envelope is wired.
 pub(crate) struct VmFixedActorMigrationTicket {
     source: VmFixedActorRoute,
     destination: VmFixedActorRoute,
@@ -28,13 +27,11 @@ pub(crate) struct VmFixedActorMigrationTicket {
 
 impl VmFixedActorMigrationTicket {
     /// Returns the route that released the actor for migration.
-    #[allow(dead_code)] // Becomes live when the MC-5 actor-state envelope is wired.
     pub(crate) const fn source(&self) -> VmFixedActorRoute {
         self.source
     }
 
     /// Returns the only destination authorized by this ticket.
-    #[allow(dead_code)] // Becomes live when the MC-5 actor-state envelope is wired.
     pub(crate) const fn destination(&self) -> VmFixedActorRoute {
         self.destination
     }
@@ -215,7 +212,6 @@ impl<P> VmFixedSchedulerControl<P> {
     }
 
     /// Begins one explicit migration after execution released or queued the actor.
-    #[allow(dead_code)] // Becomes live when the MC-5 actor-state envelope is wired.
     pub(crate) fn begin_migration(
         &self,
         source: VmFixedActorRoute,
@@ -243,7 +239,6 @@ impl<P> VmFixedSchedulerControl<P> {
     }
 
     /// Publishes the new route and makes its destination scheduler runnable.
-    #[allow(dead_code)] // Becomes live when the MC-5 actor-state envelope is wired.
     pub(crate) fn complete_migration(
         &self,
         ticket: VmFixedActorMigrationTicket,
@@ -264,7 +259,6 @@ impl<P> VmFixedSchedulerControl<P> {
     }
 
     /// Restores the source route when transfer publication cannot complete.
-    #[allow(dead_code)] // Becomes live when the MC-5 actor-state envelope is wired.
     pub(crate) fn abort_migration(
         &self,
         ticket: VmFixedActorMigrationTicket,
@@ -435,7 +429,6 @@ fn validate_route<P>(
 }
 
 /// Rejects stale, cross-actor, or ABA migration authority before route mutation.
-#[allow(dead_code)] // Becomes live when the MC-5 actor-state envelope is wired.
 fn validate_migration_ticket<P>(
     directory: &VmActorDirectory<VmFixedActorRoute, P>,
     ticket: &VmFixedActorMigrationTicket,

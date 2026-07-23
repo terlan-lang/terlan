@@ -294,7 +294,6 @@ impl AotHandlerGeneration {
     }
 
     /// Moves one parked actor through the generation-qualified owner protocol.
-    #[allow(dead_code)] // Called by the hidden MC-5 explicit migration surface.
     fn migrate_actor(
         &self,
         source: VmFixedActorRoute,
@@ -459,9 +458,7 @@ impl AotHandlerGeneration {
                         .backoff_directives
                         .fetch_add(1, Ordering::Relaxed);
                 }
-                VmWorkDirective::ServeLocal(_)
-                | VmWorkDirective::Sleep
-                | VmWorkDirective::Stopped => {}
+                VmWorkDirective::ServeLocal(_) | VmWorkDirective::Sleep => {}
             }
         }
     }
@@ -510,7 +507,6 @@ impl AotHandlerGeneration {
 }
 
 /// Appends rollback context without hiding the primary migration failure.
-#[allow(dead_code)] // Called by the hidden MC-5 explicit migration surface.
 fn combine_migration_error(primary: String, rollback: Option<String>) -> String {
     match rollback {
         Some(rollback) => format!("{primary}; error[serve.aot.migration_rollback]: {rollback}"),

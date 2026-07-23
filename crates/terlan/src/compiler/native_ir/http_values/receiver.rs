@@ -22,7 +22,8 @@ pub(super) fn is_managed_string_expr(expr: &CoreExpr) -> bool {
                     | "cookie_set_header"
                     | "cookie_set_options_header"
                     | "cookie_delete_header"
-                    | "string_append",
+                    | "string_append"
+                    | "string_prepend_literal",
                 _
             )
         ),

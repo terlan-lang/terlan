@@ -5386,7 +5386,7 @@ their former gate names are not release commands and must not be recreated.
 
 ### Roadmap Gate Integrity
 
-Current validated inventory: 180 planned gates, 65 unchecked slices, and 505 Make targets.
+Current validated inventory: 196 planned gates, 65 unchecked slices, and 516 Make targets.
 
 - Gate: `make roadmap-gate-integrity-check`.
 - Purpose: keep the active roadmap synchronized with planned gates, unchecked
@@ -5400,7 +5400,6 @@ These commands define the closeout surface. Newly named gates must be added to
 the Make graph before 0.0.7 release.
 
 ```bash
-make check
 make callable-syntax-cleanup-check
 make value-lifecycle-contract-check
 make repeated-let-syntax-check
@@ -5468,7 +5467,6 @@ make vm-runtime-inspector-check
 make vm-supervision-restart-check
 make vm-process-state-recovery-check
 make vm-timer-deadline-check
-make vm-scheduler-fairness-check
 make vm-memory-heap-pressure-check
 make vm-native-boundary-contract-check
 make vm-postgres-runtime-check
@@ -5526,13 +5524,11 @@ make editor-extension-install-update-check
 make target-inference-default-vm-check
 make runtime-aot-only-check
 make tvm-direct-aot-backend-check
-make tvm-managed-memory-check
 make tvm-managed-list-profile-benchmark-check
 make terlan-vm-artifact-format-check
 make tvm-native-image-format-check
 make tvm-native-image-loader-check
 make tvm-aot-consumer-check
-make tvm-aot-runtime-transition-check
 make tvm-aot-shard-ownership-check
 make tvm-aot-supervisor-lifecycle-check
 make tvm-aot-capability-worker-check
@@ -5540,6 +5536,27 @@ make tvm-aot-image-lifetime-check
 make tvm-aot-lowering-coverage-check
 make tvm-aot-http-performance-check
 make tvm-aot-platform-matrix-check
+make vm-multicore-invariant-inventory-check
+make vm-actor-mutator-ownership-check
+make vm-multicore-mailbox-publication-check
+make vm-multicore-fixed-placement-check
+make tvm-aot-multicore-migration-check
+make vm-multicore-work-stealing-check
+make vm-multicore-runtime-cleanup-check
+make vm-multicore-runtime-integration-check
+make vm-epmd-discovery-check
+make vm-multicore-replay-observability-check
+make vm-multicore-performance-check
+make vm-multicore-memory-model-check
+make vm-multicore-thread-sanitizer-check
+make vm-multicore-mc9-evidence-check
+make vm-scheduler-fairness-check
+make tvm-aot-runtime-transition-check
+make tvm-managed-memory-check
+make rust-quality-check
+make roadmap-gate-integrity-check
+make check
+make vm-multicore-release-check
 make tvm-aot-multicore-readiness-check
 make tvm-aot-roadmap-reconciliation-check
 make tvm-aot-c-abi-boundary-check
@@ -5575,7 +5592,6 @@ make vm-semantics-vs-otp-check
 make terlc-debugger-check
 make achamp-adversarial-coverage-check
 make roadmap-legacy-runtime-cleanup-check
-make roadmap-gate-integrity-check
 make dormant-runtime-code-check
 make no-default-tokio-runtime-check
 make vm-tcp-stream-check

@@ -17,7 +17,28 @@ pub(super) fn admission_target(
     if local_load == 0 {
         return Some(local_index);
     }
-    sampled_loaded_shard(ingresses, next_tie).or_else(|| least_loaded_shard(ingresses, next_tie))
+    if ingresses.len() > 1 {
+        return sampled_loaded_remote_shard(ingresses, local_index, next_tie).or_else(|| {
+            least_loaded_remote_shard(ingresses, local_index, next_tie)
+                .or_else(|| least_loaded_shard(ingresses, next_tie))
+        });
+    }
+    Some(local_index)
+}
+
+/// Samples two rotating non-acceptor owners while the acceptor has live work.
+fn sampled_loaded_remote_shard(
+    ingresses: &[Arc<VmProtocolShardIngress>],
+    local_index: usize,
+    next_tie: usize,
+) -> Option<usize> {
+    let width = ingresses.len();
+    let mut candidates = (0..width)
+        .map(|offset| (next_tie + offset) % width)
+        .filter(|index| *index != local_index);
+    let first = candidates.next()?;
+    let second = candidates.next().unwrap_or(first);
+    select_sampled(ingresses, first, second)
 }
 
 /// Samples two rotating owners for ordinary connection placement.
@@ -25,6 +46,7 @@ pub(super) fn admission_target(
 /// Power-of-two load choice retains responsive balancing without reading
 /// every owner's independently mutated cacheline on each accept. The complete
 /// scan remains the capacity fallback when both sampled owners are full.
+#[cfg(test)]
 pub(super) fn sampled_loaded_shard(
     ingresses: &[Arc<VmProtocolShardIngress>],
     next_tie: usize,
@@ -35,6 +57,15 @@ pub(super) fn sampled_loaded_shard(
     }
     let first = next_tie % width;
     let second = (first + (width / 2).max(1)) % width;
+    select_sampled(ingresses, first, second)
+}
+
+/// Selects the lower-load available owner from two already chosen samples.
+fn select_sampled(
+    ingresses: &[Arc<VmProtocolShardIngress>],
+    first: usize,
+    second: usize,
+) -> Option<usize> {
     let first_load = ingresses[first].load();
     let second_load = ingresses[second].load();
     match (
@@ -48,14 +79,35 @@ pub(super) fn sampled_loaded_shard(
     }
 }
 
+/// Selects the least-loaded non-acceptor owner as a capacity fallback.
+fn least_loaded_remote_shard(
+    ingresses: &[Arc<VmProtocolShardIngress>],
+    local_index: usize,
+    next_tie: usize,
+) -> Option<usize> {
+    least_loaded_matching(ingresses, next_tie, |index| index != local_index)
+}
+
 /// Selects the least-loaded shard and rotates equal-load admission fairly.
 pub(super) fn least_loaded_shard(
     ingresses: &[Arc<VmProtocolShardIngress>],
     next_tie: usize,
 ) -> Option<usize> {
+    least_loaded_matching(ingresses, next_tie, |_| true)
+}
+
+/// Selects the least-loaded capacity-bearing owner accepted by one predicate.
+fn least_loaded_matching(
+    ingresses: &[Arc<VmProtocolShardIngress>],
+    next_tie: usize,
+    mut include: impl FnMut(usize) -> bool,
+) -> Option<usize> {
     let mut selected = None;
     for offset in 0..ingresses.len() {
         let index = (next_tie + offset) % ingresses.len();
+        if !include(index) {
+            continue;
+        }
         let load = ingresses[index].load();
         if load >= MAX_TASKS_PER_SHARD {
             continue;

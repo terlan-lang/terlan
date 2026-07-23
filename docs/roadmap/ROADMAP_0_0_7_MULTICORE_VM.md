@@ -1259,9 +1259,10 @@ and progress evidence.
       seed, stale revision, unofficial repository, or incomplete CI identity.
   - Sixth executable slice completed:
     - [x] Qualify every performance report with the full checked-out source
-      revision and local or official GitHub Actions provenance. A hosted
-      dedicated-policy run requires complete run, attempt, commit, workflow,
-      repository, runner-name, and self-hosted runner evidence.
+      revision, clean-tree attestation, and local or official GitHub Actions
+      provenance. A hosted dedicated-policy run requires complete run, attempt,
+      commit, workflow, repository, runner-name, and self-hosted runner
+      evidence.
     - [x] Add the release-only
       `terlan-linux-x86_64-multicore-v1` self-hosted runner lane. It uses Rust
       1.96.0, declares controlled background load, requests dedicated policy
@@ -1273,6 +1274,9 @@ and progress evidence.
     - [x] Require performance and sanitizer artifacts to share the same
       official workflow reference, run, attempt, repository, and commit before
       writing `terlan.vm-multicore-mc9-evidence.v1`.
+    - [x] Reject promoted performance or ThreadSanitizer evidence unless each
+      report proves that tracked and untracked source state exactly matched its
+      checked-out commit.
   - Next executable slice: run release validation on the labeled controlled
     runner, collect a passing pinned ThreadSanitizer report in the same
     workflow run, execute `make vm-multicore-mc9-evidence-check`, and check off
@@ -1309,16 +1313,69 @@ and progress evidence.
     latency, memory, replay, or correctness regressions.
 
 - [ ] MC-10: perform multicore release closeout.
+  - First executable slice completed:
+    - [x] Add `make vm-multicore-release-check` as the canonical distributed
+      closeout. It validates same-run MC-9 evidence before running the
+      remaining multicore semantic, runtime, quality, integrity, and repository
+      gates.
+    - [x] Keep performance and ThreadSanitizer execution in their owning
+      release jobs so hosted final validation cannot overwrite the controlled
+      runner or instrumented artifacts.
+    - [x] Add an adversarial contract gate that rejects missing local gates,
+      reordered evidence validation, missing artifact producers, or release
+      workflows that bypass the canonical closeout target.
+  - Second executable slice completed:
+    - [x] Add the recorder for
+      `target/quality/vm-multicore-release-closeout.json` with the versioned
+      `terlan.vm-multicore-release-closeout.v1` schema only after the complete
+      local gate graph passes.
+    - [x] Bind joined MC-9 evidence, the six-target platform matrix, the ordered
+      local gate graph, the checked-out source revision, and a
+      domain-separated revision over the invariant inventory and concurrency
+      contract.
+    - [x] Reject cross-run, cross-revision, incomplete platform, stale
+      invariant, malformed MC-9, and contract-drift evidence before writing
+      closeout.
+    - [x] Retain the multicore closeout report in release artifacts and require
+      it through the platform release-evidence contract.
+  - Third executable slice completed:
+    - [x] Delete the test-only `VmWorkStealingRuntime`, scheduler steal-claim,
+      and actor-directory steal-claim predecessor implementations. Production
+      generated AOT owner threads and `PureNativeActorTransfer` now form the
+      only runnable actor transfer path.
+    - [x] Remove the obsolete process-table steal adapters and synthetic
+      candidate eligibility model. The actor transfer transaction owns
+      lifecycle, publication, mutator, pin, and generation admission.
+    - [x] Remove policy-owned scheduler shutdown and wakeup proxies. Bounded
+      scheduler command channels own wakeup and shutdown; policy snapshots
+      contain only runnable load and queue-age evidence.
+    - [x] Collapse four MC-6 transition targets into the canonical
+      `make vm-multicore-work-stealing-check` without dropping their retained
+      production tests.
+    - [x] Add `make vm-multicore-runtime-cleanup-check` to reject restored
+      predecessor files, symbols, staging targets, and stale activation
+      annotations while compiling both VM binaries with warnings denied.
+    - [x] Retain the explicit one-scheduler mode for deterministic execution,
+      REPL, debugging, and constrained targets; it is a supported topology,
+      not a temporary multicore assumption.
+  - Fourth executable slice completed:
+    - [x] Promote the complete ordered 21-gate multicore closeout sequence into
+      the main 0.0.7 planned-gate inventory without duplicate shared gates.
+    - [x] Parse the main and multicore fenced gate inventories in declaration
+      order and require the mini-roadmap sequence to appear as one exact
+      contiguous block in the main roadmap.
+    - [x] Reject missing, reordered, interleaved, empty, or duplicate
+      cross-roadmap gate inventories through the existing
+      `make roadmap-gate-integrity-check`.
+    - [x] Update the validated main-roadmap inventory to 196 planned gates,
+      65 unchecked slices, and 516 Make targets.
+  - Next executable slice: obtain same-run official MC-9 performance and
+    ThreadSanitizer evidence, then run `make vm-multicore-release-check` from a
+    clean reproducible release environment.
   - Revalidate the already completed AOT roadmap and reconcile Slice 40 only
     after this mini-roadmap's full Completion Boundary passes.
-  - Remove temporary single-thread assumptions, benchmark-only scheduler-width
-    proxies, obsolete monolithic process-table ownership, stale mutex-backed
-    runtime paths, and superseded transition gates.
-  - Promote every multicore gate into the main roadmap's planned-gate inventory
-    and make the integrity checker reject drift between the main and mini
-    roadmaps before any parent item is checked.
-  - Add `make vm-multicore-release-check` as the canonical composition of every
-    multicore gate below, then run it from a clean reproducible environment.
+  - Run `make vm-multicore-release-check` from a clean reproducible
+    environment.
   - Run `make check`, `make rust-quality-check`,
     `make roadmap-gate-integrity-check`, and the required 0.0.7 release
     preflight after the focused composition passes.
@@ -1339,6 +1396,7 @@ make vm-multicore-mailbox-publication-check
 make vm-multicore-fixed-placement-check
 make tvm-aot-multicore-migration-check
 make vm-multicore-work-stealing-check
+make vm-multicore-runtime-cleanup-check
 make vm-multicore-runtime-integration-check
 make vm-epmd-discovery-check
 make vm-multicore-replay-observability-check

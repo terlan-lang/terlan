@@ -98,6 +98,7 @@ RELEASE_EVIDENCE = (
     "tvm-aot-release-clean-checkout.json",
     "tvm-aot-platform-matrix-report.json",
     "tvm-aot-thread-sanitizer-report.json",
+    "vm-multicore-release-closeout.json",
     "aot-compilation-benchmark.json",
     "http-aot-performance-comparison.json",
     "tvm-managed-list-profile.json",
@@ -169,10 +170,14 @@ def validate_workflow_contract(root: Path = ROOT) -> None:
     for path_filter in ('      - "docs/release/evidence/**"', '      - "docs/roadmap/**"'):
         if ci.count(path_filter) != 2:
             raise AssertionError(f"CI workflow does not validate changes matching {path_filter}")
-    if "\ttvm-aot-roadmap-reconciliation-check \\\n" not in (root / "Makefile").read_text(
-        encoding="utf-8"
-    ):
-        raise AssertionError("release-candidate gate omits AOT roadmap reconciliation")
+    makefile = (root / "Makefile").read_text(encoding="utf-8")
+    if "tvm-aot-roadmap-reconciliation-check:" not in makefile:
+        raise AssertionError("repository omits the final AOT roadmap reconciliation gate")
+    check_gates = makefile.split("CHECK_GATES :=", 1)[1].split("\n\ncheck:", 1)[0]
+    if "tvm-aot-roadmap-reconciliation-check" in check_gates:
+        raise AssertionError(
+            "ordinary checks cannot require final AOT roadmap reconciliation"
+        )
     if '      - "v*"\n' not in release:
         raise AssertionError("release workflow lost version-tag execution")
     if "run: make tvm-aot-release-closeout-check" not in release:

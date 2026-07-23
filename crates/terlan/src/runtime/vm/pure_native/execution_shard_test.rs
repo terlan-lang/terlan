@@ -649,8 +649,6 @@ fn detached_actor_generation_blocks_source_reload_and_rejects_replaced_destinati
         .expect("publish synthetic managed continuation");
 
     let transfer = source.detach_actor_state(owner).expect("detach actor");
-    assert_eq!(transfer.source_generation(), 1);
-    assert_eq!(transfer.image_identity(), "local-transition-image");
     assert_eq!(
         source
             .generation_references()

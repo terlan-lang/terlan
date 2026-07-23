@@ -20,7 +20,8 @@ use super::{
     encode_map_from_entries_operation, encode_map_get_operation, encode_string_append_operation,
     encode_string_equal_operation, encode_string_escape_html_attribute_operation,
     encode_string_escape_html_text_operation, encode_string_list_join_operation,
-    encode_string_map_get_option_operation, encode_template_render_operation,
+    encode_string_map_get_option_operation, encode_string_prepend_literal_operation,
+    encode_string_prepend_projected_literal_operation, encode_template_render_operation,
     execute_managed_operation, managed_abi_result_is_reference, ManagedBinaryPatternEndian,
     ManagedBinaryPatternField, ManagedTemplateValueKind,
 };
@@ -338,6 +339,40 @@ fn string_append_operation_concatenates_validated_values() {
     assert_eq!(heap.read_string(aliased.cast()), Ok("fallλfallλ"));
     assert_eq!(heap.read_string(left), Ok("fallλ"));
     assert_eq!(heap.read_string(right), Ok("back"));
+}
+
+/// Literal prepend keeps immutable image bytes outside the actor heap.
+#[test]
+fn string_prepend_literal_operation_allocates_only_the_result() {
+    let mut heap = heap();
+    let layouts = ManagedLayoutRegistry::default();
+    let right = heap.allocate_string("λbody").expect("right");
+    let operation = encode_string_prepend_literal_operation("prefix:").expect("prepend operation");
+    assert!(managed_abi_result_is_reference(&operation));
+
+    let result = execute_managed_operation(&mut heap, &layouts, &operation, &[word(right)])
+        .map(reference)
+        .expect("prepend literal");
+
+    assert_eq!(heap.read_string(result.cast()), Ok("prefix:λbody"));
+    assert_eq!(heap.read_string(right), Ok("λbody"));
+}
+
+/// Projection and prefix concatenation execute through one generated ABI call.
+#[test]
+fn string_prepend_projected_literal_operation_reads_the_checked_field() {
+    let layouts = registry();
+    let mut heap = heap();
+    let (request, _) = request_fixture(&mut heap, &layouts, 1);
+    let operation =
+        encode_string_prepend_projected_literal_operation(semantic(REQUEST), 4, "prefix:")
+            .expect("projected prepend operation");
+
+    let result = execute_managed_operation(&mut heap, &layouts, &operation, &[word(request)])
+        .map(reference)
+        .expect("project and prepend");
+
+    assert_eq!(heap.read_string(result.cast()), Ok("prefix:payload"));
 }
 
 /// Builds the fixed aggregate descriptors admitted by the operation fixture.

@@ -10,10 +10,7 @@ use super::scheduler::VmScheduler;
 use super::ReplValue;
 
 #[path = "timer/transfer.rs"]
-mod transfer;
-
-#[allow(unused_imports)] // Public to staged MC-5 tests before migration orchestration lands.
-pub(crate) use transfer::{VmTimerImportFailure, VmTimerTransfer};
+pub(crate) mod transfer;
 
 const TIMER_MAILBOX_DELIVERY_REDUCTIONS: u64 = 1;
 

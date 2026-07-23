@@ -36,7 +36,7 @@ SHELL := bash
 .PHONY: vm-distributed-state-check
 .PHONY: vm-supervision-restart-check
 .PHONY: vm-timer-deadline-check
-.PHONY: vm-scheduler-fairness-check vm-actor-mutator-ownership-check vm-multicore-mailbox-publication-check vm-multicore-fixed-placement-check tvm-aot-multicore-migration-check vm-multicore-work-stealing-policy-check vm-multicore-work-stealing-owner-check tvm-aot-multicore-yield-queue-check tvm-aot-multicore-runnable-steal-check tvm-aot-multicore-policy-coordination-check vm-multicore-work-stealing-check tvm-aot-multicore-io-epoch-check vm-multicore-timer-epoch-check vm-multicore-timer-scheduler-check vm-multicore-protocol-reactor-check vm-multicore-capability-worker-check vm-multicore-capability-completion-check vm-multicore-capability-event-pump-check vm-multicore-capability-scheduler-check vm-epmd-discovery-check vm-multicore-runtime-integration-check vm-multicore-replay-observability-check vm-multicore-performance-check vm-multicore-memory-model-check vm-multicore-thread-sanitizer-contract-check vm-multicore-thread-sanitizer-check vm-multicore-mc9-evidence-contract-check vm-multicore-mc9-evidence-check
+.PHONY: vm-scheduler-fairness-check vm-actor-mutator-ownership-check vm-multicore-mailbox-publication-check vm-multicore-fixed-placement-check tvm-aot-multicore-migration-check vm-multicore-work-stealing-policy-check vm-multicore-work-stealing-check vm-multicore-runtime-cleanup-check tvm-aot-multicore-io-epoch-check vm-multicore-timer-epoch-check vm-multicore-timer-scheduler-check vm-multicore-protocol-reactor-check vm-multicore-capability-worker-check vm-multicore-capability-completion-check vm-multicore-capability-event-pump-check vm-multicore-capability-scheduler-check vm-epmd-discovery-check vm-multicore-runtime-integration-check vm-multicore-replay-observability-check vm-multicore-performance-check vm-multicore-memory-model-check vm-multicore-thread-sanitizer-contract-check vm-multicore-thread-sanitizer-check vm-multicore-mc9-evidence-contract-check vm-multicore-mc9-evidence-check vm-multicore-release-contract-check vm-multicore-release-check
 .PHONY: tvm-http-axum-performance-record
 .PHONY: vm-memory-heap-pressure-check
 .PHONY: std-generated-metadata-check
@@ -329,7 +329,6 @@ CHECK_GATES := \
 	tvm-aot-crash-injection-check \
 	tvm-aot-capability-worker-check \
 	tvm-aot-multicore-readiness-check \
-	tvm-aot-roadmap-reconciliation-check \
 	no-tvm-json-runtime-check \
 	no-vmir-interpreter-check
 
@@ -2284,30 +2283,30 @@ vm-multicore-work-stealing-policy-check:
 	cargo check --locked -p terlan --bin terlan-vm
 	cargo check --locked -p terlan --bin terlc
 	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::work_stealing::work_stealing_test
-	$(RUST_TEST) --locked -p terlan --bin terlan-vm steal_test
 
-vm-multicore-work-stealing-owner-check: vm-multicore-work-stealing-policy-check
-	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::work_stealing::runtime::runtime_test
-
-tvm-aot-multicore-yield-queue-check: vm-multicore-work-stealing-owner-check
+vm-multicore-work-stealing-check: vm-multicore-work-stealing-policy-check tvm-aot-multicore-migration-check vm-scheduler-fairness-check rust-quality-check
 	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_test
 	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::handler_cache::shard_owner::shard_owner_test
 	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_aot_yields_requeue_before_each_resume -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::resumed_generated_aot_actor_yields_before_replying -- --exact
-
-tvm-aot-multicore-runnable-steal-check: tvm-aot-multicore-yield-queue-check
 	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_test::queued_actor_migration_publishes_destination_before_reacquisition -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_runnable_actor_is_stolen_between_scheduler_owners -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::stolen_generated_actor_retains_destination_route_when_it_parks -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::rejected_generated_runnable_steal_rolls_back_without_actor_loss -- --exact
-
-tvm-aot-multicore-policy-coordination-check: tvm-aot-multicore-runnable-steal-check
 	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test
-
-vm-multicore-work-stealing-check: tvm-aot-multicore-policy-coordination-check tvm-aot-multicore-migration-check vm-scheduler-fairness-check rust-quality-check
 	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_runnable_classes_receive_weighted_local_service -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_multicore_fanout_completes_under_adversarial_class_skew -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_runnable_shutdown_reclaims_queued_class_work -- --exact
+
+vm-multicore-runtime-cleanup-check:
+	cargo check --locked -p terlan --bin terlan-vm
+	cargo check --locked -p terlan --bin terlc
+	@test ! -e crates/terlan/src/runtime/vm/work_stealing/runtime.rs
+	@test ! -e crates/terlan/src/runtime/vm/scheduler/steal.rs
+	@test ! -e crates/terlan/src/runtime/vm/actor_directory/steal.rs
+	@! rg -q 'VmWorkStealingRuntime|VmSchedulerStealClaim|VmActorStealClaim' crates/terlan/src
+	@! rg -q '^(vm-multicore-work-stealing-owner-check|tvm-aot-multicore-yield-queue-check|tvm-aot-multicore-runnable-steal-check|tvm-aot-multicore-policy-coordination-check):' Makefile
+	@! rg -q 'hidden MC-5|next MC-5|staged MC-5|Activated by the MC-6|Used when MC-6' crates/terlan/src/runtime/vm crates/terlan/src/commands/serve/handler_cache.rs crates/terlan/src/commands/serve/handler_cache
 
 tvm-aot-multicore-io-epoch-check: vm-multicore-work-stealing-check
 	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::pure_native::execution_shard::execution_shard_test::stale_io_completion_cannot_cross_execution_shard_epoch -- --exact
@@ -2493,6 +2492,36 @@ vm-multicore-mc9-evidence-check: vm-multicore-mc9-evidence-contract-check
 	@rg -q '"decision": "pass"' target/quality/vm-multicore-mc9-evidence.json
 	@rg -q '"dedicated_runner_label": "terlan-linux-x86_64-multicore-v1"' target/quality/vm-multicore-mc9-evidence.json
 	@rg -q '"sanitizer_toolchain": "1.96.0"' target/quality/vm-multicore-mc9-evidence.json
+
+VM_MULTICORE_RELEASE_LOCAL_GATES := \
+	vm-multicore-invariant-inventory-check \
+	vm-actor-mutator-ownership-check \
+	vm-multicore-mailbox-publication-check \
+	vm-multicore-fixed-placement-check \
+	tvm-aot-multicore-migration-check \
+	vm-multicore-work-stealing-check \
+	vm-multicore-runtime-cleanup-check \
+	vm-multicore-runtime-integration-check \
+	vm-epmd-discovery-check \
+	vm-multicore-replay-observability-check \
+	vm-multicore-memory-model-check \
+	vm-scheduler-fairness-check \
+	tvm-aot-runtime-transition-check \
+	tvm-managed-memory-check \
+	rust-quality-check \
+	roadmap-gate-integrity-check \
+	check
+
+vm-multicore-release-contract-check:
+	$(PYTHON) tools/check_vm_multicore_release.py self-test
+
+vm-multicore-release-check: vm-multicore-release-contract-check
+	$(MAKE) vm-multicore-mc9-evidence-check
+	$(MAKE) $(VM_MULTICORE_RELEASE_LOCAL_GATES)
+	$(PYTHON) tools/check_vm_multicore_release.py record
+	test -s target/quality/vm-multicore-release-closeout.json
+	@rg -q '"schema": "terlan.vm-multicore-release-closeout.v1"' target/quality/vm-multicore-release-closeout.json
+	@rg -q '"decision": "pass"' target/quality/vm-multicore-release-closeout.json
 
 vm-final-health-check:
 	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::resource::resource_test::resource_table_cleans_up_owner_resources_on_process_exit -- --exact

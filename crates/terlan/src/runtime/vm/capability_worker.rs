@@ -10,10 +10,8 @@ mod event_pump;
 #[path = "capability_worker/pool.rs"]
 mod pool;
 
-#[allow(unused_imports)] // MC-6 pool surface is staged before its runtime consumer.
 pub(crate) use pool::{
-    VmCapabilityWorkerParkedRequest, VmCapabilityWorkerPool, VmCapabilityWorkerPoolRequest,
-    VmCapabilityWorkerPoolSlot,
+    VmCapabilityWorkerParkedRequest, VmCapabilityWorkerPool, VmCapabilityWorkerPoolSlot,
 };
 pub(crate) use event_pump::{
     VmCapabilityWorkerEventPump, VmCapabilityWorkerEventPumpEvent,

@@ -12,8 +12,6 @@ mod mailbox;
 mod migration;
 #[path = "actor_directory/state.rs"]
 mod state;
-#[path = "actor_directory/steal.rs"]
-mod steal;
 #[path = "actor_directory/transfer.rs"]
 mod transfer;
 
@@ -23,7 +21,6 @@ pub(crate) use migration::VmActorMigrationStamp;
 use state::{
     next_generation, ownership_race_error, pack_state, unpack_state, validate_token, VmActorState,
 };
-pub(crate) use steal::VmActorStealClaim;
 
 const LIFECYCLE_BITS: u32 = 4;
 const GENERATION_BITS: u32 = 20;

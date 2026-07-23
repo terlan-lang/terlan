@@ -4,7 +4,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::runtime::native_image::managed::{
-    decode_aggregate_layout, decode_collection_layout, managed_abi_result_is_reference,
+    decode_aggregate_layout, decode_collection_layout,
+    encode_string_prepend_projected_literal_operation, managed_abi_result_is_reference,
     ManagedCollectionKind, SemanticTypeId,
 };
 use crate::terlan_hir::resolve_syntax_module_output;
@@ -252,6 +253,48 @@ fn request_accessors_lower_to_checked_managed_operations() {
         .expect("managed operation");
         assert!(matches!(lowered, NativeExpr::ManagedOperation { .. }));
     }
+}
+
+/// Literal-prefix concatenation is one managed operation with no literal heap allocation.
+#[test]
+fn literal_prefix_string_append_fuses_into_one_managed_operation() {
+    let mut core = http_core();
+    *body(&mut core) = CoreExpr::BinaryOp {
+        operator: "+".to_string(),
+        left: Box::new(CoreExpr::Binary("\"prefix:\\u03bb\"".to_string())),
+        right: Box::new(CoreExpr::RemoteCall {
+            module: "__receiver__".to_string(),
+            function: "body_text".to_string(),
+            args: vec![CoreExpr::Var("request".to_string())],
+        }),
+    };
+
+    lower_http_values(&mut core).expect("lower fused prefix");
+    assert_eq!(
+        managed_http_operation_type(body(&mut core)),
+        Some(NativeType::StringRef)
+    );
+    let lowered = lower_managed_http_operation(body(&mut core), |argument| match argument {
+        CoreExpr::Var(name) if name == "request" => Ok(NativeExpr::Param(0)),
+        other => panic!("unexpected fused operation argument: {other:?}"),
+    })
+    .expect("lower fused operation")
+    .expect("fused operation");
+
+    let NativeExpr::ManagedOperation { encoded, args } = lowered else {
+        panic!("literal prepend must lower to one managed operation");
+    };
+    assert_eq!(args, vec![NativeExpr::Param(0)]);
+    let request_semantic = SemanticTypeId::from_canonical(
+        &crate::terlan_typeck::CoreType::Named("Request".to_string()).contract_text(),
+    )
+    .expect("request semantic");
+    assert_eq!(
+        encoded.as_ref(),
+        encode_string_prepend_projected_literal_operation(request_semantic, 4, "prefix:λ")
+            .expect("expected fused operation")
+    );
+    assert!(managed_abi_result_is_reference(&encoded));
 }
 
 /// Verifies immediate request lookup matches use shared managed option operations.

@@ -100,7 +100,6 @@ pub(crate) struct PendingManagedCaptures {
 
 impl PendingManagedCaptures {
     /// Returns the actor that owns every precise continuation root.
-    #[allow(dead_code)] // Read by the staged MC-5 scheduler transfer path.
     pub(crate) fn owner_id(&self) -> u64 {
         self.owner.get()
     }

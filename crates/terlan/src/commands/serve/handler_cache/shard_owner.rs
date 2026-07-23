@@ -108,7 +108,6 @@ impl OwnedRunnableImportFailure {
 }
 
 /// Destination rejection retaining transfer ownership when rollback is possible.
-#[allow(dead_code)] // Used by the hidden MC-5 explicit migration command.
 pub(super) struct OwnedMigrationImportFailure {
     reason: String,
     transfer: Option<PureNativeActorTransfer>,
@@ -145,13 +144,11 @@ enum ShardCommand {
     Drain {
         route: VmFixedActorRoute,
     },
-    #[allow(dead_code)] // Sent by the hidden MC-5 explicit migration command.
     DetachMigration {
         route: VmFixedActorRoute,
         owner: VmProcessId,
         reply: SyncSender<Result<PureNativeActorTransfer, String>>,
     },
-    #[allow(dead_code)] // Sent by the hidden MC-5 explicit migration command.
     ImportMigration {
         route: VmFixedActorRoute,
         transfer: PureNativeActorTransfer,
@@ -260,9 +257,7 @@ impl AotSchedulerPublication {
 /// One immutable address for a mutable shard owned by exactly one thread.
 pub(super) struct AotHandlerShardOwner {
     scheduler: VmSchedulerId,
-    #[allow(dead_code)] // Read by the hidden MC-5 explicit migration command.
     shard_identity: VmExecutionShardId,
-    #[allow(dead_code)] // Read by the hidden MC-5 explicit migration command.
     shard_epoch: VmShardEpoch,
     control: Arc<VmFixedSchedulerControl<AotSchedulerPublication>>,
     telemetry: Arc<VmFixedSchedulerTelemetry>,
@@ -475,7 +470,6 @@ impl AotHandlerShardOwner {
     }
 
     /// Detaches one parked generated actor on its current scheduler owner.
-    #[allow(dead_code)] // Called by the hidden MC-5 explicit migration command.
     pub(super) fn detach_migration(
         &self,
         route: VmFixedActorRoute,
@@ -491,7 +485,6 @@ impl AotHandlerShardOwner {
     }
 
     /// Imports one actor on this owner or returns its complete transfer.
-    #[allow(dead_code)] // Called by the hidden MC-5 explicit migration command.
     pub(super) fn import_migration(
         &self,
         route: VmFixedActorRoute,
@@ -592,19 +585,16 @@ impl AotHandlerShardOwner {
     }
 
     /// Returns the exact destination identity used to rebind typed I/O waits.
-    #[allow(dead_code)] // Called by the hidden MC-5 explicit migration command.
     pub(super) fn shard_identity(&self) -> &VmExecutionShardId {
         &self.shard_identity
     }
 
     /// Returns the exact destination generation used to rebind typed I/O waits.
-    #[allow(dead_code)] // Called by the hidden MC-5 explicit migration command.
     pub(super) const fn shard_epoch(&self) -> VmShardEpoch {
         self.shard_epoch
     }
 
     /// Returns the fixed scheduler exclusively owning this command channel.
-    #[allow(dead_code)] // Called by the hidden MC-5 explicit migration command.
     pub(super) const fn scheduler(&self) -> VmSchedulerId {
         self.scheduler
     }

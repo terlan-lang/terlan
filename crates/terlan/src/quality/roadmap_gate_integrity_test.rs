@@ -368,12 +368,97 @@ make real-check
 ```
 "#;
 
-    let gates = parse_planned_gates(roadmap);
+    let gates = parse_gate_block(roadmap, PLANNED_GATES_HEADING);
 
-    assert_eq!(gates, btreeset(["real-check"]));
+    assert_eq!(gates, strings(["real-check"]));
+}
+
+/// Verifies exact multicore gate promotion is accepted.
+#[test]
+fn roadmap_gate_integrity_accepts_exact_multicore_gate_sequence() {
+    let planned = strings(["before-check", "first-check", "second-check", "after-check"]);
+    let multicore = strings(["first-check", "second-check"]);
+    let mut diagnostics = Vec::new();
+
+    validate_multicore_gate_sync(&planned, &multicore, &mut diagnostics);
+
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}
+
+/// Verifies a missing multicore gate is diagnosed by stable identity.
+#[test]
+fn roadmap_gate_integrity_rejects_missing_multicore_gate() {
+    let planned = strings(["first-check"]);
+    let multicore = strings(["first-check", "second-check"]);
+    let mut diagnostics = Vec::new();
+
+    validate_multicore_gate_sync(&planned, &multicore, &mut diagnostics);
+
+    assert!(diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("second-check")));
+}
+
+/// Verifies reordering or interleaving the promoted block is rejected.
+#[test]
+fn roadmap_gate_integrity_rejects_reordered_multicore_gate_sequence() {
+    let planned = strings(["second-check", "other-check", "first-check"]);
+    let multicore = strings(["first-check", "second-check"]);
+    let mut diagnostics = Vec::new();
+
+    validate_multicore_gate_sync(&planned, &multicore, &mut diagnostics);
+
+    assert!(diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("exact contiguous order")));
+}
+
+/// Verifies duplicate gates cannot hide ambiguous cross-roadmap ownership.
+#[test]
+fn roadmap_gate_integrity_rejects_duplicate_multicore_gate() {
+    let planned = strings(["first-check", "first-check"]);
+    let multicore = strings(["first-check"]);
+    let mut diagnostics = Vec::new();
+
+    validate_multicore_gate_sync(&planned, &multicore, &mut diagnostics);
+
+    assert!(diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("duplicate gates")));
+}
+
+/// Verifies an empty mini-roadmap gate inventory fails closed.
+#[test]
+fn roadmap_gate_integrity_rejects_empty_multicore_gate_sequence() {
+    let mut diagnostics = Vec::new();
+
+    validate_multicore_gate_sync(&strings(["first-check"]), &[], &mut diagnostics);
+
+    assert!(diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("contains no `make ...` commands")));
+}
+
+/// Verifies duplicate mini-roadmap entries identify the owning inventory.
+#[test]
+fn roadmap_gate_integrity_rejects_duplicate_mini_roadmap_gate() {
+    let planned = strings(["first-check"]);
+    let multicore = strings(["first-check", "first-check"]);
+    let mut diagnostics = Vec::new();
+
+    validate_multicore_gate_sync(&planned, &multicore, &mut diagnostics);
+
+    assert!(diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("multicore complete gate inventory contains duplicate gates")
+    }));
 }
 
 /// Builds a `BTreeSet<String>` from static names.
 fn btreeset<const N: usize>(values: [&str; N]) -> BTreeSet<String> {
+    values.into_iter().map(str::to_string).collect()
+}
+
+/// Builds an ordered string vector from static names.
+fn strings<const N: usize>(values: [&str; N]) -> Vec<String> {
     values.into_iter().map(str::to_string).collect()
 }

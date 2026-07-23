@@ -11,20 +11,10 @@ use super::process::{
 };
 pub(crate) use telemetry::{VmSchedulerMetrics, VmSchedulerQueueTransition};
 
-#[path = "scheduler/steal.rs"]
-mod steal;
 #[path = "scheduler/telemetry.rs"]
 mod telemetry;
 #[path = "scheduler/transfer.rs"]
-mod transfer;
-
-#[allow(unused_imports)] // Used when MC-6 scheduler owners enable bounded stealing.
-pub(crate) use steal::{
-    transfer_steal_batch, VmSchedulerStealBatch, VmSchedulerStealClaim,
-    VmSchedulerStealImportFailure,
-};
-#[allow(unused_imports)] // Public to staged MC-5 tests before migration orchestration lands.
-pub(crate) use transfer::{VmSchedulerImportFailure, VmSchedulerPlacementTransfer};
+pub(crate) mod transfer;
 
 /// Scheduler configuration for local VM process execution.
 ///
@@ -821,7 +811,3 @@ mod scheduler_cancellation_accounting_test;
 #[cfg(test)]
 #[path = "scheduler_transfer_test.rs"]
 mod scheduler_transfer_test;
-
-#[cfg(test)]
-#[path = "scheduler/steal_test.rs"]
-mod scheduler_steal_test;

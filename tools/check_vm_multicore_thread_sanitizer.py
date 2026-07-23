@@ -47,6 +47,14 @@ def source_revision() -> str:
     return command_output(["git", "rev-parse", "HEAD"])
 
 
+def source_tree_clean() -> bool:
+    """Return whether tracked and untracked source matches the checked-out commit."""
+
+    return not command_output(
+        ["git", "status", "--porcelain=v1", "--untracked-files=all"]
+    )
+
+
 def file_sha256(path: Path) -> str:
     """Return one lowercase SHA-256 digest for the requested evidence file."""
 
@@ -80,6 +88,7 @@ def validate_report(report: dict[str, object], require_ci: bool) -> None:
         "instrumented_target": TARGET,
         "test_name": TEST_NAME,
         "seed_count": SEED_COUNT,
+        "source_tree_clean": True,
     }
     for field, value in expected.items():
         if report.get(field) != value:
@@ -208,6 +217,7 @@ def run_instrumented_tests() -> Path:
         "seed_count": SEED_COUNT,
         "stress_report_sha256": file_sha256(STRESS_REPORT),
         "source_revision": revision,
+        "source_tree_clean": source_tree_clean(),
         **platform_matrix.execution_provenance(revision),
     }
     validate_report(
@@ -253,6 +263,7 @@ def self_test() -> None:
         "seed_count": SEED_COUNT,
         "stress_report_sha256": "a" * 64,
         "source_revision": "b" * 40,
+        "source_tree_clean": True,
         "execution_environment": "github-actions",
         "repository": platform_matrix.OFFICIAL_REPOSITORY,
         "workflow_ref": "terlan-lang/terlan/.github/workflows/ci.yml@refs/heads/main",
@@ -270,6 +281,7 @@ def self_test() -> None:
         ("commit_sha", "c" * 40),
         ("run_id", "7"),
         ("run_attempt", False),
+        ("source_tree_clean", False),
     ):
         invalid = dict(valid)
         invalid[field] = value

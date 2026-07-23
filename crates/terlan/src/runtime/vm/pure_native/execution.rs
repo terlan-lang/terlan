@@ -556,7 +556,7 @@ impl PureNativeBoundary {
     }
 }
 
-fn handle_reply(
+pub(super) fn handle_reply(
     backend: &dyn super::NativeImageBackend,
     actors: &mut VmActorRuntime,
     context: &PureNativeExecutionContext<'_>,

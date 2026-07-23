@@ -1,5 +1,3 @@
-use std::num::NonZeroU64;
-
 use super::*;
 use crate::runtime::vm::scheduler_topology::VmSchedulerTopology;
 
@@ -35,17 +33,6 @@ fn bounded_steal_owner_transfer_model() {
     assert_eq!(plan.victim(), schedulers[1]);
     assert_eq!(plan.class(), VmSchedulerClass::Normal);
     assert_eq!(plan.maximum_actors(), 4);
-
-    let topology = VmSchedulerTopology::new(2).expect("topology");
-    let route = topology.route(NonZeroU64::new(2).expect("actor"));
-    let candidate =
-        VmStealCandidate::new(route, VmSchedulerClass::Normal, VmActorLifecycle::Queued);
-    assert!(plan.accepts(candidate));
-    assert!(!plan.accepts(VmStealCandidate::new(
-        route,
-        VmSchedulerClass::Priority,
-        VmActorLifecycle::Queued,
-    )));
 }
 
 #[test]
@@ -168,67 +155,6 @@ fn failed_steals_back_off_exponentially_and_reset_after_progress() {
 }
 
 #[test]
-fn idle_sleep_requires_only_one_wake_publication() {
-    let scheduler = schedulers(1)[0];
-    let mut policy = VmWorkStealingPolicy::new(1, VmWorkStealingConfig::default()).expect("policy");
-    let empty = [work(scheduler, [0, 0, 0])];
-    assert_eq!(
-        policy.decide(scheduler, &empty).expect("sleep"),
-        VmWorkDirective::Sleep
-    );
-    assert!(policy.is_sleeping(scheduler).expect("sleeping"));
-    assert!(policy.publish_runnable(scheduler).expect("first wake"));
-    assert!(!policy.publish_runnable(scheduler).expect("duplicate wake"));
-}
-
-#[test]
-fn parked_borrowed_pinned_and_unpublished_candidates_are_ineligible() {
-    let topology = VmSchedulerTopology::new(1).expect("topology");
-    let route = topology.route(NonZeroU64::new(1).expect("actor"));
-    let candidate =
-        VmStealCandidate::new(route, VmSchedulerClass::Normal, VmActorLifecycle::Queued);
-    assert!(candidate.is_eligible());
-    assert!(
-        !VmStealCandidate::new(route, VmSchedulerClass::Normal, VmActorLifecycle::Parked,)
-            .is_eligible()
-    );
-    assert!(
-        !VmStealCandidate::new(route, VmSchedulerClass::Normal, VmActorLifecycle::Yielding,)
-            .is_eligible()
-    );
-    assert!(!candidate.unpublished().is_eligible());
-    assert!(!candidate.borrowed().is_eligible());
-    assert!(!candidate.with_lookup_pins(1).is_eligible());
-    assert!(!candidate.pinned().is_eligible());
-}
-
-#[test]
-fn shutdown_schedulers_neither_request_nor_supply_work() {
-    let schedulers = schedulers(2);
-    let mut policy = VmWorkStealingPolicy::new(2, VmWorkStealingConfig::default()).expect("policy");
-    let stopped_thief = [
-        work(schedulers[0], [0, 0, 0]).stopped(),
-        work(schedulers[1], [0, 1, 0]),
-    ];
-    assert_eq!(
-        policy
-            .decide(schedulers[0], &stopped_thief)
-            .expect("stopped thief"),
-        VmWorkDirective::Stopped
-    );
-    let stopped_victim = [
-        work(schedulers[0], [0, 0, 0]),
-        work(schedulers[1], [0, 10, 0]).stopped(),
-    ];
-    assert_eq!(
-        policy
-            .decide(schedulers[0], &stopped_victim)
-            .expect("stopped victim"),
-        VmWorkDirective::Sleep
-    );
-}
-
-#[test]
 fn seeded_skew_burst_and_fanout_decisions_remain_bounded_and_work_conserving() {
     let schedulers = schedulers(4);
     let config = VmWorkStealingConfig::default();
@@ -251,7 +177,7 @@ fn seeded_skew_burst_and_fanout_decisions_remain_bounded_and_work_conserving() {
         match policy.decide(thief, &snapshots).expect("seeded decision") {
             VmWorkDirective::Steal(plan) => {
                 assert_ne!(plan.thief(), plan.victim());
-                assert!((1..=config.steal_batch_size()).contains(&plan.maximum_actors()));
+                assert!((1..=4).contains(&plan.maximum_actors()));
                 assert!(snapshots[plan.victim().index()].runnable_in(plan.class()) > 0);
                 policy
                     .record_steal_result(thief, plan.maximum_actors())
@@ -260,14 +186,13 @@ fn seeded_skew_burst_and_fanout_decisions_remain_bounded_and_work_conserving() {
             VmWorkDirective::Sleep => {
                 assert!(snapshots
                     .iter()
-                    .filter(|snapshot| snapshot.accepting)
                     .all(|snapshot| snapshot.runnable_total() == 0));
             }
             VmWorkDirective::ServeLocal(class) => {
                 assert!(snapshots[thief.index()].runnable_in(class) > 0);
             }
-            VmWorkDirective::Backoff(_) | VmWorkDirective::Stopped => {
-                panic!("seeded active workload did not record failure or shutdown")
+            VmWorkDirective::Backoff(_) => {
+                panic!("seeded active workload did not record a failed steal")
             }
         }
     }

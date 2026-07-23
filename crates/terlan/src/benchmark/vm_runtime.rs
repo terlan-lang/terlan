@@ -72,5 +72,3 @@ pub(crate) mod system_profile;
 pub(crate) mod table;
 #[path = "../runtime/vm/timer.rs"]
 pub(crate) mod timer;
-#[path = "../runtime/vm/work_stealing.rs"]
-pub(crate) mod work_stealing;

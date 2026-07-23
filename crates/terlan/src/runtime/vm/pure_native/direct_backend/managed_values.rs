@@ -16,13 +16,13 @@ use crate::runtime::vm::bitstring::VmBitString;
 use crate::runtime::vm::ReplValue;
 
 const MAX_PUBLIC_MANAGED_DEPTH: usize = 256;
-const MAX_PUBLIC_MANAGED_VALUES: usize = 65_536;
+pub(super) const MAX_PUBLIC_MANAGED_VALUES: usize = 65_536;
 const INLINE_AGGREGATE_FIELDS: usize = 16;
 const INLINE_COLLECTION_ELEMENTS: usize = 8;
 const INLINE_ACTIVE_REFERENCES: usize = 16;
 
 #[derive(Default)]
-struct AllocationMemo {
+pub(super) struct AllocationMemo {
     // One public request normally contains only a handful of empty typed
     // collections. Keeping their canonical references inline avoids a tree
     // node allocation for each request while preserving semantic identity.
@@ -278,7 +278,7 @@ fn allocate_aggregate(
 }
 
 /// Converts one public field according to its exact physical field category.
-fn allocate_field(
+pub(super) fn allocate_field(
     heap: &mut ActorHeap,
     layouts: &ManagedLayoutRegistry,
     field_type: ManagedFieldType,

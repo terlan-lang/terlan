@@ -1,4 +1,5 @@
-use super::{VmMemoryAccountant, VmMemoryLimits, VmMemoryTransfer, VmSharedAllocationKind};
+use super::transfer::VmMemoryTransfer;
+use super::{VmMemoryAccountant, VmMemoryLimits, VmSharedAllocationKind};
 use crate::runtime::vm::process::{VmProcessSource, VmProcessTable};
 use crate::runtime::vm::resource::{
     VmResourceDescriptor, VmResourceTable, VmResourceTransferPolicy,

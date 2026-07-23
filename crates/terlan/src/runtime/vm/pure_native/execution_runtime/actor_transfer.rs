@@ -8,14 +8,12 @@ use super::{PendingNativeContinuation, PureNativeExecutionRuntime};
 
 /// Complete execution-runtime state detached for one parked actor.
 #[derive(Debug)]
-#[allow(dead_code)] // Wired into scheduler-owner transfer in the next MC-5 slice.
 pub(crate) struct PureNativeActorExecutionTransfer {
     owner_id: u64,
     continuation: PendingNativeContinuation,
     managed: ManagedActorTransfer,
 }
 
-#[allow(dead_code)] // Wired into scheduler-owner transfer in the next MC-5 slice.
 impl PureNativeActorExecutionTransfer {
     /// Returns the actor authorized to import this execution state.
     pub(crate) const fn owner_id(&self) -> u64 {
@@ -41,13 +39,11 @@ impl PureNativeActorExecutionTransfer {
 
 /// Failed execution-state import that preserves rollback ownership.
 #[derive(Debug)]
-#[allow(dead_code)] // Wired into scheduler-owner transfer in the next MC-5 slice.
 pub(crate) struct PureNativeActorExecutionImportFailure {
     reason: String,
     transfer: PureNativeActorExecutionTransfer,
 }
 
-#[allow(dead_code)] // Wired into scheduler-owner transfer in the next MC-5 slice.
 impl PureNativeActorExecutionImportFailure {
     /// Returns the stable destination rejection.
     pub(crate) fn reason(&self) -> &str {
@@ -68,7 +64,6 @@ impl fmt::Display for PureNativeActorExecutionImportFailure {
 
 impl std::error::Error for PureNativeActorExecutionImportFailure {}
 
-#[allow(dead_code)] // Wired into scheduler-owner transfer in the next MC-5 slice.
 impl PureNativeExecutionRuntime {
     /// Detaches one parked continuation and every managed root it can reach.
     pub(crate) fn detach_actor_execution(
