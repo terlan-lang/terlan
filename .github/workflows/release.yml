@@ -209,14 +209,54 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
+  multicore-evidence:
+    name: seal VM multicore MC-9 evidence
+    runs-on: ubuntu-24.04
+    needs:
+      - multicore-thread-sanitizer
+      - multicore-performance
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install release utilities
+        run: sudo apt-get update && sudo apt-get install --yes ripgrep
+
+      - name: Download multicore ThreadSanitizer evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: release-vm-multicore-thread-sanitizer
+          path: target/quality
+
+      - name: Download controlled multicore performance evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: release-vm-multicore-performance
+          path: target/quality
+
+      - name: Seal same-run MC-9 evidence
+        run: make vm-multicore-mc9-evidence-check
+
+      - name: Upload joined multicore evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-vm-multicore-evidence
+          path: |
+            target/quality/vm-multicore-thread-sanitizer-report.json
+            target/quality/vm-multicore-memory-model-tsan.json
+            target/quality/vm-multicore-performance.json
+            target/quality/vm-multicore-mc9-evidence.json
+          if-no-files-found: error
+          retention-days: 90
+
   validate:
     name: validate release
     runs-on: ubuntu-latest
     needs:
       - platform-matrix
       - thread-sanitizer
-      - multicore-thread-sanitizer
-      - multicore-performance
+      - multicore-evidence
 
     steps:
       - name: Checkout
@@ -240,16 +280,10 @@ jobs:
           name: release-tvm-aot-thread-sanitizer
           path: target/quality
 
-      - name: Download multicore ThreadSanitizer evidence
+      - name: Download joined multicore evidence
         uses: actions/download-artifact@v4
         with:
-          name: release-vm-multicore-thread-sanitizer
-          path: target/quality
-
-      - name: Download controlled multicore performance evidence
-        uses: actions/download-artifact@v4
-        with:
-          name: release-vm-multicore-performance
+          name: release-vm-multicore-evidence
           path: target/quality
 
       - name: Validate complete multicore release

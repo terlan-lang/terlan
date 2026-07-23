@@ -57,6 +57,13 @@ WORKFLOW_PRODUCERS = (
     "run: make vm-multicore-thread-sanitizer-check",
     "run: make vm-multicore-performance-check",
 )
+WORKFLOW_MC9_JOIN_REQUIREMENTS = (
+    ("multicore-evidence:", 1),
+    ("seal VM multicore MC-9 evidence", 1),
+    ("run: make vm-multicore-mc9-evidence-check", 1),
+    ("name: release-vm-multicore-evidence", 2),
+    ("Download joined multicore evidence", 1),
+)
 WORKFLOW_STATUS_CONTEXT = 'context: "release-validation/run"'
 WORKFLOW_RELEASE_UTILITY_STEP = "      - name: Install release utilities\n"
 WORKFLOW_NATIVE_DEPENDENCY_STEPS = (
@@ -133,6 +140,12 @@ def validate_makefile(makefile: str) -> None:
 def validate_workflow(workflow: str) -> None:
     """Require distributed producers and one final canonical consumer."""
 
+    for requirement, expected_count in WORKFLOW_MC9_JOIN_REQUIREMENTS:
+        if workflow.count(requirement) != expected_count:
+            raise AssertionError(
+                "release workflow must retain the canonical MC-9 join "
+                f"`{requirement}` exactly {expected_count} time(s)"
+            )
     for requirement in WORKFLOW_NATIVE_DEPENDENCY_STEPS:
         if requirement not in workflow:
             raise AssertionError(
@@ -147,7 +160,7 @@ def validate_workflow(workflow: str) -> None:
         raise AssertionError(
             "release workflow must publish initial and terminal run status"
         )
-    if workflow.count(WORKFLOW_RELEASE_UTILITY_STEP) != 3:
+    if workflow.count(WORKFLOW_RELEASE_UTILITY_STEP) != 4:
         raise AssertionError(
             "release workflow must provision utilities for all hosted source gates"
         )
@@ -158,7 +171,7 @@ def validate_workflow(workflow: str) -> None:
     if workflow.count(final_check) != 1:
         raise AssertionError("release workflow omits canonical multicore closeout")
     if workflow.index(final_check) < workflow.index(
-        "Download controlled multicore performance evidence"
+        "Download joined multicore evidence"
     ):
         raise AssertionError("multicore closeout runs before evidence download")
     if workflow.index(final_check) > workflow.index(
@@ -492,6 +505,16 @@ def self_test() -> None:
             )
         ),
         "release contract accepted a missing canonical consumer",
+    )
+    require_rejection(
+        lambda: validate_workflow(
+            workflow.replace(
+                "run: make vm-multicore-mc9-evidence-check",
+                "run: make vm-multicore-performance-check",
+                1,
+            )
+        ),
+        "release contract accepted raw multicore artifacts without an MC-9 join",
     )
     require_rejection(
         lambda: validate_workflow(
