@@ -59,6 +59,14 @@ WORKFLOW_PRODUCERS = (
 )
 WORKFLOW_STATUS_CONTEXT = 'context: "release-validation/run"'
 WORKFLOW_RELEASE_UTILITY_STEP = "      - name: Install release utilities\n"
+WORKFLOW_NATIVE_DEPENDENCY_STEPS = (
+    "      - name: Install Linux native dependencies\n",
+    "      - name: Install macOS native dependencies\n",
+    "      - name: Install Windows native dependencies\n",
+    "sudo apt-get install --yes libpq-dev pkg-config",
+    "brew install libpq pkg-config",
+    'vcpkg.exe" install "libpq:$triplet"',
+)
 WORKFLOW_STATUS_REQUIREMENTS = (
     "statuses: write",
     "release-validation-identity:",
@@ -125,6 +133,11 @@ def validate_makefile(makefile: str) -> None:
 def validate_workflow(workflow: str) -> None:
     """Require distributed producers and one final canonical consumer."""
 
+    for requirement in WORKFLOW_NATIVE_DEPENDENCY_STEPS:
+        if requirement not in workflow:
+            raise AssertionError(
+                f"release workflow omits native dependency setup `{requirement}`"
+            )
     for requirement in WORKFLOW_STATUS_REQUIREMENTS:
         if requirement not in workflow:
             raise AssertionError(
@@ -503,6 +516,12 @@ def self_test() -> None:
             workflow.replace(WORKFLOW_RELEASE_UTILITY_STEP, "", 1)
         ),
         "release contract accepted a hosted source gate without utilities",
+    )
+    require_rejection(
+        lambda: validate_workflow(
+            workflow.replace(WORKFLOW_NATIVE_DEPENDENCY_STEPS[2], "", 1)
+        ),
+        "release contract accepted a platform matrix without Windows dependencies",
     )
 
     revision = "a" * 40
