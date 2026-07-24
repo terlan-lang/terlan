@@ -58,6 +58,7 @@ impl SealedTvmImage {
                 .write_all(&bytes)
                 .and_then(|()| destination.sync_all())
                 .map_err(|error| format!("error[tvm.image.seal_write]: {error}"))?;
+            drop(destination);
             set_sealed_permissions(&path)?;
             let guard = open_sealed_guard(&path)?;
             verify_path_digest(&path, bytes_digest)?;

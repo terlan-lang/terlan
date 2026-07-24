@@ -75,7 +75,8 @@ def run(command: list[str], *, expect_success: bool = True) -> subprocess.Comple
     )
     if expect_success and result.returncode != 0:
         raise AssertionError(
-            f"command failed: {' '.join(command)}\n{result.stdout}{result.stderr}"
+            f"command failed with exit code {result.returncode}: "
+            f"{' '.join(command)}\n{result.stdout}{result.stderr}"
         )
     if not expect_success and result.returncode == 0:
         raise AssertionError(f"command unexpectedly succeeded: {' '.join(command)}")
