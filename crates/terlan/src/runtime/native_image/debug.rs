@@ -79,7 +79,7 @@ pub(crate) fn inspect_tvm_native_debug(
     let section_name = match image.format() {
         BinaryFormat::Elf => ".debug_terlan",
         BinaryFormat::MachO => "__terlan",
-        BinaryFormat::Coff => ".debug$T",
+        BinaryFormat::Coff | BinaryFormat::Pe => ".debug$T",
         format => {
             return Err(format!(
                 "error[tvm.debug.native_format]: unsupported native format {format:?}"

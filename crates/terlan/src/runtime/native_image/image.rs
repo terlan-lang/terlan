@@ -60,11 +60,7 @@ pub fn descriptor_object_for_native_with_debug(
         .set_data(encode_descriptor(descriptor)?, 8);
     if !debug_metadata.is_empty() {
         let (debug_segment, debug_section, debug_kind) = match native.format() {
-            BinaryFormat::Elf => (
-                Vec::new(),
-                b".debug_terlan".to_vec(),
-                SectionKind::Debug,
-            ),
+            BinaryFormat::Elf => (Vec::new(), b".debug_terlan".to_vec(), SectionKind::Debug),
             BinaryFormat::MachO => (
                 b"__TERLAN".to_vec(),
                 b"__terlan".to_vec(),
@@ -181,7 +177,7 @@ pub fn inspect_tvm_image(
     let (format, section_name) = match file.format() {
         BinaryFormat::Elf => ("elf", ELF_DESCRIPTOR_SECTION),
         BinaryFormat::MachO => ("mach-o", MACHO_DESCRIPTOR_SECTION),
-        BinaryFormat::Coff => ("pe", PE_DESCRIPTOR_SECTION),
+        BinaryFormat::Coff | BinaryFormat::Pe => ("pe", PE_DESCRIPTOR_SECTION),
         other => {
             return Err(format!(
                 "error[tvm.image.native_format]: unsupported native format {other:?}"
@@ -307,7 +303,7 @@ fn descriptor_section_identity(
     match format {
         BinaryFormat::Elf => Ok(("", ELF_DESCRIPTOR_SECTION)),
         BinaryFormat::MachO => Ok(("__TERLAN", MACHO_DESCRIPTOR_SECTION)),
-        BinaryFormat::Coff => Ok(("", PE_DESCRIPTOR_SECTION)),
+        BinaryFormat::Coff | BinaryFormat::Pe => Ok(("", PE_DESCRIPTOR_SECTION)),
         other => Err(format!(
             "error[tvm.image.native_format]: unsupported native format {other:?}"
         )),
