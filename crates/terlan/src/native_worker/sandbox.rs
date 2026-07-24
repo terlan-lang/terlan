@@ -6,8 +6,11 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 use crate::terlan_native_boundary::capability_sandbox::{
-    CapabilitySandboxHost, CapabilitySandboxLimits, CapabilitySandboxProfile, SANDBOX_LOCALE,
-    SANDBOX_TEMP_DIR, SANDBOX_WORK_DIR,
+    CapabilitySandboxHost, CapabilitySandboxProfile,
+};
+#[cfg(target_os = "linux")]
+use crate::terlan_native_boundary::capability_sandbox::{
+    CapabilitySandboxLimits, SANDBOX_LOCALE, SANDBOX_TEMP_DIR, SANDBOX_WORK_DIR,
 };
 
 /// Verifies the process boundary before any capability request is accepted.
