@@ -1,6 +1,7 @@
 //! Compiler-owned native image construction independent from JSON artifacts.
 
 use std::collections::HashSet;
+use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -440,15 +441,12 @@ fn link_native_image(
     image_path: &Path,
     policy: NativeCodegenPolicy,
 ) -> Result<(), BuildOneError> {
-    let linker = std::env::var_os("TERLAN_NATIVE_LINKER").unwrap_or_else(|| {
-        if cfg!(target_os = "windows") {
-            "link.exe".into()
-        } else if cfg!(target_os = "macos") {
-            "cc".into()
+    let (linker, bundled_windows_linker) =
+        if let Some(linker) = std::env::var_os("TERLAN_NATIVE_LINKER") {
+            (linker, false)
         } else {
-            "ld".into()
-        }
-    });
+            default_native_linker()?
+        };
     let mut command = Command::new(&linker);
     if cfg!(target_os = "macos") {
         command
@@ -464,6 +462,9 @@ fn link_native_image(
             .arg(object_path)
             .arg(descriptor_object_path);
     } else if cfg!(target_os = "windows") {
+        if bundled_windows_linker {
+            command.arg("-flavor").arg("link");
+        }
         command
             .arg("/DLL")
             .arg(format!("/ENTRY:{IMAGE_ENTRY_SYMBOL}"))
@@ -507,6 +508,64 @@ fn link_native_image(
         )));
     }
     Ok(())
+}
+
+/// Resolves the host linker without relying on ambiguous platform `PATH`
+/// entries.
+fn default_native_linker() -> Result<(OsString, bool), BuildOneError> {
+    #[cfg(target_os = "windows")]
+    {
+        bundled_rust_lld().map(|linker| (linker, true))
+    }
+    #[cfg(target_os = "macos")]
+    {
+        Ok(("cc".into(), false))
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    {
+        Ok(("ld".into(), false))
+    }
+}
+
+/// Finds the COFF-capable linker shipped with the active Rust toolchain.
+#[cfg(target_os = "windows")]
+fn bundled_rust_lld() -> Result<OsString, BuildOneError> {
+    let rustc = std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into());
+    let output = Command::new(&rustc)
+        .args(["--print", "target-libdir"])
+        .output()
+        .map_err(|error| {
+            BuildOneError::Message(format!(
+                "failed to locate the Rust target library directory with `{}`: {error}",
+                Path::new(&rustc).display()
+            ))
+        })?;
+    if !output.status.success() {
+        return Err(BuildOneError::Message(format!(
+            "`{}` could not locate the Rust target library directory:\n{}",
+            Path::new(&rustc).display(),
+            String::from_utf8_lossy(&output.stderr)
+        )));
+    }
+    let target_libdir = String::from_utf8(output.stdout)
+        .map_err(|_| {
+            BuildOneError::Message("Rust target library directory is not valid UTF-8".to_string())
+        })?
+        .trim()
+        .to_string();
+    let target_root = Path::new(&target_libdir).parent().ok_or_else(|| {
+        BuildOneError::Message(format!(
+            "Rust target library directory `{target_libdir}` has no toolchain root"
+        ))
+    })?;
+    let linker = target_root.join("bin").join("rust-lld.exe");
+    if !linker.is_file() {
+        return Err(BuildOneError::Message(format!(
+            "Rust toolchain linker `{}` does not exist",
+            linker.display()
+        )));
+    }
+    Ok(linker.into_os_string())
 }
 
 fn build_error_message(error: BuildOneError) -> String {

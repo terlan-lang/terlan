@@ -1,6 +1,8 @@
 //! In-worker attestation for the mandatory capability sandbox profile.
 
+#[cfg(target_os = "linux")]
 use std::collections::BTreeSet;
+#[cfg(target_os = "linux")]
 use std::path::Path;
 
 use crate::terlan_native_boundary::capability_sandbox::{
@@ -36,6 +38,7 @@ pub(crate) fn verify_capability_worker_sandbox(
 }
 
 /// Requires the fixed private working directory mounted by bubblewrap.
+#[cfg(target_os = "linux")]
 fn verify_working_directory() -> Result<(), String> {
     let current = std::env::current_dir().map_err(|error| {
         format!("error[capability_worker.sandbox]: cannot inspect working directory: {error}")
@@ -51,6 +54,7 @@ fn verify_working_directory() -> Result<(), String> {
 }
 
 /// Requires an exact deterministic environment with no ambient application data.
+#[cfg(target_os = "linux")]
 fn verify_environment() -> Result<(), String> {
     let observed = std::env::vars_os()
         .map(|(key, value)| {
@@ -81,6 +85,7 @@ fn verify_environment() -> Result<(), String> {
 }
 
 /// Requires every hard kernel limit installed by the launcher profile.
+#[cfg(target_os = "linux")]
 fn verify_resource_limits(limits: CapabilitySandboxLimits) -> Result<(), String> {
     let contents = std::fs::read_to_string("/proc/self/limits").map_err(|error| {
         format!("error[capability_worker.sandbox]: cannot inspect process limits: {error}")
@@ -93,6 +98,7 @@ fn verify_resource_limits(limits: CapabilitySandboxLimits) -> Result<(), String>
 }
 
 /// Requires one named soft and hard limit to equal the profile value.
+#[cfg(target_os = "linux")]
 fn require_limit(contents: &str, name: &str, expected: u64) -> Result<(), String> {
     let line = contents
         .lines()
@@ -114,6 +120,7 @@ fn require_limit(contents: &str, name: &str, expected: u64) -> Result<(), String
 }
 
 /// Requires only stdio plus the transient `/proc/self/fd` iterator descriptor.
+#[cfg(target_os = "linux")]
 fn verify_file_descriptors() -> Result<(), String> {
     let entries = std::fs::read_dir("/proc/self/fd").map_err(|error| {
         format!("error[capability_worker.sandbox]: cannot inspect descriptors: {error}")
@@ -136,6 +143,7 @@ fn verify_file_descriptors() -> Result<(), String> {
 }
 
 /// Requires stdio plus at most the transient `/proc/self/fd` iterator descriptor.
+#[cfg(target_os = "linux")]
 fn validate_file_descriptors(descriptors: &BTreeSet<u32>) -> Result<(), String> {
     if descriptors.contains(&0)
         && descriptors.contains(&1)

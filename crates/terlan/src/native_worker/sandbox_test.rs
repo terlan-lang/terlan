@@ -10,6 +10,7 @@ fn sandbox_policy_rejects_unsupported_host_profile() {
 }
 
 /// Parses exact soft and hard limits while rejecting drift and malformed data.
+#[cfg(target_os = "linux")]
 #[test]
 fn sandbox_limit_attestation_is_exact() {
     let limits = concat!(
@@ -31,6 +32,7 @@ fn sandbox_limit_attestation_is_exact() {
 }
 
 /// Rejects every inherited descriptor while permitting the proc iterator itself.
+#[cfg(target_os = "linux")]
 #[test]
 fn sandbox_file_descriptor_attestation_rejects_inherited_resources() {
     assert!(validate_file_descriptors(&BTreeSet::from([0, 1, 2])).is_ok());
