@@ -9,6 +9,7 @@ use cranelift_module::{FuncId, Linkage, Module};
 use cranelift_object::ObjectModule;
 
 use super::super::{status, DISPATCH_SYMBOL};
+use super::setup::declare_image_func_in_func;
 use super::transition::transition_flags;
 use super::RUNTIME_ARGUMENT_COUNT;
 
@@ -129,7 +130,7 @@ pub(super) fn define_dispatch(
             if *suspending {
                 args.push(transition_len_pointer);
             }
-            let function_ref = module.declare_func_in_func(*function_id, builder.func);
+            let function_ref = declare_image_func_in_func(module, *function_id, builder.func);
             let call = builder.ins().call(function_ref, &args);
             let results = builder.inst_results(call).to_vec();
             let call_status = results[0];

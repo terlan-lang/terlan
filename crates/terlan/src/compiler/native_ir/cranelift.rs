@@ -38,7 +38,9 @@ use float::emit_float_binary;
 use function::define_native_function;
 use image_entry::define_image_entry;
 use managed::ManagedLayouts;
-use setup::{application_functions, flattened_application, object_module};
+use setup::{
+    application_functions, declare_image_func_in_func, flattened_application, object_module,
+};
 use signature::native_signature;
 use suspension::{is_suspending, suspension_profile, suspension_value_count};
 use transition::{transition_flags, transition_status};
@@ -306,7 +308,7 @@ fn emit_suspending_body(
                 "error[cranelift.call_then]: transition length output is unavailable".to_string()
             })?;
             call_args.push(len_pointer);
-            let function_ref = module.declare_func_in_func(function_id, builder.func);
+            let function_ref = declare_image_func_in_func(module, function_id, builder.func);
             let call = builder.ins().call(function_ref, &call_args);
             let results = builder.inst_results(call).to_vec();
             let call_status = results[0];
@@ -510,7 +512,7 @@ fn emit_suspending_body(
             args.push(transition_len_pointer.ok_or_else(|| {
                 "error[cranelift.tail_call]: transition length output is unavailable".to_string()
             })?);
-            let function_ref = module.declare_func_in_func(function_id, builder.func);
+            let function_ref = declare_image_func_in_func(module, function_id, builder.func);
             let call = builder.ins().call(function_ref, &args);
             let results = builder.inst_results(call).to_vec();
             builder.ins().return_(&results);
@@ -702,7 +704,8 @@ fn emit_expr(
                 })
                 .collect::<Result<Vec<_>, _>>()?;
             args.splice(0..0, [params[0], params[1], params[2]]);
-            let function_ref = module.declare_func_in_func(function_id, builder.func);
+            let function_ref =
+                declare_image_func_in_func(module, function_id, builder.func);
             let call = builder.ins().call(function_ref, &args);
             let results = builder.inst_results(call).to_vec();
             let call_status = results[0];

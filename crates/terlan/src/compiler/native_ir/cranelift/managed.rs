@@ -1,26 +1,26 @@
 //! Managed-allocation lowering for direct-AOT native functions.
 
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use cranelift_codegen::ir::{
     types, AbiParam, Block, BlockArg, InstBuilder, Signature, StackSlotData, StackSlotKind, Value,
 };
 use cranelift_frontend::FunctionBuilder;
-use cranelift_module::{DataDescription, DataId, Linkage, Module};
+use cranelift_module::Module;
 use cranelift_object::ObjectModule;
 
 use super::super::{status, NativeExpr, NativeModule};
 
-/// Read-only aggregate descriptors declared once in a native object.
+/// Aggregate descriptors admitted for one native object.
 pub(super) struct ManagedLayouts {
-    ids: HashMap<Arc<[u8]>, DataId>,
+    encoded: HashSet<Arc<[u8]>>,
 }
 
 impl ManagedLayouts {
-    /// Inventories constructor expressions and defines their immutable ABI data.
+    /// Inventories every constructor descriptor admitted to generated functions.
     pub(super) fn declare(
-        module: &mut ObjectModule,
+        _module: &mut ObjectModule,
         natives: &[NativeModule],
     ) -> Result<Self, String> {
         let mut layouts = Vec::<Arc<[u8]>>::new();
@@ -32,33 +32,14 @@ impl ManagedLayouts {
                 collect_layouts(&continuation.body, &mut layouts);
             }
         }
-        let mut ids = HashMap::new();
-        for layout in layouts {
-            if ids.contains_key(&layout) {
-                continue;
-            }
-            let id = module
-                .declare_data(
-                    &format!("terlan_managed_layout_{}", ids.len()),
-                    Linkage::Local,
-                    false,
-                    false,
-                )
-                .map_err(|error| format!("error[cranelift.managed_data_declare]: {error}"))?;
-            let mut description = DataDescription::new();
-            description.define(layout.to_vec().into_boxed_slice());
-            description.set_align(8);
-            module
-                .define_data(id, &description)
-                .map_err(|error| format!("error[cranelift.managed_data_define]: {error}"))?;
-            ids.insert(layout, id);
-        }
-        Ok(Self { ids })
+        Ok(Self {
+            encoded: layouts.into_iter().collect(),
+        })
     }
 
-    /// Resolves the immutable object data for one encoded aggregate layout.
-    fn id(&self, layout: &Arc<[u8]>) -> Result<DataId, String> {
-        self.ids.get(layout).copied().ok_or_else(|| {
+    /// Confirms that one encoded aggregate layout belongs to the admitted object.
+    fn admit(&self, layout: &Arc<[u8]>) -> Result<(), String> {
+        self.encoded.contains(layout).then_some(()).ok_or_else(|| {
             "error[cranelift.managed_layout]: constructor layout was not inventoried".to_string()
         })
     }
@@ -109,8 +90,23 @@ pub(super) fn emit_managed_allocation(
     let zero = builder.ins().iconst(types::I64, 0);
     builder.ins().stack_store(zero, result_slot, 0);
 
-    let data = module.declare_data_in_func(layouts.id(encoded_layout)?, builder.func);
-    let layout_pointer = builder.ins().global_value(pointer, data);
+    layouts.admit(encoded_layout)?;
+    let layout_bytes = u32::try_from(encoded_layout.len().max(1)).map_err(|_| {
+        "error[cranelift.managed_layout]: descriptor storage exceeds u32".to_string()
+    })?;
+    let layout_slot = builder.create_sized_stack_slot(StackSlotData::new(
+        StackSlotKind::ExplicitSlot,
+        layout_bytes,
+        0,
+    ));
+    for (index, byte) in encoded_layout.iter().copied().enumerate() {
+        let offset = i32::try_from(index).map_err(|_| {
+            "error[cranelift.managed_layout]: descriptor offset exceeds i32".to_string()
+        })?;
+        let value = builder.ins().iconst(types::I8, i64::from(byte));
+        builder.ins().stack_store(value, layout_slot, offset);
+    }
+    let layout_pointer = builder.ins().stack_addr(pointer, layout_slot, 0);
     let layout_length = i64::try_from(encoded_layout.len()).map_err(|_| {
         "error[cranelift.managed_layout]: descriptor length exceeds i64".to_string()
     })?;

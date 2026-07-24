@@ -10,6 +10,7 @@ use cranelift_object::ObjectModule;
 
 use super::super::{status, NativeType, DISPATCH_SYMBOL};
 use super::dispatch::dispatch_signature;
+use super::setup::declare_image_func_in_func;
 use crate::runtime::native_image::TVM_INDIRECT_TRANSITION_WORD_CAPACITY;
 
 const MAX_INVOCATION_WORDS: usize = 128;
@@ -194,7 +195,7 @@ fn emit_invoke_closure_raw(
     let dispatch_id = module
         .declare_function(DISPATCH_SYMBOL, Linkage::Export, &signature)
         .map_err(|error| format!("error[cranelift.closure_dispatch_declare]: {error}"))?;
-    let dispatch_ref = module.declare_func_in_func(dispatch_id, builder.func);
+    let dispatch_ref = declare_image_func_in_func(module, dispatch_id, builder.func);
     let result_slot = scalar_slot(builder);
     builder.ins().stack_store(zero, result_slot, 0);
     let target = builder.ins().stack_load(types::I64, target_slot, 0);
