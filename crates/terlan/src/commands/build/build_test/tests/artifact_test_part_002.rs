@@ -98,6 +98,10 @@ pub value(): Int ->
 
     let manifest_text =
         fs::read_to_string(web_root.join("manifest.json")).expect("read web manifest");
+    assert!(
+        !manifest_text.contains(r"assets\\"),
+        "browser package paths must use portable separators: {manifest_text}"
+    );
     let manifest: serde_json::Value =
         serde_json::from_str(&manifest_text).expect("parse web manifest");
     assert_eq!(manifest["schema"], "terlan-web-build-v1");

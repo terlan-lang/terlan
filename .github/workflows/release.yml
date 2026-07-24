@@ -82,6 +82,9 @@ jobs:
           choco install pkgconfiglite --yes --no-progress
           & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install "libpq:$triplet"
           $installed = Join-Path $env:VCPKG_INSTALLATION_ROOT "installed\$triplet"
+          $installedBin = Join-Path $installed "bin"
+          $installedBin |
+            Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "PKG_CONFIG_PATH=$installed\lib\pkgconfig;$installed\share\pkgconfig" |
             Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 

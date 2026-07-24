@@ -139,6 +139,8 @@ def validate_workflow_text(name: str, workflow: str) -> None:
         "python -B tools/check_tvm_aot_platform_matrix.py target",
         "TERLAN_MATRIX_TARGET: ${{ matrix.target }}",
         "python -B tools/check_tvm_aot_platform_matrix.py aggregate",
+        '$installedBin = Join-Path $installed "bin"',
+        "Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append",
         "retention-days: 90",
         "uses: actions/checkout@v4",
         "uses: actions/upload-artifact@v4",
@@ -479,6 +481,9 @@ def self_test() -> None:
         ci_text.replace("  workflow_dispatch:\n", "", 1),
         ci_text.replace("runner: windows-11-arm", "runner: windows-2025", 1),
         ci_text.replace("          - target: linux-x86_64\n", "", 1),
+        ci_text.replace(
+            "          $installedBin = Join-Path $installed \"bin\"\n", "", 1
+        ),
     ):
         try:
             validate_workflow_text("CI fixture", invalid)

@@ -217,19 +217,20 @@ fn project_manifest_path(dir: &Path) -> PathBuf {
     dir.join(TERLAN_PROJECT_MANIFEST_FILE)
 }
 
-/// Converts a filesystem path into the debug-map string representation.
+/// Converts a filesystem path into the portable manifest representation.
 ///
 /// Inputs:
 /// - `path`: generated artifact path.
 ///
 /// Output:
-/// - Lossy UTF-8 string suitable for JSON manifests.
+/// - Lossy UTF-8 string with `/` separators suitable for JSON manifests.
 ///
 /// Transformation:
-/// - Uses display-compatible path conversion so debug maps remain readable
-///   across Unix and non-Unix environments.
+/// - Converts the host-native separator to `/` so package metadata remains
+///   consumable on every supported host.
 fn path_to_manifest_string(path: &Path) -> String {
-    PathBuf::from(path).to_string_lossy().into_owned()
+    path.to_string_lossy()
+        .replace(std::path::MAIN_SEPARATOR, "/")
 }
 
 /// Writes one build output file.
