@@ -272,13 +272,15 @@ fn descriptor() -> TvmExecutableDescriptor {
 #[test]
 fn macho_debug_metadata_uses_a_retained_terlan_section() {
     use object::write::Object as WriteObject;
-    use object::{
-        Architecture, BinaryFormat, Endianness, Object, ObjectSection, SectionKind,
-    };
+    use object::{Architecture, BinaryFormat, Endianness, Object, ObjectSection, SectionKind};
 
-    let native = WriteObject::new(BinaryFormat::MachO, Architecture::Aarch64, Endianness::Little)
-        .write()
-        .expect("write Mach-O fixture");
+    let native = WriteObject::new(
+        BinaryFormat::MachO,
+        Architecture::Aarch64,
+        Endianness::Little,
+    )
+    .write()
+    .expect("write Mach-O fixture");
     let embedded =
         descriptor_object_for_native_with_debug(&native, &descriptor(), b"debug metadata")
             .expect("embed Mach-O metadata");
@@ -634,6 +636,104 @@ fn host_target_identity_rejects_each_independent_abi_dimension() {
             .expect_err("forged host ABI dimension must fail");
         assert!(error.contains(field), "unexpected error: {error}");
     }
+}
+
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+#[test]
+fn coff_metadata_survives_pe_linking_sealing_and_inspection() {
+    use object::write::{Object as WriteObject, Symbol, SymbolSection};
+    use object::{
+        Architecture, BinaryFormat, Endianness, SectionKind, SymbolFlags, SymbolKind, SymbolScope,
+    };
+
+    use super::debug::{encode_tvm_native_debug, inspect_tvm_native_debug, TvmNativeDebugRecord};
+
+    let fixture = TestFiles::new("pe");
+    let native_path = fixture.root.join("native.obj");
+    let descriptor_path = fixture.root.join("descriptor.obj");
+    let image_path = fixture.root.join("linked.exe");
+
+    let mut native = WriteObject::new(BinaryFormat::Coff, Architecture::X86_64, Endianness::Little);
+    let text = native.add_section(Vec::new(), b".text".to_vec(), SectionKind::Text);
+    native.section_mut(text).set_data(vec![0xc3], 1);
+    native.add_symbol(Symbol {
+        name: TVM_IMAGE_ENTRY_SYMBOL_V1.as_bytes().to_vec(),
+        value: 0,
+        size: 1,
+        kind: SymbolKind::Text,
+        scope: SymbolScope::Linkage,
+        weak: false,
+        section: SymbolSection::Section(text),
+        flags: SymbolFlags::None,
+    });
+    let native_bytes = native.write().expect("write COFF native object");
+    fs::write(&native_path, &native_bytes).expect("write native object");
+
+    let target = host_tvm_target().expect("host target");
+    let mut expected = descriptor();
+    expected.target = target.clone();
+    let debug_record = TvmNativeDebugRecord {
+        source_file: "Main.terl".to_string(),
+        module: "app.Main".to_string(),
+        function: "main".to_string(),
+        arity: 0,
+        span_start: 0,
+        span_end: 1,
+        core_schema: "core-ir-v1".to_string(),
+        proof_readiness: "executable".to_string(),
+    };
+    let debug_bytes = encode_tvm_native_debug(std::slice::from_ref(&debug_record))
+        .expect("encode debug metadata");
+    let descriptor_bytes =
+        descriptor_object_for_native_with_debug(&native_bytes, &expected, &debug_bytes)
+            .expect("write COFF descriptor object");
+    fs::write(&descriptor_path, descriptor_bytes).expect("write descriptor object");
+
+    let linker = Path::new(
+        std::str::from_utf8(
+            &Command::new("rustc")
+                .args(["--print", "sysroot"])
+                .output()
+                .expect("locate Rust sysroot")
+                .stdout,
+        )
+        .expect("Rust sysroot is utf-8")
+        .trim(),
+    )
+    .join("lib")
+    .join("rustlib")
+    .join(&target.triple)
+    .join("bin")
+    .join("rust-lld");
+    let output = Command::new(&linker)
+        .args([
+            "-flavor",
+            "link",
+            "/subsystem:console",
+            "/nodefaultlib",
+            &format!("/entry:{TVM_IMAGE_ENTRY_SYMBOL_V1}"),
+            &format!("/out:{}", image_path.display()),
+        ])
+        .arg(&native_path)
+        .arg(&descriptor_path)
+        .output()
+        .expect("link PE fixture with rust-lld");
+    assert!(
+        output.status.success(),
+        "rust-lld failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let mut image = fs::read(&image_path).expect("read linked PE fixture");
+    let sealed = seal_tvm_image(&mut image, &expected).expect("seal linked PE fixture");
+    let inspection = inspect_tvm_image(&image, &target.triple).expect("inspect linked PE fixture");
+    assert_eq!(inspection.format, "pe");
+    assert_eq!(inspection.descriptor_section, ".tvm");
+    assert_eq!(inspection.descriptor, sealed);
+    assert_eq!(
+        inspect_tvm_native_debug(&image).expect("inspect linked PE debug metadata"),
+        vec![debug_record]
+    );
 }
 
 #[cfg(target_os = "linux")]

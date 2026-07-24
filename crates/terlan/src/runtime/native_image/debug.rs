@@ -3,6 +3,8 @@
 use object::{BinaryFormat, Object, ObjectSection};
 
 const MAGIC: &[u8; 8] = b"TVMDBG01";
+const COFF_DEBUG_SECTION: &str = ".tdbg$D";
+const PE_DEBUG_SECTION: &str = ".tdbg";
 
 /// One compiler source identity carried by a native function.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -79,7 +81,8 @@ pub(crate) fn inspect_tvm_native_debug(
     let section_name = match image.format() {
         BinaryFormat::Elf => ".debug_terlan",
         BinaryFormat::MachO => "__terlan",
-        BinaryFormat::Coff | BinaryFormat::Pe => ".debug$T",
+        BinaryFormat::Coff => COFF_DEBUG_SECTION,
+        BinaryFormat::Pe => PE_DEBUG_SECTION,
         format => {
             return Err(format!(
                 "error[tvm.debug.native_format]: unsupported native format {format:?}"

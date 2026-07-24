@@ -12,7 +12,9 @@ use super::descriptor::{
 
 const ELF_DESCRIPTOR_SECTION: &str = ".note.terlan.tvm";
 const MACHO_DESCRIPTOR_SECTION: &str = "__tvm_desc";
-const PE_DESCRIPTOR_SECTION: &str = ".tvm$D";
+const COFF_DESCRIPTOR_SECTION: &str = ".tvm$D";
+const PE_DESCRIPTOR_SECTION: &str = ".tvm";
+const COFF_DEBUG_SECTION: &str = ".tdbg$D";
 const SUPPORTED_RUNTIME_ABI: u16 = 2;
 const SUPPORTED_NATIVE_BOUNDARY: u16 = PUBLIC_ADAPTER_ABI_VERSION;
 
@@ -66,7 +68,11 @@ pub fn descriptor_object_for_native_with_debug(
                 b"__terlan".to_vec(),
                 SectionKind::ReadOnlyData,
             ),
-            BinaryFormat::Coff => (Vec::new(), b".debug$T".to_vec(), SectionKind::Debug),
+            BinaryFormat::Coff => (
+                Vec::new(),
+                COFF_DEBUG_SECTION.as_bytes().to_vec(),
+                SectionKind::ReadOnlyData,
+            ),
             format => {
                 return Err(format!(
                     "error[tvm.image.debug_format]: unsupported native debug format {format:?}"
@@ -177,7 +183,8 @@ pub fn inspect_tvm_image(
     let (format, section_name) = match file.format() {
         BinaryFormat::Elf => ("elf", ELF_DESCRIPTOR_SECTION),
         BinaryFormat::MachO => ("mach-o", MACHO_DESCRIPTOR_SECTION),
-        BinaryFormat::Coff | BinaryFormat::Pe => ("pe", PE_DESCRIPTOR_SECTION),
+        BinaryFormat::Coff => ("pe", COFF_DESCRIPTOR_SECTION),
+        BinaryFormat::Pe => ("pe", PE_DESCRIPTOR_SECTION),
         other => {
             return Err(format!(
                 "error[tvm.image.native_format]: unsupported native format {other:?}"
@@ -303,7 +310,8 @@ fn descriptor_section_identity(
     match format {
         BinaryFormat::Elf => Ok(("", ELF_DESCRIPTOR_SECTION)),
         BinaryFormat::MachO => Ok(("__TERLAN", MACHO_DESCRIPTOR_SECTION)),
-        BinaryFormat::Coff | BinaryFormat::Pe => Ok(("", PE_DESCRIPTOR_SECTION)),
+        BinaryFormat::Coff => Ok(("", COFF_DESCRIPTOR_SECTION)),
+        BinaryFormat::Pe => Ok(("", PE_DESCRIPTOR_SECTION)),
         other => Err(format!(
             "error[tvm.image.native_format]: unsupported native format {other:?}"
         )),
