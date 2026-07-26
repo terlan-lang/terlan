@@ -1,53 +1,91 @@
 //! Bounded managed-value operations invoked by generated native code.
 
-use std::num::NonZeroUsize;
-use std::sync::Arc;
+use std::{num::NonZeroUsize, sync::Arc};
 
 use crate::runtime::vm::http_session::VmHttpSessionService;
 
 use super::{
     ActorHeap, ManagedAggregate, ManagedAggregateDescriptor, ManagedFieldValue,
-    ManagedLayoutRegistry, ManagedList, ManagedMap, ManagedMemoryError, ManagedString,
-    ManagedStringKeySemantics, SemanticTypeId, TvmRef,
+    ManagedLayoutRegistry, ManagedList, ManagedMap, ManagedMemoryError, ManagedStringKeySemantics,
+    SemanticTypeId, TvmRef,
 };
 
 #[path = "operation_abi/binary_pattern.rs"]
 mod binary_pattern;
+#[path = "operation_abi/bitstring.rs"]
+mod bitstring;
+#[path = "operation_abi/bytes.rs"]
+mod bytes;
 #[path = "operation_abi/collections.rs"]
 mod collections;
 #[path = "operation_abi/equality.rs"]
 mod equality;
+#[path = "operation_abi/float.rs"]
+mod float;
 #[path = "operation_abi/http.rs"]
 mod http;
+#[path = "operation_abi/integer.rs"]
+mod integer;
 #[path = "operation_abi/json.rs"]
 mod json;
 #[path = "operation_abi/pattern.rs"]
 mod pattern;
+#[path = "operation_abi/projection.rs"]
+mod projection;
 #[path = "operation_abi/session.rs"]
 mod session;
+#[path = "operation_abi/string.rs"]
+mod string;
 #[path = "operation_abi/template.rs"]
 mod template;
 pub use binary_pattern::{
     encode_binary_pattern_extract_operation, encode_binary_pattern_matches_operation,
     ManagedBinaryPatternEndian, ManagedBinaryPatternField,
 };
+pub use bitstring::{encode_bitstring_operation, ManagedBitStringOperation};
+pub use bytes::{
+    encode_bytes_concat_operation, encode_bytes_from_list_operation, encode_bytes_length_operation,
+    encode_bytes_read_int_be_operation, encode_bytes_read_int_le_operation,
+    encode_bytes_read_uint_be_operation, encode_bytes_read_uint_le_operation,
+    encode_bytes_slice_operation, encode_bytes_to_list_operation,
+};
 pub use collections::{
-    encode_list_first_operation, encode_list_from_elements_operation,
-    encode_list_is_empty_operation, encode_list_prepend_operation, encode_list_rest_operation,
-    encode_map_contains_operation, encode_map_from_entries_operation, encode_map_get_operation,
+    encode_iterator_next_operation, encode_list_append_operation, encode_list_first_operation,
+    encode_list_first_option_operation, encode_list_from_elements_operation,
+    encode_list_get_operation, encode_list_is_empty_operation, encode_list_length_operation,
+    encode_list_prepend_operation, encode_list_rest_operation, encode_list_rest_option_operation,
+    encode_map_clear_operation, encode_map_contains_operation, encode_map_empty_operation,
+    encode_map_from_entries_operation, encode_map_from_entry_list_operation,
+    encode_map_get_operation, encode_map_get_option_operation, encode_map_is_empty_operation,
+    encode_map_iterator_operation, encode_map_length_operation, encode_map_put_operation,
+    encode_map_remove_operation, encode_map_take_operation,
 };
 pub use equality::encode_managed_value_equal_operation;
+pub use float::{
+    encode_float_from_string_operation, encode_float_log_operation,
+    encode_float_to_string_operation,
+};
 pub use http::{
-    encode_cookie_header_operation, encode_response_cookie_jar_operation,
-    encode_response_security_headers_operation, ManagedCookieHeaderOperation,
+    encode_cookie_header_operation, encode_response_build_operation,
+    encode_response_cookie_jar_operation, encode_response_security_headers_operation,
+    ManagedCookieHeaderOperation,
+};
+pub use integer::{
+    encode_int_from_string_base_operation, encode_int_from_string_operation,
+    encode_int_to_string_base_operation, encode_int_to_string_operation,
 };
 pub use json::{encode_json_parse_result_operation, encode_result_is_ok_operation};
 pub use pattern::{encode_managed_type_is_operation, encode_managed_variant_is_operation};
+pub(crate) use projection::{decode_aggregate_field_projection, scalar_string_projection_rewrite};
 pub use session::{
     encode_session_current_operation, encode_session_expire_operation,
     encode_session_get_operation, encode_session_mutation_operation,
     encode_session_option_is_none_operation, encode_session_rotate_operation,
     encode_session_with_response_operation, ManagedSessionMutation,
+};
+use string::{
+    append_strings, concatenate_strings, join_string_list, prepend_string_literal, strings_equal,
+    transform_string,
 };
 pub use template::{encode_template_render_operation, ManagedTemplateValueKind};
 
@@ -68,6 +106,7 @@ const STRING_ESCAPE_HTML_TEXT: u8 = 11;
 const STRING_ESCAPE_HTML_ATTRIBUTE: u8 = 12;
 const STRING_PREPEND_LITERAL: u8 = 13;
 const STRING_PREPEND_PROJECTED_LITERAL: u8 = 14;
+const STRING_CONCAT: u8 = 15;
 const SEMANTIC_BYTES: usize = 16;
 const PROJECT_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES + 4;
 const MAP_GET_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES * 2;
@@ -80,9 +119,13 @@ const APPEND_VALUE_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES * 2 + 4;
 pub fn is_managed_operation(encoded: &[u8]) -> bool {
     encoded.starts_with(MAGIC)
         || binary_pattern::is_binary_pattern_operation(encoded)
+        || bitstring::is_bitstring_operation(encoded)
+        || bytes::is_bytes_operation(encoded)
         || collections::is_collection_operation(encoded)
         || equality::is_equality_operation(encoded)
+        || float::is_float_operation(encoded)
         || http::is_http_operation(encoded)
+        || integer::is_integer_operation(encoded)
         || json::is_json_operation(encoded)
         || pattern::is_pattern_operation(encoded)
         || session::is_session_operation(encoded)
@@ -103,6 +146,12 @@ pub(crate) fn managed_abi_result_is_reference(encoded: &[u8]) -> bool {
     if binary_pattern::is_binary_pattern_operation(encoded) {
         return binary_pattern::binary_pattern_result_is_reference(encoded);
     }
+    if bitstring::is_bitstring_operation(encoded) {
+        return bitstring::bitstring_result_is_reference(encoded);
+    }
+    if bytes::is_bytes_operation(encoded) {
+        return bytes::bytes_operation_result_is_reference(encoded);
+    }
     if session::is_session_operation(encoded) {
         return session::session_operation_result_is_reference(encoded);
     }
@@ -114,6 +163,12 @@ pub(crate) fn managed_abi_result_is_reference(encoded: &[u8]) -> bool {
     }
     if equality::is_equality_operation(encoded) {
         return false;
+    }
+    if float::is_float_operation(encoded) {
+        return float::float_operation_result_is_reference(encoded);
+    }
+    if integer::is_integer_operation(encoded) {
+        return true;
     }
     !matches!(
         decode_operation(encoded),
@@ -215,6 +270,11 @@ pub fn encode_string_append_operation() -> Vec<u8> {
     header(STRING_APPEND)
 }
 
+/// Encodes checked concatenation of two or more managed UTF-8 strings.
+pub fn encode_string_concat_operation() -> Vec<u8> {
+    header(STRING_CONCAT)
+}
+
 /// Encodes concatenation of one image-owned UTF-8 prefix and one managed string.
 pub fn encode_string_prepend_literal_operation(
     literal: &str,
@@ -288,11 +348,23 @@ pub(crate) fn execute_managed_operation_with_context(
         if binary_pattern::is_binary_pattern_operation(encoded) {
             return binary_pattern::execute_binary_pattern_operation(heap, encoded, words);
         }
+        if bitstring::is_bitstring_operation(encoded) {
+            return bitstring::execute_bitstring_operation(heap, encoded, words);
+        }
+        if bytes::is_bytes_operation(encoded) {
+            return bytes::execute_bytes_operation(heap, layouts, encoded, words);
+        }
         if collections::is_collection_operation(encoded) {
             return collections::execute_collection_operation(heap, layouts, encoded, words);
         }
         if equality::is_equality_operation(encoded) {
             return equality::execute_equality_operation(heap, layouts, encoded, words);
+        }
+        if float::is_float_operation(encoded) {
+            return float::execute_float_operation(heap, layouts, encoded, words);
+        }
+        if integer::is_integer_operation(encoded) {
+            return integer::execute_integer_operation(heap, layouts, encoded, words);
         }
         if json::is_json_operation(encoded) {
             return json::execute_json_operation(heap, layouts, encoded, words);
@@ -399,6 +471,12 @@ pub(crate) fn execute_managed_operation_with_context(
             };
             append_strings(heap, *left, *right)?.erase()
         }
+        ManagedOperation::StringConcat => {
+            if words.len() < 2 {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            }
+            concatenate_strings(heap, words)?.erase()
+        }
         ManagedOperation::StringPrependLiteral(literal) => {
             let [right] = words else {
                 return Err(ManagedMemoryError::InvalidAggregateArity);
@@ -480,6 +558,8 @@ enum ManagedOperation<'a> {
     StringEqual,
     /// Allocates the UTF-8 concatenation of two validated managed strings.
     StringAppend,
+    /// Allocates the UTF-8 concatenation of two or more validated managed strings.
+    StringConcat,
     /// Prepends one image-owned UTF-8 literal to a validated managed string.
     StringPrependLiteral(&'a str),
     /// Projects a managed string field and prepends one image-owned literal.
@@ -563,6 +643,7 @@ fn decode_operation(encoded: &[u8]) -> Result<ManagedOperation<'_>, ManagedMemor
         }
         STRING_EQUAL if encoded.len() == HEADER_BYTES => Ok(ManagedOperation::StringEqual),
         STRING_APPEND if encoded.len() == HEADER_BYTES => Ok(ManagedOperation::StringAppend),
+        STRING_CONCAT if encoded.len() == HEADER_BYTES => Ok(ManagedOperation::StringConcat),
         STRING_PREPEND_LITERAL if encoded.len() >= HEADER_BYTES + 4 => Ok(
             ManagedOperation::StringPrependLiteral(literal_at(encoded, HEADER_BYTES)?),
         ),
@@ -585,97 +666,6 @@ fn decode_operation(encoded: &[u8]) -> Result<ManagedOperation<'_>, ManagedMemor
         }
         _ => Err(ManagedMemoryError::InvalidAggregateAbi),
     }
-}
-
-/// Decodes only an exact aggregate-reference projection for compiler analysis.
-///
-/// Other managed operations and malformed payloads deliberately return `None`;
-/// callers must then retain their conservative full-value behavior.
-pub(crate) fn decode_aggregate_field_projection(encoded: &[u8]) -> Option<(SemanticTypeId, usize)> {
-    match decode_operation(encoded).ok()? {
-        ManagedOperation::Project { semantic, field }
-        | ManagedOperation::StringPrependProjectedLiteral {
-            semantic, field, ..
-        } => Some((semantic, field)),
-        _ => None,
-    }
-}
-
-/// Compares two actor-owned managed strings after validating both references.
-fn strings_equal(heap: &ActorHeap, left: i64, right: i64) -> Result<bool, ManagedMemoryError> {
-    let left = reference_word(left)?.cast::<ManagedString>();
-    let right = reference_word(right)?.cast::<ManagedString>();
-    Ok(heap.read_string(left)? == heap.read_string(right)?)
-}
-
-/// Allocates the concatenation of two actor-owned managed strings.
-fn append_strings(
-    heap: &mut ActorHeap,
-    left: i64,
-    right: i64,
-) -> Result<TvmRef<ManagedString>, ManagedMemoryError> {
-    heap.concatenate_strings(
-        reference_word(left)?.cast::<ManagedString>(),
-        reference_word(right)?.cast::<ManagedString>(),
-    )
-}
-
-/// Prepends an image-owned string literal to one actor-owned managed string.
-fn prepend_string_literal(
-    heap: &mut ActorHeap,
-    literal: &str,
-    right: i64,
-) -> Result<TvmRef<ManagedString>, ManagedMemoryError> {
-    heap.prepend_string_literal(literal, reference_word(right)?.cast::<ManagedString>())
-}
-
-/// Allocates the ordered concatenation of one actor-owned managed string list.
-fn join_string_list(
-    heap: &mut ActorHeap,
-    layouts: &ManagedLayoutRegistry,
-    list: i64,
-) -> Result<TvmRef<ManagedString>, ManagedMemoryError> {
-    let list = reference_word(list)?.cast::<ManagedList>();
-    let semantic = heap.descriptor(list)?.semantic_id();
-    let descriptor = layouts
-        .collection(semantic)
-        .and_then(|collection| collection.list_descriptor())
-        .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
-    let expected =
-        super::ManagedFieldType::Reference(SemanticTypeId::from_canonical("std.core.String")?);
-    if descriptor.element_type() != expected {
-        return Err(ManagedMemoryError::ManagedTypeMismatch);
-    }
-    let elements = heap.list_elements(descriptor, list)?;
-    let mut fragments = Vec::with_capacity(elements.len());
-    let mut capacity = 0usize;
-    for element in elements {
-        let ManagedFieldValue::Reference(reference) = element else {
-            return Err(ManagedMemoryError::InvalidAggregateField);
-        };
-        let fragment = heap.read_string(reference.cast::<ManagedString>())?;
-        capacity = capacity
-            .checked_add(fragment.len())
-            .ok_or(ManagedMemoryError::AllocationLimitExceeded)?;
-        fragments.push(fragment.to_string());
-    }
-    let mut joined = String::with_capacity(capacity);
-    for fragment in fragments {
-        joined.push_str(&fragment);
-    }
-    heap.allocate_string(&joined)
-}
-
-/// Applies one maintained string transform after validating the managed input.
-fn transform_string(
-    heap: &mut ActorHeap,
-    value: i64,
-    transform: fn(&str) -> String,
-) -> Result<TvmRef<ManagedString>, ManagedMemoryError> {
-    let value = heap
-        .read_string(reference_word(value)?.cast::<ManagedString>())?
-        .to_string();
-    heap.allocate_string(&transform(&value))
 }
 
 /// Reads one checked physical field index from encoded operation bytes.

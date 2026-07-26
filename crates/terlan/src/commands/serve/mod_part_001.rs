@@ -1,4 +1,5 @@
 use std::fs;
+use std::cell::RefCell;
 #[cfg(test)]
 use std::io::{Read, Write};
 use std::net as std_net;
@@ -16,7 +17,6 @@ use std::time::Instant;
 #[cfg(test)]
 use std::convert::Infallible;
 
-#[cfg(test)]
 use bytes::Bytes;
 #[cfg(test)]
 use http_body_util::{combinators::BoxBody, BodyExt, Full};
@@ -25,6 +25,7 @@ use hyper::body::Frame;
 #[cfg(test)]
 use hyper::{Request, Response};
 
+#[cfg(not(feature = "serve-runtime-bin"))]
 use crate::commands::dev_dependencies;
 #[cfg(test)]
 use crate::runtime::vm::http::{handle_http1_in_memory_exchange, write_http1_response};
@@ -34,6 +35,7 @@ use crate::terlan_native::http::content_type_for_path;
 #[cfg(test)]
 use handler::handler_log_identity;
 use handler::{
+    execute_suspendable_vm_handler_with_package_root_projected,
     execute_vm_handler_with_package_root_projected, execute_vm_router_handler_with_package_root,
     execute_vm_router_sse_admission_with_package_root,
     execute_vm_router_static_response_with_package_root,
@@ -53,8 +55,8 @@ use handler::{
 use handler_cache::handler_cache_test_support::clear_vm_handler_module_cache_for_test;
 use handler_cache::{
     cached_vm_handler_for_manifest, cached_vm_handler_runtime_for_manifest,
-    cached_vm_handler_runtime_for_request, with_cached_vm_handler_runtime_for_request,
-    AotHandlerRuntime,
+    cached_vm_handler_runtime_for_request, handler_cache_epoch,
+    with_cached_vm_handler_runtime_for_request, AotHandlerRuntime,
 };
 #[cfg(test)]
 use logging::{
@@ -70,7 +72,8 @@ pub(crate) use manifest::validate_web_package;
 use response::build_http_response;
 use response::{
     build_http_response_for_stream, build_http_response_owned_for_stream,
-    build_http_text_response_owned_for_stream, inject_reload_script,
+    build_http_shared_response_owned_for_stream, build_http_text_response_owned_for_stream,
+    inject_reload_script,
 };
 use tls::{
     acme_http01_challenge, runtime_tls_config_for_serve, AcmeHttp01Challenge, RuntimeTlsConfig,
@@ -85,6 +88,19 @@ use websocket::{websocket_hub, websocket_upgrade_response, WebSocketHub};
 use websocket::{websocket_upgrade_state, WebSocketUpgradeState};
 
 pub(crate) use args::{parse_serve_args, ServeArgs};
+
+thread_local! {
+    static SUSPENDABLE_ROUTE_DECISION: RefCell<Option<SuspendableRouteDecision>> =
+        const { RefCell::new(None) };
+}
+
+struct SuspendableRouteDecision {
+    epoch: u64,
+    web_root: PathBuf,
+    method: String,
+    path: String,
+    suspending: bool,
+}
 
 /// Boxed body type used by the Hyper development server.
 #[cfg(test)]
@@ -192,9 +208,31 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
         eprintln!("{message}");
         return ExitCode::from(1);
     }
+    #[cfg(not(feature = "serve-runtime-bin"))]
+    if std::env::var_os("TERLAN_SERVE_COMPILER_DAEMON").is_some() {
+        return handler_cache::run_compiler_daemon(&args.web_root);
+    }
     if args.check_only {
         return ExitCode::SUCCESS;
     }
+    #[cfg(not(feature = "serve-runtime-bin"))]
+    match enter_lean_serve_runtime() {
+        Ok(None) => {}
+        Ok(Some(exit_code)) => return exit_code,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    }
+    #[cfg(feature = "serve-runtime-bin")]
+    return match serve_web_package(&args) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(message) => {
+            eprintln!("{message}");
+            ExitCode::from(1)
+        }
+    };
+    #[cfg(not(feature = "serve-runtime-bin"))]
     let dependency_session = match manifest::adjacent_project_root(&args.web_root) {
         Some(project_root) => match dev_dependencies::start_project_dependencies(&project_root) {
             Ok(session) => Some(session),
@@ -206,6 +244,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
         None => None,
     };
 
+    #[cfg(not(feature = "serve-runtime-bin"))]
     let outcome = match serve_web_package(&args) {
         Ok(()) => ExitCode::SUCCESS,
         Err(message) => {
@@ -213,7 +252,58 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
             ExitCode::from(1)
         }
     };
+    #[cfg(not(feature = "serve-runtime-bin"))]
     dev_dependencies::finish_dependency_session(dependency_session, outcome)
+}
+
+/// Replaces the compiler-bearing process image after persisted AOT admission.
+///
+/// The replacement process loads only persisted generation metadata during
+/// steady-state serving. Source changes are compiled by short-lived helpers,
+/// preventing compiler stacks and allocator arenas from becoming runtime RSS.
+#[cfg(not(feature = "serve-runtime-bin"))]
+fn enter_lean_serve_runtime() -> Result<Option<ExitCode>, String> {
+    const RUNTIME_ONLY_ENV: &str = "TERLAN_SERVE_RUNTIME_ONLY";
+    if std::env::var_os(RUNTIME_ONLY_ENV).is_some() {
+        return Ok(None);
+    }
+    let compiler = std::env::current_exe()
+        .map_err(|error| format!("error[serve.runtime_exec]: current executable: {error}"))?;
+    let runtime_name = if cfg!(windows) {
+        "terlan-serve-runtime.exe"
+    } else {
+        "terlan-serve-runtime"
+    };
+    let runtime = std::env::var_os("TERLAN_SERVE_RUNTIME_BIN")
+        .map(PathBuf::from)
+        .or_else(|| compiler.parent().map(|parent| parent.join(runtime_name)))
+        .filter(|path| path.is_file())
+        .unwrap_or_else(|| compiler.clone());
+    let mut command = std::process::Command::new(runtime);
+    command
+        .env(RUNTIME_ONLY_ENV, "1")
+        .env("TERLAN_COMPILER", compiler)
+        .args(std::env::args_os().skip(1));
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        let error = command.exec();
+        Err(format!(
+            "error[serve.runtime_exec]: replace compiler process: {error}"
+        ))
+    }
+    #[cfg(not(unix))]
+    {
+        let status = command
+            .status()
+            .map_err(|error| format!("error[serve.runtime_exec]: start runtime: {error}"))?;
+        Ok(Some(
+            status
+                .code()
+                .and_then(|code| u8::try_from(code).ok())
+                .map_or_else(|| ExitCode::from(1), ExitCode::from),
+        ))
+    }
 }
 
 /// Validates dynamic handler runtime selection for `terlc serve`.
@@ -392,6 +482,107 @@ fn execute_dynamic_vm_handler_with_runtime(
         web_root,
         &mut output,
     )
+}
+
+/// Diverts only compiler-proven suspendable direct handlers into the
+/// protocol-owner invocation state machine. Immediate handlers retain their
+/// typed response and scalar-ingress fast paths.
+pub(super) async fn handle_suspendable_vm_stream_request(
+    request: &::http::Request<String>,
+    web_root: &Path,
+) -> Result<Option<::http::Response<Bytes>>, String> {
+    let method = request.method().as_str();
+    let request_path = request.uri().path();
+    let epoch = handler_cache_epoch();
+    if SUSPENDABLE_ROUTE_DECISION.with(|decision| {
+        decision.borrow().as_ref().is_some_and(|decision| {
+            decision.epoch == epoch
+                && decision.web_root == web_root
+                && decision.method == method
+                && decision.path == request_path
+                && !decision.suspending
+        })
+    }) {
+        return Ok(None);
+    }
+    let request_query = request.uri().query().unwrap_or_default();
+    let Some(MatchedWebPackageRoute::Handler(matched)) =
+        manifest_route_for_request(web_root, method, request_path)
+    else {
+        return Ok(None);
+    };
+    let runtime = cached_vm_handler_runtime_for_request(web_root, &matched.handler)?;
+    let suspending = runtime.vm().request_handler_may_suspend(
+        &matched.handler.module,
+        &matched.handler.function,
+        matched.handler.arity,
+    );
+    SUSPENDABLE_ROUTE_DECISION.with(|decision| {
+        *decision.borrow_mut() = Some(SuspendableRouteDecision {
+            epoch,
+            web_root: web_root.to_path_buf(),
+            method: method.to_owned(),
+            path: request_path.to_owned(),
+            suspending,
+        });
+    });
+    if !suspending {
+        return Ok(None);
+    }
+    let projection = runtime.vm().request_projection(
+        &matched.handler.module,
+        &matched.handler.function,
+        matched.handler.arity,
+    );
+    let projected_headers = projection
+        .requires(crate::runtime::native::http::RequestFieldProjection::HEADERS)
+        .then(|| request_header_pairs(request.headers()))
+        .unwrap_or_default();
+    let projected_cookies = (projection
+        .requires(crate::runtime::native::http::RequestFieldProjection::COOKIES)
+        || projection.requires(
+            crate::runtime::native::http::RequestFieldProjection::COOKIE_JAR,
+        ))
+    .then(|| request_cookie_pairs(request.headers()))
+    .unwrap_or_default();
+    let native_request =
+        crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
+            projection
+                .requires(crate::runtime::native::http::RequestFieldProjection::METHOD)
+                .then(|| method.to_owned())
+                .unwrap_or_default(),
+            projection
+                .requires(crate::runtime::native::http::RequestFieldProjection::PATH)
+                .then(|| request_path.to_owned())
+                .unwrap_or_default(),
+            projection
+                .requires(crate::runtime::native::http::RequestFieldProjection::BODY)
+                .then(|| request.body().clone())
+                .unwrap_or_default(),
+            projection
+                .requires(crate::runtime::native::http::RequestFieldProjection::PARAMS)
+                .then(|| matched.params.clone())
+                .unwrap_or_default(),
+            projection
+                .requires(crate::runtime::native::http::RequestFieldProjection::QUERY_STRING)
+                .then(|| request_query.to_owned())
+                .unwrap_or_default(),
+            projection
+                .requires(crate::runtime::native::http::RequestFieldProjection::QUERY)
+                .then(|| query_pairs(request_query))
+                .unwrap_or_default(),
+            projected_headers,
+            projected_cookies,
+        );
+    let response = execute_suspendable_vm_handler_with_package_root_projected(
+        runtime.vm(),
+        &matched,
+        native_request,
+        projection,
+        web_root,
+    )
+    .await?;
+    serve_vm_stream_handler_response(response, method == "HEAD").map(Some)
 }
 
 /// Executes middleware for a compiler-folded static route through its source router.

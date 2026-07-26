@@ -7,7 +7,7 @@ use concurrent_queue::ConcurrentQueue;
 use super::{VmActorDirectoryError, VmActorHandle, VmActorPublication};
 
 /// Maximum complete fragments admitted before producers receive backpressure.
-pub(super) const ACTOR_MAILBOX_CAPACITY: usize = 1_024;
+pub(crate) const ACTOR_MAILBOX_CAPACITY: usize = 1_024;
 
 const ACTIVE: u8 = 0;
 const PARKING: u8 = 1;

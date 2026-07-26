@@ -368,7 +368,7 @@ fn handle_vm_stream_request(
     request: ::http::Request<String>,
     web_root: &Path,
     channel: &mut Option<VmHttpChannelTransport>,
-) -> Result<::http::Response<String>, String> {
+) -> Result<::http::Response<Bytes>, String> {
     let (request, body) = request.into_parts();
     let method = request.method.as_str();
     let request_path = request.uri.path();
@@ -745,7 +745,7 @@ fn handle_vm_stream_request(
 ///   the live Hyper watcher until the production listener fully moves to the
 ///   VM stream runtime.
 #[cfg_attr(not(test), allow(dead_code))]
-fn reload_vm_stream_response(head_only: bool) -> Result<::http::Response<String>, String> {
+fn reload_vm_stream_response(head_only: bool) -> Result<::http::Response<Bytes>, String> {
     serve_vm_stream_response(
         200,
         "OK",

@@ -16,9 +16,7 @@
     {"id": "vm_tcp_malformed_framing", "class": "adversarial", "covers": ["malformed-framing"]},
     {"id": "vm_tcp_invalid_utf8", "class": "adversarial", "covers": ["invalid-utf8"]}
   ],
-  "http_workloads": [
-    {"id": "vm-http-lifecycle-crud", "class": "success", "covers": ["vm-logical-streams", "bounded-concurrency", "http-method", "http-path", "http-headers", "http-body-read", "http-body-write", "http-lifecycle"]}
-  ],
+  "http_workloads": [],
   "required_adversarial_coverage": [
     "truncated-payloads",
     "invalid-utf8",

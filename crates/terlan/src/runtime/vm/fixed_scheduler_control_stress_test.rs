@@ -10,8 +10,8 @@ use std::time::{Duration, Instant};
 
 use serde::Serialize;
 
-use super::*;
 use super::super::scheduler_topology::{VmFixedActorRoute, VmSchedulerTopology};
+use super::*;
 
 const CHILD_SEED_ENV: &str = "TERLAN_VM_MULTICORE_STRESS_CHILD_SEED";
 const FORCE_HANG_ENV: &str = "TERLAN_VM_MULTICORE_STRESS_FORCE_HANG";

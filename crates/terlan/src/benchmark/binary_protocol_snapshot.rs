@@ -4,10 +4,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use super::{
-    http_lifecycle::HttpLifecycleScenarioReport, BinaryProtocolScenarioReport,
-    BinaryProtocolTransportScenarioReport,
-};
+use super::{BinaryProtocolScenarioReport, BinaryProtocolTransportScenarioReport};
 
 const SNAPSHOT_ENV: &str = "TERLAN_BENCH_BINARY_PROTOCOL_SNAPSHOT";
 const UPDATE_SNAPSHOT_ENV: &str = "TERLAN_BENCH_BINARY_PROTOCOL_UPDATE_SNAPSHOT";
@@ -22,7 +19,6 @@ struct ProtocolContractSnapshot {
     scale_points: Vec<usize>,
     source_scenarios: Vec<StableScenario>,
     transport_scenarios: Vec<StableScenario>,
-    http_lifecycle_scenarios: Vec<StableScenario>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -45,10 +41,9 @@ struct StableScenario {
 pub(super) fn validate(
     source: &[BinaryProtocolScenarioReport],
     transport: &[BinaryProtocolTransportScenarioReport],
-    http: &[HttpLifecycleScenarioReport],
 ) -> Result<(), String> {
     let path = snapshot_path();
-    let actual = build(source, transport, http);
+    let actual = build(source, transport);
     if env::var_os(UPDATE_SNAPSHOT_ENV).is_some() {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|error| {
@@ -92,17 +87,15 @@ pub(super) fn validate(
 fn build(
     source: &[BinaryProtocolScenarioReport],
     transport: &[BinaryProtocolTransportScenarioReport],
-    http: &[HttpLifecycleScenarioReport],
 ) -> ProtocolContractSnapshot {
     ProtocolContractSnapshot {
-        schema: "terlan.vm-binary-protocol-contract-snapshot.v1".to_string(),
-        report_schema: "terlan.vm-binary-protocol-benchmark.v7".to_string(),
+        schema: "terlan.vm-binary-protocol-contract-snapshot.v2".to_string(),
+        report_schema: "terlan.vm-binary-protocol-benchmark.v8".to_string(),
         benchmark: "vm-binary-protocol".to_string(),
         warm_sample_count: 3,
         scale_points: vec![1, 10, 100, 1_000],
         source_scenarios: source.iter().map(source_scenario).collect(),
         transport_scenarios: transport.iter().map(transport_scenario).collect(),
-        http_lifecycle_scenarios: http.iter().map(http_scenario).collect(),
     }
 }
 
@@ -142,24 +135,6 @@ fn transport_scenario(report: &BinaryProtocolTransportScenarioReport) -> StableS
     }
 }
 
-fn http_scenario(report: &HttpLifecycleScenarioReport) -> StableScenario {
-    StableScenario {
-        id: report.id.clone(),
-        workload: Some(report.request_mix.to_string()),
-        workload_class: report.workload_class.to_string(),
-        measurement_scope: report.measurement_scope.to_string(),
-        scale: report.scale,
-        operation_count: report.operation_count,
-        concurrency: report.concurrency,
-        payload_bytes: Some(report.payload_bytes),
-        requests_per_connection: Some(report.requests_per_connection),
-        connection_count: Some(report.connection_count),
-        expected_typed_failure_count: 0,
-        comparison_status: report.comparison_status.to_string(),
-        correctness: report.correctness.to_string(),
-    }
-}
-
 fn snapshot_path() -> PathBuf {
     env::var_os(SNAPSHOT_ENV)
         .map(PathBuf::from)
@@ -182,16 +157,15 @@ mod tests {
             .expect("parse checked-in contract snapshot");
         assert_eq!(
             snapshot.schema,
-            "terlan.vm-binary-protocol-contract-snapshot.v1"
+            "terlan.vm-binary-protocol-contract-snapshot.v2"
         );
         assert_eq!(
             snapshot.report_schema,
-            "terlan.vm-binary-protocol-benchmark.v7"
+            "terlan.vm-binary-protocol-benchmark.v8"
         );
         assert_eq!(snapshot.scale_points, [1, 10, 100, 1_000]);
         assert_eq!(snapshot.source_scenarios.len(), 20);
         assert_eq!(snapshot.transport_scenarios.len(), 16);
-        assert_eq!(snapshot.http_lifecycle_scenarios.len(), 4);
     }
 
     #[test]

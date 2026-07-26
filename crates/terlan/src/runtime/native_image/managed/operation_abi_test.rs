@@ -8,22 +8,25 @@ use super::super::{
     encode_aggregate_layout, encode_collection_layout, ActorHeap, ActorId, HeapLimits,
     ManagedAggregate, ManagedAggregateDescriptor, ManagedCollectionDescriptor, ManagedFieldType,
     ManagedFieldValue, ManagedKeySemantics, ManagedLayoutRegistry, ManagedList, ManagedMap,
-    ManagedMemoryError, ManagedString, SemanticTypeId, TvmRef,
+    ManagedMemoryError, ManagedRoot, ManagedString, RootLocation, SemanticTypeId, TvmRef,
 };
 use super::{
     encode_aggregate_append_pair_operation, encode_aggregate_field_operation,
     encode_aggregate_replace_field_operation, encode_aggregate_scalar_field_operation,
     encode_binary_pattern_extract_operation, encode_binary_pattern_matches_operation,
-    encode_list_empty_operation, encode_list_first_operation, encode_list_from_elements_operation,
-    encode_list_is_empty_operation, encode_list_prepend_operation, encode_list_rest_operation,
+    encode_bitstring_operation, encode_bytes_from_list_operation, encode_bytes_length_operation,
+    encode_bytes_to_list_operation, encode_list_empty_operation, encode_list_first_operation,
+    encode_list_from_elements_operation, encode_list_get_operation, encode_list_is_empty_operation,
+    encode_list_prepend_operation, encode_list_rest_operation,
     encode_managed_value_equal_operation, encode_map_contains_operation,
     encode_map_from_entries_operation, encode_map_get_operation, encode_string_append_operation,
-    encode_string_equal_operation, encode_string_escape_html_attribute_operation,
-    encode_string_escape_html_text_operation, encode_string_list_join_operation,
-    encode_string_map_get_option_operation, encode_string_prepend_literal_operation,
-    encode_string_prepend_projected_literal_operation, encode_template_render_operation,
-    execute_managed_operation, managed_abi_result_is_reference, ManagedBinaryPatternEndian,
-    ManagedBinaryPatternField, ManagedTemplateValueKind,
+    encode_string_concat_operation, encode_string_equal_operation,
+    encode_string_escape_html_attribute_operation, encode_string_escape_html_text_operation,
+    encode_string_list_join_operation, encode_string_map_get_option_operation,
+    encode_string_prepend_literal_operation, encode_string_prepend_projected_literal_operation,
+    encode_template_render_operation, execute_managed_operation, managed_abi_result_is_reference,
+    ManagedBinaryPatternEndian, ManagedBinaryPatternField, ManagedBitStringOperation,
+    ManagedTemplateValueKind,
 };
 use crate::runtime::vm::ReplValue;
 
@@ -130,6 +133,50 @@ fn generated_collection_values_use_admitted_persistent_schemas() {
     assert_eq!(
         execute_managed_operation(&mut heap, &layouts, &first, &[word(prepended)]),
         Ok(1)
+    );
+    let get = encode_list_get_operation(list_semantic, false);
+    assert!(!managed_abi_result_is_reference(&get));
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &get, &[word(prepended), 1]),
+        Ok(2)
+    );
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &get, &[word(prepended), -1]),
+        Err(ManagedMemoryError::CollectionIndexOutOfBounds)
+    );
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &get, &[word(prepended), 3]),
+        Err(ManagedMemoryError::CollectionIndexOutOfBounds)
+    );
+    let from_list = encode_bytes_from_list_operation(list_semantic);
+    let bytes = execute_managed_operation(&mut heap, &layouts, &from_list, &[word(prepended)])
+        .expect("bytes from list");
+    assert_eq!(
+        heap.read_bytes(TvmRef::from_encoded(
+            std::num::NonZeroUsize::new(bytes as usize).unwrap()
+        )),
+        Ok(&[1, 2, 3][..])
+    );
+    let length = encode_bytes_length_operation(list_semantic);
+    assert!(!managed_abi_result_is_reference(&length));
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &length, &[bytes as i64]),
+        Ok(3)
+    );
+    let to_list = encode_bytes_to_list_operation(list_semantic);
+    assert!(managed_abi_result_is_reference(&to_list));
+    let round_trip = execute_managed_operation(&mut heap, &layouts, &to_list, &[bytes as i64])
+        .expect("bytes to list");
+    let round_trip = TvmRef::<ManagedList>::from_encoded(
+        std::num::NonZeroUsize::new(round_trip as usize).unwrap(),
+    );
+    assert_eq!(
+        heap.list_elements(list_descriptor, round_trip),
+        Ok(vec![
+            ManagedFieldValue::Int(1),
+            ManagedFieldValue::Int(2),
+            ManagedFieldValue::Int(3),
+        ])
     );
     let rest_value = execute_managed_operation(&mut heap, &layouts, &rest, &[word(prepended)])
         .expect("list rest");
@@ -266,6 +313,62 @@ fn managed_value_equality_is_structural_and_checked() {
 }
 
 #[test]
+fn managed_value_equality_supports_immediate_zero_field_union_variants() {
+    let layouts = registry();
+    let mut heap = heap();
+    let semantic = semantic(STRING_OPTION);
+    let some_layout = layouts
+        .layouts(semantic)
+        .iter()
+        .find(|layout| layout.variant_name() == Some("Some"))
+        .cloned()
+        .expect("Some layout");
+    let value = heap.allocate_string("value").expect("string value");
+    let some = heap
+        .allocate_aggregate(
+            some_layout.clone(),
+            &[ManagedFieldValue::Reference(value.erase())],
+        )
+        .expect("Some value");
+    let operation = encode_managed_value_equal_operation(semantic);
+
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &operation, &[20, 20]),
+        Ok(1)
+    );
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &operation, &[20, 24]),
+        Ok(0)
+    );
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &operation, &[20, word(some)]),
+        Ok(0)
+    );
+
+    let mut foreign = ActorHeap::new(
+        ActorId::new(92).expect("foreign actor"),
+        HeapLimits::new(1024 * 1024, 16 * 1024 * 1024).expect("foreign limits"),
+    )
+    .expect("foreign heap");
+    let foreign_value = foreign.allocate_string("value").expect("foreign string");
+    let foreign_some = foreign
+        .allocate_aggregate(
+            some_layout,
+            &[ManagedFieldValue::Reference(foreign_value.erase())],
+        )
+        .expect("foreign Some");
+    assert_eq!(
+        execute_managed_operation(
+            &mut heap,
+            &layouts,
+            &operation,
+            &[word(some), word(foreign_some)]
+        ),
+        Err(ManagedMemoryError::CrossActorReference)
+    );
+}
+
+#[test]
 fn binary_pattern_operations_match_and_extract_checked_fields() {
     let mut heap = heap();
     let layouts = ManagedLayoutRegistry::default();
@@ -317,6 +420,77 @@ fn binary_pattern_operations_match_and_extract_checked_fields() {
     );
 }
 
+#[test]
+fn binary_pattern_rest_can_start_after_an_unaligned_bit_field() {
+    let mut heap = heap();
+    let layouts = ManagedLayoutRegistry::default();
+    let storage = heap
+        .allocate_bytes(&[0xaa, 0xbf, 0xe0])
+        .expect("binary storage");
+    let binary = heap.allocate_binary(storage, 0, 19).expect("binary value");
+    let fields = [
+        ManagedBinaryPatternField::Bytes(1),
+        ManagedBinaryPatternField::Bits(3),
+        ManagedBinaryPatternField::Rest,
+    ];
+    let matches = encode_binary_pattern_matches_operation(ManagedBinaryPatternEndian::Big, &fields)
+        .expect("match descriptor");
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &matches, &[word(binary)]),
+        Ok(1)
+    );
+    let rest = encode_binary_pattern_extract_operation(ManagedBinaryPatternEndian::Big, &fields, 2)
+        .expect("rest extractor");
+    let rest = execute_managed_operation(&mut heap, &layouts, &rest, &[word(binary)])
+        .map(reference)
+        .expect("rest value");
+    assert_eq!(heap.read_bytes(rest.cast()), Ok(&[0xff][..]));
+}
+
+#[test]
+fn bitstring_construction_operations_preserve_layout_bits() {
+    let mut heap = heap();
+    let layouts = ManagedLayoutRegistry::default();
+    let bytes = heap.allocate_bytes(&[1, 2, 3]).expect("rest bytes");
+    let integer = execute_managed_operation(
+        &mut heap,
+        &layouts,
+        &encode_bitstring_operation(ManagedBitStringOperation::FromUintBe),
+        &[8080, 16],
+    )
+    .map(reference)
+    .expect("integer segment");
+    let rest = execute_managed_operation(
+        &mut heap,
+        &layouts,
+        &encode_bitstring_operation(ManagedBitStringOperation::FromAllBytes),
+        &[word(bytes)],
+    )
+    .map(reference)
+    .expect("rest segment");
+    let packet = execute_managed_operation(
+        &mut heap,
+        &layouts,
+        &encode_bitstring_operation(ManagedBitStringOperation::Concat),
+        &[word(integer), word(rest)],
+    )
+    .map(reference)
+    .expect("concatenated packet");
+    let packet = heap.read_binary(packet.cast()).expect("packet view");
+
+    assert_eq!(packet.bit_length(), 40);
+    assert_eq!(packet.aligned_bytes(), Some(&[0x1f, 0x90, 1, 2, 3][..]));
+    assert_eq!(
+        execute_managed_operation(
+            &mut heap,
+            &layouts,
+            &encode_bitstring_operation(ManagedBitStringOperation::FromUintBe),
+            &[8080, 0],
+        ),
+        Err(ManagedMemoryError::InvalidManagedScalar)
+    );
+}
+
 /// Managed string append allocates one independent UTF-8 result value.
 #[test]
 fn string_append_operation_concatenates_validated_values() {
@@ -341,6 +515,31 @@ fn string_append_operation_concatenates_validated_values() {
     assert_eq!(heap.read_string(right), Ok("back"));
 }
 
+/// Variadic string concatenation allocates one result without intermediates.
+#[test]
+fn string_concat_operation_concatenates_all_validated_values() {
+    let mut heap = heap();
+    let layouts = ManagedLayoutRegistry::default();
+    let first = heap.allocate_string("one").expect("first");
+    let second = heap.allocate_string("λ").expect("second");
+    let third = heap.allocate_string("three").expect("third");
+    let operation = encode_string_concat_operation();
+    let result = execute_managed_operation(
+        &mut heap,
+        &layouts,
+        &operation,
+        &[word(first), word(second), word(third)],
+    )
+    .map(reference)
+    .expect("concatenate strings");
+
+    assert_eq!(heap.read_string(result.cast()), Ok("oneλthree"));
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &operation, &[word(first)]),
+        Err(ManagedMemoryError::InvalidAggregateArity)
+    );
+}
+
 /// Literal prepend keeps immutable image bytes outside the actor heap.
 #[test]
 fn string_prepend_literal_operation_allocates_only_the_result() {
@@ -356,6 +555,40 @@ fn string_prepend_literal_operation_allocates_only_the_result() {
 
     assert_eq!(heap.read_string(result.cast()), Ok("prefix:λbody"));
     assert_eq!(heap.read_string(right), Ok("λbody"));
+}
+
+#[test]
+fn response_sized_string_prepend_uses_collectible_external_storage() {
+    let mut heap = heap();
+    let layouts = ManagedLayoutRegistry::default();
+    let body = "x".repeat(4 * 1024);
+    let right = heap.allocate_string(&body).expect("right");
+    let operation = encode_string_prepend_literal_operation("prefix:").expect("operation");
+    let result = execute_managed_operation(&mut heap, &layouts, &operation, &[word(right)])
+        .map(reference)
+        .expect("prepend response body")
+        .cast::<ManagedString>();
+    assert!(heap
+        .external_string_bytes(result)
+        .expect("external lookup")
+        .is_some());
+    assert_eq!(
+        heap.read_string(result).expect("external string"),
+        format!("prefix:{body}")
+    );
+
+    let mut roots = [ManagedRoot::new(
+        heap.owner(),
+        RootLocation::ActorState { slot: 0 },
+        result.erase(),
+    )];
+    heap.collect(&mut roots, 32 * 1024)
+        .expect("collect external string");
+    let relocated = roots[0].reference().cast::<ManagedString>();
+    assert_eq!(
+        heap.read_string(relocated).expect("relocated string"),
+        format!("prefix:{body}")
+    );
 }
 
 /// Projection and prefix concatenation execute through one generated ABI call.

@@ -837,6 +837,7 @@ pub router(): Router ->
 "#,
     )
     .expect("write stale SSE manifest");
+    manifest::invalidate_web_manifest_cache(&web_root);
     let stale = handle_vm_stream_http1_request(
         &web_root,
         b"GET /stale HTTP/1.1\r\nHost: localhost\r\n\r\n",

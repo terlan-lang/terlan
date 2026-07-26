@@ -18,7 +18,7 @@ impl AotHandlerGeneration {
         let captures = self
             .shards
             .iter()
-            .map(shard_owner::AotHandlerShardOwner::multicore_replay_capture)
+            .map(|shard| shard.multicore_replay_capture())
             .collect::<Result<Vec<_>, _>>()?;
         VmMulticoreReplayEvidence::new(self.identity, self.shards.len(), maximum_events, captures)
             .map_err(|error| format!("error[serve.aot.replay_evidence]: {error}"))
@@ -30,7 +30,7 @@ impl AotHandlerGeneration {
     ) -> Result<Vec<shard_owner::AotSchedulerPanicEvidence>, String> {
         self.shards
             .iter()
-            .map(shard_owner::AotHandlerShardOwner::panic_evidence)
+            .map(|shard| shard.panic_evidence())
             .filter_map(|evidence| match evidence {
                 Ok(Some(evidence)) => Some(Ok(evidence)),
                 Ok(None) => None,

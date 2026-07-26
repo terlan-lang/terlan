@@ -20,46 +20,6 @@ fn args(items: &[&str]) -> Vec<String> {
 }
 
 #[test]
-fn native_placeholder_filter_preserves_source_functions_in_mixed_module() {
-    let mut core = compile_native_filter_fixture(
-        r#"
-module std.fixture.Mixed.
-
-pub source_value(): Int -> 7.
-
-@target.vm {process_mailbox : true}
-pub native_value(): Int -> native.
-"#,
-    );
-
-    remove_native_placeholder_functions(&mut core);
-
-    assert_eq!(
-        core.functions
-            .iter()
-            .map(|function| function.name.as_str())
-            .collect::<Vec<_>>(),
-        vec!["source_value"]
-    );
-}
-
-#[test]
-fn native_placeholder_filter_removes_native_only_module_functions() {
-    let mut core = compile_native_filter_fixture(
-        r#"
-module std.fixture.NativeOnly.
-
-@target.vm {process_mailbox : true}
-pub native_value(): Int -> native.
-"#,
-    );
-
-    remove_native_placeholder_functions(&mut core);
-
-    assert!(core.functions.is_empty());
-}
-
-#[test]
 fn compiler_intrinsic_filter_removes_registered_placeholders_and_preserves_source_helpers() {
     let mut core = compile_native_filter_fixture(
         r#"

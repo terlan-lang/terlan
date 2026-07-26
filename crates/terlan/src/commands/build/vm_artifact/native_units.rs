@@ -86,7 +86,7 @@ fn prepare_native_object_unit(
         "{}\0{DIRECT_AOT_BACKEND}\0{DIRECT_AOT_CACHE_SCHEMA}\0{NATIVE_UNIT_SCHEMA}\0{}\0{target}\0{abi}\0{}",
         env!("CARGO_PKG_VERSION"),
         policy.cache_identity(),
-        native.fingerprint_text()
+        native.fingerprint_sha256()
     );
     let identity = native_cache::sha256_hex(input.as_bytes());
     let directory = units_root.join(&identity);

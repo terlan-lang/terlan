@@ -644,6 +644,12 @@ pub non_tail_two_calls(first: Bool, second: Bool): Int ->
 pub call_then_direct_yield(flag: Bool, value: Int): Int ->
     branch_yield(flag) + (Process.yield_now(); value).
 
+pub call_then_direct_yield_completes(): Bool ->
+    branch_yield(false) + (Process.yield_now(); 3) == 10.
+
+pub call_then_direct_yield_suspends(): Bool ->
+    branch_yield(true) + (Process.yield_now(); 3) == 44.
+
 pub direct_yield_then_call(value: Int, flag: Bool): Int ->
     (Process.yield_now(); value) + branch_yield(flag).
 

@@ -112,7 +112,7 @@ jobs:
           TERLAN_MATRIX_TARGET: ${{ matrix.target }}
 
       - name: Stress the portable multicore memory model
-        run: cargo test --locked -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test -- --nocapture
+        run: cargo test --locked --no-default-features --features native-codegen -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test -- --nocapture
 
       - name: Upload target execution attestation
         uses: actions/upload-artifact@v4

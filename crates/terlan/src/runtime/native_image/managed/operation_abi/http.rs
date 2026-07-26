@@ -3,8 +3,8 @@
 use crate::terlan_native::http as native_http;
 
 use super::super::{
-    ActorHeap, ManagedFieldValue, ManagedLayoutRegistry, ManagedList, ManagedMemoryError,
-    SemanticTypeId, TvmRef,
+    ActorHeap, ManagedAggregate, ManagedFieldValue, ManagedLayoutRegistry, ManagedList,
+    ManagedMemoryError, SemanticTypeId, TvmRef,
 };
 
 const MAGIC: &[u8; 4] = b"TVHO";
@@ -14,9 +14,11 @@ const SEMANTIC_BYTES: usize = 16;
 const COOKIE_HEADER: u8 = 1;
 const RESPONSE_COOKIE_JAR: u8 = 2;
 const RESPONSE_SECURITY_HEADERS: u8 = 3;
+const RESPONSE_BUILD: u8 = 4;
 const COOKIE_BYTES: usize = HEADER_BYTES;
 const COOKIE_JAR_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES * 5 + 8;
 const SECURITY_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES * 4 + 4;
+const RESPONSE_BUILD_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES * 2;
 
 /// Closed maintained-cookie serializer operation selected by generated code.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -98,6 +100,22 @@ pub fn encode_response_security_headers_operation(
     Ok(encoded)
 }
 
+/// Encodes construction of one ordinary non-file HTTP response.
+pub fn encode_response_build_operation(
+    response_semantic: SemanticTypeId,
+    header_list_semantic: SemanticTypeId,
+    kind: u8,
+) -> Result<Vec<u8>, ManagedMemoryError> {
+    if kind > 3 {
+        return Err(ManagedMemoryError::InvalidAggregateAbi);
+    }
+    let mut encoded = header(RESPONSE_BUILD);
+    encoded[7] = kind;
+    encoded.extend_from_slice(&response_semantic.bytes());
+    encoded.extend_from_slice(&header_list_semantic.bytes());
+    Ok(encoded)
+}
+
 /// Executes one exact HTTP operation descriptor against an actor heap.
 pub(super) fn execute_http_operation(
     heap: &mut ActorHeap,
@@ -122,9 +140,49 @@ pub(super) fn execute_http_operation(
             };
             apply_security_headers(heap, layouts, encoded, *response, *policy)?
         }
+        RESPONSE_BUILD if encoded.len() == RESPONSE_BUILD_BYTES && encoded[7] <= 3 => {
+            let [payload, status] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            build_response(heap, layouts, encoded, *payload, *status)?
+        }
         _ => return Err(ManagedMemoryError::InvalidManagedOperation),
     };
     Ok(reference.encoded_abi_word())
+}
+
+/// Allocates the uniform Response envelope and its empty defaults in one ABI call.
+fn build_response(
+    heap: &mut ActorHeap,
+    layouts: &ManagedLayoutRegistry,
+    encoded: &[u8],
+    payload: i64,
+    status: i64,
+) -> Result<TvmRef<()>, ManagedMemoryError> {
+    let response_semantic = semantic_at(encoded, HEADER_BYTES)?;
+    let headers_semantic = semantic_at(encoded, HEADER_BYTES + SEMANTIC_BYTES)?;
+    let [response] = layouts.layouts(response_semantic) else {
+        return Err(ManagedMemoryError::ManagedTypeMismatch);
+    };
+    let headers = layouts
+        .collection(headers_semantic)
+        .and_then(|collection| collection.list_descriptor())
+        .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
+    let empty_path = heap.allocate_string("")?.erase();
+    let empty_headers = heap.list_from_elements(headers, &[])?.erase();
+    let payload = super::reference_word(payload)?;
+    heap.allocate_aggregate_ref(
+        response,
+        &[
+            ManagedFieldValue::Int(0),
+            ManagedFieldValue::Int(i64::from(encoded[7])),
+            ManagedFieldValue::Reference(payload),
+            ManagedFieldValue::Int(status),
+            ManagedFieldValue::Reference(empty_path),
+            ManagedFieldValue::Reference(empty_headers),
+        ],
+    )
+    .map(TvmRef::<ManagedAggregate>::erase)
 }
 
 /// Validates the common HTTP operation header.

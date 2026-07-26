@@ -39,6 +39,10 @@ NativeIR, ABI classification, safepoints, compact stack maps, descriptors, and
 image semantics; Cranelift owns instruction selection, register allocation,
 frame finalization, relocations, and object emission. LLVM is not a Terlan
 application backend or optional release profile.
+The dated
+[`CRANELIFT_ECOSYSTEM_SURVEY.md`](../compiler/CRANELIFT_ECOSYSTEM_SURVEY.md)
+records the public precedents, closest architectural peers, and comparative
+claims this decision can support.
 
 This decision supersedes the earlier assumption that `.tvm.json`, serialized
 VMIR, or a binary encoding of Terlan instructions could become the final TVM
@@ -129,10 +133,13 @@ slices rather than disconnected parser/runtime fragments.
    deepen the transitional runtime may proceed independently.
 8. Finish proof, coverage, performance, and release gates after the AOT-native
    execution surface stops moving.
-9. Only after Slices 100 and 101A through 101F are complete, replace the
+9. Only after Slices 100 and 101A through 101I are complete, replace the
    handwritten parser with a LALRPOP-generated token-stream parser. This work
    must not share the critical path with the AOT pivot or cause parser churn
    while native-image semantics are still changing.
+10. Close the direct-AOT developer loop with failed-edit-safe hot reload before
+    release. Development reload is a 0.0.7 product contract; production
+    generation admission, rollout, and rollback belong to 0.0.8.
 
 Each slice must include syntax/parser coverage where relevant, typechecker
 coverage, VM/default execution coverage, adversarial diagnostics, formatter
@@ -2636,6 +2643,182 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
     plumbing are retired as ERTS mechanics. The canonical corpus now contains
     1,603 active not-yet-ported files and 317 completed removals;
     `efile_SUITE.erl` is the next ordered active entry.
+  - Current progress: the tracked `erts/emulator/test/list_bif_SUITE.erl` is
+    retired under `vm-list-bif-suite-parity-check`. The direct-AOT compiler now
+    specializes concrete generic List inspection results before lowering,
+    inventories intermediate `Option[T]` layouts from executable expressions,
+    and lowers alias-based `Some` and `None` cases by the concrete scrutinee
+    type. A linked native object running against the real actor-owned managed
+    runtime proves ordered head and tail behavior, empty and singleton
+    boundaries, constant-time length, strict signed decimal and radix parsing,
+    overflow and malformed-input rejection, canonical rendering round trips,
+    and finite Float parsing. The focused ABI tests additionally enforce a
+    128-byte integer parse ceiling, bases two through thirty-six, uppercase
+    canonical digits, and exact minimum/maximum i64 rendering, while a
+    multilevel 2,050-element persistent list and the formal typechecker prove
+    large-list boundaries and static rejection of improper tails. Arbitrary
+    Erlang bignums, prefix parsing with remainder values, dynamic badarg and
+    system_limit exception shapes, forgeable pid/port/reference strings, ETF
+    creation rewriting, remote peers, forced garbage collection, wall-clock
+    timetraps, and Common Test plumbing are retired as OTP-specific mechanics.
+    The canonical ledger now contains 1,585 active not-yet-ported files and 335
+    completed removals.
+  - Current progress: the tracked
+    `erts/emulator/test/literal_area_collector_test.erl` synchronization helper
+    is retired under `vm-literal-area-collector-parity-check`. Terlan replaces
+    discovery and polling of BEAM's private collector process with a
+    synchronous generation-reachability proof on the execution-shard owner.
+    Two exact regressions cover initial quiescence; all ten native frame,
+    continuation, transfer, heap, mailbox, timer, resource, async callback,
+    debugger, and crash-metadata retention classes; deterministic busy
+    diagnostics; mutation-free replacement rejection; immediate release
+    visibility; ordinary actor-continuation drain; and successful replacement
+    only after complete quiescence. Process-table discovery, process-dictionary
+    caching, aliases, status-message exchange, host monotonic time, timetrap
+    scaling, polling sleeps, and the ERTS literal-area collector are retired as
+    implementation mechanics. The canonical ledger now contains 1,584 active
+    not-yet-ported files and 336 completed removals; `lttng_SUITE.erl` is the
+    next ordered active entry.
+  - Current progress: the tracked `erts/emulator/test/lttng_SUITE.erl` and
+    `lttng_SUITE_data/Makefile.src` are retired under
+    `vm-lttng-suite-parity-check`, together with the native C caller-driver
+    fixture owned by that build fragment. The VM driver boundary now offers an
+    opt-in provider-neutral trace stream whose disabled path is one bit-mask
+    check. Two exact regressions prove typed and contiguous open, command,
+    vectored queue, dequeue, readiness callback, logical timer,
+    controller-transfer, flush/close, and cleanup transitions; exact VM owner
+    and caller attribution; immutable cursor replay; event-class filtering; a
+    4,096-event bound; explicit dropped-event and expired-cursor diagnostics;
+    future-cursor rejection; and no trace-sequence consumption on failed
+    operations. Existing transactional driver and iovec parity remains composed
+    into the gate. LTTng CLI sessions and text scraping, org_erlang_otp
+    providers, ERTS allocator carriers, Erlang ports and driver callbacks, raw
+    file descriptors, localhost timing, host environment mutation, peer nodes,
+    dynamic native loading, and Common Test plumbing are retired as host/ERTS
+    mechanics. The canonical ledger now contains 1,582 active not-yet-ported
+    files and 338 completed removals; `map_SUITE.erl` is the next ordered active
+    entry.
+  - Current progress: `erts/emulator/test/map_SUITE.erl`, its malformed legacy
+    BEAM fixture, and the generated `map_no_opt_SUITE.erl` clone are retired
+    under `vm-map-suite-parity-check`. Terlan now lowers the typed Map and
+    Iterator surface directly into the actor-owned managed operation ABI:
+    empty and from-entries construction, size and emptiness, structural get and
+    membership, persistent put/remove/take/clear, and source-ordered iteration
+    all execute through linked native objects. Required-key and guarded map
+    patterns use checked managed projections, mutable receiver syntax rebinds
+    the persistent map in source order, and expression-owned collection and
+    iterator-step layouts are admitted before image generation. Focused
+    contracts cover duplicate replacement, missing and present lookup/take,
+    preserved originals, 160-entry flat-to-indexed transition, full-hash
+    collisions, indexed-to-flat demotion, structural reference keys, precise
+    relocation, stale-token protection, atomic wrong-type rejection, and
+    deterministic direct-AOT object bytes for the former no-opt clone. BEAM
+    flatmap/HAMT representation and hash details, process dictionary and
+    ETS/DETS coupling, bytecode and y-register behavior, ETF encoding, tracing,
+    host benchmarks, forced GC mechanics, optimizer-option clones, and Common
+    Test plumbing are retired. The canonical ledger now contains 1,580 active
+    not-yet-ported files and 340 completed removals;
+    `match_spec_SUITE.erl` is the next ordered active entry.
+  - Current progress: `erts/emulator/test/match_spec_SUITE.erl` is retired
+    under `vm-match-spec-suite-parity-check` without introducing an ERTS
+    match-spec compatibility interpreter. Terlan compiles application matching
+    and selection into the AOT image: linked-object contracts cover
+    equality-based repeated binding, ordered typed guards, short-circuit
+    suppression of invalid division, bounded unary arithmetic, and stable
+    Boolean control-flow targets, while typed collection selection lowers to an
+    image-private native helper. The composed map and structured-pattern gates
+    own required-key matching and managed projections; VM table contracts own
+    stable ordered traversal, mutation, access control, and cleanup. Typed
+    exact-function trace subscriptions preserve arity identity, enable/disable
+    behavior, call/return/exception order, deep stack capture, generation-safe
+    reload, in-flight observer pinning, dead-observer cleanup, immutable
+    cursors, and silent unmatched calls. A dynamic `match_spec_run` call is
+    rejected before native linking. The ERTS match-spec interpreter and
+    instruction encoding, trace control words and sequential-trace mutation,
+    arbitrary Erlang-term predicate dispatch, ETS match-spec compilation,
+    caller-line file rewriting, process dumps, peer nodes, host sleeps, and
+    Common Test plumbing are retired. The canonical ledger now contains 1,579
+    active not-yet-ported files and 341 completed removals;
+    `module_info_SUITE.erl` is the next ordered active entry.
+  - Current progress: `erts/emulator/test/module_info_SUITE.erl` is retired
+    under `vm-module-info-suite-parity-check`. Terlan now exposes a typed
+    compiler-derived active-module descriptor with stable module identity,
+    generation, checksum, source-map identity, sorted public exports, and
+    sorted public-plus-private functions. Missing lookup is mutation-free;
+    unload and retired-generation purge remove the descriptor. The direct-AOT
+    descriptor carries unique nonzero dispatch identities, distinguishes
+    public and private functions, synthesizes no BEAM `module_info/0` or
+    `module_info/1` exports, and its public entries execute through the linked
+    native object. Raw native addresses, NIF inventories, BEAM MD5 and file
+    metadata, Erlang compile attributes and options, dynamic Erlang
+    compilation, BEAM-specific delete/purge mechanics, and Common Test
+    plumbing are retired. The canonical ledger now contains 1,578 active
+    not-yet-ported files and 342 completed removals; `mtx_SUITE.erl` is the
+    next ordered active entry.
+  - Current progress: `erts/emulator/test/mtx_SUITE.erl` and its native build
+    fixture are retired under `vm-mtx-suite-parity-check`. Terlan replaces
+    shared read/write mutex semantics with one actor owner and bounded
+    publication: twenty concurrent producers preserve every per-producer
+    command order and publication identity while six writer streams mutate
+    state only on the owner. Exact 1,024-entry pressure rejects immediately,
+    recovers completely after drain, and consumes no sequence on rejection.
+    Nineteen simultaneous mutator contenders fail while one scheduler owns the
+    actor; explicit release admits a new monotonically generated owner. The
+    composed gate runs eight isolated seeded multicore schedules under a
+    deadlock watchdog, lock-free bounded MPSC and no-lost-wakeup checks,
+    bounded work-stealing decisions, and owner/access-controlled table
+    behavior. ERTS rwmutex modes, blocking and try-lock APIs, frequent-read
+    variants, scheduler-pinned native threads, host sleeps and CPU thresholds,
+    ETS lock implementation stress, the NIF resource boundary, and Common Test
+    plumbing are retired. The canonical ledger now contains 1,576 active
+    not-yet-ported files and 344 completed removals; `multi_load_SUITE.erl` is
+    the next ordered active entry.
+  - Current progress: `erts/emulator/test/multi_load_SUITE.erl` is retired
+    under `vm-multi-load-suite-parity-check`. One closed direct-AOT image now
+    contains 100 distinct modules with four exports each; all 400 exports have
+    unique dispatch identities and execute through the linked object. The
+    owner-exclusive VM code registry keeps staged modules invisible until
+    batch publication, publishes 100 distinct artifacts, and rejects duplicate
+    module identities before native image admission or metadata mutation while
+    preserving snapshots and event history. The composed gate also retains
+    progress under 160 simultaneous publication contenders. Sequential versus
+    parallel BEAM loader timing, infinite CPU burner processes, dynamic Erlang
+    form compilation, prepared-code blobs, `finish_loading` argument shapes,
+    load-time `on_load` callbacks and inspection, purge BIF mechanics, and
+    Common Test plumbing are retired. The canonical ledger now contains 1,575
+    active not-yet-ported files and 345 completed removals;
+    `native_record_SUITE.erl` is the next ordered active entry.
+  - Current progress: `erts/emulator/test/native_record_SUITE.erl` and its
+    `ext_records.erl` fixture are retired under
+    `vm-native-record-suite-parity-check`. Direct-AOT records now carry
+    module-qualified nominal identities, so same-named records in distinct
+    modules cannot alias. Linked-object coverage executes typed construction,
+    access, persistent update, record patterns, a 64-field layout, and 10,000
+    recursive updates. Scalar managed field projection now uses the scalar ABI,
+    preserving legitimate zero values instead of treating them as null
+    references. The composed gate also proves 1,000 ordered actor messages,
+    managed GC and mailbox ownership, canonical nested TETF records, invalid
+    metadata rejection, repeated distribution round trips, and reference
+    envelope validation. Erlang dynamic record reflection, native-record term
+    ordering, ETF tags and reserved bits, atom-cache mechanics, BEAM code
+    deletion/purge internals, peer nodes, and Common Test plumbing are retired.
+    The canonical ledger now contains 1,573 active not-yet-ported files and 347
+    completed removals; `nif_SUITE.erl` is the next ordered active entry.
+  - Current progress: `erts/emulator/test/nif_SUITE.erl`,
+    `nif_SUITE_data/Makefile.src`, `nif_mod.erl`, and `tester.erl`, together
+    with the suite-owned C sources, copied API headers, and build fixtures, are
+    retired under `vm-nif-suite-parity-check`. Portable native-call behavior is
+    now owned by typed VM values and errors, bounded generation-qualified
+    capability requests, exact completion/cancellation/timeout credit
+    recovery, process-qualified resources, foreign-owner and stale-handle
+    rejection, panic isolation, AOT generation drain, and orderly worker and
+    shard shutdown. Unsupported Erlang-NIF compatibility requests fail loudly
+    as typed unknown operations. Erlang NIF ABI versions and macros,
+    load/reload/on_load callbacks, raw term and atom-table mechanics, pollsets,
+    file descriptors, ports, ERTS monitors and threads, dynamic C builds, and
+    Common Test plumbing are retired. The canonical ledger now contains 1,569
+    active not-yet-ported files and 351 completed removals;
+    `node_container_SUITE.erl` is the next ordered active entry.
   - Make integration: run `terlan-vm-erl-suite-audit-check` from `make check`
     before VM coverage and VM default release tests.
   - Acceptance: the gate fails when a new Erlang test file appears under
@@ -3140,7 +3323,7 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
 
 - [ ] Slice 13 (post-AOT): replace the handwritten parser with LALRPOP and
   close the Lean proof gap at the parser/CoreIR boundary.
-  - Dependency: do not begin this slice until Slices 100 and 101A through 101F
+  - Dependency: do not begin this slice until Slices 100 and 101A through 101I
     are complete. LALRPOP adoption is not an AOT-pivot prerequisite.
   - Requirement: keep `docs/grammar/TERLAN_SYNTAX_SPEC.ebnf` canonical and
     derive or mechanically check the LALRPOP grammar against it; a second
@@ -4704,6 +4887,46 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
     gates, and exact-selector reproduction commands must pass through the
     shared-library architecture with no behavior or debugger regression.
 
+- [ ] Slice 91: deliver failed-edit-safe direct-AOT developer hot reload.
+  - Requirement: one `terlc` development session watches Terlan source,
+    templates, styles, package inputs, and generated binding metadata, coalesces
+    related filesystem events, and rebuilds only changed modules plus proven
+    dependents through the persistent incremental compiler service.
+  - Requirement: stage every successful rebuild as a versioned native
+    generation and validate its image descriptor, exports, types, process-state
+    shape, capabilities, and native-resource contracts before atomically
+    publishing it to the runtime code registry.
+  - Requirement: parse, typecheck, code-generation, link, load, validation, and
+    test failures leave the last admitted generation running. A failed edit
+    must never terminate the working application, expose a partial generation,
+    or silently reset process state.
+  - Requirement: in-flight calls and continuations retain their admitted
+    generation while new calls use the replacement. Compatible processes retain
+    state, mailboxes, links, monitors, timers, supervision identity, and owned
+    resources; incompatible state or resource changes are rejected with stable
+    diagnostics unless the developer explicitly requests a restart.
+  - Requirement: coordinate server-handler replacement, template/style/browser
+    refresh, debugger source maps, VS Code diagnostics, and VM TUI status through
+    one structured reload event stream rather than independent polling loops.
+  - Requirement: preserve direct-call optimization for non-reloadable release
+    code. Development reload indirection must be explicit in the image and
+    dispatch contracts and must not require a JIT, interpreter, generated
+    application Rust, or runtime CoreIR/VMIR.
+  - Requirement: persist `watch-mode-hot-reload-report.json` with source-event
+    batches, invalidated modules, cache reuse, compilation and activation
+    timings, generation identities, compatibility decisions, retained runtime
+    state, browser refresh events, diagnostics, and failed-build continuity.
+  - Gate: add `make aot-developer-hot-reload-check` after the historical
+    `make watch-mode-hot-reload-check`; the new gate must execute the direct-AOT
+    development path rather than treating the completed pre-AOT gate as current
+    evidence.
+  - Acceptance: a full development session must prove a compatible handler and
+    template edit without restart, an incompatible state edit rejected without
+    state loss, an intentionally broken edit with uninterrupted service from the
+    previous generation, and a corrected edit that subsequently activates.
+  - Inventory this slice after its gate passes and move durable reload image,
+    runtime, editor, and browser contracts into their owning documentation.
+
 ### Superseded VMIR Baseline And AOT-Native TVM Pivot
 
 The direct-AOT implementation is native-only, but its performance closeout is
@@ -5316,7 +5539,7 @@ their former gate names are not release commands and must not be recreated.
     incremental ratios rather than claiming Go-like speed from qualitative
     architecture alone.
 
-- [ ] Slice 101F: remove transitional execution.
+- [x] Slice 101F: remove transitional execution.
   - Requirement: migrate build, run, test, REPL, HTTP, debugger, hot reload,
     package validation, support bundles, and release installers to `.tvm`.
   - Requirement: delete the `.tvm.json` runtime loader, serialized-VMIR
@@ -5362,6 +5585,16 @@ their former gate names are not release commands and must not be recreated.
     cross the bounded worker protocol. The retired checked-CoreIR runtime
     remains documented as valuable predecessor semantic and HTTP-performance
     evidence rather than as an error.
+  - Implemented evidence 2026-07-24: HTTP regression evidence now uses a
+    rotating three-lane native-AOT/Axum/plain-Hyper experiment. Maintained
+    `curl`, `wrk`, and optional `wrk2` clients validate the complete route,
+    payload, connection, overload, cancellation, and offered-load matrix;
+    diagnostic hand-written client rows cannot decide a comparison. Decisive
+    runs require at least ten paired 10-second samples, deterministic bootstrap
+    intervals, disjoint pinned server/client CPUs, the performance governor,
+    single-node placement, and no IRQ overlap. Reports reject unequal build or
+    socket policy and attribute idle, warmed, peak, retained RSS/PSS, process
+    efficiency, soak growth, TLS, and HTTP/2 evidence explicitly.
   - Reopened evidence 2026-07-22: the previous single-run HTTP comparison was
     not sufficient closeout evidence. The policy now treats every AOT latency,
     RSS, reload, or throughput regression against checked-CoreIR as an error
@@ -5371,10 +5604,12 @@ their former gate names are not release commands and must not be recreated.
     shard, requests own actors within it, abandoned continuations cancel their
     actors, and completed actors plus internal epoch operations are reaped.
     A 1,000-call soak retains zero actors and zero operation identities; the
-    current five-round native run is stable without monotonic RSS growth. A
-    methodologically equivalent v2 checked-CoreIR report is still required
-    before this slice may close again; the legacy v1 report remains historical
-    evidence and cannot be silently upgraded or used to weaken policy.
+    current five-round native run is stable without monotonic RSS growth. The
+    preserved checked-CoreIR v1 report is admitted only through an explicit,
+    self-tested adapter that retains every recorded measurement and cannot
+    invent v2-only evidence. The comparison applies the same exact 1.00
+    regression ratios to those historical measurements; the adapter cannot
+    weaken policy or silently rewrite the preserved report.
   - Platform closeout evidence 2026-07-22: the Linux x86-64 native target executes the complete
     compile/package/install/debug/crash/reload/quarantine/rejection cycle, while
     the strict six-target matrix contract self-test covers the portable target
@@ -5384,9 +5619,167 @@ their former gate names are not release commands and must not be recreated.
   - Acceptance: a repository and installed-release scan finds no default or
     fallback execution of serialized Terlan instructions.
 
+- [ ] Slice 101G: guarantee stack-safe tail recursion through compiler-owned
+    lowering.
+  - Hard decision: tail recursion is a Terlan language and compiler contract,
+    not an optimization delegated to Cranelift, the host ABI, linker behavior,
+    or a target runtime. A normal native `call` followed by `return` does not
+    satisfy this contract even when one platform happens to reuse the frame.
+  - Requirement: perform typed tail-position analysis after CoreIR control-flow
+    normalization. Preserve tail position through function bodies, terminal
+    `let` bodies, every selected `if` and `case` branch, and other
+    result-forwarding control forms without misclassifying argument evaluation,
+    operators, constructors, cleanup, or work performed after a call.
+  - Requirement: lower direct self tail recursion to an explicit native loop
+    with parallel argument replacement and a backedge. Managed arguments must
+    transfer ownership exactly once, preserve live roots across safepoints, and
+    release superseded values without leaking or exposing a partially updated
+    parameter set.
+  - Requirement: lower statically resolved mutually recursive call components
+    to one bounded dispatcher or trampoline with typed function identities and
+    argument layouts. The guarantee must cover recursive components linked
+    across admitted application modules and fail before native linking when an
+    indirect or dynamically replaceable target cannot satisfy the declared
+    constant-stack contract.
+  - Requirement: retain the existing suspension-aware tail-call behavior.
+    Tail calls that park an actor forward the callee transition and resume
+    identity without retaining a caller continuation or native frame; mixed
+    pure and suspending recursive components use one coherent ownership and
+    failure model.
+  - Requirement: give every supported executable backend the same observable
+    stack-safety contract. Cranelift must emit compiler-structured loops or
+    trampolines, and the maintained JavaScript backend must trampoline the same
+    typed recursive components rather than depending on engine tail-call
+    support. The generated-Rust neutrality probe is not a release backend and
+    cannot count as evidence.
+  - Tests: execute at least 1,000,000 direct self tail calls and mutually
+    recursive calls in stack-limited child processes; cover terminal calls
+    selected through `let`, `if`, and `case`; managed aggregate and collection
+    arguments; actor suspension and resume inside a recursive component;
+    checked arithmetic failure; cancellation; and hot-reload generation
+    retention. Prove non-tail recursion remains distinguishable and cannot be
+    silently rewritten with changed evaluation, destruction, or stack-trace
+    behavior.
+  - Gate: add `make tail-recursion-lowering-check`.
+  - Acceptance: direct-AOT and maintained JavaScript execution complete the
+    deep-recursion corpus with bounded stack growth and identical results,
+    failures, ownership events, and suspension behavior. Object inspection
+    proves self recursion contains a backedge rather than a recursive call,
+    recursive components use the compiler-owned trampoline, and disabling any
+    tail-position transformation makes the gate fail.
+  - Inventory this slice after its gate passes and move the durable
+    tail-position, recursive-component, ownership, and backend contracts into
+    the compiler and executable-image documentation.
+
+- [ ] Slice 101H: prove pure termination where possible and persistent-actor
+    productivity where termination is intentionally impossible.
+  - Hard decision: termination and stack safety are independent properties.
+    Tail recursion may be stack-safe and divergent. Failure to prove
+    termination means `unproven`, not `divergent`, and cannot reject an
+    otherwise valid runtime function unless its execution context explicitly
+    requires total behavior.
+  - Requirement: infer termination for a useful typed subset using structural
+    descent over recursive values, guarded integer descent, lexicographic
+    measures, and size-change analysis over mutually recursive call
+    components. Every proof must show a well-founded measure that strictly
+    decreases on every recursive edge under the selected branch constraints.
+  - Requirement: attach deterministic termination evidence to checked CoreIR,
+    keep it independent of backend optimization, and expose a stable reason
+    when a function is proven terminating or remains unproven. Compile-time
+    evaluation and other contexts that require total behavior must consume
+    validated evidence rather than a recursion-depth heuristic.
+  - Requirement: do not impose termination on actor execution. Persistent
+    actor loops are valid intentional nontermination, while finite worker
+    actors remain valid and may terminate normally. The compiler must classify
+    actor behavior from typed process construction and runtime operations
+    without introducing an `actor` keyword or mandatory source annotation.
+  - Requirement: analyze persistent actor loops for productivity instead.
+    Every unbounded cycle must contain a compiler safepoint, scheduler
+    reduction boundary, receive, yield, timer wait, or bounded asynchronous
+    capability transition. Native loop backedges must permit preemption,
+    cancellation, supervised shutdown, failure delivery, and runtime
+    inspection within a bounded reduction budget.
+  - Requirement: keep message handlers independently analyzable. A persistent
+    mailbox loop may run forever while each selected handler terminates,
+    suspends, or reaches a bounded scheduler handoff; one CPU-bound message
+    cannot permanently starve peer actors or suppress cancellation.
+  - Requirement: emit proof-visible termination and productivity obligations
+    through the formal pipeline. Lean validation may confirm supported
+    certificates, but absence of a Lean proof cannot be silently converted
+    into a termination claim or prevent an intentionally persistent actor from
+    running.
+  - Tests: prove structural list recursion, guarded countdown, lexicographic
+    descent, and mutual size-change termination; reject forged measures and
+    recursive edges that do not decrease. Execute persistent receive loops,
+    finite workers, busy tail loops, suspension/resume, mailbox pressure,
+    cancellation, supervisor shutdown, and failure recovery under deterministic
+    scheduler traces and bounded wall-clock watchdogs.
+  - Gate: add `make termination-productivity-analysis-check`.
+  - Acceptance: machine-readable evidence distinguishes proven termination,
+    unproven termination, intentional persistent execution, and productive
+    actor loops. Pure proof fixtures validate independently of Cranelift, while
+    actor fixtures demonstrate bounded preemption and shutdown without
+    requiring their main loop to terminate.
+  - Inventory this slice after its gate passes and move durable termination
+    evidence, actor-productivity, safepoint, and scheduler-budget contracts into
+    the compiler, formal-pipeline, and VM runtime documentation.
+
+- [ ] Slice 101I: reject accidental same-scope binding shadowing while
+    preserving explicit nested lexical scopes.
+  - Hard decision: Terlan keeps binding, matching, equality, and mutation as
+    separate operations. `let pattern = value` introduces immutable names,
+    `case` selects patterns, `==` compares values, grouped `<- ... else`
+    handles recoverable refutable binding, and indexed `=` remains an explicit
+    trait-backed update. Terlan does not adopt Erlang's context-sensitive
+    bind-or-match `=` operator.
+  - Requirement: reject a name introduced more than once in the same lexical
+    binding region. One region includes function-head parameters plus the
+    function body's top-level sequential `let` chain, lambda parameters plus
+    its top-level binding chain, every individual pattern, and every grouped
+    refutable-let success chain. Repeating `let x = ...; let x = ...` is a
+    diagnostic, not an equality assertion or an implicit replacement.
+  - Requirement: permit intentional shadowing only after entering a genuinely
+    nested region such as a selected `case` or `if` branch, nested lambda,
+    comprehension body, handler body, or another compiler-defined nested
+    lexical region. A nested region receives fresh binding identities and
+    cannot mutate or retroactively constrain the outer immutable value.
+  - Requirement: reject duplicate names introduced by tuple, list, map,
+    struct, constructor, string-capture, binary-layout, shape-expanded,
+    function-head, and alias patterns. Repeated names do not acquire Erlang's
+    implicit equality meaning; express an identity requirement with a guard or
+    explicit `==`.
+  - Requirement: detect collisions after hygienic shape and macro expansion but
+    before type inference mutates a string-keyed local environment. CoreIR must
+    carry stable binding identities so backend lowering, source maps, rename,
+    debugger locals, closure capture, and incremental invalidation cannot
+    confuse two same-spelled bindings from different nested scopes.
+  - Requirement: preserve pattern-failure behavior independently from
+    shadowing. Refutable `let` assertions still produce structured
+    `MatchError`, grouped `<- ... else` remains transactional, and failed
+    matching commits no partial bindings.
+  - Tooling: formatter output must never introduce a collision while migrating
+    repeated lets. LSP diagnostics, rename, references, semantic tokens, and a
+    rename code action must identify the exact binding and suggest a
+    non-colliding name without rewriting an outer or sibling scope.
+  - Tests: cover parameters followed by colliding lets, long sequential chains,
+    duplicate names within every structural pattern family, aliases, shape and
+    macro expansion, grouped fallible lets, closure captures, debugger locals,
+    formatter migration, and incremental rebuilds. Positive fixtures must
+    prove same-spelled names remain valid and distinct across nested branches,
+    lambdas, comprehensions, and handlers.
+  - Gate: add `make binding-shadowing-safety-check`.
+  - Acceptance: parser, typechecker, CoreIR, Cranelift, JavaScript, formatter,
+    LSP, debugger, and incremental-cache fixtures agree on exact binding
+    identities. Same-region collisions fail with stable source spans, nested
+    shadowing preserves the outer value, and no `=` expression changes meaning
+    based on whether a name was previously bound.
+  - Inventory this slice after its gate passes and move durable binding-region,
+    pattern-identity, diagnostic, and tooling contracts into the grammar,
+    compiler, and editor documentation.
+
 ### Roadmap Gate Integrity
 
-Current validated inventory: 196 planned gates, 65 unchecked slices, and 516 Make targets.
+Current validated inventory: 200 planned gates, 68 unchecked slices, and 545 Make targets.
 
 - Gate: `make roadmap-gate-integrity-check`.
 - Purpose: keep the active roadmap synchronized with planned gates, unchecked
@@ -5507,6 +5900,7 @@ make package-build-artifact-isolation-check
 make source-map-debug-info-check
 make compiler-incremental-cache-check
 make watch-mode-hot-reload-check
+make aot-developer-hot-reload-check
 make release-flake-detection-check
 make release-gate-shard-resume-check
 make release-gate-duration-budget-check
@@ -5534,6 +5928,9 @@ make tvm-aot-supervisor-lifecycle-check
 make tvm-aot-capability-worker-check
 make tvm-aot-image-lifetime-check
 make tvm-aot-lowering-coverage-check
+make tail-recursion-lowering-check
+make termination-productivity-analysis-check
+make binding-shadowing-safety-check
 make tvm-aot-http-performance-check
 make tvm-aot-platform-matrix-check
 make vm-multicore-invariant-inventory-check

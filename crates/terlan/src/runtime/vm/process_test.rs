@@ -1,9 +1,9 @@
+use super::super::actor_directory::VmActorLifecycle;
+use super::super::ReplValue;
 use super::{
     VmExitReason, VmProcessId, VmProcessRegistryError, VmProcessSource, VmProcessState,
     VmProcessTable,
 };
-use crate::runtime::vm::actor_directory::VmActorLifecycle;
-use crate::runtime::vm::ReplValue;
 
 fn source(name: &str) -> VmProcessSource {
     VmProcessSource::new("app.Main", name, 0)

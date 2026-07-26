@@ -243,6 +243,7 @@ impl VmSupervisionBackoffQueue {
                 Some(
                     VmProcessState::Runnable
                         | VmProcessState::Blocked
+                        | VmProcessState::Hibernated
                         | VmProcessState::Suspended(_),
                 )
             ) {

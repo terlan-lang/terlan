@@ -152,14 +152,11 @@ fn watch_web_package_for_reload(
                 if event.paths.iter().any(|path| path == &manifest_path) {
                     super::manifest::invalidate_web_manifest_cache(&cache_root);
                 }
-                if event
+                let source_changed = event
                     .paths
                     .iter()
-                    .any(|path| callback_sources.contains(path))
-                {
-                    super::handler_cache::invalidate_vm_handler_cache();
-                }
-                let _ = event_tx.send(());
+                    .any(|path| callback_sources.contains(path));
+                let _ = event_tx.send(source_changed);
             }
             Ok(_) => {}
             Err(err) => eprintln!("error[serve_watch]: failed to watch package changes: {err}"),
@@ -191,11 +188,33 @@ fn watch_web_package_for_reload(
     let mut version = 0_u64;
     let debounce_interval = debounce_interval.max(Duration::from_millis(1));
 
-    while event_rx.recv().is_ok() {
+    while let Ok(source_changed) = event_rx.recv() {
+        if source_changed && stage_source_replacement(&web_root).is_err() {
+            continue;
+        }
         thread::sleep(debounce_interval);
-        while event_rx.try_recv().is_ok() {}
+        let mut followup_source_changed = false;
+        while let Ok(source_changed) = event_rx.try_recv() {
+            followup_source_changed |= source_changed;
+        }
+        if followup_source_changed && stage_source_replacement(&web_root).is_err() {
+            continue;
+        }
         version = version.saturating_add(1);
         broadcast_reload(&reload_hub, version);
+    }
+}
+
+fn stage_source_replacement(web_root: &Path) -> Result<(), ()> {
+    match super::handler_cache::stage_source_generation(web_root) {
+        Ok(()) => {
+            super::handler_cache::invalidate_vm_handler_cache();
+            Ok(())
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            Err(())
+        }
     }
 }
 

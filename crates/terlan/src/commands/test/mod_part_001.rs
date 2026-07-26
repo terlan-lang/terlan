@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -6,7 +6,7 @@ use std::process::ExitCode;
 #[cfg(test)]
 use crate::terlan_syntax::SyntaxTypeOutput;
 use crate::terlan_typeck::core_intrinsic_lowering::core_primitive_intrinsic;
-use crate::terlan_typeck::{CoreExpr, CoreImportKind, CoreModule};
+use crate::terlan_typeck::{CoreImportKind, CoreModule};
 use crate::validation::native_policy::NativePolicy;
 use crate::validation::target_profile::{TargetProfile, TargetProfileCheckOptions};
 use crate::{CliCommand, CliState};
@@ -407,8 +407,11 @@ fn run_terlan_vm_tests(args: &TestArgs, state: CliState) -> ExitCode {
         },
         None => Vec::new(),
     };
+    let std_import_roots = std::iter::once(&compiled.core)
+        .chain(project_core_modules.iter())
+        .collect::<Vec<_>>();
     let imported_std_core_modules =
-        match compile_imported_std_source_core_modules(&compiled.core, Path::new(path), &state) {
+        match compile_imported_std_source_core_modules(&std_import_roots, Path::new(path), &state) {
             Ok(modules) => modules,
             Err(exit_code) => return exit_code,
         };
@@ -417,8 +420,10 @@ fn run_terlan_vm_tests(args: &TestArgs, state: CliState) -> ExitCode {
         .chain(imported_std_core_modules.iter())
         .cloned()
         .collect::<Vec<_>>();
-    let mut core = compiled.core;
-    merge_imported_project_functions(&mut core, &support_core_modules);
+    let core = compiled.core;
+    let application_cores = std::iter::once(&core)
+        .chain(support_core_modules.iter())
+        .collect::<Vec<_>>();
 
     let module_stem = compiled.syntax_output.module_name.replace('.', "_");
     let test_aot_workspace = state.out_dir.join("test-aot").join(&module_stem);
@@ -432,7 +437,7 @@ fn run_terlan_vm_tests(args: &TestArgs, state: CliState) -> ExitCode {
             &test_aot_workspace,
             &native_cache_root,
             &module_stem,
-            &[&core],
+            &application_cores,
             state.incremental,
         ) {
             Ok(image) => image,
@@ -546,18 +551,21 @@ fn compile_project_source_core_modules(
 ///   source file in the current checkout, and compiles found sources for VM
 ///   execution before test dispatch.
 fn compile_imported_std_source_core_modules(
-    test_core: &CoreModule,
+    root_cores: &[&CoreModule],
     test_path: &Path,
     state: &CliState,
 ) -> Result<Vec<CoreModule>, ExitCode> {
     let mut modules = Vec::new();
     let mut seen = BTreeSet::new();
+    let mut pending = root_cores
+        .iter()
+        .flat_map(|core| &core.imports)
+        .filter(|import| import.kind == CoreImportKind::Module)
+        .map(|import| import.module.clone())
+        .collect::<VecDeque<_>>();
     let active_file = fs::canonicalize(test_path).ok();
-    for import in &test_core.imports {
-        if import.kind != CoreImportKind::Module {
-            continue;
-        }
-        let Some(path) = imported_std_source_path(&import.module, test_path) else {
+    while let Some(module) = pending.pop_front() {
+        let Some(path) = imported_std_source_path(&module, test_path) else {
             continue;
         };
         if active_file.as_ref().is_some_and(|active| {
@@ -593,38 +601,18 @@ fn compile_imported_std_source_core_modules(
                 Err(exit_code) => return Err(exit_code),
             };
         let mut core = compiled.core;
-        remove_native_placeholder_functions(&mut core);
+        pending.extend(
+            core.imports
+                .iter()
+                .filter(|import| import.kind == CoreImportKind::Module)
+                .map(|import| import.module.clone()),
+        );
         remove_compiler_intrinsic_functions(&mut core);
         if !core.functions.is_empty() {
             modules.push(core);
         }
     }
     Ok(modules)
-}
-
-/// Removes native-backed functions while preserving executable Terlan helpers.
-///
-/// Inputs:
-/// - `module`: mutable checked standard-library CoreIR module.
-///
-/// Output:
-/// - No return value; native-backed functions are removed in place.
-///
-/// Transformation:
-/// - Inspects typed CoreIR and removes only functions containing a `native`
-///   placeholder, allowing mixed std modules to keep source-owned helpers while
-///   native calls continue through VM remote dispatch.
-fn remove_native_placeholder_functions(module: &mut CoreModule) {
-    module
-        .functions
-        .retain(|function| !function_uses_native_placeholder(function));
-}
-
-/// Returns whether a function delegates one or more clauses to native code.
-fn function_uses_native_placeholder(function: &crate::terlan_typeck::CoreFunction) -> bool {
-    function.clauses.iter().any(|clause| {
-        matches!(clause.body.core_expr.as_ref(), Some(CoreExpr::Var(name)) if name == "native")
-    })
 }
 
 /// Removes compiler-owned intrinsic declarations from an imported std module.
@@ -672,6 +660,14 @@ fn imported_std_source_path(module: &str, test_path: &Path) -> Option<PathBuf> {
     if let Ok(current_dir) = std::env::current_dir() {
         candidates.push(current_dir.join(&relative));
     }
+    if let Some(share_root) = crate::commands::release_layout::installed_share_root() {
+        candidates.push(share_root.join(&relative));
+    }
+    candidates.push(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .join(&relative),
+    );
     candidates.into_iter().find(|candidate| candidate.is_file())
 }
 
@@ -695,53 +691,6 @@ fn repository_root_from_std_path(path: &Path) -> Option<PathBuf> {
         current = dir.parent();
     }
     None
-}
-
-/// Merges explicitly imported project functions into one test execution module.
-///
-/// Inputs:
-/// - `test_core`: mutable CoreIR module for the active test file.
-/// - `project_modules`: checked CoreIR modules compiled from project source
-///   roots.
-///
-/// Output:
-/// - `test_core.functions` contains public functions from imported project
-///   modules when the test module does not already define the same name/arity.
-///
-/// Transformation:
-/// - Uses CoreIR import facts to keep source-root functions available to the
-///   emitted native test image, whose lowered calls preserve selective imports
-///   as local function names.
-fn merge_imported_project_functions(test_core: &mut CoreModule, project_modules: &[CoreModule]) {
-    let imported_modules = test_core
-        .imports
-        .iter()
-        .filter(|import| import.kind == CoreImportKind::Module)
-        .map(|import| import.module.as_str())
-        .collect::<BTreeSet<_>>();
-    if imported_modules.is_empty() {
-        return;
-    }
-
-    let mut local_functions = test_core
-        .functions
-        .iter()
-        .map(|function| (function.name.clone(), function.arity))
-        .collect::<BTreeSet<_>>();
-    for module in project_modules {
-        if !imported_modules.contains(module.module.as_str()) {
-            continue;
-        }
-        for function in &module.functions {
-            if !function.public {
-                continue;
-            }
-            let identity = (function.name.clone(), function.arity);
-            if local_functions.insert(identity) {
-                test_core.functions.push(function.clone());
-            }
-        }
-    }
 }
 
 /// Prints a runtime execution test report.

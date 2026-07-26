@@ -9,8 +9,8 @@ use super::{
     collect_local_syntax_struct_fields, expand_imported_aliases_except_named,
     imported_type_aliases, normalize_trait_type_text, normalize_type_param_name,
     parse_generic_bounds, parse_interface_signature, parse_structural_implication_bounds,
-    parse_type_expr, qualify_type_names, FunctionBound, FunctionScheme, QualifiedTypeName, Type,
-    TypeAlias, TypeVarId,
+    parse_type_expr, qualify_type_names, source_imported_module_names, FunctionBound,
+    FunctionScheme, QualifiedTypeName, Type, TypeAlias, TypeVarId,
 };
 
 /// Receiver-method candidate used by expression dispatch.
@@ -138,7 +138,7 @@ pub(super) fn collect_syntax_receiver_method_dispatch_signatures_with_imports(
         imported_type_aliases,
         local_aliases,
     );
-    extend_receiver_method_dispatch_with_imported_receiver_methods(resolved, &mut methods);
+    extend_receiver_method_dispatch_with_imported_receiver_methods(module, resolved, &mut methods);
     extend_receiver_method_dispatch_with_imported_struct_includes(module, resolved, &mut methods);
     methods
 }
@@ -160,13 +160,16 @@ pub(super) fn collect_syntax_receiver_method_dispatch_signatures_with_imports(
 ///   This makes generated wrapper methods such as `value.set_text(...)`
 ///   callable from modules that import the wrapper type.
 fn extend_receiver_method_dispatch_with_imported_receiver_methods(
+    module: &SyntaxModuleOutput,
     resolved: &ResolvedModule,
     methods: &mut HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
 ) {
     let global_aliases = imported_type_aliases(resolved);
+    let imported_modules = source_imported_module_names(module, &resolved.interface_map);
     let imported = resolved
         .interface_map
         .values()
+        .filter(|interface| imported_modules.contains(&interface.module))
         .flat_map(|interface| {
             let global_aliases = &global_aliases;
             interface

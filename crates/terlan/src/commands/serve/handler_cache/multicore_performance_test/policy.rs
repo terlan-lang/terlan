@@ -10,6 +10,7 @@ use super::mixed_tail::{
     MixedTailEvidence, MIXED_CPU_PASSES, MIXED_LOAD_SCHEDULERS, MIXED_TAIL_METRICS,
     MIXED_TAIL_OPERATIONS,
 };
+use super::WARMUP_SAMPLE_COUNT;
 
 const POLICY_SCHEMA: &str = "terlan-vm-multicore-performance-limits-v1";
 const DEDICATED_RUNNER_ENV: &str = "TERLAN_VM_MULTICORE_DEDICATED_RUNNER";
@@ -237,9 +238,11 @@ pub(super) fn evaluate_policy(
         ));
     }
     if cpu.iterations_per_actor != policy.required_iterations_per_actor
+        || cpu.warmup_samples_per_width != WARMUP_SAMPLE_COUNT
         || width_one.samples != policy.required_sample_count
         || mixed_tail.requested_schedulers != MIXED_LOAD_SCHEDULERS
         || mixed_tail.samples_per_metric != policy.required_sample_count
+        || mixed_tail.warmup_samples_per_metric != WARMUP_SAMPLE_COUNT
         || mixed_tail.cpu_iterations_per_actor
             != CPU_ITERATIONS_PER_ACTOR.saturating_mul(MIXED_CPU_PASSES)
         || mixed_tail.maximum_simultaneously_active_schedulers < MIXED_LOAD_SCHEDULERS

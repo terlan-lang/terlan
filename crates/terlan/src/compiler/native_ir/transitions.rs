@@ -111,8 +111,41 @@ pub(super) fn process_transition(
             ))
         }
         CoreIntrinsicId::Runtime(capability) => capability_transition(call, capability),
+        CoreIntrinsicId::NativeOperation {
+            operation,
+            parameter_types,
+        } => native_operation_transition(call, operation, parameter_types),
         _ => None,
     }
+}
+
+/// Lowers one compiler-native declaration into a typed package-capability frame.
+fn native_operation_transition(
+    call: &crate::terlan_typeck::CoreIntrinsicCall,
+    operation: &str,
+    parameter_types: &[crate::terlan_typeck::CoreType],
+) -> Option<(NativeTransitionOperation, Vec<CoreExpr>, Option<NativeType>)> {
+    if call.args.len() != parameter_types.len() {
+        return None;
+    }
+    let result = native_type(Some(&call.return_type), &call.return_type.contract_text())?;
+    let parameter_native_types = parameter_types
+        .iter()
+        .map(|ty| native_type(Some(ty), &ty.contract_text()))
+        .collect::<Option<Vec<_>>>()?;
+    let mut arguments = vec![CoreExpr::Int(7)];
+    arguments.extend(typed_transition_metadata(result));
+    arguments.push(CoreExpr::Binary(format!("{operation:?}")));
+    arguments.push(CoreExpr::Int(call.args.len() as i64));
+    for (argument, native_type) in call.args.iter().zip(parameter_native_types) {
+        arguments.extend(typed_transition_metadata(native_type));
+        arguments.push(argument.clone());
+    }
+    Some((
+        NativeTransitionOperation::Capability,
+        arguments,
+        Some(result),
+    ))
 }
 
 fn capability_transition(

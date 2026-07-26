@@ -96,7 +96,7 @@ pub enum VmWebSocketFrame {
 /// Transformation:
 /// - Prevents binary payload behavior from being an accidental decoder detail
 ///   while keeping the first channel surface text/control focused.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub(crate) enum VmWebSocketBinaryPayloadPolicy {
     Reject,
 }
@@ -123,7 +123,7 @@ impl VmWebSocketFrame {
 /// Transformation:
 /// - Keeps source-visible endpoint declarations immutable and explicit while
 ///   live socket state remains owned by the WebSocket session runtime.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct VmWebSocketEndpointPlan {
     pub(crate) max_pending_frames: usize,
     pub(crate) max_frame_bytes: usize,
@@ -132,7 +132,7 @@ pub struct VmWebSocketEndpointPlan {
 }
 
 /// Complete static callback set for one generated WebSocket endpoint.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub(crate) struct VmWebSocketCallbackPlan {
     /// Called after upgrade admission.
     pub(crate) open: VmNativeCallableRef,

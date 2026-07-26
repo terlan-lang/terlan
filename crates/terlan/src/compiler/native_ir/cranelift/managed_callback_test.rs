@@ -66,6 +66,9 @@ fn generated_constructor_reference_crosses_native_arguments_and_returns() {
                 name: "construct".to_owned(),
                 public: false,
                 arity: 2,
+                source_module: "ManagedCallback".to_owned(),
+                source_function: "construct".to_owned(),
+                source_arity: 2,
                 callable_captures: Vec::new(),
                 params: vec![NativeType::Int, NativeType::Bool],
                 return_type: result,
@@ -80,6 +83,9 @@ fn generated_constructor_reference_crosses_native_arguments_and_returns() {
                 name: "identity".to_owned(),
                 public: false,
                 arity: 1,
+                source_module: "ManagedCallback".to_owned(),
+                source_function: "identity".to_owned(),
+                source_arity: 1,
                 callable_captures: Vec::new(),
                 params: vec![result],
                 return_type: result,
@@ -90,6 +96,9 @@ fn generated_constructor_reference_crosses_native_arguments_and_returns() {
                 name: "ok".to_owned(),
                 public: true,
                 arity: 2,
+                source_module: "ManagedCallback".to_owned(),
+                source_function: "ok".to_owned(),
+                source_arity: 2,
                 callable_captures: Vec::new(),
                 params: vec![NativeType::Int, NativeType::Bool],
                 return_type: result,
@@ -186,6 +195,9 @@ fn generated_closure_owns_captures_and_dispatches_lifted_target() {
                 name: "lifted_add".to_owned(),
                 public: false,
                 arity: 2,
+                source_module: "GeneratedClosure".to_owned(),
+                source_function: "lifted_add".to_owned(),
+                source_arity: 2,
                 callable_captures: vec![NativeType::Int],
                 params: vec![NativeType::Int, NativeType::Int],
                 return_type: NativeType::Int,
@@ -201,6 +213,9 @@ fn generated_closure_owns_captures_and_dispatches_lifted_target() {
                 name: "make_adder".to_owned(),
                 public: true,
                 arity: 0,
+                source_module: "GeneratedClosure".to_owned(),
+                source_function: "make_adder".to_owned(),
+                source_arity: 0,
                 callable_captures: Vec::new(),
                 params: Vec::new(),
                 return_type: NativeType::ManagedRef(closure_semantic),
@@ -304,6 +319,9 @@ fn owned_closure_forwards_a_suspending_target_transition() {
                 name: "park".to_owned(),
                 public: false,
                 arity: 0,
+                source_module: "SuspendingClosure".to_owned(),
+                source_function: "park".to_owned(),
+                source_arity: 0,
                 callable_captures: vec![],
                 params: vec![],
                 return_type: NativeType::Unit,
@@ -319,6 +337,9 @@ fn owned_closure_forwards_a_suspending_target_transition() {
                 name: "make_park".to_owned(),
                 public: true,
                 arity: 0,
+                source_module: "SuspendingClosure".to_owned(),
+                source_function: "make_park".to_owned(),
+                source_arity: 0,
                 callable_captures: vec![],
                 params: vec![],
                 return_type: NativeType::ManagedRef(closure_semantic),
@@ -332,6 +353,9 @@ fn owned_closure_forwards_a_suspending_target_transition() {
                 name: "invoke_park".to_owned(),
                 public: true,
                 arity: 1,
+                source_module: "SuspendingClosure".to_owned(),
+                source_function: "invoke_park".to_owned(),
+                source_arity: 1,
                 callable_captures: vec![],
                 params: vec![NativeType::ManagedRef(closure_semantic)],
                 return_type: NativeType::Unit,
@@ -859,13 +883,23 @@ fn source_if_selects_distinct_executable_captured_closures() {
         .expect("branch closure maker");
     let mut targets = functions
         .iter()
-        .filter(|function| function.name.starts_with("$closure_choose_2_"))
+        .filter(|function| {
+            function
+                .name
+                .starts_with("$closure_$aot_closure_factory_choose_")
+        })
         .copied()
         .collect::<Vec<_>>();
     targets.sort_by(|left, right| left.name.cmp(&right.name));
     assert_eq!(targets.len(), 2);
-    assert_eq!(targets[0].name, "$closure_choose_2_0");
-    assert_eq!(targets[1].name, "$closure_choose_2_1");
+    assert_eq!(
+        targets[0].name,
+        "$closure_$aot_closure_factory_choose_0_1_0"
+    );
+    assert_eq!(
+        targets[1].name,
+        "$closure_$aot_closure_factory_choose_1_1_0"
+    );
     assert_ne!(targets[0].export_id, targets[1].export_id);
     assert!(targets
         .iter()
@@ -879,8 +913,7 @@ fn source_if_selects_distinct_executable_captured_closures() {
     assert_eq!(clauses.len(), 2);
     assert!(clauses.iter().all(|(_, body)| matches!(
         body,
-        NativeExpr::MakeClosure { captures, .. }
-            if captures == &vec![NativeExpr::Param(1)]
+        NativeExpr::Call { args, .. } if args == &vec![NativeExpr::Param(1)]
     )));
 
     let mut callables = functions
@@ -994,7 +1027,7 @@ fn source_named_function_value_rejects_signature_drift_before_codegen() {
 
     assert_eq!(
         NativeModule::lower_application(&[&core]).unwrap_err(),
-        "error[native_ir.function_value_abi]: `negate/1` does not match its declared closure signature"
+        "error[native_ir.function_value_abi]: `negate/1` does not match its declared closure signature; while lowering `escaping_named_mismatch.make/0`"
     );
 }
 

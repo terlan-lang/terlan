@@ -14,7 +14,55 @@ pub(crate) struct VmNativeTimerWait {
     pub(crate) deadline_tick: u64,
 }
 
+/// Observable result of one VM-owned actor hibernation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct VmActorHibernateOutcome {
+    pub(crate) released_heap_bytes: usize,
+    pub(crate) retained_mailbox_bytes: usize,
+    pub(crate) awakened_immediately: bool,
+}
+
 impl VmActorRuntime {
+    /// Compacts and parks an actor until a queued or future VM wake event.
+    pub(crate) fn hibernate(
+        &mut self,
+        pid: VmProcessId,
+    ) -> Result<VmActorHibernateOutcome, String> {
+        let process = self
+            .processes
+            .get(pid)
+            .ok_or_else(|| format!("cannot hibernate missing process {}", pid.as_u64()))?;
+        if matches!(process.state, VmProcessState::Exited(_)) {
+            return Err(format!("cannot hibernate exited process {}", pid.as_u64()));
+        }
+        let retained_mailbox_bytes = process.mailbox_accounted_bytes()?;
+        let released_heap_bytes = process
+            .heap_bytes
+            .checked_sub(retained_mailbox_bytes)
+            .ok_or_else(|| {
+                format!(
+                    "error[vm.hibernate_accounting]: process {} retains {} mailbox bytes but only {} heap bytes",
+                    pid.as_u64(),
+                    retained_mailbox_bytes,
+                    process.heap_bytes
+                )
+            })?;
+        let awakened_immediately = process.mailbox_len() != 0;
+
+        self.scheduler.hibernate_process(&mut self.processes, pid)?;
+        self.memory
+            .release_heap(&mut self.processes, pid, released_heap_bytes)?;
+        if awakened_immediately {
+            self.scheduler.wake_process(&mut self.processes, pid)?;
+        }
+        self.charge_actor_reductions(pid, ACTOR_OPERATION_REDUCTIONS);
+        Ok(VmActorHibernateOutcome {
+            released_heap_bytes,
+            retained_mailbox_bytes,
+            awakened_immediately,
+        })
+    }
+
     /// Suspends an actor without discarding queued mailbox work.
     pub(crate) fn suspend(&mut self, pid: VmProcessId) -> Result<(), String> {
         let native_pending = self.native_continuations_by_owner.contains_key(&pid);

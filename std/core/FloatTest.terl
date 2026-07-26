@@ -2,13 +2,13 @@ module std.core.FloatTest.
 
 import std.core.Float.{abs, ceil, compare, equal, floor, from_string, log, max, min, pi, tau, to_string}.
 import std.core.Option.{None, Some}.
-import std.core.Ordering.{Eq, Gt, Lt, Ordering}.
+import std.core.Ordering.{Eq, Gt, Lt}.
 import std.test.Test.{assert, assert_equal, assert_false}.
 
 import type std.core.Ordering.Comparison.
 
 pub ordering_compare(left: Float, right: Float): Comparison ->
-    Ordering.compare(left, right).
+    compare(left, right).
 
 @test
 pub equal_accepts_matching_floats(): Bool ->
@@ -87,6 +87,20 @@ pub from_string_parses_negative_float(): Bool ->
 @test
 pub from_string_rejects_unknown_text(): Bool ->
     case from_string("nope") {
+        None -> true;
+        Some(_value) -> false
+    }.
+
+@test
+pub from_string_accepts_decimal_underflow_as_zero(): Bool ->
+    case from_string("1.0e-325") {
+        Some(value) -> assert_equal(0.0, value);
+        None -> false
+    }.
+
+@test
+pub from_string_rejects_non_finite_decimal_overflow(): Bool ->
+    case from_string("1.0e83291083210") {
         None -> true;
         Some(_value) -> false
     }.

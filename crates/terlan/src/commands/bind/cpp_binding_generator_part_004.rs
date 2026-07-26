@@ -317,8 +317,8 @@ fn render_module_source(module: &NativeBindingModule) -> String {
             NativeBindingTypeKind::Enum => {
                 for variant in &ty.variants {
                     source.push_str(&format!(
-                        "/** {} */\npub type {}.\n\n",
-                        variant.documentation, variant.name
+                        "/** {} */\npub type {} = Atom[{:?}].\n\n",
+                        variant.documentation, variant.name, variant.atom
                     ));
                 }
                 source.push_str(&format!(

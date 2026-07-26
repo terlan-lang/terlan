@@ -46,6 +46,9 @@ fn native_module(name: &str) -> NativeModule {
 fn continuation(id: u64) -> NativeContinuation {
     NativeContinuation {
         id,
+        source_module: "app.Test".to_string(),
+        source_function: "main".to_string(),
+        source_arity: 0,
         params: Vec::new(),
         return_type: NativeType::Unit,
         body: NativeExpr::Unit,
@@ -195,6 +198,9 @@ fn dangling_continuation_reference_is_rejected() {
         name: "main".to_string(),
         public: true,
         arity: 0,
+        source_module: "app.Dangling".to_string(),
+        source_function: "main".to_string(),
+        source_arity: 0,
         callable_captures: Vec::new(),
         params: Vec::new(),
         return_type: NativeType::Unit,
@@ -231,10 +237,10 @@ fn closed_application_passes_admission_and_graph_validation() {
 #[test]
 fn unsupported_reachable_function_is_rejected_before_linking() {
     let mut module = core("module app.Unsupported.\n\npub value(): Int -> 1.\n");
-    *body_mut(&mut module, "value") = CoreExpr::Atom("unbounded_runtime_atom".to_string());
+    *body_mut(&mut module, "value") = CoreExpr::FixedArray(vec![CoreExpr::Int(1)]);
 
     assert_eq!(
         NativeModule::lower_application(&[&module]).unwrap_err(),
-        "error[native_ir.unsupported_application_function]: `app.Unsupported.value/0` cannot be lowered into the native application image; runtime CoreIR interpretation has been removed"
+        "error[native_ir.unsupported_application_function]: `app.Unsupported.value/0` cannot be lowered into the native application image (native-operation=true, parameters=true, result=true, clause=true, body=false, missing-core=none); runtime CoreIR interpretation has been removed"
     );
 }

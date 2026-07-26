@@ -28,6 +28,77 @@ pub(super) fn lower_boundary_collection_value(
     let Some(expected) = expected else {
         return Ok(None);
     };
+    if let (CoreExpr::Tuple(items), CoreType::Union(variants)) = (body, expected) {
+        let Some(CoreExpr::Atom(tag)) = items.first() else {
+            return Ok(None);
+        };
+        let Some((discriminant, elements)) = tagged_union_variant(variants, tag) else {
+            return Ok(None);
+        };
+        if items.len() != elements.len() {
+            return Err(
+                "error[native_ir.union_value]: tagged tuple value arity mismatch".to_string(),
+            );
+        }
+        let fields = elements
+            .iter()
+            .skip(1)
+            .map(|element| {
+                let ty = tuple_element_type(element);
+                native_type(Some(ty), &ty.contract_text())
+                    .ok_or_else(|| {
+                        format!(
+                            "error[native_ir.union_value_type]: unsupported union field `{}`",
+                            ty.contract_text()
+                        )
+                    })
+                    .and_then(super::constructors::managed_field_type)
+                    .map(|ty| (tuple_element_name(element), ty))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let variant_name = tagged_variant_name(tag).ok_or_else(|| {
+            "error[native_ir.union_value]: tagged tuple has an empty atom".to_string()
+        })?;
+        let descriptor = Arc::new(
+            ManagedAggregateDescriptor::constructor(
+                &expected.contract_text(),
+                &variant_name,
+                u32::try_from(discriminant).map_err(|_| {
+                    "error[native_ir.union_value]: discriminant exceeds u32".to_string()
+                })?,
+                u32::try_from(variants.len()).map_err(|_| {
+                    "error[native_ir.union_value]: variant count exceeds u32".to_string()
+                })?,
+                fields,
+            )
+            .map_err(|error| format!("error[native_ir.union_value_layout]: {error}"))?,
+        );
+        let encoded_layout = Arc::from(
+            encode_aggregate_layout(&descriptor)
+                .map_err(|error| format!("error[native_ir.union_value_abi]: {error}"))?,
+        );
+        let fields = items
+            .iter()
+            .skip(1)
+            .zip(elements.iter().skip(1))
+            .map(|(item, element)| {
+                lower_typed_value(
+                    item,
+                    tuple_element_type(element),
+                    params,
+                    param_types,
+                    functions,
+                    function_types,
+                    constructors,
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        return Ok(Some(NativeExpr::Construct {
+            descriptor,
+            encoded_layout,
+            fields,
+        }));
+    }
     if let (CoreExpr::Tuple(items), CoreType::Tuple(elements)) = (body, expected) {
         if items.len() != elements.len() {
             return Err("error[native_ir.tuple_value]: tuple value arity mismatch".to_string());
@@ -108,7 +179,7 @@ pub(super) fn lower_boundary_collection_value(
                 function_types,
                 constructors,
             )?;
-            let tail = lower_boundary_collection_value(
+            let lowered_tail = lower_boundary_collection_value(
                 tail,
                 Some(expected),
                 params,
@@ -116,15 +187,19 @@ pub(super) fn lower_boundary_collection_value(
                 functions,
                 function_types,
                 constructors,
-            )?
-            .unwrap_or(lower_expr_with_constructors(
-                tail,
-                params,
-                param_types,
-                functions,
-                function_types,
-                constructors,
-            )?);
+            )?;
+            let tail = if let Some(lowered_tail) = lowered_tail {
+                lowered_tail
+            } else {
+                lower_expr_with_constructors(
+                    tail,
+                    params,
+                    param_types,
+                    functions,
+                    function_types,
+                    constructors,
+                )?
+            };
             Ok(Some(NativeExpr::ManagedOperation {
                 encoded: Arc::from(encode_list_prepend_operation(semantic)),
                 args: vec![head, tail],
@@ -160,6 +235,41 @@ pub(super) fn lower_boundary_collection_value(
             }))
         }
         _ => Ok(None),
+    }
+}
+
+fn tagged_union_variant<'a>(
+    variants: &'a [CoreType],
+    expected_tag: &str,
+) -> Option<(usize, &'a [CoreTupleTypeElem])> {
+    variants.iter().enumerate().find_map(|(index, variant)| {
+        let CoreType::Tuple(elements) = variant else {
+            return None;
+        };
+        let tag = elements.first().map(tuple_element_type);
+        matches!(tag, Some(CoreType::AtomLiteral(tag)) if tag == expected_tag)
+            .then_some((index, elements.as_slice()))
+    })
+}
+
+fn tagged_variant_name(tag: &str) -> Option<String> {
+    if tag == "error" {
+        return Some("Err".to_string());
+    }
+    let mut chars = tag.chars();
+    Some(chars.next()?.to_uppercase().chain(chars).collect())
+}
+
+fn tuple_element_name(element: &CoreTupleTypeElem) -> Option<String> {
+    match element {
+        CoreTupleTypeElem::Type(_) => None,
+        CoreTupleTypeElem::Field { name, .. } => Some(name.clone()),
+    }
+}
+
+fn tuple_element_type(element: &CoreTupleTypeElem) -> &CoreType {
+    match element {
+        CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. } => ty,
     }
 }
 
@@ -221,6 +331,17 @@ fn lower_typed_value(
     function_types: &HashMap<(String, usize), NativeType>,
     constructors: &NativeConstructorLayouts,
 ) -> Result<NativeExpr, String> {
+    if let Some(value) = lower_boundary_collection_value(
+        value,
+        Some(expected),
+        params,
+        param_types,
+        functions,
+        function_types,
+        constructors,
+    )? {
+        return Ok(value);
+    }
     let expected_native =
         native_type(Some(expected), &expected.contract_text()).ok_or_else(|| {
             format!(
@@ -234,9 +355,9 @@ fn lower_typed_value(
                 "error[native_ir.collection_value]: cannot infer collection value".to_string()
             })?;
     if actual != expected_native {
-        return Err(
-            "error[native_ir.collection_value]: collection value type mismatch".to_string(),
-        );
+        return Err(format!(
+            "error[native_ir.collection_value]: collection value type mismatch: expected {expected_native:?}, found {actual:?} for {value:?}"
+        ));
     }
     lower_expr_with_constructors(
         value,

@@ -113,11 +113,17 @@ runtime_attribution_classifies_deterministic_handler_workloads
 "#,
         )?;
         self.write(
-            "crates/terlan/src/benchmark/binary_protocol_http.rs",
+            "crates/terlan/src/commands/serve/handler_cache/replay_evidence.rs",
             r#"
-VmHttpReplayEvidence replay_determinism terlan-vm-http-replay-v1
-execution_validated request_count validate_completion
-parser_rejects_incomplete_execution_evidence
+AotHandlerGeneration multicore_replay_evidence multicore_replay_capture
+VmMulticoreReplayEvidence
+"#,
+        )?;
+        self.write(
+            "crates/terlan/src/runtime/vm/multicore_replay.rs",
+            r#"
+terlan.vm.multicore-replay.v1 VmMulticoreReplayEvidence
+retained_events dropped_events replayable
 "#,
         )?;
         self.write("Makefile", COMPLETE_MAKEFILE)
@@ -225,8 +231,8 @@ fn vm_http_handler_scheduler_fairness_writes_report_for_complete_gate() {
     assert!(report.contains("phaseBucketAccountingChecked"));
     assert!(report.contains("deterministic source-backed synthetic handler matrix"));
     assert!(report.contains("canonical replay fingerprints across fresh VM executions"));
-    assert!(report.contains("terlan-vm-http-replay-v1"));
-    assert!(report.contains("freshVmExecutionChecked"));
+    assert!(report.contains("terlan.vm.multicore-replay.v1"));
+    assert!(report.contains("boundedSchedulerCaptureChecked"));
     assert!(
         report.contains("typed cancellation timeout and fragmented slow-write request outcomes")
     );

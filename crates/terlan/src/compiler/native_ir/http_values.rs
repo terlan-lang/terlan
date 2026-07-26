@@ -6,11 +6,12 @@ use crate::runtime::native_image::managed::{
     encode_aggregate_append_pair_operation, encode_aggregate_append_value_operation,
     encode_aggregate_field_operation, encode_aggregate_replace_field_operation,
     encode_collection_layout, encode_cookie_header_operation, encode_list_empty_operation,
-    encode_response_cookie_jar_operation, encode_response_security_headers_operation,
-    encode_session_option_is_none_operation, encode_string_append_operation,
-    encode_string_equal_operation, encode_string_map_get_option_operation,
-    encode_string_prepend_literal_operation, encode_string_prepend_projected_literal_operation,
-    ManagedCollectionDescriptor, ManagedCookieHeaderOperation, ManagedFieldType, SemanticTypeId,
+    encode_response_build_operation, encode_response_cookie_jar_operation,
+    encode_response_security_headers_operation, encode_session_option_is_none_operation,
+    encode_string_append_operation, encode_string_concat_operation, encode_string_equal_operation,
+    encode_string_map_get_option_operation, encode_string_prepend_literal_operation,
+    encode_string_prepend_projected_literal_operation, ManagedCollectionDescriptor,
+    ManagedCookieHeaderOperation, ManagedFieldType, SemanticTypeId,
 };
 use crate::terlan_typeck::{CoreCaseClause, CoreExpr, CoreModule, CoreType};
 
@@ -41,7 +42,7 @@ use layout::{
     option_string_layouts, request_descriptor, response_descriptor, response_header_descriptor,
     semantic, session_descriptor,
 };
-use option_string::lower_request_option_case;
+use option_string::{lower_request_option_case, lower_request_option_default};
 use receiver::{is_jar_expr, is_managed_string_expr, jar_method_arity, response_method_arity};
 use response::{cookie_call, jar_mutation, response_call, response_constructor, response_mutation};
 use security::{lower_security_constructor_args, SECURITY_CONSTRUCTOR};
@@ -218,7 +219,40 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
             left,
             right,
         } if operator == "+" && is_managed_string_expr(&left) && is_managed_string_expr(&right) => {
-            Ok(managed_http_call("string_append", vec![*left, *right]))
+            Ok(managed_string_concat(*left, *right))
+        }
+        CoreExpr::Call { function, args }
+            if features.request
+                && function == "std.core.Option.with_default"
+                && args.len() == 2 =>
+        {
+            let mut args = args.into_iter();
+            let option = args.next().expect("checked option argument");
+            let default = args.next().expect("checked default argument");
+            let lowered = lower_request_option_default(&option, default.clone())?;
+            Ok(lowered.unwrap_or(CoreExpr::Call {
+                function,
+                args: vec![option, default],
+            }))
+        }
+        CoreExpr::RemoteCall {
+            module,
+            function,
+            args,
+        } if features.request
+            && module == "std.core.Option"
+            && function == "with_default"
+            && args.len() == 2 =>
+        {
+            let mut args = args.into_iter();
+            let option = args.next().expect("checked option argument");
+            let default = args.next().expect("checked default argument");
+            let lowered = lower_request_option_default(&option, default.clone())?;
+            Ok(lowered.unwrap_or(CoreExpr::RemoteCall {
+                module,
+                function,
+                args: vec![option, default],
+            }))
         }
         CoreExpr::Var(name) if features.router && name == "Continue" => {
             Ok(CoreExpr::ConstructorCall {
@@ -335,6 +369,34 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
         } => response_mutation(*receiver, &method, args, effects),
         other => Ok(other),
     }
+}
+
+/// Flattens associative managed-string append trees into one allocation.
+fn managed_string_concat(left: CoreExpr, right: CoreExpr) -> CoreExpr {
+    fn append_args(expr: CoreExpr, output: &mut Vec<CoreExpr>) {
+        match expr {
+            CoreExpr::RemoteCall {
+                module,
+                function,
+                args,
+            } if module == MANAGED_HTTP_MODULE
+                && matches!(function.as_str(), "string_append" | "string_concat") =>
+            {
+                output.extend(args);
+            }
+            expr => output.push(expr),
+        }
+    }
+
+    let mut args = Vec::new();
+    append_args(left, &mut args);
+    append_args(right, &mut args);
+    let function = if args.len() == 2 {
+        "string_append"
+    } else {
+        "string_concat"
+    };
+    managed_http_call(function, args)
 }
 
 /// Separates a receiver argument before applying normal response mutation lowering.
@@ -558,7 +620,9 @@ pub(super) fn managed_http_operation_type(expr: &CoreExpr) -> Option<NativeType>
         }
         ("string_equal", 2) => Some(NativeType::Bool),
         ("string_append", 2) => Some(NativeType::StringRef),
+        ("string_concat", arity) if arity >= 2 => Some(NativeType::StringRef),
         ("string_prepend_literal", 2) => Some(NativeType::StringRef),
+        ("json_payload", 1) => Some(NativeType::StringRef),
         ("method" | "path" | "query_string" | "body_text", 1) => Some(NativeType::StringRef),
         ("param" | "query" | "header" | "cookie", 2) => {
             semantic(STRING_OPTION).ok().map(NativeType::ManagedRef)
@@ -566,6 +630,11 @@ pub(super) fn managed_http_operation_type(expr: &CoreExpr) -> Option<NativeType>
         ("option_is_none", 1) => Some(NativeType::Bool),
         ("option_some", 1) => Some(NativeType::StringRef),
         ("empty_headers", 0) => semantic(RESPONSE_HEADERS).ok().map(NativeType::ManagedRef),
+        ("response_build_0" | "response_build_1" | "response_build_2" | "response_build_3", 2) => {
+            semantic(&CoreType::Named("Response".to_string()).contract_text())
+                .ok()
+                .map(NativeType::ManagedRef)
+        }
         ("cookies", 1) | ("jar_append", 2) => semantic(COOKIE_JAR).ok().map(NativeType::ManagedRef),
         ("jar_get", 2) => semantic(STRING_OPTION).ok().map(NativeType::ManagedRef),
         ("cookie_set_header" | "cookie_set_options_header" | "cookie_delete_header", _) => {
@@ -637,6 +706,12 @@ pub(super) fn lower_managed_http_operation(
             args: args.iter().map(&mut lower).collect::<Result<Vec<_>, _>>()?,
         }));
     }
+    if function == "string_concat" && args.len() >= 2 {
+        return Ok(Some(super::NativeExpr::ManagedOperation {
+            encoded: Arc::from(encode_string_concat_operation()),
+            args: args.iter().map(&mut lower).collect::<Result<Vec<_>, _>>()?,
+        }));
+    }
     if function == "string_prepend_literal" && args.len() == 2 {
         let CoreExpr::Binary(literal) = &args[0] else {
             return Err(
@@ -680,6 +755,15 @@ pub(super) fn lower_managed_http_operation(
             args: vec![lower(&args[1])?],
         }));
     }
+    if function == "json_payload" && args.len() == 1 {
+        return Ok(Some(super::NativeExpr::ManagedOperation {
+            encoded: Arc::from(
+                encode_aggregate_field_operation(semantic("Named(Json)")?, 0)
+                    .map_err(|error| format!("error[native_ir.http_json_response]: {error}"))?,
+            ),
+            args: vec![lower(&args[0])?],
+        }));
+    }
     if function == "empty_headers" && args.is_empty() {
         return Ok(Some(super::NativeExpr::ManagedOperation {
             encoded: Arc::from(encode_list_empty_operation(semantic(RESPONSE_HEADERS)?)),
@@ -687,6 +771,28 @@ pub(super) fn lower_managed_http_operation(
         }));
     }
     let response_semantic = semantic(&CoreType::Named("Response".to_string()).contract_text())?;
+    if let Some(kind) = function
+        .strip_prefix("response_build_")
+        .and_then(|kind| kind.parse::<u8>().ok())
+        .filter(|kind| *kind <= 3)
+    {
+        if args.len() != 2 {
+            return Err(format!(
+                "error[native_ir.http_response_build]: response kind {kind} expects payload and status"
+            ));
+        }
+        return Ok(Some(super::NativeExpr::ManagedOperation {
+            encoded: Arc::from(
+                encode_response_build_operation(
+                    response_semantic,
+                    semantic(RESPONSE_HEADERS)?,
+                    kind,
+                )
+                .map_err(|error| format!("error[native_ir.http_response_build]: {error}"))?,
+            ),
+            args: args.iter().map(&mut lower).collect::<Result<Vec<_>, _>>()?,
+        }));
+    }
     if function == "response_status" && args.len() == 2 {
         return Ok(Some(super::NativeExpr::ManagedOperation {
             encoded: Arc::from(

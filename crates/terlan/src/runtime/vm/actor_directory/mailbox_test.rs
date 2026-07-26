@@ -1,12 +1,11 @@
 use std::sync::{Arc, Barrier};
 use std::thread;
 
+use super::super::super::process::VmProcessId;
+use super::super::{VmActorDirectoryError, VmActorHandle};
 use super::{
     VmActorMailbox, VmMailboxWake, ACTIVE, ACTOR_MAILBOX_CAPACITY, NOTIFIED, PARKED, PARKING,
 };
-use crate::runtime::vm::actor_directory::VmActorDirectoryError;
-use crate::runtime::vm::actor_directory::VmActorHandle;
-use crate::runtime::vm::process::VmProcessId;
 
 #[derive(Clone, Copy)]
 enum ModelStep {

@@ -65,6 +65,7 @@ fn unsupported_live_template_patch_value(value: &ReplValue) -> Option<&'static s
         | ReplValue::Int(_)
         | ReplValue::Float(_)
         | ReplValue::String(_)
+        | ReplValue::StringBytes(_)
         | ReplValue::Atom(_)
         | ReplValue::Bool(_) => None,
     }

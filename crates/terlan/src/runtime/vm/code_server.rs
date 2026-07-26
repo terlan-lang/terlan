@@ -34,6 +34,7 @@ pub(crate) struct VmModuleArtifact {
     pub(crate) checksum: String,
     pub(crate) source_map_id: String,
     exported_functions: BTreeMap<String, BTreeSet<usize>>,
+    defined_functions: BTreeMap<String, BTreeSet<usize>>,
 }
 
 /// Compiler-verified module artifact that has not entered VM code visibility.
@@ -56,6 +57,7 @@ impl VmModuleArtifact {
             checksum: checksum.into(),
             source_map_id: source_map_id.into(),
             exported_functions: BTreeMap::new(),
+            defined_functions: BTreeMap::new(),
         }
     }
 
@@ -73,11 +75,51 @@ impl VmModuleArtifact {
         self
     }
 
+    /// Attaches every compiler-verified function, including private helpers.
+    pub(super) fn with_defined_functions(
+        mut self,
+        functions: impl IntoIterator<Item = (String, usize)>,
+    ) -> Self {
+        for (function, arity) in functions {
+            self.defined_functions
+                .entry(function)
+                .or_default()
+                .insert(arity);
+        }
+        self
+    }
+
     fn exports_function(&self, function: &str, arity: usize) -> bool {
         self.exported_functions
             .get(function)
             .is_some_and(|arities| arities.contains(&arity))
     }
+
+    fn exports(&self) -> Vec<VmModuleFunction> {
+        function_rows(&self.exported_functions)
+    }
+
+    fn functions(&self) -> Vec<VmModuleFunction> {
+        function_rows(&self.defined_functions)
+    }
+}
+
+/// One compiler-verified function identity in module metadata.
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(crate) struct VmModuleFunction {
+    pub(crate) name: String,
+    pub(crate) arity: usize,
+}
+
+/// Typed metadata for one active module generation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct VmModuleInfoSnapshot {
+    pub(crate) module: String,
+    pub(crate) generation: VmModuleGenerationId,
+    pub(crate) checksum: String,
+    pub(crate) source_map_id: String,
+    pub(crate) exports: Vec<VmModuleFunction>,
+    pub(crate) functions: Vec<VmModuleFunction>,
 }
 
 /// Runtime lifecycle state for a module generation.
@@ -640,6 +682,19 @@ impl VmCodeServer {
             .is_ok_and(|generation| generation.artifact.exports_function(function, arity))
     }
 
+    /// Returns compiler-derived metadata for the active module generation.
+    pub(crate) fn active_module_info(&self, module: &str) -> Result<VmModuleInfoSnapshot, String> {
+        let generation = self.active_generation_ref(module)?;
+        Ok(VmModuleInfoSnapshot {
+            module: generation.module.clone(),
+            generation: generation.generation,
+            checksum: generation.artifact.checksum.clone(),
+            source_map_id: generation.artifact.source_map_id.clone(),
+            exports: generation.artifact.exports(),
+            functions: generation.artifact.functions(),
+        })
+    }
+
     /// Returns generation rows for runtime inspection.
     pub(crate) fn snapshots(&self) -> Vec<VmModuleGenerationSnapshot> {
         self.modules
@@ -795,6 +850,18 @@ impl VmCodeServer {
     }
 }
 
+fn function_rows(functions: &BTreeMap<String, BTreeSet<usize>>) -> Vec<VmModuleFunction> {
+    functions
+        .iter()
+        .flat_map(|(name, arities)| {
+            arities.iter().map(|arity| VmModuleFunction {
+                name: name.clone(),
+                arity: *arity,
+            })
+        })
+        .collect()
+}
+
 fn ensure_live_process(processes: &VmProcessTable, pid: VmProcessId) -> Result<(), String> {
     let process = processes
         .get(pid)
@@ -817,4 +884,7 @@ vm_code_server_test_component! {
 
     #[path = "code_parallel_load_beam_suite_parity_test.rs"]
     mod code_parallel_load_beam_suite_parity_test;
+
+    #[path = "multi_load_beam_suite_parity_test.rs"]
+    mod multi_load_beam_suite_parity_test;
 }

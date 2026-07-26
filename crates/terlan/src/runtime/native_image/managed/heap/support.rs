@@ -1,15 +1,94 @@
 //! Pointer encoding and relocation helpers for actor-local heaps.
 
+use super::{
+    ActorHeap, ManagedMemoryError, ManagedTypeDescriptor, ObjectMetadata, ObjectTable, TvmRef,
+    INITIAL_HEAP_BYTES, NEXT_HEAP_TOKEN, OFFSET_MASK, TOKEN_RESERVATION_SIZE, TOKEN_SHIFT,
+};
 use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
-use super::{
-    ActorHeap, ManagedMemoryError, ObjectTable, TvmRef, NEXT_HEAP_TOKEN, OFFSET_MASK,
-    TOKEN_RESERVATION_SIZE, TOKEN_SHIFT,
-};
+use bytes::Bytes;
+
+/// Soft and hard actor-local managed-heap limits.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct HeapLimits {
+    pub soft_bytes: usize,
+    pub hard_bytes: usize,
+}
+
+/// Observable result of one completed actor-local collection.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CollectionStats {
+    pub bytes_before: usize,
+    pub bytes_after: usize,
+    pub objects_before: usize,
+    pub objects_after: usize,
+    pub work_bytes: usize,
+}
+
+impl HeapLimits {
+    /// Validates nonzero ordered actor-local heap limits.
+    pub fn new(soft_bytes: usize, hard_bytes: usize) -> Result<Self, ManagedMemoryError> {
+        if soft_bytes == 0 || soft_bytes > hard_bytes || hard_bytes > OFFSET_MASK {
+            return Err(ManagedMemoryError::AllocationLimitExceeded);
+        }
+        Ok(Self {
+            soft_bytes,
+            hard_bytes,
+        })
+    }
+}
 
 impl ActorHeap {
+    /// Allocates one String ABI placeholder backed by immutable external bytes.
+    pub(crate) fn allocate_external_string_storage<T>(
+        &mut self,
+        descriptor: Arc<ManagedTypeDescriptor>,
+        length: &[u8],
+        value: Bytes,
+    ) -> Result<TvmRef<T>, ManagedMemoryError> {
+        let retained =
+            self.external_strings
+                .values()
+                .try_fold(self.space.len(), |bytes, value| {
+                    bytes
+                        .checked_add(value.len())
+                        .ok_or(ManagedMemoryError::AllocationLimitExceeded)
+                })?;
+        if retained
+            .checked_add(value.len())
+            .ok_or(ManagedMemoryError::AllocationLimitExceeded)?
+            > self.limits.hard_bytes
+        {
+            return Err(ManagedMemoryError::AllocationLimitExceeded);
+        }
+        let reference = self.allocate_reference_free_parts(descriptor, &[length])?;
+        self.remember_external_string(reference.erase(), value)?;
+        Ok(reference)
+    }
+
+    /// Returns immutable out-of-line String bytes for one exact live reference.
+    pub(crate) fn external_string_bytes<T>(
+        &self,
+        reference: TvmRef<T>,
+    ) -> Result<Option<&Bytes>, ManagedMemoryError> {
+        let offset = self.resolve_offset(reference)?;
+        Ok(self.external_strings.get(&offset))
+    }
+
+    /// Associates cloned immutable storage with an already allocated placeholder.
+    pub(crate) fn remember_external_string(
+        &mut self,
+        reference: TvmRef<()>,
+        value: Bytes,
+    ) -> Result<(), ManagedMemoryError> {
+        let offset = self.resolve_offset(reference)?;
+        self.external_strings.insert(offset, value);
+        Ok(())
+    }
+
     /// Draws a fresh generation from an owner-local reservation.
     ///
     /// The global allocator is touched only once per block, avoiding cache-line
@@ -28,6 +107,25 @@ impl ActorHeap {
                 return token;
             }
         }
+    }
+
+    /// Releases actor-specific cache high-water storage before cross-actor pooling.
+    pub(crate) fn reclaim_for_pool(&mut self) {
+        self.reclaim_for_reuse();
+        self.space
+            .shrink_to(INITIAL_HEAP_BYTES.min(self.limits.soft_bytes));
+        self.objects.entries.shrink_to(32);
+        self.reuse_underutilized_count = 0;
+    }
+
+    /// Returns host allocation capacity retained by this reusable heap.
+    pub(crate) fn retained_capacity_bytes(&self) -> usize {
+        self.space.capacity().saturating_add(
+            self.objects
+                .entries
+                .capacity()
+                .saturating_mul(std::mem::size_of::<(usize, ObjectMetadata)>()),
+        )
     }
 }
 

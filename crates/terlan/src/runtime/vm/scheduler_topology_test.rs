@@ -96,6 +96,13 @@ fn effective_parallelism_uses_the_smallest_visible_limit() {
 }
 
 #[test]
+fn default_width_prefers_physical_cores_without_exceeding_effective_limits() {
+    assert_eq!(default_scheduler_width(24, Some(16)), 16);
+    assert_eq!(default_scheduler_width(8, Some(16)), 8);
+    assert_eq!(default_scheduler_width(6, None), 6);
+}
+
+#[test]
 fn linux_affinity_and_physical_topology_parsers_are_deterministic() {
     let status = "Name:\tterlan\nCpus_allowed_list:\t0-2,4\n";
     assert_eq!(process_affinity_list(status).as_deref(), Some("0-2,4"));

@@ -291,8 +291,7 @@
         "crates/terlan/src/compiler/syntax/parser_expr_test_part_001.rs::rejects_unterminated_string_capture_patterns",
         "crates/terlan/src/compiler/syntax/parser_expr_test_part_001.rs::rejects_empty_string_capture_patterns",
         "crates/terlan/src/compiler/typeck/pattern_test_part_001.rs::syntax_output_string_capture_pattern_rejects_duplicate_capture_names",
-        "crates/terlan/src/compiler/typeck/pattern_test_part_001.rs::syntax_output_string_capture_pattern_rejects_invalid_capture_annotation",
-        "crates/terlan/src/runtime/vm/patterns_test.rs::repl_pattern_rejects_ambiguous_string_capture_patterns"
+        "crates/terlan/src/compiler/typeck/pattern_test_part_001.rs::syntax_output_string_capture_pattern_rejects_invalid_capture_annotation"
       ]
     },
     {
@@ -677,7 +676,6 @@
       "diagnostic": "unsupported_vm_feature",
       "positive_tests": [],
       "adversarial_tests": [
-        "crates/terlan/src/runtime/vm/patterns_test.rs::case_pattern_commits_only_successful_bindings",
         "crates/terlan/src/tests/check_target_profile_gate_test_part_001.rs::run_check_single_file_rejects_record_pattern_for_core_v0_target_profile"
       ]
     },

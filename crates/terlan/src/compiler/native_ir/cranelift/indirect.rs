@@ -193,7 +193,7 @@ fn emit_invoke_closure_raw(
 
     let signature = dispatch_signature(module);
     let dispatch_id = module
-        .declare_function(DISPATCH_SYMBOL, Linkage::Export, &signature)
+        .declare_function(DISPATCH_SYMBOL, Linkage::Import, &signature)
         .map_err(|error| format!("error[cranelift.closure_dispatch_declare]: {error}"))?;
     let dispatch_ref = declare_image_func_in_func(module, dispatch_id, builder.func);
     let result_slot = scalar_slot(builder);

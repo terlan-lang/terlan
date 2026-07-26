@@ -4,8 +4,6 @@
 mod managed_http_response;
 #[path = "direct_backend/managed_values.rs"]
 mod managed_values;
-#[path = "direct_backend/projected_http_request.rs"]
-mod projected_http_request;
 
 use std::ffi::c_void;
 use std::path::Path;
@@ -14,12 +12,11 @@ use std::sync::Arc;
 use libloading::{Library, Symbol};
 use smallvec::SmallVec;
 
-use crate::runtime::native::http::{RequestFieldProjection, RequestParts};
 use crate::runtime::native_image::control::{TvmControlFrame, TvmTransitionOperation};
 use crate::runtime::native_image::managed::{ManagedExecutionRuntime, SemanticTypeId};
 use crate::runtime::native_image::{
-    SealedTvmImage, TvmBoundaryType, TvmContinuationDescriptor, TvmExportDescriptor,
-    TVM_DISPATCH_SYMBOL_V2, TVM_INDIRECT_TRANSITION_WORD_CAPACITY,
+    SealedTvmImage, TvmBoundaryType, TvmCallableDescriptor, TvmContinuationDescriptor,
+    TvmExportDescriptor, TVM_DISPATCH_SYMBOL_V2, TVM_INDIRECT_TRANSITION_WORD_CAPACITY,
 };
 use crate::runtime::vm::bitstring::VmBitString;
 use crate::runtime::vm::ReplValue;
@@ -95,18 +92,8 @@ impl DirectNativeBackend {
             "{}:{}:{}:{}",
             identity.compiler, identity.build, identity.package, identity.module
         );
-        let transition_capacity = descriptor
-            .continuations
-            .iter()
-            .map(|continuation| continuation.parameters.len())
-            .max()
-            .unwrap_or(0)
-            .saturating_add(5)
-            .max(
-                (!descriptor.callables.is_empty())
-                    .then_some(TVM_INDIRECT_TRANSITION_WORD_CAPACITY)
-                    .unwrap_or(0),
-            );
+        let transition_capacity =
+            transition_capacity(&descriptor.continuations, &descriptor.callables);
 
         // SAFETY: This process is the supervised execution shard. Admission
         // above validates the native image and fixed dispatch ABI before load.
@@ -364,6 +351,34 @@ impl DirectNativeBackend {
     }
 }
 
+/// Computes storage for the largest transition frame admitted by an image.
+///
+/// Materialized continuation bodies are ordinary private callables, so their
+/// parameter widths must participate even when the descriptor has no
+/// continuation-table entries left. A package-capability frame contributes
+/// six fixed words plus four words per public argument; the callable width
+/// also bounds all values appended by composed continuations.
+fn transition_capacity(
+    continuations: &[TvmContinuationDescriptor],
+    callables: &[TvmCallableDescriptor],
+) -> usize {
+    let callable_width = continuations
+        .iter()
+        .map(|continuation| continuation.parameters.len())
+        .chain(callables.iter().map(|callable| {
+            callable
+                .captures
+                .len()
+                .saturating_add(callable.parameters.len())
+        }))
+        .max()
+        .unwrap_or(0);
+    callable_width
+        .saturating_mul(5)
+        .saturating_add(6)
+        .max(TVM_INDIRECT_TRANSITION_WORD_CAPACITY)
+}
+
 impl NativeImageBackend for DirectNativeBackend {
     fn whole_image_digest(&self) -> Option<[u8; 32]> {
         Some(self.image.sealed.bytes_digest())
@@ -392,32 +407,6 @@ impl NativeImageBackend for DirectNativeBackend {
             })
             .collect::<Result<SmallVec<[i64; 4]>, _>>()?;
         self.dispatch(context, request_id, export_id, &arguments)
-    }
-
-    fn call_projected_http_request_frame(
-        &mut self,
-        context: &mut PureNativeExecutionContext<'_>,
-        request_id: u64,
-        export_id: u64,
-        request: RequestParts,
-        projection: RequestFieldProjection,
-    ) -> Result<TvmControlFrame, String> {
-        let [TvmBoundaryType::Managed(identity)] = self.entry_parameters(export_id)? else {
-            return Err(
-                "error[execution_shard.http_request_projection]: projected Request entry must accept one managed argument"
-                    .to_string(),
-            );
-        };
-        let semantic = SemanticTypeId::from_bytes(*identity);
-        let owner_id = context.owner_id();
-        let argument = context
-            .managed()
-            .with_public_allocation(owner_id, |heap, layouts| {
-                projected_http_request::allocate_projected_request(
-                    heap, layouts, semantic, request, projection,
-                )
-            })?;
-        self.dispatch(context, request_id, export_id, &[argument])
     }
 
     fn resume_frame(
@@ -599,6 +588,9 @@ fn encode_public_argument(
         (TvmBoundaryType::String, ReplValue::String(value)) => {
             managed.allocate_string_value(owner_id, value)
         }
+        (TvmBoundaryType::String, ReplValue::StringBytes(value)) => {
+            managed.allocate_shared_string_value(owner_id, value.clone())
+        }
         (TvmBoundaryType::Bytes, ReplValue::Bytes(value)) => {
             managed.allocate_bytes_value(owner_id, value)
         }
@@ -727,6 +719,25 @@ fn frame_from_status(
             let count = match tag {
                 1 | 2 | 3 | 6 => 5,
                 4 | 5 => 6,
+                7 => {
+                    let argument_count = transition_values
+                        .get(5)
+                        .copied()
+                        .and_then(|count| usize::try_from(count).ok())
+                        .ok_or_else(|| {
+                            "error[execution_shard.capability_arguments]: package argument count is missing or invalid"
+                                .to_string()
+                        })?;
+                    6usize
+                        .checked_add(argument_count.checked_mul(4).ok_or_else(|| {
+                            "error[execution_shard.capability_arguments]: package argument count overflow"
+                                .to_string()
+                        })?)
+                        .ok_or_else(|| {
+                            "error[execution_shard.capability_arguments]: package frame length overflow"
+                                .to_string()
+                        })?
+                }
                 _ => {
                     return Err(format!(
                         "error[execution_shard.capability_arguments]: unknown capability tag {tag}"

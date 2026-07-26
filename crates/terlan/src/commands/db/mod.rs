@@ -980,7 +980,7 @@ fn migration_template(name: &str) -> String {
     format!("-- {name}\n-- +terlan Up\n-- Write forward migration SQL here.\n\n-- +terlan Down\n-- Write optional local rollback SQL here.\n")
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "serve-runtime-bin"), feature = "postgres-libpq"))]
 #[path = "live_test.rs"]
 mod live_test;
 #[cfg(test)]

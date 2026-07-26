@@ -142,14 +142,19 @@ const REQUIRED_RUNTIME_ATTRIBUTION_TEST_ANCHORS: &[&str] = &[
     "runtime_attribution_classifies_deterministic_handler_workloads",
 ];
 
-const REQUIRED_REPLAY_DETERMINISM_ANCHORS: &[&str] = &[
-    "VmHttpReplayEvidence",
-    "replay_determinism",
-    "terlan-vm-http-replay-v1",
-    "execution_validated",
-    "request_count",
-    "validate_completion",
-    "parser_rejects_incomplete_execution_evidence",
+const REQUIRED_AOT_REPLAY_INTEGRATION_ANCHORS: &[&str] = &[
+    "AotHandlerGeneration",
+    "multicore_replay_evidence",
+    "multicore_replay_capture",
+    "VmMulticoreReplayEvidence",
+];
+
+const REQUIRED_AOT_REPLAY_EVIDENCE_ANCHORS: &[&str] = &[
+    "terlan.vm.multicore-replay.v1",
+    "VmMulticoreReplayEvidence",
+    "retained_events",
+    "dropped_events",
+    "replayable",
 ];
 
 const REQUIRED_EXACT_SELECTORS: &[&str] = &[
@@ -403,9 +408,15 @@ pub fn run_vm_http_handler_scheduler_fairness(
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/benchmark/binary_protocol_http.rs",
-        REQUIRED_REPLAY_DETERMINISM_ANCHORS,
-        "VM HTTP replay determinism",
+        "crates/terlan/src/commands/serve/handler_cache/replay_evidence.rs",
+        REQUIRED_AOT_REPLAY_INTEGRATION_ANCHORS,
+        "VM HTTP AOT replay integration",
+    )?);
+    diagnostics.extend(validate_required_terms(
+        root,
+        "crates/terlan/src/runtime/vm/multicore_replay.rs",
+        REQUIRED_AOT_REPLAY_EVIDENCE_ANCHORS,
+        "VM HTTP AOT replay evidence",
     )?);
     diagnostics.extend(validate_makefile(root)?);
     diagnostics.extend(validate_no_placeholder_report_entries());
@@ -449,10 +460,10 @@ pub fn run_vm_http_handler_scheduler_fairness(
         "queueSaturationReasons": QUEUE_SATURATION_REASONS,
         "replaySeeds": REPLAY_SEEDS,
         "replayDeterminism": {
-            "schema": "terlan-vm-http-replay-v1",
+            "schema": "terlan.vm.multicore-replay.v1",
             "canonicalCounterOrder": true,
-            "freshVmExecutionChecked": true,
-            "workloadMutationChecked": true
+            "boundedSchedulerCaptureChecked": true,
+            "droppedPrefixAccountingChecked": true
         },
         "adversarialTerminalOutcomes": {
             "clientCancellation": "client_closed",

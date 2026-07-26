@@ -16,6 +16,11 @@ name = "terlan-vm"
 path = "src/vm/main.rs"
 
 [[bin]]
+name = "terlan-serve-runtime"
+path = "src/serve_runtime/main.rs"
+required-features = ["serve-runtime-bin"]
+
+[[bin]]
 name = "terlan-native-worker"
 path = "src/native_worker/main.rs"
 
@@ -59,11 +64,21 @@ name = "terlan-multicore-tsan-harness"
 path = "src/quality/multicore_tsan_harness.rs"
 required-features = ["multicore-tsan-harness"]
 
+[[bin]]
+name = "terlan-hyper-baseline"
+path = "src/benchmark/hyper_baseline.rs"
+required-features = ["axum-baseline"]
+
+[[bin]]
+name = "terlan-http-paired-benchmark"
+path = "src/benchmark/http_paired_benchmark.rs"
+
 [features]
-default = ["native-codegen", "native-integrations"]
+default = ["native-codegen", "postgres-libpq"]
+serve-runtime-bin = ["native-codegen"]
 acme-live = ["dep:tokio"]
 editor-lsp = ["dep:tower-lsp", "dep:tokio", "tokio/io-std"]
-axum-baseline = ["dep:axum", "dep:tokio", "tokio/macros", "tokio/net", "tokio/rt-multi-thread"]
+axum-baseline = ["dep:axum", "dep:hyper-util", "dep:tokio", "tokio/macros", "tokio/net", "tokio/rt-multi-thread"]
 multicore-tsan-harness = []
 native-codegen = [
   "dep:cranelift-codegen",
@@ -71,8 +86,9 @@ native-codegen = [
   "dep:cranelift-module",
   "dep:cranelift-native",
   "dep:cranelift-object",
+  "dep:target-lexicon",
 ]
-native-integrations = ["dep:terlan-libpq"]
+postgres-libpq = ["dep:terlan-libpq"]
 
 [dependencies]
 ammonia = "4.1.2"
@@ -105,6 +121,7 @@ http-body = "1.0.1"
 http-body-util = { version = "0.1.3", features = ["channel", "full"] }
 httparse = "1.10.1"
 hyper = { version = "1.10.1", features = ["client", "http1", "server"] }
+hyper-util = { version = "0.1.20", features = ["tokio"], optional = true }
 instant-acme = "0.7"
 libloading = "=0.9.0"
 notify = "8"
@@ -129,6 +146,7 @@ socket2 = { version = "0.6.1", features = ["all"] }
 smallvec = "1.15.2"
 sqlparser = "=0.60.0"
 tar = "0.4.44"
+target-lexicon = { version = "0.13.5", optional = true }
 terlan-libpq = { path = "../../std/native/libpq/generated/native/rust", optional = true }
 time = { version = "0.3", features = ["formatting", "parsing"] }
 tokio = { version = "1", features = ["rt"], optional = true }

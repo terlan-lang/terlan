@@ -13,7 +13,7 @@ use crate::runtime::vm::scheduler_topology::VmSchedulerTopology;
 use crate::runtime::vm::ReplValue;
 
 use super::super::AotHandlerGeneration;
-use super::{timing_distribution, TimingDistribution};
+use super::{timing_distribution, TimingDistribution, WARMUP_SAMPLE_COUNT};
 
 /// Number of deterministic integer-mixing iterations per generated actor.
 pub(super) const CPU_ITERATIONS_PER_ACTOR: usize = 200_000;
@@ -69,6 +69,8 @@ pub(super) struct CpuBoundActorEvidence {
     pub(super) export: &'static str,
     /// Integer mixing iterations performed by every actor.
     pub(super) iterations_per_actor: usize,
+    /// Cold executions completed and discarded at every scheduler width.
+    pub(super) warmup_samples_per_width: usize,
     /// Width measurements in requested order.
     pub(super) widths: Vec<CpuBoundWidthMeasurement>,
     /// Width-one to width-two scaling and confidence evidence.
@@ -92,6 +94,7 @@ pub(super) fn measure_cpu_bound_actor(
     Ok(CpuBoundActorEvidence {
         export: "app.MulticoreBenchmark.cpu_bound",
         iterations_per_actor: CPU_ITERATIONS_PER_ACTOR,
+        warmup_samples_per_width: WARMUP_SAMPLE_COUNT,
         widths: width_measurements,
         width_one_to_two,
     })
@@ -119,7 +122,10 @@ fn measure_width(
     let mut durations = Vec::with_capacity(samples);
     let mut maximum_active = 0;
     let mut owner_threads = BTreeSet::new();
-    for sample in 0..samples {
+    let total_samples = WARMUP_SAMPLE_COUNT
+        .checked_add(samples)
+        .ok_or_else(|| "CPU-bound benchmark sample count overflow".to_string())?;
+    for sample in 0..total_samples {
         let routes = topology
             .schedulers()
             .map(|scheduler| generation.route_new_actor_on(scheduler))
@@ -164,7 +170,10 @@ fn measure_width(
                         .collect::<Result<Vec<_>, String>>()
                 })
         });
-        durations.push(started.elapsed().as_nanos());
+        let elapsed = started.elapsed().as_nanos();
+        if sample >= WARMUP_SAMPLE_COUNT {
+            durations.push(elapsed);
+        }
         maximum_active = maximum_active.max(maximum.load(Ordering::SeqCst));
         for route in &routes {
             generation.release_actor_route(route.scheduler().index());

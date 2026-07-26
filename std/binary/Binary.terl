@@ -13,7 +13,7 @@
 module std.binary.Binary.
 
 import std.collections.{Enumerable, Iterator, List, Map}.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Option, Some}.
 import std.core.Result.{Err, Ok, Result}.
 import std.vm.{BitString, Bytes}.
 
@@ -201,15 +201,40 @@ pub constructor ProtocolShapeSet {
 pub type DecodedValue = Int | std.vm.BitString.BitString | std.vm.Bytes.Bytes.
 
 /**
- * DecodedField preserves one named decoded value in descriptor order.
+ * Runtime tags keep decoded field payloads representation-safe after they are
+ * placed in a heterogeneous list. The public value union remains transparent
+ * at lookup boundaries, while field traversal can narrow without guessing
+ * whether one machine word is an integer or a managed VM handle.
  */
-pub type DecodedField = {String, DecodedValue}.
+pub type DecodedIntFieldTag = Atom["decoded_int_field"].
+pub type DecodedBitsFieldTag = Atom["decoded_bits_field"].
+pub type DecodedBytesFieldTag = Atom["decoded_bytes_field"].
 
 /**
- * Constructs one decoded field.
+ * DecodedField preserves one tagged named value in descriptor order.
  */
-pub decoded_field(name: String, value: DecodedValue): DecodedField ->
-    {name, value}.
+pub type DecodedField =
+      {DecodedIntFieldTag, String, Int}
+    | {DecodedBitsFieldTag, String, std.vm.BitString.BitString}
+    | {DecodedBytesFieldTag, String, std.vm.Bytes.Bytes}.
+
+/**
+ * Constructs one integer decoded field.
+ */
+pub decoded_int_field(name: String, value: Int): DecodedField ->
+    {DecodedIntFieldTag, name, value}.
+
+/**
+ * Constructs one exact bitstring decoded field.
+ */
+pub decoded_bits_field(name: String, value: std.vm.BitString.BitString): DecodedField ->
+    {DecodedBitsFieldTag, name, value}.
+
+/**
+ * Constructs one immutable byte decoded field.
+ */
+pub decoded_bytes_field(name: String, value: std.vm.Bytes.Bytes): DecodedField ->
+    {DecodedBytesFieldTag, name, value}.
 
 /**
  * DecodedProtocol stores ordered scalar fields and the remaining byte body.
@@ -233,19 +258,118 @@ pub decoded_protocol_fields(decoded: DecodedProtocol): List[DecodedField] ->
  * Returns one named decoded value when present.
  */
 pub decoded_protocol_value(decoded: DecodedProtocol, name: String): Option[DecodedValue] ->
-    decode_protocol_value(decoded_protocol_fields(decoded).iterator(), name).
+    decode_protocol_value(decoded_protocol_fields(decoded), name).
 
 /**
  * Finds one decoded value without discarding declaration order.
  */
-pub decode_protocol_value(fields: Iterator[DecodedField], name: String): Option[DecodedValue] ->
-    case Iterator.next(fields) {
-        None -> None;
-        Some({value: field, next: next}) ->
-            let {field_name, value} = field;
-            if {
-            field_name == name -> Some(value);
-            true -> decode_protocol_value(next, name)
+pub decode_protocol_value(
+    fields: List[DecodedField],
+    name: String
+): Option[DecodedValue] ->
+    case fields {
+        [] -> None;
+        [field | rest] ->
+            case field {
+                {DecodedIntFieldTag, field_name, value} ->
+                    if {
+                    field_name == name -> Some(value);
+                    true -> decode_protocol_value(rest, name)
+                    };
+                {DecodedBitsFieldTag, field_name, value} ->
+                    if {
+                    field_name == name -> Some(value);
+                    true -> decode_protocol_value(rest, name)
+                    };
+                {DecodedBytesFieldTag, field_name, value} ->
+                    if {
+                    field_name == name -> Some(value);
+                    true -> decode_protocol_value(rest, name)
+                    }
+            }
+    }.
+
+/**
+ * Returns one named integer field when its runtime tag matches.
+ */
+pub decoded_protocol_int_value(decoded: DecodedProtocol, name: String): Option[Int] ->
+    decode_protocol_int_value(decoded_protocol_fields(decoded), name).
+
+/**
+ * Finds one tagged integer without interpreting managed handles as scalars.
+ */
+pub decode_protocol_int_value(
+    fields: List[DecodedField],
+    name: String
+): Option[Int] ->
+    case fields {
+        [] -> None;
+        [field | rest] ->
+            case field {
+                {DecodedIntFieldTag, field_name, value} ->
+                    if {
+                    field_name == name -> Some(value);
+                    true -> decode_protocol_int_value(rest, name)
+                    };
+                _ -> decode_protocol_int_value(rest, name)
+            }
+    }.
+
+/**
+ * Returns one named exact bitstring field when its runtime tag matches.
+ */
+pub decoded_protocol_bits_value(
+    decoded: DecodedProtocol,
+    name: String
+): Option[std.vm.BitString.BitString] ->
+    decode_protocol_bits_value(decoded_protocol_fields(decoded), name).
+
+/**
+ * Finds one tagged exact bitstring without accepting another managed kind.
+ */
+pub decode_protocol_bits_value(
+    fields: List[DecodedField],
+    name: String
+): Option[std.vm.BitString.BitString] ->
+    case fields {
+        [] -> None;
+        [field | rest] ->
+            case field {
+                {DecodedBitsFieldTag, field_name, value} ->
+                    if {
+                    field_name == name -> Some(value);
+                    true -> decode_protocol_bits_value(rest, name)
+                    };
+                _ -> decode_protocol_bits_value(rest, name)
+            }
+    }.
+
+/**
+ * Returns one named immutable byte field when its runtime tag matches.
+ */
+pub decoded_protocol_bytes_value(
+    decoded: DecodedProtocol,
+    name: String
+): Option[std.vm.Bytes.Bytes] ->
+    decode_protocol_bytes_value(decoded_protocol_fields(decoded), name).
+
+/**
+ * Finds one tagged immutable byte field without accepting another managed kind.
+ */
+pub decode_protocol_bytes_value(
+    fields: List[DecodedField],
+    name: String
+): Option[std.vm.Bytes.Bytes] ->
+    case fields {
+        [] -> None;
+        [field | rest] ->
+            case field {
+                {DecodedBytesFieldTag, field_name, value} ->
+                    if {
+                    field_name == name -> Some(value);
+                    true -> decode_protocol_bytes_value(rest, name)
+                    };
+                _ -> decode_protocol_bytes_value(rest, name)
             }
     }.
 
@@ -429,22 +553,10 @@ pub protocol_shape(
     ProtocolShape(name, endian, fields, terminal_rest).
 
 /**
- * Returns the name of any closed protocol metadata value.
- *
- * Input: a value whose public structural contract includes `name: String`.
- * Output: the protocol metadata name.
- * Transformation: uses compile-time structural implication evidence to share
- * the field projection across fields, shapes, aliases, and shape sets without
- * introducing a runtime wrapper or conversion.
- */
-pub protocol_name[T => {name: String}](value: T): String ->
-    value.name.
-
-/**
  * Returns the protocol field name.
  */
 pub protocol_field_name(field: ProtocolField): String ->
-    protocol_name(field).
+    field.name.
 
 /**
  * Returns the protocol field binary descriptor.
@@ -456,7 +568,7 @@ pub protocol_field_descriptor(field: ProtocolField): BinaryDescriptor ->
  * Returns the protocol shape name.
  */
 pub protocol_shape_name(shape: ProtocolShape): String ->
-    protocol_name(shape).
+    shape.name.
 
 /**
  * Returns the protocol shape endian policy.
@@ -486,7 +598,7 @@ pub protocol_shape_alias(name: String, target: String): ProtocolShapeAlias ->
  * Returns the protocol shape alias name.
  */
 pub protocol_shape_alias_name(alias: ProtocolShapeAlias): String ->
-    protocol_name(alias).
+    alias.name.
 
 /**
  * Returns the direct protocol shape targeted by an alias.
@@ -508,7 +620,7 @@ pub protocol_shape_set(
  * Returns the protocol shape set name.
  */
 pub protocol_shape_set_name(set: ProtocolShapeSet): String ->
-    protocol_name(set).
+    set.name.
 
 /**
  * Returns direct protocol shapes in declaration order.
@@ -530,10 +642,10 @@ pub validate_protocol_shape_set(set: ProtocolShapeSet): Result[ProtocolShapeSet,
     if {
     protocol_shape_set_name(set).is_empty() -> Err(InvalidShapeSet);
     shapes.is_empty() -> Err(InvalidShapeSet);
-    true -> case validate_protocol_shapes(shapes.iterator(), Map.new[String, Bool]()) {
+    true -> case validate_protocol_shapes(shapes, Map.new[String, Bool]()) {
             Err(reason) -> Err(reason);
             Ok(shape_names) ->
-                case validate_protocol_shape_aliases(protocol_shape_set_aliases(set).iterator(), shape_names, Map.new[String, Bool]()) {
+                case validate_protocol_shape_aliases(protocol_shape_set_aliases(set), shape_names, Map.new[String, Bool]()) {
                     Err(reason) -> Err(reason);
                     Ok(_alias_names) -> Ok(set)
                 }
@@ -544,12 +656,12 @@ pub validate_protocol_shape_set(set: ProtocolShapeSet): Result[ProtocolShapeSet,
  * Validates direct shapes and records their exact names.
  */
 pub validate_protocol_shapes(
-    shapes: Iterator[ProtocolShape],
+    shapes: List[ProtocolShape],
     names: Map[String, Bool]
 ): Result[Map[String, Bool], BinaryDecodeError] ->
-    case Iterator.next(shapes) {
-        None -> Ok(names);
-        Some({value: shape, next: next}) ->
+    case shapes {
+        [] -> Ok(names);
+        [shape | next] ->
             let name = protocol_shape_name(shape);
             if {
             names.contains_key(name) -> Err(DuplicateShape);
@@ -566,13 +678,13 @@ pub validate_protocol_shapes(
  * Validates aliases against direct shape names.
  */
 pub validate_protocol_shape_aliases(
-    aliases: Iterator[ProtocolShapeAlias],
+    aliases: List[ProtocolShapeAlias],
     shape_names: Map[String, Bool],
     alias_names: Map[String, Bool]
 ): Result[Map[String, Bool], BinaryDecodeError] ->
-    case Iterator.next(aliases) {
-        None -> Ok(alias_names);
-        Some({value: alias, next: next}) ->
+    case aliases {
+        [] -> Ok(alias_names);
+        [alias | next] ->
             let name = protocol_shape_alias_name(alias);
             let target = protocol_shape_alias_target(alias);
             if {
@@ -595,21 +707,21 @@ pub protocol_shape_set_resolve(
         Err(reason) -> Err(reason);
         Ok(validated) ->
             let shapes = protocol_shape_set_shapes(validated);
-            resolve_direct_protocol_shape(shapes.iterator(), shapes, protocol_shape_set_aliases(validated), name)
+            resolve_direct_protocol_shape(shapes, shapes, protocol_shape_set_aliases(validated), name)
     }.
 
 /**
  * Resolves direct names before consulting aliases.
  */
 pub resolve_direct_protocol_shape(
-    shapes: Iterator[ProtocolShape],
+    shapes: List[ProtocolShape],
     all_shapes: List[ProtocolShape],
     aliases: List[ProtocolShapeAlias],
     name: String
 ): Result[ProtocolShape, BinaryDecodeError] ->
-    case Iterator.next(shapes) {
-        None -> resolve_protocol_shape_alias(aliases.iterator(), all_shapes, name);
-        Some({value: shape, next: next}) ->
+    case shapes {
+        [] -> resolve_protocol_shape_alias(aliases, all_shapes, name);
+        [shape | next] ->
             if {
             protocol_shape_name(shape) == name -> Ok(shape);
             true -> resolve_direct_protocol_shape(next, all_shapes, aliases, name)
@@ -620,15 +732,15 @@ pub resolve_direct_protocol_shape(
  * Resolves an exact alias and then looks up its direct target.
  */
 pub resolve_protocol_shape_alias(
-    aliases: Iterator[ProtocolShapeAlias],
+    aliases: List[ProtocolShapeAlias],
     shapes: List[ProtocolShape],
     name: String
 ): Result[ProtocolShape, BinaryDecodeError] ->
-    case Iterator.next(aliases) {
-        None -> Err(UnknownShape);
-        Some({value: alias, next: next}) ->
+    case aliases {
+        [] -> Err(UnknownShape);
+        [alias | next] ->
             if {
-            protocol_shape_alias_name(alias) == name -> resolve_named_protocol_shape(shapes.iterator(), protocol_shape_alias_target(alias));
+            protocol_shape_alias_name(alias) == name -> resolve_named_protocol_shape(shapes, protocol_shape_alias_target(alias));
             true -> resolve_protocol_shape_alias(next, shapes, name)
             }
     }.
@@ -637,12 +749,12 @@ pub resolve_protocol_shape_alias(
  * Finds one validated direct shape without consulting aliases.
  */
 pub resolve_named_protocol_shape(
-    shapes: Iterator[ProtocolShape],
+    shapes: List[ProtocolShape],
     name: String
 ): Result[ProtocolShape, BinaryDecodeError] ->
-    case Iterator.next(shapes) {
-        None -> Err(UnknownShape);
-        Some({value: shape, next: next}) ->
+    case shapes {
+        [] -> Err(UnknownShape);
+        [shape | next] ->
             if {
             protocol_shape_name(shape) == name -> Ok(shape);
             true -> resolve_named_protocol_shape(next, name)
@@ -731,7 +843,7 @@ pub validate_protocol_shape(shape: ProtocolShape): Result[ProtocolShape, BinaryD
     if {
     protocol_shape_name(shape).is_empty() -> Err(UnknownDescriptor);
     fields.is_empty() -> Err(UnknownDescriptor);
-    true -> case validate_protocol_fields(fields.iterator(), Map.new[String, Bool](), false) {
+    true -> case validate_protocol_fields(fields, Map.new[String, Bool](), false) {
             Ok(has_rest) ->
                 if {
                 protocol_shape_has_terminal_rest(shape) == has_rest -> Ok(shape);
@@ -746,20 +858,20 @@ pub validate_protocol_shape(shape: ProtocolShape): Result[ProtocolShape, BinaryD
  * Validates protocol fields in declaration order.
  */
 pub validate_protocol_fields(
-    fields: Iterator[ProtocolField],
+    fields: List[ProtocolField],
     seen: Map[String, Bool],
     has_rest: Bool
 ): Result[Bool, BinaryDecodeError] ->
-    case Iterator.next(fields) {
-        None -> Ok(has_rest);
-        Some({value: field, next: next}) -> validate_protocol_field(next, field, seen, has_rest)
+    case fields {
+        [] -> Ok(has_rest);
+        [field | next] -> validate_protocol_field(next, field, seen, has_rest)
     }.
 
 /**
  * Validates one protocol field and continues traversal.
  */
 pub validate_protocol_field(
-    next: Iterator[ProtocolField],
+    next: List[ProtocolField],
     field: ProtocolField,
     seen: Map[String, Bool],
     has_rest: Bool
@@ -777,7 +889,7 @@ pub validate_protocol_field(
  * Validates one field descriptor after duplicate and rest-order checks.
  */
 pub validate_protocol_field_descriptor(
-    next: Iterator[ProtocolField],
+    next: List[ProtocolField],
     name: String,
     descriptor: BinaryDescriptor,
     seen: Map[String, Bool]
@@ -791,7 +903,7 @@ pub validate_protocol_field_descriptor(
  * Records one validated field and resumes protocol field validation.
  */
 pub validate_remaining_protocol_fields(
-    next: Iterator[ProtocolField],
+    next: List[ProtocolField],
     name: String,
     descriptor: BinaryDescriptor,
     seen: Map[String, Bool]
@@ -819,7 +931,7 @@ pub compact_frame_shape(): ProtocolShape ->
  * Transformation: exposes the final typed Result shape without enabling binary
  * execution or accepting raw host errors.
  */
-pub decode_exact(descriptor: BinaryDescriptor, payload: Dynamic): Result[Dynamic, BinaryDecodeError] ->
+pub decode_exact(descriptor: BinaryDescriptor, payload: T): Result[T, BinaryDecodeError] ->
     Err(UnsupportedRuntime).
 
 /**
@@ -832,8 +944,8 @@ pub decode_exact(descriptor: BinaryDescriptor, payload: Dynamic): Result[Dynamic
  */
 pub decode_prefix(
     descriptor: BinaryDescriptor,
-    payload: Dynamic
-): Result[Dynamic, BinaryDecodeError] ->
+    payload: T
+): Result[T, BinaryDecodeError] ->
     Err(UnsupportedRuntime).
 
 /**
@@ -844,7 +956,7 @@ pub decode_prefix(
  * Transformation: lets user code typecheck against the future construction API
  * while preserving explicit unsupported-runtime behavior.
  */
-pub construct(descriptor: BinaryDescriptor, value: Dynamic): Result[Dynamic, BinaryConstructError] ->
+pub construct(descriptor: BinaryDescriptor, value: T): Result[T, BinaryConstructError] ->
     Err(UnsupportedRuntime).
 
 /**
@@ -901,17 +1013,33 @@ pub split_protocol_header(
     case validate_protocol_shape(shape) {
         Err(reason) -> Err(reason);
         Ok(validated) ->
-            let bits =
-                protocol_shape_fields(validated)
-                |> Enumerable[List].fold(0, (total, field) -> let descriptor = protocol_field_descriptor(field);
-    case descriptor_kind(descriptor) {
-        RestSegment -> total;
-        BytesSegment -> total + descriptor_width(descriptor) * 8;
-        _ -> total + descriptor_width(descriptor)
-    });
+            let bits = protocol_shape_fixed_bits(protocol_shape_fields(validated), 0);
             if {
             bits / 8 * 8 != bits -> Err(InvalidAlignment);
             true -> split_header_body(payload, bits / 8)
+            }
+    }.
+
+/**
+ * Totals the fixed-width prefix of one protocol field list.
+ */
+pub protocol_shape_fixed_bits(fields: List[ProtocolField], total: Int): Int ->
+    case fields {
+        [] -> total;
+        [field | next] ->
+            let descriptor = protocol_field_descriptor(field);
+            case descriptor_kind(descriptor) {
+                RestSegment -> total;
+                BytesSegment ->
+                    protocol_shape_fixed_bits(
+                        next,
+                        total + descriptor_width(descriptor) * 8
+                    );
+                _ ->
+                    protocol_shape_fixed_bits(
+                        next,
+                        total + descriptor_width(descriptor)
+                    )
             }
     }.
 
@@ -937,20 +1065,20 @@ pub compose_valid_header_body(
  */
 pub composed_protocol_shape(header: ProtocolShape, body: ProtocolShape): ProtocolShape ->
     let fields = List.new[ProtocolField]();
-    let header_fields = copy_protocol_fields(protocol_shape_fields(header).iterator(), fields);
-    let combined_fields = copy_protocol_fields(protocol_shape_fields(body).iterator(), header_fields);
+    let header_fields = copy_protocol_fields(protocol_shape_fields(header), fields);
+    let combined_fields = copy_protocol_fields(protocol_shape_fields(body), header_fields);
     protocol_shape(protocol_shape_name(header) + "_" + protocol_shape_name(body), protocol_shape_endian(header), combined_fields, protocol_shape_has_terminal_rest(body)).
 
 /**
  * Copies protocol fields into a fresh ordered list.
  */
 pub copy_protocol_fields(
-    fields: Iterator[ProtocolField],
+    fields: List[ProtocolField],
     output: List[ProtocolField]
 ): List[ProtocolField] ->
-    case Iterator.next(fields) {
-        None -> output;
-        Some({value: field, next: next}) ->
+    case fields {
+        [] -> output;
+        [field | next] ->
             let _pushed = output.push(field);
             copy_protocol_fields(next, output)
     }.
@@ -1007,22 +1135,22 @@ pub decode_prefixed_body(
     case validate_protocol_shape(shape) {
         Err(reason) -> Err(reason);
         Ok(validated) ->
-            decode_protocol_fields(protocol_shape_fields(validated).iterator(), protocol_shape_endian(validated), payload, 0, List.new[DecodedField]())
+            decode_protocol_fields(protocol_shape_fields(validated), protocol_shape_endian(validated), payload, 0, List.new[DecodedField]())
     }.
 
 /**
  * Decodes ordered protocol fields into one mutable construction accumulator.
  */
 pub decode_protocol_fields(
-    fields: Iterator[ProtocolField],
+    fields: List[ProtocolField],
     endian: EndianPolicy,
     payload: std.vm.Bytes.Bytes,
     bit_offset: Int,
     decoded: List[DecodedField]
 ): Result[DecodedProtocol, BinaryDecodeError] ->
-    case Iterator.next(fields) {
-        None -> decode_protocol_tail(payload, bit_offset, decoded);
-        Some({value: field, next: next}) ->
+    case fields {
+        [] -> decode_protocol_tail(payload, bit_offset, decoded);
+        [field | next] ->
             let descriptor = protocol_field_descriptor(field);
             let name = protocol_field_name(field);
             case descriptor_kind(descriptor) {
@@ -1042,7 +1170,7 @@ pub decode_protocol_fields(
  * Decodes one exact-width immutable bitstring field.
  */
 pub decode_protocol_bits(
-    next: Iterator[ProtocolField],
+    next: List[ProtocolField],
     endian: EndianPolicy,
     payload: std.vm.Bytes.Bytes,
     bit_offset: Int,
@@ -1055,7 +1183,7 @@ pub decode_protocol_bits(
     width < 1 -> Err(InvalidWidth);
     width > payload_bits or bit_offset > payload_bits - width -> Err(TruncatedPayload);
     true -> let value = BitString.from_bytes(payload, payload_bits).slice(bit_offset, width);
-        let _pushed = decoded.push(decoded_field(name, value));
+        let _pushed = decoded.push(decoded_bits_field(name, value));
         decode_protocol_fields(next, endian, payload, bit_offset + width, decoded)
     }.
 
@@ -1063,7 +1191,7 @@ pub decode_protocol_bits(
  * Decodes one checked signed or unsigned integer field.
  */
 pub decode_protocol_integer(
-    next: Iterator[ProtocolField],
+    next: List[ProtocolField],
     endian: EndianPolicy,
     payload: std.vm.Bytes.Bytes,
     bit_offset: Int,
@@ -1083,7 +1211,7 @@ pub decode_protocol_integer(
                 {true, BigEndian} -> payload.read_int_be(bit_offset, width);
                 {true, LittleEndian} -> payload.read_int_le(bit_offset, width)
             };
-        let _pushed = decoded.push(decoded_field(name, value));
+        let _pushed = decoded.push(decoded_int_field(name, value));
         decode_protocol_fields(next, endian, payload, bit_offset + width, decoded)
     }.
 
@@ -1091,7 +1219,7 @@ pub decode_protocol_integer(
  * Decodes one byte-aligned fixed byte field.
  */
 pub decode_protocol_bytes(
-    next: Iterator[ProtocolField],
+    next: List[ProtocolField],
     endian: EndianPolicy,
     payload: std.vm.Bytes.Bytes,
     bit_offset: Int,
@@ -1105,7 +1233,7 @@ pub decode_protocol_bytes(
     width < 1 -> Err(InvalidWidth);
     byte_offset > payload.length() or width > payload.length() - byte_offset -> Err(TruncatedPayload);
     true -> let value = payload.slice(byte_offset, width);
-        let _pushed = decoded.push(decoded_field(name, value));
+        let _pushed = decoded.push(decoded_bytes_field(name, value));
         decode_protocol_fields(next, endian, payload, bit_offset + width * 8, decoded)
     }.
 
@@ -1133,12 +1261,11 @@ pub decode_protocol_tail(
  * segments under the shape endian policy, preserves fixed bytes, and appends
  * the body only when the shape declares terminal `Rest`.
  */
-@target.vm {process_mailbox: true}
 pub encode_exact(
     shape: ProtocolShape,
     value: DecodedProtocol
 ): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
-    native.
+    encode_protocol(shape, value, true).
 
 /**
  * Encodes only the fixed prefix of a protocol shape.
@@ -1148,9 +1275,232 @@ pub encode_exact(
  * Transformation: applies the same checked field packing as `encode_exact`
  * while deliberately omitting the decoded protocol body.
  */
-@target.vm {process_mailbox: true}
 pub encode_prefix(
     shape: ProtocolShape,
     value: DecodedProtocol
 ): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
-    native.
+    encode_protocol(shape, value, false).
+
+/**
+ * Validates one shape and starts its owner-local bitstring accumulator.
+ */
+pub encode_protocol(
+    shape: ProtocolShape,
+    value: DecodedProtocol,
+    include_rest: Bool
+): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+    case validate_protocol_shape(shape) {
+        Err(reason) -> Err(binary_construct_error(reason));
+        Ok(validated) ->
+            let empty = BitString.from_bytes(Bytes.from_list([]), 0);
+            encode_protocol_fields(
+                protocol_shape_fields(validated),
+                protocol_shape_endian(validated),
+                value,
+                empty,
+                include_rest
+            )
+    }.
+
+/**
+ * Packs fields in declaration order into one exact-length bit accumulator.
+ */
+pub encode_protocol_fields(
+    fields: List[ProtocolField],
+    endian: EndianPolicy,
+    decoded: DecodedProtocol,
+    encoded: std.vm.BitString.BitString,
+    include_rest: Bool
+): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+    case fields {
+        [] -> finish_protocol_encoding(encoded);
+        [field | next] ->
+            let descriptor = protocol_field_descriptor(field);
+            let name = protocol_field_name(field);
+            case descriptor_kind(descriptor) {
+                UIntSegment ->
+                    encode_protocol_uint(
+                        next,
+                        endian,
+                        decoded,
+                        encoded,
+                        include_rest,
+                        name,
+                        descriptor_width(descriptor)
+                    );
+                IntSegment ->
+                    encode_protocol_int(
+                        next,
+                        endian,
+                        decoded,
+                        encoded,
+                        include_rest,
+                        name,
+                        descriptor_width(descriptor)
+                    );
+                BytesSegment ->
+                    encode_protocol_bytes(
+                        next,
+                        endian,
+                        decoded,
+                        encoded,
+                        include_rest,
+                        name,
+                        descriptor_width(descriptor)
+                    );
+                BitsSegment ->
+                    encode_protocol_bits(
+                        next,
+                        endian,
+                        decoded,
+                        encoded,
+                        include_rest,
+                        name,
+                        descriptor_width(descriptor)
+                    );
+                RestSegment ->
+                    encode_protocol_rest(decoded, encoded, include_rest)
+            }
+    }.
+
+/**
+ * Packs one checked unsigned integer field.
+ */
+pub encode_protocol_uint(
+    next: List[ProtocolField],
+    endian: EndianPolicy,
+    decoded: DecodedProtocol,
+    encoded: std.vm.BitString.BitString,
+    include_rest: Bool,
+    name: String,
+    width: Int
+): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+    case decoded_protocol_int_value(decoded, name) {
+        None -> Err(UnknownDescriptor);
+        Some(value) ->
+            if {
+            width < 1 or width > 63 -> Err(InvalidWidth);
+            value < 0 -> Err(InvalidWidth);
+            width < 63 and value >= power_of_two(width) -> Err(InvalidWidth);
+            true ->
+                let field =
+                    case endian {
+                        BigEndian -> BitString.from_uint_be(value, width);
+                        LittleEndian -> BitString.from_uint_le(value, width)
+                    };
+                encode_protocol_fields(next, endian, decoded, encoded.concat(field), include_rest)
+            }
+    }.
+
+/**
+ * Packs one checked signed two's-complement integer field.
+ */
+pub encode_protocol_int(
+    next: List[ProtocolField],
+    endian: EndianPolicy,
+    decoded: DecodedProtocol,
+    encoded: std.vm.BitString.BitString,
+    include_rest: Bool,
+    name: String,
+    width: Int
+): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+    case decoded_protocol_int_value(decoded, name) {
+        None -> Err(UnknownDescriptor);
+        Some(value) ->
+            if {
+            width < 1 or width > 63 -> Err(InvalidWidth);
+            true ->
+                let limit = power_of_two(width - 1);
+                if {
+                value < -limit or value >= limit -> Err(InvalidWidth);
+                true ->
+                    let field =
+                        case endian {
+                            BigEndian -> BitString.from_int_be(value, width);
+                            LittleEndian -> BitString.from_int_le(value, width)
+                        };
+                    encode_protocol_fields(next, endian, decoded, encoded.concat(field), include_rest)
+                }
+            }
+    }.
+
+/**
+ * Packs one exact byte-aligned immutable byte field.
+ */
+pub encode_protocol_bytes(
+    next: List[ProtocolField],
+    endian: EndianPolicy,
+    decoded: DecodedProtocol,
+    encoded: std.vm.BitString.BitString,
+    include_rest: Bool,
+    name: String,
+    width: Int
+): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+    case decoded_protocol_bytes_value(decoded, name) {
+        None -> Err(UnknownDescriptor);
+        Some(value) ->
+            if {
+            width < 1 or value.length() != width -> Err(InvalidWidth);
+            encoded.is_byte_aligned() == false -> Err(InvalidAlignment);
+            true ->
+                let field = BitString.from_bytes(value, width * 8);
+                encode_protocol_fields(next, endian, decoded, encoded.concat(field), include_rest)
+            }
+    }.
+
+/**
+ * Packs one exact-width bitstring field without inserting padding.
+ */
+pub encode_protocol_bits(
+    next: List[ProtocolField],
+    endian: EndianPolicy,
+    decoded: DecodedProtocol,
+    encoded: std.vm.BitString.BitString,
+    include_rest: Bool,
+    name: String,
+    width: Int
+): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+    case decoded_protocol_bits_value(decoded, name) {
+        None -> Err(UnknownDescriptor);
+        Some(value) ->
+            if {
+            width < 1 or value.bit_length() != width -> Err(InvalidWidth);
+            true ->
+                encode_protocol_fields(next, endian, decoded, encoded.concat(value), include_rest)
+            }
+    }.
+
+/**
+ * Appends the terminal body only for exact encoding.
+ */
+pub encode_protocol_rest(
+    decoded: DecodedProtocol,
+    encoded: std.vm.BitString.BitString,
+    include_rest: Bool
+): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+    if {
+    encoded.is_byte_aligned() == false -> Err(InvalidAlignment);
+    include_rest ->
+        Ok(Bytes.concat(encoded.to_bytes(), decoded_protocol_remaining_bytes(decoded)));
+    true -> Ok(encoded.to_bytes())
+    }.
+
+/**
+ * Converts a completed byte-aligned bit accumulator to immutable bytes.
+ */
+pub finish_protocol_encoding(
+    encoded: std.vm.BitString.BitString
+): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+    if {
+    encoded.is_byte_aligned() -> Ok(encoded.to_bytes());
+    true -> Err(InvalidAlignment)
+    }.
+
+/**
+ * Returns two raised to a non-negative exponent within the checked Int range.
+ */
+pub power_of_two(exponent: Int): Int ->
+    if {
+    exponent <= 0 -> 1;
+    true -> 2 * power_of_two(exponent - 1)
+    }.

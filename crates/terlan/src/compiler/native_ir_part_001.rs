@@ -1,19 +1,20 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use crate::terlan_typeck::{CoreExpr, CoreFunction, CoreLetBinding, CorePattern};
+use crate::terlan_typeck::{CoreExpr, CoreFunction, CoreLetBinding, CorePattern, CoreType};
 
 pub(crate) use codegen_policy::NativeCodegenPolicy;
 pub(crate) use model::{NativeBinaryOperator, NativeExpr, NativeTransitionOperation, NativeType};
-pub(crate) use request_projection::{native_request_projections, NativeRequestProjection};
-
+pub(crate) use request_projection::{
+    install_native_request_projection_exports, native_request_projections, NativeRequestProjection,
+};
 pub(crate) use crate::runtime::native_image::{
     TVM_DISPATCH_SYMBOL_V2 as DISPATCH_SYMBOL, TVM_IMAGE_ENTRY_SYMBOL_V1 as IMAGE_ENTRY_SYMBOL,
 };
 use application_calls::{eager_argument_yield, expr_calls_are_local, expr_calls_suspending};
 use call_composition::{
-    composable_suspending_functions, composed_call_region, rebase_callee_locals,
-    rewrite_linear_suspension, suspending_call_count, CallRegion, ComposedCallProfile,
+    composed_call_region, is_composable_suspending_body, rebase_callee_locals,
+    suspending_call_count, CallRegion, ComposedCallProfile,
 };
 use closure_conversion::{
     lower_escaping_closure, lower_escaping_function_reference, NativeCallableShape,
@@ -38,8 +39,8 @@ pub(crate) const NATIVE_ABI_VERSION: &str = "terlan-native-v2";
 
 /// Bounds source-to-native expansion while non-linear conditions are still
 /// represented as nested control regions rather than a shared control graph.
-const MAX_NATIVE_CONDITION_COMPOSITION_DEPTH: usize = 8;
-const MAX_NATIVE_CALL_COMPOSITION_DEPTH: usize = 8;
+const MAX_NATIVE_CONDITION_COMPOSITION_DEPTH: usize = 1_024;
+const MAX_NATIVE_CALL_COMPOSITION_DEPTH: usize = 1_024;
 
 /// Stable native status returned across the direct-AOT boundary.
 pub(crate) mod status {
@@ -91,6 +92,10 @@ pub(crate) struct NativeModule {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct NativeContinuation {
     pub(crate) id: u64,
+    /// Checked source declaration that caused this generated resume entry.
+    pub(crate) source_module: String,
+    pub(crate) source_function: String,
+    pub(crate) source_arity: usize,
     pub(crate) params: Vec<NativeType>,
     pub(crate) return_type: NativeType,
     pub(crate) body: NativeExpr,
@@ -103,18 +108,18 @@ pub(crate) struct NativeFunction {
     pub(crate) name: String,
     pub(crate) public: bool,
     pub(crate) arity: usize,
+    /// Checked source declaration represented by this native function.
+    ///
+    /// Generated closures, projections, and continuation bodies retain their
+    /// generated runtime identity while pointing debug spans at their owner.
+    pub(crate) source_module: String,
+    pub(crate) source_function: String,
+    pub(crate) source_arity: usize,
     /// Leading lifted parameters populated from a closure's owned captures.
     pub(crate) callable_captures: Vec<NativeType>,
     pub(crate) params: Vec<NativeType>,
     pub(crate) return_type: NativeType,
     pub(crate) body: NativeExpr,
-}
-
-impl NativeModule {
-    /// Produces deterministic cache input without serializing backend IR.
-    pub(crate) fn fingerprint_text(&self) -> String {
-        format!("{NATIVE_ABI_VERSION}\n{self:#?}\n")
-    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -123,6 +128,7 @@ fn lower_native_function_with_callables(
     function: &CoreFunction,
     identities: &HashMap<(String, usize), usize>,
     function_types: &HashMap<(String, usize), NativeType>,
+    function_core_types: &HashMap<(String, usize), CoreType>,
     callable_shapes: &HashMap<(String, usize), NativeCallableShape>,
     lifted_functions: &mut Vec<NativeFunction>,
     constructors: &NativeConstructorLayouts,
@@ -149,7 +155,9 @@ fn lower_native_function_with_callables(
     let native_params = function
         .params
         .iter()
-        .map(|param| native_type(param.core_ty.as_ref(), &param.ty))
+        .map(|param| {
+            native_type_with_constructors(param.core_ty.as_ref(), &param.ty, constructors)
+        })
         .collect::<Option<Vec<_>>>()
         .ok_or_else(|| native_error(function, "has an unsupported parameter type"))?;
     let param_names = function
@@ -162,7 +170,7 @@ fn lower_native_function_with_callables(
         .cloned()
         .zip(native_params.iter().copied())
         .collect::<HashMap<_, _>>();
-    let return_type = native_return_type(function)
+    let return_type = native_return_type_with_constructors(function, constructors)
         .ok_or_else(|| native_error(function, "has an unsupported return type"))?;
     let inferred_dynamic_return = dynamic_return::inferred_dynamic_return_type(function);
     let boundary_return_type = function
@@ -186,6 +194,7 @@ fn lower_native_function_with_callables(
         &param_types,
         identities,
         function_types,
+        function_core_types,
         constructors,
     )?;
     let try_expr = try_lowering::lower_try(
@@ -266,7 +275,13 @@ fn lower_native_function_with_callables(
             return_type,
             &mut continuation_ordinal,
             stable_ids,
-        )?
+        )
+        .map_err(|error| {
+            format!(
+                "{error}; while lowering `{module}.{}/{}`",
+                function.name, function.arity
+            )
+        })?
     };
     let export_id = stable_export_id(module, &function.name, function.arity);
     if !stable_ids.insert(export_id) {
@@ -280,6 +295,9 @@ fn lower_native_function_with_callables(
             name: function.name.clone(),
             public: function.public,
             arity: function.arity,
+            source_module: module.to_string(),
+            source_function: function.name.clone(),
+            source_arity: function.arity,
             callable_captures: Vec::new(),
             params: native_params,
             return_type,
@@ -377,6 +395,37 @@ fn native_return_type(function: &CoreFunction) -> Option<NativeType> {
         })
 }
 
+fn native_return_type_with_constructors(
+    function: &CoreFunction,
+    constructors: &NativeConstructorLayouts,
+) -> Option<NativeType> {
+    native_type_with_constructors(
+        function.core_return_type.as_ref(),
+        &function.return_type,
+        constructors,
+    )
+    .or_else(|| native_return_type(function))
+}
+
+fn native_type_with_constructors(
+    core: Option<&crate::terlan_typeck::CoreType>,
+    text: &str,
+    constructors: &NativeConstructorLayouts,
+) -> Option<NativeType> {
+    if let Some(crate::terlan_typeck::CoreType::Named(name)) = core {
+        let mut matching = constructors
+            .iter()
+            .filter(|((identity, _), _)| identity == name)
+            .map(|(_, layout)| layout.result);
+        if let Some(result) = matching.next() {
+            if matching.all(|candidate| candidate == result) {
+                return Some(result);
+            }
+        }
+    }
+    native_type(core, text)
+}
+
 fn expr_is_native_control(expr: &CoreExpr) -> bool {
     if expr_is_scalar(expr) {
         return true;
@@ -393,7 +442,10 @@ fn expr_is_native_control(expr: &CoreExpr) -> bool {
         CoreExpr::Let { bindings, body } => {
             !bindings.is_empty()
                 && bindings.iter().all(|binding| {
-                    matches!(binding.pattern, CorePattern::Var(_)) && expr_is_scalar(&binding.value)
+                    matches!(binding.pattern, CorePattern::Var(_))
+                        && (expr_is_scalar(&binding.value)
+                            || (structured_case::contains_case(&binding.value)
+                                && expr_is_native_control(&binding.value)))
                 })
                 && expr_is_native_control(body)
         }
@@ -834,6 +886,20 @@ fn expr_calls_are_supported(
     if let Some(region) = composed_call_region(expr, suspending, &is_composable, &HashSet::new()) {
         return expr_is_native_control(&region.resume)
             && expr_calls_are_supported(&region.resume, identities, suspending, composable, false)
+            && region.gates.iter().all(|gate| {
+                expr_is_scalar(&gate.condition)
+                    && gate.prefix.iter().all(|binding| {
+                        !expr_calls_suspending(&binding.value, suspending)
+                            && expr_calls_are_local(&binding.value, identities)
+                    })
+                    && expr_is_native_control(&gate.bypass_resume)
+                    // A gate bypass is the same surrounding continuation as
+                    // `region.resume`, with only the short-circuit result
+                    // substituted. Recursing into every bypass revalidates
+                    // the shared suffix once per boolean term and makes
+                    // admission exponential for long assertion pipelines.
+                    && expr_calls_are_local(&gate.bypass_resume, identities)
+            })
             && expr_calls_are_local(expr, identities);
     }
     if let Some(region) = condition_yield_region(expr) {

@@ -37,11 +37,12 @@ pub(super) fn cookie_call(name: &str, args: Vec<CoreExpr>) -> Result<CoreExpr, S
 
 /// Creates one fixed managed response constructor call with an explicit status.
 fn response_builder(name: &str, mut args: Vec<CoreExpr>) -> Result<CoreExpr, String> {
-    let (kind, default_status) = match name {
-        "text" => (0, 200),
-        "html" => (1, 200),
-        "json_text" => (2, 200),
-        "redirect" => (3, 302),
+    let (kind, default_status, json_value) = match name {
+        "text" => (0, 200, false),
+        "html" => (1, 200, false),
+        "json" => (2, 200, true),
+        "json_text" => (2, 200, false),
+        "redirect" => (3, 302, false),
         "file" => return file_response(args),
         _ => {
             return Err(format!(
@@ -49,23 +50,19 @@ fn response_builder(name: &str, mut args: Vec<CoreExpr>) -> Result<CoreExpr, Str
             ))
         }
     };
-    let (body, status) = match args.len() {
+    let (mut body, status) = match args.len() {
         1 => (args.remove(0), CoreExpr::Int(default_status)),
         2 => (args.remove(0), args.remove(0)),
         count => return response_arity_error(name, count),
     };
-    Ok(CoreExpr::ConstructorCall {
-        constructor: response_constructor(name),
-        constructor_identity: Some(response_constructor(name)),
-        args: vec![
-            CoreExpr::Int(0),
-            CoreExpr::Int(kind),
-            body,
-            status,
-            CoreExpr::Binary("\"\"".to_string()),
-            empty_response_headers(),
-        ],
-    })
+    if json_value {
+        body = managed_http_call("json_payload", vec![body]);
+    }
+    debug_assert!((0..=3).contains(&kind));
+    Ok(managed_http_call(
+        &format!("response_build_{kind}"),
+        vec![body, status],
+    ))
 }
 
 /// Creates one managed file-response constructor call with explicit defaults.

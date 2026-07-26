@@ -41,32 +41,23 @@ class ProtocolBenchmarkTest(unittest.TestCase):
         )
 
     def test_binary_protocol_concurrency_benchmark(self) -> None:
-        rows = []
-        meta = {
-            "runtime_lane": "terlan-vm",
-            "profile": "test",
-            "commit": "abc",
-            "platform": "test-platform",
-            "rust_version": "rustc test",
+        report = {
+            "benchmark": "http-vm-vs-rust",
+            "status": "completed",
+            "lanes": [
+                {
+                    "group": "socket-crud-c100",
+                    "winner": "terlan-vm",
+                    "delta_percent": 1.0,
+                },
+                {
+                    "group": "socket-crud-c1000",
+                    "winner": "axum-tokio",
+                    "delta_percent": -1.0,
+                },
+            ],
         }
-        for scale in protocol.SCALES:
-            for phase in protocol.PHASES:
-                row = protocol.metric_row(
-                    {
-                        **meta,
-                        "workload": f"vm-http-lifecycle-crud-{scale}",
-                        "workload_class": "success",
-                        "iterations": scale,
-                        "concurrency": scale,
-                        "error_rate_percent": 0.0,
-                        "typed_decode_failure_count": 0,
-                    },
-                    phase,
-                    [10, 20, 30] if phase == "warm" else [40],
-                )
-                rows.append(row)
-        protocol.validate_scale_coverage(rows)
-        self.assertEqual({row["concurrency"] for row in rows}, set(protocol.SCALES))
+        protocol.validate_aot_http_concurrency_artifact(report)
 
     def test_comparison_records_numeric_winner_delta_for_adversarial_rows(self) -> None:
         row = {

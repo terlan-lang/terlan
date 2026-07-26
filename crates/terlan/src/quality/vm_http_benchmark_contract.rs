@@ -47,6 +47,19 @@ const REQUIRED_ATTRIBUTION_INVARIANTS: &[&str] = &[
     "parkedProcessesReleased",
     "saturationHasBackpressureOutcome",
 ];
+const REQUIRED_AOT_REPLAY_INTEGRATION: &[&str] = &[
+    "AotHandlerGeneration",
+    "multicore_replay_evidence",
+    "multicore_replay_capture",
+    "VmMulticoreReplayEvidence",
+];
+const REQUIRED_AOT_REPLAY_EVIDENCE: &[&str] = &[
+    "terlan.vm.multicore-replay.v1",
+    "VmMulticoreReplayEvidence",
+    "retained_events",
+    "dropped_events",
+    "replayable",
+];
 
 #[derive(Debug, Deserialize)]
 struct BenchmarkProfile {
@@ -164,15 +177,15 @@ pub fn run_vm_http_runtime_attribution_contract(
     )?);
     diagnostics.extend(validate_source_terms(
         root,
-        "crates/terlan/src/benchmark/binary_protocol_http.rs",
-        &[
-            "terlan-vm-http-replay-v1",
-            "VmHttpReplayEvidence",
-            "execution_validated",
-            "request_count",
-            "validate_completion",
-        ],
-        "replay evidence",
+        "crates/terlan/src/commands/serve/handler_cache/replay_evidence.rs",
+        REQUIRED_AOT_REPLAY_INTEGRATION,
+        "AOT replay integration",
+    )?);
+    diagnostics.extend(validate_source_terms(
+        root,
+        "crates/terlan/src/runtime/vm/multicore_replay.rs",
+        REQUIRED_AOT_REPLAY_EVIDENCE,
+        "AOT replay evidence",
     )?);
     diagnostics.extend(validate_make_ownership(root)?);
     if !diagnostics.is_empty() {
@@ -188,7 +201,7 @@ pub fn run_vm_http_runtime_attribution_contract(
         "requiredInvariants": REQUIRED_ATTRIBUTION_INVARIANTS,
         "dominantCauseRequired": true,
         "sourceCounterRequired": true,
-        "executionValidatedReplayRequired": true,
+        "boundedAotReplayRequired": true,
         "checkOrder": [
             "vm-http-benchmark-comparability-check",
             "vm-http-runtime-attribution-check"
@@ -259,7 +272,7 @@ fn validate_profile(profile: &BenchmarkProfile) -> Vec<String> {
         &profile.schedule.keep_alive_policy,
         "matched-per-lane",
     );
-    if profile.replay.fingerprint_schema != "terlan-vm-http-replay-v1"
+    if profile.replay.fingerprint_schema != "terlan.vm.multicore-replay.v1"
         || !profile.replay.execution_validation_required
     {
         diagnostics.push("benchmark replay must require validated v1 fingerprints".to_string());

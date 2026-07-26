@@ -22,6 +22,8 @@ use std::io::{BufReader, Read, Write};
 use std::path::PathBuf;
 use std::process::{Child, Stdio};
 use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError, TrySendError};
+use std::sync::{Arc, Mutex};
+use std::task::Waker;
 use std::thread::{self, JoinHandle};
 
 use crate::runtime::vm::execution_shard_epoch::{VmShardEpochOperation, VmShardOperationKind};
@@ -580,6 +582,11 @@ impl VmCapabilityWorkerClient {
         self.deadlines.pending_len() + self.parked_contexts.len()
     }
 
+    /// Registers a protocol task for the next background transport event.
+    pub(crate) fn register_event_waker(&self, waker: &Waker) {
+        self.transport.register_event_waker(waker);
+    }
+
     /// Starts VM deadline ownership before publishing the request to transport.
     fn start_request(
         &mut self,
@@ -776,6 +783,8 @@ struct VmCapabilityWorkerTransport {
     requests: Option<SyncSender<CapabilityRequest>>,
     /// Bounded response queue receiver, removed before joining I/O threads.
     events: Option<Receiver<VmCapabilityWorkerTransportEvent>>,
+    /// Protocol tasks waiting for any newly published worker event.
+    event_wakers: Arc<Mutex<Vec<Waker>>>,
     /// Attached sandboxed child process when this is a production transport.
     child: Option<Child>,
     /// Temporary sandbox directory retained for the child lifetime.
@@ -803,14 +812,25 @@ impl VmCapabilityWorkerTransport {
             .ok_or_else(|| "capability-worker transport queue limit overflow".to_string())?;
         let (request_tx, request_rx) = mpsc::sync_channel(queue_limit);
         let (event_tx, event_rx) = mpsc::sync_channel(queue_limit);
+        let event_wakers = Arc::new(Mutex::new(Vec::new()));
         let writer_events = event_tx.clone();
+        let writer_wakers = Arc::clone(&event_wakers);
         let writer = thread::Builder::new()
             .name("terlan-capability-writer".to_string())
-            .spawn(move || run_writer(input, request_rx, writer_events, max_payload_bytes))
+            .spawn(move || {
+                run_writer(
+                    input,
+                    request_rx,
+                    writer_events,
+                    writer_wakers,
+                    max_payload_bytes,
+                )
+            })
             .map_err(|error| format!("failed to start capability-worker writer: {error}"))?;
+        let reader_wakers = Arc::clone(&event_wakers);
         let reader = match thread::Builder::new()
             .name("terlan-capability-reader".to_string())
-            .spawn(move || run_reader(output, event_tx, max_payload_bytes))
+            .spawn(move || run_reader(output, event_tx, reader_wakers, max_payload_bytes))
         {
             Ok(reader) => reader,
             Err(error) => {
@@ -822,6 +842,7 @@ impl VmCapabilityWorkerTransport {
         Ok(Self {
             requests: Some(request_tx),
             events: Some(event_rx),
+            event_wakers,
             child,
             _sandbox_dir: sandbox_dir,
             writer: Some(writer),
@@ -858,6 +879,16 @@ impl VmCapabilityWorkerTransport {
         }
     }
 
+    /// Registers a task before it checks the response queue, closing the
+    /// completion-before-registration race without polling.
+    fn register_event_waker(&self, waker: &Waker) {
+        if let Ok(mut wakers) = self.event_wakers.lock() {
+            if !wakers.iter().any(|registered| registered.will_wake(waker)) {
+                wakers.push(waker.clone());
+            }
+        }
+    }
+
     /// Prevents new requests and terminates an attached child process.
     fn close(&mut self) {
         self.requests.take();
@@ -886,11 +917,16 @@ fn run_writer(
     mut input: impl Write,
     requests: Receiver<CapabilityRequest>,
     events: SyncSender<VmCapabilityWorkerTransportEvent>,
+    event_wakers: Arc<Mutex<Vec<Waker>>>,
     max_payload_bytes: usize,
 ) {
     while let Ok(request) = requests.recv() {
         if let Err(error) = write_json_frame(&mut input, &request, max_payload_bytes) {
-            let _ = events.send(VmCapabilityWorkerTransportEvent::Failed(error));
+            publish_transport_event(
+                &events,
+                &event_wakers,
+                VmCapabilityWorkerTransportEvent::Failed(error),
+            );
             break;
         }
     }
@@ -900,29 +936,57 @@ fn run_writer(
 fn run_reader(
     output: impl Read,
     events: SyncSender<VmCapabilityWorkerTransportEvent>,
+    event_wakers: Arc<Mutex<Vec<Waker>>>,
     max_payload_bytes: usize,
 ) {
     let mut output = BufReader::new(output);
     loop {
         match read_json_frame(&mut output, max_payload_bytes) {
             Ok(Some(response)) => {
-                if events
-                    .send(VmCapabilityWorkerTransportEvent::Response(response))
-                    .is_err()
-                {
+                if !publish_transport_event(
+                    &events,
+                    &event_wakers,
+                    VmCapabilityWorkerTransportEvent::Response(response),
+                ) {
                     break;
                 }
             }
             Ok(None) => {
-                let _ = events.send(VmCapabilityWorkerTransportEvent::Closed);
+                publish_transport_event(
+                    &events,
+                    &event_wakers,
+                    VmCapabilityWorkerTransportEvent::Closed,
+                );
                 break;
             }
             Err(error) => {
-                let _ = events.send(VmCapabilityWorkerTransportEvent::Failed(error));
+                publish_transport_event(
+                    &events,
+                    &event_wakers,
+                    VmCapabilityWorkerTransportEvent::Failed(error),
+                );
                 break;
             }
         }
     }
+}
+
+fn publish_transport_event(
+    events: &SyncSender<VmCapabilityWorkerTransportEvent>,
+    event_wakers: &Arc<Mutex<Vec<Waker>>>,
+    event: VmCapabilityWorkerTransportEvent,
+) -> bool {
+    if events.send(event).is_err() {
+        return false;
+    }
+    let wakers = event_wakers
+        .lock()
+        .map(|mut wakers| std::mem::take(&mut *wakers))
+        .unwrap_or_default();
+    for waker in wakers {
+        waker.wake();
+    }
+    true
 }
 
 /// Terminates and reaps one child without panicking during cleanup.

@@ -4,10 +4,13 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use crate::runtime::native_image::managed::{
-    encode_aggregate_field_operation, encode_aggregate_layout, ManagedAggregateDescriptor,
-    ManagedFieldType, SemanticTypeId,
+    encode_aggregate_field_operation, encode_aggregate_layout,
+    encode_aggregate_scalar_field_operation, ManagedAggregateDescriptor, ManagedFieldType,
+    SemanticTypeId,
 };
-use crate::terlan_typeck::{CoreConstructorDecl, CoreExpr, CoreRecordExprField, CoreType};
+use crate::terlan_typeck::{
+    core_type_from_text, CoreConstructorDecl, CoreExpr, CoreRecordExprField, CoreType, CoreTypeDecl,
+};
 
 use super::{native_type, NativeExpr, NativeType};
 
@@ -139,6 +142,66 @@ pub(super) fn native_constructor_layouts(
     Ok(layouts)
 }
 
+/// Adds syntax-level struct records, which have direct record construction but
+/// no constructor declaration in CoreIR.
+pub(super) fn install_struct_layouts(
+    modules: &[(&str, &[CoreTypeDecl])],
+    consumer_module: &str,
+    layouts: &mut NativeConstructorLayouts,
+) -> Result<(), String> {
+    for (module, declarations) in modules {
+        for declaration in *declarations {
+            let Some(CoreType::Struct { name, fields }) = declaration.core_body.as_ref() else {
+                continue;
+            };
+            let parameters = fields
+                .iter()
+                .map(|field| native_type(Some(&field.ty), &field.ty.contract_text()))
+                .collect::<Option<Vec<_>>>()
+                .ok_or_else(|| {
+                    format!(
+                        "error[native_ir.struct_layout_type]: struct `{name}` has an unsupported field"
+                    )
+                })?;
+            let descriptor = Arc::new(
+                ManagedAggregateDescriptor::record(
+                    name,
+                    fields
+                        .iter()
+                        .zip(parameters.iter().copied())
+                        .map(|(field, ty)| {
+                            managed_field_type(ty).map(|ty| (field.name.clone(), ty))
+                        })
+                        .collect::<Result<Vec<_>, _>>()?,
+                )
+                .map_err(|error| format!("error[native_ir.struct_layout]: {error}"))?,
+            );
+            let encoded_layout = Arc::<[u8]>::from(
+                encode_aggregate_layout(&descriptor)
+                    .map_err(|error| format!("error[native_ir.struct_layout_abi]: {error}"))?,
+            );
+            let layout = NativeConstructorLayout {
+                parameters,
+                result: NativeType::ManagedRef(
+                    SemanticTypeId::from_canonical(name)
+                        .map_err(|error| format!("error[native_ir.struct_layout]: {error}"))?,
+                ),
+                descriptor,
+                encoded_layout,
+            };
+            let qualified = (name.clone(), fields.len());
+            if layouts.contains_key(&qualified) {
+                continue;
+            }
+            layouts.insert(qualified, layout.clone());
+            if *module == consumer_module {
+                layouts.insert((declaration.name.clone(), fields.len()), layout);
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Resolves and lowers one checked fixed-constructor call.
 pub(super) fn lower_constructor_call(
     expr: &CoreExpr,
@@ -186,6 +249,128 @@ pub(super) fn lower_constructor_call(
     )))
 }
 
+/// Lowers a structural Option/Result constructor using its checked target type.
+pub(super) fn lower_structural_constructor_call(
+    expr: &CoreExpr,
+    target: &CoreType,
+    lower_field: impl Fn(&CoreExpr, &CoreType) -> Result<(NativeExpr, NativeType), String>,
+) -> Result<Option<NativeExpr>, String> {
+    let CoreExpr::ConstructorCall {
+        constructor, args, ..
+    } = expr
+    else {
+        return Ok(None);
+    };
+    let name = constructor.rsplit('.').next().unwrap_or(constructor);
+    let Some((discriminant, variant_count, fields)) = structural_constructor_fields(name, target)
+    else {
+        return Ok(None);
+    };
+    if args.len() != fields.len() {
+        return Err(format!(
+            "error[native_ir.structural_constructor_arity]: `{name}` expects {} fields",
+            fields.len()
+        ));
+    }
+    let mut lowered = Vec::with_capacity(fields.len());
+    let mut descriptor_fields = Vec::with_capacity(fields.len());
+    for (index, (argument, (field_name, field_type))) in args.iter().zip(&fields).enumerate() {
+        let expected =
+            native_type(Some(field_type), &field_type.contract_text()).ok_or_else(|| {
+                format!(
+                    "error[native_ir.structural_constructor_type]: unsupported `{}`",
+                    field_type.contract_text()
+                )
+            })?;
+        let (field, actual) = lower_field(argument, field_type)?;
+        if actual != expected {
+            return Err(format!(
+                "error[native_ir.structural_constructor_field]: `{name}` field {index} requires {expected:?}, found {actual:?}"
+            ));
+        }
+        lowered.push(field);
+        descriptor_fields.push((field_name.clone(), managed_field_type(expected)?));
+    }
+    let descriptor = Arc::new(
+        ManagedAggregateDescriptor::constructor(
+            &target.contract_text(),
+            name,
+            discriminant,
+            variant_count,
+            descriptor_fields,
+        )
+        .map_err(|error| format!("error[native_ir.structural_constructor_layout]: {error}"))?,
+    );
+    let encoded_layout = Arc::<[u8]>::from(
+        encode_aggregate_layout(&descriptor)
+            .map_err(|error| format!("error[native_ir.structural_constructor_abi]: {error}"))?,
+    );
+    Ok(Some(NativeExpr::Construct {
+        descriptor,
+        encoded_layout,
+        fields: lowered,
+    }))
+}
+
+type StructuralFields = Vec<(Option<String>, CoreType)>;
+
+fn structural_constructor_fields(
+    name: &str,
+    target: &CoreType,
+) -> Option<(u32, u32, StructuralFields)> {
+    match target {
+        CoreType::Apply { constructor, args }
+            if constructor.rsplit('.').next() == Some("Option") && args.len() == 1 =>
+        {
+            match name {
+                "None" => Some((0, 2, Vec::new())),
+                "Some" => Some((1, 2, vec![(Some("value".to_string()), args[0].clone())])),
+                _ => None,
+            }
+        }
+        CoreType::Apply { constructor, args }
+            if constructor.rsplit('.').next() == Some("Result") && args.len() == 2 =>
+        {
+            match name {
+                "Ok" => Some((0, 2, vec![(Some("value".to_string()), args[0].clone())])),
+                "Err" => Some((1, 2, vec![(Some("reason".to_string()), args[1].clone())])),
+                _ => None,
+            }
+        }
+        CoreType::Union(variants) => variants.iter().enumerate().find_map(|(index, variant)| {
+            let CoreType::Tuple(elements) = variant else {
+                return None;
+            };
+            let (first, fields) = elements.split_first()?;
+            let atom = match first {
+                crate::terlan_typeck::CoreTupleTypeElem::Type(CoreType::AtomLiteral(atom))
+                | crate::terlan_typeck::CoreTupleTypeElem::Field {
+                    ty: CoreType::AtomLiteral(atom),
+                    ..
+                } => atom,
+                _ => return None,
+            };
+            if !((name == "Err" && atom == "error") || name.eq_ignore_ascii_case(atom)) {
+                return None;
+            }
+            Some((
+                u32::try_from(index).ok()?,
+                u32::try_from(variants.len()).ok()?,
+                fields
+                    .iter()
+                    .map(|field| match field {
+                        crate::terlan_typeck::CoreTupleTypeElem::Type(ty) => (None, ty.clone()),
+                        crate::terlan_typeck::CoreTupleTypeElem::Field { name, ty } => {
+                            (Some(name.clone()), ty.clone())
+                        }
+                    })
+                    .collect(),
+            ))
+        }),
+        _ => None,
+    }
+}
+
 /// Returns the exact result kind for one resolved constructor call.
 pub(super) fn constructor_result_type(
     expr: &CoreExpr,
@@ -203,6 +388,24 @@ pub(super) fn constructor_result_type(
     layouts
         .get(&(identity.to_owned(), args.len()))
         .map(|layout| layout.result)
+}
+
+/// Returns the checked semantic result type retained by a constructor layout.
+pub(super) fn constructor_result_core_type(
+    expr: &CoreExpr,
+    layouts: &NativeConstructorLayouts,
+) -> Option<CoreType> {
+    let CoreExpr::ConstructorCall {
+        constructor,
+        constructor_identity,
+        args,
+    } = expr
+    else {
+        return None;
+    };
+    let identity = constructor_identity.as_deref().unwrap_or(constructor);
+    let layout = layouts.get(&(identity.to_owned(), args.len()))?;
+    core_type_from_text(layout.descriptor.canonical_type())
 }
 
 /// Resolves and lowers one fixed named record construction.
@@ -459,11 +662,10 @@ pub(super) fn managed_field_projection(
         ));
     };
     if let Some(record_name) = record_name {
-        let expected = SemanticTypeId::from_canonical(
-            &CoreType::Named(record_name.to_string()).contract_text(),
-        )
-        .map_err(|error| format!("error[native_ir.record_identity]: {error}"))?;
-        if expected != semantic {
+        let identifies_receiver = layouts
+            .iter()
+            .any(|((identity, _), layout)| identity == record_name && layout.result == base);
+        if !identifies_receiver {
             return Err(format!(
                 "error[native_ir.record_identity]: `{record_name}` does not identify the receiver type"
             ));
@@ -508,8 +710,12 @@ pub(super) fn managed_field_projection(
     let (index, field_type) = projection.ok_or_else(|| {
         format!("error[native_ir.field_missing]: managed field `{field}` has no physical slot")
     })?;
-    let encoded = encode_aggregate_field_operation(semantic, index)
-        .map_err(|error| format!("error[native_ir.field_operation]: {error}"))?;
+    let encoded = if field_type.is_managed_reference() {
+        encode_aggregate_field_operation(semantic, index)
+    } else {
+        encode_aggregate_scalar_field_operation(semantic, index)
+    }
+    .map_err(|error| format!("error[native_ir.field_operation]: {error}"))?;
     Ok((Arc::from(encoded), field_type))
 }
 

@@ -1,4 +1,5 @@
 use super::*;
+use std::sync::atomic::AtomicUsize;
 
 #[test]
 fn protocol_routes_are_stable_and_processes_are_unique() {
@@ -129,7 +130,7 @@ fn protocol_completion_origin_rejects_foreign_and_ambient_threads() {
 #[test]
 fn repeated_task_wakes_queue_one_vm_poll() {
     let poll = Poll::new().expect("poll");
-    let queue = Arc::new(ConcurrentQueue::bounded(4));
+    let queue = Arc::new(VmLazyBoundedQueue::bounded(4));
     let wake = Arc::new(VmProtocolTaskWake {
         token: AtomicUsize::new(FIRST_TASK_TOKEN),
         scheduled: AtomicBool::new(false),
@@ -152,9 +153,20 @@ fn repeated_task_wakes_queue_one_vm_poll() {
 }
 
 #[test]
+fn lazy_protocol_queue_enforces_capacity_without_eager_array_storage() {
+    let queue = VmLazyBoundedQueue::bounded(2);
+    queue.push(1_u8).expect("first slot");
+    queue.push(2_u8).expect("second slot");
+    assert_eq!(queue.push(3_u8).expect_err("hard bound").into_inner(), 3);
+    assert_eq!(queue.pop(), Ok(1));
+    queue.push(3_u8).expect("released capacity");
+    assert_eq!(queue.len(), 2);
+}
+
+#[test]
 fn owner_local_task_wake_queues_without_signaling_the_readiness_poller() {
     let mut poll = Poll::new().expect("poll");
-    let queue = Arc::new(ConcurrentQueue::bounded(4));
+    let queue = Arc::new(VmLazyBoundedQueue::bounded(4));
     let scheduler = VmSchedulerId::primary();
     let wake = Arc::new(VmProtocolTaskWake {
         token: AtomicUsize::new(FIRST_TASK_TOKEN),
@@ -200,9 +212,9 @@ fn least_loaded_admission_rotates_ties_and_skips_full_shards() {
         let acceptor_poll = Poll::new().expect("acceptor poll");
         let ingress = Arc::new(VmProtocolShardIngress {
             scheduler,
-            sockets: ConcurrentQueue::bounded(MAX_TASKS_PER_SHARD),
-            load: AtomicUsize::new(0),
-            owner_parked: AtomicBool::new(false),
+            sockets: VmLazyBoundedQueue::bounded(MAX_TASKS_PER_SHARD),
+            load: VmProtocolShardLoad::new(0),
+            owner_parked: VmProtocolOwnerParked::new(false),
             poll_waker: Arc::new(
                 MioWaker::new(shard_poll.registry(), TASK_WAKE_TOKEN).expect("shard waker"),
             ),
@@ -216,6 +228,11 @@ fn least_loaded_admission_rotates_ties_and_skips_full_shards() {
     ingresses[1].load.store(0, Ordering::Release);
     ingresses[2].load.store(1, Ordering::Release);
     assert_eq!(least_loaded_shard(&ingresses, 0), Some(1));
+
+    let reserved = reserve_admission_target(&ingresses, 0, 1).expect("reserve remote owner");
+    assert_eq!(reserved, 1);
+    assert_eq!(ingresses[reserved].load(), 1);
+    ingresses[reserved].release_reservation();
 
     for ingress in &ingresses {
         ingress.load.store(0, Ordering::Release);
@@ -262,6 +279,67 @@ fn least_loaded_admission_rotates_ties_and_skips_full_shards() {
 }
 
 #[test]
+fn remote_admission_reserves_execution_owner_without_using_acceptor() {
+    let topology = VmSchedulerTopology::new(2).expect("topology");
+    let mut polls = Vec::new();
+    let ingresses = topology
+        .schedulers()
+        .map(|scheduler| {
+            let poll = Poll::new().expect("shard poll");
+            let ingress = Arc::new(VmProtocolShardIngress {
+                scheduler,
+                sockets: VmLazyBoundedQueue::bounded(MAX_TASKS_PER_SHARD),
+                load: VmProtocolShardLoad::new(0),
+                owner_parked: VmProtocolOwnerParked::new(false),
+                poll_waker: Arc::new(
+                    MioWaker::new(poll.registry(), TASK_WAKE_TOKEN).expect("shard waker"),
+                ),
+                capacity: Arc::new(VmProtocolCapacity::default()),
+            });
+            polls.push(poll);
+            ingress
+        })
+        .collect::<Vec<_>>();
+
+    let target = reserve_remote_admission_target(&ingresses, 0, 0).expect("remote reservation");
+    assert_eq!(target, 1);
+    assert_eq!(ingresses[0].load(), 0);
+    assert_eq!(ingresses[1].load(), 1);
+    ingresses[target].release_reservation();
+}
+
+#[test]
+fn idle_acceptor_owner_reclaims_connections_from_an_active_remote_wave() {
+    let topology = VmSchedulerTopology::new(2).expect("topology");
+    let mut polls = Vec::new();
+    let ingresses = topology
+        .schedulers()
+        .map(|scheduler| {
+            let poll = Poll::new().expect("shard poll");
+            let ingress = Arc::new(VmProtocolShardIngress {
+                scheduler,
+                sockets: VmLazyBoundedQueue::bounded(MAX_TASKS_PER_SHARD),
+                load: VmProtocolShardLoad::new(0),
+                owner_parked: VmProtocolOwnerParked::new(false),
+                poll_waker: Arc::new(
+                    MioWaker::new(poll.registry(), TASK_WAKE_TOKEN).expect("shard waker"),
+                ),
+                capacity: Arc::new(VmProtocolCapacity::default()),
+            });
+            polls.push(poll);
+            ingress
+        })
+        .collect::<Vec<_>>();
+    ingresses[1].load.store(1, Ordering::Release);
+
+    let target = reserve_admission_target(&ingresses, 0, 0).expect("local reservation");
+    assert_eq!(target, 0);
+    assert_eq!(ingresses[0].load(), 1);
+    assert_eq!(ingresses[1].load(), 1);
+    ingresses[target].release_reservation();
+}
+
+#[test]
 fn task_completion_wakes_only_a_capacity_blocked_acceptor() {
     let shard_poll = Poll::new().expect("shard poll");
     let mut acceptor_poll = Poll::new().expect("acceptor poll");
@@ -272,9 +350,9 @@ fn task_completion_wakes_only_a_capacity_blocked_acceptor() {
     capacity.register(&capacity_waker).expect("register waker");
     let ingress = VmProtocolShardIngress {
         scheduler: VmSchedulerId::primary(),
-        sockets: ConcurrentQueue::bounded(MAX_TASKS_PER_SHARD),
-        load: AtomicUsize::new(1),
-        owner_parked: AtomicBool::new(false),
+        sockets: VmLazyBoundedQueue::bounded(MAX_TASKS_PER_SHARD),
+        load: VmProtocolShardLoad::new(1),
+        owner_parked: VmProtocolOwnerParked::new(false),
         poll_waker: Arc::new(
             MioWaker::new(shard_poll.registry(), TASK_WAKE_TOKEN).expect("shard waker"),
         ),
@@ -305,9 +383,9 @@ fn remote_ingress_publishes_before_waking_a_parked_owner() {
     let mut shard_poll = Poll::new().expect("shard poll");
     let ingress = VmProtocolShardIngress {
         scheduler: VmSchedulerId::primary(),
-        sockets: ConcurrentQueue::bounded(MAX_TASKS_PER_SHARD),
-        load: AtomicUsize::new(0),
-        owner_parked: AtomicBool::new(true),
+        sockets: VmLazyBoundedQueue::bounded(MAX_TASKS_PER_SHARD),
+        load: VmProtocolShardLoad::new(0),
+        owner_parked: VmProtocolOwnerParked::new(true),
         poll_waker: Arc::new(
             MioWaker::new(shard_poll.registry(), TASK_WAKE_TOKEN).expect("shard waker"),
         ),

@@ -5,7 +5,7 @@
 /// `Complete` is the fail-closed representation. `Fields` is emitted only when
 /// typed NativeIR proves that the request cannot escape and every observation is
 /// an exact opaque Request accessor.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub(crate) enum RequestFieldProjection {
     Complete,
     Fields(u16),

@@ -32,7 +32,7 @@ use crate::runtime::vm::work_stealing::VmSchedulerWorkSnapshot;
 use crate::runtime::vm::ReplValue;
 use crate::terlan_native_boundary::term::NativeBoundaryReplyTerm;
 
-mod capability_dispatch;
+pub(super) mod capability_dispatch;
 mod migration;
 mod owner_loop;
 mod panic_evidence;
@@ -46,6 +46,7 @@ pub(super) use panic_evidence::AotSchedulerPanicEvidence;
 
 /// Bounded ingress prevents connection pressure from growing shard memory.
 const SHARD_INBOX_CAPACITY: usize = 1_024;
+const AOT_SCHEDULER_STACK_BYTES: usize = 1024 * 1024;
 /// Maximum UTF-8 bytes retained from one scheduler panic payload.
 const MAX_SCHEDULER_PANIC_DETAIL_BYTES: usize = 512;
 
@@ -66,6 +67,13 @@ pub(super) enum OwnedInvocationStep {
         owner: VmProcessId,
         suspension: PureNativeSuspension,
         wait: PureNativeCapabilityWait,
+    },
+    TimerWaiting {
+        route: VmFixedActorRoute,
+        owner: VmProcessId,
+        suspension: PureNativeSuspension,
+        wait: PureNativeTimerWait,
+        due: Instant,
     },
 }
 
@@ -303,6 +311,7 @@ impl AotHandlerShardOwner {
         let panic_evidence = Arc::new(Mutex::new(None));
         let join = thread::Builder::new()
             .name(format!("terlan-aot-scheduler-{}", scheduler.index()))
+            .stack_size(AOT_SCHEDULER_STACK_BYTES)
             .spawn({
                 let control = Arc::clone(&control);
                 let failure = Arc::clone(&failure);

@@ -848,6 +848,10 @@ pub(crate) fn logical_value_bytes(value: &ReplValue) -> Result<usize, VmValueSiz
             | ReplValue::String(value)
             | ReplValue::Atom(value)
             | ReplValue::Type(value) => add_logical_string(&mut total, value)?,
+            ReplValue::StringBytes(value) => {
+                checked_add_size(&mut total, LOGICAL_STRING_HEADER_BYTES)?;
+                checked_add_size(&mut total, value.len())?;
+            }
             ReplValue::Bytes(value) => {
                 checked_add_size(&mut total, LOGICAL_SEQUENCE_HEADER_BYTES)?;
                 checked_add_size(&mut total, value.len())?;

@@ -42,8 +42,12 @@ impl TestRepo {
             "transportNs parserNs schedulerNs routingNs allocationAndConversionNs handlerNs responseWriteNs completedMatchesReductions phaseBucketsMatchAccountedTotal queueBalanced parkedProcessesReleased saturationHasBackpressureOutcome",
         )?;
         self.write(
-            "crates/terlan/src/benchmark/binary_protocol_http.rs",
-            "terlan-vm-http-replay-v1 VmHttpReplayEvidence execution_validated request_count validate_completion",
+            "crates/terlan/src/commands/serve/handler_cache/replay_evidence.rs",
+            "AotHandlerGeneration multicore_replay_evidence multicore_replay_capture VmMulticoreReplayEvidence",
+        )?;
+        self.write(
+            "crates/terlan/src/runtime/vm/multicore_replay.rs",
+            "terlan.vm.multicore-replay.v1 VmMulticoreReplayEvidence retained_events dropped_events replayable",
         )?;
         self.write("Makefile", COMPLETE_MAKEFILE)
     }
@@ -74,7 +78,7 @@ payload_bytes = [0, 512, 4096]
 route_mix = ["static", "json", "add", "route-param", "stateful-counter"]
 
 [replay]
-fingerprint_schema = "terlan-vm-http-replay-v1"
+fingerprint_schema = "terlan.vm.multicore-replay.v1"
 execution_validation_required = true
 stable_runs_required = 3
 

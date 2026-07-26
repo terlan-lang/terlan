@@ -152,6 +152,55 @@ fn scalar_case_source_executes_through_linked_native_object() {
     assert_native_object_result("scalar-case", &object, export_id, &[], 42);
 }
 
+/// Replaces BEAM jump-table availability introspection with executable native
+/// evidence for adjacent and widely separated integer dispatch branches.
+#[test]
+fn dense_and_sparse_integer_dispatch_executes_through_linked_native_object() {
+    let core = core(
+        "module native_integer_dispatch.\n\n\
+         pub dispatch(value: Int): Int ->\n\
+             case value {\n\
+                 0 -> 20;\n\
+                 1 -> 21;\n\
+                 2 -> 22;\n\
+                 3 -> 23;\n\
+                 1024 -> 30;\n\
+                 1000000 -> 31;\n\
+                 9223372036854775807 -> 32;\n\
+                 _ -> -1\n\
+             }.\n",
+    );
+    let modules = NativeModule::lower_application(&[&core]).expect("lower integer dispatch module");
+    let export_id = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "dispatch")
+        .expect("dispatch export")
+        .export_id;
+    let object = emit_native_application_object("native_integer_dispatch", &modules)
+        .expect("emit integer dispatch object");
+
+    for (input, expected) in [
+        (0, 20),
+        (1, 21),
+        (2, 22),
+        (3, 23),
+        (1_024, 30),
+        (1_000_000, 31),
+        (i64::MAX, 32),
+        (99, -1),
+        (-3, -1),
+    ] {
+        assert_native_object_result(
+            &format!("native-integer-dispatch-{input}"),
+            &object,
+            export_id,
+            &[input],
+            expected,
+        );
+    }
+}
+
 /// Verifies aliases and nested variable patterns bind the same scalar value in
 /// both guards and selected bodies.
 #[test]
@@ -322,8 +371,8 @@ fn nested_scalar_cases_are_eliminated() {
     assert!(!format!("{body:?}").contains("Case"));
 }
 
-/// Verifies unsupported scalar atoms fail while structured patterns remain for
-/// the managed structured-case lowering pass.
+/// Verifies scalar atom constructors lower directly while structured patterns
+/// remain for the managed structured-case lowering pass.
 #[test]
 fn unsupported_case_patterns_fail_closed() {
     let mut atom = core("module bad_scalar_case.\n\npub answer(): Int -> 0.\n");
@@ -335,9 +384,8 @@ fn unsupported_case_patterns_fail_closed() {
             body: CoreExpr::Int(1),
         }],
     };
-    assert!(lower_scalar_cases(&mut atom)
-        .unwrap_err()
-        .starts_with("error[native_ir.case_pattern]:"));
+    lower_scalar_cases(&mut atom).expect("lower arbitrary scalar atom pattern");
+    assert!(!format!("{:?}", function_body_mut(&mut atom, "answer")).contains("Case"));
 
     for pattern in [
         CorePattern::Tuple(vec![CorePattern::Int(1)]),

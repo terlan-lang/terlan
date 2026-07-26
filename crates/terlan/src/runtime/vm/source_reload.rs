@@ -8,7 +8,7 @@ use super::code_server::{
     VmCodeServer, VmCodeServerEvent, VmCodeServerEventSnapshot, VmStagedModuleArtifact,
 };
 
-use super::code_server_compiler::{publish_staged_replacement, stage_source_replacement};
+use super::code_server_compiler::stage_source_replacement;
 use super::fixed_scheduler_telemetry::VM_FIXED_SCHEDULER_TRACE_CAPACITY;
 use super::multicore_replay::VmMulticoreReplayEvidence;
 use super::pure_native::{
@@ -98,6 +98,7 @@ impl VmSourceReloadAdapter {
         observed_tick: u64,
         deadline_tick: u64,
     ) -> Result<VmNativeReloadPublication, String> {
+        VmCodeServer::validate_staged_batch(&staged)?;
         let generation = match self.native_shard.as_mut() {
             Some(shard) => {
                 shard.replace_image_before_deadline(image_path, observed_tick, deadline_tick)?
@@ -110,7 +111,7 @@ impl VmSourceReloadAdapter {
             }
         };
         let replay = self.multicore_replay_evidence()?;
-        let events = self.publish_compiled_sources(staged);
+        let events = self.publish_compiled_sources(staged)?;
         let references = self
             .native_shard
             .as_ref()
@@ -270,7 +271,7 @@ impl VmSourceReloadAdapter {
                 &source,
             )?);
         }
-        report.events = self.publish_compiled_sources(compiled);
+        report.events = self.publish_compiled_sources(compiled)?;
         Ok(report)
     }
 
@@ -278,11 +279,8 @@ impl VmSourceReloadAdapter {
     fn publish_compiled_sources(
         &mut self,
         compiled: Vec<VmStagedModuleArtifact>,
-    ) -> Vec<VmCodeServerEvent> {
-        compiled
-            .into_iter()
-            .map(|staged| publish_staged_replacement(&mut self.code_server, staged))
-            .collect()
+    ) -> Result<Vec<VmCodeServerEvent>, String> {
+        self.code_server.publish_staged_batch(compiled)
     }
 
     /// Returns the ordered reload event inspection stream.

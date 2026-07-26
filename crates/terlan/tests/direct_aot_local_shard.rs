@@ -48,6 +48,8 @@ fn native_image_transitions_execute_on_the_local_shard() {
         "resource_then_true",
         "schedule_priority_then_true",
         "schedule_background_then_true",
+        "call_then_direct_yield_completes",
+        "call_then_direct_yield_suspends",
     ] {
         let run = Command::new(env!("CARGO_BIN_EXE_terlan-vm"))
             .arg("run")

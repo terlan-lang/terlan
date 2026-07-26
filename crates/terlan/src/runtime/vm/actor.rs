@@ -54,6 +54,10 @@ mod actor_dirty_nif_beam_suite_parity_test;
 mod actor_suspension_accounting_test;
 
 #[cfg(test)]
+#[path = "actor_hibernate_beam_suite_parity_test.rs"]
+mod actor_hibernate_beam_suite_parity_test;
+
+#[cfg(test)]
 #[path = "actor_alias_test.rs"]
 mod actor_alias_test;
 
@@ -68,6 +72,10 @@ mod actor_runtime_transfer_test;
 #[cfg(test)]
 #[path = "actor_send_test.rs"]
 mod actor_send_test;
+
+#[cfg(test)]
+#[path = "actor_native_record_beam_suite_parity_test.rs"]
+mod actor_native_record_beam_suite_parity_test;
 
 #[cfg(test)]
 #[path = "actor_send_accounting_test.rs"]

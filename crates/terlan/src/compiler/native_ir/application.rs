@@ -7,15 +7,27 @@ use crate::terlan_typeck::{
 };
 
 use super::{
-    aggregate_types::managed_aggregate_layouts, atom_inventory::application_atom_identities,
-    collections::managed_collection_layouts, composable_suspending_functions,
-    constructors::native_constructor_layouts, contains_process_yield, expr_calls_are_supported,
-    is_scalar_candidate, native_return_type, native_type,
-    scalar_replacement::scalar_replace_fixed_aggregates, ComposedCallProfile, NativeCallableShape,
-    NativeContinuation, NativeModule, NativeType,
+    aggregate_types::{managed_aggregate_layouts, managed_expression_layouts},
+    atom_inventory::application_atom_identities,
+    collections::{managed_collection_layouts, managed_expression_collection_layouts},
+    constructors::native_constructor_layouts,
+    contains_process_yield, expr_calls_are_supported, is_composable_suspending_body,
+    is_scalar_candidate, native_return_type_with_constructors, native_type_with_constructors,
+    scalar_replacement::scalar_replace_fixed_aggregates,
+    ComposedCallProfile, NativeCallableShape, NativeContinuation, NativeModule, NativeType,
 };
 
 type CallIdentity = (String, usize);
+
+#[path = "application/admission_diagnostics.rs"]
+mod admission_diagnostics;
+mod native_packages;
+mod structural_patterns;
+mod transparent_aliases;
+use admission_diagnostics::candidate_admission_summary;
+use native_packages::{
+    lower_compiler_native_declarations, native_handle_layouts, native_package_aliases,
+};
 
 #[derive(Clone, Copy)]
 struct Candidate<'a> {
@@ -36,6 +48,21 @@ impl NativeModule {
                 &duplicate[0].module,
             ));
         }
+        normalized_cores
+            .iter_mut()
+            .for_each(super::nominal_identity::qualify_local_nominal_types);
+        super::atom_alias_values::lower_atom_alias_values(&mut normalized_cores);
+        let native_aliases = native_package_aliases(&normalized_cores);
+        for core in &mut normalized_cores {
+            lower_compiler_native_declarations(core, &native_aliases)?;
+        }
+        normalized_cores
+            .iter_mut()
+            .for_each(|core| normalize_remote_calls(core, true));
+        transparent_aliases::expand_transparent_aliases(&mut normalized_cores);
+        super::collection_intrinsic_specialization::specialize_collection_intrinsic_results(
+            &mut normalized_cores,
+        );
         let mut specialization_budget =
             super::specialization_budget::SpecializationBudget::default();
         for core in &mut normalized_cores {
@@ -43,33 +70,64 @@ impl NativeModule {
             super::list_comprehension::lower_list_comprehensions(core)?;
             super::template_values::lower_template_values(core)?;
             super::http_values::lower_http_values(core)?;
-            normalize_remote_calls(core);
+            normalize_remote_calls(core, false);
+            structural_patterns::scalar_replace(core);
             super::case_lowering::lower_scalar_cases(core)?;
-            super::generic_specialization::specialize_private_generics_with_budget(
-                core,
-                &mut specialization_budget,
-            )?;
+            normalize_remote_calls(core, false);
+        }
+        super::generic_specialization::specialize_application_generics_with_budget(
+            &mut normalized_cores,
+            &mut specialization_budget,
+        )?;
+        for core in &mut normalized_cores {
             super::higher_order_specialization::specialize_higher_order_helpers_with_budget(
                 core,
                 &mut specialization_budget,
             )?;
+        }
+        super::nested_closure_lifting::lift_nested_closure_arguments(&mut normalized_cores)?;
+        for core in &mut normalized_cores {
             normalize_static_callables(core, &mut specialization_budget)?;
             normalize_dynamic_callable_aliases(core);
+            normalize_remote_calls(core, false);
+            structural_patterns::scalar_replace(core);
+            super::case_lowering::lower_scalar_cases(core)?;
+            normalize_remote_calls(core, false);
         }
+        super::collection_intrinsic_specialization::specialize_collection_intrinsic_results(
+            &mut normalized_cores,
+        );
         super::callee_scalar_replacement::specialize_projection_callees_with_budget(
             &mut normalized_cores,
             &mut specialization_budget,
         )?;
+        super::typed_empty_lists::annotate_empty_list_arguments(&mut normalized_cores);
+        super::short_circuit_normalization::right_associate_short_circuit_chains(
+            &mut normalized_cores,
+        );
+        super::open_std_pruning::prune_unreachable_open_std_functions(&mut normalized_cores);
         let ordered_cores = normalized_cores.iter().collect::<Vec<_>>();
         let constructor_modules = ordered_cores
             .iter()
             .map(|core| (core.module.as_str(), core.constructors.as_slice()))
             .collect::<Vec<_>>();
+        let type_modules = ordered_cores
+            .iter()
+            .map(|core| (core.module.as_str(), core.types.as_slice()))
+            .collect::<Vec<_>>();
         let mut constructor_layouts = ordered_cores
             .iter()
             .map(|core| {
-                native_constructor_layouts(&constructor_modules, &core.module)
-                    .map(|layouts| (core.module.clone(), layouts))
+                native_constructor_layouts(&constructor_modules, &core.module).and_then(
+                    |mut layouts| {
+                        super::constructors::install_struct_layouts(
+                            &type_modules,
+                            &core.module,
+                            &mut layouts,
+                        )?;
+                        Ok((core.module.clone(), layouts))
+                    },
+                )
             })
             .collect::<Result<HashMap<_, _>, _>>()?;
         for core in &ordered_cores {
@@ -96,9 +154,10 @@ impl NativeModule {
             })
             .next();
         if let Some((module, function)) = unsupported {
+            let admission = candidate_admission_summary(function, &constructor_layouts[module]);
             return Err(format!(
-                "error[native_ir.unsupported_application_function]: `{module}.{}/{}` cannot be lowered into the native application image; runtime CoreIR interpretation has been removed",
-                function.name, function.arity
+                "error[native_ir.unsupported_application_function]: `{module}.{}/{}` cannot be lowered into the native application image ({admission}); runtime CoreIR interpretation has been removed",
+                function.name, function.arity,
             ));
         }
 
@@ -127,6 +186,8 @@ impl NativeModule {
         loop {
             let resolvers = application_resolvers(&ordered_cores, &candidates, &selected);
             let suspending = application_suspending(&candidates, &selected, &resolvers);
+            let composable_candidates =
+                application_composable_candidates(&candidates, &selected, &resolvers, &suspending);
             let before = selected.iter().filter(|selected| **selected).count();
             for (index, candidate) in candidates.iter().enumerate() {
                 if !selected[index] {
@@ -138,16 +199,11 @@ impl NativeModule {
                     .map(|(name, arity)| (name.as_str(), *arity))
                     .collect::<Vec<_>>();
                 let suspending_names = resolved_names(resolver, &suspending);
-                let local_functions = candidates
+                let composable = resolver
                     .iter()
-                    .enumerate()
-                    .filter(|(candidate_index, item)| {
-                        selected[*candidate_index] && item.core.module == candidate.core.module
-                    })
-                    .map(|(_, item)| item.function)
-                    .collect::<Vec<_>>();
-                let composable =
-                    composable_suspending_functions(&local_functions, &suspending_names);
+                    .filter(|(_, candidate_index)| composable_candidates.contains(candidate_index))
+                    .map(|(identity, _)| identity.clone())
+                    .collect::<HashSet<_>>();
                 let supported = candidate
                     .function
                     .clauses
@@ -269,6 +325,33 @@ fn normalize_dynamic_alias_expr(expr: &mut CoreExpr, closures: &HashSet<String>)
                 normalize_dynamic_alias_expr(&mut clause.body, closures);
             }
         }
+        CoreExpr::Case { scrutinee, clauses } => {
+            normalize_dynamic_alias_expr(scrutinee, closures);
+            for clause in clauses {
+                if let Some(guard) = &mut clause.guard {
+                    normalize_dynamic_alias_expr(guard, closures);
+                }
+                normalize_dynamic_alias_expr(&mut clause.body, closures);
+            }
+        }
+        CoreExpr::Try {
+            body,
+            of_clauses,
+            catch_clauses,
+            after_clause,
+        } => {
+            normalize_dynamic_alias_expr(body, closures);
+            for clause in of_clauses.iter_mut().chain(catch_clauses) {
+                if let Some(guard) = &mut clause.guard {
+                    normalize_dynamic_alias_expr(guard, closures);
+                }
+                normalize_dynamic_alias_expr(&mut clause.body, closures);
+            }
+            if let Some(after) = after_clause {
+                normalize_dynamic_alias_expr(&mut after.trigger, closures);
+                normalize_dynamic_alias_expr(&mut after.body, closures);
+            }
+        }
         CoreExpr::UnaryOp { operand, .. } => normalize_dynamic_alias_expr(operand, closures),
         CoreExpr::BinaryOp { left, right, .. } => {
             normalize_dynamic_alias_expr(left, closures);
@@ -308,55 +391,71 @@ fn lower_selected_application(
         .collect::<HashMap<_, _>>();
     let candidate_resolvers = application_resolvers(cores, candidates, selected);
     let suspending = application_suspending(candidates, selected, &candidate_resolvers);
+    let composable_candidates =
+        application_composable_candidates(candidates, selected, &candidate_resolvers, &suspending);
     let mut call_profiles = HashMap::new();
 
-    for (candidate_index, candidate) in candidates.iter().enumerate() {
-        if !selected[candidate_index] {
-            continue;
+    loop {
+        let before = call_profiles.len();
+        for (candidate_index, candidate) in candidates.iter().enumerate() {
+            if !selected[candidate_index]
+                || call_profiles.contains_key(&candidate_to_native[&candidate_index])
+            {
+                continue;
+            }
+            let identities = native_resolver(
+                &candidate_resolvers[&candidate.core.module],
+                &candidate_to_native,
+            );
+            let function_types = native_function_types(
+                &candidate_resolvers[&candidate.core.module],
+                &candidate_to_native,
+                candidates,
+                &constructor_layouts[&candidate.core.module],
+            );
+            let function_core_types = native_function_core_types(
+                &candidate_resolvers[&candidate.core.module],
+                &candidate_to_native,
+                candidates,
+            );
+            let callable_shapes = native_callable_shapes(
+                &candidate_resolvers[&candidate.core.module],
+                &candidate_to_native,
+                candidates,
+                &constructor_layouts[&candidate.core.module],
+            );
+            let suspending_names =
+                resolved_names(&candidate_resolvers[&candidate.core.module], &suspending);
+            if !composable_candidates.contains(&candidate_index) {
+                continue;
+            }
+            let mut profile_ids = HashSet::new();
+            let mut profile_lifted = Vec::new();
+            let Ok((mut native, mut continuations)) = super::lower_native_function_with_callables(
+                &candidate.core.module,
+                candidate.function,
+                &identities,
+                &function_types,
+                &function_core_types,
+                &callable_shapes,
+                &mut profile_lifted,
+                &constructor_layouts[&candidate.core.module],
+                &suspending_names,
+                &call_profiles,
+                &mut profile_ids,
+            ) else {
+                continue;
+            };
+            super::continuation_sharing::intern_function_continuations(
+                &mut native.body,
+                &mut continuations,
+            );
+            if let Some(profile) = ComposedCallProfile::new(&native.body, &continuations) {
+                call_profiles.insert(candidate_to_native[&candidate_index], profile);
+            }
         }
-        let identities = native_resolver(
-            &candidate_resolvers[&candidate.core.module],
-            &candidate_to_native,
-        );
-        let function_types = native_function_types(
-            &candidate_resolvers[&candidate.core.module],
-            &candidate_to_native,
-            candidates,
-        );
-        let callable_shapes = native_callable_shapes(
-            &candidate_resolvers[&candidate.core.module],
-            &candidate_to_native,
-            candidates,
-        );
-        let suspending_names =
-            resolved_names(&candidate_resolvers[&candidate.core.module], &suspending);
-        let local_functions = candidates
-            .iter()
-            .enumerate()
-            .filter(|(index, item)| selected[*index] && item.core.module == candidate.core.module)
-            .map(|(_, item)| item.function)
-            .collect::<Vec<_>>();
-        let composable = composable_suspending_functions(&local_functions, &suspending_names);
-        let identity = (candidate.function.name.clone(), candidate.function.arity);
-        if !composable.contains(&identity) {
-            continue;
-        }
-        let mut profile_ids = HashSet::new();
-        let mut profile_lifted = Vec::new();
-        let (native, continuations) = super::lower_native_function_with_callables(
-            &candidate.core.module,
-            candidate.function,
-            &identities,
-            &function_types,
-            &callable_shapes,
-            &mut profile_lifted,
-            &constructor_layouts[&candidate.core.module],
-            &suspending_names,
-            &HashMap::new(),
-            &mut profile_ids,
-        )?;
-        if let Some(profile) = ComposedCallProfile::new(&native.body, &continuations) {
-            call_profiles.insert(candidate_to_native[&candidate_index], profile);
+        if call_profiles.len() == before {
+            break;
         }
     }
 
@@ -366,8 +465,20 @@ fn lower_selected_application(
     for core in cores {
         let resolver = &candidate_resolvers[&core.module];
         let identities = native_resolver(resolver, &candidate_to_native);
-        let function_types = native_function_types(resolver, &candidate_to_native, candidates);
-        let callable_shapes = native_callable_shapes(resolver, &candidate_to_native, candidates);
+        let function_types = native_function_types(
+            resolver,
+            &candidate_to_native,
+            candidates,
+            &constructor_layouts[&core.module],
+        );
+        let function_core_types =
+            native_function_core_types(resolver, &candidate_to_native, candidates);
+        let callable_shapes = native_callable_shapes(
+            resolver,
+            &candidate_to_native,
+            candidates,
+            &constructor_layouts[&core.module],
+        );
         let suspending_names = resolved_names(resolver, &suspending);
         let mut functions = Vec::new();
         let mut continuations = Vec::<NativeContinuation>::new();
@@ -375,19 +486,30 @@ fn lower_selected_application(
             if !selected[candidate_index] || candidate.core.module != core.module {
                 continue;
             }
-            let (function, mut function_continuations) =
+            let (mut function, mut function_continuations) =
                 super::lower_native_function_with_callables(
                     &core.module,
                     candidate.function,
                     &identities,
                     &function_types,
+                    &function_core_types,
                     &callable_shapes,
                     &mut lifted_functions,
                     &constructor_layouts[&core.module],
                     &suspending_names,
                     &call_profiles,
                     &mut export_ids,
-                )?;
+                )
+                .map_err(|error| {
+                    format!(
+                        "{error}; while lowering `{}.{}/{}`",
+                        core.module, candidate.function.name, candidate.function.arity
+                    )
+                })?;
+            super::continuation_sharing::intern_function_continuations(
+                &mut function.body,
+                &mut function_continuations,
+            );
             functions.push(function);
             continuations.append(&mut function_continuations);
         }
@@ -423,7 +545,18 @@ fn lower_selected_application(
                     }),
             )?);
             managed_layouts.extend(managed_aggregate_layouts(inferred_dynamic_returns.iter())?);
+            managed_layouts.extend(managed_expression_layouts(
+                candidates
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, candidate)| {
+                        selected[*index] && candidate.core.module == core.module
+                    })
+                    .flat_map(|(_, candidate)| &candidate.function.clauses)
+                    .filter_map(|clause| clause.body.core_expr.as_ref()),
+            )?);
             managed_layouts.extend(super::http_values::http_managed_layouts(core)?);
+            managed_layouts.extend(native_handle_layouts(core)?);
             managed_layouts.sort_by(|left, right| left.as_ref().cmp(right.as_ref()));
             managed_layouts.dedup_by(|left, right| left.as_ref() == right.as_ref());
             let mut managed_collections = managed_collection_layouts(
@@ -444,6 +577,16 @@ fn lower_selected_application(
             )?;
             managed_collections
                 .extend(managed_collection_layouts(inferred_dynamic_returns.iter())?);
+            managed_collections.extend(managed_expression_collection_layouts(
+                candidates
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, candidate)| {
+                        selected[*index] && candidate.core.module == core.module
+                    })
+                    .flat_map(|(_, candidate)| &candidate.function.clauses)
+                    .filter_map(|clause| clause.body.core_expr.as_ref()),
+            )?);
             managed_collections.extend(super::http_values::http_managed_collections(core)?);
             managed_collections.sort_by(|left, right| left.as_ref().cmp(right.as_ref()));
             managed_collections.dedup_by(|left, right| left.as_ref() == right.as_ref());
@@ -479,7 +622,46 @@ fn lower_selected_application(
             atoms: atoms.clone(),
         });
     }
+    super::continuation_sharing::materialize_shared_continuations(&mut modules)?;
     Ok(modules)
+}
+
+fn application_composable_candidates(
+    candidates: &[Candidate<'_>],
+    selected: &[bool],
+    resolvers: &HashMap<String, HashMap<CallIdentity, usize>>,
+    suspending: &HashSet<usize>,
+) -> HashSet<usize> {
+    let mut composable_candidates = HashSet::new();
+    loop {
+        let before = composable_candidates.len();
+        for (candidate_index, candidate) in candidates.iter().enumerate() {
+            if !selected[candidate_index] || composable_candidates.contains(&candidate_index) {
+                continue;
+            }
+            let resolver = &resolvers[&candidate.core.module];
+            let suspending_names = resolved_names(resolver, suspending);
+            let composable_names = resolver
+                .iter()
+                .filter(|(_, index)| composable_candidates.contains(*index))
+                .map(|(identity, _)| identity.clone())
+                .collect::<HashSet<_>>();
+            let Some(body) = candidate
+                .function
+                .clauses
+                .first()
+                .and_then(|clause| clause.body.core_expr.as_ref())
+            else {
+                continue;
+            };
+            if is_composable_suspending_body(body, &suspending_names, &composable_names) {
+                composable_candidates.insert(candidate_index);
+            }
+        }
+        if composable_candidates.len() == before {
+            return composable_candidates;
+        }
+    }
 }
 
 fn application_resolvers(
@@ -539,67 +721,7 @@ fn application_resolvers(
         .collect()
 }
 
-fn normalize_remote_calls(core: &mut CoreModule) {
-    for function in &mut core.functions {
-        for clause in &mut function.clauses {
-            if let Some(body) = &mut clause.body.core_expr {
-                normalize_remote_expr(body);
-            }
-        }
-    }
-}
-
-fn normalize_remote_expr(expr: &mut CoreExpr) {
-    match expr {
-        CoreExpr::RemoteCall {
-            module,
-            function,
-            args,
-        } => {
-            for arg in args.iter_mut() {
-                normalize_remote_expr(arg);
-            }
-            if super::http_values::is_managed_http_module(module)
-                || super::template_values::is_managed_template_module(module)
-                || super::list_comprehension::is_managed_comprehension_module(module)
-            {
-                return;
-            }
-            *expr = CoreExpr::Call {
-                function: format!("{module}.{function}"),
-                args: std::mem::take(args),
-            };
-        }
-        CoreExpr::Call { args, .. } | CoreExpr::ConstructorCall { args, .. } => {
-            for arg in args {
-                normalize_remote_expr(arg);
-            }
-        }
-        CoreExpr::Intrinsic(call) => {
-            for arg in &mut call.args {
-                normalize_remote_expr(arg);
-            }
-        }
-        CoreExpr::UnaryOp { operand, .. } => normalize_remote_expr(operand),
-        CoreExpr::BinaryOp { left, right, .. } => {
-            normalize_remote_expr(left);
-            normalize_remote_expr(right);
-        }
-        CoreExpr::Let { bindings, body } => {
-            for binding in bindings {
-                normalize_remote_expr(&mut binding.value);
-            }
-            normalize_remote_expr(body);
-        }
-        CoreExpr::If { clauses } => {
-            for clause in clauses {
-                normalize_remote_expr(&mut clause.condition);
-                normalize_remote_expr(&mut clause.body);
-            }
-        }
-        _ => {}
-    }
-}
+include!("application/remote_calls.rs");
 
 fn imports_function(core: &CoreModule, candidate: &Candidate<'_>) -> bool {
     core.imports.iter().any(|import| {
@@ -722,13 +844,32 @@ fn native_function_types(
     resolver: &HashMap<CallIdentity, usize>,
     candidate_to_native: &HashMap<usize, usize>,
     candidates: &[Candidate<'_>],
+    constructors: &super::constructors::NativeConstructorLayouts,
 ) -> HashMap<CallIdentity, NativeType> {
     resolver
         .iter()
         .filter(|(_, candidate)| candidate_to_native.contains_key(candidate))
         .filter_map(|(identity, candidate)| {
-            native_return_type(candidates[*candidate].function)
+            native_return_type_with_constructors(candidates[*candidate].function, constructors)
                 .map(|native_type| (identity.clone(), native_type))
+        })
+        .collect()
+}
+
+fn native_function_core_types(
+    resolver: &HashMap<CallIdentity, usize>,
+    candidate_to_native: &HashMap<usize, usize>,
+    candidates: &[Candidate<'_>],
+) -> HashMap<CallIdentity, CoreType> {
+    resolver
+        .iter()
+        .filter(|(_, candidate)| candidate_to_native.contains_key(candidate))
+        .filter_map(|(identity, candidate)| {
+            candidates[*candidate]
+                .function
+                .core_return_type
+                .clone()
+                .map(|core_type| (identity.clone(), core_type))
         })
         .collect()
 }
@@ -737,6 +878,7 @@ fn native_callable_shapes(
     resolver: &HashMap<CallIdentity, usize>,
     candidate_to_native: &HashMap<usize, usize>,
     candidates: &[Candidate<'_>],
+    constructors: &super::constructors::NativeConstructorLayouts,
 ) -> HashMap<CallIdentity, NativeCallableShape> {
     resolver
         .iter()
@@ -747,9 +889,15 @@ fn native_callable_shapes(
                 .function
                 .params
                 .iter()
-                .map(|parameter| native_type(parameter.core_ty.as_ref(), &parameter.ty))
+                .map(|parameter| {
+                    native_type_with_constructors(
+                        parameter.core_ty.as_ref(),
+                        &parameter.ty,
+                        constructors,
+                    )
+                })
                 .collect::<Option<Vec<_>>>()?;
-            let result = native_return_type(candidate.function)?;
+            let result = native_return_type_with_constructors(candidate.function, constructors)?;
             Some((
                 identity.clone(),
                 NativeCallableShape {

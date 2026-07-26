@@ -2,6 +2,8 @@ use std::borrow::Cow;
 use std::fs;
 use std::path::Path;
 
+use bytes::Bytes;
+
 use crate::runtime::vm::{ReplValue, VmAotHttpResponse};
 use crate::terlan_native::http as native_http;
 
@@ -33,6 +35,7 @@ pub(crate) struct HandlerResponse {
 pub(crate) enum HandlerBody {
     Text(String),
     Bytes(Vec<u8>),
+    Transferred(Bytes),
 }
 
 impl HandlerBody {
@@ -40,6 +43,7 @@ impl HandlerBody {
         match self {
             Self::Text(body) => body.as_bytes(),
             Self::Bytes(body) => body,
+            Self::Transferred(body) => body,
         }
     }
 
@@ -63,20 +67,25 @@ impl HandlerResponse {
         let (content_type, body) = match response.kind {
             0 => (
                 Cow::Borrowed("text/plain; charset=utf-8"),
-                HandlerBody::Text(response.payload),
+                HandlerBody::Transferred(response.payload),
             ),
             1 => (
                 Cow::Borrowed("text/html; charset=utf-8"),
-                HandlerBody::Text(response.payload),
+                HandlerBody::Transferred(response.payload),
             ),
             2 => (
                 Cow::Borrowed("application/json; charset=utf-8"),
-                HandlerBody::Text(response.payload),
+                HandlerBody::Transferred(response.payload),
             ),
             3 => {
+                let location = std::str::from_utf8(&response.payload)
+                    .map_err(|error| {
+                        format!("error[serve_handler]: redirect location is not UTF-8: {error}")
+                    })?
+                    .to_owned();
                 headers.push(validate_response_header_owned(
                     "Location".to_string(),
-                    response.payload,
+                    location,
                 )?);
                 (
                     Cow::Borrowed("text/plain; charset=utf-8"),

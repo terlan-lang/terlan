@@ -211,6 +211,9 @@ fn hyper_request_handler_executes_dynamic_handler_with_vm_runtime() {
             "module app.Api.\n\nimport std.http.Response.\nimport type std.http.Request.{Request}.\nimport type std.http.Response.{Response}.\n\npub handle(_request: Request): Response ->\n    Response.text(\"changed handler\").with_status(202).\n",
         )
         .expect("rewrite handler source");
+        // The direct request harness does not spawn the production file
+        // watcher, so deliver the same generation-invalidation event here.
+        clear_vm_handler_module_cache_for_test();
         let request = Request::builder()
             .method("POST")
             .uri("/api/users?page=2")

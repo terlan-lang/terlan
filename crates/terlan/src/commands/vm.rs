@@ -2,12 +2,16 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use crate::runtime::native_image::control::TvmTransitionOperation;
 use crate::runtime::vm::code_server::VmCodeServerEvent;
-use crate::runtime::vm::pure_native::PureNativeExecutionShard;
+use crate::runtime::vm::pure_native::{
+    PureNativeCapabilityRequest, PureNativeExecution, PureNativeExecutionShard,
+};
 #[cfg(test)]
 use crate::runtime::vm::source_reload::VmSourceReloadAdapter;
 use crate::runtime::vm::source_reload::VmSourceReloadBatchReport;
 use crate::runtime::vm::ReplValue;
+use crate::terlan_native_boundary::term::{NativeBoundaryReplyTerm, NativeBoundaryTerm};
 use crate::{CliCommand, CliState};
 
 #[path = "vm/native_reload.rs"]
@@ -225,10 +229,72 @@ fn run_source_file_in_vm(
             "error[vm.aot_export_missing]: native image does not contain `{qualified}/0`; runtime CoreIR interpretation has been removed"
         ));
     }
-    let value = shard.call(&qualified, &[])?;
+    let value = call_with_command_capabilities(&mut shard, &qualified, output)?;
     shard.shutdown()?;
-    let _ = output;
     Ok(value)
+}
+
+/// Drives one command-owned call while servicing its explicitly supported capabilities.
+fn call_with_command_capabilities(
+    shard: &mut PureNativeExecutionShard,
+    qualified: &str,
+    output: &mut dyn FnMut(&str),
+) -> Result<ReplValue, String> {
+    let (owner, mut execution) = shard.begin_call(qualified, &[])?;
+    loop {
+        execution = match execution {
+            PureNativeExecution::Complete(value) => {
+                shard.finish_completed_call(owner)?;
+                return Ok(value);
+            }
+            PureNativeExecution::HttpResponse(_) => {
+                let error = "error[vm.command_result]: VM command entry returned an HTTP response"
+                    .to_string();
+                shard.cancel_call(owner, error.clone())?;
+                return Err(error);
+            }
+            PureNativeExecution::Suspended(suspension)
+                if suspension.operation() == TvmTransitionOperation::Capability =>
+            {
+                let wait = shard.begin_capability_call(owner, &suspension)?;
+                let reply = match command_capability_reply(wait.request(), output) {
+                    Ok(reply) => reply,
+                    Err(error) => {
+                        shard.cancel_call(owner, error.clone())?;
+                        return Err(error);
+                    }
+                };
+                shard.resume_capability_call(owner, suspension, wait, reply)?
+            }
+            PureNativeExecution::Suspended(suspension) => shard.resume_call(owner, suspension)?,
+        };
+    }
+}
+
+/// Services the intentionally narrow host capabilities owned by `terlc vm run`.
+fn command_capability_reply(
+    request: &PureNativeCapabilityRequest,
+    output: &mut dyn FnMut(&str),
+) -> Result<NativeBoundaryReplyTerm, String> {
+    match (
+        request.capability.as_str(),
+        request.operation.as_str(),
+        request.arguments.as_slice(),
+        &request.result_type,
+    ) {
+        (
+            "stdio",
+            "std.io.console.println",
+            [NativeBoundaryTerm::Text(line)],
+            crate::runtime::native_image::TvmBoundaryType::Unit,
+        ) => {
+            output(line);
+            Ok(NativeBoundaryReplyTerm::Ok(NativeBoundaryTerm::Unit))
+        }
+        (capability, operation, _, _) => Err(format!(
+            "error[vm.command_capability_unsupported]: `terlc vm run` does not provide capability `{capability}:{operation}`"
+        )),
+    }
 }
 
 /// Publishes changed source files through the VM source-reload adapter.

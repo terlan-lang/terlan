@@ -3,6 +3,7 @@ use std::time::Instant;
 
 use serde::Serialize;
 
+use crate::runtime::vm::package_native_helper::{execute_call, VmPackageNativeHelper};
 use crate::runtime::vm::pure_native::PureNativeExecutionShard;
 use crate::runtime::vm::ReplValue;
 
@@ -33,7 +34,8 @@ pub(super) fn is_tvm_image_path(path: &Path) -> bool {
 /// Statically admits and executes one zero-arity export from a native image.
 pub(super) fn run_tvm_image(path: &Path, entry: &str, test_eval: bool) -> Result<(), String> {
     let mut shard = PureNativeExecutionShard::load_image(path)?;
-    let result: Result<ReplValue, String> = shard.call(entry, &[]);
+    let mut helper = None;
+    let result: Result<ReplValue, String> = execute_call(&mut shard, &mut helper, entry, &[]);
     let shutdown = shard.shutdown();
     let value = result?;
     shutdown?;
@@ -55,15 +57,16 @@ pub(super) fn benchmark_tvm_image(
         return Err("native image benchmark requires non-zero samples and operations".to_string());
     }
     let mut shard = PureNativeExecutionShard::load_image(path)?;
+    let mut helper: Option<VmPackageNativeHelper> = None;
     let mut last = ReplValue::Unit;
     for _ in 0..warmup_iterations {
-        last = shard.call(entry, &[])?;
+        last = execute_call(&mut shard, &mut helper, entry, &[])?;
     }
     let mut sample_ns = Vec::with_capacity(samples);
     for _ in 0..samples {
         let started = Instant::now();
         for _ in 0..operations_per_sample {
-            last = shard.call(entry, &[])?;
+            last = execute_call(&mut shard, &mut helper, entry, &[])?;
         }
         sample_ns.push(started.elapsed().as_nanos());
     }
@@ -74,7 +77,7 @@ pub(super) fn benchmark_tvm_image(
         ReplValue::Unit => "Unit",
         ReplValue::Int(_) => "Int",
         ReplValue::Float(_) => "Float",
-        ReplValue::String(_) => "String",
+        ReplValue::String(_) | ReplValue::StringBytes(_) => "String",
         ReplValue::Bytes(_) => "Bytes",
         ReplValue::BitString(_) => "BitString",
         ReplValue::Atom(_) => "Atom",

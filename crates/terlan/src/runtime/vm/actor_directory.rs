@@ -17,6 +17,9 @@ mod transfer;
 
 use mailbox::VmActorMailbox;
 pub(crate) use mailbox::VmMailboxWake;
+#[cfg(test)]
+#[allow(unused_imports)]
+pub(crate) use mailbox::ACTOR_MAILBOX_CAPACITY;
 pub(crate) use migration::VmActorMigrationStamp;
 use state::{
     next_generation, ownership_race_error, pack_state, unpack_state, validate_token, VmActorState,
@@ -989,3 +992,7 @@ impl<T, P> VmActorDirectory<T, P> {
 #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
 #[path = "actor_directory_test.rs"]
 mod actor_directory_test;
+
+#[cfg(test)]
+#[path = "actor_parallel_messages_beam_suite_parity_test.rs"]
+mod actor_parallel_messages_beam_suite_parity_test;

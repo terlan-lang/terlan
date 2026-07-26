@@ -2,6 +2,7 @@ use std::path::Path;
 
 use super::manifest::{TestRunReport, TestRunResult, TestRunStatus};
 use super::DiscoveredTest;
+use crate::runtime::vm::package_native_helper::execute_call;
 use crate::runtime::vm::pure_native::PureNativeExecutionShard;
 use crate::runtime::vm::ReplValue;
 
@@ -28,10 +29,11 @@ pub(super) fn run_discovered_terlan_vm_tests(
     let mut passed = 0usize;
     let mut failed = 0usize;
     let mut results = Vec::new();
+    let mut package_helper = None;
 
     for test in tests {
         let qualified_name = format!("{module_name}.{}", test.name);
-        let result = native.call(&qualified_name, &[]);
+        let result = execute_call(&mut native, &mut package_helper, &qualified_name, &[]);
         match result {
             Ok(ReplValue::Bool(true)) => {
                 passed += 1;

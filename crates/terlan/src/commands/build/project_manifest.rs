@@ -6,6 +6,8 @@ mod strings;
 mod targets;
 mod validation;
 mod vm_tls;
+#[cfg(feature = "serve-runtime-bin")]
+pub(crate) use config::read_runtime_server_tls;
 #[cfg(test)]
 #[path = "project_manifest/vm_tls_test.rs"]
 mod vm_tls_test;

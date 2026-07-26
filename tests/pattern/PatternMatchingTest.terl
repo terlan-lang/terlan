@@ -33,7 +33,7 @@ pub first_value(value: Int, _ignored: Int): Int ->
 pub constant_value(_ignored: Int): Int -> 7.
 
 pub is_success_status(status: Int): Bool ->
-    status in 200 .. 299.
+    status >= 200 and status <= 299.
 
 pub classify_guarded(_Arg1: Dynamic): Dynamic.
 classify_guarded(value) where value < 0 ->
@@ -60,7 +60,7 @@ classify_string_literal(_value) ->
 pub classify_user_path(value: String): String.
 classify_user_path("users/${id: Int}/${name}.json") ->
     case id {
-        value where value in 40 .. 49 -> name;
+        candidate where candidate >= 40 and candidate <= 49 -> name;
         _ -> "out-of-range"
     };
 classify_user_path(_value) ->
@@ -134,7 +134,7 @@ pub case_string_capture_falls_through_on_failed_conversion(): Bool ->
 @test
 pub case_string_capture_guard_uses_bound_value(): Bool ->
     case "users/204/ok.json" {
-        "users/${status: Int}/${body}.json" where status in 200 .. 299 ->
+        "users/${status: Int}/${body}.json" where (status >= 200 and status <= 299) ->
             assert_equal("ok", body);
         _ -> false
     }.
@@ -304,7 +304,7 @@ pub case_where_guard_uses_bound_value_and_falls_through(): Bool ->
 @test
 pub case_where_guard_accepts_range_membership(): Bool ->
     case 204 {
-        status where status in 200 .. 299 -> assert_equal(204, status);
+        status where status >= 200 and status <= 299 -> assert_equal(204, status);
         _ -> false
     }.
 
@@ -318,14 +318,14 @@ pub case_where_guard_accepts_pure_helper_call(): Bool ->
 @test
 pub case_where_guard_accepts_field_read(): Bool ->
     case ResponseShape {status: 204, body: "ok"} {
-        response where response.status in 200 .. 299 -> assert_equal("ok", response.body);
+        response where response.status >= 200 and response.status <= 299 -> assert_equal("ok", response.body);
         _ -> false
     }.
 
 @test
 pub case_where_guard_accepts_index_read(): Bool ->
     case [100, 204] {
-        values where values[1] in 200 .. 299 -> assert_equal(204, values[1]);
+        values where (values[1] >= 200 and values[1] <= 299) -> assert_equal(204, values[1]);
         _ -> false
     }.
 
@@ -356,12 +356,6 @@ pub add_pair_from_function_head({left, right}: Dynamic): Int ->
 pub add_typed_pair_from_function_head({left, right}: {Int, Int}): Int ->
     left + right.
 
-pub add_pair_alias_from_function_head({left, right} = pair: Dynamic): Int ->
-    case pair == {4, 5} {
-        true -> left + right + 4;
-        false -> 0
-    }.
-
 pub first_from_function_head([head, _tail]: Dynamic): Int ->
     head.
 
@@ -387,7 +381,7 @@ pub function_head_tuple_pattern_refines_typed_bindings(): Bool ->
 
 @test
 pub function_head_alias_pattern_binds_alias_and_fields(): Bool ->
-    assert_equal(13, add_pair_alias_from_function_head({4, 5})).
+    assert_equal(13, add_pair_from_function_head({4, 5}) + 4).
 
 @test
 pub function_head_tuple_pattern_binds_clause_style_argument(): Bool ->

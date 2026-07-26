@@ -2,12 +2,18 @@
 
 use std::fs;
 use std::num::NonZeroU64;
+use std::path::PathBuf;
+use std::process::Command;
 use std::thread;
 
 use serde::Serialize;
 
 /// Environment variable that overrides the detected scheduler width.
 pub(crate) const VM_SCHEDULER_WIDTH_ENV: &str = "TERLAN_VM_SCHEDULERS";
+/// Optional exact Linux CPU list applied before scheduler threads start.
+pub(crate) const VM_CPU_LIST_ENV: &str = "TERLAN_VM_CPU_LIST";
+/// Optional hybrid-core policy (`all` or `performance`).
+pub(crate) const VM_CORE_CLASS_ENV: &str = "TERLAN_VM_CORE_CLASS";
 /// Maximum scheduler width admitted before NUMA-aware placement exists.
 pub(crate) const VM_MAX_SCHEDULERS: usize = 32;
 
@@ -81,6 +87,7 @@ impl VmSchedulerHostSnapshot {
     }
 
     /// Returns effective host capacity before an explicit scheduler override.
+    #[cfg(test)]
     pub(crate) const fn effective_parallelism(&self) -> usize {
         self.effective_parallelism
     }
@@ -178,6 +185,7 @@ impl VmSchedulerTopology {
 
     /// Detects effective host capacity unless an explicit override is present.
     pub(crate) fn from_environment() -> Result<Self, String> {
+        apply_scheduler_affinity()?;
         if let Some(value) = std::env::var_os(VM_SCHEDULER_WIDTH_ENV) {
             let value = value.to_string_lossy();
             let width = value.parse::<usize>().map_err(|_| {
@@ -187,7 +195,7 @@ impl VmSchedulerTopology {
             })?;
             return Self::new(width);
         }
-        Self::new(detect_effective_parallelism())
+        Self::new(detect_default_scheduler_width())
     }
 
     /// Returns the number of scheduler threads in this shard.
@@ -216,9 +224,129 @@ impl VmSchedulerTopology {
     }
 }
 
+/// Applies explicit or hybrid-aware process affinity before owner creation.
+fn apply_scheduler_affinity() -> Result<(), String> {
+    let explicit = std::env::var(VM_CPU_LIST_ENV)
+        .ok()
+        .filter(|value| !value.trim().is_empty());
+    let selected = match std::env::var(VM_CORE_CLASS_ENV).as_deref() {
+        Ok("performance") if explicit.is_none() => performance_core_cpu_list(),
+        Ok("all") | Err(std::env::VarError::NotPresent) => None,
+        Ok(value) if value != "performance" => {
+            return Err(format!(
+                "error[vm.scheduler_core_class]: {VM_CORE_CLASS_ENV} expects `all` or `performance`, found `{value}`"
+            ))
+        }
+        Err(error) => {
+            return Err(format!(
+                "error[vm.scheduler_core_class]: cannot read {VM_CORE_CLASS_ENV}: {error}"
+            ))
+        }
+        _ => None,
+    };
+    let Some(cpu_list) = explicit.or(selected) else {
+        return Ok(());
+    };
+    cpu_list_count(&cpu_list).ok_or_else(|| {
+        format!("error[vm.scheduler_affinity]: invalid Linux CPU list `{cpu_list}`")
+    })?;
+    if !cfg!(target_os = "linux") {
+        return Err(
+            "error[vm.scheduler_affinity]: CPU-list affinity currently requires Linux".to_string(),
+        );
+    }
+    let status = Command::new("taskset")
+        .args([
+            "--pid",
+            "--cpu-list",
+            &cpu_list,
+            &std::process::id().to_string(),
+        ])
+        .status()
+        .map_err(|error| format!("error[vm.scheduler_affinity]: start taskset: {error}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!(
+            "error[vm.scheduler_affinity]: taskset rejected `{cpu_list}` with {status}"
+        ))
+    }
+}
+
+/// Selects one logical CPU from every highest-capacity physical core.
+fn performance_core_cpu_list() -> Option<String> {
+    let root = PathBuf::from("/sys/devices/system/cpu");
+    let allowed = read_trimmed("/proc/self/status")
+        .and_then(|status| process_affinity_list(&status))
+        .and_then(|list| cpu_list_values(&list));
+    let mut cores = std::collections::BTreeMap::<(usize, usize), (usize, u64)>::new();
+    for entry in fs::read_dir(root).ok()?.flatten() {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        let Some(cpu) = name
+            .strip_prefix("cpu")
+            .and_then(|value| value.parse::<usize>().ok())
+        else {
+            continue;
+        };
+        if allowed
+            .as_ref()
+            .is_some_and(|allowed| !allowed.contains(&cpu))
+        {
+            continue;
+        }
+        let path = entry.path();
+        let package = fs::read_to_string(path.join("topology/physical_package_id"))
+            .ok()?
+            .trim()
+            .parse::<usize>()
+            .ok()?;
+        let core = fs::read_to_string(path.join("topology/core_id"))
+            .ok()?
+            .trim()
+            .parse::<usize>()
+            .ok()?;
+        let capacity = ["cpu_capacity", "cpufreq/cpuinfo_max_freq"]
+            .into_iter()
+            .find_map(|relative| {
+                fs::read_to_string(path.join(relative))
+                    .ok()?
+                    .trim()
+                    .parse::<u64>()
+                    .ok()
+            })
+            .unwrap_or(1);
+        cores
+            .entry((package, core))
+            .and_modify(|selected| {
+                if capacity > selected.1 || (capacity == selected.1 && cpu < selected.0) {
+                    *selected = (cpu, capacity);
+                }
+            })
+            .or_insert((cpu, capacity));
+    }
+    let maximum = cores.values().map(|(_, capacity)| *capacity).max()?;
+    let selected = cores
+        .values()
+        .filter_map(|(cpu, capacity)| (*capacity == maximum).then_some(cpu.to_string()))
+        .collect::<Vec<_>>();
+    (!selected.is_empty()).then(|| selected.join(","))
+}
+
 /// Returns effective host capacity after affinity and cgroup quota limits.
-fn detect_effective_parallelism() -> usize {
-    VmSchedulerHostSnapshot::capture().effective_parallelism()
+fn detect_default_scheduler_width() -> usize {
+    let snapshot = VmSchedulerHostSnapshot::capture();
+    default_scheduler_width(snapshot.effective_parallelism, snapshot.physical_cores)
+}
+
+/// Prefers one owner per physical core while respecting tighter host limits.
+fn default_scheduler_width(effective_parallelism: usize, physical_cores: Option<usize>) -> usize {
+    physical_cores
+        .filter(|cores| *cores > 0)
+        .map_or(effective_parallelism, |cores| {
+            cores.min(effective_parallelism)
+        })
+        .clamp(1, VM_MAX_SCHEDULERS)
 }
 
 /// Applies every visible host limit without allowing a zero-width runtime.
@@ -233,6 +361,11 @@ fn effective_parallelism(host: usize, cpuset: Option<usize>, quota: Option<usize
 
 /// Counts unique logical CPUs in Linux's comma/range list format.
 fn cpu_list_count(value: &str) -> Option<usize> {
+    cpu_list_values(value).map(|cpus| cpus.len())
+}
+
+/// Expands one canonical Linux CPU-list record.
+fn cpu_list_values(value: &str) -> Option<std::collections::BTreeSet<usize>> {
     let mut cpus = std::collections::BTreeSet::new();
     for part in value.trim().split(',').filter(|part| !part.is_empty()) {
         let (start, end) = match part.split_once('-') {
@@ -247,7 +380,7 @@ fn cpu_list_count(value: &str) -> Option<usize> {
         }
         cpus.extend(start..=end);
     }
-    (!cpus.is_empty()).then_some(cpus.len())
+    (!cpus.is_empty()).then_some(cpus)
 }
 
 /// Reads one nonempty, trimmed host metadata file.
@@ -323,3 +456,7 @@ fn parse_cgroup_v2_quota(value: &str) -> Option<CgroupV2CpuQuota> {
 #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
 #[path = "scheduler_topology_test.rs"]
 mod scheduler_topology_test;
+
+#[cfg(test)]
+#[path = "scheduler_smoke_beam_suite_parity_test.rs"]
+mod scheduler_smoke_beam_suite_parity_test;

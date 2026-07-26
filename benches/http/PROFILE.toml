@@ -22,7 +22,7 @@ payload_bytes = [0, 512, 4096]
 route_mix = ["static", "json", "add", "route-param", "stateful-counter"]
 
 [replay]
-fingerprint_schema = "terlan-vm-http-replay-v1"
+fingerprint_schema = "terlan.vm.multicore-replay.v1"
 execution_validation_required = true
 stable_runs_required = 3
 

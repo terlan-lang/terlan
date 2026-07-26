@@ -5,30 +5,39 @@ use std::future::Future;
 use std::io;
 use std::net::{self as std_net, SocketAddr, ToSocketAddrs};
 use std::pin::Pin;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+#[cfg(test)]
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc, Mutex, OnceLock, Weak};
 #[cfg(test)]
 use std::task::Wake;
 use std::task::{Context, Poll as TaskPoll};
 use std::thread;
 
-use concurrent_queue::ConcurrentQueue;
-use mio::net::{TcpListener, TcpStream};
+use mio::net::TcpStream;
 use mio::{Events, Interest, Poll, Token, Waker as MioWaker};
 use socket2::{Domain, Protocol, Socket, Type};
 
 use super::scheduler_topology::{VmSchedulerId, VmSchedulerTopology};
 
+mod acceptor;
 mod admission;
+mod lazy_queue;
 mod local_resources;
 mod process_ids;
 mod server;
+mod timers;
 mod transport;
 mod wake;
 
-use admission::admission_target;
+use acceptor::{VmProtocolAcceptor, VmProtocolCapacity};
 #[cfg(test)]
-use admission::{least_loaded_shard, sampled_loaded_shard};
+use admission::{admission_target, least_loaded_shard, sampled_loaded_shard};
+use admission::{
+    reserve_admission_target, reserve_remote_admission_target, VmProtocolOwnerParked,
+    VmProtocolShardLoad,
+};
+use lazy_queue::VmLazyBoundedQueue;
 use local_resources::{
     has_owner_local_scheduled, pop_owner_local_scheduled, push_owner_local_scheduled,
     VmProtocolLocalResources,
@@ -36,7 +45,9 @@ use local_resources::{
 use process_ids::VmProtocolProcessIds;
 pub(crate) use server::VmProtocolTaskServer;
 use server::{join_protocol_threads, stop_protocol_threads};
-use transport::VmReadyEvent;
+pub(crate) use timers::protocol_sleep_until;
+use timers::{next_protocol_timer_timeout, wake_due_protocol_timers};
+use transport::{render_io, VmReadyEvent};
 pub(crate) use transport::{VmProtocolTaskRoute, VmReadyTcpStream, VmSocketReadinessWake};
 #[cfg(test)]
 use wake::VmProtocolTaskWake;
@@ -59,8 +70,7 @@ thread_local! {
     static PROTOCOL_LOCAL_RESOURCES: RefCell<VmProtocolLocalResources> =
         RefCell::new(VmProtocolLocalResources::default());
 }
-pub(crate) type VmProtocolTaskFuture =
-    Pin<Box<dyn Future<Output = Result<(), String>> + Send + 'static>>;
+pub(crate) type VmProtocolTaskFuture = Pin<Box<dyn Future<Output = Result<(), String>> + 'static>>;
 pub(crate) type VmProtocolTaskFactory = Arc<
     dyn Fn(VmReadyTcpStream, VmProtocolTaskRoute) -> VmProtocolTaskFuture + Send + Sync + 'static,
 >;
@@ -86,6 +96,27 @@ pub(crate) fn with_current_protocol_resource<T: 'static, R>(
         resources
             .with_resource(identity, || initialize(scheduler), use_resource)
             .map(Some)
+    })
+}
+
+/// Mutates an already-admitted resource on its exact protocol owner.
+///
+/// Continuation resumption must never recreate an empty execution shard after
+/// reload or retirement because doing so would silently lose actor state.
+pub(crate) fn with_existing_current_protocol_resource<T: 'static, R>(
+    identity: u64,
+    use_resource: impl FnOnce(&mut T) -> Result<R, String>,
+) -> Result<R, String> {
+    current_protocol_scheduler().ok_or_else(|| {
+        "error[vm.protocol_resource_owner]: operation is outside a protocol owner".to_string()
+    })?;
+    PROTOCOL_LOCAL_RESOURCES.with(|resources| {
+        resources
+            .try_borrow_mut()
+            .map_err(|_| {
+                "error[vm.protocol_resource]: reentrant shard-local resource access".to_string()
+            })?
+            .with_existing_resource(identity, use_resource)
     })
 }
 
@@ -277,118 +308,12 @@ fn bind_address(address: SocketAddr) -> io::Result<std_net::TcpListener> {
     Ok(socket.into())
 }
 
-#[derive(Default)]
-struct VmProtocolCapacity {
-    waiting: AtomicBool,
-    wakers: Mutex<Vec<Arc<MioWaker>>>,
-}
-
-impl VmProtocolCapacity {
-    fn register(&self, waker: &Arc<MioWaker>) -> Result<(), String> {
-        self.wakers
-            .lock()
-            .map_err(|_| "error[vm.protocol_capacity]: waker registry poisoned".to_string())?
-            .push(Arc::clone(waker));
-        Ok(())
-    }
-
-    fn park(&self) {
-        self.waiting.store(true, Ordering::Release);
-    }
-
-    fn notify(&self) {
-        if !self.waiting.load(Ordering::Relaxed) || !self.waiting.swap(false, Ordering::AcqRel) {
-            return;
-        }
-        if let Ok(wakers) = self.wakers.lock() {
-            for waker in wakers.iter() {
-                let _ = waker.wake();
-            }
-        }
-    }
-}
-
-/// Per-owner accept point with VM-directed overload correction.
-struct VmProtocolAcceptor {
-    listener: TcpListener,
-    ingresses: Vec<Arc<VmProtocolShardIngress>>,
-    local_index: usize,
-    capacity: Arc<VmProtocolCapacity>,
-    next_tie: usize,
-    local_admissions: Vec<TcpStream>,
-}
-
-impl VmProtocolAcceptor {
-    fn new(
-        listener: std_net::TcpListener,
-        registry: &mio::Registry,
-        ingresses: Vec<Arc<VmProtocolShardIngress>>,
-        local_index: usize,
-        capacity: Arc<VmProtocolCapacity>,
-    ) -> Result<Self, String> {
-        listener
-            .set_nonblocking(true)
-            .map_err(render_io("acceptor listener"))?;
-        let mut listener = TcpListener::from_std(listener);
-        registry
-            .register(&mut listener, ACCEPTOR_LISTENER_TOKEN, Interest::READABLE)
-            .map_err(render_io("acceptor listener registration"))?;
-        Ok(Self {
-            listener,
-            ingresses,
-            local_index,
-            capacity,
-            next_tie: local_index,
-            local_admissions: Vec::with_capacity(64),
-        })
-    }
-
-    /// Drains a bounded listener batch and reports whether admission should
-    /// continue immediately after the owner services its current tasks.
-    fn accept_ready(&mut self) -> Result<bool, String> {
-        for _ in 0..MAX_ACCEPTS_PER_TICK {
-            let Some(target) = admission_target(&self.ingresses, self.local_index, self.next_tie)
-            else {
-                self.capacity.park();
-                if admission_target(&self.ingresses, self.local_index, self.next_tie).is_some() {
-                    self.capacity.waiting.store(false, Ordering::Release);
-                    continue;
-                }
-                return Ok(false);
-            };
-            let (stream, _) = match self.listener.accept() {
-                Ok(accepted) => accepted,
-                Err(error) if error.kind() == io::ErrorKind::WouldBlock => return Ok(false),
-                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
-                Err(error) => return Err(format!("error[vm.protocol_accept]: {error}")),
-            };
-            if target == self.local_index {
-                self.ingresses[target].reserve()?;
-                self.local_admissions.push(stream);
-            } else {
-                self.ingresses[target].admit(stream, true)?;
-            }
-            self.next_tie = (target + 1) % self.ingresses.len();
-        }
-        Ok(true)
-    }
-
-    fn take_local_admissions(&mut self) -> Vec<TcpStream> {
-        std::mem::take(&mut self.local_admissions)
-    }
-
-    fn recycle_local_admissions(&mut self, mut admissions: Vec<TcpStream>) {
-        admissions.clear();
-        self.local_admissions = admissions;
-    }
-}
-
 /// Bounded socket ingress and load accounting for one fixed VM owner.
 struct VmProtocolShardIngress {
     scheduler: VmSchedulerId,
-    sockets: ConcurrentQueue<TcpStream>,
-    load: AtomicUsize,
-    owner_parked: AtomicBool,
+    sockets: VmLazyBoundedQueue<TcpStream>,
+    load: VmProtocolShardLoad,
+    owner_parked: VmProtocolOwnerParked,
     poll_waker: Arc<MioWaker>,
     capacity: Arc<VmProtocolCapacity>,
 }
@@ -401,25 +326,26 @@ impl VmProtocolShardIngress {
         self.load.load(Ordering::Relaxed)
     }
 
-    fn reserve(&self) -> Result<(), String> {
-        self.load
-            .try_update(Ordering::Relaxed, Ordering::Relaxed, |load| {
-                (load < MAX_TASKS_PER_SHARD).then_some(load + 1)
-            })
-            .map_err(|_| {
-                format!(
-                    "error[vm.protocol_capacity]: scheduler {} is full",
-                    self.scheduler.index()
-                )
-            })?;
-        Ok(())
+    fn try_reserve(&self) -> bool {
+        // The protocol acceptor is the only producer of reservations; owners
+        // only decrement this counter on completion. One fetch-add therefore
+        // enforces the exact bound without a compare-exchange retry loop.
+        let prior = self.load.fetch_add(1, Ordering::Relaxed);
+        if prior < MAX_TASKS_PER_SHARD {
+            return true;
+        }
+        self.load.fetch_sub(1, Ordering::Relaxed);
+        false
     }
 
-    fn admit(&self, stream: TcpStream, wake_owner: bool) -> Result<(), String> {
-        self.reserve()?;
-        let was_empty = self.sockets.is_empty();
+    fn release_reservation(&self) {
+        let prior = self.load.fetch_sub(1, Ordering::Relaxed);
+        debug_assert!(prior > 0, "protocol shard reservation underflow");
+    }
+
+    fn admit_reserved(&self, stream: TcpStream, wake_owner: bool) -> Result<(), String> {
         if let Err(error) = self.sockets.push(stream) {
-            self.load.fetch_sub(1, Ordering::Relaxed);
+            self.release_reservation();
             drop(error.into_inner());
             return Err(format!(
                 "error[vm.protocol_capacity]: scheduler {} ingress queue full",
@@ -431,7 +357,7 @@ impl VmProtocolShardIngress {
         // committed to the poll path, this wake breaks that sleep. Sampling
         // before publication permits the owner to enter `poll` in between and
         // strand a socket until unrelated readiness arrives.
-        if wake_owner && was_empty && self.owner_parked.load(Ordering::Acquire) {
+        if wake_owner && self.owner_parked.load(Ordering::Acquire) {
             self.poll_waker.wake().map_err(|error| {
                 format!(
                     "error[vm.protocol_scheduler]: wake scheduler {}: {error}",
@@ -440,6 +366,17 @@ impl VmProtocolShardIngress {
             })?;
         }
         Ok(())
+    }
+
+    #[cfg(test)]
+    fn admit(&self, stream: TcpStream, wake_owner: bool) -> Result<(), String> {
+        if !self.try_reserve() {
+            return Err(format!(
+                "error[vm.protocol_capacity]: scheduler {} is full",
+                self.scheduler.index()
+            ));
+        }
+        self.admit_reserved(stream, wake_owner)
     }
 
     fn complete(&self) {
@@ -461,11 +398,12 @@ struct VmProtocolTaskShard {
     task_generations: Vec<usize>,
     free_task_slots: Vec<usize>,
     active_task_count: usize,
-    scheduled: Arc<ConcurrentQueue<Token>>,
+    scheduled: Arc<VmLazyBoundedQueue<Token>>,
     poll_waker: Arc<MioWaker>,
     control_port: Arc<VmProtocolControlPort>,
     ingress: Arc<VmProtocolShardIngress>,
     acceptor: Option<VmProtocolAcceptor>,
+    capacity_notification_epoch: usize,
     process_ids: VmProtocolProcessIds,
 }
 
@@ -477,11 +415,12 @@ struct VmProtocolShardStartup {
     events: Events,
     ready_events: Vec<VmReadyEvent>,
     factory: VmProtocolTaskFactory,
-    scheduled: Arc<ConcurrentQueue<Token>>,
+    scheduled: Arc<VmLazyBoundedQueue<Token>>,
     poll_waker: Arc<MioWaker>,
     control_port: Arc<VmProtocolControlPort>,
     ingress: Arc<VmProtocolShardIngress>,
     acceptor: Option<VmProtocolAcceptor>,
+    capacity_notification_epoch: usize,
     process_ids: VmProtocolProcessIds,
 }
 
@@ -495,13 +434,9 @@ impl VmProtocolShardStartup {
         // One registry handle is shared by every socket on this owner. This
         // lets transports arm write readiness lazily without cloning an
         // epoll/kqueue descriptor for every connection.
-        let scheduled = Arc::new(ConcurrentQueue::bounded(MAX_TASKS_PER_SHARD));
+        let scheduled = Arc::new(VmLazyBoundedQueue::bounded(MAX_TASKS_PER_SHARD));
         let poll_waker = Arc::new(
             MioWaker::new(poll.registry(), TASK_WAKE_TOKEN).map_err(render_io("task waker"))?,
-        );
-        let capacity_waker = Arc::new(
-            MioWaker::new(poll.registry(), ACCEPTOR_CAPACITY_TOKEN)
-                .map_err(render_io("acceptor capacity waker"))?,
         );
         let owner_wake = Arc::new(VmProtocolOwnerWake {
             scheduler,
@@ -512,18 +447,22 @@ impl VmProtocolShardStartup {
             queue: Arc::clone(&scheduled),
             poll_waker: Arc::clone(&poll_waker),
         });
-        capacity.register(&capacity_waker)?;
+        // mio permits exactly one Waker per Poll. Capacity notifications
+        // therefore share the owner waker and carry their reason through a
+        // monotonic epoch rather than competing for another registry waker.
+        capacity.register(&poll_waker)?;
+        let capacity_notification_epoch = capacity.notification_epoch();
         let ingress = Arc::new(VmProtocolShardIngress {
             scheduler,
-            sockets: ConcurrentQueue::bounded(MAX_TASKS_PER_SHARD),
-            load: AtomicUsize::new(0),
-            owner_parked: AtomicBool::new(false),
+            sockets: VmLazyBoundedQueue::bounded(MAX_TASKS_PER_SHARD),
+            load: VmProtocolShardLoad::new(0),
+            owner_parked: VmProtocolOwnerParked::new(false),
             poll_waker: Arc::clone(&poll_waker),
             capacity,
         });
         let control_port = Arc::new(VmProtocolControlPort {
             scheduler,
-            messages: ConcurrentQueue::bounded(MAX_CONTROL_MESSAGES_PER_SHARD),
+            messages: VmLazyBoundedQueue::bounded(MAX_CONTROL_MESSAGES_PER_SHARD),
             poll_waker: Arc::clone(&poll_waker),
         });
         PROTOCOL_CONTROL_PORTS
@@ -535,14 +474,15 @@ impl VmProtocolShardStartup {
             scheduler,
             poll,
             owner_wake,
-            events: Events::with_capacity(1_024),
-            ready_events: Vec::with_capacity(1_024),
+            events: Events::with_capacity(64),
+            ready_events: Vec::with_capacity(64),
             factory,
             scheduled,
             poll_waker,
             control_port,
             ingress,
             acceptor: None,
+            capacity_notification_epoch,
             process_ids: VmProtocolProcessIds::new()?,
         })
     }
@@ -592,6 +532,7 @@ impl VmProtocolShardStartup {
             control_port: self.control_port,
             ingress: self.ingress,
             acceptor: self.acceptor,
+            capacity_notification_epoch: self.capacity_notification_epoch,
             process_ids: self.process_ids,
         }
         .run()
@@ -603,15 +544,31 @@ impl VmProtocolTaskShard {
     fn run(mut self) -> Result<(), String> {
         let mut accept_pending = false;
         loop {
-            self.ingress.owner_parked.store(true, Ordering::Release);
-            if self.ingress.sockets.is_empty() && !accept_pending && !has_owner_local_scheduled() {
-                self.poll
-                    .poll(&mut self.events, None)
-                    .map_err(render_io("readiness poll"))?;
+            wake_due_protocol_timers();
+            let idle =
+                self.ingress.sockets.is_empty() && !accept_pending && !has_owner_local_scheduled();
+            if idle {
+                self.ingress.owner_parked.store(true, Ordering::Release);
+                // Close the observation-to-sleep race after publishing the
+                // parked state. Producers either publish before this recheck
+                // or observe `owner_parked` and wake the readiness poller.
+                if self.ingress.sockets.is_empty()
+                    && !accept_pending
+                    && !has_owner_local_scheduled()
+                {
+                    self.poll
+                        .poll(
+                            &mut self.events,
+                            next_protocol_timer_timeout(std::time::Instant::now()),
+                        )
+                        .map_err(render_io("readiness poll"))?;
+                } else {
+                    self.events.clear();
+                }
+                self.ingress.owner_parked.store(false, Ordering::Release);
             } else {
                 self.events.clear();
             }
-            self.ingress.owner_parked.store(false, Ordering::Release);
             self.drain_ingress();
             let mut ready_events = std::mem::take(&mut self.ready_events);
             ready_events.extend(self.events.iter().map(VmReadyEvent::from));
@@ -625,6 +582,11 @@ impl VmProtocolTaskShard {
                     TASK_WAKE_TOKEN => {}
                     token => self.publish_readiness(token, event),
                 }
+            }
+            let capacity_notification_epoch = self.ingress.capacity.notification_epoch();
+            if capacity_notification_epoch != self.capacity_notification_epoch {
+                self.capacity_notification_epoch = capacity_notification_epoch;
+                should_accept |= self.acceptor.is_some();
             }
             ready_events.clear();
             self.ready_events = ready_events;
@@ -643,6 +605,7 @@ impl VmProtocolTaskShard {
             if self.drain_controls() {
                 return Ok(());
             }
+            wake_due_protocol_timers();
             self.poll_scheduled();
         }
     }
@@ -887,7 +850,7 @@ enum VmProtocolControl {
 
 struct VmProtocolControlPort {
     scheduler: VmSchedulerId,
-    messages: ConcurrentQueue<VmProtocolControl>,
+    messages: VmLazyBoundedQueue<VmProtocolControl>,
     poll_waker: Arc<MioWaker>,
 }
 
@@ -903,10 +866,6 @@ pub(crate) fn next_protocol_task_route(
     scheduler: VmSchedulerId,
 ) -> Result<VmProtocolTaskRoute, String> {
     VmProtocolProcessIds::new()?.next_route(scheduler)
-}
-
-fn render_io(operation: &'static str) -> impl FnOnce(io::Error) -> String {
-    move |error| format!("error[vm.protocol_io]: {operation}: {error}")
 }
 
 #[cfg(test)]

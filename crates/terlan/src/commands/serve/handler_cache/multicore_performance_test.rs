@@ -38,6 +38,9 @@ const OFFICIAL_REPOSITORY: &str = "terlan-lang/terlan";
 const DEDICATED_RUNNER_ENV: &str = "TERLAN_VM_MULTICORE_DEDICATED_RUNNER";
 const SAMPLE_COUNT: usize = 9;
 const WIDTHS: [usize; 3] = [1, 2, 4];
+/// Untimed executions used to initialize images, owner threads, and actor heaps
+/// before any release-policy sample is retained.
+const WARMUP_SAMPLE_COUNT: usize = 5;
 const SOURCE: &str = r#"module app.MulticoreBenchmark.
 
 import std.http.Response.
@@ -144,6 +147,12 @@ struct PerformanceProvenance {
     runner_environment: Option<String>,
 }
 
+/// Exact identity of one Git revision plus tracked and untracked local content.
+struct SourceTreeIdentity {
+    clean: bool,
+    sha256: String,
+}
+
 /// Machine-readable first-slice MC-9 performance report.
 #[derive(Debug, Serialize)]
 struct MulticorePerformanceReport {
@@ -153,6 +162,7 @@ struct MulticorePerformanceReport {
     terlan_version: &'static str,
     rustc_version: Option<String>,
     source_revision: String,
+    source_tree_sha256: String,
     provenance: PerformanceProvenance,
     target_os: &'static str,
     target_arch: &'static str,
@@ -187,8 +197,10 @@ fn multicore_runtime_width_matrix_records_workloads_and_owner_overlap() {
     );
     let hardware = VmSchedulerHostSnapshot::capture();
     let source_revision = source_revision().expect("resolve benchmark source revision");
-    let provenance =
-        performance_provenance(&source_revision).expect("validate benchmark provenance");
+    let source_tree =
+        source_tree_identity(&source_revision).expect("identify benchmark source tree");
+    let provenance = performance_provenance(&source_revision, source_tree.clean)
+        .expect("validate benchmark provenance");
     let optimization_profile = if cfg!(debug_assertions) {
         "debug"
     } else {
@@ -258,6 +270,7 @@ fn multicore_runtime_width_matrix_records_workloads_and_owner_overlap() {
         terlan_version: env!("CARGO_PKG_VERSION"),
         rustc_version: rustc_version(),
         source_revision,
+        source_tree_sha256: source_tree.sha256,
         provenance,
         target_os: env::consts::OS,
         target_arch: env::consts::ARCH,
@@ -521,8 +534,10 @@ fn source_revision() -> Result<String, String> {
 }
 
 /// Captures local identity or validates complete official hosted provenance.
-fn performance_provenance(source_revision: &str) -> Result<PerformanceProvenance, String> {
-    let source_tree_clean = source_tree_clean()?;
+fn performance_provenance(
+    source_revision: &str,
+    source_tree_clean: bool,
+) -> Result<PerformanceProvenance, String> {
     if env::var("GITHUB_ACTIONS").as_deref() != Ok("true") {
         return Ok(PerformanceProvenance {
             execution_environment: "local",
@@ -580,16 +595,97 @@ fn performance_provenance(source_revision: &str) -> Result<PerformanceProvenance
     })
 }
 
-/// Returns whether the working tree exactly matches its checked-out commit.
-fn source_tree_clean() -> Result<bool, String> {
-    let output = Command::new("git")
-        .args(["status", "--porcelain=v1", "--untracked-files=all"])
+/// Identifies all tracked modifications and nonignored untracked source content.
+fn source_tree_identity(source_revision: &str) -> Result<SourceTreeIdentity, String> {
+    let root = repository_root()?;
+    let tracked = Command::new("git")
+        .current_dir(&root)
+        .args([
+            "diff",
+            "--binary",
+            "--no-ext-diff",
+            "--no-textconv",
+            source_revision,
+            "--",
+        ])
         .output()
         .map_err(|error| format!("failed to inspect benchmark source tree: {error}"))?;
-    if !output.status.success() {
-        return Err("failed to inspect benchmark source tree".to_string());
+    if !tracked.status.success() {
+        return Err("failed to inspect tracked benchmark source tree".to_string());
     }
-    Ok(output.stdout.is_empty())
+    let untracked = Command::new("git")
+        .current_dir(&root)
+        .args(["ls-files", "--others", "--exclude-standard", "-z"])
+        .output()
+        .map_err(|error| format!("failed to inspect untracked benchmark source: {error}"))?;
+    if !untracked.status.success() {
+        return Err("failed to inspect untracked benchmark source tree".to_string());
+    }
+    let mut paths = untracked
+        .stdout
+        .split(|byte| *byte == 0)
+        .filter(|path| !path.is_empty())
+        .map(|path| {
+            String::from_utf8(path.to_vec())
+                .map_err(|_| "untracked source path is not valid UTF-8".to_string())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    paths.sort();
+
+    let mut digest = Sha256::new();
+    digest.update(b"terlan.source-tree.v1\0");
+    hash_framed(&mut digest, source_revision.as_bytes());
+    hash_framed(&mut digest, &tracked.stdout);
+    digest.update((paths.len() as u64).to_be_bytes());
+    for path in &paths {
+        hash_framed(&mut digest, path.as_bytes());
+        let source_path = root.join(path);
+        let metadata = fs::symlink_metadata(&source_path)
+            .map_err(|error| format!("failed to inspect untracked source `{path}`: {error}"))?;
+        if metadata.file_type().is_symlink() {
+            digest.update(b"L");
+            let target = fs::read_link(&source_path)
+                .map_err(|error| format!("failed to read untracked symlink `{path}`: {error}"))?;
+            hash_framed(&mut digest, target.to_string_lossy().as_bytes());
+        } else if metadata.is_file() {
+            digest.update(b"F");
+            let contents = fs::read(&source_path)
+                .map_err(|error| format!("failed to read untracked source `{path}`: {error}"))?;
+            hash_framed(&mut digest, &contents);
+        } else {
+            return Err(format!("unsupported untracked source entry `{path}`"));
+        }
+    }
+    Ok(SourceTreeIdentity {
+        clean: tracked.stdout.is_empty() && paths.is_empty(),
+        sha256: digest
+            .finalize()
+            .iter()
+            .fold(String::with_capacity(64), |mut output, byte| {
+                write!(output, "{byte:02x}").expect("writing to a string cannot fail");
+                output
+            }),
+    })
+}
+
+/// Resolves the repository root so Git path output has one canonical base.
+fn repository_root() -> Result<PathBuf, String> {
+    let output = Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
+        .output()
+        .map_err(|error| format!("failed to resolve benchmark repository root: {error}"))?;
+    if !output.status.success() {
+        return Err("failed to resolve benchmark repository root".to_string());
+    }
+    let root = String::from_utf8(output.stdout)
+        .map_err(|_| "benchmark repository root is not valid UTF-8".to_string())?;
+    Ok(PathBuf::from(root.trim()))
+}
+
+/// Hashes one byte sequence with an unambiguous length prefix.
+fn hash_framed(digest: &mut Sha256, value: &[u8]) {
+    digest.update((value.len() as u64).to_be_bytes());
+    digest.update(value);
 }
 
 /// Reads one required nonempty environment variable.

@@ -86,9 +86,24 @@ release job runs:
 make vm-multicore-mc9-evidence-check
 ```
 
-The join accepts only passing performance and pinned ThreadSanitizer artifacts
-from the same official workflow run, attempt, repository, and source revision.
-Record-only performance and GitHub-hosted runner substitution fail closed.
+The join accepts passing controlled performance and pinned ThreadSanitizer
+artifacts from local execution, one GitHub attempt, or independently rerun
+producers when they describe the same source revision. The report preserves
+each producer's provenance and classifies it as local, single-attempt, or
+distributed; provenance is descriptive rather than a technical pass
+condition. Record-only performance, unpinned sanitizer execution, and
+GitHub-hosted substitution for the controlled performance runner still fail
+closed.
+
+The complete technical evidence can be produced without Actions:
+
+```sh
+make vm-multicore-mc9-local-evidence-check
+```
+
+This requires the Rust 1.96.0 `x86_64-unknown-linux-gnutsan` target locally,
+runs the controlled performance policy, records local source state, and seals
+the two revision-matched reports.
 
 The independent compiler job runs the reduced AOT release-candidate gate:
 

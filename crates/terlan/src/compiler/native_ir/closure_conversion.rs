@@ -4,7 +4,9 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use crate::runtime::native_image::managed::encode_closure_allocation;
-use crate::terlan_typeck::{CoreExpr, CoreLetBinding, CorePattern, CoreType};
+use crate::terlan_typeck::{
+    CoreExpr, CoreFunction, CoreLetBinding, CoreParam, CorePattern, CoreType,
+};
 
 use super::{
     contains_process_yield, expr_calls_suspending, free_variables,
@@ -90,6 +92,29 @@ fn lower_escaping_closure_at(
         lower_escaping_function_reference(body, expected, available, callable_shapes)?
     {
         return Ok(Some((reference, Vec::new())));
+    }
+    if let Some(expected_native) =
+        expected.and_then(|ty| native_type(Some(ty), &ty.contract_text()))
+    {
+        if !contains_process_yield(body)
+            && !expr_calls_suspending(body, suspending)
+            && infer_native_type_with_constructors(
+                body,
+                available_types,
+                function_types,
+                constructors,
+            ) == Some(expected_native)
+        {
+            return lower_expr_with_constructors(
+                body,
+                available,
+                available_types,
+                identities,
+                function_types,
+                constructors,
+            )
+            .map(|body| Some((body, Vec::new())));
+        }
     }
     let CoreExpr::Let {
         bindings,
@@ -455,7 +480,7 @@ fn lower_escaping_lambda_at(
         .collect::<Result<Vec<_>, _>>()?;
 
     let mut lifted_names = capture_names;
-    lifted_names.extend(lambda_names);
+    lifted_names.extend(lambda_names.iter().cloned());
     let mut lifted_types = capture_types.clone();
     lifted_types.extend(lambda_types);
     let lifted_params = lifted_names
@@ -473,17 +498,51 @@ fn lower_escaping_lambda_at(
         &lifted_param_types,
         function_types,
         constructors,
-    )
-    .ok_or_else(|| {
-        "error[native_ir.closure_result]: cannot infer escaping lambda result".to_string()
-    })?;
-    if inferred_result != result_type {
+    );
+    if inferred_result.is_some_and(|inferred| inferred != result_type) {
         return Err(
             "error[native_ir.closure_result]: escaping lambda body does not match its declared result"
                 .to_string(),
         );
     }
-    let lifted_body = if let CoreExpr::Call { function, args } = lambda_body.as_ref() {
+    if inferred_result.is_none() && !super::expr_is_native_control(lambda_body) {
+        return Err(
+            "error[native_ir.closure_result]: cannot infer escaping lambda result".to_string(),
+        );
+    }
+    let closure_contract = CoreFunction {
+        name: format!("$closure_contract_{owner_name}_{owner_arity}"),
+        arity: lambda_names.len(),
+        public: false,
+        generic_params: Vec::new(),
+        native_operation: None,
+        params: lambda_names
+            .iter()
+            .cloned()
+            .zip(expected_params.iter().cloned())
+            .map(|(name, ty)| CoreParam {
+                name,
+                ty: ty.contract_text(),
+                core_ty: Some(ty),
+            })
+            .collect(),
+        return_type: return_type.contract_text(),
+        core_return_type: Some(return_type.as_ref().clone()),
+        clauses: Vec::new(),
+    };
+    let structured = super::structured_case::lower_structured_case(
+        lambda_body,
+        &closure_contract,
+        &lifted_params,
+        &lifted_param_types,
+        identities,
+        function_types,
+        &HashMap::new(),
+        constructors,
+    )?;
+    let lifted_body = if let Some(body) = structured {
+        body
+    } else if let CoreExpr::Call { function, args } = lambda_body.as_ref() {
         if suspending_tail {
             let target = identities
                 .get(&(function.clone(), args.len()))
@@ -546,6 +605,9 @@ fn lower_escaping_lambda_at(
             name: lifted_name,
             public: false,
             arity: lifted_types.len(),
+            source_module: module.to_string(),
+            source_function: owner_name.to_string(),
+            source_arity: owner_arity,
             callable_captures: capture_types,
             params: lifted_types,
             return_type: result_type,

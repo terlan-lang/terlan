@@ -77,5 +77,10 @@ pub(super) fn define_native_function(
     }
     module
         .define_function(function_id, &mut context)
-        .map_err(|error| format!("error[cranelift.define]: {error}"))
+        .map_err(|error| {
+            format!(
+                "error[cranelift.define]: function {}: {error}: {error:?}",
+                function_id.as_u32()
+            )
+        })
 }

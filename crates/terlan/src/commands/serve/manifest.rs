@@ -8,6 +8,7 @@ use std::sync::{Arc, OnceLock, RwLock};
 use serde::Deserialize;
 
 use crate::commands::build::project_manifest::{self, ProjectServerTls, ProjectServerTlsMode};
+#[cfg(not(feature = "serve-runtime-bin"))]
 use crate::commands::dev_dependencies;
 
 use super::handler::{
@@ -258,14 +259,17 @@ pub(crate) fn web_package_requires_handler_runtime(web_root: &Path) -> Result<bo
 ///   from build-time TLS checks.
 fn validate_adjacent_project_manifest(web_root: &Path) -> Result<(), String> {
     if let Some(path) = adjacent_project_manifest_path(web_root) {
-        let manifest = project_manifest::read_project_manifest(&path).map_err(|message| {
+        let tls = read_project_tls(&path).map_err(|message| {
             format!(
                 "error[serve_package]: invalid project manifest `{}` for browser package: {message}",
                 path.display()
             )
         })?;
+        if let (Some(project_root), Some(tls)) = (path.parent(), tls.as_ref()) {
+            validate_manual_tls_file_references(project_root, tls)?;
+        }
+        #[cfg(not(feature = "serve-runtime-bin"))]
         if let Some(project_root) = path.parent() {
-            validate_manual_tls_file_references(project_root, &manifest)?;
             dev_dependencies::validate_project_compose(project_root)?;
         }
     }
@@ -290,11 +294,8 @@ fn validate_adjacent_project_manifest(web_root: &Path) -> Result<(), String> {
 ///   references that the runtime will later need to open.
 fn validate_manual_tls_file_references(
     project_root: &Path,
-    manifest: &project_manifest::ProjectManifest,
+    tls: &ProjectServerTls,
 ) -> Result<(), String> {
-    let Some(tls) = &manifest.server_tls else {
-        return Ok(());
-    };
     if tls.mode != ProjectServerTlsMode::Manual {
         return Ok(());
     }
@@ -475,13 +476,13 @@ pub(super) fn web_package_tls_config(
     let Some(path) = adjacent_project_manifest_path(web_root) else {
         return Ok(None);
     };
-    let manifest = project_manifest::read_project_manifest(&path).map_err(|message| {
+    let tls = read_project_tls(&path).map_err(|message| {
         format!(
             "error[serve_package]: invalid project manifest `{}` for browser package: {message}",
             path.display()
         )
     })?;
-    let Some(tls) = manifest.server_tls else {
+    let Some(tls) = tls else {
         return Ok(None);
     };
     let project_root = path
@@ -489,6 +490,16 @@ pub(super) fn web_package_tls_config(
         .map(Path::to_path_buf)
         .unwrap_or_else(|| Path::new(".").to_path_buf());
     Ok(Some((project_root, tls)))
+}
+
+#[cfg(feature = "serve-runtime-bin")]
+fn read_project_tls(path: &Path) -> Result<Option<ProjectServerTls>, String> {
+    project_manifest::read_runtime_server_tls(path)
+}
+
+#[cfg(not(feature = "serve-runtime-bin"))]
+fn read_project_tls(path: &Path) -> Result<Option<ProjectServerTls>, String> {
+    project_manifest::read_project_manifest(path).map(|manifest| manifest.server_tls)
 }
 
 /// Finds project metadata related to a packaged web root.

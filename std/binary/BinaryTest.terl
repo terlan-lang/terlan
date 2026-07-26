@@ -1,17 +1,33 @@
 module std.binary.BinaryTest.
 
-import std.binary.Binary.{BigEndian, BinaryConstructError, BinaryDecodeError, BinaryDescriptor, Bits, BitsSegment, BytesSegment, DecodedField, DecodedProtocol, DecodedValue, DuplicateField, DuplicateShape, EndianPolicy, IntBits, IntSegment, InvalidAlignment, InvalidShapeAlias, InvalidShapeSet, InvalidUtf8, InvalidWidth, LittleEndian, MultipleRest, ProtocolField, ProtocolShape, ProtocolShapeAlias, ProtocolShapeSet, Rest, RestNotTerminal, RestSegment, TruncatedPayload, UInt, UIntSegment, UnknownDescriptor, UnknownShape, UnsupportedRuntime, UnsupportedTarget, compact_frame_shape, compose_header_body, construct, decode_exact, decode_fixed_header, decode_prefix, decode_prefixed_body, decoded_protocol_remaining_bytes, decoded_protocol_value, descriptor_is_terminal, descriptor_kind, descriptor_width, encode_exact, encode_prefix, make_bit_span, make_byte_span, make_int_bits, make_rest, make_uint, protocol_field, protocol_field_descriptor, protocol_field_name, protocol_name, protocol_shape, protocol_shape_alias, protocol_shape_alias_name, protocol_shape_alias_target, protocol_shape_endian, protocol_shape_fields, protocol_shape_has_terminal_rest, protocol_shape_name, protocol_shape_set, protocol_shape_set_decode, protocol_shape_set_encode_exact, protocol_shape_set_encode_prefix, protocol_shape_set_name, protocol_shape_set_resolve, protocol_shape_set_shapes, split_header_body, split_protocol_header, tcp_header_shape, validate_descriptor, validate_protocol_shape}.
+import std.binary.Binary.{BigEndian, BinaryConstructError, BinaryDecodeError, BinaryDescriptor, Bits, BitsSegment, BytesSegment, DecodedField, DecodedProtocol, DecodedValue, DuplicateField, DuplicateShape, EndianPolicy, IntBits, IntSegment, InvalidAlignment, InvalidShapeAlias, InvalidShapeSet, InvalidUtf8, InvalidWidth, LittleEndian, MultipleRest, ProtocolField, ProtocolShape, ProtocolShapeAlias, ProtocolShapeSet, Rest, RestNotTerminal, RestSegment, TruncatedPayload, UInt, UIntSegment, UnknownDescriptor, UnknownShape, UnsupportedRuntime, UnsupportedTarget, compose_header_body, compact_frame_shape, construct, decode_exact, decode_fixed_header, decode_prefix, decode_prefixed_body, decoded_protocol_remaining_bytes, descriptor_is_terminal, descriptor_kind, descriptor_width, encode_exact, encode_prefix, make_bit_span, make_byte_span, make_int_bits, make_rest, make_uint, protocol_field, protocol_field_descriptor, protocol_field_name, protocol_shape, protocol_shape_alias, protocol_shape_alias_name, protocol_shape_alias_target, protocol_shape_endian, protocol_shape_fields, protocol_shape_has_terminal_rest, protocol_shape_name, protocol_shape_set, protocol_shape_set_decode, protocol_shape_set_encode_exact, protocol_shape_set_encode_prefix, protocol_shape_set_name, protocol_shape_set_resolve, protocol_shape_set_shapes, split_header_body, split_protocol_header, tcp_header_shape, validate_descriptor, validate_protocol_shape}.
 import std.collections.List.
 import std.core.Option.{None, Option, Some}.
 import std.core.Result.{Err, Ok}.
 import std.test.Test.{assert_equal}.
 import std.vm.{BitString, Bytes}.
 
-pub test_decoded_field(name: String, value: DecodedValue): DecodedField ->
-    {name, value}.
+pub test_decoded_int_field(name: String, value: Int): DecodedField ->
+    std.binary.Binary.decoded_int_field(name, value).
+
+pub test_decoded_bits_field(name: String, value: std.vm.BitString.BitString): DecodedField ->
+    std.binary.Binary.decoded_bits_field(name, value).
+
+pub test_decoded_bytes_field(name: String, value: std.vm.Bytes.Bytes): DecodedField ->
+    std.binary.Binary.decoded_bytes_field(name, value).
 
 pub test_decoded_protocol(fields: List[DecodedField], body: std.vm.Bytes.Bytes): DecodedProtocol ->
     {fields, body}.
+
+@test
+pub decoded_protocol_int_value_finds_a_typed_integer_field(): Bool ->
+    let decoded = test_decoded_protocol(List(test_decoded_int_field("version", 1)), Bytes.from_list([]));
+    std.binary.Binary.decoded_protocol_int_value(decoded, "version") == Some(1).
+
+@test
+pub decoded_protocol_int_value_returns_none_for_a_missing_field(): Bool ->
+    let decoded = test_decoded_protocol(List(test_decoded_int_field("version", 1)), Bytes.from_list([]));
+    std.binary.Binary.decoded_protocol_int_value(decoded, "missing") == None.
 
 pub accepts_uint_16(value: UInt[16]): UInt[16] ->
     value.
@@ -41,14 +57,14 @@ pub accepts_protocol_shape_set(value: ProtocolShapeSet): ProtocolShapeSet ->
     value.
 
 @test
-pub protocol_name_uses_structural_evidence_across_metadata_types(): Bool ->
+pub protocol_metadata_name_accessors_are_structural(): Bool ->
     let field = protocol_field("payload", make_rest());
     let shape = protocol_shape("frame", BigEndian, List(field), true);
     let alias = protocol_shape_alias("current", "frame");
     case protocol_shape_set("wire", List(shape), List(alias)) {
         Err(_reason) -> false;
         Ok(set) ->
-            assert_equal("payload", protocol_name(field)) and assert_equal("frame", protocol_name(shape)) and assert_equal("current", protocol_name(alias)) and assert_equal("wire", protocol_name(set))
+            assert_equal("payload", protocol_field_name(field)) and assert_equal("frame", protocol_shape_name(shape)) and assert_equal("current", protocol_shape_alias_name(alias)) and assert_equal("wire", protocol_shape_set_name(set))
     }.
 
 @test
@@ -284,14 +300,14 @@ pub protocol_shape_set_decodes_direct_and_alias_names(): Bool ->
         Ok(set) ->
             case {protocol_shape_set_decode(set, "compact_frame", payload), protocol_shape_set_decode(set, "current", payload)} {
                 {Ok(direct), Ok(alias)} ->
-                    decoded_protocol_value(direct, "version") == Some(1) and decoded_protocol_value(alias, "length") == Some(2) and assert_equal(Bytes.from_list([170, 187]), decoded_protocol_remaining_bytes(direct)) and assert_equal(decoded_protocol_remaining_bytes(direct), decoded_protocol_remaining_bytes(alias));
+                    std.binary.Binary.decoded_protocol_int_value(direct, "version") == Some(1) and std.binary.Binary.decoded_protocol_int_value(alias, "length") == Some(2) and assert_equal(Bytes.from_list([170, 187]), decoded_protocol_remaining_bytes(direct)) and assert_equal(decoded_protocol_remaining_bytes(direct), decoded_protocol_remaining_bytes(alias));
                 _ -> false
             }
     }.
 
 @test
 pub protocol_shape_set_encodes_exact_alias_and_decodes_roundtrip(): Bool ->
-    let decoded = test_decoded_protocol(List(test_decoded_field("version", 1), test_decoded_field("kind", 2), test_decoded_field("length", 2)), Bytes.from_list([170, 187]));
+    let decoded = test_decoded_protocol(List(test_decoded_int_field("version", 1), test_decoded_int_field("kind", 2), test_decoded_int_field("length", 2)), Bytes.from_list([170, 187]));
     case protocol_shape_set("wire", List(compact_frame_shape()), List(protocol_shape_alias("current", "compact_frame"))) {
         Err(_reason) -> false;
         Ok(set) ->
@@ -301,14 +317,14 @@ pub protocol_shape_set_encodes_exact_alias_and_decodes_roundtrip(): Bool ->
                     assert_equal(Bytes.from_list([18, 0, 2, 170, 187]), encoded) and case protocol_shape_set_decode(set, "current", encoded) {
     Err(_reason) -> false;
     Ok(roundtrip) ->
-        decoded_protocol_value(roundtrip, "kind") == Some(2) and assert_equal(Bytes.from_list([170, 187]), decoded_protocol_remaining_bytes(roundtrip))
+        std.binary.Binary.decoded_protocol_int_value(roundtrip, "kind") == Some(2) and assert_equal(Bytes.from_list([170, 187]), decoded_protocol_remaining_bytes(roundtrip))
 }
             }
     }.
 
 @test
 pub protocol_shape_set_encodes_prefix_for_direct_and_alias_names(): Bool ->
-    let decoded = test_decoded_protocol(List(test_decoded_field("version", 1), test_decoded_field("kind", 2), test_decoded_field("length", 2)), Bytes.from_list([170, 187]));
+    let decoded = test_decoded_protocol(List(test_decoded_int_field("version", 1), test_decoded_int_field("kind", 2), test_decoded_int_field("length", 2)), Bytes.from_list([170, 187]));
     case protocol_shape_set("wire", List(compact_frame_shape()), List(protocol_shape_alias("current", "compact_frame"))) {
         Err(_reason) -> false;
         Ok(set) ->
@@ -321,7 +337,7 @@ pub protocol_shape_set_encodes_prefix_for_direct_and_alias_names(): Bool ->
 
 @test
 pub protocol_shape_set_codecs_reject_unknown_names(): Bool ->
-    let decoded = test_decoded_protocol(List(test_decoded_field("version", 1), test_decoded_field("kind", 2), test_decoded_field("length", 0)), Bytes.from_list([]));
+    let decoded = test_decoded_protocol(List(test_decoded_int_field("version", 1), test_decoded_int_field("kind", 2), test_decoded_int_field("length", 0)), Bytes.from_list([]));
     case protocol_shape_set("wire", List(compact_frame_shape()), List.new[ProtocolShapeAlias]()) {
         Err(_reason) -> false;
         Ok(set) ->
@@ -409,11 +425,39 @@ pub decode_prefixed_body_decodes_big_endian_scalars_and_body(): Bool ->
     case decode_prefixed_body(compact_frame_shape(), payload) {
         Err(_reason) -> false;
         Ok(decoded) ->
-            case {decoded_protocol_value(decoded, "version"), decoded_protocol_value(decoded, "kind"), decoded_protocol_value(decoded, "length")} {
+            case {std.binary.Binary.decoded_protocol_int_value(decoded, "version"), std.binary.Binary.decoded_protocol_int_value(decoded, "kind"), std.binary.Binary.decoded_protocol_int_value(decoded, "length")} {
                 {Some(version), Some(kind), Some(length)} ->
                     version == 1 and kind == 2 and length == 2 and assert_equal(Bytes.from_list([170, 187]), decoded_protocol_remaining_bytes(decoded));
                 _ -> false
             }
+    }.
+
+@test
+pub decode_prefixed_body_exposes_compact_frame_version(): Bool ->
+    case decode_prefixed_body(compact_frame_shape(), Bytes.from_list([18, 0, 2, 170, 187])) {
+        Err(_reason) -> false;
+        Ok(decoded) -> std.binary.Binary.decoded_protocol_int_value(decoded, "version") == Some(1)
+    }.
+
+@test
+pub decode_prefixed_body_exposes_compact_frame_kind(): Bool ->
+    case decode_prefixed_body(compact_frame_shape(), Bytes.from_list([18, 0, 2, 170, 187])) {
+        Err(_reason) -> false;
+        Ok(decoded) -> std.binary.Binary.decoded_protocol_int_value(decoded, "kind") == Some(2)
+    }.
+
+@test
+pub decode_prefixed_body_exposes_compact_frame_length(): Bool ->
+    case decode_prefixed_body(compact_frame_shape(), Bytes.from_list([18, 0, 2, 170, 187])) {
+        Err(_reason) -> false;
+        Ok(decoded) -> std.binary.Binary.decoded_protocol_int_value(decoded, "length") == Some(2)
+    }.
+
+@test
+pub decode_prefixed_body_exposes_compact_frame_body(): Bool ->
+    case decode_prefixed_body(compact_frame_shape(), Bytes.from_list([18, 0, 2, 170, 187])) {
+        Err(_reason) -> false;
+        Ok(decoded) -> assert_equal(Bytes.from_list([170, 187]), decoded_protocol_remaining_bytes(decoded))
     }.
 
 @test
@@ -423,7 +467,7 @@ pub decode_prefixed_body_decodes_little_endian_signed_scalars(): Bool ->
     case decode_prefixed_body(shape, payload) {
         Err(_reason) -> false;
         Ok(decoded) ->
-            case {decoded_protocol_value(decoded, "unsigned"), decoded_protocol_value(decoded, "signed")} {
+            case {std.binary.Binary.decoded_protocol_int_value(decoded, "unsigned"), std.binary.Binary.decoded_protocol_int_value(decoded, "signed")} {
                 {Some(unsigned), Some(signed)} ->
                     unsigned == 4660 and signed == -32768 and assert_equal(Bytes.from_list([170]), decoded_protocol_remaining_bytes(decoded));
                 _ -> false
@@ -437,7 +481,7 @@ pub decode_prefixed_body_decodes_fixed_byte_fields(): Bool ->
     case decode_prefixed_body(shape, payload) {
         Err(_reason) -> false;
         Ok(decoded) ->
-            case decoded_protocol_value(decoded, "prefix") {
+            case std.binary.Binary.decoded_protocol_bytes_value(decoded, "prefix") {
                 Some(prefix) ->
                     prefix == Bytes.from_list([1, 2]) and assert_equal(Bytes.from_list([3]), decoded_protocol_remaining_bytes(decoded));
                 None -> false
@@ -450,7 +494,7 @@ pub decode_prefixed_body_decodes_adjacent_bit_spans(): Bool ->
     case decode_prefixed_body(shape, Bytes.from_list([184])) {
         Err(_reason) -> false;
         Ok(decoded) ->
-            case {decoded_protocol_value(decoded, "prefix"), decoded_protocol_value(decoded, "suffix")} {
+            case {std.binary.Binary.decoded_protocol_bits_value(decoded, "prefix"), std.binary.Binary.decoded_protocol_bits_value(decoded, "suffix")} {
                 {Some(prefix), Some(suffix)} ->
                     assert_equal(BitString.from_bytes(Bytes.from_list([160]), 3), prefix) and assert_equal(BitString.from_bytes(Bytes.from_list([192]), 5), suffix);
                 _ -> false
@@ -470,20 +514,20 @@ pub decode_prefixed_body_rejects_truncated_oversized_and_unaligned_fields(): Boo
 
 @test
 pub encode_exact_roundtrips_compact_frame(): Bool ->
-    let decoded = test_decoded_protocol(List(test_decoded_field("version", 1), test_decoded_field("kind", 2), test_decoded_field("length", 2)), Bytes.from_list([170, 187]));
+    let decoded = test_decoded_protocol(List(test_decoded_int_field("version", 1), test_decoded_int_field("kind", 2), test_decoded_int_field("length", 2)), Bytes.from_list([170, 187]));
     case encode_exact(compact_frame_shape(), decoded) {
         Err(_reason) -> false;
         Ok(encoded) ->
             assert_equal(Bytes.from_list([18, 0, 2, 170, 187]), encoded) and case decode_prefixed_body(compact_frame_shape(), encoded) {
     Err(_reason) -> false;
     Ok(roundtrip) ->
-        decoded_protocol_value(roundtrip, "version") == Some(1) and decoded_protocol_value(roundtrip, "kind") == Some(2) and decoded_protocol_value(roundtrip, "length") == Some(2) and assert_equal(Bytes.from_list([170, 187]), decoded_protocol_remaining_bytes(roundtrip))
+        std.binary.Binary.decoded_protocol_int_value(roundtrip, "version") == Some(1) and std.binary.Binary.decoded_protocol_int_value(roundtrip, "kind") == Some(2) and std.binary.Binary.decoded_protocol_int_value(roundtrip, "length") == Some(2) and assert_equal(Bytes.from_list([170, 187]), decoded_protocol_remaining_bytes(roundtrip))
 }
     }.
 
 @test
 pub encode_prefix_omits_terminal_body(): Bool ->
-    let decoded = test_decoded_protocol(List(test_decoded_field("version", 1), test_decoded_field("kind", 2), test_decoded_field("length", 2)), Bytes.from_list([170, 187]));
+    let decoded = test_decoded_protocol(List(test_decoded_int_field("version", 1), test_decoded_int_field("kind", 2), test_decoded_int_field("length", 2)), Bytes.from_list([170, 187]));
     case encode_prefix(compact_frame_shape(), decoded) {
         Err(_reason) -> false;
         Ok(encoded) -> assert_equal(Bytes.from_list([18, 0, 2]), encoded)
@@ -492,7 +536,7 @@ pub encode_prefix_omits_terminal_body(): Bool ->
 @test
 pub encode_exact_applies_little_endian_and_fixed_bytes(): Bool ->
     let shape = protocol_shape("little_fields", LittleEndian, List(protocol_field("unsigned", make_uint(16)), protocol_field("signed", make_int_bits(16)), protocol_field("prefix", make_byte_span(2))), false);
-    let decoded = test_decoded_protocol(List(test_decoded_field("unsigned", 4660), test_decoded_field("signed", -32768), test_decoded_field("prefix", Bytes.from_list([170, 187]))), Bytes.from_list([]));
+    let decoded = test_decoded_protocol(List(test_decoded_int_field("unsigned", 4660), test_decoded_int_field("signed", -32768), test_decoded_bytes_field("prefix", Bytes.from_list([170, 187]))), Bytes.from_list([]));
     case encode_exact(shape, decoded) {
         Err(_reason) -> false;
         Ok(encoded) -> assert_equal(Bytes.from_list([52, 18, 0, 128, 170, 187]), encoded)
@@ -501,7 +545,7 @@ pub encode_exact_applies_little_endian_and_fixed_bytes(): Bool ->
 @test
 pub encode_exact_roundtrips_adjacent_bit_spans(): Bool ->
     let shape = protocol_shape("bit_spans", BigEndian, List(protocol_field("prefix", make_bit_span(3)), protocol_field("suffix", make_bit_span(5))), false);
-    let decoded = test_decoded_protocol(List(test_decoded_field("prefix", BitString.from_bytes(Bytes.from_list([160]), 3)), test_decoded_field("suffix", BitString.from_bytes(Bytes.from_list([192]), 5))), Bytes.from_list([]));
+    let decoded = test_decoded_protocol(List(test_decoded_bits_field("prefix", BitString.from_bytes(Bytes.from_list([160]), 3)), test_decoded_bits_field("suffix", BitString.from_bytes(Bytes.from_list([192]), 5))), Bytes.from_list([]));
     case encode_exact(shape, decoded) {
         Err(_reason) -> false;
         Ok(encoded) -> assert_equal(Bytes.from_list([184]), encoded)
@@ -509,12 +553,12 @@ pub encode_exact_roundtrips_adjacent_bit_spans(): Bool ->
 
 @test
 pub encode_rejects_invalid_values_and_bit_value_types(): Bool ->
-    let overflow = test_decoded_protocol(List(test_decoded_field("version", 16), test_decoded_field("kind", 2), test_decoded_field("length", 0)), Bytes.from_list([]));
-    let missing = test_decoded_protocol(List(test_decoded_field("version", 1)), Bytes.from_list([]));
+    let overflow = test_decoded_protocol(List(test_decoded_int_field("version", 16), test_decoded_int_field("kind", 2), test_decoded_int_field("length", 0)), Bytes.from_list([]));
+    let missing = test_decoded_protocol(List(test_decoded_int_field("version", 1)), Bytes.from_list([]));
     let bits_shape = protocol_shape("bits", BigEndian, List(protocol_field("value", make_bit_span(8))), false);
-    let bits = test_decoded_protocol(List(test_decoded_field("value", 1)), Bytes.from_list([]));
+    let bits = test_decoded_protocol(List(test_decoded_int_field("value", 1)), Bytes.from_list([]));
     let unaligned_shape = protocol_shape("unaligned", BigEndian, List(protocol_field("value", make_uint(7))), false);
-    let unaligned = test_decoded_protocol(List(test_decoded_field("value", 1)), Bytes.from_list([]));
+    let unaligned = test_decoded_protocol(List(test_decoded_int_field("value", 1)), Bytes.from_list([]));
     case {encode_exact(compact_frame_shape(), overflow), encode_exact(compact_frame_shape(), missing), encode_exact(bits_shape, bits), encode_exact(unaligned_shape, unaligned)} {
         {Err(invalid_width), Err(unknown), Err(bit_type), Err(invalid_alignment)} ->
             assert_equal(InvalidWidth, invalid_width) and assert_equal(UnknownDescriptor, unknown) and assert_equal(UnknownDescriptor, bit_type) and assert_equal(InvalidAlignment, invalid_alignment);
@@ -525,8 +569,8 @@ pub encode_rejects_invalid_values_and_bit_value_types(): Bool ->
 pub encode_rejects_bitstring_width_mismatch_and_unaligned_output(): Bool ->
     let aligned_shape = protocol_shape("aligned", BigEndian, List(protocol_field("value", make_bit_span(8))), false);
     let partial_shape = protocol_shape("partial", BigEndian, List(protocol_field("value", make_bit_span(3))), false);
-    let short_value = test_decoded_protocol(List(test_decoded_field("value", BitString.from_bytes(Bytes.from_list([254]), 7))), Bytes.from_list([]));
-    let partial_value = test_decoded_protocol(List(test_decoded_field("value", BitString.from_bytes(Bytes.from_list([160]), 3))), Bytes.from_list([]));
+    let short_value = test_decoded_protocol(List(test_decoded_bits_field("value", BitString.from_bytes(Bytes.from_list([254]), 7))), Bytes.from_list([]));
+    let partial_value = test_decoded_protocol(List(test_decoded_bits_field("value", BitString.from_bytes(Bytes.from_list([160]), 3))), Bytes.from_list([]));
     case {encode_exact(aligned_shape, short_value), encode_exact(partial_shape, partial_value)} {
         {Err(invalid_width), Err(invalid_alignment)} ->
             assert_equal(InvalidWidth, invalid_width) and assert_equal(InvalidAlignment, invalid_alignment);

@@ -119,7 +119,7 @@ fn manifest_file_response(
 fn static_vm_stream_file_response(
     method: &str,
     response_path: &Path,
-) -> Result<::http::Response<String>, String> {
+) -> Result<::http::Response<Bytes>, String> {
     let bytes = match fs::read(response_path) {
         Ok(bytes) => bytes,
         Err(_) => {
@@ -163,7 +163,7 @@ fn manifest_vm_stream_file_response(
     method: &str,
     response_path: &Path,
     response: &WebPackageFileResponse,
-) -> Result<::http::Response<String>, String> {
+) -> Result<::http::Response<Bytes>, String> {
     let bytes = match fs::read(response_path) {
         Ok(bytes) => bytes,
         Err(_) => {
@@ -215,28 +215,30 @@ fn serve_vm_stream_response(
     extra_headers: &[(String, String)],
     body: &[u8],
     head_only: bool,
-) -> Result<::http::Response<String>, String> {
+) -> Result<::http::Response<Bytes>, String> {
     let response = build_http_response_for_stream(status, content_type, extra_headers, body, head_only)
         .map_err(|message| format!("response build failed for {status} {reason}: {message}"))?;
     let (parts, body) = response.into_parts();
-    let body = String::from_utf8(body)
-        .unwrap_or_else(|error| String::from_utf8_lossy(error.as_bytes()).into_owned());
-    Ok(::http::Response::from_parts(parts, body))
+    Ok(::http::Response::from_parts(parts, Bytes::from(body)))
 }
 
 /// Consumes a VM handler response without recopying its managed body bytes.
 fn serve_vm_stream_handler_response(
     response: handler::HandlerResponse,
     head_only: bool,
-) -> Result<::http::Response<String>, String> {
+) -> Result<::http::Response<Bytes>, String> {
     match response.body {
-        handler::HandlerBody::Text(body) => build_http_text_response_owned_for_stream(
-            response.status,
-            &response.content_type,
-            &response.headers,
-            body,
-            head_only,
-        ),
+        handler::HandlerBody::Text(body) => {
+            let response = build_http_text_response_owned_for_stream(
+                response.status,
+                &response.content_type,
+                &response.headers,
+                body,
+                head_only,
+            )?;
+            let (parts, body) = response.into_parts();
+            Ok(::http::Response::from_parts(parts, Bytes::from(body)))
+        }
         handler::HandlerBody::Bytes(body) => {
             let response = build_http_response_owned_for_stream(
                 response.status,
@@ -246,17 +248,22 @@ fn serve_vm_stream_handler_response(
                 head_only,
             )?;
             let (parts, body) = response.into_parts();
-            let body = String::from_utf8(body)
-                .unwrap_or_else(|error| String::from_utf8_lossy(error.as_bytes()).into_owned());
-            Ok(::http::Response::from_parts(parts, body))
+            Ok(::http::Response::from_parts(parts, Bytes::from(body)))
         }
+        handler::HandlerBody::Transferred(body) => build_http_shared_response_owned_for_stream(
+            response.status,
+            &response.content_type,
+            &response.headers,
+            body,
+            head_only,
+        ),
     }
 }
 
 /// Builds a VM-stream WebSocket opening-handshake response.
 fn serve_vm_stream_websocket_upgrade_response(
     headers: &::http::HeaderMap,
-) -> Result<::http::Response<String>, String> {
+) -> Result<::http::Response<Bytes>, String> {
     let key = headers
         .get("sec-websocket-key")
         .and_then(|value| value.to_str().ok())
@@ -269,7 +276,7 @@ fn serve_vm_stream_websocket_upgrade_response(
         builder = builder.header(name, value);
     }
     builder
-        .body(String::new())
+        .body(Bytes::new())
         .map_err(|error| format!("VM stream WebSocket response cannot be built: {error}"))
 }
 

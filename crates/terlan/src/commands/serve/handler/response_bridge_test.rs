@@ -121,7 +121,7 @@ fn typed_aot_response_skips_generic_vm_materialization() {
     let decoded = HandlerResponse::from_aot_http_response(VmAotHttpResponse {
         kind: 2,
         status: 201,
-        payload: "{\"created\":true}".to_string(),
+        payload: Bytes::from_static(br#"{"created":true}"#),
         headers: vec![("X-Request-Id".to_string(), "abc".to_string())],
     })
     .expect("decode typed AOT response");
@@ -140,7 +140,7 @@ fn typed_aot_response_validates_redirect_and_protocol_fields() {
     let decoded = HandlerResponse::from_aot_http_response(VmAotHttpResponse {
         kind: 3,
         status: 308,
-        payload: "/next".to_string(),
+        payload: Bytes::from_static(b"/next"),
         headers: Vec::new(),
     })
     .expect("decode typed redirect");
@@ -153,7 +153,7 @@ fn typed_aot_response_validates_redirect_and_protocol_fields() {
     let invalid = HandlerResponse::from_aot_http_response(VmAotHttpResponse {
         kind: 0,
         status: 99,
-        payload: "bad".to_string(),
+        payload: Bytes::from_static(b"bad"),
         headers: Vec::new(),
     })
     .unwrap_err();
@@ -162,7 +162,7 @@ fn typed_aot_response_validates_redirect_and_protocol_fields() {
     let invalid = HandlerResponse::from_aot_http_response(VmAotHttpResponse {
         kind: 0,
         status: 200,
-        payload: "bad".to_string(),
+        payload: Bytes::from_static(b"bad"),
         headers: vec![("Bad Header".to_string(), "value".to_string())],
     })
     .unwrap_err();

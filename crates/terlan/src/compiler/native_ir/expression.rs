@@ -1,218 +1,61 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::runtime::native_image::managed::{
-    encode_managed_value_equal_operation, encode_string_literal, ManagedClosureDescriptor,
-    SemanticTypeId,
+    encode_managed_value_equal_operation, encode_string_append_operation, encode_string_literal,
 };
-use crate::terlan_typeck::{CoreExpr, CorePattern, CoreType};
+use crate::terlan_typeck::{CoreExpr, CorePattern};
 
 use super::{
     constructors::{
-        constructor_result_type, lower_constructor_call, lower_record_construct,
-        lower_record_update, managed_field_projection, record_construct_result_type,
-        record_update_result_type, NativeConstructorLayouts,
+        constructor_result_core_type, constructor_result_type, lower_constructor_call,
+        lower_record_construct, lower_record_update, lower_structural_constructor_call,
+        managed_field_projection, record_construct_result_type, record_update_result_type,
+        NativeConstructorLayouts,
     },
     escape::retained_managed_bindings,
     NativeBinaryOperator, NativeExpr, NativeType,
 };
 
+#[path = "expression/bitstring_intrinsics.rs"]
+mod bitstring_intrinsics;
+#[path = "expression/bytes_intrinsics.rs"]
+mod bytes_intrinsics;
+#[path = "expression/collection_literal_types.rs"]
+mod collection_literal_types;
+#[path = "expression/equality.rs"]
+mod equality;
+#[path = "expression/field_access.rs"]
+mod field_access;
+#[path = "expression/float_intrinsics.rs"]
+mod float_intrinsics;
 #[path = "expression/free_variables.rs"]
 mod free_variable_analysis;
 #[cfg(test)]
 #[path = "expression/free_variables_test.rs"]
 mod free_variable_analysis_test;
+#[path = "expression/integer_intrinsics.rs"]
+mod integer_intrinsics;
+#[path = "expression/intrinsics.rs"]
+mod intrinsics;
+#[path = "expression/iterator_intrinsics.rs"]
+mod iterator_intrinsics;
+#[path = "expression/list_intrinsics.rs"]
+mod list_intrinsics;
+#[path = "expression/map_intrinsics.rs"]
+mod map_intrinsics;
+#[path = "expression/scalar_types.rs"]
+mod scalar_types;
+#[path = "expression/type_mapping.rs"]
+mod type_mapping;
 
+use equality::{lower_equality_operand, managed_equality_semantic};
+use field_access::lower_managed_field_access;
 pub(super) use free_variable_analysis::free_variables;
+use type_mapping::{core_string_runtime_value, is_empty_list};
+pub(super) use type_mapping::{literal_collection_type, native_type};
 
-pub(super) fn infer_native_type(
-    expr: &CoreExpr,
-    variables: &HashMap<String, NativeType>,
-    functions: &HashMap<(String, usize), NativeType>,
-) -> Option<NativeType> {
-    infer_native_type_impl(expr, variables, functions, None)
-}
-
-/// Infers one expression type with fixed managed layouts available.
-pub(super) fn infer_native_type_with_constructors(
-    expr: &CoreExpr,
-    variables: &HashMap<String, NativeType>,
-    functions: &HashMap<(String, usize), NativeType>,
-    constructors: &NativeConstructorLayouts,
-) -> Option<NativeType> {
-    infer_native_type_impl(expr, variables, functions, Some(constructors))
-}
-
-/// Infers a lowering type while preserving managed-projection diagnostics.
-fn infer_native_type_for_lowering(
-    expr: &CoreExpr,
-    variables: &HashMap<String, NativeType>,
-    functions: &HashMap<(String, usize), NativeType>,
-    constructors: &NativeConstructorLayouts,
-) -> Result<Option<NativeType>, String> {
-    match expr {
-        CoreExpr::FieldAccess { base, field } => {
-            let Some(base) =
-                infer_native_type_for_lowering(base, variables, functions, constructors)?
-            else {
-                return Ok(None);
-            };
-            managed_field_projection(base, None, field, constructors).map(|(_, ty)| Some(ty))
-        }
-        CoreExpr::RecordAccess { base, name, field } => {
-            let Some(base) =
-                infer_native_type_for_lowering(base, variables, functions, constructors)?
-            else {
-                return Ok(None);
-            };
-            managed_field_projection(base, Some(name), field, constructors).map(|(_, ty)| Some(ty))
-        }
-        CoreExpr::RecordUpdate { base, name, .. } => {
-            let Some(base) =
-                infer_native_type_for_lowering(base, variables, functions, constructors)?
-            else {
-                return Ok(None);
-            };
-            record_update_result_type(name, base, constructors).map(Some)
-        }
-        _ => Ok(infer_native_type_with_constructors(
-            expr,
-            variables,
-            functions,
-            constructors,
-        )),
-    }
-}
-
-/// Shared recursive native-type inference implementation.
-fn infer_native_type_impl(
-    expr: &CoreExpr,
-    variables: &HashMap<String, NativeType>,
-    functions: &HashMap<(String, usize), NativeType>,
-    constructors: Option<&NativeConstructorLayouts>,
-) -> Option<NativeType> {
-    if let Some(ty) = super::template_values::managed_template_operation_type(expr) {
-        return Some(ty);
-    }
-    if let Some(ty) = super::http_values::managed_http_operation_type(expr) {
-        return Some(ty);
-    }
-    if let Some(ty) = super::list_comprehension::managed_comprehension_operation_type(expr) {
-        return Some(ty);
-    }
-    match expr {
-        CoreExpr::Atom(value) | CoreExpr::Var(value) if value == "Unit" => Some(NativeType::Unit),
-        CoreExpr::Int(_) => Some(NativeType::Int),
-        CoreExpr::Float(_) => Some(NativeType::Float),
-        CoreExpr::Binary(_) => Some(NativeType::StringRef),
-        CoreExpr::Atom(value) | CoreExpr::Var(value)
-            if matches!(value.as_str(), "true" | "false") =>
-        {
-            Some(NativeType::Bool)
-        }
-        CoreExpr::Var(name) => variables.get(name).copied(),
-        CoreExpr::Call { function, args } => {
-            functions.get(&(function.clone(), args.len())).copied()
-        }
-        CoreExpr::ConstructorCall { .. } => {
-            constructors.and_then(|layouts| constructor_result_type(expr, layouts))
-        }
-        CoreExpr::RecordConstruct { .. } => {
-            constructors.and_then(|layouts| record_construct_result_type(expr, layouts))
-        }
-        CoreExpr::RecordUpdate { base, name, .. } => {
-            let base = infer_native_type_impl(base, variables, functions, constructors)?;
-            record_update_result_type(name, base, constructors?).ok()
-        }
-        CoreExpr::FieldAccess { base, field } => {
-            let base = infer_native_type_impl(base, variables, functions, constructors)?;
-            managed_field_projection(base, None, field, constructors?)
-                .ok()
-                .map(|(_, ty)| ty)
-        }
-        CoreExpr::RecordAccess { base, name, field } => {
-            let base = infer_native_type_impl(base, variables, functions, constructors)?;
-            managed_field_projection(base, Some(name), field, constructors?)
-                .ok()
-                .map(|(_, ty)| ty)
-        }
-        CoreExpr::UnaryOp { operator, operand } => match operator.as_str() {
-            "-" => match infer_native_type_impl(operand, variables, functions, constructors) {
-                Some(ty @ (NativeType::Int | NativeType::Float)) => Some(ty),
-                _ => None,
-            },
-            "not" | "!" => (infer_native_type_impl(operand, variables, functions, constructors)
-                == Some(NativeType::Bool))
-            .then_some(NativeType::Bool),
-            _ => None,
-        },
-        CoreExpr::BinaryOp {
-            operator,
-            left,
-            right,
-        } => {
-            let left = infer_native_type_impl(left, variables, functions, constructors)?;
-            let right = infer_native_type_impl(right, variables, functions, constructors)?;
-            match operator.as_str() {
-                "+" | "-" | "*" | "/"
-                    if matches!(left, NativeType::Int | NativeType::Float)
-                        && matches!(right, NativeType::Int | NativeType::Float) =>
-                {
-                    Some(if left == NativeType::Float || right == NativeType::Float {
-                        NativeType::Float
-                    } else {
-                        NativeType::Int
-                    })
-                }
-                "div" | "rem" if left == NativeType::Int && right == NativeType::Int => {
-                    Some(NativeType::Int)
-                }
-                "==" | "!="
-                    if left == right
-                        && (native_word_equality(left)
-                            || matches!(left, NativeType::ManagedRef(_))) =>
-                {
-                    Some(NativeType::Bool)
-                }
-                "<" | "<=" | ">" | ">="
-                    if matches!(left, NativeType::Int | NativeType::Float)
-                        && matches!(right, NativeType::Int | NativeType::Float) =>
-                {
-                    Some(NativeType::Bool)
-                }
-                "and" | "&&" | "or" | "||"
-                    if left == NativeType::Bool && right == NativeType::Bool =>
-                {
-                    Some(NativeType::Bool)
-                }
-                _ => None,
-            }
-        }
-        CoreExpr::Let { bindings, body } => {
-            let mut locals = variables.clone();
-            for binding in bindings {
-                let CorePattern::Var(name) = &binding.pattern else {
-                    return None;
-                };
-                let ty = infer_native_type_impl(&binding.value, &locals, functions, constructors)?;
-                locals.insert(name.clone(), ty);
-            }
-            infer_native_type_impl(body, &locals, functions, constructors)
-        }
-        CoreExpr::If { clauses } => {
-            let mut types = clauses.iter().map(|clause| {
-                infer_native_type_impl(&clause.body, variables, functions, constructors)
-            });
-            let first = types.next()??;
-            types.all(|ty| ty == Some(first)).then_some(first)
-        }
-        CoreExpr::Cast { expr, target_type } => {
-            let source = infer_native_type_impl(expr, variables, functions, constructors)?;
-            let target = native_type(Some(target_type), &target_type.contract_text())?;
-            (source == target).then_some(target)
-        }
-        _ => None,
-    }
-}
+include!("expression/inference.rs");
 
 pub(super) fn expr_is_scalar(expr: &CoreExpr) -> bool {
     if super::template_values::managed_template_operation_type(expr).is_some() {
@@ -235,9 +78,12 @@ pub(super) fn expr_is_scalar(expr: &CoreExpr) -> bool {
     }
     match expr {
         CoreExpr::Int(_) | CoreExpr::Float(_) | CoreExpr::Binary(_) | CoreExpr::Var(_) => true,
-        CoreExpr::Atom(value) => matches!(value.as_str(), "Unit" | "true" | "false"),
+        CoreExpr::Atom(_) => true,
         CoreExpr::Call { args, .. } | CoreExpr::ConstructorCall { args, .. } => {
             args.iter().all(expr_is_scalar)
+        }
+        CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => {
+            !super::transitions::is_process_transition(expr) && args.iter().all(expr_is_scalar)
         }
         CoreExpr::Tuple(items) | CoreExpr::List(items) => items.iter().all(expr_is_scalar),
         CoreExpr::ListCons { head, tail } => expr_is_scalar(head) && expr_is_scalar(tail),
@@ -296,125 +142,6 @@ pub(super) fn expr_is_scalar(expr: &CoreExpr) -> bool {
         }
         _ => false,
     }
-}
-
-pub(super) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeType> {
-    match core {
-        Some(CoreType::Named(name)) if name == "Unit" => Some(NativeType::Unit),
-        Some(CoreType::Int) => Some(NativeType::Int),
-        Some(CoreType::Float) => Some(NativeType::Float),
-        Some(CoreType::Bool) => Some(NativeType::Bool),
-        Some(CoreType::Atom | CoreType::AtomLiteral(_)) => Some(NativeType::Atom),
-        Some(CoreType::String) => Some(NativeType::StringRef),
-        Some(CoreType::Named(name)) if super::template_values::is_template_html_type(name) => {
-            Some(NativeType::StringRef)
-        }
-        Some(CoreType::Binary) => Some(NativeType::BinaryRef),
-        Some(CoreType::Arrow {
-            params,
-            return_type,
-        }) => {
-            let parameters = params
-                .iter()
-                .map(|ty| native_type(Some(ty), &ty.contract_text()).map(NativeType::boundary_type))
-                .collect::<Option<Vec<_>>>()?;
-            let result =
-                native_type(Some(return_type), &return_type.contract_text())?.boundary_type();
-            ManagedClosureDescriptor::semantic_id_for_signature(&parameters, &[result])
-                .ok()
-                .map(NativeType::ManagedRef)
-        }
-        Some(CoreType::Named(name)) if matches!(name.as_str(), "Bytes" | "std.binary.Bytes") => {
-            Some(NativeType::BytesRef)
-        }
-        Some(CoreType::Named(name))
-            if matches!(name.as_str(), "Binary" | "BitString" | "std.binary.Binary") =>
-        {
-            Some(NativeType::BinaryRef)
-        }
-        Some(CoreType::Apply { constructor, args })
-            if constructor.rsplit('.').next() == Some("Process") && args.len() == 1 =>
-        {
-            Some(NativeType::Int)
-        }
-        Some(CoreType::Apply { constructor, args })
-            if matches!(
-                constructor.rsplit('.').next(),
-                Some("Entry" | "Monitor" | "ResourceKind" | "Resource")
-            ) && args.len() == 1 =>
-        {
-            Some(NativeType::Int)
-        }
-        Some(CoreType::Apply { constructor, args })
-            if constructor.rsplit('.').next() == Some("Message") && args.len() == 1 =>
-        {
-            native_type(Some(&args[0]), &args[0].contract_text())
-        }
-        Some(CoreType::Named(name))
-            if matches!(
-                name.rsplit('.').next(),
-                Some("Timer" | "ExitReason" | "SchedulingClass")
-            ) =>
-        {
-            Some(NativeType::Int)
-        }
-        Some(core @ CoreType::Named(_)) => managed_reference_type(core),
-        Some(
-            core @ (CoreType::Tuple(_)
-            | CoreType::Struct { .. }
-            | CoreType::Union(_)
-            | CoreType::List(_)),
-        ) => managed_reference_type(core),
-        Some(core @ CoreType::Apply { constructor, .. })
-            if managed_aggregate_constructor(constructor) =>
-        {
-            managed_reference_type(core)
-        }
-        None if text == "Unit" => Some(NativeType::Unit),
-        None if text == "Int" => Some(NativeType::Int),
-        None if text == "Float" => Some(NativeType::Float),
-        None if text == "Bool" => Some(NativeType::Bool),
-        None if text == "Atom" => Some(NativeType::Atom),
-        None if text == "String" => Some(NativeType::StringRef),
-        None if matches!(text, "Bytes" | "std.binary.Bytes") => Some(NativeType::BytesRef),
-        None if matches!(text, "Binary" | "BitString" | "std.binary.Binary") => {
-            Some(NativeType::BinaryRef)
-        }
-        _ => None,
-    }
-}
-
-/// Decodes one checked CoreIR string payload into its runtime UTF-8 value.
-fn core_string_runtime_value(value: &str) -> Result<String, String> {
-    if value.starts_with('"') && value.ends_with('"') {
-        serde_json::from_str(value)
-            .map_err(|error| format!("error[native_ir.string_literal]: {error}"))
-    } else {
-        Ok(value.to_string())
-    }
-}
-
-/// Creates an exact managed-reference kind from canonical checked CoreIR type text.
-fn managed_reference_type(core: &CoreType) -> Option<NativeType> {
-    SemanticTypeId::from_canonical(&core.contract_text())
-        .ok()
-        .map(NativeType::ManagedRef)
-}
-
-/// Reports whether an applied type uses a fixed aggregate or algebraic layout.
-fn managed_aggregate_constructor(constructor: &str) -> bool {
-    matches!(
-        constructor.rsplit('.').next(),
-        Some("Option" | "Result" | "Array" | "FixedArray" | "List" | "Map" | "Set")
-    )
-}
-
-/// Reports whether native equality can compare the complete value in one word.
-fn native_word_equality(ty: NativeType) -> bool {
-    matches!(
-        ty,
-        NativeType::Unit | NativeType::Int | NativeType::Bool | NativeType::Atom
-    )
 }
 
 /// Lowers CoreIR with the fixed managed constructors visible to the module.
@@ -491,6 +218,7 @@ pub(super) fn lower_expr_with_constructors(
         }
         CoreExpr::Atom(value) if value == "true" => Ok(NativeExpr::Bool(true)),
         CoreExpr::Atom(value) if value == "false" => Ok(NativeExpr::Bool(false)),
+        CoreExpr::Atom(value) => Ok(NativeExpr::AtomLiteral(Arc::from(value.as_str()))),
         CoreExpr::Var(value) if value == "true" => Ok(NativeExpr::Bool(true)),
         CoreExpr::Var(value) if value == "false" => Ok(NativeExpr::Bool(false)),
         CoreExpr::Var(name) => params
@@ -498,6 +226,35 @@ pub(super) fn lower_expr_with_constructors(
             .copied()
             .map(NativeExpr::Param)
             .ok_or_else(|| format!("error[native_ir.variable]: unknown scalar variable `{name}`")),
+        CoreExpr::List(_) => {
+            let expected = literal_collection_type(expr)
+                .or_else(|| {
+                    collection_literal_types::inferred_collection_literal_type(expr, |item| {
+                        infer_native_type_impl(
+                            item,
+                            param_types,
+                            function_types,
+                            Some(constructors),
+                        )
+                    }, |item| constructor_result_core_type(item, constructors))
+                })
+                .ok_or_else(|| {
+                "error[native_ir.list_literal_type]: cannot infer a homogeneous native list literal"
+                    .to_string()
+            })?;
+            super::collection_values::lower_boundary_collection_value(
+                expr,
+                Some(&expected),
+                params,
+                param_types,
+                functions,
+                function_types,
+                constructors,
+            )?
+            .ok_or_else(|| {
+                "error[native_ir.list_literal]: expected a concrete native list literal".to_string()
+            })
+        }
         expr @ CoreExpr::ConstructorCall { .. } => {
             lower_constructor_call(expr, constructors, |field| {
                 let ty = infer_native_type_for_lowering(
@@ -720,32 +477,52 @@ pub(super) fn lower_expr_with_constructors(
                     ],
                 });
             }
-            let left_type = infer_native_type_for_lowering(
+            let mut left_type = infer_native_type_for_lowering(
                 left,
                 param_types,
                 function_types,
                 constructors,
-            )?
-            .ok_or_else(|| {
-                    format!(
-                        "error[native_ir.operator]: scalar operator `{operator}` has an unsupported left operand"
-                    )
-                })?;
-            let right_type = infer_native_type_for_lowering(
+            )?;
+            let mut right_type = infer_native_type_for_lowering(
                 right,
                 param_types,
                 function_types,
                 constructors,
-            )?
-            .ok_or_else(|| {
+            )?;
+            if matches!(operator.as_str(), "==" | "!=") {
+                if left_type.is_none() && is_empty_list(left) {
+                    left_type = right_type;
+                }
+                if right_type.is_none() && is_empty_list(right) {
+                    right_type = left_type;
+                }
+            }
+            let left_type = left_type.ok_or_else(|| {
                     format!(
-                        "error[native_ir.operator]: scalar operator `{operator}` has an unsupported right operand"
+                        "error[native_ir.operator]: scalar operator `{operator}` has an unsupported left operand: {left:?}"
+                    )
+                })?;
+            let right_type = right_type.ok_or_else(|| {
+                    format!(
+                        "error[native_ir.operator]: scalar operator `{operator}` has an unsupported right operand: {right:?}"
                     )
                 })?;
             let numeric = matches!(left_type, NativeType::Int | NativeType::Float)
                 && matches!(right_type, NativeType::Int | NativeType::Float);
             let operand_type = if left_type == right_type {
                 left_type
+            } else if matches!(operator.as_str(), "==" | "!=")
+                && matches!(
+                    (left_type, right_type),
+                    (NativeType::ManagedRef(_), NativeType::Atom)
+                        | (NativeType::Atom, NativeType::ManagedRef(_))
+                )
+            {
+                if matches!(left_type, NativeType::ManagedRef(_)) {
+                    left_type
+                } else {
+                    right_type
+                }
             } else if numeric
                 && matches!(
                     operator.as_str(),
@@ -755,17 +532,14 @@ pub(super) fn lower_expr_with_constructors(
                 NativeType::Float
             } else {
                 return Err(format!(
-                    "error[native_ir.operator]: scalar operator `{operator}` has incompatible operands"
+                    "error[native_ir.operator]: scalar operator `{operator}` has incompatible operands: left={left_type:?} `{}`, right={right_type:?} `{}`",
+                    left.contract_text(),
+                    right.contract_text()
                 ));
             };
-            if let NativeType::ManagedRef(semantic) = operand_type {
-                if !matches!(operator.as_str(), "==" | "!=") {
-                    return Err(format!(
-                        "error[native_ir.operator]: managed operator `{operator}` is unsupported"
-                    ));
-                }
-                let equality = NativeExpr::ManagedOperation {
-                    encoded: encode_managed_value_equal_operation(semantic).into(),
+            if operator == "+" && operand_type == NativeType::StringRef {
+                return Ok(NativeExpr::ManagedOperation {
+                    encoded: Arc::from(encode_string_append_operation()),
                     args: vec![
                         lower_expr_with_constructors(
                             left,
@@ -777,6 +551,36 @@ pub(super) fn lower_expr_with_constructors(
                         )?,
                         lower_expr_with_constructors(
                             right,
+                            params,
+                            param_types,
+                            functions,
+                            function_types,
+                            constructors,
+                        )?,
+                    ],
+                });
+            }
+            if let Some(semantic) = managed_equality_semantic(operand_type) {
+                if !matches!(operator.as_str(), "==" | "!=") {
+                    return Err(format!(
+                        "error[native_ir.operator]: managed operator `{operator}` is unsupported"
+                    ));
+                }
+                let equality = NativeExpr::ManagedOperation {
+                    encoded: encode_managed_value_equal_operation(semantic).into(),
+                    args: vec![
+                        lower_equality_operand(
+                            left,
+                            operand_type,
+                            params,
+                            param_types,
+                            functions,
+                            function_types,
+                            constructors,
+                        )?,
+                        lower_equality_operand(
+                            right,
+                            operand_type,
                             params,
                             param_types,
                             functions,
@@ -899,6 +703,70 @@ pub(super) fn lower_expr_with_constructors(
             })
         }
         CoreExpr::Cast { expr, target_type } => {
+            if matches!(
+                expr.as_ref(),
+                CoreExpr::List(_) | CoreExpr::Tuple(_) | CoreExpr::Map(_)
+            ) {
+                return super::collection_values::lower_boundary_collection_value(
+                    expr,
+                    Some(target_type),
+                    params,
+                    param_types,
+                    functions,
+                    function_types,
+                    constructors,
+                )?
+                .ok_or_else(|| {
+                    "error[native_ir.cast_empty_list]: cast target is not a concrete native list"
+                        .to_string()
+                });
+            }
+            if let Some(lowered) =
+                lower_structural_constructor_call(expr, target_type, |field, expected_core| {
+                    if let Some(lowered) =
+                        super::collection_values::lower_boundary_collection_value(
+                            field,
+                            Some(expected_core),
+                            params,
+                            param_types,
+                            functions,
+                            function_types,
+                            constructors,
+                        )?
+                    {
+                        let ty = native_type(
+                            Some(expected_core),
+                            &expected_core.contract_text(),
+                        )
+                        .ok_or_else(|| {
+                            "error[native_ir.structural_constructor_field_type]: expected field is not native"
+                                .to_string()
+                        })?;
+                        return Ok((lowered, ty));
+                    }
+                    let ty = infer_native_type_for_lowering(
+                        field,
+                        param_types,
+                        function_types,
+                        constructors,
+                    )?
+                    .ok_or_else(|| {
+                        "error[native_ir.structural_constructor_field_type]: cannot infer field"
+                            .to_string()
+                    })?;
+                    let lowered = lower_expr_with_constructors(
+                        field,
+                        params,
+                        param_types,
+                        functions,
+                        function_types,
+                        constructors,
+                    )?;
+                    Ok((lowered, ty))
+                })?
+            {
+                return Ok(lowered);
+            }
             let source = infer_native_type_for_lowering(
                 expr,
                 param_types,
@@ -910,7 +778,8 @@ pub(super) fn lower_expr_with_constructors(
                 .ok_or_else(|| "error[native_ir.cast_target]: unsupported cast target".to_string())?;
             if source != target {
                 return Err(format!(
-                    "error[native_ir.cast_check]: cast changes native representation from {source:?} to {target:?}"
+                    "error[native_ir.cast_check]: cast changes native representation from {source:?} to {target:?} for {expr:?} -> {}",
+                    target_type.contract_text()
                 ));
             }
             lower_expr_with_constructors(
@@ -922,6 +791,14 @@ pub(super) fn lower_expr_with_constructors(
                 constructors,
             )
         }
+        CoreExpr::Intrinsic(call) => intrinsics::lower_intrinsic(
+            call,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        ),
         CoreExpr::If { clauses } if !clauses.is_empty() => Ok(NativeExpr::If {
             clauses: clauses
                 .iter()
@@ -947,44 +824,8 @@ pub(super) fn lower_expr_with_constructors(
                 })
                 .collect::<Result<Vec<_>, String>>()?,
         }),
-        _ => Err(
-            "error[native_ir.expression]: expression is not in the scalar native profile"
-                .to_string(),
-        ),
+        unsupported => Err(format!(
+            "error[native_ir.expression]: expression is not in the scalar native profile: {unsupported:?}"
+        )),
     }
-}
-
-/// Lowers one checked named field read through the bounded managed-operation ABI.
-#[allow(clippy::too_many_arguments)]
-fn lower_managed_field_access(
-    base: &CoreExpr,
-    record_name: Option<&str>,
-    field: &str,
-    params: &HashMap<String, usize>,
-    param_types: &HashMap<String, NativeType>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    constructors: &NativeConstructorLayouts,
-) -> Result<NativeExpr, String> {
-    let base_type =
-        infer_native_type_for_lowering(base, param_types, function_types, constructors)?
-            .ok_or_else(|| {
-                format!(
-                    "error[native_ir.field_base]: cannot infer receiver `{}` for field `{field}`",
-                    base.contract_text()
-                )
-            })?;
-    let (encoded, _) = managed_field_projection(base_type, record_name, field, constructors)?;
-    let base = lower_expr_with_constructors(
-        base,
-        params,
-        param_types,
-        functions,
-        function_types,
-        constructors,
-    )?;
-    Ok(NativeExpr::ManagedOperation {
-        encoded,
-        args: vec![base],
-    })
 }

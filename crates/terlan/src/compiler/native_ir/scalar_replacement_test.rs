@@ -613,15 +613,19 @@ pub projected(): Int ->\n\
         .find(|function| function.name == "projected")
         .expect("projected native function");
 
-    assert!(matches!(
-        function.body,
-        NativeExpr::Let { ref bindings, ref body }
-            if bindings == &[NativeExpr::Int(20), NativeExpr::Int(22)]
-                && matches!(body.as_ref(), NativeExpr::Binary {
-                    operator: NativeBinaryOperator::Add,
-                    ..
-                })
-    ));
+    assert!(
+        matches!(
+            function.body,
+            NativeExpr::Let { ref bindings, ref body }
+                if bindings == &[NativeExpr::Int(20), NativeExpr::Int(22)]
+                    && matches!(body.as_ref(), NativeExpr::Binary {
+                        operator: NativeBinaryOperator::Add,
+                        ..
+                    })
+        ),
+        "body={:?}",
+        function.body
+    );
 }
 
 /// Carries tuple destructuring through source checking and application lowering.
@@ -647,15 +651,19 @@ pub tuple_sum(): Int ->\n\
         .find(|function| function.name == "tuple_sum")
         .expect("tuple_sum native function");
 
-    assert!(matches!(
-        function.body,
-        NativeExpr::Let { ref bindings, ref body }
-            if bindings == &[NativeExpr::Int(20), NativeExpr::Int(22)]
-                && matches!(body.as_ref(), NativeExpr::Binary {
-                    operator: NativeBinaryOperator::Add,
-                    ..
-                })
-    ));
+    assert!(
+        matches!(
+            function.body,
+            NativeExpr::Let { ref bindings, ref body }
+                if bindings == &[NativeExpr::Int(20), NativeExpr::Int(22)]
+                    && matches!(body.as_ref(), NativeExpr::Binary {
+                        operator: NativeBinaryOperator::Add,
+                        ..
+                    })
+        ),
+        "body={:?}",
+        function.body
+    );
 }
 
 /// Carries a later local destructuring through source and native lowering.
@@ -682,22 +690,26 @@ pub tuple_sum(): Int ->\n\
         .find(|function| function.name == "tuple_sum")
         .expect("tuple_sum native function");
 
-    assert!(matches!(
-        function.body,
-        NativeExpr::Let { ref bindings, ref body }
-            if bindings == &[
-                NativeExpr::Int(20),
-                NativeExpr::Int(22),
-                NativeExpr::Param(0),
-                NativeExpr::Param(1),
-            ] && matches!(body.as_ref(), NativeExpr::Binary {
-                operator: NativeBinaryOperator::Add,
-                left,
-                right,
-                ..
-            } if left.as_ref() == &NativeExpr::Param(2)
-                && right.as_ref() == &NativeExpr::Param(3))
-    ));
+    assert!(
+        matches!(
+            function.body,
+            NativeExpr::Let { ref bindings, ref body }
+                if bindings == &[
+                    NativeExpr::Int(20),
+                    NativeExpr::Int(22),
+                    NativeExpr::Param(0),
+                    NativeExpr::Param(1),
+                ] && matches!(body.as_ref(), NativeExpr::Binary {
+                    operator: NativeBinaryOperator::Add,
+                    left,
+                    right,
+                    ..
+                } if left.as_ref() == &NativeExpr::Param(2)
+                    && right.as_ref() == &NativeExpr::Param(3))
+        ),
+        "body={:?}",
+        function.body
+    );
 }
 
 /// Executes tuple-pattern machine code without a managed allocator callback.

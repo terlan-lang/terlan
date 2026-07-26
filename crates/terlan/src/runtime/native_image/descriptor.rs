@@ -18,7 +18,10 @@ const FORMAT_MAJOR: u16 = 1;
 const FORMAT_MINOR: u16 = 5;
 const HEADER_LEN: usize = 32;
 const DIGEST_LEN: usize = 32;
-const MAX_DESCRIPTOR_LEN: usize = 1024 * 1024;
+// Large closed AOT applications can legitimately carry thousands of typed
+// continuation entries. Keep decoding bounded, but do not constrain static
+// image metadata to the former request-sized 1 MiB ceiling.
+const MAX_DESCRIPTOR_LEN: usize = 16 * 1024 * 1024;
 const MAX_TEXT_LEN: usize = u16::MAX as usize;
 const OPTIONAL_RECORD: u16 = 1;
 
@@ -274,7 +277,7 @@ pub fn encode_descriptor(descriptor: &TvmExecutableDescriptor) -> Result<Vec<u8>
             "error[tvm.image.descriptor_size]: descriptor length overflow".to_string()
         })?;
     if total_len > MAX_DESCRIPTOR_LEN {
-        return Err("error[tvm.image.descriptor_size]: descriptor exceeds 1 MiB".to_string());
+        return Err("error[tvm.image.descriptor_size]: descriptor exceeds 16 MiB".to_string());
     }
     let record_count = u16::try_from(
         7 + usize::from(descriptor.signature.is_some())

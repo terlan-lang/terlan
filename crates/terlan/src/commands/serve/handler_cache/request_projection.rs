@@ -9,7 +9,9 @@ use crate::compiler::router::AotRouterPlan;
 use crate::runtime::native::http::RequestFieldProjection;
 use crate::runtime::vm::http_session::{VmHttpSessionRuntime, VmHttpSessionService};
 
-use super::{materialize_router, AotHandlerGeneration, AotHandlerRuntime};
+use super::{
+    materialize_router, AdmittedRequestProjection, AotHandlerGeneration, AotHandlerRuntime,
+};
 
 impl AotHandlerRuntime {
     pub(super) fn load_with_request_projections(
@@ -25,17 +27,23 @@ impl AotHandlerRuntime {
             .into_iter()
             .filter(|projection| projection.module == module)
         {
+            let admitted = AdmittedRequestProjection {
+                fields: projection.fields,
+                scalar_entry: projection.scalar_entry,
+                scalar_field: projection.scalar_field,
+                suspending: projection.suspending,
+            };
             if primary_request_projection.is_none() {
                 primary_request_projection = Some(super::PrimaryRequestProjection {
                     function: projection.function,
                     arity: projection.arity,
-                    fields: projection.fields,
+                    projection: admitted,
                 });
             } else {
                 request_projections
                     .entry(projection.function)
                     .or_default()
-                    .insert(projection.arity, projection.fields);
+                    .insert(projection.arity, admitted);
             }
         }
         Ok(Self {
@@ -62,13 +70,63 @@ impl AotHandlerRuntime {
         }
         if let Some(primary) = &self.primary_request_projection {
             if primary.function == function && primary.arity == arity {
-                return primary.fields;
+                return primary.projection.fields;
             }
         }
         self.request_projections
             .get(function)
             .and_then(|arities| arities.get(&arity))
-            .copied()
+            .map(|projection| projection.fields)
             .unwrap_or(RequestFieldProjection::Complete)
+    }
+
+    /// Returns a generated scalar ingress only when it matches this exact
+    /// source export and its admitted projection proof.
+    pub(super) fn scalar_request_ingress(
+        &self,
+        module: &str,
+        function: &str,
+        arity: usize,
+    ) -> Option<(&str, usize)> {
+        if module != self.module || self.router.is_some() {
+            return None;
+        }
+        let projection = self
+            .primary_request_projection
+            .as_ref()
+            .filter(|primary| primary.function == function && primary.arity == arity)
+            .map(|primary| &primary.projection)
+            .or_else(|| {
+                self.request_projections
+                    .get(function)
+                    .and_then(|arities| arities.get(&arity))
+            })?;
+        Some((
+            projection.scalar_entry.as_deref()?,
+            projection.scalar_field?,
+        ))
+    }
+
+    /// Returns compiler-proven suspension behavior for this exact generation.
+    pub(in crate::commands::serve) fn request_handler_may_suspend(
+        &self,
+        module: &str,
+        function: &str,
+        arity: usize,
+    ) -> bool {
+        if module != self.module || self.router.is_some() {
+            return false;
+        }
+        self.primary_request_projection
+            .as_ref()
+            .filter(|primary| primary.function == function && primary.arity == arity)
+            .map(|primary| primary.projection.suspending)
+            .or_else(|| {
+                self.request_projections
+                    .get(function)
+                    .and_then(|arities| arities.get(&arity))
+                    .map(|projection| projection.suspending)
+            })
+            .unwrap_or(false)
     }
 }

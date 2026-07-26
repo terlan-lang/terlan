@@ -1,9 +1,10 @@
 //! Request/credit-aware NativeBoundary worker core.
 //!
 //! This module composes the stable term runtime with the pure request and
-//! credit helpers. It is still transport-neutral: VM, thread, NIF, or process
-//! bridges can wrap this worker without changing the request lifecycle,
-//! backpressure, resource ownership, or reply shape.
+//! credit helpers. The VM owns scheduling and lifecycle while an admitted
+//! capability transport may wrap this worker without changing request
+//! identity, backpressure, resource ownership, or reply shape. It deliberately
+//! does not expose an Erlang NIF ABI.
 
 use std::collections::{BTreeMap, VecDeque};
 
@@ -617,3 +618,7 @@ fn worker_error_reply(kind: ErrorKind) -> NativeBoundaryReplyTerm {
 #[cfg(test)]
 #[path = "worker_test.rs"]
 mod worker_test;
+
+#[cfg(test)]
+#[path = "nif_suite_parity_test.rs"]
+mod nif_suite_parity_test;

@@ -1,8 +1,9 @@
 //! In-process NativeBoundary runtime core for bridge workers.
 //!
-//! This module owns the smallest executable runtime surface before actual
-//! VM/NIF wiring: decode stable bridge terms, dispatch the operation through
-//! resource-backed adapters, and encode a stable reply term.
+//! This module owns the smallest executable runtime surface behind VM-owned
+//! capability workers: decode stable bridge terms, dispatch the operation
+//! through resource-backed adapters, and encode a stable reply term. It is not
+//! an Erlang NIF ABI compatibility layer.
 
 use crate::terlan_native::http;
 use crate::terlan_native_boundary::cancellation::NativeBoundaryCancellationToken;

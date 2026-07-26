@@ -1,10 +1,12 @@
 //! Maintained Hyper HTTP/1 protocol ownership over VM socket tasks.
 
+use std::cell::RefCell;
 use std::convert::Infallible;
 use std::io::{self, IoSlice, Write as _};
 use std::net as std_net;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::task::{Context, Poll};
 
@@ -20,16 +22,21 @@ use crate::runtime::vm::protocol_task_executor::{
     serve_protocol_tasks, VmProtocolTaskFactory, VmReadyTcpStream,
 };
 
-use super::handle_vm_stream_request;
 use super::handler::VmHttpChannelTransport;
+use super::{handle_suspendable_vm_stream_request, handle_vm_stream_request};
+
+thread_local! {
+    /// Immutable route root copied once onto each permanent protocol owner.
+    static LOCAL_WEB_ROOT: RefCell<Option<Rc<PathBuf>>> = const { RefCell::new(None) };
+}
 
 /// Runs Hyper connection futures on the protocol-agnostic VM task executor.
 pub(super) fn serve(listener: std_net::TcpListener, web_root: PathBuf) -> Result<(), String> {
     let web_root = Arc::new(web_root);
     let factory: VmProtocolTaskFactory = Arc::new(move |stream, route| {
-        let web_root = Arc::clone(&web_root);
+        let web_root = owner_local_web_root(&web_root);
         let service = service_fn(move |request| {
-            let web_root = Arc::clone(&web_root);
+            let web_root = Rc::clone(&web_root);
             async move {
                 Ok::<_, Infallible>(handle_request(request, web_root.as_ref().as_path()).await)
             }
@@ -46,6 +53,23 @@ pub(super) fn serve(listener: std_net::TcpListener, web_root: PathBuf) -> Result
         })
     });
     serve_protocol_tasks(listener, factory)
+}
+
+fn owner_local_web_root(shared: &Arc<PathBuf>) -> Rc<PathBuf> {
+    LOCAL_WEB_ROOT.with(|local| {
+        let mut local = local.borrow_mut();
+        if local
+            .as_ref()
+            .is_none_or(|root| root.as_path() != shared.as_path())
+        {
+            *local = Some(Rc::new(shared.as_ref().clone()));
+        }
+        Rc::clone(
+            local
+                .as_ref()
+                .expect("owner-local web root is initialized before cloning"),
+        )
+    })
 }
 
 /// Hyper I/O facade; readiness and polling remain owned by the VM executor.
@@ -153,6 +177,14 @@ async fn handle_request(request: Request<Incoming>, web_root: &Path) -> Response
         Err(error) => return error_response(400, format!("invalid request body: {error}")),
     };
     let request = Request::from_parts(parts, body);
+    match handle_suspendable_vm_stream_request(&request, web_root).await {
+        Ok(Some(response)) => {
+            let (parts, body) = response.into_parts();
+            return Response::from_parts(parts, Full::new(body));
+        }
+        Ok(None) => {}
+        Err(error) => return error_response(500, error),
+    }
     let mut channel = None;
     let response = match handle_vm_stream_request(request, web_root, &mut channel) {
         Ok(response) => response,
@@ -177,7 +209,7 @@ async fn handle_request(request: Request<Incoming>, web_root: &Path) -> Response
         );
     }
     let (parts, body) = response.into_parts();
-    Response::from_parts(parts, Full::new(Bytes::from(body)))
+    Response::from_parts(parts, Full::new(body))
 }
 
 fn error_response(status: u16, message: String) -> Response<Full<Bytes>> {

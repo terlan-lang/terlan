@@ -94,6 +94,14 @@ impl ManagedLayoutRegistry {
         self.collections.get(&semantic)
     }
 
+    /// Returns deterministic collection identities for runtime diagnostics.
+    pub(crate) fn collection_inventory(&self) -> Vec<([u8; 16], &str)> {
+        self.collections
+            .iter()
+            .map(|(semantic, descriptor)| (semantic.bytes(), descriptor.canonical_type()))
+            .collect()
+    }
+
     /// Returns every admitted active layout for one semantic type.
     pub(crate) fn layouts(&self, semantic: SemanticTypeId) -> &[Arc<ManagedAggregateDescriptor>] {
         self.layouts

@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs;
 use std::num::NonZeroU64;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
@@ -25,29 +26,36 @@ use crate::runtime::vm::work_stealing::{
     VmWorkDirective, VmWorkStealingConfig, VmWorkStealingPolicy,
 };
 use crate::runtime::vm::ReplValue;
+#[cfg(not(feature = "serve-runtime-bin"))]
 use crate::validation::native_policy::NativePolicy;
+#[cfg(not(feature = "serve-runtime-bin"))]
 use crate::validation::target_profile::TargetProfile;
+#[cfg(not(feature = "serve-runtime-bin"))]
 use crate::{ColorChoice, DiagnosticFormat};
 
 use super::handler::WebPackageHandler;
 use super::source_path_from_manifest;
 
+mod cache_epoch;
 mod http_response;
 mod immediate;
 pub(super) mod invocation;
+mod protocol_capability;
 mod replay_evidence;
 mod request_projection;
 mod router_materialization;
 mod shard_owner;
 mod source_generation;
-
+pub(super) use cache_epoch::current as handler_cache_epoch;
+use cache_epoch::{advance as advance_cache_epoch, current as current_cache_epoch};
 use immediate::{finish_immediate_step, LocalImmediateShard};
 use router_materialization::materialize_router;
-
+#[cfg(not(feature = "serve-runtime-bin"))]
+pub(super) use source_generation::run_compiler_daemon;
+pub(super) use source_generation::stage_source_generation;
 const CACHE_ERROR: &str = "error[serve.aot.cache]: native handler cache lock poisoned";
 
 static HANDLER_CACHE: OnceLock<RwLock<HashMap<PathBuf, HandlerCacheEntry>>> = OnceLock::new();
-static HANDLER_CACHE_EPOCH: AtomicU64 = AtomicU64::new(1);
 static NEXT_HANDLER_GENERATION: AtomicU64 = AtomicU64::new(1);
 
 thread_local! {
@@ -65,7 +73,7 @@ struct LocalHandlerCache {
 struct LocalHandlerRuntime {
     web_root: PathBuf,
     source: String,
-    runtime: Arc<AotHandlerRuntime>,
+    runtime: Weak<AotHandlerRuntime>,
 }
 
 #[cfg(test)]
@@ -84,15 +92,22 @@ pub(super) struct AotHandlerRuntime {
     generation: Arc<AotHandlerGeneration>,
     router: Option<VmHttpRouter>,
     primary_request_projection: Option<PrimaryRequestProjection>,
-    request_projections:
-        HashMap<String, HashMap<usize, crate::runtime::native::http::RequestFieldProjection>>,
+    request_projections: HashMap<String, HashMap<usize, AdmittedRequestProjection>>,
 }
 
 #[derive(Debug)]
 struct PrimaryRequestProjection {
     function: String,
     arity: usize,
+    projection: AdmittedRequestProjection,
+}
+
+#[derive(Clone, Debug)]
+struct AdmittedRequestProjection {
     fields: crate::runtime::native::http::RequestFieldProjection,
+    scalar_entry: Option<String>,
+    scalar_field: Option<usize>,
+    suspending: bool,
 }
 
 /// One admitted handler generation and its long-lived actor execution shards.
@@ -101,13 +116,70 @@ struct PrimaryRequestProjection {
 /// continuations keep their exact native generation mapped across hot reloads.
 pub(super) struct AotHandlerGeneration {
     identity: u64,
-    image: PureNativeExecutionImage,
-    shards: Vec<shard_owner::AotHandlerShardOwner>,
+    image: Arc<PureNativeExecutionImage>,
+    shards: Vec<LazyAotHandlerShardOwner>,
     scheduler_control: Arc<VmFixedSchedulerControl<shard_owner::AotSchedulerPublication>>,
     active_actors: Vec<AtomicUsize>,
     next_actor_route: AtomicU64,
     work_policy: Mutex<VmWorkStealingPolicy>,
     work_metrics: AotGeneratedWorkMetrics,
+}
+
+/// Lazily started asynchronous owner for calls that actually suspend.
+///
+/// Ordinary HTTP calls execute inside the protocol owner's `LocalImmediateShard`
+/// and never materialize this second thread or its duplicate mutable VM state.
+struct LazyAotHandlerShardOwner {
+    scheduler: VmSchedulerId,
+    image: Arc<PureNativeExecutionImage>,
+    control: Arc<VmFixedSchedulerControl<shard_owner::AotSchedulerPublication>>,
+    failure: Arc<Mutex<Option<String>>>,
+    owner: OnceLock<Result<shard_owner::AotHandlerShardOwner, String>>,
+}
+
+impl LazyAotHandlerShardOwner {
+    fn new(
+        scheduler: VmSchedulerId,
+        image: Arc<PureNativeExecutionImage>,
+        control: Arc<VmFixedSchedulerControl<shard_owner::AotSchedulerPublication>>,
+        failure: Arc<Mutex<Option<String>>>,
+    ) -> Self {
+        Self {
+            scheduler,
+            image,
+            control,
+            failure,
+            owner: OnceLock::new(),
+        }
+    }
+
+    fn get(&self) -> Result<&shard_owner::AotHandlerShardOwner, String> {
+        match self.owner.get_or_init(|| {
+            let shard = self.image.spawn_shard_on_scheduler(self.scheduler)?;
+            shard_owner::AotHandlerShardOwner::spawn(
+                self.scheduler,
+                shard,
+                Arc::clone(&self.control),
+                Arc::clone(&self.failure),
+            )
+        }) {
+            Ok(owner) => Ok(owner),
+            Err(error) => Err(error.clone()),
+        }
+    }
+
+    fn initialized(&self) -> Option<&shard_owner::AotHandlerShardOwner> {
+        self.owner.get().and_then(|owner| owner.as_ref().ok())
+    }
+}
+
+impl Deref for LazyAotHandlerShardOwner {
+    type Target = shard_owner::AotHandlerShardOwner;
+
+    fn deref(&self) -> &Self::Target {
+        self.get()
+            .expect("test-accessed asynchronous AOT owner must start")
+    }
 }
 
 /// Shard-wide generated queue coordination counters.
@@ -179,45 +251,23 @@ impl AotHandlerGeneration {
                 identity.checked_add(1)
             })
             .map_err(|_| "error[serve.aot.generation]: identity exhausted".to_string())?;
-        let image = PureNativeExecutionImage::load_with_http_sessions(image, sessions)?;
+        let image = Arc::new(PureNativeExecutionImage::load_with_http_sessions(
+            image, sessions,
+        )?);
         let scheduler_control = Arc::new(VmFixedSchedulerControl::default());
         let scheduler_failure = Arc::new(Mutex::new(None));
-        let mut shards = Vec::with_capacity(shard_count);
-        for scheduler in topology.schedulers() {
-            #[cfg(test)]
-            if fail_at == Some(scheduler.index()) {
-                let error = format!(
-                    "error[serve.aot.shard_start_injected]: scheduler {} startup failed",
-                    scheduler.index()
-                );
-                abort_partial_startup(
-                    &shards,
-                    scheduler_control.as_ref(),
-                    scheduler_failure.as_ref(),
-                    &error,
-                );
-                return Err(error);
-            }
-            let shard = image.spawn_shard_on_scheduler(scheduler)?;
-            match shard_owner::AotHandlerShardOwner::spawn(
-                scheduler,
-                shard,
-                Arc::clone(&scheduler_control),
-                Arc::clone(&scheduler_failure),
-            ) {
-                Ok(owner) => shards.push(owner),
-                Err(error) => {
-                    abort_partial_startup(
-                        &shards,
-                        scheduler_control.as_ref(),
-                        scheduler_failure.as_ref(),
-                        &error,
-                    );
-                    return Err(error);
-                }
-            }
-        }
-        Ok(Self {
+        let shards = topology
+            .schedulers()
+            .map(|scheduler| {
+                LazyAotHandlerShardOwner::new(
+                    scheduler,
+                    Arc::clone(&image),
+                    Arc::clone(&scheduler_control),
+                    Arc::clone(&scheduler_failure),
+                )
+            })
+            .collect();
+        let generation = Self {
             identity,
             image,
             shards,
@@ -229,7 +279,16 @@ impl AotHandlerGeneration {
                 VmWorkStealingConfig::default(),
             )?),
             work_metrics: AotGeneratedWorkMetrics::default(),
-        })
+        };
+        if let Some(fail_at) = fail_at {
+            for scheduler in topology.schedulers().take(fail_at) {
+                generation.shard(scheduler.index())?;
+            }
+            return Err(format!(
+                "error[serve.aot.shard_start_injected]: scheduler {fail_at} startup failed"
+            ));
+        }
+        Ok(generation)
     }
 
     /// Reserves the deterministic home scheduler for a new actor route.
@@ -288,9 +347,12 @@ impl AotHandlerGeneration {
     }
 
     fn shard(&self, index: usize) -> Result<&shard_owner::AotHandlerShardOwner, String> {
-        self.shards.get(index).ok_or_else(|| {
-            format!("error[serve.aot.shard_route]: execution shard {index} is not admitted")
-        })
+        self.shards
+            .get(index)
+            .ok_or_else(|| {
+                format!("error[serve.aot.shard_route]: execution shard {index} is not admitted")
+            })?
+            .get()
     }
 
     /// Moves one parked actor through the generation-qualified owner protocol.
@@ -407,7 +469,7 @@ impl AotHandlerGeneration {
         let snapshots = match self
             .shards
             .iter()
-            .map(shard_owner::AotHandlerShardOwner::runnable_snapshot)
+            .map(|shard| shard.runnable_snapshot())
             .collect::<Result<Vec<_>, _>>()
         {
             Ok(snapshots) => snapshots,
@@ -496,13 +558,16 @@ impl AotHandlerGeneration {
 
     #[cfg(test)]
     fn completed_call_count(&self) -> Result<u64, String> {
-        self.shards.iter().try_fold(0_u64, |total, shard| {
-            shard.completed_call_count().and_then(|count| {
-                total.checked_add(count).ok_or_else(|| {
-                    "error[serve.aot.completed_count]: call count overflow".to_string()
+        self.shards
+            .iter()
+            .filter_map(LazyAotHandlerShardOwner::initialized)
+            .try_fold(0_u64, |total, shard| {
+                shard.completed_call_count().and_then(|count| {
+                    total.checked_add(count).ok_or_else(|| {
+                        "error[serve.aot.completed_count]: call count overflow".to_string()
+                    })
                 })
             })
-        })
     }
 }
 
@@ -518,26 +583,12 @@ impl Drop for AotHandlerGeneration {
     fn drop(&mut self) {
         let _ = retire_protocol_resource(self.identity);
         for shard in &self.shards {
-            let _ = shard.shutdown();
+            if let Some(shard) = shard.initialized() {
+                let _ = shard.shutdown();
+            }
         }
         let _ = self.scheduler_control.shutdown();
     }
-}
-
-/// Closes admission and joins every owner started before a startup failure.
-fn abort_partial_startup(
-    shards: &[shard_owner::AotHandlerShardOwner],
-    control: &VmFixedSchedulerControl<shard_owner::AotSchedulerPublication>,
-    failure: &Mutex<Option<String>>,
-    error: &str,
-) {
-    if let Ok(mut current) = failure.lock() {
-        *current = Some(format!("partial scheduler startup: {error}"));
-    }
-    for owner in shards {
-        let _ = owner.shutdown();
-    }
-    let _ = control.shutdown();
 }
 
 impl AotHandlerRuntime {
@@ -800,7 +851,7 @@ pub(super) fn with_cached_vm_handler_runtime_for_request<R>(
             handler.module, handler.function, handler.arity
         )
     })?;
-    let epoch = HANDLER_CACHE_EPOCH.load(Ordering::Acquire);
+    let epoch = current_cache_epoch();
     let mut operation = Some(operation);
     if let Some(result) = LOCAL_HANDLER_CACHE.with(|cache| {
         let mut cache = cache.borrow_mut();
@@ -810,13 +861,16 @@ pub(super) fn with_cached_vm_handler_runtime_for_request<R>(
             cache.epoch = epoch;
         }
         let last = cache.last.as_ref()?;
-        (last.web_root == web_root && last.source == source.path).then(|| {
-            operation
-                .take()
-                .expect("owner-local handler operation runs exactly once")(
-                last.runtime.as_ref()
-            )
-        })
+        (last.web_root == web_root && last.source == source.path)
+            .then(|| last.runtime.upgrade())
+            .flatten()
+            .map(|runtime| {
+                operation
+                    .take()
+                    .expect("owner-local handler operation runs exactly once")(
+                    runtime.as_ref()
+                )
+            })
     }) {
         return Ok(result);
     }
@@ -863,7 +917,7 @@ fn local_cached_runtime_for_handler(
     web_root: &Path,
     source: &str,
 ) -> Option<Arc<AotHandlerRuntime>> {
-    let epoch = HANDLER_CACHE_EPOCH.load(Ordering::Acquire);
+    let epoch = current_cache_epoch();
     LOCAL_HANDLER_CACHE.with(|cache| {
         let mut cache = cache.borrow_mut();
         if cache.epoch != epoch {
@@ -872,12 +926,14 @@ fn local_cached_runtime_for_handler(
             cache.epoch = epoch;
         }
         let last = cache.last.as_ref()?;
-        (last.web_root == web_root && last.source == source).then(|| Arc::clone(&last.runtime))
+        (last.web_root == web_root && last.source == source)
+            .then(|| last.runtime.upgrade())
+            .flatten()
     })
 }
 
 fn remember_local_handler_runtime(web_root: &Path, source: &str, runtime: &Arc<AotHandlerRuntime>) {
-    let epoch = HANDLER_CACHE_EPOCH.load(Ordering::Acquire);
+    let epoch = current_cache_epoch();
     LOCAL_HANDLER_CACHE.with(|cache| {
         let mut cache = cache.borrow_mut();
         if cache.epoch != epoch {
@@ -888,14 +944,14 @@ fn remember_local_handler_runtime(web_root: &Path, source: &str, runtime: &Arc<A
         cache.last = Some(LocalHandlerRuntime {
             web_root: web_root.to_path_buf(),
             source: source.to_string(),
-            runtime: Arc::clone(runtime),
+            runtime: Arc::downgrade(runtime),
         });
     });
 }
 
 /// Resolves an admitted immutable generation without a process-wide lock.
 fn local_cached_runtime(source_path: &Path) -> Option<Arc<AotHandlerRuntime>> {
-    let epoch = HANDLER_CACHE_EPOCH.load(Ordering::Acquire);
+    let epoch = current_cache_epoch();
     LOCAL_HANDLER_CACHE.with(|cache| {
         let mut cache = cache.borrow_mut();
         if cache.epoch != epoch {
@@ -909,7 +965,7 @@ fn local_cached_runtime(source_path: &Path) -> Option<Arc<AotHandlerRuntime>> {
 
 /// Remembers only a weak generation reference on one fixed protocol owner.
 fn remember_local_runtime(source_path: PathBuf, runtime: &Arc<AotHandlerRuntime>) {
-    let epoch = HANDLER_CACHE_EPOCH.load(Ordering::Acquire);
+    let epoch = current_cache_epoch();
     LOCAL_HANDLER_CACHE.with(|cache| {
         let mut cache = cache.borrow_mut();
         if cache.epoch != epoch {
@@ -936,7 +992,7 @@ pub(super) fn invalidate_vm_handler_cache() {
             cache.clear();
         }
     }
-    HANDLER_CACHE_EPOCH.fetch_add(1, Ordering::AcqRel);
+    advance_cache_epoch();
 }
 
 fn cache() -> Result<&'static RwLock<HashMap<PathBuf, HandlerCacheEntry>>, String> {

@@ -1,5 +1,7 @@
 //! Compiler-dependent staging for the shard-local VM code registry.
 
+use std::collections::BTreeSet;
+
 use crate::commands::artifacts::fingerprint;
 use crate::validation::native_policy::NativePolicy;
 use crate::validation::target_profile::TargetProfile;
@@ -100,6 +102,10 @@ impl VmCodeServer {
             };
             Some((export.name.clone(), *arity))
         });
+        let defined_functions = core
+            .functions
+            .iter()
+            .map(|function| (function.name.clone(), function.arity));
         let module = core.module.clone();
         let checksum = format!(
             "source-fnv1a64:{:016x}",
@@ -107,7 +113,8 @@ impl VmCodeServer {
         );
         let source_map_id = format!("{source_name}:{checksum}");
         let artifact = VmModuleArtifact::new(checksum, source_map_id)
-            .with_exported_functions(exported_functions);
+            .with_exported_functions(exported_functions)
+            .with_defined_functions(defined_functions);
         (module, artifact)
     }
 
@@ -124,5 +131,31 @@ impl VmCodeServer {
     /// Publishes one previously compiled artifact as an atomic visibility step.
     pub(crate) fn publish_staged(&mut self, staged: VmStagedModuleArtifact) -> VmCodeServerEvent {
         self.publish(staged.module, staged.artifact)
+    }
+
+    /// Validates a closed staged batch before native or metadata publication.
+    pub(crate) fn validate_staged_batch(staged: &[VmStagedModuleArtifact]) -> Result<(), String> {
+        let mut modules = BTreeSet::new();
+        for artifact in staged {
+            if !modules.insert(artifact.module.as_str()) {
+                return Err(format!(
+                    "error[vm.code_server.duplicate_staged_module]: batch contains duplicate module `{}`",
+                    artifact.module
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// Publishes one fully validated staged batch without an observable gap.
+    pub(crate) fn publish_staged_batch(
+        &mut self,
+        staged: Vec<VmStagedModuleArtifact>,
+    ) -> Result<Vec<VmCodeServerEvent>, String> {
+        Self::validate_staged_batch(&staged)?;
+        Ok(staged
+            .into_iter()
+            .map(|artifact| self.publish_staged(artifact))
+            .collect())
     }
 }

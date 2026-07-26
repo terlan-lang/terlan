@@ -174,15 +174,14 @@ def git_commit() -> str:
 
 
 def normalize_raw_report(raw: dict[str, Any], meta: dict[str, Any]) -> list[dict[str, Any]]:
-    if raw.get("schema") != "terlan.vm-binary-protocol-benchmark.v7":
-        raise RuntimeError("binary protocol raw report schema must be v7")
+    if raw.get("schema") != "terlan.vm-binary-protocol-benchmark.v8":
+        raise RuntimeError("binary protocol raw report schema must be v8")
     if raw.get("scale_points") != list(SCALES):
         raise RuntimeError("binary protocol raw report scale points changed")
     rows: list[dict[str, Any]] = []
     groups = (
         ("scenarios", "cold_end_to_end_us", "warm_end_to_end_samples_us"),
         ("transport_scenarios", "cold_measurement_us", "warm_measurement_samples_us"),
-        ("http_lifecycle_scenarios", "cold_measurement_us", "warm_measurement_samples_us"),
     )
     for group, cold_key, warm_key in groups:
         for scenario in raw.get(group, []):
@@ -400,13 +399,26 @@ def validate_anchor(anchor: str, manifest: dict[str, Any]) -> None:
         if classes != {"success", "adversarial"}:
             raise RuntimeError("binary protocol anchor lacks success/adversarial rows")
     else:
-        points = {
-            row["concurrency"]
-            for row in rows
-            if row["workload"].startswith("vm-http-lifecycle-crud-")
-        }
-        if points != set(SCALES):
-            raise RuntimeError("binary protocol concurrency anchor lacks required scales")
+        validate_aot_http_concurrency_artifact(read_json(LEGACY_HTTP))
+
+
+def validate_aot_http_concurrency_artifact(report: dict[str, Any]) -> None:
+    if report.get("benchmark") != "http-vm-vs-rust" or report.get("status") != "completed":
+        raise RuntimeError("AOT HTTP concurrency comparison is not completed")
+    lanes = {
+        lane.get("group"): lane
+        for lane in report.get("lanes", [])
+        if isinstance(lane, dict)
+    }
+    required = {"socket-crud-c100", "socket-crud-c1000"}
+    if not required.issubset(lanes):
+        raise RuntimeError("AOT HTTP concurrency comparison lacks required CRUD scales")
+    for group in sorted(required):
+        lane = lanes[group]
+        if lane.get("winner") not in {"terlan-vm", "axum-tokio", "tie"}:
+            raise RuntimeError(f"AOT HTTP concurrency lane `{group}` has invalid winner")
+        if not isinstance(lane.get("delta_percent"), (int, float)):
+            raise RuntimeError(f"AOT HTTP concurrency lane `{group}` has no numeric delta")
 
 
 def run_checked(command: list[str], *, env: dict[str, str] | None = None) -> None:

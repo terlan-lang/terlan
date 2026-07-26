@@ -646,6 +646,7 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
         }
         CorePrimitiveIntrinsic::ListIsEmpty => CoreType::Bool,
         CorePrimitiveIntrinsic::ListLength => CoreType::Int,
+        CorePrimitiveIntrinsic::ListGet => CoreType::Dynamic,
         CorePrimitiveIntrinsic::ListFirst => CoreType::Apply {
             constructor: "Option".to_string(),
             args: vec![CoreType::Named("Dynamic".to_string())],

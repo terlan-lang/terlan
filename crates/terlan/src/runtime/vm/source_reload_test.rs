@@ -5,7 +5,8 @@ use std::time::UNIX_EPOCH;
 
 use super::VmSourceReloadAdapter;
 use crate::runtime::vm::code_server::{
-    VmCodeServerEvent, VmModuleGenerationId, VmModuleGenerationState,
+    VmCodeServerEvent, VmModuleArtifact, VmModuleGenerationId, VmModuleGenerationState,
+    VmStagedModuleArtifact,
 };
 
 /// Creates an isolated source-reload test directory.
@@ -422,4 +423,70 @@ fn source_reload_adapter_rejects_invalid_source_without_publication() {
     assert!(adapter.event_snapshots().is_empty());
 
     fs::remove_dir_all(dir).expect("remove source reload test dir");
+}
+
+/// Verifies different source paths cannot publish the same module identity.
+#[test]
+fn source_reload_adapter_rejects_duplicate_modules_without_partial_publication() {
+    let dir = source_reload_test_dir("duplicate_module_batch");
+    let first = dir.join("First.terl");
+    let second = dir.join("Second.terl");
+    fs::write(
+        &first,
+        "module duplicate_module.\n\npub first(): Int ->\n    1.\n",
+    )
+    .expect("write first duplicate module");
+    fs::write(
+        &second,
+        "module duplicate_module.\n\npub second(): Int ->\n    2.\n",
+    )
+    .expect("write second duplicate module");
+
+    let mut adapter = VmSourceReloadAdapter::new();
+    let error = adapter
+        .publish_changed_files(&[first, second])
+        .expect_err("duplicate module identity must reject watcher batch");
+
+    assert_eq!(
+        error,
+        "error[vm.code_server.duplicate_staged_module]: batch contains duplicate module `duplicate_module`"
+    );
+    assert!(adapter.event_snapshots().is_empty());
+
+    fs::remove_dir_all(dir).expect("remove source reload test dir");
+}
+
+/// Verifies duplicate metadata fails before a native image is admitted.
+#[test]
+fn native_reload_rejects_duplicate_modules_before_image_admission() {
+    let artifact = |revision| VmStagedModuleArtifact {
+        module: "duplicate_native".to_string(),
+        artifact: VmModuleArtifact::new(
+            format!("duplicate-native-{revision}"),
+            format!("duplicate-native-map-{revision}"),
+        ),
+    };
+    let mut adapter = VmSourceReloadAdapter::new();
+    let missing_image = source_reload_test_dir("duplicate_native_batch").join("missing.so");
+
+    let error = adapter
+        .publish_native_generation(vec![artifact(1), artifact(2)], &missing_image, 0, 10)
+        .expect_err("duplicate metadata must fail before native image loading");
+
+    assert_eq!(
+        error,
+        "error[vm.code_server.duplicate_staged_module]: batch contains duplicate module `duplicate_native`"
+    );
+    assert!(adapter.event_snapshots().is_empty());
+    assert_eq!(
+        adapter.call_native("value", &[]).unwrap_err(),
+        "error[vm.reload.native_generation]: no native generation is admitted"
+    );
+
+    fs::remove_dir_all(
+        missing_image
+            .parent()
+            .expect("temporary image path has parent"),
+    )
+    .expect("remove native reload test dir");
 }

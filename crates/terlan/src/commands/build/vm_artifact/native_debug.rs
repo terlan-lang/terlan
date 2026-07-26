@@ -24,25 +24,33 @@ pub(crate) fn encode_native_debug(
 ) -> Result<Vec<u8>, String> {
     let mut records = Vec::new();
     for native in natives {
-        let input = inputs
-            .iter()
-            .find(|input| input.core.module == native.name)
-            .ok_or_else(|| {
-                format!(
-                    "error[tvm.debug.module]: missing source for `{}`",
-                    native.name
-                )
-            })?;
         for function in &native.functions {
+            let input = inputs
+                .iter()
+                .find(|input| input.core.module == function.source_module)
+                .ok_or_else(|| {
+                    format!(
+                        "error[tvm.debug.module]: missing source for `{}` (native `{}`)",
+                        function.source_module, native.name
+                    )
+                })?;
             let (mut span_start, span_end) =
-                function_source_span(input.syntax, &function.name, function.arity).ok_or_else(
-                    || {
+                function_source_span(
+                    input.syntax,
+                    &function.source_function,
+                    function.source_arity,
+                )
+                .ok_or_else(|| {
                         format!(
-                            "error[tvm.debug.function]: `{}` has no declaration for `{}/{}`",
-                            native.name, function.name, function.arity
+                            "error[tvm.debug.function]: `{}` has no declaration for `{}/{}` (native `{}.{}/{}`)",
+                            function.source_module,
+                            function.source_function,
+                            function.source_arity,
+                            native.name,
+                            function.name,
+                            function.arity
                         )
-                    },
-                )?;
+                    })?;
             if span_start >= span_end
                 || span_end > input.source_text.len()
                 || !input.source_text.is_char_boundary(span_start)

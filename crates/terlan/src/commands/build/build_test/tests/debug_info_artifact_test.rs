@@ -37,6 +37,44 @@ fn debug_info_artifact_covers_public_and_private_functions() {
     assert_eq!(identities, ["hidden/1", "main/0"]);
 }
 
+/// Attributes compiler-generated continuation entries to their source owner.
+#[test]
+fn debug_info_artifact_covers_generated_continuation_functions() {
+    let dir = make_temp_dir("generated_continuation_debug_info");
+    let source_path = dir.join("generated_continuation_debug_info.terl");
+    let out_dir = dir.join("build");
+    fs::write(
+        &source_path,
+        "module generated_continuation_debug_info.\n\nimport std.vm.Process.\n\npub maybe_yield(flag: Bool): Int ->\n    if { flag -> (Process.yield_now(); 41); true -> 7 }.\n\npub main(flag: Bool): Int -> maybe_yield(flag) + 1.\n",
+    )
+    .expect("write generated-continuation debug fixture");
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".to_string()),
+        args: vec![source_path.display().to_string()],
+    };
+
+    assert_eq!(run(cmd, state), ExitCode::SUCCESS);
+    let records = native_debug_records(&out_dir.join("vm/generated_continuation_debug_info.tvm"));
+    let generated = records
+        .iter()
+        .filter(|record| record.module == "$terlan.continuations")
+        .collect::<Vec<_>>();
+
+    assert!(
+        !generated.is_empty(),
+        "generated continuation debug records"
+    );
+    assert!(generated.iter().all(|record| {
+        record.function.starts_with("$continuation_")
+            && record.source_file == source_path.display().to_string()
+            && record.span_start < record.span_end
+    }));
+}
+
 /// Keeps artifact provenance owned by the compiler input path.
 #[test]
 fn cover_messages_parity_ignores_source_remap_markers_in_program_text() {

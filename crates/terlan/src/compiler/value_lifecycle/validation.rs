@@ -176,23 +176,41 @@ pub(crate) fn module_requires_value_lifecycle_pass(
     {
         return true;
     }
-    if interfaces.values().any(|interface| {
-        !interface.constants.is_empty()
-            || !interface.const_functions.is_empty()
-            || !interface.valued_unions.is_empty()
-            || !interface.associated_constants.is_empty()
-            || interface
-                .type_params
-                .values()
-                .any(|params| has_const_params(params))
-            || interface
-                .traits
-                .values()
-                .any(|signature| has_const_params(&signature.type_params))
-            || interface
-                .functions
-                .values()
-                .any(|signature| has_const_params(&signature.generic_params))
+    let mut imported_modules = HashSet::new();
+    for declaration in &module.declarations {
+        if let SyntaxDeclarationPayload::Import {
+            module_name, items, ..
+        } = &declaration.payload
+        {
+            if interfaces.contains_key(module_name) {
+                imported_modules.insert(module_name.clone());
+            }
+            for item in items {
+                let nested = format!("{module_name}.{}", item.name);
+                if interfaces.contains_key(&nested) {
+                    imported_modules.insert(nested);
+                }
+            }
+        }
+    }
+    if interfaces.iter().any(|(module_name, interface)| {
+        imported_modules.contains(module_name)
+            && (!interface.constants.is_empty()
+                || !interface.const_functions.is_empty()
+                || !interface.valued_unions.is_empty()
+                || !interface.associated_constants.is_empty()
+                || interface
+                    .type_params
+                    .values()
+                    .any(|params| has_const_params(params))
+                || interface
+                    .traits
+                    .values()
+                    .any(|signature| has_const_params(&signature.type_params))
+                || interface
+                    .functions
+                    .values()
+                    .any(|signature| has_const_params(&signature.generic_params)))
     }) {
         return true;
     }

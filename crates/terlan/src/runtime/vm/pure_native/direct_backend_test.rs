@@ -22,6 +22,18 @@ fn direct_backend_parked_state_is_send_sync_and_static() {
     assert_thread_neutral::<DirectNativeBackend>();
 }
 
+#[test]
+fn transition_storage_covers_materialized_continuation_callables() {
+    let callable = TvmCallableDescriptor {
+        id: 17,
+        parameters: vec![TvmBoundaryType::Int; 397],
+        results: vec![TvmBoundaryType::Bool],
+        captures: vec![TvmBoundaryType::String; 3],
+    };
+
+    assert_eq!(transition_capacity(&[], &[callable]), 2_006);
+}
+
 /// Verifies independent actors can park and resume without sharing continuation state.
 #[test]
 fn execution_runtime_interleaves_owner_scoped_continuations() {

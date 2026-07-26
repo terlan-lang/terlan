@@ -53,6 +53,34 @@ pub(super) struct ImportedFunctionTarget {
     pub(super) span: Span,
 }
 
+/// Returns the exact provider modules explicitly imported by one source module.
+pub(super) fn source_imported_module_names(
+    module: &SyntaxModuleOutput,
+    interfaces: &HashMap<String, ModuleInterface>,
+) -> HashSet<String> {
+    let mut providers = HashSet::new();
+    for declaration in &module.declarations {
+        if let SyntaxDeclarationPayload::Import {
+            import_kind: SyntaxImportKind::Module,
+            module_name,
+            items,
+            ..
+        } = &declaration.payload
+        {
+            if interfaces.contains_key(module_name) {
+                providers.insert(module_name.clone());
+            }
+            for item in items {
+                let nested = format!("{module_name}.{}", item.name);
+                if interfaces.contains_key(&nested) {
+                    providers.insert(nested);
+                }
+            }
+        }
+    }
+    providers
+}
+
 /// Collects all import maps needed by syntax-output type inference.
 ///
 /// Inputs:

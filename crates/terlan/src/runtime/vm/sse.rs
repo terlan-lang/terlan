@@ -190,7 +190,7 @@ pub(crate) struct VmSseDomPatchBackpressure {
 /// Transformation:
 /// - Keeps router dispatch typed without storing live mutable stream state in the
 ///   route table itself.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct VmSseEndpointPlan {
     max_pending_events: usize,
     max_event_bytes: usize,
@@ -199,7 +199,7 @@ pub struct VmSseEndpointPlan {
 }
 
 /// Complete static callback set for one generated SSE endpoint.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub(crate) struct VmSseCallbackPlan {
     /// Called after stream admission.
     pub(crate) open: VmNativeCallableRef,

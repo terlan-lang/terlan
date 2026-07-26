@@ -9,6 +9,9 @@ use crate::terlan_native::random as native_random;
 
 #[path = "value_hash.rs"]
 mod hash;
+#[cfg(test)]
+#[path = "value_hash_test.rs"]
+mod hash_test;
 
 /// Transitional scalar and runtime-service value used at native boundaries.
 ///
@@ -26,6 +29,7 @@ pub(crate) enum ReplValue {
     Int(i64),
     Float(String),
     String(String),
+    StringBytes(bytes::Bytes),
     Bytes(Arc<[u8]>),
     BitString(VmBitString),
     Atom(String),
@@ -108,6 +112,10 @@ impl ReplValue {
             Self::Int(value) => value.to_string(),
             Self::Float(value) => value.clone(),
             Self::String(value) => format!("\"{}\"", escape_string(value)),
+            Self::StringBytes(value) => format!(
+                "\"{}\"",
+                escape_string(std::str::from_utf8(value).expect("StringBytes is valid UTF-8"))
+            ),
             Self::Bytes(value) => {
                 let rendered = value
                     .iter()

@@ -1,8 +1,14 @@
+#![cfg_attr(not(feature = "postgres-libpq"), allow(dead_code))]
+
 #[path = "postgres/batch.rs"]
 mod batch;
 #[path = "postgres/inspection.rs"]
 mod inspection;
+#[cfg(all(not(feature = "serve-runtime-bin"), feature = "postgres-libpq"))]
 #[path = "postgres/libpq_worker.rs"]
+pub(crate) mod libpq_worker;
+#[cfg(any(feature = "serve-runtime-bin", not(feature = "postgres-libpq")))]
+#[path = "postgres/capability_worker_required.rs"]
 pub(crate) mod libpq_worker;
 #[path = "postgres/report.rs"]
 mod report;

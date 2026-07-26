@@ -1,7 +1,7 @@
 //! Full-cycle evidence for hot-reloaded native handler generation lifetime.
 
 use std::fs;
-use std::sync::{Arc, Weak};
+use std::sync::{Arc, Mutex, Weak};
 
 use crate::runtime::vm::ReplValue;
 use crate::support::test_fs;
@@ -9,6 +9,13 @@ use crate::support::test_fs;
 use super::*;
 
 const MODULE: &str = "app.ReloadGeneration";
+static GENERATION_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+fn generation_test_guard() -> std::sync::MutexGuard<'static, ()> {
+    GENERATION_TEST_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
 
 /// Renders one source generation with a distinguishable native result.
 fn source(value: i64) -> String {
@@ -38,6 +45,7 @@ fn assert_retired(generation: &Weak<AotHandlerRuntime>) {
 /// Proves cache replacement isolates in-flight code and unloads at quiescence.
 #[test]
 fn hot_reload_pins_in_flight_generation_until_its_last_lease_drops() {
+    let _guard = generation_test_guard();
     let root = test_fs::temp_path("serve", "aot_handler_generation_lifetime");
     let web_root = root.join("_build/web");
     let source_path = root.join("src/app/ReloadGeneration.terl");
@@ -81,6 +89,7 @@ fn hot_reload_pins_in_flight_generation_until_its_last_lease_drops() {
 /// Proves HTTP compilation removes serialized and renamed runtime artifacts.
 #[test]
 fn handler_cache_compilation_removes_legacy_runtime_sidecars() {
+    let _guard = generation_test_guard();
     let root = test_fs::temp_path("serve", "aot_handler_legacy_artifacts");
     let web_root = root.join("_build/web");
     let source_path = root.join("src/app/ReloadGeneration.terl");
@@ -127,8 +136,49 @@ fn handler_cache_compilation_removes_legacy_runtime_sidecars() {
     fs::remove_dir_all(root).expect("cleanup legacy HTTP fixture");
 }
 
+/// Persisted generation metadata must fail closed when its native image changes.
+#[test]
+fn persisted_generation_rejects_tampered_native_image() {
+    let _guard = generation_test_guard();
+    let root = test_fs::temp_path("serve", "aot_handler_generation_integrity");
+    let web_root = root.join("_build/web");
+    let source_path = root.join("src/app/ReloadGeneration.terl");
+    fs::create_dir_all(source_path.parent().expect("source parent"))
+        .expect("create source directory");
+    fs::create_dir_all(&web_root).expect("create native output directory");
+    fs::write(&source_path, source(29)).expect("write handler source");
+
+    let entry =
+        cached_source_entry(&web_root, &source_path, MODULE).expect("compile persisted generation");
+    assert_eq!(execute(&entry.runtime), 29);
+    drop(entry);
+    invalidate_vm_handler_cache();
+
+    let generation_path = web_root
+        .join(".terlan/serve-aot/runtime")
+        .join("app_ReloadGeneration.json");
+    let generation: serde_json::Value =
+        serde_json::from_slice(&fs::read(&generation_path).expect("read persisted generation"))
+            .expect("decode persisted generation");
+    let image = generation["image"]
+        .as_str()
+        .map(std::path::PathBuf::from)
+        .expect("persisted image path");
+    let mut bytes = fs::read(&image).expect("read persisted native image");
+    bytes.push(0);
+    fs::write(&image, bytes).expect("tamper persisted native image");
+
+    let error = match cached_source_entry(&web_root, &source_path, MODULE) {
+        Ok(_) => panic!("tampered image must not be admitted"),
+        Err(error) => error,
+    };
+    assert!(error.contains("image integrity mismatch"), "{error}");
+    fs::remove_dir_all(root).expect("cleanup integrity fixture");
+}
+
 #[test]
 fn immediate_callback_executes_on_its_protocol_owner_without_rpc() {
+    let _guard = generation_test_guard();
     let root = test_fs::temp_path("serve", "aot_handler_owner_local");
     let web_root = root.join("_build/web");
     let source_path = root.join("src/app/ReloadGeneration.terl");
@@ -145,6 +195,10 @@ fn immediate_callback_executes_on_its_protocol_owner_without_rpc() {
     );
 
     assert_eq!(value, 23);
+    assert!(
+        entry.runtime.generation.shards[0].initialized().is_none(),
+        "owner-local immediate HTTP must not start the asynchronous shard thread"
+    );
     let metrics = entry.runtime.generation.shards[0].telemetry_snapshot();
     assert_eq!(metrics.entries, 0);
     assert_eq!(metrics.completions, 0);
@@ -159,6 +213,7 @@ fn immediate_callback_executes_on_its_protocol_owner_without_rpc() {
 
 #[test]
 fn admitted_body_handler_retains_compiler_request_projection() {
+    let _guard = generation_test_guard();
     const REQUEST_MODULE: &str = "app.RequestProjection";
     let root = test_fs::temp_path("serve", "aot_handler_request_projection");
     let web_root = root.join("_build/web");
@@ -181,6 +236,13 @@ fn admitted_body_handler_retains_compiler_request_projection() {
         crate::runtime::native::http::RequestFieldProjection::Fields(
             1 << crate::runtime::native::http::RequestFieldProjection::BODY,
         )
+    );
+    assert_eq!(
+        entry
+            .runtime
+            .scalar_request_ingress(REQUEST_MODULE, "handle", 1)
+            .map(|(_, field)| field),
+        Some(crate::runtime::native::http::RequestFieldProjection::BODY)
     );
     let projection = crate::runtime::native::http::RequestFieldProjection::Fields(
         1 << crate::runtime::native::http::RequestFieldProjection::BODY,
@@ -208,6 +270,28 @@ fn admitted_body_handler_retains_compiler_request_projection() {
     assert_eq!(response.status, 200);
     assert_eq!(response.payload, "typed response body");
     assert!(response.headers.is_empty());
+
+    let large_body = "x".repeat(4 * 1024);
+    let request = crate::terlan_native::http::Request::new(large_body.clone()).into_parts();
+    let response = crate::runtime::vm::protocol_task_executor::with_protocol_scheduler_for_test(
+        VmSchedulerId::primary(),
+        || {
+            entry
+                .runtime
+                .execute_projected_http_request(
+                    REQUEST_MODULE,
+                    "handle",
+                    request,
+                    projection,
+                    &mut |_| {},
+                )
+                .expect("execute transferred typed HTTP response")
+        },
+    );
+    let crate::runtime::vm::VmHttpCallResult::Response(response) = response else {
+        panic!("large direct handler did not use the typed Response projection")
+    };
+    assert_eq!(&response.payload[..], large_body.as_bytes());
 
     cache()
         .expect("handler cache")

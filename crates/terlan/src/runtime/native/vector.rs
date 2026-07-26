@@ -1,9 +1,9 @@
 //! Rust-owned indexed vector resource for `std.native.collections.Vector`.
 //!
 //! This module owns the target-native storage semantics for Terlan vectors
-//! before a NIF or worker transport is attached. Values are stored in the
-//! bridge-neutral term shape so VM handlers can keep opaque handles while the
-//! Rust side owns indexed mutation.
+//! behind the VM-owned native boundary. Values are stored in the bridge-neutral
+//! term shape so VM handlers can keep opaque handles while the Rust side owns
+//! indexed mutation.
 
 use crate::terlan_native_boundary::dispatch::NativeBoundaryBridgeValue;
 

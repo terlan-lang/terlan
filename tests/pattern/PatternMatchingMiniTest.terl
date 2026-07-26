@@ -1,0 +1,7 @@
+module tests.pattern.PatternMatchingMiniTest.
+
+import std.test.Test.{assert_equal}.
+
+@test
+pub example(): Bool ->
+    assert_equal(1, 1).

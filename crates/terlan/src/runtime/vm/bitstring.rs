@@ -449,6 +449,11 @@ impl VmBitString {
         &self.bytes
     }
 
+    /// Shares canonical packed storage with a byte-oriented VM subsystem.
+    pub(crate) fn packed_storage(&self) -> Arc<[u8]> {
+        Arc::clone(&self.bytes)
+    }
+
     /// Reads one checked network-order bit.
     #[cfg(test)]
     pub(crate) fn bit_at(&self, bit_offset: usize) -> Option<bool> {

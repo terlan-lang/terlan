@@ -3,7 +3,7 @@
 use super::ReplValue;
 
 /// One closure-free generated function that a VM adapter may invoke.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub(crate) struct VmNativeCallableRef {
     /// Module that owns the generated native export.
     pub(crate) module: String,

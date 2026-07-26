@@ -72,6 +72,28 @@ fn vm_run_reports_missing_entrypoint_as_vm_error() {
     fs::remove_dir_all(root).expect("clean temp dir");
 }
 
+#[test]
+fn vm_run_rejects_unwired_capability_instead_of_spinning() {
+    let root = unique_temp_dir("terlan-vm-unwired-capability");
+    let source = root.join("Main.terl");
+    fs::create_dir_all(&root).expect("create temp dir");
+    fs::write(
+        &source,
+        "module vm_capability.Main.\n\npub main(): Bool ->\n    std.io.File.exists(\"missing.txt\").\n",
+    )
+    .expect("write source");
+    let mut output = |_line: &str| {};
+
+    let error = run_source_file_in_vm(&source, "main", &test_state(), &mut output)
+        .expect_err("unsupported command capability");
+
+    assert!(
+        error.contains("error[vm.command_capability_unsupported]"),
+        "unexpected VM error: {error}"
+    );
+    fs::remove_dir_all(root).expect("clean temp dir");
+}
+
 /// Verifies VM reload publishes source files through the code server adapter.
 ///
 /// Inputs:

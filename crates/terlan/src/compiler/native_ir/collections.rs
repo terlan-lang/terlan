@@ -6,7 +6,9 @@ use std::sync::Arc;
 use crate::runtime::native_image::managed::{
     encode_collection_layout, ManagedCollectionDescriptor, ManagedFieldType,
 };
-use crate::terlan_typeck::{CoreTupleTypeElem, CoreType};
+use crate::terlan_typeck::{
+    CoreExpr, CoreIntrinsicId, CorePrimitiveIntrinsic, CoreTupleTypeElem, CoreType,
+};
 
 use super::{constructors::managed_field_type, native_type};
 
@@ -22,6 +24,17 @@ pub(super) fn managed_collection_layouts<'a>(
         .into_iter()
         .map(Arc::<[u8]>::from)
         .collect::<Vec<_>>())
+}
+
+/// Encodes collection schemas introduced by typed expression results and operands.
+pub(super) fn managed_expression_collection_layouts<'a>(
+    expressions: impl IntoIterator<Item = &'a CoreExpr>,
+) -> Result<Vec<Arc<[u8]>>, String> {
+    let mut layouts = BTreeSet::new();
+    for expression in expressions {
+        inventory_expr(expression, &mut layouts)?;
+    }
+    Ok(layouts.into_iter().map(Arc::from).collect())
 }
 
 /// Inventories one type and every nested collection argument exactly once.
@@ -95,6 +108,171 @@ fn inventory_type(ty: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), 
         | CoreType::Named(_) => {}
     }
     Ok(())
+}
+
+fn inventory_expr(expr: &CoreExpr, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), String> {
+    match expr {
+        CoreExpr::Intrinsic(call) => {
+            inventory_type(&call.return_type, layouts)?;
+            if matches!(
+                call.id,
+                CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapFromEntries)
+            ) {
+                inventory_map_entry_list(&call.return_type, layouts)?;
+            }
+            inventory_exprs(&call.args, layouts)
+        }
+        CoreExpr::Cast { expr, target_type } => {
+            inventory_type(target_type, layouts)?;
+            inventory_expr(expr, layouts)
+        }
+        CoreExpr::List(items) => {
+            if let Some(ty) = super::expression::literal_collection_type(expr) {
+                inventory_type(&ty, layouts)?;
+            }
+            inventory_exprs(items, layouts)
+        }
+        CoreExpr::Tuple(items)
+        | CoreExpr::FixedArray(items)
+        | CoreExpr::RemoteCall { args: items, .. }
+        | CoreExpr::ConstructorCall { args: items, .. }
+        | CoreExpr::Call { args: items, .. } => inventory_exprs(items, layouts),
+        CoreExpr::ListCons { head, tail }
+        | CoreExpr::Index {
+            base: head,
+            index: tail,
+        }
+        | CoreExpr::BinaryOp {
+            left: head,
+            right: tail,
+            ..
+        } => {
+            inventory_expr(head, layouts)?;
+            inventory_expr(tail, layouts)
+        }
+        CoreExpr::Let { bindings, body } => {
+            for binding in bindings {
+                inventory_expr(&binding.value, layouts)?;
+            }
+            inventory_expr(body, layouts)
+        }
+        CoreExpr::Map(fields) => {
+            for field in fields {
+                inventory_expr(&field.value, layouts)?;
+            }
+            Ok(())
+        }
+        CoreExpr::RecordConstruct { fields, .. } | CoreExpr::TemplateInstantiate { fields, .. } => {
+            for field in fields {
+                inventory_expr(&field.value, layouts)?;
+            }
+            Ok(())
+        }
+        CoreExpr::RecordUpdate { base, fields, .. } => {
+            inventory_expr(base, layouts)?;
+            for field in fields {
+                inventory_expr(&field.value, layouts)?;
+            }
+            Ok(())
+        }
+        CoreExpr::FieldAccess { base, .. } | CoreExpr::RecordAccess { base, .. } => {
+            inventory_expr(base, layouts)
+        }
+        CoreExpr::ConstructorChain { args, record, .. } => {
+            inventory_exprs(args, layouts)?;
+            inventory_expr(record, layouts)
+        }
+        CoreExpr::MutableReceiverCall { receiver, args, .. } => {
+            inventory_expr(receiver, layouts)?;
+            inventory_exprs(args, layouts)
+        }
+        CoreExpr::FunctionCall { callee, args } => {
+            inventory_expr(callee, layouts)?;
+            inventory_exprs(args, layouts)
+        }
+        CoreExpr::SqlQuery { parameters, .. } => inventory_exprs(parameters, layouts),
+        CoreExpr::Case { scrutinee, clauses } => {
+            inventory_expr(scrutinee, layouts)?;
+            for clause in clauses {
+                if let Some(guard) = &clause.guard {
+                    inventory_expr(guard, layouts)?;
+                }
+                inventory_expr(&clause.body, layouts)?;
+            }
+            Ok(())
+        }
+        CoreExpr::If { clauses } => {
+            for clause in clauses {
+                inventory_expr(&clause.condition, layouts)?;
+                inventory_expr(&clause.body, layouts)?;
+            }
+            Ok(())
+        }
+        CoreExpr::Try {
+            body,
+            of_clauses,
+            catch_clauses,
+            after_clause,
+        } => {
+            inventory_expr(body, layouts)?;
+            for clause in of_clauses.iter().chain(catch_clauses) {
+                if let Some(guard) = &clause.guard {
+                    inventory_expr(guard, layouts)?;
+                }
+                inventory_expr(&clause.body, layouts)?;
+            }
+            if let Some(after) = after_clause {
+                inventory_expr(&after.trigger, layouts)?;
+                inventory_expr(&after.body, layouts)?;
+            }
+            Ok(())
+        }
+        CoreExpr::ListComprehension {
+            expr,
+            generators,
+            guards,
+            ..
+        } => {
+            inventory_expr(expr, layouts)?;
+            for generator in generators {
+                inventory_expr(&generator.source, layouts)?;
+            }
+            inventory_exprs(guards, layouts)
+        }
+        CoreExpr::Lam { body, .. } | CoreExpr::UnaryOp { operand: body, .. } => {
+            inventory_expr(body, layouts)
+        }
+        CoreExpr::Int(_)
+        | CoreExpr::Float(_)
+        | CoreExpr::Binary(_)
+        | CoreExpr::Atom(_)
+        | CoreExpr::Var(_)
+        | CoreExpr::RemoteFunRef { .. } => Ok(()),
+    }
+}
+
+fn inventory_exprs(
+    expressions: &[CoreExpr],
+    layouts: &mut BTreeSet<Vec<u8>>,
+) -> Result<(), String> {
+    for expression in expressions {
+        inventory_expr(expression, layouts)?;
+    }
+    Ok(())
+}
+
+fn inventory_map_entry_list(map: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), String> {
+    let CoreType::Apply { constructor, args } = map else {
+        return Ok(());
+    };
+    if constructor.rsplit('.').next() != Some("Map") || args.len() != 2 {
+        return Ok(());
+    }
+    let pair = CoreType::Tuple(vec![
+        CoreTupleTypeElem::Type(args[0].clone()),
+        CoreTupleTypeElem::Type(args[1].clone()),
+    ]);
+    inventory_type(&CoreType::List(Box::new(pair)), layouts)
 }
 
 /// Inserts one canonical list schema.

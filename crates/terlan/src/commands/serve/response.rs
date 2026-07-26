@@ -141,6 +141,24 @@ pub(super) fn build_http_text_response_owned_for_stream(
     )
 }
 
+/// Transfers an immutable managed payload directly to the protocol adapter.
+pub(super) fn build_http_shared_response_owned_for_stream(
+    status: u16,
+    content_type: &str,
+    extra_headers: &[(String, String)],
+    body: bytes::Bytes,
+    head_only: bool,
+) -> Result<http::Response<bytes::Bytes>, String> {
+    build_http_response_owned_with_connection(
+        status,
+        content_type,
+        extra_headers,
+        body,
+        head_only,
+        false,
+    )
+}
+
 fn build_http_response_owned_with_connection<B: Default>(
     status: u16,
     content_type: &str,
@@ -210,10 +228,22 @@ fn validate_http_response_metadata(
     ),
     String,
 > {
-    let status = http::StatusCode::from_u16(status)
-        .map_err(|error| format!("HTTP status `{status}` is invalid: {error}"))?;
-    let content_type = http::HeaderValue::from_str(content_type)
-        .map_err(|error| format!("Content-Type value is invalid: {error}"))?;
+    let status = if status == 200 {
+        http::StatusCode::OK
+    } else {
+        http::StatusCode::from_u16(status)
+            .map_err(|error| format!("HTTP status `{status}` is invalid: {error}"))?
+    };
+    let content_type = match content_type {
+        "text/plain; charset=utf-8" => http::HeaderValue::from_static("text/plain; charset=utf-8"),
+        "text/html; charset=utf-8" => http::HeaderValue::from_static("text/html; charset=utf-8"),
+        "application/json; charset=utf-8" => {
+            http::HeaderValue::from_static("application/json; charset=utf-8")
+        }
+        "application/octet-stream" => http::HeaderValue::from_static("application/octet-stream"),
+        value => http::HeaderValue::from_str(value)
+            .map_err(|error| format!("Content-Type value is invalid: {error}"))?,
+    };
     let mut validated_headers = Vec::with_capacity(extra_headers.len());
     for (name, value) in extra_headers {
         let parsed_name = http::HeaderName::from_bytes(name.as_bytes())

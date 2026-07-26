@@ -42,10 +42,27 @@ pub(super) fn execute_equality_operation(
     let [left, right] = words else {
         return Err(ManagedMemoryError::InvalidAggregateArity);
     };
+    let left_immediate = is_immediate_union_word(*left);
+    let right_immediate = is_immediate_union_word(*right);
+    if left_immediate || right_immediate {
+        return Ok(u64::from(
+            left_immediate && right_immediate && left == right,
+        ));
+    }
     let left = reference_word(*left)?;
     let right = reference_word(*right)?;
     let mut visited = HashSet::new();
     references_equal(heap, layouts, semantic, left, right, &mut visited).map(u64::from)
+}
+
+/// Distinguishes zero-field union atoms from token-tagged managed references.
+///
+/// Equality reaches this ABI only after the compiler has proved a managed
+/// semantic type. Within that type, a word whose token half is zero is the
+/// compact atom representation of a zero-field variant. Managed references
+/// always carry a nonzero heap token in the upper 32 bits.
+fn is_immediate_union_word(word: i64) -> bool {
+    u64::from_ne_bytes(word.to_ne_bytes()) >> 32 == 0
 }
 
 /// Decodes one exact structural equality operation.

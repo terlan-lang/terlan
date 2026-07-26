@@ -6,7 +6,7 @@
  */
 module benchmark.BinaryProtocolBenchmarkTest.
 
-import std.binary.Binary.{BigEndian, BinaryConstructError, DecodedField, DecodedProtocol, DecodedValue, DuplicateField, InvalidWidth, ProtocolShape, UnsupportedRuntime, compact_frame_shape, compose_header_body, decode_exact, decode_prefixed_body, decoded_protocol_remaining_bytes, decoded_protocol_value, encode_exact, make_byte_span, make_rest, make_uint, protocol_field, protocol_shape, validate_protocol_shape}.
+import std.binary.Binary.{BigEndian, BinaryConstructError, DecodedField, DecodedProtocol, DuplicateField, InvalidWidth, ProtocolShape, UnsupportedRuntime, compact_frame_shape, compose_header_body, decode_exact, decode_prefixed_body, decoded_bytes_field, decoded_int_field, decoded_protocol_bytes_value, decoded_protocol_int_value, decoded_protocol_remaining_bytes, encode_exact, make_byte_span, make_rest, make_uint, protocol_field, protocol_shape, validate_protocol_shape}.
 import std.collections.List.
 import std.core.Option.{Some}.
 import std.core.Result.{Err, Ok}.
@@ -14,8 +14,11 @@ import std.test.Test.{assert_equal}.
 import std.vm.Bytes.
 import type std.core.Result.
 
-pub benchmark_field(name: String, value: DecodedValue): DecodedField ->
-    {name, value}.
+pub benchmark_int_field(name: String, value: Int): DecodedField ->
+    decoded_int_field(name, value).
+
+pub benchmark_bytes_field(name: String, value: std.vm.Bytes.Bytes): DecodedField ->
+    decoded_bytes_field(name, value).
 
 pub benchmark_protocol(fields: List[DecodedField], body: std.vm.Bytes.Bytes): DecodedProtocol ->
     {fields, body}.
@@ -36,10 +39,10 @@ pub fixed_header_shape(): ProtocolShape ->
 pub fixed_header_value(): DecodedProtocol ->
     benchmark_protocol(
         List(
-            benchmark_field("request_id", 16909060),
-            benchmark_field("flags", 5),
-            benchmark_field("sequence", 258),
-            benchmark_field("checksum", Bytes.from_list([170, 187]))
+            benchmark_int_field("request_id", 16909060),
+            benchmark_int_field("flags", 5),
+            benchmark_int_field("sequence", 258),
+            benchmark_bytes_field("checksum", Bytes.from_list([170, 187]))
         ),
         Bytes.from_list([])
     ).
@@ -53,8 +56,8 @@ pub repeat_fixed_header(count: Int): Bool ->
                     Err(_reason) -> false;
                     Ok(decoded) ->
                         assert_equal(Bytes.from_list([1, 2, 3, 4, 5, 1, 2, 170, 187]), frame) and
-                            decoded_protocol_value(decoded, "request_id") == Some(16909060) and
-                            decoded_protocol_value(decoded, "checksum") == Some(Bytes.from_list([170, 187])) and
+                            decoded_protocol_int_value(decoded, "request_id") == Some(16909060) and
+                            decoded_protocol_bytes_value(decoded, "checksum") == Some(Bytes.from_list([170, 187])) and
                             decoded_protocol_remaining_bytes(decoded).length() == 0 and
                             repeat_fixed_header(count - 1)
                 }
@@ -83,11 +86,11 @@ pub repeat_fixed_header_1000(): Bool ->
 pub variable_body_value(length: Int, body: std.vm.Bytes.Bytes): DecodedProtocol ->
     benchmark_protocol(
         List(
-            benchmark_field("stream_id", 4660),
-            benchmark_field("flags", 5),
-            benchmark_field("version", 1),
-            benchmark_field("kind", 2),
-            benchmark_field("length", length)
+            benchmark_int_field("stream_id", 4660),
+            benchmark_int_field("flags", 5),
+            benchmark_int_field("version", 1),
+            benchmark_int_field("kind", 2),
+            benchmark_int_field("length", length)
         ),
         body
     ).
@@ -107,8 +110,8 @@ pub repeat_variable_body(shape: ProtocolShape, count: Int): Bool ->
                             Ok(decoded) ->
                                 assert_equal(Bytes.from_list([18, 52, 5, 18, 0, 1, 170]), short_frame) and
                                     assert_equal(Bytes.from_list([18, 52, 5, 18, 0, 4, 170, 187, 204, 221]), long_frame) and
-                                    decoded_protocol_value(decoded, "stream_id") == Some(4660) and
-                                    decoded_protocol_value(decoded, "length") == Some(4) and
+                                    decoded_protocol_int_value(decoded, "stream_id") == Some(4660) and
+                                    decoded_protocol_int_value(decoded, "length") == Some(4) and
                                     assert_equal(Bytes.from_list([170, 187, 204, 221]), decoded_protocol_remaining_bytes(decoded)) and
                                     repeat_variable_body(shape, count - 1)
                         }
@@ -138,10 +141,10 @@ pub repeat_variable_body_1000(shape: ProtocolShape): Bool ->
 pub invalid_fixed_header_value(): DecodedProtocol ->
     benchmark_protocol(
         List(
-            benchmark_field("request_id", 16909060),
-            benchmark_field("flags", 256),
-            benchmark_field("sequence", 258),
-            benchmark_field("checksum", Bytes.from_list([170, 187]))
+            benchmark_int_field("request_id", 16909060),
+            benchmark_int_field("flags", 256),
+            benchmark_int_field("sequence", 258),
+            benchmark_bytes_field("checksum", Bytes.from_list([170, 187]))
         ),
         Bytes.from_list([])
     ).

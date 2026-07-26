@@ -101,7 +101,13 @@ pub(crate) fn emit_native_module_object_with_policy(
                 &function_suspending,
                 &function_transition_counts,
                 &managed_layouts,
-            )?;
+            )
+            .map_err(|error| {
+                format!(
+                    "{error}; while defining unit `{}.{}` at application index {index}",
+                    native.name, function.name
+                )
+            })?;
         }
     }
     for continuation in &selected.continuations {
@@ -130,7 +136,13 @@ pub(crate) fn emit_native_module_object_with_policy(
             &function_suspending,
             &function_transition_counts,
             &managed_layouts,
-        )?;
+        )
+        .map_err(|error| {
+            format!(
+                "{error}; while defining continuation {} in unit `{}`",
+                continuation.id, selected.name
+            )
+        })?;
     }
     module
         .finish()

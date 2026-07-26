@@ -49,9 +49,9 @@ impl VmHttpResponseWriteFailure {
 }
 
 /// Writes one HTTP/1 response from validated metadata and a UTF-8 body.
-pub(crate) fn write_http1_response(
+pub(crate) fn write_http1_response<B: AsRef<[u8]>>(
     writer: &mut dyn Write,
-    response: &::http::Response<String>,
+    response: &::http::Response<B>,
     close_connection: bool,
 ) -> Result<(), String> {
     write_http1_response_typed(writer, response, close_connection)
@@ -59,16 +59,16 @@ pub(crate) fn write_http1_response(
 }
 
 /// Writes one buffered response while retaining a typed terminal failure.
-pub(crate) fn write_http1_response_typed(
+pub(crate) fn write_http1_response_typed<B: AsRef<[u8]>>(
     writer: &mut dyn Write,
-    response: &::http::Response<String>,
+    response: &::http::Response<B>,
     close_connection: bool,
 ) -> Result<(), VmHttpResponseWriteFailure> {
     write_http1_body_typed(
         writer,
         response.status(),
         response.headers(),
-        response.body().as_bytes(),
+        response.body().as_ref(),
         close_connection,
     )
 }

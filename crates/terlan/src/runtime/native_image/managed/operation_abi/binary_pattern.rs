@@ -232,7 +232,7 @@ fn matched_ranges(
             ManagedBinaryPatternField::Utf32 => 32,
             ManagedBinaryPatternField::Rest => {
                 let width = view.bit_length().checked_sub(offset)?;
-                if !offset.is_multiple_of(8) || !width.is_multiple_of(8) {
+                if !width.is_multiple_of(8) {
                     return None;
                 }
                 width

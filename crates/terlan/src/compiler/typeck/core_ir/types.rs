@@ -910,11 +910,17 @@ fn split_top_level_type_items(text: &str) -> Option<Vec<&str>> {
 ///   rejects generic/list/tuple/function syntax for this initial CoreType
 ///   slice.
 fn is_simple_core_type_name(name: &str) -> bool {
-    name.split('.').all(|segment| {
+    let segments = name.split('.').collect::<Vec<_>>();
+    segments.last().is_some_and(|segment| {
         segment
             .chars()
             .next()
             .is_some_and(|ch| ch.is_ascii_uppercase())
+    }) && segments.iter().all(|segment| {
+        segment
+            .chars()
+            .next()
+            .is_some_and(|ch| ch.is_ascii_alphabetic() || ch == '_')
             && segment
                 .chars()
                 .all(|ch| ch.is_ascii_alphanumeric() || ch == '_')

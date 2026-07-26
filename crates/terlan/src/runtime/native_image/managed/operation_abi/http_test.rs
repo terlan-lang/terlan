@@ -5,8 +5,9 @@ use std::num::NonZeroUsize;
 
 use super::super::{encode_aggregate_append_value_operation, execute_managed_operation};
 use super::{
-    encode_cookie_header_operation, encode_response_cookie_jar_operation,
-    encode_response_security_headers_operation, ManagedCookieHeaderOperation,
+    encode_cookie_header_operation, encode_response_build_operation,
+    encode_response_cookie_jar_operation, encode_response_security_headers_operation,
+    ManagedCookieHeaderOperation,
 };
 use crate::runtime::native_image::managed::{
     encode_aggregate_layout, encode_collection_layout, ActorHeap, ActorId, HeapLimits,
@@ -214,6 +215,41 @@ fn maintained_cookie_serialization_round_trips_through_managed_strings() {
         0,
     ];
     assert!(execute_managed_operation(&mut heap, &layouts, &encoded, &invalid).is_err());
+}
+
+#[test]
+fn ordinary_response_build_allocates_uniform_defaults_in_one_operation() {
+    let layouts = registry();
+    let mut heap = heap();
+    let payload = string_word(&mut heap, "body");
+    let encoded =
+        encode_response_build_operation(semantic(RESPONSE), semantic(HEADERS), 2).expect("build");
+    let response = execute_managed_operation(&mut heap, &layouts, &encoded, &[payload, 201])
+        .map(result_ref)
+        .expect("response");
+    let layout = layouts.layouts(semantic(RESPONSE))[0].clone();
+    let response = heap
+        .read_aggregate(response.cast(), &layout)
+        .expect("response view");
+    assert_eq!(response.field(0), Ok(ManagedFieldValue::Int(0)));
+    assert_eq!(response.field(1), Ok(ManagedFieldValue::Int(2)));
+    assert_eq!(response.field(3), Ok(ManagedFieldValue::Int(201)));
+    let ManagedFieldValue::Reference(payload) = response.field(2).expect("payload") else {
+        panic!("payload reference");
+    };
+    assert_eq!(heap.read_string(payload.cast()), Ok("body"));
+    let ManagedFieldValue::Reference(path) = response.field(4).expect("path") else {
+        panic!("path reference");
+    };
+    assert_eq!(heap.read_string(path.cast()), Ok(""));
+    let ManagedFieldValue::Reference(headers) = response.field(5).expect("headers") else {
+        panic!("headers reference");
+    };
+    let descriptor = layouts
+        .collection(semantic(HEADERS))
+        .and_then(|collection| collection.list_descriptor())
+        .expect("headers descriptor");
+    assert_eq!(heap.list_length(descriptor, headers.cast()), Ok(0));
 }
 
 #[test]

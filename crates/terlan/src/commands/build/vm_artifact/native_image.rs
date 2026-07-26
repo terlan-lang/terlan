@@ -1,5 +1,7 @@
 //! Compiler-owned native image construction independent from JSON artifacts.
 
+#![cfg_attr(feature = "serve-runtime-bin", allow(dead_code))]
+
 use std::collections::HashSet;
 use std::ffi::OsString;
 use std::fs;
@@ -8,8 +10,9 @@ use std::process::Command;
 
 use crate::compiler::native_ir::{
     emit_native_application_dispatch_object_with_policy,
-    emit_native_application_object_with_policy, native_request_projections, NativeCodegenPolicy,
-    NativeModule, NativeRequestProjection, DISPATCH_SYMBOL, IMAGE_ENTRY_SYMBOL,
+    emit_native_application_object_with_policy, install_native_request_projection_exports,
+    native_request_projections, NativeCodegenPolicy, NativeModule, NativeRequestProjection,
+    DISPATCH_SYMBOL, IMAGE_ENTRY_SYMBOL,
 };
 use crate::runtime::native_boundary::adapter_abi::NativeAdapterAbiContract;
 use crate::runtime::native_image::{
@@ -24,7 +27,7 @@ use super::native_units::prepare_native_object_units;
 use super::{native_cache, output_cleanup};
 
 pub(super) const DIRECT_AOT_BACKEND: &str = "cranelift-0.133.1";
-pub(super) const DIRECT_AOT_CACHE_SCHEMA: &str = "terlan-native-codegen-v2";
+pub(super) const DIRECT_AOT_CACHE_SCHEMA: &str = "terlan-native-codegen-v3";
 
 /// One compiler-owned native application image independent from transitional
 /// per-module artifact envelopes.
@@ -77,9 +80,16 @@ pub(super) fn compile_native_application_image(
         output_cleanup::remove_stale_tvm_images(vm_dir, None)?;
         return Ok(None);
     }
-    natives.sort_by(|left, right| left.name.cmp(&right.name));
+    // `NativeModule::lower_application` returns the canonical function-index
+    // order, including synthetic closure and continuation modules. Reordering
+    // modules here would invalidate every application-wide direct-call index.
     validate_export_id_uniqueness(&natives)?;
-    let request_projections = native_request_projections(&natives);
+    let request_projections = if policy == NativeCodegenPolicy::Serve {
+        install_native_request_projection_exports(&mut natives)
+    } else {
+        native_request_projections(&natives)
+    };
+    validate_export_id_uniqueness(&natives)?;
     let debug_metadata = if debug_inputs.is_empty() {
         Vec::new()
     } else {
@@ -115,7 +125,7 @@ pub(super) fn compile_native_application_image(
         .map_err(BuildOneError::Message)?;
     let fingerprint = natives
         .iter()
-        .map(NativeModule::fingerprint_text)
+        .map(NativeModule::fingerprint_sha256)
         .collect::<Vec<_>>()
         .join("\0");
     let cache_input = format!(

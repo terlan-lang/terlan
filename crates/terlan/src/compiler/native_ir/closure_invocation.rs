@@ -98,15 +98,18 @@ fn lower_closure_invocation_at(
                 types.insert(name.clone(), closure_native_type(&signature)?);
                 closure_signatures.insert(name.clone(), signature);
             } else {
-                let ty = infer_native_type_with_constructors(
+                let Some(ty) = infer_native_type_with_constructors(
                     &binding.value,
                     &types,
                     function_types,
                     constructors,
-                )
-                .ok_or_else(|| {
-                    format!("error[native_ir.dynamic_local_type]: cannot infer local `{name}`")
-                })?;
+                ) else {
+                    // This is a speculative boundary-closure recognizer. A
+                    // normal AOT control expression that it cannot type is
+                    // not itself a dynamic-closure error; let the primary
+                    // lowering path diagnose or lower it.
+                    return Ok(None);
+                };
                 lowered.push(lower_expr_with_constructors(
                     &binding.value,
                     &slots,

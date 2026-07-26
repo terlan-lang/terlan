@@ -1,13 +1,49 @@
 //! Recognition of receiver-shaped managed HTTP operations.
 
-use crate::terlan_typeck::CoreExpr;
+use crate::terlan_typeck::{CoreExpr, CorePattern};
 
 use super::MANAGED_HTTP_MODULE;
 
 /// Reports whether a rewritten expression has a statically known managed string value.
 pub(super) fn is_managed_string_expr(expr: &CoreExpr) -> bool {
+    is_managed_string_expr_with_bindings(expr, &mut Vec::new())
+}
+
+/// Tracks string-valued lexical bindings introduced by managed option lowering.
+fn is_managed_string_expr_with_bindings<'a>(
+    expr: &'a CoreExpr,
+    bindings: &mut Vec<(&'a str, bool)>,
+) -> bool {
     match expr {
         CoreExpr::Binary(_) => true,
+        CoreExpr::Var(name) => bindings
+            .iter()
+            .rev()
+            .find_map(|(binding, is_string)| (*binding == name).then_some(*is_string))
+            .unwrap_or(false),
+        CoreExpr::Let {
+            bindings: local_bindings,
+            body,
+        } => {
+            let checkpoint = bindings.len();
+            for binding in local_bindings {
+                let CorePattern::Var(name) = &binding.pattern else {
+                    bindings.truncate(checkpoint);
+                    return false;
+                };
+                let is_string = is_managed_string_expr_with_bindings(&binding.value, bindings);
+                bindings.push((name, is_string));
+            }
+            let is_string = is_managed_string_expr_with_bindings(body, bindings);
+            bindings.truncate(checkpoint);
+            is_string
+        }
+        CoreExpr::If { clauses } => {
+            !clauses.is_empty()
+                && clauses
+                    .iter()
+                    .all(|clause| is_managed_string_expr_with_bindings(&clause.body, bindings))
+        }
         CoreExpr::RemoteCall {
             module,
             function,
@@ -23,7 +59,9 @@ pub(super) fn is_managed_string_expr(expr: &CoreExpr) -> bool {
                     | "cookie_set_options_header"
                     | "cookie_delete_header"
                     | "string_append"
-                    | "string_prepend_literal",
+                    | "string_concat"
+                    | "string_prepend_literal"
+                    | "option_some",
                 _
             )
         ),

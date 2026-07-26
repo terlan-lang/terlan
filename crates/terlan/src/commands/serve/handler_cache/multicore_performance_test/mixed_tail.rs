@@ -24,7 +24,7 @@ use crate::runtime::vm::ReplValue;
 use super::super::AotHandlerGeneration;
 use super::cpu_actor::{cpu_result, CPU_ITERATIONS_PER_ACTOR};
 use super::workloads::request_value;
-use super::{timing_distribution, TimingDistribution};
+use super::{timing_distribution, TimingDistribution, WARMUP_SAMPLE_COUNT};
 
 /// Scheduler width used to create simultaneous generated CPU pressure.
 pub(super) const MIXED_LOAD_SCHEDULERS: usize = 2;
@@ -86,6 +86,8 @@ pub(super) struct MixedTailEvidence {
     pub(super) cpu_overlap_proven: bool,
     /// Independent samples retained for every metric.
     pub(super) samples_per_metric: usize,
+    /// Cold executions completed and discarded before every metric.
+    pub(super) warmup_samples_per_metric: usize,
     /// Metric distributions in canonical policy order.
     pub(super) measurements: Vec<MixedTailMeasurement>,
 }
@@ -135,6 +137,7 @@ pub(super) fn measure_mixed_tail(
         maximum_simultaneously_active_schedulers: MIXED_LOAD_SCHEDULERS,
         cpu_overlap_proven: true,
         samples_per_metric: samples,
+        warmup_samples_per_metric: WARMUP_SAMPLE_COUNT,
         measurements,
     })
 }
@@ -419,13 +422,18 @@ fn measure_samples(
     mut operation: impl FnMut(&AotHandlerGeneration) -> Result<u128, String>,
 ) -> Result<MixedTailMeasurement, String> {
     let mut durations = Vec::with_capacity(samples);
-    for sample in 0..samples {
+    let total_samples = WARMUP_SAMPLE_COUNT
+        .checked_add(samples)
+        .ok_or_else(|| "mixed-load benchmark sample count overflow".to_string())?;
+    for sample in 0..total_samples {
         let total = under_cpu_load(generation, sample, |generation| operation(generation))?;
-        durations.push(
-            total
-                .checked_div(operations_per_sample as u128)
-                .ok_or_else(|| "mixed-load operation count is zero".to_string())?,
-        );
+        if sample >= WARMUP_SAMPLE_COUNT {
+            durations.push(
+                total
+                    .checked_div(operations_per_sample as u128)
+                    .ok_or_else(|| "mixed-load operation count is zero".to_string())?,
+            );
+        }
     }
     Ok(MixedTailMeasurement {
         metric,

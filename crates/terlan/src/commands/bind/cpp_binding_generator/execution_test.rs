@@ -172,6 +172,32 @@ pub(super) fn assert_generated_helper_replies(helper: &Path) {
         "duplicate request id was not rejected: {duplicate}"
     );
     drop(call);
+    let chunked_request = format!(
+        "call 21 {} li:10,20,30",
+        STANDARD.encode("cpp_fixture.native_boundary.sum_integers")
+    );
+    let split = chunked_request.len() / 2;
+    for (index, chunk) in [
+        &chunked_request.as_bytes()[..split],
+        &chunked_request.as_bytes()[split..],
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        writeln!(
+            input,
+            "chunk 21 {index} {} {}",
+            usize::from(index == 1),
+            STANDARD.encode(chunk)
+        )
+        .expect("write chunked helper call");
+    }
+    input.flush().expect("flush chunked helper call");
+    let mut chunked_reply = String::new();
+    output
+        .read_line(&mut chunked_reply)
+        .expect("read chunked helper reply");
+    assert_eq!(chunked_reply.trim_end(), "reply 21 1 ok_int 60");
     writeln!(
         input,
         "{}",

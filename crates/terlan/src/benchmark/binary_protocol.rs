@@ -10,8 +10,6 @@ use super::{
     write_report,
 };
 
-#[path = "binary_protocol_http.rs"]
-mod http_lifecycle;
 #[path = "binary_protocol_snapshot.rs"]
 mod snapshot;
 
@@ -43,7 +41,6 @@ struct BinaryProtocolBenchmarkReport {
     scale_points: &'static [usize],
     scenarios: Vec<BinaryProtocolScenarioReport>,
     transport_scenarios: Vec<BinaryProtocolTransportScenarioReport>,
-    http_lifecycle_scenarios: Vec<http_lifecycle::HttpLifecycleScenarioReport>,
 }
 
 #[derive(Debug, Serialize)]
@@ -295,15 +292,9 @@ fn run(
             ));
         }
     }
-    let http_lifecycle_scenarios = http_lifecycle::run(
-        &vm_binary,
-        SCALE_POINTS,
-        SAMPLE_COUNT,
-        FRAMING_PAYLOAD_BYTES,
-    )?;
-    snapshot::validate(&scenarios, &transport_scenarios, &http_lifecycle_scenarios)?;
+    snapshot::validate(&scenarios, &transport_scenarios)?;
     Ok(BinaryProtocolBenchmarkReport {
-        schema: "terlan.vm-binary-protocol-benchmark.v7",
+        schema: "terlan.vm-binary-protocol-benchmark.v8",
         benchmark: "vm-binary-protocol",
         status: "completed",
         measurement_scope: "cold-compiler-process-plus-vm;warm-load-once-vm-loop",
@@ -321,7 +312,6 @@ fn run(
         scale_points: SCALE_POINTS,
         scenarios,
         transport_scenarios,
-        http_lifecycle_scenarios,
     })
 }
 

@@ -4,12 +4,17 @@
 //! and deterministic row decoding. Live socket execution belongs to the VM
 //! Postgres driver worker; this compatibility surface must not create an
 //! independent async runtime.
+#![cfg_attr(not(feature = "postgres-libpq"), allow(dead_code, unused_imports))]
 
 use crate::terlan_native::json as json_adapter;
 
 #[path = "postgres/config.rs"]
 mod config;
+#[cfg(all(not(feature = "serve-runtime-bin"), feature = "postgres-libpq"))]
 #[path = "postgres/libpq.rs"]
+pub(crate) mod libpq;
+#[cfg(any(feature = "serve-runtime-bin", not(feature = "postgres-libpq")))]
+#[path = "postgres/libpq_unavailable.rs"]
 pub(crate) mod libpq;
 #[path = "postgres/row.rs"]
 mod row;

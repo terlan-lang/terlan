@@ -158,6 +158,9 @@ pub(super) fn intrinsic_coverage(intrinsic: &CoreIntrinsicId) -> LoweringCoverag
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileDelete) => {
             LoweringCoverage::native("Intrinsic.runtime.file.delete")
         }
+        CoreIntrinsicId::NativeOperation { .. } => {
+            LoweringCoverage::native("Intrinsic.runtime.native_package")
+        }
         CoreIntrinsicId::VmProcessSendMessage(_) => {
             LoweringCoverage::native("Intrinsic.vm.process.send")
         }
@@ -203,6 +206,61 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         P::VmProcessSleep => LoweringCoverage::native("Intrinsic.vm.process.sleep"),
         P::VmProcessFail => LoweringCoverage::native("Intrinsic.vm.process.fail"),
         P::VmProcessSchedule => LoweringCoverage::native("Intrinsic.vm.process.schedule"),
+        P::FloatFloor => LoweringCoverage::native("Intrinsic.core.float.floor"),
+        P::FloatCeil => LoweringCoverage::native("Intrinsic.core.float.ceil"),
+        P::FloatToString => LoweringCoverage::native("Intrinsic.core.float.to_string"),
+        P::FloatFromString => LoweringCoverage::native("Intrinsic.core.float.from_string"),
+        P::FloatLog => LoweringCoverage::native("Intrinsic.core.float.log"),
+        P::FloatPi => LoweringCoverage::native("Intrinsic.core.float.pi"),
+        P::FloatTau => LoweringCoverage::native("Intrinsic.core.float.tau"),
+        P::IntToString => LoweringCoverage::native("Intrinsic.core.int.to_string"),
+        P::IntFromString => LoweringCoverage::native("Intrinsic.core.int.from_string"),
+        P::IntToStringBase => LoweringCoverage::native("Intrinsic.core.int.to_string_base"),
+        P::IntFromStringBase => LoweringCoverage::native("Intrinsic.core.int.from_string_base"),
+        P::ListNew => LoweringCoverage::native("Intrinsic.collections.list.new"),
+        P::ListIsEmpty => LoweringCoverage::native("Intrinsic.collections.list.is_empty"),
+        P::ListLength => LoweringCoverage::native("Intrinsic.collections.list.length"),
+        P::ListGet => LoweringCoverage::native("Intrinsic.collections.list.get"),
+        P::ListFirst => LoweringCoverage::native("Intrinsic.collections.list.first"),
+        P::ListRest => LoweringCoverage::native("Intrinsic.collections.list.rest"),
+        P::ListIterator => LoweringCoverage::native("Intrinsic.collections.list.iterator"),
+        P::VmBytesFromList => LoweringCoverage::native("Intrinsic.vm.bytes.from_list"),
+        P::VmBytesToList => LoweringCoverage::native("Intrinsic.vm.bytes.to_list"),
+        P::VmBytesLength => LoweringCoverage::native("Intrinsic.vm.bytes.length"),
+        P::VmBytesConcat => LoweringCoverage::native("Intrinsic.vm.bytes.concat"),
+        P::VmBytesSlice => LoweringCoverage::native("Intrinsic.vm.bytes.slice"),
+        P::VmBytesReadUintBe => LoweringCoverage::native("Intrinsic.vm.bytes.read_uint_be"),
+        P::VmBytesReadIntBe => LoweringCoverage::native("Intrinsic.vm.bytes.read_int_be"),
+        P::VmBytesReadUintLe => LoweringCoverage::native("Intrinsic.vm.bytes.read_uint_le"),
+        P::VmBytesReadIntLe => LoweringCoverage::native("Intrinsic.vm.bytes.read_int_le"),
+        P::VmBitStringFromBytes
+        | P::VmBitStringFromAllBytes
+        | P::VmBitStringFromExactBytes
+        | P::VmBitStringRequireExactBits
+        | P::VmBitStringFromUintBe
+        | P::VmBitStringFromIntBe
+        | P::VmBitStringFromUintLe
+        | P::VmBitStringFromIntLe
+        | P::VmBitStringUtf8Scalar
+        | P::VmBitStringToUtf8Scalar
+        | P::VmBitStringUtf16BeScalar
+        | P::VmBitStringUtf16LeScalar
+        | P::VmBitStringToUtf16BeScalar
+        | P::VmBitStringToUtf16LeScalar
+        | P::VmBitStringUtf32BeScalar
+        | P::VmBitStringUtf32LeScalar
+        | P::VmBitStringToUtf32BeScalar
+        | P::VmBitStringToUtf32LeScalar
+        | P::VmBitStringBitLength
+        | P::VmBitStringByteLength
+        | P::VmBitStringIsByteAligned
+        | P::VmBitStringSlice
+        | P::VmBitStringConcat
+        | P::VmBitStringToBytes
+        | P::VmBitStringToUintBe
+        | P::VmBitStringToIntBe
+        | P::VmBitStringToUintLe
+        | P::VmBitStringToIntLe => LoweringCoverage::native("Intrinsic.vm.bitstring"),
         P::TypeOf
         | P::IsType
         | P::BoolEqual
@@ -211,17 +269,6 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         | P::BoolFromString
         | P::AtomToString
         | P::ValueToString
-        | P::IntToString
-        | P::IntFromString
-        | P::IntToStringBase
-        | P::IntFromStringBase
-        | P::FloatToString
-        | P::FloatFromString
-        | P::FloatFloor
-        | P::FloatCeil
-        | P::FloatLog
-        | P::FloatPi
-        | P::FloatTau
         | P::StringEqual
         | P::StringCompare
         | P::StringToString
@@ -243,14 +290,8 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         | P::StringReplace
         | P::StringSplit
         | P::StringSplitOnce
-        | P::ListNew
-        | P::ListIsEmpty
-        | P::ListLength
-        | P::ListFirst
-        | P::ListRest
         | P::ListConcat
         | P::ListSubtract
-        | P::ListIterator
         | P::ListPush
         | P::ListClear
         | P::IteratorNext
@@ -292,43 +333,6 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         | P::VmNativeBridgeCall
         | P::VmNativeBridgeDispose
         | P::VmNativeBridgeStop
-        | P::VmBytesFromList
-        | P::VmBytesToList
-        | P::VmBytesLength
-        | P::VmBytesConcat
-        | P::VmBytesSlice
-        | P::VmBytesReadUintBe
-        | P::VmBytesReadIntBe
-        | P::VmBytesReadUintLe
-        | P::VmBytesReadIntLe
-        | P::VmBitStringFromBytes
-        | P::VmBitStringFromAllBytes
-        | P::VmBitStringFromExactBytes
-        | P::VmBitStringRequireExactBits
-        | P::VmBitStringFromUintBe
-        | P::VmBitStringFromIntBe
-        | P::VmBitStringFromUintLe
-        | P::VmBitStringFromIntLe
-        | P::VmBitStringUtf8Scalar
-        | P::VmBitStringToUtf8Scalar
-        | P::VmBitStringUtf16BeScalar
-        | P::VmBitStringUtf16LeScalar
-        | P::VmBitStringToUtf16BeScalar
-        | P::VmBitStringToUtf16LeScalar
-        | P::VmBitStringUtf32BeScalar
-        | P::VmBitStringUtf32LeScalar
-        | P::VmBitStringToUtf32BeScalar
-        | P::VmBitStringToUtf32LeScalar
-        | P::VmBitStringBitLength
-        | P::VmBitStringByteLength
-        | P::VmBitStringIsByteAligned
-        | P::VmBitStringSlice
-        | P::VmBitStringConcat
-        | P::VmBitStringToBytes
-        | P::VmBitStringToUintBe
-        | P::VmBitStringToIntBe
-        | P::VmBitStringToUintLe
-        | P::VmBitStringToIntLe
         | P::VmTimeoutMilliseconds
         | P::VmTimeoutForever
         | P::VmTcpListen

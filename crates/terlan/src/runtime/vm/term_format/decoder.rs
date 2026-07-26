@@ -208,12 +208,14 @@ impl<'a> Decoder<'a> {
 
     fn decode_record(&mut self, depth: usize) -> Result<ReplValue, String> {
         let name = self.read_text()?;
+        validate_text_field("record_name", &name)?;
         let len = self.read_len()?;
         self.require_remaining_items(len, 2)?;
         let mut fields = Vec::with_capacity(len);
         let mut previous_field = None::<String>;
         for _ in 0..len {
             let field = self.read_text()?;
+            validate_text_field("record_field", &field)?;
             if previous_field
                 .as_ref()
                 .is_some_and(|previous| previous >= &field)

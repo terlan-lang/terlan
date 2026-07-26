@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::sync::Arc;
 
 use percent_encoding::percent_decode_str;
@@ -37,7 +38,7 @@ pub(crate) struct MatchedWebPackageHandler {
 /// One best route selected across all executable manifest response kinds.
 pub(in crate::commands::serve) enum MatchedWebPackageRoute {
     WebSocket(WebPackageWebSocket),
-    Handler(Arc<MatchedWebPackageHandler>),
+    Handler(Rc<MatchedWebPackageHandler>),
     StaticFile(PathBuf),
     StaticResponse(WebPackageStaticResponse),
     FileResponse(WebPackageFileResponse, PathBuf),
@@ -54,7 +55,7 @@ struct LastSimpleHandlerRoute {
     manifest: Arc<WebPackageManifest>,
     method: String,
     request_path: String,
-    matched: Arc<MatchedWebPackageHandler>,
+    matched: Option<Rc<MatchedWebPackageHandler>>,
 }
 
 /// Selects one route across dynamic, folded-static, and file-backed rows.
@@ -99,24 +100,21 @@ fn manifest_route_for_loaded_manifest(
             (Arc::ptr_eq(&cached.manifest, manifest)
                 && cached.method == method
                 && cached.request_path == request_path)
-                .then(|| Arc::clone(&cached.matched))
+                .then(|| cached.matched.clone())
         }) {
-            return Some(MatchedWebPackageRoute::Handler(matched));
+            return matched.map(MatchedWebPackageRoute::Handler);
         }
-        let matched = Arc::new(select_handler_for_request_ref(
-            &manifest.handlers,
-            method,
-            request_path,
-        )?);
+        let matched =
+            select_handler_for_request_ref(&manifest.handlers, method, request_path).map(Rc::new);
         LAST_SIMPLE_HANDLER_ROUTE.with(|cached| {
             *cached.borrow_mut() = Some(LastSimpleHandlerRoute {
                 manifest: Arc::clone(manifest),
                 method: method.to_string(),
                 request_path: request_path.to_string(),
-                matched: Arc::clone(&matched),
+                matched: matched.clone(),
             });
         });
-        return Some(MatchedWebPackageRoute::Handler(matched));
+        return matched.map(MatchedWebPackageRoute::Handler);
     }
     let mut candidates = manifest.handlers.clone();
     candidates.extend(manifest.sse.iter().map(|endpoint| WebPackageHandler {
@@ -158,7 +156,7 @@ fn manifest_route_for_loaded_manifest(
     if manifest.handlers.iter().any(|handler| {
         handler.method == matched.handler.method && handler.route == matched.handler.route
     }) {
-        return Some(MatchedWebPackageRoute::Handler(Arc::new(matched)));
+        return Some(MatchedWebPackageRoute::Handler(Rc::new(matched)));
     }
     if let Some(response) = manifest.static_responses.iter().find(|response| {
         response.method == matched.handler.method && response.route == matched.handler.route

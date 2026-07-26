@@ -28,8 +28,11 @@ machinery.
 - `scripts/benchmarks/protocol/`: fixed workload/seed definitions, comparison
   driver, JSON/TSV publication, and stable winner/delta validation.
 - `http_runtime_lane.rs`: HTTP runtime lane capability and report helpers.
-- `http_aot_performance.rs`: executable checked-CoreIR/native-AOT HTTP lane
-  recorder and strict same-machine comparison report.
+- `http_aot_performance.rs`: executable native-AOT HTTP lane recorder.
+- `http_framework_baseline.rs`: framework-neutral maintained-client recorder
+  used for both Axum and plain Hyper controls.
+- `http_paired_benchmark.rs`: rotating AOT/Axum/plain-Hyper orchestration,
+  environment admission, paired bootstrap statistics, and isolation evidence.
 - `aot_compilation.rs`: equivalent Terlan/Go small-command and multi-package
   compilation recorder covering cold development, edits, no-op reuse, release,
   relinking, compiler-service startup, and REPL generations.
@@ -119,6 +122,31 @@ Important invariants:
 - `make tvm-aot-http-performance-check` records the native lane and rejects
   latency, throughput, peak resident-memory, or generation-reload ratios that
   exceed the committed checked-CoreIR comparison policy.
+- `make tvm-http-paired-performance-check` rotates all six
+  native-AOT/Axum/plain-Hyper orders, rejects samples contaminated on reserved
+  CPUs, validates every decisive route and payload with maintained `curl` and
+  `wrk`, and records deterministic 10,000-resample bootstrap intervals. The
+  internal client rows remain diagnostic and cannot decide the comparison when
+  maintained workload evidence is present.
+- `make tvm-http-decisive-performance-check` requires at least ten paired
+  10-second samples, explicit disjoint server/client CPU sets, the performance
+  governor, a single server NUMA node, and no IRQ affinity overlap. It fails
+  before measurement when those controls are not satisfied; the shorter target
+  emits explicitly advisory evidence.
+- The maintained matrix covers sequential and pressure traffic, bounded
+  oversubscription, keep-alive and connection teardown, empty/4KiB/64KiB/1MiB
+  bodies, header pressure, JSON parsing, request metadata, static responses,
+  errors, and cancelled slow uploads. Optional `wrk2` offered-load sweeps avoid
+  coordinated omission. `TERLAN_BENCH_HTTP_TLS_URL` adds maintained TLS and
+  HTTP/2 negotiation evidence without pretending plaintext HTTP/1.1 proves it.
+- Reports attribute idle, warmed, peak, retained RSS/PSS, thread count, process
+  efficiency, soak growth, exact binary and Cargo.lock hashes, target CPU, LTO,
+  codegen-unit, panic, allocator, and socket policies. Paired comparison rejects
+  unequal workload, hardware, build, affinity, or socket-policy evidence.
+- Long-form paired runs are controlled by `TERLAN_BENCH_HTTP_PAIRS`,
+  `TERLAN_BENCH_HTTP_DURATION_MS`, and `TERLAN_BENCH_HTTP_SOAK_SECONDS`.
+  Optional hardware counters use `TERLAN_BENCH_HTTP_PERF_SECONDS`; unavailable
+  kernel permissions are recorded explicitly rather than fabricating zeros.
 - Add focused tests when new benchmark report states are introduced.
 - Run `terlan-benchmark aot-compilation-self-test` for production-compiled
   report, percentile, malformed-evidence, serialization, and fixture checks.

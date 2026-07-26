@@ -17,12 +17,17 @@ use crate::runtime::vm::scheduler::VmSchedulerClass;
 use crate::runtime::vm::ReplValue;
 use crate::terlan_native_boundary::term::NativeBoundaryTerm;
 
+#[path = "execution/entry.rs"]
+mod entry;
+
 /// Owned capability RPC prepared from one generated suspension.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct PureNativeCapabilityRequest {
-    pub(crate) capability: &'static str,
-    pub(crate) operation: &'static str,
+    pub(crate) capability: String,
+    pub(crate) operation: String,
     pub(crate) arguments: Vec<NativeBoundaryTerm>,
+    /// Typed package arguments decoded directly from the actor-owned heap.
+    pub(crate) package_arguments: Option<Vec<ReplValue>>,
     pub(crate) result_type: TvmBoundaryType,
 }
 
@@ -53,12 +58,48 @@ impl PureNativeBoundary {
         }
         validate_capability_arguments(suspension.arguments())?;
         let arguments = suspension.arguments();
-        let (capability, operation) = capability_identity(arguments[0])?;
         let result_type = TvmBoundaryType::from_transition_words(&arguments[1..4])?;
         let backend = self.backend.as_deref().ok_or_else(|| {
             "error[pure_native_backend_missing]: no active native execution backend".to_string()
         })?;
-        let arguments = arguments[4..]
+        if arguments[0] == 7 {
+            let operation = backend
+                .decode_transition_value(context, &TvmBoundaryType::String, arguments[4])
+                .and_then(|value| match value {
+                    ReplValue::String(value) => Ok(value),
+                    _ => Err(
+                        "error[pure_native_capability_argument]: expected package operation String"
+                            .to_string(),
+                    ),
+                })?;
+            let argument_count = usize::try_from(arguments[5]).map_err(|_| {
+                "error[pure_native_capability_arguments]: package argument count must be nonnegative"
+                    .to_string()
+            })?;
+            let package_arguments = (0..argument_count)
+                .map(|index| {
+                    let offset = 6 + index * 4;
+                    let boundary_type =
+                        TvmBoundaryType::from_transition_words(&arguments[offset..offset + 3])?;
+                    backend
+                        .decode_transition_value(context, &boundary_type, arguments[offset + 3])
+                        .map_err(|error| {
+                            format!(
+                                "error[pure_native_capability_argument]: operation `{operation}` argument {index} ({boundary_type:?}): {error}"
+                            )
+                        })
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            return Ok(PureNativeCapabilityRequest {
+                capability: "package-native".to_string(),
+                operation,
+                arguments: Vec::new(),
+                package_arguments: Some(package_arguments),
+                result_type,
+            });
+        }
+        let (capability, operation) = capability_identity(arguments[0])?;
+        let boundary_arguments = arguments[4..]
             .iter()
             .map(|value| {
                 backend
@@ -75,7 +116,8 @@ impl PureNativeBoundary {
         Ok(PureNativeCapabilityRequest {
             capability,
             operation,
-            arguments,
+            arguments: boundary_arguments,
+            package_arguments: None,
             result_type,
         })
     }
@@ -99,96 +141,6 @@ impl PureNativeBoundary {
             suspension.continuation_id(),
         )?;
         self.finish_transition_resume(actors, context, suspension, vec![encoded], None, None)
-    }
-
-    /// Starts a native call and returns while its actor remains parked on Yield.
-    pub(crate) fn begin_call_for_actor(
-        &mut self,
-        actors: &mut VmActorRuntime,
-        context: &mut PureNativeExecutionContext<'_>,
-        function: &str,
-        args: &[ReplValue],
-    ) -> Result<PureNativeExecution, String> {
-        self.begin_call_for_actor_with_projection(
-            actors,
-            context,
-            function,
-            args,
-            NativeResultProjection::PublicValue,
-        )
-    }
-
-    /// Starts a direct HTTP call whose non-file Response may bypass generic
-    /// public-value materialization.
-    pub(crate) fn begin_http_response_call_for_actor(
-        &mut self,
-        actors: &mut VmActorRuntime,
-        context: &mut PureNativeExecutionContext<'_>,
-        function: &str,
-        args: &[ReplValue],
-    ) -> Result<PureNativeExecution, String> {
-        self.begin_call_for_actor_with_projection(
-            actors,
-            context,
-            function,
-            args,
-            NativeResultProjection::HttpResponse,
-        )
-    }
-
-    fn begin_call_for_actor_with_projection(
-        &mut self,
-        actors: &mut VmActorRuntime,
-        context: &mut PureNativeExecutionContext<'_>,
-        function: &str,
-        args: &[ReplValue],
-        result_projection: NativeResultProjection,
-    ) -> Result<PureNativeExecution, String> {
-        let owner = context.actor();
-        let mut prepared = self.prepare_call(
-            context,
-            function,
-            args,
-            actors.native_trace_enabled(),
-            result_projection,
-        )?;
-        let trace_call =
-            actors.begin_optional_native_trace_call(owner, prepared.trace_source.take())?;
-        let reply = match self
-            .backend
-            .as_mut()
-            .expect("prepare_call initializes the native backend")
-            .call_frame(context, prepared.request_id, prepared.export_id, args)
-        {
-            Ok(reply) => reply,
-            Err(error) => {
-                let _ = actors.fail_native_trace_call(owner, trace_call, error.clone());
-                return Err(error);
-            }
-        };
-        if matches!(reply, TvmControlFrame::Transition { .. }) {
-            prepared.continuations = Some(
-                self.call_cache
-                    .as_ref()
-                    .expect("resolved export installs its continuation cache")
-                    .continuations
-                    .as_ref()
-                    .to_vec(),
-            );
-        }
-        let backend = self
-            .backend
-            .as_deref()
-            .expect("prepared native backend remains available");
-        handle_reply(
-            backend,
-            actors,
-            context,
-            prepared,
-            HashSet::new(),
-            trace_call,
-            reply,
-        )
     }
 
     /// Services one VM-owned transition and advances its exact native continuation.
@@ -556,7 +508,7 @@ impl PureNativeBoundary {
     }
 }
 
-pub(super) fn handle_reply(
+fn handle_reply(
     backend: &dyn super::NativeImageBackend,
     actors: &mut VmActorRuntime,
     context: &PureNativeExecutionContext<'_>,
@@ -944,6 +896,34 @@ fn validate_transition_continuation(
 }
 
 fn validate_capability_arguments(arguments: &[i64]) -> Result<(), String> {
+    if arguments.first() == Some(&7) {
+        if arguments.len() < 6 {
+            return Err(
+                "error[pure_native_capability_arguments]: package capability frame is truncated"
+                    .to_string(),
+            );
+        }
+        let argument_count = usize::try_from(arguments[5]).map_err(|_| {
+            "error[pure_native_capability_arguments]: package argument count must be nonnegative"
+                .to_string()
+        })?;
+        let expected = 6usize
+            .checked_add(argument_count.checked_mul(4).ok_or_else(|| {
+                "error[pure_native_capability_arguments]: package argument count overflow"
+                    .to_string()
+            })?)
+            .ok_or_else(|| {
+                "error[pure_native_capability_arguments]: package frame length overflow".to_string()
+            })?;
+        return if arguments.len() == expected {
+            Ok(())
+        } else {
+            Err(format!(
+                "error[pure_native_capability_arguments]: package capability requires {expected} words, received {}",
+                arguments.len()
+            ))
+        };
+    }
     let expected = match arguments.first().copied() {
         Some(1 | 2 | 3 | 6) => 5,
         Some(4 | 5) => 6,
@@ -970,14 +950,23 @@ fn validate_capability_arguments(arguments: &[i64]) -> Result<(), String> {
     }
 }
 
-fn capability_identity(tag: i64) -> Result<(&'static str, &'static str), String> {
+fn capability_identity(tag: i64) -> Result<(String, String), String> {
     match tag {
-        1 => Ok(("stdio", "std.io.console.println")),
-        2 => Ok(("filesystem", "std.io.file.exists")),
-        3 => Ok(("filesystem", "std.io.file.read_text")),
-        4 => Ok(("filesystem", "std.io.file.write_text")),
-        5 => Ok(("filesystem", "std.io.file.append_text")),
-        6 => Ok(("filesystem", "std.io.file.delete")),
+        1 => Ok(("stdio".to_string(), "std.io.console.println".to_string())),
+        2 => Ok(("filesystem".to_string(), "std.io.file.exists".to_string())),
+        3 => Ok((
+            "filesystem".to_string(),
+            "std.io.file.read_text".to_string(),
+        )),
+        4 => Ok((
+            "filesystem".to_string(),
+            "std.io.file.write_text".to_string(),
+        )),
+        5 => Ok((
+            "filesystem".to_string(),
+            "std.io.file.append_text".to_string(),
+        )),
+        6 => Ok(("filesystem".to_string(), "std.io.file.delete".to_string())),
         _ => Err(format!(
             "error[pure_native_capability_arguments]: unknown capability tag {tag}"
         )),

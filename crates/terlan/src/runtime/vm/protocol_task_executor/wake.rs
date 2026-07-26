@@ -4,10 +4,11 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::task::{Wake, Waker};
 
-use concurrent_queue::ConcurrentQueue;
 use mio::{Registry, Token, Waker as MioWaker};
 
-use super::{push_owner_local_scheduled, VmSchedulerId, CURRENT_PROTOCOL_SCHEDULER};
+use super::{
+    push_owner_local_scheduled, VmLazyBoundedQueue, VmSchedulerId, CURRENT_PROTOCOL_SCHEDULER,
+};
 
 /// Reusable future waker paired with its generation-qualified task token.
 pub(super) struct VmProtocolTaskWakeSlot {
@@ -47,7 +48,7 @@ pub(super) struct VmProtocolOwnerWake {
     /// Poll registry used to arm task-owned transports.
     pub(super) registry: Registry,
     /// Bounded cross-thread wake queue consumed by the owner.
-    pub(super) queue: Arc<ConcurrentQueue<Token>>,
+    pub(super) queue: Arc<VmLazyBoundedQueue<Token>>,
     /// Poll wake handle used for cross-thread completions.
     pub(super) poll_waker: Arc<MioWaker>,
 }

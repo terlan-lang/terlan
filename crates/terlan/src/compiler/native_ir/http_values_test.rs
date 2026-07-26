@@ -82,9 +82,9 @@ fn body(core: &mut CoreModule) -> &mut CoreExpr {
         .expect("typed body")
 }
 
-/// Verifies response builders become fixed constructors with explicit defaults.
+/// Verifies ordinary response builders become one managed construction operation.
 #[test]
-fn response_builders_lower_to_managed_constructors() {
+fn response_builders_lower_to_fused_managed_operations() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::RemoteCall {
         module: "std.http.Response".to_string(),
@@ -95,19 +95,12 @@ fn response_builders_lower_to_managed_constructors() {
 
     assert!(matches!(
         body(&mut core),
-        CoreExpr::ConstructorCall { constructor_identity: Some(identity), args, .. }
-            if identity == "$terlan.http.response.text"
+        CoreExpr::RemoteCall { module, function, args }
+            if module == "$terlan.managed.http"
+                && function == "response_build_0"
                 && args == &vec![
-                    CoreExpr::Int(0),
-                    CoreExpr::Int(0),
                     CoreExpr::Binary("\"hello\"".to_string()),
                     CoreExpr::Int(200),
-                    CoreExpr::Binary("\"\"".to_string()),
-                    CoreExpr::RemoteCall {
-                        module: "$terlan.managed.http".to_string(),
-                        function: "empty_headers".to_string(),
-                        args: Vec::new(),
-                    },
                 ]
     ));
 }
@@ -336,6 +329,70 @@ fn request_option_case_lowers_without_scalar_constructor_patterns() {
     assert!(!rendered.contains("Case("), "{rendered}");
 }
 
+/// Managed option defaults retain their string type when nested in concatenation.
+#[test]
+fn request_option_default_can_be_concatenated_after_managed_case_lowering() {
+    let mut core = http_core();
+    *body(&mut core) = CoreExpr::BinaryOp {
+        operator: "+".to_string(),
+        left: Box::new(CoreExpr::RemoteCall {
+            module: "__receiver__".to_string(),
+            function: "method".to_string(),
+            args: vec![CoreExpr::Var("request".to_string())],
+        }),
+        right: Box::new(CoreExpr::RemoteCall {
+            module: "std.core.Option".to_string(),
+            function: "with_default".to_string(),
+            args: vec![
+                CoreExpr::RemoteCall {
+                    module: "__receiver__".to_string(),
+                    function: "header".to_string(),
+                    args: vec![CoreExpr::Var("request".to_string()), string("accept")],
+                },
+                string("missing"),
+            ],
+        }),
+    };
+
+    lower_http_values(&mut core).expect("lower managed option concatenation");
+    assert!(matches!(
+        body(&mut core),
+        CoreExpr::RemoteCall { module, function, args }
+            if module == "$terlan.managed.http"
+                && function == "string_append"
+                && args.len() == 2
+    ));
+}
+
+/// Associative managed string expressions lower to one variadic operation.
+#[test]
+fn managed_string_append_chain_flattens_into_one_operation() {
+    let request_field = |function: &str| CoreExpr::RemoteCall {
+        module: "__receiver__".to_string(),
+        function: function.to_string(),
+        args: vec![CoreExpr::Var("request".to_string())],
+    };
+    let mut core = http_core();
+    *body(&mut core) = CoreExpr::BinaryOp {
+        operator: "+".to_string(),
+        left: Box::new(CoreExpr::BinaryOp {
+            operator: "+".to_string(),
+            left: Box::new(request_field("method")),
+            right: Box::new(request_field("path")),
+        }),
+        right: Box::new(request_field("query_string")),
+    };
+
+    lower_http_values(&mut core).expect("lower managed string concat");
+    assert!(matches!(
+        body(&mut core),
+        CoreExpr::RemoteCall { module, function, args }
+            if module == "$terlan.managed.http"
+                && function == "string_concat"
+                && args.len() == 3
+    ));
+}
+
 /// Verifies immediate body decode matches become managed result operations.
 #[test]
 fn body_json_result_case_lowers_to_typed_managed_branches() {
@@ -399,6 +456,26 @@ fn unsupported_response_builder_is_rejected() {
     assert_eq!(
         lower_http_values(&mut core).unwrap_err(),
         "error[native_ir.http_response_builder]: Response.stream is not in the native managed HTTP profile"
+    );
+}
+
+#[test]
+fn response_json_projects_the_canonical_managed_payload() {
+    let mut core = http_core();
+    *body(&mut core) = CoreExpr::RemoteCall {
+        module: "std.http.Response".to_string(),
+        function: "json".to_string(),
+        args: vec![CoreExpr::Var("json".to_string())],
+    };
+    lower_http_values(&mut core).expect("lower JSON response");
+    let rendered = format!("{:?}", body(&mut core));
+    assert!(
+        rendered.contains("function: \"response_build_2\""),
+        "{rendered}"
+    );
+    assert!(
+        rendered.contains("function: \"json_payload\""),
+        "{rendered}"
     );
 }
 

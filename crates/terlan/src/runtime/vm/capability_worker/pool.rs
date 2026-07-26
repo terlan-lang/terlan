@@ -1,6 +1,7 @@
 //! Bounded admission and generation-safe replacement for capability workers.
 
 use std::collections::BTreeSet;
+use std::task::Waker;
 
 use super::{
     VmCapabilityId, VmCapabilityRequestContext, VmCapabilityWorkerClient,
@@ -186,6 +187,13 @@ impl VmCapabilityWorkerPool {
             .iter()
             .map(VmCapabilityWorkerPoolSlot::available_capacity)
             .sum()
+    }
+
+    /// Registers one task with every live worker transport.
+    pub(crate) fn register_event_waker(&self, waker: &Waker) {
+        for client in self.slots.iter().filter_map(|slot| slot.client.as_ref()) {
+            client.register_event_waker(waker);
+        }
     }
 
     /// Returns the number of current worker processes, excluding failed slots.

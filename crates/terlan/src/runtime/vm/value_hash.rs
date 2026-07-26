@@ -63,45 +63,168 @@ impl StableHasher {
 }
 
 fn hash_value(value: &ReplValue) -> Result<u64, VmStableHashError> {
-    let mut hasher = StableHasher::new(value_tag(value));
-    match value {
-        ReplValue::Unit => {}
-        ReplValue::Int(value) => hasher.write_u64(*value as u64),
-        ReplValue::Float(value)
-        | ReplValue::String(value)
-        | ReplValue::Atom(value)
-        | ReplValue::Type(value) => hasher.write_str(value),
-        ReplValue::Bytes(value) => hasher.write_bytes(value),
-        ReplValue::BitString(value) => {
-            hasher.write_u64(value.bit_len() as u64);
-            hasher.write_bytes(value.packed_bytes());
-        }
-        ReplValue::Bool(value) => hasher.write_byte(u8::from(*value)),
-        #[cfg(test)]
-        ReplValue::RandomGenerator(value) => hasher.write_str(&value.fingerprint()),
-        ReplValue::Tuple(items) | ReplValue::List(items) => {
-            write_ordered_values(&mut hasher, items)?;
-        }
-        ReplValue::Record { name, fields } => {
-            hasher.write_str(name);
-            hasher.write_u64(fields.len() as u64);
-            for (field, value) in fields {
-                hasher.write_str(field);
-                hasher.write_u64(hash_value(value)?);
+    enum Task<'a> {
+        Value(&'a ReplValue),
+        FinishOrdered {
+            tag: u8,
+            len: usize,
+        },
+        FinishRecord {
+            name: &'a str,
+            fields: &'a [(String, ReplValue)],
+        },
+        FinishMap {
+            len: usize,
+        },
+        FinishSet {
+            len: usize,
+        },
+    }
+
+    let mut tasks = vec![Task::Value(value)];
+    let mut results = Vec::<u64>::new();
+    while let Some(task) = tasks.pop() {
+        match task {
+            Task::Value(value) => {
+                let mut hasher = StableHasher::new(value_tag(value));
+                match value {
+                    ReplValue::Unit => results.push(hasher.finish()),
+                    ReplValue::Int(value) => {
+                        hasher.write_u64(*value as u64);
+                        results.push(hasher.finish());
+                    }
+                    ReplValue::Float(value)
+                    | ReplValue::String(value)
+                    | ReplValue::Atom(value)
+                    | ReplValue::Type(value) => {
+                        hasher.write_str(value);
+                        results.push(hasher.finish());
+                    }
+                    ReplValue::StringBytes(value) => {
+                        hasher.write_bytes(value);
+                        results.push(hasher.finish());
+                    }
+                    ReplValue::Bytes(value) => {
+                        hasher.write_bytes(value);
+                        results.push(hasher.finish());
+                    }
+                    ReplValue::BitString(value) => {
+                        hasher.write_u64(value.bit_len() as u64);
+                        hasher.write_bytes(value.packed_bytes());
+                        results.push(hasher.finish());
+                    }
+                    ReplValue::Bool(value) => {
+                        hasher.write_byte(u8::from(*value));
+                        results.push(hasher.finish());
+                    }
+                    #[cfg(test)]
+                    ReplValue::RandomGenerator(value) => {
+                        hasher.write_str(&value.fingerprint());
+                        results.push(hasher.finish());
+                    }
+                    ReplValue::Tuple(items) | ReplValue::List(items) => {
+                        tasks.push(Task::FinishOrdered {
+                            tag: value_tag(value),
+                            len: items.len(),
+                        });
+                        tasks.extend(items.iter().rev().map(Task::Value));
+                    }
+                    ReplValue::Record { name, fields } => {
+                        tasks.push(Task::FinishRecord { name, fields });
+                        tasks.extend(fields.iter().rev().map(|(_, value)| Task::Value(value)));
+                    }
+                    ReplValue::Map(entries) => {
+                        tasks.push(Task::FinishMap { len: entries.len() });
+                        for (key, value) in entries.iter().rev() {
+                            tasks.push(Task::Value(value));
+                            tasks.push(Task::Value(key));
+                        }
+                    }
+                    #[cfg(test)]
+                    ReplValue::MapIndexed(map) => {
+                        write_unordered_entries(&mut hasher, &map.to_entries())?;
+                        results.push(hasher.finish());
+                    }
+                    ReplValue::Set(items) => {
+                        tasks.push(Task::FinishSet { len: items.len() });
+                        tasks.extend(items.iter().rev().map(Task::Value));
+                    }
+                    #[cfg(test)]
+                    ReplValue::Iterator { .. } => {
+                        return Err(VmStableHashError::UnsupportedValue("Iterator"));
+                    }
+                }
+            }
+            Task::FinishOrdered { tag, len } => {
+                let hashes = take_results(&mut results, len);
+                let mut hasher = StableHasher::new(tag);
+                hasher.write_u64(len as u64);
+                for hash in hashes {
+                    hasher.write_u64(hash);
+                }
+                results.push(hasher.finish());
+            }
+            Task::FinishRecord { name, fields } => {
+                let hashes = take_results(&mut results, fields.len());
+                let mut hasher = StableHasher::new(16);
+                hasher.write_str(name);
+                hasher.write_u64(fields.len() as u64);
+                for ((field, _), hash) in fields.iter().zip(hashes) {
+                    hasher.write_str(field);
+                    hasher.write_u64(hash);
+                }
+                results.push(hasher.finish());
+            }
+            Task::FinishMap { len } => {
+                let child_hashes = take_results(&mut results, len.saturating_mul(2));
+                let mut entry_hashes = child_hashes
+                    .chunks_exact(2)
+                    .map(|pair| {
+                        let mut entry_hasher = StableHasher::new(1);
+                        entry_hasher.write_u64(pair[0]);
+                        entry_hasher.write_u64(pair[1]);
+                        entry_hasher.finish()
+                    })
+                    .collect::<Vec<_>>();
+                entry_hashes.sort_unstable();
+                let mut hasher = StableHasher::new(18);
+                hasher.write_u64(len as u64);
+                for hash in entry_hashes {
+                    hasher.write_u64(hash);
+                }
+                results.push(hasher.finish());
+            }
+            Task::FinishSet { len } => {
+                let mut hashes = take_results(&mut results, len);
+                hashes.sort_unstable();
+                let mut hasher = StableHasher::new(19);
+                hasher.write_u64(len as u64);
+                for hash in hashes {
+                    hasher.write_u64(hash);
+                }
+                results.push(hasher.finish());
             }
         }
-        ReplValue::Map(entries) => write_unordered_entries(&mut hasher, entries)?,
-        #[cfg(test)]
-        ReplValue::MapIndexed(map) => {
-            write_unordered_entries(&mut hasher, &map.to_entries())?;
-        }
-        ReplValue::Set(items) => write_unordered_values(&mut hasher, items)?,
-        #[cfg(test)]
-        ReplValue::Iterator { .. } => {
-            return Err(VmStableHashError::UnsupportedValue("Iterator"));
-        }
     }
-    Ok(hasher.finish())
+    results
+        .pop()
+        .filter(|_| results.is_empty())
+        .ok_or_else(invalid_hash_state)
+}
+
+fn take_results(results: &mut Vec<u64>, len: usize) -> Vec<u64> {
+    results.split_off(results.len() - len)
+}
+
+fn invalid_hash_state() -> VmStableHashError {
+    #[cfg(test)]
+    {
+        VmStableHashError::UnsupportedValue("invalid stable hash traversal state")
+    }
+    #[cfg(not(test))]
+    {
+        unreachable!("stable hash traversal must produce exactly one result")
+    }
 }
 
 fn value_tag(value: &ReplValue) -> u8 {
@@ -109,7 +232,7 @@ fn value_tag(value: &ReplValue) -> u8 {
         ReplValue::Unit => 1,
         ReplValue::Int(_) => 2,
         ReplValue::Float(_) => 3,
-        ReplValue::String(_) => 4,
+        ReplValue::String(_) | ReplValue::StringBytes(_) => 4,
         ReplValue::Bytes(_) => 5,
         ReplValue::BitString(_) => 6,
         ReplValue::Atom(_) => 7,
@@ -129,33 +252,7 @@ fn value_tag(value: &ReplValue) -> u8 {
     }
 }
 
-fn write_ordered_values(
-    hasher: &mut StableHasher,
-    values: &[ReplValue],
-) -> Result<(), VmStableHashError> {
-    hasher.write_u64(values.len() as u64);
-    for value in values {
-        hasher.write_u64(hash_value(value)?);
-    }
-    Ok(())
-}
-
-fn write_unordered_values(
-    hasher: &mut StableHasher,
-    values: &[ReplValue],
-) -> Result<(), VmStableHashError> {
-    let mut hashes = values
-        .iter()
-        .map(hash_value)
-        .collect::<Result<Vec<_>, _>>()?;
-    hashes.sort_unstable();
-    hasher.write_u64(hashes.len() as u64);
-    for hash in hashes {
-        hasher.write_u64(hash);
-    }
-    Ok(())
-}
-
+#[cfg(test)]
 fn write_unordered_entries(
     hasher: &mut StableHasher,
     entries: &[(ReplValue, ReplValue)],

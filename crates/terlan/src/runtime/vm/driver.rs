@@ -2,7 +2,18 @@
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
+use super::iovec::{VmIoVector, VmIoVectorLimits};
 use super::process::{VmProcessId, VmProcessState, VmProcessTable};
+use super::ReplValue;
+
+mod trace;
+
+#[cfg(test)]
+pub(crate) use trace::VmDriverTraceClass;
+use trace::VmDriverTraceLog;
+pub(crate) use trace::{
+    VmDriverTraceConfig, VmDriverTraceCursor, VmDriverTraceEventKind, VmDriverTraceRead,
+};
 
 /// Stable identity for one VM-owned driver instance.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -121,9 +132,33 @@ pub(crate) struct VmDriverRuntime {
     next_id: u64,
     current_tick: u64,
     drivers: BTreeMap<VmDriverId, VmDriverRecord>,
+    trace: VmDriverTraceLog,
 }
 
 impl VmDriverRuntime {
+    /// Replaces the provider-neutral driver trace selection atomically.
+    pub(crate) fn configure_trace(&mut self, config: VmDriverTraceConfig) {
+        self.trace.configure(config);
+    }
+
+    /// Captures the next driver trace sequence for an incremental consumer.
+    pub(crate) const fn trace_cursor(&self) -> VmDriverTraceCursor {
+        self.trace.cursor()
+    }
+
+    /// Returns the oldest sequence still retained by the bounded trace log.
+    pub(crate) fn oldest_trace_cursor(&self) -> VmDriverTraceCursor {
+        self.trace.oldest_cursor()
+    }
+
+    /// Reads immutable driver diagnostics from an exact retained cursor.
+    pub(crate) fn trace_since(
+        &self,
+        cursor: VmDriverTraceCursor,
+    ) -> Result<VmDriverTraceRead, String> {
+        self.trace.since(cursor)
+    }
+
     /// Opens a driver owned and controlled by one live VM process.
     pub(crate) fn open(
         &mut self,
@@ -138,6 +173,7 @@ impl VmDriverRuntime {
             .checked_add(1)
             .ok_or_else(|| "VM driver identity space exhausted".to_string())?;
         let id = VmDriverId(next_id);
+        let name = descriptor.name.clone();
         self.drivers.insert(
             id,
             VmDriverRecord {
@@ -153,6 +189,13 @@ impl VmDriverRuntime {
             },
         );
         self.next_id = next_id;
+        self.trace.record(
+            self.current_tick,
+            id,
+            owner,
+            owner,
+            VmDriverTraceEventKind::Opened { name },
+        );
         Ok(id)
     }
 
@@ -164,34 +207,88 @@ impl VmDriverRuntime {
         requester: VmProcessId,
         next_controller: VmProcessId,
     ) -> Result<(), String> {
-        self.ensure_controller(driver, requester)?;
+        let (owner, previous) = {
+            let record = self.ensure_controller(driver, requester)?;
+            (record.owner, record.controller)
+        };
         ensure_live_process(processes, next_controller, "next driver controller")?;
         self.drivers
             .get_mut(&driver)
             .expect("driver controller was validated before transfer")
             .controller = next_controller;
+        self.trace.record(
+            self.current_tick,
+            driver,
+            owner,
+            requester,
+            VmDriverTraceEventKind::ControllerChanged {
+                previous,
+                next: next_controller,
+            },
+        );
         Ok(())
     }
 
     /// Flattens one scatter/gather command after complete size validation.
     pub(crate) fn commandv(
-        &self,
+        &mut self,
         driver: VmDriverId,
         requester: VmProcessId,
         segments: &[&[u8]],
     ) -> Result<Vec<u8>, String> {
-        let record = self.ensure_controller(driver, requester)?;
+        let (owner, max_command_bytes) = {
+            let record = self.ensure_controller(driver, requester)?;
+            (record.owner, record.descriptor.max_command_bytes)
+        };
         let total = checked_segment_bytes(segments)?;
-        if total > record.descriptor.max_command_bytes {
+        if total > max_command_bytes {
             return Err(format!(
-                "driver command is {total} bytes; limit is {}",
-                record.descriptor.max_command_bytes
+                "driver command is {total} bytes; limit is {max_command_bytes}"
             ));
         }
         let mut command = Vec::with_capacity(total);
         for segment in segments {
             command.extend_from_slice(segment);
         }
+        self.trace.record(
+            self.current_tick,
+            driver,
+            owner,
+            requester,
+            VmDriverTraceEventKind::Command {
+                segments: segments.len(),
+                bytes: total,
+            },
+        );
+        Ok(command)
+    }
+
+    /// Normalizes VM iodata before executing one bounded driver command.
+    pub(crate) fn command_value(
+        &mut self,
+        driver: VmDriverId,
+        requester: VmProcessId,
+        value: &ReplValue,
+    ) -> Result<Vec<u8>, String> {
+        let (owner, max_command_bytes) = {
+            let record = self.ensure_controller(driver, requester)?;
+            (record.owner, record.descriptor.max_command_bytes)
+        };
+        let vector =
+            VmIoVector::from_value(value, VmIoVectorLimits::for_byte_limit(max_command_bytes))
+                .map_err(|error| format!("invalid driver command: {error}"))?;
+        let segments = vector.segment_count();
+        let command = vector.flatten();
+        self.trace.record(
+            self.current_tick,
+            driver,
+            owner,
+            requester,
+            VmDriverTraceEventKind::Command {
+                segments,
+                bytes: command.len(),
+            },
+        );
         Ok(command)
     }
 
@@ -203,17 +300,21 @@ impl VmDriverRuntime {
         placement: VmDriverQueuePlacement,
         segments: &[&[u8]],
     ) -> Result<usize, String> {
-        let record = self.ensure_controller(driver, requester)?;
+        let (owner, queued_bytes, queue_capacity_bytes) = {
+            let record = self.ensure_controller(driver, requester)?;
+            (
+                record.owner,
+                record.queue.len(),
+                record.descriptor.queue_capacity_bytes,
+            )
+        };
         let added = checked_segment_bytes(segments)?;
-        let projected = record
-            .queue
-            .len()
+        let projected = queued_bytes
             .checked_add(added)
             .ok_or_else(|| "driver queue byte count overflow".to_string())?;
-        if projected > record.descriptor.queue_capacity_bytes {
+        if projected > queue_capacity_bytes {
             return Err(format!(
-                "driver queue would contain {projected} bytes; capacity is {}",
-                record.descriptor.queue_capacity_bytes
+                "driver queue would contain {projected} bytes; capacity is {queue_capacity_bytes}"
             ));
         }
         let bytes = flatten_segments(segments, added);
@@ -229,7 +330,19 @@ impl VmDriverRuntime {
             }
             VmDriverQueuePlacement::Back => record.queue.extend(bytes),
         }
-        Ok(record.queue.len())
+        let queued_bytes = record.queue.len();
+        self.trace.record(
+            self.current_tick,
+            driver,
+            owner,
+            requester,
+            VmDriverTraceEventKind::Queued {
+                placement,
+                bytes: added,
+                queued_bytes,
+            },
+        );
+        Ok(queued_bytes)
     }
 
     pub(crate) fn bytes_queued(
@@ -263,18 +376,32 @@ impl VmDriverRuntime {
         requester: VmProcessId,
         size: usize,
     ) -> Result<Vec<u8>, String> {
-        let record = self.ensure_controller(driver, requester)?;
-        if size > record.queue.len() {
+        let (owner, queued_bytes) = {
+            let record = self.ensure_controller(driver, requester)?;
+            (record.owner, record.queue.len())
+        };
+        if size > queued_bytes {
             return Err(format!(
-                "cannot dequeue {size} bytes from {} queued bytes",
-                record.queue.len()
+                "cannot dequeue {size} bytes from {queued_bytes} queued bytes"
             ));
         }
         let record = self
             .drivers
             .get_mut(&driver)
             .expect("driver was validated before dequeue");
-        Ok(record.queue.drain(..size).collect())
+        let bytes = record.queue.drain(..size).collect();
+        let queued_bytes = record.queue.len();
+        self.trace.record(
+            self.current_tick,
+            driver,
+            owner,
+            requester,
+            VmDriverTraceEventKind::Dequeued {
+                bytes: size,
+                queued_bytes,
+            },
+        );
+        Ok(bytes)
     }
 
     /// Starts or replaces the driver's logical timer.
@@ -284,7 +411,7 @@ impl VmDriverRuntime {
         requester: VmProcessId,
         delay_ticks: u64,
     ) -> Result<u64, String> {
-        self.ensure_controller(driver, requester)?;
+        let owner = self.ensure_controller(driver, requester)?.owner;
         let deadline = self
             .current_tick
             .checked_add(delay_ticks)
@@ -293,6 +420,15 @@ impl VmDriverRuntime {
             .get_mut(&driver)
             .expect("driver was validated before timer mutation")
             .timer_deadline_tick = Some(deadline);
+        self.trace.record(
+            self.current_tick,
+            driver,
+            owner,
+            requester,
+            VmDriverTraceEventKind::TimerSet {
+                deadline_tick: deadline,
+            },
+        );
         Ok(deadline)
     }
 
@@ -302,14 +438,22 @@ impl VmDriverRuntime {
         driver: VmDriverId,
         requester: VmProcessId,
     ) -> Result<bool, String> {
-        self.ensure_controller(driver, requester)?;
-        Ok(self
+        let owner = self.ensure_controller(driver, requester)?.owner;
+        let was_pending = self
             .drivers
             .get_mut(&driver)
             .expect("driver was validated before timer cancellation")
             .timer_deadline_tick
             .take()
-            .is_some())
+            .is_some();
+        self.trace.record(
+            self.current_tick,
+            driver,
+            owner,
+            requester,
+            VmDriverTraceEventKind::TimerCancelled { was_pending },
+        );
+        Ok(was_pending)
     }
 
     /// Advances the deterministic clock and fires each due timer once.
@@ -331,11 +475,25 @@ impl VmDriverRuntime {
                     .map(|deadline| (*id, record.controller, deadline))
             })
             .collect::<Vec<_>>();
-        for (driver, _, _) in &due {
+        for (driver, controller, deadline_tick) in &due {
+            let owner = self
+                .drivers
+                .get(driver)
+                .expect("due driver came from live table")
+                .owner;
             self.drivers
                 .get_mut(driver)
                 .expect("due driver came from live table")
                 .timer_deadline_tick = None;
+            self.trace.record(
+                tick,
+                *driver,
+                owner,
+                *controller,
+                VmDriverTraceEventKind::TimerFired {
+                    deadline_tick: *deadline_tick,
+                },
+            );
         }
         Ok(due
             .into_iter()
@@ -398,6 +556,7 @@ impl VmDriverRuntime {
         callback: VmDriverCallback,
     ) -> Result<(), String> {
         let record = self.ensure_controller(driver, requester)?;
+        let owner = record.owner;
         if callback.sequence == 0 {
             return Err("driver callback sequence must be nonzero".to_string());
         }
@@ -424,8 +583,20 @@ impl VmDriverRuntime {
             .drivers
             .get_mut(&driver)
             .expect("driver was validated before callback mutation");
+        let callback_sequence = callback.sequence;
+        let bytes = callback.payload.len();
         record.callback_sequences.insert(callback.sequence);
         record.callbacks.push_back(callback);
+        self.trace.record(
+            self.current_tick,
+            driver,
+            owner,
+            requester,
+            VmDriverTraceEventKind::CallbackSubmitted {
+                callback_sequence,
+                bytes,
+            },
+        );
         Ok(())
     }
 
@@ -436,7 +607,7 @@ impl VmDriverRuntime {
         requester: VmProcessId,
         limit: usize,
     ) -> Result<Vec<VmDriverCallback>, String> {
-        self.ensure_controller(driver, requester)?;
+        let owner = self.ensure_controller(driver, requester)?.owner;
         if limit == 0 {
             return Err("driver callback drain limit must be greater than 0".to_string());
         }
@@ -445,7 +616,15 @@ impl VmDriverRuntime {
             .get_mut(&driver)
             .expect("driver was validated before callback drain");
         let count = limit.min(record.callbacks.len());
-        Ok(record.callbacks.drain(..count).collect())
+        let callbacks = record.callbacks.drain(..count).collect();
+        self.trace.record(
+            self.current_tick,
+            driver,
+            owner,
+            requester,
+            VmDriverTraceEventKind::CallbacksDrained { count },
+        );
+        Ok(callbacks)
     }
 
     /// Closes a driver through its current controller.
@@ -459,7 +638,10 @@ impl VmDriverRuntime {
             .drivers
             .remove(&driver)
             .expect("driver was validated before close");
-        Ok(close_report(record))
+        let report = close_report(record);
+        self.trace
+            .record_close(self.current_tick, requester, false, &report);
+        Ok(report)
     }
 
     /// Releases all drivers owned or controlled by an exited process.
@@ -471,7 +653,8 @@ impl VmDriverRuntime {
                 (record.owner == process || record.controller == process).then_some(*id)
             })
             .collect::<Vec<_>>();
-        ids.into_iter()
+        let reports = ids
+            .into_iter()
             .map(|id| {
                 close_report(
                     self.drivers
@@ -479,7 +662,12 @@ impl VmDriverRuntime {
                         .expect("cleanup id came from live driver table"),
                 )
             })
-            .collect()
+            .collect::<Vec<_>>();
+        for report in &reports {
+            self.trace
+                .record_close(self.current_tick, process, true, report);
+        }
+        reports
     }
 
     pub(crate) fn snapshots(&self) -> Vec<VmDriverSnapshot> {
@@ -601,3 +789,7 @@ fn ensure_live_process(
 #[cfg(test)]
 #[path = "driver_beam_suite_parity_test.rs"]
 mod driver_beam_suite_parity_test;
+
+#[cfg(test)]
+#[path = "driver/lttng_beam_suite_parity_test.rs"]
+mod lttng_beam_suite_parity_test;

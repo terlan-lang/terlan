@@ -495,6 +495,150 @@ fn repeated_fixed_owner_calls_reuse_actor_and_release_request_state() {
     assert!(shard.generation_references().is_quiescent());
 }
 
+/// Replaces the BEAM literal-area collector's polling helper with one
+/// synchronous, complete generation-reachability proof on the shard owner.
+#[test]
+fn literal_area_collector_helper_maps_to_synchronous_generation_quiescence() {
+    let mut shard = PureNativeExecutionShard::with_boundary(local_boundary());
+    let reference_classes = [
+        VmNativeGenerationReferenceClass::NativeFrame,
+        VmNativeGenerationReferenceClass::ParkedContinuation,
+        VmNativeGenerationReferenceClass::ActorTransfer,
+        VmNativeGenerationReferenceClass::ActorHeap,
+        VmNativeGenerationReferenceClass::MailboxFragment,
+        VmNativeGenerationReferenceClass::Timer,
+        VmNativeGenerationReferenceClass::Resource,
+        VmNativeGenerationReferenceClass::AsyncCapabilityCallback,
+        VmNativeGenerationReferenceClass::Debugger,
+        VmNativeGenerationReferenceClass::CrashMetadata,
+    ];
+
+    let idle = shard
+        .native_image_diagnostics()
+        .expect("capture initial generation lifetime");
+    assert!(idle.generation_quiescent);
+    assert_eq!(idle.generation_reference_total, 0);
+    assert!(idle.generation_references.is_empty());
+
+    for class in reference_classes {
+        shard
+            .pin_generation_reference(class)
+            .expect("pin generation reference");
+    }
+    let busy = shard
+        .native_image_diagnostics()
+        .expect("capture busy generation lifetime");
+    assert!(!busy.generation_quiescent);
+    assert_eq!(busy.generation_reference_total, reference_classes.len());
+    assert_eq!(
+        busy.generation_references
+            .iter()
+            .map(|record| (record.class, record.count))
+            .collect::<Vec<_>>(),
+        [
+            ("native_frames", 1),
+            ("parked_continuations", 1),
+            ("actor_transfers", 1),
+            ("actor_heaps", 1),
+            ("mailbox_fragments", 1),
+            ("timers", 1),
+            ("resources", 1),
+            ("async_capability_callbacks", 1),
+            ("debugger_pins", 1),
+            ("crash_metadata_pins", 1),
+        ]
+    );
+
+    let replacement_error = shard
+        .replace_components(
+            local_boundary_named("blocked-replacement", 41),
+            PureNativeExecutionRuntime::runtime_default().expect("candidate runtime"),
+        )
+        .expect_err("reachable generation must not unload");
+    assert_eq!(
+        replacement_error,
+        "error[execution_shard.generation_references]: epoch=1 total=10 \
+references=native_frames=1,parked_continuations=1,actor_transfers=1,\
+actor_heaps=1,mailbox_fragments=1,timers=1,resources=1,\
+async_capability_callbacks=1,debugger_pins=1,crash_metadata_pins=1"
+    );
+    assert_eq!(shard.lifecycle_phase(), VmShardPhase::Ready);
+    assert_eq!(shard.generation().expect("original generation").as_u64(), 1);
+
+    for class in reference_classes {
+        shard
+            .release_generation_reference(class)
+            .expect("release generation reference");
+    }
+    let idle = shard
+        .native_image_diagnostics()
+        .expect("capture released generation lifetime");
+    assert!(idle.generation_quiescent);
+    assert_eq!(idle.generation_reference_total, 0);
+    assert!(idle.generation_references.is_empty());
+
+    let replacement = shard
+        .replace_components(
+            local_boundary_named("quiescent-replacement", 42),
+            PureNativeExecutionRuntime::runtime_default().expect("replacement runtime"),
+        )
+        .expect("quiescent generation may be replaced");
+    assert_eq!(replacement.as_u64(), 2);
+    assert_eq!(
+        shard.lifecycle_image_identity(),
+        Some("quiescent-replacement")
+    );
+}
+
+/// Proves ordinary actor frames and continuations update the same synchronous
+/// lifetime snapshot without a background collector, sleep, or timeout.
+#[test]
+fn literal_area_collector_helper_observes_actor_drain_without_polling() {
+    let mut shard = PureNativeExecutionShard::with_boundary(local_boundary());
+    let (owner, mut execution) = shard
+        .begin_call("local.Shard.round_trip", &[])
+        .expect("begin actor-owned native call");
+
+    let busy = shard
+        .native_image_diagnostics()
+        .expect("capture actor-owned generation lifetime");
+    assert!(!busy.generation_quiescent);
+    assert!(busy.generation_reference_total >= 2);
+    assert_eq!(
+        busy.generation_references[0].class,
+        VmNativeGenerationReferenceClass::NativeFrame.name()
+    );
+    assert!(busy
+        .generation_references
+        .iter()
+        .any(|record| record.class == VmNativeGenerationReferenceClass::ParkedContinuation.name()));
+
+    loop {
+        execution = match execution {
+            PureNativeExecution::Suspended(suspension) => shard
+                .resume_call(owner, suspension)
+                .expect("resume accepted actor continuation"),
+            PureNativeExecution::Complete(value) => {
+                assert_eq!(value, ReplValue::Bool(true));
+                shard
+                    .finish_completed_call(owner)
+                    .expect("release completed actor state");
+                break;
+            }
+            PureNativeExecution::HttpResponse(_) => {
+                panic!("round-trip fixture cannot return an HTTP response")
+            }
+        };
+    }
+
+    let idle = shard
+        .native_image_diagnostics()
+        .expect("capture drained generation lifetime");
+    assert!(idle.generation_quiescent);
+    assert_eq!(idle.generation_reference_total, 0);
+    assert!(idle.generation_references.is_empty());
+}
+
 /// Verifies entry rejection exits the allocated actor without recording a
 /// completed call.
 #[test]

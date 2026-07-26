@@ -64,7 +64,11 @@ pub(super) fn specialize_higher_order_helpers_with_budget(
     let helpers = core
         .functions
         .iter()
-        .filter(|function| !function.public && has_function_parameter(function))
+        .filter(|function| {
+            !function.public
+                && !function.name.starts_with("$aot_generic_")
+                && has_function_parameter(function)
+        })
         .map(higher_order_helper)
         .collect::<Result<HashMap<_, _>, _>>()?;
     if helpers.is_empty() {

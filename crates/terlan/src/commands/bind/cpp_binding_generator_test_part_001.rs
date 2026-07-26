@@ -1,4 +1,3 @@
-
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -253,7 +252,11 @@ fn structured_cpp_metadata_generates_real_cxx_package() {
         assert!(boundary_metadata.contains(field), "missing `{field}`");
     }
     assert!(helper.contains("const MAX_ADAPTER_FRAME_BYTES: usize = 1048576"));
+    assert!(helper.contains("const MAX_ADAPTER_TRANSFER_BYTES: usize = 16777216"));
     assert!(helper.contains("take((MAX_ADAPTER_FRAME_BYTES + 1) as u64)"));
+    assert!(helper.contains("struct InboundTransfer"));
+    assert!(helper.contains("\"reply_chunk {request_id} {index} {final_chunk}"));
+    assert!(helper.contains("\"transfer_too_large\""));
     assert!(helper.contains("last_request_id"));
     assert!(helper.contains("request_not_monotonic"));
 

@@ -87,3 +87,25 @@ fn comparison_rejects_incomplete_pressure_evidence() {
         .expect_err("incomplete pressure must fail");
     assert!(error.contains("lifecycle evidence is incomplete"));
 }
+
+/// Verifies the retired checked-CoreIR v1 capture remains comparable without
+/// weakening the native lane's v2 report contract.
+#[test]
+fn legacy_checked_coreir_report_adapts_only_recorded_measurements() {
+    let mut value = serde_json::to_value(report(HttpExecutionLane::CheckedCoreir)).expect("report");
+    value["schema"] = serde_json::json!(LEGACY_CHECKED_COREIR_SCHEMA);
+    value.as_object_mut().expect("object").remove("measurement");
+    let workload = value["workload"].as_object_mut().expect("workload");
+    workload.remove("warmup_requests");
+    workload.remove("measurement_rounds");
+    workload.remove("readiness_reactors");
+    let bytes = serde_json::to_vec(&value).expect("legacy bytes");
+    let adapted = report_io::parse_report(Path::new("checked-coreir-v1.json"), &bytes)
+        .expect("adapt legacy reference");
+    assert_eq!(adapted.workload.measurement_rounds, 1);
+    assert_eq!(adapted.measurement.sequential_rounds.len(), 1);
+    assert_eq!(
+        adapted.measurement.sequential_rounds[0].p50_ns,
+        adapted.sequential.p50_ns
+    );
+}

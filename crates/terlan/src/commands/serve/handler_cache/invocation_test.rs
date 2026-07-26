@@ -6,7 +6,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use super::*;
-use crate::commands::serve::handler::HandlerResponse;
 use crate::runtime::native_image::TvmBoundaryType;
 use crate::runtime::vm::actor_directory::VmActorLifecycle;
 use crate::runtime::vm::debugger_control::{VmDebuggerControlCommand, VmDebuggerExecutionState};
@@ -23,15 +22,16 @@ const SOURCE: &str = r#"module app.AsyncHandler.
 import std.http.Response.
 import std.io.File.
 import std.vm.Process.
-import type std.http.{Request, Response}.
+import type std.http.Request.{Request}.
+import type std.http.Response.{Response}.
 
-pub delayed(_request: Request): Response ->
-    Response.text(Process.receive_string()).
+pub delayed(_request: Request): String ->
+    Process.receive_string().
 
-pub delayed_yield(_request: Request): Response ->
+pub delayed_yield(_request: Request): String ->
     let body = Process.receive_string();
     Process.yield_now();
-    Response.text(body).
+    body.
 
 pub ready(): Bool ->
     true.
@@ -220,10 +220,7 @@ fn parked_generated_handler_migrates_one_hundred_times_then_resumes_once() {
     let AotHandlerInvocationStep::Complete(value) = result else {
         panic!("migrated handler did not return an HTTP response");
     };
-    let response = HandlerResponse::from_vm_response_with_package_root(&value, &root)
-        .expect("decode migrated response");
-    assert_eq!(response.status, 200);
-    assert_eq!(response.body.as_bytes(), b"migrated");
+    assert_eq!(value, ReplValue::String("migrated".to_string()));
     assert_eq!(runtime.completed_call_count().expect("completed calls"), 1);
     assert!(runtime
         .generation
@@ -636,6 +633,9 @@ fn resumed_generated_aot_actor_yields_before_replying() {
         AotHandlerInvocationStep::CapabilityWaiting(_) => {
             panic!("handler parked on an unexpected capability")
         }
+        AotHandlerInvocationStep::TimerWaiting(_) => {
+            panic!("handler parked on an unexpected timer")
+        }
     };
     let wake = invocation
         .wait()
@@ -646,9 +646,7 @@ fn resumed_generated_aot_actor_yields_before_replying() {
     else {
         panic!("handler parked twice")
     };
-    let response = HandlerResponse::from_vm_response_with_package_root(&value, &root)
-        .expect("decode response");
-    assert_eq!(response.body.as_bytes(), b"queued");
+    assert_eq!(value, ReplValue::String("queued".to_string()));
     let trace = runtime.generation.shards[0]
         .telemetry_trace()
         .expect("scheduler trace");
@@ -685,6 +683,9 @@ fn generated_capability_completion_is_published_before_owner_dispatch() {
             panic!("capability handler completed early: {value:?}")
         }
         AotHandlerInvocationStep::Waiting(_) => panic!("capability handler parked on I/O"),
+        AotHandlerInvocationStep::TimerWaiting(_) => {
+            panic!("capability handler parked on a timer")
+        }
     };
     assert_eq!(
         invocation.request().expect("request").capability,
@@ -972,6 +973,9 @@ fn stolen_generated_actor_retains_destination_route_when_it_parks() {
             AotHandlerInvocationStep::Complete(_) => panic!("stolen handler did not park"),
             AotHandlerInvocationStep::CapabilityWaiting(_) => {
                 panic!("stolen handler parked on an unexpected capability")
+            }
+            AotHandlerInvocationStep::TimerWaiting(_) => {
+                panic!("stolen handler parked on an unexpected timer")
             }
         }
     });
@@ -1405,6 +1409,9 @@ pub(super) fn waiting(runtime: &AotHandlerRuntime) -> AotHandlerInvocation {
         AotHandlerInvocationStep::CapabilityWaiting(_) => {
             panic!("handler parked on an unexpected capability")
         }
+        AotHandlerInvocationStep::TimerWaiting(_) => {
+            panic!("handler parked on an unexpected timer")
+        }
     }
 }
 
@@ -1431,10 +1438,7 @@ fn persistent_shard_actors_resume_only_from_exact_typed_io_wake() {
     let AotHandlerInvocationStep::Complete(value) = completed else {
         panic!("single I/O handler must complete after wake")
     };
-    let response = HandlerResponse::from_vm_response_with_package_root(&value, &root)
-        .expect("decode generated response");
-    assert_eq!(response.status, 200);
-    assert_eq!(response.body.as_bytes(), b"ready");
+    assert_eq!(value, ReplValue::String("ready".to_string()));
     assert_eq!(
         runtime
             .completed_call_count()

@@ -68,11 +68,11 @@ pub(crate) fn read_http1_response(
 /// - Parses request bytes through the maintained HTTP parser, invokes a typed
 ///   handler, serializes the response, and writes response bytes without
 ///   requiring VM TCP, live sockets, or framework callback state.
-pub(crate) fn handle_http1_in_memory_exchange(
+pub(crate) fn handle_http1_in_memory_exchange<B: AsRef<[u8]>>(
     reader: &mut dyn Read,
     writer: &mut dyn Write,
     close_connection: bool,
-    handler: impl FnOnce(::http::Request<String>) -> Result<::http::Response<String>, String>,
+    handler: impl FnOnce(::http::Request<String>) -> Result<::http::Response<B>, String>,
 ) -> Result<VmHttpInMemoryExchange, String> {
     let request = read_http1_request(reader)?;
     let request_method = request.method().as_str().to_string();

@@ -9,6 +9,8 @@ use super::ReplValue;
 mod actor_ownership;
 #[path = "process/identity.rs"]
 mod identity;
+#[path = "process/parking.rs"]
+mod parking;
 #[path = "process/transfer.rs"]
 pub(crate) mod transfer;
 
@@ -19,6 +21,7 @@ pub(crate) use identity::VmProcessId;
 pub(crate) enum VmProcessState {
     Runnable,
     Blocked,
+    Hibernated,
     Suspended(VmProcessResumeState),
     Exited(VmExitReason),
 }
@@ -28,6 +31,7 @@ pub(crate) enum VmProcessState {
 pub(crate) enum VmProcessResumeState {
     Runnable,
     Blocked,
+    Hibernated,
 }
 
 /// Stable reason recorded when a VM process exits.
@@ -313,42 +317,6 @@ impl VmProcess {
         if self.state == VmProcessState::Runnable {
             self.state = VmProcessState::Blocked;
         }
-    }
-
-    /// Wakes a blocked process.
-    pub(crate) fn wake(&mut self) {
-        match self.state {
-            VmProcessState::Blocked => self.state = VmProcessState::Runnable,
-            VmProcessState::Suspended(VmProcessResumeState::Blocked) => {
-                self.state = VmProcessState::Suspended(VmProcessResumeState::Runnable);
-            }
-            VmProcessState::Runnable
-            | VmProcessState::Suspended(VmProcessResumeState::Runnable)
-            | VmProcessState::Exited(_) => {}
-        }
-    }
-
-    /// Suspends a live process while retaining the state restored by resume.
-    pub(crate) fn suspend(&mut self) -> Result<(), String> {
-        self.state = match self.state {
-            VmProcessState::Runnable => VmProcessState::Suspended(VmProcessResumeState::Runnable),
-            VmProcessState::Blocked => VmProcessState::Suspended(VmProcessResumeState::Blocked),
-            VmProcessState::Suspended(resume_state) => VmProcessState::Suspended(resume_state),
-            VmProcessState::Exited(_) => return Err("cannot suspend exited process".to_string()),
-        };
-        Ok(())
-    }
-
-    /// Resumes a suspended process to its retained execution state.
-    pub(crate) fn resume(&mut self) -> Result<VmProcessResumeState, String> {
-        let VmProcessState::Suspended(resume_state) = self.state else {
-            return Err("process is not suspended".to_string());
-        };
-        self.state = match resume_state {
-            VmProcessResumeState::Runnable => VmProcessState::Runnable,
-            VmProcessResumeState::Blocked => VmProcessState::Blocked,
-        };
-        Ok(resume_state)
     }
 
     /// Requests cooperative cancellation for the process.

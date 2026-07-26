@@ -9,6 +9,16 @@ pub(crate) struct VmNativeTraceCall {
     meta_token: Option<VmMetaTraceCallToken>,
 }
 
+impl VmNativeTraceCall {
+    /// Creates the empty trace state for an already-admitted service actor.
+    pub(crate) const fn disabled() -> Self {
+        Self {
+            source: None,
+            meta_token: None,
+        }
+    }
+}
+
 impl VmActorRuntime {
     /// Returns whether native calls need source metadata for an active trace.
     pub(crate) fn native_trace_enabled(&self) -> bool {

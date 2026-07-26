@@ -2,11 +2,11 @@
 
 use std::sync::atomic::Ordering;
 
+use super::super::process::VmProcessId;
 use super::{
     next_generation, VmActorCell, VmActorDirectory, VmActorDirectoryError, VmActorHandle,
     VmActorLifecycle, VmActorSlot,
 };
-use super::super::process::VmProcessId;
 
 impl<T, P> VmActorDirectory<T, P> {
     /// Detaches one fully published, unowned value at a migration boundary.

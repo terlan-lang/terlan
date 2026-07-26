@@ -6,79 +6,40 @@ use std::ops::Range;
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
+use bytes::Bytes;
+
 use super::{
     ActorId, AllocationClass, ManagedMailboxFragment, ManagedMemoryError, ManagedRoot,
     ManagedTypeDescriptor, RootLocation, SemanticTypeId, TvmRef,
 };
 
+#[path = "heap/descriptor_cache.rs"]
+mod descriptor_cache;
 #[path = "heap/support.rs"]
 mod support;
+use descriptor_cache::{
+    SequenceDescriptorCacheEntry, SpecializedDescriptorCacheEntry,
+    MAX_CACHED_AGGREGATE_DESCRIPTORS, MAX_CACHED_SEQUENCE_DESCRIPTORS,
+    MAX_CACHED_SPECIALIZED_DESCRIPTORS, OWNER_DESCRIPTOR_CACHE,
+};
 use support::{
     align_up, next_token, read_reference, reference_with_token, relocate_object_fields,
     write_reference,
 };
+pub use support::{CollectionStats, HeapLimits};
 
 const TOKEN_SHIFT: usize = 32;
 const OFFSET_MASK: usize = u32::MAX as usize;
 const METADATA_WORK_BYTES: usize = 32;
-const MAX_CACHED_SEQUENCE_DESCRIPTORS: usize = 64;
-const MAX_CACHED_SPECIALIZED_DESCRIPTORS: usize = 64;
-const MAX_CACHED_AGGREGATE_DESCRIPTORS: usize = 64;
+const INITIAL_HEAP_BYTES: usize = 8 * 1024;
+const MAX_RETAINED_REUSE_BYTES: usize = 256 * 1024;
+const REUSE_UNDERUTILIZED_BYTES: usize = 64 * 1024;
+const REUSE_UNDERUTILIZED_LIMIT: u8 = 8;
 const TOKEN_RESERVATION_SIZE: u32 = 1_024;
 static NEXT_HEAP_TOKEN: AtomicU32 = AtomicU32::new(1);
 
-/// Soft and hard actor-local managed-heap limits.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct HeapLimits {
-    pub soft_bytes: usize,
-    pub hard_bytes: usize,
-}
-
-impl HeapLimits {
-    /// Validates nonzero ordered actor-local heap limits.
-    pub fn new(soft_bytes: usize, hard_bytes: usize) -> Result<Self, ManagedMemoryError> {
-        if soft_bytes == 0 || soft_bytes > hard_bytes || hard_bytes > OFFSET_MASK {
-            return Err(ManagedMemoryError::AllocationLimitExceeded);
-        }
-        Ok(Self {
-            soft_bytes,
-            hard_bytes,
-        })
-    }
-}
-
-/// Observable result of one completed actor-local collection.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct CollectionStats {
-    pub bytes_before: usize,
-    pub bytes_after: usize,
-    pub objects_before: usize,
-    pub objects_after: usize,
-    pub work_bytes: usize,
-}
-
 #[derive(Clone, Debug)]
 struct ObjectMetadata {
-    descriptor: Arc<ManagedTypeDescriptor>,
-}
-
-/// Immutable sequence layout retained across owner-local heap reuse.
-#[derive(Clone, Debug)]
-struct SequenceDescriptorCacheEntry {
-    semantic: SemanticTypeId,
-    size: usize,
-    allocation_class: AllocationClass,
-    descriptor: Arc<ManagedTypeDescriptor>,
-}
-
-/// Immutable specialized layout retained across owner-local heap reuse.
-#[derive(Clone, Debug)]
-struct SpecializedDescriptorCacheEntry {
-    semantic: SemanticTypeId,
-    size: usize,
-    alignment: usize,
-    allocation_class: AllocationClass,
-    representation: Box<[u8]>,
     descriptor: Arc<ManagedTypeDescriptor>,
 }
 
@@ -150,12 +111,9 @@ pub struct ActorHeap {
     limits: HeapLimits,
     space: Vec<u8>,
     objects: ObjectTable,
-    sequence_descriptors: Vec<SequenceDescriptorCacheEntry>,
-    next_sequence_descriptor: usize,
-    specialized_descriptors: Vec<SpecializedDescriptorCacheEntry>,
-    next_specialized_descriptor: usize,
-    aggregate_descriptors: Vec<Arc<ManagedTypeDescriptor>>,
+    external_strings: BTreeMap<usize, Bytes>,
     collections: u64,
+    reuse_underutilized_count: u8,
 }
 
 impl ActorHeap {
@@ -172,14 +130,11 @@ impl ActorHeap {
             latest_retired_token: None,
             retired_tokens: HashSet::new(),
             limits,
-            space: Vec::with_capacity(limits.soft_bytes.min(64 * 1024)),
+            space: Vec::with_capacity(limits.soft_bytes.min(INITIAL_HEAP_BYTES)),
             objects: ObjectTable::default(),
-            sequence_descriptors: Vec::with_capacity(MAX_CACHED_SEQUENCE_DESCRIPTORS),
-            next_sequence_descriptor: 0,
-            specialized_descriptors: Vec::with_capacity(MAX_CACHED_SPECIALIZED_DESCRIPTORS),
-            next_specialized_descriptor: 0,
-            aggregate_descriptors: Vec::with_capacity(MAX_CACHED_AGGREGATE_DESCRIPTORS),
+            external_strings: BTreeMap::new(),
             collections: 0,
+            reuse_underutilized_count: 0,
         })
     }
 
@@ -219,6 +174,8 @@ impl ActorHeap {
             Err(error) => {
                 self.space.truncate(space_len);
                 self.objects.truncate_from(space_len);
+                self.external_strings
+                    .retain(|offset, _| *offset < space_len);
                 Err(error)
             }
         }
@@ -424,18 +381,21 @@ impl ActorHeap {
         references: &[(usize, TvmRef<()>)],
         initialize: impl FnOnce(&mut [u8]) -> Result<(), ManagedMemoryError>,
     ) -> Result<TvmRef<T>, ManagedMemoryError> {
-        let local = self
-            .aggregate_descriptors
-            .iter()
-            .find(|local| local.fingerprint() == descriptor.fingerprint())
-            .cloned()
-            .unwrap_or_else(|| {
-                let local = Arc::new(descriptor.as_ref().clone());
-                if self.aggregate_descriptors.len() < MAX_CACHED_AGGREGATE_DESCRIPTORS {
-                    self.aggregate_descriptors.push(Arc::clone(&local));
-                }
-                local
-            });
+        let local = OWNER_DESCRIPTOR_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            cache
+                .aggregate
+                .iter()
+                .find(|local| local.fingerprint() == descriptor.fingerprint())
+                .cloned()
+                .unwrap_or_else(|| {
+                    let local = Arc::new(descriptor.as_ref().clone());
+                    if cache.aggregate.len() < MAX_CACHED_AGGREGATE_DESCRIPTORS {
+                        cache.aggregate.push(Arc::clone(&local));
+                    }
+                    local
+                })
+        });
         self.allocate_initialized(local, references, initialize)
     }
 
@@ -446,34 +406,37 @@ impl ActorHeap {
         size: usize,
         allocation_class: AllocationClass,
     ) -> Result<Arc<ManagedTypeDescriptor>, ManagedMemoryError> {
-        if let Some(entry) = self.sequence_descriptors.iter().find(|entry| {
-            entry.semantic == semantic
-                && entry.size == size
-                && entry.allocation_class == allocation_class
-        }) {
-            return Ok(Arc::clone(&entry.descriptor));
-        }
-        let descriptor = Arc::new(ManagedTypeDescriptor::new(
-            semantic,
-            size,
-            8,
-            Vec::new(),
-            allocation_class,
-        )?);
-        let entry = SequenceDescriptorCacheEntry {
-            semantic,
-            size,
-            allocation_class,
-            descriptor: Arc::clone(&descriptor),
-        };
-        if self.sequence_descriptors.len() < MAX_CACHED_SEQUENCE_DESCRIPTORS {
-            self.sequence_descriptors.push(entry);
-        } else {
-            let index = self.next_sequence_descriptor % MAX_CACHED_SEQUENCE_DESCRIPTORS;
-            self.sequence_descriptors[index] = entry;
-            self.next_sequence_descriptor = (index + 1) % MAX_CACHED_SEQUENCE_DESCRIPTORS;
-        }
-        Ok(descriptor)
+        OWNER_DESCRIPTOR_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if let Some(entry) = cache.sequence.iter().find(|entry| {
+                entry.semantic == semantic
+                    && entry.size == size
+                    && entry.allocation_class == allocation_class
+            }) {
+                return Ok(Arc::clone(&entry.descriptor));
+            }
+            let descriptor = Arc::new(ManagedTypeDescriptor::new(
+                semantic,
+                size,
+                8,
+                Vec::new(),
+                allocation_class,
+            )?);
+            let entry = SequenceDescriptorCacheEntry {
+                semantic,
+                size,
+                allocation_class,
+                descriptor: Arc::clone(&descriptor),
+            };
+            if cache.sequence.len() < MAX_CACHED_SEQUENCE_DESCRIPTORS {
+                cache.sequence.push(entry);
+            } else {
+                let index = cache.next_sequence % MAX_CACHED_SEQUENCE_DESCRIPTORS;
+                cache.sequence[index] = entry;
+                cache.next_sequence = (index + 1) % MAX_CACHED_SEQUENCE_DESCRIPTORS;
+            }
+            Ok(descriptor)
+        })
     }
 
     /// Reuses immutable shape-specialized layouts without a global cache.
@@ -486,40 +449,43 @@ impl ActorHeap {
         allocation_class: AllocationClass,
         representation: &[u8],
     ) -> Result<Arc<ManagedTypeDescriptor>, ManagedMemoryError> {
-        if let Some(entry) = self.specialized_descriptors.iter().find(|entry| {
-            entry.semantic == semantic
-                && entry.size == size
-                && entry.alignment == alignment
-                && entry.allocation_class == allocation_class
-                && entry.representation.as_ref() == representation
-                && entry.descriptor.reference_offsets() == reference_offsets
-        }) {
-            return Ok(Arc::clone(&entry.descriptor));
-        }
-        let descriptor = Arc::new(ManagedTypeDescriptor::new_specialized(
-            semantic,
-            size,
-            alignment,
-            reference_offsets.to_vec(),
-            allocation_class,
-            representation,
-        )?);
-        let entry = SpecializedDescriptorCacheEntry {
-            semantic,
-            size,
-            alignment,
-            allocation_class,
-            representation: representation.into(),
-            descriptor: Arc::clone(&descriptor),
-        };
-        if self.specialized_descriptors.len() < MAX_CACHED_SPECIALIZED_DESCRIPTORS {
-            self.specialized_descriptors.push(entry);
-        } else {
-            let index = self.next_specialized_descriptor % MAX_CACHED_SPECIALIZED_DESCRIPTORS;
-            self.specialized_descriptors[index] = entry;
-            self.next_specialized_descriptor = (index + 1) % MAX_CACHED_SPECIALIZED_DESCRIPTORS;
-        }
-        Ok(descriptor)
+        OWNER_DESCRIPTOR_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if let Some(entry) = cache.specialized.iter().find(|entry| {
+                entry.semantic == semantic
+                    && entry.size == size
+                    && entry.alignment == alignment
+                    && entry.allocation_class == allocation_class
+                    && entry.representation.as_ref() == representation
+                    && entry.descriptor.reference_offsets() == reference_offsets
+            }) {
+                return Ok(Arc::clone(&entry.descriptor));
+            }
+            let descriptor = Arc::new(ManagedTypeDescriptor::new_specialized(
+                semantic,
+                size,
+                alignment,
+                reference_offsets.to_vec(),
+                allocation_class,
+                representation,
+            )?);
+            let entry = SpecializedDescriptorCacheEntry {
+                semantic,
+                size,
+                alignment,
+                allocation_class,
+                representation: representation.into(),
+                descriptor: Arc::clone(&descriptor),
+            };
+            if cache.specialized.len() < MAX_CACHED_SPECIALIZED_DESCRIPTORS {
+                cache.specialized.push(entry);
+            } else {
+                let index = cache.next_specialized % MAX_CACHED_SPECIALIZED_DESCRIPTORS;
+                cache.specialized[index] = entry;
+                cache.next_specialized = (index + 1) % MAX_CACHED_SPECIALIZED_DESCRIPTORS;
+            }
+            Ok(descriptor)
+        })
     }
 
     /// Reads one immutable object payload after validating owner and generation.
@@ -625,12 +591,9 @@ impl ActorHeap {
             limits: receiver.limits,
             space: receiver.space.clone(),
             objects: receiver.objects.clone(),
-            sequence_descriptors: receiver.sequence_descriptors.clone(),
-            next_sequence_descriptor: receiver.next_sequence_descriptor,
-            specialized_descriptors: receiver.specialized_descriptors.clone(),
-            next_specialized_descriptor: receiver.next_specialized_descriptor,
-            aggregate_descriptors: receiver.aggregate_descriptors.clone(),
+            external_strings: receiver.external_strings.clone(),
             collections: receiver.collections,
+            reuse_underutilized_count: receiver.reuse_underutilized_count,
         };
         let mut relocated = BTreeMap::<usize, TvmRef<()>>::new();
         for source_offset in &copy_order {
@@ -659,6 +622,9 @@ impl ActorHeap {
                 .collect::<Result<Vec<_>, _>>()?;
             let copied =
                 staged.allocate::<()>(metadata.descriptor.clone(), &payload, &references)?;
+            if let Some(external) = self.external_strings.get(source_offset) {
+                staged.remember_external_string(copied, external.clone())?;
+            }
             relocated.insert(*source_offset, copied);
         }
         let copied_root = relocated
@@ -753,6 +719,7 @@ impl ActorHeap {
         }
         self.space.truncate(start);
         self.objects.truncate_from(start);
+        self.external_strings.retain(|offset, _| *offset < start);
         Ok(())
     }
 
@@ -768,6 +735,7 @@ impl ActorHeap {
         let new_token = next_token();
         let mut new_space = Vec::with_capacity(bytes_before.min(self.limits.hard_bytes));
         let mut new_objects = ObjectTable::default();
+        let mut new_external_strings = BTreeMap::new();
         let mut relocation = BTreeMap::new();
 
         for old_offset in &live_offsets {
@@ -784,6 +752,9 @@ impl ActorHeap {
             new_space.extend_from_slice(source);
             relocation.insert(*old_offset, new_offset);
             new_objects.insert(new_offset, metadata.clone());
+            if let Some(external) = self.external_strings.get(old_offset) {
+                new_external_strings.insert(new_offset, external.clone());
+            }
         }
 
         relocate_object_fields(
@@ -809,6 +780,7 @@ impl ActorHeap {
         self.token = new_token;
         self.space = new_space;
         self.objects = new_objects;
+        self.external_strings = new_external_strings;
         self.collections = self.collections.saturating_add(1);
         Ok(CollectionStats {
             bytes_before,
@@ -832,15 +804,31 @@ impl ActorHeap {
     pub fn reclaim_all(&mut self) {
         self.space.clear();
         self.objects.clear();
+        self.external_strings.clear();
+        self.reuse_underutilized_count = 0;
         self.retire_token(self.token);
         self.token = self.next_reuse_token();
     }
 
     /// Reclaims a completed actor heap for bounded shard-local reuse.
     pub(crate) fn reclaim_for_reuse(&mut self) {
+        if self.space.capacity() > MAX_RETAINED_REUSE_BYTES
+            && self.space.len() <= REUSE_UNDERUTILIZED_BYTES
+        {
+            self.reuse_underutilized_count = self.reuse_underutilized_count.saturating_add(1);
+        } else {
+            self.reuse_underutilized_count = 0;
+        }
         let retired = self.token;
         self.space.clear();
         self.objects.clear();
+        self.external_strings.clear();
+        if self.reuse_underutilized_count >= REUSE_UNDERUTILIZED_LIMIT {
+            self.space
+                .shrink_to(INITIAL_HEAP_BYTES.min(self.limits.soft_bytes));
+            self.objects.entries.shrink_to(32);
+            self.reuse_underutilized_count = 0;
+        }
         self.retired_tokens.clear();
         self.latest_retired_token = Some(retired);
         self.token = self.next_reuse_token();
@@ -885,8 +873,9 @@ impl ActorHeap {
                 .objects
                 .get(&offset)
                 .ok_or(ManagedMemoryError::UnknownReference)?;
+            let external_bytes = self.external_strings.get(&offset).map_or(0, Bytes::len);
             work = work
-                .checked_add(metadata.descriptor.size() + METADATA_WORK_BYTES)
+                .checked_add(metadata.descriptor.size() + external_bytes + METADATA_WORK_BYTES)
                 .ok_or(ManagedMemoryError::CollectionBudgetExceeded)?;
             if work > work_budget_bytes {
                 return Err(ManagedMemoryError::CollectionBudgetExceeded);
@@ -949,11 +938,12 @@ impl ActorHeap {
                     .objects
                     .get(&offset)
                     .ok_or(ManagedMemoryError::CorruptedRelocationMetadata)?;
+                let external_bytes = self.external_strings.get(&offset).map_or(0, Bytes::len);
                 payload_bytes = payload_bytes
-                    .checked_add(metadata.descriptor.size())
+                    .checked_add(metadata.descriptor.size() + external_bytes)
                     .ok_or(ManagedMemoryError::MessageTransferBudgetExceeded)?;
                 work_bytes = work_bytes
-                    .checked_add(metadata.descriptor.size() + METADATA_WORK_BYTES)
+                    .checked_add(metadata.descriptor.size() + external_bytes + METADATA_WORK_BYTES)
                     .ok_or(ManagedMemoryError::MessageTransferBudgetExceeded)?;
                 if work_bytes > work_budget_bytes {
                     return Err(ManagedMemoryError::MessageTransferBudgetExceeded);

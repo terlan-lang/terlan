@@ -13,6 +13,7 @@ from pathlib import Path
 
 import check_tvm_aot_platform_matrix as platform_matrix
 import check_vm_multicore_mc9_evidence as mc9
+import source_tree_identity
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,7 +22,7 @@ MC9_REPORT = ROOT / "target/quality/vm-multicore-mc9-evidence.json"
 PLATFORM_REPORT = ROOT / "target/quality/tvm-aot-platform-matrix-report.json"
 INVARIANT_INVENTORY = ROOT / "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json"
 CONCURRENCY_CONTRACT = ROOT / "docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md"
-SCHEMA = "terlan.vm-multicore-release-closeout.v1"
+SCHEMA = "terlan.vm-multicore-release-closeout.v2"
 INVARIANT_SCHEMA = "terlan.tvm-multicore-invariant-inventory.v1"
 INVARIANT_REVISION_DOMAIN = b"terlan.vm-multicore-invariants.v1\0"
 LOCAL_GATES = (
@@ -49,7 +50,7 @@ RELEASE_TARGET = (
     "\t$(MAKE) $(VM_MULTICORE_RELEASE_LOCAL_GATES)\n"
     "\t$(PYTHON) tools/check_vm_multicore_release.py record\n"
     "\ttest -s target/quality/vm-multicore-release-closeout.json\n"
-    "\t@rg -q '\"schema\": \"terlan.vm-multicore-release-closeout.v1\"'"
+    "\t@rg -q '\"schema\": \"terlan.vm-multicore-release-closeout.v2\"'"
     " target/quality/vm-multicore-release-closeout.json\n"
     "\t@rg -q '\"decision\": \"pass\"' target/quality/vm-multicore-release-closeout.json\n"
 )
@@ -257,9 +258,8 @@ def invariant_revision(inventory: bytes, contract: bytes) -> str:
 def validate_platform_report(
     report: dict[str, object],
     revision: str,
-    joined_mc9: dict[str, object],
 ) -> None:
-    """Require a complete same-run six-target platform aggregate."""
+    """Require a complete six-target platform aggregate for the same revision."""
 
     expected = {
         "schema": platform_matrix.MATRIX_SCHEMA,
@@ -268,9 +268,6 @@ def validate_platform_report(
         "repository": platform_matrix.OFFICIAL_REPOSITORY,
         "target_count": len(platform_matrix.TARGETS),
         "static_or_skipped_rows": 0,
-        "workflow_ref": joined_mc9["workflow_ref"],
-        "run_id": joined_mc9["run_id"],
-        "run_attempt": joined_mc9["run_attempt"],
         "commit_sha": revision,
     }
     for field, value in expected.items():
@@ -316,18 +313,23 @@ def validate_closeout(report: dict[str, object]) -> None:
     expected = {
         "schema": SCHEMA,
         "decision": "pass",
-        "repository": platform_matrix.OFFICIAL_REPOSITORY,
+        "evidence_scope": "technical",
     }
     for field, value in expected.items():
         if report.get(field) != value:
             raise AssertionError(f"multicore closeout has invalid `{field}`")
     if not mc9.is_revision(report.get("source_revision")):
         raise AssertionError("multicore closeout has an invalid source revision")
-    if not isinstance(report.get("workflow_ref"), str) or not report["workflow_ref"]:
-        raise AssertionError("multicore closeout has no workflow reference")
-    for field in ("run_id", "run_attempt"):
-        if not isinstance(report.get(field), int) or isinstance(report.get(field), bool):
-            raise AssertionError(f"multicore closeout has invalid `{field}`")
+    if report.get("provenance_mode") not in {
+        "local",
+        "distributed",
+        "github-single-attempt",
+    }:
+        raise AssertionError("multicore closeout has invalid provenance classification")
+    if not isinstance(report.get("source_tree_clean"), bool):
+        raise AssertionError("multicore closeout has malformed source state")
+    if not mc9.is_sha256(report.get("source_tree_sha256")):
+        raise AssertionError("multicore closeout has malformed source digest")
 
     gate_graph = require_mapping(report.get("local_gate_graph"), "local gate graph")
     if gate_graph.get("gates") != list(LOCAL_GATES):
@@ -358,6 +360,7 @@ def build_closeout(
     inventory_bytes: bytes,
     contract_bytes: bytes,
     revision: str,
+    source_tree_sha256: str,
     mc9_sha256: str,
     platform_sha256: str,
 ) -> dict[str, object]:
@@ -366,7 +369,9 @@ def build_closeout(
     mc9.validate_closeout(joined_mc9)
     if joined_mc9.get("source_revision") != revision:
         raise AssertionError("MC-9 evidence belongs to another source revision")
-    validate_platform_report(platform, revision, joined_mc9)
+    if joined_mc9.get("source_tree_sha256") != source_tree_sha256:
+        raise AssertionError("MC-9 evidence belongs to another working tree")
+    validate_platform_report(platform, revision)
     validate_invariants(inventory)
     for label, digest in (
         ("MC-9 evidence", mc9_sha256),
@@ -378,10 +383,10 @@ def build_closeout(
         "schema": SCHEMA,
         "decision": "pass",
         "source_revision": revision,
-        "repository": joined_mc9["repository"],
-        "workflow_ref": joined_mc9["workflow_ref"],
-        "run_id": joined_mc9["run_id"],
-        "run_attempt": joined_mc9["run_attempt"],
+        "source_tree_sha256": source_tree_sha256,
+        "evidence_scope": "technical",
+        "provenance_mode": joined_mc9["provenance_mode"],
+        "source_tree_clean": joined_mc9["source_tree_clean"],
         "local_gate_graph": {
             "gates": list(LOCAL_GATES),
             "sha256": local_gate_graph_sha256(),
@@ -428,6 +433,7 @@ def record(root: Path = ROOT) -> Path:
     if not isinstance(inventory, dict):
         raise AssertionError("multicore invariant inventory must be an object")
     revision = source_revision(root)
+    _, source_tree_sha256 = source_tree_identity.source_tree_identity(root, revision)
     report = build_closeout(
         joined_mc9,
         platform,
@@ -435,6 +441,7 @@ def record(root: Path = ROOT) -> Path:
         inventory_bytes,
         contract_bytes,
         revision,
+        source_tree_sha256,
         file_sha256(root / MC9_REPORT.relative_to(ROOT)),
         file_sha256(root / PLATFORM_REPORT.relative_to(ROOT)),
     )
@@ -483,7 +490,7 @@ def self_test() -> None:
                 1,
             )
         ),
-        "release contract accepted gates before official evidence",
+        "release contract accepted gates before technical evidence",
     )
     require_rejection(
         lambda: validate_makefile(
@@ -575,9 +582,9 @@ def self_test() -> None:
         "source_revision": revision,
         "execution_environment": "github-actions",
         "repository": platform_matrix.OFFICIAL_REPOSITORY,
-        "workflow_ref": joined_mc9["workflow_ref"],
-        "run_id": joined_mc9["run_id"],
-        "run_attempt": joined_mc9["run_attempt"],
+        "workflow_ref": "terlan-lang/terlan/.github/workflows/release.yml@refs/tags/v0.0.7",
+        "run_id": 7,
+        "run_attempt": 1,
         "commit_sha": revision,
         "target_count": len(platform_matrix.TARGETS),
         "targets": [{} for _ in platform_matrix.TARGETS],
@@ -595,6 +602,7 @@ def self_test() -> None:
         contract_bytes,
         revision,
         "f" * 64,
+        "f" * 64,
         "1" * 64,
     )
     if closeout.get("decision") != "pass":
@@ -608,9 +616,15 @@ def self_test() -> None:
         lambda: validate_closeout(invalid_closeout),
         "release closeout accepted a stale gate-graph digest",
     )
+    invalid_closeout = dict(closeout)
+    invalid_closeout["source_tree_sha256"] = "not-a-digest"
+    require_rejection(
+        lambda: validate_closeout(invalid_closeout),
+        "release closeout accepted an invalid source-tree digest",
+    )
     for field, value in (
         ("source_revision", "b" * 40),
-        ("run_id", 8),
+        ("execution_environment", "local"),
         ("static_or_skipped_rows", 1),
     ):
         invalid_platform = dict(platform)
@@ -623,6 +637,7 @@ def self_test() -> None:
                 inventory_bytes,
                 contract_bytes,
                 revision,
+                "f" * 64,
                 "f" * 64,
                 "1" * 64,
             ),
@@ -639,9 +654,26 @@ def self_test() -> None:
             contract_bytes,
             revision,
             "f" * 64,
+            "f" * 64,
             "1" * 64,
         ),
         "release closeout accepted stale MC-9 evidence",
+    )
+    invalid_mc9 = dict(joined_mc9)
+    invalid_mc9["source_tree_sha256"] = "0" * 64
+    require_rejection(
+        lambda: build_closeout(
+            invalid_mc9,
+            platform,
+            inventory,
+            inventory_bytes,
+            contract_bytes,
+            revision,
+            "f" * 64,
+            "f" * 64,
+            "1" * 64,
+        ),
+        "release closeout accepted MC-9 evidence from another working tree",
     )
     invalid_inventory = dict(inventory)
     invalid_inventory["schema"] = "stale"
@@ -653,6 +685,7 @@ def self_test() -> None:
             inventory_bytes,
             contract_bytes,
             revision,
+            "f" * 64,
             "f" * 64,
             "1" * 64,
         ),

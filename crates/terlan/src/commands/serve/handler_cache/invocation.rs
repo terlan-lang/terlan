@@ -1,21 +1,33 @@
 //! Actor-owned entry and resume lifecycle inside a persistent handler shard.
 
 use std::sync::Arc;
+use std::time::Instant;
 
 use crate::runtime::vm::process::VmProcessId;
 use crate::runtime::vm::protocol_task_executor::{
-    current_protocol_scheduler, current_protocol_task_route, VmProtocolTaskRoute,
+    current_protocol_task_route, protocol_sleep_until, with_current_protocol_resource,
+    with_existing_current_protocol_resource, VmProtocolTaskRoute,
 };
 use crate::runtime::vm::pure_native::{
     PureNativeCapabilityRequest, PureNativeCapabilityWait, PureNativeIoWait, PureNativeIoWake,
-    PureNativeSuspension,
+    PureNativeSuspension, PureNativeTimerWait,
 };
 use crate::runtime::vm::scheduler_topology::VmFixedActorRoute;
 use crate::runtime::vm::ReplValue;
 use crate::terlan_native_boundary::term::NativeBoundaryReplyTerm;
 
+use super::protocol_capability::ProtocolCapabilityCompletion;
 use super::shard_owner::OwnedInvocationStep;
-use super::{AotHandlerGeneration, AotHandlerRuntime};
+use super::{AotHandlerGeneration, AotHandlerRuntime, LocalImmediateShard};
+
+/// Mutable execution authority retained by a parked actor.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum InvocationOwner {
+    /// Actor state remains on the VM protocol loop that began the call.
+    Protocol(VmProtocolTaskRoute),
+    /// Non-protocol callers use the lazily started compatibility owner.
+    Dedicated,
+}
 
 /// One observable step from a request-owned native handler invocation.
 #[derive(Debug)]
@@ -26,6 +38,112 @@ pub(in crate::commands::serve) enum AotHandlerInvocationStep {
     Waiting(AotHandlerInvocation),
     /// Generated handler is parked on one external capability operation.
     CapabilityWaiting(AotHandlerCapabilityInvocation),
+    /// Generated handler is parked on a VM protocol-owner deadline.
+    TimerWaiting(AotHandlerTimerInvocation),
+}
+
+/// Linear ownership of one generated handler parked on its protocol deadline.
+#[derive(Debug)]
+pub(in crate::commands::serve) struct AotHandlerTimerInvocation {
+    generation: Arc<AotHandlerGeneration>,
+    route: VmFixedActorRoute,
+    owner: VmProcessId,
+    suspension: Option<PureNativeSuspension>,
+    wait: Option<PureNativeTimerWait>,
+    due: Instant,
+    execution_owner: InvocationOwner,
+    active_route: bool,
+}
+
+impl AotHandlerTimerInvocation {
+    /// Waits without blocking the owner loop, then resumes on the same task.
+    pub(in crate::commands::serve) async fn resume_at_deadline(
+        mut self,
+    ) -> Result<AotHandlerInvocationStep, String> {
+        let InvocationOwner::Protocol(expected) = self.execution_owner else {
+            return Err(
+                "error[serve.aot.protocol_timer]: timer invocation has no protocol owner"
+                    .to_string(),
+            );
+        };
+        protocol_sleep_until(self.due).await;
+        expected.validate_completion_origin()?;
+        if current_protocol_task_route() != Some(expected) {
+            return Err(
+                "error[vm.protocol_completion_owner]: timer completion came from a foreign protocol task"
+                    .to_string(),
+            );
+        }
+        let generation = Arc::clone(&self.generation);
+        let suspension = self.suspension.take().ok_or_else(|| {
+            "error[serve.aot.protocol_timer]: timer invocation is no longer active".to_string()
+        })?;
+        let wait = self.wait.take().ok_or_else(|| {
+            "error[serve.aot.protocol_timer]: timer wait is no longer active".to_string()
+        })?;
+        self.active_route = false;
+        let result = with_existing_current_protocol_resource::<LocalImmediateShard, _>(
+            generation.identity,
+            |shard| shard.resume_timer(self.route, self.owner, suspension, wait),
+        );
+        let step = match result {
+            Ok(step) => step,
+            Err(error) => {
+                generation.release_actor_route(self.route.scheduler().index());
+                return Err(error);
+            }
+        };
+        materialize_step(generation, step, self.execution_owner)
+    }
+
+    /// Cancels the deadline and releases only its actor-owned state.
+    pub(in crate::commands::serve) fn cancel(mut self, reason: String) -> Result<(), String> {
+        self.suspension.take();
+        self.wait.take();
+        self.active_route = false;
+        let result = match self.execution_owner {
+            InvocationOwner::Protocol(_) => {
+                with_existing_current_protocol_resource::<LocalImmediateShard, _>(
+                    self.generation.identity,
+                    |shard| shard.cancel(self.owner, reason),
+                )
+            }
+            InvocationOwner::Dedicated => self
+                .generation
+                .shard(self.route.scheduler().index())
+                .and_then(|shard| shard.cancel(self.route, self.owner, reason)),
+        };
+        self.generation
+            .release_actor_route(self.route.scheduler().index());
+        result
+    }
+}
+
+impl Drop for AotHandlerTimerInvocation {
+    fn drop(&mut self) {
+        if self.suspension.take().is_some() {
+            self.wait.take();
+            let reason = "native HTTP timer invocation dropped before completion".to_string();
+            match self.execution_owner {
+                InvocationOwner::Protocol(_) => {
+                    let _ = with_existing_current_protocol_resource::<LocalImmediateShard, _>(
+                        self.generation.identity,
+                        |shard| shard.cancel(self.owner, reason),
+                    );
+                }
+                InvocationOwner::Dedicated => {
+                    if let Ok(shard) = self.generation.shard(self.route.scheduler().index()) {
+                        shard.cancel_detached(self.route, self.owner, reason);
+                    }
+                }
+            }
+        }
+        if self.active_route {
+            self.generation
+                .release_actor_route(self.route.scheduler().index());
+            self.active_route = false;
+        }
+    }
 }
 
 /// Linear ownership of one generated handler parked on a capability worker call.
@@ -36,6 +154,7 @@ pub(in crate::commands::serve) struct AotHandlerCapabilityInvocation {
     owner: VmProcessId,
     suspension: Option<PureNativeSuspension>,
     wait: Option<PureNativeCapabilityWait>,
+    execution_owner: InvocationOwner,
     active_route: bool,
 }
 
@@ -52,12 +171,45 @@ impl AotHandlerCapabilityInvocation {
             })
     }
 
+    /// Dispatches the external call without blocking its VM protocol owner.
+    pub(in crate::commands::serve) async fn resume_from_worker(
+        self,
+    ) -> Result<AotHandlerInvocationStep, String> {
+        let InvocationOwner::Protocol(expected) = self.execution_owner else {
+            return Err(
+                "error[serve.aot.capability_owner]: automatic worker dispatch requires a protocol owner"
+                    .to_string(),
+            );
+        };
+        expected.validate_completion_origin()?;
+        let wait = self.wait.as_ref().ok_or_else(|| {
+            "error[serve.aot.capability]: capability wait is no longer active".to_string()
+        })?;
+        let completion = ProtocolCapabilityCompletion::submit(
+            self.generation.identity,
+            self.route,
+            self.owner,
+            wait,
+        )?;
+        let outcome = completion.await?;
+        self.resume(outcome)
+    }
+
     /// Publishes one worker reply through the fixed actor owner.
     #[allow(dead_code)] // Retained as a deterministic manual completion test seam.
     pub(in crate::commands::serve) fn resume(
         mut self,
         outcome: NativeBoundaryReplyTerm,
     ) -> Result<AotHandlerInvocationStep, String> {
+        if let InvocationOwner::Protocol(expected) = self.execution_owner {
+            expected.validate_completion_origin()?;
+            if current_protocol_task_route() != Some(expected) {
+                return Err(
+                    "error[vm.protocol_completion_owner]: capability completion came from a foreign protocol task"
+                        .to_string(),
+                );
+            }
+        }
         let generation = Arc::clone(&self.generation);
         let suspension = self.suspension.take().ok_or_else(|| {
             "error[serve.aot.capability]: capability invocation is no longer active".to_string()
@@ -66,18 +218,27 @@ impl AotHandlerCapabilityInvocation {
             "error[serve.aot.capability]: capability wait is no longer active".to_string()
         })?;
         self.active_route = false;
-        let step = match generation
-            .shard(self.route.scheduler().index())
-            .and_then(|shard| {
+        let result = match self.execution_owner {
+            InvocationOwner::Protocol(_) => with_existing_current_protocol_resource::<
+                LocalImmediateShard,
+                _,
+            >(generation.identity, |shard| {
                 shard.resume_capability(self.route, self.owner, suspension, wait, outcome)
-            }) {
+            }),
+            InvocationOwner::Dedicated => generation
+                .shard(self.route.scheduler().index())
+                .and_then(|shard| {
+                    shard.resume_capability(self.route, self.owner, suspension, wait, outcome)
+                }),
+        };
+        let step = match result {
             Ok(step) => step,
             Err(error) => {
                 generation.release_actor_route(self.route.scheduler().index());
                 return Err(error);
             }
         };
-        materialize_step(generation, step)
+        materialize_step(generation, step, self.execution_owner)
     }
 }
 
@@ -85,12 +246,19 @@ impl Drop for AotHandlerCapabilityInvocation {
     fn drop(&mut self) {
         if self.suspension.take().is_some() {
             self.wait.take();
-            if let Ok(shard) = self.generation.shard(self.route.scheduler().index()) {
-                shard.cancel_detached(
-                    self.route,
-                    self.owner,
-                    "native HTTP capability invocation dropped before completion".to_string(),
-                );
+            let reason = "native HTTP capability invocation dropped before completion".to_string();
+            match self.execution_owner {
+                InvocationOwner::Protocol(_) => {
+                    let _ = with_existing_current_protocol_resource::<LocalImmediateShard, _>(
+                        self.generation.identity,
+                        |shard| shard.cancel(self.owner, reason),
+                    );
+                }
+                InvocationOwner::Dedicated => {
+                    if let Ok(shard) = self.generation.shard(self.route.scheduler().index()) {
+                        shard.cancel_detached(self.route, self.owner, reason);
+                    }
+                }
             }
         }
         if self.active_route {
@@ -116,6 +284,7 @@ pub(in crate::commands::serve) struct AotHandlerInvocation {
     wait: PureNativeIoWait,
     /// Exact protocol connection allowed to publish this request's completion.
     protocol_origin: Option<VmProtocolTaskRoute>,
+    execution_owner: InvocationOwner,
     /// Reservation in the generation's fixed scheduler routing table.
     active_route: bool,
 }
@@ -135,23 +304,51 @@ impl AotHandlerRuntime {
             ));
         }
         let generation = Arc::clone(&self.generation);
-        let route = match current_protocol_scheduler() {
-            Some(scheduler) => generation.route_new_actor_on(scheduler)?,
-            None => generation.route_new_actor()?,
-        };
+        let protocol_origin = current_protocol_task_route();
+        let route = protocol_origin.map_or_else(
+            || generation.route_new_actor(),
+            |origin| generation.route_new_actor_on(origin.scheduler()),
+        )?;
         let shard_index = route.scheduler().index();
-        let step = match generation.shard(shard_index).and_then(|shard| {
-            shard.begin(route, format!("{module}.{function}"), args, || {
-                generation.rebalance_generated_queues();
-            })
-        }) {
+        let export = format!("{module}.{function}");
+        let arity = args.len();
+        let execution_owner = if protocol_origin.is_some() {
+            InvocationOwner::Protocol(protocol_origin.expect("checked protocol origin"))
+        } else {
+            InvocationOwner::Dedicated
+        };
+        let result = match execution_owner {
+            InvocationOwner::Protocol(_) => with_current_protocol_resource(
+                generation.identity,
+                |scheduler| {
+                    LocalImmediateShard::new(
+                        generation.image.spawn_shard_on_scheduler(scheduler)?,
+                        module,
+                        function,
+                        arity,
+                    )
+                },
+                |shard: &mut LocalImmediateShard| shard.begin(route, export, args),
+            )
+            .and_then(|step| {
+                step.ok_or_else(|| {
+                    "error[serve.aot.protocol_owner]: protocol task lost its owner".to_string()
+                })
+            }),
+            InvocationOwner::Dedicated => generation.shard(shard_index).and_then(|shard| {
+                shard.begin(route, export, args, || {
+                    generation.rebalance_generated_queues();
+                })
+            }),
+        };
+        let step = match result {
             Ok(step) => step,
             Err(error) => {
                 generation.release_actor_route(shard_index);
                 return Err(error);
             }
         };
-        materialize_step(generation, step)
+        materialize_step(generation, step, execution_owner)
     }
 }
 
@@ -173,6 +370,12 @@ impl AotHandlerInvocation {
         self.suspension.as_ref().ok_or_else(|| {
             "error[serve.aot.invocation]: completed invocation cannot migrate".to_string()
         })?;
+        if matches!(self.execution_owner, InvocationOwner::Protocol(_)) {
+            return Err(
+                "error[serve.aot.protocol_migration]: protocol-owned actors cannot migrate"
+                    .to_string(),
+            );
+        }
         let destination =
             self.generation
                 .migrate_actor(self.route, self.owner, destination_index)?;
@@ -196,17 +399,25 @@ impl AotHandlerInvocation {
             "error[serve.aot.invocation]: native handler invocation is no longer active".to_string()
         })?;
         self.active_route = false;
-        let step = match generation
-            .shard(self.route.scheduler().index())
-            .and_then(|shard| shard.resume(self.route, self.owner, suspension, wake))
-        {
+        let result = match self.execution_owner {
+            InvocationOwner::Protocol(_) => {
+                with_existing_current_protocol_resource::<LocalImmediateShard, _>(
+                    generation.identity,
+                    |shard| shard.resume(self.route, self.owner, suspension, wake),
+                )
+            }
+            InvocationOwner::Dedicated => generation
+                .shard(self.route.scheduler().index())
+                .and_then(|shard| shard.resume(self.route, self.owner, suspension, wake)),
+        };
+        let step = match result {
             Ok(step) => step,
             Err(error) => {
                 generation.release_actor_route(self.route.scheduler().index());
                 return Err(error);
             }
         };
-        materialize_step(generation, step)
+        materialize_step(generation, step, self.execution_owner)
     }
 
     /// Rejects completion publication outside the connection that parked it.
@@ -232,10 +443,18 @@ impl AotHandlerInvocation {
     pub(in crate::commands::serve) fn cancel(mut self, reason: String) -> Result<(), String> {
         self.suspension.take();
         self.active_route = false;
-        let result = self
-            .generation
-            .shard(self.route.scheduler().index())
-            .and_then(|shard| shard.cancel(self.route, self.owner, reason));
+        let result = match self.execution_owner {
+            InvocationOwner::Protocol(_) => {
+                with_existing_current_protocol_resource::<LocalImmediateShard, _>(
+                    self.generation.identity,
+                    |shard| shard.cancel(self.owner, reason),
+                )
+            }
+            InvocationOwner::Dedicated => self
+                .generation
+                .shard(self.route.scheduler().index())
+                .and_then(|shard| shard.cancel(self.route, self.owner, reason)),
+        };
         self.generation
             .release_actor_route(self.route.scheduler().index());
         result
@@ -245,12 +464,19 @@ impl AotHandlerInvocation {
 impl Drop for AotHandlerInvocation {
     fn drop(&mut self) {
         if self.suspension.take().is_some() {
-            if let Ok(shard) = self.generation.shard(self.route.scheduler().index()) {
-                shard.cancel_detached(
-                    self.route,
-                    self.owner,
-                    "native HTTP invocation dropped before completion".to_string(),
-                );
+            let reason = "native HTTP invocation dropped before completion".to_string();
+            match self.execution_owner {
+                InvocationOwner::Protocol(_) => {
+                    let _ = with_existing_current_protocol_resource::<LocalImmediateShard, _>(
+                        self.generation.identity,
+                        |shard| shard.cancel(self.owner, reason),
+                    );
+                }
+                InvocationOwner::Dedicated => {
+                    if let Ok(shard) = self.generation.shard(self.route.scheduler().index()) {
+                        shard.cancel_detached(self.route, self.owner, reason);
+                    }
+                }
             }
         }
         if self.active_route {
@@ -265,6 +491,7 @@ impl Drop for AotHandlerInvocation {
 fn materialize_step(
     generation: Arc<AotHandlerGeneration>,
     step: OwnedInvocationStep,
+    execution_owner: InvocationOwner,
 ) -> Result<AotHandlerInvocationStep, String> {
     match step {
         OwnedInvocationStep::Complete { route, value } => {
@@ -283,6 +510,7 @@ fn materialize_step(
             suspension: Some(suspension),
             wait,
             protocol_origin: current_protocol_task_route(),
+            execution_owner,
             active_route: true,
         })),
         OwnedInvocationStep::CapabilityWaiting {
@@ -297,6 +525,25 @@ fn materialize_step(
                 owner,
                 suspension: Some(suspension),
                 wait: Some(wait),
+                execution_owner,
+                active_route: true,
+            },
+        )),
+        OwnedInvocationStep::TimerWaiting {
+            route,
+            owner,
+            suspension,
+            wait,
+            due,
+        } => Ok(AotHandlerInvocationStep::TimerWaiting(
+            AotHandlerTimerInvocation {
+                generation,
+                route,
+                owner,
+                suspension: Some(suspension),
+                wait: Some(wait),
+                due,
+                execution_owner,
                 active_route: true,
             },
         )),

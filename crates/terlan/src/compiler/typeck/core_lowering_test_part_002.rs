@@ -349,6 +349,10 @@ fn syntax_output_lowering_to_core_records_compound_core_type_payloads() {
         Some(CoreType::List(Box::new(CoreType::Int)))
     );
     assert_eq!(core_type_from_text("String"), Some(CoreType::String));
+    assert_eq!(
+        core_type_from_text("std.vm.Bytes.Bytes"),
+        Some(CoreType::Named("std.vm.Bytes.Bytes".to_string()))
+    );
     assert_eq!(core_type_from_text("Text"), Some(CoreType::Binary));
     assert_eq!(
         core_type_from_text("Atom[\"none\"]"),

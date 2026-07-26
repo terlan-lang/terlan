@@ -1,4 +1,7 @@
-use super::{VmCodeServer, VmCodeServerEvent, VmModuleArtifact, VmModuleGenerationState};
+use super::{
+    VmCodeServer, VmCodeServerEvent, VmModuleArtifact, VmModuleFunction,
+    VmModuleGenerationState,
+};
 use crate::runtime::vm::process::{VmProcessSource, VmProcessTable};
 
 fn artifact(checksum: &str) -> VmModuleArtifact {
@@ -82,6 +85,71 @@ fn code_server_tracks_active_coreir_function_exports_across_reload() {
     assert!(!code_server.function_exported("app.Main", "private_value", 0));
 }
 
+#[test]
+fn code_server_exposes_typed_active_module_metadata_without_beam_pseudo_exports() {
+    let source = concat!(
+        "module app.Metadata.\n\n",
+        "pub value(input: Int): Int -> input.\n\n",
+        "pub current(): Int -> helper().\n\n",
+        "helper(): Int -> 17.\n",
+    );
+    let mut code_server = VmCodeServer::default();
+    let event = code_server
+        .publish_source("src/app/Metadata.terl", source)
+        .expect("module metadata source should publish");
+    let VmCodeServerEvent::Published { generation, .. } = event else {
+        panic!("first module metadata generation must publish")
+    };
+
+    let before_missing_lookup = code_server
+        .active_module_info("app.Metadata")
+        .expect("active module metadata");
+    assert!(!code_server.function_exported("app.Metadata", "missing", 0));
+    let info = code_server
+        .active_module_info("app.Metadata")
+        .expect("stable active module metadata");
+
+    assert_eq!(info, before_missing_lookup);
+    assert_eq!(info.module, "app.Metadata");
+    assert_eq!(info.generation, generation);
+    assert!(info.checksum.starts_with("source-fnv1a64:"));
+    assert!(info.source_map_id.starts_with("src/app/Metadata.terl:"));
+    assert_eq!(
+        info.exports,
+        vec![
+            VmModuleFunction {
+                name: "current".to_string(),
+                arity: 0,
+            },
+            VmModuleFunction {
+                name: "value".to_string(),
+                arity: 1,
+            },
+        ]
+    );
+    assert_eq!(
+        info.functions,
+        vec![
+            VmModuleFunction {
+                name: "current".to_string(),
+                arity: 0,
+            },
+            VmModuleFunction {
+                name: "helper".to_string(),
+                arity: 0,
+            },
+            VmModuleFunction {
+                name: "value".to_string(),
+                arity: 1,
+            },
+        ]
+    );
+    assert!(info
+        .functions
+        .iter()
+        .all(|function| function.name != "module_info"));
+}
+
 /// Replaces OTP's module-info load, export, unload, and purge fixture.
 #[test]
 fn code_server_replaces_module_info_lifecycle_fixture() {
@@ -114,6 +182,7 @@ fn code_server_replaces_module_info_lifecycle_fixture() {
     );
     assert!(!code_server.module_loaded("module_info_test"));
     assert!(!code_server.function_exported("module_info_test", "f", 0));
+    assert!(code_server.active_module_info("module_info_test").is_err());
     assert_eq!(
         code_server.snapshots_for_module("module_info_test")[0].state,
         VmModuleGenerationState::Retired
@@ -131,6 +200,7 @@ fn code_server_replaces_module_info_lifecycle_fixture() {
     assert!(code_server
         .snapshots_for_module("module_info_test")
         .is_empty());
+    assert!(code_server.active_module_info("module_info_test").is_err());
 }
 
 /// Proves unload rejection preserves a process-bound active generation.

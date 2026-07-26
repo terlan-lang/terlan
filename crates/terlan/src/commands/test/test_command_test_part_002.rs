@@ -527,12 +527,35 @@ source_roots = ["src"]
     .expect("write project manifest");
     fs::write(
         root.join("src/app/Math.terl"),
-        "module app.Math.\n\npub add(x: Int, y: Int): Int ->\n    x + y.\n",
+        concat!(
+            "module app.Math.\n\n",
+            "import std.vm.Bytes.\n\n",
+            "pub add(x: Int, y: Int): Int ->\n",
+            "    x + y.\n\n",
+            "pub values(): List[Int] ->\n",
+            "    [4, 5].\n\n",
+            "pub second(): Int ->\n",
+            "    values()[1].\n\n",
+            "pub bytes_second(): Int ->\n",
+            "    Bytes.from_list(values()).to_list()[1].\n",
+        ),
     )
     .expect("write project source");
     fs::write(
         root.join("tests/app/MathTest.terl"),
-        "module app.MathTest.\n\nimport app.Math.{add}.\n\n@test\npub project_source_import_is_available(): Bool ->\n    add(2, 3) == 5.\n",
+        concat!(
+            "module app.MathTest.\n\n",
+            "import app.Math.\n\n",
+            "@test\n",
+            "pub project_source_import_is_available(): Bool ->\n",
+            "    Math.add(2, 3) == 5.\n\n",
+            "@test\n",
+            "pub project_source_list_index_is_available(): Bool ->\n",
+            "    Math.second() == 5.\n\n",
+            "@test\n",
+            "pub project_source_bytes_round_trip_is_available(): Bool ->\n",
+            "    Math.bytes_second() == 5.\n",
+        ),
     )
     .expect("write project test");
 

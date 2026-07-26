@@ -53,6 +53,9 @@ pub(crate) enum NativeExpr {
     /// One finite IEEE-754 value carried as raw bits across the i64 ABI slot.
     Float(u64),
     Bool(bool),
+    /// One semantic atom resolved to the image-generation-local compact index
+    /// while the native object is emitted.
+    AtomLiteral(Arc<str>),
     /// One immutable UTF-8 literal allocated in the current actor heap.
     StringLiteral {
         encoded: Arc<[u8]>,
@@ -98,11 +101,25 @@ pub(crate) enum NativeExpr {
         callee_continuation_id: u64,
         callee_capture_count: usize,
         continuation_id: u64,
+        /// Caller continuation entered when the callee completes without
+        /// parking. Application lowering resolves its function index.
+        completion_continuation_id: u64,
+        completion_function: Option<usize>,
         values: Vec<NativeExpr>,
-        resume: Box<NativeExpr>,
+    },
+    /// A shared continuation body whose completion or transition is returned
+    /// directly by the current continuation.
+    ///
+    /// Application lowering resolves this node to `TailCall` after shared
+    /// continuation identities have been materialized.
+    ContinuationTailCall {
+        continuation_id: u64,
+        args: Vec<NativeExpr>,
     },
     Neg(Box<NativeExpr>),
     FloatNeg(Box<NativeExpr>),
+    FloatFloor(Box<NativeExpr>),
+    FloatCeil(Box<NativeExpr>),
     IntToFloat(Box<NativeExpr>),
     Not(Box<NativeExpr>),
     Binary {

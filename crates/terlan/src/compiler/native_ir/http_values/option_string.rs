@@ -9,13 +9,7 @@ pub(super) fn lower_request_option_case(
     scrutinee: &CoreExpr,
     clauses: &[CoreCaseClause],
 ) -> Result<Option<CoreExpr>, String> {
-    if !matches!(
-        scrutinee,
-        CoreExpr::RemoteCall { module, function, args }
-            if module == MANAGED_HTTP_MODULE
-                && matches!(function.as_str(), "param" | "query" | "header" | "cookie" | "jar_get")
-                && args.len() == 2
-    ) {
+    if !is_request_string_option(scrutinee) {
         return Ok(None);
     }
     lower_managed_option_case(
@@ -29,6 +23,55 @@ pub(super) fn lower_request_option_case(
         },
     )
     .map(Some)
+}
+
+/// Eliminates `Option.with_default` over one managed request lookup result.
+pub(super) fn lower_request_option_default(
+    scrutinee: &CoreExpr,
+    default: CoreExpr,
+) -> Result<Option<CoreExpr>, String> {
+    if !is_request_string_option(scrutinee) {
+        return Ok(None);
+    }
+    lower_managed_option_case(
+        scrutinee,
+        &[
+            CoreCaseClause {
+                pattern: CorePattern::Constructor {
+                    name: "Some".to_string(),
+                    constructor_identity: Some("std.core.Option.Some".to_string()),
+                    args: vec![CorePattern::Var(
+                        "$native_http_request_option_value".to_string(),
+                    )],
+                },
+                guard: None,
+                body: CoreExpr::Var("$native_http_request_option_value".to_string()),
+            },
+            CoreCaseClause {
+                pattern: CorePattern::Wildcard,
+                guard: None,
+                body: default,
+            },
+        ],
+        ManagedOptionCase {
+            temporary: "$native_http_request_option",
+            none_operation: "option_is_none",
+            some_operation: "option_some",
+            diagnostic: "native_ir.http_request_option_default",
+        },
+    )
+    .map(Some)
+}
+
+/// Reports whether an expression returns the request boundary's `Option[String]`.
+fn is_request_string_option(expr: &CoreExpr) -> bool {
+    matches!(
+        expr,
+        CoreExpr::RemoteCall { module, function, args }
+            if module == MANAGED_HTTP_MODULE
+                && matches!(function.as_str(), "param" | "query" | "header" | "cookie" | "jar_get")
+                && args.len() == 2
+    )
 }
 
 /// Compiler-private operation identities used by one managed option match.

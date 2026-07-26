@@ -693,9 +693,10 @@ fn vm_http_in_memory_exchange_reports_malformed_request_before_handler() {
     let mut reader = Cursor::new(b"GET /broken HTTP/1.1\r\nBad Header\r\n\r\n".as_slice());
     let mut writer = Vec::new();
 
-    let error = handle_http1_in_memory_exchange(&mut reader, &mut writer, true, |_request| {
-        panic!("malformed request must not call handler");
-    })
+    let error =
+        handle_http1_in_memory_exchange::<String>(&mut reader, &mut writer, true, |_request| {
+            panic!("malformed request must not call handler");
+        })
     .expect_err("malformed request should fail before handler execution");
 
     assert!(error.contains("failed to parse VM HTTP request"));

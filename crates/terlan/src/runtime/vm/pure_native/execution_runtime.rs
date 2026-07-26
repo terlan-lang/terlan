@@ -2,7 +2,9 @@
 
 use std::collections::BTreeMap;
 
-use crate::runtime::native_image::managed::{ManagedExecutionRuntime, PendingManagedCaptures};
+use crate::runtime::native_image::managed::{
+    CollectionStats, ManagedExecutionRuntime, PendingManagedCaptures,
+};
 use crate::runtime::native_image::TvmBoundaryType;
 
 #[path = "execution_runtime/actor_transfer.rs"]
@@ -183,6 +185,19 @@ impl PureNativeExecutionRuntime {
     pub(crate) fn reset_owner(&mut self, owner_id: u64) {
         self.continuations.remove(&owner_id);
         self.managed.reset_owner(owner_id);
+    }
+
+    /// Compacts one live native actor around its precise parked roots.
+    #[allow(dead_code)] // Explicit owner-loop hook; not every embedding exposes hibernation.
+    pub(crate) fn hibernate_owner(
+        &mut self,
+        owner_id: u64,
+    ) -> Result<Option<CollectionStats>, String> {
+        let pending = self
+            .continuations
+            .get_mut(&owner_id)
+            .and_then(|continuation| continuation.managed.as_mut());
+        self.managed.hibernate_owner(owner_id, pending)
     }
 
     /// Rejects graceful shard shutdown while any actor remains parked.

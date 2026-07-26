@@ -475,3 +475,7 @@ mod fixed_scheduler_control_test;
 #[cfg(test)]
 #[path = "fixed_scheduler_control_stress_test.rs"]
 mod fixed_scheduler_control_stress_test;
+
+#[cfg(test)]
+#[path = "fixed_scheduler_control_mtx_beam_suite_parity_test.rs"]
+mod fixed_scheduler_control_mtx_beam_suite_parity_test;

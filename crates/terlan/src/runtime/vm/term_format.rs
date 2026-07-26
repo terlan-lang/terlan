@@ -210,6 +210,12 @@ fn encode_value(
             bytes.push(TAG_STRING);
             write_text(bytes, value)?;
         }
+        ReplValue::StringBytes(value) => {
+            let value = std::str::from_utf8(value)
+                .map_err(|error| format!("error[tetf_string_utf8]: {error}"))?;
+            bytes.push(TAG_STRING);
+            write_text(bytes, value)?;
+        }
         ReplValue::Bytes(value) => {
             bytes.push(TAG_BYTES);
             write_len(bytes, value.len())?;
@@ -242,10 +248,12 @@ fn encode_value(
             }
         }
         ReplValue::Record { name, fields } => {
+            validate_text_field("record_name", name)?;
             bytes.push(TAG_RECORD);
             write_text(bytes, name)?;
             let mut encoded_fields = Vec::new();
             for (field, value) in fields {
+                validate_text_field("record_field", field)?;
                 let mut encoded_value = Vec::new();
                 encode_value(value, declared_atoms, &mut encoded_value)?;
                 encoded_fields.push((field, encoded_value));

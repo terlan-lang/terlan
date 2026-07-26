@@ -1,15 +1,33 @@
 //! Suspension-aware control lowering for Terlan NativeIR.
 
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
+use crate::runtime::native_image::managed::{
+    encode_list_empty_operation, encode_list_prepend_operation,
+};
 use crate::terlan_typeck::{CoreExpr, CoreIfClause};
 
 use super::{
-    composed_call_region, condition_yield_region, constructors::NativeConstructorLayouts,
+    composed_call_region,
+    composed_continuation::wrap_composed_continuation,
+    condition_yield_region,
+    constructors::NativeConstructorLayouts,
+    control_completion::{complete, CompletionTarget},
     expr_is_scalar, free_variables, lower_expr_with_constructors, lower_yield_region,
-    rebase_callee_locals, rewrite_linear_suspension, stable_continuation_id, yield_region,
-    CallRegion, ComposedCallProfile, NativeContinuation, NativeExpr, NativeType, YieldRegion,
+    rebase_callee_locals, stable_continuation_id, yield_region, CallRegion, ComposedCallProfile,
+    NativeContinuation, NativeExpr, NativeType, YieldRegion,
 };
+
+/// Returns the first unoccupied NativeIR local even when hidden continuation
+/// parameters make the source-variable map sparse.
+pub(super) fn next_local_index(params: &HashMap<String, usize>) -> usize {
+    params
+        .values()
+        .copied()
+        .max()
+        .map_or(0, |index| index.saturating_add(1))
+}
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn lower_expr_with_yields(
@@ -29,9 +47,49 @@ pub(super) fn lower_expr_with_yields(
     ordinal: &mut usize,
     stable_ids: &mut HashSet<u64>,
 ) -> Result<(NativeExpr, Vec<NativeContinuation>), String> {
+    lower_owned_expr_with_yields(
+        expr.clone(),
+        param_names,
+        params,
+        param_types,
+        functions,
+        function_types,
+        constructors,
+        suspending_functions,
+        terminal_profiles,
+        module,
+        function,
+        arity,
+        return_type,
+        ordinal,
+        stable_ids,
+        None,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_owned_expr_with_yields(
+    owned_expr: CoreExpr,
+    param_names: &[String],
+    params: &HashMap<String, usize>,
+    param_types: &HashMap<String, NativeType>,
+    functions: &HashMap<(String, usize), usize>,
+    function_types: &HashMap<(String, usize), NativeType>,
+    constructors: &NativeConstructorLayouts,
+    suspending_functions: &HashSet<(String, usize)>,
+    terminal_profiles: &HashMap<usize, ComposedCallProfile>,
+    module: &str,
+    function: &str,
+    arity: usize,
+    return_type: NativeType,
+    ordinal: &mut usize,
+    stable_ids: &mut HashSet<u64>,
+    completion: Option<&CompletionTarget>,
+) -> Result<(NativeExpr, Vec<NativeContinuation>), String> {
+    let expr = &owned_expr;
     if let CoreExpr::Call { function, args } = expr {
         let identity = (function.clone(), args.len());
-        if suspending_functions.contains(&identity) {
+        if suspending_functions.contains(&identity) && completion.is_none() {
             let function = functions.get(&identity).copied().ok_or_else(|| {
                 format!(
                     "error[native_ir.tail_call]: suspending call `{}/{}` is not in the native module",
@@ -64,8 +122,9 @@ pub(super) fn lower_expr_with_yields(
     if let Some(region) =
         composed_call_region(expr, suspending_functions, &is_terminal, &reserved_names)
     {
+        drop(owned_expr);
         return lower_prepared_call(
-            &region,
+            region,
             param_names,
             params,
             param_types,
@@ -80,6 +139,7 @@ pub(super) fn lower_expr_with_yields(
             return_type,
             ordinal,
             stable_ids,
+            completion,
         );
     }
 
@@ -100,6 +160,7 @@ pub(super) fn lower_expr_with_yields(
             return_type,
             ordinal,
             stable_ids,
+            completion,
         );
     }
 
@@ -109,6 +170,7 @@ pub(super) fn lower_expr_with_yields(
             let mut entry_vars = params.clone();
             let mut entry_types = param_types.clone();
             let mut entry_bindings = Vec::with_capacity(bindings.len());
+            let mut next_entry_local = next_local_index(&entry_vars);
             for binding in bindings {
                 let crate::terlan_typeck::CorePattern::Var(name) = &binding.pattern else {
                     return Err("error[native_ir.control_prefix]: \
@@ -134,15 +196,15 @@ pub(super) fn lower_expr_with_yields(
                     function_types,
                     constructors,
                 )?;
-                let index = params.len() + entry_bindings.len();
                 entry_names.retain(|entry| entry != name);
                 entry_names.push(name.clone());
-                entry_vars.insert(name.clone(), index);
+                entry_vars.insert(name.clone(), next_entry_local);
                 entry_types.insert(name.clone(), value_type);
                 entry_bindings.push(value);
+                next_entry_local = next_entry_local.saturating_add(1);
             }
-            let (body, continuations) = lower_expr_with_yields(
-                body,
+            let (body, continuations) = lower_owned_expr_with_yields(
+                body.as_ref().clone(),
                 &entry_names,
                 &entry_vars,
                 &entry_types,
@@ -157,6 +219,7 @@ pub(super) fn lower_expr_with_yields(
                 return_type,
                 ordinal,
                 stable_ids,
+                completion,
             )?;
             return Ok((
                 NativeExpr::Let {
@@ -204,6 +267,7 @@ pub(super) fn lower_expr_with_yields(
                 return_type,
                 ordinal,
                 stable_ids,
+                completion,
             );
         }
 
@@ -223,7 +287,7 @@ pub(super) fn lower_expr_with_yields(
                 clauses: resumed_clauses,
             };
             return lower_prepared_call(
-                &call_region,
+                call_region,
                 param_names,
                 params,
                 param_types,
@@ -238,6 +302,7 @@ pub(super) fn lower_expr_with_yields(
                 return_type,
                 ordinal,
                 stable_ids,
+                completion,
             );
         }
 
@@ -264,8 +329,8 @@ pub(super) fn lower_expr_with_yields(
                     body: first.body.clone(),
                 });
                 right_clauses.extend_from_slice(remaining);
-                let (right_path, mut continuations) = lower_expr_with_yields(
-                    &CoreExpr::If {
+                let (right_path, mut continuations) = lower_owned_expr_with_yields(
+                    CoreExpr::If {
                         clauses: right_clauses,
                     },
                     param_names,
@@ -282,6 +347,7 @@ pub(super) fn lower_expr_with_yields(
                     return_type,
                     ordinal,
                     stable_ids,
+                    completion,
                 )?;
                 if matches!(operator.as_str(), "and" | "&&") {
                     let (fallback, fallback_continuations) = if remaining.is_empty() {
@@ -292,8 +358,8 @@ pub(super) fn lower_expr_with_yields(
                             Vec::new(),
                         )
                     } else {
-                        lower_expr_with_yields(
-                            &CoreExpr::If {
+                        lower_owned_expr_with_yields(
+                            CoreExpr::If {
                                 clauses: remaining.to_vec(),
                             },
                             param_names,
@@ -310,6 +376,7 @@ pub(super) fn lower_expr_with_yields(
                             return_type,
                             ordinal,
                             stable_ids,
+                            completion,
                         )?
                     };
                     continuations.extend(fallback_continuations);
@@ -320,8 +387,8 @@ pub(super) fn lower_expr_with_yields(
                         continuations,
                     ));
                 }
-                let (selected, selected_continuations) = lower_expr_with_yields(
-                    &first.body,
+                let (selected, selected_continuations) = lower_owned_expr_with_yields(
+                    first.body.clone(),
                     param_names,
                     params,
                     param_types,
@@ -336,6 +403,7 @@ pub(super) fn lower_expr_with_yields(
                     return_type,
                     ordinal,
                     stable_ids,
+                    completion,
                 )?;
                 continuations.extend(selected_continuations);
                 return Ok((
@@ -355,8 +423,8 @@ pub(super) fn lower_expr_with_yields(
             function_types,
             constructors,
         )?;
-        let (body, mut continuations) = lower_expr_with_yields(
-            &first.body,
+        let (body, mut continuations) = lower_owned_expr_with_yields(
+            first.body.clone(),
             param_names,
             params,
             param_types,
@@ -371,11 +439,12 @@ pub(super) fn lower_expr_with_yields(
             return_type,
             ordinal,
             stable_ids,
+            completion,
         )?;
         let mut lowered_clauses = vec![(condition, body)];
         if !remaining.is_empty() {
-            let (fallback, fallback_continuations) = lower_expr_with_yields(
-                &CoreExpr::If {
+            let (fallback, fallback_continuations) = lower_owned_expr_with_yields(
+                CoreExpr::If {
                     clauses: remaining.to_vec(),
                 },
                 param_names,
@@ -392,6 +461,7 @@ pub(super) fn lower_expr_with_yields(
                 return_type,
                 ordinal,
                 stable_ids,
+                completion,
             )?;
             lowered_clauses.push((NativeExpr::Bool(true), fallback));
             continuations.extend(fallback_continuations);
@@ -439,6 +509,7 @@ pub(super) fn lower_expr_with_yields(
                     return_type,
                     ordinal,
                     stable_ids,
+                    completion,
                 );
             }
             let left = lower_expr_with_constructors(
@@ -449,8 +520,8 @@ pub(super) fn lower_expr_with_yields(
                 function_types,
                 constructors,
             )?;
-            let (right, continuations) = lower_expr_with_yields(
-                right,
+            let (right, continuations) = lower_owned_expr_with_yields(
+                right.as_ref().clone(),
                 param_names,
                 params,
                 param_types,
@@ -465,6 +536,7 @@ pub(super) fn lower_expr_with_yields(
                 return_type,
                 ordinal,
                 stable_ids,
+                completion,
             )?;
             let clauses = if matches!(operator.as_str(), "and" | "&&") {
                 vec![
@@ -481,8 +553,37 @@ pub(super) fn lower_expr_with_yields(
         }
     }
 
-    Ok((
-        lower_expr_with_constructors(
+    let value = match (expr, return_type) {
+        (CoreExpr::List(items), NativeType::ManagedRef(semantic)) if items.is_empty() => {
+            NativeExpr::ManagedOperation {
+                encoded: Arc::from(encode_list_empty_operation(semantic)),
+                args: Vec::new(),
+            }
+        }
+        (CoreExpr::ListCons { head, tail }, NativeType::ManagedRef(semantic)) => {
+            NativeExpr::ManagedOperation {
+                encoded: Arc::from(encode_list_prepend_operation(semantic)),
+                args: vec![
+                    lower_expr_with_constructors(
+                        head,
+                        params,
+                        param_types,
+                        functions,
+                        function_types,
+                        constructors,
+                    )?,
+                    lower_expr_with_constructors(
+                        tail,
+                        params,
+                        param_types,
+                        functions,
+                        function_types,
+                        constructors,
+                    )?,
+                ],
+            }
+        }
+        _ => lower_expr_with_constructors(
             expr,
             params,
             param_types,
@@ -490,13 +591,13 @@ pub(super) fn lower_expr_with_yields(
             function_types,
             constructors,
         )?,
-        Vec::new(),
-    ))
+    };
+    Ok((complete(value, completion, params)?, Vec::new()))
 }
 
 #[allow(clippy::too_many_arguments)]
 fn lower_prepared_call(
-    region: &CallRegion,
+    mut region: CallRegion,
     param_names: &[String],
     params: &HashMap<String, usize>,
     param_types: &HashMap<String, NativeType>,
@@ -511,7 +612,28 @@ fn lower_prepared_call(
     return_type: NativeType,
     ordinal: &mut usize,
     stable_ids: &mut HashSet<u64>,
+    completion: Option<&CompletionTarget>,
 ) -> Result<(NativeExpr, Vec<NativeContinuation>), String> {
+    if !region.gates.is_empty() {
+        return lower_gated_prepared_call(
+            region,
+            param_names,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+            suspending_functions,
+            terminal_profiles,
+            module,
+            function,
+            arity,
+            return_type,
+            ordinal,
+            stable_ids,
+            completion,
+        );
+    }
     let identity = (region.function.clone(), region.args.len());
     let function_index = functions.get(&identity).copied().ok_or_else(|| {
         format!(
@@ -525,8 +647,8 @@ fn lower_prepared_call(
             identity.0, identity.1
         )
     })?;
-    let mut wrapper_ids = Vec::with_capacity(profile.continuations.len());
-    for _ in &profile.continuations {
+    let mut wrapper_ids = HashMap::with_capacity(profile.continuations.len());
+    for callee in &profile.continuations {
         let continuation_id = stable_continuation_id(module, function, arity, *ordinal);
         *ordinal = ordinal.saturating_add(1);
         if !stable_ids.insert(continuation_id) {
@@ -534,13 +656,21 @@ fn lower_prepared_call(
                 "error[native_ir.continuation_id_collision]: continuation id {continuation_id} collides in module `{module}`"
             ));
         }
-        wrapper_ids.push(continuation_id);
+        wrapper_ids.insert(callee.id, continuation_id);
+    }
+    let completion_id = stable_continuation_id(module, function, arity, *ordinal);
+    *ordinal = ordinal.saturating_add(1);
+    if !stable_ids.insert(completion_id) {
+        return Err(format!(
+            "error[native_ir.continuation_id_collision]: continuation id {completion_id} collides in module `{module}`"
+        ));
     }
 
     let mut entry_vars = params.clone();
     let mut entry_types = param_types.clone();
     let mut entry_bindings = Vec::with_capacity(region.prefix.len());
     let mut prefix_names = Vec::with_capacity(region.prefix.len());
+    let mut next_entry_local = next_local_index(&entry_vars);
     for binding in &region.prefix {
         let crate::terlan_typeck::CorePattern::Var(name) = &binding.pattern else {
             return Err(
@@ -571,13 +701,17 @@ fn lower_prepared_call(
             constructors,
         )?;
         entry_bindings.push(value);
-        entry_vars.insert(name.clone(), params.len() + entry_bindings.len() - 1);
+        entry_vars.insert(name.clone(), next_entry_local);
         entry_types.insert(name.clone(), value_type);
         prefix_names.push(name.clone());
+        next_entry_local = next_entry_local.saturating_add(1);
     }
 
     let mut captures = free_variables(&region.resume);
     captures.remove(&region.result_name);
+    if let Some(completion) = completion {
+        captures.extend(completion.captures.iter().cloned());
+    }
     let capture_names = param_names
         .iter()
         .chain(prefix_names.iter())
@@ -602,8 +736,6 @@ fn lower_prepared_call(
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    let mut immediate_vars = entry_vars.clone();
-    immediate_vars.insert(region.result_name.clone(), entry_vars.len());
     let capture_types = capture_names
         .iter()
         .map(|name| {
@@ -618,17 +750,29 @@ fn lower_prepared_call(
             identity.0, identity.1
         )
     })?;
-    let mut immediate_types = entry_types.clone();
-    immediate_types.insert(region.result_name.clone(), result_type);
     let mut resume_names = capture_names.clone();
     resume_names.push(region.result_name.clone());
-    let nested_ordinal_start = *ordinal;
-    let nested_ids_start = stable_ids.clone();
-    let (immediate_resume, nested_continuations) = lower_expr_with_yields(
-        &region.resume,
+    let mut resume_vars = capture_names
+        .iter()
+        .enumerate()
+        .map(|(capture_index, name)| (name.clone(), capture_index))
+        .collect::<HashMap<_, _>>();
+    resume_vars.insert(region.result_name.clone(), capture_names.len());
+    let mut resume_types = capture_names
+        .iter()
+        .zip(capture_types.iter().copied())
+        .map(|(name, ty)| (name.clone(), ty))
+        .collect::<HashMap<_, _>>();
+    resume_types.insert(region.result_name.clone(), result_type);
+    let resume = std::mem::replace(
+        &mut region.resume,
+        CoreExpr::Atom("$native_moved_resume".to_string()),
+    );
+    let (resumed_caller, nested_continuations) = lower_owned_expr_with_yields(
+        resume,
         &resume_names,
-        &immediate_vars,
-        &immediate_types,
+        &resume_vars,
+        &resume_types,
         functions,
         function_types,
         constructors,
@@ -640,72 +784,50 @@ fn lower_prepared_call(
         return_type,
         ordinal,
         stable_ids,
+        completion,
     )?;
-    let mut wrappers = Vec::with_capacity(profile.continuations.len());
-    for (index, callee) in profile.continuations.iter().enumerate() {
+
+    let mut wrappers = Vec::with_capacity(
+        profile
+            .continuations
+            .len()
+            .saturating_add(1)
+            .saturating_add(nested_continuations.len()),
+    );
+    for callee in &profile.continuations {
         let callee_capture_count = callee.params.len();
         let mut continuation_params = callee.params.clone();
         continuation_params.extend(capture_types.iter().copied());
-        let callee_body =
+        let rebased_body =
             rebase_callee_locals(&callee.body, callee_capture_count, capture_names.len());
-        let body = if let Some(next_callee) = profile.continuations.get(index + 1) {
-            rewrite_linear_suspension(
-                &callee_body,
-                next_callee.id,
-                wrapper_ids[index + 1],
-                callee_capture_count,
-                capture_names.len(),
-            )?
-        } else {
-            let mut resume_vars = capture_names
-                .iter()
-                .enumerate()
-                .map(|(capture_index, name)| (name.clone(), callee_capture_count + capture_index))
-                .collect::<HashMap<_, _>>();
-            resume_vars.insert(region.result_name.clone(), continuation_params.len());
-            let mut resume_types = capture_names
-                .iter()
-                .zip(capture_types.iter().copied())
-                .map(|(name, ty)| (name.clone(), ty))
-                .collect::<HashMap<_, _>>();
-            resume_types.insert(region.result_name.clone(), result_type);
-            let mut wrapper_ordinal = nested_ordinal_start;
-            let mut wrapper_stable_ids = nested_ids_start.clone();
-            let (resumed_caller, wrapper_nested) = lower_expr_with_yields(
-                &region.resume,
-                &resume_names,
-                &resume_vars,
-                &resume_types,
-                functions,
-                function_types,
-                constructors,
-                suspending_functions,
-                terminal_profiles,
-                module,
-                function,
-                arity,
-                return_type,
-                &mut wrapper_ordinal,
-                &mut wrapper_stable_ids,
-            )?;
-            if wrapper_ordinal != *ordinal || wrapper_nested != nested_continuations {
-                return Err(
-                    "error[native_ir.call_chain]: immediate and resumed nested continuation layouts differ"
-                        .to_string(),
-                );
-            }
-            NativeExpr::Let {
-                bindings: vec![callee_body],
-                body: Box::new(resumed_caller),
-            }
-        };
+        let body = wrap_composed_continuation(
+            &rebased_body,
+            callee_capture_count,
+            capture_names.len(),
+            &wrapper_ids,
+            completion_id,
+        )?;
         wrappers.push(NativeContinuation {
-            id: wrapper_ids[index],
+            id: wrapper_ids[&callee.id],
+            source_module: module.to_string(),
+            source_function: function.to_string(),
+            source_arity: arity,
             params: continuation_params,
             return_type,
             body,
         });
     }
+    let mut completion_params = capture_types;
+    completion_params.push(result_type);
+    wrappers.push(NativeContinuation {
+        id: completion_id,
+        source_module: module.to_string(),
+        source_function: function.to_string(),
+        source_arity: arity,
+        params: completion_params,
+        return_type,
+        body: resumed_caller,
+    });
     wrappers.extend(nested_continuations);
     let first_callee = &profile.continuations[0];
     let args = region
@@ -727,9 +849,10 @@ fn lower_prepared_call(
         args,
         callee_continuation_id: first_callee.id,
         callee_capture_count: first_callee.params.len(),
-        continuation_id: wrapper_ids[0],
+        continuation_id: wrapper_ids[&first_callee.id],
+        completion_continuation_id: completion_id,
+        completion_function: None,
         values,
-        resume: Box::new(immediate_resume),
     };
     Ok((
         if entry_bindings.is_empty() {
@@ -743,6 +866,7 @@ fn lower_prepared_call(
         wrappers,
     ))
 }
+include!("control_gated.rs");
 
 #[allow(clippy::too_many_arguments)]
 fn lower_prepared_yield(
@@ -761,6 +885,7 @@ fn lower_prepared_yield(
     return_type: NativeType,
     ordinal: &mut usize,
     stable_ids: &mut HashSet<u64>,
+    completion: Option<&CompletionTarget>,
 ) -> Result<(NativeExpr, Vec<NativeContinuation>), String> {
     let continuation_id = stable_continuation_id(module, function, arity, *ordinal);
     *ordinal = ordinal.saturating_add(1);
@@ -779,8 +904,8 @@ fn lower_prepared_yield(
         constructors,
         continuation_id,
     )?;
-    let (resume_body, nested) = lower_expr_with_yields(
-        &lowered.resume,
+    let (resume_body, nested) = lower_owned_expr_with_yields(
+        lowered.resume.clone(),
         &lowered.resume_names,
         &lowered.resume_vars,
         &lowered.resume_types,
@@ -795,10 +920,14 @@ fn lower_prepared_yield(
         return_type,
         ordinal,
         stable_ids,
+        completion,
     )?;
     let mut continuations = Vec::with_capacity(nested.len() + 1);
     continuations.push(NativeContinuation {
         id: continuation_id,
+        source_module: module.to_string(),
+        source_function: function.to_string(),
+        source_arity: arity,
         params: lowered.continuation_params,
         return_type,
         body: resume_body,

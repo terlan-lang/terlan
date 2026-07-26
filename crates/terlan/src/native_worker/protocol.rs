@@ -251,3 +251,7 @@ fn bounded_u64(flag: &str, value: &str, minimum: u64, maximum: u64) -> Result<u6
 #[cfg(test)]
 #[path = "protocol_test.rs"]
 mod protocol_test;
+
+#[cfg(all(test, target_os = "linux"))]
+#[path = "efile_beam_suite_parity_test.rs"]
+mod efile_beam_suite_parity_test;

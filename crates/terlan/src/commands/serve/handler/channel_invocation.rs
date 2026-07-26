@@ -174,6 +174,14 @@ where
                     self.channel, request.capability, request.operation
                 ))
             }
+            AotHandlerInvocationStep::TimerWaiting(invocation) => {
+                let reason = format!(
+                    "error[serve.{}.timer_orchestration]: channel callbacks cannot retain an HTTP protocol deadline",
+                    self.channel
+                );
+                invocation.cancel(reason.clone())?;
+                Err(reason)
+            }
         }
     }
 }

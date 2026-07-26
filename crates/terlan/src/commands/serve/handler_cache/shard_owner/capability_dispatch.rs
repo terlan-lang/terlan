@@ -30,7 +30,7 @@ use super::timer_queue::GeneratedTimerQueue;
 use super::{AotSchedulerPublication, OwnedInvocationStep};
 
 /// Maximum external calls retained by one generated scheduler owner.
-const GENERATED_CAPABILITY_CREDITS: u64 = 64;
+pub(in crate::commands::serve::handler_cache) const GENERATED_CAPABILITY_CREDITS: u64 = 64;
 
 /// Complete generated invocation state retained while a worker executes.
 pub(super) struct PendingGeneratedCapability {
@@ -340,7 +340,8 @@ impl GeneratedCapabilityDispatcher {
 }
 
 /// Resolves the native worker packaged next to the current Terlan executable.
-fn capability_worker_path() -> Result<PathBuf, String> {
+pub(in crate::commands::serve::handler_cache) fn capability_worker_path() -> Result<PathBuf, String>
+{
     if let Some(path) = std::env::var_os("TERLAN_NATIVE_WORKER") {
         let path = PathBuf::from(path);
         if path.is_file() {

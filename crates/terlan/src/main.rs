@@ -217,9 +217,14 @@ fn print_usage() {
 /// - Drops the executable path and delegates all CLI behavior to `run_cli`.
 fn main() -> ExitCode {
     let args = std::env::args().skip(1).collect();
+    let command_stack_bytes = if std::env::var_os("TERLAN_SERVE_RUNTIME_ONLY").is_some() {
+        2 * 1024 * 1024
+    } else {
+        32 * 1024 * 1024
+    };
     match std::thread::Builder::new()
         .name("terlc-command".to_string())
-        .stack_size(32 * 1024 * 1024)
+        .stack_size(command_stack_bytes)
         .spawn(move || run_cli(args))
     {
         Ok(command) => match command.join() {

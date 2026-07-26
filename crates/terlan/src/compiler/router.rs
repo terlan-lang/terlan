@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "serve-runtime-bin", allow(dead_code))]
+
 use crate::runtime::vm::sse::{VmSseCallbackPlan, VmSseEndpointPlan};
 use crate::runtime::vm::websocket::{VmWebSocketCallbackPlan, VmWebSocketEndpointPlan};
 use crate::terlan_syntax::{SyntaxExprKind, SyntaxExprOutput};
@@ -8,7 +10,7 @@ use std::collections::HashMap;
 const ROUTER_MODULE: &str = "std.http.Router";
 
 /// One statically resolved callable retained by an AOT router plan.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub(crate) struct AotRouterCallable {
     /// Module that owns the generated native entry export.
     pub(crate) module: String,
@@ -19,7 +21,7 @@ pub(crate) struct AotRouterCallable {
 }
 
 /// One method/path route and its statically resolved native callback.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub(crate) struct AotRouterRoute {
     /// Canonical uppercase HTTP method.
     pub(crate) method: String,
@@ -34,7 +36,7 @@ pub(crate) struct AotRouterRoute {
 }
 
 /// Canonical executable target retained by one AOT router route.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub(crate) enum AotRouterRouteTarget {
     /// Static native callback invoked for an ordinary HTTP request.
     Handler(AotRouterCallable),
@@ -45,7 +47,7 @@ pub(crate) enum AotRouterRouteTarget {
 }
 
 /// Closure-free router metadata extracted from checked CoreIR.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub(crate) struct AotRouterPlan {
     /// Module whose `router/0` declaration produced this plan.
     pub(crate) module: String,

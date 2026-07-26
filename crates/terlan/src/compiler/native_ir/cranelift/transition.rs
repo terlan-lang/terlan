@@ -3,6 +3,8 @@ use cranelift_frontend::FunctionBuilder;
 
 use super::super::{status, NativeTransitionOperation};
 
+const TRANSITION_ARGUMENT_COUNTS: (usize, usize, usize) = (2, 5, 3);
+
 pub(super) struct TransitionFlags {
     pub(super) sent: Value,
     pub(super) typed_sent: Value,
@@ -81,6 +83,49 @@ pub(super) fn transition_flags(
         transitioned,
         capability,
     }
+}
+
+/// Derives the VM frame width for one transitioned call before caller captures.
+pub(super) fn expected_value_count(
+    builder: &mut FunctionBuilder<'_>,
+    flags: &TransitionFlags,
+    actual_count: Value,
+    callee_capture_count: usize,
+) -> Value {
+    let send_count = builder
+        .ins()
+        .uextend(cranelift_codegen::ir::types::I64, flags.sent);
+    let send_count = builder
+        .ins()
+        .imul_imm(send_count, TRANSITION_ARGUMENT_COUNTS.0 as i64);
+    let typed_send_count = builder
+        .ins()
+        .uextend(cranelift_codegen::ir::types::I64, flags.typed_sent);
+    let typed_send_count = builder
+        .ins()
+        .imul_imm(typed_send_count, TRANSITION_ARGUMENT_COUNTS.1 as i64);
+    let send_count = builder.ins().iadd(send_count, typed_send_count);
+    let one_count = builder
+        .ins()
+        .uextend(cranelift_codegen::ir::types::I64, flags.one_argument);
+    let typed_receive_count = builder
+        .ins()
+        .uextend(cranelift_codegen::ir::types::I64, flags.typed_received);
+    let typed_receive_count = builder
+        .ins()
+        .imul_imm(typed_receive_count, TRANSITION_ARGUMENT_COUNTS.2 as i64);
+    let transition_count = builder.ins().iadd(send_count, one_count);
+    let transition_count = builder.ins().iadd(transition_count, typed_receive_count);
+    let expected = builder
+        .ins()
+        .iadd_imm(transition_count, callee_capture_count as i64);
+    let injected_count = builder
+        .ins()
+        .uextend(cranelift_codegen::ir::types::I64, flags.injected_input);
+    let expected = builder.ins().isub(expected, injected_count);
+    builder
+        .ins()
+        .select(flags.capability, actual_count, expected)
 }
 
 fn status_flag(builder: &mut FunctionBuilder<'_>, call_status: Value, status: i32) -> Value {

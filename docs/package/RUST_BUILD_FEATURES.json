@@ -2,7 +2,10 @@
   "schema": "terlan.rust-build-features.v1",
   "package": "terlan",
   "version": "0.0.7",
-  "default_features": [],
+  "default_features": [
+    "native-codegen",
+    "postgres-libpq"
+  ],
   "features": [
     {
       "name": "default",
@@ -15,6 +18,26 @@
     {
       "name": "editor-lsp",
       "classification": "tooling-only"
+    },
+    {
+      "name": "multicore-tsan-harness",
+      "classification": "test-only"
+    },
+    {
+      "name": "native-codegen",
+      "classification": "default"
+    },
+    {
+      "name": "postgres-libpq",
+      "classification": "default"
+    },
+    {
+      "name": "axum-baseline",
+      "classification": "test-only"
+    },
+    {
+      "name": "serve-runtime-bin",
+      "classification": "optional"
     }
   ],
   "release_profiles": [

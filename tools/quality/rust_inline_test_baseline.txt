@@ -1,7 +1,6 @@
 # Repository-relative Rust files that currently contain inline #[cfg(test)].
 crates/terlan/src/benchmark/http_runtime_lane.rs
 crates/terlan/src/benchmark/main.rs
-crates/terlan/src/benchmark/binary_protocol_http.rs
 crates/terlan/src/benchmark/binary_protocol_snapshot.rs
 crates/terlan/src/commands/source_layout.rs
 crates/terlan/src/compiler/syntax/ebnf.rs

@@ -322,18 +322,27 @@ fn validate_continuation_references(
             args,
             callee_continuation_id,
             continuation_id,
+            completion_continuation_id,
             values,
-            resume,
             ..
         } => {
             require_continuation(*callee_continuation_id, owners, module)?;
             require_continuation(*continuation_id, owners, module)?;
+            require_continuation(*completion_continuation_id, owners, module)?;
             validate_native_sequence(args, owners, module)?;
-            validate_native_sequence(values, owners, module)?;
-            validate_continuation_references(resume, owners, module)
+            validate_native_sequence(values, owners, module)
+        }
+        NativeExpr::ContinuationTailCall {
+            continuation_id,
+            args,
+        } => {
+            require_continuation(*continuation_id, owners, module)?;
+            validate_native_sequence(args, owners, module)
         }
         NativeExpr::Neg(operand)
         | NativeExpr::FloatNeg(operand)
+        | NativeExpr::FloatFloor(operand)
+        | NativeExpr::FloatCeil(operand)
         | NativeExpr::IntToFloat(operand)
         | NativeExpr::Not(operand) => validate_continuation_references(operand, owners, module),
         NativeExpr::Binary { left, right, .. } => {
@@ -376,6 +385,7 @@ fn validate_continuation_references(
         | NativeExpr::Int(_)
         | NativeExpr::Float(_)
         | NativeExpr::Bool(_)
+        | NativeExpr::AtomLiteral(_)
         | NativeExpr::StringLiteral { .. }
         | NativeExpr::Param(_) => Ok(()),
     }

@@ -26,22 +26,17 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 MAKEFILE = ROOT / "Makefile"
 REQUIRED_TARGETS = (
-    "terlan-vm-repl-check",
     "terlan-vm-run-command-check",
     "terlan-vm-test-command-check",
 )
 REQUIRED_SELECTORS = (
-    (
-        "terlc repl VM execution",
-        "commands::repl::repl_test::repl_expression_runs_arithmetic_through_vm_runtime",
-    ),
     (
         "terlc run VM default",
         "commands::run::run_test::validate_run_args_defaults_to_vm_target",
     ),
     (
         "terlc run VM artifact execution",
-        "commands::run::run_test::run_built_vm_artifact_executes_vm_runner",
+        "commands::run::run_test::run_built_native_image_executes_vm_runner",
     ),
     (
         "terlc test VM default",
@@ -50,6 +45,10 @@ REQUIRED_SELECTORS = (
     (
         "terlc test project VM default",
         "commands::test::test_command_test::run_project_directory_tests_default_to_vm_and_prepare_source_roots",
+    ),
+    (
+        "terlc repl VM default contract",
+        "commands::repl::repl_aot_test::repl_command_rejects_runtime_selection",
     ),
 )
 

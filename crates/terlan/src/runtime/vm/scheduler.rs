@@ -9,8 +9,11 @@ use super::actor_directory::VmActorLifecycle;
 use super::process::{
     VmExitReason, VmProcess, VmProcessId, VmProcessResumeState, VmProcessState, VmProcessTable,
 };
+use contention::VmContentionTelemetry;
 pub(crate) use telemetry::{VmSchedulerMetrics, VmSchedulerQueueTransition};
 
+#[path = "scheduler/contention.rs"]
+pub(crate) mod contention;
 #[path = "scheduler/telemetry.rs"]
 mod telemetry;
 #[path = "scheduler/transfer.rs"]
@@ -164,6 +167,7 @@ pub(crate) struct VmScheduler {
     class_cycle_cursor: usize,
     tick: u64,
     metrics: VmSchedulerMetrics,
+    contention: VmContentionTelemetry,
 }
 
 impl VmScheduler {
@@ -184,6 +188,7 @@ impl VmScheduler {
             class_cycle_cursor: 0,
             tick: 0,
             metrics: VmSchedulerMetrics::default(),
+            contention: VmContentionTelemetry::default(),
         }
     }
 
@@ -230,6 +235,16 @@ impl VmScheduler {
     /// Returns cumulative deterministic scheduler accounting.
     pub(crate) fn metrics(&self) -> &VmSchedulerMetrics {
         &self.metrics
+    }
+
+    /// Returns owner-local contention telemetry without exposing host locks.
+    pub(crate) fn contention_telemetry(&self) -> &VmContentionTelemetry {
+        &self.contention
+    }
+
+    /// Configures owner-local contention telemetry at an explicit control boundary.
+    pub(crate) fn contention_telemetry_mut(&mut self) -> &mut VmContentionTelemetry {
+        &mut self.contention
     }
 
     pub(crate) fn memory_reductions(&self, pid: VmProcessId) -> u64 {
@@ -375,6 +390,10 @@ impl VmScheduler {
             VmProcessState::Blocked => {
                 Err(format!("cannot enqueue blocked process {}", pid.as_u64()))
             }
+            VmProcessState::Hibernated => Err(format!(
+                "cannot enqueue hibernated process {}",
+                pid.as_u64()
+            )),
             VmProcessState::Suspended(_) => {
                 Err(format!("cannot enqueue suspended process {}", pid.as_u64()))
             }
@@ -432,7 +451,7 @@ impl VmScheduler {
                     process.wake();
                     Ok(true)
                 }
-                VmProcessState::Runnable | VmProcessState::Blocked => {
+                VmProcessState::Runnable | VmProcessState::Blocked | VmProcessState::Hibernated => {
                     process.wake();
                     Ok(false)
                 }
@@ -456,6 +475,22 @@ impl VmScheduler {
             .with_process_control_mutator(pid, |process| process.suspend())?
             .map_err(|_| format!("cannot suspend exited process {}", pid.as_u64()))?;
         self.remove_queued(pid, "suspend");
+        Ok(())
+    }
+
+    /// Hibernates a live process and removes any runnable queue entry.
+    pub(crate) fn hibernate_process(
+        &mut self,
+        processes: &mut VmProcessTable,
+        pid: VmProcessId,
+    ) -> Result<(), String> {
+        if processes.get(pid).is_none() {
+            return Err(format!("cannot hibernate missing process {}", pid.as_u64()));
+        }
+        processes
+            .with_process_control_mutator(pid, |process| process.hibernate())?
+            .map_err(|error| format!("cannot hibernate process {}: {error}", pid.as_u64()))?;
+        self.remove_queued(pid, "hibernate");
         Ok(())
     }
 
@@ -701,6 +736,8 @@ impl VmScheduler {
         process.max_wait_ticks = process.max_wait_ticks.max(wait_ticks);
         process.first_run_tick.get_or_insert(run.tick);
         process.last_run_tick = Some(run.tick);
+        self.contention
+            .observe_scheduler_wait(pid.as_u64(), wait_ticks);
     }
 
     fn idle_run(&self) -> VmSchedulerRun {

@@ -3,6 +3,8 @@
 use std::num::NonZeroUsize;
 use std::sync::OnceLock;
 
+use bytes::Bytes;
+
 use crate::runtime::native_image::managed::{
     ManagedAggregate, ManagedAggregateDescriptor, ManagedExecutionRuntime, ManagedFieldValue,
     ManagedLayoutRegistry, ManagedList, ManagedListDescriptor, ManagedString, SemanticTypeId,
@@ -75,9 +77,15 @@ pub(super) fn materialize_http_response(
                 "error[execution_shard.http_response]: unsupported Response kind `{kind}`"
             ));
         }
-        let payload = string_field(heap, &view, 2)?;
+        let payload = string_reference(&view, 2)?;
         let status = int_field(&view, 3)?;
         let headers = header_fields(heap, layouts, schema, &view)?;
+        let payload = match heap.external_string_bytes(payload).map_err(memory_error)? {
+            Some(payload) => payload.clone(),
+            None => {
+                Bytes::copy_from_slice(heap.read_string(payload).map_err(memory_error)?.as_bytes())
+            }
+        };
         Ok(Some(VmAotHttpResponse {
             kind,
             status,
@@ -145,6 +153,18 @@ fn int_field(
             "error[execution_shard.http_response]: field {index} is not Int"
         )),
     }
+}
+
+fn string_reference(
+    aggregate: &crate::runtime::native_image::managed::ManagedAggregateView<'_>,
+    index: usize,
+) -> Result<TvmRef<ManagedString>, String> {
+    let ManagedFieldValue::Reference(value) = aggregate.field(index).map_err(memory_error)? else {
+        return Err(format!(
+            "error[execution_shard.http_response]: field {index} is not String"
+        ));
+    };
+    Ok(value.cast::<ManagedString>())
 }
 
 fn string_field(

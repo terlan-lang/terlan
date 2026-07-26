@@ -13,6 +13,10 @@ use super::{current_protocol_scheduler, VmProtocolOwnerWake};
 use crate::runtime::vm::process::VmProcessId;
 use crate::runtime::vm::scheduler_topology::VmSchedulerId;
 
+pub(super) fn render_io(operation: &'static str) -> impl FnOnce(io::Error) -> String {
+    move |error| format!("error[vm.protocol_io]: {operation}: {error}")
+}
+
 /// Immutable VM ownership retained for one socket task's whole lifetime.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct VmProtocolTaskRoute {

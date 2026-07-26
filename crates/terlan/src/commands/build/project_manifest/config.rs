@@ -1,10 +1,110 @@
 use std::path::Path;
 
+#[cfg(feature = "serve-runtime-bin")]
+use serde::Deserialize;
+
 use super::model::{
     ProjectServerProfile, ProjectServerTls, ProjectServerTlsMode, ProjectServerTlsProvider,
     ProjectWebAssets,
 };
 use super::strings::parse_string;
+
+#[cfg(feature = "serve-runtime-bin")]
+#[derive(Deserialize, Default)]
+struct RuntimeProjectManifest {
+    #[serde(default)]
+    server: RuntimeServerManifest,
+}
+
+#[cfg(feature = "serve-runtime-bin")]
+#[derive(Deserialize, Default)]
+struct RuntimeServerManifest {
+    tls: Option<RuntimeServerTls>,
+}
+
+#[cfg(feature = "serve-runtime-bin")]
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RuntimeServerTls {
+    mode: Option<String>,
+    domains: Option<Vec<String>>,
+    email: Option<String>,
+    primary_provider: Option<String>,
+    fallback_provider: Option<String>,
+    cert: Option<String>,
+    key: Option<String>,
+    passphrase_env: Option<String>,
+    ca: Option<String>,
+    server_name: Option<String>,
+    trust_local: Option<bool>,
+}
+
+/// Reads only runtime-owned TLS metadata from a project manifest.
+///
+/// The compiler-free serve binary must not retain the build parser or
+/// development-dependency graph merely to configure its transport.
+#[cfg(feature = "serve-runtime-bin")]
+pub(crate) fn read_runtime_server_tls(path: &Path) -> Result<Option<ProjectServerTls>, String> {
+    let source = std::fs::read_to_string(path)
+        .map_err(|error| format!("cannot read project manifest {}: {error}", path.display()))?;
+    let manifest: RuntimeProjectManifest = basic_toml::from_str(&source)
+        .map_err(|error| format!("cannot parse runtime TLS metadata: {error}"))?;
+    let Some(tls) = manifest.server.tls else {
+        return Ok(None);
+    };
+    ProjectServerTlsBuilder {
+        mode: tls
+            .mode
+            .as_deref()
+            .map(|mode| runtime_tls_mode(mode, path))
+            .transpose()?,
+        domains: tls.domains,
+        email: tls.email,
+        primary_provider: tls
+            .primary_provider
+            .as_deref()
+            .map(|provider| runtime_tls_provider(provider, path))
+            .transpose()?,
+        fallback_provider: tls
+            .fallback_provider
+            .as_deref()
+            .map(|provider| runtime_tls_provider(provider, path))
+            .transpose()?,
+        cert: tls.cert,
+        key: tls.key,
+        passphrase_env: tls.passphrase_env,
+        ca: tls.ca,
+        server_name: tls.server_name,
+        trust_local: tls.trust_local,
+    }
+    .finish(path)
+}
+
+#[cfg(feature = "serve-runtime-bin")]
+fn runtime_tls_mode(value: &str, path: &Path) -> Result<ProjectServerTlsMode, String> {
+    match value {
+        "auto" => Ok(ProjectServerTlsMode::Auto),
+        "manual" => Ok(ProjectServerTlsMode::Manual),
+        "internal" => Ok(ProjectServerTlsMode::Internal),
+        other => Err(format!(
+            "{}: unsupported [server.tls] mode `{other}`; supported modes: auto, manual, internal",
+            path.display()
+        )),
+    }
+}
+
+#[cfg(feature = "serve-runtime-bin")]
+fn runtime_tls_provider(value: &str, path: &Path) -> Result<ProjectServerTlsProvider, String> {
+    match value {
+        "letsencrypt" => Ok(ProjectServerTlsProvider::LetsEncrypt),
+        "zerossl" => Ok(ProjectServerTlsProvider::ZeroSsl),
+        other => Err(format!(
+            "{}: unsupported [server.tls] provider `{other}`; supported providers: letsencrypt, \
+             zerossl",
+            path.display()
+        )),
+    }
+}
 
 /// Incremental parser state for optional `[web.assets]`.
 ///

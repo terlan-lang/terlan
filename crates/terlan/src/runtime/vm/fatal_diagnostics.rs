@@ -314,11 +314,15 @@ fn process_state_labels(
     match state {
         VmProcessState::Runnable => ("runnable", None, None),
         VmProcessState::Blocked => ("blocked", None, None),
+        VmProcessState::Hibernated => ("hibernated", None, None),
         VmProcessState::Suspended(VmProcessResumeState::Runnable) => {
             ("suspended", Some("runnable"), None)
         }
         VmProcessState::Suspended(VmProcessResumeState::Blocked) => {
             ("suspended", Some("blocked"), None)
+        }
+        VmProcessState::Suspended(VmProcessResumeState::Hibernated) => {
+            ("suspended", Some("hibernated"), None)
         }
         VmProcessState::Exited(reason) => ("exited", None, Some(exit_reason_kind(reason))),
     }
@@ -362,3 +366,7 @@ fn partial_path(path: &Path, generation: u64) -> Result<PathBuf, String> {
 #[cfg(test)]
 #[path = "fatal_diagnostics_test.rs"]
 mod fatal_diagnostics_test;
+
+#[cfg(test)]
+#[path = "fatal_diagnostics_ignore_cores_parity_test.rs"]
+mod fatal_diagnostics_ignore_cores_parity_test;

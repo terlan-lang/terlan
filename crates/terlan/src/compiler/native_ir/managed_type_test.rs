@@ -128,10 +128,22 @@ fn managed_core_types_map_to_closed_pointer_width_native_kinds() {
     );
 
     let named = CoreType::Named("projection.Pair".to_owned());
-    let expected = SemanticTypeId::from_canonical(&named.contract_text()).expect("named semantic");
+    let named_expected =
+        SemanticTypeId::from_canonical(&named.contract_text()).expect("named semantic");
     assert_eq!(
         super::super::native_type(Some(&named), "projection.Pair"),
-        Some(NativeType::ManagedRef(expected))
+        Some(NativeType::ManagedRef(named_expected))
+    );
+
+    let structure = CoreType::Struct {
+        name: "projection.Pair".to_owned(),
+        fields: Vec::new(),
+    };
+    let struct_expected =
+        SemanticTypeId::from_canonical("projection.Pair").expect("struct semantic");
+    assert_eq!(
+        super::super::native_type(Some(&structure), "projection.Pair"),
+        Some(NativeType::ManagedRef(struct_expected))
     );
 }
 
@@ -210,6 +222,9 @@ fn managed_parameters_and_returns_emit_as_native_reference_slots() {
             name: "identity".to_owned(),
             public: true,
             arity: 1,
+            source_module: "ManagedIdentity".to_owned(),
+            source_function: "identity".to_owned(),
+            source_arity: 1,
             callable_captures: Vec::new(),
             params: vec![NativeType::StringRef],
             return_type: NativeType::StringRef,

@@ -1,3 +1,4 @@
+mod call_then;
 mod callables;
 mod dispatch;
 mod error;
@@ -45,9 +46,9 @@ use signature::native_signature;
 use suspension::{is_suspending, suspension_profile, suspension_value_count};
 use transition::{transition_flags, transition_status};
 
-const TRANSITION_ARGUMENT_COUNTS: (usize, usize, usize) = (2, 5, 3);
 const RUNTIME_ARGUMENT_COUNT: usize = 3;
 
+pub(crate) use suspension::suspension_profile as native_suspension_profile;
 pub(crate) use units::{
     emit_native_application_dispatch_object_with_policy, emit_native_module_object_with_policy,
     native_application_abi_fingerprint,
@@ -118,7 +119,13 @@ pub(crate) fn emit_native_application_object_with_policy(
             &function_suspending,
             &function_transition_counts,
             &managed_layouts,
-        )?;
+        )
+        .map_err(|error| {
+            format!(
+                "{error}; while defining `{}.{}` at application index {index}",
+                application_functions[index].0.name, function.name
+            )
+        })?;
         dispatch_functions.push((
             function.export_id,
             function.arity,
@@ -268,8 +275,9 @@ fn emit_suspending_body(
             callee_continuation_id,
             callee_capture_count,
             continuation_id,
+            completion_function,
             values,
-            resume,
+            ..
         } => {
             if !function_suspending.get(*function).copied().unwrap_or(false) {
                 return Err(format!(
@@ -324,15 +332,15 @@ fn emit_suspending_body(
                 .brif(succeeded, completed, &[], inspect_yield, &[]);
 
             builder.switch_to_block(completed);
-            let mut resume_params = params.to_vec();
-            resume_params.push(call_value);
-            emit_suspending_body(
+            call_then::return_from_synchronous_completion(
                 builder,
                 module,
-                resume,
-                &resume_params,
+                *completion_function,
+                values,
+                call_value,
+                params,
                 transition_pointer,
-                transition_len_pointer,
+                len_pointer,
                 function_ids,
                 function_suspending,
                 function_transition_counts,
@@ -360,39 +368,12 @@ fn emit_suspending_body(
             let actual_count = builder
                 .ins()
                 .load(types::I64, MemFlagsData::new(), len_pointer, 0);
-            let send_argument_count = builder.ins().uextend(types::I64, flags.sent);
-            let send_argument_count = builder
-                .ins()
-                .imul_imm(send_argument_count, TRANSITION_ARGUMENT_COUNTS.0 as i64);
-            let typed_send_argument_count = builder.ins().uextend(types::I64, flags.typed_sent);
-            let typed_send_argument_count = builder.ins().imul_imm(
-                typed_send_argument_count,
-                TRANSITION_ARGUMENT_COUNTS.1 as i64,
+            let expected_count = transition::expected_value_count(
+                builder,
+                &flags,
+                actual_count,
+                *callee_capture_count,
             );
-            let send_argument_count = builder
-                .ins()
-                .iadd(send_argument_count, typed_send_argument_count);
-            let one_argument_count = builder.ins().uextend(types::I64, flags.one_argument);
-            let typed_receive_argument_count =
-                builder.ins().uextend(types::I64, flags.typed_received);
-            let typed_receive_argument_count = builder.ins().imul_imm(
-                typed_receive_argument_count,
-                TRANSITION_ARGUMENT_COUNTS.2 as i64,
-            );
-            let transition_argument_count =
-                builder.ins().iadd(send_argument_count, one_argument_count);
-            let transition_argument_count = builder
-                .ins()
-                .iadd(transition_argument_count, typed_receive_argument_count);
-            let expected_count = builder
-                .ins()
-                .iadd_imm(transition_argument_count, *callee_capture_count as i64);
-            let injected_input_count = builder.ins().uextend(types::I64, flags.injected_input);
-            let expected_count = builder.ins().isub(expected_count, injected_input_count);
-            let expected_count =
-                builder
-                    .ins()
-                    .select(flags.capability, actual_count, expected_count);
             let unexpected_count =
                 builder
                     .ins()
@@ -477,11 +458,6 @@ fn emit_suspending_body(
             Ok(())
         }
         NativeExpr::TailCall { function, args } => {
-            if !function_suspending.get(*function).copied().unwrap_or(false) {
-                return Err(format!(
-                    "error[cranelift.tail_call]: native function {function} is not suspending"
-                ));
-            }
             let function_id = function_ids.get(*function).copied().ok_or_else(|| {
                 format!("error[cranelift.tail_call]: native function {function} is unavailable")
             })?;
@@ -509,9 +485,12 @@ fn emit_suspending_body(
                     "error[cranelift.tail_call]: transition buffer is unavailable".to_string()
                 })?);
             }
-            args.push(transition_len_pointer.ok_or_else(|| {
-                "error[cranelift.tail_call]: transition length output is unavailable".to_string()
-            })?);
+            if function_suspending.get(*function).copied().unwrap_or(false) {
+                args.push(transition_len_pointer.ok_or_else(|| {
+                    "error[cranelift.tail_call]: transition length output is unavailable"
+                        .to_string()
+                })?);
+            }
             let function_ref = declare_image_func_in_func(module, function_id, builder.func);
             let call = builder.ins().call(function_ref, &args);
             let results = builder.inst_results(call).to_vec();
@@ -587,6 +566,9 @@ fn emit_expr(
         NativeExpr::Int(value) => Ok(builder.ins().iconst(types::I64, *value)),
         NativeExpr::Float(value) => Ok(builder.ins().iconst(types::I64, *value as i64)),
         NativeExpr::Bool(value) => Ok(builder.ins().iconst(types::I64, i64::from(*value))),
+        NativeExpr::AtomLiteral(identity) => Ok(builder
+            .ins()
+            .iconst(types::I64, managed_layouts.atom_word(identity)?)),
         NativeExpr::StringLiteral { encoded } => managed::emit_managed_allocation(
             builder,
             module,
@@ -770,6 +752,28 @@ fn emit_expr(
             )?;
             let sign = builder.ins().iconst(types::I64, i64::MIN);
             Ok(builder.ins().bxor(operand, sign))
+        }
+        NativeExpr::FloatFloor(operand) | NativeExpr::FloatCeil(operand) => {
+            let value = emit_expr(
+                builder,
+                module,
+                operand,
+                params,
+                function_ids,
+                managed_layouts,
+                error_block,
+            )?;
+            let value = builder
+                .ins()
+                .bitcast(types::F64, MemFlagsData::new(), value);
+            let rounded = if matches!(expr, NativeExpr::FloatFloor(_)) {
+                builder.ins().floor(value)
+            } else {
+                builder.ins().ceil(value)
+            };
+            Ok(builder
+                .ins()
+                .bitcast(types::I64, MemFlagsData::new(), rounded))
         }
         NativeExpr::IntToFloat(operand) => {
             let operand = emit_expr(
@@ -971,6 +975,9 @@ fn emit_expr(
         NativeExpr::CallThen { .. } => Err(
             "error[cranelift.call_then]: suspending call continuation must terminate a native entry"
                 .to_string(),
+        ),
+        NativeExpr::ContinuationTailCall { .. } => Err(
+            "error[cranelift.continuation_sharing]: unresolved continuation call".to_string(),
         ),
     }
 }

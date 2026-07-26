@@ -24,6 +24,7 @@ mod response_bridge;
 mod route;
 mod sse;
 mod sse_invocation;
+mod suspendable;
 mod types;
 mod websocket;
 mod websocket_invocation;
@@ -57,6 +58,7 @@ pub(super) use sse::{
 };
 #[cfg(test)]
 pub(in crate::commands::serve) use sse_invocation::AotSseCallbackSession;
+pub(super) use suspendable::execute_suspendable_vm_handler_with_package_root_projected;
 pub(super) use types::{
     WebPackageErrorHandler, WebPackageFileResponse, WebPackageHandler, WebPackageSourceSpan,
     WebPackageSse, WebPackageStaticResponse, WebPackageWebSocket,

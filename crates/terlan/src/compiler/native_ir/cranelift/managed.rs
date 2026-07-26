@@ -1,6 +1,6 @@
 //! Managed-allocation lowering for direct-AOT native functions.
 
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 
 use cranelift_codegen::ir::{
@@ -15,6 +15,7 @@ use super::super::{status, NativeExpr, NativeModule};
 /// Aggregate descriptors admitted for one native object.
 pub(super) struct ManagedLayouts {
     encoded: HashSet<Arc<[u8]>>,
+    atom_words: HashMap<String, i64>,
 }
 
 impl ManagedLayouts {
@@ -32,8 +33,23 @@ impl ManagedLayouts {
                 collect_layouts(&continuation.body, &mut layouts);
             }
         }
+        let atom_words = natives
+            .iter()
+            .flat_map(|native| native.atoms.iter().cloned())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .enumerate()
+            .map(|(index, identity)| {
+                i64::try_from(index)
+                    .map(|index| (identity, index))
+                    .map_err(|_| {
+                        "error[cranelift.atom_table]: atom index exceeds native word".to_string()
+                    })
+            })
+            .collect::<Result<HashMap<_, _>, _>>()?;
         Ok(Self {
             encoded: layouts.into_iter().collect(),
+            atom_words,
         })
     }
 
@@ -41,6 +57,13 @@ impl ManagedLayouts {
     fn admit(&self, layout: &Arc<[u8]>) -> Result<(), String> {
         self.encoded.contains(layout).then_some(()).ok_or_else(|| {
             "error[cranelift.managed_layout]: constructor layout was not inventoried".to_string()
+        })
+    }
+
+    /// Resolves one semantic atom to the compact index of the emitted image.
+    pub(super) fn atom_word(&self, identity: &str) -> Result<i64, String> {
+        self.atom_words.get(identity).copied().ok_or_else(|| {
+            format!("error[cranelift.atom_literal]: atom `{identity}` was not inventoried")
         })
     }
 }
@@ -154,6 +177,7 @@ pub(super) fn emit_managed_allocation(
     builder.switch_to_block(next);
     let result = builder.ins().stack_load(types::I64, result_slot, 0);
     if crate::runtime::native_image::managed::managed_abi_result_is_reference(encoded_layout) {
+        builder.declare_value_needs_stack_map(result);
         let invalid_reference =
             builder
                 .ins()
@@ -193,7 +217,9 @@ fn collect_layouts(expr: &NativeExpr, layouts: &mut Vec<Arc<[u8]>>) {
                 .iter()
                 .for_each(|field| collect_layouts(field, layouts));
         }
-        NativeExpr::Call { args, .. } | NativeExpr::TailCall { args, .. } => args
+        NativeExpr::Call { args, .. }
+        | NativeExpr::TailCall { args, .. }
+        | NativeExpr::ContinuationTailCall { args, .. } => args
             .iter()
             .for_each(|argument| collect_layouts(argument, layouts)),
         NativeExpr::InvokeClosure { callee, args, .. } => {
@@ -201,19 +227,15 @@ fn collect_layouts(expr: &NativeExpr, layouts: &mut Vec<Arc<[u8]>>) {
             args.iter()
                 .for_each(|argument| collect_layouts(argument, layouts));
         }
-        NativeExpr::CallThen {
-            args,
-            values,
-            resume,
-            ..
-        } => {
+        NativeExpr::CallThen { args, values, .. } => {
             args.iter()
                 .chain(values)
                 .for_each(|value| collect_layouts(value, layouts));
-            collect_layouts(resume, layouts);
         }
         NativeExpr::Neg(value)
         | NativeExpr::FloatNeg(value)
+        | NativeExpr::FloatFloor(value)
+        | NativeExpr::FloatCeil(value)
         | NativeExpr::IntToFloat(value)
         | NativeExpr::Not(value) => collect_layouts(value, layouts),
         NativeExpr::Binary { left, right, .. } => {
@@ -253,6 +275,7 @@ fn collect_layouts(expr: &NativeExpr, layouts: &mut Vec<Arc<[u8]>>) {
         | NativeExpr::Int(_)
         | NativeExpr::Float(_)
         | NativeExpr::Bool(_)
+        | NativeExpr::AtomLiteral(_)
         | NativeExpr::Param(_) => {}
     }
 }

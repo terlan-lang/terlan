@@ -1,6 +1,5 @@
 //! Typed direct HTTP completion on a reusable fixed-owner actor.
 
-use crate::runtime::native::http::{RequestFieldProjection, RequestParts};
 use crate::runtime::vm::process::{VmExitReason, VmProcessId};
 use crate::runtime::vm::{ReplValue, VmHttpCallResult};
 
@@ -144,7 +143,7 @@ impl PureNativeExecutionShard {
             self.trace
                 .push(super::NativeShardDispatchEvent::Entry { owner });
             let mut context = super::PureNativeExecutionContext::new(owner, &mut self.execution);
-            let mut execution = self.boundary.begin_http_response_call_for_actor(
+            let mut execution = self.boundary.begin_admitted_http_response_call_for_actor(
                 &mut self.actors,
                 &mut context,
                 function,
@@ -171,55 +170,6 @@ impl PureNativeExecutionShard {
             let _ = self.finish_owner(
                 owner,
                 VmExitReason::Error("fixed-owner HTTP call failed".to_string()),
-            );
-        }
-        result
-    }
-
-    /// Runs a compiler-projected Request directly through the admitted
-    /// fixed-owner actor without first materializing a generic host aggregate.
-    pub(crate) fn call_on_admitted_fixed_owner_projected_http_request(
-        &mut self,
-        owner: VmProcessId,
-        function: &str,
-        request: RequestParts,
-        projection: RequestFieldProjection,
-    ) -> Result<VmHttpCallResult, String> {
-        debug_assert!(self.actors.is_alive(owner));
-        debug_assert!(self.supervisor.is_routable());
-        let result = (|| {
-            #[cfg(test)]
-            self.trace
-                .push(super::NativeShardDispatchEvent::Entry { owner });
-            let mut context = super::PureNativeExecutionContext::new(owner, &mut self.execution);
-            let mut execution = self.boundary.begin_projected_http_request_call_for_actor(
-                &mut self.actors,
-                &mut context,
-                function,
-                request,
-                projection,
-            )?;
-            self.record_completion(owner, &execution);
-            loop {
-                execution = match execution {
-                    PureNativeExecution::Complete(value) => {
-                        self.reset_owner_heap(owner)?;
-                        return Ok(VmHttpCallResult::Generic(value));
-                    }
-                    PureNativeExecution::HttpResponse(response) => {
-                        self.reset_owner_heap(owner)?;
-                        return Ok(VmHttpCallResult::Response(response));
-                    }
-                    PureNativeExecution::Suspended(suspension) => {
-                        self.resume_call(owner, suspension)?
-                    }
-                };
-            }
-        })();
-        if result.is_err() && self.actors.is_alive(owner) {
-            let _ = self.finish_owner(
-                owner,
-                VmExitReason::Error("fixed-owner projected HTTP call failed".to_string()),
             );
         }
         result

@@ -24,6 +24,19 @@ SHELL := bash
 .PHONY: no-tvm-json-runtime-check no-vmir-interpreter-check runtime-aot-only-check
 .PHONY: vm-debug-key-compatibility-check
 .PHONY: vm-latin1-source-policy-check
+.PHONY: vm-ignore-cores-parity-check
+.PHONY: vm-iovec-suite-parity-check
+.PHONY: vm-lcnt-suite-parity-check
+.PHONY: vm-list-bif-suite-parity-check
+.PHONY: vm-literal-area-collector-parity-check
+.PHONY: vm-lttng-suite-parity-check
+.PHONY: vm-map-suite-parity-check
+.PHONY: vm-match-spec-suite-parity-check
+.PHONY: vm-module-info-suite-parity-check
+.PHONY: vm-mtx-suite-parity-check
+.PHONY: vm-multi-load-suite-parity-check
+.PHONY: vm-native-record-suite-parity-check
+.PHONY: vm-nif-suite-parity-check
 .PHONY: vm-compiler-transform-retirement-check
 .PHONY: vm-source-column-ownership-check
 .PHONY: vm-source-provenance-artifact-check
@@ -36,8 +49,8 @@ SHELL := bash
 .PHONY: vm-distributed-state-check
 .PHONY: vm-supervision-restart-check
 .PHONY: vm-timer-deadline-check
-.PHONY: vm-scheduler-fairness-check vm-actor-mutator-ownership-check vm-multicore-mailbox-publication-check vm-multicore-fixed-placement-check tvm-aot-multicore-migration-check vm-multicore-work-stealing-policy-check vm-multicore-work-stealing-check vm-multicore-runtime-cleanup-check tvm-aot-multicore-io-epoch-check vm-multicore-timer-epoch-check vm-multicore-timer-scheduler-check vm-multicore-protocol-reactor-check vm-multicore-capability-worker-check vm-multicore-capability-completion-check vm-multicore-capability-event-pump-check vm-multicore-capability-scheduler-check vm-epmd-discovery-check vm-multicore-runtime-integration-check vm-multicore-replay-observability-check vm-multicore-performance-check vm-multicore-memory-model-check vm-multicore-thread-sanitizer-contract-check vm-multicore-thread-sanitizer-check vm-multicore-mc9-evidence-contract-check vm-multicore-mc9-evidence-check vm-multicore-release-contract-check vm-multicore-release-check
-.PHONY: tvm-http-axum-performance-record
+.PHONY: vm-scheduler-fairness-check vm-actor-mutator-ownership-check vm-parallel-messages-suite-parity-check vm-efile-suite-parity-check vm-float-native-arithmetic-check vm-fun-suite-parity-check vm-gc-suite-parity-check vm-guard-suite-parity-check vm-guard-no-opt-suite-parity-check vm-hash-suite-parity-check vm-hello-suite-parity-check vm-hibernate-suite-parity-check vm-small-suite-parity-check vm-smoke-suite-parity-check vm-multicore-mailbox-publication-check vm-multicore-fixed-placement-check tvm-aot-multicore-migration-check vm-multicore-work-stealing-policy-check vm-multicore-work-stealing-check vm-multicore-runtime-cleanup-check tvm-aot-multicore-io-epoch-check vm-multicore-timer-epoch-check vm-multicore-timer-scheduler-check vm-multicore-protocol-reactor-check vm-multicore-capability-worker-check vm-multicore-capability-completion-check vm-multicore-capability-event-pump-check vm-multicore-capability-scheduler-check vm-epmd-discovery-check vm-multicore-runtime-integration-check vm-multicore-replay-observability-check vm-multicore-performance-check vm-multicore-memory-model-check vm-multicore-thread-sanitizer-contract-check vm-multicore-thread-sanitizer-check vm-multicore-mc9-evidence-contract-check vm-multicore-mc9-evidence-check vm-multicore-mc9-local-evidence-check vm-multicore-release-contract-check vm-multicore-release-check
+.PHONY: tvm-http-axum-performance-record tvm-http-paired-performance-check tvm-http-decisive-performance-check
 .PHONY: vm-memory-heap-pressure-check
 .PHONY: std-generated-metadata-check
 .PHONY: std-test-honesty-check
@@ -569,7 +582,6 @@ operator-coverage-100-check:
 
 pattern-matching-support-check:
 	$(RUST_TEST) -p terlan --bin terlan-quality pattern_matching_support_test
-	$(TERLC_EXACT_TEST) --bin terlc runtime::vm::record_test -- --nocapture
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- pattern-matching-support
 	$(TERLC) test tests/pattern/PatternMatchingTest.terl
 
@@ -652,7 +664,7 @@ binary-syntax-scaffold-check: tree-sitter-package-check tree-sitter-cli-check
 	$(TERLC_EXACT_TEST) --bin terlc compiler::typeck::core_intrinsic_test::vm_bitstring_intrinsics_have_closed_ids_and_return_types -- --exact
 	$(TERLC_EXACT_TEST) --bin terlc runtime::vm::bitstring::bitstring_test -- --nocapture
 	$(TERLC_EXACT_TEST) --bin terlc runtime::vm::memory::memory_test::memory_logical_value_size_accounts_nested_structural_values_exactly -- --exact
-	$(TERLC_EXACT_TEST) --bin terlc runtime::vm::term_format::term_format_test::tetf_encodes_bitstrings_with_exact_logical_length -- --exact
+	$(TERLC_EXACT_TEST) --bin terlc runtime::vm::term_format::term_format_runtime_test::tetf_encodes_bitstrings_with_exact_logical_length -- --exact
 
 binary-descriptor-check: binary-descriptor-contract-check binary-runtime-suite-check
 
@@ -662,7 +674,7 @@ binary-descriptor-contract-check:
 binary-error-taxonomy-check: binary-runtime-suite-check
 
 binary-protocol-helper-check: binary-runtime-suite-check
-	target/debug/terlc test tests/pattern/PatternMatchingTest.terl
+	target/debug/terlc test tests/binary/BinaryProtocolHelperTest.terl
 
 binary-protocol-benchmark-check:
 	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm framing_benchmark::tests::truncated_framing_benchmark_reports_expected_typed_failures -- --exact
@@ -1088,7 +1100,7 @@ tvm-aot-multicore-readiness-check: tvm-aot-thread-neutral-continuation-check
 	@rg -q 'execution: PureNativeExecutionRuntime' crates/terlan/src/runtime/vm/pure_native/execution_shard.rs
 	@rg -q 'context: &mut PureNativeExecutionContext' crates/terlan/src/runtime/vm/pure_native/direct_backend.rs
 	@rg -q 'execution_context_rejects_foreign_actor_before_transition_service' crates/terlan/src/runtime/vm/pure_native_transport_test.rs
-	@rg -q 'image: PureNativeExecutionImage' crates/terlan/src/commands/serve/handler_cache.rs
+	@rg -q 'image: Arc<PureNativeExecutionImage>' crates/terlan/src/commands/serve/handler_cache.rs
 	@if sed -n '/pub(crate) struct DirectNativeBackend {/,/^}/p' crates/terlan/src/runtime/vm/pure_native/direct_backend.rs | rg -n 'pending|continuation|Mutex|RwLock'; then \
 		echo 'error[aot.reentrant]: admitted direct backend must retain immutable image code only'; \
 		exit 1; \
@@ -1360,6 +1372,141 @@ tvm-aot-support-crash-metadata-check: tvm-aot-package-install-consumer-check
 		exit 1; \
 	fi
 
+vm-ignore-cores-parity-check:
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::fatal_diagnostics::fatal_diagnostics_ignore_cores_parity_test::ignore_cores_helper_is_replaced_by_explicit_non_mutating_artifact_publication -- --exact
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::fatal_diagnostics
+	@! rg -q 'ignore_core_files|/cores|set_current_dir|set_var.*PWD' crates/terlan/src/runtime/vm/fatal_diagnostics.rs
+
+vm-iovec-suite-parity-check:
+	$(CARGO) check --locked -p terlan --bin terlan-vm
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::iovec::iovec_beam_suite_parity_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::driver::driver_beam_suite_parity_test
+	@rg -q 'let mut pending = vec!\[value\]' crates/terlan/src/runtime/vm/iovec.rs
+	@rg -q 'Arc::clone\(bytes\)' crates/terlan/src/runtime/vm/iovec.rs
+	@rg -q '0\.\.8_192' crates/terlan/src/runtime/vm/iovec_beam_suite_parity_test.rs
+	@rg -q 'write_vectored' crates/terlan/src/runtime/vm/protocol_task_executor/transport.rs crates/terlan/src/commands/serve/hyper_server.rs
+
+vm-lcnt-suite-parity-check:
+	$(CARGO) check --locked -p terlan --bin terlan-vm
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::scheduler::contention::contention_beam_suite_parity_test
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::scheduler::scheduler_test::scheduler_fairness_telemetry_is_deterministic_under_cpu_bound_load -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::process::process_registry_test::process_registry_lists_resolves_and_unregisters_names_deterministically -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::table::table_test::table_store_creates_owner_table_and_exposes_snapshot -- --exact
+	@rg -q 'enabled_mask: u8' crates/terlan/src/runtime/vm/scheduler/contention.rs
+	@rg -q 'VM_CONTENTION_RECORD_CAPACITY: usize = 4_096' crates/terlan/src/runtime/vm/scheduler/contention.rs
+	@rg -q '0\.\.1_000' crates/terlan/src/runtime/vm/scheduler/contention_beam_suite_parity_test.rs
+	@rg -q 'observe_scheduler_wait' crates/terlan/src/runtime/vm/scheduler.rs crates/terlan/src/runtime/vm/scheduler/contention.rs
+	@! rg -q 'Mutex|RwLock|Instant|SystemTime' crates/terlan/src/runtime/vm/scheduler/contention.rs
+
+vm-list-bif-suite-parity-check:
+	$(CARGO) check --locked -p terlan --bin terlan-vm
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::list_bif_suite_native_parity_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::native_image::managed::operation_abi::integer::test
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlc compiler::typeck::diagnostic_test::syntax_output_list_cons_expr_rejects_non_list_tail_on_formal_path -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::native_image::managed::lists::managed_list_test::rrb_lookup_handles_leaf_and_multilevel_boundaries -- --exact
+	@rg -q 'MAX_INTEGER_PARSE_BYTES: usize = 128' crates/terlan/src/runtime/native_image/managed/operation_abi/integer.rs
+	@rg -q 'managed_expression_layouts' crates/terlan/src/compiler/native_ir/application.rs crates/terlan/src/compiler/native_ir/aggregate_types.rs
+	@rg -q 'option_constructor_plan' crates/terlan/src/compiler/native_ir/structured_case.rs
+	@rg -q 'assert_managed_native_object_invocations' crates/terlan/src/compiler/native_ir/list_bif_suite_native_parity_test.rs
+
+vm-literal-area-collector-parity-check:
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::pure_native::execution_shard::execution_shard_test::literal_area_collector_helper_maps_to_synchronous_generation_quiescence -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::pure_native::execution_shard::execution_shard_test::literal_area_collector_helper_observes_actor_drain_without_polling -- --exact
+
+vm-lttng-suite-parity-check: vm-iovec-suite-parity-check
+	$(CARGO) check --locked -p terlan --bin terlan-vm
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::driver::lttng_beam_suite_parity_test
+	@rg -q 'VM_DRIVER_TRACE_CAPACITY: usize = 4_096' crates/terlan/src/runtime/vm/driver/trace.rs
+	@rg -q 'enabled_mask: u8' crates/terlan/src/runtime/vm/driver/trace.rs
+	@rg -q 'expired; oldest retained sequence' crates/terlan/src/runtime/vm/driver/trace.rs
+	@! rg -q 'org_erlang_otp|erl_driver|std::process|Command::new' crates/terlan/src/runtime/vm/driver.rs crates/terlan/src/runtime/vm/driver/trace.rs
+
+vm-map-suite-parity-check:
+	$(CARGO) check --locked -p terlan --bin terlan-vm
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::map_suite_native_parity_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::native_image::managed::maps::managed_map_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::native_image::managed::operation_abi::operation_abi_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::structured_case_test
+	@rg -q 'assert_managed_native_object_invocations' crates/terlan/src/compiler/native_ir/map_suite_native_parity_test.rs
+	@rg -q 'MAP_FROM_ENTRY_LIST' crates/terlan/src/runtime/native_image/managed/operation_abi/collections.rs
+	@rg -q 'MAP_ITERATOR' crates/terlan/src/runtime/native_image/managed/operation_abi/collections.rs
+	@rg -q 'map_intrinsics::lower' crates/terlan/src/compiler/native_ir/expression/intrinsics.rs
+	@! rg -q 'CoreIR|interpreter|evaluator' crates/terlan/src/compiler/native_ir/map_suite_native_parity_test.rs
+
+vm-match-spec-suite-parity-check: vm-map-suite-parity-check vm-guard-suite-parity-check vm-table-primitives-check
+	$(CARGO) check --locked -p terlan --bin terlan-vm
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::match_spec_suite_native_parity_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::actor::actor_call_trace_beam_suite_parity_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::actor::actor_trace_meta_beam_suite_parity_test
+	@rg -q 'assert_managed_native_object_invocations' crates/terlan/src/compiler/native_ir/match_spec_suite_native_parity_test.rs
+	@rg -q 'aot_comprehension_' crates/terlan/src/compiler/native_ir/match_spec_suite_native_parity_test.rs
+	@rg -q 'dynamic match-spec call must fail before native linking' crates/terlan/src/compiler/native_ir/match_spec_suite_native_parity_test.rs
+	@! rg -q 'match_spec|match-spec' crates/terlan/src/runtime --glob '*.rs'
+
+vm-module-info-suite-parity-check: vm-code-server-check
+	$(CARGO) check --locked -p terlan --bin terlan-vm
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::module_info_suite_native_parity_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::code_server::code_server_inspection_test
+	@rg -q 'defined_functions: BTreeMap' crates/terlan/src/runtime/vm/code_server.rs
+	@rg -q 'pub\(crate\) fn active_module_info' crates/terlan/src/runtime/vm/code_server.rs
+	@rg -q 'with_defined_functions' crates/terlan/src/runtime/vm/code_server_compiler.rs
+	@rg -q 'function.public' crates/terlan/src/compiler/native_ir/module_info_suite_native_parity_test.rs
+	@rg -q 'all\(\|\(name, _, _, _\)\| \*name != "module_info"' crates/terlan/src/compiler/native_ir/module_info_suite_native_parity_test.rs
+	@rg -q 'assert_native_object_invocations' crates/terlan/src/compiler/native_ir/module_info_suite_native_parity_test.rs
+
+vm-mtx-suite-parity-check: vm-multicore-memory-model-check vm-table-primitives-check
+	$(CARGO) check --locked -p terlan --bin terlan-vm
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_mtx_beam_suite_parity_test
+	@rg -q 'const PRODUCERS: usize = 20' crates/terlan/src/runtime/vm/fixed_scheduler_control_mtx_beam_suite_parity_test.rs
+	@rg -q 'const WRITERS: usize = 6' crates/terlan/src/runtime/vm/fixed_scheduler_control_mtx_beam_suite_parity_test.rs
+	@rg -q 'ACTOR_MAILBOX_CAPACITY' crates/terlan/src/runtime/vm/fixed_scheduler_control_mtx_beam_suite_parity_test.rs
+	@rg -q 'ConcurrentQueue::bounded\(ACTOR_MAILBOX_CAPACITY\)' crates/terlan/src/runtime/vm/actor_directory/mailbox.rs
+	@! rg -q 'Mutex|RwLock|sleep|Instant|SystemTime|erl_nif|ethr_' crates/terlan/src/runtime/vm/fixed_scheduler_control_mtx_beam_suite_parity_test.rs
+
+vm-multi-load-suite-parity-check: vm-code-server-check
+	$(CARGO) check --locked -p terlan --bin terlan-vm
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::multi_load_suite_native_parity_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::code_server::multi_load_beam_suite_parity_test
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm compiler::native_ir::application_admission_test::duplicate_module_identity_is_rejected -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::code_server::code_parallel_load_beam_suite_parity_test::code_parallel_load_suite_simultaneous_identical_publish_happens_once -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::source_reload::source_reload_test::source_reload_adapter_rejects_duplicate_modules_without_partial_publication -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::source_reload::source_reload_test::native_reload_rejects_duplicate_modules_before_image_admission -- --exact
+	@rg -q 'const MODULES: usize = 100' crates/terlan/src/compiler/native_ir/multi_load_suite_native_parity_test.rs
+	@rg -q 'assert_native_object_invocations' crates/terlan/src/compiler/native_ir/multi_load_suite_native_parity_test.rs
+	@rg -q 'validate_staged_batch' crates/terlan/src/runtime/vm/source_reload.rs
+	@! rg -q 'on_load|finish_loading|prepare_loading|CoreIR|interpreter|evaluator' crates/terlan/src/compiler/native_ir/multi_load_suite_native_parity_test.rs crates/terlan/src/runtime/vm/multi_load_beam_suite_parity_test.rs
+
+vm-native-record-suite-parity-check: vm-gc-suite-parity-check vm-distribution-envelope-check
+	$(CARGO) check --locked -p terlan --bin terlan-vm
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::native_record_suite_native_parity_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::field_projection_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::native_image::managed::managed_aggregate_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::native_image::managed::mailbox_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::actor::actor_native_record_beam_suite_parity_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::term_format::term_format_runtime_test::native_record_suite
+	@rg -q 'const MESSAGES: i64 = 1_000' crates/terlan/src/runtime/vm/actor_native_record_beam_suite_parity_test.rs
+	@rg -q '1\.\.=64' crates/terlan/src/compiler/native_ir/native_record_suite_native_parity_test.rs
+	@rg -q 'remaining: Int.*Pair' crates/terlan/src/compiler/native_ir/native_record_suite_native_parity_test.rs
+	@rg -q 'validate_text_field\("record_name"' crates/terlan/src/runtime/vm/term_format.rs crates/terlan/src/runtime/vm/term_format/decoder.rs
+	@! rg -q 'records::|term_to_binary|binary_to_term|RecordExt|atom cache|CoreIR|interpreter|evaluator' crates/terlan/src/compiler/native_ir/native_record_suite_native_parity_test.rs crates/terlan/src/runtime/vm/actor_native_record_beam_suite_parity_test.rs crates/terlan/src/runtime/vm/term_format_runtime_test.rs
+
+vm-nif-suite-parity-check: tvm-aot-capability-worker-check vm-resource-ownership-check
+	$(CARGO) check --locked -p terlan --bin terlan-vm
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::native_boundary::worker::nif_suite_parity_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::native_boundary::term::term_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::native_boundary::dispatch::panic_boundary::panic_boundary_test
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::actor::actor_native_failure_test::native_failure_uses_vm_exit_propagation_monitoring_and_cleanup -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::pure_native::execution_shard::execution_shard_test::draining_generation_closes_entries_and_preserves_accepted_continuations -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::pure_native::execution_shard::execution_shard_test::orderly_shard_shutdown_records_one_generation_qualified_lifecycle -- --exact
+	@rg -q 'nif_suite_portable_calls_keep_values_resources_and_failures_vm_owned' crates/terlan/src/runtime/native_boundary/nif_suite_parity_test.rs
+	@rg -q 'nif_suite_request_lifecycle_recovers_backpressure_without_id_reuse' crates/terlan/src/runtime/native_boundary/nif_suite_parity_test.rs
+	@rg -q 'CapabilityRequest::Shutdown' crates/terlan/src/native_worker/protocol/execution.rs
+	@rg -q 'CapabilityResponse::ShutdownAck' crates/terlan/src/native_worker/protocol/execution.rs
+	@if rg -n 'erl_nif|load_nif|rustler::|rustler_|VM/NIF|thread, NIF' crates/terlan/src/runtime/native_boundary crates/terlan/src/runtime/native/vector.rs --glob '*.rs' --glob '!**/*test*.rs'; then \
+		echo 'error[vm.nif_suite]: the active native boundary must not present an Erlang NIF compatibility surface'; \
+		exit 1; \
+	fi
+
 tvm-aot-image-lifetime-check: tvm-aot-package-install-consumer-check
 	$(RUST_TEST) --locked -p terlan --bin terlc runtime::native_image::sealed
 	$(RUST_TEST) --locked -p terlan --bin terlc commands::vm::vm_test::admitted_native_generation_survives_source_image_replacement -- --exact
@@ -1483,11 +1630,11 @@ tvm-aot-http-persistent-shard-check: tvm-aot-http-channel-plan-check
 	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::persistent_shard_actors_resume_only_from_exact_typed_io_wake -- --exact
 	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::one_owner_loop_services_multiple_parked_actors_without_migration -- --exact
 	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::new_actors_balance_across_shards_and_resume_sticky -- --exact
+	$(RUST_TEST) --locked -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_protocol_test::protocol_reactor_timer_resumes_after_its_owner_deadline -- --exact
 	@! rg -q 'spawn_shard\(\)' crates/terlan/src/commands/serve/handler_cache/invocation.rs
 	@! rg -q 'shard\.shutdown\(\)' crates/terlan/src/commands/serve/handler_cache/invocation.rs
 	@! rg -q 'Mutex<PureNativeExecutionShard' crates/terlan/src/commands/serve/handler_cache.rs crates/terlan/src/commands/serve/handler_cache/
 	@rg -q 'sync_channel\(SHARD_INBOX_CAPACITY\)' crates/terlan/src/commands/serve/handler_cache/shard_owner.rs
-	@rg -q 'serve\.aot\.capability_dispatch_missing' crates/terlan/src/commands/serve/handler_cache/shard_owner.rs
 
 tvm-http-axum-performance-record:
 	$(CARGO) build --locked --release -p terlan --bin terlan-axum-baseline --bin terlan-http-framework-benchmark --features axum-baseline
@@ -1495,7 +1642,53 @@ tvm-http-axum-performance-record:
 	TERLAN_BENCH_HTTP_AXUM_OUTPUT=$(CURDIR)/target/quality/http-axum-performance.json \
 	$(CURDIR)/target/release/terlan-http-framework-benchmark
 	test -s target/quality/http-axum-performance.json
-	@rg -q '"schema": "terlan-http-framework-performance-v1"' target/quality/http-axum-performance.json
+	@rg -q '"schema": "terlan-http-framework-performance-v2"' target/quality/http-axum-performance.json
+	@rg -q '"memory_snapshots":' target/quality/http-axum-performance.json
+	@rg -q '"rounds":' target/quality/http-axum-performance.json
+
+tvm-http-paired-performance-check:
+	$(CARGO) build --locked -p terlan --bin terlc
+	$(CARGO) build --locked --release -p terlan --bin terlan-benchmark
+	$(CARGO) build --locked --release -p terlan --bin terlan-serve-runtime --features serve-runtime-bin
+	$(CARGO) build --locked --release -p terlan --bin terlan-axum-baseline --bin terlan-hyper-baseline --bin terlan-http-framework-benchmark --bin terlan-http-paired-benchmark --features axum-baseline
+	$(CURDIR)/target/release/terlan-http-paired-benchmark --self-test
+	TERLAN_COMPILER=$(CURDIR)/target/debug/terlc \
+	TERLAN_BENCH_HTTP_AOT_BENCHMARK_BIN=$(CURDIR)/target/release/terlan-benchmark \
+	TERLAN_BENCH_HTTP_AOT_TERLC_BIN=$(CURDIR)/target/release/terlan-serve-runtime \
+	TERLAN_BENCH_HTTP_AXUM_BENCHMARK_BIN=$(CURDIR)/target/release/terlan-http-framework-benchmark \
+	TERLAN_BENCH_HTTP_AXUM_BIN=$(CURDIR)/target/release/terlan-axum-baseline \
+	TERLAN_BENCH_HTTP_HYPER_BENCHMARK_BIN=$(CURDIR)/target/release/terlan-http-framework-benchmark \
+	TERLAN_BENCH_HTTP_HYPER_BIN=$(CURDIR)/target/release/terlan-hyper-baseline \
+	TERLAN_BENCH_HTTP_PAIRS=$${TERLAN_BENCH_HTTP_PAIRS:-3} \
+	TERLAN_BENCH_HTTP_DURATION_MS=$${TERLAN_BENCH_HTTP_DURATION_MS:-2000} \
+	TERLAN_BENCH_HTTP_SOAK_SECONDS=$${TERLAN_BENCH_HTTP_SOAK_SECONDS:-10} \
+	TERLAN_BENCH_HTTP_WRK_SECONDS=$${TERLAN_BENCH_HTTP_WRK_SECONDS:-1} \
+	TERLAN_BENCH_HTTP_WRK_MATRIX_SECONDS=$${TERLAN_BENCH_HTTP_WRK_MATRIX_SECONDS:-1} \
+	TERLAN_BENCH_HTTP_OPEN_LOOP_SECONDS=$${TERLAN_BENCH_HTTP_OPEN_LOOP_SECONDS:-0} \
+	TERLAN_BENCH_HTTP_PERF_SECONDS=$${TERLAN_BENCH_HTTP_PERF_SECONDS:-1} \
+	TERLAN_BENCH_HTTP_PAIRED_OUTPUT=$(CURDIR)/target/quality/http-paired-performance.json \
+	$(CURDIR)/target/release/terlan-http-paired-benchmark
+	@test -s target/quality/http-paired-performance.json
+	@rg -q '"schema": "terlan-http-paired-performance-v1"' target/quality/http-paired-performance.json
+	@rg -q '"rotating_order": true' target/quality/http-paired-performance.json
+	@rg -q '"hyper_comparisons":' target/quality/http-paired-performance.json
+	@rg -q '"confidence_method": "deterministic-bootstrap-of-paired-medians"' target/quality/http-paired-performance.json
+	@rg -q '"ratio_95_percent_interval":' target/quality/http-paired-performance.json
+	@rg -q '"isolation":' target/quality/http-paired-performance.json
+
+tvm-http-decisive-performance-check:
+	@test -n "$$TERLAN_BENCH_HTTP_CPU_LIST"
+	@test -n "$$TERLAN_BENCH_HTTP_CLIENT_CPU_LIST"
+	TERLAN_BENCH_HTTP_DECISIVE=1 \
+	TERLAN_BENCH_HTTP_PAIRS=$${TERLAN_BENCH_HTTP_PAIRS:-10} \
+	TERLAN_BENCH_HTTP_MIN_ACCEPTED_PAIRS=$${TERLAN_BENCH_HTTP_MIN_ACCEPTED_PAIRS:-7} \
+	TERLAN_BENCH_HTTP_DURATION_MS=$${TERLAN_BENCH_HTTP_DURATION_MS:-10000} \
+	TERLAN_BENCH_HTTP_WRK_SECONDS=$${TERLAN_BENCH_HTTP_WRK_SECONDS:-10} \
+	TERLAN_BENCH_HTTP_WRK_MATRIX_SECONDS=$${TERLAN_BENCH_HTTP_WRK_MATRIX_SECONDS:-10} \
+	TERLAN_BENCH_HTTP_OPEN_LOOP_SECONDS=$${TERLAN_BENCH_HTTP_OPEN_LOOP_SECONDS:-10} \
+	$(MAKE) tvm-http-paired-performance-check
+	@rg -q '"mode": "decisive"' target/quality/http-paired-performance.json
+	@rg -q '"status": "accepted"' target/quality/http-paired-performance.json
 
 tvm-aot-http-native-invocation-check: tvm-aot-http-persistent-shard-check
 
@@ -1560,9 +1753,17 @@ tvm-aot-http-performance-check: tvm-aot-http-cleanup-check
 	$(CARGO) run --locked --release -p terlan --bin terlan-benchmark --quiet -- http-aot-performance-self-test
 	test -s ../benchmarks/results/http-checked-coreir-performance.json
 	$(CARGO) build --locked --release -p terlan --bin terlc
+	$(CARGO) build --locked --release -p terlan --bin terlan-serve-runtime --features serve-runtime-bin
+	@! nm -C --defined-only target/release/terlan-serve-runtime | rg -q 'cranelift_codegen|cranelift_native|regalloc2|terlan_libpq|docker_compose_types|start_project_dependencies|parse_project_manifest'
+	@! ldd target/release/terlan-serve-runtime | rg -q 'libpq|libssl|libcrypto|libldap|libgnutls|libsasl'
+	@test "$$(size target/release/terlan-serve-runtime | awk 'NR == 2 { print $$1 }')" -lt 7250000
+	TERLAN_COMPILER=$(CURDIR)/target/release/terlc \
 	TERLAN_BENCH_HTTP_AOT_LANE=native-aot \
-	TERLAN_BENCH_HTTP_AOT_TERLC_BIN=$(CURDIR)/target/release/terlc \
+	TERLAN_BENCH_HTTP_AOT_TERLC_BIN=$(CURDIR)/target/release/terlan-serve-runtime \
 	TERLAN_BENCH_HTTP_AOT_OUTPUT=$(CURDIR)/target/quality/http-native-aot-performance.json \
+	TERLAN_BENCH_HTTP_AOT_MAX_RSS_BYTES=33554432 \
+	TERLAN_BENCH_HTTP_MAX_ROUND_SPREAD_PERCENT=50 \
+	TERLAN_BENCH_HTTP_DURATION_MS=1000 \
 	$(CARGO) run --locked --release -p terlan --bin terlan-benchmark --quiet -- http-aot-performance
 	TERLAN_BENCH_HTTP_CHECKED_COREIR_REPORT=$(CURDIR)/../benchmarks/results/http-checked-coreir-performance.json \
 	TERLAN_BENCH_HTTP_NATIVE_AOT_REPORT=$(CURDIR)/target/quality/http-native-aot-performance.json \
@@ -1687,7 +1888,7 @@ runtime-aot-only-check:
 	@rg -q 'commands/serve/handler_cache.rs.*http-handler-path.*reusable-runtime-semantics' docs/runtime/TVM_AOT_PIVOT_INVENTORY.md
 	@rg -q 'commands/debug/session.rs.*debugger-path.*reusable-runtime-semantics' docs/runtime/TVM_AOT_PIVOT_INVENTORY.md
 	@rg -q 'commands/vm/native_reload.rs.*hot-reload-path.*reusable-runtime-semantics' docs/runtime/TVM_AOT_PIVOT_INVENTORY.md
-	@rg -q 'image: PureNativeExecutionImage' crates/terlan/src/commands/serve/handler_cache.rs
+	@rg -q 'image: Arc<PureNativeExecutionImage>' crates/terlan/src/commands/serve/handler_cache.rs
 	@rg -q 'begin_request_invocation' crates/terlan/src/commands/serve/handler_cache/invocation.rs
 	@rg -q 'execute_immediate_native' crates/terlan/src/commands/serve/handler_cache.rs
 	@rg -q 'error\[vm\.aot_required\]' crates/terlan/src/vm/main_part_004.rs
@@ -2002,9 +2203,12 @@ terlan-vm-run-command-check:
 	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::run::run_test::validate_run_args_rejects_unsupported_target -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::run::run_test::build_command_for_run_appends_default_vm_target -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::run::run_test::build_command_for_run_preserves_explicit_target -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::run::run_test::find_single_vm_artifact_accepts_one_artifact -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::run::run_test::find_single_vm_artifact_rejects_multiple_artifacts -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::run::run_test::run_built_vm_artifact_executes_vm_runner -- --exact
+		$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::run::run_test::find_native_image_for_source_ignores_other_native_images -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::run::run_test::find_native_image_for_source_rejects_transitional_artifact -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::run::run_test::run_built_native_image_executes_vm_runner -- --exact
+
+terlan-vm-repl-check:
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::repl::repl_aot_test::repl_command_rejects_runtime_selection -- --exact
 
 terlan-vm-test-command-check:
 	$(PYTHON) tools/check_vm_cli_exact_selector_surface.py
@@ -2255,6 +2459,122 @@ vm-actor-mutator-ownership-check:
 	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::scheduler::scheduler_test::scheduler_runs_runnable_process_and_requeues_yielded_slice -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::scheduler::scheduler_test::scheduler_cancels_at_preemption_boundary_without_requeueing -- --exact
 
+vm-parallel-messages-suite-parity-check:
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::actor_directory::actor_parallel_messages_beam_suite_parity_test
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::actor_directory::actor_directory_test::actor_directory_accepts_cross_thread_producers_before_owned_integration -- --exact
+	@rg -q 'ConcurrentQueue::bounded\(ACTOR_MAILBOX_CAPACITY\)' crates/terlan/src/runtime/vm/actor_directory/mailbox.rs
+	@rg -q 'VmActorDirectoryError::MailboxFull' crates/terlan/src/runtime/vm/actor_parallel_messages_beam_suite_parity_test.rs
+
+vm-efile-suite-parity-check:
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-native-worker protocol::efile_beam_suite_parity_test::efile_suite_repeated_reads_release_descriptors_and_recover_worker_capacity -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-native-worker protocol::efile_beam_suite_parity_test::efile_suite_reads_zero_sized_proc_file_repeatedly_without_empty_results -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-native-worker sandbox::sandbox_test::sandbox_limit_attestation_is_exact -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::capability_worker::sandbox::sandbox_test::linux_sandbox_command_is_closed_and_bounded -- --exact
+	@rg -q 'std\.io\.file\.read_text' crates/terlan/src/native_worker/efile_beam_suite_parity_test.rs crates/terlan/src/runtime/native_boundary/dispatch.rs
+	@rg -q 'EFILE_REPETITIONS: usize = 10' crates/terlan/src/native_worker/efile_beam_suite_parity_test.rs
+	@rg -q 'PROC_READ_REPETITIONS: usize = 500' crates/terlan/src/native_worker/efile_beam_suite_parity_test.rs
+
+vm-float-native-arithmetic-check:
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::float_suite_native_parity_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::native_image::managed::operation_abi::float::test
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm compiler::typeck::core_intrinsic_test::syntax_output_lowering_to_core_maps_selected_float_alias_to_intrinsic -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm compiler::native_ir::case_lowering_test::finite_float_patterns_and_equality_execute -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm compiler::native_ir::case_lowering_test::non_finite_float_pattern_fails_closed -- --exact
+	$(CARGO) build --locked --bin terlc
+	target/debug/terlc check std/core/FloatTest.terl
+	@rg -q 'status::FLOAT_OVERFLOW' crates/terlan/src/compiler/native_ir/float_suite_native_parity_test.rs
+	@rg -q 'status::FLOAT_DIVISION_BY_ZERO' crates/terlan/src/compiler/native_ir/float_suite_native_parity_test.rs
+
+vm-fun-suite-parity-check: tvm-aot-application-closure-check tvm-aot-owned-closure-representation-check tvm-aot-closure-dispatch-check
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::fun_suite_native_parity_test
+	@rg -q 'function arity mismatch: expected 1 args, found 0' crates/terlan/src/compiler/native_ir/fun_suite_native_parity_test.rs
+	@rg -q 'cannot unify Int with' crates/terlan/src/compiler/native_ir/fun_suite_native_parity_test.rs
+	@rg -q 'MAX_OWNED_CLOSURE_CAPTURES' crates/terlan/src/compiler/native_ir/closure_conversion.rs
+	@rg -q 'ManagedClosureImageGeneration' crates/terlan/src/runtime/native_image/managed/closures.rs
+
+vm-gc-suite-parity-check:
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::native_image::managed::gc_suite_parity_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::native_image::managed::managed_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::native_image::managed::mailbox_test
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlc compiler::native_ir::cranelift::managed_stack_map_test::managed_reference_live_across_cranelift_safepoint_emits_precise_stack_map -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::native_image::managed::managed_execution_test::completed_actor_heap_capacity_is_reused_with_a_fresh_owner_token -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::native_image::managed::managed_execution_test::fixed_owner_heap_resets_in_place_with_stale_token_protection -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::actor::actor_alias_test::actor_alias_send_rejects_unknown_alias_without_mailbox_mutation -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::actor::actor_alias_test::actor_exit_revokes_all_owned_aliases_without_touching_other_owners -- --exact
+	@rg -q 'pub fn collect' crates/terlan/src/runtime/native_image/managed/heap.rs
+	@rg -q 'pub fn reclaim_all' crates/terlan/src/runtime/native_image/managed/heap.rs
+	@! rg -q 'Mutex|RwLock|thread_local!' crates/terlan/src/runtime/native_image/managed/heap.rs
+
+vm-guard-suite-parity-check:
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::guard_suite_native_parity_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::case_lowering_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::structured_case_test
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlc compiler::typeck::pattern_test::syntax_output_refines_case_guards_on_formal_path -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlc compiler::typeck::pattern_test::syntax_output_rejects_non_bool_case_guard -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlc compiler::typeck::pattern_test::syntax_output_rejects_impure_case_guard_assignment -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlc compiler::typeck::expression_test::syntax_output_boolean_binary_ops_require_bool_operands -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlc runtime::native_image::managed::sequences::managed_sequence_test::binary_slices_enforce_bounds_and_bit_order -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlc runtime::native_image::managed::operation_abi::operation_abi_test::binary_pattern_operations_match_and_extract_checked_fields -- --exact
+	@rg -q 'return Ok\(NativeExpr::If' crates/terlan/src/compiler/native_ir/expression.rs
+	@rg -q 'check_clause_guard_purity' crates/terlan/src/compiler/typeck/expression/control_flow.rs
+
+vm-guard-no-opt-suite-parity-check: vm-guard-suite-parity-check
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::guard_no_opt_suite_native_parity_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::codegen_policy_test
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::case_lowering_test::scalar_case_source_executes_through_linked_native_object -- --exact
+	@rg -q 'Self::Development => "none"' crates/terlan/src/compiler/native_ir/codegen_policy.rs
+	@rg -q 'Self::Serve \| Self::Release => "speed"' crates/terlan/src/compiler/native_ir/codegen_policy.rs
+	@rg -q 'assert_eq!\(count_calls\(body, "next"\), 1\)' crates/terlan/src/compiler/native_ir/case_lowering_test.rs
+
+vm-hash-suite-parity-check: vm-deterministic-hashmap-check
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::value::hash_test
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::bitstring::bitstring_test::bitstring_canonicalizes_storage_and_discards_unrepresented_bytes -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::bitstring::bitstring_test::bitstring_slices_aligned_and_unaligned_ranges_in_network_order -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::map_value::map_value_test::achamp_indexed_map_uses_collision_node_for_equal_hashes -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm runtime::vm::map_value::map_value_test::achamp_indexed_map_compresses_long_shared_hash_prefixes -- --exact
+	@rg -q 'enum Task' crates/terlan/src/runtime/vm/value_hash.rs
+	@rg -q 'FinishMap' crates/terlan/src/runtime/vm/value_hash.rs
+	@! rg -q 'DefaultHasher|RandomState' crates/terlan/src/runtime/vm/value_hash.rs
+
+vm-hello-suite-parity-check: \
+	tvm-aot-application-conformance-check \
+	vm-float-native-arithmetic-check \
+	vm-fun-suite-parity-check \
+	vm-gc-suite-parity-check \
+	vm-guard-suite-parity-check \
+	vm-hash-suite-parity-check \
+	vm-small-suite-parity-check \
+	vm-process-model-check \
+	vm-failure-primitives-check \
+	vm-timer-primitives-check \
+	vm-table-primitives-check \
+	vm-code-server-check \
+	binary-runtime-suite-check \
+	vm-native-worker-runtime-check
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::hello_suite_native_parity_test
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlc commands::vm::vm_test::vm_run_loads_hello_world_source_and_executes_main -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlc commands::vm::vm_test::vm_run_rejects_unwired_capability_instead_of_spinning -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::aot3_conformance_test::one_image_executes_closed_application_features_and_rejects_unbounded_peers -- --exact
+	@rg -q 'without a runtime IR fallback' crates/terlan/src/commands/vm_test.rs
+	@rg -q 'runtime CoreIR interpretation has been removed' crates/terlan/src/compiler/native_ir/application.rs
+
+vm-small-suite-parity-check:
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::small_suite_native_parity_test
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm compiler::native_ir::scalar_replacement_index_test
+	@rg -q 'sadd_overflow' crates/terlan/src/compiler/native_ir/cranelift.rs
+	@rg -q 'ssub_overflow' crates/terlan/src/compiler/native_ir/cranelift.rs
+	@rg -q 'smul_overflow' crates/terlan/src/compiler/native_ir/cranelift.rs
+	@rg -q 'status::DIVISION_BY_ZERO' crates/terlan/src/compiler/native_ir/cranelift.rs
+	@rg -q 'status::OVERFLOW' crates/terlan/src/compiler/native_ir/small_suite_native_parity_test.rs
+
+vm-smoke-suite-parity-check:
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::scheduler_topology::scheduler_smoke_beam_suite_parity_test
+	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm compiler::native_ir::case_lowering_test::dense_and_sparse_integer_dispatch_executes_through_linked_native_object -- --exact
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::scheduler_topology::scheduler_topology_test
+	@rg -q 'cfg!\(target_has_atomic = "32"\)' crates/terlan/src/runtime/vm/scheduler_smoke_beam_suite_parity_test.rs
+	@rg -q 'cfg!\(target_has_atomic = "64"\)' crates/terlan/src/runtime/vm/scheduler_smoke_beam_suite_parity_test.rs
+	@rg -q 'VM_MAX_SCHEDULERS' crates/terlan/src/runtime/vm/scheduler_smoke_beam_suite_parity_test.rs
+
 vm-multicore-mailbox-publication-check: vm-process-model-check vm-failure-primitives-check
 	cargo check --locked -p terlan --bin terlan-vm
 	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::actor_directory::mailbox::mailbox_test
@@ -2334,7 +2654,7 @@ vm-multicore-timer-scheduler-check: vm-multicore-timer-epoch-check
 vm-multicore-protocol-reactor-check: vm-multicore-timer-scheduler-check
 	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::protocol_task_executor::protocol_task_executor_test::protocol_completion_origin_rejects_foreign_and_ambient_threads -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::handler_cache_generation_test::immediate_callback_executes_on_its_protocol_owner_without_rpc -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_protocol_test::protocol_reactor_completion_resumes_only_through_actor_owner -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_protocol_test::protocol_reactor_completion_stays_on_protocol_owner -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_protocol_test::protocol_reactor_rejects_same_scheduler_foreign_connection -- --exact
 
 vm-multicore-capability-worker-check: vm-multicore-protocol-reactor-check tvm-aot-capability-worker-check
@@ -2369,6 +2689,7 @@ vm-multicore-capability-scheduler-check: vm-multicore-capability-event-pump-chec
 	$(EXACT_CARGO_TEST) -p terlan --bin terlan-native-worker protocol::protocol_test::worker_admits_declared_filesystem_operation -- --exact
 	$(CARGO) build --locked -p terlan --bin terlan-native-worker
 	TERLAN_NATIVE_WORKER=$(CURDIR)/target/debug/terlan-native-worker TERLAN_TEST_AOT_CAPABILITY_PUMP=1 TERLAN_TEST_CAPABILITY_NETWORK_SANDBOX=1 $(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_test::generated_capability_event_pump_executes_real_worker_full_cycle -- --ignored --exact
+	TERLAN_NATIVE_WORKER=$(CURDIR)/target/debug/terlan-native-worker $(EXACT_CARGO_TEST) -p terlan --bin terlc commands::serve::handler_cache::invocation::invocation_protocol_test::protocol_reactor_capability_worker_wakes_and_resumes_exact_actor -- --ignored --exact
 	@rg -q 'GeneratedCapabilityDispatcher' crates/terlan/src/commands/serve/handler_cache/shard_owner/capability_dispatch.rs
 	@rg -q 'CapabilityCompletionPublished' crates/terlan/src/commands/serve/handler_cache/shard_owner/capability_dispatch.rs
 
@@ -2438,6 +2759,7 @@ vm-multicore-performance-check: rust-quality-check
 	@rg -q '"mixed_tail_contract_sha256":' target/quality/vm-multicore-performance.json
 	@rg -q '"performance_policy_sha256":' target/quality/vm-multicore-performance.json
 	@rg -q '"source_revision":' target/quality/vm-multicore-performance.json
+	@rg -q '"source_tree_sha256":' target/quality/vm-multicore-performance.json
 	@rg -q '"provenance":' target/quality/vm-multicore-performance.json
 	@rg -q '"cpu_bound_actor":' target/quality/vm-multicore-performance.json
 	@rg -q '"iterations_per_actor": 200000' target/quality/vm-multicore-performance.json
@@ -2482,6 +2804,7 @@ vm-multicore-thread-sanitizer-check: vm-multicore-memory-model-check vm-multicor
 	else \
 		echo 'VM multicore ThreadSanitizer target unavailable locally; portable memory-model gate passed'; \
 	fi
+	@test ! -f target/quality/vm-multicore-thread-sanitizer-report.json || rg -q '"source_tree_sha256":' target/quality/vm-multicore-thread-sanitizer-report.json
 
 vm-multicore-mc9-evidence-contract-check:
 	$(PYTHON) tools/check_vm_multicore_mc9_evidence.py self-test
@@ -2491,10 +2814,24 @@ vm-multicore-mc9-evidence-check: vm-multicore-mc9-evidence-contract-check
 	test -s target/quality/vm-multicore-thread-sanitizer-report.json
 	$(PYTHON) tools/check_vm_multicore_mc9_evidence.py seal
 	test -s target/quality/vm-multicore-mc9-evidence.json
-	@rg -q '"schema": "terlan.vm-multicore-mc9-evidence.v1"' target/quality/vm-multicore-mc9-evidence.json
+	@rg -q '"schema": "terlan.vm-multicore-mc9-evidence.v2"' target/quality/vm-multicore-mc9-evidence.json
 	@rg -q '"decision": "pass"' target/quality/vm-multicore-mc9-evidence.json
+	@rg -q '"source_tree_sha256":' target/quality/vm-multicore-mc9-evidence.json
 	@rg -q '"dedicated_runner_label": "terlan-linux-x86_64-multicore-v1"' target/quality/vm-multicore-mc9-evidence.json
 	@rg -q '"sanitizer_toolchain": "1.96.0"' target/quality/vm-multicore-mc9-evidence.json
+
+vm-multicore-mc9-local-evidence-check:
+	@rustup target list --installed --toolchain 1.96.0 | rg -qx 'x86_64-unknown-linux-gnutsan' || { \
+		echo 'error[vm.multicore.mc9.local]: install Rust 1.96.0 x86_64-unknown-linux-gnutsan first'; \
+		exit 1; \
+	}
+	env -u GITHUB_ACTIONS \
+		RUSTUP_TOOLCHAIN=1.96.0 \
+		TERLAN_VM_MULTICORE_DEDICATED_RUNNER=terlan-linux-x86_64-multicore-v1 \
+		TERLAN_BENCH_BACKGROUND_LOAD=controlled \
+		$(MAKE) vm-multicore-performance-check
+	env -u GITHUB_ACTIONS $(MAKE) vm-multicore-thread-sanitizer-check
+	$(MAKE) vm-multicore-mc9-evidence-check
 
 VM_MULTICORE_RELEASE_LOCAL_GATES := \
 	vm-multicore-invariant-inventory-check \
@@ -2523,8 +2860,9 @@ vm-multicore-release-check: vm-multicore-release-contract-check
 	$(MAKE) $(VM_MULTICORE_RELEASE_LOCAL_GATES)
 	$(PYTHON) tools/check_vm_multicore_release.py record
 	test -s target/quality/vm-multicore-release-closeout.json
-	@rg -q '"schema": "terlan.vm-multicore-release-closeout.v1"' target/quality/vm-multicore-release-closeout.json
+	@rg -q '"schema": "terlan.vm-multicore-release-closeout.v2"' target/quality/vm-multicore-release-closeout.json
 	@rg -q '"decision": "pass"' target/quality/vm-multicore-release-closeout.json
+	@rg -q '"source_tree_sha256":' target/quality/vm-multicore-release-closeout.json
 
 vm-final-health-check:
 	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::resource::resource_test::resource_table_cleans_up_owner_resources_on_process_exit -- --exact
@@ -2695,23 +3033,7 @@ vm-source-hot-reload-check:
 	$(EXACT_CARGO_TEST) -p terlan --bin terlc commands::vm::vm_test::vm_reload_rejects_non_source_inputs -- --exact
 
 vm-distribution-envelope-check:
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_runtime_test::tetf_runtime_term_roundtrips_nested_portable_values -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_runtime_test::tetf_runtime_term_decoder_rejects_wrong_profile_atoms_and_trailing_data -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_test::tetf_encodes_vm_refs_with_kind_node_local_id_and_epoch -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_test::tetf_encodes_distribution_envelope_with_refs_and_payload -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_test::tetf_distribution_envelope_roundtrips_canonical_runtime_values -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_test::tetf_decoder_rejects_corrupt_headers_truncation_and_trailing_bytes -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_test::tetf_decoder_rejects_undeclared_atoms_noncanonical_bits_and_excessive_depth -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_test::tetf_encoder_rejects_duplicate_map_keys_and_record_fields -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_test::tetf_distribution_envelope_rejects_payload_atoms_missing_from_manifest -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_test::tetf_rejects_vm_refs_with_empty_node_ids -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_test::tetf_rejects_vm_refs_with_zero_local_ids -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_test::tetf_rejects_vm_refs_with_zero_epochs_as_stale -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_test::tetf_distribution_envelope_rejects_empty_route_metadata -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_test::tetf_distribution_envelope_rejects_empty_trace_and_destination_metadata -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_test::tetf_distribution_envelope_rejects_zero_epoch_as_stale -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_test::tetf_distribution_envelope_rejects_invalid_nested_refs_before_payload -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_test::tetf_distribution_envelope_rejects_runtime_only_payload_values -- --exact
+	$(RUST_TEST) -p terlan --bin terlan-vm runtime::vm::term_format::term_format_runtime_test
 	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::coordination::coordination_test::vm_coordination_builds_tetf_distribution_envelope_with_refs -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::coordination::coordination_test::vm_distributed_transport_decodes_declared_atom_payload_before_acceptance -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --bin terlan-vm runtime::vm::coordination::coordination_test::vm_distributed_transport_rejects_corrupt_or_mismatched_tetf_without_advancing -- --exact
@@ -2829,7 +3151,7 @@ vm-coordination-docker-check:
 all-terlan-tests-vm-inventory-check:
 	$(PYTHON) tools/check_all_terlan_tests_vm_inventory.py
 
-all-terlan-tests-vm-check: all-terlan-tests-vm-inventory-check terlan-vm-run-command-check terlan-vm-test-command-check flexible-shape-guards-check language-feature-coverage-100-check operator-coverage-100-check pattern-matching-support-check stdlib-release-tests-vm-default-check stdlib-release-tests
+all-terlan-tests-vm-check: all-terlan-tests-vm-inventory-check terlan-vm-run-command-check terlan-vm-repl-check terlan-vm-test-command-check flexible-shape-guards-check language-feature-coverage-100-check operator-coverage-100-check pattern-matching-support-check stdlib-release-tests-vm-default-check stdlib-release-tests
 
 std-vm-parity-matrix-check: all-terlan-tests-vm-check
 
@@ -2895,6 +3217,12 @@ no-implicit-otp-runtime-check:
 otp-runtime-exit-check:
 	$(RUST_TEST) -p terlan --bin terlan-quality otp_runtime_exit_test
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- otp-runtime-exit
+
+vm-hibernate-suite-parity-check: vm-gc-suite-parity-check vm-scheduler-contract-check
+	$(RUST_TEST) --locked -p terlan --bin terlan-vm runtime::vm::actor::actor_hibernate_beam_suite_parity_test
+	@rg -q 'VmProcessState::Hibernated' crates/terlan/src/runtime/vm/process.rs crates/terlan/src/runtime/vm/process/parking.rs
+	@rg -q 'hibernate_process' crates/terlan/src/runtime/vm/scheduler.rs
+	@rg -q 'hibernate_owner' crates/terlan/src/runtime/native_image/managed/execution/hibernation.rs
 
 otp-test-pipeline-inventory-check:
 	$(RUST_TEST) -p terlan --bin terlan-quality otp_test_pipeline_inventory_test

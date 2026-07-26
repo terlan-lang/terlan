@@ -63,6 +63,34 @@ impl VmProtocolLocalResources {
         use_resource(resource)
     }
 
+    pub(super) fn with_existing_resource<T: 'static, R>(
+        &mut self,
+        identity: u64,
+        use_resource: impl FnOnce(&mut T) -> Result<R, String>,
+    ) -> Result<R, String> {
+        let key = (TypeId::of::<T>(), identity);
+        if self.active.as_ref().is_none_or(|active| active.key != key) {
+            let value = self.inactive.remove(&key).ok_or_else(|| {
+                format!(
+                    "error[vm.protocol_resource_missing]: owner-local resource {identity} was retired"
+                )
+            })?;
+            if let Some(previous) = self.active.replace(VmProtocolLocalResource { key, value }) {
+                self.inactive.insert(previous.key, previous.value);
+            }
+        }
+        let resource = self
+            .active
+            .as_mut()
+            .and_then(|active| active.value.downcast_mut::<T>())
+            .ok_or_else(|| {
+                format!(
+                    "error[vm.protocol_resource]: identity {identity} has a different resource type"
+                )
+            })?;
+        use_resource(resource)
+    }
+
     pub(super) fn retire(&mut self, identity: u64) {
         if self
             .active

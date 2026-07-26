@@ -55,30 +55,44 @@ pub use maps::{
 pub(crate) use operation_abi::execute_managed_operation;
 pub(crate) use operation_abi::{
     decode_aggregate_field_projection, execute_managed_operation_with_context,
-    managed_abi_result_is_reference,
+    managed_abi_result_is_reference, scalar_string_projection_rewrite,
 };
 pub use operation_abi::{
     encode_aggregate_append_pair_operation, encode_aggregate_append_value_operation,
     encode_aggregate_field_operation, encode_aggregate_replace_field_operation,
     encode_aggregate_scalar_field_operation, encode_binary_pattern_extract_operation,
-    encode_binary_pattern_matches_operation, encode_cookie_header_operation,
-    encode_json_parse_result_operation, encode_list_empty_operation, encode_list_first_operation,
-    encode_list_from_elements_operation, encode_list_is_empty_operation,
-    encode_list_prepend_operation, encode_list_rest_operation, encode_managed_type_is_operation,
+    encode_binary_pattern_matches_operation, encode_bitstring_operation,
+    encode_bytes_concat_operation, encode_bytes_from_list_operation, encode_bytes_length_operation,
+    encode_bytes_read_int_be_operation, encode_bytes_read_int_le_operation,
+    encode_bytes_read_uint_be_operation, encode_bytes_read_uint_le_operation,
+    encode_bytes_slice_operation, encode_bytes_to_list_operation, encode_cookie_header_operation,
+    encode_float_from_string_operation, encode_float_log_operation,
+    encode_float_to_string_operation, encode_int_from_string_base_operation,
+    encode_int_from_string_operation, encode_int_to_string_base_operation,
+    encode_int_to_string_operation, encode_iterator_next_operation,
+    encode_json_parse_result_operation, encode_list_append_operation, encode_list_empty_operation,
+    encode_list_first_operation, encode_list_first_option_operation,
+    encode_list_from_elements_operation, encode_list_get_operation, encode_list_is_empty_operation,
+    encode_list_length_operation, encode_list_prepend_operation, encode_list_rest_operation,
+    encode_list_rest_option_operation, encode_managed_type_is_operation,
     encode_managed_value_equal_operation, encode_managed_variant_is_operation,
-    encode_map_contains_operation, encode_map_from_entries_operation, encode_map_get_operation,
+    encode_map_clear_operation, encode_map_contains_operation, encode_map_empty_operation,
+    encode_map_from_entries_operation, encode_map_from_entry_list_operation,
+    encode_map_get_operation, encode_map_get_option_operation, encode_map_is_empty_operation,
+    encode_map_iterator_operation, encode_map_length_operation, encode_map_put_operation,
+    encode_map_remove_operation, encode_map_take_operation, encode_response_build_operation,
     encode_response_cookie_jar_operation, encode_response_security_headers_operation,
     encode_result_is_ok_operation, encode_session_current_operation,
     encode_session_expire_operation, encode_session_get_operation,
     encode_session_mutation_operation, encode_session_option_is_none_operation,
     encode_session_rotate_operation, encode_session_with_response_operation,
-    encode_string_append_operation, encode_string_equal_operation,
+    encode_string_append_operation, encode_string_concat_operation, encode_string_equal_operation,
     encode_string_escape_html_attribute_operation, encode_string_escape_html_text_operation,
     encode_string_list_join_operation, encode_string_map_get_option_operation,
     encode_string_prepend_literal_operation, encode_string_prepend_projected_literal_operation,
     encode_template_render_operation, is_managed_operation, ManagedBinaryPatternEndian,
-    ManagedBinaryPatternField, ManagedCookieHeaderOperation, ManagedSessionMutation,
-    ManagedTemplateValueKind,
+    ManagedBinaryPatternField, ManagedBitStringOperation, ManagedCookieHeaderOperation,
+    ManagedSessionMutation, ManagedTemplateValueKind,
 };
 pub use roots::{
     ManagedContinuation, ManagedRoot, RootLocation, StackMapEntry, StackMapRecord, StackMapTable,
@@ -89,6 +103,9 @@ pub use sequences::{
 };
 pub use sets::{ManagedSet, ManagedSetDescriptor};
 
+#[cfg(test)]
+#[path = "gc_suite_parity_test.rs"]
+mod gc_suite_parity_test;
 #[cfg(test)]
 #[path = "mailbox_test.rs"]
 mod mailbox_test;

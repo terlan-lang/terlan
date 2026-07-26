@@ -615,3 +615,50 @@ fn vm_bitstring_intrinsics_have_closed_ids_and_return_types() {
         );
     }
 }
+/// Verifies selected Float imports retain provider identity through CoreIR.
+///
+/// A local import alias must lower to the same compiler-owned intrinsic as a
+/// fully qualified call. Otherwise NativeIR mistakes it for a missing local
+/// function and cannot build an application closure from public std modules.
+#[test]
+fn syntax_output_lowering_to_core_maps_selected_float_alias_to_intrinsic() {
+    let module = parse_module_as_syntax_output(
+        "\
+module core_selected_float_intrinsic_boundary.\n\
+\n\
+import std.core.Float.{ceil as round_up}.\n\
+\n\
+pub demo(value: Float): Float ->\n\
+    round_up(value).\n",
+    )
+    .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
+    let interfaces = crate::terlan_hir::checked_in_std_interfaces_for_module(&module);
+    let resolved =
+        crate::terlan_hir::resolve_syntax_module_output_with_interfaces(&module, &interfaces)
+            .module;
+    let diagnostics = type_check_syntax_module_output(&module, &resolved);
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+    let core = lower_syntax_module_output_to_core(&module, &resolved);
+
+    let function = core
+        .functions
+        .iter()
+        .find(|function| function.name == "demo")
+        .expect("core demo function");
+    let Some(CoreExpr::Intrinsic(call)) = &function.clauses[0].body.core_expr else {
+        panic!(
+            "expected selected Float.ceil intrinsic, got {:?}",
+            function.clauses[0].body.core_expr
+        );
+    };
+    assert_eq!(
+        call.id,
+        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::FloatCeil)
+    );
+    assert_eq!(call.args, vec![CoreExpr::Var("value".to_string())]);
+    assert_eq!(call.return_type, CoreType::Float);
+}

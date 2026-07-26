@@ -1,8 +1,8 @@
 //! Bridge-facing term contract for NativeBoundary runtime calls.
 //!
-//! The real VM/NIF boundary will eventually encode and decode Vm terms.
-//! This module defines the stable Rust-side shape for that boundary without
-//! depending on Rustler, NIF APIs, async runtimes, or generated adapter stubs.
+//! VM-owned capability dispatch encodes and decodes these terms at the
+//! execution-shard boundary. This is a Terlan runtime contract, not an Erlang
+//! NIF ABI or Rustler compatibility surface.
 
 use crate::terlan_native::postgres;
 use crate::terlan_native_boundary::dispatch::{DispatchError, NativeBoundaryBridgeValue};
@@ -117,8 +117,8 @@ impl TermError {
     /// - A `TermError` suitable for callers that decode bridge replies.
     ///
     /// Transformation:
-    /// - Stores backend-neutral diagnostic fields without exposing VM or NIF
-    ///   implementation details.
+    /// - Stores backend-neutral diagnostic fields without exposing VM or
+    ///   capability-worker implementation details.
     pub fn new(code: impl Into<String>, message: impl Into<String>, offset: usize) -> Self {
         Self {
             code: code.into(),

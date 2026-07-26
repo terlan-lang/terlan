@@ -46,14 +46,39 @@ fn repeated_simple_route_reuses_handler_and_reload_replaces_generation() {
         Some(MatchedWebPackageRoute::Handler(handler)) => handler,
         _ => panic!("cached dynamic route"),
     };
-    assert!(Arc::ptr_eq(&first, &second));
+    assert!(Rc::ptr_eq(&first, &second));
 
     invalidate_web_manifest_cache(&root);
     let reloaded = match manifest_route_for_request(&root, "POST", "/api/bench") {
         Some(MatchedWebPackageRoute::Handler(handler)) => handler,
         _ => panic!("reloaded dynamic route"),
     };
-    assert!(!Arc::ptr_eq(&first, &reloaded));
+    assert!(!Rc::ptr_eq(&first, &reloaded));
+
+    fs::remove_dir_all(root).expect("remove fixture");
+}
+
+#[test]
+fn repeated_simple_route_miss_is_cached_for_the_manifest_generation() {
+    let root = route_fixture();
+    assert!(manifest_route_for_request(&root, "GET", "/missing").is_none());
+    let cached_manifest = LAST_SIMPLE_HANDLER_ROUTE.with(|cached| {
+        let cached = cached.borrow();
+        let cached = cached.as_ref().expect("negative route cache");
+        assert_eq!(cached.method, "GET");
+        assert_eq!(cached.request_path, "/missing");
+        assert!(cached.matched.is_none());
+        Arc::clone(&cached.manifest)
+    });
+
+    assert!(manifest_route_for_request(&root, "GET", "/missing").is_none());
+    invalidate_web_manifest_cache(&root);
+    assert!(manifest_route_for_request(&root, "GET", "/missing").is_none());
+    LAST_SIMPLE_HANDLER_ROUTE.with(|cached| {
+        let cached = cached.borrow();
+        let cached = cached.as_ref().expect("reloaded negative route cache");
+        assert!(!Arc::ptr_eq(&cached_manifest, &cached.manifest));
+    });
 
     fs::remove_dir_all(root).expect("remove fixture");
 }

@@ -31,7 +31,8 @@ fn contains_managed_operation(expr: &NativeExpr, magic: &[u8; 4], tag: u8) -> bo
             captures: fields, ..
         }
         | NativeExpr::Call { args: fields, .. }
-        | NativeExpr::TailCall { args: fields, .. } => fields
+        | NativeExpr::TailCall { args: fields, .. }
+        | NativeExpr::ContinuationTailCall { args: fields, .. } => fields
             .iter()
             .any(|field| contains_managed_operation(field, magic, tag)),
         NativeExpr::InvokeClosure { callee, args, .. } => {
@@ -40,19 +41,14 @@ fn contains_managed_operation(expr: &NativeExpr, magic: &[u8; 4], tag: u8) -> bo
                     .iter()
                     .any(|argument| contains_managed_operation(argument, magic, tag))
         }
-        NativeExpr::CallThen {
-            args,
-            values,
-            resume,
-            ..
-        } => {
-            args.iter()
-                .chain(values)
-                .any(|value| contains_managed_operation(value, magic, tag))
-                || contains_managed_operation(resume, magic, tag)
-        }
+        NativeExpr::CallThen { args, values, .. } => args
+            .iter()
+            .chain(values)
+            .any(|value| contains_managed_operation(value, magic, tag)),
         NativeExpr::Neg(value)
         | NativeExpr::FloatNeg(value)
+        | NativeExpr::FloatFloor(value)
+        | NativeExpr::FloatCeil(value)
         | NativeExpr::IntToFloat(value)
         | NativeExpr::Not(value) => contains_managed_operation(value, magic, tag),
         NativeExpr::Binary { left, right, .. } => {
@@ -92,6 +88,7 @@ fn contains_managed_operation(expr: &NativeExpr, magic: &[u8; 4], tag: u8) -> bo
         | NativeExpr::Int(_)
         | NativeExpr::Float(_)
         | NativeExpr::Bool(_)
+        | NativeExpr::AtomLiteral(_)
         | NativeExpr::StringLiteral { .. }
         | NativeExpr::Param(_) => false,
     }
@@ -131,6 +128,23 @@ fn tuple_list_and_map_patterns_lower_to_bounded_managed_matchers() {
         b"TVMC",
         8
     ));
+}
+
+#[test]
+fn none_pattern_accepts_immediate_and_managed_zero_field_option_variants() {
+    let modules = lower(
+        "module structured_option_source.\n\n\
+         import std.core.Option.{None, Option, Some}.\n\n\
+         pub is_none(value: Option[Int]): Bool ->\n\
+             case value { None -> true; Some(_value) -> false }.\n",
+    );
+    let function = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "is_none")
+        .expect("missing option matcher");
+
+    assert!(contains_managed_operation(&function.body, b"TVMP", 2));
 }
 
 #[test]

@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 import check_tvm_aot_platform_matrix as platform_matrix
+import source_tree_identity
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +23,8 @@ SCHEMA = "terlan.vm-multicore-thread-sanitizer.v1"
 STRESS_SCHEMA = "terlan.vm-multicore-memory-model.v1"
 TOOLCHAIN = "1.96.0"
 TARGET = "x86_64-unknown-linux-gnutsan"
+BUILD_SCRIPT_TARGET = "x86_64-unknown-linux-gnu"
+RUSTC_WRAPPER = ROOT / "scripts/rustc_gnutsan_wrapper.sh"
 TEST_NAME = (
     "fixed_scheduler_control::fixed_scheduler_control_stress_test::"
     "bounded_seeded_multicore_memory_model_has_deadlock_watchdog"
@@ -41,20 +44,6 @@ def command_output(command: list[str]) -> str:
         capture_output=True,
         text=True,
     ).stdout.strip()
-
-
-def source_revision() -> str:
-    """Return the exact checked-out source revision."""
-
-    return command_output(["git", "rev-parse", "HEAD"])
-
-
-def source_tree_clean() -> bool:
-    """Return whether tracked and untracked source matches the checked-out commit."""
-
-    return not command_output(
-        ["git", "status", "--porcelain=v1", "--untracked-files=all"]
-    )
 
 
 def file_sha256(path: Path) -> str:
@@ -90,7 +79,6 @@ def validate_report(report: dict[str, object], require_ci: bool) -> None:
         "instrumented_target": TARGET,
         "test_name": TEST_NAME,
         "seed_count": SEED_COUNT,
-        "source_tree_clean": True,
     }
     for field, value in expected.items():
         if report.get(field) != value:
@@ -111,7 +99,13 @@ def validate_report(report: dict[str, object], require_ci: bool) -> None:
         or any(character not in "0123456789abcdef" for character in digest)
     ):
         raise AssertionError("multicore ThreadSanitizer stress digest is invalid")
+    if not isinstance(report.get("source_tree_clean"), bool):
+        raise AssertionError("multicore ThreadSanitizer source state is malformed")
+    if not platform_matrix.is_sha256(report.get("source_tree_sha256")):
+        raise AssertionError("multicore ThreadSanitizer source digest is malformed")
     if require_ci:
+        if report.get("source_tree_clean") is not True:
+            raise AssertionError("release sanitizer evidence requires a clean source tree")
         if report.get("execution_environment") != "github-actions":
             raise AssertionError("release sanitizer evidence must come from GitHub Actions")
         if report.get("repository") != platform_matrix.OFFICIAL_REPOSITORY:
@@ -212,7 +206,7 @@ def run_instrumented_tests() -> Path:
             "--bin",
             HARNESS_BINARY,
             "--target",
-            TARGET,
+            BUILD_SCRIPT_TARGET,
             TEST_NAME,
             "--",
             "--exact",
@@ -223,13 +217,16 @@ def run_instrumented_tests() -> Path:
         timeout=600,
         env={
             **os.environ,
+            "CARGO_TARGET_DIR": str(ROOT / "target/gnutsan"),
+            "RUSTC_WRAPPER": str(RUSTC_WRAPPER),
             "TERLAN_VM_MULTICORE_STRESS_OUTPUT": str(STRESS_REPORT),
             "TSAN_OPTIONS": "halt_on_error=1 exitcode=66",
         },
     )
     stress = json.loads(STRESS_REPORT.read_text(encoding="utf-8"))
     validate_stress_report(stress)
-    revision = source_revision()
+    revision = source_tree_identity.source_revision(ROOT)
+    clean, source_tree_sha256 = source_tree_identity.source_tree_identity(ROOT, revision)
     report: dict[str, object] = {
         "schema": SCHEMA,
         "decision": "pass",
@@ -241,7 +238,8 @@ def run_instrumented_tests() -> Path:
         "seed_count": SEED_COUNT,
         "stress_report_sha256": file_sha256(STRESS_REPORT),
         "source_revision": revision,
-        "source_tree_clean": source_tree_clean(),
+        "source_tree_clean": clean,
+        "source_tree_sha256": source_tree_sha256,
         **platform_matrix.execution_provenance(revision),
     }
     validate_report(
@@ -288,6 +286,7 @@ def self_test() -> None:
         "stress_report_sha256": "a" * 64,
         "source_revision": "b" * 40,
         "source_tree_clean": True,
+        "source_tree_sha256": "d" * 64,
         "execution_environment": "github-actions",
         "repository": platform_matrix.OFFICIAL_REPOSITORY,
         "workflow_ref": "terlan-lang/terlan/.github/workflows/ci.yml@refs/heads/main",
@@ -306,6 +305,7 @@ def self_test() -> None:
         ("run_id", "7"),
         ("run_attempt", False),
         ("source_tree_clean", False),
+        ("source_tree_sha256", "not-a-digest"),
     ):
         invalid = dict(valid)
         invalid[field] = value

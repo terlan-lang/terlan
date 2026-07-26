@@ -37,7 +37,7 @@ impl PureNativeCapabilityWait {
     /// Builds worker correlation authority from this exact epoch operation.
     pub(crate) fn worker_context(&self) -> Result<VmCapabilityRequestContext, String> {
         VmCapabilityRequestContext::new(
-            VmCapabilityId::new(self.request.capability)?,
+            VmCapabilityId::new(self.request.capability.clone())?,
             self.completion,
         )
     }
@@ -117,6 +117,20 @@ impl PureNativeExecutionShard {
                 };
             }
         };
+        self.resume_capability_value_call(owner, suspension, wait, value)
+    }
+
+    /// Applies one package-helper value without routing it through the closed
+    /// built-in capability term codec.
+    pub(crate) fn resume_capability_value_call(
+        &mut self,
+        owner: VmProcessId,
+        suspension: PureNativeSuspension,
+        wait: PureNativeCapabilityWait,
+        value: ReplValue,
+    ) -> Result<PureNativeExecution, String> {
+        let epoch = self.require_active_epoch("resume_capability_value_call")?;
+        wait.validate(self.supervisor.shard_id(), epoch, owner, &suspension)?;
         let execution = {
             let mut context = PureNativeExecutionContext::new(owner, &mut self.execution);
             self.boundary.resume_capability_for_actor(

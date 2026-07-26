@@ -234,6 +234,7 @@ fn evidence(
     CpuBoundActorEvidence {
         export: "app.MulticoreBenchmark.cpu_bound",
         iterations_per_actor: CPU_ITERATIONS_PER_ACTOR,
+        warmup_samples_per_width: super::WARMUP_SAMPLE_COUNT,
         widths: vec![
             width(1, one_throughput, one_p99_ns),
             width(2, (one_throughput as f64 * speedup) as u128, one_p99_ns),
@@ -302,6 +303,7 @@ fn mixed_tail_evidence(policy: &super::policy::MulticorePerformancePolicy) -> Mi
         maximum_simultaneously_active_schedulers: MIXED_LOAD_SCHEDULERS,
         cpu_overlap_proven: true,
         samples_per_metric: CPU_SAMPLE_COUNT,
+        warmup_samples_per_metric: super::WARMUP_SAMPLE_COUNT,
         measurements,
     }
 }

@@ -44,6 +44,11 @@ pub(super) fn render_native_helper(
             "@MAX_FRAME_BYTES@",
             &crate::runtime::native_boundary::adapter_abi::PUBLIC_ADAPTER_MAX_FRAME_BYTES
                 .to_string(),
+        )
+        .replace(
+            "@MAX_TRANSFER_BYTES@",
+            &crate::runtime::native_boundary::adapter_abi::PUBLIC_ADAPTER_MAX_TRANSFER_BYTES
+                .to_string(),
         ))
 }
 

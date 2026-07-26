@@ -5,147 +5,50 @@ use std::sync::Arc;
 
 use crate::runtime::native_image::managed::{
     encode_aggregate_field_operation, encode_aggregate_scalar_field_operation,
-    encode_binary_pattern_extract_operation, encode_binary_pattern_matches_operation,
     encode_list_first_operation, encode_list_is_empty_operation, encode_list_rest_operation,
     encode_managed_type_is_operation, encode_managed_variant_is_operation,
     encode_map_contains_operation, encode_map_get_operation, encode_string_equal_operation,
-    ManagedBinaryPatternEndian, ManagedBinaryPatternField,
 };
-use crate::terlan_typeck::{
-    CoreBinaryPatternDescriptor, CoreBinaryPatternEndian, CoreBinaryPatternField, CoreExpr,
-    CoreFunction, CorePattern, CoreTupleTypeElem, CoreType,
-};
+use crate::terlan_typeck::{CoreExpr, CorePattern, CoreTupleTypeElem, CoreType};
 
 use super::constructors::{managed_field_projection, NativeConstructorLayout};
-use super::{
-    infer_native_type_with_constructors, lower_expr_with_constructors, native_type,
-    NativeBinaryOperator, NativeConstructorLayouts, NativeExpr, NativeType,
+use super::{NativeBinaryOperator, NativeConstructorLayouts, NativeExpr, NativeType};
+
+#[path = "structured_case/binary.rs"]
+mod binary;
+#[path = "structured_case/lowering.rs"]
+mod lowering;
+#[path = "structured_case/type_support.rs"]
+mod type_support;
+use binary::binary_plan;
+pub(super) use lowering::{contains_case, lower_structured_case};
+use type_support::{
+    list_element_type, map_key, map_types, native_core_type, option_element_type,
+    struct_field_type, tuple_element_type,
 };
 
-const MAX_STRUCTURED_CASE_CLAUSES: usize = 256;
 const MAX_STRUCTURED_PATTERN_DEPTH: usize = 64;
 const MAX_STRUCTURED_PATTERN_BINDINGS: usize = 128;
+
+pub(super) fn core_expr_type(
+    expr: &CoreExpr,
+    types: &HashMap<String, CoreType>,
+    functions: &HashMap<(String, usize), CoreType>,
+) -> Option<CoreType> {
+    type_support::core_expr_type(expr, types, functions)
+}
 
 #[derive(Clone)]
 pub(super) struct PatternBinding {
     pub(super) name: String,
     pub(super) value: NativeExpr,
     pub(super) ty: NativeType,
+    pub(super) core_ty: Option<CoreType>,
 }
 
 pub(super) struct PatternPlan {
     pub(super) predicate: NativeExpr,
     pub(super) bindings: Vec<PatternBinding>,
-}
-
-#[allow(clippy::too_many_arguments)]
-pub(super) fn lower_structured_case(
-    body: &CoreExpr,
-    function: &CoreFunction,
-    params: &HashMap<String, usize>,
-    param_types: &HashMap<String, NativeType>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    constructors: &NativeConstructorLayouts,
-) -> Result<Option<NativeExpr>, String> {
-    let CoreExpr::Case { scrutinee, clauses } = body else {
-        return Ok(None);
-    };
-    if clauses.is_empty() || clauses.len() > MAX_STRUCTURED_CASE_CLAUSES {
-        return Err(format!(
-            "error[native_ir.structured_case_clauses]: structured case has {} clauses; limit is {MAX_STRUCTURED_CASE_CLAUSES}",
-            clauses.len()
-        ));
-    }
-    let scrutinee_type =
-        infer_native_type_with_constructors(scrutinee, param_types, function_types, constructors)
-            .ok_or_else(|| {
-            "error[native_ir.structured_case_type]: unknown scrutinee type".to_string()
-        })?;
-    let core_types = function
-        .params
-        .iter()
-        .filter_map(|parameter| {
-            parameter
-                .core_ty
-                .as_ref()
-                .map(|ty| (parameter.name.clone(), ty.clone()))
-        })
-        .collect::<HashMap<_, _>>();
-    let scrutinee_core = core_expr_type(scrutinee, &core_types);
-    let scrutinee = lower_expr_with_constructors(
-        scrutinee,
-        params,
-        param_types,
-        functions,
-        function_types,
-        constructors,
-    )?;
-    let scrutinee_slot = params
-        .values()
-        .copied()
-        .max()
-        .map_or(0, |slot| slot.saturating_add(1));
-    let mut outer_slots = params.clone();
-    let mut outer_types = param_types.clone();
-    let scrutinee_name = "$native_structured_case_scrutinee".to_string();
-    outer_slots.insert(scrutinee_name, scrutinee_slot);
-    outer_types.insert(
-        "$native_structured_case_scrutinee".to_string(),
-        scrutinee_type,
-    );
-    let scrutinee_value = NativeExpr::Param(scrutinee_slot);
-
-    let mut native_clauses = Vec::with_capacity(clauses.len());
-    for clause in clauses {
-        let plan = pattern_plan(
-            &clause.pattern,
-            scrutinee_value.clone(),
-            scrutinee_type,
-            scrutinee_core.as_ref(),
-            constructors,
-            0,
-        )?;
-        validate_bindings(&plan.bindings)?;
-        let (binding_slots, binding_types) = extend_bindings(
-            &outer_slots,
-            &outer_types,
-            scrutinee_slot.saturating_add(1),
-            &plan.bindings,
-        );
-        let guard = clause
-            .guard
-            .as_ref()
-            .map(|guard| {
-                lower_expr_with_constructors(
-                    guard,
-                    &binding_slots,
-                    &binding_types,
-                    functions,
-                    function_types,
-                    constructors,
-                )
-            })
-            .transpose()?
-            .unwrap_or(NativeExpr::Bool(true));
-        let guard = bind_values(&plan.bindings, guard);
-        let condition = bool_and(plan.predicate, guard);
-        let selected = lower_expr_with_constructors(
-            &clause.body,
-            &binding_slots,
-            &binding_types,
-            functions,
-            function_types,
-            constructors,
-        )?;
-        native_clauses.push((condition, bind_values(&plan.bindings, selected)));
-    }
-    Ok(Some(NativeExpr::Let {
-        bindings: vec![scrutinee],
-        body: Box::new(NativeExpr::If {
-            clauses: native_clauses,
-        }),
-    }))
 }
 
 pub(super) fn pattern_plan(
@@ -170,6 +73,7 @@ pub(super) fn pattern_plan(
                     name: name.clone(),
                     value,
                     ty: value_type,
+                    core_ty: core_type.cloned(),
                 }],
             })
         }
@@ -183,12 +87,18 @@ pub(super) fn pattern_plan(
             };
             Ok(equality(value, literal, value_type))
         }
+        CorePattern::Atom(name) => Ok(equality(
+            value,
+            NativeExpr::AtomLiteral(Arc::from(name.as_str())),
+            value_type,
+        )),
         CorePattern::Var(name) => Ok(PatternPlan {
             predicate: NativeExpr::Bool(true),
             bindings: vec![PatternBinding {
                 name: name.clone(),
                 value,
                 ty: value_type,
+                core_ty: core_type.cloned(),
             }],
         }),
         CorePattern::Int(expected) => Ok(equality(
@@ -232,6 +142,7 @@ pub(super) fn pattern_plan(
                     name: alias.clone(),
                     value,
                     ty: value_type,
+                    core_ty: core_type.cloned(),
                 },
             );
             Ok(plan)
@@ -246,6 +157,7 @@ pub(super) fn pattern_plan(
             args,
             value,
             value_type,
+            core_type,
             constructors,
             depth,
         ),
@@ -302,92 +214,25 @@ pub(super) fn pattern_plan(
             constructors,
             depth,
         ),
-        CorePattern::Map(fields) => map_plan(
-            fields,
-            value,
-            value_type,
-            core_type,
-            constructors,
-            depth,
-        ),
+        CorePattern::Map(fields) if matches!(core_type, Some(CoreType::Map(_))) => {
+            structural_map_plan(
+                fields,
+                value,
+                value_type,
+                core_type,
+                constructors,
+                depth,
+            )
+        }
+        CorePattern::Map(fields) => {
+            map_plan(fields, value, value_type, core_type, constructors, depth)
+        }
         CorePattern::BinaryLayout { endian, fields } => {
             binary_plan(*endian, fields, value, value_type)
         }
-        CorePattern::StringPattern(_) | CorePattern::Atom(_) => {
+        CorePattern::StringPattern(_) => {
             Err("error[native_ir.structured_pattern_family]: pattern family needs a dedicated bounded matcher".to_string())
         }
-    }
-}
-
-fn binary_plan(
-    endian: CoreBinaryPatternEndian,
-    fields: &[CoreBinaryPatternField],
-    value: NativeExpr,
-    value_type: NativeType,
-) -> Result<PatternPlan, String> {
-    if value_type != NativeType::BinaryRef {
-        return Err("error[native_ir.binary_pattern_type]: pattern requires Binary".to_string());
-    }
-    let endian = match endian {
-        CoreBinaryPatternEndian::Big => ManagedBinaryPatternEndian::Big,
-        CoreBinaryPatternEndian::Little => ManagedBinaryPatternEndian::Little,
-    };
-    let descriptors = fields
-        .iter()
-        .map(|field| managed_binary_field(field.descriptor))
-        .collect::<Vec<_>>();
-    let predicate = encode_binary_pattern_matches_operation(endian, &descriptors)
-        .map_err(|error| format!("error[native_ir.binary_pattern_layout]: {error}"))?;
-    let bindings = fields
-        .iter()
-        .enumerate()
-        .filter(|(_, field)| field.name != "_")
-        .map(|(index, field)| {
-            let encoded = encode_binary_pattern_extract_operation(endian, &descriptors, index)
-                .map_err(|error| format!("error[native_ir.binary_pattern_layout]: {error}"))?;
-            Ok(PatternBinding {
-                name: field.name.clone(),
-                value: NativeExpr::ManagedOperation {
-                    encoded: Arc::from(encoded),
-                    args: vec![value.clone()],
-                },
-                ty: binary_field_type(field.descriptor),
-            })
-        })
-        .collect::<Result<Vec<_>, String>>()?;
-    Ok(PatternPlan {
-        predicate: NativeExpr::ManagedOperation {
-            encoded: Arc::from(predicate),
-            args: vec![value],
-        },
-        bindings,
-    })
-}
-
-fn managed_binary_field(field: CoreBinaryPatternDescriptor) -> ManagedBinaryPatternField {
-    match field {
-        CoreBinaryPatternDescriptor::UInt(width) => ManagedBinaryPatternField::UInt(width),
-        CoreBinaryPatternDescriptor::IntBits(width) => ManagedBinaryPatternField::Int(width),
-        CoreBinaryPatternDescriptor::Bytes(width) => ManagedBinaryPatternField::Bytes(width),
-        CoreBinaryPatternDescriptor::Bits(width) => ManagedBinaryPatternField::Bits(width),
-        CoreBinaryPatternDescriptor::Utf8 => ManagedBinaryPatternField::Utf8,
-        CoreBinaryPatternDescriptor::Utf16 => ManagedBinaryPatternField::Utf16,
-        CoreBinaryPatternDescriptor::Utf32 => ManagedBinaryPatternField::Utf32,
-        CoreBinaryPatternDescriptor::Rest => ManagedBinaryPatternField::Rest,
-    }
-}
-
-fn binary_field_type(field: CoreBinaryPatternDescriptor) -> NativeType {
-    match field {
-        CoreBinaryPatternDescriptor::Bytes(_) | CoreBinaryPatternDescriptor::Rest => {
-            NativeType::BytesRef
-        }
-        CoreBinaryPatternDescriptor::Bits(_) => NativeType::BinaryRef,
-        CoreBinaryPatternDescriptor::UInt(_)
-        | CoreBinaryPatternDescriptor::IntBits(_)
-        | CoreBinaryPatternDescriptor::Utf8
-        | CoreBinaryPatternDescriptor::Utf16
-        | CoreBinaryPatternDescriptor::Utf32 => NativeType::Int,
     }
 }
 
@@ -398,11 +243,58 @@ fn constructor_plan(
     patterns: &[CorePattern],
     value: NativeExpr,
     value_type: NativeType,
+    core_type: Option<&CoreType>,
     constructors: &NativeConstructorLayouts,
     depth: usize,
 ) -> Result<PatternPlan, String> {
     if name == "Unit" && patterns.is_empty() {
         return Ok(equality(value, NativeExpr::Unit, NativeType::Unit));
+    }
+    if let Some(element) = option_element_type(core_type) {
+        return option_constructor_plan(
+            name,
+            patterns,
+            value,
+            value_type,
+            element,
+            constructors,
+            depth,
+        );
+    }
+    if let Some((ok, error)) = result_element_types(core_type) {
+        let (discriminant, field) = match name.rsplit('.').next().unwrap_or(name) {
+            "Ok" => (0, ok),
+            "Err" => (1, error),
+            _ => {
+                return Err(format!(
+                    "error[native_ir.result_pattern_variant]: `{name}` is not a Result variant"
+                ))
+            }
+        };
+        return tagged_union_constructor_plan(
+            name,
+            patterns,
+            value,
+            value_type,
+            discriminant,
+            2,
+            std::slice::from_ref(field),
+            constructors,
+            depth,
+        );
+    }
+    if let Some((discriminant, variant_count, fields)) = tagged_union_constructor(name, core_type) {
+        return tagged_union_constructor_plan(
+            name,
+            patterns,
+            value,
+            value_type,
+            discriminant,
+            variant_count,
+            &fields,
+            constructors,
+            depth,
+        );
     }
     let layout = constructor_layout(name, identity, patterns.len(), constructors)?;
     if layout.result != value_type {
@@ -434,6 +326,175 @@ fn constructor_plan(
     merge(plans)
 }
 
+fn result_element_types(core_type: Option<&CoreType>) -> Option<(&CoreType, &CoreType)> {
+    match core_type? {
+        CoreType::Apply { constructor, args }
+            if constructor.rsplit('.').next() == Some("Result") && args.len() == 2 =>
+        {
+            Some((&args[0], &args[1]))
+        }
+        _ => None,
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn tagged_union_constructor_plan(
+    name: &str,
+    patterns: &[CorePattern],
+    value: NativeExpr,
+    value_type: NativeType,
+    discriminant: u32,
+    _variant_count: u32,
+    fields: &[CoreType],
+    constructors: &NativeConstructorLayouts,
+    depth: usize,
+) -> Result<PatternPlan, String> {
+    if patterns.len() != fields.len() {
+        return Err(format!(
+            "error[native_ir.union_pattern_arity]: `{name}` expects {} fields",
+            fields.len()
+        ));
+    }
+    let semantic = managed_semantic(value_type)?;
+    let mut plans = vec![PatternPlan {
+        predicate: NativeExpr::ManagedOperation {
+            encoded: Arc::from(encode_managed_variant_is_operation(semantic, discriminant)),
+            args: vec![value.clone()],
+        },
+        bindings: Vec::new(),
+    }];
+    for (index, (pattern, field)) in patterns.iter().zip(fields).enumerate() {
+        let field_type = native_core_type(field)?;
+        plans.push(pattern_plan(
+            pattern,
+            project(value.clone(), semantic, index, field_type)?,
+            field_type,
+            Some(field),
+            constructors,
+            depth + 1,
+        )?);
+    }
+    merge(plans)
+}
+
+fn tagged_union_constructor(
+    name: &str,
+    core_type: Option<&CoreType>,
+) -> Option<(u32, u32, Vec<CoreType>)> {
+    let CoreType::Union(variants) = core_type? else {
+        return None;
+    };
+    let expected = match name.rsplit('.').next()? {
+        "Err" => "error",
+        other => return tagged_union_by_constructor_name(other, variants),
+    };
+    tagged_union_by_atom(expected, variants)
+}
+
+fn tagged_union_by_constructor_name(
+    name: &str,
+    variants: &[CoreType],
+) -> Option<(u32, u32, Vec<CoreType>)> {
+    let mut chars = name.chars();
+    let expected = chars
+        .next()?
+        .to_lowercase()
+        .chain(chars)
+        .collect::<String>();
+    tagged_union_by_atom(&expected, variants)
+}
+
+fn tagged_union_by_atom(
+    expected: &str,
+    variants: &[CoreType],
+) -> Option<(u32, u32, Vec<CoreType>)> {
+    variants.iter().enumerate().find_map(|(index, variant)| {
+        let CoreType::Tuple(elements) = variant else {
+            return None;
+        };
+        let (first, fields) = elements.split_first()?;
+        let atom = match first {
+            CoreTupleTypeElem::Type(CoreType::AtomLiteral(atom))
+            | CoreTupleTypeElem::Field {
+                ty: CoreType::AtomLiteral(atom),
+                ..
+            } => atom,
+            _ => return None,
+        };
+        if atom != expected {
+            return None;
+        }
+        Some((
+            u32::try_from(index).ok()?,
+            u32::try_from(variants.len()).ok()?,
+            fields.iter().map(tuple_element_type).cloned().collect(),
+        ))
+    })
+}
+
+fn option_constructor_plan(
+    name: &str,
+    patterns: &[CorePattern],
+    value: NativeExpr,
+    value_type: NativeType,
+    element: &CoreType,
+    constructors: &NativeConstructorLayouts,
+    depth: usize,
+) -> Result<PatternPlan, String> {
+    let (discriminant, expected_arity) = match name {
+        "None" => (0, 0),
+        "Some" => (1, 1),
+        _ => {
+            return Err(format!(
+                "error[native_ir.option_pattern_variant]: `{name}` is not an Option variant"
+            ))
+        }
+    };
+    if patterns.len() != expected_arity {
+        return Err(format!(
+            "error[native_ir.option_pattern_arity]: `{name}` expects {expected_arity} fields"
+        ));
+    }
+    if name == "None" {
+        let semantic = managed_semantic(value_type)?;
+        let immediate = equality(
+            value.clone(),
+            NativeExpr::AtomLiteral(Arc::from("none")),
+            NativeType::Atom,
+        );
+        return Ok(PatternPlan {
+            predicate: bool_or(
+                immediate.predicate,
+                NativeExpr::ManagedOperation {
+                    encoded: Arc::from(encode_managed_variant_is_operation(semantic, discriminant)),
+                    args: vec![value],
+                },
+            ),
+            bindings: Vec::new(),
+        });
+    }
+    let semantic = managed_semantic(value_type)?;
+    let mut plans = vec![PatternPlan {
+        predicate: NativeExpr::ManagedOperation {
+            encoded: Arc::from(encode_managed_variant_is_operation(semantic, discriminant)),
+            args: vec![value.clone()],
+        },
+        bindings: Vec::new(),
+    }];
+    if let [pattern] = patterns {
+        let element_native = native_core_type(element)?;
+        plans.push(pattern_plan(
+            pattern,
+            project(value, semantic, 0, element_native)?,
+            element_native,
+            Some(element),
+            constructors,
+            depth + 1,
+        )?);
+    }
+    merge(plans)
+}
+
 fn tuple_plan(
     patterns: &[CorePattern],
     value: NativeExpr,
@@ -442,8 +503,27 @@ fn tuple_plan(
     constructors: &NativeConstructorLayouts,
     depth: usize,
 ) -> Result<PatternPlan, String> {
+    if let (Some(CoreType::Union(variants)), Some(CorePattern::Atom(tag))) =
+        (core_type, patterns.first())
+    {
+        if let Some((discriminant, variant_count, fields)) = tagged_union_by_atom(tag, variants) {
+            return tagged_union_constructor_plan(
+                tag,
+                &patterns[1..],
+                value,
+                value_type,
+                discriminant,
+                variant_count,
+                &fields,
+                constructors,
+                depth,
+            );
+        }
+    }
     let Some(CoreType::Tuple(elements)) = core_type else {
-        return Err("error[native_ir.tuple_pattern_type]: tuple type is unavailable".into());
+        return Err(format!(
+            "error[native_ir.tuple_pattern_type]: tuple type is unavailable for {patterns:?}; found {core_type:?}"
+        ));
     };
     if elements.len() != patterns.len() {
         return Err("error[native_ir.tuple_pattern_arity]: tuple arity differs".into());
@@ -546,6 +626,50 @@ fn list_cons_plan(
         )?,
         pattern_plan(tail, rest, value_type, core_type, constructors, depth + 1)?,
     ])
+}
+
+#[allow(clippy::too_many_arguments)]
+fn structural_map_plan(
+    patterns: &[crate::terlan_typeck::CoreMapPatternField],
+    value: NativeExpr,
+    value_type: NativeType,
+    core_type: Option<&CoreType>,
+    constructors: &NativeConstructorLayouts,
+    depth: usize,
+) -> Result<PatternPlan, String> {
+    let Some(CoreType::Map(fields)) = core_type else {
+        return Err("error[native_ir.map_record_pattern_type]: shape is unavailable".into());
+    };
+    let semantic = managed_semantic(value_type)?;
+    let mut plans = vec![PatternPlan {
+        predicate: NativeExpr::ManagedOperation {
+            encoded: Arc::from(encode_managed_type_is_operation(semantic)),
+            args: vec![value.clone()],
+        },
+        bindings: Vec::new(),
+    }];
+    for pattern in patterns {
+        let (index, field) = fields
+            .iter()
+            .enumerate()
+            .find(|(_, field)| field.key == pattern.key)
+            .ok_or_else(|| {
+                format!(
+                    "error[native_ir.map_record_pattern_field]: `{}` is unavailable",
+                    pattern.key
+                )
+            })?;
+        let native = native_core_type(&field.value)?;
+        plans.push(pattern_plan(
+            &pattern.value,
+            project(value.clone(), semantic, index, native)?,
+            native,
+            Some(&field.value),
+            constructors,
+            depth + 1,
+        )?);
+    }
+    merge(plans)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -682,6 +806,15 @@ pub(super) fn bool_and(left: NativeExpr, right: NativeExpr) -> NativeExpr {
     }
 }
 
+fn bool_or(left: NativeExpr, right: NativeExpr) -> NativeExpr {
+    NativeExpr::If {
+        clauses: vec![
+            (left, NativeExpr::Bool(true)),
+            (NativeExpr::Bool(true), right),
+        ],
+    }
+}
+
 pub(super) fn bind_values(bindings: &[PatternBinding], body: NativeExpr) -> NativeExpr {
     if bindings.is_empty() {
         body
@@ -754,81 +887,5 @@ fn managed_semantic(
     match ty {
         NativeType::ManagedRef(semantic) => Ok(semantic),
         _ => Err("error[native_ir.structured_pattern_type]: value is not managed".to_string()),
-    }
-}
-
-fn native_core_type(ty: &CoreType) -> Result<NativeType, String> {
-    native_type(Some(ty), &ty.contract_text()).ok_or_else(|| {
-        format!(
-            "error[native_ir.structured_pattern_type]: unsupported `{}`",
-            ty.contract_text()
-        )
-    })
-}
-
-fn core_expr_type(expr: &CoreExpr, types: &HashMap<String, CoreType>) -> Option<CoreType> {
-    match expr {
-        CoreExpr::Var(name) => types.get(name).cloned(),
-        CoreExpr::Cast { target_type, .. } => Some(target_type.clone()),
-        _ => None,
-    }
-}
-
-fn tuple_element_type(element: &CoreTupleTypeElem) -> &CoreType {
-    match element {
-        CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. } => ty,
-    }
-}
-
-fn list_element_type(core_type: Option<&CoreType>) -> Result<&CoreType, String> {
-    match core_type {
-        Some(CoreType::List(element)) => Ok(element),
-        Some(CoreType::Apply { constructor, args })
-            if constructor.rsplit('.').next() == Some("List") && args.len() == 1 =>
-        {
-            Ok(&args[0])
-        }
-        _ => Err("error[native_ir.list_pattern_type]: concrete List type is unavailable".into()),
-    }
-}
-
-fn map_types(core_type: Option<&CoreType>) -> Result<(&CoreType, &CoreType), String> {
-    match core_type {
-        Some(CoreType::Apply { constructor, args })
-            if constructor.rsplit('.').next() == Some("Map") && args.len() == 2 =>
-        {
-            Ok((&args[0], &args[1]))
-        }
-        _ => Err("error[native_ir.map_pattern_type]: concrete Map type is unavailable".into()),
-    }
-}
-
-fn struct_field_type<'a>(core_type: Option<&'a CoreType>, name: &str) -> Option<&'a CoreType> {
-    let Some(CoreType::Struct { fields, .. }) = core_type else {
-        return None;
-    };
-    fields
-        .iter()
-        .find(|field| field.name == name)
-        .map(|field| &field.ty)
-}
-
-fn map_key(key: &str, ty: &CoreType) -> Result<NativeExpr, String> {
-    match ty {
-        CoreType::String => {
-            let encoded = crate::runtime::native_image::managed::encode_string_literal(key)
-                .map_err(|error| format!("error[native_ir.map_pattern_key]: {error}"))?;
-            Ok(NativeExpr::StringLiteral {
-                encoded: encoded.into(),
-            })
-        }
-        CoreType::Int => key
-            .parse::<i64>()
-            .map(NativeExpr::Int)
-            .map_err(|error| format!("error[native_ir.map_pattern_key]: {error}")),
-        _ => Err(format!(
-            "error[native_ir.map_pattern_key]: unsupported key type `{}`",
-            ty.contract_text()
-        )),
     }
 }

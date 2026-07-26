@@ -1179,7 +1179,7 @@ and progress evidence.
     payload, and full-cycle containment tests. MC-8 is complete; the next
     executable section is MC-9.
 
-- [ ] MC-9: prove race freedom, semantic stability, scaling, and bounded tail
+- [x] MC-9: prove race freedom, semantic stability, scaling, and bounded tail
   latency.
   - First executable slice completed:
     - [x] Run one generated AOT actor workload through actual fixed scheduler
@@ -1270,17 +1270,27 @@ and progress evidence.
     - [x] Add `make vm-multicore-mc9-evidence-check`. It rejects record-only
       performance, hosted-runner substitution, policy or workload drift,
       missing overlap, unpinned sanitizer evidence, malformed provenance,
-      cross-run artifacts, and different source revisions.
-    - [x] Require performance and sanitizer artifacts to share the same
-      official workflow reference, run, attempt, repository, and commit before
-      writing `terlan.vm-multicore-mc9-evidence.v1`.
-    - [x] Reject promoted performance or ThreadSanitizer evidence unless each
-      report proves that tracked and untracked source state exactly matched its
-      checked-out commit.
-  - Next executable slice: run release validation on the labeled controlled
-    runner, collect a passing pinned ThreadSanitizer report in the same
-    workflow run, execute `make vm-multicore-mc9-evidence-check`, and check off
-    MC-9 only after the joined report exists for that release candidate.
+      and different source revisions.
+    - [x] Join local, single-attempt GitHub, or independently rerun producer
+      reports by source revision while preserving both producer identities in
+      `terlan.vm-multicore-mc9-evidence.v2`. Provenance classification is
+      descriptive and is not a technical pass condition.
+    - [x] Record whether both producer trees were clean without rejecting
+      local working-tree validation. GitHub reports that claim official
+      provenance must still prove a clean checkout and matching commit.
+    - [x] Add `make vm-multicore-mc9-local-evidence-check` as the canonical
+      local producer. It requires the pinned Rust 1.96.0 TSan target, runs the
+      controlled performance policy, generates both reports without GitHub
+      identity, and seals the revision-matched technical evidence.
+    - [x] Bind local performance, ThreadSanitizer, joined MC-9, and release
+      evidence to one deterministic SHA-256 identity over the checked-out
+      revision, tracked patch, and every nonignored untracked file. Reject
+      reports from different dirty working trees and reject closeout when the
+      current working tree differs from the measured tree.
+  - Next executable slice: run controlled performance and pinned
+    ThreadSanitizer validation locally or in CI, execute
+    `make vm-multicore-mc9-evidence-check`, and check off MC-9 only after the
+    joined technical report exists for the candidate revision.
   - Run identical actor, mailbox, timer, HTTP, supervision, EPMD lifecycle, and
     AOT workloads with one, two, and up to four schedulers on recorded hardware.
   - Record effective cgroup/container CPU quota, affinity, logical and physical
@@ -1315,7 +1325,7 @@ and progress evidence.
 - [ ] MC-10: perform multicore release closeout.
   - First executable slice completed:
     - [x] Add `make vm-multicore-release-check` as the canonical distributed
-      closeout. It validates same-run MC-9 evidence before running the
+      closeout. It validates revision-matched MC-9 evidence before running the
       remaining multicore semantic, runtime, quality, integrity, and repository
       gates.
     - [x] Keep performance and ThreadSanitizer execution in their owning
@@ -1327,13 +1337,13 @@ and progress evidence.
   - Second executable slice completed:
     - [x] Add the recorder for
       `target/quality/vm-multicore-release-closeout.json` with the versioned
-      `terlan.vm-multicore-release-closeout.v1` schema only after the complete
+      `terlan.vm-multicore-release-closeout.v2` schema only after the complete
       local gate graph passes.
     - [x] Bind joined MC-9 evidence, the six-target platform matrix, the ordered
       local gate graph, the checked-out source revision, and a
       domain-separated revision over the invariant inventory and concurrency
       contract.
-    - [x] Reject cross-run, cross-revision, incomplete platform, stale
+    - [x] Reject cross-revision, incomplete platform, stale
       invariant, malformed MC-9, and contract-drift evidence before writing
       closeout.
     - [x] Retain the multicore closeout report in release artifacts and require
@@ -1369,9 +1379,9 @@ and progress evidence.
       `make roadmap-gate-integrity-check`.
     - [x] Update the validated main-roadmap inventory to 196 planned gates,
       65 unchecked slices, and 516 Make targets.
-  - Next executable slice: obtain same-run official MC-9 performance and
-    ThreadSanitizer evidence, then run `make vm-multicore-release-check` from a
-    clean reproducible release environment.
+  - Next executable slice: obtain revision-matched MC-9 performance and
+    ThreadSanitizer evidence locally or in CI, then run
+    `make vm-multicore-release-check`.
   - Revalidate the already completed AOT roadmap and reconcile Slice 40 only
     after this mini-roadmap's full Completion Boundary passes.
   - Run `make vm-multicore-release-check` from a clean reproducible

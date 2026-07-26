@@ -1,6 +1,7 @@
 //! Bounded correlation between worker assignments and fixed-owner payloads.
 
 use std::collections::BTreeMap;
+use std::task::Waker;
 
 use crate::runtime::vm::process::VmProcessId;
 use crate::terlan_native_boundary::term::{NativeBoundaryReplyTerm, NativeBoundaryTerm};
@@ -62,6 +63,11 @@ impl<Payload> VmCapabilityWorkerEventPump<Payload> {
     /// Returns currently available pool credits.
     pub(crate) fn available_capacity(&self) -> u64 {
         self.pool.available_capacity()
+    }
+
+    /// Arms the caller before it checks for a queued transport completion.
+    pub(crate) fn register_event_waker(&self, waker: &Waker) {
+        self.pool.register_event_waker(waker);
     }
 
     /// Submits one already-parked call and retains its owner payload atomically.

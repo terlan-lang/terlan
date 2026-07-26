@@ -736,6 +736,21 @@ fn coff_metadata_survives_pe_linking_sealing_and_inspection() {
     );
 }
 
+#[test]
+fn lightweight_host_target_matches_cranelift_codegen_identity() {
+    let actual = host_tvm_target().expect("lightweight host target");
+    let builder = cranelift_native::builder().expect("Cranelift host target");
+    let triple = builder.triple();
+    let expected = TvmImageTarget {
+        triple: triple.to_string(),
+        architecture: triple.architecture.to_string(),
+        operating_system: triple.operating_system.to_string(),
+        calling_convention: cranelift_codegen::isa::CallConv::triple_default(triple).to_string(),
+    };
+
+    assert_eq!(actual, expected);
+}
+
 #[cfg(target_os = "linux")]
 #[test]
 fn native_inspection_accepts_real_elf_and_rejects_wrong_target_and_abi() {

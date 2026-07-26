@@ -1,14 +1,15 @@
 //! Typed result envelope used only by direct fixed-owner HTTP calls.
 
 use super::ReplValue;
+use bytes::Bytes;
 
-/// Owned non-file response copied from an actor heap before that request heap
-/// is released. Protocol validation remains the serve boundary's authority.
+/// Owned non-file response transferred from an actor heap before that request
+/// heap is released. Protocol validation remains the serve boundary's authority.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct VmAotHttpResponse {
     pub(crate) kind: i64,
     pub(crate) status: i64,
-    pub(crate) payload: String,
+    pub(crate) payload: Bytes,
     pub(crate) headers: Vec<(String, String)>,
 }
 

@@ -1,7 +1,7 @@
-use cranelift_codegen::isa::CallConv;
 use object::write::Object as WriteObject;
 use object::{BinaryFormat, Object, ObjectKind, ObjectSection, ObjectSymbol, SectionKind};
 use sha2::{Digest, Sha256};
+use target_lexicon::{CallingConvention, HOST};
 
 use crate::runtime::native_boundary::adapter_abi::PUBLIC_ADAPTER_ABI_VERSION;
 
@@ -21,14 +21,28 @@ const SUPPORTED_NATIVE_BOUNDARY: u16 = PUBLIC_ADAPTER_ABI_VERSION;
 /// Returns the exact host target identity used for native image emission and
 /// admission.
 pub fn host_tvm_target() -> Result<TvmImageTarget, String> {
-    let builder = cranelift_native::builder()
-        .map_err(|error| format!("error[tvm.image.host_target]: {error}"))?;
-    let triple = builder.triple().clone();
+    let triple = &HOST;
+    let calling_convention = match triple.default_calling_convention() {
+        Ok(CallingConvention::SystemV) | Err(()) => "system_v",
+        Ok(CallingConvention::WindowsFastcall) => "windows_fastcall",
+        Ok(CallingConvention::AppleAarch64) => "apple_aarch64",
+        Ok(CallingConvention::WasmBasicCAbi) => {
+            return Err(
+                "error[tvm.image.host_target]: WebAssembly is not a native TVM image target"
+                    .to_string(),
+            )
+        }
+        Ok(other) => {
+            return Err(format!(
+                "error[tvm.image.host_target]: unsupported native calling convention {other:?}"
+            ))
+        }
+    };
     Ok(TvmImageTarget {
         triple: triple.to_string(),
         architecture: triple.architecture.to_string(),
         operating_system: triple.operating_system.to_string(),
-        calling_convention: CallConv::triple_default(&triple).to_string(),
+        calling_convention: calling_convention.to_string(),
     })
 }
 

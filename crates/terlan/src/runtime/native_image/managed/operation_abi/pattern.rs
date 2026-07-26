@@ -32,6 +32,9 @@ pub(super) fn execute_pattern_operation(
         return Err(ManagedMemoryError::InvalidAggregateArity);
     };
     let (tag, semantic, discriminant) = decode(encoded)?;
+    if u64::from_ne_bytes(word.to_ne_bytes()) >> 32 == 0 {
+        return Ok(0);
+    }
     let reference = reference(*word)?;
     let actual = heap.descriptor(reference)?;
     if actual.semantic_id() != semantic {

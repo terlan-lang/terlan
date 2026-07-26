@@ -4,7 +4,7 @@ use super::{NativeExpr, NativeModule};
 use crate::runtime::native_image::TVM_INDIRECT_TRANSITION_WORD_CAPACITY;
 
 /// Computes which functions suspend and their maximum transition value count.
-pub(super) fn suspension_profile(native: &NativeModule) -> (Vec<bool>, Vec<usize>) {
+pub(crate) fn suspension_profile(native: &NativeModule) -> (Vec<bool>, Vec<usize>) {
     let mut suspending = vec![false; native.functions.len()];
     loop {
         let next = native
@@ -40,14 +40,17 @@ pub(super) fn suspension_value_count(body: &NativeExpr, function_counts: &[usize
         NativeExpr::TailCall { function, .. } => {
             function_counts.get(*function).copied().unwrap_or(0)
         }
+        NativeExpr::ContinuationTailCall { .. } => 0,
         NativeExpr::CallThen {
             callee_capture_count,
+            completion_function,
             values,
-            resume,
             ..
-        } => callee_capture_count
-            .saturating_add(values.len())
-            .max(suspension_value_count(resume, function_counts)),
+        } => callee_capture_count.saturating_add(values.len()).max(
+            completion_function
+                .and_then(|function| function_counts.get(function).copied())
+                .unwrap_or(0),
+        ),
         NativeExpr::InvokeClosure { .. } => TVM_INDIRECT_TRANSITION_WORD_CAPACITY,
         NativeExpr::Let { body, .. } => suspension_value_count(body, function_counts),
         NativeExpr::If { clauses } => clauses
@@ -64,9 +67,8 @@ pub(super) fn suspension_value_count(body: &NativeExpr, function_counts: &[usize
 pub(super) fn is_suspending(body: &NativeExpr, function_suspending: &[bool]) -> bool {
     match body {
         NativeExpr::Suspend { .. } => true,
-        NativeExpr::TailCall { function, .. } => {
-            function_suspending.get(*function).copied().unwrap_or(false)
-        }
+        NativeExpr::TailCall { .. } => true,
+        NativeExpr::ContinuationTailCall { .. } => false,
         NativeExpr::CallThen { .. } => true,
         NativeExpr::InvokeClosure { .. } => true,
         NativeExpr::Let { body, .. } => is_suspending(body, function_suspending),

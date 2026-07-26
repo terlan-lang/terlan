@@ -15,13 +15,18 @@ use crate::runtime::vm::http_session::VmHttpSessionService;
 use super::{
     ActorHeap, ActorId, AtomIndex, HeapLimits, ManagedBinary, ManagedBytes, ManagedClosure,
     ManagedClosureDispatchTable, ManagedClosureImageGeneration, ManagedContinuation,
-    ManagedLayoutRegistry, ManagedMailboxFragment, ManagedString, SemanticTypeId, TvmRef,
+    ManagedLayoutRegistry, ManagedMailboxFragment, ManagedRoot, ManagedString, TvmRef,
     MANAGED_ALLOCATION_FAILED_STATUS, MAX_MANAGED_AGGREGATE_ABI_BYTES,
 };
 
 #[path = "execution/actor_transfer.rs"]
 mod actor_transfer;
 pub(crate) use actor_transfer::ManagedActorTransfer;
+#[path = "execution/abi_types.rs"]
+mod abi_types;
+use abi_types::{managed_semantic_id, reference_word, ManagedAllocator, ManagedClosureResolver};
+#[path = "execution/hibernation.rs"]
+mod hibernation;
 #[path = "execution/owner_heaps.rs"]
 mod owner_heaps;
 use owner_heaps::ManagedOwnerHeaps;
@@ -30,26 +35,8 @@ const DEFAULT_SOFT_HEAP_BYTES: usize = 1024 * 1024;
 const DEFAULT_HARD_HEAP_BYTES: usize = 64 * 1024 * 1024;
 const DEFAULT_MAILBOX_TRANSFER_WORK_BYTES: usize = 64 * 1024 * 1024;
 const MAX_AGGREGATE_FIELD_WORDS: usize = MAX_MANAGED_AGGREGATE_ABI_BYTES / 2;
-const MAX_RECYCLED_ACTOR_HEAPS: usize = 64;
-
-/// Generated aggregate allocation callback ABI.
-type ManagedAllocator =
-    unsafe extern "C" fn(*mut c_void, *const u8, u64, *const i64, u64, *mut u64) -> i32;
-
-/// Generated owned-closure resolution callback ABI.
-type ManagedClosureResolver = unsafe extern "C" fn(
-    *mut c_void,
-    i64,
-    *const i64,
-    u64,
-    *const i64,
-    *const i64,
-    u64,
-    *mut u64,
-    *mut i64,
-    u64,
-    *mut u64,
-) -> i32;
+const MAX_RECYCLED_ACTOR_HEAPS: usize = 4;
+const MAX_RECYCLED_ACTOR_HEAP_BYTES: usize = 256 * 1024;
 
 const BOUNDARY_TYPE_WORDS: usize = 3;
 const MAX_CLOSURE_INVOCATION_WORDS: usize = 128;
@@ -330,8 +317,16 @@ impl ManagedExecutionRuntime {
     /// Releases one actor heap after its boundary and continuations have shut down.
     pub(crate) fn release_owner(&mut self, owner_id: u64) {
         if let Some(mut heap) = self.heaps.remove(&owner_id) {
-            heap.reclaim_for_reuse();
-            if self.recycled_heaps.len() < MAX_RECYCLED_ACTOR_HEAPS {
+            heap.reclaim_for_pool();
+            let retained = heap.retained_capacity_bytes();
+            let pooled = self
+                .recycled_heaps
+                .iter()
+                .map(ActorHeap::retained_capacity_bytes)
+                .sum::<usize>();
+            if self.recycled_heaps.len() < MAX_RECYCLED_ACTOR_HEAPS
+                && pooled.saturating_add(retained) <= MAX_RECYCLED_ACTOR_HEAP_BYTES
+            {
                 self.recycled_heaps.push(heap);
             }
         }
@@ -410,6 +405,18 @@ impl ManagedExecutionRuntime {
     ) -> Result<i64, String> {
         self.heap(owner_id)?
             .allocate_string(value)
+            .map(reference_word)
+            .map_err(|error| format!("error[managed_execution.string]: {error}"))
+    }
+
+    /// Adopts immutable UTF-8 storage for compiler-proven scalar ingress.
+    pub(crate) fn allocate_shared_string_value(
+        &mut self,
+        owner_id: u64,
+        value: bytes::Bytes,
+    ) -> Result<i64, String> {
+        self.heap(owner_id)?
+            .allocate_shared_string(value)
             .map(reference_word)
             .map_err(|error| format!("error[managed_execution.string]: {error}"))
     }
@@ -583,7 +590,19 @@ impl ManagedExecutionRuntime {
             let encoded = u64::from_ne_bytes(value.to_ne_bytes());
             let reference = heap
                 .validate_abi_reference(encoded, semantic_id)
-                .map_err(|error| format!("error[managed_execution.capture]: {error}"))?;
+                .map_err(|error| {
+                    let actual = usize::try_from(encoded)
+                        .ok()
+                        .and_then(NonZeroUsize::new)
+                        .and_then(|encoded| {
+                            heap.descriptor(TvmRef::<()>::from_encoded(encoded))
+                                .ok()
+                                .map(|descriptor| descriptor.semantic_id())
+                        });
+                    format!(
+                        "error[managed_execution.capture]: continuation {continuation_id} capture {position} expects {boundary_type:?}, received semantic type {actual:?}: {error}"
+                    )
+                })?;
             positions.push(position);
             references.push(reference);
         }
@@ -686,199 +705,7 @@ impl ManagedExecutionRuntime {
     }
 }
 
-/// Returns the semantic identity for one actor-heap boundary value.
-fn managed_semantic_id(boundary_type: &TvmBoundaryType) -> Result<Option<SemanticTypeId>, String> {
-    let canonical = match boundary_type {
-        TvmBoundaryType::String => Some("std.core.String"),
-        TvmBoundaryType::Bytes => Some("std.binary.Bytes"),
-        TvmBoundaryType::Binary => Some("std.binary.Binary"),
-        TvmBoundaryType::Managed(bytes) => return Ok(Some(SemanticTypeId::from_bytes(*bytes))),
-        _ => None,
-    };
-    canonical
-        .map(SemanticTypeId::from_canonical)
-        .transpose()
-        .map_err(|error| format!("error[managed_execution.capture_type]: {error}"))
-}
-
-/// Encodes one runtime-private reference as the fixed native word representation.
-fn reference_word<T>(reference: TvmRef<T>) -> i64 {
-    i64::from_ne_bytes(reference.encoded_abi_word().to_ne_bytes())
-}
-
-/// Validates one generated allocation call and publishes through its owner heap.
-#[allow(unsafe_code)]
-pub(crate) unsafe extern "C" fn managed_allocate(
-    context: *mut c_void,
-    layout: *const u8,
-    layout_len: u64,
-    fields: *const i64,
-    field_count: u64,
-    result: *mut u64,
-) -> i32 {
-    catch_unwind(AssertUnwindSafe(|| {
-        managed_allocate_inner(context, layout, layout_len, fields, field_count, result)
-    }))
-    .unwrap_or(MANAGED_ALLOCATION_FAILED_STATUS)
-}
-
-/// Resolves one owned closure into its stable image target and validated ABI words.
-#[allow(unsafe_code, clippy::too_many_arguments)]
-pub(crate) unsafe extern "C" fn managed_resolve_closure(
-    context: *mut c_void,
-    closure: i64,
-    parameter_type_words: *const i64,
-    parameter_count: u64,
-    parameter_words: *const i64,
-    result_type_words: *const i64,
-    result_count: u64,
-    target: *mut u64,
-    invocation_words: *mut i64,
-    invocation_capacity: u64,
-    invocation_len: *mut u64,
-) -> i32 {
-    catch_unwind(AssertUnwindSafe(|| {
-        resolve_closure_inner(
-            context,
-            closure,
-            parameter_type_words,
-            parameter_count,
-            parameter_words,
-            result_type_words,
-            result_count,
-            target,
-            invocation_words,
-            invocation_capacity,
-            invocation_len,
-        )
-    }))
-    .unwrap_or(MANAGED_ALLOCATION_FAILED_STATUS)
-}
-
-/// Checks all raw resolver buffers before entering actor-owned managed state.
-#[allow(unsafe_code, clippy::too_many_arguments)]
-fn resolve_closure_inner(
-    context: *mut c_void,
-    closure: i64,
-    parameter_type_words: *const i64,
-    parameter_count: u64,
-    parameter_words: *const i64,
-    result_type_words: *const i64,
-    result_count: u64,
-    target: *mut u64,
-    invocation_words: *mut i64,
-    invocation_capacity: u64,
-    invocation_len: *mut u64,
-) -> i32 {
-    let counts = (
-        usize::try_from(parameter_count),
-        usize::try_from(result_count),
-        usize::try_from(invocation_capacity),
-    );
-    let (Ok(parameter_count), Ok(result_count), Ok(invocation_capacity)) = counts else {
-        return MANAGED_ALLOCATION_FAILED_STATUS;
-    };
-    let Some(parameter_type_count) = parameter_count.checked_mul(BOUNDARY_TYPE_WORDS) else {
-        return MANAGED_ALLOCATION_FAILED_STATUS;
-    };
-    let Some(result_type_count) = result_count.checked_mul(BOUNDARY_TYPE_WORDS) else {
-        return MANAGED_ALLOCATION_FAILED_STATUS;
-    };
-    if context.is_null()
-        || target.is_null()
-        || invocation_len.is_null()
-        || !(context as *const ManagedAllocationContext).is_aligned()
-        || !target.is_aligned()
-        || !invocation_len.is_aligned()
-        || invocation_capacity > MAX_CLOSURE_INVOCATION_WORDS
-        || (parameter_count != 0 && (parameter_words.is_null() || !parameter_words.is_aligned()))
-        || (parameter_type_count != 0
-            && (parameter_type_words.is_null() || !parameter_type_words.is_aligned()))
-        || (result_type_count != 0
-            && (result_type_words.is_null() || !result_type_words.is_aligned()))
-        || (invocation_capacity != 0
-            && (invocation_words.is_null() || !invocation_words.is_aligned()))
-    {
-        return MANAGED_ALLOCATION_FAILED_STATUS;
-    }
-    // SAFETY: All pointers are checked above and the generated caller retains
-    // each bounded buffer for the complete synchronous callback.
-    let (context, parameter_types, parameters, result_types) = unsafe {
-        (
-            &mut *context.cast::<ManagedAllocationContext>(),
-            std::slice::from_raw_parts(parameter_type_words, parameter_type_count),
-            std::slice::from_raw_parts(parameter_words, parameter_count),
-            std::slice::from_raw_parts(result_type_words, result_type_count),
-        )
-    };
-    let decode_types = |words: &[i64]| {
-        words
-            .chunks_exact(BOUNDARY_TYPE_WORDS)
-            .map(TvmBoundaryType::from_transition_words)
-            .collect::<Result<Vec<_>, _>>()
-    };
-    let resolved = decode_types(parameter_types)
-        .and_then(|parameter_types| {
-            decode_types(result_types).map(|result_types| (parameter_types, result_types))
-        })
-        .and_then(|(parameter_types, result_types)| {
-            // SAFETY: `with_dispatch` created the runtime pointer from an
-            // exclusive borrow that remains live for this callback only.
-            let runtime = unsafe { &mut *context.runtime };
-            let table = runtime.closure_dispatch.as_ref().cloned().ok_or_else(|| {
-                "error[managed_execution.closure_resolver]: no admitted closure table".to_string()
-            })?;
-            let closure = usize::try_from(u64::from_ne_bytes(closure.to_ne_bytes()))
-                .ok()
-                .and_then(NonZeroUsize::new)
-                .map(TvmRef::<ManagedClosure>::from_encoded)
-                .ok_or_else(|| {
-                    "error[managed_execution.closure_resolver]: invalid closure reference"
-                        .to_string()
-                })?;
-            runtime
-                .heap_ref(context.owner_id)?
-                .prepare_closure_invocation(
-                    closure,
-                    &table,
-                    table.generation(),
-                    &parameter_types,
-                    parameters,
-                    &result_types,
-                )
-                .map_err(|error| format!("error[managed_execution.closure_resolver]: {error}"))
-        });
-    match resolved {
-        Ok(invocation) if invocation.words().len() <= invocation_capacity => {
-            // SAFETY: Checked non-null output buffers have sufficient capacity.
-            unsafe {
-                target.write(invocation.target().callable_id());
-                std::ptr::copy_nonoverlapping(
-                    invocation.words().as_ptr(),
-                    invocation_words,
-                    invocation.words().len(),
-                );
-                invocation_len.write(invocation.words().len() as u64);
-            }
-            0
-        }
-        Ok(_) => {
-            // SAFETY: context was checked and originated in `with_dispatch`.
-            let runtime = unsafe { &mut *context.runtime };
-            runtime.last_allocation_error = Some(
-                "error[managed_execution.closure_resolver]: invocation exceeds output capacity"
-                    .to_string(),
-            );
-            MANAGED_ALLOCATION_FAILED_STATUS
-        }
-        Err(error) => {
-            // SAFETY: context was checked and originated in `with_dispatch`.
-            let runtime = unsafe { &mut *context.runtime };
-            runtime.last_allocation_error = Some(error);
-            MANAGED_ALLOCATION_FAILED_STATUS
-        }
-    }
-}
+include!("execution/callbacks.rs");
 
 /// Performs pointer checks and converts bounded ABI storage into Rust slices.
 #[allow(unsafe_code)]
@@ -950,7 +777,89 @@ fn managed_allocate_inner(
                     let family = std::str::from_utf8(layout.get(..4).unwrap_or_default())
                         .unwrap_or("invalid");
                     let operation = layout.get(6).copied().unwrap_or_default();
-                    format!("{error}; managed operation {family}/{operation}")
+                    let semantic_context = match family {
+                        "TVME" => {
+                            let expected = layout.get(8..24).unwrap_or_default();
+                            let actual = fields
+                                .iter()
+                                .enumerate()
+                                .map(|(index, word)| {
+                                    let reference = usize::try_from(u64::from_ne_bytes(
+                                        word.to_ne_bytes(),
+                                    ))
+                                        .ok()
+                                        .and_then(NonZeroUsize::new)
+                                        .map(TvmRef::<()>::from_encoded);
+                                    let resolved = reference
+                                        .ok_or(super::ManagedMemoryError::UnknownReference)
+                                        .and_then(|reference| heap.descriptor(reference))
+                                        .map(|descriptor| descriptor.semantic_id().bytes())
+                                        .map_err(|error| error.to_string());
+                                    (index, resolved)
+                                })
+                                .collect::<Vec<_>>();
+                            format!(
+                                "; expected semantic {expected:?}, operand words {fields:?}, actual semantics {actual:?}"
+                            )
+                        }
+                        "TVMC" => {
+                            let expected = layout.get(8..24).unwrap_or_default();
+                            let actual = fields
+                                .iter()
+                                .filter_map(|word| {
+                                    usize::try_from(u64::from_ne_bytes(word.to_ne_bytes()))
+                                        .ok()
+                                        .and_then(NonZeroUsize::new)
+                                })
+                                .filter_map(|word| {
+                                    heap.descriptor(TvmRef::<()>::from_encoded(word))
+                                        .ok()
+                                        .map(|descriptor| descriptor.semantic_id().bytes())
+                                })
+                                .collect::<Vec<_>>();
+                            format!(
+                                "; expected collection semantic {expected:?}, actual reference semantics {actual:?}, admitted collections {:?}",
+                                layouts.collection_inventory()
+                            )
+                        }
+                        "TVMP" | "TVMO" => {
+                            let expected_bytes = layout
+                                .get(8..24)
+                                .and_then(|bytes| <[u8; 16]>::try_from(bytes).ok())
+                                .unwrap_or_default();
+                            let expected = super::SemanticTypeId::from_bytes(expected_bytes);
+                            let actual = fields.first().and_then(|word| {
+                                usize::try_from(u64::from_ne_bytes(word.to_ne_bytes()))
+                                    .ok()
+                                    .and_then(NonZeroUsize::new)
+                                    .and_then(|word| {
+                                        heap.descriptor(TvmRef::<()>::from_encoded(word)).ok()
+                                    })
+                                    .map(|descriptor| {
+                                        (
+                                            descriptor.semantic_id().bytes(),
+                                            descriptor.fingerprint(),
+                                        )
+                                    })
+                            });
+                            let admitted = layouts
+                                .layouts(expected)
+                                .iter()
+                                .map(|descriptor| {
+                                    (
+                                        descriptor.canonical_type(),
+                                        descriptor.variant_name(),
+                                        descriptor.managed().fingerprint(),
+                                    )
+                                })
+                                .collect::<Vec<_>>();
+                            format!(
+                                "; expected aggregate semantic {expected_bytes:?}, actual {actual:?}, admitted layouts {admitted:?}"
+                            )
+                        }
+                        _ => String::new(),
+                    };
+                    format!("{error}; managed operation {family}/{operation}{semantic_context}")
                 })
             } else {
                 heap.allocate_managed_words_abi(layout, fields)

@@ -2,6 +2,8 @@
 
 use std::sync::{Arc, OnceLock};
 
+use bytes::Bytes;
+
 use super::{
     managed_binary_semantic_id, managed_bytes_semantic_id, managed_string_semantic_id, ActorHeap,
     AllocationClass, ManagedMemoryError, ManagedTypeDescriptor, SemanticTypeId, TvmRef,
@@ -13,6 +15,7 @@ const BINARY_STORAGE_OFFSET: usize = 0;
 const BINARY_BIT_OFFSET_OFFSET: usize = std::mem::size_of::<usize>();
 const BINARY_BIT_LENGTH_OFFSET: usize = BINARY_BIT_OFFSET_OFFSET + std::mem::size_of::<u64>();
 const BINARY_PAYLOAD_BYTES: usize = std::mem::size_of::<usize>() + 2 * std::mem::size_of::<u64>();
+const EXTERNAL_STRING_MIN_BYTES: usize = 1024;
 
 /// Compile-time marker for one immutable, valid UTF-8 managed string.
 #[derive(Debug)]
@@ -97,6 +100,9 @@ impl ActorHeap {
     /// Reads one managed string after owner, generation, and semantic-type checks.
     pub fn read_string(&self, value: TvmRef<ManagedString>) -> Result<&str, ManagedMemoryError> {
         require_semantic_type(self, value, managed_string_semantic_id())?;
+        if let Some(value) = self.external_string_bytes(value)? {
+            return std::str::from_utf8(value).map_err(|_| ManagedMemoryError::InvalidUtf8);
+        }
         std::str::from_utf8(sequence_bytes(self.read(value)?)?)
             .map_err(|_| ManagedMemoryError::InvalidUtf8)
     }
@@ -108,30 +114,45 @@ impl ActorHeap {
         left: TvmRef<ManagedString>,
         right: TvmRef<ManagedString>,
     ) -> Result<TvmRef<ManagedString>, ManagedMemoryError> {
-        let left_length = self.read_string(left)?.len();
-        let right_length = self.read_string(right)?.len();
-        let value_length = left_length
-            .checked_add(right_length)
-            .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
-        let mut left_range = self.payload_range(left)?;
-        let mut right_range = self.payload_range(right)?;
-        left_range.start = left_range
-            .start
-            .checked_add(MANAGED_SEQUENCE_HEADER_BYTES)
-            .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
-        right_range.start = right_range
-            .start
-            .checked_add(MANAGED_SEQUENCE_HEADER_BYTES)
-            .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
-        if left_range.len() != left_length || right_range.len() != right_length {
-            return Err(ManagedMemoryError::InvalidSequenceLength);
+        self.concatenate_strings_many(&[left, right])
+    }
+
+    /// Concatenates validated actor-owned strings with one result allocation.
+    pub(super) fn concatenate_strings_many(
+        &mut self,
+        values: &[TvmRef<ManagedString>],
+    ) -> Result<TvmRef<ManagedString>, ManagedMemoryError> {
+        if values.len() < 2 {
+            return Err(ManagedMemoryError::InvalidAggregateArity);
         }
-        allocate_sequence_ranges(
-            self,
-            managed_string_semantic_id(),
-            value_length,
-            &[left_range, right_range],
-        )
+        let mut value_length = 0usize;
+        for value in values {
+            let string_length = self.read_string(*value)?.len();
+            value_length = value_length
+                .checked_add(string_length)
+                .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
+        }
+        if value_length >= EXTERNAL_STRING_MIN_BYTES {
+            let mut output = Vec::with_capacity(value_length);
+            for value in values {
+                output.extend_from_slice(self.read_string(*value)?.as_bytes());
+            }
+            return self.allocate_shared_string(Bytes::from(output));
+        }
+        let mut ranges = Vec::with_capacity(values.len());
+        for value in values {
+            let string_length = self.read_string(*value)?.len();
+            let mut range = self.payload_range(*value)?;
+            range.start = range
+                .start
+                .checked_add(MANAGED_SEQUENCE_HEADER_BYTES)
+                .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
+            if range.len() != string_length {
+                return Err(ManagedMemoryError::InvalidSequenceLength);
+            }
+            ranges.push(range);
+        }
+        allocate_sequence_ranges(self, managed_string_semantic_id(), value_length, &ranges)
     }
 
     /// Prepends one compiler-admitted UTF-8 literal without first allocating
@@ -146,6 +167,12 @@ impl ActorHeap {
             .len()
             .checked_add(right_length)
             .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
+        if value_length >= EXTERNAL_STRING_MIN_BYTES {
+            let mut output = Vec::with_capacity(value_length);
+            output.extend_from_slice(literal.as_bytes());
+            output.extend_from_slice(self.read_string(right)?.as_bytes());
+            return self.allocate_shared_string(Bytes::from(output));
+        }
         let mut right_range = self.payload_range(right)?;
         right_range.start = right_range
             .start
@@ -172,6 +199,22 @@ impl ActorHeap {
             &[&length, literal.as_bytes()],
             &[right_range],
         )
+    }
+
+    /// Stores a response-sized immutable String outside the copying semispace.
+    pub(crate) fn allocate_shared_string(
+        &mut self,
+        value: Bytes,
+    ) -> Result<TvmRef<ManagedString>, ManagedMemoryError> {
+        std::str::from_utf8(&value).map_err(|_| ManagedMemoryError::InvalidUtf8)?;
+        let length =
+            u64::try_from(value.len()).map_err(|_| ManagedMemoryError::InvalidSequenceLength)?;
+        let descriptor = self.sequence_descriptor(
+            managed_string_semantic_id(),
+            MANAGED_SEQUENCE_HEADER_BYTES,
+            AllocationClass::Large,
+        )?;
+        self.allocate_external_string_storage(descriptor, &length.to_le_bytes(), value)
     }
 
     /// Allocates one immutable byte sequence in this actor's managed heap.

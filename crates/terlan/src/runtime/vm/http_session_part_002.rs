@@ -797,6 +797,7 @@ impl VmHttpSessionRuntime {
                 VmProcessState::Exited(reason) => Some(reason.clone()),
                 VmProcessState::Runnable
                 | VmProcessState::Blocked
+                | VmProcessState::Hibernated
                 | VmProcessState::Suspended(_) => None,
             },
             None => Some(VmExitReason::Error("missing actor process".to_string())),

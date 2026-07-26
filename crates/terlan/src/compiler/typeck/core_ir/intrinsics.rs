@@ -80,6 +80,7 @@ pub enum CorePrimitiveIntrinsic {
     ListNew,
     ListIsEmpty,
     ListLength,
+    ListGet,
     ListFirst,
     ListRest,
     ListConcat,
@@ -258,6 +259,7 @@ impl CorePrimitiveIntrinsic {
             Self::ListNew => "core.list.new",
             Self::ListIsEmpty => "core.list.is_empty",
             Self::ListLength => "core.list.length",
+            Self::ListGet => "core.list.get",
             Self::ListFirst => "core.list.first",
             Self::ListRest => "core.list.rest",
             Self::ListConcat => "core.list.concat",
@@ -429,6 +431,12 @@ impl CoreRuntimeCapability {
 pub enum CoreIntrinsicId {
     Primitive(CorePrimitiveIntrinsic),
     Runtime(CoreRuntimeCapability),
+    /// Manifest-declared package operation executed through VM-owned
+    /// capability RPC rather than linked into generated code.
+    NativeOperation {
+        operation: String,
+        parameter_types: Vec<CoreType>,
+    },
     /// Typed public process send retaining its concrete message payload type.
     VmProcessSendMessage(CoreType),
     /// Typed public process receive retaining its concrete message payload type.
@@ -461,6 +469,17 @@ impl CoreIntrinsicId {
         match self {
             Self::Primitive(intrinsic) => intrinsic.registry_key().to_string(),
             Self::Runtime(capability) => capability.registry_key().to_string(),
+            Self::NativeOperation {
+                operation,
+                parameter_types,
+            } => format!(
+                "runtime.native_package.{operation}[{}]",
+                parameter_types
+                    .iter()
+                    .map(CoreType::contract_text)
+                    .collect::<Vec<_>>()
+                    .join(",")
+            ),
             Self::VmProcessSendMessage(value_type) => {
                 format!("vm.process.send[{}]", value_type.contract_text())
             }

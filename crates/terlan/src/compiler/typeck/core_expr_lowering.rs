@@ -218,10 +218,15 @@ fn core_sequence_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
         .iter()
         .enumerate()
         .map(|(index, item)| {
-            Some(CoreLetBinding {
-                pattern: CorePattern::Var(format!("_seq{index}")),
-                value: core_expr_from_syntax(item)?,
-            })
+            let value = core_expr_from_syntax(item)?;
+            let pattern = match &value {
+                CoreExpr::MutableReceiverCall { receiver, .. } => match receiver.as_ref() {
+                    CoreExpr::Var(name) => CorePattern::Var(name.clone()),
+                    _ => CorePattern::Var(format!("_seq{index}")),
+                },
+                _ => CorePattern::Var(format!("_seq{index}")),
+            };
+            Some(CoreLetBinding { pattern, value })
         })
         .collect::<Option<Vec<_>>>()?;
     Some(CoreExpr::Let {
@@ -858,36 +863,33 @@ fn core_unary_op_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
     })
 }
 
-/// Converts a syntax-output remote call into typed Core.
-///
-/// Inputs:
-/// - `expr`: syntax-output call expression with a remote module target, callee
-///   child, and argument children.
-///
-/// Output:
-/// - `Some(CoreExpr::RemoteCall)` when the module exists, callee is an atom
-///   function name, and all arguments lower into typed Core.
-/// - `None` for local calls, unsupported callee shapes, missing module
-///   metadata, empty child lists, or unsupported argument expressions.
-///
-/// Transformation:
-/// - Preserves module/function identity and recursively lowered arguments as
-///   backend-neutral CoreIR without resolving backend import semantics.
+/// Lowers a resolved remote function or imported constructor into typed CoreIR,
+/// retaining canonical constructor identity for uppercase imported callees.
 fn core_remote_call_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
     let module = expr.remote.clone()?;
     let (callee, args) = expr.children.split_first()?;
     let function = match core_expr_from_syntax(callee)? {
-        CoreExpr::Atom(function) => function,
+        CoreExpr::Atom(function) | CoreExpr::Var(function) => function,
         _ => return None,
     };
-    Some(CoreExpr::RemoteCall {
-        module,
-        function,
-        args: args
-            .iter()
-            .map(core_expr_from_syntax)
-            .collect::<Option<Vec<_>>>()?,
-    })
+    let args = args
+        .iter()
+        .map(core_expr_from_syntax)
+        .collect::<Option<Vec<_>>>()?;
+    if starts_with_ascii_uppercase(&function) {
+        let identity = format!("{module}.{function}");
+        Some(CoreExpr::ConstructorCall {
+            constructor: function,
+            constructor_identity: Some(identity),
+            args,
+        })
+    } else {
+        Some(CoreExpr::RemoteCall {
+            module,
+            function,
+            args,
+        })
+    }
 }
 
 /// Converts a syntax-output named call into a typed Core call candidate.

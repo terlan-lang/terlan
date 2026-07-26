@@ -27,6 +27,7 @@ pub(super) fn lower_native_function(
         identities,
         function_types,
         &HashMap::new(),
+        &HashMap::new(),
         &mut Vec::new(),
         constructors,
         suspending_functions,

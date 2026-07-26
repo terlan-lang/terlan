@@ -137,3 +137,24 @@ fn typed_sequence_access_rejects_wrong_and_foreign_references() {
         Err(ManagedMemoryError::CrossActorReference)
     );
 }
+
+#[test]
+fn reused_heap_releases_large_capacity_after_sustained_small_requests() {
+    let mut heap = ActorHeap::new(
+        ActorId::new(73).expect("actor"),
+        HeapLimits::new(1024 * 1024, 4 * 1024 * 1024).expect("limits"),
+    )
+    .expect("heap");
+    heap.allocate_bytes(&vec![1; 1024 * 1024])
+        .expect("large request");
+    let large_capacity = heap.retained_capacity_bytes();
+    heap.reclaim_for_reuse();
+
+    for _ in 0..8 {
+        heap.allocate_string("small").expect("small request");
+        heap.reclaim_for_reuse();
+    }
+
+    assert!(large_capacity > 256 * 1024);
+    assert!(heap.retained_capacity_bytes() < large_capacity / 2);
+}

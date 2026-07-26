@@ -4,7 +4,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 use super::hardware::{sha256, HardwareFingerprint};
 use serde::{Deserialize, Serialize};
@@ -12,15 +12,35 @@ use serde::{Deserialize, Serialize};
 #[path = "http_aot_performance/deltas.rs"]
 mod deltas;
 
+#[path = "http_aot_performance/benchmark_evidence.rs"]
+mod benchmark_evidence;
+
+#[path = "http_aot_performance/additional_workloads.rs"]
+mod additional_workloads;
+
 #[path = "http_aot_performance/harness.rs"]
 mod harness;
+
+#[path = "http_client.rs"]
+mod http_client;
+
+#[path = "http_benchmark_support.rs"]
+mod http_benchmark_support;
 
 #[path = "http_aot_performance/policy.rs"]
 mod policy;
 
+#[path = "http_aot_performance/report_io.rs"]
+mod report_io;
+
 use harness::{
-    create_workspace, measure_requests, reserve_port, resident_bytes, spawn_server,
-    wait_for_generation, write_handler_source, write_package, ServerGuard,
+    create_workspace, measure_request_rounds, measure_requests, median_throughput_round,
+    process_memory_snapshot, reserve_port, resident_bytes, spawn_server, wait_for_generation,
+    write_handler_source, write_package, ServerGuard,
+};
+use report_io::{
+    parse_report, read_file, read_nonnegative_env, read_positive_env, sha256_file,
+    unix_timestamp_nanos, unix_timestamp_seconds, write_json,
 };
 
 /// Benchmark command that records one executable HTTP lane.
@@ -31,6 +51,7 @@ pub(crate) const COMPARE_COMMAND: &str = "http-aot-performance-compare";
 pub(crate) const SELF_TEST_COMMAND: &str = "http-aot-performance-self-test";
 
 const REPORT_SCHEMA: &str = "terlan-http-aot-performance-v2";
+const LEGACY_CHECKED_COREIR_SCHEMA: &str = "terlan-http-aot-performance-v1";
 const COMPARISON_SCHEMA: &str = "terlan-http-aot-performance-comparison-v2";
 const DEFAULT_NATIVE_OUTPUT: &str = "target/quality/http-native-aot-performance.json";
 const DEFAULT_CHECKED_COREIR_OUTPUT: &str =
@@ -75,37 +96,49 @@ impl HttpExecutionLane {
 /// Fixed workload dimensions shared by both executable lanes.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 struct HttpPerformanceWorkload {
+    #[serde(default)]
     warmup_requests: usize,
+    #[serde(default)]
     measurement_rounds: usize,
     #[serde(alias = "connection_workers")]
+    #[serde(default)]
     readiness_reactors: usize,
     sequential_requests: usize,
     concurrency: usize,
     requests_per_worker: usize,
     longevity_requests: usize,
     payload_bytes: usize,
+    #[serde(default)]
+    measurement_duration_ms: u64,
+    #[serde(default)]
+    soak_seconds: u64,
 }
 
 impl HttpPerformanceWorkload {
     /// Reads benchmark workload controls while retaining non-zero defaults.
     fn from_env() -> Self {
+        let readiness_reactors = read_positive_env(
+            "TERLAN_BENCH_HTTP_AOT_REACTORS",
+            std::thread::available_parallelism()
+                .map(usize::from)
+                .unwrap_or(1)
+                .clamp(1, 32),
+        )
+        .min(32);
         Self {
             // Warm the compiler-produced image, dynamic linker, allocator,
-            // TCP path, and CPU before any measured request enters a report.
-            warmup_requests: read_positive_env("TERLAN_BENCH_HTTP_AOT_WARMUP", 250),
+            // TCP path, every owner, and CPU frequency state before any
+            // measured request enters a report.
+            warmup_requests: read_positive_env(
+                "TERLAN_BENCH_HTTP_AOT_WARMUP",
+                readiness_reactors.saturating_mul(800),
+            ),
             // A median of independent rounds rejects one-off scheduler and
             // frequency-state noise while retaining every raw round.
             measurement_rounds: read_positive_env("TERLAN_BENCH_HTTP_AOT_ROUNDS", 5),
             // Keep socket-readiness ownership explicit and reproducible instead
             // of inheriting an implicit host topology in benchmark subprocesses.
-            readiness_reactors: read_positive_env(
-                "TERLAN_BENCH_HTTP_AOT_REACTORS",
-                std::thread::available_parallelism()
-                    .map(usize::from)
-                    .unwrap_or(1)
-                    .clamp(1, 32),
-            )
-            .min(32),
+            readiness_reactors,
             // Keep p99 distinct from the single maximum request so scheduler
             // noise cannot decide the regression gate by itself.
             sequential_requests: read_positive_env("TERLAN_BENCH_HTTP_AOT_ITERATIONS", 500),
@@ -118,6 +151,8 @@ impl HttpPerformanceWorkload {
             ),
             longevity_requests: read_positive_env("TERLAN_BENCH_HTTP_AOT_LONGEVITY", 1_000),
             payload_bytes: read_positive_env("TERLAN_BENCH_HTTP_AOT_PAYLOAD_BYTES", 512),
+            measurement_duration_ms: read_nonnegative_env("TERLAN_BENCH_HTTP_DURATION_MS", 0),
+            soak_seconds: read_nonnegative_env("TERLAN_BENCH_HTTP_SOAK_SECONDS", 0),
         }
     }
 }
@@ -137,36 +172,12 @@ struct HttpTiming {
 }
 
 /// Auditable raw rounds behind each median timing selected for policy checks.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 struct HttpMeasurementEvidence {
     aggregation: String,
     sequential_rounds: Vec<HttpTiming>,
     pressure_rounds: Vec<HttpTiming>,
     longevity_rounds: Vec<HttpTiming>,
-}
-
-impl HttpTiming {
-    /// Summarizes non-empty request durations against one wall-clock interval.
-    fn from_durations(durations: &[Duration], wall: Duration) -> Result<Self, String> {
-        if durations.is_empty() {
-            return Err("HTTP benchmark timing requires at least one sample".to_string());
-        }
-        let mut values = durations.iter().map(Duration::as_nanos).collect::<Vec<_>>();
-        values.sort_unstable();
-        let total = values.iter().sum::<u128>();
-        let wall_ns = wall.as_nanos().max(1);
-        Ok(Self {
-            sample_count: values.len(),
-            total_wall_ns: wall_ns,
-            throughput_requests_per_second: values.len() as u128 * 1_000_000_000 / wall_ns,
-            min_ns: values[0],
-            mean_ns: total / values.len() as u128,
-            p50_ns: percentile(&values, 50),
-            p95_ns: percentile(&values, 95),
-            p99_ns: percentile(&values, 99),
-            max_ns: values[values.len() - 1],
-        })
-    }
 }
 
 /// Process resident-memory observations around the measured workload.
@@ -177,7 +188,12 @@ struct HttpAllocationEvidence {
     after_pressure_bytes: Option<u64>,
     after_longevity_bytes: Option<u64>,
     peak_observed_bytes: Option<u64>,
+    #[serde(default)]
+    snapshots: Vec<HttpProcessMemorySnapshot>,
 }
+
+/// Procfs attribution captured at stable benchmark lifecycle boundaries.
+type HttpProcessMemorySnapshot = http_client::ProcessMemorySnapshot;
 
 /// Concurrent queue-pressure evidence for one server generation.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -207,6 +223,19 @@ struct HttpGenerationEvidence {
     in_flight_lifetime_gate: String,
 }
 
+/// Additional workload shape used to expose costs hidden by the primary lane.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct HttpNamedWorkloadEvidence {
+    name: String,
+    connection_mode: String,
+    concurrency: usize,
+    requests: usize,
+    payload_bytes: usize,
+    timing: HttpTiming,
+    #[serde(default)]
+    rounds: Vec<HttpTiming>,
+}
+
 /// Complete executable report for one HTTP runtime lane.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct HttpPerformanceReport {
@@ -217,12 +246,17 @@ struct HttpPerformanceReport {
     compiler_binary_sha256: String,
     hardware: HardwareFingerprint,
     workload: HttpPerformanceWorkload,
+    #[serde(default)]
     measurement: HttpMeasurementEvidence,
     sequential: HttpTiming,
     allocation: HttpAllocationEvidence,
     pressure: HttpPressureEvidence,
     longevity: HttpLongevityEvidence,
     generation_overlap: HttpGenerationEvidence,
+    #[serde(default)]
+    additional_workloads: Vec<HttpNamedWorkloadEvidence>,
+    #[serde(default)]
+    benchmark_evidence: Option<benchmark_evidence::HttpExtendedBenchmarkEvidence>,
 }
 
 /// Comparison deltas between the checked reference and native AOT lane.
@@ -285,6 +319,7 @@ pub(crate) fn run_self_test_cli() -> ExitCode {
 
 /// Runs deterministic benchmark-report checks shared with unit coverage.
 fn run_self_test() -> Result<(), String> {
+    report_io::self_test_legacy_adapter()?;
     let timing = HttpTiming::from_durations(
         &[
             Duration::from_nanos(10),
@@ -412,6 +447,8 @@ fn fixture_report(lane: HttpExecutionLane) -> HttpPerformanceReport {
             requests_per_worker: 1,
             longevity_requests: 2,
             payload_bytes: 8,
+            measurement_duration_ms: 0,
+            soak_seconds: 0,
         },
         measurement: HttpMeasurementEvidence {
             aggregation: "median-throughput-round".to_string(),
@@ -426,6 +463,7 @@ fn fixture_report(lane: HttpExecutionLane) -> HttpPerformanceReport {
             after_pressure_bytes: Some(2),
             after_longevity_bytes: Some(2),
             peak_observed_bytes: Some(2),
+            snapshots: Vec::new(),
         },
         pressure: HttpPressureEvidence {
             concurrency: 2,
@@ -446,6 +484,8 @@ fn fixture_report(lane: HttpExecutionLane) -> HttpPerformanceReport {
             second_generation_body_verified: true,
             in_flight_lifetime_gate: "make gate".to_string(),
         },
+        additional_workloads: Vec::new(),
+        benchmark_evidence: Some(benchmark_evidence::fixture()),
     }
 }
 
@@ -459,6 +499,7 @@ fn run_lane_from_env() -> Result<PathBuf, String> {
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("target/release/terlc"));
     let report = run_lane(lane, &compiler, HttpPerformanceWorkload::from_env())?;
+    validate_report(&report, lane)?;
     write_json(&output, &report)?;
     Ok(output)
 }
@@ -475,6 +516,10 @@ fn run_lane(
             compiler.display()
         ));
     }
+    let execution = http_benchmark_support::BenchmarkExecutionMetadata::capture(
+        compiler,
+        workload.readiness_reactors,
+    )?;
     let workspace = create_workspace()?;
     let web_root = write_package(&workspace, "generation-one", workload.payload_bytes)?;
     let port = reserve_port()?;
@@ -485,6 +530,10 @@ fn run_lane(
         workload.readiness_reactors,
     )?);
     wait_for_generation(port, "generation-one", workload.payload_bytes)?;
+    let protocol_validation =
+        http_benchmark_support::validate_with_curl(port, workload.payload_bytes, "generation-one")?;
+    let protocol_scenarios = http_benchmark_support::protocol_scenarios(port)?;
+    let idle_memory = process_memory_snapshot(server.id(), "idle_after_readiness");
 
     // Readiness proves correctness; a separate sustained warm-up stabilizes
     // all runtime layers and is deliberately excluded from every timing.
@@ -502,13 +551,31 @@ fn run_lane(
         workload.payload_bytes,
     )?;
 
+    let mut memory_snapshots = Vec::new();
+    if let Some(snapshot) = idle_memory {
+        memory_snapshots.push(snapshot);
+    }
+    if let Some(snapshot) = process_memory_snapshot(server.id(), "after_warmup") {
+        memory_snapshots.push(snapshot);
+    }
     let memory_before = resident_bytes(server.id());
+    let efficiency_before = http_client::process_efficiency_snapshot(server.id());
     let (sequential, sequential_rounds) = measure_request_rounds(
         port,
         1,
         workload.sequential_requests,
         workload.payload_bytes,
         workload.measurement_rounds,
+        workload.measurement_duration_ms,
+    )?;
+    // Sequential traffic intentionally exercises one sticky owner. Re-warm
+    // every readiness owner immediately before pressure so cold remote shards
+    // from the prior phase cannot decide the pressure median.
+    measure_requests(
+        port,
+        workload.concurrency,
+        pressure_warmup_per_worker,
+        workload.payload_bytes,
     )?;
     let (pressure_timing, pressure_rounds) = measure_request_rounds(
         port,
@@ -516,26 +583,98 @@ fn run_lane(
         workload.requests_per_worker,
         workload.payload_bytes,
         workload.measurement_rounds,
+        workload.measurement_duration_ms,
     )?;
-    let pressure_attempted = workload.concurrency * workload.requests_per_worker;
+    let pressure_attempted = pressure_timing.sample_count;
     let memory_after_pressure = resident_bytes(server.id());
+    if let Some(snapshot) = process_memory_snapshot(server.id(), "after_pressure") {
+        memory_snapshots.push(snapshot);
+    }
     let (longevity_timing, longevity_rounds) = measure_request_rounds(
         port,
         1,
         workload.longevity_requests,
         workload.payload_bytes,
         workload.measurement_rounds,
+        workload.measurement_duration_ms,
     )?;
     let memory_after_longevity = resident_bytes(server.id());
+    if let Some(snapshot) = process_memory_snapshot(server.id(), "after_longevity") {
+        memory_snapshots.push(snapshot);
+    }
+    let efficiency_after = http_client::process_efficiency_snapshot(server.id());
+    let additional_workloads = additional_workloads::measure(port, &workload)?;
+    let maintained_workloads = http_benchmark_support::run_maintained_workload_matrix(
+        port,
+        workload.readiness_reactors,
+        workload.concurrency,
+        workload.payload_bytes,
+        "generation-one",
+    )?;
+    let open_loop = http_benchmark_support::run_open_loop_saturation(
+        port,
+        workload.concurrency,
+        workload.payload_bytes,
+        "generation-one",
+        &maintained_workloads,
+    )?;
+    let lifecycle = http_benchmark_support::lifecycle_scenarios(
+        port,
+        workload.payload_bytes,
+        "generation-one",
+        &maintained_workloads,
+    )?;
+    let external_load =
+        http_benchmark_support::run_wrk_probe(port, workload.concurrency, workload.payload_bytes)?;
+    let hardware_counters = http_benchmark_support::run_hardware_counter_probe(
+        server.id(),
+        port,
+        workload.concurrency,
+        workload.payload_bytes,
+    )?;
+    let soak = benchmark_evidence::measure_soak(port, server.id(), &workload)?;
+    let memory_after_soak = resident_bytes(server.id());
 
     let generation_start = Instant::now();
     write_handler_source(&workspace, "generation-two")?;
     wait_for_generation(port, "generation-two", workload.payload_bytes)?;
+    let memory_after_reload = resident_bytes(server.id());
+    if let Some(snapshot) = process_memory_snapshot(server.id(), "after_reload") {
+        memory_snapshots.push(snapshot);
+    }
     let generation_latency = generation_start.elapsed().as_nanos();
-    let peak = [memory_before, memory_after_pressure, memory_after_longevity]
-        .into_iter()
-        .flatten()
-        .max();
+    let peak = [
+        memory_before,
+        memory_after_pressure,
+        memory_after_longevity,
+        memory_after_soak,
+        memory_after_reload,
+    ]
+    .into_iter()
+    .flatten()
+    .max();
+    validate_run_limits(
+        lane,
+        peak,
+        [&sequential_rounds, &pressure_rounds, &longevity_rounds],
+    )?;
+    let completed_requests = sequential_rounds
+        .iter()
+        .chain(&pressure_rounds)
+        .chain(&longevity_rounds)
+        .map(|timing| timing.sample_count)
+        .sum::<usize>();
+    let efficiency_requests = completed_requests.saturating_add(
+        workload
+            .concurrency
+            .saturating_mul(pressure_warmup_per_worker),
+    );
+    let efficiency = efficiency_before
+        .zip(efficiency_after)
+        .map(|(before, after)| {
+            http_client::efficiency_evidence(before, after, efficiency_requests)
+        });
+    let memory_attribution = http_client::memory_attribution(&memory_snapshots, completed_requests);
     server.stop();
     let _ = fs::remove_dir_all(&workspace);
 
@@ -560,6 +699,7 @@ fn run_lane(
             after_pressure_bytes: memory_after_pressure,
             after_longevity_bytes: memory_after_longevity,
             peak_observed_bytes: peak,
+            snapshots: memory_snapshots,
         },
         pressure: HttpPressureEvidence {
             concurrency: workload.concurrency,
@@ -569,8 +709,8 @@ fn run_lane(
             timing: pressure_timing,
         },
         longevity: HttpLongevityEvidence {
-            attempted_requests: workload.longevity_requests,
-            completed_requests: workload.longevity_requests,
+            attempted_requests: longevity_timing.sample_count,
+            completed_requests: longevity_timing.sample_count,
             timing: longevity_timing,
         },
         generation_overlap: HttpGenerationEvidence {
@@ -580,9 +720,84 @@ fn run_lane(
             second_generation_body_verified: true,
             in_flight_lifetime_gate: "make tvm-aot-http-generation-lifetime-check".to_string(),
         },
+        additional_workloads,
+        benchmark_evidence: Some(benchmark_evidence::HttpExtendedBenchmarkEvidence {
+            execution,
+            integrity: benchmark_evidence::HttpIntegrityEvidence {
+                attempted_requests: completed_requests,
+                completed_requests,
+                failed_requests: 0,
+                response_body_verified: true,
+            },
+            protocol_validation,
+            protocol_scenarios,
+            external_load,
+            maintained_workloads,
+            open_loop,
+            lifecycle,
+            memory_attribution,
+            hardware_counters,
+            efficiency,
+            soak,
+        }),
     })
 }
 
+/// Applies opt-in absolute memory and repeatability gates to fresh evidence.
+fn validate_run_limits(
+    lane: HttpExecutionLane,
+    peak_rss: Option<u64>,
+    round_sets: [&[HttpTiming]; 3],
+) -> Result<(), String> {
+    if lane == HttpExecutionLane::NativeAot {
+        if let Some(limit) = env::var("TERLAN_BENCH_HTTP_AOT_MAX_RSS_BYTES")
+            .ok()
+            .and_then(|value| value.parse::<u64>().ok())
+        {
+            let peak = peak_rss.ok_or_else(|| {
+                "HTTP native AOT memory gate requires a resident-memory sample".to_string()
+            })?;
+            if peak > limit {
+                return Err(format!(
+                    "error[http_aot.memory_regression]: peak RSS {peak} exceeds {limit}"
+                ));
+            }
+        }
+    }
+    if let Some(limit) = env::var("TERLAN_BENCH_HTTP_MAX_ROUND_SPREAD_PERCENT")
+        .ok()
+        .and_then(|value| value.parse::<u128>().ok())
+    {
+        for (name, rounds) in ["sequential", "pressure", "longevity"]
+            .into_iter()
+            .zip(round_sets)
+        {
+            let minimum = rounds
+                .iter()
+                .map(|round| round.throughput_requests_per_second)
+                .min()
+                .unwrap_or(0);
+            let maximum = rounds
+                .iter()
+                .map(|round| round.throughput_requests_per_second)
+                .max()
+                .unwrap_or(0);
+            let spread = maximum
+                .saturating_sub(minimum)
+                .saturating_mul(100)
+                .checked_div(minimum.max(1))
+                .unwrap_or(u128::MAX);
+            if spread > limit {
+                return Err(format!(
+                    "error[http_aot.unstable]: {name} throughput spread {spread}% exceeds {limit}%"
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Records protocol and payload shapes that can move independently.
 /// Reads both lane reports, validates comparability, and writes one result.
 fn compare_from_env() -> Result<PathBuf, String> {
     let checked_path = env::var_os("TERLAN_BENCH_HTTP_CHECKED_COREIR_REPORT")
@@ -649,7 +864,7 @@ fn compare_reports_with_policy(
             checked.hardware.sha256, native.hardware.sha256
         ));
     }
-    if checked.workload != native.workload {
+    if !comparable_workloads(&checked, &native) {
         return Err("HTTP benchmark workloads differ between runtime lanes".to_string());
     }
     policy::validate_performance(&checked, &native, &performance_policy)?;
@@ -658,7 +873,7 @@ fn compare_reports_with_policy(
         schema: COMPARISON_SCHEMA,
         status: "completed",
         hardware_fingerprint_sha256: checked.hardware.sha256.clone(),
-        workload: checked.workload.clone(),
+        workload: native.workload.clone(),
         checked_coreir_report_sha256: checked_sha256,
         native_aot_report_sha256: native_sha256,
         performance_policy_sha256,
@@ -674,7 +889,9 @@ fn validate_report(
     report: &HttpPerformanceReport,
     expected_lane: HttpExecutionLane,
 ) -> Result<(), String> {
-    if report.schema != REPORT_SCHEMA || report.status != "completed" {
+    let legacy_reference = report.schema == LEGACY_CHECKED_COREIR_SCHEMA
+        && expected_lane == HttpExecutionLane::CheckedCoreir;
+    if (!legacy_reference && report.schema != REPORT_SCHEMA) || report.status != "completed" {
         return Err("HTTP benchmark report is not a completed v2 report".to_string());
     }
     if report.lane != expected_lane {
@@ -714,6 +931,17 @@ fn validate_report(
     {
         return Err("HTTP benchmark repeated-round evidence is incomplete".to_string());
     }
+    for workload in &report.additional_workloads {
+        if workload.rounds.len() != report.workload.measurement_rounds
+            || median_throughput_round(&workload.rounds)?.throughput_requests_per_second
+                != workload.timing.throughput_requests_per_second
+        {
+            return Err(format!(
+                "HTTP benchmark `{}` repeated-round evidence is incomplete",
+                workload.name
+            ));
+        }
+    }
     if report.pressure.completed_requests != report.pressure.attempted_requests
         || report.pressure.failed_requests != 0
         || report.longevity.completed_requests != report.longevity.attempted_requests
@@ -724,95 +952,34 @@ fn validate_report(
     {
         return Err("HTTP benchmark lifecycle evidence is incomplete".to_string());
     }
+    if expected_lane == HttpExecutionLane::NativeAot {
+        let evidence = report.benchmark_evidence.as_ref().ok_or_else(|| {
+            "native AOT HTTP benchmark lacks reproducibility evidence".to_string()
+        })?;
+        if evidence.integrity.attempted_requests != evidence.integrity.completed_requests
+            || evidence.integrity.failed_requests != 0
+            || !evidence.integrity.response_body_verified
+            || evidence.protocol_validation.status != "validated"
+            || evidence.execution.server_binary_sha256.len() != 64
+            || !evidence.protocol_scenarios.iter().any(|scenario| {
+                scenario.name == "error-response-404" && scenario.status == "validated"
+            })
+        {
+            return Err("native AOT HTTP benchmark extended evidence is incomplete".to_string());
+        }
+    }
     Ok(())
 }
 
-/// Runs independent rounds and selects the median-throughput round intact.
-fn measure_request_rounds(
-    port: u16,
-    concurrency: usize,
-    requests_per_worker: usize,
-    payload_bytes: usize,
-    rounds: usize,
-) -> Result<(HttpTiming, Vec<HttpTiming>), String> {
-    let mut timings = Vec::with_capacity(rounds);
-    for _ in 0..rounds {
-        timings.push(measure_requests(
-            port,
-            concurrency,
-            requests_per_worker,
-            payload_bytes,
-        )?);
+fn comparable_workloads(checked: &HttpPerformanceReport, native: &HttpPerformanceReport) -> bool {
+    if checked.schema != LEGACY_CHECKED_COREIR_SCHEMA {
+        return checked.workload == native.workload;
     }
-    Ok((median_throughput_round(&timings)?.clone(), timings))
-}
-
-/// Selects one coherent observed round instead of synthesizing percentiles.
-fn median_throughput_round(rounds: &[HttpTiming]) -> Result<&HttpTiming, String> {
-    if rounds.is_empty() {
-        return Err("HTTP benchmark requires at least one measurement round".to_string());
-    }
-    let mut ordered = rounds.iter().collect::<Vec<_>>();
-    ordered.sort_by_key(|timing| timing.throughput_requests_per_second);
-    Ok(ordered[ordered.len() / 2])
-}
-
-/// Computes the digest of one compiler or report file.
-fn sha256_file(path: &Path) -> Result<String, String> {
-    read_file(path).map(|bytes| sha256(&bytes))
-}
-
-/// Reads one required file with path-aware diagnostics.
-fn read_file(path: &Path) -> Result<Vec<u8>, String> {
-    fs::read(path).map_err(|error| format!("failed to read `{}`: {error}", path.display()))
-}
-
-/// Parses one typed lane report.
-fn parse_report(path: &Path, bytes: &[u8]) -> Result<HttpPerformanceReport, String> {
-    serde_json::from_slice(bytes)
-        .map_err(|error| format!("failed to parse `{}`: {error}", path.display()))
-}
-
-/// Writes one pretty JSON report after creating its parent directory.
-fn write_json(path: &Path, value: &impl Serialize) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|error| format!("failed to create `{}`: {error}", parent.display()))?;
-    }
-    let bytes = serde_json::to_vec_pretty(value)
-        .map_err(|error| format!("failed to serialize HTTP benchmark report: {error}"))?;
-    fs::write(path, bytes).map_err(|error| format!("failed to write `{}`: {error}", path.display()))
-}
-
-/// Reads a positive integer environment option or returns its default.
-fn read_positive_env(name: &str, default: usize) -> usize {
-    env::var(name)
-        .ok()
-        .and_then(|value| value.parse::<usize>().ok())
-        .filter(|value| *value > 0)
-        .unwrap_or(default)
-}
-
-/// Computes a nearest-rank percentile from sorted values.
-fn percentile(sorted: &[u128], requested: usize) -> u128 {
-    let index = ((sorted.len() - 1) * requested).div_ceil(100);
-    sorted[index]
-}
-
-/// Returns the current Unix timestamp in seconds.
-fn unix_timestamp_seconds() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs())
-        .unwrap_or(0)
-}
-
-/// Returns the current Unix timestamp in nanoseconds for unique paths.
-fn unix_timestamp_nanos() -> u128 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos())
-        .unwrap_or(0)
+    checked.workload.sequential_requests == native.workload.sequential_requests
+        && checked.workload.concurrency == native.workload.concurrency
+        && checked.workload.requests_per_worker == native.workload.requests_per_worker
+        && checked.workload.longevity_requests == native.workload.longevity_requests
+        && checked.workload.payload_bytes == native.workload.payload_bytes
 }
 
 #[cfg(test)]

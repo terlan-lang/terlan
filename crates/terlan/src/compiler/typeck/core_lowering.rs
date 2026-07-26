@@ -66,9 +66,12 @@ pub fn lower_syntax_module_output_to_core(
         &macro_expanded_module,
         &resolved.interface_map,
     );
-    let module_aliases =
-        super::collect_syntax_import_maps(&prepared_module, &resolved.interface_map).module_aliases;
-    canonicalize_core_module_aliases(&mut prepared_module, &module_aliases);
+    let import_maps = super::collect_syntax_import_maps(&prepared_module, &resolved.interface_map);
+    canonicalize_core_module_aliases(&mut prepared_module, &import_maps.module_aliases);
+    canonicalize_core_selected_function_imports(
+        &mut prepared_module,
+        &import_maps.function_imports,
+    );
     annotate_syntax_comprehension_lifts(&mut prepared_module, resolved);
     let module = &prepared_module;
     let mut core = lower_resolved_module_to_core(resolved);
@@ -354,6 +357,86 @@ fn canonicalize_core_expr_module_aliases(
     if let Some(after) = &mut expr.try_after {
         canonicalize_core_expr_module_aliases(&mut after.trigger, aliases);
         canonicalize_core_expr_module_aliases(&mut after.body, aliases);
+    }
+}
+
+/// Preserves selected-import callable identity before syntax-to-Core lowering.
+///
+/// A selected import is source-visible as a local name, but it is not a local
+/// function. Type checking already resolves that name to one provider target.
+/// Reattaching the provider and original function spelling here lets ordinary
+/// remote-call and intrinsic lowering produce stable CoreIR identity, including
+/// for aliased imports such as `ceil as round_up`.
+fn canonicalize_core_selected_function_imports(
+    module: &mut SyntaxModuleOutput,
+    imports: &HashMap<String, Vec<ImportedFunctionTarget>>,
+) {
+    if imports.is_empty() {
+        return;
+    }
+
+    for declaration in &mut module.declarations {
+        let clauses = match &mut declaration.payload {
+            SyntaxDeclarationPayload::Function {
+                params, clauses, ..
+            }
+            | SyntaxDeclarationPayload::Method {
+                params, clauses, ..
+            } => {
+                for param in params {
+                    if let Some(default) = &mut param.default {
+                        canonicalize_core_expr_selected_function_imports(default, imports);
+                    }
+                }
+                clauses
+            }
+            _ => continue,
+        };
+        for clause in clauses {
+            if let Some(guard) = &mut clause.guard {
+                canonicalize_core_expr_selected_function_imports(guard, imports);
+            }
+            canonicalize_core_expr_selected_function_imports(&mut clause.body, imports);
+        }
+    }
+}
+
+fn canonicalize_core_expr_selected_function_imports(
+    expr: &mut SyntaxExprOutput,
+    imports: &HashMap<String, Vec<ImportedFunctionTarget>>,
+) {
+    if expr.kind == SyntaxExprKind::Call && expr.remote.is_none() {
+        if let Some(callee) = expr.children.first_mut() {
+            if matches!(callee.kind, SyntaxExprKind::Var | SyntaxExprKind::Atom) {
+                if let Some(local_name) = callee.text.as_deref() {
+                    if let Some([target]) = imports.get(local_name).map(Vec::as_slice) {
+                        expr.remote = Some(target.module.clone());
+                        callee.text = Some(target.function.clone());
+                    }
+                }
+            }
+        }
+    }
+    for child in &mut expr.children {
+        canonicalize_core_expr_selected_function_imports(child, imports);
+    }
+    for guard in &mut expr.let_guards {
+        if let Some(guard) = guard {
+            canonicalize_core_expr_selected_function_imports(guard, imports);
+        }
+    }
+    for field in &mut expr.fields {
+        canonicalize_core_expr_selected_function_imports(&mut field.value, imports);
+    }
+    for clause in expr.clauses.iter_mut().chain(&mut expr.catch_clauses) {
+        if let Some(guard) = &mut clause.guard {
+            canonicalize_core_expr_selected_function_imports(guard, imports);
+        }
+        canonicalize_core_expr_selected_function_imports(&mut clause.body, imports);
+    }
+    if let Some(after) = &mut expr.try_after {
+        canonicalize_core_expr_selected_function_imports(&mut after.trigger, imports);
+        canonicalize_core_expr_selected_function_imports(&mut after.body, imports);
     }
 }
 
