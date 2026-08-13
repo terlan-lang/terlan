@@ -306,8 +306,7 @@
       "adversarial_tests": [],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::And",
-        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"and\" | \"&&\"",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"and\" | \"&&\", ReplValue::Bool(left), ReplValue::Bool(right))"
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"and\" => SyntaxBinaryOp::And"
       ]
     },
     {
@@ -328,52 +327,47 @@
       "adversarial_tests": [],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::Or",
-        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"or\" | \"||\"",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"or\" | \"||\", ReplValue::Bool(left), ReplValue::Bool(right))"
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"or\" => SyntaxBinaryOp::Or"
       ]
     },
     {
       "id": "and_symbols",
       "spelling": "&&",
       "kind": "binary",
-      "parse": "supported",
-      "format": "supported",
-      "typecheck": "supported",
-      "core_ir": "supported",
-      "target_profile": "supported",
-      "vm": "supported",
-      "js": "supported",
-      "diagnostic": null,
-      "positive_tests": [
-        "boolean_and_symbols_execute"
+      "parse": "rejected",
+      "format": "not-applicable",
+      "typecheck": "not-applicable",
+      "core_ir": "not-applicable",
+      "target_profile": "not-applicable",
+      "vm": "not-applicable",
+      "js": "not-applicable",
+      "diagnostic": "symbolic_boolean_operator",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/syntax/lexer_test.rs::symbolic_boolean_operators_are_rejected"
       ],
-      "adversarial_tests": [],
       "source_fragments": [
-        "crates/terlan/src/compiler/syntax/parse_tree.rs::And",
-        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"and\" | \"&&\"",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"and\" | \"&&\", ReplValue::Bool(left), ReplValue::Bool(right))"
+        "crates/terlan/src/compiler/syntax/lexer_test.rs::lex(\"a && b\")"
       ]
     },
     {
       "id": "or_symbols",
       "spelling": "||",
       "kind": "binary",
-      "parse": "supported",
-      "format": "supported",
-      "typecheck": "supported",
-      "core_ir": "supported",
-      "target_profile": "supported",
-      "vm": "supported",
-      "js": "supported",
-      "diagnostic": null,
-      "positive_tests": [
-        "boolean_or_symbols_execute"
+      "parse": "rejected",
+      "format": "not-applicable",
+      "typecheck": "not-applicable",
+      "core_ir": "not-applicable",
+      "target_profile": "not-applicable",
+      "vm": "not-applicable",
+      "js": "not-applicable",
+      "diagnostic": "symbolic_boolean_operator",
+      "positive_tests": [],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/syntax/lexer_test.rs::symbolic_boolean_operators_are_rejected"
       ],
-      "adversarial_tests": [],
       "source_fragments": [
-        "crates/terlan/src/compiler/syntax/parse_tree.rs::Or",
-        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"or\" | \"||\"",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"or\" | \"||\", ReplValue::Bool(left), ReplValue::Bool(right))"
+        "crates/terlan/src/compiler/syntax/lexer_test.rs::lex(\"a || b\")"
       ]
     },
     {

@@ -6,7 +6,8 @@
 #
 # Output:
 # - A tab-separated operation inventory consumed by
-#   std/scripts/check_rust_backed_manifest.py.
+#   scripts/self_validation/RustBackedManifestTest.terl and
+#   scripts/self_validation/RustBackedAdapterTest.terl.
 #
 # Transformation:
 # - Maps each portable Terlan API operation to the Rust crate that must own the
@@ -23,10 +24,23 @@ std.data.Json	std/data/Json.terl	serde_json	std.data.json.string	string	1
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.array	array	0
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.object	object	0
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.array_push	push	2
+std.data.Json	std/data/Json.terl	serde_json	std.data.json.array_extend	extend	2
+std.data.Json	std/data/Json.terl	serde_json	std.data.json.array_set	set	3
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.object_put	put	3
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.parse	parse	1
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.stringify	stringify	1
+std.data.Json	std/data/Json.terl	serde_json	std.data.json.stringify_pretty	stringify_pretty	1
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.get	get	2
+std.data.Json	std/data/Json.terl	serde_json	std.data.json.keys	keys	1
+std.data.Json	std/data/Json.terl	serde_json	std.data.json.object_length	object_length	1
+std.data.Json	std/data/Json.terl	serde_json	std.data.json.string_fields	string_fields	2
+std.data.Json	std/data/Json.terl	serde_json	std.data.json.required_fields	required_fields	4
+std.data.Json	std/data/Json.terl	serde_json	std.data.json.required_field_rows	required_field_rows	4
+std.data.Json	std/data/Json.terl	serde_json	std.data.json.required_field_rows_page	required_field_rows_page	6
+std.data.Json	std/data/Json.terl	serde_json	std.data.json.string_field_rows	string_field_rows	2
+std.data.Json	std/data/Json.terl	serde_json	std.data.json.nested_string_field_rows	nested_string_field_rows	4
+std.data.Json	std/data/Json.terl	serde_json	std.data.json.nested_string_field_rows_page	nested_string_field_rows_page	6
+std.data.Json	std/data/Json.terl	serde_json	std.data.json.string_object_rows	string_object_rows	2
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.length	length	1
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.at	at	2
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.as_string	as_string	1
@@ -34,10 +48,19 @@ std.data.Json	std/data/Json.terl	serde_json	std.data.json.as_int	as_int	1
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.as_float	as_float	1
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.as_bool	as_bool	1
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.is_null	is_null	1
+std.data.Toml	std/data/Toml.terl	basic-toml	std.data.toml.parse	parse	1
+std.crypto.Hash	std/crypto/Hash.terl	sha2	std.crypto.hash.sha256_bytes	sha256_bytes	1
+std.crypto.Hash	std/crypto/Hash.terl	sha2	std.crypto.hash.sha256_framed	sha256_framed	1
+std.crypto.Hash	std/crypto/Hash.terl	sha2	std.crypto.hash.sha256_domain_framed	sha256_domain_framed	2
+std.crypto.Hash	std/crypto/Hash.terl	sha2	std.crypto.hash.sha256_nul_separated	sha256_nul_separated	1
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.encode	encode	1
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.decode	decode	1
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.encode_url	encode_url	1
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.decode_url	decode_url	1
+std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.encode_bytes	encode_bytes	1
+std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.decode_bytes	decode_bytes	1
+std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.encode_url_bytes	encode_url_bytes	1
+std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.decode_url_bytes	decode_url_bytes	1
 std.encoding.Md5	std/encoding/Md5.terl	md-5	std.encoding.md5.digest	digest	1
 std.io.Path	std/io/Path.terl	std::path	std.io.path.from_string	from_string	1
 std.io.Path	std/io/Path.terl	std::path	std.io.path.to_string	to_string	1
@@ -46,6 +69,9 @@ std.io.Path	std/io/Path.terl	std::path	std.io.path.file_name	file_name	1
 std.io.Path	std/io/Path.terl	std::path	std.io.path.extension	extension	1
 std.io.Path	std/io/Path.terl	std::path	std.io.path.parent	parent	1
 std.io.Path	std/io/Path.terl	std::path	std.io.path.is_absolute	is_absolute	1
+std.io.Path	std/io/Path.terl	std::path	std.io.path.normalize	normalize	1
+std.io.Path	std/io/Path.terl	std::path	std.io.path.starts_with	starts_with	2
+std.io.Path	std/io/Path.terl	std::path	std.io.path.strip_prefix	strip_prefix	2
 std.net.Uri	std/net/Uri.terl	url	std.net.uri.parse	parse	1
 std.net.Uri	std/net/Uri.terl	url	std.net.uri.to_string	to_string	1
 std.net.Uri	std/net/Uri.terl	url	std.net.uri.scheme	scheme	1
@@ -64,6 +90,7 @@ std.random.Random	std/random/Random.terl	rand_chacha	std.random.random.shuffle	s
 std.random.Random	std/random/Random.terl	rand_chacha	std.random.random.sample	sample	3
 std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.compile	compile	1
 std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.is_match	is_match	2
+std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.matching_line_numbers	matching_line_numbers	2
 std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.find	find	2
 std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.find_all	find_all	2
 std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.capture	capture	3
@@ -135,3 +162,4 @@ std.native.collections.Vector	std/native/collections/Vector.terl	std::vec	std.na
 std.native.collections.Vector	std/native/collections/Vector.terl	std::vec	std.native.collections.vector.swap	swap	3
 std.native.collections.Vector	std/native/collections/Vector.terl	std::vec	std.native.collections.vector.push	push	2
 std.native.collections.Vector	std/native/collections/Vector.terl	std::vec	std.native.collections.vector.to_list	to_list	1
+std.system.Platform	std/system/Platform.terl	std::env::consts	std.system.platform.current	current	0

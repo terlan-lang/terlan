@@ -42,6 +42,16 @@ pub init_storage_event_typechecks(
     old_value: Option[JsString],
     new_value: Option[JsString],
     url: URL | JsString,
-    storage_area: Option[Storage]
+    storage_area: Option[Storage],
 ): std.core.Unit ->
-    receiver.init_storage_event(type_, bubbles, cancelable, key, old_value, new_value, url, storage_area).
+    receiver
+        .init_storage_event(
+            type_,
+            bubbles,
+            cancelable,
+            key,
+            old_value,
+            new_value,
+            url,
+            storage_area,
+        ).

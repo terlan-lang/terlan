@@ -41,6 +41,6 @@ pub continue_typechecks(receiver: IDBCursor, key: IDBValidKey): Unit ->
 pub continue_primary_key_typechecks(
     receiver: IDBCursor,
     key: IDBValidKey,
-    primary_key: IDBValidKey
+    primary_key: IDBValidKey,
 ): Unit ->
     receiver.continue_primary_key(key, primary_key).

@@ -564,6 +564,25 @@ fn owned_dependency_session_removes_only_its_postgres_container() {
 }
 
 #[test]
+fn stale_container_is_reused_as_external_and_preserved() {
+    let session =
+        classify_dependency_ownership(true, PathBuf::from("/tmp/demo/docker-compose.yml"));
+
+    assert_eq!(session.ownership, DependencyOwnership::External);
+    assert!(session.shutdown_command().is_none());
+}
+
+#[test]
+fn owned_dependency_cleanup_preserves_stale_postgres_volumes() {
+    let command = docker_compose_remove_command(Path::new("/tmp/demo/docker-compose.yml"));
+
+    assert!(!command
+        .args
+        .iter()
+        .any(|arg| arg == "--volumes" || arg == "-v"));
+}
+
+#[test]
 fn external_dependency_finalization_preserves_success() {
     let outcome = finish_dependency_session(
         Some(DevDependencySession::external()),

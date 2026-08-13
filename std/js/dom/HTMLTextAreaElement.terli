@@ -223,17 +223,17 @@ pub (value: HTMLTextAreaElement) set_range_text(
     replacement: JsString,
     start: JsNumber,
     end: JsNumber,
-    selection_mode: SelectionMode
+    selection_mode: SelectionMode,
 ): Unit.
 
 pub (value: HTMLTextAreaElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit.
 
 pub (value: HTMLTextAreaElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit.

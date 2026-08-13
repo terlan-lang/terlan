@@ -37,7 +37,7 @@ impl ManagedActorTransfer {
 #[derive(Debug)]
 pub(crate) struct ManagedActorImportFailure {
     reason: String,
-    transfer: ManagedActorTransfer,
+    transfer: Box<ManagedActorTransfer>,
 }
 
 impl ManagedActorImportFailure {
@@ -48,7 +48,7 @@ impl ManagedActorImportFailure {
 
     /// Returns actor-state ownership so the source can roll back safely.
     pub(crate) fn into_transfer(self) -> ManagedActorTransfer {
-        self.transfer
+        *self.transfer
     }
 }
 
@@ -160,7 +160,10 @@ impl ManagedExecutionRuntime {
         mut transfer: ManagedActorTransfer,
     ) -> Result<(), ManagedActorImportFailure> {
         if let Err(reason) = self.validate_actor_import(&transfer) {
-            return Err(ManagedActorImportFailure { reason, transfer });
+            return Err(ManagedActorImportFailure {
+                reason,
+                transfer: Box::new(transfer),
+            });
         }
         let owner_id = transfer.owner_id();
         if let Some(heap) = transfer.heap.take() {

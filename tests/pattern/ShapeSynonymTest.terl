@@ -2,44 +2,35 @@ module tests.pattern.ShapeSynonymTest.
 
 import std.test.Test.{assert_equal}.
 
-shape Pair(value) =
-    {Atom["pair"], value}.
+shape Pair(value) = {Atom["pair"], value}.
 
-shape Wrapped(value) =
-    {Atom["wrapped"], Pair(value)}.
+shape Wrapped(value) = {Atom["wrapped"], Pair(value)}.
 
-shape NonEmpty(head, tail) =
-    [head | tail].
+shape NonEmpty(head, tail) = [head | tail].
 
-shape Success(body) =
-    {status, body} where status >= 200 and status < 300.
+shape Success(body) = {status, body} where status >= 200 and status < 300.
 
-shape Positive(value) =
-    value where value > 0.
+shape Positive(value) = value where value > 0.
 
-shape Selected(value) =
-    value where is_selected(value).
+shape Selected(value) = value where is_selected(value).
 
-shape TaggedPositive(value) =
-    {Atom["positive"], Positive(value)}.
+shape TaggedPositive(value) = {Atom["positive"], Positive(value)}.
 
-shape UserAsset(id) =
-    "users/${id: Int}.json".
+shape UserAsset(id) = "users/${id: Int}.json".
 
-shape PositiveAsset(_marker) =
-    "assets/${asset_id: Int}.json" where asset_id > 0.
+shape PositiveAsset(_marker) = "assets/${asset_id: Int}.json" where asset_id > 0.
 
-shape Route(method, path) =
-    {method, path}.
+shape Route(method, path) = {method, path}.
 
 constructor Ready {
-    (): Dynamic -> Atom["ready"]
+    (): Dynamic ->
+        Atom["ready"]
 }.
 
-shape ReadyValue() =
-    Ready().
+shape ReadyValue() = Ready().
 
-pub unwrap(Wrapped(value): Dynamic): Int -> value.
+pub unwrap(Wrapped(value): Dynamic): Int ->
+    value.
 
 pub read_pair(value: Dynamic): Int ->
     case value {
@@ -65,13 +56,15 @@ pub tagged_positive(value: Dynamic): Int ->
         _ -> 0
     }.
 
-pub unwrap_positive(Positive(value): Dynamic): Int -> value.
+pub unwrap_positive(Positive(value): Dynamic): Int ->
+    value.
 
 pub assert_positive(input: Int): Int ->
     let Positive(value) = input;
     value.
 
-pub is_selected(value: Int): Bool -> value == 2 or value == 4.
+pub is_selected(value: Int): Bool ->
+    value == 2 or value == 4.
 
 pub selected_values(values: List[Int]): List[Int] ->
     [value | Selected(value) <- values].
@@ -140,19 +133,18 @@ pub nested_shape_executes_through_function_head(): Bool ->
 
 @test
 pub collection_shape_executes_and_falls_back(): Bool ->
-    assert_equal(7, first_or_zero([7, 8])) and
-        assert_equal(0, first_or_zero([])).
+    assert_equal(7, first_or_zero([7, 8])) and assert_equal(0, first_or_zero([])).
 
 @test
 pub guarded_shape_composes_with_clause_guard(): Bool ->
-    assert_equal(42, success_body({204, 42})) and
-        assert_equal(0, success_body({500, 42})) and
-        assert_equal(0, success_body({204, -1})).
+    assert_equal(42, success_body({204, 42}))
+        and assert_equal(0, success_body({500, 42}))
+        and assert_equal(0, success_body({204, -1})).
 
 @test
 pub nested_guarded_shape_executes_through_case(): Bool ->
-    assert_equal(7, tagged_positive({Atom["positive"], 7})) and
-        assert_equal(0, tagged_positive({Atom["positive"], -1})).
+    assert_equal(7, tagged_positive({Atom["positive"], 7}))
+        and assert_equal(0, tagged_positive({Atom["positive"], -1})).
 
 @test
 pub guarded_shape_executes_through_function_head(): Bool ->
@@ -172,18 +164,18 @@ pub inferred_pure_helper_executes_in_shape_guard(): Bool ->
 
 @test
 pub private_shape_guard_binding_does_not_shadow_user_variable(): Bool ->
-    assert_equal(42, success_with_external_status({204, 42}, 500)) and
-        assert_equal(0, success_with_external_status({500, 42}, 500)).
+    assert_equal(42, success_with_external_status({204, 42}, 500))
+        and assert_equal(0, success_with_external_status({500, 42}, 500)).
 
 @test
 pub private_shape_guard_bindings_do_not_collide_across_expansions(): Bool ->
-    assert_equal(3, two_successes({204, 1}, {205, 2})) and
-        assert_equal(0, two_successes({500, 1}, {205, 2})).
+    assert_equal(3, two_successes({204, 1}, {205, 2}))
+        and assert_equal(0, two_successes({500, 1}, {205, 2})).
 
 @test
 pub string_capture_shape_substitutes_call_site_binding(): Bool ->
-    assert_equal(42, user_asset_id("users/42.json")) and
-        assert_equal(0, user_asset_id("users/not-an-int.json")).
+    assert_equal(42, user_asset_id("users/42.json"))
+        and assert_equal(0, user_asset_id("users/not-an-int.json")).
 
 @test
 pub private_string_capture_does_not_shadow_user_variable(): Bool ->
@@ -203,13 +195,13 @@ pub zero_arity_constructor_shape_executes_in_vm(): Bool ->
 
 @test
 pub guarded_shapes_short_circuit_grouped_let(): Bool ->
-    assert_equal(5, add_positive(2, 3)) and
-        assert_equal(0, add_positive(-1, 3)) and
-        assert_equal(0, add_positive(2, -1)).
+    assert_equal(5, add_positive(2, 3))
+        and assert_equal(0, add_positive(-1, 3))
+        and assert_equal(0, add_positive(2, -1)).
 
 @test
 pub route_shape_uses_ordinary_typed_pattern_matching(): Bool ->
-    assert_equal(42, user_route_id({"GET", "/users/42"})) and
-        assert_equal(-1, user_route_id({"POST", "/users/42"})) and
-        assert_equal(-1, user_route_id({"GET", "/users/not-an-int"})) and
-        assert_equal(-1, user_route_id({"GET", "/users/42/details"})).
+    assert_equal(42, user_route_id({"GET", "/users/42"}))
+        and assert_equal(-1, user_route_id({"POST", "/users/42"}))
+        and assert_equal(-1, user_route_id({"GET", "/users/not-an-int"}))
+        and assert_equal(-1, user_route_id({"GET", "/users/42/details"})).

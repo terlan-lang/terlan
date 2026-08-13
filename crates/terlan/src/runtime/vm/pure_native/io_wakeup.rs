@@ -70,6 +70,7 @@ impl PureNativeIoWait {
     }
 
     /// Creates one owned completion for this exact wait.
+    #[cfg(test)]
     pub(crate) fn wake(&self, value: ReplValue) -> PureNativeIoWake {
         PureNativeIoWake {
             wait: self.clone(),
@@ -78,6 +79,7 @@ impl PureNativeIoWait {
     }
 
     /// Rebinds the same continuation authority after an admitted shard migration.
+    #[cfg(test)]
     pub(crate) fn migrated_to(&self, shard: VmExecutionShardId, epoch: VmShardEpoch) -> Self {
         Self {
             shard,

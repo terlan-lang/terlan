@@ -40,13 +40,17 @@ pub(super) fn connect_pool(
 ) -> VmPostgresPool {
     let request = runtime
         .connect(
-            timers,
-            processes,
-            scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                timers,
+                processes,
+                scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 0,
+                    timeout_ticks: 10,
+                },
+            ),
             config(max_connections),
-            0,
-            10,
         )
         .expect("connect request");
     assert_eq!(
@@ -80,7 +84,19 @@ pub(super) fn acquire_connection(
     pool: VmPostgresPool,
 ) -> VmPostgresConnection {
     let request = runtime
-        .acquire(timers, processes, scheduler, owner, pool, 10, 10)
+        .acquire(
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                timers,
+                processes,
+                scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 10,
+                    timeout_ticks: 10,
+                },
+            ),
+            pool,
+        )
         .expect("acquire request");
     runtime.take_dispatch().expect("acquire dispatch");
     runtime
@@ -107,7 +123,19 @@ pub(super) fn begin_transaction(
     connection: VmPostgresConnection,
 ) -> VmPostgresTransaction {
     let request = runtime
-        .begin(timers, processes, scheduler, owner, connection, 20, 10)
+        .begin(
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                timers,
+                processes,
+                scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 20,
+                    timeout_ticks: 10,
+                },
+            ),
+            connection,
+        )
         .expect("begin request");
     runtime.take_dispatch().expect("begin dispatch");
     runtime
@@ -131,13 +159,17 @@ fn postgres_runtime_parks_dispatches_and_wakes_owner() {
     let mut runtime = VmPostgresRuntime::new(4);
     let request = runtime
         .connect(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 5,
+                    timeout_ticks: 20,
+                },
+            ),
             config(2),
-            5,
-            20,
         )
         .expect("connect request");
 
@@ -194,13 +226,17 @@ fn postgres_runtime_enforces_pool_capacity_before_parking() {
 
     let error = runtime
         .acquire(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 20,
+                    timeout_ticks: 10,
+                },
+            ),
             pool,
-            20,
-            10,
         )
         .expect_err("pool must be exhausted");
 
@@ -242,14 +278,18 @@ fn postgres_runtime_transaction_has_one_way_terminal_state() {
     );
     let commit = runtime
         .finish_transaction(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 30,
+                    timeout_ticks: 10,
+                },
+            ),
             transaction,
             true,
-            30,
-            10,
         )
         .expect("commit request");
     runtime.take_dispatch().expect("commit dispatch");
@@ -280,14 +320,18 @@ fn postgres_runtime_transaction_has_one_way_terminal_state() {
 
     let error = runtime
         .finish_transaction(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 40,
+                    timeout_ticks: 10,
+                },
+            ),
             transaction,
             false,
-            40,
-            10,
         )
         .expect_err("terminal transaction cannot roll back");
     assert!(error.contains("postgres.transaction.terminal"));
@@ -299,13 +343,17 @@ fn postgres_runtime_cancellation_wins_and_rejects_late_driver_reply() {
     let mut runtime = VmPostgresRuntime::new(2);
     let request = runtime
         .connect(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 0,
+                    timeout_ticks: 20,
+                },
+            ),
             config(1),
-            0,
-            20,
         )
         .expect("connect request");
     runtime.take_dispatch().expect("dispatch");
@@ -343,13 +391,17 @@ fn postgres_runtime_timeout_maps_to_typed_error() {
     let mut runtime = VmPostgresRuntime::new(1);
     let request = runtime
         .connect(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 0,
+                    timeout_ticks: 5,
+                },
+            ),
             config(1),
-            0,
-            5,
         )
         .expect("connect request");
     runtime.take_dispatch().expect("dispatch");
@@ -375,13 +427,17 @@ fn postgres_runtime_rejects_driver_completion_after_deadline_fires() {
     let mut runtime = VmPostgresRuntime::new(1);
     let request = runtime
         .connect(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 0,
+                    timeout_ticks: 5,
+                },
+            ),
             config(1),
-            0,
-            5,
         )
         .expect("connect request");
     runtime.take_dispatch().expect("dispatch");
@@ -516,31 +572,39 @@ fn postgres_runtime_rejects_cross_owner_and_empty_sql_without_dispatch() {
 
     let owner_error = runtime
         .query(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            other,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                other,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 10,
+                    timeout_ticks: 10,
+                },
+            ),
             VmPostgresQueryTarget::Pool(pool),
             "SELECT 1",
             Vec::new(),
             false,
-            10,
-            10,
         )
         .expect_err("cross-owner query");
     assert!(owner_error.contains("postgres.resource.owner"));
     let sql_error = runtime
         .query(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 10,
+                    timeout_ticks: 10,
+                },
+            ),
             VmPostgresQueryTarget::Pool(pool),
             "   ",
             Vec::new(),
             false,
-            10,
-            10,
         )
         .expect_err("empty SQL");
     assert!(sql_error.contains("postgres.sql.empty"));
@@ -567,13 +631,17 @@ fn postgres_runtime_rejects_mismatched_driver_completion_without_waking_owner() 
     let mut runtime = VmPostgresRuntime::new(2);
     let request = runtime
         .connect(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 0,
+                    timeout_ticks: 10,
+                },
+            ),
             config(1),
-            0,
-            10,
         )
         .expect("connect request");
     runtime.take_dispatch().expect("connect dispatch");
@@ -637,15 +705,19 @@ fn postgres_runtime_executes_transaction_query_prepare_decode_and_failure_shapes
 
     let prepare = runtime
         .prepare(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 20,
+                    timeout_ticks: 10,
+                },
+            ),
             connection,
             "SELECT value FROM items WHERE id = $1",
             1,
-            20,
-            10,
         )
         .expect("prepare request");
     runtime.take_dispatch().expect("prepare dispatch");
@@ -673,16 +745,20 @@ fn postgres_runtime_executes_transaction_query_prepare_decode_and_failure_shapes
     );
     let query = runtime
         .query(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 30,
+                    timeout_ticks: 10,
+                },
+            ),
             VmPostgresQueryTarget::Transaction(transaction),
             "SELECT value FROM items",
             Vec::new(),
             false,
-            30,
-            10,
         )
         .expect("transaction query");
     runtime.take_dispatch().expect("query dispatch");
@@ -719,15 +795,19 @@ fn postgres_runtime_executes_transaction_query_prepare_decode_and_failure_shapes
     ] {
         let decode = runtime
             .decode(
-                &mut timers,
-                &mut processes,
-                &mut scheduler,
-                owner,
+                crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                    &mut timers,
+                    &mut processes,
+                    &mut scheduler,
+                    owner,
+                    crate::runtime::vm::postgres::VmPostgresDeadline {
+                        now_tick: 40,
+                        timeout_ticks: 10,
+                    },
+                ),
                 row,
                 "value",
                 expected,
-                40,
-                10,
             )
             .expect("decode request");
         runtime.take_dispatch().expect("decode dispatch");
@@ -748,15 +828,19 @@ fn postgres_runtime_executes_transaction_query_prepare_decode_and_failure_shapes
 
     let execute = runtime
         .execute(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 50,
+                    timeout_ticks: 10,
+                },
+            ),
             VmPostgresQueryTarget::Transaction(transaction),
             "UPDATE items SET value = $1",
             vec![json::Json::from_serde(serde_json::json!("updated"))],
-            50,
-            10,
         )
         .expect("execute request");
     runtime.take_dispatch().expect("execute dispatch");
@@ -776,16 +860,20 @@ fn postgres_runtime_executes_transaction_query_prepare_decode_and_failure_shapes
 
     let failed = runtime
         .query(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 60,
+                    timeout_ticks: 10,
+                },
+            ),
             VmPostgresQueryTarget::Transaction(transaction),
             "SELECT broken FROM missing",
             Vec::new(),
             true,
-            60,
-            10,
         )
         .expect("failed query request");
     runtime.take_dispatch().expect("failed query dispatch");
@@ -822,16 +910,20 @@ fn postgres_runtime_report_contains_lifecycle_without_secrets_or_sql() {
     );
     let query = runtime
         .query(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 20,
+                    timeout_ticks: 10,
+                },
+            ),
             VmPostgresQueryTarget::Pool(pool),
             "SELECT private_value FROM secrets",
             Vec::new(),
             false,
-            20,
-            10,
         )
         .expect("query request");
     runtime.take_dispatch().expect("query dispatch");

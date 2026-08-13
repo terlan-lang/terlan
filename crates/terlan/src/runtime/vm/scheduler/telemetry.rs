@@ -1,4 +1,6 @@
-use std::{collections::BTreeMap, path::Path};
+use std::collections::BTreeMap;
+#[cfg(test)]
+use std::path::Path;
 
 use serde::Serialize;
 
@@ -43,6 +45,7 @@ pub(crate) struct VmSchedulerMetrics {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 struct VmSchedulerStarvationWarning {
     pid: u64,
     max_wait_ticks: u64,
@@ -51,6 +54,7 @@ struct VmSchedulerStarvationWarning {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 struct VmSchedulerProcessReport {
     #[serde(flatten)]
     metrics: VmSchedulerProcessMetrics,
@@ -59,6 +63,7 @@ struct VmSchedulerProcessReport {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 struct VmSchedulerFairnessReport<'a> {
     schema: &'static str,
     correlation_id: Option<&'a str>,
@@ -75,6 +80,7 @@ struct VmSchedulerFairnessReport<'a> {
 
 impl VmScheduler {
     /// Persists scheduler fairness evidence for release validation.
+    #[cfg(test)]
     pub(crate) fn write_fairness_report(
         &self,
         path: &Path,

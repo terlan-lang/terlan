@@ -56,7 +56,7 @@ pub clear_timeout_typechecks(receiver: WindowOrWorkerGlobalScope, id: Option[JsN
 pub create_image_bitmap_typechecks(
     receiver: WindowOrWorkerGlobalScope,
     image: ImageBitmapSource,
-    options: ImageBitmapOptions
+    options: ImageBitmapOptions,
 ): Promise[ImageBitmap] ->
     receiver.create_image_bitmap(image, options).
 
@@ -67,14 +67,14 @@ pub create_image_bitmap_typechecks(
     sy: JsNumber,
     sw: JsNumber,
     sh: JsNumber,
-    options: ImageBitmapOptions
+    options: ImageBitmapOptions,
 ): Promise[ImageBitmap] ->
     receiver.create_image_bitmap(image, sx, sy, sw, sh, options).
 
 pub fetch_typechecks(
     receiver: WindowOrWorkerGlobalScope,
     input: RequestInfo | URL,
-    init: RequestInit
+    init: RequestInit,
 ): Promise[Response] ->
     receiver.fetch(input, init).
 
@@ -84,20 +84,20 @@ pub queue_microtask_typechecks(receiver: WindowOrWorkerGlobalScope, callback: Vo
 pub set_interval_typechecks(
     receiver: WindowOrWorkerGlobalScope,
     handler: TimerHandler,
-    timeout: JsNumber
+    timeout: JsNumber,
 ): JsNumber ->
     receiver.set_interval(handler, timeout).
 
 pub set_timeout_typechecks(
     receiver: WindowOrWorkerGlobalScope,
     handler: TimerHandler,
-    timeout: JsNumber
+    timeout: JsNumber,
 ): JsNumber ->
     receiver.set_timeout(handler, timeout).
 
 pub structured_clone_typechecks(
     receiver: WindowOrWorkerGlobalScope,
     value: T,
-    options: StructuredSerializeOptions
+    options: StructuredSerializeOptions,
 ): T ->
     receiver.structured_clone(value, options).

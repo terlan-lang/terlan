@@ -20,7 +20,7 @@ import std.test.Gen.{elements, for_all}.
  */
 @test
 pub generated_value_push_updates_first_and_length(): Bool ->
-    for_all(elements([1, 2, 3]), (value) -> push_updates_first_and_length(value)).
+    for_all(elements([1, 2, 3]), push_updates_first_and_length).
 
 /**
  * Verifies clearing generated list state restores the empty invariant.
@@ -33,7 +33,7 @@ pub generated_value_push_updates_first_and_length(): Bool ->
  */
 @test
 pub generated_value_clear_restores_empty_state(): Bool ->
-    for_all(elements([1, 2, 3]), (value) -> clear_restores_empty_state(value)).
+    for_all(elements([1, 2, 3]), clear_restores_empty_state).
 
 /**
  * Verifies concatenation and subtraction retain persistent source values.
@@ -46,15 +46,15 @@ pub generated_value_clear_restores_empty_state(): Bool ->
  */
 @test
 pub generated_value_persistent_operations_preserve_sources(): Bool ->
-    for_all(elements([1, 2, 3]), (value) -> persistent_operations_preserve_sources(value)).
+    for_all(elements([1, 2, 3]), persistent_operations_preserve_sources).
 
 pub push_updates_first_and_length(value: Int): Bool ->
     let state = [];
     state.push(value);
     case state.first() {
-    Some(first) -> first == value and state.length() == 1;
-    None -> false
-}.
+        Some(first) -> first == value and state.length() == 1;
+        None -> false
+    }.
 
 pub clear_restores_empty_state(value: Int): Bool ->
     let state = [];
@@ -68,6 +68,11 @@ pub persistent_operations_preserve_sources(value: Int): Bool ->
     let reduced = source.subtract([value]);
     case {source.first(), combined.first(), reduced.first()} {
         {Some(source_first), Some(combined_first), Some(reduced_first)} ->
-            source.length() == 2 and combined.length() == 3 and reduced.length() == 1 and source_first == value and combined_first == value and reduced_first == value;
+            source.length() == 2
+                and combined.length() == 3
+                and reduced.length() == 1
+                and source_first == value
+                and combined_first == value
+                and reduced_first == value;
         _ -> false
     }.

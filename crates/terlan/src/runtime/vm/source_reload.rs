@@ -1,19 +1,19 @@
-#![allow(dead_code)]
-
-use std::collections::BTreeSet;
-use std::fs;
 use std::path::Path;
+#[cfg(test)]
+use std::{collections::BTreeSet, fs};
 
-use super::code_server::{
-    VmCodeServer, VmCodeServerEvent, VmCodeServerEventSnapshot, VmStagedModuleArtifact,
-};
+#[cfg(test)]
+use super::code_server::VmCodeServerEventSnapshot;
+use super::code_server::{VmCodeServer, VmCodeServerEvent, VmStagedModuleArtifact};
 
+#[cfg(test)]
 use super::code_server_compiler::stage_source_replacement;
 use super::fixed_scheduler_telemetry::VM_FIXED_SCHEDULER_TRACE_CAPACITY;
 use super::multicore_replay::VmMulticoreReplayEvidence;
-use super::pure_native::{
-    PureNativeExecutionShard, VmNativeGenerationReferenceClass, VmNativeGenerationReferenceSnapshot,
-};
+#[cfg(test)]
+use super::pure_native::VmNativeGenerationReferenceClass;
+use super::pure_native::{PureNativeExecutionShard, VmNativeGenerationReferenceSnapshot};
+#[cfg(test)]
 use super::ReplValue;
 
 /// VM-owned source reload adapter.
@@ -126,6 +126,7 @@ impl VmSourceReloadAdapter {
     }
 
     /// Executes one export through the currently admitted native generation.
+    #[cfg(test)]
     pub(crate) fn call_native(
         &mut self,
         function: &str,
@@ -140,6 +141,7 @@ impl VmSourceReloadAdapter {
     }
 
     /// Pins one externally owned reference to the active native generation.
+    #[cfg(test)]
     pub(crate) fn pin_native_generation(
         &mut self,
         class: VmNativeGenerationReferenceClass,
@@ -150,19 +152,6 @@ impl VmSourceReloadAdapter {
                 "error[vm.reload.native_generation]: no native generation is admitted".to_string()
             })?
             .pin_generation_reference(class)
-    }
-
-    /// Releases one externally owned reference to the active generation.
-    pub(crate) fn release_native_generation(
-        &mut self,
-        class: VmNativeGenerationReferenceClass,
-    ) -> Result<(), String> {
-        self.native_shard
-            .as_mut()
-            .ok_or_else(|| {
-                "error[vm.reload.native_generation]: no native generation is admitted".to_string()
-            })?
-            .release_generation_reference(class)
     }
 
     /// Publishes one changed source file into the VM code server.
@@ -179,6 +168,7 @@ impl VmSourceReloadAdapter {
     /// - Reads Terlan source text from disk and delegates to
     ///   `VmCodeServer::publish_source`, leaving generation retention,
     ///   rollback safety, and event inspection owned by the code server.
+    #[cfg(test)]
     pub(crate) fn publish_changed_file(
         &mut self,
         path: impl AsRef<Path>,
@@ -214,6 +204,7 @@ impl VmSourceReloadAdapter {
     ///   atomic batch boundary: noisy asset events are ignored, duplicate
     ///   source events are collapsed, and invalid source batches cannot leave
     ///   the VM partially reloaded.
+    #[cfg(test)]
     pub(crate) fn publish_changed_files(
         &mut self,
         paths: &[impl AsRef<Path>],
@@ -235,6 +226,7 @@ impl VmSourceReloadAdapter {
     /// - Preserves the atomic compile-before-publish transaction while making
     ///   reload work visible to VM CLI/debug tooling and future HTTP dev-server
     ///   diagnostics.
+    #[cfg(test)]
     pub(crate) fn publish_changed_files_with_report(
         &mut self,
         paths: &[impl AsRef<Path>],
@@ -294,6 +286,7 @@ impl VmSourceReloadAdapter {
     /// Transformation:
     /// - Exposes source-facing reload history without giving callers mutable
     ///   access to code-server generation tables.
+    #[cfg(test)]
     pub(crate) fn event_snapshots(&self) -> Vec<VmCodeServerEventSnapshot> {
         self.code_server.event_snapshots()
     }
@@ -332,6 +325,7 @@ impl Default for VmSourceReloadAdapter {
 /// Transformation:
 /// - Keeps extension filtering shared by watcher adapters and tests without
 ///   coupling it to any filesystem-watch crate.
+#[cfg(test)]
 fn is_terlan_source_path(path: &Path) -> bool {
     path.extension()
         .is_some_and(|extension| extension == "terl")
@@ -339,4 +333,5 @@ fn is_terlan_source_path(path: &Path) -> bool {
 
 #[cfg(test)]
 #[path = "source_reload_test.rs"]
+#[cfg(test)]
 mod source_reload_test;

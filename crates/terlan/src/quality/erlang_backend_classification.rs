@@ -167,4 +167,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "erlang_backend_classification_test.rs"]
+#[cfg(test)]
 mod erlang_backend_classification_test;

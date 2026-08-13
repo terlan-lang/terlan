@@ -29,6 +29,6 @@ pub get_state_typechecks(receiver: NavigationPreloadManager): Promise[Navigation
 
 pub set_header_value_typechecks(
     receiver: NavigationPreloadManager,
-    value: std.js.String.JsString
+    value: std.js.String.JsString,
 ): Promise[Unit] ->
     receiver.set_header_value(value).

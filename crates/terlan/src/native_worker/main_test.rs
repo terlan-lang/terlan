@@ -17,7 +17,7 @@ fn worker_rejects_application_image_arguments() {
     .expect_err("application images are not capability-worker arguments");
 
     assert_eq!(
-        error,
+        error.to_string(),
         "error[capability_worker.args]: unsupported argument `application.tvm`"
     );
 }
@@ -29,7 +29,7 @@ fn worker_rejects_unsandboxed_startup() {
         .expect_err("unsandboxed worker must fail");
 
     assert_eq!(
-        error,
+        error.to_string(),
         "error[capability_worker.sandbox]: a sandbox profile is required"
     );
 }
@@ -47,5 +47,5 @@ fn worker_rejects_implicit_execution_profile() {
     )
     .expect_err("implicit execution profile must fail");
 
-    assert!(error.contains("execution profile is required"));
+    assert!(error.to_string().contains("execution profile is required"));
 }

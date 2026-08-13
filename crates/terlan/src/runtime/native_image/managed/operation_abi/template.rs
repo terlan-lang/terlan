@@ -244,7 +244,7 @@ fn render_optional_value(
         Some("None") if layout.fields().is_empty() => Ok(TemplateRenderValue::Missing),
         Some("Some") if layout.fields().len() == 1 => {
             let field = heap
-                .read_aggregate(reference.cast::<ManagedAggregate>(), &layout)?
+                .read_aggregate(reference.cast::<ManagedAggregate>(), layout)?
                 .field(0)?;
             let word = i64::from_ne_bytes(super::field_word(field).to_ne_bytes());
             render_value(heap, layouts, inner, word)

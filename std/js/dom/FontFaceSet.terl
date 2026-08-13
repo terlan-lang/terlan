@@ -58,13 +58,13 @@ pub (value: FontFaceSet) load(font: JsString, text: JsString): Promise[std.js.Ar
 pub (value: FontFaceSet) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     native.
 
 pub (value: FontFaceSet) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     native.

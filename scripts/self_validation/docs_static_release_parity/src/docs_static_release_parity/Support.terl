@@ -1,0 +1,843 @@
+/**
+ * Deterministic installed-documentation generation primitives.
+ */
+module docs_static_release_parity.Support.
+
+import std.collections.List.{length}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.File.{exists, read_text, write_text}.
+import std.io.{Directory, Path}.
+import std.regex.Regex.
+import std.system.{Environment, Platform, Process}.
+
+import type std.core.Option.
+import type std.data.Json.{Json, NestedStringFieldRow, StringFieldRow}.
+
+pub struct Coverage {
+    modules: Int,
+    structs: Int,
+    shapes: Int,
+    functions: Int,
+    methods: Int,
+    tests: Int,
+    native_boundary_capabilities: Int,
+    packages: Int,
+}.
+
+pub struct SiteSummary {
+    version: String,
+    module_pages: Int,
+    generated_files: Int,
+    search_entries: Int,
+    api_coverage: Coverage,
+    command_help_coverage: Int,
+    runtime: Json,
+}.
+
+/**
+ * Bounded API-model projection retained between documentation stages.
+ */
+pub struct SiteProjection {
+    api_coverage: Coverage,
+    search_rows: Json,
+    search_entries: Int,
+}.
+
+pub coverage(
+    modules: Int,
+    structs: Int,
+    shapes: Int,
+    functions: Int,
+    methods: Int,
+    tests: Int,
+    native_boundary_capabilities: Int,
+    packages: Int,
+): Coverage ->
+    Coverage(
+        modules = modules,
+        structs = structs,
+        shapes = shapes,
+        functions = functions,
+        methods = methods,
+        tests = tests,
+        native_boundary_capabilities = native_boundary_capabilities,
+        packages = packages,
+    ).
+
+pub site_summary(
+    version: String,
+    module_pages: Int,
+    generated_files: Int,
+    search_entries: Int,
+    api_coverage: Coverage,
+    command_help_coverage: Int,
+    runtime: Json,
+): SiteSummary ->
+    SiteSummary(
+        version = version,
+        module_pages = module_pages,
+        generated_files = generated_files,
+        search_entries = search_entries,
+        api_coverage = api_coverage,
+        command_help_coverage = command_help_coverage,
+        runtime = runtime,
+    ).
+
+pub version(summary: SiteSummary): String ->
+    summary.version.
+
+pub module_pages(summary: SiteSummary): Int ->
+    summary.module_pages.
+
+pub generated_files(summary: SiteSummary): Int ->
+    summary.generated_files.
+
+pub search_entries(summary: SiteSummary): Int ->
+    summary.search_entries.
+
+pub api_coverage(summary: SiteSummary): Coverage ->
+    summary.api_coverage.
+
+pub command_help_coverage(summary: SiteSummary): Int ->
+    summary.command_help_coverage.
+
+pub runtime(summary: SiteSummary): Json ->
+    summary.runtime.
+
+pub projection_coverage(projection: SiteProjection): Coverage ->
+    projection.api_coverage.
+
+pub projection_search_rows(projection: SiteProjection): Json ->
+    projection.search_rows.
+
+pub projection_search_entries(projection: SiteProjection): Int ->
+    projection.search_entries.
+
+pub child(parent: String, name: String): String ->
+    if {
+        String.ends_with(parent, "/") -> String.append(parent, name);
+        true -> String.append(parent, String.append("/", name))
+    }.
+
+pub commands(): List[String] ->
+    [
+        "init",
+        "check",
+        "build",
+        "run",
+        "scripts",
+        "clean",
+        "doctor",
+        "inspect",
+        "serve",
+        "test",
+        "doc",
+        "api",
+        "db",
+        "debug",
+        "repl",
+        "fmt",
+        "lint",
+    ].
+
+json_string(value: Json, field: String): Option[String] ->
+    let {
+        Ok(member) <- value.get(field);
+        Ok(text) <- member.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+json_array_length(value: Json, field: String): Int ->
+    let {
+        Ok(array) <- value.get(field);
+        Ok(count) <- array.length()
+    } else {
+        _ -> 0
+    };
+    count.
+
+json_int(value: Json, field: String): Option[Int] ->
+    let {
+        Ok(member) <- value.get(field);
+        Ok(number) <- member.as_int()
+    } else {
+        _ -> None
+    };
+    Some(number).
+
+json_value(value: Json, field: String): Option[Json] ->
+    case value.get(field) {
+        Ok(member) -> Some(member);
+        Err(_reason) -> None
+    }.
+
+count_paths_with_suffix_from(paths: List[String], suffix: String, count: Int): Int ->
+    case paths {
+        [] -> count;
+        [path | rest] ->
+            if {
+                String.ends_with(path, suffix) -> count_paths_with_suffix_from(rest, suffix, count + 1);
+                true -> count_paths_with_suffix_from(rest, suffix, count)
+            }
+    }.
+
+count_paths_with_suffix(paths: List[String], suffix: String): Int ->
+    count_paths_with_suffix_from(paths, suffix, 0).
+
+recursive_file_count(root: String): Int ->
+    case Directory.tree_usage(root) {
+        Ok(usage) -> usage.regular_file_count;
+        Err(_reason) -> 0
+    }.
+
+first_string(values: List[Option[String]], fallback: String): String ->
+    let {
+        [value | _] <- values;
+        Some(text) <- value
+    } else {
+        _ -> fallback
+    };
+    text.
+
+second_string(values: List[Option[String]], fallback: String): String ->
+    let {
+        [_ | [value | _]] <- values;
+        Some(text) <- value
+    } else {
+        _ -> fallback
+    };
+    text.
+
+declaration_counts(declarations: List[StringFieldRow], totals: Coverage): Coverage ->
+    case declarations {
+        [] -> totals;
+        [declaration | rest] ->
+            let kind =
+                if {
+                    Json.string_field_row_is_object(declaration) -> first_string(Json.string_field_row_values(declaration), "");
+                    true -> ""
+                };
+            declaration_counts(
+                rest,
+                Coverage(
+                    modules = totals.modules,
+                    structs = totals.structs + if {
+    kind == "struct" -> 1;
+    true -> 0
+},
+                    shapes = totals.shapes + if {
+    kind == "shape" -> 1;
+    true -> 0
+},
+                    functions = totals.functions + if {
+    kind == "function" -> 1;
+    true -> 0
+},
+                    methods = totals.methods + if {
+    kind == "method" -> 1;
+    true -> 0
+},
+                    tests = totals.tests,
+                    native_boundary_capabilities = totals.native_boundary_capabilities,
+                    packages = totals.packages,
+                ),
+            )
+    }.
+
+module_total(module_value: NestedStringFieldRow, totals: Coverage): Coverage ->
+    let name =
+        if {
+            Json.nested_string_field_row_is_object(module_value) -> first_string(Json.nested_string_field_row_values(module_value), "");
+            true -> ""
+        };
+    let with_module =
+        Coverage(
+            modules = totals.modules + 1,
+            structs = totals.structs,
+            shapes = totals.shapes,
+            functions = totals.functions,
+            methods = totals.methods,
+            tests = totals.tests + if {
+    String.ends_with(name, "Test") -> 1;
+    true -> 0
+},
+            native_boundary_capabilities = totals.native_boundary_capabilities,
+            packages = totals.packages,
+        );
+    declaration_counts(Json.nested_string_field_row_children(module_value), with_module).
+
+module_counts(modules: List[NestedStringFieldRow], totals: Coverage): Coverage ->
+    case modules {
+        [] -> totals;
+        [module_value | rest] -> module_counts(rest, module_total(module_value, totals))
+    }.
+
+initial_coverage(share: String): Coverage ->
+    let native_root = child(share, "std/summaries");
+    let package_root = child(share, "docs/package");
+    let native_count =
+        case Directory.files_recursive(native_root) {
+            Ok(paths) -> count_paths_with_suffix(paths, ".native_boundary.json");
+            Err(_reason) -> 0
+        };
+    let package_count =
+        case Directory.files_recursive(package_root) {
+            Ok(paths) -> count_paths_with_suffix(paths, ".md");
+            Err(_reason) -> 0
+        };
+    Coverage(
+        modules = 0,
+        structs = 0,
+        shapes = 0,
+        functions = 0,
+        methods = 0,
+        tests = 0,
+        native_boundary_capabilities = native_count,
+        packages = package_count,
+    ).
+
+pub api_coverage(model: Json, share: String): Option[Coverage] ->
+    case build_site_projection(model, share, "") {
+        Some(projection) -> Some(projection.api_coverage);
+        None -> None
+    }.
+
+pub coverage_required_counts_hold(coverage: Coverage): Bool ->
+    coverage.modules > 0
+        and coverage.structs > 0
+        and coverage.functions > 0
+        and coverage.methods > 0
+        and coverage.tests > 0
+        and coverage.native_boundary_capabilities > 0.
+
+pub coverage_json(coverage: Coverage): Json ->
+    let value = Json.object();
+    let _modules = value.put("modules", Json.int(coverage.modules));
+    let _structs = value.put("structs", Json.int(coverage.structs));
+    let _shapes = value.put("shapes", Json.int(coverage.shapes));
+    let _functions = value.put("functions", Json.int(coverage.functions));
+    let _methods = value.put("methods", Json.int(coverage.methods));
+    let _tests = value.put("tests", Json.int(coverage.tests));
+    let _native = value.put("native_boundary_capabilities", Json.int(coverage.native_boundary_capabilities));
+    let _packages = value.put("packages", Json.int(coverage.packages));
+    let _vm = value.put("vm_runtime_commands", Json.int(3));
+    let unavailable = Json.array();
+    let _shape = unavailable.push(Json.string("shape-runtime-extraction"));
+    let _cuda = unavailable.push(Json.string("cuda-execution"));
+    let _wasm = unavailable.push(Json.string("wasm-hosted-runtime"));
+    let _planned = value.put("planned_unavailable", unavailable);
+    value.
+
+/**
+ * Serializes one site summary for deterministic stage-to-stage handoff.
+ */
+pub site_summary_json(summary: SiteSummary): Json ->
+    let value = Json.object();
+    let _version = value.put("version", Json.string(summary.version));
+    let _modules = value.put("module_pages", Json.int(summary.module_pages));
+    let _files = value.put("generated_files", Json.int(summary.generated_files));
+    let _search = value.put("search_entries", Json.int(summary.search_entries));
+    let _coverage = value.put("api_coverage", coverage_json(summary.api_coverage));
+    let _help = value.put("command_help_coverage", Json.int(summary.command_help_coverage));
+    let _runtime = value.put("runtime", summary.runtime);
+    value.
+
+coverage_from_json(value: Json): Option[Coverage] ->
+    let {
+        Some(modules) <- json_int(value, "modules");
+        Some(structs) <- json_int(value, "structs");
+        Some(shapes) <- json_int(value, "shapes");
+        Some(functions) <- json_int(value, "functions");
+        Some(methods) <- json_int(value, "methods");
+        Some(tests) <- json_int(value, "tests");
+        Some(native) <- json_int(value, "native_boundary_capabilities");
+        Some(packages) <- json_int(value, "packages")
+    } else {
+        _ -> None
+    };
+    Some(coverage(modules, structs, shapes, functions, methods, tests, native, packages)).
+
+/**
+ * Restores an exact site summary written by `site_summary_json`.
+ */
+pub site_summary_from_json(value: Json): Option[SiteSummary] ->
+    let {
+        Some(version) <- json_string(value, "version");
+        Some(modules) <- json_int(value, "module_pages");
+        Some(files) <- json_int(value, "generated_files");
+        Some(search) <- json_int(value, "search_entries");
+        Some(coverage_value) <- json_value(value, "api_coverage");
+        Some(api) <- coverage_from_json(coverage_value);
+        Some(help) <- json_int(value, "command_help_coverage");
+        Some(runtime_value) <- json_value(value, "runtime")
+    } else {
+        _ -> None
+    };
+    Some(site_summary(version, modules, files, search, api, help, runtime_value)).
+
+search_declaration_rows(
+    declarations: List[StringFieldRow],
+    module_name: String,
+    page: String,
+    reversed: List[List[String]],
+    total: Int,
+): {List[List[String]], Int} ->
+    case declarations {
+        [] -> {reversed, total};
+        [declaration | rest] ->
+            if {
+                not Json.string_field_row_is_object(declaration) -> search_declaration_rows(rest, module_name, page, reversed, total);
+                true -> let values = Json.string_field_row_values(declaration);
+                let kind = first_string(values, "unknown");
+                let name = second_string(values, "");
+                search_declaration_rows(
+                    rest,
+                    module_name,
+                    page,
+                    [[kind, module_name, name, page] | reversed],
+                    total + 1,
+                )
+            }
+    }.
+
+search_module_rows(
+    modules: List[NestedStringFieldRow],
+    version: String,
+    reversed: List[List[String]],
+    total: Int,
+): {List[List[String]], Int} ->
+    case modules {
+        [] -> {reversed, total};
+        [module_value | rest] ->
+            if {
+                not Json.nested_string_field_row_is_object(module_value) -> search_module_rows(rest, version, reversed, total);
+                true -> let name = first_string(Json.nested_string_field_row_values(module_value), "");
+                let page = String.append(version, String.append("/api/", String.append(name, ".html")));
+                let with_module = [["module", name, name, page] | reversed];
+                let {with_declarations, after_declarations} =
+                    search_declaration_rows(
+                        Json.nested_string_field_row_children(module_value),
+                        name,
+                        page,
+                        with_module,
+                        total + 1,
+                    );
+                search_module_rows(rest, version, with_declarations, after_declarations)
+            }
+    }.
+
+reverse_search_rows(rows: List[List[String]], output: List[List[String]]): List[List[String]] ->
+    case rows {
+        [] -> output;
+        [row | rest] -> reverse_search_rows(rest, [row | output])
+    }.
+
+project_site_pages(
+    modules: Json,
+    index: Int,
+    total: Int,
+    version: String,
+    totals: Coverage,
+    mut search: Json,
+    entries: Int,
+): Option[SiteProjection] ->
+    if {
+        index >= total -> if {
+            coverage_required_counts_hold(totals) -> Some(
+                SiteProjection(
+                    api_coverage = totals,
+                    search_rows = search,
+                    search_entries = entries,
+                ),
+            );
+            true -> None
+        };
+        true -> case modules.nested_string_field_rows_page(index, 128, ["module"], "declarations", ["kind", "name"]) {
+            Err(_reason) -> None;
+            Ok(rows) ->
+                let remaining = total - index;
+                let page_count =
+                    if {
+                        remaining > 128 -> 128;
+                        true -> remaining
+                    };
+                let next_totals = module_counts(rows, totals);
+                let {reversed, page_entries} = search_module_rows(rows, version, [], 0);
+                case Json.string_object_rows(["kind", "module", "name", "url"], reverse_search_rows(reversed, [])) {
+                    Err(_reason) -> None;
+                    Ok(page) ->
+                        if {
+                            page_count <= 0 -> None;
+                            true -> let _extended = search.extend(page);
+                            project_site_pages(
+                                modules,
+                                index + page_count,
+                                total,
+                                version,
+                                next_totals,
+                                search,
+                                entries + page_entries,
+                            )
+                        }
+                }
+        }
+    }.
+
+/**
+ * Projects a large API model through bounded VM-owned pages.
+ */
+pub build_site_projection(model: Json, share: String, version: String): Option[SiteProjection] ->
+    let {
+        Ok(modules) <- model.get("modules");
+        Ok(total) <- modules.length()
+    } else {
+        _ -> None
+    };
+    if {
+        total <= 0 -> None;
+        true -> project_site_pages(modules, 0, total, version, initial_coverage(share), Json.array(), 0)
+    }.
+
+process_path(installed: String): String ->
+    let host = Platform.current();
+    let inherited =
+        case Environment.get("PATH") {
+            Some(value) -> value;
+            None -> ""
+        };
+    String.append(installed, String.append(host.path_separator, inherited)).
+
+pub command_output(
+    compiler: String,
+    arguments: List[String],
+    cwd: String,
+    installed: String,
+): Option[String] ->
+    let request =
+        Process.with_output_limit_bytes(
+            Process.with_timeout_ms(
+                Process.with_environment(
+                    Process.with_working_directory(
+                        Process.with_arguments(Process.command(compiler), arguments),
+                        cwd,
+                    ),
+                    [Process.environment_entry("PATH", process_path(installed))],
+                ),
+                60000,
+            ),
+            8388608,
+        );
+    case Process.run(request) {
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> Some(Process.stdout(output));
+                true -> None
+            };
+        Err(_reason) -> None
+    }.
+
+push_help_rows(
+    mut values: Json,
+    compiler: String,
+    names: List[String],
+    cwd: String,
+    installed: String,
+): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            case command_output(compiler, [name, "--help"], cwd, installed) {
+                Some(output) ->
+                    let _row = values.put(name, Json.string(output));
+                    push_help_rows(values, compiler, rest, cwd, installed);
+                None -> false
+            }
+    }.
+
+help_rows_hold(values: Json, names: List[String]): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            case values.get(name) {
+                Ok(_value) -> help_rows_hold(values, rest);
+                Err(_reason) -> false
+            }
+    }.
+
+/**
+ * Validates a persisted installed-CLI help snapshot without executing it.
+ */
+pub cli_help_contract_holds(help: Json, version: String): Bool ->
+    case {json_string(help, "version"), json_string(help, "top_level"), help.get("commands")} {
+        {Some(reported), Some(top_level), Ok(command_rows)} ->
+            String.trim(reported) == String.append("terlc ", version)
+                and String.contains(top_level, "terlc help")
+                and help_rows_hold(command_rows, commands());
+        _ -> false
+    }.
+
+pub cli_help(compiler: String, cwd: String, installed: String, version: String): Option[Json] ->
+    let {
+        Some(reported) <- command_output(compiler, ["--version"], cwd, installed);
+        Some(top_level) <- command_output(compiler, ["--help"], cwd, installed)
+    } else {
+        _ -> None
+    };
+    (let command_rows = Json.object();
+if {
+    String.trim(reported) != String.append("terlc ", version) -> None;
+    not String.contains(top_level, "terlc help") -> None;
+    not push_help_rows(command_rows, compiler, commands(), cwd, installed) -> None;
+    true -> let help = Json.object();
+    let _version = help.put("version", Json.string(reported));
+    let _top = help.put("top_level", Json.string(top_level));
+    let _commands = help.put("commands", command_rows);
+    if {
+        cli_help_contract_holds(help, version) -> Some(help);
+        true -> None
+    }
+}).
+
+pub validate_readme(path: String, version: String): Bool ->
+    case read_text(path) {
+        Ok(source) ->
+            String.contains(source, String.append("Current version: `", String.append(version, "`")))
+                and String.contains(source, "terlan-vm");
+        Err(_reason) -> false
+    }.
+
+pub write_json(path: String, value: Json): Bool ->
+    let {
+        Ok(source) <- Json.stringify_pretty(value);
+        Ok(_unit) <- write_text(path, String.append(source, "\n"))
+    } else {
+        _ -> false
+    };
+    true.
+
+html_escape(value: String): String ->
+    String.replace(
+        String.replace(
+            String.replace(
+                String.replace(String.replace(value, "&", "&amp;"), "<", "&lt;"),
+                ">",
+                "&gt;",
+            ),
+            "\"",
+            "&quot;",
+        ),
+        "'",
+        "&#x27;",
+    ).
+
+pub root_index(version: String): String ->
+    String.append(
+        "<!doctype html><meta charset=\"utf-8\"><title>Terlan ",
+        String.append(
+            html_escape(version),
+            String.append(
+                " documentation</title><h1>Terlan ",
+                String.append(
+                    html_escape(version),
+                    String.append(
+                        "</h1><nav><a href=\"",
+                        String.append(
+                            version,
+                            String.append(
+                                "/api/index.html\">Standard library API</a> <a href=\"search-index.json\">Search index</a> <a href=\"",
+                                String.append(
+                                    version,
+                                    "/metadata/release.json\">Release provenance</a></nav>\n",
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ).
+
+pub hash_tree(root: String): Option[String] ->
+    case Hash.sha256_tree(root) {
+        Ok(digest) -> Some(digest);
+        Err(_reason) -> None
+    }.
+
+local_hrefs(source: String): List[String] ->
+    case Regex.compile("href=\\\"[^\\\"]+\\\"|href='[^']+'") {
+        Ok(regex) -> Regex.find_all(regex, source);
+        Err(_reason) -> []
+    }.
+
+href_target(value: String): String ->
+    String.replace(
+        String.replace(String.replace(String.replace(value, "href=\"", ""), "href='", ""), "\"", ""),
+        "'",
+        "",
+    ).
+
+external_href(value: String): Bool ->
+    String.starts_with(value, "http://")
+        or String.starts_with(value, "https://")
+        or String.starts_with(value, "mailto:")
+        or String.starts_with(value, "#")
+        or String.starts_with(value, "data:").
+
+href_file(value: String): String ->
+    case String.split_once(value, "#") {
+        Some({path, _fragment}) -> path;
+        None -> value
+    }.
+
+validate_href(page: String, site: String, href: String): Bool ->
+    let target = href_file(href_target(href));
+    if {
+        external_href(target) or target == "" -> true;
+        true -> let {
+            Ok(page_path) <- Path.from_string(page);
+            Ok(site_path) <- Path.from_string(site);
+            Some(parent) <- page_path.parent();
+            Ok(joined) <- parent.join(target)
+        } else {
+            _ -> false
+        };
+        (let normalized = joined.normalize();
+let normalized_site = site_path.normalize();
+let contained = normalized.starts_with(normalized_site);
+if {
+    not contained -> false;
+    true -> let normalized_name = normalized.to_string();
+    exists(normalized_name)
+})
+    }.
+
+validate_hrefs_count(page: String, site: String, hrefs: List[String], count: Int): Option[Int] ->
+    case hrefs {
+        [] -> Some(count);
+        [href | rest] ->
+            if {
+                not validate_href(page, site, href) -> None;
+                true -> validate_hrefs_count(
+                    page,
+                    site,
+                    rest,
+                    count + if {
+    external_href(href_target(href)) or href_file(href_target(href)) == "" -> 0;
+    true -> 1
+},
+                )
+            }
+    }.
+
+validate_hrefs(page: String, site: String, hrefs: List[String]): Option[Int] ->
+    validate_hrefs_count(page, site, hrefs, 0).
+
+validate_pages_count(
+    paths: List[String],
+    site: String,
+    repository: String,
+    count: Int,
+): Option[Int] ->
+    case paths {
+        [] -> Some(count);
+        [page | rest] ->
+            if {
+                not String.ends_with(page, ".html") -> validate_pages_count(rest, site, repository, count);
+                true -> case read_text(page) {
+                    Ok(source) ->
+                        if {
+                            String.contains(source, repository)
+                                or String.contains(source, "/home/")
+                                or String.contains(source, "target/debug") -> None;
+                            true -> case validate_hrefs(page, site, local_hrefs(source)) {
+                                None -> None;
+                                Some(here) ->
+                                    validate_pages_count(rest, site, repository, count + here)
+                            }
+                        };
+                    Err(_reason) -> None
+                }
+            }
+    }.
+
+pub validate_links(site: String, repository: String): Option[Int] ->
+    case Directory.files_recursive(site) {
+        Ok(paths) -> validate_pages_count(paths, site, repository, 0);
+        Err(_reason) -> None
+    }.
+
+pub hover_categories_hold(report: Json): Bool ->
+    case report.get("hover_doc_coverage") {
+        Ok(categories) ->
+            let {
+                Err(_reason) <- categories.keys();
+                Ok(7) <- categories.length()
+            } else {
+                _ -> false
+            };
+            json_array_contains(categories, 0, 7, "module")
+                and json_array_contains(categories, 0, 7, "struct")
+                and json_array_contains(categories, 0, 7, "function")
+                and json_array_contains(categories, 0, 7, "method")
+                and json_array_contains(categories, 0, 7, "stdlib")
+                and json_array_contains(categories, 0, 7, "generated-summary")
+                and json_array_contains(categories, 0, 7, "package");
+        Err(_reason) -> false
+    }.
+
+json_array_contains(values: Json, index: Int, count: Int, expected: String): Bool ->
+    if {
+        index >= count -> false;
+        true -> case values.at(index) {
+            Ok(value) ->
+                case value.as_string() {
+                    Ok(text) ->
+                        text == expected or json_array_contains(values, index + 1, count, expected);
+                    Err(_reason) -> json_array_contains(values, index + 1, count, expected)
+                };
+            Err(_reason) -> false
+        }
+    }.
+
+pub string_array(values: List[String]): Json ->
+    let result = Json.array();
+    let _pushed = push_strings(result, values);
+    result.
+
+push_strings(mut result: Json, values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let _value = result.push(Json.string(value));
+            push_strings(result, rest)
+    }.
+
+pub json_equal(left: Json, right: Json): Bool ->
+    let {
+        Ok(first) <- Json.stringify(left);
+        Ok(second) <- Json.stringify(right)
+    } else {
+        _ -> false
+    };
+    first == second.
+
+pub site_summary_equal(left: SiteSummary, right: SiteSummary): Bool ->
+    left.version == right.version
+        and left.module_pages == right.module_pages
+        and left.generated_files == right.generated_files
+        and left.search_entries == right.search_entries
+        and left.command_help_coverage == right.command_help_coverage
+        and coverage_json_equal(left.api_coverage, right.api_coverage)
+        and json_equal(left.runtime, right.runtime).
+
+coverage_json_equal(left: Coverage, right: Coverage): Bool ->
+    json_equal(coverage_json(left), coverage_json(right)).
+
+pub generated_file_count(root: String): Int ->
+    recursive_file_count(root).

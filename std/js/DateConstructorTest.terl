@@ -31,7 +31,7 @@ pub utc_typechecks(
     hours: JsNumber,
     minutes: JsNumber,
     seconds: JsNumber,
-    ms: JsNumber
+    ms: JsNumber,
 ): JsNumber ->
     receiver.utc(year, month_index, date, hours, minutes, seconds, ms).
 

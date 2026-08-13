@@ -126,7 +126,7 @@ pub (value: XMLHttpRequest) open(
     url: URL | JsString,
     async: Bool,
     username: Option[JsString],
-    password: Option[JsString]
+    password: Option[JsString],
 ): Unit.
 
 /**
@@ -153,11 +153,11 @@ pub (value: XMLHttpRequest) set_request_header(name: JsString, value: JsString):
 pub (value: XMLHttpRequest) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit.
 
 pub (value: XMLHttpRequest) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit.

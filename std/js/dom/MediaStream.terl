@@ -98,13 +98,13 @@ pub (value: MediaStream) remove_track(track: MediaStreamTrack): Unit ->
 pub (value: MediaStream) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     native.
 
 pub (value: MediaStream) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     native.

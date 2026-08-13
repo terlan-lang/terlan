@@ -3,6 +3,7 @@ use std::io::Cursor;
 use super::live_template_repeated_diff::{
     build_live_template_repeated_diff, VmHttpSessionLiveTemplateRenderedFragment,
     VmHttpSessionLiveTemplateRepeatedBinding, VmHttpSessionLiveTemplateRepeatedPatch,
+    VmHttpSessionLiveTemplateRepeatedUpdate,
 };
 use super::live_template_response::{
     VmHttpSessionLiveTemplateRenderPlan, VmHttpSessionLiveTemplateStreamPlan,
@@ -555,12 +556,14 @@ fn repeated_actor_interpolation_renders_with_deterministic_keyed_diff() {
 
     let repeated = sessions
         .fanout_live_template_repeated_state_update(
-            &created.session,
-            observed_version,
-            "users.patch",
-            &source(),
-            &previous,
-            &current,
+            VmHttpSessionLiveTemplateRepeatedUpdate::new(
+                &created.session,
+                observed_version,
+                "users.patch",
+                &source(),
+                &previous,
+                &current,
+            ),
             render_user_fragment,
             |runtime, session| runtime.write(session, "users", current_state),
         )
@@ -671,12 +674,14 @@ fn repeated_actor_diff_rejects_invalid_keys_and_render_failure_before_update() {
         let mut update_ran = false;
         let error = sessions
             .fanout_live_template_repeated_state_update(
-                &created.session,
-                observed_version,
-                "users.patch",
-                &source(),
-                &previous,
-                &current,
+                VmHttpSessionLiveTemplateRepeatedUpdate::new(
+                    &created.session,
+                    observed_version,
+                    "users.patch",
+                    &source(),
+                    &previous,
+                    &current,
+                ),
                 |_| panic!("duplicate {side} keys must fail before rendering"),
                 |_, _| {
                     update_ran = true;
@@ -710,12 +715,14 @@ fn repeated_actor_diff_rejects_invalid_keys_and_render_failure_before_update() {
     let mut update_ran = false;
     let render_error = sessions
         .fanout_live_template_repeated_state_update(
-            &created.session,
-            observed_version,
-            "users.patch",
-            &source(),
-            &[],
-            &[repeated_user("user-1", 1, "Ada")],
+            VmHttpSessionLiveTemplateRepeatedUpdate::new(
+                &created.session,
+                observed_version,
+                "users.patch",
+                &source(),
+                &[],
+                &[repeated_user("user-1", 1, "Ada")],
+            ),
             |_| Err("renderer unavailable".to_string()),
             |_, _| {
                 update_ran = true;

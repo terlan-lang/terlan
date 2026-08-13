@@ -1,0 +1,88 @@
+/**
+ * Keeps static route discovery behind formal syntax output.
+ */
+module scripts.self_validation.StaticRouteBoundary.
+
+import std.collections.List.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.File.{read_text}.
+import std.regex.Regex.
+
+/**
+ * Returns whether the repository static-route ownership boundary holds.
+ */
+pub repository_boundary_holds(root: String): Bool ->
+    let static_root = String.append(root, "/crates/terlan/src/commands/static_site");
+    let {
+        Ok(readme) <- read_text(String.append(static_root, "/README.md"));
+        Ok(routes) <- read_text(String.append(static_root, "/routes.rs"))
+    } else {
+        _ -> false
+    };
+    required_markers_hold(readme, routes)
+        and source_rejects_no_patterns(routes, forbidden_route_patterns()).
+
+@pure
+required_markers_hold(readme: String, routes: String): Bool ->
+    String.contains(
+    readme,
+    "Static route declarations are accepted only after the formal Terlan parser",
+)
+        and String.contains(routes, "use crate::terlan_syntax::{SyntaxDeclarationPayload, SyntaxModuleOutput};")
+        and String.contains(routes, "pub(crate) fn discover_syntax_static_routes(")
+        and String.contains(routes, "module: &SyntaxModuleOutput")
+        and String.contains(routes, "SyntaxDeclarationPayload::Config")
+        and String.contains(routes, "parser-preserved `static route` or `static routes` text").
+
+source_rejects_no_patterns(source: String, patterns: List[String]): Bool ->
+    case patterns {
+        [] -> true;
+        [pattern | rest] ->
+            not regex_matches(pattern, source) and source_rejects_no_patterns(source, rest)
+    }.
+
+regex_matches(pattern: String, source: String): Bool ->
+    case Regex.compile(pattern) {
+        Ok(regex) -> Regex.is_match(regex, source);
+        _ -> true
+    }.
+
+@pure
+forbidden_route_patterns(): List[String] ->
+    [
+        "\\bfs::read_to_string\\b",
+        "\\bstd::fs::read_to_string\\b",
+        "\\bFile::open\\b",
+        "\\bread_to_string\\s*\\(",
+        "\\bparse_module_as_syntax_output\\b",
+        "\\bparse_module\\b",
+        "\\blex_module\\b",
+    ].
+
+@test
+pub repository_static_route_boundary_holds(): Bool ->
+    repository_boundary_holds(".").
+
+@test
+pub formal_syntax_markers_are_required(): Bool ->
+    required_markers_hold(
+    "Static route declarations are accepted only after the formal Terlan parser",
+    "use crate::terlan_syntax::{SyntaxDeclarationPayload, SyntaxModuleOutput};\npub(crate) fn discover_syntax_static_routes(module: &SyntaxModuleOutput) { SyntaxDeclarationPayload::Config; /* parser-preserved `static route` or `static routes` text */ }",
+)
+        and not required_markers_hold("formal parser", "routes").
+
+@test
+pub direct_source_reads_are_rejected(): Bool ->
+    not source_rejects_no_patterns("let source = fs::read_to_string(path)?;", forbidden_route_patterns()).
+
+@test
+pub direct_parser_calls_are_rejected(): Bool ->
+    not source_rejects_no_patterns("parse_module_as_syntax_output(source)", forbidden_route_patterns()).
+
+@test
+pub syntax_payload_projection_is_accepted(): Bool ->
+    source_rejects_no_patterns(
+        "SyntaxDeclarationPayload::Config(config)",
+        forbidden_route_patterns(),
+    ).

@@ -57,7 +57,7 @@ pub struct SyntaxExprOutput {
 ///
 /// Transformation:
 /// - Used by serde to omit empty/default call metadata from syntax output.
-fn arg_names_are_empty(arg_names: &Vec<Option<String>>) -> bool {
+fn arg_names_are_empty(arg_names: &[Option<String>]) -> bool {
     arg_names.iter().all(Option::is_none)
 }
 

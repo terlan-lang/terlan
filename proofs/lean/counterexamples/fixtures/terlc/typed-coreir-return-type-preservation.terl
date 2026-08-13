@@ -1,0 +1,4 @@
+module bench_lean_counterexample_typed_coreir_return_type.
+
+pub bad(X: Int): Binary ->
+    X + 1.

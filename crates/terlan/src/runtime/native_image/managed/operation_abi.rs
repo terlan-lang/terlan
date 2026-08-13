@@ -20,6 +20,8 @@ mod bytes;
 mod collections;
 #[path = "operation_abi/equality.rs"]
 mod equality;
+#[path = "operation_abi/field.rs"]
+mod field;
 #[path = "operation_abi/float.rs"]
 mod float;
 #[path = "operation_abi/http.rs"]
@@ -28,6 +30,8 @@ mod http;
 mod integer;
 #[path = "operation_abi/json.rs"]
 mod json;
+#[path = "operation_abi/memory.rs"]
+mod memory;
 #[path = "operation_abi/pattern.rs"]
 mod pattern;
 #[path = "operation_abi/projection.rs"]
@@ -44,23 +48,30 @@ pub use binary_pattern::{
 };
 pub use bitstring::{encode_bitstring_operation, ManagedBitStringOperation};
 pub use bytes::{
-    encode_bytes_concat_operation, encode_bytes_from_list_operation, encode_bytes_length_operation,
-    encode_bytes_read_int_be_operation, encode_bytes_read_int_le_operation,
-    encode_bytes_read_uint_be_operation, encode_bytes_read_uint_le_operation,
-    encode_bytes_slice_operation, encode_bytes_to_list_operation,
+    encode_bytes_concat_operation, encode_bytes_contains_operation,
+    encode_bytes_first_non_ascii_whitespace_operation, encode_bytes_from_list_operation,
+    encode_bytes_length_operation, encode_bytes_read_int_be_operation,
+    encode_bytes_read_int_le_operation, encode_bytes_read_uint_be_operation,
+    encode_bytes_read_uint_le_operation, encode_bytes_slice_operation,
+    encode_bytes_starts_with_operation, encode_bytes_to_list_operation,
 };
 pub use collections::{
-    encode_iterator_next_operation, encode_list_append_operation, encode_list_first_operation,
-    encode_list_first_option_operation, encode_list_from_elements_operation,
-    encode_list_get_operation, encode_list_is_empty_operation, encode_list_length_operation,
-    encode_list_prepend_operation, encode_list_rest_operation, encode_list_rest_option_operation,
-    encode_map_clear_operation, encode_map_contains_operation, encode_map_empty_operation,
-    encode_map_from_entries_operation, encode_map_from_entry_list_operation,
-    encode_map_get_operation, encode_map_get_option_operation, encode_map_is_empty_operation,
-    encode_map_iterator_operation, encode_map_length_operation, encode_map_put_operation,
-    encode_map_remove_operation, encode_map_take_operation,
+    encode_iterator_next_operation, encode_list_append_operation, encode_list_clear_operation,
+    encode_list_concat_operation, encode_list_first_operation, encode_list_first_option_operation,
+    encode_list_from_elements_operation, encode_list_get_operation, encode_list_is_empty_operation,
+    encode_list_length_operation, encode_list_prepend_operation, encode_list_rest_operation,
+    encode_list_rest_option_operation, encode_list_subtract_operation, encode_map_clear_operation,
+    encode_map_contains_operation, encode_map_empty_operation, encode_map_from_entries_operation,
+    encode_map_from_entry_list_operation, encode_map_get_operation,
+    encode_map_get_option_operation, encode_map_is_empty_operation, encode_map_iterator_operation,
+    encode_map_length_operation, encode_map_put_operation, encode_map_remove_operation,
+    encode_map_take_operation, encode_set_add_operation, encode_set_clear_operation,
+    encode_set_contains_operation, encode_set_empty_operation, encode_set_from_list_operation,
+    encode_set_is_empty_operation, encode_set_iterator_operation, encode_set_length_operation,
+    encode_set_remove_operation,
 };
 pub use equality::encode_managed_value_equal_operation;
+pub(super) use field::field_word;
 pub use float::{
     encode_float_from_string_operation, encode_float_log_operation,
     encode_float_to_string_operation,
@@ -75,6 +86,7 @@ pub use integer::{
     encode_int_to_string_base_operation, encode_int_to_string_operation,
 };
 pub use json::{encode_json_parse_result_operation, encode_result_is_ok_operation};
+pub use memory::{encode_memory_retained_size_operation, encode_memory_shallow_size_operation};
 pub use pattern::{encode_managed_type_is_operation, encode_managed_variant_is_operation};
 pub(crate) use projection::{decode_aggregate_field_projection, scalar_string_projection_rewrite};
 pub use session::{
@@ -86,6 +98,18 @@ pub use session::{
 use string::{
     append_strings, concatenate_strings, join_string_list, prepend_string_literal, strings_equal,
     transform_string,
+};
+pub use string::{
+    encode_string_byte_size_operation, encode_string_characters_operation,
+    encode_string_codepoints_operation, encode_string_compare_operation,
+    encode_string_contains_operation, encode_string_ends_with_operation,
+    encode_string_length_operation, encode_string_lowercase_operation,
+    encode_string_replace_operation, encode_string_sha256_operation,
+    encode_string_split_once_operation, encode_string_split_operation,
+    encode_string_starts_with_operation, encode_string_trim_end_operation,
+    encode_string_trim_operation, encode_string_trim_start_operation,
+    encode_string_utf8_byte_at_operation, encode_string_utf8_find_any_byte_operation,
+    encode_string_utf8_slice_operation,
 };
 pub use template::{encode_template_render_operation, ManagedTemplateValueKind};
 
@@ -107,6 +131,8 @@ const STRING_ESCAPE_HTML_ATTRIBUTE: u8 = 12;
 const STRING_PREPEND_LITERAL: u8 = 13;
 const STRING_PREPEND_PROJECTED_LITERAL: u8 = 14;
 const STRING_CONCAT: u8 = 15;
+const MEMORY_SHALLOW_SIZE: u8 = 16;
+const MEMORY_RETAINED_SIZE: u8 = 17;
 const SEMANTIC_BYTES: usize = 16;
 const PROJECT_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES + 4;
 const MAP_GET_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES * 2;
@@ -129,6 +155,7 @@ pub fn is_managed_operation(encoded: &[u8]) -> bool {
         || json::is_json_operation(encoded)
         || pattern::is_pattern_operation(encoded)
         || session::is_session_operation(encoded)
+        || string::is_string_operation(encoded)
         || template::is_template_operation(encoded)
 }
 
@@ -170,9 +197,15 @@ pub(crate) fn managed_abi_result_is_reference(encoded: &[u8]) -> bool {
     if integer::is_integer_operation(encoded) {
         return true;
     }
+    if string::is_string_operation(encoded) {
+        return string::string_operation_result_is_reference(encoded);
+    }
     !matches!(
         decode_operation(encoded),
-        Ok(ManagedOperation::ProjectScalar { .. } | ManagedOperation::StringEqual)
+        Ok(ManagedOperation::ProjectScalar { .. }
+            | ManagedOperation::StringEqual
+            | ManagedOperation::MemoryShallowSize
+            | ManagedOperation::MemoryRetainedSize)
     )
 }
 
@@ -319,17 +352,6 @@ pub fn encode_string_escape_html_attribute_operation() -> Vec<u8> {
     header(STRING_ESCAPE_HTML_ATTRIBUTE)
 }
 
-/// Executes one decoded operation against the current actor heap.
-#[cfg(test)]
-pub(crate) fn execute_managed_operation(
-    heap: &mut ActorHeap,
-    layouts: &ManagedLayoutRegistry,
-    encoded: &[u8],
-    words: &[i64],
-) -> Result<u64, ManagedMemoryError> {
-    execute_managed_operation_with_context(heap, layouts, None, encoded, words)
-}
-
 /// Executes one operation with optional VM-owned request services.
 pub(crate) fn execute_managed_operation_with_context(
     heap: &mut ActorHeap,
@@ -380,6 +402,9 @@ pub(crate) fn execute_managed_operation_with_context(
                 encoded,
                 words,
             );
+        }
+        if string::is_string_operation(encoded) {
+            return string::execute_string_operation(heap, layouts, encoded, words);
         }
         if template::is_template_operation(encoded) {
             return template::execute_template_operation(heap, layouts, encoded, words);
@@ -432,11 +457,13 @@ pub(crate) fn execute_managed_operation_with_context(
             append_pair_to_aggregate_list(
                 heap,
                 layouts,
-                aggregate_semantic,
-                list_semantic,
-                pair_semantic,
-                field,
-                *aggregate,
+                AggregateListTarget {
+                    aggregate_semantic,
+                    list_semantic,
+                    pair_semantic,
+                    field,
+                    aggregate: *aggregate,
+                },
                 *first,
                 *second,
             )?
@@ -512,163 +539,30 @@ pub(crate) fn execute_managed_operation_with_context(
             };
             transform_string(heap, *value, crate::terlan_html::escape_html_attr)?.erase()
         }
+        ManagedOperation::MemoryShallowSize => {
+            let [value] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let reference = reference_word(*value)?;
+            let size = heap.shallow_size(reference)?;
+            return u64::try_from(size).map_err(|_| ManagedMemoryError::AllocationLimitExceeded);
+        }
+        ManagedOperation::MemoryRetainedSize => {
+            let [value] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let reference = reference_word(*value)?;
+            let size = heap.retained_size(reference)?;
+            return u64::try_from(size).map_err(|_| ManagedMemoryError::AllocationLimitExceeded);
+        }
     };
     Ok(reference.encoded_abi_word())
 }
 
-/// Closed operation payload decoded from immutable image data.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ManagedOperation<'a> {
-    /// Projects one physical field from an aggregate with the expected identity.
-    Project {
-        semantic: SemanticTypeId,
-        field: usize,
-    },
-    /// Projects one scalar physical field from an aggregate with the expected identity.
-    ProjectScalar {
-        semantic: SemanticTypeId,
-        field: usize,
-    },
-    /// Looks up one managed string key and allocates `None` or `Some(value)`.
-    StringMapGetOption {
-        map_semantic: SemanticTypeId,
-        option_semantic: SemanticTypeId,
-    },
-    /// Allocates an empty persistent list with the admitted collection schema.
-    ListEmpty { list_semantic: SemanticTypeId },
-    /// Rebuilds an immutable aggregate with one physical field replaced.
-    AggregateReplaceField {
-        semantic: SemanticTypeId,
-        field: usize,
-    },
-    /// Appends a two-field value to one persistent list field and rebuilds its owner.
-    AggregateAppendPair {
-        aggregate_semantic: SemanticTypeId,
-        list_semantic: SemanticTypeId,
-        pair_semantic: SemanticTypeId,
-        field: usize,
-    },
-    /// Appends one checked value to an aggregate-owned persistent list.
-    AggregateAppendValue {
-        aggregate_semantic: SemanticTypeId,
-        list_semantic: SemanticTypeId,
-        field: usize,
-    },
-    /// Compares two validated managed strings by UTF-8 value.
-    StringEqual,
-    /// Allocates the UTF-8 concatenation of two validated managed strings.
-    StringAppend,
-    /// Allocates the UTF-8 concatenation of two or more validated managed strings.
-    StringConcat,
-    /// Prepends one image-owned UTF-8 literal to a validated managed string.
-    StringPrependLiteral(&'a str),
-    /// Projects a managed string field and prepends one image-owned literal.
-    StringPrependProjectedLiteral {
-        semantic: SemanticTypeId,
-        field: usize,
-        literal: &'a str,
-    },
-    /// Allocates the UTF-8 concatenation of a checked managed string list.
-    StringListJoin,
-    /// Escapes one checked string for HTML text context.
-    StringEscapeHtmlText,
-    /// Escapes one checked string for a quoted HTML attribute context.
-    StringEscapeHtmlAttribute,
-}
+#[path = "operation_abi/codec.rs"]
+mod codec;
+use codec::{decode_operation, header, ManagedOperation};
 
-/// Builds the common immutable operation header.
-fn header(operation: u8) -> Vec<u8> {
-    let mut encoded = Vec::with_capacity(MAP_GET_BYTES);
-    encoded.extend_from_slice(MAGIC);
-    encoded.extend_from_slice(&VERSION.to_le_bytes());
-    encoded.push(operation);
-    encoded.push(0);
-    encoded
-}
-
-/// Decodes one exact operation payload and rejects extensions or truncation.
-fn decode_operation(encoded: &[u8]) -> Result<ManagedOperation<'_>, ManagedMemoryError> {
-    if encoded.len() < HEADER_BYTES
-        || encoded.get(..4) != Some(MAGIC)
-        || encoded.get(4..6) != Some(&VERSION.to_le_bytes())
-        || encoded[7] != 0
-    {
-        return Err(ManagedMemoryError::InvalidAggregateAbi);
-    }
-    match encoded[6] {
-        PROJECT if encoded.len() == PROJECT_BYTES => {
-            let semantic = semantic_at(encoded, HEADER_BYTES)?;
-            let field = encoded
-                .get(HEADER_BYTES + SEMANTIC_BYTES..PROJECT_BYTES)
-                .and_then(|bytes| <[u8; 4]>::try_from(bytes).ok())
-                .map(u32::from_le_bytes)
-                .and_then(|value| usize::try_from(value).ok())
-                .ok_or(ManagedMemoryError::InvalidAggregateAbi)?;
-            Ok(ManagedOperation::Project { semantic, field })
-        }
-        PROJECT_SCALAR if encoded.len() == PROJECT_BYTES => {
-            let semantic = semantic_at(encoded, HEADER_BYTES)?;
-            let field = field_at(encoded, HEADER_BYTES + SEMANTIC_BYTES)?;
-            Ok(ManagedOperation::ProjectScalar { semantic, field })
-        }
-        STRING_MAP_GET_OPTION if encoded.len() == MAP_GET_BYTES => {
-            Ok(ManagedOperation::StringMapGetOption {
-                map_semantic: semantic_at(encoded, HEADER_BYTES)?,
-                option_semantic: semantic_at(encoded, HEADER_BYTES + SEMANTIC_BYTES)?,
-            })
-        }
-        LIST_EMPTY if encoded.len() == LIST_EMPTY_BYTES => Ok(ManagedOperation::ListEmpty {
-            list_semantic: semantic_at(encoded, HEADER_BYTES)?,
-        }),
-        AGGREGATE_REPLACE_FIELD if encoded.len() == REPLACE_FIELD_BYTES => {
-            Ok(ManagedOperation::AggregateReplaceField {
-                semantic: semantic_at(encoded, HEADER_BYTES)?,
-                field: field_at(encoded, HEADER_BYTES + SEMANTIC_BYTES)?,
-            })
-        }
-        AGGREGATE_APPEND_PAIR if encoded.len() == APPEND_PAIR_BYTES => {
-            Ok(ManagedOperation::AggregateAppendPair {
-                aggregate_semantic: semantic_at(encoded, HEADER_BYTES)?,
-                list_semantic: semantic_at(encoded, HEADER_BYTES + SEMANTIC_BYTES)?,
-                pair_semantic: semantic_at(encoded, HEADER_BYTES + SEMANTIC_BYTES * 2)?,
-                field: field_at(encoded, HEADER_BYTES + SEMANTIC_BYTES * 3)?,
-            })
-        }
-        AGGREGATE_APPEND_VALUE if encoded.len() == APPEND_VALUE_BYTES => {
-            Ok(ManagedOperation::AggregateAppendValue {
-                aggregate_semantic: semantic_at(encoded, HEADER_BYTES)?,
-                list_semantic: semantic_at(encoded, HEADER_BYTES + SEMANTIC_BYTES)?,
-                field: field_at(encoded, HEADER_BYTES + SEMANTIC_BYTES * 2)?,
-            })
-        }
-        STRING_EQUAL if encoded.len() == HEADER_BYTES => Ok(ManagedOperation::StringEqual),
-        STRING_APPEND if encoded.len() == HEADER_BYTES => Ok(ManagedOperation::StringAppend),
-        STRING_CONCAT if encoded.len() == HEADER_BYTES => Ok(ManagedOperation::StringConcat),
-        STRING_PREPEND_LITERAL if encoded.len() >= HEADER_BYTES + 4 => Ok(
-            ManagedOperation::StringPrependLiteral(literal_at(encoded, HEADER_BYTES)?),
-        ),
-        STRING_PREPEND_PROJECTED_LITERAL if encoded.len() >= HEADER_BYTES + SEMANTIC_BYTES + 8 => {
-            let semantic = semantic_at(encoded, HEADER_BYTES)?;
-            let field = field_at(encoded, HEADER_BYTES + SEMANTIC_BYTES)?;
-            let literal = literal_at(encoded, HEADER_BYTES + SEMANTIC_BYTES + 4)?;
-            Ok(ManagedOperation::StringPrependProjectedLiteral {
-                semantic,
-                field,
-                literal,
-            })
-        }
-        STRING_LIST_JOIN if encoded.len() == HEADER_BYTES => Ok(ManagedOperation::StringListJoin),
-        STRING_ESCAPE_HTML_TEXT if encoded.len() == HEADER_BYTES => {
-            Ok(ManagedOperation::StringEscapeHtmlText)
-        }
-        STRING_ESCAPE_HTML_ATTRIBUTE if encoded.len() == HEADER_BYTES => {
-            Ok(ManagedOperation::StringEscapeHtmlAttribute)
-        }
-        _ => Err(ManagedMemoryError::InvalidAggregateAbi),
-    }
-}
-
-/// Reads one checked physical field index from encoded operation bytes.
 fn field_at(encoded: &[u8], offset: usize) -> Result<usize, ManagedMemoryError> {
     encoded
         .get(offset..offset + 4)
@@ -715,7 +609,7 @@ fn project_field(
         .layout_for_reference(heap, semantic, reference)
         .map_err(|_| ManagedMemoryError::ManagedTypeMismatch)?;
     let value = heap
-        .read_aggregate(reference.cast::<ManagedAggregate>(), &descriptor)?
+        .read_aggregate(reference.cast::<ManagedAggregate>(), descriptor)?
         .field(field)?;
     Ok(field_word(value))
 }
@@ -780,7 +674,7 @@ fn replace_aggregate_field(
     let descriptor = layouts
         .layout_for_reference(heap, semantic, reference)
         .map_err(|_| ManagedMemoryError::ManagedTypeMismatch)?;
-    let mut values = aggregate_fields(heap, &descriptor, reference)?;
+    let mut values = aggregate_fields(heap, descriptor, reference)?;
     let field_type = descriptor
         .fields()
         .get(field)
@@ -792,23 +686,33 @@ fn replace_aggregate_field(
 }
 
 /// Persistently appends one pair into an aggregate-owned list and rebuilds the owner.
-#[allow(clippy::too_many_arguments)]
+pub(super) struct AggregateListTarget {
+    pub(super) aggregate_semantic: SemanticTypeId,
+    pub(super) list_semantic: SemanticTypeId,
+    pub(super) pair_semantic: SemanticTypeId,
+    pub(super) field: usize,
+    pub(super) aggregate: i64,
+}
+
 fn append_pair_to_aggregate_list(
     heap: &mut ActorHeap,
     layouts: &ManagedLayoutRegistry,
-    aggregate_semantic: SemanticTypeId,
-    list_semantic: SemanticTypeId,
-    pair_semantic: SemanticTypeId,
-    field: usize,
-    aggregate: i64,
+    target: AggregateListTarget,
     first: i64,
     second: i64,
 ) -> Result<TvmRef<()>, ManagedMemoryError> {
+    let AggregateListTarget {
+        aggregate_semantic,
+        list_semantic,
+        pair_semantic,
+        field,
+        aggregate,
+    } = target;
     let aggregate = reference_word(aggregate)?;
     let aggregate_layout = layouts
         .layout_for_reference(heap, aggregate_semantic, aggregate)
         .map_err(|_| ManagedMemoryError::ManagedTypeMismatch)?;
-    let mut aggregate_values = aggregate_fields(heap, &aggregate_layout, aggregate)?;
+    let mut aggregate_values = aggregate_fields(heap, aggregate_layout, aggregate)?;
     let list = match aggregate_values.get(field).copied() {
         Some(ManagedFieldValue::Reference(reference)) => reference.cast::<ManagedList>(),
         _ => return Err(ManagedMemoryError::InvalidAggregateField),
@@ -849,7 +753,7 @@ fn append_value_to_aggregate_list(
     let aggregate_layout = layouts
         .layout_for_reference(heap, aggregate_semantic, aggregate)
         .map_err(|_| ManagedMemoryError::ManagedTypeMismatch)?;
-    let mut aggregate_values = aggregate_fields(heap, &aggregate_layout, aggregate)?;
+    let mut aggregate_values = aggregate_fields(heap, aggregate_layout, aggregate)?;
     let list = match aggregate_values.get(field).copied() {
         Some(ManagedFieldValue::Reference(reference)) => reference.cast::<ManagedList>(),
         _ => return Err(ManagedMemoryError::InvalidAggregateField),
@@ -952,18 +856,9 @@ fn reference_word(word: i64) -> Result<TvmRef<()>, ManagedMemoryError> {
         .ok_or(ManagedMemoryError::InvalidAggregateField)
 }
 
-/// Converts one checked physical field into its native word representation.
-pub(super) fn field_word(value: ManagedFieldValue) -> u64 {
-    match value {
-        ManagedFieldValue::Unit => 0,
-        ManagedFieldValue::Bool(value) => u64::from(value),
-        ManagedFieldValue::Int(value) => u64::from_ne_bytes(value.to_ne_bytes()),
-        ManagedFieldValue::Float(value) => value.to_bits(),
-        ManagedFieldValue::Atom(value) => u64::from(value.get()),
-        ManagedFieldValue::Reference(value) => value.encoded_abi_word(),
-    }
-}
-
 #[cfg(test)]
 #[path = "operation_abi_test.rs"]
+#[cfg(test)]
 mod operation_abi_test;
+#[cfg(test)]
+pub(crate) use operation_abi_test::execute_managed_operation;

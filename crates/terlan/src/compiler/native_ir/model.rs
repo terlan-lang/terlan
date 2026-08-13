@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::runtime::native_image::managed::{ManagedAggregateDescriptor, SemanticTypeId};
 
 /// Closed value representations carried by `terlan-native-v2`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) enum NativeType {
     Unit,
     Int,
@@ -45,6 +45,28 @@ impl NativeType {
     }
 }
 
+/// One possible callee resume identity wrapped by a suspension-aware call.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct NativeCallResume {
+    pub(crate) callee_continuation_id: u64,
+    pub(crate) callee_capture_count: usize,
+    /// VM-owned completion entry pushed while the callee remains parked.
+    pub(crate) continuation_id: u64,
+    /// First caller-owned value appended after the callee's captures.
+    /// Recursive component edges can skip an already-composed prefix while a
+    /// surrounding call appends only its newly introduced frame suffix.
+    pub(crate) caller_value_start: usize,
+}
+
+/// One target-qualified resume edge of a dynamic closure call.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct NativeDynamicCallResume {
+    pub(crate) callee_export_id: u64,
+    pub(crate) callee_continuation_id: u64,
+    pub(crate) callee_capture_count: usize,
+    pub(crate) continuation_id: u64,
+}
+
 /// Typed native expression independent from any code-generation backend.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum NativeExpr {
@@ -82,25 +104,38 @@ pub(crate) enum NativeExpr {
         args: Vec<NativeExpr>,
     },
     /// One validated owned-closure invocation routed through image-local dispatch.
-    #[allow(dead_code)]
     InvokeClosure {
         callee: Box<NativeExpr>,
         args: Vec<NativeExpr>,
         parameter_types: Vec<NativeType>,
         result_type: NativeType,
     },
+    /// A dynamic closure call whose caller completion is retained by the VM.
+    InvokeClosureThen {
+        callee: Box<NativeExpr>,
+        args: Vec<NativeExpr>,
+        parameter_types: Vec<NativeType>,
+        result_type: NativeType,
+        resumes: Vec<NativeDynamicCallResume>,
+        completion_continuation_id: u64,
+        completion_function: Option<usize>,
+        values: Vec<NativeExpr>,
+    },
     /// A call whose result is returned directly and whose transition may be forwarded.
     TailCall {
         function: usize,
         args: Vec<NativeExpr>,
+        /// Stable resume entry used when the VM reduction budget is exhausted.
+        ///
+        /// `None` forwards an already-suspending terminal call without adding
+        /// a recursive-component scheduler boundary.
+        yield_continuation_id: Option<u64>,
     },
     /// A terminal suspending call followed by a caller-owned continuation.
     CallThen {
         function: usize,
         args: Vec<NativeExpr>,
-        callee_continuation_id: u64,
-        callee_capture_count: usize,
-        continuation_id: u64,
+        resumes: Vec<NativeCallResume>,
         /// Caller continuation entered when the callee completes without
         /// parking. Application lowering resolves its function index.
         completion_continuation_id: u64,
@@ -154,6 +189,8 @@ pub(crate) enum NativeExpr {
 /// VM-owned operation emitted when native code suspends.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum NativeTransitionOperation {
+    Debug,
+    Identity,
     Yield,
     Send,
     SendTyped,

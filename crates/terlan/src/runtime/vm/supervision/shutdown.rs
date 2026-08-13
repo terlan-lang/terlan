@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
-use super::{VmSupervisionRestart, VmSupervisionSystem, VmSupervisorId};
+use super::{live_timer_owner, VmSupervisionRestart, VmSupervisionSystem, VmSupervisorId};
 use crate::runtime::vm::{
-    process::{VmExitReason, VmProcessId, VmProcessSource, VmProcessState, VmProcessTable},
+    process::{VmExitReason, VmProcessId, VmProcessState, VmProcessTable},
     scheduler::VmScheduler,
     timer::{VmTimerEvent, VmTimerId, VmTimerTable},
     ReplValue,
@@ -30,9 +30,33 @@ pub(crate) struct VmScheduledSupervisionShutdown {
 
 /// Result of requesting supervised child shutdown.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum VmSupervisionShutdownStart {
+pub(crate) enum VmInternalSupervisionShutdownStart {
     Immediate(VmSupervisionRestart),
     Waiting(VmScheduledSupervisionShutdown),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct VmSupervisionShutdownRequest<'a> {
+    pub(crate) supervisor_id: VmSupervisorId,
+    pub(crate) child_id: &'a str,
+    pub(crate) immediate_reason: VmExitReason,
+    pub(crate) now_tick: u64,
+}
+
+impl<'a> VmSupervisionShutdownRequest<'a> {
+    pub(crate) fn new(
+        supervisor_id: VmSupervisorId,
+        child_id: &'a str,
+        immediate_reason: VmExitReason,
+        now_tick: u64,
+    ) -> Self {
+        Self {
+            supervisor_id,
+            child_id,
+            immediate_reason,
+            now_tick,
+        }
+    }
 }
 
 /// Terminal result for one supervised child shutdown deadline.
@@ -87,11 +111,14 @@ impl VmSupervisionShutdownQueue {
         supervision: &mut VmSupervisionSystem,
         timers: &mut VmTimerTable,
         processes: &mut VmProcessTable,
-        supervisor_id: VmSupervisorId,
-        child_id: &str,
-        immediate_reason: VmExitReason,
-        now_tick: u64,
-    ) -> Result<VmSupervisionShutdownStart, String> {
+        request: VmSupervisionShutdownRequest<'_>,
+    ) -> Result<VmInternalSupervisionShutdownStart, String> {
+        let VmSupervisionShutdownRequest {
+            supervisor_id,
+            child_id,
+            immediate_reason,
+            now_tick,
+        } = request;
         let (pid, timeout_ms) = child_shutdown_config(supervision, supervisor_id, child_id)?;
         let state = processes
             .get(pid)
@@ -100,12 +127,12 @@ impl VmSupervisionShutdownQueue {
         if let VmProcessState::Exited(reason) = state {
             return supervision
                 .restart_child(processes, supervisor_id, child_id, reason)
-                .map(VmSupervisionShutdownStart::Immediate);
+                .map(VmInternalSupervisionShutdownStart::Immediate);
         }
         let Some(timeout_ms) = timeout_ms.filter(|timeout| *timeout > 0) else {
             return supervision
                 .restart_child(processes, supervisor_id, child_id, immediate_reason)
-                .map(VmSupervisionShutdownStart::Immediate);
+                .map(VmInternalSupervisionShutdownStart::Immediate);
         };
         let deadline_tick = now_tick.checked_add(timeout_ms).ok_or_else(|| {
             format!(
@@ -137,7 +164,7 @@ impl VmSupervisionShutdownQueue {
             },
         );
         self.pending_children.insert(key, timer_id);
-        Ok(VmSupervisionShutdownStart::Waiting(
+        Ok(VmInternalSupervisionShutdownStart::Waiting(
             VmScheduledSupervisionShutdown {
                 timer_id,
                 child_id: child_id.to_string(),
@@ -298,22 +325,7 @@ impl VmSupervisionShutdownQueue {
     }
 
     fn live_timer_owner(&mut self, processes: &mut VmProcessTable) -> VmProcessId {
-        if let Some(owner) = self.timer_owner {
-            if matches!(
-                processes.get(owner).map(|process| &process.state),
-                Some(
-                    VmProcessState::Runnable
-                        | VmProcessState::Blocked
-                        | VmProcessState::Hibernated
-                        | VmProcessState::Suspended(_),
-                )
-            ) {
-                return owner;
-            }
-        }
-        let owner = processes.spawn_root(VmProcessSource::new(TIMER_OWNER_MODULE, "wait", 0));
-        self.timer_owner = Some(owner);
-        owner
+        live_timer_owner(&mut self.timer_owner, TIMER_OWNER_MODULE, processes)
     }
 }
 
@@ -350,4 +362,5 @@ fn shutdown_message(timeout_ms: u64) -> ReplValue {
 
 #[cfg(test)]
 #[path = "shutdown_test.rs"]
+#[cfg(test)]
 mod shutdown_test;

@@ -42,11 +42,10 @@ pub(crate) fn lower_core_exports(interface: &ModuleInterface) -> Vec<CoreExport>
         interface
             .functions
             .iter()
-            .filter_map(|((name, arity), signature)| {
-                signature.public.then(|| CoreExport {
-                    name: name.clone(),
-                    kind: CoreExportKind::Function { arity: *arity },
-                })
+            .filter(|&((_name, _arity), signature)| signature.public)
+            .map(|((name, arity), _signature)| CoreExport {
+                name: name.clone(),
+                kind: CoreExportKind::Function { arity: *arity },
             }),
     );
     exports.extend(interface.public_types.iter().map(|name| CoreExport {
@@ -58,14 +57,15 @@ pub(crate) fn lower_core_exports(interface: &ModuleInterface) -> Vec<CoreExport>
             .constructors
             .iter()
             .flat_map(|(name, signatures)| {
-                signatures.iter().filter_map(move |signature| {
-                    signature.public.then(|| CoreExport {
+                signatures
+                    .iter()
+                    .filter(|&signature| signature.public)
+                    .map(|signature| CoreExport {
                         name: name.clone(),
                         kind: CoreExportKind::Constructor {
                             min_arity: signature.min_arity,
                         },
                     })
-                })
             }),
     );
     exports.sort_by(|left, right| {
@@ -173,6 +173,36 @@ pub(crate) fn core_syntax_struct_type_bodies(
         .filter_map(|declaration| match &declaration.payload {
             SyntaxDeclarationPayload::Struct { name, fields, .. } => {
                 core_type_from_syntax_struct_fields(name, fields)
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+/// Builds typed Core bodies for local opaque value aliases.
+///
+/// Bodyless opaque declarations remain native resource identities. Opaque
+/// declarations with a representation retain that private representation in
+/// CoreIR so native package values can cross result and collection boundaries
+/// without being mistaken for resource handles.
+pub(crate) fn core_syntax_opaque_type_bodies(
+    module: &SyntaxModuleOutput,
+) -> HashMap<String, CoreType> {
+    module
+        .declarations
+        .iter()
+        .filter_map(|declaration| match &declaration.payload {
+            SyntaxDeclarationPayload::Type {
+                name,
+                is_opaque: true,
+                variants,
+                ..
+            } => {
+                let variants = variants
+                    .iter()
+                    .map(|variant| variant.text.clone())
+                    .collect::<Vec<_>>();
+                core_type_from_body_variants(&variants).map(|body| (name.clone(), body))
             }
             _ => None,
         })

@@ -58,6 +58,24 @@ fn parse_syntax_contract_command_accepts_check_path() {
 }
 
 #[test]
+fn parse_syntax_contract_command_accepts_generic_validation_modes() {
+    assert_eq!(
+        parse_syntax_contract_command(&args(&["--validate", "grammar.ebnf"])),
+        Ok(SyntaxContractCommand::Validate {
+            path: PathBuf::from("grammar.ebnf"),
+            strict: true,
+        })
+    );
+    assert_eq!(
+        parse_syntax_contract_command(&args(&["--validate", "grammar.ebnf", "--no-strict",])),
+        Ok(SyntaxContractCommand::Validate {
+            path: PathBuf::from("grammar.ebnf"),
+            strict: false,
+        })
+    );
+}
+
+#[test]
 fn parse_syntax_contract_command_rejects_invalid_flag_combinations() {
     for invalid in [
         vec!["--unknown"],
@@ -67,6 +85,8 @@ fn parse_syntax_contract_command_rejects_invalid_flag_combinations() {
         vec!["--check"],
         vec!["--fingerprint", "--check", "contract.json"],
         vec!["--check", "contract.json", "--out", "copy.json"],
+        vec!["--validate"],
+        vec!["--validate", "grammar.ebnf", "--strict"],
     ] {
         assert_eq!(
             parse_syntax_contract_command(&args(&invalid)),

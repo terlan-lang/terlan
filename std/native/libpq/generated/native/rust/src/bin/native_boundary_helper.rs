@@ -1,29 +1,58 @@
 #![forbid(unsafe_code)]
 
 use std::collections::HashMap;
-use std::io::{self, BufRead, Write};
+use std::io::{self, BufRead, Read, Write};
 
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use terlan_libpq::{CAbiError, Connection, QueryResult};
 
+const MAX_ADAPTER_FRAME_BYTES: usize = 1048576;
+const MAX_ADAPTER_TRANSFER_BYTES: usize = 16777216;
+
 fn main() {
-    let mut worker = Worker::default();
+    let mut worker = match Worker::new() {
+        Ok(worker) => worker,
+        Err(error) => {
+            eprintln!("native worker identity initialization failed: {error}");
+            return;
+        }
+    };
     let stdin = io::stdin();
+    let mut input = stdin.lock();
     let mut stdout = io::stdout().lock();
-    for line in stdin.lock().lines() {
-        let payload = match line {
-            Ok(line) => worker.execute_line(&line),
-            Err(error) => protocol_error("native_read_error", &error.to_string()),
+    loop {
+        let mut frame = Vec::new();
+        let read = Read::by_ref(&mut input)
+            .take((MAX_ADAPTER_FRAME_BYTES + 1) as u64)
+            .read_until(b'\n', &mut frame);
+        let (payload, terminate) = match read {
+            Ok(0) => break,
+            Ok(_) if frame.len() > MAX_ADAPTER_FRAME_BYTES => (
+                protocol_error("frame_too_large", "native adapter frame exceeds its bound"),
+                true,
+            ),
+            Ok(_) => match String::from_utf8(frame) {
+                Ok(line) => (
+                    worker.execute_line(line.trim_end_matches(['\r', '\n'])),
+                    false,
+                ),
+                Err(error) => (protocol_error("invalid_utf8", &error.to_string()), false),
+            },
+            Err(error) => (
+                protocol_error("native_read_error", &error.to_string()),
+                true,
+            ),
         };
-        if writeln!(stdout, "{payload}").is_err() || stdout.flush().is_err() {
+        if writeln!(stdout, "{payload}").is_err() || stdout.flush().is_err() || terminate {
             break;
         }
     }
 }
 
-#[derive(Default)]
 struct Worker {
+    owner: String,
+    last_request_id: Option<u64>,
     next_id: u64,
     free_ids: Vec<u64>,
     generations: HashMap<u64, u64>,
@@ -51,6 +80,7 @@ impl HandleValue {
 
 #[derive(Clone)]
 struct HandleArg {
+    owner: String,
     id: u64,
     generation: u64,
     type_name: String,
@@ -61,6 +91,7 @@ enum Arg {
     Float(f64),
     Bool(bool),
     String(String),
+    Bytes(Vec<u8>),
     Ints(Vec<i64>),
     Floats(Vec<f64>),
     Bools(Vec<bool>),
@@ -69,12 +100,24 @@ enum Arg {
 }
 
 struct Request {
-    request_id: u64,
     operation: String,
     args: Vec<Arg>,
 }
 
 impl Worker {
+    fn new() -> Result<Self, getrandom::Error> {
+        let mut owner = [0_u8; 32];
+        getrandom::fill(&mut owner)?;
+        Ok(Self {
+            owner: STANDARD.encode(owner),
+            last_request_id: None,
+            next_id: 0,
+            free_ids: Vec::new(),
+            generations: HashMap::new(),
+            handles: HashMap::new(),
+        })
+    }
+
     fn store_handle(&mut self, value: HandleValue) -> Result<(u64, u64), String> {
         while let Some(id) = self.free_ids.pop() {
             let previous = self.generations.get(&id).copied().unwrap_or_default();
@@ -104,15 +147,29 @@ impl Worker {
     }
 
     fn execute_line(&mut self, line: &str) -> String {
+        let Some(request_id) = request_id(line) else {
+            return match parse_request(line) {
+                Ok(_) => protocol_error("invalid_request", "request id is missing"),
+                Err(error) => error,
+            };
+        };
+        if self
+            .last_request_id
+            .is_some_and(|last_request_id| request_id <= last_request_id)
+        {
+            return format!(
+                "reply {request_id} 1 {}",
+                protocol_error(
+                    "request_not_monotonic",
+                    "native adapter request id was already completed"
+                )
+            );
+        }
+        self.last_request_id = Some(request_id);
         let request = match parse_request(line) {
             Ok(request) => request,
-            Err(error) => {
-                return request_id(line)
-                    .map(|request_id| format!("reply {request_id} 1 {error}"))
-                    .unwrap_or(error);
-            }
+            Err(error) => return format!("reply {request_id} 1 {error}"),
         };
-        let request_id = request.request_id;
         let payload = self.execute(request);
         format!("reply {request_id} 1 {payload}")
     }
@@ -135,7 +192,8 @@ impl Worker {
                     Err(error) => return error,
                 };
                 format!(
-                    "ok_handle {id} {generation} {}",
+                    "ok_handle {} {id} {generation} {}",
+                    STANDARD.encode(self.owner.as_bytes()),
                     STANDARD.encode("terlan_libpq.Driver.Connection")
                 )
             }
@@ -356,7 +414,8 @@ impl Worker {
                     Err(error) => return error,
                 };
                 format!(
-                    "ok_handle {id} {generation} {}",
+                    "ok_handle {} {id} {generation} {}",
+                    STANDARD.encode(self.owner.as_bytes()),
                     STANDARD.encode("terlan_libpq.Driver.QueryResult")
                 )
             }
@@ -565,20 +624,25 @@ impl Worker {
     }
 
     fn validate(&self, handle: &HandleArg, expected_type: &str) -> Result<(), String> {
+        if handle.owner != self.owner {
+            return Err(protocol_error(
+                "cross_owner_handle",
+                "native resource belongs to another worker",
+            ));
+        }
         if handle.type_name != expected_type {
             return Err(protocol_error("handle_type_mismatch", &handle.type_name));
         }
         match self.handles.get(&handle.id) {
-            Some(entry)
-                if entry.generation == handle.generation
-                    && entry.value.type_name() == expected_type =>
-            {
-                Ok(())
-            }
-            Some(_) => Err(protocol_error(
+            Some(entry) if entry.generation != handle.generation => Err(protocol_error(
+                "stale_handle",
+                "NativeBoundary handle is stale",
+            )),
+            Some(entry) if entry.value.type_name() != expected_type => Err(protocol_error(
                 "handle_storage_mismatch",
                 "NativeBoundary handle resource type does not match",
             )),
+            Some(_) => Ok(()),
             _ => Err(protocol_error(
                 "stale_handle",
                 "NativeBoundary handle is stale",
@@ -602,7 +666,6 @@ impl Worker {
         }
     }
 
-    #[allow(dead_code)]
     fn live_connection_mut(&mut self, handle: &HandleArg) -> Result<&mut Connection, String> {
         self.validate(handle, "terlan_libpq.Driver.Connection")?;
         match &mut self
@@ -635,7 +698,6 @@ impl Worker {
         }
     }
 
-    #[allow(dead_code)]
     fn live_queryresult_mut(&mut self, handle: &HandleArg) -> Result<&mut QueryResult, String> {
         self.validate(handle, "terlan_libpq.Driver.QueryResult")?;
         match &mut self
@@ -665,7 +727,7 @@ fn parse_request(line: &str) -> Result<Request, String> {
     if fields.next() != Some("call") {
         return Err(protocol_error("invalid_request", "expected call request"));
     }
-    let request_id = fields
+    let _request_id = fields
         .next()
         .ok_or_else(|| protocol_error("invalid_request", "missing request id"))?
         .parse::<u64>()
@@ -679,11 +741,7 @@ fn parse_request(line: &str) -> Result<Request, String> {
     for argument in &args {
         validate_decoded_arg_shape(argument);
     }
-    Ok(Request {
-        request_id,
-        operation,
-        args,
-    })
+    Ok(Request { operation, args })
 }
 
 fn parse_arg(value: &str) -> Result<Arg, String> {
@@ -712,6 +770,18 @@ fn parse_arg(value: &str) -> Result<Arg, String> {
     }
     if let Some(value) = value.strip_prefix("s:") {
         return decode_text(value).map(Arg::String);
+    }
+    if let Some(value) = value.strip_prefix("x:") {
+        let bytes = STANDARD
+            .decode(value)
+            .map_err(|error| protocol_error("invalid_base64", &error.to_string()))?;
+        if bytes.len() > MAX_ADAPTER_TRANSFER_BYTES {
+            return Err(protocol_error(
+                "transfer_too_large",
+                "copied byte argument exceeds the native adapter transfer bound",
+            ));
+        }
+        return Ok(Arg::Bytes(bytes));
     }
     if let Some(value) = value.strip_prefix("li:") {
         if value.is_empty() {
@@ -757,10 +827,11 @@ fn parse_arg(value: &str) -> Result<Arg, String> {
     }
     if let Some(value) = value.strip_prefix("h:") {
         let fields = value.split(':').collect::<Vec<_>>();
-        let [id, generation, type_name] = fields.as_slice() else {
+        let [owner, id, generation, type_name] = fields.as_slice() else {
             return Err(protocol_error("invalid_argument", "malformed handle"));
         };
         return Ok(Arg::Handle(HandleArg {
+            owner: decode_text(owner)?,
             id: id.parse().map_err(|error: std::num::ParseIntError| {
                 protocol_error("invalid_argument", &error.to_string())
             })?,
@@ -821,6 +892,9 @@ fn validate_decoded_arg_shape(value: &Arg) {
             let _ = value;
         }
         Arg::String(value) => {
+            let _ = value;
+        }
+        Arg::Bytes(value) => {
             let _ = value;
         }
         Arg::Ints(_) => {

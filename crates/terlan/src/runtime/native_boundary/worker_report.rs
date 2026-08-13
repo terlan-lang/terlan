@@ -20,18 +20,33 @@ const PROOF_GAP_SOURCE: &str = "docs/compiler/proof_track/lean_proof_gaps.tsv";
 const PROOF_OWNER: &str = "runtime";
 const PROOF_STATUS: &str = "current";
 
+/// Bounded worker state and correlated runtime events written to one report.
+pub(super) struct NativeBoundaryWorkerReport<'a> {
+    pub(super) credit_limit: u64,
+    pub(super) reserved_credits: u64,
+    pub(super) available_credits: u64,
+    pub(super) last_started_request_id: Option<u64>,
+    pub(super) event_history_limit: usize,
+    pub(super) events: &'a VecDeque<NativeBoundaryWorkerEvent>,
+    pub(super) resource_events: &'a [&'a NativeBoundaryResourceEvent],
+    pub(super) dispatch_events: &'a [&'a NativeBoundaryDispatchEvent],
+}
+
 /// Writes one bounded worker lifecycle snapshot as deterministic JSON.
 pub(super) fn write_worker_report(
     path: &Path,
-    credit_limit: u64,
-    reserved_credits: u64,
-    available_credits: u64,
-    last_started_request_id: Option<u64>,
-    event_history_limit: usize,
-    events: &VecDeque<NativeBoundaryWorkerEvent>,
-    resource_events: &[&NativeBoundaryResourceEvent],
-    dispatch_events: &[&NativeBoundaryDispatchEvent],
+    report: NativeBoundaryWorkerReport<'_>,
 ) -> Result<(), String> {
+    let NativeBoundaryWorkerReport {
+        credit_limit,
+        reserved_credits,
+        available_credits,
+        last_started_request_id,
+        event_history_limit,
+        events,
+        resource_events,
+        dispatch_events,
+    } = report;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|error| {
             format!(
@@ -71,7 +86,7 @@ pub(super) fn write_worker_report(
             "gapSource": PROOF_GAP_SOURCE,
             "bridgeStatus": "runtime-sources-fingerprinted; full Aeneas/Rust refinement pending",
             "owner": PROOF_OWNER,
-            "plannedGate": "native-boundary-security-check",
+            "plannedGate": "lean-proof-native-boundary-check",
             "runtimeManifest": postgres_worker_manifest().adapter,
             "runtimeManifestExports": postgres_worker_manifest().exports.len(),
             "correlatedDispatches": correlated_dispatches,

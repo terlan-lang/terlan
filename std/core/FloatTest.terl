@@ -107,11 +107,15 @@ pub from_string_rejects_non_finite_decimal_overflow(): Bool ->
 
 @test
 pub floor_rounds_toward_negative_infinity(): Bool ->
-    assert_equal(-43.0, floor(-42.1)) and assert_equal(10.0, floor(10.9)) and assert_equal(-533.0, floor(-533.0)).
+    assert_equal(-43.0, floor(-42.1))
+        and assert_equal(10.0, floor(10.9))
+        and assert_equal(-533.0, floor(-533.0)).
 
 @test
 pub ceil_rounds_toward_positive_infinity(): Bool ->
-    assert_equal(-42.0, ceil(-42.1)) and assert_equal(11.0, ceil(10.9)) and assert_equal(453555.0, ceil(453555.0)).
+    assert_equal(-42.0, ceil(-42.1))
+        and assert_equal(11.0, ceil(10.9))
+        and assert_equal(453555.0, ceil(453555.0)).
 
 @test
 pub log_returns_natural_logarithm(): Bool ->

@@ -1,11 +1,24 @@
 module std.io.FileTest.
 
+import std.collections.List.
 import std.core.Result.{Err, Ok}.
 import std.core.Unit.
-import std.io.File.{NotFound, append_text, code, delete, exists, message, path, read_text, write_text}.
+import std.io.Directory.{create_all, remove_all}.
+import std.io.File.{NotFound, append_text, code, copy, copy_many, copy_plan, delete, exists, is_executable, message, path, read_bytes, read_text, read_text_directory, read_text_many, read_text_tree_excluding, read_text_tree_matching, set_executable, set_timestamps, size, text_file_contents, text_file_path, timestamps, write_text}.
 import std.test.Test.{assert_equal}.
+import std.vm.Bytes.{from_list}.
 
-import type std.io.File.FileError.
+import type std.core.Result.
+import type std.io.File.{CopyPlan, FileError}.
+
+copy_many_after_directory_creation(
+    plans: List[CopyPlan],
+    directory: String,
+): Result[Unit, FileError] ->
+    case create_all(directory) {
+        Ok(Unit) -> copy_many(plans);
+        Err(_reason) -> copy_many(plans)
+    }.
 
 @test
 pub exists_rejects_missing_file(): Bool ->
@@ -33,11 +46,285 @@ pub read_text_reports_missing_file_path(): Bool ->
     }.
 
 @test
+pub read_bytes_preserves_non_utf8_octets(): Bool ->
+    case write_text("target/terlan-file-bytes-test.txt", "Aé") {
+        Ok(Unit) -> read_bytes_fixture_holds();
+        _ -> false
+    }.
+
+read_bytes_fixture_holds(): Bool ->
+    case read_bytes("target/terlan-file-bytes-test.txt") {
+        Ok(value) -> assert_equal(from_list([65, 195, 169]), value);
+        _ -> false
+    }.
+
+@test
+pub size_reads_metadata_without_materializing_contents(): Bool ->
+    let file = "target/terlan-file-size-test.txt";
+    let written = write_text(file, "Aé");
+    let measured = size(file);
+    let removed = delete(file);
+    case {written, measured, removed} {
+        {Ok(Unit), Ok(3), Ok(Unit)} -> true;
+        _ -> false
+    }.
+
+@test
+pub timestamps_restore_metadata_after_a_temporary_rewrite(): Bool ->
+    let file = "target/terlan-file-timestamps-test.txt";
+    let {
+        Ok(Unit) <- write_text(file, "before");
+        Ok(before) <- timestamps(file);
+        Ok(Unit) <- write_text(file, "after");
+        Ok(Unit) <- set_timestamps(file, before.accessed_unix_ns, before.modified_unix_ns);
+        Ok(restored) <- timestamps(file)
+    } else {
+        _ -> false
+    };
+    before.accessed_unix_ns == restored.accessed_unix_ns
+        and before.modified_unix_ns == restored.modified_unix_ns.
+
+@test
+pub executable_marker_roundtrips_through_the_typed_file_api(): Bool ->
+    let file = "target/terlan-file-executable-test.exe";
+    case write_text(file, "unchanged") {
+        Ok(Unit) -> executable_marker_written(file);
+        _ -> false
+    }.
+
+executable_marker_written(file: String): Bool ->
+    case set_executable(file, true) {
+        Ok(Unit) -> executable_marker_enabled(file);
+        _ -> false
+    }.
+
+executable_marker_enabled(file: String): Bool ->
+    let executable = is_executable(file);
+    let removed = delete(file);
+    case {executable, removed} {
+        {Ok(true), Ok(Unit)} -> true;
+        _ -> false
+    }.
+
+@test
+pub copy_preserves_binary_contents_and_executable_marker(): Bool ->
+    let source = "target/terlan-file-copy-source.exe";
+    let destination = "target/terlan-file-copy-destination.exe";
+    let written = write_text(source, "copied");
+    let executable = set_executable(source, true);
+    let copied = copy(source, destination);
+    let contents = read_text(destination);
+    let destination_executable = is_executable(destination);
+    let source_removed = delete(source);
+    let destination_removed = delete(destination);
+    case {written, executable, copied, contents, destination_executable, source_removed, destination_removed} {
+        {Ok(Unit), Ok(Unit), Ok(Unit), Ok("copied"), Ok(true), Ok(Unit), Ok(Unit)} -> true;
+        _ -> false
+    }.
+
+@test
+pub copy_many_creates_parents_and_preserves_ordered_files(): Bool ->
+    let root = "target/terlan-file-copy-many";
+    let first_source = "target/terlan-file-copy-many-first.txt";
+    let second_source = "target/terlan-file-copy-many-second.exe";
+    let _old = remove_all(root);
+    let first_written = write_text(first_source, "first");
+    let second_written = write_text(second_source, "second");
+    let executable = set_executable(second_source, true);
+    let copied =
+        copy_many_after_directory_creation(
+            List(
+                copy_plan(first_source, "target/terlan-file-copy-many/a/first.txt"),
+                copy_plan(second_source, "target/terlan-file-copy-many/b/second.exe"),
+            ),
+            root,
+        );
+    let first = read_text("target/terlan-file-copy-many/a/first.txt");
+    let second = read_text("target/terlan-file-copy-many/b/second.exe");
+    let second_executable = is_executable("target/terlan-file-copy-many/b/second.exe");
+    let first_removed = delete(first_source);
+    let second_removed = delete(second_source);
+    let tree_removed = remove_all(root);
+    case {
+    first_written,
+    second_written,
+    executable,
+    copied,
+    first,
+    second,
+    second_executable,
+    first_removed,
+    second_removed,
+    tree_removed,
+} {
+        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok("first"), Ok("second"), Ok(true), Ok(Unit), Ok(Unit), Ok(Unit)} ->
+            true;
+        _ -> false
+    }.
+
+@test
+pub copy_many_rejects_duplicate_destinations_before_copying(): Bool ->
+    let source = "target/terlan-file-copy-many-duplicate-source.txt";
+    let destination = "target/terlan-file-copy-many-duplicate.txt";
+    let written = write_text(source, "source");
+    let copied = copy_many(List(copy_plan(source, destination), copy_plan(source, destination)));
+    let destination_read = read_text(destination);
+    let removed = delete(source);
+    case {written, copied, destination_read, removed} {
+        {Ok(Unit), Err(_reason), Err(_missing), Ok(Unit)} -> true;
+        _ -> false
+    }.
+
+@test
+pub read_text_many_preserves_requested_order(): Bool ->
+    let first_write = write_text("target/terlan-file-many-first.txt", "first");
+    let second_write = write_text("target/terlan-file-many-second.txt", "second");
+    let read = read_text_many(["target/terlan-file-many-second.txt", "target/terlan-file-many-first.txt"]);
+    case {first_write, second_write, read} {
+        {Ok(Unit), Ok(Unit), Ok([first | [second | []]])} ->
+            text_file_path(first) == "target/terlan-file-many-second.txt"
+                and text_file_contents(first) == "second"
+                and text_file_path(second) == "target/terlan-file-many-first.txt"
+                and text_file_contents(second) == "first";
+        _ -> false
+    }.
+
+@test
+pub read_text_many_equal_contents_compare_by_value(): Bool ->
+    let first_write = write_text("target/terlan-file-many-equal-first.txt", "same contents");
+    let second_write = write_text("target/terlan-file-many-equal-second.txt", "same contents");
+    let read =
+        read_text_many(
+            ["target/terlan-file-many-equal-first.txt", "target/terlan-file-many-equal-second.txt"],
+        );
+    case {first_write, second_write, read} {
+        {Ok(Unit), Ok(Unit), Ok([first | [second | []]])} -> first.contents == second.contents;
+        _ -> false
+    }.
+
+@test
+pub read_text_many_equal_large_contents_compare_by_value(): Bool ->
+    case read_text_many(["std/js/ArrayBuffer.terl", "std/js/ArrayBuffer.terl"]) {
+        Ok([first | [second | []]]) -> first.contents == second.contents;
+        _ -> false
+    }.
+
+@test
+pub read_text_many_reports_exact_failing_path(): Bool ->
+    case read_text_many(["std/io/File.terl", "missing-terlan-batch-file.txt", "std/io/Directory.terl"]) {
+        Err(reason) -> code(reason) == NotFound and path(reason) == "missing-terlan-batch-file.txt";
+        _ -> false
+    }.
+
+@test
+pub read_text_many_accepts_empty_input(): Bool ->
+    case read_text_many(List.new[String]()) {
+        Ok(files) -> files.is_empty();
+        _ -> false
+    }.
+
+@test
+pub read_text_directory_returns_sorted_immediate_files(): Bool ->
+    let directory = create_all("target/terlan-file-directory-test");
+    let nested = create_all("target/terlan-file-directory-test/nested");
+    let second = write_text("target/terlan-file-directory-test/b.txt", "second");
+    let first = write_text("target/terlan-file-directory-test/a.txt", "first");
+    let ignored = write_text("target/terlan-file-directory-test/nested/ignored.txt", "ignored");
+    let read = read_text_directory("target/terlan-file-directory-test");
+    case {directory, nested, second, first, ignored, read} {
+        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok([a | [b | []]])} ->
+            text_file_path(a) == "target/terlan-file-directory-test/a.txt"
+                and text_file_contents(a) == "first"
+                and text_file_path(b) == "target/terlan-file-directory-test/b.txt"
+                and text_file_contents(b) == "second";
+        _ -> false
+    }.
+
+@test
+pub read_text_tree_prunes_exact_directory_names(): Bool ->
+    let root = create_all("target/terlan-file-tree-test/kept");
+    let ignored_dir = create_all("target/terlan-file-tree-test/cache");
+    let kept = write_text("target/terlan-file-tree-test/kept/a.txt", "kept");
+    let ignored = write_text("target/terlan-file-tree-test/cache/b.txt", "ignored");
+    let read = read_text_tree_excluding("target/terlan-file-tree-test", ["cache"]);
+    case {root, ignored_dir, kept, ignored, read} {
+        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok([file | []])} ->
+            text_file_path(file) == "target/terlan-file-tree-test/kept/a.txt"
+                and text_file_contents(file) == "kept";
+        _ -> false
+    }.
+
+@test
+pub read_text_tree_matching_filters_before_utf8_reads(): Bool ->
+    let root = create_all("target/terlan-file-matching-test");
+    let text = write_text("target/terlan-file-matching-test/a.terl", "module a.");
+    let ignored = write_text("target/terlan-file-matching-test/b.bin", "ignored");
+    let excluded = write_text("target/terlan-file-matching-test/zTest.terl", "module z.");
+    let read =
+        read_text_tree_matching(
+            "target/terlan-file-matching-test",
+            List.new[String](),
+            [".terl", ".terli"],
+            ["Test.terl"],
+            0,
+            16,
+        );
+    case {root, text, ignored, excluded, read} {
+        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok([file | []])} ->
+            text_file_path(file) == "target/terlan-file-matching-test/a.terl"
+                and text_file_contents(file) == "module a.";
+        _ -> false
+    }.
+
+@test
+pub read_text_tree_matching_returns_a_sorted_bounded_page(): Bool ->
+    let root = create_all("target/terlan-file-matching-page-test");
+    let first = write_text("target/terlan-file-matching-page-test/a.terl", "module a.");
+    let second = write_text("target/terlan-file-matching-page-test/b.terl", "module b.");
+    let third = write_text("target/terlan-file-matching-page-test/c.terl", "module c.");
+    let read =
+        read_text_tree_matching(
+            "target/terlan-file-matching-page-test",
+            List.new[String](),
+            [".terl"],
+            List.new[String](),
+            1,
+            1,
+        );
+    case {root, first, second, third, read} {
+        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok([file | []])} ->
+            text_file_path(file) == "target/terlan-file-matching-page-test/b.terl"
+                and text_file_contents(file) == "module b.";
+        _ -> false
+    }.
+
+@test
+pub read_text_tree_matching_rejects_a_zero_page_limit(): Bool ->
+    case read_text_tree_matching(
+    "target/terlan-file-matching-page-test",
+    List.new[String](),
+    [".terl"],
+    List.new[String](),
+    0,
+    0,
+) {
+        Err(_) -> true;
+        _ -> false
+    }.
+
+@test
 pub write_text_and_read_text_roundtrip(): Bool ->
     let write = write_text("target/terlan-file-test.txt", "hello file");
     let read = read_text("target/terlan-file-test.txt");
     case {write, read} {
         {Ok(Unit), Ok(value)} -> assert_equal("hello file", value);
+        _ -> false
+    }.
+
+@test
+pub write_text_reports_success(): Bool ->
+    case write_text("target/terlan-file-success-test.txt", "ok") {
+        Ok(Unit) -> true;
         _ -> false
     }.
 

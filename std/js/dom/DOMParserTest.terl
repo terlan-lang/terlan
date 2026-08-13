@@ -19,6 +19,6 @@ pub generated_binding_surface_contract(): Bool -> true.
 pub parse_from_string_typechecks(
     receiver: DOMParser,
     string: std.js.String.JsString,
-    type_: DOMParserSupportedType
+    type_: DOMParserSupportedType,
 ): Document ->
     receiver.parse_from_string(string, type_).

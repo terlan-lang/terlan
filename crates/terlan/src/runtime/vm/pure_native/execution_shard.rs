@@ -43,25 +43,36 @@ mod timer_ingress;
 #[path = "execution_shard/capability_ingress.rs"]
 mod capability_ingress;
 
+#[path = "execution_shard/debugger.rs"]
+mod debugger;
+
+#[path = "execution_shard/service_actor.rs"]
+mod service_actor;
+
 #[path = "execution_shard/admission.rs"]
 mod admission;
 
 #[path = "execution_shard/http_response.rs"]
 mod http_response;
 
+#[cfg(test)]
+use admission::local_protocol_version;
 use admission::{
     admit_supervisor, allocate_sequence, call_source, lifecycle_error, load_image_components,
-    local_protocol_version, pending_generation_error, shard_identity,
+    pending_generation_error, shard_identity,
 };
 use generation_lifetime::PureNativeGenerationTransferTracker;
 use lifecycle_replay::PureNativeShardLifecycleReplay;
 
-pub(crate) use actor_transfer::{PureNativeActorImportFailure, PureNativeActorTransfer};
+#[cfg(test)]
+pub(crate) use actor_transfer::PureNativeActorImportFailure;
+pub(crate) use actor_transfer::PureNativeActorTransfer;
 pub(crate) use capability_ingress::PureNativeCapabilityWait;
-pub(crate) use timer_ingress::{PureNativeTimerTick, PureNativeTimerWait};
+pub(crate) use timer_ingress::PureNativeTimerWait;
 
 #[cfg(test)]
 #[path = "execution_shard/timer_ingress_test.rs"]
+#[cfg(test)]
 mod timer_ingress_test;
 
 /// One observable native dispatch step executed inside the owning shard.
@@ -224,6 +235,7 @@ impl PureNativeExecutionShard {
     }
 
     /// Returns the exact supervised shard identity used by typed I/O waits.
+    #[cfg(test)]
     pub(crate) fn shard_id(&self) -> &VmExecutionShardId {
         self.supervisor.shard_id()
     }
@@ -231,90 +243,6 @@ impl PureNativeExecutionShard {
     /// Returns the whole-image digest bound to the loaded executable mapping.
     pub(crate) fn whole_image_digest(&self) -> Result<[u8; 32], String> {
         self.boundary.whole_image_digest()
-    }
-
-    /// Starts one generated entry under a newly allocated local actor.
-    pub(crate) fn begin_call(
-        &mut self,
-        function: &str,
-        args: &[ReplValue],
-    ) -> Result<(VmProcessId, PureNativeExecution), String> {
-        self.require_routable("begin_call")?;
-        let owner = self
-            .actors
-            .spawn_fixed_owner_root(call_source(function, args.len()));
-        self.begin_call_for_owner(owner, function, args)
-            .map(|execution| (owner, execution))
-    }
-
-    /// Creates one long-lived service actor on this shard's fixed owner.
-    pub(crate) fn spawn_fixed_owner_actor(
-        &mut self,
-        function: &str,
-        arity: usize,
-    ) -> Result<VmProcessId, String> {
-        self.require_routable("spawn_fixed_owner_actor")?;
-        Ok(self
-            .actors
-            .spawn_fixed_owner_root(call_source(function, arity)))
-    }
-
-    /// Runs one complete synchronous call on an existing fixed-owner actor.
-    pub(crate) fn call_on_fixed_owner(
-        &mut self,
-        owner: VmProcessId,
-        function: &str,
-        args: &[ReplValue],
-    ) -> Result<ReplValue, String> {
-        if !self.actors.is_alive(owner) {
-            return Err(format!(
-                "error[execution_shard.fixed_owner]: actor {} is not alive",
-                owner.as_u64()
-            ));
-        }
-        let result = (|| {
-            let mut execution = self.begin_fixed_owner_call_with_projection(
-                owner,
-                function,
-                args,
-                NativeResultProjection::PublicValue,
-            )?;
-            loop {
-                execution = match execution {
-                    PureNativeExecution::Complete(value) => {
-                        self.reset_owner_heap(owner)?;
-                        return Ok(value);
-                    }
-                    PureNativeExecution::HttpResponse(_) => {
-                        return Err("error[execution_shard.result_projection]: HTTP response returned through a public-value call".to_string())
-                    }
-                    PureNativeExecution::Suspended(suspension) => {
-                        self.resume_call(owner, suspension)?
-                    }
-                };
-            }
-        })();
-        if result.is_err() && self.actors.is_alive(owner) {
-            let _ = self.finish_owner(
-                owner,
-                VmExitReason::Error("fixed-owner call failed".to_string()),
-            );
-        }
-        result
-    }
-
-    fn begin_call_for_owner(
-        &mut self,
-        owner: VmProcessId,
-        function: &str,
-        args: &[ReplValue],
-    ) -> Result<PureNativeExecution, String> {
-        self.begin_call_for_owner_with_projection(
-            owner,
-            function,
-            args,
-            NativeResultProjection::PublicValue,
-        )
     }
 
     /// Resumes one parked generated continuation for its exact local actor.
@@ -326,7 +254,50 @@ impl PureNativeExecutionShard {
         self.resume_owned_call(owner, suspension, None)
     }
 
+    /// Applies a debugger-selected `skip`/`use Unit` restart to a stopped call.
+    pub(crate) fn resume_debug_restart(
+        &mut self,
+        owner: VmProcessId,
+        suspension: PureNativeSuspension,
+    ) -> Result<PureNativeExecution, String> {
+        self.require_routable("resume_debug_restart")?;
+        if suspension.owner_id() != owner.as_u64() {
+            return Err(format!(
+                "error[pure_native_debug_restart_owner]: actor {} cannot resume owner {}",
+                owner.as_u64(),
+                suspension.owner_id()
+            ));
+        }
+        let operation = self.begin_internal_epoch_operation(
+            "resume_debug_restart",
+            VmShardOperationKind::ContinuationResume,
+            VmShardReplayPolicy::AtMostOnce,
+        )?;
+        let execution = {
+            let mut context = PureNativeExecutionContext::new(owner, &mut self.execution);
+            self.boundary
+                .resume_debug_restart_for_actor(&mut self.actors, &mut context, suspension)
+        };
+        let execution = match execution {
+            Ok(execution) => execution,
+            Err(error) => {
+                let _ = self.supervisor.abort_internal_operation(operation);
+                let cleanup = self.finish_owner(owner, VmExitReason::Error(error.clone()));
+                return match cleanup {
+                    Ok(()) => Err(error),
+                    Err(cleanup_error) => Err(format!(
+                        "{error}; error[execution_shard.cleanup]: {cleanup_error}"
+                    )),
+                };
+            }
+        };
+        self.record_completion(owner, &execution);
+        self.commit_internal_epoch_operation(operation)?;
+        Ok(execution)
+    }
+
     /// Resumes one parked generated continuation from an exact typed VM I/O wake.
+    #[cfg(test)]
     pub(crate) fn resume_io_call(
         &mut self,
         owner: VmProcessId,
@@ -455,7 +426,7 @@ impl PureNativeExecutionShard {
                     return Err("error[execution_shard.result_projection]: HTTP response returned through a public-value call".to_string());
                 }
                 PureNativeExecution::Suspended(suspension) => {
-                    self.resume_call(owner, suspension)?
+                    self.resume_call(owner, *suspension)?
                 }
             };
         }
@@ -464,6 +435,18 @@ impl PureNativeExecutionShard {
     /// Completes one externally driven call and releases its actor-owned state.
     pub(crate) fn finish_completed_call(&mut self, owner: VmProcessId) -> Result<(), String> {
         self.finish_owner(owner, VmExitReason::Normal)
+    }
+
+    /// Binds package-returned accelerator resources to the actor exit pipeline.
+    pub(crate) fn register_accelerator_resources(
+        &mut self,
+        owner: VmProcessId,
+        handles: Vec<crate::accelerator_contract::AcceleratorResourceHandle>,
+    ) -> Result<(), String> {
+        for handle in handles {
+            self.actors.register_accelerator_resource(owner, handle)?;
+        }
+        Ok(())
     }
 
     /// Cancels one externally driven call and releases its actor-owned state.
@@ -476,6 +459,7 @@ impl PureNativeExecutionShard {
     }
 
     /// Returns the number of local actor calls that reached completion.
+    #[cfg(test)]
     pub(crate) fn completed_call_count(&self) -> u64 {
         self.completed_call_count
     }
@@ -501,7 +485,6 @@ impl PureNativeExecutionShard {
     }
 
     /// Captures one deterministic support bundle for the admitted generation.
-    #[allow(dead_code)] // Used by the standalone terlan-vm binary, not terlc.
     pub(crate) fn native_support_bundle(&self) -> Result<VmNativeSupportBundle, String> {
         Ok(VmNativeSupportBundle::new(self.native_image_diagnostics()?))
     }
@@ -745,18 +728,8 @@ impl PureNativeExecutionShard {
         Ok(())
     }
 
-    /// Recovers a crashed shard with a newly validated image after backoff.
-    #[allow(dead_code)] // Recovery hook for long-lived supervisor embeddings; short-lived runners exit.
-    pub(crate) fn recover_image(
-        &mut self,
-        path: &Path,
-        now_tick: u64,
-    ) -> Result<VmShardEpoch, String> {
-        let (candidate_boundary, candidate_execution) = load_image_components(path)?;
-        self.recover_components(candidate_boundary, candidate_execution, now_tick)
-    }
-
     /// Recovers this shard with already validated image components.
+    #[cfg(test)]
     fn recover_components(
         &mut self,
         candidate_boundary: PureNativeBoundary,
@@ -989,4 +962,5 @@ impl PureNativeExecutionShard {
 
 #[cfg(test)]
 #[path = "execution_shard_test.rs"]
+#[cfg(test)]
 mod execution_shard_test;

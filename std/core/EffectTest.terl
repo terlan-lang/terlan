@@ -1,17 +1,16 @@
 module std.core.EffectTest.
 
 @test
-pub map_transforms_completed_value(): Bool ->
-    true.
+pub succeed_wraps_completed_value(): Bool -> true.
 
 @test
-pub flat_map_sequences_completed_value(): Bool ->
-    true.
+pub map_transforms_completed_value(): Bool -> true.
 
 @test
-pub pure_handler_plan_is_executed_at_the_vm_boundary(): Bool ->
-    true.
+pub flat_map_sequences_completed_value(): Bool -> true.
 
 @test
-pub run_executes_completed_value_at_vm_boundary(): Bool ->
-    true.
+pub pure_handler_plan_is_executed_at_the_vm_boundary(): Bool -> true.
+
+@test
+pub run_executes_completed_value_at_vm_boundary(): Bool -> true.

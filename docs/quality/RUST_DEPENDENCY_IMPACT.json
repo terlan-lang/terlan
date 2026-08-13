@@ -1,0 +1,1791 @@
+{
+  "blast_radius_policy": {
+    "maximum_dependents": 13,
+    "milestone": "0.0.8",
+    "target_dependents": 9
+  },
+  "compilation_input_sha256": "70fddaeba2ac4370b4e88142ebbc67c5873937168bf808457ea9a1743e6f4c45",
+  "dependency_fanout_policy": {
+    "maximum_non_optional_normal_dependencies": 56,
+    "maximum_resolved_duplicate_families": 30,
+    "milestone": "0.0.8",
+    "non_optional_normal_dependencies": 56,
+    "package": "terlan",
+    "target_non_optional_normal_dependencies": 50,
+    "target_resolved_duplicate_families": 24
+  },
+  "domain_api_fan_in": [
+    {
+      "domain": "backends",
+      "reference_sites": 2,
+      "source_domains": [
+        "commands"
+      ]
+    },
+    {
+      "domain": "benchmark",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "commands",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "compiler",
+      "reference_sites": 22,
+      "source_domains": [
+        "commands"
+      ]
+    },
+    {
+      "domain": "formal_pipeline",
+      "reference_sites": 45,
+      "source_domains": [
+        "commands",
+        "lsp",
+        "runtime"
+      ]
+    },
+    {
+      "domain": "formal_pipeline_test",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "html",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "lsp",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "native_worker",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "quality",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "root:accelerator_contract",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "root:cli_usage",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "root:database_schema",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "root:formal_pipeline",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "root:lib",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "root:main",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "root:template_inputs",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "runtime",
+      "reference_sites": 71,
+      "source_domains": [
+        "commands",
+        "compiler"
+      ]
+    },
+    {
+      "domain": "serve_runtime",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "support",
+      "reference_sites": 72,
+      "source_domains": [
+        "commands",
+        "root:formal_pipeline",
+        "runtime"
+      ]
+    },
+    {
+      "domain": "validation",
+      "reference_sites": 11,
+      "source_domains": [
+        "commands"
+      ]
+    },
+    {
+      "domain": "vm",
+      "reference_sites": 0,
+      "source_domains": []
+    }
+  ],
+  "domain_change_blast_radius": [
+    {
+      "dependent_count": 1,
+      "dependent_domains": [
+        "commands"
+      ],
+      "domain": "backends"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "benchmark"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "commands"
+    },
+    {
+      "dependent_count": 1,
+      "dependent_domains": [
+        "commands"
+      ],
+      "domain": "compiler"
+    },
+    {
+      "dependent_count": 4,
+      "dependent_domains": [
+        "commands",
+        "compiler",
+        "lsp",
+        "runtime"
+      ],
+      "domain": "formal_pipeline"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "formal_pipeline_test"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "html"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "lsp"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "native_worker"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "quality"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "root:accelerator_contract"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "root:cli_usage"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "root:database_schema"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "root:formal_pipeline"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "root:lib"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "root:main"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "root:template_inputs"
+    },
+    {
+      "dependent_count": 2,
+      "dependent_domains": [
+        "commands",
+        "compiler"
+      ],
+      "domain": "runtime"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "serve_runtime"
+    },
+    {
+      "dependent_count": 4,
+      "dependent_domains": [
+        "commands",
+        "compiler",
+        "root:formal_pipeline",
+        "runtime"
+      ],
+      "domain": "support"
+    },
+    {
+      "dependent_count": 1,
+      "dependent_domains": [
+        "commands"
+      ],
+      "domain": "validation"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "vm"
+    }
+  ],
+  "domain_cycle_policy": {
+    "cycles": [],
+    "maximum_cycles": 0
+  },
+  "duplicate_dependency_classifications": [
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "block-buffer",
+      "owner": "dependency-health",
+      "rationale": "sha1 and sha2 currently select different digest generations",
+      "versions": "0.10.4,0.12.1"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "compact_str",
+      "owner": "dependency-health",
+      "rationale": "ratatui and oxc currently select different compact_str generations",
+      "versions": "0.8.2,0.9.1"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "cpufeatures",
+      "owner": "dependency-health",
+      "rationale": "sha1 and sha2 currently select different cpufeatures generations",
+      "versions": "0.2.17,0.3.0"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "crypto-common",
+      "owner": "dependency-health",
+      "rationale": "digest generations require their matching crypto-common generation",
+      "versions": "0.1.7,0.2.2"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "darling",
+      "owner": "dependency-health",
+      "rationale": "derive_builder and bon/instability currently select different darling generations",
+      "versions": "0.20.11,0.23.0"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "darling_core",
+      "owner": "dependency-health",
+      "rationale": "darling generations require their matching core generation",
+      "versions": "0.20.11,0.23.0"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "darling_macro",
+      "owner": "dependency-health",
+      "rationale": "darling generations require their matching macro generation",
+      "versions": "0.20.11,0.23.0"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "digest",
+      "owner": "dependency-health",
+      "rationale": "sha1 and sha2 currently select different digest generations",
+      "versions": "0.10.7,0.11.3"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "foldhash",
+      "owner": "dependency-health",
+      "rationale": "hashbrown generations require different foldhash generations",
+      "versions": "0.1.5,0.2.0"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "getrandom",
+      "owner": "dependency-health",
+      "rationale": "ring and workspace consumers currently span three getrandom APIs",
+      "versions": "0.2.17,0.3.4,0.4.3"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "hashbrown",
+      "owner": "dependency-health",
+      "rationale": "gimli and transitive collections currently span three hashbrown generations",
+      "versions": "0.15.5,0.16.1,0.17.1"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "itertools",
+      "owner": "dependency-health",
+      "rationale": "ratatui and oxc currently select different itertools generations",
+      "versions": "0.13.0,0.14.0"
+    },
+    {
+      "classification": "platform-compatibility",
+      "milestone": "0.0.8",
+      "name": "linux-raw-sys",
+      "owner": "dependency-health",
+      "rationale": "rustix generations retain matching Linux syscall bindings",
+      "versions": "0.12.1,0.4.15"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "object",
+      "owner": "dependency-health",
+      "rationale": "psm build tooling retains object 0.37 while AOT uses object 0.39",
+      "versions": "0.37.3,0.39.1"
+    },
+    {
+      "classification": "platform-compatibility",
+      "milestone": "0.0.8",
+      "name": "r-efi",
+      "owner": "dependency-health",
+      "rationale": "getrandom generations retain matching UEFI bindings",
+      "versions": "5.3.0,6.0.0"
+    },
+    {
+      "classification": "platform-compatibility",
+      "milestone": "0.0.8",
+      "name": "rustix",
+      "owner": "dependency-health",
+      "rationale": "transitive consumers currently support different rustix APIs",
+      "versions": "0.38.44,1.1.4"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "thiserror",
+      "owner": "dependency-health",
+      "rationale": "instant-acme retains thiserror 1 while newer protocol dependencies use 2",
+      "versions": "1.0.69,2.0.18"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "thiserror-impl",
+      "owner": "dependency-health",
+      "rationale": "thiserror generations require their matching derive implementation",
+      "versions": "1.0.69,2.0.18"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "unicode-width",
+      "owner": "dependency-health",
+      "rationale": "unicode-truncate retains 0.1 while terminal and diagnostic dependencies use 0.2",
+      "versions": "0.1.14,0.2.0"
+    },
+    {
+      "classification": "platform-compatibility",
+      "milestone": "0.0.8",
+      "name": "windows-sys",
+      "owner": "dependency-health",
+      "rationale": "cross-platform transitive dependencies retain several supported Windows API generations",
+      "versions": "0.52.0,0.59.0,0.60.2,0.61.2"
+    },
+    {
+      "classification": "platform-compatibility",
+      "milestone": "0.0.8",
+      "name": "windows-targets",
+      "owner": "dependency-health",
+      "rationale": "windows-sys generations require their matching target metadata",
+      "versions": "0.52.6,0.53.5"
+    },
+    {
+      "classification": "platform-compatibility",
+      "milestone": "0.0.8",
+      "name": "windows_aarch64_gnullvm",
+      "owner": "dependency-health",
+      "rationale": "windows-targets generations require matching architecture packages",
+      "versions": "0.52.6,0.53.1"
+    },
+    {
+      "classification": "platform-compatibility",
+      "milestone": "0.0.8",
+      "name": "windows_aarch64_msvc",
+      "owner": "dependency-health",
+      "rationale": "windows-targets generations require matching architecture packages",
+      "versions": "0.52.6,0.53.1"
+    },
+    {
+      "classification": "platform-compatibility",
+      "milestone": "0.0.8",
+      "name": "windows_i686_gnu",
+      "owner": "dependency-health",
+      "rationale": "windows-targets generations require matching architecture packages",
+      "versions": "0.52.6,0.53.1"
+    },
+    {
+      "classification": "platform-compatibility",
+      "milestone": "0.0.8",
+      "name": "windows_i686_gnullvm",
+      "owner": "dependency-health",
+      "rationale": "windows-targets generations require matching architecture packages",
+      "versions": "0.52.6,0.53.1"
+    },
+    {
+      "classification": "platform-compatibility",
+      "milestone": "0.0.8",
+      "name": "windows_i686_msvc",
+      "owner": "dependency-health",
+      "rationale": "windows-targets generations require matching architecture packages",
+      "versions": "0.52.6,0.53.1"
+    },
+    {
+      "classification": "platform-compatibility",
+      "milestone": "0.0.8",
+      "name": "windows_x86_64_gnu",
+      "owner": "dependency-health",
+      "rationale": "windows-targets generations require matching architecture packages",
+      "versions": "0.52.6,0.53.1"
+    },
+    {
+      "classification": "platform-compatibility",
+      "milestone": "0.0.8",
+      "name": "windows_x86_64_gnullvm",
+      "owner": "dependency-health",
+      "rationale": "windows-targets generations require matching architecture packages",
+      "versions": "0.52.6,0.53.1"
+    },
+    {
+      "classification": "platform-compatibility",
+      "milestone": "0.0.8",
+      "name": "windows_x86_64_msvc",
+      "owner": "dependency-health",
+      "rationale": "windows-targets generations require matching architecture packages",
+      "versions": "0.52.6,0.53.1"
+    }
+  ],
+  "incremental_scenarios": [
+    {
+      "cq6_ms": 36780,
+      "domain": "workspace",
+      "scenario": "clean"
+    },
+    {
+      "cq6_ms": 4071,
+      "domain": "compiler",
+      "scenario": "parser-edit"
+    },
+    {
+      "cq6_ms": 4121,
+      "domain": "compiler",
+      "scenario": "type-model-edit"
+    },
+    {
+      "cq6_ms": 4220,
+      "domain": "runtime",
+      "scenario": "runtime-leaf-edit"
+    },
+    {
+      "cq6_ms": 4234,
+      "domain": "lsp",
+      "scenario": "lsp-edit"
+    },
+    {
+      "cq6_ms": 68702,
+      "domain": "workspace",
+      "scenario": "focused-test"
+    },
+    {
+      "cq6_ms": 82780,
+      "domain": "workspace",
+      "scenario": "full-test"
+    }
+  ],
+  "integration_test_policy": {
+    "maximum_targets": 12,
+    "targets": [
+      "direct_aot",
+      "direct_aot_cache",
+      "direct_aot_condition",
+      "direct_aot_condition_expr",
+      "direct_aot_local_shard",
+      "direct_aot_multi_stage_call",
+      "direct_aot_non_tail_call",
+      "direct_aot_package",
+      "direct_aot_tail_call",
+      "managed_continuation_aot",
+      "tvm_transition_rejection",
+      "vm_supervision_runtime"
+    ]
+  },
+  "production_cross_domain_edges": [
+    {
+      "from": "commands",
+      "reference_sites": 2,
+      "to": "backends"
+    },
+    {
+      "from": "commands",
+      "reference_sites": 22,
+      "to": "compiler"
+    },
+    {
+      "from": "commands",
+      "reference_sites": 43,
+      "to": "formal_pipeline"
+    },
+    {
+      "from": "commands",
+      "reference_sites": 57,
+      "to": "runtime"
+    },
+    {
+      "from": "commands",
+      "reference_sites": 58,
+      "to": "support"
+    },
+    {
+      "from": "commands",
+      "reference_sites": 11,
+      "to": "validation"
+    },
+    {
+      "from": "compiler",
+      "reference_sites": 14,
+      "to": "runtime"
+    },
+    {
+      "from": "lsp",
+      "reference_sites": 1,
+      "to": "formal_pipeline"
+    },
+    {
+      "from": "root:formal_pipeline",
+      "reference_sites": 11,
+      "to": "support"
+    },
+    {
+      "from": "runtime",
+      "reference_sites": 1,
+      "to": "formal_pipeline"
+    },
+    {
+      "from": "runtime",
+      "reference_sites": 3,
+      "to": "support"
+    }
+  ],
+  "production_domains": [
+    {
+      "name": "backends",
+      "physical_lines": 1095,
+      "rust_files": 8
+    },
+    {
+      "name": "benchmark",
+      "physical_lines": 13969,
+      "rust_files": 36
+    },
+    {
+      "name": "commands",
+      "physical_lines": 117594,
+      "rust_files": 303
+    },
+    {
+      "name": "compiler",
+      "physical_lines": 160258,
+      "rust_files": 410
+    },
+    {
+      "name": "formal_pipeline",
+      "physical_lines": 228,
+      "rust_files": 1
+    },
+    {
+      "name": "formal_pipeline_test",
+      "physical_lines": 2180,
+      "rust_files": 5
+    },
+    {
+      "name": "html",
+      "physical_lines": 5310,
+      "rust_files": 13
+    },
+    {
+      "name": "lsp",
+      "physical_lines": 16336,
+      "rust_files": 27
+    },
+    {
+      "name": "native_worker",
+      "physical_lines": 1152,
+      "rust_files": 5
+    },
+    {
+      "name": "quality",
+      "physical_lines": 49381,
+      "rust_files": 144
+    },
+    {
+      "name": "root:accelerator_contract",
+      "physical_lines": 516,
+      "rust_files": 1
+    },
+    {
+      "name": "root:cli_usage",
+      "physical_lines": 60,
+      "rust_files": 1
+    },
+    {
+      "name": "root:database_schema",
+      "physical_lines": 287,
+      "rust_files": 1
+    },
+    {
+      "name": "root:formal_pipeline",
+      "physical_lines": 962,
+      "rust_files": 1
+    },
+    {
+      "name": "root:lib",
+      "physical_lines": 987,
+      "rust_files": 1
+    },
+    {
+      "name": "root:main",
+      "physical_lines": 5,
+      "rust_files": 1
+    },
+    {
+      "name": "root:template_inputs",
+      "physical_lines": 304,
+      "rust_files": 1
+    },
+    {
+      "name": "runtime",
+      "physical_lines": 138572,
+      "rust_files": 400
+    },
+    {
+      "name": "serve_runtime",
+      "physical_lines": 8,
+      "rust_files": 1
+    },
+    {
+      "name": "support",
+      "physical_lines": 1034,
+      "rust_files": 3
+    },
+    {
+      "name": "validation",
+      "physical_lines": 8815,
+      "rust_files": 23
+    },
+    {
+      "name": "vm",
+      "physical_lines": 3435,
+      "rust_files": 12
+    }
+  ],
+  "resolved_dependency_duplicates": [
+    {
+      "name": "block-buffer",
+      "versions": [
+        "0.10.4",
+        "0.12.1"
+      ]
+    },
+    {
+      "name": "compact_str",
+      "versions": [
+        "0.8.2",
+        "0.9.1"
+      ]
+    },
+    {
+      "name": "cpufeatures",
+      "versions": [
+        "0.2.17",
+        "0.3.0"
+      ]
+    },
+    {
+      "name": "crypto-common",
+      "versions": [
+        "0.1.7",
+        "0.2.2"
+      ]
+    },
+    {
+      "name": "darling",
+      "versions": [
+        "0.20.11",
+        "0.23.0"
+      ]
+    },
+    {
+      "name": "darling_core",
+      "versions": [
+        "0.20.11",
+        "0.23.0"
+      ]
+    },
+    {
+      "name": "darling_macro",
+      "versions": [
+        "0.20.11",
+        "0.23.0"
+      ]
+    },
+    {
+      "name": "digest",
+      "versions": [
+        "0.10.7",
+        "0.11.3"
+      ]
+    },
+    {
+      "name": "foldhash",
+      "versions": [
+        "0.1.5",
+        "0.2.0"
+      ]
+    },
+    {
+      "name": "getrandom",
+      "versions": [
+        "0.2.17",
+        "0.3.4",
+        "0.4.3"
+      ]
+    },
+    {
+      "name": "hashbrown",
+      "versions": [
+        "0.15.5",
+        "0.16.1",
+        "0.17.1"
+      ]
+    },
+    {
+      "name": "itertools",
+      "versions": [
+        "0.13.0",
+        "0.14.0"
+      ]
+    },
+    {
+      "name": "linux-raw-sys",
+      "versions": [
+        "0.12.1",
+        "0.4.15"
+      ]
+    },
+    {
+      "name": "object",
+      "versions": [
+        "0.37.3",
+        "0.39.1"
+      ]
+    },
+    {
+      "name": "r-efi",
+      "versions": [
+        "5.3.0",
+        "6.0.0"
+      ]
+    },
+    {
+      "name": "rustix",
+      "versions": [
+        "0.38.44",
+        "1.1.4"
+      ]
+    },
+    {
+      "name": "thiserror",
+      "versions": [
+        "1.0.69",
+        "2.0.18"
+      ]
+    },
+    {
+      "name": "thiserror-impl",
+      "versions": [
+        "1.0.69",
+        "2.0.18"
+      ]
+    },
+    {
+      "name": "unicode-width",
+      "versions": [
+        "0.1.14",
+        "0.2.0"
+      ]
+    },
+    {
+      "name": "windows-sys",
+      "versions": [
+        "0.52.0",
+        "0.59.0",
+        "0.60.2",
+        "0.61.2"
+      ]
+    },
+    {
+      "name": "windows-targets",
+      "versions": [
+        "0.52.6",
+        "0.53.5"
+      ]
+    },
+    {
+      "name": "windows_aarch64_gnullvm",
+      "versions": [
+        "0.52.6",
+        "0.53.1"
+      ]
+    },
+    {
+      "name": "windows_aarch64_msvc",
+      "versions": [
+        "0.52.6",
+        "0.53.1"
+      ]
+    },
+    {
+      "name": "windows_i686_gnu",
+      "versions": [
+        "0.52.6",
+        "0.53.1"
+      ]
+    },
+    {
+      "name": "windows_i686_gnullvm",
+      "versions": [
+        "0.52.6",
+        "0.53.1"
+      ]
+    },
+    {
+      "name": "windows_i686_msvc",
+      "versions": [
+        "0.52.6",
+        "0.53.1"
+      ]
+    },
+    {
+      "name": "windows_x86_64_gnu",
+      "versions": [
+        "0.52.6",
+        "0.53.1"
+      ]
+    },
+    {
+      "name": "windows_x86_64_gnullvm",
+      "versions": [
+        "0.52.6",
+        "0.53.1"
+      ]
+    },
+    {
+      "name": "windows_x86_64_msvc",
+      "versions": [
+        "0.52.6",
+        "0.53.1"
+      ]
+    }
+  ],
+  "schema_version": 4,
+  "test_cross_domain_edges": [
+    {
+      "from": "backends",
+      "reference_sites": 1,
+      "to": "formal_pipeline"
+    },
+    {
+      "from": "commands",
+      "reference_sites": 3,
+      "to": "backends"
+    },
+    {
+      "from": "commands",
+      "reference_sites": 3,
+      "to": "compiler"
+    },
+    {
+      "from": "commands",
+      "reference_sites": 4,
+      "to": "formal_pipeline"
+    },
+    {
+      "from": "commands",
+      "reference_sites": 38,
+      "to": "runtime"
+    },
+    {
+      "from": "commands",
+      "reference_sites": 4,
+      "to": "validation"
+    },
+    {
+      "from": "compiler",
+      "reference_sites": 9,
+      "to": "runtime"
+    },
+    {
+      "from": "runtime",
+      "reference_sites": 17,
+      "to": "support"
+    },
+    {
+      "from": "vm",
+      "reference_sites": 1,
+      "to": "runtime"
+    }
+  ],
+  "test_domains": [
+    {
+      "name": "backends",
+      "physical_lines": 937,
+      "rust_files": 5
+    },
+    {
+      "name": "benchmark",
+      "physical_lines": 962,
+      "rust_files": 8
+    },
+    {
+      "name": "commands",
+      "physical_lines": 36425,
+      "rust_files": 152
+    },
+    {
+      "name": "compiler",
+      "physical_lines": 36676,
+      "rust_files": 159
+    },
+    {
+      "name": "html",
+      "physical_lines": 1688,
+      "rust_files": 9
+    },
+    {
+      "name": "lsp",
+      "physical_lines": 992,
+      "rust_files": 6
+    },
+    {
+      "name": "native_worker",
+      "physical_lines": 846,
+      "rust_files": 4
+    },
+    {
+      "name": "quality",
+      "physical_lines": 27874,
+      "rust_files": 121
+    },
+    {
+      "name": "root:database_schema_test",
+      "physical_lines": 177,
+      "rust_files": 1
+    },
+    {
+      "name": "root:formal_pipeline_test",
+      "physical_lines": 16,
+      "rust_files": 1
+    },
+    {
+      "name": "root:support_test",
+      "physical_lines": 148,
+      "rust_files": 1
+    },
+    {
+      "name": "runtime",
+      "physical_lines": 72856,
+      "rust_files": 300
+    },
+    {
+      "name": "support",
+      "physical_lines": 221,
+      "rust_files": 6
+    },
+    {
+      "name": "tests",
+      "physical_lines": 10308,
+      "rust_files": 25
+    },
+    {
+      "name": "validation",
+      "physical_lines": 6924,
+      "rust_files": 18
+    },
+    {
+      "name": "vm",
+      "physical_lines": 1454,
+      "rust_files": 7
+    }
+  ],
+  "workspace_cycles": [],
+  "workspace_feature_fanout": [
+    {
+      "dependencies": [
+        {
+          "default_features": false,
+          "features": [],
+          "kind": "build",
+          "name": "lalrpop",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "build",
+          "name": "sha2",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "dev",
+          "name": "tar",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "io-util",
+            "macros",
+            "time"
+          ],
+          "kind": "dev",
+          "name": "tokio",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "dev",
+          "name": "zstd",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "ammonia",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "axum",
+          "optional": true
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "base64",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "basic-toml",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "bytes",
+          "optional": false
+        },
+        {
+          "default_features": false,
+          "features": [],
+          "kind": "normal",
+          "name": "comrak",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "concurrent-queue",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "cookie",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "cranelift-codegen",
+          "optional": true
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "cranelift-frontend",
+          "optional": true
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "cranelift-module",
+          "optional": true
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "cranelift-native",
+          "optional": true
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "cranelift-object",
+          "optional": true
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "crossterm",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "cssparser",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "docker-compose-types",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "html5ever",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "http",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "http-body",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "channel",
+            "full"
+          ],
+          "kind": "normal",
+          "name": "http-body-util",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "httparse",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "client",
+            "http1",
+            "http2",
+            "server"
+          ],
+          "kind": "normal",
+          "name": "hyper",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "tokio"
+          ],
+          "kind": "normal",
+          "name": "hyper-util",
+          "optional": true
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "instant-acme",
+          "optional": false
+        },
+        {
+          "default_features": false,
+          "features": [],
+          "kind": "normal",
+          "name": "lalrpop-util",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "libloading",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "md-5",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "mime_guess",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "net",
+            "os-poll"
+          ],
+          "kind": "normal",
+          "name": "mio",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "notify",
+          "optional": false
+        },
+        {
+          "default_features": false,
+          "features": [
+            "read",
+            "std",
+            "write"
+          ],
+          "kind": "normal",
+          "name": "object",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "openapiv3",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "oxc_allocator",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "oxc_ast",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "oxc_codegen",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "oxc_parser",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "oxc_span",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "oxc_syntax",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "percent-encoding",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "quick-xml",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "rand",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "ratatui",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "rcgen",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "regex",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "rustls",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "rustls-pemfile",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "rustls-webpki",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "derive"
+          ],
+          "kind": "normal",
+          "name": "serde",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "unbounded_depth"
+          ],
+          "kind": "normal",
+          "name": "serde_json",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "serde_yaml",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "sha2",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "shell-words",
+          "optional": true
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "smallvec",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "all"
+          ],
+          "kind": "normal",
+          "name": "socket2",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "sqlparser",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "target-lexicon",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-archive",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-libpq",
+          "optional": true
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-runtime-abi",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "formatting",
+            "parsing"
+          ],
+          "kind": "normal",
+          "name": "time",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "rt"
+          ],
+          "kind": "normal",
+          "name": "tokio",
+          "optional": true
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "tower-lsp",
+          "optional": true
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "tungstenite",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "url",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "wasm-encoder",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "wasmparser",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "yaml-rust",
+          "optional": false
+        }
+      ],
+      "package": "terlan"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "flate2",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "tar",
+          "optional": false
+        },
+        {
+          "default_features": false,
+          "features": [
+            "deflate-flate2"
+          ],
+          "kind": "normal",
+          "name": "zip",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "zstd",
+          "optional": false
+        }
+      ],
+      "package": "terlan-archive"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "build",
+          "name": "cc",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "build",
+          "name": "pkg-config",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "base64",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "getrandom",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "polling",
+          "optional": false
+        }
+      ],
+      "package": "terlan-libpq"
+    },
+    {
+      "dependencies": [],
+      "package": "terlan-runtime-abi"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [
+            "span-locations"
+          ],
+          "kind": "normal",
+          "name": "proc-macro2",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "quote",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "serde_json",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "sha2",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "full",
+            "visit"
+          ],
+          "kind": "normal",
+          "name": "syn",
+          "optional": false
+        }
+      ],
+      "package": "terlan-rust-boundary-audit"
+    },
+    {
+      "dependencies": [],
+      "package": "terlan-test-orchestrator"
+    }
+  ],
+  "workspace_packages": [
+    {
+      "direct_dependencies": [
+        "terlan-archive",
+        "terlan-libpq",
+        "terlan-runtime-abi"
+      ],
+      "name": "terlan",
+      "reverse_dependents": []
+    },
+    {
+      "direct_dependencies": [],
+      "name": "terlan-archive",
+      "reverse_dependents": [
+        "terlan"
+      ]
+    },
+    {
+      "direct_dependencies": [],
+      "name": "terlan-libpq",
+      "reverse_dependents": [
+        "terlan"
+      ]
+    },
+    {
+      "direct_dependencies": [],
+      "name": "terlan-runtime-abi",
+      "reverse_dependents": [
+        "terlan"
+      ]
+    },
+    {
+      "direct_dependencies": [],
+      "name": "terlan-rust-boundary-audit",
+      "reverse_dependents": []
+    },
+    {
+      "direct_dependencies": [],
+      "name": "terlan-test-orchestrator",
+      "reverse_dependents": []
+    }
+  ]
+}

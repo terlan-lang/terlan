@@ -29,7 +29,26 @@ impl NativeAdapterAbiContract {
     }
 
     /// Produces the cache identity for this contract and one target ABI.
-    pub fn cache_identity(self, target: &str, calling_convention: &str) -> Result<String, String> {
+    pub fn cache_identity(
+        self,
+        target: &str,
+        calling_convention: &str,
+    ) -> Result<String, BoundaryError> {
+        self.cache_identity_untyped(target, calling_convention)
+            .map_err(|error| {
+                BoundaryError::message(
+                    ErrorDomain::NativeBoundary,
+                    "build adapter cache identity",
+                    error,
+                )
+            })
+    }
+
+    fn cache_identity_untyped(
+        self,
+        target: &str,
+        calling_convention: &str,
+    ) -> Result<String, String> {
         validate_identity_text("target", target)?;
         validate_identity_text("calling convention", calling_convention)?;
         Ok(format!(
@@ -39,8 +58,27 @@ impl NativeAdapterAbiContract {
     }
 
     /// Renders the stable TOML fields embedded in generated adapter metadata.
-    pub fn render_metadata(self, target: &str, calling_convention: &str) -> Result<String, String> {
-        self.cache_identity(target, calling_convention)?;
+    pub fn render_metadata(
+        self,
+        target: &str,
+        calling_convention: &str,
+    ) -> Result<String, BoundaryError> {
+        self.render_metadata_untyped(target, calling_convention)
+            .map_err(|error| {
+                BoundaryError::message(
+                    ErrorDomain::NativeBoundary,
+                    "render adapter metadata",
+                    error,
+                )
+            })
+    }
+
+    fn render_metadata_untyped(
+        self,
+        target: &str,
+        calling_convention: &str,
+    ) -> Result<String, String> {
+        self.cache_identity_untyped(target, calling_convention)?;
         Ok(format!(
             "adapter_abi_version = {}\ntarget = {target:?}\ncalling_convention = {calling_convention:?}\nexecution_context = \"explicit\"\nownership = \"opaque_handles\"\ncapability_lifetimes = \"explicit\"\nresource_lifetimes = \"execution_context_scoped\"\nmax_frame_bytes = {}\nmax_transfer_bytes = {}\nstatus_model = \"status_values\"\ncallback_reentrancy = \"forbidden\"\nasync_completion = \"single_shot\"\n",
             self.version, self.max_frame_bytes, self.max_transfer_bytes
@@ -49,7 +87,17 @@ impl NativeAdapterAbiContract {
 }
 
 /// Resolves the public calling convention for one supported target triple.
-pub fn calling_convention_for_target(target: &str) -> Result<&'static str, String> {
+pub fn calling_convention_for_target(target: &str) -> Result<&'static str, BoundaryError> {
+    calling_convention_for_target_untyped(target).map_err(|error| {
+        BoundaryError::message(
+            ErrorDomain::NativeBoundary,
+            "resolve adapter calling convention",
+            error,
+        )
+    })
+}
+
+fn calling_convention_for_target_untyped(target: &str) -> Result<&'static str, String> {
     let architecture = if target.starts_with("x86_64-") {
         "x86_64"
     } else if target.starts_with("aarch64-") {
@@ -84,4 +132,6 @@ fn validate_identity_text(kind: &str, value: &str) -> Result<(), String> {
 
 #[cfg(test)]
 #[path = "adapter_abi_test.rs"]
+#[cfg(test)]
 mod adapter_abi_test;
+use terlan_runtime_abi::{BoundaryError, ErrorDomain};

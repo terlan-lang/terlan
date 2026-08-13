@@ -12,7 +12,6 @@ use crate::terlan_syntax::{
 };
 
 const STEP_LIMIT: usize = 10_000;
-const DEPTH_LIMIT: usize = 64;
 const VALUE_SIZE_LIMIT: usize = 1_048_576;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -161,6 +160,8 @@ pub(crate) struct ValueLifecycleReport {
 struct Evaluator {
     definitions: HashMap<String, ConstDefinition>,
     functions: HashMap<(String, usize), ConstFunction>,
+    local_functions: HashSet<(String, usize)>,
+    termination: crate::terlan_typeck::CoreTerminationEvidence,
     values: HashMap<String, ConstValue>,
     active: Vec<String>,
     steps: usize,
@@ -275,9 +276,13 @@ impl Evaluator {
                 _ => {}
             }
         }
+        let local_functions = functions.keys().cloned().collect();
+        let termination = crate::terlan_typeck::core_const_function_termination_evidence(module);
         let mut evaluator = Self {
             definitions,
             functions,
+            local_functions,
+            termination,
             values: HashMap::new(),
             active: Vec::new(),
             steps: 0,
@@ -408,13 +413,6 @@ impl Evaluator {
             return Err(diagnostic(
                 "CONST_EVALUATOR_EXHAUSTED",
                 "constant evaluation exceeded the deterministic step limit",
-                span,
-            ));
-        }
-        if self.active.len() > DEPTH_LIMIT {
-            return Err(diagnostic(
-                "CONST_EVALUATOR_EXHAUSTED",
-                "constant evaluation exceeded the recursion-depth limit",
                 span,
             ));
         }
@@ -699,16 +697,21 @@ impl Evaluator {
             ));
         };
         let call_name = format!("{name}/{}", args.len());
-        if self
-            .active
-            .iter()
-            .filter(|active| *active == &call_name)
-            .count()
-            >= DEPTH_LIMIT
-        {
+        let key = (name.clone(), args.len());
+        if self.local_functions.contains(&key) {
+            self.termination
+                .require_total(&name, args.len())
+                .map_err(|message| {
+                    diagnostic(
+                        "CONST_TOTALITY_UNPROVEN",
+                        format!("const-function call requires proven termination: {message}"),
+                        expr.span,
+                    )
+                })?;
+        } else if self.active.iter().any(|active| active == &call_name) {
             return Err(diagnostic(
-                "CONST_EVALUATOR_EXHAUSTED",
-                "const-function recursion exceeded the deterministic depth limit",
+                "CONST_TOTALITY_UNPROVEN",
+                "recursive imported const function lacks validated termination evidence",
                 expr.span,
             ));
         }
@@ -895,11 +898,29 @@ fn materialize_trait_constant_defaults(
     }
 }
 
-include!("value_lifecycle/const_generics.rs");
-include!("value_lifecycle/checked_conversion.rs");
-include!("value_lifecycle/validation.rs");
-include!("value_lifecycle/substitution.rs");
+#[path = "value_lifecycle/checked_conversion.rs"]
+mod checked_conversion;
+#[path = "value_lifecycle/const_generics.rs"]
+mod const_generics;
+#[path = "value_lifecycle/substitution.rs"]
+mod substitution;
+#[path = "value_lifecycle/validation.rs"]
+mod validation;
+
+use checked_conversion::*;
+use const_generics::*;
+use substitution::*;
+use validation::{
+    associated_constant_owner, validate_constant_namespaces, validate_forbidden_constant_contexts,
+    validate_nominal_valued_union_uses, validate_runtime_constant_reflection,
+    validate_trait_constants, validate_valued_union_case_exhaustiveness, validate_valued_unions,
+};
+pub(crate) use validation::{
+    evaluate_and_substitute_module_constants, expression_is_const_safe,
+    module_requires_value_lifecycle_pass,
+};
 
 #[cfg(test)]
 #[path = "value_lifecycle_test.rs"]
+#[cfg(test)]
 mod value_lifecycle_test;

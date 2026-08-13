@@ -210,7 +210,7 @@ fn build_deploy_plan(manifest: &ProjectManifest) -> Result<DeployPlan, String> {
         .collect::<Vec<_>>();
     dependencies.sort_by(|left, right| {
         left.scope
-            .cmp(&right.scope)
+            .cmp(right.scope)
             .then_with(|| left.alias.cmp(&right.alias))
     });
 
@@ -527,4 +527,5 @@ enum DeployPlanDependencySource {
 
 #[cfg(test)]
 #[path = "deploy_test.rs"]
+#[cfg(test)]
 mod deploy_test;

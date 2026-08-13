@@ -47,13 +47,13 @@ pub get_video_playback_quality_typechecks(receiver: HTMLVideoElement): VideoPlay
     receiver.get_video_playback_quality().
 
 pub request_picture_in_picture_typechecks(
-    receiver: HTMLVideoElement
+    receiver: HTMLVideoElement,
 ): std.js.Promise[PictureInPictureWindow] ->
     receiver.request_picture_in_picture().
 
 pub request_video_frame_callback_typechecks(
     receiver: HTMLVideoElement,
-    callback: VideoFrameRequestCallback
+    callback: VideoFrameRequestCallback,
 ): JsNumber ->
     receiver.request_video_frame_callback(callback).
 
@@ -61,7 +61,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLVideoElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -69,6 +69,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLVideoElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

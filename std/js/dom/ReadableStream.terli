@@ -37,7 +37,7 @@ pub (value: ReadableStream[R]) get_reader(options: ReadableStreamGetReaderOption
  */
 pub (value: ReadableStream[R]) pipe_through(
     transform: ReadableWritablePair[T, R],
-    options: StreamPipeOptions
+    options: StreamPipeOptions,
 ): ReadableStream[T].
 
 /**
@@ -47,5 +47,5 @@ pub (value: ReadableStream[R]) pipe_through(
  */
 pub (value: ReadableStream[R]) pipe_to(
     destination: WritableStream[R],
-    options: StreamPipeOptions
+    options: StreamPipeOptions,
 ): std.js.Promise[std.core.Unit].

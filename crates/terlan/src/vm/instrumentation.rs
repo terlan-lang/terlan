@@ -16,11 +16,13 @@ pub(crate) enum VmInstrumentationProviderScope {
     /// Provider reads state from the current local VM process.
     LocalVm,
     /// Provider reads state from a Terlan Cloud operator API.
+    #[cfg(test)]
     TerlanCloud,
 }
 
 impl VmInstrumentationProviderScope {
     /// Returns the stable provider scope spelling.
+    #[cfg(test)]
     pub(crate) const fn as_str(self) -> &'static str {
         match self {
             Self::LocalVm => "local_vm",
@@ -35,11 +37,13 @@ pub(crate) enum VmInstrumentationTransport {
     /// Provider reads in-process VM state without network or cloud APIs.
     LocalProcess,
     /// Provider reads remote operator state through a cloud API.
+    #[cfg(test)]
     CloudApi,
 }
 
 impl VmInstrumentationTransport {
     /// Returns the stable transport spelling.
+    #[cfg(test)]
     pub(crate) const fn as_str(self) -> &'static str {
         match self {
             Self::LocalProcess => "local_process",
@@ -59,6 +63,7 @@ pub(crate) struct VmInstrumentationProvider {
 
 /// Provider-neutral dashboard component kind.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmDashboardComponentKind {
     /// High-level runtime identity and status.
     RuntimeOverview,
@@ -70,6 +75,7 @@ pub(crate) enum VmDashboardComponentKind {
     NativeBoundary,
 }
 
+#[cfg(test)]
 impl VmDashboardComponentKind {
     /// Returns the stable component kind spelling.
     pub(crate) const fn as_str(self) -> &'static str {
@@ -84,6 +90,7 @@ impl VmDashboardComponentKind {
 
 /// One provider-neutral dashboard component.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmDashboardComponent {
     pub(crate) id: &'static str,
     pub(crate) title: &'static str,
@@ -92,6 +99,7 @@ pub(crate) struct VmDashboardComponent {
 
 /// Dashboard mode accepted by the VM instrumentation UI.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmDashboardMode {
     /// Read-only inspection mode.
     ReadOnly,
@@ -99,6 +107,7 @@ pub(crate) enum VmDashboardMode {
     Operator,
 }
 
+#[cfg(test)]
 impl VmDashboardMode {
     /// Returns the stable dashboard mode spelling.
     pub(crate) const fn as_str(self) -> &'static str {
@@ -111,6 +120,7 @@ impl VmDashboardMode {
 
 /// Provider-bound dashboard configuration.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmDashboardConfig {
     pub(crate) mode: VmDashboardMode,
     pub(crate) provider: VmInstrumentationProvider,
@@ -119,6 +129,7 @@ pub(crate) struct VmDashboardConfig {
 
 /// Future guarded VM operator action.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmOperatorAction {
     /// Hot reload VM code or loaded artifacts.
     HotReload,
@@ -134,6 +145,7 @@ pub(crate) enum VmOperatorAction {
     ReplicaPromotion,
 }
 
+#[cfg(test)]
 impl VmOperatorAction {
     /// Returns the stable operator action spelling.
     pub(crate) const fn as_str(self) -> &'static str {
@@ -150,6 +162,7 @@ impl VmOperatorAction {
 
 /// Guard policy for future VM operator mode.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmOperatorPolicy {
     pub(crate) enabled: bool,
     pub(crate) audit_required: bool,
@@ -165,6 +178,7 @@ pub(crate) struct VmInstrumentationDiagnostic {
 
 /// Text snapshot produced by the local VM dashboard renderer.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmDashboardRenderSnapshot {
     pub(crate) provider_id: String,
     pub(crate) mode: &'static str,
@@ -175,21 +189,17 @@ pub(crate) struct VmDashboardRenderSnapshot {
 /// Runtime process state exposed by Terlan VM inspection.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmInspectedProcessState {
-    /// Process is ready to execute VM reductions.
-    Runnable,
     /// Process is waiting on a message, timer, resource, or native call.
+    #[cfg(test)]
     Blocked,
-    /// Process has exited and remains visible through inspection history.
-    Exited,
 }
 
 impl VmInspectedProcessState {
     /// Returns the stable process-state spelling.
     pub(crate) const fn as_str(self) -> &'static str {
         match self {
-            Self::Runnable => "runnable",
+            #[cfg(test)]
             Self::Blocked => "blocked",
-            Self::Exited => "exited",
         }
     }
 }
@@ -260,6 +270,7 @@ pub(crate) struct VmRuntimeInspectionSnapshot {
 }
 
 /// Stable read-only surface names required by VM inspection.
+#[cfg(test)]
 pub(crate) fn required_vm_runtime_inspection_surfaces() -> Vec<&'static str> {
     vec![
         "process_registry",
@@ -309,6 +320,7 @@ pub(crate) const fn default_local_vm_instrumentation_provider() -> VmInstrumenta
 /// Transformation:
 /// - Defines the cloud-side provider shape without making the local VM TUI
 ///   depend on cloud connectivity.
+#[cfg(test)]
 pub(crate) const fn cloud_vm_instrumentation_provider() -> VmInstrumentationProvider {
     VmInstrumentationProvider {
         id: "cloud.vm",
@@ -329,6 +341,7 @@ pub(crate) const fn cloud_vm_instrumentation_provider() -> VmInstrumentationProv
 /// Transformation:
 /// - Keeps component identity separate from provider transport so Ratatui and
 ///   future cloud dashboards can render the same logical UI.
+#[cfg(test)]
 pub(crate) fn standard_vm_dashboard_components() -> Vec<VmDashboardComponent> {
     vec![
         dashboard_component(
@@ -363,6 +376,7 @@ pub(crate) fn standard_vm_dashboard_components() -> Vec<VmDashboardComponent> {
 /// - Validates provider identity but intentionally ignores provider transport
 ///   for component selection so local and cloud dashboards stay structurally
 ///   aligned.
+#[cfg(test)]
 pub(crate) fn vm_dashboard_components_for_provider(
     provider: &VmInstrumentationProvider,
 ) -> Result<Vec<VmDashboardComponent>, Vec<VmInstrumentationDiagnostic>> {
@@ -387,6 +401,7 @@ pub(crate) fn vm_dashboard_components_for_provider(
 /// Transformation:
 /// - Binds provider-neutral components to the local provider while keeping v1
 ///   inspection mode read-only.
+#[cfg(test)]
 pub(crate) fn default_local_vm_dashboard_config() -> VmDashboardConfig {
     let provider = default_local_vm_instrumentation_provider();
     VmDashboardConfig {
@@ -407,6 +422,7 @@ pub(crate) fn default_local_vm_dashboard_config() -> VmDashboardConfig {
 /// Transformation:
 /// - Records the guard shape for later operator mode without enabling any
 ///   mutating UI controls in v1.
+#[cfg(test)]
 pub(crate) fn default_vm_operator_policy() -> VmOperatorPolicy {
     VmOperatorPolicy {
         enabled: false,
@@ -426,6 +442,7 @@ pub(crate) fn default_vm_operator_policy() -> VmOperatorPolicy {
 /// Transformation:
 /// - Names planned mutating operations without making them executable from the
 ///   v1 dashboard.
+#[cfg(test)]
 pub(crate) fn planned_vm_operator_actions() -> Vec<VmOperatorAction> {
     vec![
         VmOperatorAction::HotReload,
@@ -449,6 +466,7 @@ pub(crate) fn planned_vm_operator_actions() -> Vec<VmOperatorAction> {
 /// Transformation:
 /// - Keeps the operator vocabulary typed while ensuring v1 cannot expose
 ///   mutating actions.
+#[cfg(test)]
 pub(crate) fn validate_vm_operator_policy(
     policy: &VmOperatorPolicy,
 ) -> Result<(), Vec<VmInstrumentationDiagnostic>> {
@@ -486,6 +504,7 @@ pub(crate) fn validate_vm_operator_policy(
 /// Transformation:
 /// - Keeps the first terminal dashboard read-only until guarded operator
 ///   workflows have explicit policy and audit semantics.
+#[cfg(test)]
 pub(crate) fn validate_vm_dashboard_config(
     config: &VmDashboardConfig,
 ) -> Result<(), Vec<VmInstrumentationDiagnostic>> {
@@ -528,6 +547,7 @@ pub(crate) fn validate_vm_dashboard_config(
 /// - Keeps tests and future CLI plumbing independent from Ratatui buffer
 ///   internals while proving the renderer consumes the same typed
 ///   instrumentation model as cloud/provider-neutral dashboards.
+#[cfg(test)]
 pub(crate) fn vm_dashboard_render_snapshot(
     config: &VmDashboardConfig,
     text: impl Into<String>,
@@ -640,6 +660,7 @@ pub(crate) fn validate_vm_instrumentation_providers(
 }
 
 /// Builds one dashboard component.
+#[cfg(test)]
 const fn dashboard_component(
     id: &'static str,
     title: &'static str,
@@ -658,4 +679,5 @@ fn diagnostic(code: &'static str, message: impl Into<String>) -> VmInstrumentati
 
 #[cfg(test)]
 #[path = "instrumentation_test.rs"]
+#[cfg(test)]
 mod instrumentation_test;

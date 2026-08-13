@@ -9,9 +9,19 @@ producer = "terlan-curated-metadata"
 format = "reviewed-declaration-json"
 abi_version = 1
 
-[runtime]
-bridge = "native_boundary"
+[public_adapter]
+adapter_abi_version = 1
+target = "x86_64-unknown-linux-gnu"
+calling_convention = "system_v"
+execution_context = "explicit"
 ownership = "opaque_handles"
+capability_lifetimes = "explicit"
+resource_lifetimes = "execution_context_scoped"
+max_frame_bytes = 1048576
+max_transfer_bytes = 16777216
+status_model = "status_values"
+callback_reentrancy = "forbidden"
+async_completion = "single_shot"
 raw_pointers_public = false
 raw_pointers_contained_in_adapter = true
 exceptions_cross_boundary = false

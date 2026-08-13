@@ -1,0 +1,379 @@
+/**
+ * End-to-end validation of one packaged Terlan release artifact.
+ */
+module tvm_aot_platform_matrix.ReleaseSmoke.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{eprintln}.
+import std.io.{Archive, Directory, File}.
+import std.system.Process.
+import tvm_aot_platform_matrix.{ReleasePayload, ReleasePlatform}.
+
+import type std.core.Option.
+import type std.data.Json.StringFieldRow.
+import type std.system.Process.Output.
+import type tvm_aot_platform_matrix.ReleasePlatform.
+
+struct MetadataProjection {
+    schema: String,
+    features: List[String],
+    hashes: List[String],
+    binaries: List[String],
+}.
+
+failure(code: String, message: String): Bool ->
+    let _printed = eprintln(String.concat(["error[release_artifact_smoke.", code, "]: ", message]));
+    false.
+
+child(parent: String, name: String): String ->
+    ReleasePayload.child(parent, name).
+
+reverse_strings(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings(rest, [value | reversed])
+    }.
+
+required_strings(values: List[Option[String]], reversed: List[String]): Option[List[String]] ->
+    case values {
+        [] -> Some(reverse_strings(reversed, []));
+        [Some(value) | rest] -> required_strings(rest, [value | reversed]);
+        [None | _rest] -> None
+    }.
+
+json_strings(value: Json, index: Int, count: Int, reversed: List[String]): Option[List[String]] ->
+    if {
+        index >= count -> Some(reverse_strings(reversed, []));
+        true -> let {
+            Ok(member) <- value.at(index);
+            Ok(text) <- member.as_string()
+        } else {
+            _ -> None
+        };
+        json_strings(value, index + 1, count, [text | reversed])
+    }.
+
+row_paths(rows: List[StringFieldRow], reversed: List[String]): Option[List[String]] ->
+    case rows {
+        [] -> Some(reverse_strings(reversed, []));
+        [row | rest] ->
+            if {
+                not Json.string_field_row_is_object(row) -> None;
+                true -> case Json.string_field_row_values(row) {
+                    [Some(path) | []] -> row_paths(rest, [path | reversed]);
+                    _ -> None
+                }
+            }
+    }.
+
+metadata_projection(source: String, platform: ReleasePlatform): Option[MetadataProjection] ->
+    let names =
+        [
+            ReleasePlatform.compiler(platform),
+            ReleasePlatform.vm(platform),
+            ReleasePlatform.native_worker(platform),
+            ReleasePlatform.lsp(platform),
+        ];
+    let {
+        Ok(metadata) <- Json.parse(source);
+        Ok(schema_values) <- metadata.string_fields(["schema"]);
+        Some(schemas) <- required_strings(schema_values, []);
+        Ok(features_value) <- metadata.get("cargo_features");
+        Ok(feature_count) <- features_value.length();
+        Some(features) <- json_strings(features_value, 0, feature_count, []);
+        Ok(hashes_value) <- metadata.get("binary_hashes");
+        Ok(hash_values) <- hashes_value.string_fields(names);
+        Some(hashes) <- required_strings(hash_values, []);
+        Ok(binaries_value) <- metadata.get("binaries");
+        Ok(rows) <- binaries_value.string_field_rows(["path"]);
+        Some(binaries) <- row_paths(rows, [])
+    } else {
+        _ -> None
+    };
+    case schemas {
+        [schema | []] ->
+            Some(
+                MetadataProjection(
+                    schema = schema,
+                    features = features,
+                    hashes = hashes,
+                    binaries = binaries,
+                ),
+            );
+        _ -> None
+    }.
+
+same_strings(left: List[String], right: List[String]): Bool ->
+    case {left, right} {
+        {[], []} -> true;
+        {[left_value | left_rest], [right_value | right_rest]} ->
+            left_value == right_value and same_strings(left_rest, right_rest);
+        _ -> false
+    }.
+
+contains_string(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains_string(rest, expected)
+    }.
+
+verify_binary_hashes(paths: List[String], hashes: List[String]): Bool ->
+    case {paths, hashes} {
+        {[], []} -> true;
+        {[path | path_rest], [expected | hash_rest]} ->
+            case Hash.sha256_file(path) {
+                Ok(actual) -> actual == expected and verify_binary_hashes(path_rest, hash_rest);
+                Err(_reason) -> false
+            };
+        _ -> false
+    }.
+
+verify_binary_inventory(platform: ReleasePlatform, binaries: List[String]): Bool ->
+    contains_string(binaries, ReleasePlatform.compiler(platform))
+        and contains_string(binaries, ReleasePlatform.vm(platform))
+        and contains_string(binaries, ReleasePlatform.native_worker(platform))
+        and contains_string(binaries, ReleasePlatform.lsp(platform)).
+
+directory_exists(path: String): Bool ->
+    case Directory.entries(path) {
+        Ok(_entries) -> true;
+        Err(_reason) -> false
+    }.
+
+required_payloads_exist(root: String): Bool ->
+    directory_exists(child(root, "share/terlan/std"))
+        and File.exists(child(root, "share/terlan/editors/vscode/package.json"))
+        and File.exists(child(root, "share/terlan/tree-sitter-terlan/grammar.js"))
+        and File.exists(child(root, "share/terlan/docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"))
+        and File.exists(child(root, "share/terlan/README.md"))
+        and File.exists(child(root, "share/terlan/CHANGELOG.md"))
+        and File.exists(child(root, "SHA256SUMS"))
+        and File.exists(child(root, "terlan-install-manifest.json")).
+
+all_executable(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            case File.is_executable(path) {
+                Ok(true) -> all_executable(rest);
+                _ -> false
+            }
+    }.
+
+pub run_output(working_directory: String, program: String, arguments: List[String]): Option[Output] ->
+    let command =
+        Process.command(program)
+            .with_arguments(arguments)
+            .with_working_directory(working_directory)
+            .with_timeout_ms(300000)
+            .with_output_limit_bytes(8388608);
+    case Process.run(command) {
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> Some(output);
+                true -> let _failed =
+                    failure(
+                        "command",
+                        String.concat(
+                            [program, " failed:\n", Process.stdout(output), Process.stderr(output)],
+                        ),
+                    );
+                None
+            };
+        Err(error) ->
+            let _failed = failure("process", Process.error_message(error));
+            None
+    }.
+
+run_ok(working_directory: String, program: String, arguments: List[String]): Bool ->
+    case run_output(working_directory, program, arguments) {
+        Some(_output) -> true;
+        None -> false
+    }.
+
+pub version_matches(root: String, binary: String, name: String, version: String): Bool ->
+    case run_output(root, binary, ["--version"]) {
+        Some(output) -> String.trim(Process.stdout(output)) == String.concat([name, " ", version]);
+        None -> false
+    }.
+
+pub lsp_help_matches(root: String, binary: String): Bool ->
+    case run_output(root, binary, ["--help"]) {
+        Some(output) -> String.contains(Process.stdout(output), "terlan-lsp --stdio");
+        None -> false
+    }.
+
+write_smoke_sources(root: String): Bool ->
+    let asset = child(root, "hello/assets/hello.txt");
+    let vm_source = child(root, "vm_hello.terl");
+    let test_source = child(root, "ReleaseArtifactTest.terl");
+    case {
+    File.write_text(asset, "hello asset\n"),
+    File.write_text(vm_source, "module vm_release.Main.\n\npub main(): Bool -> true.\n"),
+    File.write_text(
+        test_source,
+        "module vm_release.ReleaseArtifactTest.\n\n@test\npub release_artifact_test(): Bool -> true.\n",
+    ),
+} {
+        {Ok(Unit), Ok(Unit), Ok(Unit)} -> true;
+        _ -> failure("fixture", "cannot write release smoke fixtures")
+    }.
+
+only_tvm(paths: List[String], reversed: List[String]): List[String] ->
+    case paths {
+        [] -> reverse_strings(reversed, []);
+        [path | rest] ->
+            if {
+                String.ends_with(path, ".tvm") -> only_tvm(rest, [path | reversed]);
+                true -> only_tvm(rest, reversed)
+            }
+    }.
+
+inspect_valid(source: String): Bool ->
+    let {
+        Ok(report) <- Json.parse(source);
+        Ok(runtime) <- report.get("runtime");
+        Ok(runtime_name) <- runtime.as_string();
+        Ok(layout) <- report.get("release_layout");
+        Ok(stdlib) <- layout.get("stdlib");
+        Ok(stdlib_found) <- stdlib.as_bool();
+        Ok(editor) <- layout.get("editor");
+        Ok(editor_found) <- editor.as_bool();
+        Ok(tree) <- layout.get("tree_sitter");
+        Ok(tree_found) <- tree.as_bool()
+    } else {
+        _ -> false
+    };
+    runtime_name == "vm" and stdlib_found and editor_found and tree_found.
+
+verify_metadata(
+    repository: String,
+    extracted: String,
+    platform: ReleasePlatform,
+    binary_paths: List[String],
+): Bool ->
+    let metadata_path = child(extracted, "terlan-release.json");
+    let {
+        Ok(source) <- File.read_text(metadata_path);
+        Some(metadata) <- metadata_projection(source, platform);
+        Some(features) <- ReleasePlatform.release_features(repository)
+    } else {
+        _ -> failure("metadata", "cannot decode release metadata")
+    };
+    if {
+        metadata.schema != "terlan.release-artifact.v1" -> failure("metadata", "unsupported schema");
+        not same_strings(metadata.features, features) -> failure("metadata", "cargo feature set drifted");
+        not verify_binary_hashes(binary_paths, metadata.hashes) -> failure("metadata", "binary hashes drifted");
+        not verify_binary_inventory(platform, metadata.binaries) -> failure("metadata", "binary inventory is incomplete");
+        true -> true
+    }.
+
+run_compiler_smokes(repository: String, extracted: String, compiler: String, vm: String): Bool ->
+    let hello = child(extracted, "hello");
+    let web = child(hello, "_build/web");
+    let vm_build = child(extracted, "vm_build");
+    let vm_source = child(extracted, "vm_hello.terl");
+    let test_source = child(extracted, "ReleaseArtifactTest.terl");
+    if {
+        not run_ok(extracted, compiler, ["init", hello, "--profile", "web"]) -> false;
+        not write_smoke_sources(extracted) -> false;
+        not run_ok(
+    extracted,
+    compiler,
+    [
+        "--target-profile",
+        "js.browser",
+        "--out-dir",
+        child(hello, "_build"),
+        "build",
+        hello,
+        "--target",
+        "js.browser",
+    ],
+) -> false;
+        not File.exists(child(web, "assets/hello.txt")) -> failure("browser", "web asset was omitted");
+        not run_ok(extracted, compiler, ["serve", web, "--check-config"]) -> false;
+        not run_ok(extracted, compiler, ["--out-dir", vm_build, "build", vm_source, "--target", "terlan-vm"]) -> false;
+        true -> case Directory.entries(child(vm_build, "vm")) {
+            Err(_reason) -> failure("vm", "VM image directory is missing");
+            Ok(paths) ->
+                case only_tvm(paths, []) {
+                    [image | []] ->
+                        if {
+                            not run_ok(extracted, vm, ["run", image, "--entry", "vm_release.Main.main", "--test-eval"]) -> false;
+                            not run_ok(extracted, compiler, ["test", test_source, "--name", "release_artifact_test"]) -> false;
+                            true -> case run_output(repository, compiler, ["inspect", extracted, "--snapshot"]) {
+                                Some(output) -> inspect_valid(Process.stdout(output));
+                                None -> false
+                            }
+                        };
+                    _ -> failure("vm", "compiler did not emit exactly one TVM image")
+                }
+        }
+    }.
+
+smoke_extracted(repository: String, extracted: String, platform: ReleasePlatform): Bool ->
+    let compiler = child(extracted, ReleasePlatform.compiler(platform));
+    let vm = child(extracted, ReleasePlatform.vm(platform));
+    let worker = child(extracted, ReleasePlatform.native_worker(platform));
+    let lsp = child(extracted, ReleasePlatform.lsp(platform));
+    let binaries = [compiler, vm, worker, lsp];
+    let Some(version) <- ReleasePlatform.cargo_version(repository) else {
+        _ -> failure("version", "Cargo.toml version is unavailable")
+    };
+    if {
+        not all_files(binaries) -> failure("binaries", "release archive omitted an executable");
+        not verify_metadata(repository, extracted, platform, binaries) -> false;
+        not required_payloads_exist(extracted) -> failure("payload", "release payload is incomplete");
+        true -> case Hash.verify_sha256_manifest(extracted, child(extracted, "SHA256SUMS")) {
+            Ok(true) ->
+                if {
+                    not all_executable(binaries) -> failure("mode", "release executable mode drifted");
+                    not run_ok(extracted, vm, ["validate-package", extracted]) -> false;
+                    not version_matches(extracted, compiler, "terlc", version) -> failure("version", "compiler version drifted");
+                    not version_matches(extracted, vm, "terlan-vm", version) -> failure("version", "VM version drifted");
+                    not version_matches(extracted, worker, "terlan-native-worker", version) -> failure("version", "native worker version drifted");
+                    not lsp_help_matches(extracted, lsp) -> failure("lsp", "stdio entrypoint is missing");
+                    true -> run_compiler_smokes(repository, extracted, compiler, vm)
+                };
+            _ -> failure("checksums", "release payload checksum verification failed")
+        }
+    }.
+
+pub all_files(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] -> File.exists(path) and all_files(rest)
+    }.
+
+/**
+ * Extracts and validates the current-platform artifact using only typed Terlan APIs.
+ */
+pub smoke(repository: String): Bool ->
+    let Some(platform) <- ReleasePlatform.detect() else {
+        _ -> failure("platform", "unsupported release platform")
+    };
+    (let artifact = child(child(repository, "dist"), ReleasePlatform.artifact(platform));
+if {
+    not File.exists(artifact) -> failure("artifact", "release archive is missing");
+    true -> case Directory.create_temporary("terlan-release-artifact-smoke.") {
+        Err(_reason) -> failure("temporary", "cannot create temporary directory");
+        Ok(temporary) ->
+            let extracted = child(temporary, "extracted");
+            let valid =
+                case Archive.extract(artifact, extracted) {
+                    Ok(Unit) -> smoke_extracted(repository, extracted, platform);
+                    Err(_reason) -> failure("archive", "cannot extract release artifact")
+                };
+            let cleaned =
+                case Directory.remove_all(temporary) {
+                    Ok(Unit) -> true;
+                    Err(_reason) -> failure("cleanup", "cannot remove smoke directory")
+                };
+            valid and cleaned
+    }
+}).

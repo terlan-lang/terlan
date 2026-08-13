@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::terlan_hir::module_path_to_native_boundary_module;
-use crate::terlan_syntax::find_matching_paren;
+use crate::terlan_syntax::{find_matching_paren, native_signature_arity};
 use serde_json::json;
 
 use crate::validation::native_policy::NativePolicy;
@@ -435,46 +435,6 @@ fn parse_native_function_name(prefix: &str) -> Option<String> {
     }
 }
 
-/// Counts top-level arguments in a native function signature.
-///
-/// Inputs:
-/// - `args`: text between the outer function-call parentheses.
-///
-/// Output:
-/// - Number of top-level comma-separated arguments.
-///
-/// Transformation:
-/// - Tracks nested parentheses, brackets, and braces so commas inside nested
-///   types do not increase arity.
-fn native_signature_arity(args: &str) -> usize {
-    let trimmed = args.trim();
-    if trimmed.is_empty() {
-        return 0;
-    }
-
-    let mut paren_depth = 0isize;
-    let mut bracket_depth = 0isize;
-    let mut brace_depth = 0isize;
-    let mut commas = 0usize;
-
-    for ch in args.chars() {
-        match ch {
-            '(' => paren_depth += 1,
-            ')' => paren_depth -= 1,
-            '[' => bracket_depth += 1,
-            ']' => bracket_depth -= 1,
-            '{' => brace_depth += 1,
-            '}' => brace_depth -= 1,
-            ',' if paren_depth == 0 && bracket_depth == 0 && brace_depth == 0 => {
-                commas += 1;
-            }
-            _ => {}
-        }
-    }
-
-    commas + 1
-}
-
 /// Renders a Rust NativeBoundary skeleton.
 ///
 /// Inputs:
@@ -611,7 +571,7 @@ fn emit_native_boundary_rust_stub(metadata: &NativeMetadata) -> String {
     out.push_str("            let _ = join.join();\n");
     out.push_str("        }\n");
     out.push_str("    }\n");
-    out.push_str("\n");
+    out.push('\n');
     out.push_str("    fn send_and_recv(&self, command: NativeBoundaryCommand, request_id: u64, rx: Receiver<NativeBoundaryReply>) -> NativeBoundaryReply {\n");
     out.push_str("        if self.tx.send(command).is_err() {\n");
     out.push_str("            return native_error_reply(request_id, \"native_worker_stopped\", \"native worker is not accepting requests\", 0);\n");
@@ -735,4 +695,5 @@ fn escape_rust_string(input: &str) -> String {
 
 #[cfg(test)]
 #[path = "artifacts_test.rs"]
+#[cfg(test)]
 mod artifacts_test;

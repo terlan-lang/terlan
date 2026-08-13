@@ -19,7 +19,7 @@ import type std.time.Duration.
  * JavaScript number timestamp.
  */
 pub struct Instant {
-    milliseconds: Float
+    milliseconds: Float,
 }.
 
 /**

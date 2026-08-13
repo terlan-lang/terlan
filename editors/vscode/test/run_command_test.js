@@ -664,11 +664,11 @@ function testResolveRunTargetPathFallsBackToWorkspaceRoot() {
 /** Verifies the run action distinguishes project scripts from package source. */
 function testIsProjectScriptFilePath() {
   assert.strictEqual(
-    isProjectScriptFilePath("/workspace/hello/scripts/test.terl", "/workspace/hello"),
+    isProjectScriptFilePath("/workspace/hello/scripts/test.terls", "/workspace/hello"),
     true
   );
   assert.strictEqual(
-    isProjectScriptFilePath("/workspace/hello/scripts/db/Reset.terl", "/workspace/hello"),
+    isProjectScriptFilePath("/workspace/hello/scripts/db/Reset.terls", "/workspace/hello"),
     true
   );
   assert.strictEqual(
@@ -676,7 +676,7 @@ function testIsProjectScriptFilePath() {
     false
   );
   assert.strictEqual(
-    isProjectScriptFilePath("/workspace/other/scripts/test.terl", "/workspace/hello"),
+    isProjectScriptFilePath("/workspace/other/scripts/test.terls", "/workspace/hello"),
     false
   );
 }

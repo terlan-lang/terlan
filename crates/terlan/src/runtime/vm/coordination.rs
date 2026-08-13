@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::term_format::{encode_tetf_distribution_envelope, TetfDistributionEnvelope, TetfVmRef};
@@ -154,6 +152,7 @@ pub(crate) struct VmClusterNodeSnapshot {
     pub(crate) role_tags: Vec<String>,
 }
 
+#[cfg(test)]
 impl VmClusterNodeSnapshot {
     /// Builds a deterministic node snapshot from a coordination profile.
     fn from_profile(
@@ -191,6 +190,7 @@ impl VmClusterNodeSnapshot {
 /// - Tracks join, heartbeat, leave, unreachable, and fenced states without
 ///   embedding a consensus algorithm or backend network transport.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmClusterMembership {
     local: VmCoordinationProfile,
     heartbeat_timeout_ticks: u64,
@@ -198,6 +198,7 @@ pub(crate) struct VmClusterMembership {
     node_epochs: BTreeMap<String, u64>,
 }
 
+#[cfg(test)]
 impl VmClusterMembership {
     /// Creates a membership view containing the local node as active.
     pub(crate) fn new(
@@ -254,40 +255,6 @@ impl VmClusterMembership {
         self.nodes.insert(
             peer.node_id().to_string(),
             VmClusterNodeSnapshot::from_profile(peer, VmClusterNodeState::Active, tick, role_tags),
-        );
-        self.node_epochs
-            .insert(peer.node_id().to_string(), peer.epoch());
-        Ok(())
-    }
-
-    /// Restores one validated peer snapshot from an opaque VM descriptor.
-    pub(crate) fn restore_peer_snapshot(
-        &mut self,
-        peer: &VmCoordinationProfile,
-        state: VmClusterNodeState,
-        last_seen_tick: u64,
-        role_tags: impl IntoIterator<Item = impl Into<String>>,
-    ) -> Result<(), String> {
-        if peer.node_id() == self.local.node_id() {
-            return Err(
-                "error[vm_cluster_membership]: local node cannot be restored as a peer".to_string(),
-            );
-        }
-        if self.nodes.contains_key(peer.node_id()) {
-            return Err(format!(
-                "error[vm_cluster_membership]: duplicate restored node `{}`",
-                peer.node_id()
-            ));
-        }
-        if !self.local.can_coordinate_with(peer) {
-            return Err(
-                "error[vm_cluster_membership]: incompatible restored VM coordination profile"
-                    .to_string(),
-            );
-        }
-        self.nodes.insert(
-            peer.node_id().to_string(),
-            VmClusterNodeSnapshot::from_profile(peer, state, last_seen_tick, role_tags),
         );
         self.node_epochs
             .insert(peer.node_id().to_string(), peer.epoch());
@@ -522,6 +489,7 @@ pub(crate) struct VmMessageIdAllocator {
     next: u64,
 }
 
+#[cfg(test)]
 impl VmMessageIdAllocator {
     /// Reserves the next monotonic message id without committing it.
     fn reserve(&self) -> Result<u64, String> {
@@ -538,6 +506,7 @@ impl VmMessageIdAllocator {
 
 /// Metadata envelope for a future cross-VM coordination message.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmCoordinationEnvelope {
     pub(crate) message_id: u64,
     pub(crate) trace_id: String,
@@ -551,6 +520,7 @@ pub(crate) struct VmCoordinationEnvelope {
     pub(crate) epoch: u64,
 }
 
+#[cfg(test)]
 impl VmCoordinationEnvelope {
     /// Builds a checked envelope between two compatible VM profiles.
     pub(crate) fn new(
@@ -622,6 +592,7 @@ pub(crate) struct VmDistributedTransportFrame {
 
 /// Inbound delivery classification for one VM distributed transport frame.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmDistributedInboundOutcome {
     Accepted,
     Duplicate,
@@ -638,11 +609,8 @@ pub(crate) enum VmDistributedSessionState {
 /// Typed reason for a VM distributed transport disconnect.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmDistributedDisconnectReason {
-    LocalClose,
-    RemoteClose,
     TransportFailure,
     HeartbeatTimeout,
-    Fenced,
 }
 
 /// Inspectable disconnect event for a VM distributed transport session.
@@ -655,6 +623,7 @@ pub(crate) struct VmDistributedDisconnectEvent {
 
 /// Outcome for a VM distributed transport reconnect attempt.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmDistributedReconnectOutcome {
     AlreadyConnected,
     Reconnected { pending_ack_count: usize },
@@ -690,6 +659,7 @@ pub(crate) struct VmDistributedTransportSession {
 
 /// Serializable state required to resume one distributed transport session.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmDistributedTransportSessionSnapshot {
     pub(crate) next_message_id: u64,
     pub(crate) pending_ack_message_ids: Vec<u64>,
@@ -700,6 +670,7 @@ pub(crate) struct VmDistributedTransportSessionSnapshot {
     pub(crate) last_reconnect_tick: Option<u64>,
 }
 
+#[cfg(test)]
 impl VmDistributedTransportSession {
     /// Opens a transport session between compatible VM coordination profiles.
     pub(crate) fn open(
@@ -981,12 +952,15 @@ impl VmDistributedTransportSession {
 
 #[cfg(test)]
 #[path = "coordination_test.rs"]
+#[cfg(test)]
 mod coordination_test;
 
 #[cfg(test)]
 #[path = "coordination_profile_test.rs"]
+#[cfg(test)]
 mod coordination_profile_test;
 
 #[cfg(test)]
 #[path = "coordination_distribution_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod coordination_distribution_beam_suite_parity_test;

@@ -34,7 +34,7 @@ pub opaque type Regex.
  * shape without exposing target-specific exception values.
  */
 pub struct RegexError includes Error {
-    offset: Int
+    offset: Int,
 }.
 
 /**
@@ -58,6 +58,18 @@ pub compile(pattern: String): Result[Regex, RegexError] ->
  */
 @compiler.native {std.regex.regex.is_match}
 pub is_match(regex: Regex, text: String): Bool ->
+    native.
+
+/**
+ * Returns the one-based numbers of every matching text line.
+ *
+ * Input: one compiled regex and UTF-8 text containing zero or more lines.
+ * Output: line numbers in ascending source order for lines matching anywhere.
+ * Transformation: performs line iteration inside the selected regex adapter,
+ * avoiding one runtime transition and one actor-heap allocation per line.
+ */
+@compiler.native {std.regex.regex.matching_line_numbers}
+pub matching_line_numbers(regex: Regex, text: String): List[Int] ->
     native.
 
 /**

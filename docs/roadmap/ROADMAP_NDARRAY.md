@@ -9,7 +9,9 @@ active release roadmap promotes one of its named gates.
 
 ## Current State And Activation
 
-Status as of 2026-07-19: ND0 through ND2 complete; ND3 active.
+Status as of 2026-08-13: the original contiguous CPU package baseline is
+complete. NumPy-compatible CPU array behavior is now required for 0.0.7 and is
+tracked by ND8 through ND19; remote immutable publication remains pending.
 
 - The external `terlan-ndarray` package checkout now freezes ABI v1 and owns
   deterministic generated bindings, native/Terlan execution tests, and native
@@ -18,16 +20,26 @@ Status as of 2026-07-19: ND0 through ND2 complete; ND3 active.
   a package-neutral `List[Bool]` contract without ndarray-specific compiler
   code.
 - `make terlan-ndarray-package-check` passes the compiler contract suite, all
-  35 C ABI generator tests, deterministic generation, seven adversarial
-  metadata cases, warning-denied C/Rust builds, native sanitizers, generated
-  helper lifecycle tests, and a revision-locked external Terlan consumer.
-- ND3 through ND7 remain pending. ND8 is deliberately deferred.
+  42 C ABI generator tests, deterministic generation, adversarial metadata
+  cases, warning-denied C/Rust builds, native sanitizers, generated helper
+  lifecycle tests, and a revision-locked external Terlan consumer.
+- `make terlan-ndarray-blas-check` passes real OpenBLAS LP64 provider
+  admission, CBLAS `dgemm` semantics, package and immutable-consumer execution,
+  stable provider rejection cases, and the non-gating five-size benchmark.
+- `make terlan-ndarray-release-check` passes the complete package, CBLAS,
+  DLPack, ndarray-to-PyTorch, Polars-to-PyTorch, transformed
+  Polars-to-ndarray-to-PyTorch, and source-deleted immutable consumer lanes.
+- ND7 completed the original executable technical baseline. Publishing the
+  package repositories and replacing integration revisions with the resulting
+  remote commits remains a release action.
+- ND8 through ND19 replace the former MVP boundary with the required NumPy
+  behavioral-compatibility program. The package is not complete for 0.0.7
+  until those milestones pass.
 
-Work begins with `ND0` immediately after the pinned CPU `terlan-pytorch`
-package is remotely published and proven from a no-sibling checkout. CUDA and
-general PyTorch autograd do not precede ndarray. Once ND0 starts, its ABI gate
-should be promoted into the active release roadmap; later gates are promoted
-only when their prerequisite milestone is complete.
+The compiler release gate invokes the package closure gate. PyTorch autograd
+remains PyTorch-owned, while NumPy-compatible CPU array semantics belong to
+`terlan-ndarray`. CUDA is an optional device backend that must preserve the
+same admitted array behavior without becoming a CPU installation dependency.
 
 Progress is measured by the executable checkboxes under each milestone, not by
 document creation, generated stubs, or native-only probes. A milestone status
@@ -41,17 +53,28 @@ Terlan will use a separate package and repository named `terlan-ndarray`.
 - Terlan package: `terlan-ndarray`.
 - Public namespace: `ndarray`.
 - Primary public type: opaque `ndarray.Array`.
-- Default execution profile: owned, contiguous, row-major CPU arrays.
+- Default execution profile: CPU arrays with NumPy-compatible strided views.
 - Native package boundary: generated stable C ABI metadata and
   `NativeBoundary` resource handles.
-- Tensor interchange: versioned DLPack C structures.
-- Columnar interchange: the Arrow C Data Interface.
+- Tensor interchange: versioned pointer-free TNXP values with DLPack-compatible
+  dtype, shape, stride, device, and ownership semantics.
+- Columnar conversion: Polars-owned checked materialization into TNXP.
 - Numerical kernels: CBLAS first and LAPACKE only when a public operation
   requires it.
 
-The package is not a NumPy binding. NumPy's public C API is coupled to CPython
-objects, interpreter initialization, reference counting, and NumPy version
-compatibility. `terlan-ndarray` must run without Python or NumPy installed.
+The package is not a NumPy or CPython binding. It implements NumPy-compatible
+array behavior through Terlan-native types and errors and must run without
+Python or NumPy installed. NumPy is the behavioral reference for dtypes,
+indexing, slicing, views, broadcasting, elementwise operations, reductions,
+shape composition, creation, serialization, and CPU linear algebra.
+
+Completion requires behavioral feature parity with the pinned NumPy CPU
+numerical surface by module, not an MVP subset. Every NumPy operation must be
+implemented, classified as a typed Terlan equivalent, or recorded as
+non-applicable because it exists only for CPython integration, object dtype,
+ndarray subclassing, or another runtime mechanism Terlan intentionally does
+not expose. Unclassified omissions and placeholder implementations fail the
+release gate.
 
 The package is also not a public wrapper over Rust `ndarray`. A Rust crate may
 be evaluated as an internal implementation detail later, but Rust layouts,
@@ -85,9 +108,9 @@ Array unit tests alone are insufficient. DLPack structure tests alone are
 insufficient. Completion requires fresh-package Terlan consumer execution and
 at least one real Polars-to-array-to-PyTorch path.
 
-## Scope And Non-Goals
+## Compatibility Scope
 
-The first release owns a deliberately small numerical-array model:
+The original package baseline established:
 
 - homogeneous elements;
 - rank-zero and arbitrary-rank shapes;
@@ -100,17 +123,28 @@ The first release owns a deliberately small numerical-array model:
   rank-2 matrix multiplication where implemented;
 - deterministic disposal and stale-handle rejection.
 
-The first release does not promise:
+For 0.0.7, ND8 through ND19 extend that baseline to behavioral parity with
+NumPy's homogeneous numerical CPU `ndarray` surface. Parity means equivalent
+observable array results, shape rules, dtype promotion, indexing, views,
+broadcasting, reductions, composition, random reproducibility contracts,
+serialization, and linear-algebra behavior where the corresponding capability
+is admitted. Terlan uses typed `Result` values and Terlan naming rather than
+copying Python exceptions, dynamic dispatch, or Python-specific call syntax.
 
-- NumPy API compatibility;
-- CPython embedding;
-- object, string, categorical, nullable, or heterogeneous array elements;
-- arbitrary borrowed buffers exposed to Terlan source;
-- autograd, models, optimizers, or training;
-- DataFrame query operations;
-- image decoding or computer-vision algorithms;
-- CUDA execution, asynchronous streams, distributed arrays, or sparse arrays;
-- automatic zero-copy conversion when ownership or layout cannot be proved.
+The following remain outside `terlan-ndarray` ownership:
+
+- CPython embedding and NumPy's Python object/C extension ABI;
+- object, string, categorical, nullable, record, and heterogeneous arrays;
+- Python subclass hooks, `__array_function__`, `__array_ufunc__`, and Python
+  iterator/protocol integration;
+- autograd, models, optimizers, and training, which belong to
+  `terlan-pytorch`;
+- DataFrame query operations, which belong to `terlan-polars`;
+- image decoding and computer-vision algorithms, which belong to
+  `terlan-opencv`;
+- distributed arrays and sparse matrix packages;
+- unsafe raw pointers or arbitrary borrowed host buffers exposed to Terlan
+  source.
 
 Those responsibilities remain with specialized packages. In particular,
 `terlan-pytorch` owns autograd and ML tensors, `terlan-polars` owns DataFrames,
@@ -122,7 +156,7 @@ The first implementation must use one deliberately narrow semantic model. This
 prevents BLAS, DLPack, Polars, and PyTorch integrations from each inventing a
 different interpretation of an array.
 
-### Logical array model
+### Original Logical Array Baseline
 
 Every live array has these observable properties:
 
@@ -152,11 +186,15 @@ Array = {
   structural checks from tolerance-based numerical checks and explicitly cover
   NaN, infinities, and signed zero.
 
-### Ownership model
+### Shared Storage And Ownership Model
 
-Baseline operations never return views. Constructors copy inputs, readback
-copies outputs, and every transform or arithmetic operation returns a new
-independently owned array. Disposing a result must never invalidate an input.
+Constructors copy inputs and readback copies outputs. Basic slicing, indexing,
+reshape where layout permits, transpose, permutation, and broadcasting return
+shared strided views. Explicit `copy` and `contiguous` operations return
+independently owned storage. Storage remains live until its final array or view
+is disposed, and disposing one handle must never invalidate another live view.
+Writable views expose mutation to every alias of the same element;
+zero-stride broadcast views are read-only.
 
 The native handle table and VM `NativeBoundary` resource table jointly enforce:
 
@@ -170,24 +208,24 @@ The native handle table and VM `NativeBoundary` resource table jointly enforce:
 - no pointer, allocator identity, or generation value visible to Terlan source;
 - panic and foreign-exception containment before crossing the C ABI.
 
-Views, borrowed arrays, copy-on-write storage, and shared DLPack-backed storage
-are later features. They must not be simulated by weakening this ownership
-model.
+Raw borrowed pointers remain forbidden at the Terlan boundary. Shared storage
+is reference counted by package-owned code and external ownership callbacks are
+retained exactly once until the final dependent view is released.
 
 ### Operation contracts
 
-- `reshape` requires the same element count and performs an owned copy in the
-  baseline even when metadata-only reshape would be possible.
-- `transpose(axis0, axis1)` validates normalized non-negative axes and returns
-  canonical contiguous row-major storage. Negative axis shorthand is deferred.
-- Elementwise arithmetic initially requires identical dtype and shape. No
-  implicit dtype promotion or broadcasting is allowed.
+- `reshape` requires the same element count, returns a view when strides permit,
+  and otherwise materializes according to NumPy-compatible order rules.
+- `transpose(axis0, axis1)` validates normalized axes, including negative axis
+  shorthand, and returns a shared strided view.
+- Elementwise arithmetic applies the canonical NumPy-compatible promotion and
+  trailing-axis broadcasting rules defined by ND9.
 - `sum` rejects duplicate and out-of-range axes. The order of supplied axes
   does not change the result. Integer overflow behavior must be selected and
   documented before `Int64` reduction is public.
-- `matmul` initially accepts rank-2 `Float64` arrays only. Batched matmul,
-  vector promotion, and implicit copies of arbitrary strided inputs are not
-  part of the first contract.
+- `matmul` follows vector, matrix, and broadcast-batched NumPy behavior and may
+  explicitly materialize arbitrary strided operands before maintained BLAS
+  calls.
 - Every fallible public operation returns a typed Terlan `Result`; native status
   values are never exposed as the public error API.
 
@@ -197,7 +235,7 @@ model.
 | --- | --- | --- |
 | `terlan` compiler repository | Generic C metadata validation and generation, package execution, `NativeBoundary` resource and cross-package handoff contracts, stable generic diagnostics, and package-neutral fixtures | Numerical algorithms, a public `ndarray` API, BLAS linkage, or package-specific conversion code |
 | future `terlan-ndarray` repository | Public array API, C metadata, package-owned native implementation, DLPack mapping, BLAS/LAPACK linkage policy, fixtures, package tests, and consumer tests | Compiler parsing/lowering forks, Polars query logic, PyTorch operations, or OpenCV algorithms |
-| `terlan-polars` repository | `Series.to_array`, `DataFrame.to_array`, and Polars-owned `to_torch` convenience integration | Array storage or PyTorch implementation |
+| `terlan-polars` repository | `Series.to_array`, `DataFrame.to_array`, column selection, casting, null policy, and TNXP materialization | Array storage, PyTorch implementation, or direct tensor construction |
 | `terlan-pytorch` repository | `Tensor.from_array`/DLPack consumption and tensor/model operations | DataFrame conversion or generic CPU array semantics |
 | future `terlan-opencv` repository | Explicit `Mat`/array conversion policy where useful | Generic ndarray storage or DLPack ownership rules |
 
@@ -221,16 +259,10 @@ compiler tests, or link BLAS into the compiler itself.
 The base package must not depend on Polars, PyTorch, OpenCV, NumPy, or Python.
 
 ```text
-                         +------------------+
-                         | terlan-ndarray   |
-                         | Array + DLPack   |
-                         +------------------+
-                           ^       ^      ^
-                           |       |      |
-               +-----------+       |      +-----------+
-               |                   |                  |
-       terlan-polars        terlan-pytorch       terlan-opencv
-       DataFrame/Series      Tensor/models        Mat/images
+                         +-> terlan-ndarray -> transformed TNXP -+
+terlan-polars -> TNXP ---+                                      +-> terlan-pytorch
+                         +---------------------------------------+
+                         +-> terlan-cuda (optional)
 ```
 
 `terlan-polars` owns the high-level conversion entrypoints because conversion
@@ -243,15 +275,12 @@ The intended user paths are:
 List values + shape -> ndarray.Array
 Polars DataFrame    -> DataFrame.to_array -> ndarray.Array
 ndarray.Array       -> Tensor.from_array  -> pytorch.Tensor
-Polars DataFrame    -> DataFrame.to_torch -> pytorch.Tensor
+Polars DataFrame    -> DataFrame.to_pytorch_packet -> Tensor.from_packet
 ```
 
-`DataFrame.to_torch` is a Polars-owned convenience surface. It should compose
-the same checked array/DLPack machinery rather than implement a second buffer
-protocol. If Terlan package metadata cannot express an optional PyTorch
-dependency, the Polars repository should publish that convenience as a
-Polars-owned integration package rather than forcing PyTorch on every Polars
-consumer.
+Direct packet consumption avoids a redundant ndarray import/export when no
+array operation is required. ndarray remains the canonical general-purpose
+array owner, not a mandatory transit package.
 
 ## Stable Native Foundations
 
@@ -261,8 +290,7 @@ package therefore composes small, durable boundaries.
 
 | Foundation | Role | Explicit non-role |
 | --- | --- | --- |
-| DLPack | Homogeneous tensor dtype, shape, strides, device, data pointer, versioning, and deleter-based exchange | Array implementation or numerical operators |
-| Arrow C Data Interface | ABI-stable extraction of Polars/Arrow primitive column buffers, schemas, validity, and release callbacks | Dense multidimensional numerical operations |
+| TNXP with DLPack semantics | Pointer-free homogeneous tensor dtype, shape, strides, device, versioning, and checked copied exchange | Array implementation or numerical operators |
 | CBLAS | Stable CPU vector/matrix kernels, beginning with rank-2 matrix multiplication | Array ownership, arbitrary-rank semantics, or dtype policy |
 | LAPACKE | Later decompositions/solvers when selected by a public API milestone | Required dependency for the first package slice |
 | package-owned C ABI | Stable opaque handles, status codes, checked construction, copies, inspection, and disposal | A promise that internal structs are ABI-visible |
@@ -422,9 +450,9 @@ directly between two adapters does not close this milestone.
 
 ## Arrow And Polars Conversion Policy
 
-Arrow's C Data Interface supplies a stable columnar memory and lifetime
-contract. It does not automatically turn a heterogeneous DataFrame into one
-homogeneous row-major array.
+Polars does not automatically turn a heterogeneous DataFrame into one
+homogeneous row-major array. The package must perform that conversion under an
+explicit checked policy.
 
 `terlan-polars` must own:
 
@@ -439,8 +467,8 @@ homogeneous row-major array.
   selections, and overflow.
 
 The baseline `DataFrame.to_array` implementation copies selected primitive
-columns into one contiguous row-major `ndarray.Array`. Arrow release callbacks
-must still be honored for every exported column, including partial failure.
+columns into one contiguous row-major TNXP value. Arrow C Data is not part of
+this contract.
 
 Later zero-copy support may be added for a compatible single primitive Series
 or an already compatible dense buffer. It must not be claimed for an ordinary
@@ -669,26 +697,26 @@ negative consumers.
 
 ### ND3 - Real CBLAS Execution
 
-Status: Active.
+Status: Complete.
 
-- [ ] Acquire or locate the selected released CBLAS provider in the package
+- [x] Acquire or locate the selected released CBLAS provider in the package
   build without adding BLAS linkage to `terlc` or the VM.
-- [ ] Validate provider version, library identity, architecture, calling
+- [x] Validate provider version, library identity, architecture, calling
   convention, and LP64/ILP64 integer width before execution.
-- [ ] Implement rank-2 row-major Float64 matrix multiplication through CBLAS
+- [x] Implement rank-2 row-major Float64 matrix multiplication through CBLAS
   `dgemm` with checked dimension conversion and output allocation.
-- [ ] Define zero-dimension matmul behavior and prove the implementation does
+- [x] Define zero-dimension matmul behavior and prove the implementation does
   not pass invalid pointers to a provider for an empty operation.
-- [ ] Compare exact integer-valued fixtures and tolerance-based fractional
+- [x] Compare exact integer-valued fixtures and tolerance-based fractional
   fixtures with a package-owned reference implementation outside timed runs.
-- [ ] Exercise rectangular, identity, zero, non-finite, incompatible-shape,
+- [x] Exercise rectangular, identity, zero, non-finite, incompatible-shape,
   unsupported-dtype, integer-width, missing-provider, and allocation-failure
   cases.
-- [ ] Execute matmul from package Terlan tests and from a fresh immutable Git
+- [x] Execute matmul from package Terlan tests and from a fresh immutable Git
   consumer after deleting access to the source checkout.
-- [ ] Record provider provenance and semantic result in deterministic reports;
+- [x] Record provider provenance and semantic result in deterministic reports;
   reject an unidentifiable or incompatible library rather than guessing.
-- [ ] Add a non-gating benchmark for sizes `1`, `16`, `64`, `256`, and `1024`
+- [x] Add a non-gating benchmark for sizes `1`, `16`, `64`, `256`, and `1024`
   with warmup and at least three samples. Benchmark results cannot replace
   semantic acceptance.
 
@@ -698,30 +726,45 @@ rejected deterministically.
 
 Gate: `make terlan-ndarray-blas-check`.
 
+Completed progress: the package resolver downloads the immutable OpenBLAS
+source over HTTPS, verifies its SHA-256 before safe extraction, and reuses a
+content-addressed cache. The generated package resolves the resulting static,
+dynamic-architecture provider through generic `pkg-config` metadata while
+keeping BLAS out of `terlc` and the VM. Provider admission records source and
+library digests, version, architecture, C calling convention, LP64 integer
+width, configuration, and fixed build options; missing, wrong-width,
+wrong-architecture, and insufficient-version providers fail with stable
+diagnostics. Rank-2 row-major Float64 `matmul` executes through `cblas_dgemm`,
+skips provider calls for empty work, and passes package-owned reference,
+allocation-failure, sanitizer, Terlan, and deleted-source immutable-consumer
+tests. Deterministic semantic evidence is in
+`reports/ndarray-blas-report.json`; non-gating measurements for all five sizes
+are isolated in `reports/ndarray-blas-benchmark.json`.
+
 ### ND4 - DLPack Structure And Ownership Contract
 
-Status: Pending.
+Status: Complete.
 
-- [ ] Add a package-neutral one-shot native exchange resource to
+- [x] Add a package-neutral one-shot native exchange resource to
   `NativeBoundary` with typed producer/consumer identities and atomic
   `Available -> Claimed -> Closed` transitions.
-- [ ] Prove cancellation, actor exit, helper crash, consumer rejection, VM
+- [x] Prove cancellation, actor exit, helper crash, consumer rejection, VM
   shutdown, and abandoned-resource cleanup invoke exactly one producer cleanup
   action without holding runtime registry locks.
-- [ ] Implement package-native DLPack export for baseline CPU arrays using the
+- [x] Implement package-native DLPack export for baseline CPU arrays using the
   pinned versioned structures and a package-owned manager context.
-- [ ] Implement DLPack import as an owned copy, preserving source readability
+- [x] Implement DLPack import as an owned copy, preserving source readability
   and invoking the producer deleter after the copy or on every rejection path.
-- [ ] Validate DLPack version, device, dtype code/bits/lanes, rank, dimensions,
+- [x] Validate DLPack version, device, dtype code/bits/lanes, rank, dimensions,
   nullability, strides, byte offset, pointer alignment, element/byte overflow,
   and supported contiguous layout before reading data.
-- [ ] Reject second claim, wrong exchange kind, stale token, forged scalar token,
+- [x] Reject second claim, wrong exchange kind, stale token, forged scalar token,
   and mismatched producer/consumer capability with stable diagnostics.
-- [ ] Add adversarial native fixtures whose deleter increments an atomic audit
+- [x] Add adversarial native fixtures whose deleter increments an atomic audit
   counter; require exactly one event under success and each failure phase.
-- [ ] Run producer and consumer as independently built helpers through the VM
+- [x] Run producer and consumer as independently built helpers through the VM
   broker. A direct in-process adapter call does not satisfy this item.
-- [ ] Preserve list construction/readback as an always-available owned-copy
+- [x] Preserve list construction/readback as an always-available owned-copy
   fallback independent from DLPack support.
 
 Exit: two independently built native package fixtures exchange an array through
@@ -729,58 +772,129 @@ the runtime broker without exposing or serializing a pointer.
 
 Gate: `make ndarray-dlpack-interop-check`.
 
+Completed progress: the VM owns a package-neutral, authenticated one-shot
+exchange registry and transports only validated pointer-free tensor packets.
+The ndarray producer and an independently generated value-only C consumer build
+as separate helpers, resolve from immutable Git revisions after their source
+checkouts are removed, and pass success, duplicate claim, wrong consumer,
+consumer rejection, helper crash, and abandonment flows. Native DLPack tests
+cover exact deleter cardinality, malformed metadata, packet truncation and
+trailing data, allocation failure at every owned phase, zero dimensions, and
+source readability. Deterministic evidence is recorded in
+`reports/ndarray-dlpack-report.json`.
+
 ### ND5 - Polars To Array
 
-Status: Pending; implementation owner is `terlan-polars`.
+Status: Complete; implementation owner is `terlan-polars`.
 
-- [ ] Add an optional immutable `terlan-ndarray` dependency to the Polars
-  integration surface without forcing PyTorch on Polars-only consumers.
-- [ ] Implement `Series.to_array` for supported primitive bool/integer/Float64
-  Arrow data with explicit casting and null policy.
-- [ ] Implement `DataFrame.to_array(columns, dtype, null_policy)` with stable
+- [x] Keep Polars independently installable and exchange pointer-free TNXP
+  values with `terlan-ndarray`; no direct package dependency is required.
+- [x] Implement `Series.to_array` for supported primitive bool/integer/Float64
+  data with explicit Float64 casting and null policy. The public API emits the
+  same pointer-free TNXP exchange token as DataFrame conversion.
+- [x] Implement `DataFrame.to_array(columns, dtype, null_policy)` with stable
   column ordering and exact `[rows, columns]` row-major output.
-- [ ] Consume Arrow C Data schema/array pairs through checked ownership wrappers;
-  execute every release callback exactly once on success and partial failure.
-- [ ] Consolidate chunks or copy across them deliberately. Reject unsupported
-  nested, string, categorical, temporal, object, and mixed data without
-  interpreting provider-private layouts.
-- [ ] Cover empty frames, empty selections, missing/duplicate columns, chunked
-  columns, nulls, cast overflow, mixed numeric types, schema mismatch, and
-  release-callback failure injection.
-- [ ] Execute the Iris path: select four Float64 feature columns from 150 rows,
+- [x] Keep Arrow C Data out of the initial interoperability contract. Polars
+  materializes supported columns into the checked pointer-free TNXP exchange;
+  direct Arrow C Data ownership is deferred until benchmarks demonstrate that
+  the copy is a material bottleneck.
+- [x] Consolidate selected cast columns into one chunk before encoding. Reject
+  nested, string, categorical, temporal, object, and other unsupported data
+  without interpreting provider-private layouts; mixed admitted primitive
+  columns follow the explicit Float64 conversion request.
+- [x] Cover empty frames, empty selections, empty/missing/duplicate column
+  names, chunked columns, nulls, mixed supported primitive numeric types, and
+  representative temporal and nested physical layouts.
+- [x] Record non-applicable failure classes explicitly: admitted primitive
+  integer values remain finite when explicitly cast to Float64, valid Polars
+  DataFrames enforce equal column lengths, and the owned TNXP path has no Arrow
+  release callback.
+- [x] Execute the Iris conversion path: select four Float64 feature columns from 150 rows,
   produce exact shape `[150, 4]`, verify bounded known values, and release all
-  Polars, Arrow, and ndarray resources.
-- [ ] Run the integration from a fresh consumer using immutable revisions of
+  Polars resources after producing independently owned exchange data.
+- [x] Run the integration from a fresh consumer using immutable revisions of
   both packages.
+
+Progress evidence: the Polars native adapter now exposes
+`polars.series.export_tensor_packet` and `Series.to_array`, reusing the checked
+DataFrame encoder. Ten focused real-Polars tensor tests pass, including
+boolean and integer casting, row-major layout, null rejection, unsupported
+strings, empty frames and selections, missing and duplicate columns,
+unsupported dtype and null policy, invalid consumer namespaces, explicit
+multi-chunk consolidation without source mutation, mixed primitive numeric
+conversion, temporal and nested rejection, and the exact 150-row Iris feature
+conversion. Arrow C Data is intentionally deferred: neither the
+Polars-to-ndarray path nor the DLPack-based ndarray-to-PyTorch path exposes raw
+Arrow pointers or release callbacks. The current workspace compiler accepts
+the complete Polars declaration surface, including negative constant defaults.
 
 Exit: a fresh consumer reads the checked Iris CSV with Polars, selects four
 Float64 feature columns, obtains an exact `[150, 4]` array, verifies selected
-values, and cleans up every Arrow, Polars, and ndarray resource.
+values, and cleans up every Polars and ndarray resource.
 
 Gate: `make polars-ndarray-interop-check`.
 
 ### ND6 - Array To PyTorch
 
-Status: Pending; implementation owner is `terlan-pytorch`.
+Status: Complete; implementation owner is `terlan-pytorch`.
 
-- [ ] Add an optional immutable `terlan-ndarray` dependency to
-  `terlan-pytorch`; keep Polars absent from the PyTorch dependency graph.
-- [ ] Implement `Tensor.from_array` through the reviewed DLPack exchange broker,
-  not through a package-specific pointer tunnel or compiler branch.
-- [ ] Make the first operation an owned copy, preserve supported CPU dtype and
+- [x] Keep PyTorch independently installable and consume pointer-free TNXP
+  values produced by `terlan-ndarray`; keep Polars absent from the PyTorch
+  dependency graph.
+- [x] Implement `Tensor.from_array` through the reviewed pointer-free DLPack
+  exchange broker, not through a package-specific pointer tunnel or compiler
+  branch.
+- [x] Make the first operation an owned copy, preserve supported CPU dtype and
   shape, and leave the source `Array` readable after tensor construction.
-- [ ] Execute exact non-constant Bool, Int64, and Float64 conversions, then run
+- [x] Execute exact non-constant Bool, Int64, and Float64 conversions, then run
   one observable PyTorch operation on each supported tensor dtype.
-- [ ] Cover unsupported dtype/device/layout, malformed DLPack metadata, stale
+- [x] Cover unsupported dtype/device/layout, malformed DLPack metadata, stale
   source, consumer rejection, native exception, double claim, and cleanup after
   actor cancellation.
-- [ ] Require producer and consumer cleanup audits to show one DLPack deleter
+- [x] Require producer and consumer cleanup audits to show one DLPack deleter
   call and independently valid source/tensor destruction in every order.
-- [ ] Add Polars-owned `DataFrame.to_torch` only as composition of
-  `DataFrame.to_array` and `Tensor.from_array`; do not implement a second
-  Polars-to-tensor buffer protocol.
-- [ ] Execute the complete Iris feature path and verify tensor shape `[150, 4]`
+- [x] Expose `DataFrame.to_pytorch_packet` and `Tensor.from_packet` over the
+  same TNXP protocol. Route through ndarray only when array operations are
+  required; do not force a redundant import/export hop.
+- [x] Execute the complete direct Iris feature path and verify tensor shape `[150, 4]`
   plus an exact deterministic model or reduction result.
+- [x] Execute the transformed Iris feature path through three independent
+  package helpers: import `[150, 4]` into ndarray, transpose to `[4, 150]`,
+  export a new PyTorch-targeted packet, verify tensor shape and maximum `7.9`,
+  and return ndarray live allocations to their starting count.
+
+Progress evidence: four independent ndarray/PyTorch consumer tests pass. The
+matrix lane creates a `[2, 3]` ndarray, imports an owned PyTorch tensor, runs
+`mse_loss`, and verifies shape, dtype, values, and cleanup. Three additional
+lanes export non-constant Bool, Int64, and Float64 vectors, run PyTorch
+`narrow`, read exact typed scalar values, and return ndarray allocations to
+their starting count. Six package-level adversarial executions reject duplicate
+claims, wrong consumers, stale ndarray handles, malformed layouts, unsupported
+devices, and unsupported dtypes with stable diagnostics. Six VM broker tests
+cover native metadata admission, one-shot claims, forgery, actor exit, helper
+failure, and shutdown cleanup; native failures remain typed adapter errors and
+do not cross the boundary as exceptions. The PyTorch native DLPack suite passes
+seven tests with the repository CPU fixture, including malformed header,
+trailing data, truncation, broadcast stride, unsupported dtype, and scalar-type
+cases. The seventh native packet test audits the package-private packet manager and
+observes exactly one deleter call on both success and rejection, with no second
+call when the independently owned tensor is dropped. Terlan consumer tests
+dispose the tensor first and continue reading the ndarray source, then dispose
+the ndarray source first and continue executing PyTorch operations on the
+tensor.
+The official `terlan-pytorch` `ndarray-interop-check` also passes with pinned
+LibTorch 2.13 CPU, including C ABI generation, native helper compilation,
+Terlan consumer execution, tensor reduction, and independent cleanup.
+The direct Polars-to-PyTorch gate reads Iris, imports one PyTorch-targeted TNXP
+packet without an ndarray relay, verifies `[150, 4]`, and reduces to the exact
+maximum `7.9`.
+The transformed gate imports a Polars-targeted packet into ndarray, transposes
+the owned array to `[4, 150]`, exports a new PyTorch-targeted packet, verifies
+the transformed tensor and the same exact maximum, and disposes both ndarray
+owners independently.
+The immutable variant resolves exact Polars, ndarray, and PyTorch Git snapshots,
+deletes the source repositories, disables Cargo network access, and repeats the
+same test using only the fresh consumer's package cache.
 
 Exit: an array containing non-constant feature values becomes a PyTorch tensor,
 executes an exact operation, and releases producer/consumer ownership exactly
@@ -790,49 +904,286 @@ Gate: `make ndarray-pytorch-interop-check`.
 
 ### ND7 - Fresh Package And Adversarial Closure
 
-Status: Pending.
+Status: Technical closure complete; remote publication blocked externally.
 
 - [ ] Publish and pin immutable revisions for ndarray and every participating
   integration package.
-- [ ] Fetch into a fresh Terlan consumer, remove sibling checkout access, disable
+  Local HTTPS has no GitHub credentials, local SSH has no accepted key, and
+  the connected GitHub app is not installed for `terlan-lang`. This is the only
+  remaining ND7 action and cannot be satisfied by additional package code.
+- [x] Fetch into a fresh Terlan consumer, remove sibling checkout access, disable
   network access, and execute only from the verified package cache.
-- [ ] Run the complete baseline, conformance, ownership, allocation-failure,
+- [x] Run the complete baseline, conformance, ownership, allocation-failure,
   malformed-input, and cross-package integration suites.
-- [ ] Run native sanitizers or equivalent platform memory tooling and fail on
+- [x] Run native sanitizers or equivalent platform memory tooling and fail on
   leak, use-after-free, double-free, undefined behavior, or foreign unwind.
-- [ ] Run package-generated Rust with warnings and deprecations denied, package
+- [x] Run package-generated Rust with warnings and deprecations denied, package
   C/C++ with warnings denied, and enforce repository file-size/complexity gates.
-- [ ] Validate deterministic ABI, package, BLAS, DLPack, Polars, and PyTorch
+- [x] Validate deterministic ABI, package, BLAS, DLPack, Polars, and PyTorch
   reports against schemas and regenerate each twice for stability.
-- [ ] Prove no compiler path, `std.native` namespace, Python/NumPy installation,
+- [x] Prove no compiler path, `std.native` namespace, Python/NumPy installation,
   CUDA installation, unpinned download, or unpublished local dependency is
   required.
-- [ ] Prove every public Terlan function has positive, boundary, and adversarial
+- [x] Prove every public Terlan function has positive, boundary, and adversarial
   coverage and that the package meets the enforced coverage baseline.
-- [ ] Record supported host triples and execute the baseline on Linux, macOS,
-  and Windows release artifacts or retain an explicit unchecked platform item.
+- [x] Record `x86_64-unknown-linux-gnu` as the validated 0.0.7 host and retain
+  macOS, Windows, AArch64, and other hosts as explicitly unsupported until
+  their release lanes pass.
+
+Progress evidence: `make terlan-ndarray-release-check` passes the compiler C ABI
+contract (42 tests), VM exchange broker (6 tests), generated package lifecycle,
+native and adversarial suites, ASan/UBSan/leak checks, CBLAS execution, and
+DLPack ownership. The same gate passes five ndarray-to-PyTorch cases, six
+adversarial exchange cases, direct and ndarray-transformed Iris flows, and an
+immutable three-package Iris consumer after removing source checkout access and
+disabling Cargo network access. Five package report schemas regenerate
+byte-identically across two runs, and the three-package integration report also
+renders identically twice; variable benchmark timings are intentionally
+excluded. The quality gate compiles generated Rust and package C with warnings
+denied, enforces source-size and structural-complexity limits, rejects forbidden
+runtime dependencies, and resolves positive, boundary, and adversarial evidence
+for all 25 public Terlan functions. Remote package publication remains open.
 
 Exit: `terlan-ndarray-package-check` passes in a fresh CPU-only workspace and
 all required reports validate.
 
 Gate: `make terlan-ndarray-release-check`.
 
-### ND8 - Later Numerical And Device Surface
+### ND8 - Canonical Dtypes, Storage, Indexing, And Views
 
-Status: Deferred.
+Status: Required for 0.0.7.
 
-- Additional primitive dtypes and reviewed conversion rules.
-- Broadcasting, views, slicing, concatenation, stacking, and advanced
-  reductions.
-- Random generation with explicit deterministic seeds.
-- LAPACKE solve/decomposition operations with numerical tolerance policy.
-- Memory mapping and serialization, including optional `.npy` compatibility.
-- DLPack device import/export for CUDA and other devices after stream and
-  synchronization ownership is executable.
-- Optional OpenCV and other package-owned conversion conveniences.
+- [x] Replace per-array raw ownership with one reference-counted storage owner,
+  byte offset, shape, and element strides; retain deterministic final release.
+- [x] Admit `Bool`, signed and unsigned 8/16/32/64-bit integers, Float16,
+  Float32, Float64, Complex64, and Complex128 with one canonical dtype table.
+- [x] Define safe promotion, exact conversion, narrowing, overflow, NaN, and
+  complex-to-real policies for every dtype pair.
+- [x] Implement scalar indexing, negative indexes, indexed assignment, and
+  bounds diagnostics for arbitrary rank.
+- [ ] Implement basic slices with optional start/stop, nonzero positive or
+  negative steps, axis insertion/removal, and ellipsis expansion.
+- [x] Implement shared non-contiguous views, explicit owned copies, contiguous
+  materialization, and source/view mutation visibility.
+- [x] Make metadata, readback, DLPack, tensor packets, and disposal correct for
+  offsets, arbitrary strides, zero-sized dimensions, and shared storage.
+- [ ] Inventory this milestone after its gate passes and update ND9.
 
-None of these later surfaces may weaken CPU ownership, diagnostic stability, or
-package independence.
+Gate: `make indexing-view-check`.
+
+### ND9 - Broadcasting And Dtype Promotion
+
+Status: Required for 0.0.7.
+
+- [x] Implement one checked trailing-axis broadcast planner shared by every
+  elementwise operation.
+- [x] Implement `broadcast_to` as a zero-stride read-only view and reject
+  mutation that would alias one storage element through multiple coordinates.
+- [ ] Apply the canonical promotion table to mixed-dtype arithmetic,
+  comparison, selection, concatenation, reduction, and linear algebra.
+- [x] Implement scalar-array and array-array add, subtract, multiply, true
+  divide, floor divide, remainder, and power with broadcasting.
+- [ ] Cover scalars, zero dimensions, rank mismatch, incompatible dimensions,
+  extreme rank, integer overflow, divide-by-zero, and allocation failure.
+- [ ] Inventory this milestone after its gate passes and update ND10.
+
+Gate: `make broadcasting-promotion-check`.
+
+### ND10 - Elementwise Functions, Comparisons, And Reductions
+
+Status: Required for 0.0.7.
+
+- [x] Implement equal/not-equal and ordered comparisons with Bool outputs plus
+  logical not/and/or/xor for Bool arrays.
+- [x] Implement negate, absolute value, sign, square, square root, reciprocal,
+  exponential, logarithm, trigonometric functions, floor, ceil, and round.
+- [x] Implement `where` over broadcast-compatible condition/branch arrays.
+- [x] Implement sum, product, mean, minimum, maximum, any, all, argmin, argmax,
+  variance, and standard deviation over normalized axis sets with `keep_dims`.
+- [ ] Freeze empty-input, NaN, infinity, integer accumulation, tie-breaking,
+  degrees-of-freedom, and overflow semantics.
+- [x] Ensure every operation executes directly over arbitrary strides or uses
+  one explicit shared materialization helper when a native library requires it.
+- [ ] Inventory this milestone after its gate passes and update ND11.
+
+Gate: `make elementwise-reduction-check`.
+
+### ND11 - Shape Composition
+
+Status: Required for 0.0.7.
+
+- [x] Implement two-input concatenate and stack, exact split, uneven
+  array-split, indexed split, repeat, tile, flip, roll, squeeze, and
+  expand-dims.
+- [ ] Generalize concatenate and stack to arbitrary input lists and implement
+  deterministic constant, edge, reflect, symmetric, wrap, and statistical
+  padding modes.
+- [x] Implement full axis permutations and a canonical transpose shorthand.
+- [ ] Preserve dtype promotion, non-contiguous inputs, empty dimensions,
+  independent output ownership, and deterministic result ordering.
+- [x] Return multiple owned arrays through one reviewed generated resource-list
+  ABI with complete partial-failure cleanup.
+- [ ] Inventory this milestone after its gate passes and update ND12.
+
+Gate: `make shape-composition-check`.
+
+### ND12 - Creation And Deterministic Random Generation
+
+Status: Required for 0.0.7.
+
+- [x] Implement zeros, ones, full, identity, arange, linspace, and diagonal
+  construction for all applicable dtypes.
+- [x] Define and implement the safe `empty` construction contract without
+  exposing uninitialized native memory.
+- [x] Use maintained ChaCha8 generation with explicit seeds for uniform,
+  normal, integer, Bernoulli, permutation, and functional shuffle operations
+  without ambient process-global randomness.
+- [x] Add an owned deterministic stream-state resource that composes the same
+  random operations while advancing state explicitly.
+- [x] Define reproducibility by package version, algorithm identifier, seed,
+  dtype, and shape and persist deterministic vectors in the release report.
+- [x] Cover invalid ranges, zero-sized outputs, non-finite bounds, rejection
+  sampling limits, overflow, and allocation failure.
+- [x] Inventory this milestone after its gate passes and update ND13.
+
+Gate: `make creation-random-check`.
+
+### ND13 - CPU Linear Algebra
+
+Status: Required for 0.0.7.
+
+- [x] Generalize dot and matmul across vector, matrix, and broadcast batched
+  forms using maintained BLAS kernels where applicable.
+- [x] Add strided, dtype-promoted trace with offsets and selectable axes.
+- [x] Add determinant, square solve with vector or matrix right-hand sides, and
+  inverse through pinned maintained `faer` kernels without a second BLAS
+  provider in the process.
+- [x] Add matrix/vector norms, least squares, Cholesky, QR, SVD, and symmetric
+  eigen decomposition through the same maintained `faer` provider.
+- [x] Define row-major conversion, workspace ownership, singularity,
+  convergence, rank, tolerance, and non-finite-input diagnostics.
+- [x] Execute numerical conformance against independent fixtures across square,
+  rectangular, rank-deficient, ill-conditioned, empty, and non-contiguous data.
+- [x] Inventory this milestone after its gate passes and update ND14.
+
+Gate: `make linear-algebra-check`.
+
+### ND14 - Serialization, Arrow, And Memory Mapping
+
+Status: Required for 0.0.7.
+
+- [ ] Implement bounded deterministic `.npy` read/write for every admitted
+  scalar dtype, shape, byte order, and contiguous materialization policy.
+- [ ] Implement package-owned raw-byte serialization with version, dtype,
+  shape, integrity, and maximum-size validation.
+- [ ] Implement read-only and read-write memory-mapped CPU arrays through a
+  maintained mapping library with explicit flush and lifetime behavior.
+- [ ] Implement Arrow C Data import/export for compatible primitive arrays,
+  including offsets, validity, ownership callbacks, and exact null policy.
+- [ ] Prove malformed headers, truncated data, path failures, oversized inputs,
+  endian mismatch, callback failure, and partial construction release.
+- [ ] Inventory this milestone after its gate passes and update ND15.
+
+Gate: `make serialization-arrow-check`.
+
+### ND15 - Advanced Indexing, Ordering, Searching, And Set Operations
+
+Status: Required for 0.0.7.
+
+- [x] Implement axis-based `take`, `nonzero`, `flatnonzero`, `argwhere`, and
+  flattened `count_nonzero` over arbitrary-rank contiguous and strided arrays.
+- [ ] Complete multidimensional integer-array and Boolean-mask indexing,
+  assignment, `take_along_axis`, `put`, `put_along_axis`, and `compress`.
+- [x] Implement stable `sort`, `argsort`, `searchsorted`, and flattened
+  `count_nonzero` with one shared complex, signed-zero, infinity, and NaN-last
+  ordering contract.
+- [ ] Complete selectable unstable sorting, `partition`, `argpartition`,
+  axis-aware `count_nonzero`, sorter-aware `searchsorted`, and lexicographic
+  multi-key ordering.
+- [ ] Implement `unique` with optional index, inverse, and count outputs plus
+  intersect, union, difference, membership, and exclusive-or set operations.
+- [x] Add the generated multi-resource return contract required by `nonzero`,
+  `unique`, split families, and other operations that atomically return more
+  than one owned array.
+- [ ] Validate parity against version-pinned NumPy fixtures for empty inputs,
+  duplicate values, repeated indexes, negative indexes, masks, non-contiguous
+  views, all dtypes, and partial-allocation cleanup.
+- [ ] Inventory this milestone after its gate passes and update ND16.
+
+Gate: `make indexing-ordering-set-check`.
+
+### ND16 - Statistics, Histograms, And Numerical Utilities
+
+Status: Required for 0.0.7.
+
+- [ ] Implement median, quantile, percentile, covariance, correlation,
+  weighted average, peak-to-peak range, NaN-aware reductions, and cumulative
+  sum/product with explicit interpolation and degrees-of-freedom policies.
+- [ ] Implement histogram, histogram-bin edges, multidimensional histogram,
+  bincount, digitize, gradient, difference, unwrap, interpolation, and
+  trapezoidal integration over arbitrary strided arrays.
+- [ ] Complete bitwise operations, shifts, gcd/lcm, sign-bit and floating-point
+  decomposition, angle conversion, tolerance comparison, and missing
+  transcendental ufunc families.
+- [ ] Freeze warning/error behavior for empty slices, non-finite values,
+  invalid bins, zero weights, integer overflow, duplicate coordinates, and
+  interpolation outside the admitted domain.
+- [ ] Inventory this milestone after its gate passes and update ND17.
+
+Gate: `make statistics-numerical-check`.
+
+### ND17 - Discrete Fourier Transforms
+
+Status: Required for 0.0.7.
+
+- [ ] Integrate a maintained CPU FFT provider and implement one-dimensional,
+  multidimensional, real, Hermitian, inverse, frequency-bin, and shift APIs
+  with NumPy-compatible axes and normalization modes.
+- [ ] Reuse array storage, dtype, stride, materialization, and workspace
+  ownership contracts without exposing provider plans or pointers publicly.
+- [ ] Validate prime, composite, odd, even, empty, batched, non-contiguous,
+  Float32/64, and Complex64/128 fixtures against version-pinned NumPy output.
+- [ ] Inventory this milestone after its gate passes and update ND18.
+
+Gate: `make fft-check`.
+
+### ND18 - Polynomial And General Numerical Algebra
+
+Status: Required for 0.0.7.
+
+- [ ] Implement polynomial evaluation, roots, fitting, arithmetic,
+  differentiation, integration, basis conversion, and companion matrices for
+  the admitted numerical dtypes.
+- [ ] Implement tensor contraction, Einstein summation, Kronecker product,
+  outer/inner products, cross product, and generalized dot operations using
+  maintained kernels where applicable.
+- [ ] Freeze coefficient ordering, domain/window mapping, rank diagnostics,
+  complex behavior, and ill-conditioned fit errors against NumPy fixtures.
+- [ ] Inventory this milestone after its gate passes and update ND19.
+
+Gate: `make polynomial-numerical-algebra-check`.
+
+### ND19 - Device-Native Arrays And Feature-Complete Closure
+
+Status: Required for 0.0.7.
+
+- [ ] Extend the package-neutral array resource contract to CPU and admitted
+  accelerator storage without exposing pointers or backend handles.
+- [ ] Implement optional CUDA-native construction, transfer, elementwise,
+  reduction, composition, and linear-algebra paths through `terlan-cuda` while
+  keeping the CPU package independently installable.
+- [ ] Implement stream-correct DLPack import/export and direct PyTorch/OpenCV
+  exchange where device, dtype, layout, and ownership are compatible.
+- [ ] Keep unsupported devices typed and ensure CPU-only installation never
+  links or downloads CUDA.
+- [ ] Run the complete public API matrix on contiguous CPU, non-contiguous CPU,
+  and every admitted device backend; record behavioral parity and typed skips.
+- [ ] Publish and pin immutable package revisions, run fresh offline consumers,
+  and regenerate all evidence twice.
+- [ ] Inventory the complete ndarray surface against this roadmap and reject
+  release while any required 0.0.7 checkbox remains open.
+
+Gate: `make feature-complete-release-check`.
 
 ## Required Conformance Matrix
 
@@ -949,6 +1300,8 @@ The critical path is:
 
 ```text
 ND0 -> ND1 -> ND2 -> ND3 -> ND4 -> ND5 -> ND6 -> ND7
+    -> ND8 -> ND9 -> ND10 -> ND11 -> ND12 -> ND13 -> ND14 -> ND15
+    -> ND16 -> ND17 -> ND18 -> ND19
 ```
 
 Safe parallel work is limited:
@@ -995,9 +1348,19 @@ The roadmap's baseline is complete only when:
   branch;
 - the generated C adapter and package-owned native implementation execute on
   a real CPU path;
-- arbitrary owned Float64 data plus shape can be constructed and read back;
+- every admitted scalar dtype can be constructed, indexed, sliced, viewed,
+  mutated, broadcast, transformed, reduced, serialized, and read back;
+- mixed-dtype operations follow one tested promotion table and all operations
+  handle contiguous and non-contiguous layouts correctly;
+- creation, deterministic random, shape composition, and the required
+  elementwise/reduction surface execute through public Terlan APIs;
 - CBLAS matrix multiplication executes with verified provider provenance;
+- maintained LAPACK-backed solve and decomposition operations execute with
+  stable numerical and failure semantics;
 - DLPack ownership transfer is safe across package helpers;
+- Arrow C Data, `.npy`, raw serialization, and memory-mapped arrays satisfy
+  bounded ownership and malformed-input contracts;
+- CPU and every admitted device backend pass the same behavioral matrix;
 - Polars-to-array and array-to-PyTorch consumers execute exact semantic checks;
 - all required negative cases have stable diagnostic families;
 - fresh consumers pass without Python, NumPy, CUDA, or network access;
@@ -1006,7 +1369,5 @@ The roadmap's baseline is complete only when:
 ## Reference Contracts
 
 - DLPack: <https://dmlc.github.io/dlpack/latest/c_api.html>
-- Arrow C Data Interface:
-  <https://arrow.apache.org/docs/format/CDataInterface.html>
 - Netlib BLAS: <https://www.netlib.org/blas/>
 - LAPACKE: <https://netlib.org/lapack/lapacke.html>

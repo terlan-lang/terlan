@@ -4,11 +4,13 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::{
-    ReplValue, VmDatabaseBackedPersistentActorStore, VmEmbeddedKeyValuePersistentActorStore,
+    VmDatabaseBackedPersistentActorStore, VmEmbeddedKeyValuePersistentActorStore,
     VmFileBackedPersistentActorStore, VmInMemoryPersistentActorStore, VmPersistentActorDeclaration,
-    VmPersistentActorEvent, VmPersistentActorId, VmPersistentActorSchema,
-    VmPersistentActorSnapshot, VmPersistentActorStoreAdapter, VmPersistentActorStoreOutcome,
+    VmPersistentActorDurability, VmPersistentActorEvent, VmPersistentActorId,
+    VmPersistentActorSchema, VmPersistentActorSnapshot, VmPersistentActorStoreAdapter,
+    VmPersistentActorStoreOutcome,
 };
+use crate::runtime::vm::ReplValue;
 
 #[test]
 fn vm_persistent_actor_store_replays_snapshot_and_events_deterministically() {
@@ -148,8 +150,10 @@ fn vm_persistent_actor_store_restores_mailbox_timer_and_resource_checkpoints() {
             ReplValue::String("message-b".to_string()),
         ],
         vec![10, 20],
-        vec!["postgres.primary".to_string()],
-        0,
+        VmPersistentActorDurability {
+            resource_handles: vec!["postgres.primary".to_string()],
+            last_event_sequence: 0,
+        },
     )
     .expect("checkpoint snapshot should be valid");
 
@@ -185,8 +189,10 @@ fn vm_persistent_actor_store_rejects_invalid_ids_schema_versions_and_handles() {
             ReplValue::Unit,
             Vec::new(),
             Vec::new(),
-            vec!["".to_string()],
-            0,
+            VmPersistentActorDurability {
+                resource_handles: vec!["".to_string()],
+                last_event_sequence: 0,
+            },
         )
         .expect_err("empty resource handle should fail"),
         "error[vm_persistent_actor]: resource handles must be non-empty"
@@ -298,8 +304,10 @@ fn vm_embedded_key_value_persistent_actor_store_exports_and_restores_snapshot_an
                 ReplValue::Int(10),
                 vec![ReplValue::String("pending".to_string())],
                 vec![30],
-                vec!["resource.primary".to_string()],
-                0,
+                VmPersistentActorDurability {
+                    resource_handles: vec!["resource.primary".to_string()],
+                    last_event_sequence: 0,
+                },
             )
             .expect("snapshot should be valid"),
         ),
@@ -463,8 +471,10 @@ fn snapshot(
         state,
         Vec::new(),
         Vec::new(),
-        Vec::new(),
-        last_event_sequence,
+        VmPersistentActorDurability {
+            resource_handles: Vec::new(),
+            last_event_sequence: last_event_sequence,
+        },
     )
     .expect("snapshot should be valid")
 }

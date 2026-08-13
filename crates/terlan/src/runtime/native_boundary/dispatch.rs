@@ -5,23 +5,41 @@
 //! functions. The VM/native worker layer can call this module after it has
 //! decoded runtime terms into `NativeBoundaryValue`.
 
-use crate::terlan_native::{base64, http, json, md5, path, postgres, uri};
+use crate::terlan_native::{
+    base64, hash as native_hash, http, json, md5, path, postgres, regex, toml, uri,
+};
 use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
 
+mod archive;
 mod args;
 mod arity;
+mod filesystem;
+mod git;
+#[path = "dispatch/hash.rs"]
+mod hash;
+#[path = "dispatch/json.rs"]
+mod json_dispatch;
 mod manifest;
 mod panic_boundary;
+mod platform_dispatch;
+mod process;
 mod resources;
 
 use args::{
-    cookie_options_from_args, dispatch_base64_error, dispatch_http_error, dispatch_json_error,
-    dispatch_path_error, dispatch_postgres_error, dispatch_uri_error, expect_bool, expect_bytes,
-    expect_float, expect_http_cookie_jar, expect_http_request, expect_int, expect_json,
-    expect_json_list, expect_path, expect_postgres_config, expect_postgres_pool,
-    expect_postgres_row, expect_text, expect_uri, unknown_operation,
+    cookie_options_from_args, dispatch_base64_error, dispatch_http_error, dispatch_path_error,
+    dispatch_postgres_error, dispatch_uri_error, expect_bool, expect_bytes, expect_http_cookie_jar,
+    expect_http_request, expect_int, expect_json, expect_json_list, expect_path,
+    expect_postgres_config, expect_postgres_pool, expect_postgres_row, expect_text, expect_uri,
+    unknown_operation,
 };
 pub use arity::{operation_arity, validate_operation_arity};
+use filesystem::{
+    copy_directory_tree_excluding, create_directory_symbolic_link, create_temporary_directory,
+    directory_entries, directory_files_recursive, directory_find_named_recursive_excluding,
+    directory_tree_usage, dispatch_direct_file_operation, dispatch_directory_error,
+    dispatch_file_error, expect_text_list, normalized_host_path, text_files_recursive,
+    text_files_recursive_matching,
+};
 pub use resources::{
     dispatch_with_resources, dispatch_with_resources_for_process,
     dispatch_with_resources_for_process_with_capabilities,
@@ -44,8 +62,21 @@ pub enum NativeBoundaryValue {
     Float(f64),
     /// Terlan `Bool`.
     Bool(bool),
+    /// Terlan atom identity without a host-language enum escape hatch.
+    Atom(String),
+    /// Descriptor-checked Terlan record/constructor value.
+    Record {
+        /// Constructor or record name.
+        name: String,
+        /// Ordered named fields.
+        fields: Vec<(String, NativeBoundaryValue)>,
+    },
+    /// Ordered recursively owned Terlan values.
+    List(Vec<NativeBoundaryValue>),
     /// Opaque `std.data.Json.Json`.
     Json(json::Json),
+    /// Opaque compiled `std.regex.Regex.Regex`.
+    Regex(regex::Regex),
     /// Opaque `std.http.Request.Request`.
     HttpRequest(http::Request),
     /// Opaque `std.http.Response.Response`.
@@ -89,6 +120,15 @@ pub enum NativeBoundaryBridgeValue {
     Float(f64),
     /// Terlan `Bool`.
     Bool(bool),
+    /// Terlan atom identity.
+    Atom(String),
+    /// Recursively owned Terlan record/constructor value.
+    Record {
+        /// Constructor or record name.
+        name: String,
+        /// Ordered named fields.
+        fields: Vec<(String, NativeBoundaryBridgeValue)>,
+    },
     /// Opaque resource handle for JSON, path, URI, or later native resources.
     Handle(NativeBoundaryHandle),
     /// Structured Postgres connection configuration for `connect`.
@@ -107,6 +147,7 @@ pub struct DispatchError {
     code: &'static str,
     message: String,
     offset: usize,
+    path: Option<String>,
 }
 
 impl DispatchError {
@@ -128,7 +169,14 @@ impl DispatchError {
             code,
             message: message.into(),
             offset,
+            path: None,
         }
+    }
+
+    /// Attaches structured filesystem path context to this error.
+    pub fn with_path(mut self, path: impl Into<String>) -> Self {
+        self.path = Some(path.into());
+        self
     }
 
     /// Returns the stable machine-readable error code.
@@ -143,6 +191,11 @@ impl DispatchError {
     /// - Reads the code field without allocation or mutation.
     pub fn code(&self) -> &'static str {
         self.code
+    }
+
+    /// Returns structured filesystem path context when the operation had one.
+    pub fn path(&self) -> Option<&str> {
+        self.path.as_deref()
     }
 
     /// Returns the human-readable error message.
@@ -194,94 +247,92 @@ pub fn dispatch(
     args: &[NativeBoundaryValue],
 ) -> Result<NativeBoundaryValue, DispatchError> {
     validate_arity(operation, args)?;
+    if operation.starts_with("std.data.json.") {
+        return json_dispatch::dispatch(operation, args);
+    }
+    if operation.starts_with("std.system.platform.") {
+        return platform_dispatch::dispatch(operation);
+    }
     match operation {
-        "std.data.json.null" => Ok(NativeBoundaryValue::Json(json::null())),
-        "std.data.json.bool" => {
-            let value = expect_bool(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Json(json::r#bool(value)))
+        "std.data.toml.parse" => toml::parse(expect_text(operation, args, 0)?)
+            .map(NativeBoundaryValue::Json)
+            .map_err(args::dispatch_json_error),
+        "std.regex.regex.compile" => {
+            let pattern = expect_text(operation, args, 0)?;
+            regex::compile(pattern)
+                .map(NativeBoundaryValue::Regex)
+                .map_err(args::dispatch_regex_error)
         }
-        "std.data.json.int" => {
-            let value = expect_int(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Json(json::int(value)))
+        "std.regex.regex.is_match" => {
+            let value = args::expect_regex(operation, args, 0)?;
+            let text = expect_text(operation, args, 1)?;
+            Ok(NativeBoundaryValue::Bool(regex::is_match(value, text)))
         }
-        "std.data.json.float" => {
-            let value = expect_float(operation, args, 0)?;
-            json::float(value)
-                .map(NativeBoundaryValue::Json)
-                .map_err(dispatch_json_error)
+        "std.regex.regex.matching_line_numbers" => {
+            let value = args::expect_regex(operation, args, 0)?;
+            let text = expect_text(operation, args, 1)?;
+            Ok(NativeBoundaryValue::List(
+                regex::matching_line_numbers(value, text)
+                    .into_iter()
+                    .map(NativeBoundaryValue::Int)
+                    .collect(),
+            ))
         }
-        "std.data.json.string" => {
-            let value = expect_text(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Json(json::string(value)))
+        "std.regex.regex.find" => {
+            let value = args::expect_regex(operation, args, 0)?;
+            let text = expect_text(operation, args, 1)?;
+            Ok(NativeBoundaryValue::OptionalText(regex::find(value, text)))
         }
-        "std.data.json.array" => Ok(NativeBoundaryValue::Json(json::array())),
-        "std.data.json.object" => Ok(NativeBoundaryValue::Json(json::object())),
-        "std.data.json.array_push" | "std.data.json.object_put" => Err(DispatchError::new(
-            "dispatch.mutable_receiver_requires_direct_lowering",
-            format!(
-                "operation `{operation}` mutates a receiver and must use direct native lowering"
-            ),
-            0,
-        )),
-        "std.data.json.parse" => {
+        "std.regex.regex.find_all" => {
+            let value = args::expect_regex(operation, args, 0)?;
+            let text = expect_text(operation, args, 1)?;
+            Ok(NativeBoundaryValue::List(
+                regex::find_all(value, text)
+                    .into_iter()
+                    .map(NativeBoundaryValue::Text)
+                    .collect(),
+            ))
+        }
+        "std.regex.regex.capture" => {
+            let value = args::expect_regex(operation, args, 0)?;
+            let text = expect_text(operation, args, 1)?;
+            let index = usize::try_from(expect_int(operation, args, 2)?)
+                .map_err(|_| args::type_error(operation, 2, "nonnegative Int"))?;
+            Ok(NativeBoundaryValue::OptionalText(regex::capture(
+                value, text, index,
+            )))
+        }
+        "std.regex.regex.named_capture" => {
+            let value = args::expect_regex(operation, args, 0)?;
+            let text = expect_text(operation, args, 1)?;
+            let name = expect_text(operation, args, 2)?;
+            Ok(NativeBoundaryValue::OptionalText(regex::named_capture(
+                value, text, name,
+            )))
+        }
+        "std.regex.regex.replace" => {
+            let value = args::expect_regex(operation, args, 0)?;
+            let text = expect_text(operation, args, 1)?;
+            let replacement = expect_text(operation, args, 2)?;
+            Ok(NativeBoundaryValue::Text(regex::replace(
+                value,
+                text,
+                replacement,
+            )))
+        }
+        "std.regex.regex.split" => {
+            let value = args::expect_regex(operation, args, 0)?;
+            let text = expect_text(operation, args, 1)?;
+            Ok(NativeBoundaryValue::List(
+                regex::split(value, text)
+                    .into_iter()
+                    .map(NativeBoundaryValue::Text)
+                    .collect(),
+            ))
+        }
+        "std.regex.regex.escape" => {
             let text = expect_text(operation, args, 0)?;
-            json::parse(text)
-                .map(NativeBoundaryValue::Json)
-                .map_err(dispatch_json_error)
-        }
-        "std.data.json.stringify" => {
-            let value = expect_json(operation, args, 0)?;
-            json::stringify(value)
-                .map(NativeBoundaryValue::Text)
-                .map_err(dispatch_json_error)
-        }
-        "std.data.json.get" => {
-            let value = expect_json(operation, args, 0)?;
-            let key = expect_text(operation, args, 1)?;
-            json::get(value, key)
-                .map(NativeBoundaryValue::Json)
-                .map_err(dispatch_json_error)
-        }
-        "std.data.json.length" => {
-            let value = expect_json(operation, args, 0)?;
-            json::length(value)
-                .map(NativeBoundaryValue::Int)
-                .map_err(dispatch_json_error)
-        }
-        "std.data.json.at" => {
-            let value = expect_json(operation, args, 0)?;
-            let index = expect_int(operation, args, 1)?;
-            json::at(value, index)
-                .map(NativeBoundaryValue::Json)
-                .map_err(dispatch_json_error)
-        }
-        "std.data.json.as_string" => {
-            let value = expect_json(operation, args, 0)?;
-            json::as_string(value)
-                .map(NativeBoundaryValue::Text)
-                .map_err(dispatch_json_error)
-        }
-        "std.data.json.as_int" => {
-            let value = expect_json(operation, args, 0)?;
-            json::as_int(value)
-                .map(NativeBoundaryValue::Int)
-                .map_err(dispatch_json_error)
-        }
-        "std.data.json.as_float" => {
-            let value = expect_json(operation, args, 0)?;
-            json::as_float(value)
-                .map(NativeBoundaryValue::Float)
-                .map_err(dispatch_json_error)
-        }
-        "std.data.json.as_bool" => {
-            let value = expect_json(operation, args, 0)?;
-            json::as_bool(value)
-                .map(NativeBoundaryValue::Bool)
-                .map_err(dispatch_json_error)
-        }
-        "std.data.json.is_null" => {
-            let value = expect_json(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Bool(json::is_null(value)))
+            Ok(NativeBoundaryValue::Text(regex::escape(text)))
         }
         "std.http.request.body_json" => {
             let request = expect_http_request(operation, args, 0)?;
@@ -466,20 +517,213 @@ pub fn dispatch(
             let text = expect_text(operation, args, 0)?;
             Ok(NativeBoundaryValue::Text(md5::digest(text)))
         }
+        "std.crypto.hash.sha256_framed" => {
+            let fields = expect_text_list(operation, args, 0)?;
+            native_hash::sha256_framed(&fields)
+                .map(NativeBoundaryValue::Text)
+                .ok_or_else(|| hash::field_too_large(operation))
+        }
+        "std.crypto.hash.sha256_domain_framed" => {
+            let domain = expect_text(operation, args, 0)?;
+            let fields = expect_text_list(operation, args, 1)?;
+            native_hash::sha256_domain_framed(domain, &fields)
+                .map(NativeBoundaryValue::Text)
+                .ok_or_else(|| hash::field_too_large(operation))
+        }
+        "std.crypto.hash.sha256_nul_separated" => {
+            let fields = filesystem::expect_text_list(operation, args, 0)?;
+            Ok(NativeBoundaryValue::Text(
+                native_hash::sha256_nul_separated(&fields),
+            ))
+        }
+        "std.crypto.hash.sha256_bytes" => {
+            let bytes = expect_bytes(operation, args, 0)?;
+            Ok(NativeBoundaryValue::Text(native_hash::sha256_bytes(bytes)))
+        }
+        "std.crypto.hash.sha256_file" => {
+            let path = expect_text(operation, args, 0)?;
+            hash::sha256_file(operation, path).map(NativeBoundaryValue::Text)
+        }
+        "std.crypto.hash.verify_sha256_manifest" => {
+            let root = expect_text(operation, args, 0)?;
+            let manifest = expect_text(operation, args, 1)?;
+            hash::verify_sha256_manifest(operation, root, manifest).map(NativeBoundaryValue::Bool)
+        }
+        "std.crypto.hash.sha256_tree" => {
+            let root = expect_text(operation, args, 0)?;
+            hash::sha256_tree(operation, root).map(NativeBoundaryValue::Text)
+        }
+        "std.crypto.hash.sha256_selected_files" => {
+            let root = expect_text(operation, args, 0)?;
+            let relative_paths = filesystem::expect_text_list(operation, args, 1)?;
+            hash::sha256_selected_files(operation, root, &relative_paths)
+                .map(NativeBoundaryValue::Text)
+        }
+        "std.crypto.hash.sha256_labeled_file_digests" => {
+            hash::sha256_labeled_file_digests(operation, args).map(NativeBoundaryValue::Text)
+        }
+        "std.crypto.hash.sha256_labeled_file_contents" => {
+            hash::sha256_labeled_file_contents(operation, args).map(NativeBoundaryValue::Text)
+        }
+        "std.crypto.hash.audit_labeled_files" => {
+            let forbidden_fragments = filesystem::expect_text_list(operation, args, 1)?;
+            hash::audit_labeled_files(operation, args, &forbidden_fragments)
+        }
+        "std.crypto.hash.audit_labeled_file_patterns" => {
+            let root = expect_text(operation, args, 0)?;
+            let forbidden_fragments = filesystem::expect_text_list(operation, args, 2)?;
+            hash::audit_labeled_file_patterns(operation, root, args, &forbidden_fragments)
+        }
+        "std.vcs.git.source_tree_identity" => {
+            let root = expect_text(operation, args, 0)?;
+            git::source_tree_identity(operation, root)
+        }
+        operation @ ("std.io.archive.create" | "std.io.archive.extract") => {
+            archive::dispatch(operation, args)
+        }
         "std.io.console.println" => {
             let text = expect_text(operation, args, 0)?;
             println!("{text}");
             Ok(NativeBoundaryValue::Unit)
         }
-        "std.io.file.exists" => {
-            let value = expect_text(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Bool(std::path::Path::new(value).exists()))
+        "std.io.console.eprintln" => {
+            let text = expect_text(operation, args, 0)?;
+            eprintln!("{text}");
+            Ok(NativeBoundaryValue::Unit)
         }
-        "std.io.file.read_text" => {
-            let value = expect_text(operation, args, 0)?;
-            std::fs::read_to_string(value)
-                .map(NativeBoundaryValue::Text)
-                .map_err(|error| dispatch_file_error(operation, value, error))
+        "std.time.clock.unix_time_ns" => {
+            let elapsed = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|error| {
+                    DispatchError::new(
+                        "dispatch.clock_before_unix_epoch",
+                        error.to_string(),
+                        0,
+                    )
+                })?;
+            let nanos = i64::try_from(elapsed.as_nanos()).map_err(|_| {
+                DispatchError::new(
+                    "dispatch.clock_overflow",
+                    "Unix timestamp does not fit Terlan Int",
+                    0,
+                )
+            })?;
+            Ok(NativeBoundaryValue::Int(nanos))
+        }
+        "std.time.clock.monotonic_time_ns" => {
+            static ORIGIN: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+            let nanos = ORIGIN.get_or_init(std::time::Instant::now).elapsed().as_nanos();
+            let nanos = i64::try_from(nanos).map_err(|_| {
+                DispatchError::new(
+                    "dispatch.clock_overflow",
+                    "monotonic timestamp does not fit Terlan Int",
+                    0,
+                )
+            })?;
+            Ok(NativeBoundaryValue::Int(nanos))
+        }
+        operation @ ("std.io.file.exists"
+        | "std.io.file.read_text"
+        | "std.io.file.read_bytes"
+        | "std.io.file.size"
+        | "std.io.file.timestamps"
+        | "std.io.file.set_timestamps"
+        | "std.io.file.is_executable"
+        | "std.io.file.set_executable"
+        | "std.io.file.copy"
+        | "std.io.file.copy_many") => dispatch_direct_file_operation(operation, args),
+        "std.io.file.read_text_many" => {
+            let paths = expect_text_list(operation, args, 0)?;
+            paths
+                .into_iter()
+                .map(|path| {
+                    std::fs::read_to_string(path)
+                        .map(|contents| NativeBoundaryValue::Record {
+                            name: "TextFile".to_string(),
+                            fields: vec![
+                                (
+                                    "path".to_string(),
+                                    NativeBoundaryValue::Text(path.to_string()),
+                                ),
+                                (
+                                    "contents".to_string(),
+                                    NativeBoundaryValue::Text(contents),
+                                ),
+                            ],
+                        })
+                        .map_err(|error| dispatch_file_error(operation, path, error))
+                })
+                .collect::<Result<Vec<_>, _>>()
+                .map(NativeBoundaryValue::List)
+        }
+        "std.io.file.read_text_directory" => {
+            let directory = expect_text(operation, args, 0)?;
+            let mut paths = std::fs::read_dir(directory)
+                .map_err(|error| dispatch_file_error(operation, directory, error))?
+                .map(|entry| {
+                    entry
+                        .map(|entry| entry.path())
+                        .map_err(|error| dispatch_file_error(operation, directory, error))
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            paths.sort();
+            let mut files = Vec::new();
+            for path in paths {
+                let metadata = std::fs::symlink_metadata(&path).map_err(|error| {
+                    dispatch_file_error(operation, &normalized_host_path(&path), error)
+                })?;
+                if !metadata.file_type().is_file() {
+                    continue;
+                }
+                let normalized = normalized_host_path(&path);
+                let contents = std::fs::read_to_string(&path)
+                    .map_err(|error| dispatch_file_error(operation, &normalized, error))?;
+                files.push(NativeBoundaryValue::Record {
+                    name: "TextFile".to_string(),
+                    fields: vec![
+                        ("path".to_string(), NativeBoundaryValue::Text(normalized)),
+                        (
+                            "contents".to_string(),
+                            NativeBoundaryValue::Text(contents),
+                        ),
+                    ],
+                });
+            }
+            Ok(NativeBoundaryValue::List(files))
+        }
+        "std.io.file.read_text_tree_excluding" => {
+            let path = expect_text(operation, args, 0)?;
+            let exclusions = expect_text_list(operation, args, 1)?;
+            text_files_recursive(path, &exclusions)
+        }
+        "std.io.file.read_text_tree_matching" => {
+            let path = expect_text(operation, args, 0)?;
+            let exclusions = expect_text_list(operation, args, 1)?;
+            let suffixes = expect_text_list(operation, args, 2)?;
+            let excluded_suffixes = expect_text_list(operation, args, 3)?;
+            let offset = expect_int(operation, args, 4)?;
+            let limit = expect_int(operation, args, 5)?;
+            let offset = usize::try_from(offset).map_err(|_| {
+                DispatchError::new("boundary.value", "offset must be nonnegative", 0)
+            })?;
+            let limit = usize::try_from(limit).map_err(|_| {
+                DispatchError::new("boundary.value", "limit must be nonnegative", 0)
+            })?;
+            if limit == 0 {
+                return Err(DispatchError::new(
+                    "boundary.value",
+                    "limit must be positive",
+                    0,
+                ));
+            }
+            text_files_recursive_matching(
+                path,
+                &exclusions,
+                &suffixes,
+                &excluded_suffixes,
+                offset,
+                limit,
+            )
         }
         "std.io.file.write_text" => {
             let value = expect_text(operation, args, 0)?;
@@ -505,6 +749,82 @@ pub fn dispatch(
             std::fs::remove_file(value)
                 .map(|()| NativeBoundaryValue::Unit)
                 .map_err(|error| dispatch_file_error(operation, value, error))
+        }
+        "std.system.environment.contains" => {
+            let key = expect_text(operation, args, 0)?;
+            Ok(NativeBoundaryValue::Bool(std::env::var(key).is_ok()))
+        }
+        "std.system.environment.get" => {
+            let key = expect_text(operation, args, 0)?;
+            Ok(NativeBoundaryValue::OptionalText(std::env::var(key).ok()))
+        }
+        "std.system.environment.current_directory" => std::env::current_dir()
+            .map(|path| NativeBoundaryValue::Text(path.to_string_lossy().into_owned()))
+            .map_err(|error| {
+                DispatchError::new(
+                    "system.environment.current_directory",
+                    format!("Current directory is unavailable: {error}"),
+                    0,
+                )
+            }),
+        "std.system.process.limits" => Ok(process::process_limits()),
+        "std.system.process.run" => process::run_process(args, None),
+        "std.system.process.run_many" => process::run_process_many(args, None),
+        "std.system.process.run_length_framed" => {
+            process::run_process_length_framed(args, None)
+        }
+        "std.io.directory.entries" => {
+            let path = expect_text(operation, args, 0)?;
+            directory_entries(path).map(NativeBoundaryValue::List)
+        }
+        "std.io.directory.files_recursive" => {
+            let path = expect_text(operation, args, 0)?;
+            directory_files_recursive(path, &[]).map(NativeBoundaryValue::List)
+        }
+        "std.io.directory.files_recursive_excluding" => {
+            let path = expect_text(operation, args, 0)?;
+            let exclusions = expect_text_list(operation, args, 1)?;
+            directory_files_recursive(path, &exclusions).map(NativeBoundaryValue::List)
+        }
+        "std.io.directory.find_named_recursive_excluding" => {
+            let path = expect_text(operation, args, 0)?;
+            let name = expect_text(operation, args, 1)?;
+            let exclusions = expect_text_list(operation, args, 2)?;
+            directory_find_named_recursive_excluding(path, name, &exclusions)
+                .map(NativeBoundaryValue::List)
+        }
+        "std.io.directory.tree_usage" => {
+            let path = expect_text(operation, args, 0)?;
+            directory_tree_usage(path)
+        }
+        "std.io.directory.copy_tree_excluding" => {
+            let source = expect_text(operation, args, 0)?;
+            let destination = expect_text(operation, args, 1)?;
+            let exclusions = expect_text_list(operation, args, 2)?;
+            copy_directory_tree_excluding(source, destination, &exclusions)
+                .map(|()| NativeBoundaryValue::Unit)
+        }
+        "std.io.directory.create_symbolic_link" => {
+            let target = expect_text(operation, args, 0)?;
+            let link_path = expect_text(operation, args, 1)?;
+            create_directory_symbolic_link(target, link_path)
+                .map(|()| NativeBoundaryValue::Unit)
+        }
+        "std.io.directory.create_all" => {
+            let path = expect_text(operation, args, 0)?;
+            std::fs::create_dir_all(path)
+                .map(|()| NativeBoundaryValue::Unit)
+                .map_err(|error| dispatch_directory_error(operation, path, error))
+        }
+        "std.io.directory.create_temporary" => {
+            let prefix = expect_text(operation, args, 0)?;
+            create_temporary_directory(prefix).map(NativeBoundaryValue::Text)
+        }
+        "std.io.directory.remove_all" => {
+            let path = expect_text(operation, args, 0)?;
+            std::fs::remove_dir_all(path)
+                .map(|()| NativeBoundaryValue::Unit)
+                .map_err(|error| dispatch_directory_error(operation, path, error))
         }
         "std.io.path.from_string" => {
             let text = expect_text(operation, args, 0)?;
@@ -538,6 +858,22 @@ pub fn dispatch(
         "std.io.path.is_absolute" => {
             let value = expect_path(operation, args, 0)?;
             Ok(NativeBoundaryValue::Bool(path::is_absolute(value)))
+        }
+        "std.io.path.normalize" => {
+            let value = expect_path(operation, args, 0)?;
+            Ok(NativeBoundaryValue::Path(path::normalize(value)))
+        }
+        "std.io.path.starts_with" => {
+            let value = expect_path(operation, args, 0)?;
+            let base = expect_path(operation, args, 1)?;
+            Ok(NativeBoundaryValue::Bool(path::starts_with(value, base)))
+        }
+        "std.io.path.strip_prefix" => {
+            let value = expect_path(operation, args, 0)?;
+            let base = expect_path(operation, args, 1)?;
+            Ok(NativeBoundaryValue::OptionalPath(path::strip_prefix(
+                value, base,
+            )))
         }
         "std.net.uri.parse" => {
             let text = expect_text(operation, args, 0)?;
@@ -639,14 +975,6 @@ pub fn dispatch(
     }
 }
 
-fn dispatch_file_error(operation: &str, path: &str, error: std::io::Error) -> DispatchError {
-    DispatchError::new(
-        "native_boundary.file",
-        format!("{operation} failed for `{path}`: {error}"),
-        0,
-    )
-}
-
 /// Validates argument count for one operation.
 ///
 /// Inputs:
@@ -665,4 +993,5 @@ fn validate_arity(operation: &str, args: &[NativeBoundaryValue]) -> Result<(), D
 
 #[cfg(test)]
 #[path = "dispatch_test.rs"]
+#[cfg(test)]
 mod dispatch_test;

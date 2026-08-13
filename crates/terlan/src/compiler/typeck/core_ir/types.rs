@@ -475,8 +475,8 @@ fn core_map_type_field_from_text(text: &str) -> Option<CoreMapTypeField> {
 ///   inside nested type delimiters.
 fn find_top_level_map_type_operator(text: &str) -> Option<(usize, &'static str)> {
     let mut depth = 0usize;
-    let mut chars = text.char_indices().peekable();
-    while let Some((index, ch)) = chars.next() {
+    let chars = text.char_indices().peekable();
+    for (index, ch) in chars {
         match ch {
             '[' | '{' | '(' => depth = depth.checked_add(1)?,
             ']' | '}' | ')' => depth = depth.checked_sub(1)?,

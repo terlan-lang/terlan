@@ -1,6 +1,7 @@
-use super::{
-    logical_value_bytes, VmMemoryAccountant, VmMemoryPressureDecision, VmMemoryPressureOutcome,
-};
+use super::VmMemoryAccountant;
+#[cfg(test)]
+use super::{logical_value_bytes, VmMemoryPressureDecision, VmMemoryPressureOutcome};
+#[cfg(test)]
 use crate::runtime::vm::{
     process::{VmProcessId, VmProcessTable},
     ReplValue,
@@ -8,6 +9,7 @@ use crate::runtime::vm::{
 
 /// Result of restoring an ordered mailbox checkpoint under one heap reservation.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmAccountedMailboxRestore {
     pub(crate) message_ids: Vec<u64>,
     pub(crate) pressure: VmMemoryPressureDecision,
@@ -15,6 +17,7 @@ pub(crate) struct VmAccountedMailboxRestore {
 
 impl VmMemoryAccountant {
     /// Restores checkpointed mailbox values atomically under VM memory pressure.
+    #[cfg(test)]
     pub(crate) fn restore_mailbox_checkpoint(
         &mut self,
         processes: &mut VmProcessTable,

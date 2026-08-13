@@ -581,4 +581,5 @@ fn runtime_diagnostic(
 
 #[cfg(test)]
 #[path = "wasm_runtime_test.rs"]
+#[cfg(test)]
 mod wasm_runtime_test;

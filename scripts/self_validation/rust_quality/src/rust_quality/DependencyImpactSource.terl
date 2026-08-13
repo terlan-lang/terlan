@@ -1,0 +1,327 @@
+/**
+ * Aggregates AST-backed Rust source-domain coupling evidence.
+ */
+module rust_quality.DependencyImpactSource.
+
+import rust_quality.{CargoMetadata, SourceInventory}.
+import std.collections.List.
+import std.core.Ordering.{Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+
+import type std.data.Json.
+import type std.data.Json.RequiredFieldRow.
+
+pub struct DomainMetric {
+    name: String,
+    rust_files: Int,
+    physical_lines: Int,
+}.
+
+pub struct Edge {
+    source: String,
+    target: String,
+    reference_sites: Int,
+}.
+
+pub struct SourceAnalysis {
+    valid: Bool,
+    production_domains: List[DomainMetric],
+    production_edges: List[Edge],
+    test_domains: List[DomainMetric],
+    test_edges: List[Edge],
+    directory_domains: List[String],
+    message: String,
+}.
+
+@pure
+pub analysis_valid(value: SourceAnalysis): Bool ->
+    value.valid.
+
+@pure
+pub analysis_message(value: SourceAnalysis): String ->
+    value.message.
+
+@pure
+pub analysis_production_domains(value: SourceAnalysis): List[DomainMetric] ->
+    value.production_domains.
+
+@pure
+pub analysis_production_edges(value: SourceAnalysis): List[Edge] ->
+    value.production_edges.
+
+@pure
+pub analysis_test_domains(value: SourceAnalysis): List[DomainMetric] ->
+    value.test_domains.
+
+@pure
+pub analysis_test_edges(value: SourceAnalysis): List[Edge] ->
+    value.test_edges.
+
+@pure
+pub domain_name(value: DomainMetric): String ->
+    value.name.
+
+@pure
+pub domain_rust_files(value: DomainMetric): Int ->
+    value.rust_files.
+
+@pure
+pub domain_physical_lines(value: DomainMetric): Int ->
+    value.physical_lines.
+
+@pure
+pub edge_source(value: Edge): String ->
+    value.source.
+
+@pure
+pub edge_target(value: Edge): String ->
+    value.target.
+
+@pure
+pub edge_reference_sites(value: Edge): Int ->
+    value.reference_sites.
+
+@pure
+empty(): SourceAnalysis ->
+    SourceAnalysis(
+        valid = true,
+        production_domains = List.new[DomainMetric](),
+        production_edges = List.new[Edge](),
+        test_domains = List.new[DomainMetric](),
+        test_edges = List.new[Edge](),
+        directory_domains = List.new[String](),
+        message = "",
+    ).
+
+@pure
+failure(message: String): SourceAnalysis ->
+    SourceAnalysis(
+        valid = false,
+        production_domains = List.new[DomainMetric](),
+        production_edges = List.new[Edge](),
+        test_domains = List.new[DomainMetric](),
+        test_edges = List.new[Edge](),
+        directory_domains = List.new[String](),
+        message = message,
+    ).
+
+@pure
+relative_source(path: String): String ->
+    let prefix = "crates/terlan/src/";
+    if {
+        String.starts_with(path, prefix) -> path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size());
+        true -> ""
+    }.
+
+@pure
+contains_component(parts: List[String], expected: String): Bool ->
+    case parts {
+        [] -> false;
+        [part | rest] -> part == expected or contains_component(rest, expected)
+    }.
+
+@pure
+first(parts: List[String]): String ->
+    case parts {
+        [] -> "";
+        [value | _rest] -> value
+    }.
+
+@pure
+stem(name: String): String ->
+    if {
+        String.ends_with(name, ".rs") -> name.utf8_slice(0, name.byte_size() - 3);
+        true -> name
+    }.
+
+@pure
+pub source_domain(path: String): String ->
+    let relative = relative_source(path);
+    let parts = String.split(relative, "/");
+    if {
+        List.length(parts) == 1 -> String.append("root:", stem(relative));
+        true -> first(parts)
+    }.
+
+@pure
+pub is_test_source(path: String): Bool ->
+    let relative = relative_source(path);
+    let parts = String.split(relative, "/");
+    let name = SourceInventory.basename(relative);
+    contains_component(parts, "tests")
+        or name == "test.rs"
+        or String.ends_with(name, "_test.rs")
+        or String.contains(name, "_test_part_").
+
+@pure
+insert_metric(name: String, lines: Int, values: List[DomainMetric]): List[DomainMetric] ->
+    case values {
+        [] -> [DomainMetric(name = name, rust_files = 1, physical_lines = lines)];
+        [current | rest] ->
+            if {
+                current.name == name -> [DomainMetric(
+    name = name,
+    rust_files = current.rust_files + 1,
+    physical_lines = current.physical_lines + lines,
+) | rest];
+                String.compare(name, current.name) == Lt -> [DomainMetric(name = name, rust_files = 1, physical_lines = lines) | values];
+                true -> [current | insert_metric(name, lines, rest)]
+            }
+    }.
+
+@pure
+top_directory(path: String): String ->
+    let relative = relative_source(path);
+    let parts = String.split(relative, "/");
+    if {
+        List.length(parts) > 1 -> first(parts);
+        true -> ""
+    }.
+
+@pure
+add_source(analysis: SourceAnalysis, path: String, lines: Int): SourceAnalysis ->
+    let domain = source_domain(path);
+    let directory = top_directory(path);
+    let directories =
+        if {
+            directory == "" -> analysis.directory_domains;
+            true -> CargoMetadata.insert_sorted_unique(directory, analysis.directory_domains)
+        };
+    if {
+        is_test_source(path) -> SourceAnalysis(
+            valid = true,
+            production_domains = analysis.production_domains,
+            production_edges = analysis.production_edges,
+            test_domains = insert_metric(domain, lines, analysis.test_domains),
+            test_edges = analysis.test_edges,
+            directory_domains = directories,
+            message = "",
+        );
+        true -> SourceAnalysis(
+            valid = true,
+            production_domains = insert_metric(domain, lines, analysis.production_domains),
+            production_edges = analysis.production_edges,
+            test_domains = analysis.test_domains,
+            test_edges = analysis.test_edges,
+            directory_domains = directories,
+            message = "",
+        )
+    }.
+
+@pure
+source_rows(rows: List[RequiredFieldRow], analysis: SourceAnalysis): SourceAnalysis ->
+    case rows {
+        [] -> analysis;
+        [row | rest] ->
+            case {Json.required_field_row_strings(row), Json.required_field_row_ints(row)} {
+                {[path], [lines]} -> source_rows(rest, add_source(analysis, path, lines));
+                _ -> failure("AST source-file inventory has an unsupported row shape")
+            }
+    }.
+
+source_pages(files: Json, offset: Int, analysis: SourceAnalysis): SourceAnalysis ->
+    case Json.required_field_rows_page(files, offset, 256, ["path"], ["physical_lines"], []) {
+        Err(reason) -> failure(Json.error_message(reason));
+        Ok(rows) ->
+            if {
+                List.length(rows) == 0 -> analysis;
+                true -> let next = source_rows(rows, analysis);
+                if {
+                    not next.valid -> next;
+                    true -> source_pages(files, offset + List.length(rows), next)
+                }
+            }
+    }.
+
+@pure
+edge_before(source: String, target: String, current: Edge): Bool ->
+    if {
+        String.compare(source, current.source) == Lt -> true;
+        source != current.source -> false;
+        true -> String.compare(target, current.target) == Lt
+    }.
+
+@pure
+insert_edge(source: String, target: String, values: List[Edge]): List[Edge] ->
+    case values {
+        [] -> [Edge(source = source, target = target, reference_sites = 1)];
+        [current | rest] ->
+            if {
+                current.source == source and current.target == target -> [Edge(source = source, target = target, reference_sites = current.reference_sites + 1) | rest];
+                edge_before(source, target, current) -> [Edge(source = source, target = target, reference_sites = 1) | values];
+                true -> [current | insert_edge(source, target, rest)]
+            }
+    }.
+
+@pure
+add_reference(analysis: SourceAnalysis, path: String, target: String): SourceAnalysis ->
+    let domain = source_domain(path);
+    if {
+        relative_source(path) == ""
+            or domain == target
+            or not CargoMetadata.contains(analysis.directory_domains, target) -> analysis;
+        is_test_source(path) -> SourceAnalysis(
+            valid = true,
+            production_domains = analysis.production_domains,
+            production_edges = analysis.production_edges,
+            test_domains = analysis.test_domains,
+            test_edges = insert_edge(domain, target, analysis.test_edges),
+            directory_domains = analysis.directory_domains,
+            message = "",
+        );
+        true -> SourceAnalysis(
+            valid = true,
+            production_domains = analysis.production_domains,
+            production_edges = insert_edge(domain, target, analysis.production_edges),
+            test_domains = analysis.test_domains,
+            test_edges = analysis.test_edges,
+            directory_domains = analysis.directory_domains,
+            message = "",
+        )
+    }.
+
+@pure
+reference_rows(rows: List[RequiredFieldRow], analysis: SourceAnalysis): SourceAnalysis ->
+    case rows {
+        [] -> analysis;
+        [row | rest] ->
+            case Json.required_field_row_strings(row) {
+                [path, target] -> reference_rows(rest, add_reference(analysis, path, target));
+                _ -> failure("AST crate-reference inventory has an unsupported row shape")
+            }
+    }.
+
+reference_pages(references: Json, offset: Int, analysis: SourceAnalysis): SourceAnalysis ->
+    case Json.required_field_rows_page(references, offset, 256, ["path", "target"], [], []) {
+        Err(reason) -> failure(Json.error_message(reason));
+        Ok(rows) ->
+            if {
+                List.length(rows) == 0 -> analysis;
+                true -> let next = reference_rows(rows, analysis);
+                if {
+                    not next.valid -> next;
+                    true -> reference_pages(references, offset + List.length(rows), next)
+                }
+            }
+    }.
+
+pub analyze(report: Json): SourceAnalysis ->
+    let {
+        Ok(files) <- Json.get(report, "source_files");
+        Ok(references) <- Json.get(report, "crate_references")
+    } else {
+        _ -> failure("Rust boundary AST report lacks source dependency evidence")
+    };
+    (let sources = source_pages(files, 0, empty());
+if {
+    not sources.valid -> sources;
+    true -> reference_pages(references, 0, sources)
+}).
+
+pub self_test(): Bool ->
+    source_domain("crates/terlan/src/runtime/vm.rs") == "runtime"
+        and source_domain("crates/terlan/src/lib.rs") == "root:lib"
+        and is_test_source("crates/terlan/src/runtime/vm/actor_test.rs")
+        and not is_test_source("crates/terlan/src/runtime/vm/actor.rs").

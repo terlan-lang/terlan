@@ -84,6 +84,42 @@ pub invalid(): Int -> double(FOUR).
 }
 
 #[test]
+fn recursive_const_functions_require_core_termination_evidence() {
+    let mut proven = parse_module_as_syntax_output(
+        r#"
+module lifecycle.total_const.
+const countdown(n: Int): Int ->
+    case n {
+        value where value > 0 -> countdown(value - 1);
+        _ -> 0
+    }.
+pub const RESULT: Int = countdown(100).
+"#,
+    )
+    .expect("parse proven recursive const fixture");
+    let report = evaluate_and_substitute_module_constants(&mut proven);
+    assert!(report.diagnostics.is_empty(), "{:#?}", report.diagnostics);
+
+    let mut unproven = parse_module_as_syntax_output(
+        r#"
+module lifecycle.partial_const.
+const descend(n: Int): Int -> descend(n - 1).
+pub const RESULT: Int = descend(100).
+"#,
+    )
+    .expect("parse unproven recursive const fixture");
+    let report = evaluate_and_substitute_module_constants(&mut unproven);
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.code == "CONST_TOTALITY_UNPROVEN"));
+    assert!(!report
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.message.contains("depth limit")));
+}
+
+#[test]
 fn valued_union_parse_lowers_to_a_closed_checked_case() {
     let mut module = parse_module_as_syntax_output(
         r#"

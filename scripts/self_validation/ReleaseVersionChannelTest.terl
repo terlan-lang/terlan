@@ -1,0 +1,960 @@
+/**
+ * Validates and updates release version and channel metadata.
+ */
+module scripts.self_validation.ReleaseVersionChannelTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.Directory.{create_all, create_temporary, remove_all}.
+import std.io.File.{read_text, write_text}.
+import std.regex.Regex.
+import std.system.{Environment, Process}.
+
+import type std.collections.List.
+import type std.core.Option.
+import type std.data.Json.
+
+pub struct CheckedField {
+    path: String,
+    field: String,
+    observed: String,
+    expected: String,
+    status: String,
+}.
+
+pub struct TextField {
+    path: String,
+    field: String,
+    pattern: String,
+    replacement: String,
+}.
+
+pub struct RunConfig {
+    root: String,
+    requested_version: String,
+    channel: String,
+    tag: String,
+    compiler: String,
+    write: Bool,
+    report: String,
+}.
+
+@pure
+release_base_url(): String -> "https://github.com/terlan-lang/terlan/releases/download".
+
+@pure
+child(root: String, relative: String): String ->
+    if {
+        root == "." -> relative;
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+environment_flag(name: String): Bool ->
+    environment_or(name, "0") == "1".
+
+run_config(): RunConfig ->
+    let root = environment_or("TERLAN_RELEASE_VERSION_ROOT", ".");
+    RunConfig(
+        root = root,
+        requested_version = environment_or("TERLAN_RELEASE_VERSION", ""),
+        channel = environment_or("TERLAN_RELEASE_CHANNEL", "dev"),
+        tag = environment_or("TERLAN_RELEASE_TAG", ""),
+        compiler = environment_or("TERLAN_RELEASE_COMPILER", ""),
+        write = environment_flag("TERLAN_RELEASE_VERSION_WRITE"),
+        report = environment_or(
+            "TERLAN_RELEASE_VERSION_REPORT",
+            child(root, "build/artifacts/release-version-channel-report.json"),
+        ),
+    ).
+
+regex_capture(pattern: String, source: String, index: Int): Option[String] ->
+    case Regex.compile(pattern) {
+        Ok(regex) -> Regex.capture(regex, source, index);
+        Err(_reason) -> None
+    }.
+
+regex_find(pattern: String, source: String): Option[String] ->
+    case Regex.compile(pattern) {
+        Ok(regex) -> Regex.find(regex, source);
+        Err(_reason) -> None
+    }.
+
+regex_replace(pattern: String, source: String, replacement: String): String ->
+    let {
+        Ok(regex) <- Regex.compile(pattern);
+        Some(_matched) <- Regex.find(regex, source)
+    } else {
+        _ -> ""
+    };
+    Regex.replace(regex, source, String.replace(replacement, "$", "$$")).
+
+workspace_version_from(source: String): Option[String] ->
+    case regex_capture("(?ms)^\\[workspace\\.package\\]\\s*(.*?)^\\[", source, 1) {
+        Some(section) -> regex_capture("(?m)^version\\s*=\\s*\"([^\"]+)\"$", section, 1);
+        None -> None
+    }.
+
+workspace_version(root: String): Option[String] ->
+    case read_text(child(root, "Cargo.toml")) {
+        Ok(source) -> workspace_version_from(source);
+        Err(_reason) -> None
+    }.
+
+@pure
+expected_channel(version: String): String ->
+    if {
+        String.contains(version, "-") -> "rc";
+        true -> "stable"
+    }.
+
+@pure
+checked(path: String, field: String, observed: String, expected: String): CheckedField ->
+    CheckedField(
+        path = path,
+        field = field,
+        observed = observed,
+        expected = expected,
+        status = if {
+            observed == expected -> "ok";
+            true -> "mismatch"
+        },
+    ).
+
+@pure
+text_fields(version: String): List[TextField] ->
+    [
+        TextField(
+            path = "install.sh",
+            field = "default_tag",
+            pattern = "VERSION=\"\\$\\{TERLAN_VERSION:-v[^}]+\\}\"",
+            replacement = String.append("VERSION=\"${TERLAN_VERSION:-v", String.append(version, "}\"")),
+        ),
+        TextField(
+            path = "install.sh",
+            field = "release_base_url",
+            pattern = "RELEASE_BASE_URL=\"\\$\\{TERLAN_RELEASE_BASE_URL:-[^}]+\\}\"",
+            replacement = String.append(
+                "RELEASE_BASE_URL=\"${TERLAN_RELEASE_BASE_URL:-",
+                String.append(release_base_url(), "}\""),
+            ),
+        ),
+        TextField(
+            path = "install.ps1",
+            field = "default_tag",
+            pattern = "\\$Version = \"v[^\"]+\"",
+            replacement = String.append("$Version = \"v", String.append(version, "\"")),
+        ),
+        TextField(
+            path = "install.ps1",
+            field = "release_base_url",
+            pattern = "\\$releaseBaseUrl = \"https://[^\"]+\"",
+            replacement = String.append("$releaseBaseUrl = \"", String.append(release_base_url(), "\"")),
+        ),
+        TextField(
+            path = "README.md",
+            field = "current_version",
+            pattern = "(?m)^Current version: `[^`]+`\\.?$",
+            replacement = String.append("Current version: `", String.append(version, "`.")),
+        ),
+        TextField(
+            path = "README.md",
+            field = "install_version",
+            pattern = "TERLAN_VERSION=v[^ ]+ sh",
+            replacement = String.append("TERLAN_VERSION=v", String.append(version, " sh")),
+        ),
+        TextField(
+            path = "CHANGELOG.md",
+            field = "release_heading",
+            pattern = String.append("(?m)^## ", String.append(String.replace(version, ".", "\\."), "$")),
+            replacement = String.append("## ", version),
+        ),
+        TextField(
+            path = "editors/intellij/build.gradle.kts",
+            field = "version",
+            pattern = "(?m)^version = \"[^\"]+\"$",
+            replacement = String.append("version = \"", String.append(version, "\"")),
+        ),
+    ].
+
+read_match(root: String, spec: TextField): String ->
+    let {
+        Ok(source) <- read_text(child(root, spec.path));
+        Some(found) <- regex_find(spec.pattern, source)
+    } else {
+        _ -> "<missing>"
+    };
+    found.
+
+json_string_field(value: Json, name: String): String ->
+    let {
+        Ok(field) <- value.get(name);
+        Ok(text) <- field.as_string()
+    } else {
+        _ -> "<missing>"
+    };
+    text.
+
+json_version(root: String, relative: String): String ->
+    let {
+        Ok(source) <- read_text(child(root, relative));
+        Ok(value) <- Json.parse(source)
+    } else {
+        _ -> "<missing>"
+    };
+    json_string_field(value, "version").
+
+json_root_package_version(root: String, relative: String): String ->
+    let {
+        Ok(source) <- read_text(child(root, relative));
+        Ok(value) <- Json.parse(source);
+        Ok(packages) <- value.get("packages");
+        Ok(package) <- packages.get("")
+    } else {
+        _ -> "<missing>"
+    };
+    json_string_field(package, "version").
+
+json_version_fields(root: String, version: String): List[CheckedField] ->
+    let vscode_package = json_version(root, "editors/vscode/package.json");
+    let tree_package = json_version(root, "tree-sitter-terlan/package.json");
+    let vscode_lock = json_version(root, "editors/vscode/package-lock.json");
+    let vscode_root = json_root_package_version(root, "editors/vscode/package-lock.json");
+    let tree_lock = json_version(root, "tree-sitter-terlan/package-lock.json");
+    let tree_root = json_root_package_version(root, "tree-sitter-terlan/package-lock.json");
+    let vscode_package_field = checked("editors/vscode/package.json", "version", vscode_package, version);
+    let tree_package_field = checked("tree-sitter-terlan/package.json", "version", tree_package, version);
+    let vscode_lock_field = checked("editors/vscode/package-lock.json", "version", vscode_lock, version);
+    let vscode_root_field = checked("editors/vscode/package-lock.json", "packages[\"\"].version", vscode_root, version);
+    let tree_lock_field = checked("tree-sitter-terlan/package-lock.json", "version", tree_lock, version);
+    let tree_root_field =
+        checked(
+            "tree-sitter-terlan/package-lock.json",
+            "packages[\"\"].version",
+            tree_root,
+            version,
+        );
+    [vscode_package_field | [tree_package_field | [vscode_lock_field | [vscode_root_field | [tree_lock_field | [tree_root_field | List.new[CheckedField]()]]]]]].
+
+manifest_version(root: String): String ->
+    let {
+        Ok(source) <- read_text(child(root, "std/manifest.toml"));
+        Some(version) <- regex_capture("(?m)^version\\s*=\\s*\"([^\"]+)\"$", source, 1)
+    } else {
+        _ -> "<missing>"
+    };
+    version.
+
+source_contains(root: String, relative: String, marker: String): Bool ->
+    case read_text(child(root, relative)) {
+        Ok(source) -> String.contains(source, marker);
+        Err(_reason) -> false
+    }.
+
+bool_text(value: Bool): String ->
+    if {
+        value -> "true";
+        true -> "false"
+    }.
+
+collect_text_fields(
+    root: String,
+    specs: List[TextField],
+    accumulated: List[CheckedField],
+): List[CheckedField] ->
+    case specs {
+        [] -> accumulated;
+        [spec | rest] ->
+            let field = checked(spec.path, spec.field, read_match(root, spec), spec.replacement);
+            collect_text_fields(root, rest, append_fields(accumulated, [field]))
+    }.
+
+collect_fields(root: String, version: String): List[CheckedField] ->
+    let std_version = manifest_version(root);
+    let cargo_field = checked("Cargo.toml", "workspace.package.version", version, version);
+    let std_field = checked("std/manifest.toml", "package.version", std_version, version);
+    let base = [cargo_field | [std_field | List.new[CheckedField]()]];
+    let version_fields = json_version_fields(root, version);
+    let json_fields = append_fields(base, version_fields);
+    let text = collect_text_fields(root, text_fields(version), json_fields);
+    let inherited = source_contains(root, "crates/terlan/Cargo.toml", "version.workspace = true");
+    let library_runtime = source_contains(root, "crates/terlan/src/lib.rs", "env!(\"CARGO_PKG_VERSION\")");
+    let vm_runtime = source_contains(root, "crates/terlan/src/vm/cli.rs", "env!(\"CARGO_PKG_VERSION\")");
+    let inherited_field =
+        checked(
+            "crates/terlan/Cargo.toml",
+            "package.version.workspace",
+            bool_text(inherited),
+            "true",
+        );
+    let library_field =
+        checked(
+            "crates/terlan/src/lib.rs",
+            "runtime_version_source",
+            bool_text(library_runtime),
+            "true",
+        );
+    let vm_field =
+        checked(
+            "crates/terlan/src/vm/cli.rs",
+            "runtime_version_source",
+            bool_text(vm_runtime),
+            "true",
+        );
+    append_fields(text, [inherited_field | [library_field | [vm_field | List.new[CheckedField]()]]]).
+
+append_fields(left: List[CheckedField], right: List[CheckedField]): List[CheckedField] ->
+    case left {
+        [] -> right;
+        [head | rest] -> [head | append_fields(rest, right)]
+    }.
+
+compiler_field(root: String, compiler: String, version: String): CheckedField ->
+    let request =
+        Process.with_output_limit_bytes(
+            Process.with_timeout_ms(
+                Process.with_arguments(Process.command(compiler), ["--version"]),
+                10000,
+            ),
+            65536,
+        );
+    let observed =
+        case Process.run(request) {
+            Ok(output) ->
+                if {
+                    Process.status(output) == 0 -> String.trim(Process.stdout(output));
+                    true -> String.append(
+                        "<error: status ",
+                        String.append(Int.to_string(Process.status(output)), ">"),
+                    )
+                };
+            Err(reason) ->
+                String.append("<error: ", String.append(Process.error_message(reason), ">"))
+        };
+    checked(
+        compiler_display(root, compiler),
+        "compiler_binary_version",
+        observed,
+        String.append("terlc ", version),
+    ).
+
+compiler_display(root: String, compiler: String): String ->
+    let prefix =
+        if {
+            root == "." -> "./";
+            true -> String.append(root, "/")
+        };
+    if {
+        String.starts_with(compiler, prefix) -> String.replace(compiler, prefix, "");
+        true -> compiler
+    }.
+
+fields_with_release_contract(
+    fields: List[CheckedField],
+    config: RunConfig,
+    version: String,
+): List[CheckedField] ->
+    let required = expected_channel(version);
+    let channel_expected =
+        if {
+            config.channel == "dev" or config.channel == required -> config.channel;
+            true -> required
+        };
+    let channel_field = checked("<release>", "channel", config.channel, channel_expected);
+    let with_channel = append_fields(fields, [channel_field | List.new[CheckedField]()]);
+    let with_tag =
+        if {
+            config.tag == "" -> with_channel;
+            true -> let tag_field = checked("<release>", "tag", config.tag, String.append("v", version));
+            append_fields(with_channel, [tag_field | List.new[CheckedField]()])
+        };
+    if {
+        config.compiler == "" -> with_tag;
+        true -> let binary_field = compiler_field(config.root, config.compiler, version);
+        append_fields(with_tag, [binary_field | List.new[CheckedField]()])
+    }.
+
+all_fields_ok(fields: List[CheckedField]): Bool ->
+    case fields {
+        [] -> true;
+        [field | rest] -> field.status == "ok" and all_fields_ok(rest)
+    }.
+
+mismatch_count(fields: List[CheckedField]): Int ->
+    case fields {
+        [] -> 0;
+        [field | rest] ->
+            if {
+                field.status == "ok" -> mismatch_count(rest);
+                true -> 1 + mismatch_count(rest)
+            }
+    }.
+
+checked_field_json(field: CheckedField): Json ->
+    let value = Json.object();
+    let _expected = value.put("expected", Json.string(field.expected));
+    let _field = value.put("field", Json.string(field.field));
+    let _observed = value.put("observed", Json.string(field.observed));
+    let _path = value.put("path", Json.string(field.path));
+    let _status = value.put("status", Json.string(field.status));
+    value.
+
+checked_fields_json(fields: List[CheckedField], mismatches_only: Bool): Json ->
+    let values = Json.array();
+    checked_fields_json_into(fields, mismatches_only, values).
+
+checked_fields_json_into(
+    fields: List[CheckedField],
+    mismatches_only: Bool,
+    mut values: Json,
+): Json ->
+    case fields {
+        [] -> values;
+        [field | rest] ->
+            if {
+                mismatches_only and field.status == "ok" -> checked_fields_json_into(rest, mismatches_only, values);
+                true -> let _push = values.push(checked_field_json(field));
+                checked_fields_json_into(rest, mismatches_only, values)
+            }
+    }.
+
+install_row(os: String, arch: String, extension: String, version: String): Json ->
+    let artifact =
+        String.append(
+            "terlc-",
+            String.append(
+                os,
+                String.append("-", String.append(arch, String.append(".", extension))),
+            ),
+        );
+    let value = Json.object();
+    let _arch = value.put("arch", Json.string(arch));
+    let _artifact = value.put("artifact", Json.string(artifact));
+    let _os = value.put("os", Json.string(os));
+    let _url =
+        value
+            .put(
+                "url",
+                Json.string(
+                    String.append(
+                        release_base_url(),
+                        String.append("/v", String.append(version, String.append("/", artifact))),
+                    ),
+                ),
+            );
+    value.
+
+install_url_matrix(version: String): Json ->
+    let values = Json.array();
+    let _linux_x64 = values.push(install_row("linux", "x86_64", "tar.gz", version));
+    let _linux_arm = values.push(install_row("linux", "aarch64", "tar.gz", version));
+    let _mac_x64 = values.push(install_row("macos", "x86_64", "tar.gz", version));
+    let _mac_arm = values.push(install_row("macos", "aarch64", "tar.gz", version));
+    let _windows = values.push(install_row("windows", "x86_64", "zip", version));
+    values.
+
+report_json(fields: List[CheckedField], version: String, channel: String, tag: String): Json ->
+    let ok = all_fields_ok(fields);
+    let value = Json.object();
+    let _coverage = value.put("artifactFilenameCoverage", Json.int(5));
+    let _version = value.put("canonicalVersion", Json.string(version));
+    let _channel = value.put("channel", Json.string(channel));
+    let _fields = value.put("checkedFields", checked_fields_json(fields, false));
+    let _matrix = value.put("installUrlMatrix", install_url_matrix(version));
+    let _mismatches = value.put("mismatches", checked_fields_json(fields, true));
+    let _package =
+        value
+            .put(
+                "packageIndexStatus",
+                Json.string(
+                    if {
+                        channel == "dev" -> "not-published";
+                        true -> "candidate"
+                    },
+                ),
+            );
+    let _schema = value.put("schema", Json.string("terlan-release-version-channel-v1"));
+    let _status =
+        value
+            .put(
+                "status",
+                Json.string(
+                    if {
+                        ok -> "ok";
+                        true -> "failed"
+                    },
+                ),
+            );
+    let _tag =
+        value
+            .put(
+                "tag",
+                Json.string(
+                    if {
+                        tag == "" -> String.append("v", version);
+                        true -> tag
+                    },
+                ),
+            );
+    value.
+
+publish_report(path: String, report: Json): Bool ->
+    case Json.stringify_pretty(report) {
+        Ok(encoded) -> ensure_report_directory(path, encoded);
+        Err(_reason) -> false
+    }.
+
+ensure_report_directory(path: String, encoded: String): Bool ->
+    let directory = parent_directory(path);
+    let {
+        Ok(Unit) <- create_all(directory);
+        Ok(Unit) <- write_text(path, String.append(encoded, "\n"))
+    } else {
+        _ -> false
+    };
+    true.
+
+parent_directory(path: String): String ->
+    parent_directory_parts(String.split(path, "/"), "").
+
+parent_directory_parts(parts: List[String], accumulated: String): String ->
+    case parts {
+        [] -> ".";
+        [_name] ->
+            if {
+                accumulated == "" -> ".";
+                true -> accumulated
+            };
+        [head | rest] ->
+            parent_directory_parts(
+                rest,
+                if {
+                    accumulated == "" and head == "" -> "/";
+                    accumulated == "" -> head;
+                    accumulated == "/" -> String.append("/", head);
+                    true -> String.append(accumulated, String.append("/", head))
+                },
+            )
+    }.
+
+print_mismatches(fields: List[CheckedField]): Unit ->
+    case fields {
+        [] -> Unit;
+        [field | rest] ->
+            let _printed =
+                if {
+                    field.status == "ok" -> Unit;
+                    true -> println(
+                        String.append(
+                            field.path,
+                            String.append(
+                                ":",
+                                String.append(
+                                    field.field,
+                                    String.append(
+                                        ": observed `",
+                                        String.append(
+                                            field.observed,
+                                            String.append(
+                                                "`; expected `",
+                                                String.append(field.expected, "`"),
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    )
+                };
+            print_mismatches(rest)
+    }.
+
+write_json_version(path: String, lockfile: Bool, version: String): Bool ->
+    let {
+        Ok(source) <- read_text(path);
+        Ok(value) <- Json.parse(source)
+    } else {
+        _ -> false
+    };
+    (let _version = value.put("version", Json.string(version));
+let nested_ok =
+    if {
+        not lockfile -> true;
+        true -> let {
+            Ok(packages) <- value.get("packages");
+            Ok(package) <- packages.get("")
+        } else {
+            _ -> false
+        };
+        (let _nested = package.put("version", Json.string(version)); let _package = packages.put("", package); let _packages = value.put("packages", packages); true)
+    };
+if {
+    not nested_ok -> false;
+    true -> let {
+        Ok(encoded) <- Json.stringify_pretty(value);
+        Ok(Unit) <- write_text(path, String.append(encoded, "\n"))
+    } else {
+        _ -> false
+    };
+    true
+}).
+
+write_text_fields(root: String, specs: List[TextField]): Bool ->
+    case specs {
+        [] -> true;
+        [spec | rest] ->
+            case read_text(child(root, spec.path)) {
+                Ok(source) ->
+                    let replaced = regex_replace(spec.pattern, source, spec.replacement);
+                    let updated =
+                        if {
+                            replaced != "" -> replaced;
+                            spec.path == "CHANGELOG.md" -> String.replace(
+                                source,
+                                "# Changelog\n",
+                                String.append(
+                                    "# Changelog\n\n",
+                                    String.append(spec.replacement, "\n"),
+                                ),
+                            );
+                            true -> ""
+                        };
+                    if {
+                        updated == "" -> false;
+                        true -> case write_text(child(root, spec.path), updated) {
+                            Ok(Unit) -> write_text_fields(root, rest);
+                            Err(_reason) -> false
+                        }
+                    };
+                Err(_reason) -> false
+            }
+    }.
+
+write_versions(root: String, version: String): Bool ->
+    case read_text(child(root, "Cargo.toml")) {
+        Ok(cargo) ->
+            let updated_cargo =
+                regex_replace(
+                    "(?m)^version = \"[^\"]+\"$",
+                    cargo,
+                    String.append("version = \"", String.append(version, "\"")),
+                );
+            if {
+                updated_cargo != "" -> let cargo_result = write_text(child(root, "Cargo.toml"), updated_cargo);
+                case cargo_result {
+                    Ok(Unit) ->
+                        let std_result =
+                            write_text(
+                                child(root, "std/manifest.toml"),
+                                String.append(
+                                    "[package]\nname = \"terlan-stdlib\"\nversion = \"",
+                                    String.append(version, "\"\n"),
+                                ),
+                            );
+                        case std_result {
+                            Ok(Unit) ->
+                                let json_ok = write_json_versions(root, version);
+                                if {
+                                    not json_ok -> false;
+                                    true -> let specs = text_fields(version);
+                                    write_text_fields(root, specs)
+                                };
+                            Err(_reason) -> false
+                        };
+                    Err(_reason) -> false
+                };
+                true -> false
+            };
+        Err(_reason) -> false
+    }.
+
+write_json_versions(root: String, version: String): Bool ->
+    let vscode_package = write_json_version(child(root, "editors/vscode/package.json"), false, version);
+    if {
+        not vscode_package -> false;
+        true -> let tree_package = write_json_version(child(root, "tree-sitter-terlan/package.json"), false, version);
+        if {
+            not tree_package -> false;
+            true -> let vscode_lock = write_json_version(child(root, "editors/vscode/package-lock.json"), true, version);
+            if {
+                not vscode_lock -> false;
+                true -> write_json_version(
+                    child(root, "tree-sitter-terlan/package-lock.json"),
+                    true,
+                    version,
+                )
+            }
+        }
+    }.
+
+run(config: RunConfig): Bool ->
+    if {
+        config.write and config.requested_version == "" -> false;
+        true -> run_validated(config)
+    }.
+
+run_validated(config: RunConfig): Bool ->
+    case workspace_version(config.root) {
+        Some(canonical) ->
+            let requested =
+                if {
+                    config.requested_version == "" -> canonical;
+                    true -> config.requested_version
+                };
+            if {
+                String.starts_with(requested, "v") -> false;
+                requested != canonical and not config.write -> false;
+                config.channel != "dev" and config.channel != "rc" and config.channel != "stable" -> false;
+                true -> let write_ok =
+                    if {
+                        config.write -> write_versions(config.root, requested);
+                        true -> true
+                    };
+                if {
+                    not write_ok -> false;
+                    true -> let version =
+                        if {
+                            config.write -> requested;
+                            true -> canonical
+                        };
+                    let collected = collect_fields(config.root, version);
+                    let fields = fields_with_release_contract(collected, config, version);
+                    let ok = all_fields_ok(fields);
+                    let diagnostic =
+                        if {
+                            ok -> String.append(
+                                "Release version metadata matches ",
+                                String.append(
+                                    version,
+                                    String.append(" (", String.append(config.channel, ").")),
+                                ),
+                            );
+                            true -> mismatch_text(fields, "")
+                        };
+                    let _printed = println(diagnostic);
+                    let report = report_json(fields, version, config.channel, config.tag);
+                    let published = publish_report(config.report, report);
+                    published and ok
+                }
+            };
+        None -> false
+    }.
+
+@pure
+mismatch_text(fields: List[CheckedField], accumulated: String): String ->
+    case fields {
+        [] -> accumulated;
+        [field | rest] ->
+            if {
+                field.status == "ok" -> mismatch_text(rest, accumulated);
+                true -> let line =
+                    String.append(
+                        field.path,
+                        String.append(
+                            ":",
+                            String.append(
+                                field.field,
+                                String.append(
+                                    ": observed `",
+                                    String.append(
+                                        field.observed,
+                                        String.append(
+                                            "`; expected `",
+                                            String.append(field.expected, "`\n"),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    );
+                mismatch_text(rest, String.append(accumulated, line))
+            }
+    }.
+
+@pure
+field_status(fields: List[CheckedField], path: String, name: String): String ->
+    case fields {
+        [] -> "<missing>";
+        [field | rest] ->
+            if {
+                field.path == path and field.field == name -> field.status;
+                true -> field_status(rest, path, name)
+            }
+    }.
+
+stage_file(source_root: String, target_root: String, relative: String): Bool ->
+    case read_text(child(source_root, relative)) {
+        Ok(source) -> stage_file_directory(child(target_root, relative), source);
+        Err(_reason) -> false
+    }.
+
+stage_file_directory(output_path: String, source: String): Bool ->
+    let directory = parent_directory(output_path);
+    let {
+        Ok(Unit) <- create_all(directory);
+        Ok(Unit) <- write_text(output_path, source)
+    } else {
+        _ -> false
+    };
+    true.
+
+fixture_paths(): List[String] ->
+    [
+        "Cargo.toml",
+        "README.md",
+        "CHANGELOG.md",
+        "install.sh",
+        "install.ps1",
+        "crates/terlan/Cargo.toml",
+        "crates/terlan/src/lib.rs",
+        "crates/terlan/src/vm/cli.rs",
+        "std/manifest.toml",
+        "editors/vscode/package.json",
+        "editors/vscode/package-lock.json",
+        "tree-sitter-terlan/package.json",
+        "tree-sitter-terlan/package-lock.json",
+        "editors/intellij/build.gradle.kts",
+    ].
+
+stage_files(source_root: String, target_root: String, paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            let staged = stage_file(source_root, target_root, path);
+            if {
+                staged -> stage_files(source_root, target_root, rest);
+                true -> let _printed = println(String.append("failed to stage release fixture path: ", path));
+                false
+            }
+    }.
+
+replace_fixture(root: String, relative: String, old: String, replacement: String): Bool ->
+    case read_text(child(root, relative)) {
+        Ok(source) ->
+            if {
+                not String.contains(source, old) -> false;
+                true -> case write_text(child(root, relative), String.replace(source, old, replacement)) {
+                    Ok(Unit) -> true;
+                    Err(_reason) -> false
+                }
+            };
+        Err(_reason) -> false
+    }.
+
+remove_succeeds(path: String): Bool ->
+    case remove_all(path) {
+        Ok(Unit) -> true;
+        Err(_reason) -> false
+    }.
+
+@test
+pub repository_release_version_channel_gate(): Bool ->
+    let config = run_config();
+    run(config).
+
+@test
+pub stale_package_and_editor_versions_are_rejected(): Bool ->
+    case workspace_version(".") {
+        Some(version) ->
+            let package = checked("tree-sitter-terlan/package.json", "version", "0.0.0-stale", version);
+            let editor =
+                checked(
+                    "editors/intellij/build.gradle.kts",
+                    "version",
+                    "version = \"0.0.0-stale\"",
+                    String.append("version = \"", String.append(version, "\"")),
+                );
+            let fields = [package | [editor | List.new[CheckedField]()]];
+            field_status(fields, "tree-sitter-terlan/package.json", "version") == "mismatch"
+                and field_status(fields, "editors/intellij/build.gradle.kts", "version") == "mismatch";
+        None -> false
+    }.
+
+@test
+pub stale_installer_docs_and_release_notes_are_rejected(): Bool ->
+    checked(
+    "install.sh",
+    "default_tag",
+    "VERSION=\"${TERLAN_VERSION:-v0.0.0}\"",
+    "VERSION=\"${TERLAN_VERSION:-v0.0.7}\"",
+).status == "mismatch"
+        and checked("README.md", "current_version", "Current version: `0.0.0`.", "Current version: `0.0.7`.").status == "mismatch"
+        and checked("CHANGELOG.md", "release_heading", "<missing>", "## 0.0.7").status == "mismatch".
+
+list_at_text_field(values: List[TextField], index: Int): TextField ->
+    case values {
+        [head | rest] ->
+            if {
+                index == 0 -> head;
+                true -> list_at_text_field(rest, index - 1)
+            };
+        [] -> TextField(path = "", field = "", pattern = "", replacement = "")
+    }.
+
+@test
+pub tag_and_prerelease_channel_mismatches_are_rejected(): Bool ->
+    let stable_config =
+        RunConfig(
+            root = ".",
+            requested_version = "",
+            channel = "stable",
+            tag = "v0.0.0-stale",
+            compiler = "",
+            write = false,
+            report = "",
+        );
+    let fields = fields_with_release_contract(List.new[CheckedField](), stable_config, "0.0.7-rc.1");
+    field_status(fields, "<release>", "channel") == "mismatch"
+        and field_status(fields, "<release>", "tag") == "mismatch".
+
+@test
+pub write_mode_updates_supported_metadata(): Bool ->
+    case create_temporary("terlan-release-version-channel") {
+        Ok(root) ->
+            let staged = stage_files(".", root, fixture_paths());
+            let written =
+                if {
+                    staged -> write_versions(root, "0.0.8-test");
+                    true -> false
+                };
+            let updated =
+                if {
+                    not written -> false;
+                    true -> updated_fixture_holds(root)
+                };
+            let cleaned = remove_succeeds(root);
+            written and updated and cleaned;
+        Err(_reason) -> false
+    }.
+
+updated_fixture_holds(root: String): Bool ->
+    case workspace_version(root) {
+        Some(version) ->
+            let tree_version = json_version(root, "tree-sitter-terlan/package.json");
+            let lock_version = json_root_package_version(root, "editors/vscode/package-lock.json");
+            let std_version = manifest_version(root);
+            let specs = text_fields(version);
+            let install_spec = list_at_text_field(specs, 0);
+            let install_value = read_match(root, install_spec);
+            version == "0.0.8-test"
+                and tree_version == version
+                and lock_version == version
+                and std_version == version
+                and install_value == install_spec.replacement;
+        None -> false
+    }.
+
+@test
+pub missing_vm_runtime_version_source_is_rejected(): Bool ->
+    not String.contains("const VERSION: &str = \"stale\";", "env!(\"CARGO_PKG_VERSION\")")
+        and String.contains("const VERSION: &str = env!(\"CARGO_PKG_VERSION\");", "env!(\"CARGO_PKG_VERSION\")").

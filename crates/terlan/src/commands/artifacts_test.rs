@@ -34,6 +34,27 @@ fn value_lifecycle_export_change_invalidates_dependent_artifact_hash() {
     );
 }
 
+#[test]
+fn default_module_import_uses_the_canonical_provider_identity() {
+    let consumer = parse_module_as_syntax_output(
+        "module cache.consumer.\nimport cache.Provider.\npub run(): Int -> cache.Provider.value().\n",
+    )
+    .expect("parse default-import consumer");
+    let provider =
+        parse_module_as_syntax_output("module cache.Provider.\npub value(): Int -> 42.\n")
+            .expect("parse default-import provider");
+    let interface = crate::terlan_hir::syntax_module_output_to_interface(&provider);
+    let interfaces = HashMap::from([("cache.Provider".to_string(), interface.clone())]);
+
+    assert_eq!(
+        collect_syntax_dependency_hashes(&consumer, &interfaces, None, None),
+        [(
+            "cache.Provider".to_string(),
+            crate::support::fingerprint(interface.to_terlan_interface_type_text().as_bytes(),)
+        )],
+    );
+}
+
 /// Builds a unique temporary directory for artifact tests.
 ///
 /// Inputs:

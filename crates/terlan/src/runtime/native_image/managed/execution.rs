@@ -12,10 +12,11 @@ use crate::runtime::native_image::{
 };
 use crate::runtime::vm::http_session::VmHttpSessionService;
 
+use super::ManagedRoot;
 use super::{
     ActorHeap, ActorId, AtomIndex, HeapLimits, ManagedBinary, ManagedBytes, ManagedClosure,
     ManagedClosureDispatchTable, ManagedClosureImageGeneration, ManagedContinuation,
-    ManagedLayoutRegistry, ManagedMailboxFragment, ManagedRoot, ManagedString, TvmRef,
+    ManagedLayoutRegistry, ManagedMailboxFragment, ManagedString, TvmRef,
     MANAGED_ALLOCATION_FAILED_STATUS, MAX_MANAGED_AGGREGATE_ABI_BYTES,
 };
 
@@ -64,13 +65,29 @@ pub(crate) struct ManagedExecutionRuntime {
     last_allocation_error: Option<String>,
 }
 
+/// Byte offset read by generated backedges to observe actor-heap pressure.
+///
+/// This is part of the in-process AOT/runtime ABI. Keep the offset assertion
+/// beside the C-layout context so a field reorder fails at compile time.
+pub(crate) const MANAGED_CONTEXT_COLLECTION_REQUESTED_OFFSET: i32 = 0;
+
 /// Stack-bound context passed only for the duration of one generated dispatch.
+#[repr(C)]
 struct ManagedAllocationContext {
+    /// Set after allocation crosses the adaptive threshold. Generated code
+    /// observes this at its next recursive safepoint and yields with precise
+    /// continuation roots before the hard heap limit is approached.
+    collection_requested: u64,
     /// Exclusively borrowed runtime that owns the destination actor heap.
     runtime: *mut ManagedExecutionRuntime,
     /// Nonzero actor identity selected for this synchronous dispatch.
     owner_id: u64,
 }
+
+const _: () = assert!(
+    std::mem::offset_of!(ManagedAllocationContext, collection_requested)
+        == MANAGED_CONTEXT_COLLECTION_REQUESTED_OFFSET as usize
+);
 
 /// Owner-local managed roots withheld from the external continuation protocol.
 #[derive(Debug)]
@@ -207,6 +224,12 @@ impl ManagedExecutionRuntime {
     /// Takes the exact managed allocator diagnostic from the last dispatch.
     pub(crate) fn take_allocation_error(&mut self) -> Option<String> {
         self.last_allocation_error.take()
+    }
+
+    /// Retains the first generated-code failure until control returns across
+    /// the native ABI. Later callbacks must not hide its root cause.
+    pub(super) fn retain_allocation_error(&mut self, error: String) {
+        self.last_allocation_error.get_or_insert(error);
     }
 
     /// Copies one generated managed word directly into receiver-owned mailbox storage.
@@ -376,6 +399,7 @@ impl ManagedExecutionRuntime {
     ) -> R {
         self.last_allocation_error = None;
         let mut context = ManagedAllocationContext {
+            collection_requested: 0,
             runtime: self,
             owner_id,
         };
@@ -554,9 +578,22 @@ impl ManagedExecutionRuntime {
         let semantic_id = managed_semantic_id(boundary_type)?.ok_or_else(|| {
             "error[managed_execution.reference_type]: boundary type is not managed".to_string()
         })?;
-        self.heap_ref(owner_id)?
-            .validate_abi_reference(u64::from_ne_bytes(value.to_ne_bytes()), semantic_id)
-            .map_err(|error| format!("error[managed_execution.reference]: {error}"))
+        let heap = self.heap_ref(owner_id)?;
+        let encoded = u64::from_ne_bytes(value.to_ne_bytes());
+        heap.validate_abi_reference(encoded, semantic_id)
+            .map_err(|error| {
+                if error == super::ManagedMemoryError::ManagedTypeMismatch {
+                    let actual = heap
+                        .abi_reference_semantic_id(encoded)
+                        .map(|(_, actual)| format!("{actual:?}"))
+                        .unwrap_or_else(|reason| format!("unavailable ({reason})"));
+                    format!(
+                        "error[managed_execution.reference]: {error}; expected {semantic_id:?} for {boundary_type:?}, actual {actual}"
+                    )
+                } else {
+                    format!("error[managed_execution.reference]: {error}")
+                }
+            })
     }
 
     /// Retains managed captures as precise roots and returns transport scalars.
@@ -599,8 +636,16 @@ impl ManagedExecutionRuntime {
                                 .ok()
                                 .map(|descriptor| descriptor.semantic_id())
                         });
+                    let expected_name = self
+                        .layouts
+                        .layouts(semantic_id)
+                        .first()
+                        .map(|layout| layout.canonical_type());
+                    let actual_name = actual
+                        .and_then(|semantic| self.layouts.layouts(semantic).first())
+                        .map(|layout| layout.canonical_type());
                     format!(
-                        "error[managed_execution.capture]: continuation {continuation_id} capture {position} expects {boundary_type:?}, received semantic type {actual:?}: {error}"
+                        "error[managed_execution.capture]: continuation {continuation_id} capture {position} expects {boundary_type:?} ({expected_name:?}), received semantic type {actual:?} ({actual_name:?}): {error}"
                     )
                 })?;
             positions.push(position);
@@ -630,6 +675,41 @@ impl ManagedExecutionRuntime {
         types: &[TvmBoundaryType],
         transported: &[i64],
         pending: Option<PendingManagedCaptures>,
+    ) -> Result<Vec<i64>, String> {
+        self.reconstruct_continuation_captures(
+            owner_id,
+            continuation_id,
+            types,
+            transported,
+            pending.as_ref(),
+        )
+    }
+
+    /// Reconstructs a debugger snapshot without claiming or consuming roots.
+    pub(crate) fn snapshot_continuation_captures(
+        &self,
+        owner_id: u64,
+        continuation_id: u64,
+        types: &[TvmBoundaryType],
+        transported: &[i64],
+        pending: Option<&PendingManagedCaptures>,
+    ) -> Result<Vec<i64>, String> {
+        self.reconstruct_continuation_captures(
+            owner_id,
+            continuation_id,
+            types,
+            transported,
+            pending,
+        )
+    }
+
+    fn reconstruct_continuation_captures(
+        &self,
+        owner_id: u64,
+        continuation_id: u64,
+        types: &[TvmBoundaryType],
+        transported: &[i64],
+        pending: Option<&PendingManagedCaptures>,
     ) -> Result<Vec<i64>, String> {
         let managed_count = types
             .iter()
@@ -705,10 +785,11 @@ impl ManagedExecutionRuntime {
     }
 }
 
-include!("execution/callbacks.rs");
+mod callbacks;
+
+use callbacks::{managed_allocate, managed_resolve_closure};
 
 /// Performs pointer checks and converts bounded ABI storage into Rust slices.
-#[allow(unsafe_code)]
 fn managed_allocate_inner(
     context: *mut c_void,
     layout: *const u8,
@@ -818,7 +899,7 @@ fn managed_allocate_inner(
                                 })
                                 .collect::<Vec<_>>();
                             format!(
-                                "; expected collection semantic {expected:?}, actual reference semantics {actual:?}, admitted collections {:?}",
+                                "; expected collection semantic {expected:?}, operand words {fields:?}, actual reference semantics {actual:?}, admitted collections {:?}",
                                 layouts.collection_inventory()
                             )
                         }
@@ -863,20 +944,45 @@ fn managed_allocate_inner(
                 })
             } else {
                 heap.allocate_managed_words_abi(layout, fields)
-                    .map_err(|error| error.to_string())
+                    .map_err(|error| {
+                        let context = super::decode_aggregate_layout(layout)
+                            .ok()
+                            .map(|descriptor| {
+                                let supplied = descriptor
+                                    .fields()
+                                    .iter()
+                                    .zip(fields)
+                                    .map(|(field, word)| {
+                                        (field.name(), field.field_type(), *word)
+                                    })
+                                    .collect::<Vec<_>>();
+                                format!(
+                                    "; aggregate {} supplied fields {supplied:?}",
+                                    descriptor.canonical_type()
+                                )
+                            })
+                            .unwrap_or_default();
+                        format!("{error}{context}")
+                    })
             }
         })
     })()
     .map_err(|error| format!("error[managed_execution.allocate]: {error}"));
     match allocation {
         Ok(reference) => {
+            if runtime
+                .heap_ref(context.owner_id)
+                .is_ok_and(ActorHeap::should_collect)
+            {
+                context.collection_requested = 1;
+            }
             // SAFETY: Non-null caller-owned result storage remains live for the
             // callback and is written only after complete heap publication.
             unsafe { result.write(reference) };
             0
         }
         Err(error) => {
-            runtime.last_allocation_error = Some(error);
+            runtime.retain_allocation_error(error);
             MANAGED_ALLOCATION_FAILED_STATUS
         }
     }

@@ -1,0 +1,410 @@
+/**
+ * Validates installed editor, Tree-sitter, compiler, and LSP release parity.
+ */
+module docs_static_release_parity.editor_release_parity.Main.
+
+import docs_static_release_parity.Artifact.
+import docs_static_release_parity.editor_release_parity.{Adversarial, Editor, Lsp, Support}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.Directory.
+import std.io.File.{size}.
+import std.system.{Environment, Process}.
+import std.vm.Process.{exit_reason, fail}.
+
+import type docs_static_release_parity.Artifact.ReleasePlatform.
+import type docs_static_release_parity.editor_release_parity.Editor.{EditorSummary, TreeSummary}.
+import type docs_static_release_parity.editor_release_parity.Lsp.LspSummary.
+import type std.core.Option.
+import type std.data.Json.
+import type std.system.Process.{BatchCompletion, Command, EnvironmentEntry}.
+
+struct Smoke {
+    root: String,
+    script: String,
+    label: String,
+}.
+
+repository_root(): String ->
+    case Environment.get("TERLAN_REPOSITORY_ROOT") {
+        Some(path) -> path;
+        None -> Environment.current_directory()
+    }.
+
+work_root(repository: String): String ->
+    Support.child(repository, "target/quality/editor-release-parity-work").
+
+installed_root(repository: String): String ->
+    Support.child(work_root(repository), "installed").
+
+report_path(repository: String): String ->
+    Support.child(repository, "target/quality/editor-release-parity-report.json").
+
+artifact_size_report_path(repository: String): String ->
+    Support.child(repository, "target/quality/editor-release-parity-artifact-size.json").
+
+artifact_image_relative_path(): String ->
+    "target/self-validation/editor-release-parity/vm/docs_static_release_parity_Main.tvm".
+
+artifact_image_path(repository: String): String ->
+    Support.child(repository, artifact_image_relative_path()).
+
+artifact_size_maximum_bytes(): Int -> 134217728.
+
+process_environment(installed: String): List[EnvironmentEntry] ->
+    [
+        Process.environment_entry("PATH", installed),
+        Process.environment_entry("HOME", Support.child(installed, "home")),
+    ].
+
+installed_binary(installed: String, name: String): String ->
+    Support.child(installed, name).
+
+version_holds(
+    compiler: String,
+    expected_version: String,
+    repository: String,
+    environment: List[EnvironmentEntry],
+): Bool ->
+    case Support.successful_output(compiler, ["--version"], repository, environment) {
+        Some(output) -> String.trim(output) == String.append("terlc ", expected_version);
+        None -> false
+    }.
+
+lsp_help_holds(lsp: String, repository: String, environment: List[EnvironmentEntry]): Bool ->
+    case Support.successful_output(lsp, ["--help"], repository, environment) {
+        Some(output) -> String.contains(output, "terlan-lsp --stdio");
+        None -> false
+    }.
+
+smokes(): List[Smoke] ->
+    [
+        Smoke(
+            root = Editor.editor_root(),
+            script = "test/manifest_test.js",
+            label = "share/terlan/editors/vscode/test/manifest_test.js",
+        ),
+        Smoke(
+            root = Editor.editor_root(),
+            script = "test/package_smoke_test.js",
+            label = "share/terlan/editors/vscode/test/package_smoke_test.js",
+        ),
+        Smoke(
+            root = Editor.editor_root(),
+            script = "test/textmate_bridge_test.js",
+            label = "share/terlan/editors/vscode/test/textmate_bridge_test.js",
+        ),
+        Smoke(
+            root = Editor.tree_root(),
+            script = "test/package_smoke_test.js",
+            label = "share/terlan/tree-sitter-terlan/test/package_smoke_test.js",
+        ),
+    ].
+
+smoke_command(installed: String, smoke: Smoke): Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(Process.command("node"), [smoke.script]),
+                Support.child(installed, smoke.root),
+            ),
+            60000,
+        ),
+        8388608,
+    ).
+
+smoke_commands(installed: String, pending: List[Smoke]): List[Command] ->
+    case pending {
+        [] -> List.new[Command]();
+        [smoke | rest] -> [smoke_command(installed, smoke) | smoke_commands(installed, rest)]
+    }.
+
+smoke_label(smoke: Smoke): String ->
+    smoke.label.
+
+smoke_labels(pending: List[Smoke]): List[String] ->
+    case pending {
+        [] -> List.new[String]();
+        [smoke | rest] -> [smoke_label(smoke) | smoke_labels(rest)]
+    }.
+
+smoke_completions_hold(completions: List[BatchCompletion]): Bool ->
+    case completions {
+        [] -> true;
+        [completion | rest] ->
+            case {Process.completion_output(completion), Process.completion_error(completion)} {
+                {Some(output), None} ->
+                    Process.status(output) == 0 and smoke_completions_hold(rest);
+                _ -> false
+            }
+    }.
+
+run_smokes(installed: String, pending: List[Smoke]): Option[List[String]] ->
+    case Process.run_many(Process.batch(smoke_commands(installed, pending), 4)) {
+        Err(_reason) -> None;
+        Ok(batch) ->
+            if {
+                smoke_completions_hold(Process.completions(batch)) -> Some(smoke_labels(pending));
+                true -> None
+            }
+    }.
+
+fresh_parser_hash(installed: String, tree_cli: String): Option[String] ->
+    let tree = Support.child(installed, Editor.tree_root());
+    let {
+        Some(before_hash) <- Support.selected_surface_hash(tree, Editor.generated_tree_files());
+        Some(_output) <- Support.successful_output(tree_cli, ["generate"], tree, []);
+        Some(after_hash) <- Support.selected_surface_hash(tree, Editor.generated_tree_files())
+    } else {
+        _ -> None
+    };
+    if {
+        before_hash == after_hash -> Some(after_hash);
+        true -> None
+    }.
+
+build_surface_report(
+    artifact_relative: String,
+    artifact_hash: String,
+    platform: ReleasePlatform,
+    editor: EditorSummary,
+    tree: TreeSummary,
+): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.editor-release-parity-report.v1"))
+        .put("decision", Json.string("pass"))
+        .put("artifact", Json.string(artifact_relative))
+        .put("artifact_sha256", Json.string(artifact_hash))
+        .put("installed_compiler", Json.string(Artifact.compiler_binary_name(platform)))
+        .put("installed_lsp", Json.string(Artifact.lsp_binary_name(platform)))
+        .put("compiler_resolution", Json.string("installed-artifact"))
+        .put("editor", Editor.editor_json(editor))
+        .put("tree_sitter", Editor.tree_base_json(tree)).
+
+base_surface_path(repository: String): String ->
+    Support.child(work_root(repository), "surface-base.json").
+
+smokes_path(repository: String): String ->
+    Support.child(work_root(repository), "smokes.json").
+
+parser_hash_path(repository: String): String ->
+    Support.child(work_root(repository), "parser-hash.json").
+
+surface_path(repository: String): String ->
+    Support.child(work_root(repository), "surface.json").
+
+lsp_path(repository: String): String ->
+    Support.child(work_root(repository), "lsp.json").
+
+adversarial_path(repository: String): String ->
+    Support.child(work_root(repository), "adversarial.json").
+
+validate_artifact_size(repository: String): Bool ->
+    case size(artifact_image_path(repository)) {
+        Err(_reason) -> false;
+        Ok(bytes) ->
+            let maximum = artifact_size_maximum_bytes();
+            let passed = bytes <= maximum;
+            let report =
+                Json.object()
+                    .put("schema", Json.string("terlan.aot-artifact-size.v1"))
+                    .put("artifact", Json.string(artifact_image_relative_path()))
+                    .put("emitted_bytes", Json.int(bytes))
+                    .put("maximum_bytes", Json.int(maximum))
+                    .put(
+                        "decision",
+                        Json.string(
+                            if {
+                                passed -> "pass";
+                                true -> "fail"
+                            },
+                        ),
+                    );
+            Support.write_json(artifact_size_report_path(repository), report) and passed
+    }.
+
+extract(): Bool ->
+    let repository = repository_root();
+    let work = work_root(repository);
+    let installed = installed_root(repository);
+    let _removed = Directory.remove_all(work);
+    let {
+        Ok(_work) <- Directory.create_all(work);
+        Some(platform) <- Artifact.detect()
+    } else {
+        _ -> false
+    };
+    (let artifact_relative = Support.child("dist", Artifact.artifact_name(platform)); let artifact = Support.child(repository, artifact_relative); Artifact.extract_and_verify(artifact, installed)).
+
+surface(): Bool ->
+    let repository = repository_root();
+    let installed = installed_root(repository);
+    let {
+        Some(platform) <- Artifact.detect();
+        Some(editor) <- Editor.validate_editor(installed);
+        Some(tree) <- Editor.validate_tree(installed)
+    } else {
+        _ -> false
+    };
+    (let artifact_relative = Support.child("dist", Artifact.artifact_name(platform));
+let artifact = Support.child(repository, artifact_relative);
+let compiler = installed_binary(installed, Artifact.compiler_binary_name(platform));
+let lsp = installed_binary(installed, Artifact.lsp_binary_name(platform));
+let environment = process_environment(installed);
+let version = Editor.editor_version(editor);
+if {
+    not Support.nonempty_file(compiler) or not Support.nonempty_file(lsp) -> false;
+    Editor.tree_version(tree) != version -> false;
+    not version_holds(compiler, version, repository, environment) -> false;
+    not lsp_help_holds(lsp, repository, environment) -> false;
+    true -> case Support.file_hash(artifact) {
+        None -> false;
+        Some(artifact_hash) ->
+            Support.write_json(
+                base_surface_path(repository),
+                build_surface_report(artifact_relative, artifact_hash, platform, editor, tree),
+            )
+    }
+}).
+
+packaged_smokes(): Bool ->
+    let repository = repository_root();
+    case run_smokes(installed_root(repository), smokes()) {
+        None -> false;
+        Some(completed) ->
+            Support.write_json(smokes_path(repository), Support.string_array(completed))
+    }.
+
+parser_freshness(): Bool ->
+    let repository = repository_root();
+    let tree_cli = Support.child(repository, "tree-sitter-terlan/node_modules/.bin/tree-sitter");
+    if {
+        not Support.nonempty_file(tree_cli) -> false;
+        true -> case fresh_parser_hash(installed_root(repository), tree_cli) {
+            None -> false;
+            Some(hash) -> Support.write_json(parser_hash_path(repository), Json.string(hash))
+        }
+    }.
+
+assemble_surface(): Bool ->
+    let repository = repository_root();
+    let {
+        Some(report) <- Support.read_json(base_surface_path(repository));
+        Some(smoke_evidence) <- Support.read_json(smokes_path(repository));
+        Some(hash_evidence) <- Support.read_json(parser_hash_path(repository));
+        Ok(fresh_hash) <- hash_evidence.as_string();
+        Ok(tree) <- report.get("tree_sitter")
+    } else {
+        _ -> false
+    };
+    (let completed =
+    report
+        .put("tree_sitter", tree.put("fresh_generated_hash", Json.string(fresh_hash)))
+        .put("packaged_smokes", smoke_evidence);
+Support.write_json(surface_path(repository), completed)).
+
+lsp_smoke(): Bool ->
+    let repository = repository_root();
+    let installed = installed_root(repository);
+    let {
+        Some(platform) <- Artifact.detect();
+        Some(summary) <-
+            Lsp.run_smoke(
+                installed_binary(installed, Artifact.lsp_binary_name(platform)),
+                installed,
+                Support.child(work_root(repository), "workspace"),
+                [],
+            )
+    } else {
+        _ -> false
+    };
+    Support.write_json(lsp_path(repository), Lsp.summary_json(summary)).
+
+adversarial(): Bool ->
+    let repository = repository_root();
+    let installed = installed_root(repository);
+    let {
+        Some(platform) <- Artifact.detect();
+        Some(evidence) <-
+            Adversarial.run(
+                installed,
+                Support.child(work_root(repository), "adversarial-work"),
+                installed_binary(installed, Artifact.compiler_binary_name(platform)),
+                Support.child(repository, "tree-sitter-terlan/node_modules/.bin/tree-sitter"),
+                [],
+            )
+    } else {
+        _ -> false
+    };
+    Support.write_json(adversarial_path(repository), Support.string_array(evidence)).
+
+closeout(): Bool ->
+    let repository = repository_root();
+    let {
+        Some(report) <- Support.read_json(surface_path(repository));
+        Some(lsp_evidence) <- Support.read_json(lsp_path(repository));
+        Some(adversarial_evidence) <- Support.read_json(adversarial_path(repository))
+    } else {
+        _ -> false
+    };
+    (let completed =
+    report
+        .put("lsp", lsp_evidence)
+        .put(
+            "hover_doc_coverage",
+            Support.string_array(
+                ["function", "generated-summary", "method", "module", "package", "stdlib", "struct"],
+            ),
+        )
+        .put("adversarial_checks", adversarial_evidence);
+Support.write_json(report_path(repository), completed)).
+
+failure(message: String): Unit ->
+    let _printed = println(message);
+    fail(exit_reason(1)).
+
+finish_stage(stage: String, passed: Bool): Unit ->
+    if {
+        passed -> println(String.append("Editor release parity stage passed: ", stage));
+        true -> failure(String.append("Editor release parity stage failed: ", stage))
+    }.
+
+pub extract_entry(): Unit ->
+    let passed = extract();
+    finish_stage("extract", passed).
+
+pub surface_entry(): Unit ->
+    let passed = surface();
+    finish_stage("surface", passed).
+
+pub packaged_smokes_entry(): Unit ->
+    let passed = packaged_smokes();
+    finish_stage("packaged-smokes", passed).
+
+pub parser_freshness_entry(): Unit ->
+    let passed = parser_freshness();
+    finish_stage("parser-freshness", passed).
+
+pub assemble_surface_entry(): Unit ->
+    let passed = assemble_surface();
+    finish_stage("assemble-surface", passed).
+
+pub lsp_entry(): Unit ->
+    let passed = lsp_smoke();
+    finish_stage("lsp", passed).
+
+pub adversarial_entry(): Unit ->
+    let passed = adversarial();
+    finish_stage("adversarial", passed).
+
+pub closeout_entry(): Unit ->
+    let passed = closeout();
+    finish_stage("closeout", passed).
+
+pub artifact_size_entry(): Unit ->
+    let passed = validate_artifact_size(repository_root());
+    finish_stage("artifact-size", passed).

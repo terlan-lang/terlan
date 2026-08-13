@@ -42,13 +42,5 @@ pub boolean_or_keyword_executes(): Bool ->
     assert_equal(true, false or true).
 
 @test
-pub boolean_and_symbols_execute(): Bool ->
-    assert_equal(false, true and false).
-
-@test
-pub boolean_or_symbols_execute(): Bool ->
-    assert_equal(true, false or true).
-
-@test
 pub string_concat_executes(): Bool ->
     assert_equal("hello world", "hello " + "world").

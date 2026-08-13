@@ -120,3 +120,21 @@ pub empty(): Bool ->
 
     assert!(js.contains(r#"return "" === "";"#), "{js}");
 }
+
+/// Verifies indexed UTF-8 candidate search remains portable on JavaScript.
+#[test]
+fn emits_utf8_find_any_byte_with_bounds_and_ascii_validation() {
+    let source = "\
+module js_std_core_string_utf8_search.
+
+pub delimiter(): Int ->
+    \"λ🔥 alpha\\n\".utf8_find_any_byte(0, \" \\n\").
+";
+
+    let js = compile_and_emit_direct_js(source);
+
+    assert!(js.contains("findIndex"), "{js}");
+    assert!(js.contains("every"), "{js}");
+    assert!(js.contains("RangeError"), "{js}");
+    assert!(js.contains("invalid UTF-8 byte search"), "{js}");
+}

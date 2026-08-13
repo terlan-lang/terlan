@@ -21,6 +21,6 @@ pub canvas_typechecks(receiver: ImageBitmapRenderingContext): HTMLCanvasElement 
 
 pub transfer_from_image_bitmap_typechecks(
     receiver: ImageBitmapRenderingContext,
-    bitmap: Option[ImageBitmap]
+    bitmap: Option[ImageBitmap],
 ): std.core.Unit ->
     receiver.transfer_from_image_bitmap(bitmap).

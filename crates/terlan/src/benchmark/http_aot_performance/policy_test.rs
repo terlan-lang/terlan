@@ -1,7 +1,7 @@
 //! Tests for the versioned HTTP AOT performance budget.
 
 use super::*;
-use crate::http_aot_performance::{fixture_report, HttpExecutionLane};
+use crate::benchmark::http_aot_performance::{fixture_report, HttpExecutionLane};
 
 #[test]
 fn canonical_policy_accepts_equal_complete_reports() {

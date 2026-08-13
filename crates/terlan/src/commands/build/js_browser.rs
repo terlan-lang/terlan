@@ -67,7 +67,7 @@ impl WebRouteSourceArtifact {
     /// Transformation:
     /// - Drops browser asset fields so manifest routing stays independent from
     ///   the JavaScript package copy step.
-    #[allow(dead_code)]
+    #[cfg(test)]
     fn from_js_module(module: &JsModuleArtifact) -> Self {
         Self {
             module: module.module.clone(),
@@ -96,7 +96,7 @@ impl WebRouteSourceArtifact {
 ///   `_build/web/assets/js/modules/**`, emits a minimal module-script HTML
 ///   shell, and records the package in a browser manifest for later `terlc
 ///   serve` and release checks.
-#[allow(dead_code)]
+#[cfg(test)]
 pub(super) fn write_browser_package(
     js_root: &Path,
     contract: JsTargetContract,
@@ -186,11 +186,7 @@ pub(super) fn write_browser_package_with_route_sources(
         &web_root,
         contract,
         assets,
-        route_manifest.handlers,
-        route_manifest.websockets,
-        route_manifest.sse,
-        route_manifest.static_responses,
-        route_manifest.file_responses,
+        route_manifest,
         error_handler,
         incremental,
     )
@@ -238,4 +234,5 @@ fn write_browser_index(
 
 #[cfg(test)]
 #[path = "js_browser_test.rs"]
+#[cfg(test)]
 mod js_browser_test;

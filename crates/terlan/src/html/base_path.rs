@@ -65,4 +65,5 @@ fn find_static_head_open_end(lowercase_html: &str) -> Option<usize> {
 
 #[cfg(test)]
 #[path = "base_path_test.rs"]
+#[cfg(test)]
 mod base_path_test;

@@ -19,12 +19,31 @@ set -euo pipefail
 #   execution.
 
 manifest="tests/std/IO_NEGATIVE_API_TESTS.tsv"
+release_api_manifest="tests/std/RELEASE_API_TESTS.tsv"
 failures=0
 
 if [[ ! -f "$manifest" ]]; then
   printf 'std.io negative API test manifest is missing: %s\n' "$manifest" >&2
   exit 1
 fi
+
+if [[ ! -f "$release_api_manifest" ]]; then
+  printf 'stdlib release API test manifest is missing: %s\n' "$release_api_manifest" >&2
+  exit 1
+fi
+
+has_positive_release_api() {
+  local api_id="$1"
+  awk -F'\t' -v api_id="$api_id" '
+    $1 !~ /^#/ && $1 != "" && $1 !~ /^$/ {
+      if ($1 == api_id) {
+        found = 1
+        exit
+      }
+    }
+    END { exit found ? 0 : 1 }
+  ' "$release_api_manifest"
+}
 
 while IFS=$'\t' read -r api_id fixture expected extra; do
   [[ -z "${api_id:-}" || "${api_id:0:1}" == "#" ]] && continue
@@ -45,6 +64,13 @@ while IFS=$'\t' read -r api_id fixture expected extra; do
   if [[ ! -f "$fixture" ]]; then
     printf '%s: API `%s` references missing negative fixture `%s`\n' \
       "$manifest" "$api_id" "$fixture" >&2
+    failures=1
+    continue
+  fi
+
+  if ! has_positive_release_api "$api_id"; then
+    printf '%s: API `%s` has no matching entry in %s\n' \
+      "$manifest" "$api_id" "$release_api_manifest" >&2
     failures=1
     continue
   fi

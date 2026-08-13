@@ -5,13 +5,15 @@ use std::task::Waker;
 
 use super::{
     VmCapabilityId, VmCapabilityRequestContext, VmCapabilityWorkerClient,
-    VmCapabilityWorkerCompletion, VmCapabilityWorkerIdentity, VmCapabilityWorkerRuntime,
-    VmCapabilityWorkerTerminal,
+    VmCapabilityWorkerCompletion, VmCapabilityWorkerIdentity,
 };
+#[cfg(test)]
+use super::{VmCapabilityWorkerCall, VmCapabilityWorkerRuntime, VmCapabilityWorkerTerminal};
+#[cfg(test)]
 use crate::runtime::vm::native_boundary::deadline::VmScheduledNativeBoundaryRequest;
 use crate::runtime::vm::process::VmProcessId;
-use crate::terlan_native_boundary::term::NativeBoundaryTerm;
 use crate::terlan_native_boundary::request::RequestId;
+use crate::terlan_native_boundary::term::NativeBoundaryTerm;
 
 /// One configured logical worker slot and its bounded in-flight capacity.
 pub(crate) struct VmCapabilityWorkerPoolSlot {
@@ -51,17 +53,8 @@ impl VmCapabilityWorkerPoolSlot {
         })
     }
 
-    /// Returns the stable logical identity of this slot.
-    pub(crate) fn id(&self) -> &super::VmCapabilityWorkerId {
-        &self.id
-    }
-
-    /// Returns the currently admitted process generation.
-    pub(crate) const fn generation(&self) -> super::VmCapabilityWorkerGeneration {
-        self.generation
-    }
-
     /// Returns the configured in-flight request capacity.
+    #[cfg(test)]
     pub(crate) const fn concurrency_limit(&self) -> u64 {
         self.concurrency_limit
     }
@@ -78,11 +71,13 @@ impl VmCapabilityWorkerPoolSlot {
     }
 
     /// Returns whether a live worker process currently occupies this slot.
+    #[cfg(test)]
     pub(crate) const fn is_live(&self) -> bool {
         self.client.is_some()
     }
 
     /// Installs only the next generation of this exact logical worker slot.
+    #[cfg(test)]
     pub(crate) fn replace(&mut self, client: VmCapabilityWorkerClient) -> Result<(), String> {
         if self.client.is_some() {
             return Err(format!(
@@ -118,11 +113,11 @@ impl VmCapabilityWorkerPoolSlot {
         self.client = Some(client);
         Ok(())
     }
-
 }
 
 /// Exact pool assignment retained by a caller until completion or cancellation.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmCapabilityWorkerPoolRequest {
     /// Worker process generation that accepted the request.
     pub(crate) worker: VmCapabilityWorkerIdentity,
@@ -174,6 +169,7 @@ impl VmCapabilityWorkerPool {
     }
 
     /// Returns total configured capacity without counting failed slots twice.
+    #[cfg(test)]
     pub(crate) fn configured_capacity(&self) -> u64 {
         self.slots
             .iter()
@@ -182,6 +178,7 @@ impl VmCapabilityWorkerPool {
     }
 
     /// Returns currently available request credits across live worker slots.
+    #[cfg(test)]
     pub(crate) fn available_capacity(&self) -> u64 {
         self.slots
             .iter()
@@ -197,6 +194,7 @@ impl VmCapabilityWorkerPool {
     }
 
     /// Returns the number of current worker processes, excluding failed slots.
+    #[cfg(test)]
     pub(crate) fn live_workers(&self) -> usize {
         self.slots.iter().filter(|slot| slot.is_live()).count()
     }
@@ -211,32 +209,19 @@ impl VmCapabilityWorkerPool {
     }
 
     /// Starts one call on an admitted slot without blocking the scheduler.
-    #[allow(clippy::too_many_arguments)]
+    #[cfg(test)]
     pub(crate) fn start_call(
         &mut self,
         runtime: &mut VmCapabilityWorkerRuntime<'_>,
-        owner: VmProcessId,
-        context: VmCapabilityRequestContext,
-        operation: impl Into<String>,
-        arguments: Vec<NativeBoundaryTerm>,
-        now_tick: u64,
-        timeout_ticks: u64,
+        call: VmCapabilityWorkerCall,
     ) -> Result<VmCapabilityWorkerPoolRequest, String> {
-        let index = self.select_slot(&context.capability)?;
+        let index = self.select_slot(&call.context.capability)?;
         let client = self.slots[index]
             .client
             .as_mut()
             .expect("slot selection admits only live clients");
         let worker = client.identity().clone();
-        let scheduled = client.start_call(
-            runtime,
-            owner,
-            context,
-            operation,
-            arguments,
-            now_tick,
-            timeout_ticks,
-        )?;
+        let scheduled = client.start_call(runtime, call)?;
         self.next_slot = (index + 1) % self.slots.len();
         Ok(VmCapabilityWorkerPoolRequest { worker, scheduled })
     }
@@ -265,9 +250,7 @@ impl VmCapabilityWorkerPool {
     }
 
     /// Polls each live slot for an already-parked generated completion.
-    pub(crate) fn poll_parked(
-        &mut self,
-    ) -> Result<Option<VmCapabilityWorkerCompletion>, String> {
+    pub(crate) fn poll_parked(&mut self) -> Result<Option<VmCapabilityWorkerCompletion>, String> {
         for offset in 0..self.slots.len() {
             let index = (self.next_slot + offset) % self.slots.len();
             let Some(client) = self.slots[index].client.as_mut() else {
@@ -291,6 +274,7 @@ impl VmCapabilityWorkerPool {
     }
 
     /// Polls each live slot once and returns the first available event.
+    #[cfg(test)]
     pub(crate) fn poll(
         &mut self,
         runtime: &mut VmCapabilityWorkerRuntime<'_>,
@@ -318,6 +302,7 @@ impl VmCapabilityWorkerPool {
     }
 
     /// Cancels only the exact worker generation that accepted a request.
+    #[cfg(test)]
     pub(crate) fn cancel(
         &mut self,
         runtime: &mut VmCapabilityWorkerRuntime<'_>,
@@ -337,6 +322,7 @@ impl VmCapabilityWorkerPool {
     }
 
     /// Installs the immediate next process generation into one vacant slot.
+    #[cfg(test)]
     pub(crate) fn replace(&mut self, client: VmCapabilityWorkerClient) -> Result<(), String> {
         let id = client.identity().id.clone();
         let slot = self
@@ -417,4 +403,5 @@ impl VmCapabilityWorkerPool {
 
 #[cfg(test)]
 #[path = "pool_test.rs"]
+#[cfg(test)]
 mod pool_test;

@@ -10,6 +10,15 @@
       "verdict": "pass"
     },
     {
+      "dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+      "family": "coreir-checked-lowering",
+      "first_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "proof_digest": "sha256:46422c5fd264e49c147c5f08a436b3a92d647550be498d0db140d1966c082974",
+      "proof_path": "proofs/lean/Terlan/Core/CheckedLowering.lean",
+      "second_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "verdict": "pass"
+    },
+    {
       "dependency_set_hash": "sha256:bfc30a13ae27060d64d16862ee79ff4da6beccf5aed93cbe5aa1715fb3c55620",
       "family": "feature-cull-legacy-boundaries",
       "first_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
@@ -20,10 +29,10 @@
     },
     {
       "dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
-      "family": "native-boundary",
+      "family": "semantic-smoke-chain",
       "first_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
-      "proof_digest": "sha256:2c7c8dd87ad70bba20ae805eb13e972160c5dacadbd1983155559ceaf71fb3f4",
-      "proof_path": "proofs/lean/Terlan/Runtime/NativeBoundary.lean",
+      "proof_digest": "sha256:35e967e46a00e564f0e56ea95afc63b6d032496f435cf2bb87a095e9e6ea2014",
+      "proof_path": "proofs/lean/Terlan/Smoke/SemanticChain.lean",
       "second_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
       "verdict": "pass"
     },
@@ -33,6 +42,78 @@
       "first_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
       "proof_digest": "sha256:2480453ade68213c794440f302323797f850b8c92d76e3886ffe66446355a36b",
       "proof_path": "proofs/lean/Terlan/Type/ShapeImplication.lean",
+      "second_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "verdict": "pass"
+    },
+    {
+      "dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+      "family": "collections",
+      "first_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "proof_digest": "sha256:cd429b6b7d63643333cad8beb99049905e7e994848b42c2ec85a1180f4595065",
+      "proof_path": "proofs/lean/collections/Collections.lean",
+      "second_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "verdict": "pass"
+    },
+    {
+      "dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+      "family": "concurrency",
+      "first_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "proof_digest": "sha256:5e0c61d3a415d71089334d3e9f133b99958a151bc83081b7191613d15d846f33",
+      "proof_path": "proofs/lean/concurrency/Concurrency.lean",
+      "second_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "verdict": "pass"
+    },
+    {
+      "dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+      "family": "database-sql",
+      "first_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "proof_digest": "sha256:0f746de88857fdacc2fc85f6a1f255b3150e0dca758bdac8fcd3aa753a4fdfdf",
+      "proof_path": "proofs/lean/database_sql/DatabaseSql.lean",
+      "second_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "verdict": "pass"
+    },
+    {
+      "dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+      "family": "native-boundary",
+      "first_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+      "proof_path": "proofs/lean/native_boundary/NativeBoundary.lean",
+      "second_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "verdict": "pass"
+    },
+    {
+      "dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+      "family": "parser-shape",
+      "first_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "proof_digest": "sha256:b1af86ef1a14129efe0e7497472d71ee23fb68fb356539de82cfb2c4335e2789",
+      "proof_path": "proofs/lean/parser_shape/ParserShape.lean",
+      "second_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "verdict": "pass"
+    },
+    {
+      "dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+      "family": "std-packages",
+      "first_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "proof_digest": "sha256:1c2ea16fd3a3ce051d1e1bb355564b0df399e739ce051c0b656c824ddf8322d2",
+      "proof_path": "proofs/lean/std_packages/StdPackages.lean",
+      "second_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "verdict": "pass"
+    },
+    {
+      "dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+      "family": "templates-routes",
+      "first_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "proof_digest": "sha256:e90cd3d15c814c74b2b4529ef350dcc34cf1ddc6f3379e15c50f14570326f8cf",
+      "proof_path": "proofs/lean/templates_routes/TemplateRoutes.lean",
+      "second_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "verdict": "pass"
+    },
+    {
+      "dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+      "family": "wasm-bridge",
+      "first_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
+      "proof_digest": "sha256:8801c7dccbcd7dbdb2c3fd61c751add78e18198194fb82dda221322d8b4aba62",
+      "proof_path": "proofs/lean/wasm_bridge/WasmBridge.lean",
       "second_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
       "verdict": "pass"
     }

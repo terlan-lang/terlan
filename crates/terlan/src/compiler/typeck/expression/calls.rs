@@ -17,6 +17,7 @@ fn require_explicit_process_value_type(
         && matches!(
             function,
             "entry"
+                | "current"
                 | "spawn"
                 | "send"
                 | "receive"
@@ -36,6 +37,14 @@ fn require_explicit_process_value_type(
     Ok(())
 }
 mod template;
+
+/// Inferred and source-declared argument metadata for one call site.
+#[derive(Clone, Copy)]
+struct SyntaxCallArguments<'a> {
+    types: &'a [Type],
+    type_args: &'a [SyntaxTypeOutput],
+    names: &'a [Option<String>],
+}
 
 pub(super) use function_value::*;
 use imported::*;
@@ -263,7 +272,7 @@ fn infer_syntax_call_with_arg_types(
         if ctx.current_constructor_target == Some(function_name) {
             if let Some(constructed) = infer_default_struct_constructor_call(
                 function_name,
-                &arg_types,
+                arg_types,
                 &expr.arg_names,
                 ctx,
                 subst,
@@ -275,7 +284,7 @@ fn infer_syntax_call_with_arg_types(
 
         if let Some(constructed) = infer_constructor_call(
             function_name,
-            &arg_types,
+            arg_types,
             &expr.arg_names,
             ctx,
             subst,
@@ -296,7 +305,7 @@ fn infer_syntax_call_with_arg_types(
                     if let Some(constructed) = infer_constructor_schemes(
                         function_name,
                         &schemes,
-                        &arg_types,
+                        arg_types,
                         &expr.arg_names,
                         subst,
                         errors,
@@ -317,7 +326,7 @@ fn infer_syntax_call_with_arg_types(
 
         if let Some(constructed) = infer_default_struct_constructor_call(
             function_name,
-            &arg_types,
+            arg_types,
             &expr.arg_names,
             ctx,
             subst,
@@ -327,7 +336,7 @@ fn infer_syntax_call_with_arg_types(
         }
 
         if let Some(constructed) =
-            infer_opaque_constructor(function_name, &arg_types, ctx.aliases, errors)
+            infer_opaque_constructor(function_name, arg_types, ctx.aliases, errors)
         {
             return constructed;
         }
@@ -375,9 +384,11 @@ fn infer_syntax_call_with_arg_types(
         return infer_syntax_remote_call(
             module_name,
             function_name,
-            arg_types,
-            &expr.type_args,
-            &expr.arg_names,
+            SyntaxCallArguments {
+                types: arg_types,
+                type_args: &expr.type_args,
+                names: &expr.arg_names,
+            },
             ctx,
             subst,
             errors,

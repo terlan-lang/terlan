@@ -313,7 +313,7 @@ pub (value: Date) to_iso_string(): JsString ->
  */
 pub (value: Date) to_locale_string(
     locales: Array[JsString] | JsString,
-    options: Intl.DateTimeFormatOptions
+    options: Intl.DateTimeFormatOptions,
 ): JsString ->
     native.
 
@@ -324,7 +324,7 @@ pub (value: Date) to_locale_string(
  */
 pub (value: Date) to_locale_date_string(
     locales: Array[JsString] | JsString,
-    options: Intl.DateTimeFormatOptions
+    options: Intl.DateTimeFormatOptions,
 ): JsString ->
     native.
 
@@ -335,6 +335,6 @@ pub (value: Date) to_locale_date_string(
  */
 pub (value: Date) to_locale_time_string(
     locales: Array[JsString] | JsString,
-    options: Intl.DateTimeFormatOptions
+    options: Intl.DateTimeFormatOptions,
 ): JsString ->
     native.

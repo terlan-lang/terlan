@@ -1,0 +1,505 @@
+/**
+ * Discovers workspace-owned Rust sources once for typed structural validators.
+ *
+ * Cargo remains the authority for workspace membership and Git remains the
+ * authority for tracked plus non-ignored untracked source visibility. Terlan
+ * owns all parsing, classification, batching, and policy decisions.
+ */
+module rust_quality.SourceInventory.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+import std.io.Console.{eprintln}.
+import std.io.File.
+import std.system.{Environment, Process}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.io.File.TextFile.
+
+pub struct RustSource {
+    path: String,
+    contents: String,
+    category: String,
+    physical_lines: Int,
+    line_limit: Int,
+}.
+
+pub struct SourceLoad {
+    valid: Bool,
+    sources: List[RustSource],
+    message: String,
+}.
+
+/**
+ * A deterministic discovery result whose paths do not retain source text.
+ */
+pub struct SourceDiscovery {
+    valid: Bool,
+    paths: List[String],
+    message: String,
+}.
+
+/**
+ * One bounded source batch plus the paths that remain to be consumed.
+ */
+pub struct SourceBatch {
+    valid: Bool,
+    sources: List[RustSource],
+    remaining: List[String],
+    message: String,
+}.
+
+struct PathBatch {
+    paths: List[String],
+    remaining: List[String],
+}.
+
+@pure
+failure(message: String): SourceLoad ->
+    SourceLoad(valid = false, sources = List.new[RustSource](), message = message).
+
+@pure
+discovery_failure(message: String): SourceDiscovery ->
+    SourceDiscovery(valid = false, paths = List.new[String](), message = message).
+
+@pure
+batch_failure(message: String, remaining: List[String]): SourceBatch ->
+    SourceBatch(
+        valid = false,
+        sources = List.new[RustSource](),
+        remaining = remaining,
+        message = message,
+    ).
+
+pub repository_root(): String ->
+    case Environment.get("TERLAN_RUST_QUALITY_ROOT") {
+        Some(value) -> value;
+        None -> Environment.current_directory()
+    }.
+
+@pure
+pub child(parent: String, relative: String): String ->
+    if {
+        parent == "" or parent == "." -> relative;
+        String.ends_with(parent, "/") -> String.append(parent, relative);
+        true -> String.append(parent, String.append("/", relative))
+    }.
+
+bounded_command(
+    root: String,
+    program: String,
+    arguments: List[String],
+): std.system.Process.Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(Process.command(program), arguments),
+                root,
+            ),
+            120000,
+        ),
+        16777216,
+    ).
+
+run_text(root: String, program: String, arguments: List[String]): Option[String] ->
+    case Process.run(bounded_command(root, program, arguments)) {
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> Some(Process.stdout(output));
+                true -> None
+            };
+        Err(_reason) -> None
+    }.
+
+@pure
+drop_terminal_empty(lines: List[String]): List[String] ->
+    case lines {
+        [] -> [];
+        [""] -> [];
+        [head | rest] -> [head | drop_terminal_empty(rest)]
+    }.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+pub reverse[T](values: List[T]): List[T] ->
+    reverse_at(values, List.new[T]()).
+
+@pure
+nonempty_lines_at(lines: List[String], output: List[String]): List[String] ->
+    case lines {
+        [] -> output;
+        [line | rest] ->
+            let normalized = String.trim(line);
+            if {
+                normalized == "" -> nonempty_lines_at(rest, output);
+                true -> nonempty_lines_at(rest, [normalized | output])
+            }
+    }.
+
+@pure
+nonempty_lines(source: String): List[String] ->
+    reverse(nonempty_lines_at(String.split(source, "\n"), List.new[String]())).
+
+@pure
+strip_root_prefix(root: String, absolute: String): Option[String] ->
+    let prefix = String.append(root, "/");
+    if {
+        String.starts_with(absolute, prefix) -> Some(absolute.utf8_slice(prefix.byte_size(), absolute.byte_size() - prefix.byte_size()));
+        true -> None
+    }.
+
+@pure
+parent_at(path: String, index: Int): String ->
+    if {
+        index < 0 -> "";
+        path.utf8_byte_at(index) == 47 -> path.utf8_slice(0, index);
+        true -> parent_at(path, index - 1)
+    }.
+
+@pure
+parent(path: String): String ->
+    parent_at(path, path.byte_size() - 1).
+
+package_roots_at(
+    packages: Json,
+    index: Int,
+    count: Int,
+    root: String,
+    output: List[String],
+): Option[List[String]] ->
+    if {
+        index == count -> Some(reverse(output));
+        true -> let {
+            Ok(package) <- Json.at(packages, index);
+            Ok(manifest_value) <- Json.get(package, "manifest_path");
+            Ok(manifest) <- Json.as_string(manifest_value);
+            Some(relative_manifest) <- strip_root_prefix(root, manifest)
+        } else {
+            _ -> None
+        };
+        (let package_root = parent(relative_manifest); package_roots_at(packages, index + 1, count, root, [package_root | output]))
+    }.
+
+workspace_roots(root: String): Option[List[String]] ->
+    let arguments = ["metadata", "--no-deps", "--format-version", "1", "--locked"];
+    let {
+        Some(source) <- run_text(root, "cargo", arguments);
+        Ok(metadata) <- Json.parse(source);
+        Ok(packages) <- Json.get(metadata, "packages");
+        Ok(count) <- Json.length(packages)
+    } else {
+        _ -> None
+    };
+    package_roots_at(packages, 0, count, root, List.new[String]()).
+
+@pure
+under_package(path: String, package: String): Bool ->
+    path == package or String.starts_with(path, String.append(package, "/")).
+
+@pure
+under_any_package(path: String, packages: List[String]): Bool ->
+    case packages {
+        [] -> false;
+        [package | rest] -> under_package(path, package) or under_any_package(path, rest)
+    }.
+
+@pure
+workspace_paths_at(
+    paths: List[String],
+    packages: List[String],
+    output: List[String],
+): List[String] ->
+    case paths {
+        [] -> output;
+        [path | rest] ->
+            if {
+                not under_any_package(path, packages) -> workspace_paths_at(rest, packages, output);
+                true -> workspace_paths_at(rest, packages, [path | output])
+            }
+    }.
+
+workspace_paths(root: String, packages: List[String]): Option[List[String]] ->
+    case visible_paths(root, ["*.rs"]) {
+        Some(source) -> Some(reverse(workspace_paths_at(source, packages, List.new[String]())));
+        None -> None
+    }.
+
+visible_paths(root: String, patterns: List[String]): Option[List[String]] ->
+    let arguments = List.concat(["ls-files", "--cached", "--others", "--exclude-standard", "--"], patterns);
+    case run_text(root, "git", arguments) {
+        Some(source) -> Some(nonempty_lines(source));
+        None -> None
+    }.
+
+/**
+ * Discovers tracked and non-ignored untracked paths matching Git pathspecs
+ * without retaining an unfiltered recursive directory walk.
+ */
+pub discover_visible(root: String, patterns: List[String]): SourceDiscovery ->
+    case visible_paths(root, patterns) {
+        Some(paths) -> SourceDiscovery(valid = true, paths = paths, message = "");
+        None -> discovery_failure("could not discover visible workspace paths")
+    }.
+
+@pure
+path_component_is(path: String, expected: String): Bool ->
+    component_is_at(String.split(path, "/"), expected).
+
+@pure
+component_is_at(parts: List[String], expected: String): Bool ->
+    case parts {
+        [] -> false;
+        [part | rest] ->
+            let tail_contains = component_is_at(rest, expected);
+            part == expected or tail_contains
+    }.
+
+@pure
+first_lines_contain_at(lines: List[String], remaining: Int, expected: String): Bool ->
+    if {
+        remaining == 0 -> false;
+        true -> case lines {
+            [] -> false;
+            [line | rest] ->
+                let tail_contains = first_lines_contain_at(rest, remaining - 1, expected);
+                String.contains(String.lowercase(line), expected) or tail_contains
+        }
+    }.
+
+@pure
+pub looks_generated(path: String, contents: String): Bool ->
+    path_component_is(path, "generated")
+        or first_lines_contain_at(String.split(contents, "\n"), 12, "@generated")
+        or first_lines_contain_at(String.split(contents, "\n"), 12, "generated file").
+
+@pure
+basename_parts(parts: List[String], current: String): String ->
+    case parts {
+        [] -> current;
+        [part | rest] ->
+            let selected = basename_parts(rest, part);
+            String.append("", selected)
+    }.
+
+@pure
+pub basename(path: String): String ->
+    basename_parts(String.split(path, "/"), "").
+
+@pure
+pub category(path: String, contents: String): String ->
+    let name = basename(path);
+    if {
+        looks_generated(path, contents) -> "generated";
+        path_component_is(path, "fixtures")
+            or path_component_is(path, "fixture")
+            or path_component_is(path, "ui") -> "fixture";
+        path_component_is(path, "tests")
+            or String.ends_with(name, "_test.rs")
+            or String.contains(name, "_test_part_")
+            or name == "test.rs" -> "test";
+        true -> "implementation"
+    }.
+
+@pure
+physical_lines_at(contents: String, index: Int, lines: Int): Int ->
+    if {
+        index == contents.byte_size() -> lines;
+        contents.utf8_byte_at(index) == 10 -> physical_lines_at(contents, index + 1, lines + 1);
+        true -> physical_lines_at(contents, index + 1, lines)
+    }.
+
+@pure
+pub physical_lines(contents: String): Int ->
+    let split_count = List.length(String.split(contents, "\n"));
+    if {
+        contents == "" -> 0;
+        String.ends_with(contents, "\n") -> split_count - 1;
+        true -> split_count
+    }.
+
+@pure
+source(relative: String, contents: String): RustSource ->
+    let kind = category(relative, contents);
+    RustSource(
+        path = relative,
+        contents = contents,
+        category = kind,
+        physical_lines = physical_lines(contents),
+        line_limit = if {
+            kind == "test" or kind == "fixture" -> 2000;
+            true -> 1000
+        },
+    ).
+
+@pure
+pub fixture_source(
+    path: String,
+    contents: String,
+    category: String,
+    physical_lines: Int,
+    line_limit: Int,
+): RustSource ->
+    RustSource(
+        path = path,
+        contents = contents,
+        category = category,
+        physical_lines = physical_lines,
+        line_limit = line_limit,
+    ).
+
+@pure
+relative_text_file(root: String, file: TextFile): RustSource ->
+    case strip_root_prefix(root, File.text_file_path(file)) {
+        Some(relative) -> source(relative, File.text_file_contents(file));
+        None -> source(File.text_file_path(file), File.text_file_contents(file))
+    }.
+
+@pure
+absolute_paths(root: String, paths: List[String]): List[String] ->
+    case paths {
+        [] -> List.new[String]();
+        [path | rest] -> [child(root, path) | absolute_paths(root, rest)]
+    }.
+
+@pure
+remove_path(paths: List[String], selected: String): List[String] ->
+    case paths {
+        [] -> List.new[String]();
+        [path | rest] ->
+            let retained = remove_path(rest, selected);
+            if {
+                path == selected -> retained;
+                true -> [path | retained]
+            }
+    }.
+
+sources_at(root: String, files: List[TextFile]): List[RustSource] ->
+    case files {
+        [] -> List.new[RustSource]();
+        [file | rest] -> [relative_text_file(root, file) | sources_at(root, rest)]
+    }.
+
+@pure
+take_path_batch_at(paths: List[String], maximum: Int, selected: List[String]): PathBatch ->
+    if {
+        maximum == 0 -> PathBatch(paths = reverse(selected), remaining = paths);
+        true -> case paths {
+            [] -> PathBatch(paths = reverse(selected), remaining = []);
+            [path | rest] -> take_path_batch_at(rest, maximum - 1, [path | selected])
+        }
+    }.
+
+@pure
+take_path_batch(paths: List[String]): PathBatch ->
+    take_path_batch_at(paths, 16, List.new[String]()).
+
+load_prepared_batch(
+    root: String,
+    remaining: List[String],
+    paths: List[String],
+    output: List[RustSource],
+): SourceLoad ->
+    case File.read_text_many(paths) {
+        Err(reason) ->
+            let failed = File.path(reason);
+            if {
+                File.exists(failed) -> failure(String.append("could not read workspace Rust source: ", failed));
+                true -> load_prepared_batch(root, remaining, remove_path(paths, failed), output)
+            };
+        Ok(files) ->
+            let loaded = sources_at(root, files);
+            load_paths(root, remaining, List.concat(output, loaded))
+    }.
+
+load_prepared_next(root: String, remaining: List[String], paths: List[String]): SourceBatch ->
+    case File.read_text_many(paths) {
+        Err(reason) ->
+            let failed = File.path(reason);
+            if {
+                File.exists(failed) -> batch_failure(
+                    String.append("could not read workspace Rust source: ", failed),
+                    remaining,
+                );
+                true -> load_prepared_next(root, remaining, remove_path(paths, failed))
+            };
+        Ok(files) ->
+            SourceBatch(
+                valid = true,
+                sources = sources_at(root, files),
+                remaining = remaining,
+                message = "",
+            )
+    }.
+
+/**
+ * Loads at most sixteen sources so callers can consume and release text before
+ * advancing through the repository.
+ */
+pub load_next(root: String, paths: List[String]): SourceBatch ->
+    case paths {
+        [] ->
+            SourceBatch(
+                valid = true,
+                sources = List.new[RustSource](),
+                remaining = List.new[String](),
+                message = "",
+            );
+        _ ->
+            let batch = take_path_batch(paths);
+            load_prepared_next(root, batch.remaining, absolute_paths(root, batch.paths))
+    }.
+
+load_paths(root: String, paths: List[String], output: List[RustSource]): SourceLoad ->
+    case paths {
+        [] -> SourceLoad(valid = true, sources = output, message = "");
+        _ ->
+            let batch = take_path_batch(paths);
+            load_prepared_batch(root, batch.remaining, absolute_paths(root, batch.paths), output)
+    }.
+
+pub discover(root: String): SourceDiscovery ->
+    let {
+        Some(packages) <- workspace_roots(root);
+        Some(paths) <- workspace_paths(root, packages)
+    } else {
+        _ -> discovery_failure("could not discover Cargo workspace Rust sources")
+    };
+    SourceDiscovery(valid = true, paths = paths, message = "").
+
+pub load(root: String): SourceLoad ->
+    let discovered = discover(root);
+    if {
+        not discovered.valid -> failure(discovered.message);
+        true -> load_paths(root, discovered.paths, List.new[RustSource]())
+    }.
+
+pub self_test(): Bool ->
+    let generated = looks_generated("crate/src/generated/item.rs", "fn item() {}\n");
+    let marked = looks_generated("crate/src/item.rs", "// @generated by fixture\nfn item() {}\n");
+    let categories =
+        category("crate/tests/contract.rs", "") == "test"
+            and category("crate/src/item_test.rs", "") == "test"
+            and category("crate/src/item.rs", "") == "implementation";
+    let lines =
+        physical_lines("") == 0
+            and physical_lines("a") == 1
+            and physical_lines("a\n") == 1
+            and physical_lines("a\n\n") == 2;
+    if {
+        generated and marked and categories and lines -> true;
+        true -> let _printed =
+            eprintln(
+                "error[rust_quality.source_inventory.self_test]: source inventory invariant failed",
+            );
+        false
+    }.

@@ -1,0 +1,13 @@
+{
+  "diff_digest": "sha256:b8287a1ee5e5c27f437cf949bd5f8e096c44e0228fb5f25e80b9b7c417613558",
+  "impact_digest": "sha256:f14eae3aa13a1f851e3389fb392f67c7cf19c1bcf384e3502de177e686e1d378",
+  "mode": "warning",
+  "reviewed_at": "2026-07-30",
+  "reviewed_slice_ids": [
+    "Slice 11",
+    "Slice 12"
+  ],
+  "schema": "terlan.lean-proof-binding-review.v1",
+  "signed_exception_digest": "none",
+  "signed_exceptions": []
+}

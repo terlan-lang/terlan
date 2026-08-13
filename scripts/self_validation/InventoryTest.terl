@@ -1,0 +1,104 @@
+/**
+ * Proves every repository Python program is represented in the migration inventory.
+ */
+module scripts.self_validation.Inventory.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.Console.{println}.
+import std.io.Directory.{files_recursive_excluding}.
+import std.io.File.{read_text}.
+
+pub inventory_matches(root: String): Bool ->
+    let discovered = files_recursive_excluding(root, [".git", "target", "build", "_build", "node_modules"]);
+    let manifest = read_text(String.append(root, "/docs/quality/TERLAN_SELF_VALIDATION_INVENTORY.tsv"));
+    case {discovered, manifest} {
+        {Ok(children), Ok(inventory)} ->
+            let lines = String.split(inventory, "\n");
+            sorted_inventory_matches(children, lines);
+        _ -> false
+    }.
+
+sorted_inventory_matches(files: List[String], lines: List[String]): Bool ->
+    case {files, lines} {
+        {[], []} -> true;
+        {[], remaining_lines} -> no_inventory_paths(remaining_lines);
+        {remaining_files, []} -> no_python_files(remaining_files);
+        {[file | file_rest], [line | line_rest]} ->
+            if {
+                not String.ends_with(file, ".py") -> sorted_inventory_matches(file_rest, lines);
+                true -> case String.split_once(line, "\t") {
+                    Some({path, _}) ->
+                        if {
+                            path == "path" -> sorted_inventory_matches(files, line_rest);
+                            not String.ends_with(path, ".py") -> sorted_inventory_matches(files, line_rest);
+                            true -> path == file and sorted_inventory_matches(file_rest, line_rest)
+                        };
+                    None -> sorted_inventory_matches(files, line_rest)
+                }
+            }
+    }.
+
+no_inventory_paths(lines: List[String]): Bool ->
+    case lines {
+        [] -> true;
+        [line | rest] ->
+            case String.split_once(line, "\t") {
+                Some({path, _}) ->
+                    if {
+                        String.ends_with(path, ".py") -> false;
+                        true -> no_inventory_paths(rest)
+                    };
+                None -> no_inventory_paths(rest)
+            }
+    }.
+
+no_python_files(files: List[String]): Bool ->
+    case files {
+        [] -> true;
+        [file | rest] ->
+            if {
+                String.ends_with(file, ".py") -> false;
+                true -> no_python_files(rest)
+            }
+    }.
+
+@test
+pub repository_python_inventory_is_exhaustive(): Bool ->
+    inventory_matches(".").
+
+@test
+pub sorted_inventory_accepts_exact_paths(): Bool ->
+    sorted_inventory_matches(
+        ["README.md", "tools/alpha.py", "tools/beta.py"],
+        [
+            "path\trole\tstatus\trequired_capabilities",
+            "tools/alpha.py\tchecker\tpending\tfilesystem",
+            "tools/beta.py\tchecker\tpending\tfilesystem",
+        ],
+    ).
+
+@test
+pub sorted_inventory_rejects_missing_path(): Bool ->
+    not sorted_inventory_matches(
+    ["tools/alpha.py", "tools/beta.py"],
+    ["path\trole\tstatus\trequired_capabilities", "tools/alpha.py\tchecker\tpending\tfilesystem"],
+).
+
+@test
+pub sorted_inventory_rejects_stale_path(): Bool ->
+    not sorted_inventory_matches(
+    ["tools/alpha.py"],
+    [
+        "path\trole\tstatus\trequired_capabilities",
+        "tools/alpha.py\tchecker\tpending\tfilesystem",
+        "tools/removed.py\tchecker\tpending\tfilesystem",
+    ],
+).
+
+pub main(): Unit ->
+    if {
+        inventory_matches(".") -> println("Terlan self-validation inventory is exhaustive");
+        true -> println("Terlan self-validation inventory mismatch")
+    }.

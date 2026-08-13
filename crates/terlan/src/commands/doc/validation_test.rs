@@ -187,11 +187,11 @@ pub add(x: Int): Int ->
     assert!(error.message.contains("output mismatch"));
 }
 
-/// Verifies expected-error examples match returned diagnostic text.
+/// Verifies expected-error examples match the AOT boundary diagnostic.
 ///
 /// Inputs:
 /// - One parsed module with an `@example error` block expecting
-///   `resolve_error`.
+///   the removed interpreter fallback diagnostic.
 ///
 /// Output:
 /// - Successful validation when the REPL prompt fails with matching
@@ -209,7 +209,7 @@ fn validates_expected_error_repl_doc_example() {
  *
  * @example error
  * > missing_value.
- * unknown REPL variable
+ * runtime CoreIR interpretation has been removed
  */
 pub value(): Int ->
     1.

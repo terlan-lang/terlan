@@ -1,0 +1,18 @@
+/**
+ * Executable contracts for VM application arguments.
+ */
+module std.system.ArgumentsTest.
+
+import std.core.Option.{None}.
+import std.system.Arguments.
+
+@test
+pub empty_test_run_has_no_application_arguments(): Bool ->
+    Arguments.count() == 0.
+
+@test
+pub out_of_range_argument_is_none(): Bool ->
+    case Arguments.get(0) {
+        None -> true;
+        _ -> false
+    }.

@@ -44,17 +44,22 @@ fn typed_transition_boundary_headers_round_trip_without_losing_semantic_identity
 
 #[test]
 fn typed_transition_boundary_headers_reject_ambiguous_or_malformed_types() {
-    assert!(TvmBoundaryType::from_transition_words(&[5, 1, 0])
-        .expect_err("String metadata must be canonical")
-        .contains("nonzero identity"));
+    let noncanonical = TvmBoundaryType::from_transition_words(&[5, 1, 0])
+        .expect_err("String metadata must be canonical");
+    assert_eq!(noncanonical.code(), "tvm.transition.boundary_type");
+    assert_eq!(noncanonical.operation(), "decode typed transition header");
+    assert!(noncanonical.context().contains("nonzero identity"));
     assert!(TvmBoundaryType::from_transition_words(&[7, 1, 1])
         .expect_err("resource metadata has one identity word")
+        .context()
         .contains("nonzero high"));
     assert!(TvmBoundaryType::from_transition_words(&[99, 0, 0])
         .expect_err("unknown tags must fail")
+        .context()
         .contains("unknown type tag"));
     assert!(TvmBoundaryType::from_transition_words(&[5, 0])
         .expect_err("truncated metadata must fail")
+        .context()
         .contains("expected 3"));
 }
 
@@ -89,6 +94,8 @@ fn control_protocol_round_trips_and_rejects_malformed_frames() {
         },
     ];
     for operation in [
+        TvmTransitionOperation::Debug,
+        TvmTransitionOperation::Identity,
         TvmTransitionOperation::Yield,
         TvmTransitionOperation::Send,
         TvmTransitionOperation::Receive,
@@ -100,6 +107,7 @@ fn control_protocol_round_trips_and_rejects_malformed_frames() {
         TvmTransitionOperation::Cancellation,
         TvmTransitionOperation::Failure,
         TvmTransitionOperation::Scheduling,
+        TvmTransitionOperation::Capability,
     ] {
         frames.push(TvmControlFrame::Transition {
             request_id: 7,
@@ -124,17 +132,20 @@ fn control_protocol_round_trips_and_rejects_malformed_frames() {
     bad_magic[0] = b'X';
     assert!(read_control_frame(&mut bad_magic.as_slice())
         .expect_err("bad magic must fail")
+        .context()
         .contains("tvm.control.magic"));
 
     let mut oversized = Vec::from(&b"TVMC\x01\x00\x03\x00"[..]);
     oversized.extend_from_slice(&((super::control::MAX_FRAME_BYTES + 1) as u32).to_le_bytes());
     assert!(read_control_frame(&mut oversized.as_slice())
         .expect_err("oversized frame must fail")
+        .context()
         .contains("tvm.control.frame_size"));
 
     let malformed_success = b"TVMC\x01\x00\x04\x00\x01\x00\x00\x00\0";
     assert!(read_control_frame(&mut malformed_success.as_slice())
         .expect_err("malformed success payload must fail")
+        .context()
         .contains("tvm.control.payload"));
 
     let mut malformed_transition = Vec::new();
@@ -153,6 +164,7 @@ fn control_protocol_round_trips_and_rejects_malformed_frames() {
     malformed_transition[36..38].copy_from_slice(&99_u16.to_le_bytes());
     assert!(read_control_frame(&mut malformed_transition.as_slice())
         .expect_err("unknown transition operation must fail")
+        .context()
         .contains("tvm.control.transition"));
 
     let mut malformed_arguments = Vec::new();
@@ -171,6 +183,7 @@ fn control_protocol_round_trips_and_rejects_malformed_frames() {
     malformed_arguments[38..40].copy_from_slice(&1_u16.to_le_bytes());
     assert!(read_control_frame(&mut malformed_arguments.as_slice())
         .expect_err("malformed transition argument count must fail")
+        .context()
         .contains("tvm.control.values"));
 
     let mut malformed_resume = Vec::new();
@@ -187,13 +200,14 @@ fn control_protocol_round_trips_and_rejects_malformed_frames() {
     malformed_resume[36..38].copy_from_slice(&1_u16.to_le_bytes());
     assert!(read_control_frame(&mut malformed_resume.as_slice())
         .expect_err("nonzero resume reserved bits must fail")
+        .context()
         .contains("tvm.control.resume"));
 }
 
 fn descriptor() -> TvmExecutableDescriptor {
     TvmExecutableDescriptor {
-        runtime_abi_min: 2,
-        runtime_abi_max: 2,
+        runtime_abi_min: 3,
+        runtime_abi_max: 3,
         native_boundary_min: 1,
         native_boundary_max: 1,
         target: TvmImageTarget {
@@ -334,6 +348,7 @@ fn descriptor_validates_canonical_atom_table() {
         malformed.atoms = atoms;
         assert!(encode_descriptor(&malformed)
             .expect_err("noncanonical atom table")
+            .context()
             .contains("atom_order"));
     }
 
@@ -342,6 +357,7 @@ fn descriptor_validates_canonical_atom_table() {
         malformed.atoms = vec![atom.to_owned()];
         assert!(encode_descriptor(&malformed)
             .expect_err("invalid atom identity")
+            .context()
             .contains("atoms"));
     }
 }
@@ -367,6 +383,7 @@ fn descriptor_validates_canonical_managed_layout_registry() {
     duplicate.managed_layouts = vec![layout.clone(), layout.clone()];
     assert!(encode_descriptor(&duplicate)
         .expect_err("duplicate layouts must fail")
+        .context()
         .contains("managed_layout_order"));
 
     let mut mismatch = descriptor();
@@ -376,6 +393,7 @@ fn descriptor_validates_canonical_managed_layout_registry() {
     }];
     assert!(encode_descriptor(&mismatch)
         .expect_err("mismatched semantic identity must fail")
+        .context()
         .contains("managed_layout_identity"));
 
     let mut malformed = descriptor();
@@ -385,6 +403,7 @@ fn descriptor_validates_canonical_managed_layout_registry() {
     }];
     assert!(encode_descriptor(&malformed)
         .expect_err("malformed aggregate bytes must fail")
+        .context()
         .contains("managed_layout"));
 
     let duplicate_variant = ManagedAggregateDescriptor::constructor(
@@ -412,6 +431,7 @@ fn descriptor_validates_canonical_managed_layout_registry() {
     duplicate_variant.managed_layouts = variants;
     assert!(encode_descriptor(&duplicate_variant)
         .expect_err("duplicate variant names must fail")
+        .context()
         .contains("managed_layout_variant"));
 }
 
@@ -433,6 +453,7 @@ fn descriptor_validates_canonical_managed_collection_registry() {
     duplicate.managed_collections = vec![layout.clone(), layout.clone()];
     assert!(encode_descriptor(&duplicate)
         .expect_err("duplicate collection schemas must fail")
+        .context()
         .contains("managed_collection_order"));
 
     let mut mismatch = descriptor();
@@ -442,6 +463,7 @@ fn descriptor_validates_canonical_managed_collection_registry() {
     }];
     assert!(encode_descriptor(&mismatch)
         .expect_err("mismatched collection identity must fail")
+        .context()
         .contains("managed_collection_identity"));
 
     let mut malformed = descriptor();
@@ -451,6 +473,7 @@ fn descriptor_validates_canonical_managed_collection_registry() {
     }];
     assert!(encode_descriptor(&malformed)
         .expect_err("malformed collection bytes must fail")
+        .context()
         .contains("managed_collection"));
 }
 
@@ -492,18 +515,21 @@ fn descriptor_rejects_invalid_abi_ids_and_boundary_types() {
     invalid.runtime_abi_max = 1;
     assert!(encode_descriptor(&invalid)
         .expect_err("invalid ABI must fail")
+        .context()
         .contains("runtime_abi"));
 
     let mut duplicate = descriptor();
     duplicate.exports[1].id = duplicate.exports[0].id;
     assert!(encode_descriptor(&duplicate)
         .expect_err("duplicate export must fail")
+        .context()
         .contains("export_order"));
 
     let mut undeclared = descriptor();
     undeclared.exports[1].parameters[0] = TvmBoundaryType::NativeResource(999);
     assert!(encode_descriptor(&undeclared)
         .expect_err("undeclared resource must fail")
+        .context()
         .contains("resource_reference"));
 
     let mut unknown_type = encode_descriptor(&descriptor()).expect("encode descriptor");
@@ -519,12 +545,14 @@ fn descriptor_rejects_invalid_abi_ids_and_boundary_types() {
         .push(duplicate_continuation.continuations[0].clone());
     assert!(encode_descriptor(&duplicate_continuation)
         .expect_err("duplicate continuation must fail")
+        .context()
         .contains("continuation_order"));
 
     let mut colliding_continuation = descriptor();
     colliding_continuation.continuations[0].id = colliding_continuation.exports[0].id;
     assert!(encode_descriptor(&colliding_continuation)
         .expect_err("export/continuation collision must fail")
+        .context()
         .contains("continuation_collision"));
 
     let mut undeclared_continuation_resource = descriptor();
@@ -532,24 +560,28 @@ fn descriptor_rejects_invalid_abi_ids_and_boundary_types() {
         vec![TvmBoundaryType::NativeResource(999)];
     assert!(encode_descriptor(&undeclared_continuation_resource)
         .expect_err("undeclared continuation resource must fail")
+        .context()
         .contains("resource_reference"));
 
     let mut wrong_callable_signature = descriptor();
     wrong_callable_signature.callables[0].parameters.pop();
     assert!(encode_descriptor(&wrong_callable_signature)
         .expect_err("callable/export signature drift must fail")
+        .context()
         .contains("callable_export_signature"));
 
     let mut untraced_callable = descriptor();
     untraced_callable.callables[0].captures = vec![TvmBoundaryType::Json];
     assert!(encode_descriptor(&untraced_callable)
         .expect_err("untraced callable capture must fail")
+        .context()
         .contains("callable_json"));
 
     let mut colliding_callable = descriptor();
     colliding_callable.callables[0].id = colliding_callable.continuations[0].id;
     assert!(encode_descriptor(&colliding_callable)
         .expect_err("callable/continuation collision must fail")
+        .context()
         .contains("callable_collision"));
 }
 
@@ -559,12 +591,14 @@ fn descriptor_rejects_malformed_ownership_dependency_and_signature_tables() {
     missing_owner.resources[0].owner_capability_id = 999;
     assert!(encode_descriptor(&missing_owner)
         .expect_err("missing owner capability must fail")
+        .context()
         .contains("resource_capability"));
 
     let mut missing_cleanup = descriptor();
     missing_cleanup.resources[0].cleanup_export_id = 999;
     assert!(encode_descriptor(&missing_cleanup)
         .expect_err("missing cleanup export must fail")
+        .context()
         .contains("resource_cleanup"));
 
     let mut duplicate_dependency = descriptor();
@@ -576,6 +610,7 @@ fn descriptor_rejects_malformed_ownership_dependency_and_signature_tables() {
         });
     assert!(encode_descriptor(&duplicate_dependency)
         .expect_err("duplicate dependency must fail")
+        .context()
         .contains("dependency_order"));
 
     let mut empty_signature = descriptor();
@@ -587,6 +622,7 @@ fn descriptor_rejects_malformed_ownership_dependency_and_signature_tables() {
         .clear();
     assert!(encode_descriptor(&empty_signature)
         .expect_err("empty signature must fail")
+        .context()
         .contains("tvm.image.signature"));
 }
 
@@ -595,11 +631,13 @@ fn native_inspection_rejects_json_and_non_executables() {
     assert!(
         inspect_tvm_image(br#"{"format":"tvm"}"#, "native-test-target")
             .expect_err("JSON must fail")
+            .context()
             .contains("JSON is not a TVM image")
     );
     assert!(
         inspect_tvm_image(b"TVMIR\0compiler-data", "native-test-target")
             .expect_err("compiler IR must fail")
+            .context()
             .contains("native_format")
     );
 }
@@ -679,6 +717,10 @@ fn coff_metadata_survives_pe_linking_sealing_and_inspection() {
         arity: 0,
         span_start: 0,
         span_end: 1,
+        source_sha256: "00".repeat(32),
+        source_origin: "source".to_string(),
+        continuation_ids: vec![19],
+        continuation_spans: Vec::new(),
         core_schema: "core-ir-v1".to_string(),
         proof_readiness: "executable".to_string(),
     };
@@ -775,9 +817,11 @@ fn native_inspection_accepts_real_elf_and_rejects_wrong_target_and_abi() {
     assert_eq!(inspection.descriptor.identity.module, "app.Main");
     assert!(inspect_tvm_image(&image_bytes, "wrong-target")
         .expect_err("wrong target must fail")
+        .context()
         .contains("image.target"));
     assert!(inspect_tvm_image(&original, "native-test-target")
         .expect_err("missing descriptor must fail")
+        .context()
         .contains("descriptor_section"));
 
     let mut bad_digest = descriptor();
@@ -791,6 +835,7 @@ fn native_inspection_accepts_real_elf_and_rejects_wrong_target_and_abi() {
         "native-test-target",
     )
     .expect_err("bad code digest must fail")
+    .context()
     .contains("code_digest"));
 
     valid.runtime_abi_min = 1;
@@ -801,10 +846,11 @@ fn native_inspection_accepts_real_elf_and_rejects_wrong_target_and_abi() {
         "native-test-target",
     )
     .expect_err("unsupported ABI must fail")
+    .context()
     .contains("runtime_abi"));
 
-    valid.runtime_abi_min = 2;
-    valid.runtime_abi_max = 2;
+    valid.runtime_abi_min = 3;
+    valid.runtime_abi_max = 3;
     valid.native_boundary_min = 2;
     valid.native_boundary_max = 2;
     let incompatible_adapter = fixture.embed_named(&executable, &valid, "incompatible-adapter");
@@ -813,12 +859,16 @@ fn native_inspection_accepts_real_elf_and_rejects_wrong_target_and_abi() {
         "native-test-target",
     )
     .expect_err("unsupported public adapter ABI must fail")
+    .context()
     .contains("native_boundary"));
 }
 
 fn assert_error(bytes: &[u8], expected: &str) {
     let error = decode_descriptor(bytes).expect_err("descriptor must fail");
-    assert!(error.contains(expected), "unexpected error: {error}");
+    assert!(
+        error.context().contains(expected),
+        "unexpected error: {error}"
+    );
 }
 
 fn resign(bytes: &mut [u8]) {

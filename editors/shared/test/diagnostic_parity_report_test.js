@@ -99,6 +99,9 @@ function testEditorDiagnosticDelegation() {
  */
 function testCompilerDiagnosticMapping() {
   const lspSource = readText("crates/terlan/src/lsp/mod.rs");
+  const diagnosticSource = readText(
+    "crates/terlan/src/lsp/backend/diagnostics_and_completion.rs"
+  );
   const documentSource = readText("crates/terlan/src/lsp/document.rs");
   const requiredSources = [
     "terlan-syntax",
@@ -108,11 +111,11 @@ function testCompilerDiagnosticMapping() {
   ];
 
   for (const source of requiredSources) {
-    assert.ok(lspSource.includes(source), `missing LSP diagnostic source ${source}`);
+    assert.ok(diagnosticSource.includes(source), `missing LSP diagnostic source ${source}`);
   }
-  assert.ok(lspSource.includes("DiagnosticSeverity::ERROR"));
-  assert.ok(lspSource.includes("DiagnosticSeverity::WARNING"));
-  assert.ok(lspSource.includes("range_from_span"));
+  assert.ok(diagnosticSource.includes("DiagnosticSeverity::ERROR"));
+  assert.ok(diagnosticSource.includes("DiagnosticSeverity::WARNING"));
+  assert.ok(diagnosticSource.includes("range_from_span"));
   assert.ok(documentSource.includes("resolve_diagnostics"));
   assert.ok(documentSource.includes("type_diagnostics"));
   assert.ok(documentSource.includes("template_diagnostics"));
@@ -120,7 +123,7 @@ function testCompilerDiagnosticMapping() {
   return {
     sources: requiredSources,
     severityMapping: ["error", "warning"],
-    lspSourceHash: sha256(`${lspSource}\n${documentSource}`)
+    lspSourceHash: sha256(`${lspSource}\n${diagnosticSource}\n${documentSource}`)
   };
 }
 
@@ -135,7 +138,9 @@ function testCompilerDiagnosticMapping() {
  */
 function testDiagnosticFixabilityContract() {
   const importActions = readText("crates/terlan/src/lsp/import_actions.rs");
-  const tests = readText("crates/terlan/src/lsp/import_actions_test.rs");
+  const tests = readText(
+    "crates/terlan/src/lsp/import_actions_test/action_fixtures.rs"
+  );
 
   assert.ok(importActions.includes("CodeActionKind::QUICKFIX"));
   assert.ok(importActions.includes("unknown constructor"));
@@ -159,11 +164,16 @@ function testDiagnosticFixabilityContract() {
  * parse isolation, and no editor-side absolute-path diagnostic fabrication.
  */
 function testStaleAndPathContract() {
-  const lspTests = readText("crates/terlan/src/lsp/lib_test.rs");
+  const resolutionTests = readText(
+    "crates/terlan/src/lsp/lib_test/resolution_diagnostics.rs"
+  );
+  const documentTests = readText(
+    "crates/terlan/src/lsp/lib_test/documents_and_shapes.rs"
+  );
   const extensionSource = readText("editors/vscode/src/extension.js");
 
-  assert.ok(lspTests.includes("did_open_reports_diagnostic_and_clear_on_parse_fix"));
-  assert.ok(lspTests.includes("adversarial_lsp_diagnostics_isolate_unicode_parse_failures"));
+  assert.ok(resolutionTests.includes("did_open_reports_diagnostic_and_clear_on_parse_fix"));
+  assert.ok(documentTests.includes("adversarial_lsp_diagnostics_isolate_unicode_parse_failures"));
   assert.ok(!extensionSource.includes("createDiagnosticCollection"));
   assert.ok(!extensionSource.includes("publishDiagnostics"));
 
@@ -199,7 +209,6 @@ function testVmDebuggerDiagnosticContract() {
     "run_cli_rejects_debug_script_invalid_breakpoint_selector"
   ];
   const diagnosticCodes = [
-    "debugger_unimplemented",
     "debug_missing_option_value",
     "debug_script_invalid_breakpoint_selector",
     "debug_script_read_failed"
@@ -208,9 +217,12 @@ function testVmDebuggerDiagnosticContract() {
   assert.ok(debugSource.includes("print_debug_error"));
   assert.ok(debugSource.includes("render_debug_error_json"));
   assert.ok(debugSource.includes("DiagnosticFormat::Json"));
-  assert.ok(debugSource.includes("RESERVED_CODE"));
   assert.ok(scriptSource.includes("validate_debug_script_file"));
-  assert.ok(debuggerSurfaceTest.includes("terlc --diagnostic-format json debug --script session.terldbg"));
+  assert.ok(
+    debuggerSurfaceTest.includes(
+      "terlc --diagnostic-format json debug build/app.tvm --script session.terldbg"
+    )
+  );
   for (const testName of jsonDiagnosticTests) {
     assert.ok(debugCliTests.includes(testName), `missing debugger JSON diagnostic test ${testName}`);
   }

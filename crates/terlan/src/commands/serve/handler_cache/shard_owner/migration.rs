@@ -144,7 +144,7 @@ pub(super) fn import_runnable(
     if let Err(reason) = validation {
         return Err(OwnedRunnableImportFailure {
             reason,
-            transfer: Some(transfer),
+            transfer: Some(Box::new(transfer)),
         });
     }
     let OwnedRunnableTransfer {
@@ -161,7 +161,7 @@ pub(super) fn import_runnable(
     if let Err(failure) = shard.import_actor_state(actor) {
         return Err(OwnedRunnableImportFailure {
             reason: failure.reason().to_string(),
-            transfer: Some(OwnedRunnableTransfer {
+            transfer: Some(Box::new(OwnedRunnableTransfer {
                 source,
                 destination,
                 owner,
@@ -171,7 +171,7 @@ pub(super) fn import_runnable(
                 reply,
                 actor: failure.into_transfer(),
                 replay_context,
-            }),
+            })),
         });
     }
     routes.insert(route.actor_id(), owner);

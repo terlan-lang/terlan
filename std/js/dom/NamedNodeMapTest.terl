@@ -27,7 +27,7 @@ pub get_named_item_typechecks(receiver: NamedNodeMap, qualified_name: JsString):
 pub get_named_item_ns_typechecks(
     receiver: NamedNodeMap,
     namespace: Option[JsString],
-    local_name: JsString
+    local_name: JsString,
 ): Option[Attr] ->
     receiver.get_named_item_ns(namespace, local_name).
 
@@ -40,7 +40,7 @@ pub remove_named_item_typechecks(receiver: NamedNodeMap, qualified_name: JsStrin
 pub remove_named_item_ns_typechecks(
     receiver: NamedNodeMap,
     namespace: Option[JsString],
-    local_name: JsString
+    local_name: JsString,
 ): Attr ->
     receiver.remove_named_item_ns(namespace, local_name).
 

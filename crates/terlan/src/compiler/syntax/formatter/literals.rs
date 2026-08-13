@@ -14,4 +14,5 @@ pub(super) fn format_float_literal(value: f64) -> String {
 
 #[cfg(test)]
 #[path = "literals_test.rs"]
+#[cfg(test)]
 mod literals_test;

@@ -16,6 +16,42 @@ pub(super) fn validate_native_boundary_dispatch(
     granted_capabilities: Option<&[&str]>,
     admitted_worker_classes: Option<&[NativeBoundaryWorkerClass]>,
 ) -> Result<(), DispatchError> {
+    if matches!(
+        operation,
+        "std.system.process.run"
+            | "std.system.process.run_many"
+            | "std.system.process.run_length_framed"
+    ) {
+        if let Some(granted) = granted_capabilities {
+            if !granted.contains(&"process") {
+                return Err(DispatchError::new(
+                    "native_boundary.capability_denied",
+                    format!(
+                        "NativeBoundary operation `{operation}` requires capability `process`."
+                    ),
+                    0,
+                ));
+            }
+        }
+        if let Some(classes) = admitted_worker_classes {
+            if !classes.contains(&NativeBoundaryWorkerClass::LongRunningCancellable) {
+                return Err(DispatchError::new(
+                    "native_boundary.scheduler_denied",
+                    format!("NativeBoundary operation `{operation}` requires `long-running-cancellable` scheduler admission."),
+                    0,
+                ));
+            }
+        }
+        let valid_shape = matches!(args, [NativeBoundaryBridgeValue::Record { .. }]);
+        if !valid_shape {
+            return Err(DispatchError::new(
+                "native_boundary.argument_shape",
+                format!("NativeBoundary operation `{operation}` arguments do not match its typed process request shape."),
+                0,
+            ));
+        }
+        return Ok(());
+    }
     if !operation.starts_with("std.db.postgres.") {
         return Ok(());
     }
@@ -203,4 +239,5 @@ fn bridge_value_matches_atomic_type(
 
 #[cfg(test)]
 #[path = "manifest_test.rs"]
+#[cfg(test)]
 mod manifest_test;

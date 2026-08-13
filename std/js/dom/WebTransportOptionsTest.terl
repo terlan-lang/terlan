@@ -27,6 +27,6 @@ pub require_unreliable_typechecks(receiver: WebTransportOptions): Bool ->
     receiver.require_unreliable().
 
 pub server_certificate_hashes_typechecks(
-    receiver: WebTransportOptions
+    receiver: WebTransportOptions,
 ): std.js.Array[WebTransportHash] ->
     receiver.server_certificate_hashes().

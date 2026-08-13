@@ -43,14 +43,14 @@ pub animations_paused_typechecks(receiver: SVGSVGElement): Bool ->
 pub check_enclosure_typechecks(
     receiver: SVGSVGElement,
     element: SVGElement,
-    rect: DOMRectReadOnly
+    rect: DOMRectReadOnly,
 ): Bool ->
     receiver.check_enclosure(element, rect).
 
 pub check_intersection_typechecks(
     receiver: SVGSVGElement,
     element: SVGElement,
-    rect: DOMRectReadOnly
+    rect: DOMRectReadOnly,
 ): Bool ->
     receiver.check_intersection(element, rect).
 
@@ -77,7 +77,7 @@ pub create_svg_transform_typechecks(receiver: SVGSVGElement): SVGTransform ->
 
 pub create_svg_transform_from_matrix_typechecks(
     receiver: SVGSVGElement,
-    matrix: DOMMatrix2DInit
+    matrix: DOMMatrix2DInit,
 ): SVGTransform ->
     receiver.create_svg_transform_from_matrix(matrix).
 
@@ -96,14 +96,14 @@ pub get_element_by_id_typechecks(receiver: SVGSVGElement, element_id: JsString):
 pub get_enclosure_list_typechecks(
     receiver: SVGSVGElement,
     rect: DOMRectReadOnly,
-    reference_element: Option[SVGElement]
+    reference_element: Option[SVGElement],
 ): NodeListOf[SVGCircleElement | SVGEllipseElement | SVGImageElement | SVGLineElement | SVGPathElement | SVGPolygonElement | SVGPolylineElement | SVGRectElement | SVGTextElement | SVGUseElement] ->
     receiver.get_enclosure_list(rect, reference_element).
 
 pub get_intersection_list_typechecks(
     receiver: SVGSVGElement,
     rect: DOMRectReadOnly,
-    reference_element: Option[SVGElement]
+    reference_element: Option[SVGElement],
 ): NodeListOf[SVGCircleElement | SVGEllipseElement | SVGImageElement | SVGLineElement | SVGPathElement | SVGPolygonElement | SVGPolylineElement | SVGRectElement | SVGTextElement | SVGUseElement] ->
     receiver.get_intersection_list(rect, reference_element).
 
@@ -129,7 +129,7 @@ pub add_event_listener_typechecks(
     receiver: SVGSVGElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -137,6 +137,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGSVGElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

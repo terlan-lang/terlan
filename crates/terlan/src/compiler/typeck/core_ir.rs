@@ -2,6 +2,7 @@ mod intrinsics;
 mod module;
 mod patterns;
 mod proof_payloads;
+mod termination;
 mod types;
 
 pub use intrinsics::{
@@ -17,6 +18,13 @@ pub use patterns::{
 pub use proof_payloads::{
     CoreCheckedPreservationEvidence, CoreCheckedPreservationEvidenceKind, CoreProofCoverage,
     CoreProofReadiness, CoreSubstitutionFreshnessEvidence,
+};
+pub(crate) use termination::analyze_core_function_termination;
+pub use termination::{
+    analyze_core_termination, validate_core_termination_evidence, CoreActorBehavior,
+    CoreDecreaseKind, CoreFunctionTerminationEvidence, CoreProductivityBoundary,
+    CoreRecursiveCallEvidence, CoreTerminationEvidence, CoreTerminationReason,
+    CoreTerminationState,
 };
 use types::core_type_contract_text;
 pub(crate) use types::{
@@ -360,6 +368,8 @@ pub enum CoreExpr {
         transaction_requirement: String,
         cardinality: String,
         result_type: String,
+        /// Typed result retained for alias and nominal-identity resolution.
+        result_core_type: CoreType,
         projection_fields: Vec<String>,
     },
     Case {
@@ -705,6 +715,7 @@ impl CoreExpr {
                 cardinality,
                 result_type,
                 projection_fields,
+                ..
             } => format!(
                 "SqlQuery(row_type={row_type};params=[{}];kind={query_kind};transaction={transaction_requirement};cardinality={cardinality};result={result_type};projection={};sql={bound_sql})",
                 parameters

@@ -1,10 +1,11 @@
 use std::collections::BTreeMap;
 
 use super::{
-    restart_delay_ms, VmRestartPolicy, VmSupervisionRestart, VmSupervisionSystem, VmSupervisorId,
+    live_timer_owner, restart_delay_ms, VmRestartPolicy, VmSupervisionRestart, VmSupervisionSystem,
+    VmSupervisorId,
 };
 use crate::runtime::vm::{
-    process::{VmExitReason, VmProcessId, VmProcessSource, VmProcessState, VmProcessTable},
+    process::{VmExitReason, VmProcessId, VmProcessState, VmProcessTable},
     timer::{VmTimerEvent, VmTimerId, VmTimerTable},
 };
 
@@ -45,6 +46,30 @@ pub(crate) enum VmSupervisionBackoffStart {
     },
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct VmSupervisionRestartRequest<'a> {
+    pub(crate) supervisor_id: VmSupervisorId,
+    pub(crate) child_id: &'a str,
+    pub(crate) reason: VmExitReason,
+    pub(crate) now_tick: u64,
+}
+
+impl<'a> VmSupervisionRestartRequest<'a> {
+    pub(crate) fn new(
+        supervisor_id: VmSupervisorId,
+        child_id: &'a str,
+        reason: VmExitReason,
+        now_tick: u64,
+    ) -> Self {
+        Self {
+            supervisor_id,
+            child_id,
+            reason,
+            now_tick,
+        }
+    }
+}
+
 /// Terminal result for one scheduled supervision restart deadline.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum VmSupervisionBackoffCompletion {
@@ -82,11 +107,14 @@ impl VmSupervisionBackoffQueue {
         supervision: &mut VmSupervisionSystem,
         timers: &mut VmTimerTable,
         processes: &mut VmProcessTable,
-        supervisor_id: VmSupervisorId,
-        child_id: &str,
-        reason: VmExitReason,
-        now_tick: u64,
+        request: VmSupervisionRestartRequest<'_>,
     ) -> Result<VmSupervisionBackoffStart, String> {
+        let VmSupervisionRestartRequest {
+            supervisor_id,
+            child_id,
+            reason,
+            now_tick,
+        } = request;
         let plans = restart_plan(supervision, supervisor_id, child_id, &reason)?;
         self.reject_pending_children(supervisor_id, &plans)?;
         if plans.iter().any(|plan| plan.restart_limit_reached)
@@ -237,22 +265,7 @@ impl VmSupervisionBackoffQueue {
     }
 
     fn live_timer_owner(&mut self, processes: &mut VmProcessTable) -> VmProcessId {
-        if let Some(owner) = self.timer_owner {
-            if matches!(
-                processes.get(owner).map(|process| &process.state),
-                Some(
-                    VmProcessState::Runnable
-                        | VmProcessState::Blocked
-                        | VmProcessState::Hibernated
-                        | VmProcessState::Suspended(_),
-                )
-            ) {
-                return owner;
-            }
-        }
-        let owner = processes.spawn_root(VmProcessSource::new(TIMER_OWNER_MODULE, "wait", 0));
-        self.timer_owner = Some(owner);
-        owner
+        live_timer_owner(&mut self.timer_owner, TIMER_OWNER_MODULE, processes)
     }
 }
 
@@ -372,8 +385,10 @@ fn exit_failed_process(
 
 #[cfg(test)]
 #[path = "backoff_test.rs"]
+#[cfg(test)]
 mod backoff_test;
 
 #[cfg(test)]
 #[path = "backoff_group_test.rs"]
+#[cfg(test)]
 mod backoff_group_test;

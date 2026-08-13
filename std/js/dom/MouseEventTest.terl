@@ -101,6 +101,23 @@ pub init_mouse_event_typechecks(
     shift_key_arg: Bool,
     meta_key_arg: Bool,
     button_arg: JsNumber,
-    related_target_arg: Option[EventTarget]
+    related_target_arg: Option[EventTarget],
 ): std.core.Unit ->
-    receiver.init_mouse_event(type_arg, can_bubble_arg, cancelable_arg, view_arg, detail_arg, screen_x_arg, screen_y_arg, client_x_arg, client_y_arg, ctrl_key_arg, alt_key_arg, shift_key_arg, meta_key_arg, button_arg, related_target_arg).
+    receiver
+        .init_mouse_event(
+            type_arg,
+            can_bubble_arg,
+            cancelable_arg,
+            view_arg,
+            detail_arg,
+            screen_x_arg,
+            screen_y_arg,
+            client_x_arg,
+            client_y_arg,
+            ctrl_key_arg,
+            alt_key_arg,
+            shift_key_arg,
+            meta_key_arg,
+            button_arg,
+            related_target_arg,
+        ).

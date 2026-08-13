@@ -26,7 +26,7 @@ pub get_directory_typechecks(
     path: Option[JsString],
     options: FileSystemFlags,
     success_callback: FileSystemEntryCallback,
-    error_callback: ErrorCallback
+    error_callback: ErrorCallback,
 ): Unit ->
     receiver.get_directory(path, options, success_callback, error_callback).
 
@@ -35,6 +35,6 @@ pub get_file_typechecks(
     path: Option[JsString],
     options: FileSystemFlags,
     success_callback: FileSystemEntryCallback,
-    error_callback: ErrorCallback
+    error_callback: ErrorCallback,
 ): Unit ->
     receiver.get_file(path, options, success_callback, error_callback).

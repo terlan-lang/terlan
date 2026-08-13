@@ -21,7 +21,7 @@ pub opaque type Animatable.
  */
 pub (value: Animatable) animate(
     keyframes: Option[PropertyIndexedKeyframes | Array[Keyframe]],
-    options: KeyframeAnimationOptions | std.js.Number.JsNumber
+    options: KeyframeAnimationOptions | std.js.Number.JsNumber,
 ): Animation ->
     native.
 

@@ -1,0 +1,538 @@
+/**
+ * Lexes Rust lint-allowance attributes without mistaking comments or literals
+ * for executable attributes.
+ */
+module rust_quality.RustAllowances.
+
+import rust_quality.SourceInventory.
+import std.collections.List.
+import std.core.Ordering.{Lt}.
+import std.core.String.
+
+import type rust_quality.SourceInventory.RustSource.
+
+pub struct Allowance {
+    path: String,
+    line: Int,
+    lints: String,
+    source_line: String,
+}.
+
+struct Attribute {
+    valid: Bool,
+    next: Int,
+    lines: Int,
+    lints: String,
+}.
+
+struct ScanState {
+    index: Int,
+    line: Int,
+    mode: Int,
+    block_depth: Int,
+    raw_hashes: Int,
+    allowances: List[Allowance],
+}.
+
+@pure
+byte_is(value: String, index: Int, expected: Int): Bool ->
+    index >= 0 and index < value.byte_size() and value.utf8_byte_at(index) == expected.
+
+@pure
+retain_int(value: Int): Int ->
+    value.
+
+@pure
+retain_bool(value: Bool): Bool ->
+    value.
+
+@pure
+retain_string(value: String): String ->
+    value.
+
+@pure
+retain_strings(values: List[String]): List[String] ->
+    values.
+
+@pure
+space(byte: Int): Bool ->
+    byte == 32 or byte == 9 or byte == 10 or byte == 13.
+
+@pure
+skip_space(value: String, index: Int): Int ->
+    if {
+        index == value.byte_size() -> index;
+        space(value.utf8_byte_at(index)) -> retain_int(skip_space(value, index + 1));
+        true -> index
+    }.
+
+@pure
+word_at(value: String, index: Int, word: String): Bool ->
+    index >= 0
+        and index + word.byte_size() <= value.byte_size()
+        and value.utf8_slice(index, word.byte_size()) == word.
+
+@pure
+raw_hashes_at(value: String, index: Int, hashes: Int): Int ->
+    if {
+        index == value.byte_size() -> -1;
+        byte_is(value, index, 35) -> retain_int(raw_hashes_at(value, index + 1, hashes + 1));
+        byte_is(value, index, 34) -> hashes;
+        true -> -1
+    }.
+
+@pure
+raw_prefix(value: String, index: Int): Int ->
+    if {
+        byte_is(value, index, 114) -> index;
+        (byte_is(value, index, 98) or byte_is(value, index, 99)) and byte_is(value, index + 1, 114) -> index + 1;
+        true -> -1
+    }.
+
+@pure
+raw_open_hashes(value: String, index: Int): Int ->
+    let prefix = raw_prefix(value, index);
+    if {
+        prefix < 0 -> -1;
+        true -> raw_hashes_at(value, prefix + 1, 0)
+    }.
+
+@pure
+raw_open_end(value: String, index: Int, hashes: Int): Int ->
+    let prefix = raw_prefix(value, index);
+    prefix + hashes + 2.
+
+@pure
+hashes_match_at(value: String, index: Int, remaining: Int): Bool ->
+    if {
+        remaining == 0 -> true;
+        not byte_is(value, index, 35) -> false;
+        true -> retain_bool(hashes_match_at(value, index + 1, remaining - 1))
+    }.
+
+@pure
+raw_close(value: String, index: Int, hashes: Int): Bool ->
+    byte_is(value, index, 34) and hashes_match_at(value, index + 1, hashes).
+
+@pure
+quoted_end(value: String, index: Int, delimiter: Int): Int ->
+    if {
+        index == value.byte_size() -> index;
+        byte_is(value, index, 10) -> index;
+        byte_is(value, index, 92) and index + 1 < value.byte_size() -> retain_int(quoted_end(value, index + 2, delimiter));
+        byte_is(value, index, delimiter) -> index + 1;
+        true -> retain_int(quoted_end(value, index + 1, delimiter))
+    }.
+
+@pure
+char_literal_end(value: String, index: Int): Int ->
+    if {
+        index == value.byte_size() or byte_is(value, index, 10) -> -1;
+        byte_is(value, index, 92) and index + 1 < value.byte_size() -> retain_int(char_literal_end(value, index + 2));
+        byte_is(value, index, 39) -> index + 1;
+        true -> retain_int(char_literal_end(value, index + 1))
+    }.
+
+@pure
+attribute_end(value: String, index: Int): Int ->
+    if {
+        index == value.byte_size() -> -1;
+        byte_is(value, index, 34) -> let next = quoted_end(value, index + 1, 34);
+        retain_int(attribute_end(value, next));
+        byte_is(value, index, 39) -> let next = quoted_end(value, index + 1, 39);
+        retain_int(attribute_end(value, next));
+        byte_is(value, index, 41) -> index;
+        true -> retain_int(attribute_end(value, index + 1))
+    }.
+
+@pure
+insert_string(value: String, values: List[String]): List[String] ->
+    case values {
+        [] -> List[String](value);
+        [head | rest] ->
+            if {
+                String.compare(value, head) == Lt -> [value | values];
+                true -> [head | insert_string(value, rest)]
+            }
+    }.
+
+@pure
+lint_tokens_at(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            let normalized = String.trim(value);
+            if {
+                normalized == "" or String.starts_with(normalized, "reason") -> retain_strings(lint_tokens_at(rest, output));
+                true -> retain_strings(lint_tokens_at(rest, insert_string(normalized, output)))
+            }
+    }.
+
+@pure
+join_lints(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> join_lints_at(rest, value)
+    }.
+
+@pure
+join_lints_at(values: List[String], output: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] -> retain_string(join_lints_at(rest, String.concat([output, ",", value])))
+    }.
+
+@pure
+newline_count(value: String, index: Int, maximum: Int, count: Int): Int ->
+    if {
+        index >= maximum -> count;
+        byte_is(value, index, 10) -> retain_int(newline_count(value, index + 1, maximum, count + 1));
+        true -> retain_int(newline_count(value, index + 1, maximum, count))
+    }.
+
+@pure
+parse_attribute(value: String, index: Int): Attribute ->
+    let after_hash = skip_space(value, index + 1);
+    let after_bang =
+        if {
+            byte_is(value, after_hash, 33) -> skip_space(value, after_hash + 1);
+            true -> after_hash
+        };
+    if {
+        not byte_is(value, after_bang, 91) -> Attribute(valid = false, next = index + 1, lines = 0, lints = "");
+        true -> let keyword = skip_space(value, after_bang + 1);
+        if {
+            not word_at(value, keyword, "allow") -> Attribute(valid = false, next = index + 1, lines = 0, lints = "");
+            true -> let open = skip_space(value, keyword + 5);
+            if {
+                not byte_is(value, open, 40) -> Attribute(valid = false, next = index + 1, lines = 0, lints = "");
+                true -> let close = attribute_end(value, open + 1);
+                if {
+                    close < 0 -> Attribute(valid = false, next = index + 1, lines = 0, lints = "");
+                    true -> let lints =
+                        join_lints(
+                            lint_tokens_at(
+                                String.split(value.utf8_slice(open + 1, close - open - 1), ","),
+                                List.new[String](),
+                            ),
+                        );
+                    Attribute(
+                        valid = lints != "",
+                        next = close + 1,
+                        lines = newline_count(value, index, close + 1, 0),
+                        lints = lints,
+                    )
+                }
+            }
+        }
+    }.
+
+@pure
+line_start(value: String, index: Int): Int ->
+    if {
+        index == 0 -> 0;
+        byte_is(value, index - 1, 10) -> index;
+        true -> retain_int(line_start(value, index - 1))
+    }.
+
+@pure
+line_end(value: String, index: Int): Int ->
+    if {
+        index == value.byte_size() or byte_is(value, index, 10) -> index;
+        true -> retain_int(line_end(value, index + 1))
+    }.
+
+@pure
+source_line(value: String, index: Int): String ->
+    let start = line_start(value, index);
+    let end = line_end(value, index);
+    String.trim(value.utf8_slice(start, end - start)).
+
+@pure
+scan_candidates(mode: Int): String ->
+    if {
+        mode == 0 -> "/#\"'rbc\n";
+        mode == 1 -> "\n";
+        mode == 2 -> "/*\n";
+        mode == 3 -> "\\\"\n";
+        mode == 4 -> "\\'\n";
+        mode == 5 -> "\"\n";
+        true -> ""
+    }.
+
+@pure
+next_index(value: String, index: Int, mode: Int): Int ->
+    value.utf8_find_any_byte(index, scan_candidates(mode)).
+
+@pure
+retain_state(state: ScanState): ScanState ->
+    state.
+
+@pure
+scan_page_at(
+    path: String,
+    value: String,
+    index: Int,
+    line: Int,
+    mode: Int,
+    block_depth: Int,
+    raw_hashes: Int,
+    allowances: List[Allowance],
+    remaining: Int,
+): ScanState ->
+    if {
+        index == value.byte_size() or remaining == 0 -> ScanState(
+            index = index,
+            line = line,
+            mode = mode,
+            block_depth = block_depth,
+            raw_hashes = raw_hashes,
+            allowances = allowances,
+        );
+        true -> let next = next_index(value, index, mode);
+        if {
+            next < 0 -> ScanState(
+                index = value.byte_size(),
+                line = line,
+                mode = mode,
+                block_depth = block_depth,
+                raw_hashes = raw_hashes,
+                allowances = allowances,
+            );
+            next != index -> retain_state(
+                scan_page_at(
+                    path,
+                    value,
+                    next,
+                    line,
+                    mode,
+                    block_depth,
+                    raw_hashes,
+                    allowances,
+                    remaining - 1,
+                ),
+            );
+            mode == 1 -> retain_state(
+                scan_page_at(path, value, index + 1, line + 1, 0, 0, 0, allowances, remaining - 1),
+            );
+            mode == 2 -> let nested = byte_is(value, index, 47) and byte_is(value, index + 1, 42);
+            let closed = byte_is(value, index, 42) and byte_is(value, index + 1, 47);
+            let next_depth =
+                if {
+                    closed -> block_depth - 1;
+                    true -> block_depth
+                };
+            retain_state(
+                scan_page_at(
+                    path,
+                    value,
+                    index + if {
+    nested or closed -> 2;
+    true -> 1
+},
+                    line + if {
+    byte_is(value, index, 10) -> 1;
+    true -> 0
+},
+                    if {
+                        closed and next_depth == 0 -> 0;
+                        true -> 2
+                    },
+                    if {
+                        nested -> block_depth + 1;
+                        true -> next_depth
+                    },
+                    0,
+                    allowances,
+                    remaining - 1,
+                ),
+            );
+            mode == 3 or mode == 4 -> let escaped = byte_is(value, index, 92) and index + 1 < value.byte_size();
+            let closed = mode == 3 and byte_is(value, index, 34) or mode == 4 and byte_is(value, index, 39);
+            retain_state(
+                scan_page_at(
+                    path,
+                    value,
+                    index + if {
+    escaped -> 2;
+    true -> 1
+},
+                    line + if {
+    byte_is(value, index, 10) or escaped and byte_is(value, index + 1, 10) -> 1;
+    true -> 0
+},
+                    if {
+                        closed -> 0;
+                        true -> mode
+                    },
+                    0,
+                    0,
+                    allowances,
+                    remaining - 1,
+                ),
+            );
+            mode == 5 -> let closed = raw_close(value, index, raw_hashes);
+            retain_state(
+                scan_page_at(
+                    path,
+                    value,
+                    index + if {
+    closed -> raw_hashes + 1;
+    true -> 1
+},
+                    line + if {
+    byte_is(value, index, 10) -> 1;
+    true -> 0
+},
+                    if {
+                        closed -> 0;
+                        true -> 5
+                    },
+                    0,
+                    if {
+                        closed -> 0;
+                        true -> raw_hashes
+                    },
+                    allowances,
+                    remaining - 1,
+                ),
+            );
+            true -> let opened_hashes = raw_open_hashes(value, index);
+            if {
+                byte_is(value, index, 47) and byte_is(value, index + 1, 47) -> retain_state(
+                    scan_page_at(path, value, index + 2, line, 1, 0, 0, allowances, remaining - 1),
+                );
+                byte_is(value, index, 47) and byte_is(value, index + 1, 42) -> retain_state(
+                    scan_page_at(path, value, index + 2, line, 2, 1, 0, allowances, remaining - 1),
+                );
+                opened_hashes >= 0 -> retain_state(
+                    scan_page_at(
+                        path,
+                        value,
+                        raw_open_end(value, index, opened_hashes),
+                        line,
+                        5,
+                        0,
+                        opened_hashes,
+                        allowances,
+                        remaining - 1,
+                    ),
+                );
+                byte_is(value, index, 34)
+                    or (byte_is(value, index, 98) or byte_is(value, index, 99)) and byte_is(value, index + 1, 34) -> retain_state(
+                    scan_page_at(
+                        path,
+                        value,
+                        index + if {
+    byte_is(value, index, 34) -> 1;
+    true -> 2
+},
+                        line,
+                        3,
+                        0,
+                        0,
+                        allowances,
+                        remaining - 1,
+                    ),
+                );
+                byte_is(value, index, 39) and char_literal_end(value, index + 1) >= 0 -> retain_state(
+                    scan_page_at(path, value, index + 1, line, 4, 0, 0, allowances, remaining - 1),
+                );
+                byte_is(value, index, 35) -> let attribute = parse_attribute(value, index);
+                let next_allowances =
+                    if {
+                        attribute.valid -> List.concat(
+                            allowances,
+                            List[Allowance](
+                                Allowance(
+                                    path = path,
+                                    line = line,
+                                    lints = attribute.lints,
+                                    source_line = source_line(value, index),
+                                ),
+                            ),
+                        );
+                        true -> allowances
+                    };
+                retain_state(
+                    scan_page_at(
+                        path,
+                        value,
+                        attribute.next,
+                        line + attribute.lines,
+                        0,
+                        0,
+                        0,
+                        next_allowances,
+                        remaining - 1,
+                    ),
+                );
+                byte_is(value, index, 10) -> retain_state(
+                    scan_page_at(
+                        path,
+                        value,
+                        index + 1,
+                        line + 1,
+                        0,
+                        0,
+                        0,
+                        allowances,
+                        remaining - 1,
+                    ),
+                );
+                true -> retain_state(
+                    scan_page_at(path, value, index + 1, line, 0, 0, 0, allowances, remaining - 1),
+                )
+            }
+        }
+    }.
+
+@pure
+retain_allowances(values: List[Allowance]): List[Allowance] ->
+    values.
+
+@pure
+scan_pages(path: String, value: String, state: ScanState, remaining: Int): List[Allowance] ->
+    if {
+        state.index == value.byte_size() -> state.allowances;
+        remaining == 0 -> state.allowances;
+        true -> let next =
+            scan_page_at(
+                path,
+                value,
+                state.index,
+                state.line,
+                state.mode,
+                state.block_depth,
+                state.raw_hashes,
+                state.allowances,
+                256,
+            );
+        retain_allowances(scan_pages(path, value, next, remaining - 1))
+    }.
+
+@pure
+pub scan_source(path: String, value: String): List[Allowance] ->
+    scan_pages(
+        path,
+        value,
+        ScanState(
+            index = 0,
+            line = 1,
+            mode = 0,
+            block_depth = 0,
+            raw_hashes = 0,
+            allowances = List.new[Allowance](),
+        ),
+        value.byte_size() + 1,
+    ).
+
+@pure
+pub scan_sources(values: List[RustSource]): List[Allowance] ->
+    case values {
+        [] -> List.new[Allowance]();
+        [value | rest] -> List.concat(scan_source(value.path, value.contents), scan_sources(rest))
+    }.
+
+pub self_test(): Bool ->
+    List.length(scan_source("src/lib.rs", "#[allow(dead_code)]\n")) == 1.

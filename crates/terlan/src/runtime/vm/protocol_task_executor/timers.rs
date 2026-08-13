@@ -119,4 +119,5 @@ pub(super) fn next_protocol_timer_timeout(now: Instant) -> Option<Duration> {
 
 #[cfg(test)]
 #[path = "timers_test.rs"]
+#[cfg(test)]
 mod timers_test;

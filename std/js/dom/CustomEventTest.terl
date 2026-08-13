@@ -25,6 +25,6 @@ pub init_custom_event_typechecks(
     type_: std.js.String.JsString,
     bubbles: Bool,
     cancelable: Bool,
-    detail: T
+    detail: T,
 ): std.core.Unit ->
     receiver.init_custom_event(type_, bubbles, cancelable, detail).

@@ -15,6 +15,7 @@ fn bad_encoding_reports_line_and_character_column() {
 
     let error = read_file(path.to_str().expect("UTF-8 fixture path"))
         .expect_err("invalid UTF-8 must be rejected");
+    let error = error.to_string();
 
     assert_eq!(
         error,
@@ -36,6 +37,7 @@ fn bad_encoding_reports_adversarial_utf8_boundaries() {
         fs::write(&path, bytes).expect("write adversarial encoding fixture");
         let error = read_file(path.to_str().expect("UTF-8 fixture path"))
             .expect_err("invalid UTF-8 must be rejected");
+        let error = error.to_string();
 
         assert!(
             error.ends_with(&format!(

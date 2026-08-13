@@ -1,0 +1,311 @@
+/**
+ * Validates deterministic generated C++ package execution evidence.
+ */
+module scripts.self_validation.GeneratedPackageContract.
+
+import std.core.Result.{Ok, with_default}.
+import std.core.String.
+import std.data.Json.
+import std.io.File.{read_text}.
+import std.regex.Regex.
+
+import type std.data.Json.
+import type std.regex.Regex.
+
+@pure
+schema(): String -> "terlan.cpp.generated-package-report.v1".
+
+@pure
+allowed_reasons(): List[String] ->
+    [
+        "cpp.annotation.unsupported",
+        "cpp.callback.unsupported",
+        "cpp.exception.crossing",
+        "cpp.inheritance.unsupported",
+        "cpp.lifetime.borrowed",
+        "cpp.overload.ambiguous",
+        "cpp.ownership.unknown",
+        "cpp.pointer.unsupported",
+        "cpp.template.unspecialized",
+        "cpp.type.unmapped",
+        "cpp.variadic.unsupported",
+    ].
+
+@pure
+allowed_messages(): List[String] ->
+    [
+        "Ambiguous overloads do not have a unique generated name.",
+        "Borrowed reference lifetime is not represented by the generated boundary.",
+        "Callback lifetime is not represented by the generated boundary.",
+        "Preprocessor macros do not have a typed callable ABI.",
+        "Raw pointer ownership is not represented by the generated boundary.",
+        "Result ownership was not classified by package policy.",
+        "The canonical C++ type has no reviewed Terlan mapping.",
+        "Uncontained C++ exceptions cannot cross the generated boundary.",
+        "Unspecialized templates do not have a concrete generated ABI.",
+        "Unsupported inheritance layout cannot cross the generated boundary.",
+        "Variadic arguments do not have a stable generated signature.",
+    ].
+
+@pure
+required_artifacts(): List[String] ->
+    [
+        "bindings/native-binding-manifest.json",
+        "bindings/skipped-symbols.json",
+        "docs/cpp_fixture.NativeBoundary.md",
+        "docs/cpp_fixture.NativeGauge.md",
+        "src/cpp_fixture/NativeBoundary.terl",
+        "src/cpp_fixture/NativeGauge.terl",
+        "terlan.toml",
+        "tests/cpp_fixture/NativeBoundaryTest.terl",
+        "tests/cpp_fixture/NativeGaugeTest.terl",
+    ].
+
+@pure
+required_torch_artifacts(): List[String] ->
+    [
+        "bindings/native-binding-manifest.json",
+        "bindings/skipped-symbols.json",
+        "docs/torch.NativeBoundary.md",
+        "docs/torch.NativeGauge.md",
+        "src/torch/NativeBoundary.terl",
+        "src/torch/NativeGauge.terl",
+        "terlan.toml",
+        "tests/torch/NativeBoundaryTest.terl",
+        "tests/torch/NativeGaugeTest.terl",
+    ].
+
+/**
+ * Parses, validates, and proves canonical pretty-JSON bytes.
+ */
+pub validate_text(source: String): Bool ->
+    case {Json.parse(source), Regex.compile("^[0-9a-f]{64}$")} {
+        {Ok(report), Ok(sha256)} ->
+            validate_report(report, sha256)
+                and case Json.stringify_pretty(report) {
+    Ok(canonical) -> source == String.append(canonical, "\n");
+    _ -> false
+};
+        _ -> false
+    }.
+
+validate_report(report: Json, sha256: Regex): Bool ->
+    string_field_is(report, "schema", schema())
+        and string_field_is(report, "fixture", "cpp_native_boundary")
+        and string_field_is(report, "fixture_classification", "pass_with_reviewed_skips")
+        and string_field_is(report, "package_tests", "passed")
+        and string_field_is(report, "adapter_rust_tests", "passed")
+        and string_field_is(report, "package_consumer", "passed")
+        and string_field_is(report, "stale_handle", "expected_failure")
+        and string_field_is(report, "torch_like_package_tests", "passed")
+        and string_field_is(report, "torch_fixture_classification", "pass_with_reviewed_skips")
+        and string_field_is(report, "torch_namespace_import", "torch.NativeBoundary")
+        and int_field_is(report, "skipped_symbol_count", 11)
+        and string_array_field_is(report, "policy_reasons", allowed_reasons())
+        and string_array_field_is(report, "policy_messages", allowed_messages())
+        and hash_field_is(report, "skipped_symbols_sha256", sha256)
+        and hash_field_is(report, "torch_skipped_symbols_sha256", sha256)
+        and hash_inventory_is(report, "artifact_hashes", required_artifacts(), sha256)
+        and hash_inventory_is(report, "torch_artifact_hashes", required_torch_artifacts(), sha256).
+
+string_field_is(report: Json, name: String, expected: String): Bool ->
+    case report.get(name) {
+        Ok(value) -> with_default(value.as_string(), "") == expected;
+        _ -> false
+    }.
+
+int_field_is(report: Json, name: String, expected: Int): Bool ->
+    case report.get(name) {
+        Ok(value) -> with_default(value.as_int(), -1) == expected;
+        _ -> false
+    }.
+
+hash_field_is(report: Json, name: String, sha256: Regex): Bool ->
+    let {
+        Ok(value) <- report.get(name);
+        Ok(text) <- value.as_string()
+    } else {
+        _ -> false
+    };
+    Regex.is_match(sha256, text).
+
+string_array_field_is(report: Json, name: String, expected: List[String]): Bool ->
+    case report.get(name) {
+        Ok(value) -> json_string_array_is(value, 0, expected);
+        _ -> false
+    }.
+
+json_string_array_is(value: Json, index: Int, expected: List[String]): Bool ->
+    case expected {
+        [] -> with_default(value.length(), -1) == index;
+        [head | rest] ->
+            case value.at(index) {
+                Ok(item) ->
+                    with_default(item.as_string(), "") == head
+                        and json_string_array_is(value, index + 1, rest);
+                _ -> false
+            }
+    }.
+
+hash_inventory_is(report: Json, name: String, expected_names: List[String], sha256: Regex): Bool ->
+    let {
+        Ok(inventory) <- report.get(name);
+        Ok(names) <- inventory.keys()
+    } else {
+        _ -> false
+    };
+    string_lists_equal(names, expected_names)
+        and inventory_hashes_are_valid(inventory, names, sha256).
+
+inventory_hashes_are_valid(inventory: Json, names: List[String], sha256: Regex): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            let {
+                Ok(value) <- inventory.get(name);
+                Ok(hash) <- value.as_string()
+            } else {
+                _ -> false
+            };
+            Regex.is_match(sha256, hash) and inventory_hashes_are_valid(inventory, rest, sha256)
+    }.
+
+@pure
+string_lists_equal(left: List[String], right: List[String]): Bool ->
+    case {left, right} {
+        {[], []} -> true;
+        {[left_head | left_rest], [right_head | right_rest]} ->
+            left_head == right_head and string_lists_equal(left_rest, right_rest);
+        _ -> false
+    }.
+
+json_string_array(values: List[String]): Json ->
+    let output = Json.array();
+    append_json_strings(output, values).
+
+append_json_strings(output: Json, values: List[String]): Json ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            let _push = output.push(Json.string(value));
+            append_json_strings(output, rest)
+    }.
+
+hash_inventory(names: List[String], hash: String): Json ->
+    let output = Json.object();
+    append_hashes(output, names, hash).
+
+append_hashes(output: Json, names: List[String], hash: String): Json ->
+    case names {
+        [] -> output;
+        [name | rest] ->
+            let _put = output.put(name, Json.string(hash));
+            append_hashes(output, rest, hash)
+    }.
+
+valid_report(): Json ->
+    valid_report_with_artifacts(required_artifacts()).
+
+valid_report_with_artifacts(artifacts: List[String]): Json ->
+    let report = Json.object();
+    let _adapter = report.put("adapter_rust_tests", Json.string("passed"));
+    let _artifacts = report.put("artifact_hashes", hash_inventory(artifacts, hash_zero()));
+    let _fixture = report.put("fixture", Json.string("cpp_native_boundary"));
+    let _fixture_classification = report.put("fixture_classification", Json.string("pass_with_reviewed_skips"));
+    let _consumer = report.put("package_consumer", Json.string("passed"));
+    let _tests = report.put("package_tests", Json.string("passed"));
+    let _messages = report.put("policy_messages", json_string_array(allowed_messages()));
+    let _reasons = report.put("policy_reasons", json_string_array(allowed_reasons()));
+    let _schema = report.put("schema", Json.string(schema()));
+    let _count = report.put("skipped_symbol_count", Json.int(11));
+    let _skipped = report.put("skipped_symbols_sha256", Json.string(hash_one()));
+    let _stale = report.put("stale_handle", Json.string("expected_failure"));
+    let _torch_artifacts = report.put("torch_artifact_hashes", hash_inventory(required_torch_artifacts(), hash_two()));
+    let _torch_classification = report.put("torch_fixture_classification", Json.string("pass_with_reviewed_skips"));
+    let _torch_tests = report.put("torch_like_package_tests", Json.string("passed"));
+    let _torch_import = report.put("torch_namespace_import", Json.string("torch.NativeBoundary"));
+    let _torch_skipped = report.put("torch_skipped_symbols_sha256", Json.string(hash_three()));
+    report.
+
+@pure
+hash_zero(): String -> "0000000000000000000000000000000000000000000000000000000000000000".
+
+@pure
+hash_one(): String -> "1111111111111111111111111111111111111111111111111111111111111111".
+
+@pure
+hash_two(): String -> "2222222222222222222222222222222222222222222222222222222222222222".
+
+@pure
+hash_three(): String -> "3333333333333333333333333333333333333333333333333333333333333333".
+
+report_is_valid(report: Json): Bool ->
+    case Regex.compile("^[0-9a-f]{64}$") {
+        Ok(sha256) -> validate_report(report, sha256);
+        _ -> false
+    }.
+
+@test
+pub generated_repository_report_is_valid_and_canonical(): Bool ->
+    case read_text("target/quality/cpp-binding-generator.gen_report.json") {
+        Ok(source) -> validate_text(source);
+        _ -> false
+    }.
+
+@test
+pub reviewed_fixture_is_accepted(): Bool ->
+    report_is_valid(valid_report()).
+
+@test
+pub free_form_policy_reason_is_rejected(): Bool ->
+    let report = valid_report();
+    let _replace = report.put("policy_reasons", json_string_array(["cpp.free.form"]));
+    not report_is_valid(report).
+
+@test
+pub free_form_policy_message_is_rejected(): Bool ->
+    let report = valid_report();
+    let _replace = report.put("policy_messages", json_string_array(["free form"]));
+    not report_is_valid(report).
+
+@test
+pub skipped_package_tests_are_rejected(): Bool ->
+    let report = valid_report();
+    let _replace = report.put("package_tests", Json.string("skipped"));
+    not report_is_valid(report).
+
+@test
+pub incomplete_artifact_inventory_is_rejected(): Bool ->
+    not report_is_valid(
+    valid_report_with_artifacts(
+        [
+            "bindings/native-binding-manifest.json",
+            "bindings/skipped-symbols.json",
+            "docs/cpp_fixture.NativeBoundary.md",
+            "docs/cpp_fixture.NativeGauge.md",
+            "src/cpp_fixture/NativeBoundary.terl",
+            "src/cpp_fixture/NativeGauge.terl",
+            "tests/cpp_fixture/NativeBoundaryTest.terl",
+            "tests/cpp_fixture/NativeGaugeTest.terl",
+        ],
+    ),
+).
+
+@test
+pub wrong_torch_namespace_is_rejected(): Bool ->
+    let report = valid_report();
+    let _replace = report.put("torch_namespace_import", Json.string("std.native.torch"));
+    not report_is_valid(report).
+
+@test
+pub malformed_hash_is_rejected(): Bool ->
+    let report = valid_report();
+    let _replace = report.put("skipped_symbols_sha256", Json.string("ABC"));
+    not report_is_valid(report).
+
+@test
+pub canonical_pretty_json_with_terminal_newline_is_required(): Bool ->
+    case Json.stringify_pretty(valid_report()) {
+        Ok(pretty) -> validate_text(String.append(pretty, "\n")) and not validate_text(pretty);
+        _ -> false
+    }.

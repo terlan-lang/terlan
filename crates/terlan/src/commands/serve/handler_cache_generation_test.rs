@@ -17,9 +17,46 @@ fn generation_test_guard() -> std::sync::MutexGuard<'static, ()> {
         .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
-/// Renders one source generation with a distinguishable native result.
+/// Renders one source generation whose marker crosses a deep native tail loop.
 fn source(value: i64) -> String {
-    format!("module {MODULE}.\n\npub value(): Int -> {value}.\n")
+    format!(
+        "module {MODULE}.\n\n\
+         loop(N: Int, Acc: Int): Int ->\n\
+             if {{ N == 0 -> Acc; true -> loop(N - 1, Acc) }}.\n\n\
+         pub value(): Int -> loop(1000000, {value}).\n"
+    )
+}
+
+fn source_with_state(value: i64) -> String {
+    format!(
+        "module {MODULE}.\n\n\
+         pub struct State {{\n    value: Int\n}}.\n\n\
+         pub value(): Int -> {value}.\n"
+    )
+}
+
+fn write_reload_manifest(web_root: &Path) {
+    fs::write(
+        web_root.join("manifest.json"),
+        format!(
+            r#"{{
+  "schema": "terlan-web-build-v1",
+  "target_profile": "js.browser",
+  "source_js_manifest": "../js/manifest.json",
+  "index": "index.html",
+  "handlers": [{{
+    "method": "GET",
+    "route": "/value",
+    "module": "{MODULE}",
+    "function": "value",
+    "arity": 0,
+    "source": {{"path": "src/app/ReloadGeneration.terl", "line": 1, "column": 1}}
+  }}],
+  "assets": []
+}}"#
+        ),
+    )
+    .expect("write reload manifest");
 }
 
 /// Executes the generation marker through its admitted native image.
@@ -42,7 +79,7 @@ fn assert_retired(generation: &Weak<AotHandlerRuntime>) {
     );
 }
 
-/// Proves cache replacement isolates in-flight code and unloads at quiescence.
+/// Proves replacement isolates deep tail-loop code and unloads at quiescence.
 #[test]
 fn hot_reload_pins_in_flight_generation_until_its_last_lease_drops() {
     let _guard = generation_test_guard();
@@ -74,16 +111,126 @@ fn hot_reload_pins_in_flight_generation_until_its_last_lease_drops() {
     drop(first_runtime);
     assert_retired(&first_retirement);
 
-    cache()
-        .expect("handler cache")
-        .write()
-        .expect("handler cache write")
-        .remove(&source_path)
-        .expect("remove current generation");
+    // The handler cache is process-global and other parallel serve tests may
+    // invalidate it. Invalidation is the production retirement operation and
+    // is idempotent, unlike asserting that this test still owns the map slot.
+    invalidate_vm_handler_cache();
     drop(second);
     drop(second_runtime);
     assert_retired(&second_retirement);
     fs::remove_dir_all(root).expect("cleanup generation fixture");
+}
+
+/// Proves the watcher transaction keeps serving the last valid native image.
+#[test]
+fn developer_reload_is_atomic_compatible_and_failed_edit_safe() {
+    let _guard = generation_test_guard();
+    let root = test_fs::temp_path("serve", "aot_developer_reload_transaction");
+    let web_root = root.join("_build/web");
+    let source_path = root.join("src/app/ReloadGeneration.terl");
+    fs::create_dir_all(source_path.parent().expect("source parent"))
+        .expect("create source directory");
+    fs::create_dir_all(&web_root).expect("create web root");
+    fs::write(
+        root.join("terlan.toml"),
+        "[package]\nname = \"reload-test\"\nversion = \"0.0.1\"\n",
+    )
+    .expect("write project manifest");
+    write_reload_manifest(&web_root);
+    fs::write(&source_path, source(11)).expect("write first generation");
+
+    let first = cached_source_entry(&web_root, &source_path, MODULE).expect("admit first");
+    let pinned = Arc::clone(&first.runtime);
+    fs::write(&source_path, source(22)).expect("write compatible edit");
+    source_generation::developer_reload::compile_and_publish_source_batch(
+        &web_root,
+        std::slice::from_ref(&source_path),
+    )
+    .expect("admit compatible edit");
+    let second = cached_source_entry(&web_root, &source_path, MODULE).expect("resolve second");
+    assert_eq!(
+        execute(&pinned),
+        11,
+        "in-flight call keeps its native image"
+    );
+    assert_eq!(
+        execute(&second.runtime),
+        22,
+        "new calls use replacement image"
+    );
+
+    fs::write(
+        &source_path,
+        "module app.ReloadGeneration.\n\npub value( ->\n",
+    )
+    .expect("write broken edit");
+    let broken = source_generation::developer_reload::compile_and_publish_source_batch(
+        &web_root,
+        std::slice::from_ref(&source_path),
+    )
+    .expect_err("broken edit must fail before publication");
+    source_generation::developer_reload::record_failed_reload(&web_root, &broken)
+        .expect("record failed continuity");
+    assert_eq!(execute(&second.runtime), 22);
+    assert_eq!(
+        execute(
+            &cached_source_entry(&web_root, &source_path, MODULE)
+                .expect("old cache remains active")
+                .runtime
+        ),
+        22
+    );
+
+    fs::write(&source_path, source_with_state(33)).expect("write incompatible state edit");
+    let incompatible = source_generation::developer_reload::compile_and_publish_source_batch(
+        &web_root,
+        std::slice::from_ref(&source_path),
+    )
+    .expect_err("state shape edit must require restart");
+    assert!(
+        incompatible.contains("incompatible_state"),
+        "{incompatible}"
+    );
+    assert_eq!(execute(&second.runtime), 22, "state survives rejection");
+
+    fs::write(&source_path, source(44)).expect("write corrected edit");
+    source_generation::developer_reload::compile_and_publish_source_batch(
+        &web_root,
+        std::slice::from_ref(&source_path),
+    )
+    .expect("corrected edit activates");
+    let corrected =
+        cached_source_entry(&web_root, &source_path, MODULE).expect("resolve corrected generation");
+    assert_eq!(execute(&corrected.runtime), 44);
+
+    let active_path = web_root.join(".terlan/serve-aot/runtime/active.json");
+    let active = fs::read(&active_path).expect("read active pointer");
+    let mut stale: serde_json::Value =
+        serde_json::from_slice(&active).expect("decode active pointer");
+    stale["modules"][MODULE] = serde_json::Value::String("generations/missing.json".into());
+    fs::write(
+        &active_path,
+        serde_json::to_vec(&stale).expect("encode stale pointer"),
+    )
+    .expect("write stale active pointer");
+    let partial = source_generation::activate_persisted_generation(&web_root)
+        .expect_err("partial generation must fail closed");
+    assert!(partial.contains("partial_generation"), "{partial}");
+    assert_eq!(execute(&corrected.runtime), 44);
+    fs::write(&active_path, active).expect("restore active pointer");
+
+    let report =
+        fs::read_to_string(web_root.join(".terlan/serve-aot/watch-mode-hot-reload-report.json"))
+            .expect("read reload report");
+    assert!(report.contains("failed_build_continuity"));
+    assert!(report.contains("direct_aot"));
+    assert!(!report.contains("interpreter"));
+    invalidate_vm_handler_cache();
+    drop(first);
+    drop(pinned);
+    drop(second);
+    drop(corrected);
+    fs::remove_dir_all(root).expect("cleanup reload transaction fixture");
 }
 
 /// Proves HTTP compilation removes serialized and renamed runtime artifacts.
@@ -126,12 +273,11 @@ fn handler_cache_compilation_removes_legacy_runtime_sidecars() {
         "HTTP compilation must publish one native image"
     );
 
-    cache()
-        .expect("handler cache")
-        .write()
-        .expect("handler cache write")
-        .remove(&source_path)
-        .expect("remove admitted handler");
+    // Other serve tests share the process-wide cache and may invalidate it
+    // concurrently. Use the production retirement operation instead of
+    // assuming this test still owns the map slot; panicking while holding the
+    // write guard would poison every subsequent cache user in the suite.
+    invalidate_vm_handler_cache();
     drop(entry);
     fs::remove_dir_all(root).expect("cleanup legacy HTTP fixture");
 }
@@ -154,9 +300,9 @@ fn persisted_generation_rejects_tampered_native_image() {
     drop(entry);
     invalidate_vm_handler_cache();
 
-    let generation_path = web_root
-        .join(".terlan/serve-aot/runtime")
-        .join("app_ReloadGeneration.json");
+    let generation_path = source_generation::active_generation_metadata_path(&web_root, MODULE)
+        .expect("resolve active metadata")
+        .expect("active module metadata");
     let generation: serde_json::Value =
         serde_json::from_slice(&fs::read(&generation_path).expect("read persisted generation"))
             .expect("decode persisted generation");

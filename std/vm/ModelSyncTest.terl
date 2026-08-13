@@ -22,7 +22,11 @@ pub user_adapter_contract(): AdapterContract ->
     let delete = ModelSync.capability("delete");
     let snapshot = ModelSync.capability("snapshot");
     let change_stream = ModelSync.capability("change-stream");
-    ModelSync.adapter_contract("users-memory", "vm", [typed_key, optimistic_version, put, delete, snapshot, change_stream]).
+    ModelSync.adapter_contract(
+        "users-memory",
+        "vm",
+        [typed_key, optimistic_version, put, delete, snapshot, change_stream],
+    ).
 
 @test
 pub optimistic_write_plan_is_source_visible(): Bool ->
@@ -51,7 +55,12 @@ pub adapter_capabilities_are_declared_in_source(): Bool ->
     let delete = ModelSync.capability("delete");
     let snapshot = ModelSync.capability("snapshot");
     let change_stream = ModelSync.capability("change-stream");
-    let contract = ModelSync.adapter_contract("memory", "vm", [typed_key, optimistic_version, put, delete, snapshot, change_stream]);
+    let contract =
+        ModelSync.adapter_contract(
+            "memory",
+            "vm",
+            [typed_key, optimistic_version, put, delete, snapshot, change_stream],
+        );
     assert_true(true).
 
 @test
@@ -61,7 +70,12 @@ pub persistent_actor_adapter_is_source_visible(): Bool ->
     let optimistic_version = ModelSync.capability("optimistic-version");
     let snapshot = ModelSync.capability("snapshot");
     let change_stream = ModelSync.capability("change-stream");
-    let contract = ModelSync.adapter_contract("orders-persistent-actor", "persistent-actor", [typed_key, optimistic_version, snapshot, change_stream]);
+    let contract =
+        ModelSync.adapter_contract(
+            "orders-persistent-actor",
+            "persistent-actor",
+            [typed_key, optimistic_version, snapshot, change_stream],
+        );
     let adapter = ModelSync.persistent_actor_adapter(actor, contract);
     assert_true(true).
 
@@ -71,7 +85,12 @@ pub package_store_adapter_is_source_visible(): Bool ->
     let optimistic_version = ModelSync.capability("optimistic-version");
     let snapshot = ModelSync.capability("snapshot");
     let change_stream = ModelSync.capability("change-stream");
-    let contract = ModelSync.adapter_contract("orders-package-store", "package", [typed_key, optimistic_version, snapshot, change_stream]);
+    let contract =
+        ModelSync.adapter_contract(
+            "orders-package-store",
+            "package",
+            [typed_key, optimistic_version, snapshot, change_stream],
+        );
     let adapter = ModelSync.package_store_adapter("orders@0.0.7", contract);
     assert_true(true).
 

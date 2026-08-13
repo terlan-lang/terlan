@@ -11,10 +11,19 @@ fn complete_contract() -> String {
 fn complete_makefile() -> String {
     let mut text = String::from(concat!(
         "CHECK_GATES := \\\n",
-        "\trelease-failure-reproduction-check\n\n",
-        "check: rust-test-suite\n",
-        "\tTERLAN_RUST_SUITE_ALREADY_RUN=1 $(MAKE) check-gates\n\n",
+        "\tcompiler-check\n\n",
+        "check: rust-test-suite terlan-self-validation-bootstrap\n",
+        "\tTERLAN_RUST_SUITE_ALREADY_RUN=1 \\\n",
+        "\tTERLAN_VALIDATION_BOOTSTRAPPED=1 \\\n",
+        "\t\t$(MAKE) --no-print-directory check-gates\n\n",
         "check-gates: $(CHECK_GATES)\n\n",
+        "release-0-0-7-evidence-refresh: check release-failure-reproduction-check\n",
+        "\t@echo refreshed\n\n",
+        "release-0-0-7-preflight:\n",
+        "\ttest -s release-evidence.json\n",
+        "\tterlan-vm run release-preflight.tvm\n\n",
+        "lean-proof-track-release-closeout-check: rust-test-suite\n",
+        "\tcargo run --bin terlan-lean-proof-closeout\n\n",
     ));
     for &(target, prerequisite) in RELEASE_GATE_CHAIN {
         text.push_str(&format!(
@@ -22,6 +31,66 @@ fn complete_makefile() -> String {
         ));
     }
     text
+}
+
+/// Verifies final composition cannot acquire an expensive prerequisite graph.
+#[test]
+fn release_gate_shard_resume_rejects_preflight_replay() {
+    let makefile = complete_makefile().replace(
+        "release-0-0-7-preflight:\n",
+        "release-0-0-7-preflight: check\n\t$(MAKE) check-gates\n",
+    );
+
+    let diagnostics = validate_release_makefile(&makefile);
+
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic
+            .contains("must compose existing evidence without prerequisite gates")),
+        "diagnostics should reject preflight prerequisites: {diagnostics:?}"
+    );
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("must not execute `$(MAKE)`")),
+        "diagnostics should reject preflight sub-makes: {diagnostics:?}"
+    );
+}
+
+/// Verifies release-only gates cannot leak back into ordinary validation.
+#[test]
+fn release_gate_shard_resume_rejects_release_chain_in_check() {
+    let makefile = complete_makefile().replace(
+        "CHECK_GATES := \\\n\tcompiler-check",
+        "CHECK_GATES := \\\n\tcompiler-check \\\n\trelease-failure-reproduction-check",
+    );
+
+    let diagnostics = validate_release_makefile(&makefile);
+
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic
+                .contains("ordinary `CHECK_GATES` must not own release-only")),
+        "diagnostics should reject release-only work in ordinary checks: {diagnostics:?}"
+    );
+}
+
+/// Verifies the release closeout cannot reintroduce a second full Rust suite.
+#[test]
+fn release_gate_shard_resume_rejects_duplicate_closeout_suite() {
+    let makefile = complete_makefile().replace(
+        "\tcargo run --bin terlan-lean-proof-closeout\n",
+        "\t$(RUST_TEST) --locked -p terlan --lib --features quality-tools\n\tcargo run --bin terlan-lean-proof-closeout\n",
+    );
+
+    let diagnostics = validate_release_makefile(&makefile);
+
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("must not rerun the complete Rust library suite")),
+        "diagnostics should reject duplicate suite ownership: {diagnostics:?}"
+    );
 }
 
 /// Verifies the release gate shard/resume gate writes the roadmap-required

@@ -1,0 +1,343 @@
+/**
+ * Validates retained behavior evidence for the retired OTP stdlib corpus.
+ */
+module scripts.self_validation.OtpStdlibMigrationEvidence.
+
+import std.collections.List.
+import std.core.Int.{from_string}.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Lt}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.File.{read_text}.
+import std.regex.Regex.
+
+import type std.core.Option.
+
+pub struct MigrationRow {
+    source_path: String,
+    disposition: String,
+    behavior_area: String,
+    replacement_test: String,
+    replacement_gate: String,
+    remaining_semantics: String,
+    notes: String,
+}.
+
+/**
+ * Returns whether the checked migration ledger and summary are coherent.
+ */
+pub repository_evidence_holds(root: String): Bool ->
+    let {
+        Ok(ledger) <- read_text(String.append(root, "/docs/runtime/TERLAN_VM_OTP_STDLIB_MIGRATION.tsv"));
+        Ok(summary) <-
+            read_text(
+                String.append(root, "/docs/runtime/TERLAN_VM_OTP_STDLIB_MIGRATION_SUMMARY.tsv"),
+            );
+        Ok(makefile) <- read_text(String.append(root, "/Makefile"))
+    } else {
+        _ -> false
+    };
+    evidence_holds(root, ledger, summary, makefile).
+
+pub evidence_holds(root: String, ledger: String, summary: String, makefile: String): Bool ->
+    let rows = parse_ledger(ledger);
+    sorted_unique_rows(rows, "")
+        and rows_hold(root, rows, makefile)
+        and summary_holds(summary, rows).
+
+parse_ledger(text: String): List[List[String]] ->
+    case String.split(text, "\n") {
+        [header | rest] ->
+            if {
+                header == ledger_header() -> parse_ledger_rows(rest, List.new[List[String]]());
+                true -> [["$invalid"]]
+            };
+        _ -> [["$invalid"]]
+    }.
+
+parse_ledger_rows(lines: List[String], rows: List[List[String]]): List[List[String]] ->
+    case lines {
+        [] -> rows;
+        [line | rest] ->
+            if {
+                line == "" or String.starts_with(line, "#") -> parse_ledger_rows(rest, rows);
+                true -> case String.split(line, "\t") {
+                    [source, disposition, area, test, gate, remaining, notes] ->
+                        let _pushed = rows.push([source, disposition, area, test, gate, remaining, notes]);
+                        parse_ledger_rows(rest, rows);
+                    _ -> [["$invalid"]]
+                }
+            }
+    }.
+
+sorted_unique_rows(rows: List[List[String]], previous: String): Bool ->
+    case rows {
+        [] -> true;
+        [[source, _disposition, _area, _test, _gate, _remaining, _notes] | rest] ->
+            if {
+                previous != "" and String.compare(previous, source) != Lt -> false;
+                true -> sorted_unique_rows(rest, source)
+            };
+        _ -> false
+    }.
+
+rows_hold(root: String, rows: List[List[String]], makefile: String): Bool ->
+    case rows {
+        [] -> true;
+        [[source, disposition, area, test, gate, remaining, notes] | rest] ->
+            let row =
+                MigrationRow(
+                    source_path = source,
+                    disposition = disposition,
+                    behavior_area = area,
+                    replacement_test = test,
+                    replacement_gate = gate,
+                    remaining_semantics = remaining,
+                    notes = notes,
+                );
+            if {
+                not row_holds(root, row, makefile) -> false;
+                true -> rows_hold(root, rest, makefile)
+            };
+        _ -> false
+    }.
+
+pub row_holds(root: String, row: MigrationRow, makefile: String): Bool ->
+    String.starts_with(row.source_path, "terlan-vm/lib/stdlib/test/")
+        and allowed_disposition(row.disposition)
+        and row.behavior_area != ""
+        and remaining_semantics_hold(row.disposition, row.remaining_semantics)
+        and String.length(String.trim(row.notes)) >= 24
+        and replacement_evidence_holds(root, row, makefile).
+
+@pure
+allowed_disposition(value: String): Bool ->
+    value == "ported-rust-vm"
+        or value == "ported-terlan"
+        or value == "primitive-ported-abstraction-pending"
+        or value == "retired-non-product".
+
+@pure
+ported_disposition(value: String): Bool ->
+    value == "ported-rust-vm"
+        or value == "ported-terlan"
+        or value == "primitive-ported-abstraction-pending".
+
+@pure
+remaining_semantics_hold(disposition: String, remaining: String): Bool ->
+    if {
+        disposition == "primitive-ported-abstraction-pending" -> remaining != "none";
+        true -> remaining == "none"
+    }.
+
+replacement_evidence_holds(root: String, row: MigrationRow, makefile: String): Bool ->
+    if {
+        ported_disposition(row.disposition) -> replacement_test_holds(root, row.replacement_test)
+            and make_target_exists(makefile, row.replacement_gate);
+        true -> retirement_evidence_holds(row.replacement_test, row.replacement_gate)
+    }.
+
+@pure
+retirement_evidence_holds(test: String, gate: String): Bool ->
+    test == "-" and gate == "-".
+
+replacement_test_holds(root: String, evidence: String): Bool ->
+    let {
+        [path, selector] <- String.split(evidence, "#");
+        Ok(source) <- read_text(String.append(root, String.append("/", path)))
+    } else {
+        _ -> false
+    };
+    selector_is_present(path, selector, source).
+
+selector_is_present(path: String, selector: String, source: String): Bool ->
+    let escaped = Regex.escape(selector);
+    if {
+        String.ends_with(path, ".terl") -> regex_matches(
+            String.append(
+                "(?m)^@test\\s*\\n(?:[^\\n]*\\n)*?pub\\s+",
+                String.append(escaped, "\\s*\\("),
+            ),
+            source,
+        );
+        true -> regex_matches(String.append("(?m)\\bfn\\s+", String.append(escaped, "\\s*\\(")), source)
+    }.
+
+make_target_exists(makefile: String, target: String): Bool ->
+    regex_matches(
+        String.append("(?m)^", String.append(Regex.escape(target), ":(?:\\s|$)")),
+        makefile,
+    ).
+
+summary_holds(summary: String, rows: List[List[String]]): Bool ->
+    let lines = String.split(summary, "\n");
+    summary_rows_hold(lines, rows, List.new[String]())
+        and summary_data_line_count(lines) == 1 + unique_dispositions(rows, List.new[String]()).length() + unique_behavior_areas(rows, List.new[String]()).length().
+
+summary_rows_hold(lines: List[String], rows: List[List[String]], seen: List[String]): Bool ->
+    case lines {
+        [] -> true;
+        [line | rest] ->
+            if {
+                line == "" or String.starts_with(line, "#") -> summary_rows_hold(rest, rows, seen);
+                true -> case String.split(line, "\t") {
+                    [kind, name, raw_count] ->
+                        let key = String.append(kind, String.append("\t", name));
+                        case from_string(raw_count) {
+                            Some(count) ->
+                                if {
+                                    string_list_contains(seen, key)
+                                        or count != expected_count(rows, kind, name) -> false;
+                                    true -> summary_rows_hold(rest, rows, [key | seen])
+                                };
+                            None -> false
+                        };
+                    _ -> false
+                }
+            }
+    }.
+
+summary_data_line_count(lines: List[String]): Int ->
+    summary_data_line_count_at(lines, 0).
+
+summary_data_line_count_at(lines: List[String], count: Int): Int ->
+    case lines {
+        [] -> count;
+        [line | rest] ->
+            if {
+                line == "" or String.starts_with(line, "#") -> summary_data_line_count_at(rest, count);
+                true -> summary_data_line_count_at(rest, count + 1)
+            }
+    }.
+
+expected_count(rows: List[List[String]], kind: String, name: String): Int ->
+    if {
+        kind == "total" and name == "files" -> rows.length();
+        kind == "disposition" -> count_disposition(rows, name);
+        kind == "behavior_area" -> count_behavior_area(rows, name);
+        true -> -1
+    }.
+
+count_disposition(rows: List[List[String]], name: String): Int ->
+    count_disposition_at(rows, name, 0).
+
+count_disposition_at(rows: List[List[String]], name: String, count: Int): Int ->
+    case rows {
+        [] -> count;
+        [[_source, disposition, _area, _test, _gate, _remaining, _notes] | rest] ->
+            if {
+                disposition == name -> count_disposition_at(rest, name, count + 1);
+                true -> count_disposition_at(rest, name, count)
+            };
+        _ -> -1
+    }.
+
+count_behavior_area(rows: List[List[String]], name: String): Int ->
+    count_behavior_area_at(rows, name, 0).
+
+count_behavior_area_at(rows: List[List[String]], name: String, count: Int): Int ->
+    case rows {
+        [] -> count;
+        [[_source, _disposition, area, _test, _gate, _remaining, _notes] | rest] ->
+            if {
+                area == name -> count_behavior_area_at(rest, name, count + 1);
+                true -> count_behavior_area_at(rest, name, count)
+            };
+        _ -> -1
+    }.
+
+unique_dispositions(rows: List[List[String]], values: List[String]): List[String] ->
+    case rows {
+        [] -> values;
+        [[_source, disposition, _area, _test, _gate, _remaining, _notes] | rest] ->
+            if {
+                string_list_contains(values, disposition) -> unique_dispositions(rest, values);
+                true -> unique_dispositions(rest, [disposition | values])
+            };
+        _ -> values
+    }.
+
+unique_behavior_areas(rows: List[List[String]], values: List[String]): List[String] ->
+    case rows {
+        [] -> values;
+        [[_source, _disposition, area, _test, _gate, _remaining, _notes] | rest] ->
+            if {
+                string_list_contains(values, area) -> unique_behavior_areas(rest, values);
+                true -> unique_behavior_areas(rest, [area | values])
+            };
+        _ -> values
+    }.
+
+string_list_contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or string_list_contains(rest, expected)
+    }.
+
+regex_matches(pattern: String, source: String): Bool ->
+    case Regex.compile(pattern) {
+        Ok(regex) -> Regex.is_match(regex, source);
+        _ -> false
+    }.
+
+@pure
+ledger_header(): String ->
+    "source_path\tdisposition\tbehavior_area\treplacement_test\treplacement_gate\tremaining_semantics\tnotes".
+
+@pure
+retired_row(remaining: String, test: String, gate: String): MigrationRow ->
+    MigrationRow(
+        source_path = "terlan-vm/lib/stdlib/test/example_SUITE.erl",
+        disposition = "retired-non-product",
+        behavior_area = "example",
+        replacement_test = test,
+        replacement_gate = gate,
+        remaining_semantics = remaining,
+        notes = "The Erlang-only example is outside the Terlan product contract.",
+    ).
+
+@test
+pub repository_otp_stdlib_migration_evidence_holds(): Bool ->
+    repository_evidence_holds(".").
+
+@test
+pub non_product_retirement_needs_no_deletion_check(): Bool ->
+    remaining_semantics_hold("retired-non-product", "none") and retirement_evidence_holds("-", "-").
+
+@test
+pub port_requires_real_named_test_and_make_gate(): Bool ->
+    not selector_is_present("missing.terl", "behavior", "@test\npub another_behavior(): Bool -> true.")
+        and make_target_exists("otp-check:\n\ttrue", "otp-check").
+
+@test
+pub completed_migration_rejects_remaining_semantics(): Bool ->
+    not remaining_semantics_hold("retired-non-product", "mailbox ordering").
+
+@test
+pub retirement_rejects_false_replacement_evidence(): Bool ->
+    not retirement_evidence_holds("some.rs#test", "gate").
+
+@test
+pub malformed_or_unsorted_ledger_is_rejected(): Bool ->
+    not sorted_unique_rows(
+    parse_ledger(
+        String.append(
+            ledger_header(),
+            "\nterlan-vm/lib/stdlib/test/z.erl\tretired-non-product\texample\t-\t-\tnone\tThe rationale is deliberately long enough for policy.\nterlan-vm/lib/stdlib/test/a.erl\tretired-non-product\texample\t-\t-\tnone\tThe rationale is deliberately long enough for policy.",
+        ),
+    ),
+    "",
+).
+
+@test
+pub stale_summary_count_is_rejected(): Bool ->
+    not summary_holds(
+    "total\tfiles\t2\ndisposition\tretired-non-product\t1\nbehavior_area\texample\t1",
+    parse_ledger(
+        String.append(
+            ledger_header(),
+            "\nterlan-vm/lib/stdlib/test/a.erl\tretired-non-product\texample\t-\t-\tnone\tThe rationale is deliberately long enough for policy.",
+        ),
+    ),
+).

@@ -248,7 +248,7 @@ vm-model-sync-store-check: vm-web-route-schema-client-check
 	$(MAKE) native-boundary-postgres-check
 	$(MAKE) db-command-check
 	$(TERLC) test std/vm/ModelSyncTest.terl
-	bash scripts/run_exact_cargo_test.sh -p terlan formal_pipeline::formal_pipeline_test::embedded_std_interfaces_include_vm_model_sync_contract -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan formal_pipeline::formal_pipeline_test::persistence_and_effect_interfaces::embedded_std_interfaces_include_vm_model_sync_contract -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::model_sync::model_sync_test::vm_model_sync_store_rejects_stale_versions_without_mutation -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::model_sync::model_sync_test::vm_model_sync_projects_adapter_row_into_typed_model_row -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::model_sync::model_sync_test::vm_model_sync_permission_policy_rejects_field_level_drift -- --exact

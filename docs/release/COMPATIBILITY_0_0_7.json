@@ -1,0 +1,47 @@
+{
+  "schema": "terlan.release-compatibility-baseline.v1",
+  "baseline": "0.0.6",
+  "candidate": "0.0.7",
+  "changes": [
+    {
+      "surface": "runtime.default",
+      "classification": "breaking",
+      "previous": "experimental terlan-vm beside an OTP reference runtime",
+      "current": "compiler-owned terlan-vm direct-AOT execution",
+      "guidance": "Use terlc build, run, and test without an Erlang target override.",
+      "evidence": "target/quality/vm-release-artifact-matrix-report.json"
+    },
+    {
+      "surface": "target.erlang-spellings",
+      "classification": "breaking",
+      "previous": "public Erlang/OTP target spellings were accepted",
+      "current": "removed target spellings are rejected",
+      "guidance": "Remove the legacy target option; terlan-vm is the native default.",
+      "evidence": "CHANGELOG.md"
+    },
+    {
+      "surface": "language.script-extension",
+      "classification": "additive",
+      "previous": "project entry modules required explicit application structure",
+      "current": ".terls files provide line-oriented AOT scripts",
+      "guidance": "Use .terls for executable validation and automation scripts.",
+      "evidence": "docs/language/SCRIPTS.md"
+    },
+    {
+      "surface": "language.function-head-patterns",
+      "classification": "breaking",
+      "previous": "reverse-alias function-head patterns could be accepted",
+      "current": "reverse-alias function-head patterns are rejected consistently",
+      "guidance": "Preview with terlc migrate pattern-head, then apply with --write.",
+      "evidence": "docs/language/FUNCTION_HEAD_MIGRATION_DIAGNOSTIC_POLICY.md"
+    },
+    {
+      "surface": "runtime.multicore-shards",
+      "classification": "additive",
+      "previous": "the experimental VM did not provide the released shard contract",
+      "current": "fixed-owner multicore execution shards are part of the VM architecture",
+      "guidance": "Keep actor-owned mutable state shard-local and use capability RPC for unsafe work.",
+      "evidence": "target/quality/vm-multicore-release-closeout.json"
+    }
+  ]
+}

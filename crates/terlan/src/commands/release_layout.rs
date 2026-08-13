@@ -20,4 +20,5 @@ fn share_root_for_executable(executable: &Path) -> Option<PathBuf> {
 
 #[cfg(test)]
 #[path = "release_layout_test.rs"]
+#[cfg(test)]
 mod release_layout_test;

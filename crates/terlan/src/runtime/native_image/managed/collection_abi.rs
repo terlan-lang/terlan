@@ -323,4 +323,5 @@ impl<'a> CollectionAbiInput<'a> {
 
 #[cfg(test)]
 #[path = "collection_abi_test.rs"]
+#[cfg(test)]
 mod collection_abi_test;

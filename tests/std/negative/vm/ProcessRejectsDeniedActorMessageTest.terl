@@ -1,25 +1,18 @@
 module std.vm.Process.ProcessRejectsDeniedActorMessageTest.
 
-import std.vm.Message.
-import std.vm.Process.
 import std.vm.Process.{ActorMessage}.
+import std.vm.{Message, Process}.
 
 import type std.vm.Process.{Process as ProcessHandle}.
 
 pub struct LocalOnlyMessage {
-    value: Int
+    value: Int,
 }.
 
 pub impl not ActorMessage[LocalOnlyMessage].
 
-deliver(
-    process: ProcessHandle[LocalOnlyMessage],
-    value: LocalOnlyMessage
-): Unit ->
-    Process.send[LocalOnlyMessage](
-        process,
-        Message.wrap[LocalOnlyMessage](value)
-    ).
+deliver(process: ProcessHandle[LocalOnlyMessage], value: LocalOnlyMessage): Unit ->
+    Process.send[LocalOnlyMessage](process, Message.wrap[LocalOnlyMessage](value)).
 
 @test
 pub actor_message_denial_is_checked_before_execution(): Bool -> true.

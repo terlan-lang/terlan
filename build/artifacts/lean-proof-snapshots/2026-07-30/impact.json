@@ -1,0 +1,24 @@
+{
+  "diff_digest": "sha256:b8287a1ee5e5c27f437cf949bd5f8e096c44e0228fb5f25e80b9b7c417613558",
+  "impacts": [
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "compiler",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-11",
+      "slice_id": "Slice 11"
+    },
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "compiler",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-12",
+      "slice_id": "Slice 12"
+    }
+  ],
+  "schema": "terlan.lean-proof-change-impact.v1"
+}

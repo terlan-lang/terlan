@@ -201,7 +201,7 @@ fn parked_native_continuation_resumes_after_thread_transfer() {
         .join()
         .expect("transfer send continuation");
     let PureNativeExecution::Suspended(second) = boundary
-        .resume_transition_for_actor(&mut actors, &mut context, first)
+        .resume_transition_for_actor(&mut actors, &mut context, *first)
         .expect("resume typed send")
     else {
         panic!("typed send must suspend for receive");
@@ -210,7 +210,7 @@ fn parked_native_continuation_resumes_after_thread_transfer() {
         .join()
         .expect("transfer receive continuation");
     let PureNativeExecution::Complete(value) = boundary
-        .resume_transition_for_actor(&mut actors, &mut context, second)
+        .resume_transition_for_actor(&mut actors, &mut context, *second)
         .expect("resume typed receive")
     else {
         panic!("typed receive must complete");
@@ -249,7 +249,7 @@ fn execution_context_rejects_foreign_actor_before_transition_service() {
     let mut foreign_context = PureNativeExecutionContext::new(foreign, &mut execution);
 
     let error = boundary
-        .resume_transition_for_actor(&mut actors, &mut foreign_context, suspension)
+        .resume_transition_for_actor(&mut actors, &mut foreign_context, *suspension)
         .expect_err("foreign context must not resume owner continuation");
 
     assert!(error.contains("cannot resume owner"));
@@ -612,15 +612,19 @@ fn continuation_validation_projects_out_managed_capture_types() {
             TvmBoundaryType::Int,
             TvmBoundaryType::Managed([7; 16]),
             TvmBoundaryType::Bool,
+            TvmBoundaryType::Atom,
         ],
         results: vec![TvmBoundaryType::Int],
     };
 
-    validate_continuation(&continuation, &TvmBoundaryType::Int, &[19, 1])
+    validate_continuation(&continuation, &TvmBoundaryType::Int, &[19, 1, 7])
         .expect("scalar projection");
-    let leaked = validate_continuation(&continuation, &TvmBoundaryType::Int, &[19, 77, 1])
+    let leaked = validate_continuation(&continuation, &TvmBoundaryType::Int, &[19, 77, 1, 7])
         .expect_err("raw managed word must not be transported");
-    assert!(leaked.contains("expects 2 transported values"));
+    assert!(leaked.contains("expects 3 transported values"));
+    let invalid_atom = validate_continuation(&continuation, &TvmBoundaryType::Int, &[19, 1, -1])
+        .expect_err("invalid Atom capture");
+    assert!(invalid_atom.contains("unsigned 32-bit atom index"));
 }
 
 /// Preserves scalar validation and requires exact managed continuation results.
@@ -657,8 +661,8 @@ fn continuation_projection_rejects_invalid_scalars_and_mismatched_results() {
 #[test]
 fn export_projection_preserves_exact_managed_signatures() {
     let descriptor = TvmExecutableDescriptor {
-        runtime_abi_min: 2,
-        runtime_abi_max: 2,
+        runtime_abi_min: 3,
+        runtime_abi_max: 3,
         native_boundary_min: 1,
         native_boundary_max: 1,
         target: crate::runtime::native_image::TvmImageTarget {

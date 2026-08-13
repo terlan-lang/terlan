@@ -1,9 +1,8 @@
-#![allow(dead_code)]
-
-/// Positive number of ticks representing one second in a VM time domain.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmTimeResolution(u64);
 
+#[cfg(test)]
 impl VmTimeResolution {
     pub(crate) const SECOND: Self = Self(1);
     pub(crate) const MILLISECOND: Self = Self(1_000);
@@ -26,6 +25,7 @@ impl VmTimeResolution {
 
 /// Converts a signed time value between VM resolutions, rounding toward
 /// negative infinity so every target tick names the containing time interval.
+#[cfg(test)]
 pub(crate) fn convert_time_unit(
     value: i128,
     from: VmTimeResolution,
@@ -45,4 +45,5 @@ pub(crate) fn convert_time_unit(
 
 #[cfg(test)]
 #[path = "time_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod time_beam_suite_parity_test;

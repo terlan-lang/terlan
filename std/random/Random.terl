@@ -33,7 +33,7 @@ pub opaque type Generator.
  * Transformation: maps invalid random API inputs into stable typed errors.
  */
 pub struct RandomError includes Error {
-    offset: Int
+    offset: Int,
 }.
 
 /**
@@ -148,6 +148,6 @@ pub shuffle[T](generator: Generator, values: List[T]): {Generator, List[T]} ->
 pub sample[T](
     generator: Generator,
     values: List[T],
-    count: Int
+    count: Int,
 ): Result[{Generator, List[T]}, RandomError] ->
     native.

@@ -80,7 +80,6 @@ fn boundary_doc_text_rejects_placeholder_wording() {
 fn reference_path_validation_rejects_unexpected_files() {
     let diagnostics = validate_reference_paths(&[
         "Makefile".to_string(),
-        "tools/check_terlan_vm_erl_suite_audit.py".to_string(),
         "crates/terlan/src/runtime/vm/main.rs".to_string(),
     ]);
     assert_eq!(diagnostics.len(), 1);

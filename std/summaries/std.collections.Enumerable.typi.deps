@@ -1,9 +1,10 @@
 module=std.collections.Enumerable
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 source_hash=16745149338847471795
 interface_hash=10091868758261885752
 interface_doc_hash=15240346924902890034
-deps=1
+deps=2
 std.core.Option=11539230284316612175
+std.core.Unit=13611133214341763160

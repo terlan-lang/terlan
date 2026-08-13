@@ -20,6 +20,6 @@ pub evaluate_typechecks(
     receiver: XPathExpression,
     context_node: Node,
     type_: std.js.Number.JsNumber,
-    result: Option[XPathResult]
+    result: Option[XPathResult],
 ): XPathResult ->
     receiver.evaluate(context_node, type_, result).

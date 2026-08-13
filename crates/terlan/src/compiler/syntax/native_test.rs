@@ -42,3 +42,28 @@ fn parses_native_signatures_from_block_without_newlines() {
     assert_eq!(signatures[1].arity, 2);
     assert_eq!(signatures[1].return_type, "Vec[T]");
 }
+
+#[test]
+fn quoted_defaults_do_not_change_native_signature_boundaries() {
+    let signature = parse_native_function_signature(
+        r#"csv(separator: String = ",", quote: String = "\"", suffix: String = "a)b"): String"#,
+    )
+    .expect("native signature");
+
+    assert_eq!(signature.name, "csv");
+    assert_eq!(signature.arity, 3);
+    assert_eq!(signature.params.len(), 3);
+    assert_eq!(signature.params[0].0, "separator");
+    assert_eq!(signature.params[1].0, "quote");
+    assert_eq!(signature.params[2].0, "suffix");
+    assert_eq!(signature.return_type, "String");
+}
+
+#[test]
+fn trailing_comma_does_not_create_a_phantom_native_parameter() {
+    assert_eq!(
+        native_signature_arity("first: String, second: List[Int],"),
+        2
+    );
+    assert_eq!(native_signature_arity("only: Bool,"), 1);
+}

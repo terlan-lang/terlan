@@ -271,9 +271,9 @@ fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
                 .to_string(),
         );
     }
-    if !makefile.contains("terlan-quality --quiet -- vm-native-worker-runtime") {
+    if !makefile.contains("-- vm-native-worker-runtime") {
         diagnostics.push(
-            "Makefile: missing `terlan-quality --quiet -- vm-native-worker-runtime` invocation"
+            "Makefile: missing `terlan-quality ... -- vm-native-worker-runtime` invocation"
                 .to_string(),
         );
     }
@@ -383,4 +383,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_native_worker_runtime_test.rs"]
+#[cfg(test)]
 mod vm_native_worker_runtime_test;

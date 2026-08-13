@@ -22,7 +22,7 @@ pub owner_document_typechecks(receiver: DocumentFragment): Document ->
 
 pub get_element_by_id_typechecks(
     receiver: DocumentFragment,
-    element_id: JsString
+    element_id: JsString,
 ): Option[HTMLElement] ->
     receiver.get_element_by_id(element_id).
 

@@ -13,6 +13,7 @@ pub const SCHEDULER: &str = "normal";
 pub const FUNCTIONS: &[(&str, usize)] = &[
     ("compile", 1),
     ("is_match", 2),
+    ("matching_line_numbers", 2),
     ("find", 2),
     ("find_all", 2),
     ("capture", 3),
@@ -25,6 +26,7 @@ pub const FUNCTIONS: &[(&str, usize)] = &[
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
     ("compile", "std.regex.regex.compile", 1),
     ("is_match", "std.regex.regex.is_match", 2),
+    ("matching_line_numbers", "std.regex.regex.matching_line_numbers", 2),
     ("find", "std.regex.regex.find", 2),
     ("find_all", "std.regex.regex.find_all", 2),
     ("capture", "std.regex.regex.capture", 3),
@@ -161,6 +163,7 @@ fn worker_loop(rx: Receiver<NativeBoundaryCommand>, credit_window: usize) {
                     Ok(()) => match operation {
                         "std.regex.regex.compile" => native_unimplemented_operation(operation),
                         "std.regex.regex.is_match" => native_unimplemented_operation(operation),
+                        "std.regex.regex.matching_line_numbers" => native_unimplemented_operation(operation),
                         "std.regex.regex.find" => native_unimplemented_operation(operation),
                         "std.regex.regex.find_all" => native_unimplemented_operation(operation),
                         "std.regex.regex.capture" => native_unimplemented_operation(operation),

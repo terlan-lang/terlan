@@ -157,13 +157,11 @@ fn source_findings_for_text(
 ) -> Vec<OxcBoundaryFinding> {
     text.lines()
         .enumerate()
-        .filter_map(|(index, line)| {
-            symbol_pattern.is_match(line).then(|| OxcBoundaryFinding {
-                path: path.to_path_buf(),
-                line: Some(index + 1),
-                message: "Oxc symbol is outside JS backend or binding-generator ownership"
-                    .to_owned(),
-            })
+        .filter(|(_, line)| symbol_pattern.is_match(line))
+        .map(|(index, _)| OxcBoundaryFinding {
+            path: path.to_path_buf(),
+            line: Some(index + 1),
+            message: "Oxc symbol is outside JS backend or binding-generator ownership".to_owned(),
         })
         .collect()
 }
@@ -282,4 +280,5 @@ fn collect_rust_files(root: &Path, dir: &Path, files: &mut Vec<PathBuf>) -> Qual
 
 #[cfg(test)]
 #[path = "oxc_boundary_test.rs"]
+#[cfg(test)]
 mod oxc_boundary_test;

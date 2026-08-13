@@ -15,7 +15,10 @@ pub pinned_workload_placement_executes(): Bool ->
     let policy = Scheduler.pinned("node-a");
     let result = scheduler.place("actor-a", policy);
     let placement = Scheduler.placement(result);
-    assert_equal("actor-a", Scheduler.placement_actor_id(placement)) and assert_equal("node-a", Scheduler.placement_node_id(placement)) and assert_equal("pinned", Scheduler.placement_policy(placement)) and assert_equal(false, Scheduler.placement_fallback_used(placement)).
+    assert_equal("actor-a", Scheduler.placement_actor_id(placement))
+        and assert_equal("node-a", Scheduler.placement_node_id(placement))
+        and assert_equal("pinned", Scheduler.placement_policy(placement))
+        and assert_equal(false, Scheduler.placement_fallback_used(placement)).
 
 @test
 pub least_connections_uses_load_and_stable_tie_breaks(): Bool ->
@@ -28,7 +31,10 @@ pub least_connections_uses_load_and_stable_tie_breaks(): Bool ->
     let node_b_loaded = node_a_loaded.update_load("node-b", 1);
     let loaded_result = node_b_loaded.place("actor-loaded", policy);
     let loaded = Scheduler.placement(loaded_result);
-    assert_equal("node-a", Scheduler.placement_node_id(tie)) and assert_equal("node-b", Scheduler.placement_node_id(loaded)) and assert_equal("least_connections", Scheduler.placement_policy(loaded)) and assert_equal(false, Scheduler.placement_fallback_used(loaded)).
+    assert_equal("node-a", Scheduler.placement_node_id(tie))
+        and assert_equal("node-b", Scheduler.placement_node_id(loaded))
+        and assert_equal("least_connections", Scheduler.placement_policy(loaded))
+        and assert_equal(false, Scheduler.placement_fallback_used(loaded)).
 
 @test
 pub sharded_workload_reacts_to_membership_refresh(): Bool ->
@@ -37,10 +43,14 @@ pub sharded_workload_reacts_to_membership_refresh(): Bool ->
     let first_result = scheduler.place("actor-a", policy);
     let first = Scheduler.placement(first_result);
     let placed = Scheduler.placement_scheduler(first_result);
-    let refreshed = placed.refresh([Scheduler.node("node-a", "unreachable"), Scheduler.node("node-b", "active")]);
+    let refreshed =
+        placed
+            .refresh([Scheduler.node("node-a", "unreachable"), Scheduler.node("node-b", "active")]);
     let second_result = refreshed.place("actor-b", policy);
     let second = Scheduler.placement(second_result);
-    assert_equal("node-a", Scheduler.placement_node_id(first)) and assert_equal("node-b", Scheduler.placement_node_id(second)) and assert_equal(true, Scheduler.placement_fallback_used(second)).
+    assert_equal("node-a", Scheduler.placement_node_id(first))
+        and assert_equal("node-b", Scheduler.placement_node_id(second))
+        and assert_equal(true, Scheduler.placement_fallback_used(second)).
 
 @test
 pub scoped_policy_precedence_executes(): Bool ->
@@ -52,14 +62,16 @@ pub scoped_policy_precedence_executes(): Bool ->
     let placed = Scheduler.placement_scheduler(route_result);
     let group_result = placed.place_for_actor_group("actor-group", "/rooms", "moderators", Scheduler.round_robin());
     let group_placement = Scheduler.placement(group_result);
-    assert_equal("node-b", Scheduler.placement_node_id(route_placement)) and assert_equal("node-a", Scheduler.placement_node_id(group_placement)).
+    assert_equal("node-b", Scheduler.placement_node_id(route_placement))
+        and assert_equal("node-a", Scheduler.placement_node_id(group_placement)).
 
 @test
 pub undeclared_scope_uses_call_site_default(): Bool ->
     let scheduler = Scheduler.new(active_nodes());
     let result = scheduler.place_for_route("actor-default", "/health", Scheduler.round_robin());
     let placement = Scheduler.placement(result);
-    assert_equal("node-a", Scheduler.placement_node_id(placement)) and assert_equal("round_robin", Scheduler.placement_policy(placement)).
+    assert_equal("node-a", Scheduler.placement_node_id(placement))
+        and assert_equal("round_robin", Scheduler.placement_policy(placement)).
 
 @test
 pub controlled_migration_executes_in_order(): Bool ->
@@ -80,7 +92,16 @@ pub controlled_migration_executes_in_order(): Bool ->
     let outcome = Scheduler.outcome(commit_result);
     let completed_scheduler = Scheduler.outcome_scheduler(commit_result);
     let events = completed_scheduler.events_after(0);
-    assert_equal("actor-a", Scheduler.migration_actor_id(resuming)) and assert_equal("node-a", Scheduler.migration_from_node_id(resuming)) and assert_equal("node-b", Scheduler.migration_to_node_id(resuming)) and assert_equal(1, Scheduler.migration_sequence(resuming)) and assert_equal(true, Scheduler.migration_stateful(resuming)) and assert_equal("resuming", Scheduler.migration_phase(resuming)) and assert_equal("committed", Scheduler.outcome_kind(outcome)) and assert_equal(1, Scheduler.outcome_sequence(outcome)) and assert_equal("", Scheduler.outcome_reason(outcome)) and assert_equal(5, events.length()).
+    assert_equal("actor-a", Scheduler.migration_actor_id(resuming))
+        and assert_equal("node-a", Scheduler.migration_from_node_id(resuming))
+        and assert_equal("node-b", Scheduler.migration_to_node_id(resuming))
+        and assert_equal(1, Scheduler.migration_sequence(resuming))
+        and assert_equal(true, Scheduler.migration_stateful(resuming))
+        and assert_equal("resuming", Scheduler.migration_phase(resuming))
+        and assert_equal("committed", Scheduler.outcome_kind(outcome))
+        and assert_equal(1, Scheduler.outcome_sequence(outcome))
+        and assert_equal("", Scheduler.outcome_reason(outcome))
+        and assert_equal(5, events.length()).
 
 @test
 pub controlled_migration_rolls_back_with_reason(): Bool ->
@@ -92,7 +113,10 @@ pub controlled_migration_rolls_back_with_reason(): Bool ->
     let outcome = Scheduler.outcome(rollback_result);
     let rolled_back_scheduler = Scheduler.outcome_scheduler(rollback_result);
     let events = rolled_back_scheduler.events_after(0);
-    assert_equal("rolled_back", Scheduler.outcome_kind(outcome)) and assert_equal(1, Scheduler.outcome_sequence(outcome)) and assert_equal("snapshot failed", Scheduler.outcome_reason(outcome)) and assert_equal(2, events.length()).
+    assert_equal("rolled_back", Scheduler.outcome_kind(outcome))
+        and assert_equal(1, Scheduler.outcome_sequence(outcome))
+        and assert_equal("snapshot failed", Scheduler.outcome_reason(outcome))
+        and assert_equal(2, events.length()).
 
 @test
 pub controlled_migration_aborts_with_reason(): Bool ->
@@ -102,4 +126,6 @@ pub controlled_migration_aborts_with_reason(): Bool ->
     let requested_scheduler = Scheduler.migration_scheduler(requested_result);
     let abort_result = requested_scheduler.abort_migration(migration, "node evicted");
     let outcome = Scheduler.outcome(abort_result);
-    assert_equal("aborted", Scheduler.outcome_kind(outcome)) and assert_equal(1, Scheduler.outcome_sequence(outcome)) and assert_equal("node evicted", Scheduler.outcome_reason(outcome)).
+    assert_equal("aborted", Scheduler.outcome_kind(outcome))
+        and assert_equal(1, Scheduler.outcome_sequence(outcome))
+        and assert_equal("node evicted", Scheduler.outcome_reason(outcome)).

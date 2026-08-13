@@ -1,0 +1,22 @@
+schema = 1
+backend = "synthetic-vector"
+device_classes = ["vector"]
+artifact_formats = ["vector-object"]
+dtypes = ["f32"]
+layouts = ["row-major"]
+address_spaces = ["host", "device"]
+resource_classes = ["buffer"]
+asynchronous_operations = ["execute"]
+capabilities = ["accelerator.synthetic.execute"]
+
+[[targets]]
+triple = "x86_64-unknown-linux-gnu"
+availability = "experimental"
+artifact_formats = ["vector-object"]
+architectures = ["vector-v1"]
+determinism = "strict"
+
+[[operations]]
+id = "buffer.add"
+effects = ["execute"]
+asynchronous = true

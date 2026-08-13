@@ -97,7 +97,7 @@ pub rotate_axis_angle_self_typechecks(
     x: JsNumber,
     y: JsNumber,
     z: JsNumber,
-    angle: JsNumber
+    angle: JsNumber,
 ): DOMMatrix ->
     receiver.rotate_axis_angle_self(x, y, z, angle).
 
@@ -108,7 +108,7 @@ pub rotate_self_typechecks(
     receiver: DOMMatrix,
     rot_x: JsNumber,
     rot_y: JsNumber,
-    rot_z: JsNumber
+    rot_z: JsNumber,
 ): DOMMatrix ->
     receiver.rotate_self(rot_x, rot_y, rot_z).
 
@@ -117,7 +117,7 @@ pub scale3d_self_typechecks(
     scale: JsNumber,
     origin_x: JsNumber,
     origin_y: JsNumber,
-    origin_z: JsNumber
+    origin_z: JsNumber,
 ): DOMMatrix ->
     receiver.scale3d_self(scale, origin_x, origin_y, origin_z).
 
@@ -128,13 +128,13 @@ pub scale_self_typechecks(
     scale_z: JsNumber,
     origin_x: JsNumber,
     origin_y: JsNumber,
-    origin_z: JsNumber
+    origin_z: JsNumber,
 ): DOMMatrix ->
     receiver.scale_self(scale_x, scale_y, scale_z, origin_x, origin_y, origin_z).
 
 pub set_matrix_value_typechecks(
     receiver: DOMMatrix,
-    transform_list: std.js.String.JsString
+    transform_list: std.js.String.JsString,
 ): DOMMatrix ->
     receiver.set_matrix_value(transform_list).
 
@@ -148,6 +148,6 @@ pub translate_self_typechecks(
     receiver: DOMMatrix,
     tx: JsNumber,
     ty: JsNumber,
-    tz: JsNumber
+    tz: JsNumber,
 ): DOMMatrix ->
     receiver.translate_self(tx, ty, tz).

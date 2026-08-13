@@ -1,0 +1,180 @@
+/**
+ * Adversarial fixtures for the TVM AOT platform matrix contract.
+ */
+module tvm_aot_platform_matrix.SelfTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.File.{read_text}.
+import std.system.Environment.
+import tvm_aot_platform_matrix.Core.{build_matrix, json_string, matrix_schema, official_repository, provenance, provenance_input, put_execution_fields, put_target_artifact, put_target_identity, report, string_array, targets, workflow_contract, workflow_text_valid}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type tvm_aot_platform_matrix.Core.{ProvenanceInput, Report, Target}.
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[tvm_aot_platform_matrix.self_test]: ", message));
+    false.
+
+fixture_report(target: Target): Json ->
+    let identity = put_target_identity(Json.object(), target);
+    let artifact =
+        put_target_artifact(
+            identity,
+            "self-test",
+            "self-test-revision",
+            "abababababababababababababababababababababababababababababababab",
+            "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+            Json.array().push(Json.int(1)),
+            2,
+        );
+    put_execution_fields(
+        artifact,
+        Json.string("github-actions"),
+        Json.string(official_repository()),
+        Json.string("terlan-lang/terlan/.github/workflows/ci.yml@refs/heads/main"),
+        Json.int(100),
+        Json.int(1),
+        Json.string("self-test-revision-full-sha"),
+    ).
+
+reverse_reports(values: List[Report], reversed: List[Report]): List[Report] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_reports(rest, [value | reversed])
+    }.
+
+fixture_reports_at(values: List[Target], reversed: List[Report]): List[Report] ->
+    case values {
+        [] -> reverse_reports(reversed, []);
+        [target | rest] ->
+            let value = fixture_report(target);
+            let entry = report(target.id, value);
+            fixture_reports_at(rest, [entry | reversed])
+    }.
+
+fixture_reports(values: List[Target]): List[Report] ->
+    fixture_reports_at(values, []).
+
+replace_last_with(field: String, value: Json): Option[List[Report]] ->
+    case targets() {
+        [one, two, three, four, five, six] ->
+            Some(
+                [
+                    report(one.id, fixture_report(one)),
+                    report(two.id, fixture_report(two)),
+                    report(three.id, fixture_report(three)),
+                    report(four.id, fixture_report(four)),
+                    report(five.id, fixture_report(five)),
+                    report(six.id, fixture_report(six).put(field, value)),
+                ],
+            );
+        _ -> None
+    }.
+
+matrix_present(reports: List[Report]): Bool ->
+    case build_matrix(reports) {
+        Some(_matrix) -> true;
+        None -> false
+    }.
+
+matrix_rejects(field: String, value: Json): Bool ->
+    case replace_last_with(field, value) {
+        Some(reports) -> not matrix_present(reports);
+        None -> false
+    }.
+
+json_option_present(value: Option[Json]): Bool ->
+    case value {
+        Some(_json) -> true;
+        None -> false
+    }.
+
+matrix_schema_valid(value: Json): Bool ->
+    case json_string(value, "schema") {
+        Some(schema) -> schema == matrix_schema();
+        None -> false
+    }.
+
+github_input(repository: String, run_id: String, commit: String): ProvenanceInput ->
+    provenance_input(true, repository, "workflow", run_id, "1", commit).
+
+provenance_self_test(): Bool ->
+    let local = provenance("local-revision", provenance_input(false, "", "", "", "", ""));
+    if {
+        not json_option_present(local) -> false;
+        not json_option_present(
+    provenance(
+        "self-test-revision",
+        github_input(official_repository(), "100", "self-test-revision-full-sha"),
+    ),
+) -> false;
+        json_option_present(
+            provenance(
+                "self-test-revision",
+                github_input(official_repository(), "not-numeric", "self-test-revision-full-sha"),
+            ),
+        ) -> false;
+        json_option_present(
+            provenance(
+                "self-test-revision",
+                github_input("fork/terlan", "100", "self-test-revision-full-sha"),
+            ),
+        ) -> false;
+        true -> not json_option_present(
+    provenance("self-test-revision", github_input(official_repository(), "100", "unrelated-commit")),
+)
+    }.
+
+self_test_assertions(ci: String, valid_matrix: Json, incomplete: List[Report]): Bool ->
+    let missing_dispatch = String.replace(ci, "  workflow_dispatch:\n", "");
+    let wrong_runner = String.replace(ci, "runner: windows-11-arm", "runner: windows-2025");
+    let missing_row = String.replace(ci, "          - target: linux-x86_64\n", "");
+    let missing_install = String.replace(ci, "          $installedBin = Join-Path $installed \"bin\"\n", "");
+    if {
+        not workflow_contract() -> false;
+        workflow_text_valid(missing_dispatch)
+            or workflow_text_valid(wrong_runner)
+            or workflow_text_valid(missing_row)
+            or workflow_text_valid(missing_install) -> failure("workflow checker admitted invalid input");
+        not provenance_self_test() -> failure("provenance checker admitted invalid input");
+        not matrix_schema_valid(valid_matrix) -> failure("valid matrix did not aggregate");
+        matrix_present(incomplete) -> failure("incomplete executable checks passed");
+        not matrix_rejects("decision", Json.string("skipped")) -> failure("skipped row passed");
+        not matrix_rejects("calling_convention", Json.string("forged")) -> failure("forged ABI passed");
+        not matrix_rejects("source_revision", Json.string("mixed-revision")) -> failure("mixed revision passed");
+        not matrix_rejects("execution_environment", Json.string("local")) -> failure("local row passed");
+        not matrix_rejects("run_id", Json.int(101)) -> failure("mixed run passed");
+        not matrix_rejects("commit_sha", Json.string("unrelated-commit")) -> failure("unrelated commit passed");
+        not matrix_rejects("descriptor_digest", Json.string("not-a-digest")) -> failure("invalid descriptor digest passed");
+        not matrix_rejects("image_sha256", Json.string("CDCD")) -> failure("invalid image digest passed");
+        not matrix_rejects("continuation_ids", Json.array()) -> failure("empty continuations passed");
+        not matrix_rejects("native_debug_record_count", Json.int(1)) -> failure("missing debug records passed");
+        true -> let _printed = println("TVM AOT platform matrix self-test passed");
+        true
+    }.
+
+self_test_with_matrix(ci: String, valid_matrix: Json): Bool ->
+    case replace_last_with("executed_checks", string_array(["compiler-generated-image"])) {
+        Some(incomplete) -> self_test_assertions(ci, valid_matrix, incomplete);
+        None -> failure("cannot construct incomplete fixture")
+    }.
+
+self_test_with_ci(ci: String): Bool ->
+    let fixture_targets = targets();
+    let reports = fixture_reports(fixture_targets);
+    case build_matrix(reports) {
+        Some(valid_matrix) -> self_test_with_matrix(ci, valid_matrix);
+        None -> failure("cannot construct valid matrix fixture")
+    }.
+
+pub self_test(): Bool ->
+    let root = Environment.current_directory();
+    case read_text(String.append(root, "/.github/workflows/ci.yml")) {
+        Ok(ci) -> self_test_with_ci(ci);
+        _ -> failure("cannot read CI workflow fixture")
+    }.

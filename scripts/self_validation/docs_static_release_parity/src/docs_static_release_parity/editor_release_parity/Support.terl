@@ -1,0 +1,184 @@
+/**
+ * Shared deterministic filesystem, JSON, process, and ordering support.
+ */
+module docs_static_release_parity.editor_release_parity.Support.
+
+import docs_static_release_parity.Artifact.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Eq, Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.File.{exists, read_text, size, write_text}.
+import std.system.Process.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.system.Process.{Command, EnvironmentEntry, Output}.
+
+pub child(parent: String, name: String): String ->
+    Artifact.child(parent, name).
+
+pub json_string(value: Json, field: String): Option[String] ->
+    let {
+        Ok(member) <- value.get(field);
+        Ok(text) <- member.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+pub read_json(path: String): Option[Json] ->
+    let {
+        Ok(source) <- read_text(path);
+        Ok(value) <- Json.parse(source)
+    } else {
+        _ -> None
+    };
+    Some(value).
+
+pub write_json(path: String, value: Json): Bool ->
+    let {
+        Ok(source) <- Json.stringify_pretty(value);
+        Ok(_unit) <- write_text(path, String.append(source, "\n"))
+    } else {
+        _ -> false
+    };
+    true.
+
+pub nonempty_file(path: String): Bool ->
+    if {
+        not exists(path) -> false;
+        true -> case size(path) {
+            Ok(bytes) -> bytes > 0;
+            Err(_reason) -> false
+        }
+    }.
+
+pub required_files_hold(root: String, relative_files: List[String]): Bool ->
+    case relative_files {
+        [] -> true;
+        [relative | rest] ->
+            nonempty_file(child(root, relative)) and required_files_hold(root, rest)
+    }.
+
+/**
+ * Reproduces the release checker's sorted path-NUL-content-newline digest.
+ */
+pub selected_surface_hash(root: String, relative_files: List[String]): Option[String] ->
+    case Hash.sha256_selected_files(root, relative_files) {
+        Ok(hash) -> Some(hash);
+        Err(_reason) -> None
+    }.
+
+pub file_hash(path: String): Option[String] ->
+    case Hash.sha256_file(path) {
+        Ok(hash) -> Some(hash);
+        Err(_reason) -> None
+    }.
+
+prepend_string(value: String, values: List[String]): List[String] ->
+    [value | values].
+
+insert_string(value: String, sorted: List[String]): List[String] ->
+    case sorted {
+        [] -> prepend_string(value, List.new[String]());
+        [head | rest] ->
+            case String.compare(value, head) {
+                Lt -> prepend_string(value, sorted);
+                Eq -> sorted;
+                _ -> prepend_string(head, insert_string(value, rest))
+            }
+    }.
+
+pub sort_strings(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> insert_string(value, sort_strings(rest))
+    }.
+
+pub string_member(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or string_member(rest, expected)
+    }.
+
+pub contains_all(values: List[String], required: List[String]): Bool ->
+    case required {
+        [] -> true;
+        [value | rest] -> string_member(values, value) and contains_all(values, rest)
+    }.
+
+pub string_array(values: List[String]): Json ->
+    let result = Json.array();
+    let _pushed = push_strings(result, values);
+    result.
+
+push_strings(mut result: Json, values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let _value = result.push(Json.string(value));
+            push_strings(result, rest)
+    }.
+
+pub run_process(
+    program: String,
+    arguments: List[String],
+    cwd: String,
+    environment: List[EnvironmentEntry],
+    stdin: String,
+    timeout_ms: Int,
+    output_limit: Int,
+): Option[Output] ->
+    let request =
+        Process.with_stdin(
+            process_command(program, arguments, cwd, environment, timeout_ms, output_limit),
+            stdin,
+        );
+    case Process.run(request) {
+        Ok(output) -> Some(output);
+        Err(_reason) -> None
+    }.
+
+/**
+ * Constructs one bounded child request shared by one-shot and framed calls.
+ */
+pub process_command(
+    program: String,
+    arguments: List[String],
+    cwd: String,
+    environment: List[EnvironmentEntry],
+    timeout_ms: Int,
+    output_limit: Int,
+): Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_environment(
+                Process.with_working_directory(
+                    Process.with_arguments(Process.command(program), arguments),
+                    cwd,
+                ),
+                environment,
+            ),
+            timeout_ms,
+        ),
+        output_limit,
+    ).
+
+pub successful_output(
+    program: String,
+    arguments: List[String],
+    cwd: String,
+    environment: List[EnvironmentEntry],
+): Option[String] ->
+    case run_process(program, arguments, cwd, environment, "", 60000, 8388608) {
+        Some(output) ->
+            if {
+                Process.status(output) == 0 -> Some(Process.stdout(output));
+                true -> None
+            };
+        None -> None
+    }.

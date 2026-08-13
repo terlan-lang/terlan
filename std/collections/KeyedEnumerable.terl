@@ -84,7 +84,7 @@ map_keyed_iterator[K, V, U](iterator: Iterator[{K, V}], cb: (V) -> U): List[{K, 
  */
 filter_keyed_iterator[K, V](
     iterator: Iterator[{K, V}],
-    predicate: ({K, V}) -> Bool
+    predicate: ({K, V}) -> Bool,
 ): List[{K, V}] ->
     case Iterator.next(iterator) {
         Some({value: value, next: next}) ->

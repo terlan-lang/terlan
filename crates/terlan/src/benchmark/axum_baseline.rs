@@ -1,13 +1,14 @@
-//! Minimal Axum/Tokio comparison server for the HTTP AOT benchmark.
-
 #![forbid(unsafe_code)]
+
+//! Minimal Axum/Tokio comparison server for the HTTP AOT benchmark.
 
 use std::env;
 
 use axum::body::Bytes;
+use axum::extract::Path;
 use axum::http::{HeaderMap, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post, put};
 use axum::Router;
 
 fn main() {
@@ -49,7 +50,12 @@ async fn serve(port: u16) {
         .route("/api/bench", post(echo))
         .route("/api/json", post(json))
         .route("/api/metadata", post(metadata))
-        .route("/api/static", get(|| async { "static-benchmark-response" }));
+        .route("/api/static", get(|| async { "static-benchmark-response" }))
+        .route("/api/add/{left}/{right}", get(add))
+        .route("/api/items", post(create_item))
+        .route("/api/items/{id}", get(read_item))
+        .route("/api/items/{id}", put(update_item))
+        .route("/api/items/{id}", delete(delete_item));
     if let Err(error) = axum::serve(listener, application).await {
         eprintln!("error[axum-baseline.serve]: {error}");
         std::process::exit(1);
@@ -82,6 +88,28 @@ async fn metadata(uri: Uri, headers: HeaderMap, body: Bytes) -> impl IntoRespons
     let mut response = format!("POST:{query}:{accept}:{cookie}:").into_bytes();
     response.extend_from_slice(&body);
     benchmark_response(response)
+}
+
+async fn add(Path((left, right)): Path<(i64, i64)>) -> String {
+    (left + right).to_string()
+}
+
+async fn create_item(body: Bytes) -> impl IntoResponse {
+    (StatusCode::CREATED, body)
+}
+
+async fn read_item(Path(id): Path<String>) -> String {
+    format!("item-{id}")
+}
+
+async fn update_item(Path(id): Path<String>, body: Bytes) -> Vec<u8> {
+    let mut response = format!("{id}:").into_bytes();
+    response.extend_from_slice(&body);
+    response
+}
+
+async fn delete_item(Path(_id): Path<String>) -> StatusCode {
+    StatusCode::NO_CONTENT
 }
 
 fn header<'a>(headers: &'a HeaderMap, name: &str) -> &'a str {

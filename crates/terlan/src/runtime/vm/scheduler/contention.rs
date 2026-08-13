@@ -1,6 +1,8 @@
 //! Owner-local, category-filtered VM contention telemetry.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
+#[cfg(test)]
+use std::collections::BTreeSet;
 
 const VM_CONTENTION_RECORD_CAPACITY: usize = 4_096;
 
@@ -9,17 +11,25 @@ const VM_CONTENTION_RECORD_CAPACITY: usize = 4_096;
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(u8)]
 pub(crate) enum VmContentionCategory {
+    #[cfg(test)]
     Memory,
+    #[cfg(test)]
     Table,
+    #[cfg(test)]
     Diagnostics,
+    #[cfg(test)]
     Distribution,
+    #[cfg(test)]
     Runtime,
+    #[cfg(test)]
     Io,
+    #[cfg(test)]
     Process,
     Scheduler,
 }
 
 impl VmContentionCategory {
+    #[cfg(test)]
     pub(crate) const ALL: [Self; 8] = [
         Self::Memory,
         Self::Table,
@@ -31,6 +41,7 @@ impl VmContentionCategory {
         Self::Scheduler,
     ];
 
+    #[cfg(test)]
     pub(crate) const fn control_name(self) -> &'static str {
         match self {
             Self::Memory => "allocator",
@@ -44,6 +55,7 @@ impl VmContentionCategory {
         }
     }
 
+    #[cfg(test)]
     fn parse(value: &str) -> Result<Self, VmContentionError> {
         Self::ALL
             .into_iter()
@@ -58,6 +70,7 @@ impl VmContentionCategory {
 
 /// Stable control and resource validation failures.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmContentionError {
     InvalidCategory(String),
     EmptyIdentity,
@@ -89,6 +102,7 @@ struct VmContentionRecord {
 
 /// Immutable resource row returned to diagnostics and tooling.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmContentionRecordSnapshot {
     pub(crate) category: VmContentionCategory,
     pub(crate) identity: String,
@@ -102,6 +116,7 @@ pub(crate) struct VmContentionRecordSnapshot {
 
 /// Deterministically ordered contention snapshot.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmContentionSnapshot {
     pub(crate) records: Vec<VmContentionRecordSnapshot>,
     pub(crate) dropped_records: u64,
@@ -115,6 +130,7 @@ pub(crate) struct VmContentionSnapshot {
 #[derive(Debug)]
 pub(crate) struct VmContentionTelemetry {
     enabled_mask: u8,
+    #[cfg(test)]
     retain_retired: bool,
     max_records: usize,
     dropped_records: u64,
@@ -125,6 +141,7 @@ impl Default for VmContentionTelemetry {
     fn default() -> Self {
         Self {
             enabled_mask: 0,
+            #[cfg(test)]
             retain_retired: false,
             max_records: VM_CONTENTION_RECORD_CAPACITY,
             dropped_records: 0,
@@ -143,6 +160,7 @@ impl VmContentionTelemetry {
     }
 
     /// Replaces the enabled mask only after every category has been validated.
+    #[cfg(test)]
     pub(crate) fn configure(&mut self, categories: &[&str]) -> Result<(), VmContentionError> {
         let mut enabled_mask = 0u8;
         for category in categories {
@@ -152,6 +170,7 @@ impl VmContentionTelemetry {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(crate) fn enabled_categories(&self) -> Vec<VmContentionCategory> {
         VmContentionCategory::ALL
             .into_iter()
@@ -159,15 +178,18 @@ impl VmContentionTelemetry {
             .collect()
     }
 
+    #[cfg(test)]
     pub(crate) fn set_retain_retired(&mut self, retain: bool) {
         self.retain_retired = retain;
     }
 
+    #[cfg(test)]
     pub(crate) const fn retain_retired(&self) -> bool {
         self.retain_retired
     }
 
     /// Registers one semantic runtime resource without recording contention.
+    #[cfg(test)]
     pub(crate) fn register_resource(
         &mut self,
         category: VmContentionCategory,
@@ -215,6 +237,7 @@ impl VmContentionTelemetry {
     }
 
     /// Retires one resource, optionally retaining its final counters.
+    #[cfg(test)]
     pub(crate) fn retire_resource(&mut self, category: VmContentionCategory, identity: &str) {
         let key = VmContentionResourceKey {
             category,
@@ -230,6 +253,7 @@ impl VmContentionTelemetry {
     }
 
     /// Synchronizes stable registered actor and table names into the catalog.
+    #[cfg(test)]
     pub(crate) fn synchronize_registered_resources<P, T>(
         &mut self,
         processes: P,
@@ -256,6 +280,7 @@ impl VmContentionTelemetry {
     }
 
     /// Clears counters and discarded retired rows without changing the mask.
+    #[cfg(test)]
     pub(crate) fn clear(&mut self) {
         self.records.retain(|_, record| record.active);
         self.dropped_records = 0;
@@ -268,6 +293,7 @@ impl VmContentionTelemetry {
     }
 
     /// Returns only resources in currently enabled categories.
+    #[cfg(test)]
     pub(crate) fn snapshot(&self) -> VmContentionSnapshot {
         VmContentionSnapshot {
             records: self
@@ -322,6 +348,7 @@ impl VmContentionTelemetry {
         }
     }
 
+    #[cfg(test)]
     fn retire_missing(&mut self, category: VmContentionCategory, live: &BTreeSet<String>) {
         let missing = self
             .records
@@ -341,4 +368,5 @@ impl VmContentionTelemetry {
 
 #[cfg(test)]
 #[path = "contention_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod contention_beam_suite_parity_test;

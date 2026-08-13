@@ -62,6 +62,8 @@ std::unique_ptr<NativeBoundary> make_native_boundary(std::int64_t value) noexcep
 
 std::int64_t live_native_boundary_count() noexcept { return live_count.load(); }
 
+std::int64_t take_last_failure() noexcept { return 0; }
+
 std::int64_t sum_snapshot_fields(std::int64_t value,
                                  std::int64_t doubled) noexcept {
   return value + doubled;

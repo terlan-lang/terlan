@@ -105,7 +105,7 @@ pub (value: WebGLRenderingContextBase) blend_func_separate(
     src_rgb: GLenum,
     dst_rgb: GLenum,
     src_alpha: GLenum,
-    dst_alpha: GLenum
+    dst_alpha: GLenum,
 ): Unit.
 
 /**
@@ -154,7 +154,7 @@ pub (value: WebGLRenderingContextBase) copy_tex_image2_d(
     y: GLint,
     width: GLsizei,
     height: GLsizei,
-    border: GLint
+    border: GLint,
 ): Unit.
 
 /**
@@ -168,7 +168,7 @@ pub (value: WebGLRenderingContextBase) copy_tex_sub_image2_d(
     x: GLint,
     y: GLint,
     width: GLsizei,
-    height: GLsizei
+    height: GLsizei,
 ): Unit.
 
 /**
@@ -303,7 +303,7 @@ pub (value: WebGLRenderingContextBase) framebuffer_renderbuffer(
     target_: GLenum,
     attachment: GLenum,
     renderbuffertarget: GLenum,
-    renderbuffer: Option[WebGLRenderbuffer]
+    renderbuffer: Option[WebGLRenderbuffer],
 ): Unit.
 
 /**
@@ -314,7 +314,7 @@ pub (value: WebGLRenderingContextBase) framebuffer_texture2_d(
     attachment: GLenum,
     textarget: GLenum,
     texture: Option[WebGLTexture],
-    level: GLint
+    level: GLint,
 ): Unit.
 
 /**
@@ -372,7 +372,7 @@ pub (value: WebGLRenderingContextBase) get_shader_info_log(shader: WebGLShader):
  */
 pub (value: WebGLRenderingContextBase) get_shader_precision_format(
     shadertype: GLenum,
-    precisiontype: GLenum
+    precisiontype: GLenum,
 ): Option[WebGLShaderPrecisionFormat].
 
 /**
@@ -467,7 +467,7 @@ pub (value: WebGLRenderingContextBase) renderbuffer_storage(
     target_: GLenum,
     internalformat: GLenum,
     width: GLsizei,
-    height: GLsizei
+    height: GLsizei,
 ): Unit.
 
 /**
@@ -563,7 +563,7 @@ pub (value: WebGLRenderingContextBase) uniform4f(
     x: GLfloat,
     y: GLfloat,
     z: GLfloat,
-    w: GLfloat
+    w: GLfloat,
 ): Unit.
 
 /**
@@ -630,7 +630,7 @@ pub (value: WebGLRenderingContextBase) vertex_attrib_pointer(
     type_: GLenum,
     normalized: GLboolean,
     stride: GLsizei,
-    offset: GLintptr
+    offset: GLintptr,
 ): Unit.
 
 /**

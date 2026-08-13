@@ -2,11 +2,12 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use crate::terlan_syntax::{
-    parse_module_as_syntax_output, SyntaxClauseOutput, SyntaxDeclarationPayload, SyntaxExprOutput,
-    SyntaxParamOutput, SyntaxPatternKind, SyntaxPatternOutput,
+    SyntaxClauseOutput, SyntaxDeclarationPayload, SyntaxExprOutput, SyntaxParamOutput,
+    SyntaxPatternKind, SyntaxPatternOutput,
 };
 
 use super::super::diagnostic::{LintDiagnostic, Severity};
+use super::parse_lint_source;
 
 const FUNCTION_SNAKE_CASE_RULE_ID: &str = "TL0301";
 const FUNCTION_SNAKE_CASE_RULE_NAME: &str = "naming.function-snake-case";
@@ -19,7 +20,7 @@ const BINDING_SNAKE_CASE_RULE_NAME: &str = "naming.binding-snake-case";
 
 /// Builds diagnostics for function-like declarations outside snake case.
 pub(super) fn function_snake_case_diagnostics(path: &Path, source: &str) -> Vec<LintDiagnostic> {
-    let Ok(module) = parse_module_as_syntax_output(source) else {
+    let Ok(module) = parse_lint_source(path, source) else {
         return Vec::new();
     };
 
@@ -51,7 +52,7 @@ pub(super) fn function_snake_case_diagnostics(path: &Path, source: &str) -> Vec<
 
 /// Builds diagnostics for type-like declarations outside UpperCamelCase.
 pub(super) fn type_upper_camel_diagnostics(path: &Path, source: &str) -> Vec<LintDiagnostic> {
-    let Ok(module) = parse_module_as_syntax_output(source) else {
+    let Ok(module) = parse_lint_source(path, source) else {
         return Vec::new();
     };
 
@@ -88,7 +89,7 @@ pub(super) fn case_underscore_collision_diagnostics(
     path: &Path,
     source: &str,
 ) -> Vec<LintDiagnostic> {
-    let Ok(module) = parse_module_as_syntax_output(source) else {
+    let Ok(module) = parse_lint_source(path, source) else {
         return Vec::new();
     };
 
@@ -121,7 +122,7 @@ pub(super) fn case_underscore_collision_diagnostics(
 
 /// Builds diagnostics for source-owned value bindings outside snake case.
 pub(super) fn binding_snake_case_diagnostics(path: &Path, source: &str) -> Vec<LintDiagnostic> {
-    let Ok(module) = parse_module_as_syntax_output(source) else {
+    let Ok(module) = parse_lint_source(path, source) else {
         return Vec::new();
     };
 

@@ -1,8 +1,13 @@
 schema=terlan.core_ir.v1
 module=phase_if_expr
 source_kind=Module
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 export=choose/1
 function=choose/1 public=true params=flag:Bool:core=Bool return=Int return_core=Int
 function_clause=choose/1#0 patterns=Var:text=flag:arity=0 core_patterns=Var(flag) pattern_proof=lean-covered pattern_preservation=structural-core-pattern(freshness=runtime-bindings-required;target=Var(flag)) guard=none body=If:core=If(Var(flag)=>Int(1)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=If(Var(flag)=>Int(1))):proof=lean-covered:arity=1:children=[Var:core=Var(flag):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(flag)):proof=lean-covered:text=flag:arity=0;Int:core=Int(1):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Int(1)):proof=lean-covered:text=1:arity=0]
+binding_fingerprint=fe0878b5cf7ba178
+binding=cf7142946829af7e region=e0b1b44a3ffd7c67 name=flag kind=Pattern path=function:choose/1:function:choose:clause:0:head:0
+binding_reference=cf7142946829af7e name=flag path=function:choose/1:function:choose:clause:0:body:if:0:guard
+termination_schema=terlan.core_termination.v1
+termination=choose/1 state=Proven reason=NonRecursive actor=NotActor component= measure=
 metadata=functions:1 types:0 constructors:0 proof_readiness:lean-covered proof_expr_lean:3 proof_expr_partial:0 proof_expr_model_required:0 proof_expr_runtime_boundary:0 proof_expr_artifact_only:0 proof_pattern_lean:1 proof_pattern_partial:0 proof_pattern_model_required:0 proof_pattern_runtime_boundary:0 proof_pattern_artifact_only:0 typed_core_expr:3 summary_only_expr:0 typed_core_pattern:1 summary_only_pattern:0 typed_core_type:2 summary_only_type:0 checked_preservation_expr:3 checked_preservation_pattern:1 checked_preservation_expr_structural:3 checked_preservation_pattern_structural:1 checked_preservation_expr_no_runtime_bindings:3 checked_preservation_pattern_no_runtime_bindings:0 checked_preservation_expr_runtime_bindings_required:0 checked_preservation_pattern_runtime_bindings_required:1 resolved_constructor_call_identity:0 resolved_constructor_chain_identity:0 resolved_constructor_pattern_identity:0 unresolved_constructor_call_candidate:0 unresolved_constructor_chain_candidate:0 unresolved_constructor_pattern_candidate:0

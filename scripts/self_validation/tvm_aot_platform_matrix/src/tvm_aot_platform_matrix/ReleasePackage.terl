@@ -1,0 +1,398 @@
+/**
+ * Deterministic construction of a complete Terlan release archive.
+ */
+module tvm_aot_platform_matrix.ReleasePackage.
+
+import std.collections.List.{concat, length}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.{Archive, Directory, File}.
+import std.system.Process.
+import tvm_aot_platform_matrix.{ReleaseMetadata, ReleasePayload, ReleasePlatform}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.system.Process.Output.
+import type tvm_aot_platform_matrix.ReleasePayload.{GeneratedMetadata, Payload}.
+import type tvm_aot_platform_matrix.ReleasePlatform.
+
+struct ReleaseBinaries {
+    compiler: String,
+    vm: String,
+    native_worker: String,
+    lsp: String,
+    payloads: List[Payload],
+}.
+
+struct NativeSelfTest {
+    image: String,
+    metadata: String,
+}.
+
+failure(code: String, message: String): Bool ->
+    let _printed =
+        eprintln(
+            String.append(
+                "error[release_artifact.",
+                String.append(code, String.append("]: ", message)),
+            ),
+        );
+    false.
+
+output_failure(code: String, message: String): Option[Output] ->
+    let _failed = failure(code, message);
+    None.
+
+binaries_failure(code: String, message: String): Option[ReleaseBinaries] ->
+    let _failed = failure(code, message);
+    None.
+
+self_test_failure(code: String, message: String): Option[NativeSelfTest] ->
+    let _failed = failure(code, message);
+    None.
+
+archive_failure(code: String, message: String): Option[String] ->
+    let _failed = failure(code, message);
+    None.
+
+dist(root: String): String ->
+    ReleasePayload.child(root, "dist").
+
+release_target(root: String): String ->
+    ReleasePayload.child(root, "target/release").
+
+run_command(root: String, program: String, arguments: List[String]): Option[Output] ->
+    let command =
+        Process.command(program)
+            .with_arguments(arguments)
+            .with_working_directory(root)
+            .with_timeout_ms(300000)
+            .with_output_limit_bytes(8388608);
+    case Process.run(command) {
+        Err(error) -> output_failure("process", Process.error_message(error));
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> Some(output);
+                true -> output_failure(
+                    "command",
+                    String.concat(
+                        [program, " failed:\n", Process.stdout(output), Process.stderr(output)],
+                    ),
+                )
+            }
+    }.
+
+copy_binary(source: String, destination: String): Bool ->
+    case File.copy(source, destination) {
+        Err(_reason) ->
+            failure("binary", String.append("cannot copy `", String.append(source, "`")));
+        Ok(Unit) ->
+            case File.set_executable(destination, true) {
+                Ok(Unit) -> true;
+                Err(_reason) ->
+                    failure(
+                        "binary",
+                        String.append("cannot mark executable `", String.append(destination, "`")),
+                    )
+            }
+    }.
+
+copy_release_binaries(root: String, platform: ReleasePlatform): Option[ReleaseBinaries] ->
+    let source_root = release_target(root);
+    let destination_root = dist(root);
+    let compiler_name = ReleasePlatform.compiler(platform);
+    let vm_name = ReleasePlatform.vm(platform);
+    let worker_name = ReleasePlatform.native_worker(platform);
+    let lsp_name = ReleasePlatform.lsp(platform);
+    let compiler_source = ReleasePayload.child(source_root, compiler_name);
+    let vm_source = ReleasePayload.child(source_root, vm_name);
+    let worker_source = ReleasePayload.child(source_root, worker_name);
+    let lsp_source = ReleasePayload.child(source_root, lsp_name);
+    let compiler = ReleasePayload.child(destination_root, compiler_name);
+    let vm = ReleasePayload.child(destination_root, vm_name);
+    let worker = ReleasePayload.child(destination_root, worker_name);
+    let lsp = ReleasePayload.child(destination_root, lsp_name);
+    case Directory.create_all(destination_root) {
+        Err(_reason) -> binaries_failure("dist", "cannot create dist directory");
+        Ok(Unit) ->
+            if {
+                not copy_binary(compiler_source, compiler) -> None;
+                not copy_binary(vm_source, vm) -> None;
+                not copy_binary(worker_source, worker) -> None;
+                not copy_binary(lsp_source, lsp) -> None;
+                true -> Some(
+                    ReleaseBinaries(
+                        compiler = compiler,
+                        vm = vm,
+                        native_worker = worker,
+                        lsp = lsp,
+                        payloads = [
+                            ReleasePayload.payload(compiler, compiler_name),
+                            ReleasePayload.payload(vm, vm_name),
+                            ReleasePayload.payload(worker, worker_name),
+                            ReleasePayload.payload(lsp, lsp_name),
+                        ],
+                    ),
+                )
+            }
+    }.
+
+self_test_source(): String ->
+    String.concat(
+        [
+            "module release_validation.Main.\n\n",
+            "pub main(): Bool ->\n",
+            "    true.\n\n",
+            "continuation_probe(): Unit ->\n",
+            "    std.io.Console.println(\"release native continuation probe\").\n",
+        ],
+    ).
+
+only_tvm(paths: List[String], reversed: List[String]): List[String] ->
+    case paths {
+        [] -> reverse_strings(reversed, []);
+        [path | rest] ->
+            if {
+                String.ends_with(path, ".tvm") -> only_tvm(rest, [path | reversed]);
+                true -> only_tvm(rest, reversed)
+            }
+    }.
+
+reverse_strings(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings(rest, [value | reversed])
+    }.
+
+native_metadata_valid(metadata: Json, expected_target: String): Bool ->
+    case metadata.required_fields(["target_triple"], ["native_debug_record_count"], ["continuation_ids"]) {
+        Err(_reason) -> failure("self_test", "native self-test metadata is incomplete");
+        Ok(projection) ->
+            case {
+    Json.required_field_strings(projection),
+    Json.required_field_ints(projection),
+    Json.required_field_array_lengths(projection),
+} {
+                {[target], [debug_count], [continuation_count]} ->
+                    if {
+                        target != expected_target -> failure("self_test", "native self-test target drifted");
+                        continuation_count == 0 -> failure("self_test", "native self-test omitted continuations");
+                        debug_count < 2 -> failure("self_test", "native self-test omitted debug records");
+                        true -> true
+                    };
+                _ -> failure("self_test", "native self-test projection is incomplete")
+            }
+    }.
+
+inspect_self_test(
+    root: String,
+    platform: ReleasePlatform,
+    binaries: ReleaseBinaries,
+    image: String,
+): Option[NativeSelfTest] ->
+    case run_command(
+    root,
+    binaries.vm,
+    [
+        "package-image-metadata",
+        image,
+        "--entry",
+        "release_validation.Main.main",
+        "--package-path",
+        "runtime/release-self-test.tvm",
+    ],
+) {
+        None -> None;
+        Some(output) ->
+            let metadata_text = String.trim(Process.stdout(output));
+            case Json.parse(metadata_text) {
+                Err(_reason) ->
+                    self_test_failure("self_test", "cannot parse package-image-metadata output");
+                Ok(metadata) ->
+                    if {
+                        native_metadata_valid(metadata, ReleasePlatform.target_triple(platform)) -> Some(NativeSelfTest(image = image, metadata = metadata_text));
+                        true -> None
+                    }
+            }
+    }.
+
+build_self_test(
+    root: String,
+    platform: ReleasePlatform,
+    binaries: ReleaseBinaries,
+): Option[NativeSelfTest] ->
+    let source_root = ReleasePayload.child(dist(root), "release-self-test-source");
+    let build_root = ReleasePayload.child(dist(root), "release-self-test-build");
+    let source = ReleasePayload.child(source_root, "Main.terl");
+    let packaged = ReleasePayload.child(dist(root), "release-self-test.tvm");
+    let _old_source = Directory.remove_all(source_root);
+    let _old_build = Directory.remove_all(build_root);
+    let {
+        Ok(Unit) <- Directory.create_all(source_root);
+        Ok(Unit) <- File.write_text(source, self_test_source());
+        Some(_compiled) <-
+            run_command(
+                root,
+                binaries.compiler,
+                ["--out-dir", build_root, "build", source, "--target", "terlan-vm"],
+            );
+        Ok(discovered) <- Directory.files_recursive(ReleasePayload.child(build_root, "vm"))
+    } else {
+        _ -> self_test_failure("self_test", "cannot compile release native self-test")
+    };
+    case only_tvm(discovered, []) {
+        [image] ->
+            case File.copy(image, packaged) {
+                Ok(Unit) -> inspect_self_test(root, platform, binaries, packaged);
+                Err(_reason) ->
+                    self_test_failure("self_test", "cannot copy release native self-test")
+            };
+        images ->
+            self_test_failure(
+                "self_test",
+                String.append(
+                    "release build must emit exactly one TVM image; found ",
+                    Int.to_string(length(images)),
+                ),
+            )
+    }.
+
+metadata_entry(path: String): Payload ->
+    ReleasePayload.payload(path, "terlan-release.json").
+
+generated_entries(metadata: GeneratedMetadata): List[Payload] ->
+    [
+        ReleasePayload.payload(ReleasePayload.checksums(metadata), "SHA256SUMS"),
+        ReleasePayload.payload(
+            ReleasePayload.install_manifest(metadata),
+            "terlan-install-manifest.json",
+        ),
+    ].
+
+remove_file(path: String): Bool ->
+    if {
+        not File.exists(path) -> true;
+        true -> case File.delete(path) {
+            Ok(Unit) -> true;
+            Err(_reason) -> false
+        }
+    }.
+
+cleanup_archive_failure(staging: String, message: String): Option[String] ->
+    case Directory.remove_all(staging) {
+        Ok(Unit) -> archive_failure("archive", message);
+        Err(_reason) -> archive_failure("archive", "cannot remove release staging directory")
+    }.
+
+cleanup_archive_success(staging: String, artifact: String): Option[String] ->
+    case Directory.remove_all(staging) {
+        Ok(Unit) -> Some(artifact);
+        Err(_reason) -> archive_failure("archive", "cannot remove release staging directory")
+    }.
+
+write_archive_checksum(
+    staging: String,
+    artifact: String,
+    checksum: String,
+    artifact_name: String,
+): Option[String] ->
+    case Hash.sha256_file(artifact) {
+        Err(_reason) -> cleanup_archive_failure(staging, "cannot hash release archive");
+        Ok(digest) ->
+            let row = String.concat([digest, "  ", artifact_name, "\n"]);
+            case File.write_text(checksum, row) {
+                Ok(Unit) -> cleanup_archive_success(staging, artifact);
+                Err(_reason) ->
+                    cleanup_archive_failure(staging, "cannot write release archive checksum")
+            }
+    }.
+
+create_staged_archive(
+    staging: String,
+    artifact: String,
+    checksum: String,
+    artifact_name: String,
+    entries: List[Payload],
+): Option[String] ->
+    if {
+        not ReleasePayload.copy_all(entries, staging) -> cleanup_archive_failure(staging, "cannot stage release payloads");
+        not remove_file(artifact) -> cleanup_archive_failure(staging, "cannot replace previous release archive");
+        not remove_file(checksum) -> cleanup_archive_failure(staging, "cannot replace previous archive checksum");
+        true -> case Archive.create(staging, artifact) {
+            Err(_reason) ->
+                cleanup_archive_failure(staging, "cannot construct deterministic release archive");
+            Ok(Unit) -> write_archive_checksum(staging, artifact, checksum, artifact_name)
+        }
+    }.
+
+archive_staging(root: String, platform: ReleasePlatform, entries: List[Payload]): Option[String] ->
+    let artifact = ReleasePayload.child(dist(root), ReleasePlatform.artifact(platform));
+    let checksum = String.append(artifact, ".sha256");
+    case Directory.create_temporary("terlan-release-artifact.") {
+        Err(_reason) -> archive_failure("archive", "cannot create release staging directory");
+        Ok(staging) ->
+            create_staged_archive(
+                staging,
+                artifact,
+                checksum,
+                ReleasePlatform.artifact(platform),
+                entries,
+            )
+    }.
+
+finish_package(
+    root: String,
+    platform: ReleasePlatform,
+    binaries: ReleaseBinaries,
+    native: NativeSelfTest,
+    payloads: List[Payload],
+): Bool ->
+    let native_entry = ReleasePayload.payload(native.image, "share/terlan/runtime/release-self-test.tvm");
+    let packaged_payloads = concat(payloads, [native_entry | std.collections.List.new[Payload]()]);
+    let {
+        Some(version) <- ReleasePlatform.cargo_version(root);
+        Some(metadata) <-
+            ReleaseMetadata.value_with_native(
+                root,
+                platform,
+                packaged_payloads,
+                binaries.payloads,
+                native.metadata,
+            );
+        Some(metadata_path) <- ReleaseMetadata.write(root, metadata)
+    } else {
+        _ -> failure("metadata", "cannot build release metadata")
+    };
+    (let release_metadata_entry = metadata_entry(metadata_path);
+let binary_metadata = concat(binaries.payloads, [release_metadata_entry | std.collections.List.new[Payload]()]);
+let checksum_entries = concat(binary_metadata, packaged_payloads);
+case ReleasePayload.write_install_metadata(dist(root), platform, version, checksum_entries) {
+    None -> failure("metadata", "cannot write install metadata");
+    Some(generated) ->
+        let archive_entries = concat(checksum_entries, generated_entries(generated));
+        case archive_staging(root, platform, archive_entries) {
+            Some(artifact) ->
+                let relative = ReleasePayload.child("dist", ReleasePlatform.artifact(platform));
+                let _printed = println(relative);
+                File.exists(artifact);
+            None -> false
+        }
+}).
+
+/**
+ * Packages the current-platform release binaries and complete shared payload.
+ */
+pub package(root: String): Bool ->
+    let {
+        Some(platform) <- ReleasePlatform.detect();
+        Some(binaries) <- copy_release_binaries(root, platform);
+        Some(native) <- build_self_test(root, platform, binaries);
+        Some(payloads) <- ReleasePayload.all(root)
+    } else {
+        _ -> failure("inputs", "release package inputs are incomplete")
+    };
+    finish_package(root, platform, binaries, native, payloads).

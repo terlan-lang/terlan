@@ -354,6 +354,15 @@ Terlan syntax target inference VM ownership rules
 Readability Imports Naming Docs Tests Std Effects Targets Interop Complexity Format Boundary
 
 - `TL0001 readability.semicolon-chain`
+- `TL0002 readability.deep-expression`
+- `TL0003 readability.callback-name`
+- `TL0004 readability.unused-destructure-binding`
+- `TL0005 readability.redundant-comment`
+- `TL0006 readability.public-docs`
+- `TL0007 readability.doc-comment-spacing`
+- `TL0008 readability.boolean-heavy-branch`
+- `TL0009 readability.grouped-binding`
+- `TL0010 readability.function-reference`
 - `TL0101 imports.unused`
 - `TL0201 naming.snake-case`
 - `TL0301 docs.public-api`

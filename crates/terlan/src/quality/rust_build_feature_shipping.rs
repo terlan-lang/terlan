@@ -8,7 +8,15 @@ use serde_json::Value;
 use crate::terlan_quality::{render_failure, QualityResult};
 
 const RUST_BUILD_FEATURE_MANIFEST: &str = "docs/package/RUST_BUILD_FEATURES.json";
-const PACKAGE_HELPER: &str = "tools/package_release_artifact.py";
+const RELEASE_TOOL_VM: &str = "target/debug/terlan-vm";
+const RELEASE_TOOL_IMAGE: &str =
+    "target/self-validation/tvm-aot-platform-matrix/vm/scripts_TvmAotPlatformMatrix.tvm";
+const RELEASE_METADATA_SOURCE: &str =
+    "scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseMetadata.terl";
+const RELEASE_PACKAGE_SOURCE: &str =
+    "scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleasePackage.terl";
+const RELEASE_COMMAND_SOURCE: &str =
+    "scripts/self_validation/tvm_aot_platform_matrix/scripts/TvmAotPlatformMatrix.terls";
 const CARGO_MANIFESTS: &[&str] = &["Cargo.toml", "crates/terlan/Cargo.toml"];
 const FEATURE_CLASSIFICATIONS: &[&str] = &[
     "default",
@@ -51,7 +59,7 @@ pub struct RustBuildFeatureShippingSummary {
 /// Runs the Rust build feature shipping contract gate.
 ///
 /// Inputs:
-/// - `root`: repository root containing Cargo manifests, release helper, and
+/// - `root`: repository root containing Cargo manifests, typed release tool, and
 ///   `docs/package/RUST_BUILD_FEATURES.json`.
 ///
 /// Output:
@@ -63,7 +71,7 @@ pub struct RustBuildFeatureShippingSummary {
 ///
 /// Transformation:
 /// - Validates feature shipping without requiring a compiled release artifact
-///   by asking the packaging helper to emit its metadata contract directly.
+///   by asking the bootstrapped typed Terlan tool to emit its metadata contract.
 pub fn run_rust_build_feature_shipping(
     root: &Path,
 ) -> QualityResult<RustBuildFeatureShippingSummary> {
@@ -76,7 +84,7 @@ pub fn run_rust_build_feature_shipping(
         validate_feature_manifest(&manifest, &cargo_features, &mut diagnostics);
     let release_profile_count = validate_release_profiles(&manifest, &metadata, &mut diagnostics);
     let release_metadata_field_count = validate_release_metadata(&metadata, &mut diagnostics);
-    diagnostics.extend(validate_package_helper_text(root)?);
+    diagnostics.extend(validate_release_tool_text(root)?);
 
     if diagnostics.is_empty() {
         Ok(RustBuildFeatureShippingSummary {
@@ -98,23 +106,33 @@ fn read_json(root: &Path, relative: &str) -> QualityResult<Value> {
         .map_err(|err| format!("{}: failed to parse JSON: {err}", path.display()))
 }
 
-/// Runs the release packaging helper's metadata mode.
+/// Runs the bootstrapped typed release tool's metadata command.
 fn release_metadata(root: &Path) -> QualityResult<Value> {
-    let output = Command::new("python3")
-        .arg("-B")
-        .arg(PACKAGE_HELPER)
-        .arg("metadata")
+    let vm = root.join(RELEASE_TOOL_VM);
+    let image = root.join(RELEASE_TOOL_IMAGE);
+    let output = Command::new(&vm)
+        .arg("run")
+        .arg(&image)
+        .arg("--script-eval")
+        .arg("--")
+        .arg("release-artifact-metadata")
         .current_dir(root)
         .output()
-        .map_err(|err| format!("{PACKAGE_HELPER}: failed to run metadata mode: {err}"))?;
+        .map_err(|err| {
+            format!(
+                "{}: failed to run typed release metadata command: {err}",
+                vm.display()
+            )
+        })?;
     if !output.status.success() {
         return Err(format!(
-            "{PACKAGE_HELPER}: metadata mode failed: {}",
+            "{}: typed release metadata command failed: {}",
+            image.display(),
             String::from_utf8_lossy(&output.stderr)
         ));
     }
     serde_json::from_slice(&output.stdout)
-        .map_err(|err| format!("{PACKAGE_HELPER}: metadata mode emitted invalid JSON: {err}"))
+        .map_err(|err| format!("{}: emitted invalid JSON: {err}", image.display()))
 }
 
 /// Collects Cargo features from repository manifests.
@@ -390,24 +408,44 @@ fn validate_release_metadata(metadata: &Value, diagnostics: &mut Vec<String>) ->
     RELEASE_METADATA_FIELDS.len()
 }
 
-/// Validates the packaging helper is artifact-backed and metadata-aware.
-fn validate_package_helper_text(root: &Path) -> QualityResult<Vec<String>> {
-    let relative = PACKAGE_HELPER;
-    let text = fs::read_to_string(root.join(relative))
-        .map_err(|err| format!("{relative}: failed to read package helper: {err}"))?;
+/// Validates typed packaging sources are artifact-backed and metadata-aware.
+fn validate_release_tool_text(root: &Path) -> QualityResult<Vec<String>> {
     let mut diagnostics = Vec::new();
-    for required in [
-        "RELEASE_METADATA_NAME",
-        "write_release_metadata_to_dist",
-        "archive.add(metadata_path",
-        "archive.write(metadata_path",
-        "\"metadata\"",
-        "release_feature_set",
+    for (relative, required_terms) in [
+        (
+            RELEASE_METADATA_SOURCE,
+            &[
+                "terlan.release-artifact.v1",
+                "cargo_features",
+                "target_triple",
+                "source_revision",
+                "crate_versions",
+                "binaries",
+                "payload_hashes",
+                "binary_hashes",
+            ][..],
+        ),
+        (
+            RELEASE_PACKAGE_SOURCE,
+            &[
+                "ReleaseMetadata.value_with_native",
+                "ReleaseMetadata.write",
+                "Archive.create",
+            ][..],
+        ),
+        (
+            RELEASE_COMMAND_SOURCE,
+            &["release-artifact-metadata", "release-artifact-package"][..],
+        ),
     ] {
-        if !text.contains(required) {
-            diagnostics.push(format!(
-                "{relative}: missing artifact metadata hook `{required}`"
-            ));
+        let text = fs::read_to_string(root.join(relative))
+            .map_err(|err| format!("{relative}: failed to read typed release source: {err}"))?;
+        for required in required_terms {
+            if !text.contains(required) {
+                diagnostics.push(format!(
+                    "{relative}: missing artifact metadata hook `{required}`"
+                ));
+            }
         }
     }
     Ok(diagnostics)
@@ -445,4 +483,5 @@ fn string_array(value: &Value, field: &str) -> Option<Vec<String>> {
 
 #[cfg(test)]
 #[path = "rust_build_feature_shipping_test.rs"]
+#[cfg(test)]
 mod rust_build_feature_shipping_test;

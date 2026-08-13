@@ -9,6 +9,17 @@ fn compile_and_match_delegates_to_regex_crate() {
     assert!(!is_match(&regex, "rust"));
 }
 
+#[test]
+fn matching_line_numbers_are_one_based_and_ordered() {
+    let regex = compile("(?i)cuda|(^|[^a-z])ptx([^a-z]|$)").expect("valid regex");
+
+    assert_eq!(
+        matching_line_numbers(&regex, "CUDA kernel\nordinary text\nptx module\n"),
+        vec![1, 3]
+    );
+    assert!(matching_line_numbers(&regex, "empty\nsource").is_empty());
+}
+
 /// Verifies invalid patterns return stable portable errors.
 #[test]
 fn compile_reports_stable_error_for_invalid_pattern() {

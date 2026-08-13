@@ -222,6 +222,7 @@ const REJECTED_POLICY_PATHS: &[&str] = &[
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm persistent actor policy summary.
 pub struct VmPersistentActorPolicySummary {
     pub role_count: usize,
     pub operation_count: usize,
@@ -231,6 +232,7 @@ pub struct VmPersistentActorPolicySummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm persistent actor policy.
 pub fn run_vm_persistent_actor_policy(
     root: &Path,
 ) -> QualityResult<VmPersistentActorPolicySummary> {
@@ -377,4 +379,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_persistent_actor_policy_test.rs"]
+#[cfg(test)]
 mod vm_persistent_actor_policy_test;

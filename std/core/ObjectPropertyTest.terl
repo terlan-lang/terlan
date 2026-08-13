@@ -22,10 +22,14 @@ import std.test.Test.{each}.
  */
 @test
 pub generated_objects_report_empty_or_member_state(): Bool ->
-    for_all(object_of(elements(["status"]), elements([1, 2])), (object) -> if {
-    object.is_empty() -> object.size() == 0 and object.contains_key("status") == false;
-    true -> object.size() >= 1 and object.contains_key("status")
-    }).
+    for_all(
+        object_of(elements(["status"]), elements([1, 2])),
+        (object) ->
+            if {
+                object.is_empty() -> object.size() == 0 and object.contains_key("status") == false;
+                true -> object.size() >= 1 and object.contains_key("status")
+            },
+    ).
 
 /**
  * Verifies inserting a generated key makes it present.
@@ -37,10 +41,14 @@ pub generated_objects_report_empty_or_member_state(): Bool ->
  */
 @test
 pub generated_object_keys_are_present_after_put(): Bool ->
-    for_all(elements(["status", "mode"]), (key) -> let object = Object({"seed", 0});
-    object.remove("seed");
-    object.put(key, 7);
-    object.contains_key(key) and object.size() == 1).
+    for_all(
+        elements(["status", "mode"]),
+        (key) ->
+            let object = Object({"seed", 0});
+            object.remove("seed");
+            object.put(key, 7);
+            object.contains_key(key) and object.size() == 1,
+    ).
 
 /**
  * Verifies clear removes generated object members.
@@ -52,5 +60,7 @@ pub generated_object_keys_are_present_after_put(): Bool ->
  */
 @test
 pub generated_objects_clear_to_empty(): Bool ->
-    for_all(object_of(elements(["status", "mode"]), elements([1])), (object) -> object.clear();
-    object.is_empty() and object.size() == 0).
+    for_all(
+        object_of(elements(["status", "mode"]), elements([1])),
+        (object) -> (object.clear(); object.is_empty() and object.size() == 0),
+    ).

@@ -1,0 +1,48 @@
+module std.time.DateTest.
+
+import std.core.Option.{None, Some}.
+import std.time.Date.
+
+@test
+pub iso_dates_roundtrip(): Bool ->
+    case Date.parse_iso("2026-08-04") {
+        Some(date) ->
+            Date.to_iso(date) == "2026-08-04"
+                and Date.year(date) == 2026
+                and Date.month(date) == 8
+                and Date.day(date) == 4;
+        None -> false
+    }.
+
+@test
+pub invalid_calendar_dates_are_rejected(): Bool ->
+    invalid_date("2025-02-29") and invalid_date("2026-8-04") and invalid_date("0000-01-01").
+
+invalid_date(source: String): Bool ->
+    case Date.parse_iso(source) {
+        None -> true;
+        Some(_date) -> false
+    }.
+
+@test
+pub leap_days_and_day_differences_are_exact(): Bool ->
+    let {
+        Some(start) <- Date.parse_iso("2024-02-28");
+        Some(leap_day) <- Date.parse_iso("2024-02-29");
+        Some(end) <- Date.parse_iso("2024-03-01")
+    } else {
+        _ -> false
+    };
+    Date.days_between(start, leap_day) == 1
+        and Date.days_between(start, end) == 2
+        and Date.is_before(start, end).
+
+@test
+pub utc_today_is_a_valid_canonical_date(): Bool ->
+    let today = Date.today_utc();
+    Date.year(today) >= 2026
+        and Date.month(today) >= 1
+        and Date.month(today) <= 12
+        and Date.day(today) >= 1
+        and Date.day(today) <= 31
+        and Date.to_iso(today) != "".

@@ -18,7 +18,14 @@ import std.test.Test.{assert_equal, assert_false, lifecycle, lifecycle_result, t
  */
 @test
 pub lifecycle_threads_typed_fixture_values(): Bool ->
-    lifecycle(1, (seed) -> seed + 1, (suite) -> suite + 1, (fixture) -> fixture == 3, (fixture) -> fixture == 3, (suite) -> suite == 2).
+    lifecycle(
+        1,
+        (seed) -> seed + 1,
+        (suite) -> suite + 1,
+        (fixture) -> fixture == 3,
+        (fixture) -> fixture == 3,
+        (suite) -> suite == 2,
+    ).
 
 /**
  * Verifies cleanup results remain visible when the body fails.
@@ -31,7 +38,17 @@ pub lifecycle_threads_typed_fixture_values(): Bool ->
  */
 @test
 pub lifecycle_result_preserves_cleanup_after_body_failure(): Bool ->
-    assert_equal({false, true, true}, lifecycle_result(1, (seed) -> seed + 1, (suite) -> suite + 1, (_fixture) -> false, (fixture) -> fixture == 3, (suite) -> suite == 2)).
+    assert_equal(
+        {false, true, true},
+        lifecycle_result(
+            1,
+            (seed) -> seed + 1,
+            (suite) -> suite + 1,
+            (_fixture) -> false,
+            (fixture) -> fixture == 3,
+            (suite) -> suite == 2,
+        ),
+    ).
 
 /**
  * Verifies cleanup failure contributes to the combined lifecycle assertion.
@@ -42,7 +59,16 @@ pub lifecycle_result_preserves_cleanup_after_body_failure(): Bool ->
  */
 @test
 pub lifecycle_reports_after_each_failure(): Bool ->
-    assert_false(lifecycle(1, (seed) -> seed + 1, (suite) -> suite + 1, (_fixture) -> true, (_fixture) -> false, (_suite) -> true)).
+    assert_false(
+        lifecycle(
+            1,
+            (seed) -> seed + 1,
+            (suite) -> suite + 1,
+            (_fixture) -> true,
+            (_fixture) -> false,
+            (_suite) -> true,
+        ),
+    ).
 
 /**
  * Verifies final cleanup failure contributes to the combined assertion.
@@ -54,7 +80,16 @@ pub lifecycle_reports_after_each_failure(): Bool ->
  */
 @test
 pub lifecycle_reports_after_all_failure(): Bool ->
-    assert_false(lifecycle(1, (seed) -> seed + 1, (suite) -> suite + 1, (_fixture) -> true, (_fixture) -> true, (_suite) -> false)).
+    assert_false(
+        lifecycle(
+            1,
+            (seed) -> seed + 1,
+            (suite) -> suite + 1,
+            (_fixture) -> true,
+            (_fixture) -> true,
+            (_suite) -> false,
+        ),
+    ).
 
 /**
  * Verifies table lifecycle hooks run for every row.
@@ -66,7 +101,15 @@ pub lifecycle_reports_after_all_failure(): Bool ->
  */
 @test
 pub table_lifecycle_runs_hooks_for_each_row(): Bool ->
-    table_lifecycle(1, List(1, 2), (seed) -> seed + 10, (suite, row) -> suite + row, (fixture) -> fixture > 11, (fixture) -> fixture < 14, (suite) -> suite == 11).
+    table_lifecycle(
+        1,
+        List(1, 2),
+        (seed) -> seed + 10,
+        (suite, row) -> suite + row,
+        (fixture) -> fixture > 11,
+        (fixture) -> fixture < 14,
+        (suite) -> suite == 11,
+    ).
 
 /**
  * Verifies table lifecycle cleanup remains visible after row failure.
@@ -79,4 +122,15 @@ pub table_lifecycle_runs_hooks_for_each_row(): Bool ->
  */
 @test
 pub table_lifecycle_result_keeps_row_cleanup(): Bool ->
-    assert_equal({false, true, true}, table_lifecycle_result(1, List(1, 2), (seed) -> seed, (_suite, row) -> row, (fixture) -> fixture == 1, (_fixture) -> true, (_suite) -> true)).
+    assert_equal(
+        {false, true, true},
+        table_lifecycle_result(
+            1,
+            List(1, 2),
+            (seed) -> seed,
+            (_suite, row) -> row,
+            (fixture) -> fixture == 1,
+            (_fixture) -> true,
+            (_suite) -> true,
+        ),
+    ).

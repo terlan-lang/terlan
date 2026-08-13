@@ -23,11 +23,11 @@ pub opaque type HTMLTableHeaderCellElement.
 pub (value: HTMLTableHeaderCellElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit.
 
 pub (value: HTMLTableHeaderCellElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit.

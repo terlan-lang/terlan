@@ -1,14 +1,17 @@
+pub(crate) use super::call_metric::VmCallMetricMode as VmCallCountMode;
+use super::process::VmProcessSource;
+#[cfg(test)]
 use std::collections::BTreeMap;
 
-use super::process::VmProcessSource;
-
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[cfg(test)]
 struct VmCallCountKey {
     module: String,
     function: String,
     arity: usize,
 }
 
+#[cfg(test)]
 impl From<&VmProcessSource> for VmCallCountKey {
     fn from(source: &VmProcessSource) -> Self {
         Self {
@@ -17,13 +20,6 @@ impl From<&VmProcessSource> for VmCallCountKey {
             arity: source.arity,
         }
     }
-}
-
-/// Whether an enabled function counter currently accepts call entries.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum VmCallCountMode {
-    Active,
-    Paused,
 }
 
 /// Current state returned for one exact function identity.
@@ -43,6 +39,7 @@ pub(crate) struct VmCallCountSnapshot {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 struct VmCallCountEntry {
     source: VmProcessSource,
     mode: VmCallCountMode,
@@ -56,11 +53,13 @@ struct VmCallCountEntry {
 /// function-entry hook, and inspection never changes counter state.
 #[derive(Debug, Default)]
 pub(crate) struct VmCallCountRegistry {
+    #[cfg(test)]
     entries: BTreeMap<VmCallCountKey, VmCallCountEntry>,
 }
 
 impl VmCallCountRegistry {
     /// Enables an exact function identity without resetting an existing count.
+    #[cfg(test)]
     pub(crate) fn enable(&mut self, source: VmProcessSource) {
         let key = VmCallCountKey::from(&source);
         match self.entries.get_mut(&key) {
@@ -82,11 +81,13 @@ impl VmCallCountRegistry {
     }
 
     /// Disables an exact function identity and removes its retained count.
+    #[cfg(test)]
     pub(crate) fn disable(&mut self, source: &VmProcessSource) -> bool {
         self.entries.remove(&VmCallCountKey::from(source)).is_some()
     }
 
     /// Pauses an enabled counter without changing its retained value.
+    #[cfg(test)]
     pub(crate) fn pause(&mut self, source: &VmProcessSource) -> Result<(), String> {
         let entry = self.entry_mut(source, "pause")?;
         entry.mode = VmCallCountMode::Paused;
@@ -94,6 +95,7 @@ impl VmCallCountRegistry {
     }
 
     /// Restarts an enabled counter at zero and resumes call recording.
+    #[cfg(test)]
     pub(crate) fn restart(&mut self, source: &VmProcessSource) -> Result<(), String> {
         let entry = self.entry_mut(source, "restart")?;
         entry.count = 0;
@@ -105,6 +107,7 @@ impl VmCallCountRegistry {
     ///
     /// Disabled and paused functions are intentionally mutation-free. An
     /// overflowing active counter is rejected before its value changes.
+    #[cfg(test)]
     pub(crate) fn record_entries(
         &mut self,
         source: &VmProcessSource,
@@ -128,6 +131,7 @@ impl VmCallCountRegistry {
     }
 
     /// Returns current state for one exact module/function/arity identity.
+    #[cfg(test)]
     pub(crate) fn state(&self, source: &VmProcessSource) -> VmCallCountState {
         match self.entries.get(&VmCallCountKey::from(source)) {
             None => VmCallCountState::Disabled,
@@ -139,6 +143,7 @@ impl VmCallCountRegistry {
     }
 
     /// Returns stable, source-identity-ordered counter rows without mutation.
+    #[cfg(test)]
     pub(crate) fn snapshots(&self) -> Vec<VmCallCountSnapshot> {
         self.entries
             .values()
@@ -150,6 +155,7 @@ impl VmCallCountRegistry {
             .collect()
     }
 
+    #[cfg(test)]
     fn entry_mut(
         &mut self,
         source: &VmProcessSource,

@@ -1,37 +1,33 @@
 module std.vm.TaskTest.
 
-import std.core.Result.
-import std.core.Result.{Err, Ok}.
 import std.test.Test.{assert_equal}.
-import std.vm.Task.
+import std.vm.{Process, Task}.
 
-import type std.core.{Error, Result}.
-import type std.vm.Task.
+import type std.vm.Process.
+import type std.vm.Task.{Task, TaskCommand}.
 
 pub work(): Int ->
     41 + 1.
 
-pub read_task(task: Task[Int]): Result[Int, Error] ->
-    task.result().
+pub spawn_41(): Unit ->
+    Task.serve[Int](work()).
 
-pub cancel_after_read(task: Task[Int]): Int ->
-    let value =
-        task
-        |> result()
-        |> Result.with_default(0);
-    task.cancel();
-    value.
+pub start_task(): Task[Int] ->
+    let entry = Process.entry[TaskCommand[Int]](41);
+    let process = Process.spawn[TaskCommand[Int]](entry);
+    Task.start[Int](process, 0).
 
 @test
-pub start_runs_work_and_result_returns_value(): Bool ->
-    case Task.start(work) {
-        Ok(task) -> assert_equal(42, Result.with_default(read_task(task), 0));
-        Err(_reason) -> false
-    }.
+pub result_returns_the_completed_value(): Bool ->
+    let task = start_task();
+    let value = Task.result[Int](task, 1);
+    let _cancelled = Task.cancel[Int](task);
+    assert_equal(42, value).
 
 @test
-pub cancel_returns_unit_after_result_is_available(): Bool ->
-    case Task.start(work) {
-        Ok(task) -> assert_equal(42, cancel_after_read(task));
-        Err(_reason) -> false
-    }.
+pub repeated_results_are_correlated_before_cancel(): Bool ->
+    let task = start_task();
+    let first = Task.result[Int](task, 1);
+    let second = Task.result[Int](task, 2);
+    let _cancelled = Task.cancel[Int](task);
+    assert_equal(42, first) and assert_equal(42, second).

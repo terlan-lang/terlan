@@ -1,9 +1,11 @@
-use super::{VmActorRuntime, VmProcessId, ACTOR_OPERATION_REDUCTIONS};
-use crate::runtime::vm::{
-    postgres::VmPostgresDriverControl,
-    timer::{VmTimerEvent, VmTimerId},
-    ReplValue,
-};
+#[cfg(test)]
+use super::ACTOR_OPERATION_REDUCTIONS;
+use super::{VmActorRuntime, VmProcessId};
+#[cfg(test)]
+use crate::runtime::vm::postgres::VmPostgresDriverControl;
+#[cfg(test)]
+use crate::runtime::vm::timer::VmTimerId;
+use crate::runtime::vm::{timer::VmTimerEvent, ReplValue};
 
 /// One delayed actor message after its destination has been resolved.
 #[derive(Debug)]
@@ -15,6 +17,7 @@ pub(super) struct VmDelayedActorMessage {
 
 /// Delivery result for one expired delayed actor message.
 #[derive(Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmActorTimerDelivery {
     Delivered {
         timer_id: VmTimerId,
@@ -33,13 +36,17 @@ pub(crate) enum VmActorTimerDelivery {
 #[derive(Debug)]
 pub(crate) struct VmActorTimerAdvance {
     pub(crate) timer_events: Vec<VmTimerEvent>,
+    #[cfg(test)]
     pub(crate) deliveries: Vec<VmActorTimerDelivery>,
+    #[cfg(test)]
     pub(crate) postgres_controls: Vec<VmPostgresDriverControl>,
+    #[cfg(test)]
     pub(crate) postgres_diagnostics: Vec<String>,
 }
 
 /// Successful cancellation evidence for one delayed actor message.
 #[derive(Debug)]
+#[cfg(test)]
 pub(crate) struct VmActorTimerCancellation {
     pub(crate) remaining_ticks: u64,
     pub(crate) timer_event: VmTimerEvent,
@@ -47,6 +54,7 @@ pub(crate) struct VmActorTimerCancellation {
 
 impl VmActorRuntime {
     /// Schedules one typed actor payload for delivery after `delay_ticks`.
+    #[cfg(test)]
     pub(crate) fn send_after(
         &mut self,
         sender: VmProcessId,
@@ -64,6 +72,7 @@ impl VmActorRuntime {
         )
     }
 
+    #[cfg(test)]
     pub(super) fn schedule_delayed_message_at(
         &mut self,
         sender: VmProcessId,
@@ -87,6 +96,7 @@ impl VmActorRuntime {
     }
 
     /// Resolves a stable actor name and schedules a delayed send to that process.
+    #[cfg(test)]
     pub(crate) fn send_named_after(
         &mut self,
         sender: VmProcessId,
@@ -104,6 +114,7 @@ impl VmActorRuntime {
     }
 
     /// Resolves an opaque actor alias and schedules a delayed send to that process.
+    #[cfg(test)]
     pub(crate) fn send_alias_after(
         &mut self,
         sender: VmProcessId,
@@ -120,6 +131,7 @@ impl VmActorRuntime {
     }
 
     /// Starts a correlated message timer for one resolved actor process.
+    #[cfg(test)]
     pub(crate) fn start_message_timer(
         &mut self,
         sender: VmProcessId,
@@ -137,6 +149,7 @@ impl VmActorRuntime {
         )
     }
 
+    #[cfg(test)]
     pub(super) fn schedule_message_timer_at(
         &mut self,
         sender: VmProcessId,
@@ -160,6 +173,7 @@ impl VmActorRuntime {
     }
 
     /// Resolves a stable actor name and starts a correlated message timer.
+    #[cfg(test)]
     pub(crate) fn start_named_message_timer(
         &mut self,
         sender: VmProcessId,
@@ -177,6 +191,7 @@ impl VmActorRuntime {
     }
 
     /// Returns the remaining ticks for one active delayed send.
+    #[cfg(test)]
     pub(crate) fn read_delayed_send(
         &self,
         timer_id: VmTimerId,
@@ -186,6 +201,7 @@ impl VmActorRuntime {
     }
 
     /// Cancels one delayed send and returns its remaining time atomically.
+    #[cfg(test)]
     pub(crate) fn cancel_delayed_send(
         &mut self,
         timer_id: VmTimerId,
@@ -208,43 +224,70 @@ impl VmActorRuntime {
         let timer_events =
             self.timers
                 .advance_clock(&mut self.processes, &mut self.scheduler, now_tick);
+        #[cfg(test)]
         let mut deliveries = Vec::new();
+        #[cfg(test)]
         let mut postgres_controls = Vec::new();
+        #[cfg(test)]
         let mut postgres_diagnostics = Vec::new();
         for event in &timer_events {
             let timer_id = event.timer_id();
             let Some(delayed) = self.delayed_messages.remove(&timer_id) else {
                 match self.consume_postgres_timer_event(event) {
-                    Ok(Some(control)) => postgres_controls.push(control),
+                    Ok(Some(control)) => {
+                        self.postgres_controls.push_back(control);
+                        #[cfg(test)]
+                        postgres_controls.push(control);
+                    }
                     Ok(None) => {}
-                    Err(diagnostic) => postgres_diagnostics.push(diagnostic),
+                    Err(diagnostic) => {
+                        #[cfg(test)]
+                        postgres_diagnostics.push(diagnostic);
+                        #[cfg(not(test))]
+                        drop(diagnostic);
+                    }
                 }
                 continue;
             };
             if matches!(event, VmTimerEvent::OwnerExited { .. }) {
+                #[cfg(test)]
                 deliveries.push(VmActorTimerDelivery::OwnerExited { timer_id });
                 continue;
             }
             match self.send(delayed.sender, delayed.recipient, delayed.payload) {
-                Ok(message_id) => deliveries.push(VmActorTimerDelivery::Delivered {
-                    timer_id,
-                    message_id,
-                }),
-                Err(diagnostic) => deliveries.push(VmActorTimerDelivery::Rejected {
-                    timer_id,
-                    diagnostic,
-                }),
+                Ok(message_id) => {
+                    #[cfg(test)]
+                    deliveries.push(VmActorTimerDelivery::Delivered {
+                        timer_id,
+                        message_id,
+                    });
+                    #[cfg(not(test))]
+                    let _ = message_id;
+                }
+                Err(diagnostic) => {
+                    #[cfg(test)]
+                    deliveries.push(VmActorTimerDelivery::Rejected {
+                        timer_id,
+                        diagnostic,
+                    });
+                    #[cfg(not(test))]
+                    drop(diagnostic);
+                }
             }
         }
         VmActorTimerAdvance {
             timer_events,
+            #[cfg(test)]
             deliveries,
+            #[cfg(test)]
             postgres_controls,
+            #[cfg(test)]
             postgres_diagnostics,
         }
     }
 
     /// Returns the number of active delayed actor messages.
+    #[cfg(test)]
     pub(crate) fn delayed_send_count(&self) -> usize {
         self.delayed_messages.len()
     }
@@ -261,6 +304,7 @@ impl VmActorRuntime {
     }
 }
 
+#[cfg(test)]
 fn timer_message(timer_id: VmTimerId, payload: ReplValue) -> ReplValue {
     ReplValue::Record {
         name: "TimerMessage".to_string(),

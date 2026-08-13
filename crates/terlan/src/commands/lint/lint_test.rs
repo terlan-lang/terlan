@@ -5,27 +5,49 @@ use std::process::ExitCode;
 use super::{fix_semicolon_chains, lint_source, run, run_lint};
 use crate::support::test_fs::{temp_dir, write_file};
 
+#[cfg(test)]
 #[path = "lint_test/actor_vm_test.rs"]
+#[cfg(test)]
 mod actor_vm_test;
+#[cfg(test)]
 #[path = "lint_test/complexity_test.rs"]
+#[cfg(test)]
 mod complexity_test;
+#[cfg(test)]
 #[path = "lint_test/consistency_test.rs"]
+#[cfg(test)]
 mod consistency_test;
+#[cfg(test)]
 #[path = "lint_test/generated_test.rs"]
+#[cfg(test)]
 mod generated_test;
+#[cfg(test)]
 #[path = "lint_test/imports_test.rs"]
+#[cfg(test)]
 mod imports_test;
+#[cfg(test)]
 #[path = "lint_test/maintainability_test.rs"]
+#[cfg(test)]
 mod maintainability_test;
+#[cfg(test)]
 #[path = "lint_test/naming_test.rs"]
+#[cfg(test)]
 mod naming_test;
+#[cfg(test)]
 #[path = "lint_test/pipe_test.rs"]
+#[cfg(test)]
 mod pipe_test;
+#[cfg(test)]
 #[path = "lint_test/readability_test.rs"]
+#[cfg(test)]
 mod readability_test;
+#[cfg(test)]
 #[path = "lint_test/targets_test.rs"]
+#[cfg(test)]
 mod targets_test;
+#[cfg(test)]
 #[path = "lint_test/test_rules_test.rs"]
+#[cfg(test)]
 mod test_rules_test;
 
 /// Verifies dense semicolon chains emit stable lint diagnostics.
@@ -61,6 +83,34 @@ pub clear(): Bool ->
     assert!(rendered.contains("warning[TL0001:readability.semicolon-chain]"));
     assert!(rendered.contains("split dense semicolon expression chains"));
     assert!(rendered.ends_with("[fix available]"));
+}
+
+/// Verifies every parser-backed lint rule accepts headerless script source.
+#[test]
+fn lint_accepts_terls_and_reports_top_level_style_findings() {
+    let diagnostics = lint_source(
+        Path::new("scripts/Smoke.terls"),
+        "let first = 1; let second = first + 1; Unit.\n",
+    );
+
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.rule_id == "TL0001"),
+        "expected script top-level lint finding: {diagnostics:?}"
+    );
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.rule_id != "TL0501"),
+        "scripts own a synthetic module and must not require a source module declaration: {diagnostics:?}"
+    );
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.rule_id != "TL0006"),
+        "synthetic script main/0 must not require source-authored API docs: {diagnostics:?}"
+    );
 }
 
 /// Verifies the safe fixer splits simple semicolon chains.
@@ -168,6 +218,61 @@ fn lint_command_reports_unfixed_chain() {
 fn lint_command_rejects_unknown_flag() {
     assert_eq!(
         run(&["--unsafe-fix".to_string(), "Main.terl".to_string()]),
+        ExitCode::from(2)
+    );
+}
+
+/// Verifies rule selection ignores unrelated findings while retaining the
+/// selected rule as a failing gate.
+#[test]
+fn lint_command_only_enforces_the_selected_rule() {
+    let root = temp_dir("lint_command", "only_rule");
+    let clean_for_grouping = root.join("Flat.terl");
+    write_file(
+        &clean_for_grouping,
+        "module app.Flat.\n/** Runs. */\npub main(): Unit -> first(); second().\n",
+    );
+    assert_eq!(
+        run(&[
+            "--only".to_string(),
+            "TL0009".to_string(),
+            clean_for_grouping.to_string_lossy().to_string(),
+        ]),
+        ExitCode::SUCCESS
+    );
+
+    let grouped_failure = root.join("Nested.terl");
+    write_file(
+        &grouped_failure,
+        r#"module app.Nested.
+resolve(first: Option[Int], second: Option[Int]): Option[Int] ->
+    case first {
+        None -> None;
+        Some(left) -> case second {
+            None -> None;
+            Some(right) -> Some(left + right)
+        }
+    }.
+"#,
+    );
+    assert_eq!(
+        run(&[
+            "--only".to_string(),
+            "TL0009".to_string(),
+            grouped_failure.to_string_lossy().to_string(),
+        ]),
+        ExitCode::from(1)
+    );
+}
+
+#[test]
+fn lint_command_rejects_unknown_only_rule() {
+    assert_eq!(
+        run(&[
+            "--only".to_string(),
+            "TL9999".to_string(),
+            "Main.terl".to_string(),
+        ]),
         ExitCode::from(2)
     );
 }

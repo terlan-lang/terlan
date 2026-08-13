@@ -1,0 +1,12 @@
+schema = "terlan.lean-proof-gap.v1"
+feature = "pattern and operator coverage"
+lifecycle_status = "blocked"
+proof_gap_category = "model_gap"
+gap_reason = "Shape implication evidence has an executable Lean family; remaining pattern and operator coverage is executable .terl/Rust coverage, not Lean coverage yet."
+remediation_owner = "compiler"
+planned_gate = "language-feature-coverage-100-check"
+deadline_or_exception = "exception:std_packages@2026-08-31"
+exception_approved_by = "compiler"
+blocker_updated_at = "2026-07-16"
+blocker_hash = "sha256:1c617a60247e2c22c467f788bccdc4897005699f6f1a76a640a2a9cbf5514fbe"
+covered_manifests = ["docs/compiler/type_spec/language_feature_coverage_matrix.json", "docs/compiler/type_spec/operator_coverage_matrix.json", "docs/compiler/type_spec/pattern_matching_support_matrix.json", "docs/compiler/type_spec/binary_descriptor_matrix.json"]

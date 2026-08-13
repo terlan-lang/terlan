@@ -453,4 +453,5 @@ fn index_error(index: usize, len: usize) -> VectorError {
 
 #[cfg(test)]
 #[path = "vector_test.rs"]
+#[cfg(test)]
 mod vector_test;

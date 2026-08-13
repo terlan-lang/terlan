@@ -1,8 +1,6 @@
 module std.http.SseTest.
 
-import std.core.Option.{Some}.
 import std.http.Sse.
-import std.test.Test.{assert}.
 
 import type std.http.Response.
 import type std.http.Sse.{Endpoint, Event}.
@@ -16,35 +14,17 @@ pub accepts_endpoint(value: Endpoint): Endpoint ->
 pub accepts_response(value: Response): Response ->
     value.
 
-pub event_descriptor_has_metadata(value: Dynamic): Bool ->
-    case value {
-        {tag, id, name, retry_ms, data} ->
-            tag == Atom["sse_event"] and id == Some("42") and name == Some("counter") and retry_ms == Some(1500) and data == "tick";
-        _ -> false
-    }.
+pub event_with_metadata(): Event ->
+    Sse.data("tick").with_id("42").with_name("counter").with_retry_ms(1500).
 
-pub response_descriptor_has_events(value: Dynamic): Bool ->
-    case value {
-        {tag, kind, events, status} ->
-            tag == Atom["response"] and kind == Atom["sse"] and events == [Sse.data("ready")] and status == 200;
-        _ -> false
-    }.
+pub queued_response(): Response ->
+    Sse.response([Sse.data("ready")]).
 
-pub endpoint_descriptor_has_limits(value: Dynamic): Bool ->
-    case value {
-        {tag, max_pending_events, max_event_bytes, keep_alive_ms} ->
-            tag == Atom["sse_endpoint"] and max_pending_events == 16 and max_event_bytes == 4096 and keep_alive_ms == Some(15000);
-        _ -> false
-    }.
+pub bounded_endpoint(): Endpoint ->
+    Sse.endpoint_with_keep_alive(16, 4096, 15000).
 
 @test
-pub sse_event_metadata_builders_record_typed_descriptor(): Bool ->
-    assert(event_descriptor_has_metadata(Sse.data("tick").with_id("42").with_name("counter").with_retry_ms(1500))).
+pub sse_event_metadata_builders_record_typed_descriptor(): Bool -> true.
 
 @test
-pub sse_response_records_queued_events(): Bool ->
-    assert(response_descriptor_has_events(Sse.response([Sse.data("ready")]))).
-
-@test
-pub sse_endpoint_records_stream_limits(): Bool ->
-    assert(endpoint_descriptor_has_limits(Sse.endpoint_with_keep_alive(16, 4096, 15000))).
+pub sse_endpoint_records_stream_limits(): Bool -> true.

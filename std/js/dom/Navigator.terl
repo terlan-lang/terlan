@@ -161,7 +161,7 @@ pub (value: Navigator) request_midi_access(options: MIDIOptions): Promise[MIDIAc
  */
 pub (value: Navigator) request_media_key_system_access(
     key_system: JsString,
-    supported_configurations: Array[MediaKeySystemConfiguration]
+    supported_configurations: Array[MediaKeySystemConfiguration],
 ): Promise[MediaKeySystemAccess] ->
     native.
 

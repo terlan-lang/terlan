@@ -1,0 +1,109 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.net.Uri.parse/1",
+      "name": "parse",
+      "operation": "std.net.uri.parse",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:aae55504f371330ba3c04b0d6d290632f1e7d038066b0e4e4e570faaf9d2e841"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.net.Uri.to_string/1",
+      "name": "to_string",
+      "operation": "std.net.uri.to_string",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:a004d07a80d593f6b5da83aab2092ddcc1444d90263020110b5d2d054686a620"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.net.Uri.scheme/1",
+      "name": "scheme",
+      "operation": "std.net.uri.scheme",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:a4ab716e7f7bb708f300f3cec7940e23a5570ad9ea78dc603b3652bf566ca63d"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.net.Uri.host/1",
+      "name": "host",
+      "operation": "std.net.uri.host",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:d83b69c8018ab6d9c560d373135739603b9a6d8080f5e4479b8b10a5815e2b14"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.net.Uri.path/1",
+      "name": "path",
+      "operation": "std.net.uri.path",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:36b6a5d6a7f6a18b07ce41c6b348f755f644beeca50416e96635ae9ba9c35cc5"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.net.Uri.query/1",
+      "name": "query",
+      "operation": "std.net.uri.query",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:17b59d7d4d3f6e122b0e6787072ae597480a59c17b584e7c4e0cf62bdb3f1d45"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.net.Uri.fragment/1",
+      "name": "fragment",
+      "operation": "std.net.uri.fragment",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:954331d38f28a5bdc3cdd4773e5e4acd2d5e5715960492097665e8b858f889cb"
+    }
+  ],
+  "manifest_digest": "sha256:97d20a7942822242c1258ede2c51d128be0ac7d3dbba990f0816bf6a18690d38",
+  "module": "std_net_uri_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "network.parse",
+    "error_policy": "typed-result",
+    "module_prefix": "std.net.Uri",
+    "notes": "URI APIs parse and inspect value data only.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:6d941c8ea6b8560c8be1cff7c88060480406123ecda02dc8d14ee80d0b34f28c",
+  "source_module": "std.net.Uri",
+  "source_path": "std/summaries/std.net.Uri.native_boundary.json"
+}

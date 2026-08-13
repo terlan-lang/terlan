@@ -2,10 +2,11 @@
 
 use std::{format, vec::Vec};
 
-use super::protocol::{encode_frame, ProtocolError, DUMP_REQ, KILL_REQ, NAMES_REQ, STOP_REQ};
+use super::protocol::{encode_frame, ProtocolError, NAMES_REQ, STOP_REQ};
 
 /// Result of an EPMD client command.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub struct ClientOutput {
     /// Bytes that should be written to standard output.
     pub stdout: Vec<u8>,
@@ -13,6 +14,7 @@ pub struct ClientOutput {
     pub exit_code: i32,
 }
 
+#[cfg(test)]
 impl ClientOutput {
     /// Return successful command output.
     pub fn success(stdout: Vec<u8>) -> Self {
@@ -33,6 +35,7 @@ impl ClientOutput {
 
 /// Deterministic client-side command helper failures.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub enum ClientPlanError {
     /// The requested node name exceeds OTP epmd's stop-command limit.
     NameTooLong,
@@ -41,21 +44,13 @@ pub enum ClientPlanError {
 }
 
 /// Return the length-prefixed request frame for `epmd -names` and `-started`.
+#[cfg(test)]
 pub fn names_request_frame() -> Result<Vec<u8>, ClientPlanError> {
     encode_frame(&[NAMES_REQ]).map_err(ClientPlanError::Protocol)
 }
 
-/// Return the length-prefixed request frame for `epmd -dump`.
-pub fn dump_request_frame() -> Result<Vec<u8>, ClientPlanError> {
-    encode_frame(&[DUMP_REQ]).map_err(ClientPlanError::Protocol)
-}
-
-/// Return the length-prefixed request frame for `epmd -kill`.
-pub fn kill_request_frame() -> Result<Vec<u8>, ClientPlanError> {
-    encode_frame(&[KILL_REQ]).map_err(ClientPlanError::Protocol)
-}
-
 /// Return the length-prefixed request frame for `epmd -stop NAME`.
+#[cfg(test)]
 pub fn stop_request_frame(name: &str) -> Result<Vec<u8>, ClientPlanError> {
     if name.len() > 1000 {
         return Err(ClientPlanError::NameTooLong);
@@ -68,6 +63,7 @@ pub fn stop_request_frame(name: &str) -> Result<Vec<u8>, ClientPlanError> {
 }
 
 /// Format a response from `epmd -names`, `-started`, or `-dump`.
+#[cfg(test)]
 pub fn names_like_client_output(response: &[u8], silent: bool) -> ClientOutput {
     if response.len() < 4 {
         return if silent {
@@ -87,6 +83,7 @@ pub fn names_like_client_output(response: &[u8], silent: bool) -> ClientOutput {
 }
 
 /// Format a response from `epmd -kill`.
+#[cfg(test)]
 pub fn kill_client_output(response: &[u8]) -> ClientOutput {
     if response == b"OK" {
         ClientOutput::success(b"Killed\n".to_vec())
@@ -97,18 +94,8 @@ pub fn kill_client_output(response: &[u8]) -> ClientOutput {
     }
 }
 
-/// Format a response from `epmd -stop NAME`.
-pub fn stop_client_output(response: &[u8]) -> ClientOutput {
-    if response.len() >= 7 {
-        let mut stdout = response[..7].to_vec();
-        stdout.push(b'\n');
-        ClientOutput::success(stdout)
-    } else {
-        local_response_failure(response)
-    }
-}
-
 /// Return an OTP-compatible unexpected-response failure.
+#[cfg(test)]
 pub fn local_response_failure(response: &[u8]) -> ClientOutput {
     let mut stdout = b"epmd: local epmd responded with <".to_vec();
     stdout.extend_from_slice(response);

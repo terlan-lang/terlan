@@ -6,6 +6,7 @@ use serde::Serialize;
 use crate::commands::emit_js::target_contract::JsTargetContract;
 
 use super::super::{fingerprint, write_build_file};
+use super::routes::WebRouteManifestRows;
 
 /// Writes the browser package manifest.
 ///
@@ -31,25 +32,19 @@ pub(super) fn write_browser_manifest(
     web_root: &Path,
     contract: JsTargetContract,
     assets: Vec<WebAssetArtifact>,
-    handlers: Vec<WebHandlerArtifact>,
-    websockets: Vec<WebSocketArtifact>,
-    sse: Vec<WebSseArtifact>,
-    static_responses: Vec<WebStaticResponseArtifact>,
-    file_responses: Vec<WebFileResponseArtifact>,
+    routes: WebRouteManifestRows,
     error_handler: Option<WebErrorHandlerArtifact>,
     incremental: bool,
 ) -> Result<(), String> {
     validate_unique_web_asset_paths(&assets)?;
-    let build_id = web_build_id(
-        contract,
-        &assets,
-        &handlers,
-        &websockets,
-        &sse,
-        &static_responses,
-        &file_responses,
-        error_handler.as_ref(),
-    );
+    let build_id = web_build_id(contract, &assets, &routes, error_handler.as_ref());
+    let WebRouteManifestRows {
+        handlers,
+        websockets,
+        sse,
+        static_responses,
+        file_responses,
+    } = routes;
     let manifest = WebBuildManifest {
         schema: "terlan-web-build-v1",
         target_profile: contract.profile_name,
@@ -107,13 +102,16 @@ fn validate_unique_web_asset_paths(assets: &[WebAssetArtifact]) -> Result<(), St
 fn web_build_id(
     contract: JsTargetContract,
     assets: &[WebAssetArtifact],
-    handlers: &[WebHandlerArtifact],
-    websockets: &[WebSocketArtifact],
-    sse: &[WebSseArtifact],
-    static_responses: &[WebStaticResponseArtifact],
-    file_responses: &[WebFileResponseArtifact],
+    routes: &WebRouteManifestRows,
     error_handler: Option<&WebErrorHandlerArtifact>,
 ) -> String {
+    let WebRouteManifestRows {
+        handlers,
+        websockets,
+        sse,
+        static_responses,
+        file_responses,
+    } = routes;
     let mut text = String::new();
     text.push_str("schema=terlan-web-build-v1\n");
     text.push_str("target_profile=");

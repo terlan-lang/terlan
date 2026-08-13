@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::HashMap;
 use std::fs;
 use std::io::{BufReader, Cursor, ErrorKind, Read, Write};
@@ -14,6 +12,7 @@ use super::tcp::{VmTcpListener, VmTcpRuntime, VmTcpStream};
 
 #[cfg(test)]
 #[path = "tls_test.rs"]
+#[cfg(test)]
 mod tls_test;
 
 /// VM-owned TLS mode.

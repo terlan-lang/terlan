@@ -2,11 +2,12 @@
 
 use std::path::Path;
 
-use crate::runtime::vm::{ReplValue, VmHttpCallResult};
+use crate::runtime::vm::VmHttpCallResult;
 use crate::terlan_native::http as native_http;
 
 use super::super::handler_cache::AotHandlerRuntime;
 use super::request_materialization::vm_request_descriptor_owned;
+use super::route::route_param_argument;
 use super::{HandlerResponse, MatchedWebPackageHandler};
 
 pub(in crate::commands::serve) async fn execute_suspendable_vm_handler_with_package_root_projected(
@@ -31,7 +32,8 @@ pub(in crate::commands::serve) async fn execute_suspendable_vm_handler_with_pack
             matched
                 .params
                 .iter()
-                .map(|(_, value)| ReplValue::String(value.clone())),
+                .map(|(name, value)| route_param_argument(&matched.handler.route, name, value))
+                .collect::<Result<Vec<_>, _>>()?,
         );
         if args.len() != matched.handler.arity {
             return Err(format!(

@@ -1,0 +1,188 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Qualifies a clean source-only checkout before repository self-validation.
+ */
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.io.Console.{eprintln, println}.
+import std.io.{Directory, File}.
+import std.system.Arguments.
+
+import type std.core.Option.
+import type std.io.File.TextFile.
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[self_validation.checkout]: ", message));
+    false.
+
+child(parent: String, name: String): String ->
+    if {
+        String.ends_with(parent, "/") -> String.append(parent, name);
+        true -> String.append(parent, String.append("/", name))
+    }.
+
+python_artifact(path: String): Bool ->
+    String.ends_with(path, ".py")
+        or String.ends_with(path, ".pyc")
+        or String.ends_with(path, ".pyo").
+
+command_surface(path: String): Bool ->
+    String.ends_with(path, "/Makefile")
+        or String.ends_with(path, "/Dockerfile")
+        or String.ends_with(path, "/Justfile")
+        or String.ends_with(path, ".mk")
+        or String.ends_with(path, ".sh")
+        or String.ends_with(path, ".bash")
+        or String.ends_with(path, ".zsh")
+        or String.ends_with(path, ".fish")
+        or String.ends_with(path, ".yml")
+        or String.ends_with(path, ".yaml")
+        or String.ends_with(path, ".toml")
+        or String.ends_with(path, ".json")
+        or String.ends_with(path, ".jsonc")
+        or String.ends_with(path, ".nix")
+        or String.ends_with(path, ".ps1")
+        or String.ends_with(path, ".bat")
+        or String.ends_with(path, ".cmd")
+        or String.ends_with(path, ".gradle")
+        or String.ends_with(path, ".properties")
+        or String.ends_with(path, ".xml").
+
+documentation_surface(path: String): Bool ->
+    String.ends_with(path, ".md") and not String.contains(path, "/docs/roadmap/archive/").
+
+collect_command_surfaces(paths: List[String], output: List[String]): List[String] ->
+    case paths {
+        [] -> output;
+        [path | rest] ->
+            collect_command_surfaces(
+                rest,
+                if {
+                    command_surface(path) or documentation_surface(path) -> [path | output];
+                    true -> output
+                },
+            )
+    }.
+
+first_python_artifact(paths: List[String]): Option[String] ->
+    case paths {
+        [] -> None;
+        [path | rest] ->
+            if {
+                python_artifact(path) -> Some(path);
+                true -> first_python_artifact(rest)
+            }
+    }.
+
+python_command(contents: String): Bool ->
+    let normalized = String.lowercase(contents);
+    String.contains(normalized, "python3")
+        or String.contains(normalized, "python ")
+        or String.contains(normalized, "python\t")
+        or String.contains(normalized, "$(python)")
+        or String.contains(normalized, "/usr/bin/python")
+        or String.contains(normalized, "env python")
+        or String.contains(normalized, "pip install").
+
+python_documentation_command(contents: String): Bool ->
+    let normalized = String.lowercase(contents);
+    String.contains(normalized, "python3")
+        or String.contains(normalized, "`python ")
+        or String.contains(normalized, "$ python")
+        or String.contains(normalized, "> python")
+        or String.contains(normalized, "python -m")
+        or String.contains(normalized, "/usr/bin/python")
+        or String.contains(normalized, "env python")
+        or String.contains(normalized, "pip install").
+
+first_python_command(files: List[TextFile]): Option[String] ->
+    case files {
+        [] -> None;
+        [file | rest] ->
+            if {
+                documentation_surface(File.text_file_path(file))
+                    and python_documentation_command(File.text_file_contents(file)) -> Some(File.text_file_path(file));
+                command_surface(File.text_file_path(file))
+                    and python_command(File.text_file_contents(file)) -> Some(File.text_file_path(file));
+                true -> first_python_command(rest)
+            }
+    }.
+
+scan(checkout: String): Bool ->
+    case Directory.files_recursive_excluding(checkout, []) {
+        Err(reason) -> failure(Directory.message(reason));
+        Ok(paths) ->
+            case first_python_artifact(paths) {
+                Some(path) ->
+                    failure(String.append("Python artifact remains in clean checkout: ", path));
+                None ->
+                    case File.read_text_many(collect_command_surfaces(paths, List.new[String]())) {
+                        Err(reason) -> failure(File.message(reason));
+                        Ok(files) ->
+                            case first_python_command(files) {
+                                Some(path) ->
+                                    failure(
+                                        String.append(
+                                            "Python command remains in clean checkout: ",
+                                            path,
+                                        ),
+                                    );
+                                None ->
+                                    let _printed =
+                                        println(
+                                            String.concat(
+                                                [
+                                                    "clean source checkout qualified ",
+                                                    Int.to_string(List.length(paths)),
+                                                    " files without Python",
+                                                ],
+                                            ),
+                                        );
+                                    true
+                            }
+                    }
+            }
+    }.
+
+run(root: String): Bool ->
+    case Directory.create_temporary("terlan-self-validation-checkout.") {
+        Err(reason) -> failure(Directory.message(reason));
+        Ok(temporary) ->
+            let checkout = child(temporary, "source");
+            let copied =
+                Directory.copy_tree_excluding(
+                    root,
+                    checkout,
+                    [
+                        ".git",
+                        ".terlan",
+                        "_build",
+                        "build",
+                        "dist",
+                        "node_modules",
+                        "target",
+                        "vendor",
+                        "__pycache__",
+                    ],
+                );
+            let valid =
+                case copied {
+                    Err(reason) -> failure(Directory.message(reason));
+                    Ok(Unit) -> scan(checkout)
+                };
+            case Directory.remove_all(temporary) {
+                Err(reason) -> failure(Directory.message(reason));
+                Ok(Unit) -> valid
+            }
+    }.
+
+entry(): Bool ->
+    case {Arguments.get(0), Arguments.count()} {
+        {Some(root), 1} -> run(root);
+        _ -> failure("expected one repository-root argument")
+    }.
+
+assert(entry());
+Unit.

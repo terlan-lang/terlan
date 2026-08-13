@@ -1,0 +1,85 @@
+module terlan.angular.Todo.
+
+template TodoSummary from "./TodoSummary.terl.html" {
+    title: String,
+    state: String,
+}.
+
+pub struct TodoItem {
+    id: Int,
+    title: String,
+    completed: Bool,
+}.
+
+pub struct TodoState {
+    title: String,
+    draft: String,
+    filter: String,
+    next_id: Int,
+}.
+
+pub app_module(): String -> "terlanTodo".
+
+pub controller_name(): String -> "TodoController".
+
+pub initial_state(): TodoState ->
+    TodoState {title: "Terlan Angular Todo", draft: "", filter: "all", next_id: 1}.
+
+pub summary(title: String, state: String): Html ->
+    TodoSummary(title = title, state = state).
+
+pub can_create(text: String): Bool ->
+    text != "".
+
+pub create_item(id: Int, text: String): TodoItem ->
+    TodoItem {id: id, title: "todo:" + text, completed: false}.
+
+pub next_id(current: Int): Int ->
+    current + 1.
+
+pub clear_draft(): String -> "".
+
+pub edit_item(item: TodoItem): TodoItem ->
+    TodoItem {
+        id: item#TodoItem.id,
+        title: item#TodoItem.title + " edited",
+        completed: item#TodoItem.completed,
+    }.
+
+pub toggle_item(item: TodoItem): TodoItem ->
+    TodoItem {
+        id: item#TodoItem.id,
+        title: item#TodoItem.title,
+        completed: if {
+            item#TodoItem.completed -> false;
+            true -> true
+        },
+    }.
+
+pub keep_item(item: TodoItem, removed_id: Int): Bool ->
+    item#TodoItem.id != removed_id.
+
+pub select_filter(filter: String): String ->
+    filter.
+
+pub visible(item: TodoItem, filter: String): Bool ->
+    if {
+        filter == "active" -> if {
+            item#TodoItem.completed -> false;
+            true -> true
+        };
+        filter == "completed" -> item#TodoItem.completed;
+        true -> true
+    }.
+
+pub list_state(count: Int): String ->
+    if {
+        count == 0 -> "empty";
+        true -> "list"
+    }.
+
+pub render_row(item: TodoItem): String ->
+    if {
+        item#TodoItem.completed -> item#TodoItem.title + ":done";
+        true -> item#TodoItem.title + ":active"
+    }.

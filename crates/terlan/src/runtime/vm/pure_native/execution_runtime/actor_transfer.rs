@@ -5,12 +5,14 @@ use std::fmt;
 use crate::runtime::native_image::managed::ManagedActorTransfer;
 
 use super::{PendingNativeContinuation, PureNativeExecutionRuntime};
+use crate::runtime::vm::pure_native::PureNativeSuspension;
 
 /// Complete execution-runtime state detached for one parked actor.
 #[derive(Debug)]
 pub(crate) struct PureNativeActorExecutionTransfer {
     owner_id: u64,
     continuation: PendingNativeContinuation,
+    resident_suspension: Option<PureNativeSuspension>,
     managed: ManagedActorTransfer,
 }
 
@@ -41,7 +43,7 @@ impl PureNativeActorExecutionTransfer {
 #[derive(Debug)]
 pub(crate) struct PureNativeActorExecutionImportFailure {
     reason: String,
-    transfer: PureNativeActorExecutionTransfer,
+    transfer: Box<PureNativeActorExecutionTransfer>,
 }
 
 impl PureNativeActorExecutionImportFailure {
@@ -52,7 +54,7 @@ impl PureNativeActorExecutionImportFailure {
 
     /// Returns the complete state so the source runtime can restore it.
     pub(crate) fn into_transfer(self) -> PureNativeActorExecutionTransfer {
-        self.transfer
+        *self.transfer
     }
 }
 
@@ -84,14 +86,26 @@ impl PureNativeExecutionRuntime {
                 "error[execution_shard.transfer_roots]: cross-actor continuation roots".to_string(),
             );
         }
+        if continuation.completions.iter().any(|frame| {
+            frame
+                .managed
+                .as_ref()
+                .is_some_and(|captures| captures.owner_id() != owner_id)
+        }) {
+            return Err(
+                "error[execution_shard.transfer_roots]: cross-actor completion roots".to_string(),
+            );
+        }
         let managed = self.managed.detach_actor(owner_id)?;
         let continuation = self
             .continuations
             .remove(&owner_id)
             .expect("validated parked continuation remains present");
+        let resident_suspension = self.resident_suspensions.remove(&owner_id);
         Ok(PureNativeActorExecutionTransfer {
             owner_id,
             continuation,
+            resident_suspension,
             managed,
         })
     }
@@ -120,11 +134,41 @@ impl PureNativeExecutionRuntime {
                 "error[execution_shard.transfer_roots]: cross-actor continuation roots".to_string(),
             );
         }
+        if transfer.continuation.completions.iter().any(|frame| {
+            frame
+                .managed
+                .as_ref()
+                .is_some_and(|captures| captures.owner_id() != transfer.owner_id)
+        }) {
+            return Err(
+                "error[execution_shard.transfer_roots]: cross-actor completion roots".to_string(),
+            );
+        }
         if self.continuations.contains_key(&transfer.owner_id) {
             return Err(format!(
                 "error[execution_shard.transfer_collision]: actor {} already owns a continuation",
                 transfer.owner_id
             ));
+        }
+        if self.resident_suspensions.contains_key(&transfer.owner_id) {
+            return Err(format!(
+                "error[execution_shard.transfer_collision]: actor {} already owns a resident suspension",
+                transfer.owner_id
+            ));
+        }
+        if transfer
+            .resident_suspension
+            .as_ref()
+            .is_some_and(|suspension| {
+                suspension.owner_id() != transfer.owner_id
+                    || suspension.request_id() != transfer.continuation.request_id
+                    || suspension.continuation_id() != transfer.continuation.continuation_id
+            })
+        {
+            return Err(
+                "error[execution_shard.transfer_owner]: resident suspension does not match continuation"
+                    .to_string(),
+            );
         }
         self.managed.validate_actor_import(&transfer.managed)
     }
@@ -135,26 +179,34 @@ impl PureNativeExecutionRuntime {
         transfer: PureNativeActorExecutionTransfer,
     ) -> Result<(), PureNativeActorExecutionImportFailure> {
         if let Err(reason) = self.validate_actor_execution_import(&transfer) {
-            return Err(PureNativeActorExecutionImportFailure { reason, transfer });
+            return Err(PureNativeActorExecutionImportFailure {
+                reason,
+                transfer: Box::new(transfer),
+            });
         }
         let PureNativeActorExecutionTransfer {
             owner_id,
             continuation,
+            resident_suspension,
             managed,
         } = transfer;
         if let Err(failure) = self.managed.import_actor(managed) {
             let reason = failure.reason().to_string();
             return Err(PureNativeActorExecutionImportFailure {
                 reason,
-                transfer: PureNativeActorExecutionTransfer {
+                transfer: Box::new(PureNativeActorExecutionTransfer {
                     owner_id,
                     continuation,
+                    resident_suspension,
                     managed: failure.into_transfer(),
-                },
+                }),
             });
         }
         self.next_request_id = self.next_request_id.max(continuation.request_id);
         self.continuations.insert(owner_id, continuation);
+        if let Some(suspension) = resident_suspension {
+            self.resident_suspensions.insert(owner_id, suspension);
+        }
         Ok(())
     }
 }

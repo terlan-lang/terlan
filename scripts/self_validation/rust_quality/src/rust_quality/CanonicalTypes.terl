@@ -1,0 +1,432 @@
+/**
+ * Validates reviewed canonical Rust type candidates from the AST audit.
+ */
+module rust_quality.CanonicalTypes.
+
+import rust_quality.SourceInventory.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{eprintln}.
+import std.io.File.
+
+import type std.core.Option.
+import type std.data.Json.
+
+struct Candidate {
+    identity: String,
+    category: String,
+}.
+
+struct Classification {
+    identity: String,
+    category: String,
+}.
+
+struct ClassificationParse {
+    rows: List[Classification],
+    diagnostics: List[String],
+}.
+
+pub struct CanonicalResult {
+    valid: Bool,
+    diagnostics: List[String],
+    message: String,
+}.
+
+@pure
+contains_identity(rows: List[Classification], identity: String): Bool ->
+    case rows {
+        [] -> false;
+        [row | rest] -> row.identity == identity or contains_identity(rest, identity)
+    }.
+
+@pure
+find_classification(rows: List[Classification], identity: String): Option[Classification] ->
+    case rows {
+        [] -> None;
+        [row | rest] ->
+            if {
+                row.identity == identity -> Some(row);
+                true -> find_classification(rest, identity)
+            }
+    }.
+
+@pure
+ascii_word(byte: Int): Bool ->
+    byte >= 48 and byte <= 57
+        or byte >= 65 and byte <= 90
+        or byte >= 97 and byte <= 122
+        or byte == 95.
+
+@pure
+ascii_whitespace(byte: Int): Bool ->
+    byte == 9 or byte == 10 or byte == 11 or byte == 12 or byte == 13 or byte == 32.
+
+@pure
+rationale_word_count_at(value: String, index: Int, in_word: Bool, count: Int): Int ->
+    if {
+        index == value.byte_size() -> count;
+        ascii_whitespace(value.utf8_byte_at(index)) -> rationale_word_count_at(value, index + 1, false, count);
+        in_word -> rationale_word_count_at(value, index + 1, true, count);
+        true -> rationale_word_count_at(value, index + 1, true, count + 1)
+    }.
+
+@pure
+rationale_word_count(value: String): Int ->
+    rationale_word_count_at(value, 0, false, 0).
+
+@pure
+matches_at(value: String, index: Int, expected: String, offset: Int): Bool ->
+    if {
+        offset == expected.byte_size() -> true;
+        index + offset >= value.byte_size() -> false;
+        value.utf8_byte_at(index + offset) != expected.utf8_byte_at(offset) -> false;
+        true -> matches_at(value, index, expected, offset + 1)
+    }.
+
+@pure
+placeholder_word_at(value: String, index: Int, expected: String): Bool ->
+    let end = index + expected.byte_size();
+    (index == 0 or not ascii_word(value.utf8_byte_at(index - 1)))
+        and end <= value.byte_size()
+        and matches_at(value, index, expected, 0)
+        and (end == value.byte_size() or not ascii_word(value.utf8_byte_at(end))).
+
+@pure
+placeholder_at(value: String, index: Int): Bool ->
+    if {
+        index == value.byte_size() -> false;
+        placeholder_word_at(value, index, "todo")
+            or placeholder_word_at(value, index, "tbd")
+            or placeholder_word_at(value, index, "unassigned")
+            or placeholder_word_at(value, index, "placeholder") -> true;
+        true -> placeholder_at(value, index + 1)
+    }.
+
+@pure
+placeholder(value: String): Bool ->
+    placeholder_at(String.lowercase(value), 0).
+
+@pure
+classification_line(
+    line: String,
+    number: Int,
+    rows: List[Classification],
+    diagnostics: List[String],
+): ClassificationParse ->
+    case String.split(line, "\t") {
+        [identity, category, classification, owner, rationale] ->
+            let duplicate = contains_identity(rows, identity);
+            let supported = category == "equal-shape" or category == "same-name";
+            let complete =
+                classification != ""
+                    and owner != ""
+                    and rationale_word_count(rationale) >= 8
+                    and not placeholder(line);
+            let next_diagnostics =
+                if {
+                    duplicate -> [String.concat(
+    [
+        "docs/quality/RUST_CANONICAL_TYPE_CLASSIFICATIONS.tsv:",
+        Int.to_string(number),
+        ": duplicate `",
+        identity,
+        "`",
+    ],
+) | diagnostics];
+                    not supported -> [String.concat(
+    [
+        "docs/quality/RUST_CANONICAL_TYPE_CLASSIFICATIONS.tsv:",
+        Int.to_string(number),
+        ": invalid category `",
+        category,
+        "`",
+    ],
+) | diagnostics];
+                    not complete -> [String.concat(
+    [
+        "docs/quality/RUST_CANONICAL_TYPE_CLASSIFICATIONS.tsv:",
+        Int.to_string(number),
+        ": classification needs a real owner and invariant rationale",
+    ],
+) | diagnostics];
+                    true -> diagnostics
+                };
+            ClassificationParse(
+                rows = [Classification(identity = identity, category = category) | rows],
+                diagnostics = next_diagnostics,
+            );
+        _ ->
+            ClassificationParse(
+                rows = rows,
+                diagnostics = [String.concat(
+    [
+        "docs/quality/RUST_CANONICAL_TYPE_CLASSIFICATIONS.tsv:",
+        Int.to_string(number),
+        ": expected five TSV fields",
+    ],
+) | diagnostics],
+            )
+    }.
+
+@pure
+parse_classifications_at(
+    lines: List[String],
+    number: Int,
+    rows: List[Classification],
+    diagnostics: List[String],
+): ClassificationParse ->
+    case lines {
+        [] ->
+            ClassificationParse(
+                rows = SourceInventory.reverse(rows),
+                diagnostics = SourceInventory.reverse(diagnostics),
+            );
+        [line | rest] ->
+            if {
+                line == "" or String.starts_with(line, "#") -> parse_classifications_at(rest, number + 1, rows, diagnostics);
+                true -> let parsed = classification_line(line, number, rows, diagnostics);
+                parse_classifications_at(rest, number + 1, parsed.rows, parsed.diagnostics)
+            }
+    }.
+
+@pure
+parse_classifications(source: String): ClassificationParse ->
+    parse_classifications_at(
+        String.split(source, "\n"),
+        1,
+        List.new[Classification](),
+        List.new[String](),
+    ).
+
+candidate_rows(
+    candidates: Json,
+    index: Int,
+    count: Int,
+    category: String,
+    output: List[Candidate],
+): Option[List[Candidate]] ->
+    if {
+        index == count -> Some(output);
+        true -> let {
+            Ok(candidate) <- Json.at(candidates, index);
+            Ok(rendered) <- Json.stringify(candidate)
+        } else {
+            _ -> None
+        };
+        (let digest = Hash.sha256(rendered);
+let identity = digest.utf8_slice(0, 16);
+candidate_rows(
+    candidates,
+    index + 1,
+    count,
+    category,
+    [Candidate(identity = identity, category = category) | output],
+))
+    }.
+
+candidates_for(report: Json, field: String, category: String): Option[List[Candidate]] ->
+    let {
+        Ok(candidates) <- Json.get(report, field);
+        Ok(count) <- Json.length(candidates)
+    } else {
+        _ -> None
+    };
+    candidate_rows(candidates, 0, count, category, List.new[Candidate]()).
+
+@pure
+expected_diagnostics(
+    expected: List[Candidate],
+    rows: List[Classification],
+    output: List[String],
+): List[String] ->
+    case expected {
+        [] -> output;
+        [candidate | rest] ->
+            case find_classification(rows, candidate.identity) {
+                None ->
+                    expected_diagnostics(
+                        rest,
+                        rows,
+                        [String.concat(
+    [
+        "docs/quality/RUST_CANONICAL_TYPE_CLASSIFICATIONS.tsv: missing ",
+        candidate.category,
+        " classification `",
+        candidate.identity,
+        "`",
+    ],
+) | output],
+                    );
+                Some(row) ->
+                    if {
+                        row.category == candidate.category -> expected_diagnostics(rest, rows, output);
+                        true -> expected_diagnostics(
+                            rest,
+                            rows,
+                            [String.concat(
+    [
+        "docs/quality/RUST_CANONICAL_TYPE_CLASSIFICATIONS.tsv: `",
+        candidate.identity,
+        "` is classified as ",
+        row.category,
+        ", expected ",
+        candidate.category,
+    ],
+) | output],
+                        )
+                    }
+            }
+    }.
+
+@pure
+candidate_contains(rows: List[Candidate], identity: String): Bool ->
+    case rows {
+        [] -> false;
+        [row | rest] -> row.identity == identity or candidate_contains(rest, identity)
+    }.
+
+@pure
+stale_diagnostics(
+    rows: List[Classification],
+    expected: List[Candidate],
+    output: List[String],
+): List[String] ->
+    case rows {
+        [] -> output;
+        [row | rest] ->
+            if {
+                candidate_contains(expected, row.identity) -> stale_diagnostics(rest, expected, output);
+                true -> stale_diagnostics(
+                    rest,
+                    expected,
+                    [String.concat(
+    [
+        "docs/quality/RUST_CANONICAL_TYPE_CLASSIFICATIONS.tsv: stale classification `",
+        row.identity,
+        "`",
+    ],
+) | output],
+                )
+            }
+    }.
+
+load(root: String): CanonicalResult ->
+    case File.read_text(SourceInventory.child(root, "target/quality/rust-structural-input.json")) {
+        Err(_reason) ->
+            CanonicalResult(
+                valid = false,
+                diagnostics = [],
+                message = "target/quality/rust-structural-input.json is missing",
+            );
+        Ok(report_source) ->
+            case File.read_text(SourceInventory.child(root, "docs/quality/RUST_CANONICAL_TYPE_CLASSIFICATIONS.tsv")) {
+                Err(_reason) ->
+                    CanonicalResult(
+                        valid = false,
+                        diagnostics = [],
+                        message = "docs/quality/RUST_CANONICAL_TYPE_CLASSIFICATIONS.tsv is missing",
+                    );
+                Ok(classification_source) ->
+                    case Json.parse(report_source) {
+                        Err(reason) ->
+                            CanonicalResult(
+                                valid = false,
+                                diagnostics = [],
+                                message = Json.error_message(reason),
+                            );
+                        Ok(report) ->
+                            let {
+                                Some(equal) <- candidates_for(report, "equal_shape_candidates", "equal-shape");
+                                Some(named) <- candidates_for(report, "same_name_candidates", "same-name");
+                                Ok(parse_failures) <- Json.get(report, "parse_failures");
+                                Ok(parse_count) <- Json.length(parse_failures);
+                                Ok(exact) <- Json.get(report, "exact_normalized_duplicates");
+                                Ok(exact_count) <- Json.length(exact)
+                            } else {
+                                _ ->
+                                    CanonicalResult(
+                                        valid = false,
+                                        diagnostics = [],
+                                        message = "Rust boundary AST report has an unsupported shape",
+                                    )
+                            };
+                            (let parsed = parse_classifications(classification_source);
+let expected = List.concat(equal, named);
+let compared = expected_diagnostics(expected, parsed.rows, parsed.diagnostics);
+let stale = stale_diagnostics(parsed.rows, expected, compared);
+let parse_diagnostics =
+    if {
+        parse_count == 0 -> stale;
+        true -> ["Rust boundary AST inventory contains parse failures" | stale]
+    };
+let diagnostics =
+    if {
+        exact_count == 0 -> parse_diagnostics;
+        true -> ["exact normalized Rust type duplicates remain" | parse_diagnostics]
+    };
+CanonicalResult(valid = true, diagnostics = diagnostics, message = ""))
+                    }
+            }
+    }.
+
+pub check(root: String): CanonicalResult ->
+    load(root).
+
+candidate_identity(source: String): Option[String] ->
+    let {
+        Ok(candidate) <- Json.parse(source);
+        Ok(rendered) <- Json.stringify(candidate)
+    } else {
+        _ -> None
+    };
+    Some(Hash.sha256(rendered).utf8_slice(0, 16)).
+
+pub self_test(): Bool ->
+    let parsed =
+        parse_classifications(
+            "# header\nabc\tequal-shape\tdistinct\towner\tone two three four five six seven eight\n",
+        );
+    let first =
+        candidate_identity(
+            "{\"kind\":\"struct\",\"declarations\":[{\"name\":\"A\",\"path\":\"a.rs\"}]}",
+        );
+    let stable =
+        case first {
+            None -> false;
+            Some(first_id) ->
+                let second =
+                    candidate_identity(
+                        "{\"declarations\":[{\"path\":\"a.rs\",\"name\":\"A\"}],\"kind\":\"struct\"}",
+                    );
+                case second {
+                    None -> false;
+                    Some(second_id) ->
+                        if {
+                            first_id == "3efba4e74fd3aa8d" and second_id == first_id -> true;
+                            true -> let _printed =
+                                eprintln(
+                                    String.concat(
+                                        [
+                                            "canonical identity mismatch: first=",
+                                            first_id,
+                                            " second=",
+                                            second_id,
+                                        ],
+                                    ),
+                                );
+                            false
+                        }
+                }
+        };
+    List.length(parsed.rows) == 1
+        and List.length(parsed.diagnostics) == 0
+        and placeholder("TODO later")
+        and placeholder("owner: tbd")
+        and not placeholder("methodologytodoish")
+        and not placeholder("reviewed invariant")
+        and stable.

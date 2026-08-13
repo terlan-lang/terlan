@@ -20,6 +20,7 @@ The required compiler cache keys are:
 - name resolution
 - typechecking
 - CoreIR construction
+- lexical binding identities and their evidence fingerprint
 - VM lowering
 - generated docs
 - diagnostics
@@ -33,6 +34,9 @@ The required compiler cache keys are:
 Cache invalidation must cover source edits, import graph edits,
 package/lockfile edits, stdlib changes, compiler version changes, target
 profile changes, generated binding changes, and formatter/lint rule changes.
+Unrelated declaration insertion must not renumber stable binding identities in
+an unchanged callable; a lexical-path change must invalidate the affected
+binding evidence and every downstream source-navigation or backend consumer.
 
 The invalidation matrix explicitly includes target profile changes.
 

@@ -1,10 +1,10 @@
 use std::path::Path;
 
+use super::parse_lint_source;
 use crate::commands::lint::diagnostic::{LintDiagnostic, Severity};
 use crate::terlan_syntax::syntax_output::SyntaxAnnotationOutput;
 use crate::terlan_syntax::{
-    parse_module_as_syntax_output, SyntaxDeclarationPayload, SyntaxExprKind, SyntaxExprOutput,
-    SyntaxFunctionClauseOutput,
+    SyntaxDeclarationPayload, SyntaxExprKind, SyntaxExprOutput, SyntaxFunctionClauseOutput,
 };
 
 use property::{has_property_runner_call, is_property_candidate_name};
@@ -28,7 +28,7 @@ pub(super) fn fake_test_diagnostics(path: &Path, source: &str) -> Vec<LintDiagno
         return Vec::new();
     }
 
-    let Ok(module) = parse_module_as_syntax_output(source) else {
+    let Ok(module) = parse_lint_source(path, source) else {
         return Vec::new();
     };
 

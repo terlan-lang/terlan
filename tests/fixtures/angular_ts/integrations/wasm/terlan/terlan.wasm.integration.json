@@ -1,0 +1,31 @@
+{
+  "artifacts": [
+    "build/ng-namespace/std/js/manifests/std_js_bindings.json",
+    "build/ng-namespace/std/js/manifests/std_js_skipped.json"
+  ],
+  "commands": {
+    "check": "make check",
+    "clean": "make clean",
+    "generate": "make generate",
+    "generate_check": "make generate-check",
+    "manifest_check": "make manifest-check",
+    "namespace_check": "make namespace-check",
+    "reserved_build_check": "make reserved-build-check"
+  },
+  "examples": [
+    "examples/basic_app/index.html",
+    "examples/basic_app/angular-ts.json"
+  ],
+  "generator": "tool/generate_terlan_wasm_app.mjs",
+  "name": "terlan-wasm",
+  "project": "terlan.toml",
+  "source": "src/terlan/angular/wasm/App.terl",
+  "status": "reserved-backend-integration",
+  "tests": [
+    "tests/wasm_app_contract.test.mjs",
+    "tool/check_ng_namespace_parity.mjs"
+  ],
+  "typescript_declaration_inputs": [
+    "@types/namespace.d.ts"
+  ]
+}

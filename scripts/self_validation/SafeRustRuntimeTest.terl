@@ -1,0 +1,145 @@
+/**
+ * Proves every shipped Rust entrypoint declares its unsafe-code policy first.
+ */
+module scripts.self_validation.SafeRustRuntime.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.Console.{println}.
+import std.io.File.{read_text, read_text_directory, read_text_tree_excluding, text_file_contents, text_file_path}.
+
+import type std.io.File.{TextFile}.
+
+pub repository_safe_rust_holds(root: String): Bool ->
+    let cargo = read_text(root_path(root, "crates/terlan/Cargo.toml"));
+    let source = read_text_tree_excluding(root_path(root, "crates/terlan/src"), List.new[String]());
+    let summaries = read_text_directory(root_path(root, "std/summaries"));
+    case {cargo, source, summaries} {
+        {Ok(cargo_text), Ok(source_files), Ok(summary_files)} ->
+            let bins = cargo_bin_paths(String.split(cargo_text, "\n"), false, root);
+            required_root_safe(root_path(root, "crates/terlan/src/runtime/native/mod.rs"), source_files)
+                and required_root_safe(
+    root_path(root, "crates/terlan/src/runtime/native_boundary/mod.rs"),
+    source_files,
+)
+                and required_roots_safe(bins, source_files)
+                and generated_boundaries_safe(summary_files);
+        _ -> false
+    }.
+
+cargo_bin_paths(lines: List[String], in_bin: Bool, root: String): List[String] ->
+    case lines {
+        [] -> [];
+        [line | rest] ->
+            let compact = compact_line(line);
+            if {
+                compact == "[[bin]]" -> cargo_bin_paths(rest, true, root);
+                String.starts_with(compact, "[") -> cargo_bin_paths(rest, false, root);
+                in_bin and String.starts_with(compact, "path=") -> let {
+                    Some({_, after_open}) <- String.split_once(line, "\"");
+                    Some({path, _}) <- String.split_once(after_open, "\"")
+                } else {
+                    _ -> cargo_bin_paths(rest, true, root)
+                };
+                [root_path(root, String.append("crates/terlan/", path)) | cargo_bin_paths(rest, true, root)];
+                true -> cargo_bin_paths(rest, in_bin, root)
+            }
+    }.
+
+compact_line(line: String): String ->
+    String.replace(String.replace(line, " ", ""), "\t", "").
+
+root_path(root: String, relative: String): String ->
+    if {
+        root == "." -> relative;
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+required_roots_safe(required: List[String], files: List[TextFile]): Bool ->
+    case required {
+        [] -> true;
+        [path | rest] -> required_root_safe(path, files) and required_roots_safe(rest, files)
+    }.
+
+required_root_safe(path: String, files: List[TextFile]): Bool ->
+    case files {
+        [] -> false;
+        [file | rest] ->
+            if {
+                text_file_path(file) == path -> root_policy_holds(path, text_file_contents(file));
+                true -> required_root_safe(path, rest)
+            }
+    }.
+
+generated_boundaries_safe(files: List[TextFile]): Bool ->
+    case files {
+        [] -> true;
+        [file | rest] ->
+            if {
+                String.ends_with(text_file_path(file), ".native_boundary.rs") -> root_policy_holds(text_file_path(file), text_file_contents(file))
+                    and generated_boundaries_safe(rest);
+                true -> generated_boundaries_safe(rest)
+            }
+    }.
+
+pub root_policy_holds(path: String, contents: String): Bool ->
+    let first = first_meaningful_line(String.split(contents, "\n"));
+    if {
+        String.ends_with(path, "crates/terlan/src/native_worker/main.rs") -> first == "#![deny(unsafe_code)]";
+        true -> first == "#![forbid(unsafe_code)]"
+    }.
+
+first_meaningful_line(lines: List[String]): String ->
+    case lines {
+        [] -> "";
+        [line | rest] ->
+            let compact = compact_line(line);
+            if {
+                compact == "" -> first_meaningful_line(rest);
+                true -> compact
+            }
+    }.
+
+@test
+pub repository_shipped_rust_roots_are_safe(): Bool ->
+    repository_safe_rust_holds(".").
+
+@test
+pub policy_requires_forbid_on_normal_roots(): Bool ->
+    root_policy_holds("./crates/terlan/src/quality/main.rs", "\n#![forbid(unsafe_code)]\n").
+
+@test
+pub policy_requires_deny_on_audited_native_worker(): Bool ->
+    root_policy_holds("./crates/terlan/src/native_worker/main.rs", "#![deny(unsafe_code)]\n")
+        and not root_policy_holds("./crates/terlan/src/native_worker/main.rs", "#![forbid(unsafe_code)]\n").
+
+@test
+pub policy_rejects_comment_before_attribute(): Bool ->
+    not root_policy_holds(
+    "./crates/terlan/src/quality/main.rs",
+    "// unsafe policy follows\n#![forbid(unsafe_code)]\n",
+).
+
+@test
+pub cargo_bin_parser_finds_only_bin_sections(): Bool ->
+    cargo_bin_paths(
+    [
+        "[package]",
+        "path = \"ignored.rs\"",
+        "[[bin]]",
+        "name = \"terlc\"",
+        "path = \"src/compiler/main.rs\"",
+        "[features]",
+        "path = \"also-ignored.rs\"",
+    ],
+    false,
+    ".",
+) == ["crates/terlan/src/compiler/main.rs"].
+
+pub main(): Unit ->
+    if {
+        repository_safe_rust_holds(".") -> println("safe Rust runtime check passed");
+        true -> println("safe Rust runtime check failed")
+    }.

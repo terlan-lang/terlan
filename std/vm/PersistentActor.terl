@@ -327,7 +327,7 @@ pub schema(
     schema: SchemaId,
     fields: List[String],
     events: List[String],
-    mailbox_schema: SchemaId
+    mailbox_schema: SchemaId,
 ): SchemaDeclaration ->
     native.
 
@@ -346,7 +346,7 @@ pub event_variant_schema(
     actor: ActorId,
     schema: SchemaId,
     variant: String,
-    version: Int
+    version: Int,
 ): EventVariantSchemaId ->
     native.
 
@@ -365,7 +365,7 @@ pub durable_adapter_schema(
     adapter: String,
     schema: SchemaId,
     storage_lane: String,
-    metadata_version: Int
+    metadata_version: Int,
 ): DurableAdapterSchemaMetadata ->
     native.
 
@@ -381,7 +381,7 @@ pub durable_adapter_schema(
 pub persistent_actor(
     actor: ActorId,
     schema: SchemaId,
-    storage_lane: String
+    storage_lane: String,
 ): PersistentActorDeclaration ->
     native.
 
@@ -397,7 +397,7 @@ pub persistent_actor(
 pub retention_policy(
     retain_from_sequence: Int,
     schema_migration_floor: Int,
-    audit_floor: Int
+    audit_floor: Int,
 ): RetentionPolicy ->
     native.
 
@@ -414,7 +414,7 @@ pub retention_policy(
 pub family_retention_defaults(
     family: String,
     local: RetentionPolicy,
-    production: RetentionPolicy
+    production: RetentionPolicy,
 ): ActorFamilyRetentionDefaults ->
     native.
 
@@ -431,7 +431,7 @@ pub family_retention_defaults(
 pub audit_retention(
     actor: ActorId,
     policy: RetentionPolicy,
-    required_events: List[String]
+    required_events: List[String],
 ): AuditRetentionPlan ->
     native.
 
@@ -447,7 +447,7 @@ pub audit_retention(
 pub package_retention_policy(
     package_id: String,
     actor: ActorId,
-    policy: RetentionPolicy
+    policy: RetentionPolicy,
 ): PackageRetentionPolicyBinding ->
     native.
 
@@ -465,7 +465,7 @@ pub model_sync_retention_continuity(
     actor: ActorId,
     policy: RetentionPolicy,
     model: String,
-    retained_from_version: Int
+    retained_from_version: Int,
 ): ModelSyncRetentionContinuityPlan ->
     native.
 
@@ -481,7 +481,7 @@ pub model_sync_retention_continuity(
 pub redaction_policy(
     redacted_fields: List[String],
     include_mailbox: Bool,
-    include_resources: Bool
+    include_resources: Bool,
 ): RedactionPolicy ->
     native.
 
@@ -497,7 +497,7 @@ pub snapshot[State](
     actor: ActorId,
     schema: SchemaId,
     sequence: Int,
-    state: State
+    state: State,
 )[Persistable[State]]: SnapshotPlan ->
     native.
 
@@ -571,7 +571,7 @@ pub migration_rollback(
     from_schema: SchemaId,
     to_schema: SchemaId,
     sequence: Int,
-    reason: String
+    reason: String,
 ): MigrationRollbackPlan ->
     native.
 
@@ -590,7 +590,7 @@ pub register_package_migration(
     actor: ActorId,
     from_schema: SchemaId,
     to_schema: SchemaId,
-    migration_name: String
+    migration_name: String,
 ): PackageMigrationRegistration ->
     native.
 

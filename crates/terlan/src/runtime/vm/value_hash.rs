@@ -6,7 +6,6 @@ const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
 /// Stable VM hashing failure exposed to runtime consumers.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmStableHashError {
-    #[cfg(test)]
     UnsupportedValue(&'static str),
 }
 
@@ -93,10 +92,12 @@ fn hash_value(value: &ReplValue) -> Result<u64, VmStableHashError> {
                         hasher.write_u64(*value as u64);
                         results.push(hasher.finish());
                     }
-                    ReplValue::Float(value)
-                    | ReplValue::String(value)
-                    | ReplValue::Atom(value)
-                    | ReplValue::Type(value) => {
+                    ReplValue::Float(value) | ReplValue::String(value) | ReplValue::Atom(value) => {
+                        hasher.write_str(value);
+                        results.push(hasher.finish());
+                    }
+                    #[cfg(test)]
+                    ReplValue::Type(value) => {
                         hasher.write_str(value);
                         results.push(hasher.finish());
                     }
@@ -217,14 +218,7 @@ fn take_results(results: &mut Vec<u64>, len: usize) -> Vec<u64> {
 }
 
 fn invalid_hash_state() -> VmStableHashError {
-    #[cfg(test)]
-    {
-        VmStableHashError::UnsupportedValue("invalid stable hash traversal state")
-    }
-    #[cfg(not(test))]
-    {
-        unreachable!("stable hash traversal must produce exactly one result")
-    }
+    VmStableHashError::UnsupportedValue("invalid stable hash traversal state")
 }
 
 fn value_tag(value: &ReplValue) -> u8 {
@@ -239,6 +233,7 @@ fn value_tag(value: &ReplValue) -> u8 {
         ReplValue::Bool(_) => 8,
         #[cfg(test)]
         ReplValue::RandomGenerator(_) => 11,
+        #[cfg(test)]
         ReplValue::Type(_) => 14,
         ReplValue::Tuple(_) => 15,
         ReplValue::Record { .. } => 16,

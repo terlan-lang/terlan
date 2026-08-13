@@ -37,7 +37,7 @@ pub close_typechecks(receiver: MediaKeySession): Promise[Unit] ->
 pub generate_request_typechecks(
     receiver: MediaKeySession,
     init_data_type: JsString,
-    init_data: BufferSource
+    init_data: BufferSource,
 ): Promise[Unit] ->
     receiver.generate_request(init_data_type, init_data).
 
@@ -54,7 +54,7 @@ pub add_event_listener_typechecks(
     receiver: MediaKeySession,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -62,6 +62,6 @@ pub remove_event_listener_typechecks(
     receiver: MediaKeySession,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

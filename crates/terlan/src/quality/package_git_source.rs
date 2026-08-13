@@ -119,4 +119,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "package_git_source_test.rs"]
+#[cfg(test)]
 mod package_git_source_test;

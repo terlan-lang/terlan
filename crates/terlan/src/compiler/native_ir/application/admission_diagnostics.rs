@@ -3,7 +3,7 @@
 use crate::terlan_typeck::{CoreExprSummary, CoreFunction, CorePattern};
 
 use super::super::{
-    expr_is_native_control, native_return_type, native_type,
+    expr_is_native_control, native_return_type_with_constructors, native_type,
     scalar_replacement::scalar_replace_fixed_aggregates,
 };
 
@@ -46,14 +46,22 @@ pub(super) fn candidate_admission_summary(
         .and_then(|clause| clause.body.core_expr.as_ref())
         .map(|body| scalar_replace_fixed_aggregates(body, constructors));
     let body = normalized_body.as_ref().is_some_and(expr_is_native_control);
+    let body_gap = if body {
+        "none".to_string()
+    } else {
+        normalized_body
+            .as_ref()
+            .map(|body| body.contract_text())
+            .unwrap_or_else(|| "missing".to_string())
+    };
     let mut missing = Vec::new();
     if let Some(clause) = function.clauses.first() {
         missing_core_kinds(&clause.body, &mut missing);
     }
     format!(
-        "native-operation={}, parameters={parameters}, result={}, clause={clause}, body={body}, missing-core={}",
+        "native-operation={}, parameters={parameters}, result={}, clause={clause}, body={body}, body-gap={body_gap}, missing-core={}",
         function.native_operation.is_none(),
-        native_return_type(function).is_some(),
+        native_return_type_with_constructors(function, constructors).is_some(),
         if missing.is_empty() {
             "none".to_string()
         } else {

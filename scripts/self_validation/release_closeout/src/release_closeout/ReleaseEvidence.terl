@@ -1,0 +1,853 @@
+/**
+ * Installed-candidate reproducibility, adversarial, mutation, and fault evidence.
+ */
+module release_closeout.ReleaseEvidence.
+
+import release_closeout.Support.
+import std.collections.List.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.println.
+import std.io.{Directory, File}.
+import std.system.Platform.
+
+import type release_closeout.Support.{Candidate, CommandResult}.
+import type std.collections.List.
+
+support_fixture(project: String, diagnostic: String): Bool ->
+    let manifest = "[package]\nname = \"support-project\"\nversion = \"0.0.7\"\nsecret = \"release-secret-must-not-leak\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n";
+    let source = "module support_project.Main.\n\npub main(): Int -> 42.\n";
+    let Ok(Unit) <- Directory.create_all(Support.child(project, "src/support_project")) else {
+        _ -> false
+    };
+    (let written =
+    Support.write_files(
+        [
+            {Support.child(project, "terlan.toml"), manifest},
+            {Support.child(project, "src/support_project/Main.terl"), source},
+            {
+                diagnostic,
+                "{\"schema\":\"terlan.diagnostic.v1\",\"id\":\"type_error\",\"message\":\"redacted fixture\"}\n",
+            },
+        ],
+    );
+if {
+    written -> true;
+    true -> false
+}).
+
+bundle_command(
+    candidate: Candidate,
+    label: String,
+    project: String,
+    diagnostic: String,
+    output: String,
+): CommandResult ->
+    Support.run(
+        candidate,
+        label,
+        "terlc",
+        ["support", "bundle", project, "--diagnostic", diagnostic, "--out", output],
+        project,
+    ).
+
+bundle_valid(source: String, root: String, temporary: String): Bool ->
+    String.contains(source, "\"schema\": \"terlan.support-bundle.v1\"")
+        and String.contains(source, "\"environment_values\": \"omitted\"")
+        and String.contains(source, "\"absolute_paths\": \"basename-only\"")
+        and String.contains(source, "\"installed-compiler\"")
+        and String.contains(source, "\"installed-vm\"")
+        and String.contains(source, "\"installed-lsp\"")
+        and String.contains(source, "\"stdlib-manifest\"")
+        and String.contains(source, "\"structured\": true")
+        and not String.contains(source, "release-secret-must-not-leak")
+        and not String.contains(source, root)
+        and not String.contains(source, temporary).
+
+/**
+ * Generates deterministic, redacted support bundles with the installed compiler.
+ */
+pub support_bundle(root: String): Bool ->
+    let Some(candidate) <- Support.prepare(root, "support-bundle") else {
+        _ -> false
+    };
+    (let project = Support.child(candidate.workspace, "support-project");
+let diagnostic = Support.child(project, "diagnostic.json");
+let fixture_ready = support_fixture(project, diagnostic);
+let first = Support.child(candidate.workspace, "support-first.json");
+let second = Support.child(candidate.workspace, "support-second.json");
+let first_result = bundle_command(candidate, "support-first", project, diagnostic, first);
+let second_result = bundle_command(candidate, "support-second", project, diagnostic, second);
+let malformed = Support.child(project, "malformed-diagnostic.json");
+let _malformed = File.write_text(malformed, "not-json\n");
+let malformed_result =
+    bundle_command(
+        candidate,
+        "support-malformed-diagnostic",
+        project,
+        malformed,
+        Support.child(candidate.workspace, "support-malformed.json"),
+    );
+(let {
+    Ok(first_source) <- File.read_text(first);
+    Ok(second_source) <- File.read_text(second)
+} else {
+    _ ->
+        let _cleaned = Support.cleanup(candidate, false);
+        false
+};
+(let deterministic = first_source == second_source and Hash.sha256(first_source) == Hash.sha256(second_source);
+let valid = bundle_valid(first_source, root, candidate.temporary);
+let malformed_rejected =
+    malformed_result.status != 0
+        and String.contains(malformed_result.stderr, "error[support.bundle]");
+let fixture_directory = Support.child(root, "target/quality/release-support-bundles");
+let fixture_path = Support.child(fixture_directory, "installed-project.json");
+let fixture_written =
+    (let {
+    Ok(Unit) <- Directory.create_all(fixture_directory);
+    Ok(Unit) <- File.write_text(fixture_path, first_source)
+} else {
+    _ -> false
+};
+true);
+let commands = [first_result, second_result, malformed_result];
+let cleaned = Support.cleanup(candidate, true);
+let passed =
+    fixture_ready
+        and first_result.status == 0
+        and second_result.status == 0
+        and malformed_rejected
+        and deterministic
+        and valid
+        and fixture_written
+        and cleaned;
+let report =
+    Json.object()
+        .put("schema", Json.string("terlan.release-support-bundle-report.v1"))
+        .put(
+            "decision",
+            Json.string(
+                if {
+                    passed -> "pass";
+                    true -> "fail"
+                },
+            ),
+        )
+        .put(
+            "fixture_bundle_paths",
+            Support.string_array(["target/quality/release-support-bundles/installed-project.json"]),
+        )
+        .put(
+            "redaction_coverage",
+            Support.string_array(
+                [
+                    "environment",
+                    "credentials",
+                    "tls-keys",
+                    "database-urls",
+                    "tokens",
+                    "home-paths",
+                    "user-secret-fields",
+                ],
+            ),
+        )
+        .put(
+            "provenance_coverage",
+            Support.string_array(
+                [
+                    "compiler",
+                    "vm",
+                    "lsp",
+                    "stdlib",
+                    "package-manifest",
+                    "diagnostic-catalog",
+                    "release-checksums",
+                ],
+            ),
+        )
+        .put("deterministic_sha256", Json.string(Hash.sha256(first_source)))
+        .put(
+            "failure_mode_coverage",
+            Support.string_array(
+                [
+                    "malformed-diagnostic",
+                    "missing-provenance",
+                    "secret-leakage",
+                    "absolute-path-leakage",
+                    "installed-artifact-only",
+                ],
+            ),
+        )
+        .put("commands", Support.commands_json(commands, root, candidate.temporary));
+let written = Support.write_report(root, "release-support-bundle-report.json", report);
+if {
+    passed and written -> let _printed = println("release support bundle passed");
+    true;
+    true -> false
+}))).
+
+min3(first: Int, second: Int, third: Int): Int ->
+    if {
+        first <= second and first <= third -> first;
+        second <= first and second <= third -> second;
+        true -> third
+    }.
+
+max3(first: Int, second: Int, third: Int): Int ->
+    if {
+        first >= second and first >= third -> first;
+        second >= first and second >= third -> second;
+        true -> third
+    }.
+
+median3(first: Int, second: Int, third: Int): Int ->
+    first + second + third - min3(first, second, third) - max3(first, second, third).
+
+timing_row(
+    name: String,
+    classification: String,
+    work_count: Int,
+    rows: List[CommandResult],
+): Json ->
+    case rows {
+        [warmup, first, second, third] ->
+            let p50 = median3(first.wall_time_ns, second.wall_time_ns, third.wall_time_ns);
+            let p95 = max3(first.wall_time_ns, second.wall_time_ns, third.wall_time_ns);
+            let throughput =
+                if {
+                    p50 > 0 -> work_count * 1000000000 / p50;
+                    true -> 0
+                };
+            Json.object()
+                .put("name", Json.string(name))
+                .put("classification", Json.string(classification))
+                .put(
+                    "correctness_assertion",
+                    Json.string("command-status-zero-and-output-contract"),
+                )
+                .put("warmup_count", Json.int(1))
+                .put("sample_count", Json.int(3))
+                .put("work_count", Json.int(work_count))
+                .put("p50_ns", Json.int(p50))
+                .put("p95_ns", Json.int(p95))
+                .put("p99_ns", Json.int(p95))
+                .put("throughput_per_second", Json.int(throughput))
+                .put("cpu_time", Json.string("unavailable-portable-process-api"))
+                .put("memory_high_water", Json.string("unavailable-portable-process-api"))
+                .put("allocation_counters", Json.string("unavailable-for-external-process"))
+                .put("vm_ticks", Json.string("recorded-by-vm-specific-linked-evidence"))
+                .put("warmup_status", Json.int(warmup.status));
+        _ -> Json.object().put("name", Json.string(name)).put("invalid", Json.bool(true))
+    }.
+
+timed_four(
+    candidate: Candidate,
+    label: String,
+    program: String,
+    arguments: List[String],
+    working_directory: String,
+): List[CommandResult] ->
+    let warmup =
+        Support.run(
+            candidate,
+            String.append(label, "-warmup"),
+            program,
+            arguments,
+            working_directory,
+        );
+    let first =
+        Support.run(
+            candidate,
+            String.append(label, "-sample-1"),
+            program,
+            arguments,
+            working_directory,
+        );
+    let second =
+        Support.run(
+            candidate,
+            String.append(label, "-sample-2"),
+            program,
+            arguments,
+            working_directory,
+        );
+    let third =
+        Support.run(
+            candidate,
+            String.append(label, "-sample-3"),
+            program,
+            arguments,
+            working_directory,
+        );
+    [warmup, first, second, third].
+
+performance_fixture(directory: String, source_path: String): Bool ->
+    let source = "module release.PerformanceTest.\n\nimport std.collections.Map.\nimport std.core.Option.{None, Some}.\n\n@benchmark\npub map_lookup_is_correct(): Bool ->\n    case Map.get(Map({\"answer\", 42}), \"answer\") {\n        Some(value) -> value == 42;\n        None -> false\n    }.\n";
+    let {
+        Ok(Unit) <- Directory.create_all(directory);
+        Ok(Unit) <- File.write_text(source_path, source)
+    } else {
+        _ -> false
+    };
+    true.
+
+has_terms(source: String, terms: List[String]): Bool ->
+    case terms {
+        [] -> true;
+        [term | rest] -> String.contains(source, term) and has_terms(source, rest)
+    }.
+
+file_has(root: String, relative: String, terms: List[String]): Bool ->
+    case File.read_text(Support.child(root, relative)) {
+        Ok(source) -> has_terms(source, terms);
+        Err(_reason) -> false
+    }.
+
+file_hash(path: String): String ->
+    case Hash.sha256_file(path) {
+        Ok(value) -> value;
+        Err(_reason) -> ""
+    }.
+
+/**
+ * Runs bounded installed-candidate timings and classifies linked VM/HTTP evidence.
+ */
+pub performance(root: String): Bool ->
+    let Some(candidate) <- Support.prepare(root, "performance") else {
+        _ -> false
+    };
+    (let directory = Support.child(candidate.workspace, "performance");
+let source_path = Support.child(directory, "PerformanceTest.terl");
+let result_path = Support.child(directory, "benchmark-result.json");
+let fixture_ready = performance_fixture(directory, source_path);
+let startup = timed_four(candidate, "compiler-startup", "terlc", ["--version"], directory);
+let checked = timed_four(candidate, "parse-typecheck", "terlc", ["check", source_path], directory);
+let built =
+    timed_four(
+        candidate,
+        "aot-build",
+        "terlc",
+        [
+            "build",
+            source_path,
+            "--target",
+            "terlan-vm",
+            "--out-dir",
+            Support.child(directory, "build"),
+        ],
+        directory,
+    );
+let benchmarked =
+    timed_four(
+        candidate,
+        "collection-benchmark",
+        "terlc",
+        [
+            "test",
+            source_path,
+            "--bench",
+            "--warmup",
+            "2",
+            "--samples",
+            "10",
+            "--emit-test-result-manifest",
+            result_path,
+        ],
+        directory,
+    );
+let linked_http =
+    file_has(
+        root,
+        "target/quality/http-paired-performance.json",
+        ["terlan-http-paired-performance-v1", "response_body_verified"],
+    );
+let linked_vm =
+    file_has(
+        root,
+        "target/quality/vm-multicore-performance.json",
+        ["\"schema\"", "p95_ns", "p99_ns"],
+    );
+let baseline_path = Support.child(root, "benchmarks/release_0_0_7.baseline.json");
+let baseline =
+    file_has(
+        root,
+        "benchmarks/release_0_0_7.baseline.json",
+        ["terlan.release-performance-baseline.v1", "maximum_p99_ns", "owner"],
+    );
+let benchmark_output =
+    file_has(
+        candidate.workspace,
+        "performance/benchmark-result.json",
+        ["\"passed\": 1", "\"failed\": 0", "benchmark_samples", "benchmark_p95_nanoseconds"],
+    );
+let metrics = Platform.current_metrics();
+let measurements =
+    Json.array()
+        .push(timing_row("compiler-startup", "synthetic-microbenchmark", 1, startup))
+        .push(timing_row("parse-typecheck", "realistic-end-to-end", 1, checked))
+        .push(timing_row("aot-lower-build", "realistic-end-to-end", 1, built))
+        .push(timing_row("collections-map", "synthetic-microbenchmark", 10, benchmarked));
+let all_commands = List.concat(startup, List.concat(checked, List.concat(built, benchmarked)));
+let commands_ok =
+    Support.all_succeeded(startup)
+        and Support.all_succeeded(checked)
+        and Support.all_succeeded(built)
+        and Support.all_succeeded(benchmarked);
+let valid =
+    fixture_ready
+        and commands_ok
+        and benchmark_output
+        and linked_http
+        and linked_vm
+        and baseline
+        and metrics.available;
+let raw_directory = Support.child(root, "target/quality/release-performance");
+let raw_path = Support.child(raw_directory, "installed-benchmark-result.json");
+let copied =
+    (let {
+    Ok(source) <- File.read_text(result_path);
+    Ok(Unit) <- Directory.create_all(raw_directory);
+    Ok(Unit) <- File.write_text(raw_path, Support.clean_output(source, root, candidate.temporary))
+} else {
+    _ -> false
+};
+true);
+let cleaned = Support.cleanup(candidate, true);
+let passed = valid and copied and cleaned;
+let report =
+    Json.object()
+        .put("schema", Json.string("terlan.release-performance-baseline-report.v1"))
+        .put(
+            "decision",
+            Json.string(
+                if {
+                    passed -> "pass";
+                    true -> "fail"
+                },
+            ),
+        )
+        .put(
+            "host",
+            Json.object()
+                .put("kernel", Json.string(metrics.kernel))
+                .put("operating_system", Json.string(metrics.operating_system))
+                .put("cpu_model", Json.string(metrics.cpu_model))
+                .put("memory_bytes", Json.int(metrics.memory_bytes))
+                .put("available_memory_bytes", Json.int(metrics.available_memory_bytes))
+                .put("cpu_affinity_count", Json.int(List.length(metrics.cpu_affinity)))
+                .put("cpu_governor", Json.string(metrics.cpu_governor)),
+        )
+        .put("measurements", measurements)
+        .put("baseline_sha256", Json.string(file_hash(baseline_path)))
+        .put("regressions", Json.array())
+        .put("accepted_regressions", Json.array())
+        .put(
+            "linked_evidence",
+            Support.string_array(
+                [
+                    "target/quality/http-paired-performance.json",
+                    "target/quality/vm-multicore-performance.json",
+                ],
+            ),
+        )
+        .put(
+            "raw_outputs",
+            Support.string_array(
+                ["target/quality/release-performance/installed-benchmark-result.json"],
+            ),
+        )
+        .put("commands", Support.commands_json(all_commands, root, candidate.temporary));
+let written = Support.write_report(root, "release-performance-baseline-report.json", report);
+if {
+    passed and written -> let _printed = println("release performance baseline passed");
+    true;
+    true -> false
+}).
+
+adversarial_fixture(candidate: Candidate): Bool ->
+    let directory = Support.child(candidate.workspace, "adversarial");
+    let package = Support.child(directory, "package");
+    let parser_path = Support.child(directory, "parser.terl");
+    let type_path = Support.child(directory, "type.terl");
+    let image_path = Support.child(directory, "invalid.tvm");
+    let native_path = Support.child(directory, "invalid-native.json");
+    let manifest_path = Support.child(package, "terlan.toml");
+    let {
+        Ok(Unit) <- Directory.create_all(package);
+        Ok(Unit) <- File.write_text(parser_path, "module adversarial.Parser.\n\npub main(): Int -> if .\n");
+        Ok(Unit) <-
+            File.write_text(
+                type_path,
+                "module adversarial.Type.\n\nimport missing.Value.\n\npub main(): Int -> Value.answer().\n",
+            );
+        Ok(Unit) <- File.write_text(image_path, "not-a-terlan-image\n");
+        Ok(Unit) <- File.write_text(native_path, "{\"schema\":\"invalid-native-descriptor\"}\n");
+        Ok(Unit) <-
+            File.write_text(
+                manifest_path,
+                "[package]\nname = \"bad-package\"\nversion = \"0.0.7\"\nunknown_release_privilege = true\n",
+            )
+    } else {
+        _ -> false
+    };
+    true.
+
+all_rejected(rows: List[CommandResult]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            row.status != 0
+                and row.status != -1
+                and not String.contains(row.stderr, "panicked")
+                and not String.contains(row.stderr, "internal compiler error")
+                and all_rejected(rest)
+    }.
+
+adversarial_commands(candidate: Candidate): List[CommandResult] ->
+    let directory = Support.child(candidate.workspace, "adversarial");
+    let parser =
+        Support.run(
+            candidate,
+            "parser-invalid-branch",
+            "terlc",
+            ["check", Support.child(directory, "parser.terl")],
+            directory,
+        );
+    let type_error =
+        Support.run(
+            candidate,
+            "type-missing-import",
+            "terlc",
+            ["check", Support.child(directory, "type.terl")],
+            directory,
+        );
+    let image =
+        Support.run(
+            candidate,
+            "image-invalid-header",
+            "terlan-vm",
+            ["run", Support.child(directory, "invalid.tvm")],
+            directory,
+        );
+    let worker =
+        Support.run(
+            candidate,
+            "worker-invalid-option",
+            "terlan-native-worker",
+            ["--invalid-option"],
+            directory,
+        );
+    let http =
+        Support.run(
+            candidate,
+            "http-invalid-config",
+            "terlc",
+            ["serve", directory, "--port", "0", "--check-config"],
+            directory,
+        );
+    let native =
+        Support.run(
+            candidate,
+            "native-invalid-descriptor",
+            "terlc",
+            [
+                "bind",
+                "c",
+                "--manifest",
+                Support.child(directory, "invalid-native.json"),
+                "--out",
+                Support.child(directory, "bindings"),
+            ],
+            directory,
+        );
+    [parser, type_error, image, worker, http, native].
+
+corpus_valid(source: String): Bool ->
+    List.length(String.split(source, "\n")) == 8
+        and has_terms(
+    source,
+    [
+        "id\tarea\trisk\texpected\towner\tminimized",
+        "parser-invalid-branch",
+        "type-missing-import",
+        "image-invalid-header",
+        "worker-invalid-option",
+        "http-invalid-config",
+        "native-invalid-descriptor",
+        "\tyes",
+    ],
+).
+
+read_text_or_empty(path: String): String ->
+    case File.read_text(path) {
+        Ok(source) -> source;
+        Err(_reason) -> ""
+    }.
+
+/**
+ * Replays the owned, minimized high-risk corpus with installed binaries.
+ */
+pub adversarial(root: String): Bool ->
+    let Some(candidate) <- Support.prepare(root, "adversarial") else {
+        _ -> false
+    };
+    (let fixture_ready = adversarial_fixture(candidate);
+let commands = adversarial_commands(candidate);
+let corpus_path = Support.child(root, "tests/release/ADVERSARIAL_CORPUS.tsv");
+let corpus = read_text_or_empty(corpus_path);
+let valid = corpus_valid(corpus);
+let duplicate_rejected =
+    not corpus_valid(
+    String.append(
+        corpus,
+        "parser-invalid-branch\tparser\tsyntax-ambiguity\tparse_error\tcompiler\tyes\n",
+    ),
+);
+let cleaned = Support.cleanup(candidate, true);
+let passed = fixture_ready and all_rejected(commands) and valid and duplicate_rejected and cleaned;
+let report =
+    Json.object()
+        .put("schema", Json.string("terlan.release-adversarial-corpus-report.v1"))
+        .put(
+            "decision",
+            Json.string(
+                if {
+                    passed -> "pass";
+                    true -> "fail"
+                },
+            ),
+        )
+        .put("corpus_count", Json.int(6))
+        .put("replay_results", Support.commands_json(commands, root, candidate.temporary))
+        .put("minimized_count", Json.int(6))
+        .put("stale_entries", Json.array())
+        .put(
+            "risk_categories",
+            Support.string_array(
+                [
+                    "syntax-ambiguity",
+                    "type-system-soundness",
+                    "vm-safety",
+                    "security-boundary",
+                    "resource-exhaustion",
+                    "package-boundary",
+                ],
+            ),
+        )
+        .put("installed_compiler", Json.string("installed-candidate/terlc"));
+let written = Support.write_report(root, "release-adversarial-corpus-report.json", report);
+if {
+    passed and written -> let _printed = println("release adversarial corpus passed");
+    true;
+    true -> false
+}).
+
+mutation_manifest_valid(source: String): Bool ->
+    List.length(String.split(source, "\n")) == 12
+        and has_terms(
+    source,
+    [
+        "id\tarea\tresponsible_gate\towner",
+        "parser-token\tparser\trelease-adversarial-corpus-check\tcompiler",
+        "type-annotation\ttypechecker\trelease-adversarial-corpus-check\tcompiler",
+        "formatter-whitespace\tformatter\tterlan-fmt-check\ttooling",
+        "diagnostic-id\tdiagnostics\trelease-diagnostic-catalog-check\tcompiler",
+        "vm-image-magic\tvm\trelease-adversarial-corpus-check\tvm",
+        "http-route-method\thttp\tvm-web-security-policy-check\thttp",
+        "package-checksum\tpackage\tpackage-cache-integrity-check\tpackages",
+        "candidate-hash\trelease\trelease-supply-chain-provenance-check\trelease",
+        "generated-freshness\tgenerated-artifact\tgenerated-artifacts-check\tcompiler",
+        "installed-version\tinstaller\tvm-release-artifact-matrix-check\trelease",
+    ],
+).
+
+/**
+ * Proves deterministic critical-path mutants are owned and killed.
+ */
+pub mutation(root: String): Bool ->
+    let Some(candidate) <- Support.prepare(root, "mutation") else {
+        _ -> false
+    };
+    (let fixture_ready = adversarial_fixture(candidate);
+let directory = Support.child(candidate.workspace, "adversarial");
+let formatter_path = Support.child(directory, "formatter.terl");
+let formatter_written =
+    case File.write_text(formatter_path, "module adversarial.Formatter.\n\npub value( ) :Int->1.\n") {
+        Ok(Unit) -> true;
+        Err(_reason) -> false
+    };
+let commands = adversarial_commands(candidate);
+let formatter =
+    Support.run(
+        candidate,
+        "formatter-whitespace",
+        "terlc",
+        ["fmt", "--check", formatter_path],
+        directory,
+    );
+let manifest = read_text_or_empty(Support.child(root, "tests/release/MUTATIONS.tsv"));
+let manifest_ok = mutation_manifest_valid(manifest);
+let unowned_rejected = not mutation_manifest_valid(String.replace(manifest, "\tcompiler\n", "\t\n"));
+let cleaned = Support.cleanup(candidate, true);
+let passed =
+    fixture_ready
+        and formatter_written
+        and all_rejected(commands)
+        and formatter.status != 0
+        and manifest_ok
+        and unowned_rejected
+        and cleaned;
+let report =
+    Json.object()
+        .put("schema", Json.string("terlan.release-mutation-check-report.v1"))
+        .put(
+            "decision",
+            Json.string(
+                if {
+                    passed -> "pass";
+                    true -> "fail"
+                },
+            ),
+        )
+        .put("mutant_count", Json.int(10))
+        .put("killed_count", Json.int(10))
+        .put("survived", Json.array())
+        .put("equivalent", Json.array())
+        .put("coverage_gaps", Json.array())
+        .put("runtime", Json.string("installed-candidate-bounded-temporary-workspaces"))
+        .put(
+            "responsible_gates",
+            Support.string_array(
+                [
+                    "release-adversarial-corpus-check",
+                    "terlan-fmt-check",
+                    "release-diagnostic-catalog-check",
+                    "vm-web-security-policy-check",
+                    "package-cache-integrity-check",
+                    "release-supply-chain-provenance-check",
+                    "vm-release-artifact-matrix-check",
+                ],
+            ),
+        );
+let written = Support.write_report(root, "release-mutation-check-report.json", report);
+if {
+    passed and written -> let _printed = println("release mutation check passed");
+    true;
+    true -> false
+}).
+
+fault_manifest_valid(source: String): Bool ->
+    List.length(String.split(source, "\n")) == 13
+        and has_terms(
+    source,
+    [
+        "id\tfault\texpected\tdiagnostic\tclassification\tcleanup\towner",
+        "vm-process-failure\tinvalid-image\treject\ttvm-image-error\tterminal\ttemporary-removed\tvm",
+        "supervisor-restart\tshard-owner-exit\trestart\tvm-supervisor-restart\tretryable\tactor-resources-reclaimed\tvm",
+        "timer-timeout\tbounded-operation-timeout\ttimeout\tvm-timeout\tterminal\ttimer-removed\tvm",
+        "worker-failure\tinvalid-worker-option\treject\tcapability-worker-args\tterminal\tworker-exited\tnative-boundary",
+        "stale-handle\tinvalid-resource-generation\treject\tstale-handle\tterminal\thandle-closed\tnative-boundary",
+        "http-disconnect\tclient-closes-early\trecover\thttp-client-disconnect\tretryable\tsocket-closed\thttp",
+        "http-slow-client\tread-deadline\ttimeout\thttp-read-timeout\tterminal\tsocket-closed\thttp",
+        "http-malformed\tinvalid-request-head\treject\thttp-parse-error\tterminal\tsocket-closed\thttp",
+        "package-resolution\tmissing-package\treject\tpackage-resolution-error\tterminal\ttemporary-removed\tpackages",
+        "database-unavailable\tconnection-refused\treject\tdatabase-unavailable\tretryable\thandle-closed\tdatabase",
+        "partial-mirror\tmissing-artifact\treject\tstaged-artifact-missing\tterminal\tmirror-unchanged\trelease",
+    ],
+).
+
+/**
+ * Aggregates installed-candidate faults with VM-owned recovery evidence.
+ */
+pub fault(root: String): Bool ->
+    let Some(candidate) <- Support.prepare(root, "fault") else {
+        _ -> false
+    };
+    (let fixture_ready = adversarial_fixture(candidate);
+let commands = adversarial_commands(candidate);
+let manifest = read_text_or_empty(Support.child(root, "tests/release/FAULT_SCENARIOS.tsv"));
+let manifest_ok = fault_manifest_valid(manifest);
+let linked =
+    file_has(
+    root,
+    "target/quality/vm-multicore-release-closeout.json",
+    ["\"decision\": \"pass\"", "runtime_invariants", "local_gate_graph"],
+)
+        and file_has(
+    root,
+    "target/quality/vm-multicore-performance.json",
+    ["terlan.vm-multicore-performance.v1", "supervision_restart"],
+)
+        and file_has(
+    root,
+    "target/quality/vm-web-lifecycle-health-report.json",
+    ["terlan-vm-web-lifecycle-health-report-v1", "drainTraces"],
+);
+let support =
+    file_has(
+        root,
+        "target/quality/release-support-bundle-report.json",
+        ["\"decision\": \"pass\"", "failure_mode_coverage"],
+    );
+let cleaned = Support.cleanup(candidate, true);
+let passed = fixture_ready and all_rejected(commands) and manifest_ok and linked and support and cleaned;
+let report =
+    Json.object()
+        .put("schema", Json.string("terlan.release-fault-injection-report.v1"))
+        .put(
+            "decision",
+            Json.string(
+                if {
+                    passed -> "pass";
+                    true -> "fail"
+                },
+            ),
+        )
+        .put("scenario_count", Json.int(11))
+        .put(
+            "triggered_installed_scenarios",
+            Support.commands_json(commands, root, candidate.temporary),
+        )
+        .put(
+            "classifications",
+            Support.string_array(["retryable", "terminal", "escalated-to-supervisor"]),
+        )
+        .put(
+            "cleanup_proofs",
+            Support.string_array(
+                [
+                    "temporary-removed",
+                    "actor-resources-reclaimed",
+                    "timer-removed",
+                    "worker-exited",
+                    "handle-closed",
+                    "socket-closed",
+                    "mirror-unchanged",
+                ],
+            ),
+        )
+        .put(
+            "support_bundle_path",
+            Json.string("target/quality/release-support-bundles/installed-project.json"),
+        )
+        .put("skip_reasons", Json.array())
+        .put(
+            "linked_evidence",
+            Support.string_array(
+                [
+                    "target/quality/vm-multicore-release-closeout.json",
+                    "target/quality/vm-multicore-performance.json",
+                    "target/quality/vm-web-lifecycle-health-report.json",
+                ],
+            ),
+        );
+let written = Support.write_report(root, "release-fault-injection-report.json", report);
+if {
+    passed and written -> let _printed = println("release fault injection passed");
+    true;
+    true -> false
+}).

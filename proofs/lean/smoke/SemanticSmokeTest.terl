@@ -1,0 +1,10 @@
+/**
+ * Runtime counterpart to the semantic Lean smoke chain.
+ */
+module proofs.lean.smoke.SemanticSmokeTest.
+
+import std.test.Test.{assert_equal}.
+
+@test
+pub coreir_vm_evaluation_matches_proof(): Bool ->
+    assert_equal(42, 20 + 22).

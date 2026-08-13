@@ -1,0 +1,121 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.encoding.Base64.encode/1",
+      "name": "encode",
+      "operation": "std.encoding.base64.encode",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:055d9a98e023d7946fa1a04a9b4b9170e967823b5e626addb72318d5fd101ea1"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.encoding.Base64.decode/1",
+      "name": "decode",
+      "operation": "std.encoding.base64.decode",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:334bc92d18c9c54213d6bd8eee0413fd0b5220cf31345a3ecb0a6945de8b6cd6"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.encoding.Base64.encode_url/1",
+      "name": "encode_url",
+      "operation": "std.encoding.base64.encode_url",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:dcd1560bf63cb4beec68482eca2eb2155afa5f779c0720f11c031a2f3946a56e"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.encoding.Base64.decode_url/1",
+      "name": "decode_url",
+      "operation": "std.encoding.base64.decode_url",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:f874effc25b13a906999f9afa4f820106a0a5e8c0daa07a34e29f54104c167e8"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.encoding.Base64.encode_bytes/1",
+      "name": "encode_bytes",
+      "operation": "std.encoding.base64.encode_bytes",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:1092580d129db23621bb56c35de7fd655da4acafc68ec48dabbbaa0beba02cb2"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.encoding.Base64.decode_bytes/1",
+      "name": "decode_bytes",
+      "operation": "std.encoding.base64.decode_bytes",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:f88829481b83b513513abbc464c4983d80047fbb666f88c61107270c0e83aee7"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.encoding.Base64.encode_url_bytes/1",
+      "name": "encode_url_bytes",
+      "operation": "std.encoding.base64.encode_url_bytes",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:44b9665935f845924933b70cce2cce60988a59a0e6ff70253517c1d580125141"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.encoding.Base64.decode_url_bytes/1",
+      "name": "decode_url_bytes",
+      "operation": "std.encoding.base64.decode_url_bytes",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:6d895b80dc22b19a679ca296662659e98e524f3d1285b49829752c59999ad231"
+    }
+  ],
+  "manifest_digest": "sha256:084cf52d0a7f37222ce74134cebe3e9cc1d1f9526786473ee07b9d12dfee8759",
+  "module": "std_encoding_base64_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "encoding",
+    "error_policy": "typed-result",
+    "module_prefix": "std.encoding.Base64",
+    "notes": "Base64 operations are bounded value transformations.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:cc71e8329d46a3bd23329f29cab20bc33a6f6f2eef1406d7bee710caf2db1941",
+  "source_module": "std.encoding.Base64",
+  "source_path": "std/summaries/std.encoding.Base64.native_boundary.json"
+}

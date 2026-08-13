@@ -1,0 +1,1805 @@
+/**
+ * Diffs, reviews, and seals auditable Lean feature-binding snapshots.
+ */
+module scripts.self_validation.LeanProofSnapshotTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.Directory.create_all.
+import std.io.File.{read_text_many, write_text}.
+import std.system.Environment.
+import std.time.Date.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.data.Json.StringFieldRow.
+import type std.io.File.TextFile.
+
+struct Record {
+    slice_id: String,
+    feature_class: String,
+    owner: String,
+    coverage_status: String,
+    blocker_hash: String,
+}.
+
+struct Change {
+    slice_id: String,
+    feature_class: String,
+    owner: String,
+    previous: String,
+    current: String,
+}.
+
+struct DiffData {
+    accepted: List[Record],
+    current: List[Record],
+    added: List[Record],
+    removed: List[Record],
+    coverage: List[Change],
+    owners: List[Change],
+    new_blockers: List[Change],
+    resolved_blockers: List[Change],
+}.
+
+struct Policy {
+    coverage_regression_tolerance: Int,
+    owner_change_window: Int,
+    max_new_blockers_per_cycle: Int,
+    unresolved_warning_ttl_days: Int,
+    critical_feature_classes: List[String],
+}.
+
+struct Exception {
+    slice_id: String,
+    violation: String,
+    owner: String,
+    blocker_hash: String,
+    expires: String,
+    signed_by: String,
+    signature: String,
+}.
+
+struct Violation {
+    slice_id: String,
+    violation: String,
+    owner: String,
+}.
+
+struct Inputs {
+    index: String,
+    accepted: String,
+    exceptions: String,
+    policy: String,
+    matrix: String,
+    observed_diff: String,
+    observed_impact: String,
+    observed_review: String,
+}.
+
+struct ImpactData {
+    value: Json,
+    changed: List[String],
+}.
+
+@pure
+root_path(root: String, relative: String): String ->
+    if {
+        root == "." -> relative;
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+sha256(source: String): String ->
+    String.append("sha256:", Hash.sha256(source)).
+
+canonical_source(value: Json): String ->
+    case Json.stringify(value) {
+        Ok(source) -> String.append(source, "\n");
+        Err(_reason) -> ""
+    }.
+
+digest(value: Json): String ->
+    sha256(canonical_source(value)).
+
+render(value: Json): Option[String] ->
+    case Json.stringify_pretty(value) {
+        Ok(source) -> Some(String.append(source, "\n"));
+        Err(_reason) -> None
+    }.
+
+snapshot_header(): String -> "slice_id\tfeature_class\towner\tcoverage_status\tblocker_hash".
+
+status_holds(status: String): Bool ->
+    status == "proof_current"
+        or status == "proof_in_progress"
+        or status == "gap_exception"
+        or status == "slice_blocked".
+
+slice_number(slice_id: String): Option[Int] ->
+    let {
+        ["Slice", number_source] <- String.split(slice_id, " ");
+        Some(number) <- Int.from_string(number_source)
+    } else {
+        _ -> None
+    };
+    if {
+        number > 0 and slice_id == String.append("Slice ", Int.to_string(number)) -> Some(number);
+        true -> None
+    }.
+
+record_holds(record: Record): Bool ->
+    record.slice_id != ""
+        and record.feature_class != ""
+        and record.owner != ""
+        and record.coverage_status != ""
+        and record.blocker_hash != ""
+        and status_holds(record.coverage_status)
+        and case slice_number(record.slice_id) {
+    Some(_number) -> true;
+    None -> false
+}.
+
+record_before(left: Record, right: Record): Bool ->
+    case {slice_number(left.slice_id), slice_number(right.slice_id)} {
+        {Some(left_number), Some(right_number)} -> left_number < right_number;
+        _ -> false
+    }.
+
+sort_records(records: List[Record]): List[Record] ->
+    sort_records_at(records, []).
+
+sort_records_at(records: List[Record], reversed: List[Record]): List[Record] ->
+    case records {
+        [] -> reverse_records(reversed, []);
+        [head | rest] ->
+            let minimum = minimum_record(rest, head);
+            sort_records_at(
+                remove_record(records, minimum.slice_id, false, []),
+                [minimum | reversed],
+            )
+    }.
+
+minimum_record(records: List[Record], minimum: Record): Record ->
+    case records {
+        [] -> minimum;
+        [record | rest] ->
+            minimum_record(
+                rest,
+                if {
+                    record_before(record, minimum) -> record;
+                    true -> minimum
+                },
+            )
+    }.
+
+remove_record(
+    records: List[Record],
+    slice_id: String,
+    removed: Bool,
+    reversed: List[Record],
+): List[Record] ->
+    case records {
+        [] -> reverse_records(reversed, []);
+        [record | rest] ->
+            if {
+                not removed and record.slice_id == slice_id -> remove_record(rest, slice_id, true, reversed);
+                true -> remove_record(rest, slice_id, removed, [record | reversed])
+            }
+    }.
+
+duplicate_slice_ids(records: List[Record], prior: String): Bool ->
+    case records {
+        [] -> false;
+        [record | rest] -> record.slice_id == prior or duplicate_slice_ids(rest, record.slice_id)
+    }.
+
+canonical_records(records: List[Record]): Option[List[Record]] ->
+    if {
+        not records_hold(records) -> None;
+        true -> let sorted = sort_records(records);
+        if {
+            duplicate_slice_ids(sorted, "") -> None;
+            true -> Some(sorted)
+        }
+    }.
+
+records_hold(records: List[Record]): Bool ->
+    case records {
+        [] -> true;
+        [record | rest] -> record_holds(record) and records_hold(rest)
+    }.
+
+accepted_records(source: String): Option[List[Record]] ->
+    case String.split(source, "\n") {
+        [header | lines] ->
+            if {
+                header != snapshot_header() -> None;
+                true -> accepted_lines(lines, [])
+            };
+        _ -> None
+    }.
+
+accepted_lines(lines: List[String], reversed: List[Record]): Option[List[Record]] ->
+    case lines {
+        [] -> canonical_records(reverse_records(reversed, []));
+        ["" | rest] -> accepted_lines(rest, reversed);
+        [line | rest] ->
+            case String.split(line, "\t") {
+                [slice_id, feature_class, owner, status, blocker] ->
+                    accepted_lines(
+                        rest,
+                        [Record(
+    slice_id = slice_id,
+    feature_class = feature_class,
+    owner = owner,
+    coverage_status = status,
+    blocker_hash = blocker,
+) | reversed],
+                    );
+                _ -> None
+            }
+    }.
+
+reverse_records(values: List[Record], output: List[Record]): List[Record] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_records(rest, [value | output])
+    }.
+
+current_records(source: String): Option[List[Record]] ->
+    let {
+        Ok(index) <- Json.parse(source);
+        Some(schema) <- json_string(index, "schema");
+        Ok(records_json) <- index.get("records");
+        Ok(rows) <-
+            records_json
+                .string_field_rows(
+                    ["slice_id", "feature_class", "owner", "coverage_status", "blocker_hash"],
+                )
+    } else {
+        _ -> None
+    };
+    if {
+        schema != "terlan.lean-feature-binding.v1" -> None;
+        true -> projected_records(rows, [])
+    }.
+
+projected_records(rows: List[StringFieldRow], reversed: List[Record]): Option[List[Record]] ->
+    case rows {
+        [] -> canonical_records(reverse_records(reversed, []));
+        [row | rest] ->
+            if {
+                not Json.string_field_row_is_object(row) -> None;
+                true -> case Json.string_field_row_values(row) {
+                    [Some(slice_id), Some(feature_class), Some(owner), Some(status), Some(blocker)] ->
+                        projected_records(
+                            rest,
+                            [Record(
+    slice_id = slice_id,
+    feature_class = feature_class,
+    owner = owner,
+    coverage_status = status,
+    blocker_hash = blocker,
+) | reversed],
+                        );
+                    _ -> None
+                }
+            }
+    }.
+
+json_string(value: Json, key: String): Option[String] ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(text) <- field.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+record_exists(records: List[Record], slice_id: String): Bool ->
+    case records {
+        [] -> false;
+        [record | rest] -> record.slice_id == slice_id or record_exists(rest, slice_id)
+    }.
+
+record_value(records: List[Record], slice_id: String, field: String): String ->
+    case records {
+        [] -> "";
+        [record | rest] ->
+            if {
+                record.slice_id != slice_id -> record_value(rest, slice_id, field);
+                field == "feature_class" -> record.feature_class;
+                field == "owner" -> record.owner;
+                field == "coverage_status" -> record.coverage_status;
+                field == "blocker_hash" -> record.blocker_hash;
+                true -> record.slice_id
+            }
+    }.
+
+added_records(current: List[Record], accepted: List[Record]): List[Record] ->
+    added_records_at(current, accepted, []).
+
+added_records_at(
+    current: List[Record],
+    accepted: List[Record],
+    reversed: List[Record],
+): List[Record] ->
+    case current {
+        [] -> reverse_records(reversed, []);
+        [record | rest] ->
+            if {
+                record_exists(accepted, record.slice_id) -> added_records_at(rest, accepted, reversed);
+                true -> added_records_at(rest, accepted, [record | reversed])
+            }
+    }.
+
+changes(accepted: List[Record], current: List[Record]): DiffData ->
+    DiffData(
+        accepted = accepted,
+        current = current,
+        added = added_records(current, accepted),
+        removed = added_records(accepted, current),
+        coverage = field_changes(accepted, current, "coverage"),
+        owners = field_changes(accepted, current, "owner"),
+        new_blockers = field_changes(accepted, current, "new_blocker"),
+        resolved_blockers = field_changes(accepted, current, "resolved_blocker"),
+    ).
+
+field_changes(accepted: List[Record], current: List[Record], kind: String): List[Change] ->
+    field_changes_at(accepted, current, kind, []).
+
+field_changes_at(
+    accepted: List[Record],
+    current: List[Record],
+    kind: String,
+    reversed: List[Change],
+): List[Change] ->
+    case current {
+        [] -> reverse_changes(reversed, []);
+        [actual | rest] ->
+            if {
+                not record_exists(accepted, actual.slice_id) -> field_changes_at(accepted, rest, kind, reversed);
+                true -> let prior =
+                    Record(
+                        slice_id = actual.slice_id,
+                        feature_class = record_value(accepted, actual.slice_id, "feature_class"),
+                        owner = record_value(accepted, actual.slice_id, "owner"),
+                        coverage_status = record_value(accepted, actual.slice_id, "coverage_status"),
+                        blocker_hash = record_value(accepted, actual.slice_id, "blocker_hash"),
+                    );
+                if {
+                    change_holds(prior, actual, kind) -> field_changes_at(accepted, rest, kind, [change(prior, actual, kind) | reversed]);
+                    true -> field_changes_at(accepted, rest, kind, reversed)
+                }
+            }
+    }.
+
+change_holds(prior: Record, actual: Record, kind: String): Bool ->
+    if {
+        kind == "coverage" -> prior.coverage_status != actual.coverage_status;
+        kind == "owner" -> prior.owner != actual.owner;
+        kind == "new_blocker" -> actual.blocker_hash != "none" and actual.blocker_hash != prior.blocker_hash;
+        kind == "resolved_blocker" -> prior.blocker_hash != "none" and actual.blocker_hash == "none";
+        true -> false
+    }.
+
+change(prior: Record, actual: Record, kind: String): Change ->
+    if {
+        kind == "owner" -> Change(
+            slice_id = actual.slice_id,
+            feature_class = actual.feature_class,
+            owner = "",
+            previous = prior.owner,
+            current = actual.owner,
+        );
+        kind == "coverage" -> Change(
+            slice_id = actual.slice_id,
+            feature_class = actual.feature_class,
+            owner = actual.owner,
+            previous = prior.coverage_status,
+            current = actual.coverage_status,
+        );
+        true -> Change(
+            slice_id = actual.slice_id,
+            feature_class = actual.feature_class,
+            owner = actual.owner,
+            previous = prior.blocker_hash,
+            current = actual.blocker_hash,
+        )
+    }.
+
+record_json(record: Record): Json ->
+    Json.object()
+        .put("blocker_hash", Json.string(record.blocker_hash))
+        .put("coverage_status", Json.string(record.coverage_status))
+        .put("feature_class", Json.string(record.feature_class))
+        .put("owner", Json.string(record.owner))
+        .put("slice_id", Json.string(record.slice_id)).
+
+records_json(records: List[Record]): Json ->
+    records_json_at(records, Json.array()).
+
+records_json_at(records: List[Record], output: Json): Json ->
+    case records {
+        [] -> output;
+        [record | rest] -> records_json_at(rest, output.push(record_json(record)))
+    }.
+
+change_json(change: Change, include_owner: Bool): Json ->
+    let value =
+        Json.object()
+            .put("current", Json.string(change.current))
+            .put("feature_class", Json.string(change.feature_class))
+            .put("previous", Json.string(change.previous))
+            .put("slice_id", Json.string(change.slice_id));
+    if {
+        include_owner -> value.put("owner", Json.string(change.owner));
+        true -> value
+    }.
+
+changes_json(changes: List[Change], include_owner: Bool): Json ->
+    changes_json_at(changes, include_owner, Json.array()).
+
+changes_json_at(changes: List[Change], include_owner: Bool, output: Json): Json ->
+    case changes {
+        [] -> output;
+        [change | rest] ->
+            changes_json_at(rest, include_owner, output.push(change_json(change, include_owner)))
+    }.
+
+diff_json(diff: DiffData): Json ->
+    Json.object()
+        .put("accepted_digest", Json.string(digest(records_json(diff.accepted))))
+        .put(
+            "accepted_snapshot",
+            Json.string("proofs/lean/feature_binding/lean-proof-accepted-snapshot.tsv"),
+        )
+        .put("added_rows", records_json(diff.added))
+        .put("coverage_status_delta", changes_json(diff.coverage, true))
+        .put("current_digest", Json.string(digest(records_json(diff.current))))
+        .put("new_blockers", changes_json(diff.new_blockers, true))
+        .put("owner_delta", changes_json(diff.owners, false))
+        .put("removed_rows", records_json(diff.removed))
+        .put("resolved_blockers", changes_json(diff.resolved_blockers, true))
+        .put("schema", Json.string("terlan.lean-proof-binding-diff.v1")).
+
+parse_inputs(inputs: Inputs): Option[DiffData] ->
+    let {
+        Some(accepted) <- accepted_records(inputs.accepted);
+        Some(current) <- current_records(inputs.index)
+    } else {
+        _ -> None
+    };
+    Some(changes(accepted, current)).
+
+string_member(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or string_member(rest, expected)
+    }.
+
+changed_slice_ids(diff: DiffData): List[String] ->
+    changed_ids_from_records(
+        diff.added,
+        changed_ids_from_records(
+            diff.removed,
+            changed_ids_from_changes(
+                diff.coverage,
+                changed_ids_from_changes(
+                    diff.owners,
+                    changed_ids_from_changes(
+                        diff.new_blockers,
+                        changed_ids_from_changes(diff.resolved_blockers, []),
+                    ),
+                ),
+            ),
+        ),
+    ).
+
+changed_ids_from_records(records: List[Record], output: List[String]): List[String] ->
+    case records {
+        [] -> sort_slice_ids(output);
+        [record | rest] -> changed_ids_from_records(rest, add_unique(output, record.slice_id))
+    }.
+
+changed_ids_from_changes(changes: List[Change], output: List[String]): List[String] ->
+    case changes {
+        [] -> sort_slice_ids(output);
+        [change | rest] -> changed_ids_from_changes(rest, add_unique(output, change.slice_id))
+    }.
+
+add_unique(values: List[String], value: String): List[String] ->
+    if {
+        string_member(values, value) -> values;
+        true -> [value | values]
+    }.
+
+sort_slice_ids(values: List[String]): List[String] ->
+    sort_slice_ids_at(values, []).
+
+sort_slice_ids_at(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reverse_strings(reversed, []);
+        [head | rest] ->
+            let minimum = minimum_slice_id(rest, head);
+            sort_slice_ids_at(remove_slice_id(values, minimum, false, []), [minimum | reversed])
+    }.
+
+minimum_slice_id(values: List[String], minimum: String): String ->
+    case values {
+        [] -> minimum;
+        [value | rest] ->
+            minimum_slice_id(
+                rest,
+                if {
+                    slice_id_before(value, minimum) -> value;
+                    true -> minimum
+                },
+            )
+    }.
+
+slice_id_before(left: String, right: String): Bool ->
+    case {slice_number(left), slice_number(right)} {
+        {Some(left_number), Some(right_number)} -> left_number < right_number;
+        _ -> false
+    }.
+
+remove_slice_id(
+    values: List[String],
+    selected: String,
+    removed: Bool,
+    reversed: List[String],
+): List[String] ->
+    case values {
+        [] -> reverse_strings(reversed, []);
+        [value | rest] ->
+            if {
+                not removed and value == selected -> remove_slice_id(rest, selected, true, reversed);
+                true -> remove_slice_id(rest, selected, removed, [value | reversed])
+            }
+    }.
+
+reverse_strings(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_strings(rest, [value | output])
+    }.
+
+change_class(diff: DiffData, slice_id: String): List[String] ->
+    add_class(
+        record_has_slice(diff.added, slice_id),
+        "added_rows",
+        add_class(
+            record_has_slice(diff.removed, slice_id),
+            "removed_rows",
+            add_class(
+                change_has_slice(diff.coverage, slice_id),
+                "coverage_status_delta",
+                add_class(
+                    change_has_slice(diff.owners, slice_id),
+                    "owner_delta",
+                    add_class(
+                        change_has_slice(diff.new_blockers, slice_id),
+                        "new_blockers",
+                        add_class(
+                            change_has_slice(diff.resolved_blockers, slice_id),
+                            "resolved_blockers",
+                            [],
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ).
+
+add_class(present: Bool, name: String, rest: List[String]): List[String] ->
+    if {
+        present -> [name | rest];
+        true -> rest
+    }.
+
+record_has_slice(records: List[Record], slice_id: String): Bool ->
+    record_exists(records, slice_id).
+
+change_has_slice(changes: List[Change], slice_id: String): Bool ->
+    case changes {
+        [] -> false;
+        [change | rest] -> change.slice_id == slice_id or change_has_slice(rest, slice_id)
+    }.
+
+string_array(values: List[String]): Json ->
+    string_array_at(values, Json.array()).
+
+string_array_at(values: List[String], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> string_array_at(rest, output.push(Json.string(value)))
+    }.
+
+impact(diff: DiffData): ImpactData ->
+    let changed = changed_slice_ids(diff);
+    ImpactData(
+        value = Json.object()
+            .put("diff_digest", Json.string(digest(diff_json(diff))))
+            .put("impacts", impact_rows(changed, diff, Json.array()))
+            .put("schema", Json.string("terlan.lean-proof-change-impact.v1")),
+        changed = changed,
+    ).
+
+impact_rows(ids: List[String], diff: DiffData, output: Json): Json ->
+    case ids {
+        [] -> output;
+        [slice_id | rest] ->
+            let owner = owner_for_slice(diff, slice_id);
+            if {
+                owner != "" -> impact_rows(
+                    rest,
+                    diff,
+                    output
+                        .push(
+                            Json.object()
+                                .put("change_classes", string_array(change_class(diff, slice_id)))
+                                .put("owner", Json.string(owner))
+                                .put(
+                                    "roadmap_link",
+                                    Json.string(
+                                        String.append(
+                                            "docs/roadmap/ROADMAP_0_0_7.md#",
+                                            String.replace(String.lowercase(slice_id), " ", "-"),
+                                        ),
+                                    ),
+                                )
+                                .put("slice_id", Json.string(slice_id)),
+                        ),
+                );
+                true -> Json.null()
+            }
+    }.
+
+owner_for_slice(diff: DiffData, slice_id: String): String ->
+    let current_owner = record_value(diff.current, slice_id, "owner");
+    if {
+        current_owner != "" -> current_owner;
+        true -> record_value(diff.accepted, slice_id, "owner")
+    }.
+
+policy(source: String): Option[Policy] ->
+    if {
+        not policy_lines_hold(String.split(source, "\n"), []) -> None;
+        true -> Some(
+            Policy(
+                coverage_regression_tolerance = policy_int(source, "coverage_regression_tolerance"),
+                owner_change_window = policy_int(source, "owner_change_window"),
+                max_new_blockers_per_cycle = policy_int(source, "max_new_blockers_per_cycle"),
+                unresolved_warning_ttl_days = policy_int(source, "unresolved_warning_ttl_days"),
+                critical_feature_classes = policy_classes(source),
+            ),
+        )
+    }.
+
+policy_lines_hold(lines: List[String], keys: List[String]): Bool ->
+    case lines {
+        [] ->
+            same_string_set(
+                keys,
+                [
+                    "coverage_regression_tolerance",
+                    "owner_change_window",
+                    "max_new_blockers_per_cycle",
+                    "unresolved_warning_ttl_days",
+                    "critical_feature_classes",
+                ],
+            );
+        [raw | rest] ->
+            let line = String.trim(first_split(String.split(raw, "#")));
+            if {
+                line == "" -> policy_lines_hold(rest, keys);
+                true -> case String.split(line, "=") {
+                    [raw_key, raw_value] ->
+                        let key = String.trim(raw_key);
+                        let value = String.trim(raw_value);
+                        if {
+                            key == "" or value == "" or string_member(keys, key) -> false;
+                            not policy_value_holds(key, value) -> false;
+                            true -> policy_lines_hold(rest, [key | keys])
+                        };
+                    _ -> false
+                }
+            }
+    }.
+
+first_split(values: List[String]): String ->
+    case values {
+        [value | _rest] -> value;
+        [] -> ""
+    }.
+
+policy_value_holds(key: String, value: String): Bool ->
+    if {
+        key == "critical_feature_classes" -> case policy_classes_source(value) {
+            Some(_classes) -> true;
+            None -> false
+        };
+        true -> case Int.from_string(value) {
+            Some(number) -> number >= 0;
+            None -> false
+        }
+    }.
+
+policy_int(source: String, key: String): Int ->
+    policy_int_lines(String.split(source, "\n"), key).
+
+policy_int_lines(lines: List[String], key: String): Int ->
+    case lines {
+        [] -> -1;
+        [line | rest] ->
+            case String.split(String.trim(line), "=") {
+                [raw_key, raw_value] ->
+                    if {
+                        String.trim(raw_key) == key -> case Int.from_string(String.trim(raw_value)) {
+                            Some(value) -> value;
+                            None -> -1
+                        };
+                        true -> policy_int_lines(rest, key)
+                    };
+                _ -> policy_int_lines(rest, key)
+            }
+    }.
+
+policy_classes(source: String): List[String] ->
+    policy_classes_lines(String.split(source, "\n")).
+
+policy_classes_lines(lines: List[String]): List[String] ->
+    case lines {
+        [] -> [];
+        [line | rest] ->
+            case String.split(String.trim(first_split(String.split(line, "#"))), "=") {
+                [raw_key, raw_value] ->
+                    if {
+                        String.trim(raw_key) == "critical_feature_classes" -> case policy_classes_source(String.trim(raw_value)) {
+                            Some(classes) -> classes;
+                            None -> []
+                        };
+                        true -> policy_classes_lines(rest)
+                    };
+                _ -> policy_classes_lines(rest)
+            }
+    }.
+
+policy_classes_source(source: String): Option[List[String]] ->
+    let {
+        Ok(value) <- Json.parse(source);
+        Ok(length) <- value.length()
+    } else {
+        _ -> None
+    };
+    if {
+        length == 0 -> None;
+        true -> policy_class_rows(value, 0, length, "", [])
+    }.
+
+policy_class_rows(
+    value: Json,
+    index: Int,
+    length: Int,
+    previous: String,
+    reversed: List[String],
+): Option[List[String]] ->
+    if {
+        index == length -> Some(reverse_strings(reversed, []));
+        true -> let {
+            Ok(item) <- value.at(index);
+            Ok(class_name) <- item.as_string()
+        } else {
+            _ -> None
+        };
+        if {
+            class_name == "" -> None;
+            previous != "" and String.compare(previous, class_name) != Lt -> None;
+            true -> policy_class_rows(value, index + 1, length, class_name, [class_name | reversed])
+        }
+    }.
+
+same_string_set(left: List[String], right: List[String]): Bool ->
+    all_strings_in(left, right) and all_strings_in(right, left).
+
+all_strings_in(left: List[String], right: List[String]): Bool ->
+    case left {
+        [] -> true;
+        [value | rest] -> string_member(right, value) and all_strings_in(rest, right)
+    }.
+
+policy_json(policy: Policy): Json ->
+    Json.object()
+        .put("coverage_regression_tolerance", Json.int(policy.coverage_regression_tolerance))
+        .put("critical_feature_classes", string_array(policy.critical_feature_classes))
+        .put("max_new_blockers_per_cycle", Json.int(policy.max_new_blockers_per_cycle))
+        .put("owner_change_window", Json.int(policy.owner_change_window))
+        .put("unresolved_warning_ttl_days", Json.int(policy.unresolved_warning_ttl_days)).
+
+exceptions(source: String, today: std.time.Date.Date): Option[List[Exception]] ->
+    let {
+        Ok(payload) <- Json.parse(source);
+        Some(schema) <- json_string(payload, "schema");
+        Ok(rows) <- payload.get("exceptions");
+        Ok(length) <- rows.length()
+    } else {
+        _ -> None
+    };
+    if {
+        schema != "terlan.lean-proof-exceptions.v1" -> None;
+        true -> case exception_rows(rows, 0, length, today, []) {
+            Some(values) -> Some(sort_exceptions(values));
+            None -> None
+        }
+    }.
+
+exception_rows(
+    rows: Json,
+    index: Int,
+    length: Int,
+    today: std.time.Date.Date,
+    reversed: List[Exception],
+): Option[List[Exception]] ->
+    if {
+        index == length -> Some(reverse_exceptions(reversed, []));
+        true -> let {
+            Ok(row) <- rows.at(index);
+            Ok(keys) <- row.keys();
+            Some(slice_id) <- json_string(row, "slice_id");
+            Some(violation) <- json_string(row, "violation");
+            Some(owner) <- json_string(row, "owner");
+            Some(blocker_hash) <- json_string(row, "blocker_hash");
+            Some(expires) <- json_string(row, "expires");
+            Some(signed_by) <- json_string(row, "signed_by");
+            Some(signature) <- json_string(row, "signature");
+            Some(expiry) <- Date.parse_iso(expires)
+        } else {
+            _ -> None
+        };
+        (let exception =
+    Exception(
+        slice_id = slice_id,
+        violation = violation,
+        owner = owner,
+        blocker_hash = blocker_hash,
+        expires = expires,
+        signed_by = signed_by,
+        signature = signature,
+    );
+if {
+    not same_string_set(
+    keys,
+    ["blocker_hash", "expires", "owner", "signature", "signed_by", "slice_id", "violation"],
+) -> None;
+    not exception_holds(exception, expiry, today, reversed) -> None;
+    true -> exception_rows(rows, index + 1, length, today, [exception | reversed])
+})
+    }.
+
+exception_holds(
+    exception: Exception,
+    expiry: std.time.Date.Date,
+    today: std.time.Date.Date,
+    prior: List[Exception],
+): Bool ->
+    all_nonempty(
+    [
+        exception.slice_id,
+        exception.violation,
+        exception.owner,
+        exception.blocker_hash,
+        exception.expires,
+        exception.signed_by,
+        exception.signature,
+    ],
+)
+        and String.starts_with(exception.blocker_hash, "sha256:")
+        and not Date.is_before(expiry, today)
+        and exception.signature == exception_signature(exception)
+        and not exception_key_exists(prior, exception.slice_id, exception.violation).
+
+all_nonempty(values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> value != "" and all_nonempty(rest)
+    }.
+
+exception_signature(exception: Exception): String ->
+    digest(
+        Json.object()
+            .put("blocker_hash", Json.string(exception.blocker_hash))
+            .put("expires", Json.string(exception.expires))
+            .put("owner", Json.string(exception.owner))
+            .put("signed_by", Json.string(exception.signed_by))
+            .put("slice_id", Json.string(exception.slice_id))
+            .put("violation", Json.string(exception.violation)),
+    ).
+
+exception_key_exists(values: List[Exception], slice_id: String, violation: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            value.slice_id == slice_id and value.violation == violation
+                or exception_key_exists(rest, slice_id, violation)
+    }.
+
+reverse_exceptions(values: List[Exception], output: List[Exception]): List[Exception] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_exceptions(rest, [value | output])
+    }.
+
+sort_exceptions(values: List[Exception]): List[Exception] ->
+    sort_exceptions_at(values, []).
+
+sort_exceptions_at(values: List[Exception], reversed: List[Exception]): List[Exception] ->
+    case values {
+        [] -> reverse_exceptions(reversed, []);
+        [head | rest] ->
+            let minimum = minimum_exception(rest, head);
+            sort_exceptions_at(
+                remove_exception(values, minimum.slice_id, minimum.violation, false, []),
+                [minimum | reversed],
+            )
+    }.
+
+minimum_exception(values: List[Exception], minimum: Exception): Exception ->
+    case values {
+        [] -> minimum;
+        [value | rest] ->
+            minimum_exception(
+                rest,
+                if {
+                    exception_before(value, minimum) -> value;
+                    true -> minimum
+                },
+            )
+    }.
+
+exception_before(left: Exception, right: Exception): Bool ->
+    case {slice_number(left.slice_id), slice_number(right.slice_id)} {
+        {Some(left_number), Some(right_number)} ->
+            left_number < right_number
+                or left_number == right_number and String.compare(left.violation, right.violation) == Lt;
+        _ -> false
+    }.
+
+remove_exception(
+    values: List[Exception],
+    slice_id: String,
+    violation: String,
+    removed: Bool,
+    reversed: List[Exception],
+): List[Exception] ->
+    case values {
+        [] -> reverse_exceptions(reversed, []);
+        [value | rest] ->
+            if {
+                not removed and value.slice_id == slice_id and value.violation == violation -> remove_exception(rest, slice_id, violation, true, reversed);
+                true -> remove_exception(rest, slice_id, violation, removed, [value | reversed])
+            }
+    }.
+
+blocked_status(status: String): Bool ->
+    status != "proof_current" and status_holds(status).
+
+violations(diff: DiffData, policy: Policy): List[Violation] ->
+    let blocked = blocked_increase(diff.coverage, []);
+    let added = added_blocked(diff.added, []);
+    let coverage_violations =
+        if {
+            change_count(blocked) + record_count(added) > policy.coverage_regression_tolerance -> violations_from_changes(
+                blocked,
+                "blocked_coverage_increase",
+                violations_from_records(added, "blocked_coverage_increase", []),
+            );
+            true -> []
+        };
+    let blocker_violations =
+        if {
+            change_count(diff.new_blockers) > policy.max_new_blockers_per_cycle -> violations_from_changes(diff.new_blockers, "new_blocker_limit", []);
+            true -> []
+        };
+    let critical = critical_violations(diff, policy.critical_feature_classes);
+    concat_violations(coverage_violations, concat_violations(blocker_violations, critical)).
+
+blocked_increase(values: List[Change], output: List[Change]): List[Change] ->
+    case values {
+        [] -> reverse_changes(output, []);
+        [value | rest] ->
+            blocked_increase(
+                rest,
+                if {
+                    value.previous == "proof_current" and blocked_status(value.current) -> [value | output];
+                    true -> output
+                },
+            )
+    }.
+
+added_blocked(values: List[Record], output: List[Record]): List[Record] ->
+    case values {
+        [] -> reverse_records(output, []);
+        [value | rest] ->
+            added_blocked(
+                rest,
+                if {
+                    blocked_status(value.coverage_status) -> [value | output];
+                    true -> output
+                },
+            )
+    }.
+
+reverse_changes(values: List[Change], output: List[Change]): List[Change] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_changes(rest, [value | output])
+    }.
+
+change_count(values: List[Change]): Int ->
+    case values {
+        [] -> 0;
+        [_value | rest] -> 1 + change_count(rest)
+    }.
+
+record_count(values: List[Record]): Int ->
+    case values {
+        [] -> 0;
+        [_value | rest] -> 1 + record_count(rest)
+    }.
+
+string_count(values: List[String]): Int ->
+    case values {
+        [] -> 0;
+        [_value | rest] -> 1 + string_count(rest)
+    }.
+
+exception_count(values: List[Exception]): Int ->
+    case values {
+        [] -> 0;
+        [_value | rest] -> 1 + exception_count(rest)
+    }.
+
+violations_from_changes(
+    values: List[Change],
+    kind: String,
+    output: List[Violation],
+): List[Violation] ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            violations_from_changes(
+                rest,
+                kind,
+                [Violation(slice_id = value.slice_id, violation = kind, owner = value.owner) | output],
+            )
+    }.
+
+violations_from_records(
+    values: List[Record],
+    kind: String,
+    output: List[Violation],
+): List[Violation] ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            violations_from_records(
+                rest,
+                kind,
+                [Violation(slice_id = value.slice_id, violation = kind, owner = value.owner) | output],
+            )
+    }.
+
+critical_violations(diff: DiffData, critical: List[String]): List[Violation] ->
+    critical_records(diff.current, critical, critical_changes(diff.coverage, critical, [])).
+
+critical_records(
+    records: List[Record],
+    critical: List[String],
+    output: List[Violation],
+): List[Violation] ->
+    case records {
+        [] -> output;
+        [record | rest] ->
+            let owner = String.lowercase(String.trim(record.owner));
+            critical_records(
+                rest,
+                critical,
+                if {
+                    string_member(critical, record.feature_class)
+                        and (owner == "" or owner == "none" or owner == "unowned") -> [Violation(slice_id = record.slice_id, violation = "ownerless_critical_slice", owner = "none") | output];
+                    true -> output
+                },
+            )
+    }.
+
+critical_changes(
+    changes: List[Change],
+    critical: List[String],
+    output: List[Violation],
+): List[Violation] ->
+    case changes {
+        [] -> output;
+        [change | rest] ->
+            critical_changes(
+                rest,
+                critical,
+                if {
+                    string_member(critical, change.feature_class)
+                        and change.previous == "proof_current"
+                        and change.current != "proof_current" -> [Violation(slice_id = change.slice_id, violation = "critical_proof_downgrade", owner = change.owner) | output];
+                    true -> output
+                },
+            )
+    }.
+
+concat_violations(left: List[Violation], right: List[Violation]): List[Violation] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | concat_violations(rest, right)]
+    }.
+
+exception_for(values: List[Exception], slice_id: String, violation: String): Option[Exception] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.slice_id == slice_id and value.violation == violation -> Some(value);
+                true -> exception_for(rest, slice_id, violation)
+            }
+    }.
+
+exceptions_match(
+    values: List[Exception],
+    violations: List[Violation],
+    current: List[Record],
+): Bool ->
+    exceptions_used(values, violations)
+        and exceptions_bind_current(values, current)
+        and violations_excepted(violations, values).
+
+exceptions_used(values: List[Exception], violations: List[Violation]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            violation_exists(violations, value.slice_id, value.violation)
+                and exceptions_used(rest, violations)
+    }.
+
+violation_exists(values: List[Violation], slice_id: String, violation: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            value.slice_id == slice_id and value.violation == violation
+                or violation_exists(rest, slice_id, violation)
+    }.
+
+exceptions_bind_current(values: List[Exception], current: List[Record]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let owner = record_value(current, value.slice_id, "owner");
+            let blocker = record_value(current, value.slice_id, "blocker_hash");
+            owner != ""
+                and value.owner == owner
+                and blocker != "none"
+                and value.blocker_hash == blocker
+                and exceptions_bind_current(rest, current)
+    }.
+
+violations_excepted(values: List[Violation], exceptions: List[Exception]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            case exception_for(exceptions, value.slice_id, value.violation) {
+                Some(_exception) -> violations_excepted(rest, exceptions);
+                None -> false
+            }
+    }.
+
+exception_json(exception: Exception): Json ->
+    Json.object()
+        .put("blocker_hash", Json.string(exception.blocker_hash))
+        .put("expires", Json.string(exception.expires))
+        .put("owner", Json.string(exception.owner))
+        .put("signature", Json.string(exception.signature))
+        .put("signed_by", Json.string(exception.signed_by))
+        .put("slice_id", Json.string(exception.slice_id))
+        .put("violation", Json.string(exception.violation)).
+
+exception_array(values: List[Exception]): Json ->
+    exception_array_at(values, Json.array()).
+
+exception_array_at(values: List[Exception], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> exception_array_at(rest, output.push(exception_json(value)))
+    }.
+
+review_json(
+    today: String,
+    diff: DiffData,
+    impact: ImpactData,
+    exceptions: List[Exception],
+): Json ->
+    let exception_rows = exception_array(exceptions);
+    Json.object()
+        .put("diff_digest", Json.string(digest(diff_json(diff))))
+        .put("impact_digest", Json.string(digest(impact.value)))
+        .put(
+            "mode",
+            Json.string(
+                if {
+                    exceptions != [] -> "exception-approved";
+                    impact.changed != [] -> "warning";
+                    true -> "clean"
+                },
+            ),
+        )
+        .put("reviewed_at", Json.string(today))
+        .put("reviewed_slice_ids", string_array(impact.changed))
+        .put("schema", Json.string("terlan.lean-proof-binding-review.v1"))
+        .put(
+            "signed_exception_digest",
+            Json.string(
+                if {
+                    exceptions == [] -> "none";
+                    true -> digest(exception_rows)
+                },
+            ),
+        )
+        .put("signed_exceptions", exception_rows).
+
+json_equal_source(source: String, expected: Json): Bool ->
+    let {
+        Ok(observed) <- Json.parse(source);
+        {Ok(left), Ok(right)} <- {Json.stringify(observed), Json.stringify(expected)}
+    } else {
+        _ -> false
+    };
+    left == right.
+
+task_paths(root: String, task: String): List[String] ->
+    if {
+        task == "diff" -> diff_paths(root);
+        task == "impact" -> impact_paths(root);
+        task == "review" -> review_paths(root);
+        task == "snapshot" -> snapshot_paths(root);
+        true -> []
+    }.
+
+diff_paths(root: String): List[String] ->
+    [
+        root_path(root, "proofs/lean/feature_binding/lean_feature_slice_index.json"),
+        root_path(root, "proofs/lean/feature_binding/lean-proof-accepted-snapshot.tsv"),
+    ].
+
+impact_paths(root: String): List[String] ->
+    [
+        root_path(root, "proofs/lean/feature_binding/lean_feature_slice_index.json"),
+        root_path(root, "proofs/lean/feature_binding/lean-proof-accepted-snapshot.tsv"),
+        root_path(root, "build/artifacts/lean-proof-binding-diff.json"),
+    ].
+
+review_paths(root: String): List[String] ->
+    [
+        root_path(root, "proofs/lean/feature_binding/lean_feature_slice_index.json"),
+        root_path(root, "proofs/lean/feature_binding/lean-proof-accepted-snapshot.tsv"),
+        root_path(root, "proofs/lean/feature_binding/lean-proof-block-exceptions.json"),
+        root_path(root, "docs/runtime/lean-proof-block-policy.toml"),
+        root_path(root, "build/artifacts/lean-proof-binding-diff.json"),
+        root_path(root, "build/artifacts/lean-proof-change-impact.json"),
+    ].
+
+snapshot_paths(root: String): List[String] ->
+    [
+        root_path(root, "proofs/lean/feature_binding/lean_feature_slice_index.json"),
+        root_path(root, "proofs/lean/feature_binding/lean-proof-accepted-snapshot.tsv"),
+        root_path(root, "proofs/lean/feature_binding/lean-proof-block-exceptions.json"),
+        root_path(root, "docs/runtime/lean-proof-block-policy.toml"),
+        root_path(root, "build/artifacts/lean-proof-coverage-matrix.tsv"),
+        root_path(root, "build/artifacts/lean-proof-binding-diff.json"),
+        root_path(root, "build/artifacts/lean-proof-change-impact.json"),
+        root_path(root, "build/artifacts/lean-proof-binding-review.json"),
+    ].
+
+inputs_from_task_files(task: String, files: List[TextFile]): Option[Inputs] ->
+    if {
+        task == "diff" -> case files {
+            [index, accepted] ->
+                Some(
+                    Inputs(
+                        index = index.contents,
+                        accepted = accepted.contents,
+                        exceptions = "",
+                        policy = "",
+                        matrix = "",
+                        observed_diff = "",
+                        observed_impact = "",
+                        observed_review = "",
+                    ),
+                );
+            _ -> None
+        };
+        task == "impact" -> case files {
+            [index, accepted, diff] ->
+                Some(
+                    Inputs(
+                        index = index.contents,
+                        accepted = accepted.contents,
+                        exceptions = "",
+                        policy = "",
+                        matrix = "",
+                        observed_diff = diff.contents,
+                        observed_impact = "",
+                        observed_review = "",
+                    ),
+                );
+            _ -> None
+        };
+        task == "review" -> case files {
+            [index, accepted, exceptions, policy, diff, impact] ->
+                Some(
+                    Inputs(
+                        index = index.contents,
+                        accepted = accepted.contents,
+                        exceptions = exceptions.contents,
+                        policy = policy.contents,
+                        matrix = "",
+                        observed_diff = diff.contents,
+                        observed_impact = impact.contents,
+                        observed_review = "",
+                    ),
+                );
+            _ -> None
+        };
+        task == "snapshot" -> case files {
+            [index, accepted, exceptions, policy, matrix, diff, impact, review] ->
+                Some(
+                    Inputs(
+                        index = index.contents,
+                        accepted = accepted.contents,
+                        exceptions = exceptions.contents,
+                        policy = policy.contents,
+                        matrix = matrix.contents,
+                        observed_diff = diff.contents,
+                        observed_impact = impact.contents,
+                        observed_review = review.contents,
+                    ),
+                );
+            _ -> None
+        };
+        true -> None
+    }.
+
+write_json(root: String, relative: String, value: Json): Bool ->
+    let {
+        Some(source) <- render(value);
+        Ok(Unit) <- create_all(root_path(root, "build/artifacts"));
+        Ok(Unit) <- write_text(root_path(root, relative), source)
+    } else {
+        _ -> false
+    };
+    true.
+
+diff_counts(diff: DiffData): String ->
+    String.append(
+        "added_rows=",
+        String.append(
+            Int.to_string(record_count(diff.added)),
+            String.append(
+                ", removed_rows=",
+                String.append(
+                    Int.to_string(record_count(diff.removed)),
+                    String.append(
+                        ", coverage_status_delta=",
+                        String.append(
+                            Int.to_string(change_count(diff.coverage)),
+                            String.append(
+                                ", owner_delta=",
+                                String.append(
+                                    Int.to_string(change_count(diff.owners)),
+                                    String.append(
+                                        ", new_blockers=",
+                                        String.append(
+                                            Int.to_string(change_count(diff.new_blockers)),
+                                            String.append(
+                                                ", resolved_blockers=",
+                                                Int.to_string(change_count(diff.resolved_blockers)),
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ).
+
+run_diff(root: String, diff: DiffData): Bool ->
+    if {
+        write_json(root, "build/artifacts/lean-proof-binding-diff.json", diff_json(diff)) -> let _printed = println(String.append("[lean-proof-snapshot] diff written: ", diff_counts(diff)));
+        true;
+        true -> fail("diff artifact could not be written")
+    }.
+
+print_impact(impact: ImpactData, diff: DiffData): Bool ->
+    if {
+        impact.changed == [] -> let _printed = println("[lean-proof-impact] no feature-binding changes");
+        true;
+        true -> case impact_rows_text(impact.changed, diff, "") {
+            Some(rows) ->
+                let _printed =
+                    println(
+                        String.append(
+                            "[lean-proof-impact] ",
+                            String.append(
+                                Int.to_string(string_count(impact.changed)),
+                                String.append(" affected roadmap slices\n", rows),
+                            ),
+                        ),
+                    );
+                true;
+            None -> false
+        }
+    }.
+
+impact_rows_text(ids: List[String], diff: DiffData, output: String): Option[String] ->
+    case ids {
+        [] -> Some(output);
+        [slice_id | rest] ->
+            let owner = owner_for_slice(diff, slice_id);
+            if {
+                owner != "" -> impact_rows_text(
+                    rest,
+                    diff,
+                    String.append(
+                        output,
+                        String.append(
+                            if {
+                                output == "" -> "";
+                                true -> "\n"
+                            },
+                            String.append(
+                                "  ",
+                                String.append(
+                                    owner,
+                                    String.append(
+                                        ": ",
+                                        String.append(
+                                            slice_id,
+                                            String.append(
+                                                " [",
+                                                String.append(
+                                                    join(change_class(diff, slice_id), ","),
+                                                    String.append(
+                                                        "] docs/roadmap/ROADMAP_0_0_7.md#",
+                                                        String.replace(
+                                                            String.lowercase(slice_id),
+                                                            " ",
+                                                            "-",
+                                                        ),
+                                                    ),
+                                                ),
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                );
+                true -> None
+            }
+    }.
+
+join(values: List[String], separator: String): String ->
+    case values {
+        [] -> "";
+        [value] -> value;
+        [value | rest] -> String.append(value, String.append(separator, join(rest, separator)))
+    }.
+
+run_impact(root: String, inputs: Inputs, diff: DiffData): Bool ->
+    let diff_value = diff_json(diff);
+    let impact_value = impact(diff);
+    if {
+        not json_equal_source(inputs.observed_diff, diff_value) -> fail("diff artifact is missing or stale");
+        not write_json(root, "build/artifacts/lean-proof-change-impact.json", impact_value.value) -> fail("impact artifact could not be written");
+        true -> print_impact(impact_value, diff)
+    }.
+
+review_data(today: String, inputs: Inputs, diff: DiffData): Option[Json] ->
+    let {
+        Some(today_date) <- Date.parse_iso(today);
+        Some(policy_value) <- policy(inputs.policy);
+        Some(exception_rows) <- exceptions(inputs.exceptions, today_date)
+    } else {
+        _ -> None
+    };
+    (let impact_value = impact(diff);
+let hard = violations(diff, policy_value);
+if {
+    not exceptions_match(exception_rows, hard, diff.current) -> None;
+    true -> Some(review_json(today, diff, impact_value, exception_rows))
+}).
+
+run_review(root: String, today: String, inputs: Inputs, diff: DiffData): Bool ->
+    let impact_value = impact(diff);
+    let Some(review) <- review_data(today, inputs, diff) else {
+        _ -> fail("unexcepted or malformed snapshot policy regression")
+    };
+    if {
+        not json_equal_source(inputs.observed_diff, diff_json(diff)) -> fail("diff artifact is missing or stale");
+        not json_equal_source(inputs.observed_impact, impact_value.value) -> fail("impact artifact is missing or stale");
+        not write_json(root, "build/artifacts/lean-proof-binding-review.json", review) -> fail("review artifact could not be written");
+        true -> print_review(review, impact_value.changed)
+    }.
+
+print_review(review: Json, changed: List[String]): Bool ->
+    let mode =
+        case json_string(review, "mode") {
+            Some(value) -> value;
+            None -> "invalid"
+        };
+    let exceptions_count =
+        (let {
+    Ok(rows) <- review.get("signed_exceptions");
+    Ok(value) <- rows.length()
+} else {
+    _ -> -1
+};
+value);
+    let _printed =
+        println(
+            String.append(
+                "[lean-proof-review] mode=",
+                String.append(
+                    mode,
+                    String.append(
+                        " slices=",
+                        String.append(
+                            Int.to_string(string_count(changed)),
+                            String.append(" exceptions=", Int.to_string(exceptions_count)),
+                        ),
+                    ),
+                ),
+            ),
+        );
+    true.
+
+run_snapshot(root: String, today: String, inputs: Inputs, diff: DiffData): Bool ->
+    let impact_value = impact(diff);
+    let {
+        Some(policy_value) <- policy(inputs.policy);
+        Some(expected_review) <- review_data(today, inputs, diff);
+        Ok(observed_review) <- Json.parse(inputs.observed_review);
+        Some(reviewed_at_source) <- json_string(observed_review, "reviewed_at");
+        Some(reviewed_at) <- Date.parse_iso(reviewed_at_source);
+        Some(today_date) <- Date.parse_iso(today)
+    } else {
+        _ -> fail("snapshot review or policy input is malformed")
+    };
+    (let age = Date.days_between(reviewed_at, today_date);
+let maximum_age =
+    if {
+        diff.owners != [] -> policy_value.owner_change_window;
+        true -> policy_value.unresolved_warning_ttl_days
+    };
+if {
+    not json_equal_source(inputs.observed_diff, diff_json(diff)) -> fail("diff artifact is missing or stale");
+    not json_equal_source(inputs.observed_impact, impact_value.value) -> fail("impact artifact is missing or stale");
+    not json_equal_source(inputs.observed_review, expected_review) -> fail("review changed during consistency check");
+    age > maximum_age -> fail("review is older than the policy limit");
+    true -> persist_snapshot(root, today, inputs, diff, impact_value, expected_review, policy_value)
+}).
+
+persist_snapshot(
+    root: String,
+    today: String,
+    inputs: Inputs,
+    diff: DiffData,
+    impact: ImpactData,
+    review: Json,
+    policy: Policy,
+): Bool ->
+    let relative = String.append("build/artifacts/lean-proof-snapshots/", today);
+    let canonical_index =
+        Json.object()
+            .put("records", records_json(diff.current))
+            .put("schema", Json.string("terlan.lean-proof-snapshot.v1"))
+            .put("source", Json.string("proofs/lean/feature_binding/lean_feature_slice_index.json"));
+    let policy_result =
+        Json.object()
+            .put("policy", policy_json(policy))
+            .put("policy_digest", Json.string(digest(policy_json(policy))))
+            .put("schema", Json.string("terlan.lean-proof-policy-result.v1"))
+            .put("status", Json.string("pass"));
+    let {
+        Some(canonical_source) <- render(canonical_index);
+        Some(diff_source) <- render(diff_json(diff));
+        Some(impact_source) <- render(impact.value);
+        Some(review_source) <- render(review);
+        Some(policy_source) <- render(policy_result)
+    } else {
+        _ -> fail("snapshot JSON could not be rendered")
+    };
+    case create_all(root_path(root, relative)) {
+        Ok(Unit) ->
+            write_snapshot_files(
+                root,
+                relative,
+                inputs.matrix,
+                review,
+                impact.changed,
+                canonical_source,
+                diff_source,
+                impact_source,
+                review_source,
+                policy_source,
+            );
+        Err(_reason) -> fail("snapshot directory could not be created")
+    }.
+
+write_snapshot_files(
+    root: String,
+    relative: String,
+    matrix: String,
+    review: Json,
+    changed: List[String],
+    canonical_source: String,
+    diff_source: String,
+    impact_source: String,
+    review_source: String,
+    policy_source: String,
+): Bool ->
+    let {
+        Ok(Unit) <-
+            write_text(
+                root_path(root, String.append(relative, "/canonical-index.json")),
+                canonical_source,
+            );
+        Ok(Unit) <- write_text(root_path(root, String.append(relative, "/diff.json")), diff_source);
+        Ok(Unit) <- write_text(root_path(root, String.append(relative, "/impact.json")), impact_source);
+        Ok(Unit) <- write_text(root_path(root, String.append(relative, "/review.json")), review_source);
+        Ok(Unit) <-
+            write_text(
+                root_path(root, String.append(relative, "/policy-result.json")),
+                policy_source,
+            );
+        Ok(Unit) <- write_text(root_path(root, String.append(relative, "/coverage-matrix.tsv")), matrix)
+    } else {
+        _ -> false
+    };
+    (let _reviewed = print_review(review, changed); let _printed = println(String.append("[lean-proof-snapshot] consistency passed: ", relative)); true).
+
+fail(message: String): Bool ->
+    let _printed = println(String.append("Lean proof snapshot failed: ", message));
+    false.
+
+selected_task(): String ->
+    environment_or("TERLAN_LEAN_SNAPSHOT_TASK", "diff").
+
+repository_task_holds(): Bool ->
+    let root = environment_or("TERLAN_LEAN_PROOF_ROOT", Environment.current_directory());
+    let today = Date.to_iso(Date.today_utc());
+    let task = selected_task();
+    case read_text_many(task_paths(root, task)) {
+        Ok(files) ->
+            case inputs_from_task_files(task, files) {
+                Some(inputs) ->
+                    case parse_inputs(inputs) {
+                        Some(diff) ->
+                            if {
+                                task == "diff" -> run_diff(root, diff);
+                                task == "impact" -> run_impact(root, inputs, diff);
+                                task == "review" -> run_review(root, today, inputs, diff);
+                                task == "snapshot" -> run_snapshot(root, today, inputs, diff);
+                                true -> fail("unknown snapshot task")
+                            };
+                        None -> fail("current or accepted snapshot is malformed")
+                    };
+                None -> fail("snapshot input batch has an unexpected shape")
+            };
+        Err(_reason) -> fail("snapshot inputs could not be read")
+    }.
+
+@test
+pub ordering_only_changes_are_empty(): Bool ->
+    let first =
+        Record(
+            slice_id = "Slice 1",
+            feature_class = "coreir",
+            owner = "compiler",
+            coverage_status = "proof_current",
+            blocker_hash = "none",
+        );
+    let second =
+        Record(
+            slice_id = "Slice 2",
+            feature_class = "vm_runtime",
+            owner = "vm",
+            coverage_status = "slice_blocked",
+            blocker_hash = "sha256:old",
+        );
+    let diff = changes([first, second], [second, first]);
+    record_count(diff.added) == 0
+        and record_count(diff.removed) == 0
+        and change_count(diff.coverage) == 0
+        and change_count(diff.owners) == 0
+        and change_count(diff.new_blockers) == 0
+        and change_count(diff.resolved_blockers) == 0.
+
+@test
+pub required_change_classes_are_emitted(): Bool ->
+    let old =
+        [
+            Record(
+                slice_id = "Slice 1",
+                feature_class = "coreir",
+                owner = "compiler",
+                coverage_status = "proof_current",
+                blocker_hash = "none",
+            ),
+            Record(
+                slice_id = "Slice 2",
+                feature_class = "vm_runtime",
+                owner = "vm",
+                coverage_status = "slice_blocked",
+                blocker_hash = "sha256:old",
+            ),
+        ];
+    let current =
+        [
+            Record(
+                slice_id = "Slice 1",
+                feature_class = "coreir",
+                owner = "runtime",
+                coverage_status = "proof_in_progress",
+                blocker_hash = "sha256:new",
+            ),
+            Record(
+                slice_id = "Slice 3",
+                feature_class = "parser",
+                owner = "compiler",
+                coverage_status = "proof_current",
+                blocker_hash = "none",
+            ),
+        ];
+    let diff = changes(old, current);
+    record_count(diff.added) > 0
+        and record_count(diff.removed) > 0
+        and change_count(diff.coverage) > 0
+        and change_count(diff.owners) > 0
+        and change_count(diff.new_blockers) > 0.
+
+@test
+pub policy_classes_are_generic_sorted_unique_values(): Bool ->
+    let prefix = "coverage_regression_tolerance = 0\nowner_change_window = 1\nmax_new_blockers_per_cycle = 2\nunresolved_warning_ttl_days = 3\ncritical_feature_classes = ";
+    case policy(String.append(prefix, "[\"alpha\", \"zeta\"]\n")) {
+        Some(value) ->
+            value.critical_feature_classes == ["alpha", "zeta"]
+                and case policy(String.append(prefix, "[\"zeta\", \"alpha\"]\n")) {
+    None -> true;
+    Some(_invalid) -> false
+};
+        None -> false
+    }.
+
+@test
+pub selected_snapshot_task_holds(): Bool ->
+    repository_task_holds().

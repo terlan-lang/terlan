@@ -17,6 +17,8 @@ pub(super) struct TransitionFlags {
 
 pub(super) fn transition_status(operation: NativeTransitionOperation) -> i32 {
     match operation {
+        NativeTransitionOperation::Debug => status::DEBUG,
+        NativeTransitionOperation::Identity => status::IDENTITY,
         NativeTransitionOperation::Yield => status::YIELD,
         NativeTransitionOperation::Send => status::SEND,
         NativeTransitionOperation::SendTyped => status::SEND_TYPED,
@@ -38,6 +40,8 @@ pub(super) fn transition_flags(
     builder: &mut FunctionBuilder<'_>,
     call_status: Value,
 ) -> TransitionFlags {
+    let debugged = status_flag(builder, call_status, status::DEBUG);
+    let identified = status_flag(builder, call_status, status::IDENTITY);
     let yielded = status_flag(builder, call_status, status::YIELD);
     let sent = status_flag(builder, call_status, status::SEND);
     let typed_sent = status_flag(builder, call_status, status::SEND_TYPED);
@@ -54,14 +58,16 @@ pub(super) fn transition_flags(
     let capability = status_flag(builder, call_status, status::CAPABILITY);
     let any_sent = builder.ins().bor(sent, typed_sent);
     let yielded_or_sent = builder.ins().bor(yielded, any_sent);
+    let debugged_or_effect = builder.ins().bor(debugged, yielded_or_sent);
     let timed_or_linked = builder.ins().bor(timed, linked);
-    let effect_transition = builder.ins().bor(yielded_or_sent, timed_or_linked);
+    let effect_transition = builder.ins().bor(debugged_or_effect, timed_or_linked);
     let any_received = builder.ins().bor(received, typed_received);
     let received_or_spawned = builder.ins().bor(any_received, spawned);
+    let received_spawned_or_identified = builder.ins().bor(received_or_spawned, identified);
     let monitored_or_resource = builder.ins().bor(monitored, resource);
     let injected_input = builder
         .ins()
-        .bor(received_or_spawned, monitored_or_resource);
+        .bor(received_spawned_or_identified, monitored_or_resource);
     let terminal = builder.ins().bor(cancelled, failed);
     let terminal_or_scheduled = builder.ins().bor(terminal, scheduled);
     let effect_or_terminal = builder.ins().bor(effect_transition, terminal_or_scheduled);

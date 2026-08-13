@@ -19,12 +19,12 @@ pub generated_binding_surface_contract(): Bool -> true.
 
 pub cancel_animation_frame_typechecks(
     receiver: AnimationFrameProvider,
-    handle: JsNumber
+    handle: JsNumber,
 ): std.core.Unit ->
     receiver.cancel_animation_frame(handle).
 
 pub request_animation_frame_typechecks(
     receiver: AnimationFrameProvider,
-    callback: FrameRequestCallback
+    callback: FrameRequestCallback,
 ): JsNumber ->
     receiver.request_animation_frame(callback).

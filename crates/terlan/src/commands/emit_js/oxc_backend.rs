@@ -25,6 +25,9 @@ pub(crate) use direct_ast::emit_minimal_direct_oxc_ast_module;
 ///   Unsupported modules fall back to bootstrap CoreIR-to-JS text lowering and
 ///   are then parsed/reprinted through Oxc codegen.
 pub(crate) fn emit_core_module_with_oxc_codegen(module: &CoreModule) -> Result<String, String> {
+    if let Some(source) = super::tail_recursion::emit_stack_safe_tail_module(module) {
+        return emit_js_with_oxc_codegen(&source);
+    }
     if let Some(js) = direct_ast::emit_core_module_with_direct_oxc_ast(module) {
         return Ok(js);
     }

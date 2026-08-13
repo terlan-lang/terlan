@@ -533,3 +533,23 @@ fn send_to_owned_actor_defers_integration_until_receiver_safepoint() {
         .release_actor_mutator(token, VmActorLifecycle::Yielding)
         .expect("release receiver");
 }
+
+#[test]
+fn debugger_mailbox_snapshot_is_bounded_without_consuming_or_advancing_cursor() {
+    let mut table = VmProcessTable::default();
+    let sender = table.spawn_root(source("sender"));
+    let receiver = table.spawn_root(source("receiver"));
+    for value in 0..140 {
+        table
+            .send(sender, receiver, ReplValue::Int(value))
+            .expect("queue debugger mailbox fixture");
+    }
+
+    let snapshot = table
+        .mailbox_snapshot(receiver, 128)
+        .expect("capture bounded mailbox");
+    assert_eq!(snapshot.messages.len(), 128);
+    assert_eq!(snapshot.omitted_messages, 12);
+    assert_eq!(snapshot.selective_receive_cursor, 0);
+    assert_eq!(table.get(receiver).expect("receiver").mailbox_len(), 140);
+}

@@ -1,0 +1,741 @@
+/**
+ * Generates and validates deterministic documentation from an installed release artifact.
+ */
+module docs_static_release_parity.Main.
+
+import docs_static_release_parity.editor_release_parity.Main as EditorReleaseParity.
+import docs_static_release_parity.{Artifact, Support}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.Directory.
+import std.io.File.{read_text, size, write_text}.
+import std.system.Environment.
+import std.vm.Process.
+
+import type docs_static_release_parity.Artifact.ReleasePlatform.
+import type docs_static_release_parity.Support.{Coverage, SiteSummary}.
+import type std.core.Option.
+import type std.data.Json.
+
+/**
+ * Exposes editor closeout stages through the package's single sealed VM image.
+ */
+pub editor_release_parity_extract_entry(): Unit ->
+    EditorReleaseParity.extract_entry().
+
+pub editor_release_parity_surface_entry(): Unit ->
+    EditorReleaseParity.surface_entry().
+
+pub editor_release_parity_packaged_smokes_entry(): Unit ->
+    EditorReleaseParity.packaged_smokes_entry().
+
+pub editor_release_parity_parser_freshness_entry(): Unit ->
+    EditorReleaseParity.parser_freshness_entry().
+
+pub editor_release_parity_assemble_surface_entry(): Unit ->
+    EditorReleaseParity.assemble_surface_entry().
+
+pub editor_release_parity_lsp_entry(): Unit ->
+    EditorReleaseParity.lsp_entry().
+
+pub editor_release_parity_adversarial_entry(): Unit ->
+    EditorReleaseParity.adversarial_entry().
+
+pub editor_release_parity_closeout_entry(): Unit ->
+    EditorReleaseParity.closeout_entry().
+
+pub editor_release_parity_artifact_size_entry(): Unit ->
+    EditorReleaseParity.artifact_size_entry().
+
+repository_root(): String ->
+    case Environment.get("TERLAN_REPOSITORY_ROOT") {
+        Some(path) -> path;
+        None -> Environment.current_directory()
+    }.
+
+report_path(repository: String): String ->
+    Support.child(repository, "target/quality/docs-static-release-parity-report.json").
+
+artifact_size_report_path(repository: String): String ->
+    Support.child(repository, "target/quality/docs-static-release-parity-artifact-size.json").
+
+artifact_image_path(repository: String): String ->
+    Support.child(repository, artifact_image_relative_path()).
+
+artifact_image_relative_path(): String ->
+    "target/self-validation/docs-static-release-parity/vm/docs_static_release_parity_Main.tvm".
+
+artifact_size_maximum_bytes(): Int -> 134217728.
+
+json_string(value: Json, name: String): Option[String] ->
+    let {
+        Ok(field) <- value.get(name);
+        Ok(text) <- field.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+read_json(path: String): Option[Json] ->
+    let {
+        Ok(source) <- read_text(path);
+        Ok(value) <- Json.parse(source)
+    } else {
+        _ -> None
+    };
+    Some(value).
+
+copy_text(source: String, destination: String): Bool ->
+    let {
+        Ok(contents) <- read_text(source);
+        Ok(_unit) <- write_text(destination, contents)
+    } else {
+        _ -> false
+    };
+    true.
+
+write_ok(path: String, contents: String): Bool ->
+    case write_text(path, contents) {
+        Ok(_unit) -> true;
+        Err(_reason) -> false
+    }.
+
+create_ok(path: String): Bool ->
+    case Directory.create_all(path) {
+        Ok(_unit) -> true;
+        Err(_reason) -> false
+    }.
+
+hover_fixture(): String ->
+    "//! Installed module docs.\nmodule release_editor.Hover.\n\nimport std.core.Bool.{compare}.\nimport generated.sample.{generated_value}.\nimport package.sample.{package_value}.\n\n/// Installed struct docs.\npub struct User {\n    name: String\n}.\n\n/// Installed method docs.\npub (user: User) display(): String -> user.name.\n\n/**\n * Returns the installed editor answer.\n */\npub answer(): Int -> 42.\n\npub caller(user: User): Int ->\n    let local = answer();\n    let shown = user.display();\n    let std_value = compare(false, true);\n    let generated = generated_value();\n    let packaged = package_value();\n    local.\n".
+
+hover_case(
+    compiler: String,
+    source: String,
+    work: String,
+    installed: String,
+    line: String,
+    column: String,
+    expected: String,
+): Bool ->
+    case Support.command_output(
+    compiler,
+    ["hover", source, "--line", line, "--column", column],
+    work,
+    installed,
+) {
+        Some(output) -> String.contains(output, expected);
+        None -> false
+    }.
+
+installed_hover_categories(
+    compiler: String,
+    share: String,
+    work: String,
+    installed: String,
+): Bool ->
+    let summaries = Support.child(work, "std/summaries");
+    let source = Support.child(work, "Hover.terl");
+    case Directory.create_all(summaries) {
+        Err(_reason) -> false;
+        Ok(_unit) ->
+            let std_summary =
+                copy_text(
+                    Support.child(share, "std/summaries/std.core.Bool.typi"),
+                    Support.child(summaries, "std.core.Bool.typi"),
+                );
+            let generated_summary =
+                write_ok(
+                    Support.child(summaries, "generated.sample.typi"),
+                    "//! Generated summary module docs.\nmodule generated.sample.\n\n/// Returns generated summary docs.\npub generated_value(): Int.\n",
+                );
+            let package_summary =
+                write_ok(
+                    Support.child(work, "package.sample.terli"),
+                    "//! Package interface module docs.\nmodule package.sample.\n\n/// Returns installed package docs.\npub package_value(): Int.\n",
+                );
+            let fixture = write_ok(source, hover_fixture());
+            let module_hover = hover_case(compiler, source, work, installed, "2", "23", "Installed module docs");
+            let struct_hover = hover_case(compiler, source, work, installed, "9", "12", "Installed struct docs");
+            let function_hover = hover_case(compiler, source, work, installed, "19", "5", "installed editor answer");
+            let method_hover = hover_case(compiler, source, work, installed, "14", "18", "Installed method docs");
+            let stdlib_hover =
+                hover_case(
+                    compiler,
+                    source,
+                    work,
+                    installed,
+                    "24",
+                    "21",
+                    "Compares two `Bool` values",
+                );
+            let generated_hover = hover_case(compiler, source, work, installed, "25", "21", "generated summary docs");
+            let package_hover = hover_case(compiler, source, work, installed, "26", "20", "installed package docs");
+            std_summary
+                and generated_summary
+                and package_summary
+                and fixture
+                and module_hover
+                and struct_hover
+                and function_hover
+                and method_hover
+                and stdlib_hover
+                and generated_hover
+                and package_hover
+    }.
+
+normalize_inspect(mut inspect: Json): Json ->
+    let _project = inspect.put("project", Json.string("<documentation-workspace>"));
+    case inspect.get("release_layout") {
+        Ok(layout) ->
+            let _root = layout.put("root", Json.string("<installed-share-root>"));
+            let _layout = inspect.put("release_layout", layout);
+            inspect;
+        Err(_reason) -> inspect
+    }.
+
+write_site_assets(
+    installed: String,
+    destination: String,
+    share: String,
+    work: String,
+    compiler: String,
+    version: String,
+    metadata: Json,
+    help: Json,
+    inspect: Json,
+    coverage: Coverage,
+    search: Json,
+): Bool ->
+    let version_root = Support.child(destination, version);
+    let metadata_root = Support.child(version_root, "metadata");
+    let source_root = Support.child(version_root, "sources");
+    let metadata_created = create_ok(metadata_root);
+    let sources_created = create_ok(source_root);
+    let docs_copied =
+        case Directory.copy_tree_excluding(Support.child(share, "docs"), Support.child(source_root, "docs"), []) {
+            Ok(_unit) -> true;
+            Err(_reason) -> false
+        };
+    let hover = installed_hover_categories(compiler, share, work, installed);
+    let readme = copy_text(Support.child(share, "README.md"), Support.child(source_root, "README.md"));
+    let changelog = copy_text(Support.child(share, "CHANGELOG.md"), Support.child(source_root, "CHANGELOG.md"));
+    let readme_valid = Support.validate_readme(Support.child(share, "README.md"), version);
+    let release_json = Support.write_json(Support.child(metadata_root, "release.json"), metadata);
+    let help_json = Support.write_json(Support.child(metadata_root, "cli-help.json"), help);
+    let runtime_json = Support.write_json(Support.child(metadata_root, "runtime.json"), inspect);
+    let coverage_json =
+        Support.write_json(
+            Support.child(metadata_root, "api-availability.json"),
+            Support.coverage_json(coverage),
+        );
+    let search_json = Support.write_json(Support.child(destination, "search-index.json"), search);
+    let index = write_ok(Support.child(destination, "index.html"), Support.root_index(version));
+    metadata_created
+        and sources_created
+        and docs_copied
+        and hover
+        and readme
+        and changelog
+        and readme_valid
+        and release_json
+        and help_json
+        and runtime_json
+        and coverage_json
+        and search_json
+        and index.
+
+site_from_model(
+    installed: String,
+    destination: String,
+    share: String,
+    work: String,
+    compiler: String,
+    version: String,
+    metadata: Json,
+    model: Json,
+): Option[SiteSummary] ->
+    let {
+        Some(projection) <- Support.build_site_projection(model, share, version);
+        Some(help) <- Support.cli_help(compiler, work, installed, version);
+        Some(inspect_source) <- Support.command_output(compiler, ["inspect", work, "--snapshot"], work, installed)
+    } else {
+        _ -> None
+    };
+    (let coverage = Support.projection_coverage(projection);
+let search_rows = Support.projection_search_rows(projection);
+let search_count = Support.projection_search_entries(projection);
+case Json.parse(inspect_source) {
+    Err(_reason) -> None;
+    Ok(inspect_value) ->
+        let inspect = normalize_inspect(inspect_value);
+        let search = Json.object();
+        let _schema = search.put("schema", Json.string("terlan.docs-search.v1"));
+        let _entries = search.put("entries", search_rows);
+        let wrote =
+            write_site_assets(
+                installed,
+                destination,
+                share,
+                work,
+                compiler,
+                version,
+                metadata,
+                help,
+                inspect,
+                coverage,
+                search,
+            );
+        if {
+            not wrote -> None;
+            true -> let _work_removed = Directory.remove_all(work);
+            Some(
+                Support.site_summary(
+                    version,
+                    coverage.modules,
+                    Support.generated_file_count(destination),
+                    search_count,
+                    coverage,
+                    Support.commands().length() + 1,
+                    inspect,
+                ),
+            )
+        }
+}).
+
+generate_site(installed: String, destination: String): Option[SiteSummary] ->
+    let share = Support.child(installed, "share/terlan");
+    let {
+        Some(metadata) <- read_json(Support.child(installed, "terlan-release.json"));
+        Some(version) <- json_string(metadata, "version");
+        Some(platform) <- Artifact.detect()
+    } else {
+        _ -> None
+    };
+    (let compiler = Support.child(installed, Artifact.compiler_binary_name(platform));
+let version_root = Support.child(destination, version);
+let api_html = Support.child(version_root, "api");
+let api_json = Support.child(version_root, "api-model");
+let work = Support.child(destination, ".work");
+case Directory.create_all(work) {
+    Err(_reason) -> None;
+    Ok(_unit) ->
+        let {
+            Some(_html) <-
+                Support.command_output(
+                    compiler,
+                    ["--out-dir", api_html, "doc", "std", "--format", "html"],
+                    work,
+                    installed,
+                );
+            Some(_json) <-
+                Support.command_output(
+                    compiler,
+                    ["--out-dir", api_json, "doc", "std", "--format", "json"],
+                    work,
+                    installed,
+                );
+            Some(model) <- read_json(Support.child(api_json, "model.json"))
+        } else {
+            _ -> None
+        };
+        site_from_model(installed, destination, share, work, compiler, version, metadata, model)
+}).
+
+adversarial_checks(repository: String, site: String, version: String): Option[Json] ->
+    case Directory.create_temporary("terlan-docs-adversarial.") {
+        Ok(root) ->
+            let stale = Support.child(root, "README.md");
+            let broken = Support.child(root, "broken");
+            let leaking = Support.child(root, "leaking");
+            let asset = Support.child(root, "asset");
+            let empty_model = Json.object();
+            let _modules = empty_model.put("modules", Json.array());
+            let incomplete_hover = Json.object();
+            let _hover = incomplete_hover.put("hover_doc_coverage", Support.string_array(["function"]));
+            let stale_help = Json.object();
+            let _help_version = stale_help.put("version", Json.string("terlc 0.0.0"));
+            let _help_top = stale_help.put("top_level", Json.string("terlc help"));
+            let _help_commands = stale_help.put("commands", Json.object());
+            let stale_written = write_ok(stale, "Current version: `0.0.0`.\n");
+            let broken_created = create_ok(broken);
+            let leaking_created = create_ok(leaking);
+            let asset_created = create_ok(asset);
+            let broken_written =
+                write_ok(
+                    Support.child(broken, "index.html"),
+                    "<a href=\"missing.html\">missing</a>",
+                );
+            let leaking_written =
+                write_ok(
+                    Support.child(leaking, "index.html"),
+                    String.append("<p>", String.append(repository, "</p>")),
+                );
+            let asset_written =
+                write_ok(
+                    Support.child(asset, "index.html"),
+                    "<link href=\"target/debug/site.css\">",
+                );
+            let stale_rejected =
+                case Support.validate_readme(stale, version) {
+                    true -> false;
+                    false -> true
+                };
+            let empty_rejected =
+                case Support.api_coverage(empty_model, site) {
+                    None -> true;
+                    Some(_coverage) -> false
+                };
+            let broken_rejected =
+                case Support.validate_links(broken, repository) {
+                    None -> true;
+                    Some(_count) -> false
+                };
+            let leaking_rejected =
+                case Support.validate_links(leaking, repository) {
+                    None -> true;
+                    Some(_count) -> false
+                };
+            let asset_rejected =
+                case Support.validate_links(asset, repository) {
+                    None -> true;
+                    Some(_count) -> false
+                };
+            let hover_rejected =
+                case Support.hover_categories_hold(incomplete_hover) {
+                    true -> false;
+                    false -> true
+                };
+            let sections_rejected =
+                case Support.coverage_required_counts_hold(Support.coverage(1, 0, 0, 0, 0, 0, 0, 0)) {
+                    true -> false;
+                    false -> true
+                };
+            let stale_help_rejected = not Support.cli_help_contract_holds(stale_help, version);
+            let deterministic_rejected =
+                case Support.json_equal(Json.string("first"), Json.string("second")) {
+                    true -> false;
+                    false -> true
+                };
+            let rejected =
+                stale_written
+                    and broken_created
+                    and leaking_created
+                    and asset_created
+                    and broken_written
+                    and leaking_written
+                    and asset_written
+                    and stale_rejected
+                    and empty_rejected
+                    and broken_rejected
+                    and leaking_rejected
+                    and asset_rejected
+                    and hover_rejected
+                    and sections_rejected
+                    and stale_help_rejected
+                    and deterministic_rejected;
+            let _removed = Directory.remove_all(root);
+            if {
+                rejected -> Some(
+                    Support.string_array(
+                        [
+                            "stale-readme",
+                            "missing-std-docs",
+                            "broken-link",
+                            "source-path-leakage",
+                            "static-asset-checkout-reference",
+                            "missing-hover-docs",
+                            "missing-api-sections",
+                            "stale-cli-help",
+                            "nondeterministic-output",
+                        ],
+                    ),
+                );
+                true -> None
+            };
+        Err(_reason) -> None
+    }.
+
+build_report(
+    artifact_relative: String,
+    artifact_hash: String,
+    compiler: String,
+    site_hash: String,
+    links: Int,
+    hover_categories: Json,
+    summary: SiteSummary,
+    adversarial: Json,
+): Json ->
+    let report = Json.object();
+    let _schema = report.put("schema", Json.string("terlan.docs-static-release-parity-report.v1"));
+    let _decision = report.put("decision", Json.string("pass"));
+    let _artifact = report.put("artifact", Json.string(artifact_relative));
+    let _artifact_hash = report.put("artifact_sha256", Json.string(artifact_hash));
+    let _compiler = report.put("installed_compiler", Json.string(compiler));
+    let _layout = report.put("source_layout", Json.string("installed-artifact"));
+    let _root = report.put("versioned_root", Json.string(String.append(Support.version(summary), "/")));
+    let _site = report.put("site_sha256", Json.string(site_hash));
+    let _runs = report.put("deterministic_runs", Json.int(2));
+    let _links = report.put("link_checks", Json.int(links));
+    let _hover = report.put("hover_doc_coverage", hover_categories);
+    let _version = report.put("version", Json.string(Support.version(summary)));
+    let _modules = report.put("module_pages", Json.int(Support.module_pages(summary)));
+    let _files = report.put("generated_files", Json.int(Support.generated_files(summary)));
+    let _search = report.put("search_entries", Json.int(Support.search_entries(summary)));
+    let _coverage = report.put("api_coverage", Support.coverage_json(Support.api_coverage(summary)));
+    let _help = report.put("command_help_coverage", Json.int(Support.command_help_coverage(summary)));
+    let _runtime = report.put("runtime", Support.runtime(summary));
+    let _adversarial = report.put("adversarial_checks", adversarial);
+    report.
+
+closeout_sites(
+    repository: String,
+    artifact_relative: String,
+    artifact: String,
+    compiler_name: String,
+    first: String,
+    second: String,
+    first_summary: SiteSummary,
+    second_summary: SiteSummary,
+    adversarial: Json,
+): Option[SiteSummary] ->
+    let {
+        Some(first_hash) <- Support.hash_tree(first);
+        Some(second_hash) <- Support.hash_tree(second);
+        Some(links) <- Support.validate_links(first, repository)
+    } else {
+        _ -> None
+    };
+    case Hash.sha256_file(artifact) {
+        Err(_reason) -> None;
+        Ok(artifact_hash) ->
+            if {
+                first_hash != second_hash -> None;
+                not Support.site_summary_equal(first_summary, second_summary) -> None;
+                true -> let hover_categories =
+                    Support.string_array(
+                        [
+                            "function",
+                            "generated-summary",
+                            "method",
+                            "module",
+                            "package",
+                            "stdlib",
+                            "struct",
+                        ],
+                    );
+                let report =
+                    build_report(
+                        artifact_relative,
+                        artifact_hash,
+                        compiler_name,
+                        first_hash,
+                        links,
+                        hover_categories,
+                        first_summary,
+                        adversarial,
+                    );
+                if {
+                    Support.write_json(report_path(repository), report) -> Some(first_summary);
+                    true -> None
+                }
+            }
+    }.
+
+work_root(repository: String): String ->
+    Support.child(repository, "target/quality/docs-static-release-parity-work").
+
+installed_root(repository: String): String ->
+    Support.child(work_root(repository), "installed").
+
+first_root(repository: String): String ->
+    Support.child(work_root(repository), "first").
+
+second_root(repository: String): String ->
+    Support.child(work_root(repository), "second").
+
+first_summary_path(repository: String): String ->
+    Support.child(work_root(repository), "first-summary.json").
+
+second_summary_path(repository: String): String ->
+    Support.child(work_root(repository), "second-summary.json").
+
+adversarial_path(repository: String): String ->
+    Support.child(work_root(repository), "adversarial.json").
+
+write_summary(path: String, summary: SiteSummary): Bool ->
+    Support.write_json(path, Support.site_summary_json(summary)).
+
+read_summary(path: String): Option[SiteSummary] ->
+    case read_json(path) {
+        Some(value) -> Support.site_summary_from_json(value);
+        None -> None
+    }.
+
+/**
+ * Extracts the release once and generates the first deterministic site.
+ */
+prepare(): Bool ->
+    let repository = repository_root();
+    let root = work_root(repository);
+    let _removed = Directory.remove_all(root);
+    let {
+        Ok(_unit) <- Directory.create_all(root);
+        Some(platform) <- Artifact.detect()
+    } else {
+        _ -> false
+    };
+    (let artifact = Support.child(repository, Support.child("dist", Artifact.artifact_name(platform)));
+if {
+    not Artifact.extract_and_verify(artifact, installed_root(repository)) -> false;
+    true -> case generate_site(installed_root(repository), first_root(repository)) {
+        None -> false;
+        Some(summary) -> write_summary(first_summary_path(repository), summary)
+    }
+}).
+
+/**
+ * Generates a second site from the already verified installed artifact.
+ */
+generate_second(): Bool ->
+    let repository = repository_root();
+    case generate_site(installed_root(repository), second_root(repository)) {
+        None -> false;
+        Some(summary) -> write_summary(second_summary_path(repository), summary)
+    }.
+
+/**
+ * Executes negative-contract checks once and persists their exact evidence.
+ */
+adversarial(): Bool ->
+    let repository = repository_root();
+    let {
+        Some(summary) <- read_summary(first_summary_path(repository));
+        Some(evidence) <- adversarial_checks(repository, first_root(repository), Support.version(summary))
+    } else {
+        _ -> false
+    };
+    Support.write_json(adversarial_path(repository), evidence).
+
+/**
+ * Seals deterministic, link, checksum, hover, and adversarial evidence.
+ */
+closeout(): Bool ->
+    let repository = repository_root();
+    let {
+        Some(platform) <- Artifact.detect();
+        Some(first_summary) <- read_summary(first_summary_path(repository));
+        Some(second_summary) <- read_summary(second_summary_path(repository));
+        Some(adversarial_evidence) <- read_json(adversarial_path(repository))
+    } else {
+        _ -> false
+    };
+    (let artifact_relative = Support.child("dist", Artifact.artifact_name(platform));
+let artifact = Support.child(repository, artifact_relative);
+case closeout_sites(
+    repository,
+    artifact_relative,
+    artifact,
+    Artifact.compiler_binary_name(platform),
+    first_root(repository),
+    second_root(repository),
+    first_summary,
+    second_summary,
+    adversarial_evidence,
+) {
+    Some(_summary) -> true;
+    None -> false
+}).
+
+pub adversarial_contract_rejects_incomplete_evidence(): Bool ->
+    let empty = Json.object();
+    let _hover = empty.put("hover_doc_coverage", Support.string_array(["function"]));
+    let stale_help = Json.object();
+    let _version = stale_help.put("version", Json.string("terlc 0.0.0"));
+    let _top = stale_help.put("top_level", Json.string("terlc help"));
+    let _commands = stale_help.put("commands", Json.object());
+    not Support.hover_categories_hold(empty)
+        and not Support.coverage_required_counts_hold(Support.coverage(1, 0, 0, 0, 0, 0, 0, 0))
+        and not Support.cli_help_contract_holds(stale_help, "0.0.7").
+
+validate_artifact_size(): Bool ->
+    let repository = repository_root();
+    let image = artifact_image_path(repository);
+    case size(image) {
+        Err(_reason) -> false;
+        Ok(bytes) ->
+            let maximum = artifact_size_maximum_bytes();
+            let passed = bytes <= maximum;
+            let report = Json.object();
+            let _schema = report.put("schema", Json.string("terlan.aot-artifact-size.v1"));
+            let _artifact = report.put("artifact", Json.string(artifact_image_relative_path()));
+            let _bytes = report.put("emitted_bytes", Json.int(bytes));
+            let _maximum = report.put("maximum_bytes", Json.int(maximum));
+            let _decision =
+                report
+                    .put(
+                        "decision",
+                        Json.string(
+                            if {
+                                passed -> "pass";
+                                true -> "fail"
+                            },
+                        ),
+                    );
+            Support.write_json(artifact_size_report_path(repository), report) and passed
+    }.
+
+stage_failure(message: String): Unit ->
+    let _printed = println(message);
+    let reason = Process.exit_reason(1);
+    Process.fail(reason).
+
+finish_stage(stage: String, passed: Bool): Unit ->
+    if {
+        passed -> println(String.append("Docs static release parity stage passed: ", stage));
+        true -> stage_failure(String.append("Docs static release parity stage failed: ", stage))
+    }.
+
+pub prepare_entry(): Unit ->
+    let passed = prepare();
+    finish_stage("prepare", passed).
+
+pub generate_second_entry(): Unit ->
+    let passed = generate_second();
+    finish_stage("generate-second", passed).
+
+pub adversarial_entry(): Unit ->
+    let passed = adversarial();
+    finish_stage("adversarial", passed).
+
+pub closeout_entry(): Unit ->
+    let passed = closeout();
+    finish_stage("closeout", passed).
+
+/**
+ * Enforces the ratcheted total-size ceiling for this emitted AOT tool image.
+ */
+pub artifact_size_entry(): Unit ->
+    let passed = validate_artifact_size();
+    finish_stage("artifact-size", passed).
+
+run_all(): Bool ->
+    if {
+        not prepare() -> false;
+        not generate_second() -> false;
+        not adversarial() -> false;
+        not closeout() -> false;
+        true -> validate_artifact_size()
+    }.
+
+/**
+ * Runs the complete installed-release parity gate through one sealed AOT image.
+ */
+pub run_entry(): Unit ->
+    let passed = run_all();
+    finish_stage("complete", passed).

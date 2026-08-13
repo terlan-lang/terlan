@@ -133,4 +133,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "otp_runtime_exit_test.rs"]
+#[cfg(test)]
 mod otp_runtime_exit_test;

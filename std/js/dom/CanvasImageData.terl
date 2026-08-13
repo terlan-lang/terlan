@@ -34,7 +34,7 @@ pub (value: CanvasImageData) get_image_data(
     sy: JsNumber,
     sw: JsNumber,
     sh: JsNumber,
-    settings: ImageDataSettings
+    settings: ImageDataSettings,
 ): ImageData ->
     native.
 
@@ -51,6 +51,6 @@ pub (value: CanvasImageData) put_image_data(
     dirty_x: JsNumber,
     dirty_y: JsNumber,
     dirty_width: JsNumber,
-    dirty_height: JsNumber
+    dirty_height: JsNumber,
 ): Unit ->
     native.

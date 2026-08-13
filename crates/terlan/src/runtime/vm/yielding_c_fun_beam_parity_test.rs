@@ -75,8 +75,6 @@ fn run_yielding_sha256(input: &[u8]) -> YieldingHashReport {
             .reductions,
     }
 }
-
-#[allow(clippy::too_many_arguments)]
 fn run_hash_slice(
     input: &[u8],
     worker: VmProcessId,

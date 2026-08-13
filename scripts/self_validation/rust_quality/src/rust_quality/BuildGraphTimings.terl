@@ -1,0 +1,352 @@
+/**
+ * Records the deterministic CQ-3 clean and incremental build timing matrix.
+ */
+module rust_quality.BuildGraphTimings.
+
+import rust_quality.SourceInventory.
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.{Directory, File}.
+import std.system.Process.
+import std.time.Clock.
+
+import type std.system.Process.Command.
+
+struct Scenario {
+    name: String,
+    arguments: List[String],
+    target: String,
+    edited: String,
+    touch: Bool,
+}.
+
+struct Measurement {
+    valid: Bool,
+    message: String,
+    scenario: String,
+    command: String,
+    edited: String,
+    edit_mode: String,
+    wall_time_ms: Int,
+}.
+
+struct Measurements {
+    valid: Bool,
+    message: String,
+    rows: List[Measurement],
+}.
+
+@pure
+failure(message: String): Measurement ->
+    Measurement(
+        valid = false,
+        message = message,
+        scenario = "",
+        command = "",
+        edited = "",
+        edit_mode = "",
+        wall_time_ms = 0,
+    ).
+
+@pure
+child(root: String, relative: String): String ->
+    SourceInventory.child(root, relative).
+
+@pure
+cargo_arguments(arguments: List[String], target: String): List[String] ->
+    List.concat(arguments, ["--target-dir", target]).
+
+@pure
+join_arguments(values: List[String], output: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            let next =
+                if {
+                    output == "" -> value;
+                    true -> String.concat([output, " ", value])
+                };
+            join_arguments(rest, next)
+    }.
+
+@pure
+command_text(arguments: List[String], relative_target: String): String ->
+    String.concat(
+        [
+            "cargo ",
+            join_arguments(
+                List.concat(arguments, ["--target-dir", String.append("./", relative_target)]),
+                "",
+            ),
+        ],
+    ).
+
+@pure
+scenarios(root: String): List[Scenario] ->
+    let facade_relative = "target/cq3-timings/facade";
+    let audit_relative = "target/cq3-timings/audit";
+    let facade = child(root, facade_relative);
+    let audit = child(root, audit_relative);
+    let facade_arguments = ["check", "--locked", "-p", "terlan", "--bin", "terlc"];
+    let audit_arguments = ["check", "--locked", "-p", "terlan-rust-boundary-audit"];
+    [
+        Scenario(
+            name = "facade-clean-terlc",
+            arguments = cargo_arguments(facade_arguments, facade),
+            target = facade_relative,
+            edited = "crates/terlan/src/lib.rs",
+            touch = false,
+        ),
+        Scenario(
+            name = "facade-parser-incremental",
+            arguments = cargo_arguments(facade_arguments, child(root, facade_relative)),
+            target = facade_relative,
+            edited = "crates/terlan/src/compiler/syntax/parser/expressions.rs",
+            touch = true,
+        ),
+        Scenario(
+            name = "facade-runtime-incremental",
+            arguments = cargo_arguments(facade_arguments, child(root, facade_relative)),
+            target = facade_relative,
+            edited = "crates/terlan/src/runtime/vm/timer.rs",
+            touch = true,
+        ),
+        Scenario(
+            name = "quality-audit-clean",
+            arguments = cargo_arguments(audit_arguments, audit),
+            target = audit_relative,
+            edited = "tools/rust_boundary_audit/src/main.rs",
+            touch = false,
+        ),
+        Scenario(
+            name = "quality-audit-incremental",
+            arguments = cargo_arguments(audit_arguments, child(root, audit_relative)),
+            target = audit_relative,
+            edited = "tools/rust_boundary_audit/src/main.rs",
+            touch = true,
+        ),
+    ].
+
+@pure
+without_target(arguments: List[String], output: List[String]): List[String] ->
+    case arguments {
+        [] -> SourceInventory.reverse(output);
+        ["--target-dir", _target] -> SourceInventory.reverse(output);
+        [value | rest] -> without_target(rest, [value | output])
+    }.
+
+@pure
+stable_command(scenario: Scenario): String ->
+    command_text(without_target(scenario.arguments, List.new[String]()), scenario.target).
+
+process_command(root: String, scenario: Scenario): Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(Process.command("cargo"), scenario.arguments),
+                root,
+            ),
+            900000,
+        ),
+        8388608,
+    ).
+
+restore_failure(path: String, reason: String): Measurement ->
+    failure(String.concat(["cannot restore timestamps for ", path, ": ", reason])).
+
+execute_and_restore(root: String, scenario: Scenario, accessed: Int, modified: Int): Measurement ->
+    let started = Clock.monotonic_time_ns();
+    let completed = Process.run(process_command(root, scenario));
+    let elapsed = (Clock.monotonic_time_ns() - started) / 1000000;
+    let edited = child(root, scenario.edited);
+    case File.set_timestamps(edited, accessed, modified) {
+        Err(reason) -> restore_failure(scenario.edited, File.message(reason));
+        Ok(_restored) ->
+            case completed {
+                Err(reason) ->
+                    failure(String.concat([scenario.name, ": ", Process.error_message(reason)]));
+                Ok(output) ->
+                    if {
+                        Process.status(output) != 0 -> failure(
+                            String.concat(
+                                [
+                                    scenario.name,
+                                    ": cargo exited with status ",
+                                    Int.to_string(Process.status(output)),
+                                    ": ",
+                                    Process.stderr(output),
+                                ],
+                            ),
+                        );
+                        true -> Measurement(
+                            valid = true,
+                            message = "",
+                            scenario = scenario.name,
+                            command = stable_command(scenario),
+                            edited = scenario.edited,
+                            edit_mode = if {
+                                scenario.touch -> "mtime-only";
+                                true -> "clean-target"
+                            },
+                            wall_time_ms = elapsed,
+                        )
+                    }
+            }
+    }.
+
+run_scenario(root: String, scenario: Scenario): Measurement ->
+    let edited = child(root, scenario.edited);
+    case File.timestamps(edited) {
+        Err(reason) -> failure(String.concat([scenario.name, ": ", File.message(reason)]));
+        Ok(original) ->
+            if {
+                not scenario.touch -> execute_and_restore(
+                    root,
+                    scenario,
+                    original.accessed_unix_ns,
+                    original.modified_unix_ns,
+                );
+                true -> case File.set_timestamps(edited, original.accessed_unix_ns, original.modified_unix_ns + 1000000000) {
+                    Err(reason) ->
+                        failure(String.concat([scenario.name, ": ", File.message(reason)]));
+                    Ok(_touched) ->
+                        execute_and_restore(
+                            root,
+                            scenario,
+                            original.accessed_unix_ns,
+                            original.modified_unix_ns,
+                        )
+                }
+            }
+    }.
+
+run_scenarios(root: String, pending: List[Scenario], rows: List[Measurement]): Measurements ->
+    case pending {
+        [] -> Measurements(valid = true, message = "", rows = SourceInventory.reverse(rows));
+        [scenario | rest] ->
+            let row = run_scenario(root, scenario);
+            if {
+                not row.valid -> Measurements(valid = false, message = row.message, rows = List.new[Measurement]());
+                true -> run_scenarios(root, rest, [row | rows])
+            }
+    }.
+
+@pure
+contains_exact(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains_exact(rest, expected)
+    }.
+
+remove_owned_target(root: String): Bool ->
+    let target_parent = child(root, "target");
+    let target = child(root, "target/cq3-timings");
+    case Directory.create_all(target_parent) {
+        Err(reason) ->
+            let _printed = eprintln(Directory.message(reason));
+            false;
+        Ok(_created) ->
+            case Directory.entries(target_parent) {
+                Err(reason) ->
+                    let _printed = eprintln(Directory.message(reason));
+                    false;
+                Ok(entries) ->
+                    if {
+                        not contains_exact(entries, target) -> true;
+                        true -> case Directory.remove_all(target) {
+                            Ok(_removed) -> true;
+                            Err(reason) ->
+                                let _printed = eprintln(Directory.message(reason));
+                                false
+                        }
+                    }
+            }
+    }.
+
+row_json(row: Measurement): Json ->
+    Json.object()
+        .put("command", Json.string(row.command))
+        .put("edit_mode", Json.string(row.edit_mode))
+        .put("edited_file", Json.string(row.edited))
+        .put("scenario", Json.string(row.scenario))
+        .put("wall_time_ms", Json.int(row.wall_time_ms)).
+
+rows_json(rows: List[Measurement], output: Json): Json ->
+    case rows {
+        [] -> output;
+        [row | rest] -> rows_json(rest, output.push(row_json(row)))
+    }.
+
+render_report(root: String, rows: List[Measurement]): Measurement ->
+    let report_path = child(root, "docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json");
+    case File.read_text(report_path) {
+        Err(reason) -> failure(File.message(reason));
+        Ok(source) ->
+            case Json.parse(source) {
+                Err(reason) -> failure(Json.error_message(reason));
+                Ok(report) ->
+                    let updated = report.put("measurements", rows_json(rows, Json.array()));
+                    case Json.stringify_pretty(updated) {
+                        Err(reason) -> failure(Json.error_message(reason));
+                        Ok(rendered) ->
+                            Measurement(
+                                valid = true,
+                                message = String.append(rendered, "\n"),
+                                scenario = report_path,
+                                command = "",
+                                edited = "",
+                                edit_mode = "",
+                                wall_time_ms = 0,
+                            )
+                    }
+            }
+    }.
+
+print_rows(rows: List[Measurement]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            let _printed = println(String.concat([row.scenario, ": ", Int.to_string(row.wall_time_ms), " ms"]));
+            print_rows(rest)
+    }.
+
+pub record(root: String): Bool ->
+    if {
+        not remove_owned_target(root) -> false;
+        true -> let measured = run_scenarios(root, scenarios(root), List.new[Measurement]());
+        if {
+            not measured.valid -> let _cleaned = remove_owned_target(root);
+            let _printed = eprintln(String.concat(["Rust build-graph timings failed: ", measured.message]));
+            false;
+            true -> let rendered = render_report(root, measured.rows);
+            if {
+                not rendered.valid -> let _cleaned = remove_owned_target(root);
+                let _printed = eprintln(String.concat(["Rust build-graph timings failed: ", rendered.message]));
+                false;
+                true -> case File.write_text(rendered.scenario, rendered.message) {
+                    Err(reason) ->
+                        let _cleaned = remove_owned_target(root);
+                        let _printed = eprintln(File.message(reason));
+                        false;
+                    Ok(_written) ->
+                        let cleaned = remove_owned_target(root);
+                        let printed = print_rows(measured.rows);
+                        cleaned and printed
+                }
+            }
+        }
+    }.
+
+pub self_test(): Bool ->
+    let fixture =
+        Scenario(
+            name = "fixture",
+            arguments = ["check", "--locked", "--target-dir", "/tmp/fixture"],
+            target = "target/fixture",
+            edited = "src/lib.rs",
+            touch = true,
+        );
+    stable_command(fixture) == "cargo check --locked --target-dir ./target/fixture".

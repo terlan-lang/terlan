@@ -1,6 +1,6 @@
 use crate::terlan_syntax::{
-    SyntaxParamOutput, SyntaxStructFieldOutput, SyntaxTraitMethodOutput, SyntaxTypeOutput,
-    SyntaxValuedUnionArmOutput,
+    raw_shape_signature, SyntaxParamOutput, SyntaxStructFieldOutput, SyntaxTraitMethodOutput,
+    SyntaxTypeOutput, SyntaxValuedUnionArmOutput,
 };
 
 /// Adds the compiler-owned `@pure` prefix to a rendered signature when needed.
@@ -352,48 +352,5 @@ pub(super) fn render_raw_shape_signature(
     raw_kind: &str,
     text: &str,
 ) -> Option<(String, bool, String)> {
-    if raw_kind != "shape" {
-        return None;
-    }
-
-    let trimmed = text.trim();
-    let (is_public, after_visibility) =
-        if let Some(rest) = trimmed.strip_prefix("pub").and_then(trim_keyword_rest) {
-            (true, rest)
-        } else {
-            (false, trimmed)
-        };
-    let after_shape = after_visibility
-        .strip_prefix("shape")
-        .and_then(trim_keyword_rest)?;
-    let name = after_shape
-        .chars()
-        .take_while(|ch| ch.is_ascii_alphanumeric() || *ch == '_')
-        .collect::<String>();
-    if name.is_empty() {
-        return None;
-    }
-
-    let signature = trimmed.strip_suffix('.').unwrap_or(trimmed).trim_end();
-    Some((name, is_public, format!("{signature}.")))
-}
-
-/// Trims whitespace after a recognized keyword token.
-///
-/// Inputs:
-/// - `rest`: source text immediately after the keyword spelling.
-///
-/// Output:
-/// - Remaining source after required whitespace.
-///
-/// Transformation:
-/// - Prevents prefix matches such as `publisher` or `shapeName` from being
-///   treated as keyword-bearing declarations.
-fn trim_keyword_rest(rest: &str) -> Option<&str> {
-    let mut chars = rest.chars();
-    let first = chars.next()?;
-    if !first.is_whitespace() {
-        return None;
-    }
-    Some(chars.as_str().trim_start())
+    raw_shape_signature(raw_kind, text)
 }

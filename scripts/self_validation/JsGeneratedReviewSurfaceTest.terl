@@ -1,0 +1,969 @@
+/**
+ * Validates generated std.js provenance and skipped-declaration review data.
+ */
+module scripts.self_validation.JsGeneratedReviewSurfaceTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.File.{read_text, read_text_many}.
+import std.system.Environment.
+
+import type std.core.{Option}.
+import type std.data.Json.{Json, StringFieldRow}.
+import type std.io.File.TextFile.
+
+struct Metadata {
+    skipped_path: String,
+    diagnostics: List[String],
+}.
+
+struct RowPage {
+    rows: List[StringFieldRow],
+    remaining: List[StringFieldRow],
+}.
+
+struct ArtifactCheck {
+    relative: String,
+    absolute: String,
+    kind: String,
+    missing_message: String,
+}.
+
+struct ArtifactPlan {
+    checks: List[ArtifactCheck],
+    diagnostics: List[String],
+}.
+
+@pure
+binding_manifest_path(): String -> "std/js/manifests/std_js_bindings.json".
+
+@pure
+required_header_keys(): List[String] ->
+    [
+        "@generated true",
+        "@do-not-edit true",
+        "@generator terlc",
+        "@generator-version",
+        "@generator-profile",
+        "@artifact-kind",
+        "@input-manifest",
+        "@source-package",
+        "@source-input",
+        "@source-interface",
+    ].
+
+@pure
+required_modules(): List[String] ->
+    [
+        "std.js.Map",
+        "std.js.MapConstructor",
+        "std.js.ReadonlyMap",
+        "std.js.Set",
+        "std.js.SetConstructor",
+        "std.js.ReadonlySet",
+        "std.js.WeakMap",
+        "std.js.WeakMapConstructor",
+        "std.js.WeakSet",
+        "std.js.WeakSetConstructor",
+    ].
+
+@pure
+child(root: String, relative: String): String ->
+    if {
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+@pure
+diagnostic(path: String, message: String): String ->
+    String.append(path, String.append(": ", message)).
+
+@pure
+add_diagnostic(diagnostics: List[String], path: String, message: String): List[String] ->
+    [diagnostic(path, message) | diagnostics].
+
+@pure
+reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_at(values, []).
+
+@pure
+reverse_strings_at(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings_at(rest, [value | reversed])
+    }.
+
+@pure
+path_has_parent_segment(parts: List[String]): Bool ->
+    case parts {
+        [] -> false;
+        [part | rest] -> part == ".." or path_has_parent_segment(rest)
+    }.
+
+/**
+ * Accepts the same POSIX repository-relative path surface as the old checker.
+ */
+@pure
+pub safe_repository_path(value: String): Bool ->
+    value != ""
+        and not String.starts_with(value, "/")
+        and not path_has_parent_segment(String.split(value, "/")).
+
+@pure
+leading_contains(lines: List[String], pattern: String, remaining: Int): Bool ->
+    if {
+        remaining == 0 -> false;
+        true -> case lines {
+            [] -> false;
+            [line | rest] ->
+                String.contains(line, pattern) or leading_contains(rest, pattern, remaining - 1)
+        }
+    }.
+
+@pure
+header_lines(contents: String): List[String] ->
+    String.split(contents, "\n").
+
+@pure
+header_diagnostics(
+    relative: String,
+    kind: String,
+    contents: String,
+    diagnostics: List[String],
+): List[String] ->
+    let header = header_lines(contents);
+    let with_keys = missing_header_keys(relative, header, required_header_keys(), diagnostics);
+    if {
+        kind == "" -> with_keys;
+        leading_contains(header, String.append("@artifact-kind ", kind), 16) -> with_keys;
+        true -> add_diagnostic(
+            with_keys,
+            relative,
+            String.append(
+                "missing generated header kind `@artifact-kind ",
+                String.append(kind, "`"),
+            ),
+        )
+    }.
+
+@pure
+missing_header_keys(
+    relative: String,
+    header: List[String],
+    keys: List[String],
+    diagnostics: List[String],
+): List[String] ->
+    case keys {
+        [] -> diagnostics;
+        [key | rest] ->
+            let next =
+                if {
+                    leading_contains(header, key, 16) -> diagnostics;
+                    true -> add_diagnostic(
+                        diagnostics,
+                        relative,
+                        String.append("missing generated header key `", String.append(key, "`")),
+                    )
+                };
+            missing_header_keys(relative, header, rest, next)
+    }.
+
+pub validate(root: String): Bool ->
+    let relative = binding_manifest_path();
+    case read_text(child(root, relative)) {
+        Err(_reason) -> report(add_diagnostic([], relative, "missing JSON manifest"));
+        Ok(source) -> parse_binding(root, relative, source)
+    }.
+
+selected_root(): String ->
+    case Environment.get("TERLAN_JS_REVIEW_ROOT") {
+        Some(root) -> root;
+        None -> Environment.current_directory()
+    }.
+
+parse_binding(root: String, relative: String, source: String): Bool ->
+    case Json.parse(source) {
+        Err(reason) ->
+            report(
+                add_diagnostic(
+                    [],
+                    relative,
+                    String.append("invalid JSON: ", Json.error_message(reason)),
+                ),
+            );
+        Ok(binding) -> read_binding_metadata(root, binding)
+    }.
+
+read_binding_metadata(root: String, binding: Json): Bool ->
+    case binding
+    .string_fields(
+        ["schema", "generator", "generator_version", "input_manifest", "skipped_manifest"],
+    ) {
+        Err(_reason) ->
+            report(add_diagnostic([], binding_manifest_path(), "manifest must be a JSON object"));
+        Ok(values) ->
+            let metadata = binding_metadata(values, []);
+            read_skipped_manifest(root, binding, metadata)
+    }.
+
+@pure
+binding_metadata(values: List[Option[String]], diagnostics: List[String]): Metadata ->
+    case values {
+        [schema | [generator | [version | [input | [skipped | []]]]]] ->
+            let d1 =
+                require_exact(
+                    diagnostics,
+                    binding_manifest_path(),
+                    schema,
+                    "terlan.std.js.bindings.v1",
+                    "invalid or missing binding manifest schema",
+                );
+            let d2 =
+                require_exact(
+                    d1,
+                    binding_manifest_path(),
+                    generator,
+                    "terlc",
+                    "missing generator `terlc`",
+                );
+            let d3 = require_present(d2, binding_manifest_path(), version, "missing generator version");
+            let d4 = require_present(d3, binding_manifest_path(), input, "missing input manifest path");
+            safe_skipped_path(skipped, d4);
+        _ ->
+            Metadata(
+                skipped_path = "",
+                diagnostics = add_diagnostic(
+                    diagnostics,
+                    binding_manifest_path(),
+                    "binding metadata projection has an invalid shape",
+                ),
+            )
+    }.
+
+@pure
+require_exact(
+    diagnostics: List[String],
+    path: String,
+    value: Option[String],
+    expected: String,
+    message: String,
+): List[String] ->
+    case value {
+        Some(actual) ->
+            if {
+                actual == expected -> diagnostics;
+                true -> add_diagnostic(diagnostics, path, message)
+            };
+        None -> add_diagnostic(diagnostics, path, message)
+    }.
+
+@pure
+require_present(
+    diagnostics: List[String],
+    path: String,
+    value: Option[String],
+    message: String,
+): List[String] ->
+    case value {
+        Some(actual) ->
+            if {
+                actual != "" -> diagnostics;
+                true -> add_diagnostic(diagnostics, path, message)
+            };
+        None -> add_diagnostic(diagnostics, path, message)
+    }.
+
+@pure
+safe_skipped_path(value: Option[String], diagnostics: List[String]): Metadata ->
+    case value {
+        Some(path) ->
+            if {
+                safe_repository_path(path) -> Metadata(skipped_path = path, diagnostics = diagnostics);
+                true -> Metadata(
+                    skipped_path = "",
+                    diagnostics = add_diagnostic(
+                        diagnostics,
+                        binding_manifest_path(),
+                        "missing safe skipped manifest path",
+                    ),
+                )
+            };
+        None ->
+            Metadata(
+                skipped_path = "",
+                diagnostics = add_diagnostic(
+                    diagnostics,
+                    binding_manifest_path(),
+                    "missing safe skipped manifest path",
+                ),
+            )
+    }.
+
+read_skipped_manifest(root: String, binding: Json, metadata: Metadata): Bool ->
+    if {
+        metadata.skipped_path == "" -> read_outputs(root, binding, metadata.diagnostics);
+        true -> let relative = metadata.skipped_path;
+        case read_text(child(root, relative)) {
+            Err(_reason) ->
+                read_outputs(
+                    root,
+                    binding,
+                    add_diagnostic(metadata.diagnostics, relative, "missing JSON manifest"),
+                );
+            Ok(source) -> parse_skipped(root, binding, relative, source, metadata.diagnostics)
+        }
+    }.
+
+parse_skipped(
+    root: String,
+    binding: Json,
+    relative: String,
+    source: String,
+    diagnostics: List[String],
+): Bool ->
+    case Json.parse(source) {
+        Err(reason) ->
+            read_outputs(
+                root,
+                binding,
+                add_diagnostic(
+                    diagnostics,
+                    relative,
+                    String.append("invalid JSON: ", Json.error_message(reason)),
+                ),
+            );
+        Ok(skipped) -> read_skipped_schema(root, binding, relative, skipped, diagnostics)
+    }.
+
+read_skipped_schema(
+    root: String,
+    binding: Json,
+    relative: String,
+    skipped: Json,
+    diagnostics: List[String],
+): Bool ->
+    case skipped.string_fields(["schema"]) {
+        Err(_reason) ->
+            read_outputs(
+                root,
+                binding,
+                add_diagnostic(diagnostics, relative, "manifest must be a JSON object"),
+            );
+        Ok([schema | []]) ->
+            let next =
+                require_exact(
+                    diagnostics,
+                    relative,
+                    schema,
+                    "terlan.std.js.skipped-declarations.v1",
+                    "invalid skipped-declarations schema",
+                );
+            read_embedded_skipped(root, binding, relative, skipped, next);
+        Ok(_values) ->
+            read_outputs(
+                root,
+                binding,
+                add_diagnostic(diagnostics, relative, "skipped schema projection is invalid"),
+            )
+    }.
+
+read_embedded_skipped(
+    root: String,
+    binding: Json,
+    relative: String,
+    skipped: Json,
+    diagnostics: List[String],
+): Bool ->
+    case binding.get("skipped") {
+        Err(_reason) ->
+            read_standalone_skipped_without_embedded(
+                root,
+                binding,
+                relative,
+                skipped,
+                add_diagnostic(diagnostics, binding_manifest_path(), "`skipped` must be an array"),
+            );
+        Ok(embedded) ->
+            read_standalone_skipped_with_embedded(
+                root,
+                binding,
+                relative,
+                skipped,
+                embedded,
+                diagnostics,
+            )
+    }.
+
+read_standalone_skipped_without_embedded(
+    root: String,
+    binding: Json,
+    relative: String,
+    skipped: Json,
+    diagnostics: List[String],
+): Bool ->
+    case skipped.get("skipped") {
+        Err(_reason) ->
+            read_outputs(
+                root,
+                binding,
+                add_diagnostic(diagnostics, relative, "`skipped` must be an array"),
+            );
+        Ok(rows) -> project_skipped_rows(root, binding, relative, rows, diagnostics)
+    }.
+
+read_standalone_skipped_with_embedded(
+    root: String,
+    binding: Json,
+    relative: String,
+    skipped: Json,
+    embedded: Json,
+    diagnostics: List[String],
+): Bool ->
+    case skipped.get("skipped") {
+        Err(_reason) ->
+            read_outputs(
+                root,
+                binding,
+                add_diagnostic(diagnostics, relative, "`skipped` must be an array"),
+            );
+        Ok(rows) -> compare_skipped_arrays(root, binding, relative, embedded, rows, diagnostics)
+    }.
+
+compare_skipped_arrays(
+    root: String,
+    binding: Json,
+    relative: String,
+    embedded: Json,
+    rows: Json,
+    diagnostics: List[String],
+): Bool ->
+    case Json.stringify(embedded) {
+        Err(_reason) -> project_skipped_rows(root, binding, relative, rows, diagnostics);
+        Ok(embedded_text) ->
+            stringify_standalone_skipped(root, binding, relative, rows, embedded_text, diagnostics)
+    }.
+
+stringify_standalone_skipped(
+    root: String,
+    binding: Json,
+    relative: String,
+    rows: Json,
+    embedded_text: String,
+    diagnostics: List[String],
+): Bool ->
+    case Json.stringify(rows) {
+        Err(_reason) -> project_skipped_rows(root, binding, relative, rows, diagnostics);
+        Ok(standalone_text) ->
+            let next =
+                if {
+                    embedded_text == standalone_text -> diagnostics;
+                    true -> add_diagnostic(
+                        diagnostics,
+                        relative,
+                        "standalone skipped declarations must match binding manifest `skipped` entries",
+                    )
+                };
+            project_skipped_rows(root, binding, relative, rows, next)
+    }.
+
+project_skipped_rows(
+    root: String,
+    binding: Json,
+    relative: String,
+    rows: Json,
+    diagnostics: List[String],
+): Bool ->
+    case rows.string_field_rows(["source", "reason", "detail"]) {
+        Err(_reason) ->
+            read_outputs(
+                root,
+                binding,
+                add_diagnostic(diagnostics, relative, "`skipped` must be an array"),
+            );
+        Ok(projected) ->
+            read_outputs(root, binding, validate_skipped_rows(relative, projected, 0, diagnostics))
+    }.
+
+@pure
+validate_skipped_rows(
+    relative: String,
+    rows: List[StringFieldRow],
+    index: Int,
+    diagnostics: List[String],
+): List[String] ->
+    case rows {
+        [] -> diagnostics;
+        [row | rest] ->
+            let index_text = Int.to_string(index);
+            let suffix = String.append("#/skipped/", index_text);
+            let path = String.append(relative, suffix);
+            let next = validate_skipped_row(path, row, diagnostics);
+            validate_skipped_rows(relative, rest, index + 1, next)
+    }.
+
+@pure
+validate_skipped_row(path: String, row: StringFieldRow, diagnostics: List[String]): List[String] ->
+    if {
+        not Json.string_field_row_is_object(row) -> add_diagnostic(diagnostics, path, "skip row must be an object");
+        true -> case Json.string_field_row_values(row) {
+            [source | [reason | [detail | []]]] ->
+                let d1 =
+                    require_nonempty(
+                        diagnostics,
+                        path,
+                        source,
+                        "skip row must include non-empty `source`",
+                    );
+                let d2 = require_reason(d1, path, reason);
+                require_nonempty(d2, path, detail, "skip row must include non-empty `detail`");
+            _ -> add_diagnostic(diagnostics, path, "skip row projection is invalid")
+        }
+    }.
+
+@pure
+require_nonempty(
+    diagnostics: List[String],
+    path: String,
+    value: Option[String],
+    message: String,
+): List[String] ->
+    case value {
+        Some(text) ->
+            if {
+                String.trim(text) != "" -> diagnostics;
+                true -> add_diagnostic(diagnostics, path, message)
+            };
+        None -> add_diagnostic(diagnostics, path, message)
+    }.
+
+@pure
+require_reason(diagnostics: List[String], path: String, value: Option[String]): List[String] ->
+    case value {
+        Some(text) ->
+            if {
+                String.trim(text) == "" -> add_diagnostic(diagnostics, path, "skip row must include non-empty `reason`");
+                String.starts_with(text, "ts_bindgen.") -> diagnostics;
+                true -> add_diagnostic(diagnostics, path, "`reason` must use the `ts_bindgen.` namespace")
+            };
+        None -> add_diagnostic(diagnostics, path, "skip row must include non-empty `reason`")
+    }.
+
+read_outputs(root: String, binding: Json, diagnostics: List[String]): Bool ->
+    case binding.get("outputs") {
+        Err(_reason) ->
+            report(
+                add_diagnostic(
+                    diagnostics,
+                    binding_manifest_path(),
+                    "outputs must be a non-empty array",
+                ),
+            );
+        Ok(outputs) -> read_output_length(root, outputs, diagnostics)
+    }.
+
+read_output_length(root: String, outputs: Json, diagnostics: List[String]): Bool ->
+    case outputs.length() {
+        Err(_reason) ->
+            report(
+                add_diagnostic(
+                    diagnostics,
+                    binding_manifest_path(),
+                    "outputs must be a non-empty array",
+                ),
+            );
+        Ok(0) ->
+            report(
+                add_diagnostic(
+                    diagnostics,
+                    binding_manifest_path(),
+                    "outputs must be a non-empty array",
+                ),
+            );
+        Ok(_count) -> project_outputs(root, outputs, diagnostics)
+    }.
+
+project_outputs(root: String, outputs: Json, diagnostics: List[String]): Bool ->
+    case outputs.string_field_rows(["module", "source", "interface", "test", "summary"]) {
+        Err(_reason) ->
+            report(
+                add_diagnostic(
+                    diagnostics,
+                    binding_manifest_path(),
+                    "outputs must be a non-empty array",
+                ),
+            );
+        Ok(rows) ->
+            let next = required_module_diagnostics(required_modules(), rows, diagnostics);
+            compare_output_pages(root, rows, next)
+    }.
+
+@pure
+required_module_diagnostics(
+    required: List[String],
+    rows: List[StringFieldRow],
+    diagnostics: List[String],
+): List[String] ->
+    case required {
+        [] -> diagnostics;
+        [module_name | rest] ->
+            let next =
+                if {
+                    module_is_present(module_name, rows) -> diagnostics;
+                    true -> add_diagnostic(
+                        diagnostics,
+                        binding_manifest_path(),
+                        String.append(
+                            "missing required ES2015 collection module `",
+                            String.append(module_name, "`"),
+                        ),
+                    )
+                };
+            required_module_diagnostics(rest, rows, next)
+    }.
+
+@pure
+module_is_present(module_name: String, rows: List[StringFieldRow]): Bool ->
+    case rows {
+        [] -> false;
+        [row | rest] -> row_module_is(row, module_name) or module_is_present(module_name, rest)
+    }.
+
+@pure
+row_module_is(row: StringFieldRow, expected: String): Bool ->
+    case Json.string_field_row_values(row) {
+        [Some(module_name) | _rest] -> module_name == expected;
+        _ -> false
+    }.
+
+@pure
+row_page(rows: List[StringFieldRow], limit: Int): RowPage ->
+    row_page_at(rows, limit, []).
+
+@pure
+row_page_at(rows: List[StringFieldRow], remaining: Int, selected: List[StringFieldRow]): RowPage ->
+    if {
+        remaining == 0 -> RowPage(rows = reverse_rows(selected), remaining = rows);
+        true -> case rows {
+            [] -> RowPage(rows = reverse_rows(selected), remaining = []);
+            [row | rest] -> row_page_at(rest, remaining - 1, [row | selected])
+        }
+    }.
+
+@pure
+reverse_rows(rows: List[StringFieldRow]): List[StringFieldRow] ->
+    reverse_rows_at(rows, []).
+
+@pure
+reverse_rows_at(
+    rows: List[StringFieldRow],
+    reversed: List[StringFieldRow],
+): List[StringFieldRow] ->
+    case rows {
+        [] -> reversed;
+        [row | rest] -> reverse_rows_at(rest, [row | reversed])
+    }.
+
+compare_output_pages(root: String, rows: List[StringFieldRow], diagnostics: List[String]): Bool ->
+    case rows {
+        [] -> report(diagnostics);
+        _ ->
+            let page = row_page(rows, 32);
+            let plan = artifact_plan(root, page.rows, diagnostics);
+            read_artifact_page(root, page.remaining, plan)
+    }.
+
+@pure
+artifact_plan(root: String, rows: List[StringFieldRow], diagnostics: List[String]): ArtifactPlan ->
+    artifact_plan_at(root, rows, [], diagnostics).
+
+@pure
+artifact_plan_at(
+    root: String,
+    rows: List[StringFieldRow],
+    checks: List[ArtifactCheck],
+    diagnostics: List[String],
+): ArtifactPlan ->
+    case rows {
+        [] -> ArtifactPlan(checks = reverse_checks(checks), diagnostics = diagnostics);
+        [row | rest] ->
+            let plan = output_artifacts(root, row, checks, diagnostics);
+            artifact_plan_at(root, rest, plan.checks, plan.diagnostics)
+    }.
+
+@pure
+output_artifacts(
+    root: String,
+    row: StringFieldRow,
+    checks: List[ArtifactCheck],
+    diagnostics: List[String],
+): ArtifactPlan ->
+    if {
+        not Json.string_field_row_is_object(row) -> ArtifactPlan(
+            checks = checks,
+            diagnostics = add_diagnostic(diagnostics, binding_manifest_path(), "output entry must be an object"),
+        );
+        true -> case Json.string_field_row_values(row) {
+            [_module | [source | [interface | [test | [summary | []]]]]] ->
+                let p1 =
+                    add_artifact(
+                        root,
+                        checks,
+                        diagnostics,
+                        "source",
+                        source,
+                        "source",
+                        "missing generated artifact",
+                    );
+                let p2 =
+                    add_artifact(
+                        root,
+                        p1.checks,
+                        p1.diagnostics,
+                        "interface",
+                        interface,
+                        "interface",
+                        "missing generated artifact",
+                    );
+                let p3 =
+                    add_artifact(
+                        root,
+                        p2.checks,
+                        p2.diagnostics,
+                        "test",
+                        test,
+                        "test",
+                        "missing generated artifact",
+                    );
+                add_summary_artifacts(root, p3, summary);
+            _ ->
+                ArtifactPlan(
+                    checks = checks,
+                    diagnostics = add_diagnostic(
+                        diagnostics,
+                        binding_manifest_path(),
+                        "output projection has an invalid shape",
+                    ),
+                )
+        }
+    }.
+
+@pure
+add_artifact(
+    root: String,
+    checks: List[ArtifactCheck],
+    diagnostics: List[String],
+    field: String,
+    value: Option[String],
+    kind: String,
+    missing_message: String,
+): ArtifactPlan ->
+    case value {
+        Some(relative) ->
+            if {
+                safe_repository_path(relative) -> ArtifactPlan(
+                    checks = [ArtifactCheck(
+    relative = relative,
+    absolute = child(root, relative),
+    kind = kind,
+    missing_message = missing_message,
+) | checks],
+                    diagnostics = diagnostics,
+                );
+                true -> unsafe_output_field(checks, diagnostics, field)
+            };
+        None -> unsafe_output_field(checks, diagnostics, field)
+    }.
+
+@pure
+unsafe_output_field(
+    checks: List[ArtifactCheck],
+    diagnostics: List[String],
+    field: String,
+): ArtifactPlan ->
+    ArtifactPlan(
+        checks = checks,
+        diagnostics = add_diagnostic(
+            diagnostics,
+            binding_manifest_path(),
+            String.append("output field `", String.append(field, "` must be a safe path")),
+        ),
+    ).
+
+@pure
+add_summary_artifacts(root: String, plan: ArtifactPlan, value: Option[String]): ArtifactPlan ->
+    case value {
+        Some(relative) ->
+            if {
+                safe_repository_path(relative) -> ArtifactPlan(
+                    checks = [ArtifactCheck(
+    relative = String.append(relative, ".deps"),
+    absolute = child(root, String.append(relative, ".deps")),
+    kind = "",
+    missing_message = "missing generated summary dependency file",
+) | [ArtifactCheck(
+    relative = relative,
+    absolute = child(root, relative),
+    kind = "",
+    missing_message = "missing normalized summary artifact",
+) | plan.checks]],
+                    diagnostics = plan.diagnostics,
+                );
+                true -> unsafe_output_field(plan.checks, plan.diagnostics, "summary")
+            };
+        None -> unsafe_output_field(plan.checks, plan.diagnostics, "summary")
+    }.
+
+@pure
+reverse_checks(checks: List[ArtifactCheck]): List[ArtifactCheck] ->
+    reverse_checks_at(checks, []).
+
+@pure
+reverse_checks_at(
+    checks: List[ArtifactCheck],
+    reversed: List[ArtifactCheck],
+): List[ArtifactCheck] ->
+    case checks {
+        [] -> reversed;
+        [check | rest] -> reverse_checks_at(rest, [check | reversed])
+    }.
+
+@pure
+check_paths(checks: List[ArtifactCheck]): List[String] ->
+    case checks {
+        [] -> std.collections.List.new[String]();
+        [check | rest] -> [check.absolute | check_paths(rest)]
+    }.
+
+read_artifact_page(root: String, remaining: List[StringFieldRow], plan: ArtifactPlan): Bool ->
+    case read_text_many(check_paths(plan.checks)) {
+        Ok(files) ->
+            let diagnostics = validate_artifact_files(plan.checks, files, plan.diagnostics);
+            compare_output_pages(root, remaining, diagnostics);
+        Err(_reason) -> read_artifacts_individually(root, remaining, plan.checks, plan.diagnostics)
+    }.
+
+@pure
+validate_artifact_files(
+    checks: List[ArtifactCheck],
+    files: List[TextFile],
+    diagnostics: List[String],
+): List[String] ->
+    case {checks, files} {
+        {[], []} -> diagnostics;
+        {[check | check_rest], [file | file_rest]} ->
+            let next =
+                if {
+                    check.kind == "" -> diagnostics;
+                    true -> header_diagnostics(check.relative, check.kind, file.contents, diagnostics)
+                };
+            validate_artifact_files(check_rest, file_rest, next);
+        _ ->
+            add_diagnostic(
+                diagnostics,
+                binding_manifest_path(),
+                "artifact batch result count mismatch",
+            )
+    }.
+
+read_artifacts_individually(
+    root: String,
+    remaining: List[StringFieldRow],
+    checks: List[ArtifactCheck],
+    diagnostics: List[String],
+): Bool ->
+    case checks {
+        [] -> compare_output_pages(root, remaining, diagnostics);
+        [check | rest] ->
+            case read_text_many([check.absolute]) {
+                Err(_reason) ->
+                    read_artifacts_individually(
+                        root,
+                        remaining,
+                        rest,
+                        add_diagnostic(diagnostics, check.relative, check.missing_message),
+                    );
+                Ok([file | []]) ->
+                    let next =
+                        if {
+                            check.kind == "" -> diagnostics;
+                            true -> header_diagnostics(
+                                check.relative,
+                                check.kind,
+                                file.contents,
+                                diagnostics,
+                            )
+                        };
+                    read_artifacts_individually(root, remaining, rest, next);
+                Ok(_files) ->
+                    read_artifacts_individually(
+                        root,
+                        remaining,
+                        rest,
+                        add_diagnostic(
+                            diagnostics,
+                            check.relative,
+                            "artifact batch result count mismatch",
+                        ),
+                    )
+            }
+    }.
+
+report(diagnostics: List[String]): Bool ->
+    case diagnostics {
+        [] ->
+            let _printed = println("[std-js-review-surface] generated std.js review surface is complete.");
+            true;
+        _ ->
+            let _header = println("[std-js-review-surface] failures:");
+            print_diagnostics(reverse_strings(diagnostics))
+    }.
+
+print_diagnostics(diagnostics: List[String]): Bool ->
+    case diagnostics {
+        [] -> false;
+        [entry | rest] ->
+            let _printed = println(String.append("  - ", entry));
+            print_diagnostics(rest)
+    }.
+
+@test
+pub safe_paths_reject_absolute_and_parent_escapes(): Bool ->
+    safe_repository_path("std/js/Array.terl")
+        and not safe_repository_path("/std/js/Array.terl")
+        and not safe_repository_path("std/../secret")
+        and not safe_repository_path("").
+
+@test
+pub malformed_header_reports_provenance_and_kind(): Bool ->
+    let diagnostics =
+        header_diagnostics(
+            "std/js/Broken.terl",
+            "source",
+            "/** @generated true */\nmodule std.js.Broken.",
+            [],
+        );
+    list_length(diagnostics) == 10.
+
+@pure
+list_length(values: List[String]): Int ->
+    list_length_at(values, 0).
+
+@pure
+list_length_at(values: List[String], count: Int): Int ->
+    case values {
+        [] -> count;
+        [_value | rest] -> list_length_at(rest, count + 1)
+    }.
+
+@test
+pub repository_review_surface_is_complete(): Bool ->
+    validate(selected_root()).
+
+pub main(): Unit ->
+    if {
+        repository_review_surface_is_complete() -> Unit;
+        true -> println("[std-js-review-surface] validation failed")
+    }.

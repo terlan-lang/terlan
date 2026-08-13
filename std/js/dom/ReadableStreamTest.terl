@@ -24,20 +24,20 @@ pub get_reader_typechecks(receiver: ReadableStream[R]): ReadableStreamDefaultRea
 
 pub get_reader_typechecks(
     receiver: ReadableStream[R],
-    options: ReadableStreamGetReaderOptions
+    options: ReadableStreamGetReaderOptions,
 ): ReadableStreamReader[R] ->
     receiver.get_reader(options).
 
 pub pipe_through_typechecks(
     receiver: ReadableStream[R],
     transform: ReadableWritablePair[T, R],
-    options: StreamPipeOptions
+    options: StreamPipeOptions,
 ): ReadableStream[T] ->
     receiver.pipe_through(transform, options).
 
 pub pipe_to_typechecks(
     receiver: ReadableStream[R],
     destination: WritableStream[R],
-    options: StreamPipeOptions
+    options: StreamPipeOptions,
 ): std.js.Promise[std.core.Unit] ->
     receiver.pipe_to(destination, options).

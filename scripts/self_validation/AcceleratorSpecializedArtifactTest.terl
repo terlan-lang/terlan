@@ -1,0 +1,95 @@
+/**
+ * Validates deterministic reachability-specialized accelerator artifacts.
+ */
+module scripts.self_validation.AcceleratorSpecializedArtifactTest.
+
+import std.core.Result.{Ok, with_default}.
+import std.core.String.
+import std.data.Json.
+import std.io.File.{read_text}.
+
+import type std.data.Json.
+
+string_field(value: Json, field: String): String ->
+    case value.get(field) {
+        Ok(found) -> with_default(found.as_string(), "");
+        _ -> ""
+    }.
+
+bool_field(value: Json, field: String): Bool ->
+    case value.get(field) {
+        Ok(found) -> with_default(found.as_bool(), false);
+        _ -> false
+    }.
+
+array_length(value: Json, field: String): Int ->
+    case value.get(field) {
+        Ok(found) -> with_default(found.length(), -1);
+        _ -> -1
+    }.
+
+manifest_is_cpu_only(evidence: Json): Bool ->
+    bool_field(evidence, "excluded_markers_absent")
+        and array_length(evidence, "sections") == 0
+        and array_length(evidence, "imports") == 0
+        and case evidence.get("manifest") {
+    Ok(manifest) ->
+        not bool_field(manifest, "accelerator_selected")
+            and array_length(manifest, "operations") == 0
+            and array_length(manifest, "kernels") == 0
+            and array_length(manifest, "runtime_adapters") == 0
+            and array_length(manifest, "excluded") == 7;
+    _ -> false
+}.
+
+manifest_is_selected(evidence: Json): Bool ->
+    array_length(evidence, "sections") == 2
+        and array_length(evidence, "imports") == 1
+        and case evidence.get("manifest") {
+    Ok(manifest) ->
+        bool_field(manifest, "accelerator_selected")
+            and array_length(manifest, "kernels") == 1
+            and array_length(manifest, "packages") == 1
+            and array_length(manifest, "runtime_adapters") == 1
+            and string_field(manifest, "cleanup_policy") == "actor-owned-exactly-once";
+    _ -> false
+}.
+
+validate_text(text: String): Bool ->
+    case Json.parse(text) {
+        Ok(report) -> validate_report(report);
+        _ -> false
+    }.
+
+validate_report(report: Json): Bool ->
+    report_header_is_valid(report)
+        and cpu_evidence_is_valid(report)
+        and selected_evidence_is_valid(report).
+
+report_header_is_valid(report: Json): Bool ->
+    string_field(report, "schema") == "terlan.accelerator-specialized-artifact.v1"
+        and bool_field(report, "reproducible")
+        and array_length(report, "rejection_evidence") == 9.
+
+cpu_evidence_is_valid(report: Json): Bool ->
+    case report.get("cpu_only") {
+        Ok(cpu) -> manifest_is_cpu_only(cpu);
+        _ -> false
+    }.
+
+selected_evidence_is_valid(report: Json): Bool ->
+    case report.get("selected") {
+        Ok(selected) -> manifest_is_selected(selected);
+        _ -> false
+    }.
+
+@test
+pub specialized_artifact_report_is_valid(): Bool ->
+    case read_text("target/quality/accelerator-specialized-artifact.json") {
+        Ok(text) -> validate_text(text);
+        _ -> false
+    }.
+
+@test
+pub incomplete_artifact_report_is_rejected(): Bool ->
+    not validate_text("{\"schema\":\"terlan.accelerator-specialized-artifact.v1\"}").

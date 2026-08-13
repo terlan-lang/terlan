@@ -447,4 +447,5 @@ fn failure_to_adapter(error: VmPostgresFailure) -> postgres::PostgresError {
 
 #[cfg(test)]
 #[path = "worker_test.rs"]
+#[cfg(test)]
 mod worker_test;

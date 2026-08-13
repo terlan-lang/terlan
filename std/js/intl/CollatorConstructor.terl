@@ -19,6 +19,6 @@ pub opaque type CollatorConstructor.
 
 pub (value: CollatorConstructor) supported_locales_of(
     locales: Array[JsString] | JsString,
-    options: CollatorOptions
+    options: CollatorOptions,
 ): Array[JsString] ->
     native.

@@ -21,9 +21,13 @@ import std.test.Test.{assert_false}.
  */
 @test
 pub map_put_tracks_generated_value_state(): Bool ->
-    for_all(elements([1, 2, 3]), (value) -> let state = Map.new[String, Int]();
-    state.put("id", value);
-    state.contains_key("id") and state.size() == 1).
+    for_all(
+        elements([1, 2, 3]),
+        (value) ->
+            let state = Map.new[String, Int]();
+            state.put("id", value);
+            state.contains_key("id") and state.size() == 1,
+    ).
 
 /**
  * Verifies remove clears generated keys after insertion.
@@ -35,7 +39,11 @@ pub map_put_tracks_generated_value_state(): Bool ->
  */
 @test
 pub map_remove_returns_generated_key_to_missing(): Bool ->
-    for_all(elements(["a", "b", "c"]), (key) -> let state = Map.new[String, Int]();
-    state.put(key, 1);
-    state.remove(key);
-    assert_false(state.contains_key(key))).
+    for_all(
+        elements(["a", "b", "c"]),
+        (key) ->
+            let state = Map.new[String, Int]();
+            state.put(key, 1);
+            state.remove(key);
+            assert_false(state.contains_key(key)),
+    ).

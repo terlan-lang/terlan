@@ -18,7 +18,7 @@ import type std.js.Dom.ReadableByteStreamController.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub byob_request_typechecks(
-    receiver: ReadableByteStreamController
+    receiver: ReadableByteStreamController,
 ): Option[ReadableStreamBYOBRequest] ->
     receiver.byob_request().
 
@@ -30,6 +30,6 @@ pub close_typechecks(receiver: ReadableByteStreamController): Unit ->
 
 pub enqueue_typechecks(
     receiver: ReadableByteStreamController,
-    chunk: ArrayBufferView[ArrayBuffer]
+    chunk: ArrayBufferView[ArrayBuffer],
 ): Unit ->
     receiver.enqueue(chunk).

@@ -1,0 +1,516 @@
+/**
+ * Validates the external CUDA package from an isolated Terlan-owned stage.
+ */
+module scripts.self_validation.CudaPackageContractTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.Directory.{copy_tree_excluding, create_all, create_temporary, entries, message, path, remove_all}.
+import std.io.File.{exists, message, path, read_text, write_text}.
+import std.io.Path.
+import std.system.{Environment, Process}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.io.Directory.DirectoryError.
+import type std.io.File.FileError.
+
+pub struct EcosystemRoots {
+    ndarray: String,
+    opencv: String,
+    pytorch: String,
+}.
+
+@pure
+required_files(): List[String] ->
+    [
+        "accelerator.toml",
+        "terlan.toml",
+        "native/terlan-native.toml",
+        "native/rust/Cargo.toml",
+        "native/rust/src/lib.rs",
+        "native/rust/src/bin/native_boundary_helper.rs",
+        "native/rust/src/kernels.ptx",
+        "src/cuda/Buffer.terl",
+        "src/cuda/Device.terl",
+        "src/cuda/Execution.terl",
+        "src/cuda/HostBuffer.terl",
+        "src/cuda/Kernel.terl",
+        "contracts/cuda-baseline-v1.json",
+        "scripts/check-baseline.py",
+        "tests/cuda/BufferTest.terl",
+        "tests/cuda/DeviceTest.terl",
+        "tests/cuda/ExecutionTest.terl",
+        "tests/cuda/InteropTest.terl",
+        "tests/cuda/HostBufferTest.terl",
+        "tests/cuda/VisionTest.terl",
+    ].
+
+@pure
+required_operations(): List[String] ->
+    [
+        "add-f64",
+        "matmul-f64",
+        "multiply-f64",
+        "pinned-host-transfer",
+        "reduce-sum-f64",
+        "scale-f64",
+        "tensor-packet-round-trip",
+        "u8-tensor-packet-round-trip",
+    ].
+
+@pure
+required_dtypes(): List[String] -> ["bool", "f32", "f64", "i32", "i64", "u8"].
+
+@pure
+child(root: String, relative: String): String ->
+    String.append(root, String.append("/", relative)).
+
+@pure
+excluded_stage_entries(): List[String] ->
+    [".git", ".terlan", ".venv", "__pycache__", "node_modules", "reports", "target"].
+
+ecosystem_roots(package: String): Option[EcosystemRoots] ->
+    let {
+        Ok(path) <- Path.from_string(package);
+        Some(parent) <- path.parent()
+    } else {
+        _ -> None
+    };
+    (let root = Path.to_string(parent);
+Some(
+    EcosystemRoots(
+        ndarray = child(root, "terlan-ndarray"),
+        opencv = child(root, "terlan-opencv/generated"),
+        pytorch = child(root, "terlan-pytorch"),
+    ),
+)).
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+log_directory_error(context: String, reason: DirectoryError): Unit ->
+    println(
+        String.append(
+            context,
+            String.append(
+                ": ",
+                String.append(
+                    message(reason),
+                    String.append(" (", String.append(path(reason), ")")),
+                ),
+            ),
+        ),
+    ).
+
+log_file_error(context: String, reason: FileError): Unit ->
+    println(
+        String.append(
+            context,
+            String.append(
+                ": ",
+                String.append(
+                    message(reason),
+                    String.append(" (", String.append(path(reason), ")")),
+                ),
+            ),
+        ),
+    ).
+
+required_files_hold(package: String, files: List[String]): Bool ->
+    case files {
+        [] -> true;
+        [relative | rest] ->
+            exists(child(package, relative)) and required_files_hold(package, rest)
+    }.
+
+package_shape_holds(package: String, compiler: String): Bool ->
+    case entries(package) {
+        Ok(_children) -> exists(compiler) and required_files_hold(package, required_files());
+        Err(_reason) -> false
+    }.
+
+json_field(value: Json, name: String): Option[Json] ->
+    case value.get(name) {
+        Ok(field) -> Some(field);
+        Err(_reason) -> None
+    }.
+
+json_string_field(value: Json, name: String): Option[String] ->
+    let {
+        Ok(field) <- value.get(name);
+        Ok(text) <- field.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+json_false_field(value: Json, name: String): Bool ->
+    let {
+        Ok(field) <- value.get(name);
+        Ok(found) <- field.as_bool()
+    } else {
+        _ -> false
+    };
+    not found.
+
+array_contains_string(value: Json, expected: String): Bool ->
+    case value.length() {
+        Ok(count) -> array_contains_string_at(value, expected, 0, count);
+        Err(_reason) -> false
+    }.
+
+array_contains_string_at(value: Json, expected: String, index: Int, count: Int): Bool ->
+    if {
+        index == count -> false;
+        true -> let {
+            Ok(item) <- value.at(index);
+            Ok(found) <- item.as_string()
+        } else {
+            _ -> false
+        };
+        found == expected or array_contains_string_at(value, expected, index + 1, count)
+    }.
+
+required_strings_present(value: Json, expected: List[String]): Bool ->
+    case expected {
+        [] -> true;
+        [item | rest] ->
+            array_contains_string(value, item) and required_strings_present(value, rest)
+    }.
+
+array_equals_strings(value: Json, expected: List[String]): Bool ->
+    case value.length() {
+        Ok(count) -> array_equals_strings_at(value, expected, 0, count);
+        Err(_reason) -> false
+    }.
+
+array_equals_strings_at(value: Json, expected: List[String], index: Int, count: Int): Bool ->
+    case expected {
+        [] -> index == count;
+        [item | rest] ->
+            if {
+                index >= count -> false;
+                true -> let {
+                    Ok(found) <- value.at(index);
+                    Ok(text) <- found.as_string()
+                } else {
+                    _ -> false
+                };
+                text == item and array_equals_strings_at(value, rest, index + 1, count)
+            }
+    }.
+
+passed_execution_holds(execution: Json): Bool ->
+    case {json_field(execution, "operations"), json_field(execution, "dtypes")} {
+        {Some(operations), Some(dtypes)} ->
+            required_strings_present(operations, required_operations())
+                and array_equals_strings(dtypes, required_dtypes());
+        _ -> false
+    }.
+
+/**
+ * Returns whether an external CUDA report satisfies the integrated gate.
+ */
+pub report_holds(report: Json): Bool ->
+    case {
+    json_string_field(report, "schema"),
+    json_field(report, "execution"),
+    json_field(report, "resources"),
+} {
+        {Some("terlan.cuda-package-execution.v2"), Some(execution), Some(resources)} ->
+            json_false_field(resources, "device_pointer_exposed")
+                and case json_string_field(execution, "status") {
+    Some("skip") -> true;
+    Some("passed") -> passed_execution_holds(execution);
+    _ -> false
+};
+        _ -> false
+    }.
+
+run_package_check(staged: String, compiler: String): Bool ->
+    let command =
+        Process.with_output_limit_bytes(
+            Process.with_timeout_ms(
+                Process.without_environment(
+                    Process.with_working_directory(
+                        Process.with_arguments(
+                            Process.command("make"),
+                            [
+                                "--no-print-directory",
+                                "package-check",
+                                String.append("TERLC=", compiler),
+                            ],
+                        ),
+                        staged,
+                    ),
+                    ["RUSTFLAGS"],
+                ),
+                3600000,
+            ),
+            16777216,
+        );
+    case Process.run(command) {
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> true;
+                true -> let _stdout = println(Process.stdout(output));
+                let _stderr = println(Process.stderr(output));
+                false
+            };
+        Err(reason) ->
+            let _error = println(Process.error_message(reason));
+            false
+    }.
+
+staged_report(staged: String, compiler: String): Option[Json] ->
+    let executed = run_package_check(staged, compiler);
+    if {
+        not executed -> None;
+        true -> case read_text(child(staged, "reports/cuda-package-execution.json")) {
+            Ok(text) ->
+                case Json.parse(text) {
+                    Ok(report) ->
+                        if {
+                            report_holds(report) -> Some(report);
+                            true -> let _logged =
+                                println(
+                                    String.append(
+                                        "[cuda-package-check] staged report violates the CUDA execution contract:\n",
+                                        text,
+                                    ),
+                                );
+                            None
+                        };
+                    Err(_reason) ->
+                        let _logged = println("[cuda-package-check] staged report is not valid JSON");
+                        None
+                };
+            Err(reason) ->
+                let _logged = log_file_error("[cuda-package-check] cannot read staged report", reason);
+                None
+        }
+    }.
+
+stage_ecosystem_dependencies(temporary: String, roots: EcosystemRoots): Bool ->
+    case copy_tree_excluding(roots.ndarray, child(temporary, "terlan-ndarray"), excluded_stage_entries()) {
+        Ok(Unit) ->
+            case create_all(child(temporary, "terlan-opencv")) {
+                Ok(Unit) ->
+                    case copy_tree_excluding(
+    roots.opencv,
+    child(temporary, "terlan-opencv/generated"),
+    excluded_stage_entries(),
+) {
+                        Ok(Unit) ->
+                            case copy_tree_excluding(roots.pytorch, child(temporary, "terlan-pytorch"), excluded_stage_entries()) {
+                                Ok(Unit) -> true;
+                                Err(reason) ->
+                                    let _logged =
+                                        log_directory_error(
+                                            "[cuda-package-check] cannot stage terlan-pytorch",
+                                            reason,
+                                        );
+                                    false
+                            };
+                        Err(reason) ->
+                            let _logged =
+                                log_directory_error(
+                                    "[cuda-package-check] cannot stage generated terlan-opencv",
+                                    reason,
+                                );
+                            false
+                    };
+                Err(reason) ->
+                    let _logged =
+                        log_directory_error(
+                            "[cuda-package-check] cannot create staged terlan-opencv root",
+                            reason,
+                        );
+                    false
+            };
+        Err(reason) ->
+            let _logged = log_directory_error("[cuda-package-check] cannot stage terlan-ndarray", reason);
+            false
+    }.
+
+isolated_report(package: String, compiler: String): Option[Json] ->
+    case ecosystem_roots(package) {
+        Some(roots) ->
+            case create_temporary("terlan-cuda-package") {
+                Ok(temporary) ->
+                    let staged = child(temporary, "terlan-cuda");
+                    let copied = copy_tree_excluding(package, staged, excluded_stage_entries());
+                    let result =
+                        case copied {
+                            Ok(Unit) ->
+                                if {
+                                    stage_ecosystem_dependencies(temporary, roots) -> staged_report(staged, compiler);
+                                    true -> None
+                                };
+                            Err(reason) ->
+                                let _logged =
+                                    log_directory_error(
+                                        "[cuda-package-check] cannot stage terlan-cuda",
+                                        reason,
+                                    );
+                                None
+                        };
+                    let cleaned = remove_all(temporary);
+                    case cleaned {
+                        Ok(Unit) -> result;
+                        Err(reason) ->
+                            let _logged =
+                                log_directory_error(
+                                    "[cuda-package-check] cannot remove isolated ecosystem",
+                                    reason,
+                                );
+                            None
+                    };
+                Err(reason) ->
+                    let _logged =
+                        log_directory_error(
+                            "[cuda-package-check] cannot create isolated ecosystem",
+                            reason,
+                        );
+                    None
+            };
+        None ->
+            let _logged = println("[cuda-package-check] package path has no parent ecosystem directory");
+            None
+    }.
+
+write_integrated_report(output: String, package: String, report: Json): Bool ->
+    let external = Json.object();
+    let _manifest = external.put("manifest", Json.string(child(package, "terlan.toml")));
+    let _native_manifest = external.put("native_manifest", Json.string(child(package, "native/terlan-native.toml")));
+    let integrated = Json.object();
+    let _external = integrated.put("external_package", external);
+    let _report = integrated.put("report", report);
+    let _schema = integrated.put("schema", Json.string("terlan.cuda-package-gate.v2"));
+    case Json.stringify_pretty(integrated) {
+        Ok(encoded) ->
+            let contents = String.append(encoded, "\n");
+            let {
+                Ok(Unit) <- create_all("target/quality");
+                Ok(Unit) <- write_text(output, contents);
+                Ok(observed) <- read_text(output)
+            } else {
+                _ -> false
+            };
+            observed == contents;
+        Err(_reason) -> false
+    }.
+
+print_status(report: Json): Unit ->
+    case {json_string_field(report, "backend"), json_field(report, "execution")} {
+        {Some(backend), Some(execution)} ->
+            case {json_string_field(execution, "status"), json_string_field(execution, "reason_code")} {
+                {Some(status), Some(reason)} ->
+                    let message =
+                        String.append(
+                            "[cuda-package-check] status=",
+                            String.append(
+                                status,
+                                String.append(
+                                    " backend=",
+                                    String.append(backend, String.append(" reason=", reason)),
+                                ),
+                            ),
+                        );
+                    println(message);
+                _ -> println("[cuda-package-check] invalid execution status")
+            };
+        _ -> println("[cuda-package-check] invalid report identity")
+    }.
+
+/**
+ * Stages, executes, validates, and seals the external CUDA package evidence.
+ */
+pub validate_host(package: String, compiler: String, output: String): Bool ->
+    if {
+        not package_shape_holds(package, compiler) -> false;
+        true -> case isolated_report(package, compiler) {
+            Some(report) ->
+                let written = write_integrated_report(output, package, report);
+                let _printed = print_status(report);
+                written;
+            None -> false
+        }
+    }.
+
+@pure
+valid_passed_report(): String ->
+    "{\"backend\":\"cudarc-driver\",\"execution\":{\"dtypes\":[\"bool\",\"f32\",\"f64\",\"i32\",\"i64\",\"u8\"],\"operations\":[\"add-f64\",\"matmul-f64\",\"multiply-f64\",\"pinned-host-transfer\",\"reduce-sum-f64\",\"scale-f64\",\"tensor-packet-round-trip\",\"u8-tensor-packet-round-trip\"],\"reason_code\":\"none\",\"status\":\"passed\"},\"resources\":{\"device_pointer_exposed\":false},\"schema\":\"terlan.cuda-package-execution.v2\"}".
+
+report_text_holds(text: String): Bool ->
+    case Json.parse(text) {
+        Ok(report) -> report_holds(report);
+        Err(_reason) -> false
+    }.
+
+@test
+pub reviewed_passed_report_is_accepted(): Bool ->
+    report_text_holds(valid_passed_report()).
+
+@test
+pub typed_skip_report_is_accepted_without_operations(): Bool ->
+    report_text_holds(
+        "{\"backend\":\"cudarc-driver\",\"execution\":{\"reason_code\":\"cuda-device-unavailable\",\"status\":\"skip\"},\"resources\":{\"device_pointer_exposed\":false},\"schema\":\"terlan.cuda-package-execution.v2\"}",
+    ).
+
+@test
+pub passed_report_requires_all_smoke_operations(): Bool ->
+    not report_text_holds(String.replace(valid_passed_report(), ",\"u8-tensor-packet-round-trip\"", "")).
+
+@test
+pub passed_report_requires_exact_dtype_order(): Bool ->
+    not report_text_holds(
+    String.replace(
+        valid_passed_report(),
+        "[\"bool\",\"f32\",\"f64\",\"i32\",\"i64\",\"u8\"]",
+        "[\"f32\",\"bool\",\"f64\",\"i32\",\"i64\",\"u8\"]",
+    ),
+).
+
+@test
+pub device_pointer_exposure_is_rejected(): Bool ->
+    not report_text_holds(
+    String.replace(
+        valid_passed_report(),
+        "\"device_pointer_exposed\":false",
+        "\"device_pointer_exposed\":true",
+    ),
+).
+
+@test
+pub unknown_report_schema_is_rejected(): Bool ->
+    not report_text_holds(
+    String.replace(
+        valid_passed_report(),
+        "terlan.cuda-package-execution.v2",
+        "terlan.cuda-package-execution.v3",
+    ),
+).
+
+@test
+pub ecosystem_dependency_roots_are_siblings_of_cuda_package(): Bool ->
+    case ecosystem_roots("/workspace/terlan-cuda") {
+        Some(roots) ->
+            roots.ndarray == "/workspace/terlan-ndarray"
+                and roots.opencv == "/workspace/terlan-opencv/generated"
+                and roots.pytorch == "/workspace/terlan-pytorch";
+        None -> false
+    }.
+
+@test
+pub repository_cuda_package_isolated_execution_passes(): Bool ->
+    let package = environment_or("TERLAN_CUDA_PACKAGE_DIR", "../terlan-cuda");
+    let compiler = environment_or("TERLAN_CUDA_TERLC", "target/debug/terlc");
+    validate_host(package, compiler, "target/quality/cuda-package-execution-status.json").

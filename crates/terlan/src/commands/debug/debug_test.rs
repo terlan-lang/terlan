@@ -14,7 +14,7 @@ use crate::{CliCommand, CliState};
 use super::{
     parse_debug_args, parse_debug_script, render_debug_error_json, render_debug_error_text,
     render_native_debug_report_json, render_native_debug_report_text,
-    script::RESERVED_SCRIPT_COMMANDS,
+    script::DEBUG_SCRIPT_COMMANDS,
     session::{open_native_debug_session, DebugBreakpointResolution, NativeDebugSessionReport},
     DebugCliError,
 };
@@ -39,6 +39,14 @@ fn native_debug_report() -> NativeDebugSessionReport {
             functions: vec!["app.Main.main/0@src/Main.terl:10..30".to_string()],
         }],
         script_commands: Some(2),
+        execution_state: "paused".to_string(),
+        control_events: vec!["pause:Paused:0".to_string()],
+        live_execution: true,
+        result: Some("42".to_string()),
+        process_snapshots: vec!["process 1".to_string()],
+        resource_snapshots: Vec::new(),
+        timer_snapshots: Vec::new(),
+        mailbox_snapshots: Vec::new(),
         json_events: true,
         multicore_replay: debugger_replay_evidence(),
     }
@@ -122,16 +130,9 @@ fn native_debug_session_admits_built_image_and_resolves_breakpoint() {
 }
 
 #[test]
-fn native_debug_session_rejects_source_and_renamed_json_targets() {
+fn native_debug_session_rejects_renamed_json_target() {
     let dir = debug_fixture_dir("rejection");
     fs::create_dir_all(&dir).expect("create debugger rejection fixture");
-    let source = dir.join("not-an-image.terl");
-    fs::write(&source, "module not_an_image.\n").expect("write source target");
-    let source_args = parse_debug_args(&[source.display().to_string()]).expect("parse source path");
-    let source_error = open_native_debug_session(&source_args, None)
-        .expect_err("source target must not enter native debugger");
-    assert_eq!(source_error.code, "debug_target_not_native_image");
-
     let renamed_json = dir.join("renamed.tvm");
     fs::write(&renamed_json, b"{\"format\":\"legacy\"}").expect("write renamed JSON");
     let json_args =
@@ -140,6 +141,39 @@ fn native_debug_session_rejects_source_and_renamed_json_targets() {
         .expect_err("renamed JSON must not enter native debugger");
     assert_eq!(json_error.code, "debug_native_image_rejected");
     assert!(json_error.message.contains("JSON is not a TVM image"));
+    let _ = fs::remove_dir_all(dir);
+}
+
+#[test]
+fn native_debug_session_rejects_stale_source_map() {
+    let dir = debug_fixture_dir("stale-source-map");
+    let source = dir.join("debug_stale.terl");
+    let out_dir = dir.join("build");
+    fs::create_dir_all(&dir).expect("create stale source-map fixture");
+    fs::write(&source, "module debug_stale.\n\npub main(): Int -> 42.\n")
+        .expect("write source-map fixture");
+    assert_eq!(
+        crate::commands::build::run(
+            CliCommand {
+                verb: Some("build".to_string()),
+                args: vec![source.display().to_string()],
+            },
+            CliState {
+                out_dir: out_dir.clone(),
+                ..CliState::default()
+            },
+        ),
+        ExitCode::SUCCESS
+    );
+    fs::write(&source, "module debug_stale.\n\npub main(): Int -> 99.\n")
+        .expect("mutate source after image build");
+    let args = parse_debug_args(&[out_dir.join("vm/debug_stale.tvm").display().to_string()])
+        .expect("parse stale source-map target");
+    let error = open_native_debug_session(&args, None)
+        .expect_err("changed source must reject stale source map");
+
+    assert_eq!(error.code, "debug_source_map_stale");
+    assert!(error.message.contains("rebuild the native image"));
     let _ = fs::remove_dir_all(dir);
 }
 
@@ -326,7 +360,7 @@ fn debug_args_rejects_too_many_targets() {
 }
 
 #[test]
-fn debug_script_accepts_reserved_commands_and_breakpoints() {
+fn debug_script_accepts_commands_and_breakpoints() {
     let commands = parse_debug_script(
         "\
 # comment
@@ -344,7 +378,7 @@ continue
 quit
 ",
     )
-    .expect("reserved debugger script should parse");
+    .expect("debugger script should parse");
 
     assert_eq!(commands.len(), 12);
     assert_eq!(commands[0].line, 2);
@@ -373,7 +407,7 @@ quit
 
 #[test]
 fn debug_script_command_inventory_matches_parser() {
-    for command in RESERVED_SCRIPT_COMMANDS {
+    for command in DEBUG_SCRIPT_COMMANDS {
         let line = match *command {
             "break" => "break app.Main.main",
             "remove" => "remove 1",
@@ -503,7 +537,293 @@ fn debug_native_image_json_report_is_stable() {
     assert_eq!(value["multicore_replay"]["runtimeGeneration"], 1);
     assert_eq!(value["multicore_replay"]["retainedEvents"], 1);
     assert_eq!(value["multicore_replay"]["replayable"], true);
-    assert_eq!(value["live_execution"], false);
+    assert_eq!(value["live_execution"], true);
+}
+
+#[test]
+fn native_debug_script_stops_steps_and_inspects_real_aot_actor() {
+    let dir = debug_fixture_dir("live-execution");
+    let source = dir.join("debug_live.terl");
+    let out_dir = dir.join("build");
+    fs::create_dir_all(&dir).expect("create live debugger fixture directory");
+    fs::write(
+        &source,
+        "module debug_live.\n\npub main(): Int -> helper(41).\n\nhelper(value: Int): Int -> value + 1.\n",
+    )
+    .expect("write live debugger source");
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    assert_eq!(
+        crate::commands::build::run(
+            CliCommand {
+                verb: Some("build".to_string()),
+                args: vec![source.display().to_string()],
+            },
+            state,
+        ),
+        ExitCode::SUCCESS
+    );
+    let image = out_dir.join("vm/debug_live.tvm");
+    let args = parse_debug_args(&[
+        image.display().to_string(),
+        "--break".to_string(),
+        "debug_live.main".to_string(),
+        "--json-events".to_string(),
+    ])
+    .expect("parse live debugger invocation");
+    let commands = parse_debug_script(
+        "trace calls\ntrace returns\ntrace transitions\nrun\nbt\nargs\nlocals\neval 1 + 2\nprocesses\nmailbox\nresources\nstep\nquit\n",
+    )
+    .expect("parse live debugger script");
+
+    let report = open_native_debug_session(&args, Some(&commands))
+        .expect("live native debugger script should complete");
+
+    assert!(report.live_execution);
+    assert_eq!(report.result.as_deref(), Some("42"));
+    assert!(report
+        .control_events
+        .iter()
+        .any(|event| event.starts_with("stopped:breakpoint:")));
+    assert!(report
+        .control_events
+        .iter()
+        .any(|event| event.starts_with("bt:") && event.contains("debug_live.terl")));
+    assert!(report.control_events.iter().any(|event| event == "eval:3"));
+    assert!(report
+        .control_events
+        .iter()
+        .any(|event| event.starts_with("trace:call:")));
+    assert!(report
+        .control_events
+        .iter()
+        .any(|event| event.starts_with("trace:return:")));
+    assert_eq!(report.process_snapshots.len(), 1);
+    assert!(report.mailbox_snapshots.is_empty());
+    assert!(report.resource_snapshots.is_empty());
+    assert!(report.timer_snapshots.is_empty());
+    let _ = fs::remove_dir_all(dir);
+}
+
+#[test]
+fn public_debug_command_executes_script_through_live_native_shard() {
+    let dir = debug_fixture_dir("public-live-execution");
+    let source = dir.join("debug_public.terl");
+    let script = dir.join("session.terldbg");
+    fs::create_dir_all(&dir).expect("create public debugger fixture directory");
+    fs::write(&source, "module debug_public.\n\npub main(): Int -> 42.\n")
+        .expect("write public debugger source");
+    fs::write(&script, "run\nbt\nstep\nquit\n").expect("write public debugger script");
+    assert_eq!(
+        super::run(
+            CliCommand {
+                verb: Some("debug".to_string()),
+                args: vec![
+                    source.display().to_string(),
+                    "--break".to_string(),
+                    "debug_public.main".to_string(),
+                    "--script".to_string(),
+                    script.display().to_string(),
+                    "--json-events".to_string(),
+                ],
+            },
+            crate::DiagnosticFormat::Json,
+        ),
+        ExitCode::SUCCESS
+    );
+    let _ = fs::remove_dir_all(dir);
+}
+
+#[test]
+fn live_debugger_rejects_missing_process_and_frame_eval_with_stable_errors() {
+    let dir = debug_fixture_dir("live-adversarial");
+    let source = dir.join("debug_adversarial.terl");
+    let out_dir = dir.join("build");
+    fs::create_dir_all(&dir).expect("create debugger adversarial fixture");
+    fs::write(
+        &source,
+        "module debug_adversarial.\n\npub main(): Int -> 42.\n",
+    )
+    .expect("write debugger adversarial source");
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    assert_eq!(
+        crate::commands::build::run(
+            CliCommand {
+                verb: Some("build".to_string()),
+                args: vec![source.display().to_string()],
+            },
+            state,
+        ),
+        ExitCode::SUCCESS
+    );
+    let image = out_dir.join("vm/debug_adversarial.tvm");
+    let args = parse_debug_args(&[
+        image.display().to_string(),
+        "--break".to_string(),
+        "debug_adversarial.main".to_string(),
+    ])
+    .expect("parse adversarial debugger invocation");
+
+    let missing_process =
+        parse_debug_script("run\nprocess 999\n").expect("parse missing process script");
+    let process_error = open_native_debug_session(&args, Some(&missing_process))
+        .expect_err("missing process selection must fail closed");
+    assert_eq!(process_error.code, "debug_script_execution_failed");
+    assert!(process_error.message.contains("process 999 does not exist"));
+
+    let frame_eval = parse_debug_script("run\neval NativeBoundary.call()\n")
+        .expect("parse side-effecting frame eval script");
+    let eval_error = open_native_debug_session(&args, Some(&frame_eval))
+        .expect_err("unsupported native frame eval must fail closed");
+    assert_eq!(eval_error.code, "debug_script_execution_failed");
+    assert!(eval_error.message.contains("eval_side_effect"));
+
+    let false_condition_args = parse_debug_args(&[
+        image.display().to_string(),
+        "--break".to_string(),
+        "debug_adversarial.main where false".to_string(),
+    ])
+    .expect("parse false conditional breakpoint");
+    let run_to_completion =
+        parse_debug_script("run\nquit\n").expect("parse conditional debugger script");
+    let false_report = open_native_debug_session(&false_condition_args, Some(&run_to_completion))
+        .expect("false conditional breakpoint should not stop");
+    assert_eq!(false_report.result.as_deref(), Some("42"));
+    assert!(!false_report
+        .control_events
+        .iter()
+        .any(|event| event.starts_with("stopped:breakpoint:")));
+
+    let unsupported_condition_args = parse_debug_args(&[
+        image.display().to_string(),
+        "--break".to_string(),
+        "debug_adversarial.main where counter == 1".to_string(),
+    ])
+    .expect("parse unsupported conditional breakpoint");
+    let condition_error =
+        open_native_debug_session(&unsupported_condition_args, Some(&run_to_completion))
+            .expect_err("unknown entry local must not silently trigger a breakpoint");
+    assert!(condition_error.message.contains("condition_unsupported"));
+
+    let pure_condition_args = parse_debug_args(&[
+        image.display().to_string(),
+        "--break".to_string(),
+        "debug_adversarial.main where 1 == 1".to_string(),
+    ])
+    .expect("parse pure conditional breakpoint");
+    let pure_condition_report =
+        open_native_debug_session(&pure_condition_args, Some(&run_to_completion))
+            .expect("pure conditional breakpoint should use normal Terlan evaluation");
+    assert!(pure_condition_report
+        .control_events
+        .iter()
+        .any(|event| event.starts_with("stopped:breakpoint:")));
+    let _ = fs::remove_dir_all(dir);
+}
+
+#[test]
+fn explicit_debug_intrinsic_stops_and_resumes_generated_continuation() {
+    let dir = debug_fixture_dir("explicit-intrinsic");
+    let source = dir.join("debug_intrinsic.terl");
+    let out_dir = dir.join("build");
+    fs::create_dir_all(&dir).expect("create explicit debugger fixture");
+    fs::write(
+        &source,
+        "module debug_intrinsic.\n\nimport std.vm.Debugger.\n\npub main(): Int ->\n    let value = 41;\n    Debugger.debug();\n    value + 1.\n",
+    )
+    .expect("write explicit debugger source");
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    assert_eq!(
+        crate::commands::build::run(
+            CliCommand {
+                verb: Some("build".to_string()),
+                args: vec![source.display().to_string()],
+            },
+            state,
+        ),
+        ExitCode::SUCCESS
+    );
+    let image = out_dir.join("vm/debug_intrinsic.tvm");
+    let args = parse_debug_args(&[image.display().to_string()])
+        .expect("parse explicit debugger invocation");
+    let commands = parse_debug_script("run\nbt\nlocals\neval value + 1\ncontinue\nquit\n")
+        .expect("parse explicit debugger commands");
+
+    let report = open_native_debug_session(&args, Some(&commands))
+        .expect("explicit debugger continuation should resume");
+
+    assert_eq!(report.result.as_deref(), Some("42"));
+    assert!(report
+        .control_events
+        .iter()
+        .any(|event| event == "stopped:transition:Debug"));
+    assert!(report
+        .control_events
+        .iter()
+        .any(|event| event.starts_with("bt:")));
+    assert!(report
+        .control_events
+        .iter()
+        .any(|event| event == "locals:[value($0)=41]"));
+    assert!(report.control_events.iter().any(|event| event == "eval:42"));
+    let _ = fs::remove_dir_all(dir);
+}
+
+#[test]
+fn failure_condition_exposes_typed_restart_and_skip_resumes_in_vm() {
+    let dir = debug_fixture_dir("failure-restart");
+    let source = dir.join("debug_restart.terl");
+    let out_dir = dir.join("build");
+    fs::create_dir_all(&dir).expect("create restart debugger fixture");
+    fs::write(
+        &source,
+        "module debug_restart.\n\nimport std.vm.Process.\n\npub main(): Int ->\n    Process.fail(Process.exit_reason(7));\n    42.\n",
+    )
+    .expect("write restart debugger source");
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    assert_eq!(
+        crate::commands::build::run(
+            CliCommand {
+                verb: Some("build".to_string()),
+                args: vec![source.display().to_string()],
+            },
+            state,
+        ),
+        ExitCode::SUCCESS
+    );
+    let image = out_dir.join("vm/debug_restart.tvm");
+    let args =
+        parse_debug_args(&[image.display().to_string()]).expect("parse restart debugger target");
+    let commands = parse_debug_script("run\nrestarts\nrestart skip\nquit\n")
+        .expect("parse restart debugger commands");
+
+    let report = open_native_debug_session(&args, Some(&commands))
+        .expect("typed skip restart should resume the generated continuation");
+
+    assert_eq!(report.result.as_deref(), Some("42"));
+    assert!(report
+        .control_events
+        .iter()
+        .any(|event| event == "stopped:transition:Failure"));
+    assert!(report.control_events.iter().any(|event| {
+        event.contains("restarts:[retry, skip, use Unit, abort_process, restart_process]")
+    }));
+    assert!(report
+        .control_events
+        .iter()
+        .any(|event| event == "skip:complete"));
+    let _ = fs::remove_dir_all(dir);
 }
 
 #[test]

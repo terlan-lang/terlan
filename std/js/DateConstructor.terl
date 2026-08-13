@@ -43,7 +43,7 @@ pub (value: DateConstructor) utc(
     hours: JsNumber,
     minutes: JsNumber,
     seconds: JsNumber,
-    ms: JsNumber
+    ms: JsNumber,
 ): JsNumber ->
     native.
 

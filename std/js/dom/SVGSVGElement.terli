@@ -170,12 +170,12 @@ pub (value: SVGSVGElement) get_element_by_id(element_id: JsString): Element.
 
 pub (value: SVGSVGElement) get_enclosure_list(
     rect: DOMRectReadOnly,
-    reference_element: Option[SVGElement]
+    reference_element: Option[SVGElement],
 ): NodeListOf[SVGCircleElement | SVGEllipseElement | SVGImageElement | SVGLineElement | SVGPathElement | SVGPolygonElement | SVGPolylineElement | SVGRectElement | SVGTextElement | SVGUseElement].
 
 pub (value: SVGSVGElement) get_intersection_list(
     rect: DOMRectReadOnly,
-    reference_element: Option[SVGElement]
+    reference_element: Option[SVGElement],
 ): NodeListOf[SVGCircleElement | SVGEllipseElement | SVGImageElement | SVGLineElement | SVGPathElement | SVGPolygonElement | SVGPolylineElement | SVGRectElement | SVGTextElement | SVGUseElement].
 
 /**
@@ -217,11 +217,11 @@ pub (value: SVGSVGElement) unsuspend_redraw_all(): Unit.
 pub (value: SVGSVGElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit.
 
 pub (value: SVGSVGElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit.

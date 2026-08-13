@@ -37,11 +37,11 @@ pub (value: HTMLLIElement) value(): std.js.Number.JsNumber.
 pub (value: HTMLLIElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit.
 
 pub (value: HTMLLIElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit.

@@ -205,4 +205,5 @@ fn verify_path_digest(path: &Path, expected: [u8; 32]) -> Result<(), String> {
 
 #[cfg(test)]
 #[path = "sealed_test.rs"]
+#[cfg(test)]
 mod sealed_test;

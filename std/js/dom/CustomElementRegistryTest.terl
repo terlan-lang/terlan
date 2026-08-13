@@ -22,19 +22,19 @@ pub define_typechecks(
     receiver: CustomElementRegistry,
     name: JsString,
     constructor_: CustomElementConstructor,
-    options: ElementDefinitionOptions
+    options: ElementDefinitionOptions,
 ): Unit ->
     receiver.define(name, constructor_, options).
 
 pub get_typechecks(
     receiver: CustomElementRegistry,
-    name: JsString
+    name: JsString,
 ): Option[CustomElementConstructor] ->
     receiver.get(name).
 
 pub get_name_typechecks(
     receiver: CustomElementRegistry,
-    constructor_: CustomElementConstructor
+    constructor_: CustomElementConstructor,
 ): Option[JsString] ->
     receiver.get_name(constructor_).
 
@@ -43,6 +43,6 @@ pub upgrade_typechecks(receiver: CustomElementRegistry, root: Node): Unit ->
 
 pub when_defined_typechecks(
     receiver: CustomElementRegistry,
-    name: JsString
+    name: JsString,
 ): std.js.Promise[CustomElementConstructor] ->
     receiver.when_defined(name).

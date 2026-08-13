@@ -107,4 +107,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "hex_target_metadata_test.rs"]
+#[cfg(test)]
 mod hex_target_metadata_test;

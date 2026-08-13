@@ -1,9 +1,10 @@
 use std::path::Path;
 
+use super::parse_lint_source;
 use crate::commands::lint::diagnostic::{LintDiagnostic, Severity};
 use crate::terlan_syntax::{
-    parse_module_as_syntax_output, SyntaxDeclarationPayload, SyntaxExprKind, SyntaxExprOutput,
-    SyntaxFunctionClauseOutput, SyntaxParamOutput,
+    SyntaxDeclarationPayload, SyntaxExprKind, SyntaxExprOutput, SyntaxFunctionClauseOutput,
+    SyntaxParamOutput,
 };
 
 const MESSAGE_TAG_EQUALITY_RULE_ID: &str = "TL0905";
@@ -17,7 +18,7 @@ pub(super) fn actor_vm_diagnostics(path: &Path, source: &str) -> Vec<LintDiagnos
         return Vec::new();
     }
 
-    let Ok(module) = parse_module_as_syntax_output(source) else {
+    let Ok(module) = parse_lint_source(path, source) else {
         return Vec::new();
     };
 

@@ -1,10 +1,22 @@
 schema=terlan.core_ir.v1
 module=phase_constructor_chain_resolution
 source_kind=Module
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 export=User:constructor/2
 export=build/2
 function=build/2 public=true params=id:Int:core=Int,name:Binary:core=Binary return=Dynamic return_core=Dynamic
 function_clause=build/2#0 patterns=Var:text=id:arity=0,Var:text=name:arity=0 core_patterns=Var(id),Var(name) pattern_proof=lean-covered,lean-covered pattern_preservation=structural-core-pattern(freshness=runtime-bindings-required;target=Var(id)),structural-core-pattern(freshness=runtime-bindings-required;target=Var(name)) guard=none body=ConstructorChain:core=ConstructorChain(User;identity=User;Var(id),Var(name) with RecordConstruct(Admin;id=Var(id),name=Var(name))):preservation=structural-core-expr(freshness=no-runtime-bindings;target=ConstructorChain(User;identity=User;Var(id),Var(name) with RecordConstruct(Admin;id=Var(id),name=Var(name)))):proof=partial:arity=2:children=[Call:core=ConstructorCall(User;identity=User;Var(id),Var(name)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=ConstructorCall(User;identity=User;Var(id),Var(name))):proof=lean-covered:arity=2:children=[Var:core=Var(User):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(User)):proof=lean-covered:text=User:arity=0;Var:core=Var(id):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(id)):proof=lean-covered:text=id:arity=0;Var:core=Var(name):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(name)):proof=lean-covered:text=name:arity=0];RecordConstruct:core=RecordConstruct(Admin;id=Var(id),name=Var(name)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=RecordConstruct(Admin;id=Var(id),name=Var(name))):proof=proof-model-required:text=Admin:arity=2:children=[Var:core=Var(id):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(id)):proof=lean-covered:text=id:arity=0;Var:core=Var(name):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(name)):proof=lean-covered:text=name:arity=0]]
 constructor=User public=true min_arity=2 params=id:Int:core=Int,name:Binary:core=Binary vararg=none return=Dynamic return_core=Dynamic
+binding_fingerprint=7af7336fe053519f
+binding=271dfe36e6df3856 region=a466d87cb677c168 name=id kind=Parameter path=constructor:User/2:constructor:User:clause:0:param:0
+binding=4516e9d8cc6572b1 region=a466d87cb677c168 name=name kind=Parameter path=constructor:User/2:constructor:User:clause:0:param:1
+binding=9234e8303a918a2b region=5432d5f684160f62 name=id kind=Pattern path=function:build/2:function:build:clause:0:head:0
+binding=b30f0dfd504d38c4 region=5432d5f684160f62 name=name kind=Pattern path=function:build/2:function:build:clause:0:head:1
+binding_reference=271dfe36e6df3856 name=id path=constructor:User/2:constructor:User:clause:0:body
+binding_reference=9234e8303a918a2b name=id path=function:build/2:function:build:clause:0:body:child:0:child:1
+binding_reference=b30f0dfd504d38c4 name=name path=function:build/2:function:build:clause:0:body:child:0:child:2
+binding_reference=9234e8303a918a2b name=id path=function:build/2:function:build:clause:0:body:child:1:field:0:id
+binding_reference=b30f0dfd504d38c4 name=name path=function:build/2:function:build:clause:0:body:child:1:field:1:name
+termination_schema=terlan.core_termination.v1
+termination=build/2 state=Proven reason=NonRecursive actor=NotActor component= measure=
 metadata=functions:1 types:0 constructors:1 proof_readiness:partial proof_expr_lean:6 proof_expr_partial:1 proof_expr_model_required:1 proof_expr_runtime_boundary:0 proof_expr_artifact_only:0 proof_pattern_lean:2 proof_pattern_partial:0 proof_pattern_model_required:0 proof_pattern_runtime_boundary:0 proof_pattern_artifact_only:0 typed_core_expr:8 summary_only_expr:0 typed_core_pattern:2 summary_only_pattern:0 typed_core_type:6 summary_only_type:0 checked_preservation_expr:8 checked_preservation_pattern:2 checked_preservation_expr_structural:8 checked_preservation_pattern_structural:2 checked_preservation_expr_no_runtime_bindings:8 checked_preservation_pattern_no_runtime_bindings:0 checked_preservation_expr_runtime_bindings_required:0 checked_preservation_pattern_runtime_bindings_required:2 resolved_constructor_call_identity:1 resolved_constructor_chain_identity:1 resolved_constructor_pattern_identity:0 unresolved_constructor_call_candidate:0 unresolved_constructor_chain_candidate:0 unresolved_constructor_pattern_candidate:0

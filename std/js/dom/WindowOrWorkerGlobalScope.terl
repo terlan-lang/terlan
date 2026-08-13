@@ -99,7 +99,7 @@ pub (value: WindowOrWorkerGlobalScope) create_image_bitmap(
     sy: JsNumber,
     sw: JsNumber,
     sh: JsNumber,
-    options: ImageBitmapOptions
+    options: ImageBitmapOptions,
 ): Promise[ImageBitmap] ->
     native.
 

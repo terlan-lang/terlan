@@ -1,0 +1,10 @@
+module=std.time.Date
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=6340978647660506543
+interface_hash=6033016687114637938
+interface_doc_hash=8012982579685686543
+deps=2
+std.core.Option=11539230284316612175
+std.time.Clock=4703164299965207838

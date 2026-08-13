@@ -1,0 +1,30 @@
+# candidate_id	category	classification	owner	invariant_rationale
+2db857c0958bdc41	equal-shape	distinct-invariant	c-abi-bindings	Owned and borrowed array-copy markers deliberately carry different transfer invariants despite their identical zero-data enum shape.
+2c5cb49b330b3866	equal-shape	boundary-conversion	native-bindings	C and C++ parameter directions belong to independently versioned generated metadata schemas and are converted at the binding boundary.
+f7f42dfd8c72092c	equal-shape	boundary-conversion	native-bindings	C ABI and C++ native blocking policies describe different generated contracts and remain nominally distinct across their boundary.
+87fda32d09290439	equal-shape	distinct-invariant	http-benchmarks	Protocol and lifecycle scenario evidence occupy separate report fields whose nominal types prevent cross-category benchmark attribution.
+4825bfa7639b34e5	equal-shape	distinct-invariant	vm-observability	Call count memory and time keys select different test instrumentation tables and cannot be substituted across measurement dimensions.
+9cdd5493a0bc26f5	equal-shape	distinct-invariant	vm-observability	Local and meta tracing keys select different production instrumentation tables and cannot be substituted across trace ownership domains.
+9ff09c957f6d120c	equal-shape	boundary-conversion	native-bindings	C and C++ metadata producer identities belong to distinct generated manifest schemas and are converted only by package tooling.
+bf4b8c54ad685466	same-name	distinct-invariant	vm-memory	The managed-image A-CHAMP node owns actor-heap references while the VM map node owns persistent host-side entry indexes.
+90376633f23fe47a	same-name	distinct-invariant	command-boundaries	Support bundle and accelerator value-contract commands accept different schemas whose typed argument records remain nominally distinct.
+a0da7b1de2472ac4	same-name	boundary-conversion	quality-tools	Repository quality internals use textual errors while standalone quality executables preserve typed boundary failures and convert explicitly at their interface.
+822d6f566417b684	same-name	distinct-invariant	quality-tools	CUDA availability and Tokio feature auditing use deliberately narrow Cargo manifest projections with different required fields.
+2cf4b613b6aa4a27	same-name	phase-boundary	compiler	HIR diagnostics retain source-model context while type-check diagnostics retain inference and constraint context before rendering.
+6fb73be12d27b949	same-name	platform-alternative	postgres-native	The available and unavailable libpq pollers are mutually exclusive target implementations of one cfg-selected adapter surface.
+7b2db10a841e4eb7	same-name	distinct-invariant	native-ir	The HIR callable signature is a language contract while the specialization signature is a local NativeIR cache key.
+1290196045574ae0	same-name	phase-boundary	html	The syntax attribute preserves Terlan source expressions while the renderer attribute owns sanitized output-ready HTML values.
+4378a61e5f53cb00	same-name	phase-boundary	html	Syntax attribute values retain expressions and spreads while renderer values are normalized text or boolean output values.
+a9e500ac4e8f301d	same-name	phase-boundary	html	The syntax element preserves parser spans and expressions while the rendered element owns output-tree structure.
+ef00ba0725050af1	same-name	phase-boundary	html	The syntax node is compiler input and the renderer node is sanitized output so conversion is intentionally explicit.
+3931b33bcd4ad4bb	same-name	distinct-invariant	lean-quality	The pull-request proof inventory and full proof-track inventory deserialize different checked TSV schemas.
+f0933c5200e64ce8	same-name	metadata-runtime-boundary	native-boundary	The metadata enum is serialized capability identity while the runtime struct owns live dispatch state and resources.
+9f42ba029e30055c	same-name	phase-boundary	native-aot	The compiler test dispatch signature models emitted calls while the runtime dispatch signature models admitted native execution.
+5b0de8815ac153c0	same-name	metadata-boundary	native-aot	Compiler syntax signatures are semantic declarations while emitted metadata signatures are serialized artifact records.
+5d60ae093b0ad837	same-name	distinct-invariant	managed-memory	List and A-CHAMP node headers encode different actor-heap layouts and are never layout-compatible.
+6bc4d59f011507d6	same-name	distinct-invariant	compiler	Request-projection origins track call provenance while termination origins track recursive proof provenance.
+2192ef69b1444b84	same-name	boundary-conversion	proof-correlation	Lean replay metadata is quality evidence while NativeBoundary replay metadata is runtime correlation data with explicit conversion.
+a8d8c61bca66a87f	same-name	distinct-invariant	runtime-protocols	Native HTTP requests and EPMD wire requests are unrelated protocol messages with different lifecycle owners.
+844758efcd0afa1a	same-name	distinct-invariant	test-infrastructure	Each server guard owns teardown for a different process harness and cannot safely stop another harness type.
+7381b1f123f3ca6e	same-name	phase-boundary	compiler	HIR trait method signatures preserve declarations while type-check signatures own resolved generic and conformance state.
+dab291978032205f	same-name	platform-alternative	postgres-runtime	The in-process and capability-required workers are mutually exclusive cfg-selected implementations of one VM-owned interface.

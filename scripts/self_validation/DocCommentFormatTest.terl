@@ -1,0 +1,242 @@
+/**
+ * Validates and normalizes standard-library documentation marker spacing.
+ */
+module scripts.self_validation.DocCommentFormat.
+
+import std.collections.List.
+import std.core.Option.{Some}.
+import std.core.Result.{Ok}.
+import std.core.{String, Unit}.
+import std.io.Console.{println}.
+import std.io.Directory.{create_all}.
+import std.io.File.{read_text, read_text_tree_matching, write_text}.
+import std.system.Arguments.{get}.
+
+import type std.io.File.TextFile.
+
+struct LineNormalization {
+    text: String,
+    in_doc_block: Bool,
+    malformed: Bool,
+}.
+
+/**
+ * Normalizes all documentation body markers while preserving line endings.
+ */
+@pure
+pub normalize_source(text: String): String ->
+    normalize_lines(String.split(text, "\n"), false, "").
+
+@pure
+normalize_lines(lines: List[String], in_doc_block: Bool, accumulated: String): String ->
+    case lines {
+        [] -> accumulated;
+        [line | rest] ->
+            let current = normalize_line(line, in_doc_block);
+            case rest {
+                [] ->
+                    normalize_lines(
+                        rest,
+                        current.in_doc_block,
+                        String.append(accumulated, current.text),
+                    );
+                _ ->
+                    normalize_lines(
+                        rest,
+                        current.in_doc_block,
+                        String.append(accumulated, String.append(current.text, "\n")),
+                    )
+            }
+    }.
+
+@pure
+normalize_line(line: String, in_doc_block: Bool): LineNormalization ->
+    let active = in_doc_block or doc_opens(line);
+    let normalized =
+        case String.split_once(line, "*") {
+            Some({indent, after_marker}) ->
+                if {
+                    active and only_indent(indent) and not String.starts_with(after_marker, "/") -> if {
+                        after_marker == ""
+                            or String.starts_with(after_marker, " ")
+                            or String.starts_with(after_marker, "\t") -> LineNormalization(text = line, in_doc_block = active, malformed = false);
+                        true -> LineNormalization(
+                            text = String.append(indent, String.append("* ", after_marker)),
+                            in_doc_block = active,
+                            malformed = true,
+                        )
+                    };
+                    true -> LineNormalization(text = line, in_doc_block = active, malformed = false)
+                };
+            _ -> LineNormalization(text = line, in_doc_block = active, malformed = false)
+        };
+    LineNormalization(
+        text = normalized.text,
+        in_doc_block = normalized.in_doc_block and not String.contains(line, "*/"),
+        malformed = normalized.malformed,
+    ).
+
+/**
+ * Returns whether every std source uses canonical documentation marker spacing.
+ */
+pub repository_is_formatted(root: String): Bool ->
+    formatted_pages(root, 0).
+
+formatted_pages(root: String, offset: Int): Bool ->
+    case read_text_tree_matching(
+    String.append(root, "/std"),
+    ["summaries", "__pycache__"],
+    [".terl", ".terli"],
+    List.new[String](),
+    offset,
+    64,
+) {
+        Ok([]) -> true;
+        Ok(files) ->
+            let formatted = files_are_formatted(files);
+            if {
+                formatted -> formatted_pages(root, offset + files.length());
+                true -> false
+            };
+        _ -> false
+    }.
+
+files_are_formatted(files: List[TextFile]): Bool ->
+    case files {
+        [] -> true;
+        [file | rest] -> source_is_formatted(file.contents) and files_are_formatted(rest)
+    }.
+
+@pure
+source_is_formatted(text: String): Bool ->
+    lines_are_formatted(String.split(text, "\n"), false).
+
+@pure
+lines_are_formatted(lines: List[String], in_doc_block: Bool): Bool ->
+    case lines {
+        [] -> true;
+        [line | rest] ->
+            let active = in_doc_block or doc_opens(line);
+            not body_marker_is_malformed(line, active)
+                and lines_are_formatted(rest, active and not String.contains(line, "*/"))
+    }.
+
+@pure
+body_marker_is_malformed(line: String, active: Bool): Bool ->
+    case String.split_once(line, "*") {
+        Some({indent, after_marker}) ->
+            active
+                and only_indent(indent)
+                and not String.starts_with(after_marker, "/")
+                and after_marker != ""
+                and not String.starts_with(after_marker, " ")
+                and not String.starts_with(after_marker, "\t");
+        _ -> false
+    }.
+
+@pure
+doc_opens(line: String): Bool ->
+    case String.split_once(line, "/**") {
+        Some({indent, _}) -> only_indent(indent);
+        _ -> false
+    }.
+
+@pure
+only_indent(text: String): Bool ->
+    String.replace(String.replace(text, " ", ""), "\t", "") == "".
+
+/**
+ * Rewrites malformed std documentation markers and reports write failures.
+ */
+pub fix_repository(root: String): Bool ->
+    fix_pages(root, 0).
+
+fix_pages(root: String, offset: Int): Bool ->
+    case read_text_tree_matching(
+    String.append(root, "/std"),
+    ["summaries", "__pycache__"],
+    [".terl", ".terli"],
+    List.new[String](),
+    offset,
+    64,
+) {
+        Ok([]) -> true;
+        Ok(files) ->
+            let fixed = fix_files(files);
+            if {
+                fixed -> fix_pages(root, offset + files.length());
+                true -> false
+            };
+        _ -> false
+    }.
+
+fix_files(files: List[TextFile]): Bool ->
+    case files {
+        [] -> true;
+        [file | rest] ->
+            if {
+                source_is_formatted(file.contents) -> fix_files(rest);
+                true -> let normalized = normalize_source(file.contents);
+                case write_text(file.path, normalized) {
+                    Ok(Unit) -> fix_files(rest);
+                    _ -> false
+                }
+            }
+    }.
+
+@test
+pub repository_std_doc_markers_are_formatted(): Bool ->
+    repository_is_formatted(".").
+
+@test
+pub normalization_repairs_body_and_annotation_markers(): Bool ->
+    let source = "/**\n *Text\n *@param value\n */\n";
+    normalize_source(source) == "/**\n * Text\n * @param value\n */\n".
+
+@test
+pub validation_rejects_malformed_body_markers(): Bool ->
+    not source_is_formatted("/**\n *Text\n */\n").
+
+@test
+pub normalization_preserves_canonical_and_non_doc_comments(): Bool ->
+    let source = "/** one line */\n/**\n * canonical\n *\n */\n/*\n *Not documentation\n */";
+    normalize_source(source) == source.
+
+@test
+pub validation_accepts_canonical_and_non_doc_comments(): Bool ->
+    source_is_formatted("/**\n * canonical\n */\n/*\n *Not documentation\n */").
+
+@test
+pub normalization_preserves_tabs_and_trailing_newline_choice(): Bool ->
+    let source = "/**\n\t*Value\n */";
+    normalize_source(source) == "/**\n\t* Value\n */".
+
+@test
+pub fix_mode_rewrites_discovered_std_sources(): Bool ->
+    let directory = create_all("target/terlan-doc-format-fix/std/example");
+    let written =
+        write_text(
+            "target/terlan-doc-format-fix/std/example/Example.terl",
+            "/**\n *Text\n */\nmodule example.Example.\n",
+        );
+    let fixed = fix_repository("target/terlan-doc-format-fix");
+    let read = read_text("target/terlan-doc-format-fix/std/example/Example.terl");
+    case {directory, written, fixed, read} {
+        {Ok(Unit), Ok(Unit), true, Ok(text)} ->
+            text == "/**\n * Text\n */\nmodule example.Example.\n";
+        _ -> false
+    }.
+
+pub main(): Unit ->
+    case get(0) {
+        Some("--fix") ->
+            if {
+                fix_repository(".") -> println("[stdlib-doc-format] documentation markers normalized");
+                true -> println("[stdlib-doc-format] normalization failed")
+            };
+        _ ->
+            if {
+                repository_is_formatted(".") -> println("[stdlib-doc-format] std documentation block spacing is canonical");
+                true -> println("[stdlib-doc-format] failures")
+            }
+    }.

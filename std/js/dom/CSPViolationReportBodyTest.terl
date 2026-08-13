@@ -25,7 +25,7 @@ pub column_number_typechecks(receiver: CSPViolationReportBody): Option[JsNumber]
     receiver.column_number().
 
 pub disposition_typechecks(
-    receiver: CSPViolationReportBody
+    receiver: CSPViolationReportBody,
 ): SecurityPolicyViolationEventDisposition ->
     receiver.disposition().
 

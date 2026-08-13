@@ -110,14 +110,13 @@ pub impl Applicative[Option] for Option {
     pure(value: A): Option[A] ->
         Some(value).
     apply(f: Option[(A) -> B], value: Option[A]): Option[B] ->
-        case f {
-            None -> None;
-            Some(unwrapped) ->
-                case value {
-                    None -> None;
-                    Some(x) -> Some(unwrapped(x))
-                }
-        }.
+        let {
+            Some(unwrapped) <- f;
+            Some(x) <- value
+        } else {
+            _ -> None
+        };
+        Some(unwrapped(x)).
 }.
 
 /**
@@ -136,14 +135,13 @@ pub impl Monad[Option] for Option {
     pure(value: A): Option[A] ->
         Some(value).
     apply(f: Option[(A) -> B], value: Option[A]): Option[B] ->
-        case f {
-            None -> None;
-            Some(unwrapped) ->
-                case value {
-                    None -> None;
-                    Some(x) -> Some(unwrapped(x))
-                }
-        }.
+        let {
+            Some(unwrapped) <- f;
+            Some(x) <- value
+        } else {
+            _ -> None
+        };
+        Some(unwrapped(x)).
     flat_map(value: Option[A], f: (A) -> Option[B]): Option[B] ->
         case value {
             None -> None;

@@ -1,8 +1,8 @@
-#![allow(dead_code)]
-
 use std::collections::BTreeMap;
 
-use super::process::{VmProcessId, VmProcessState, VmProcessTable};
+use super::process::VmProcessId;
+#[cfg(test)]
+use super::process::{VmProcessState, VmProcessTable};
 
 #[path = "process_alias/transfer.rs"]
 pub(crate) mod transfer;
@@ -18,6 +18,7 @@ impl VmProcessAlias {
     }
 
     /// Creates an alias for adversarial VM runtime tests.
+    #[cfg(test)]
     pub(crate) fn from_raw_for_test(value: u64) -> Self {
         Self(value)
     }
@@ -25,6 +26,7 @@ impl VmProcessAlias {
 
 /// Stable process alias lifecycle error.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmProcessAliasError {
     MissingProcess(VmProcessId),
     ExitedProcess(VmProcessId),
@@ -35,11 +37,13 @@ pub(crate) enum VmProcessAliasError {
 
 /// Capabilities attached to a newly allocated process alias.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmProcessAliasOptions {
     priority: bool,
     reply: bool,
 }
 
+#[cfg(test)]
 impl VmProcessAliasOptions {
     /// Allows explicitly priority-tagged sends through the alias.
     pub(crate) fn priority(mut self) -> Self {
@@ -71,6 +75,7 @@ pub(crate) struct VmProcessAliasTable {
 
 impl VmProcessAliasTable {
     /// Creates a fresh alias for one live process.
+    #[cfg(test)]
     pub(crate) fn create(
         &mut self,
         processes: &VmProcessTable,
@@ -80,6 +85,7 @@ impl VmProcessAliasTable {
     }
 
     /// Creates an alias with explicit priority and reply capabilities.
+    #[cfg(test)]
     pub(crate) fn create_with_options(
         &mut self,
         processes: &VmProcessTable,
@@ -110,16 +116,19 @@ impl VmProcessAliasTable {
     }
 
     /// Resolves one alias without exposing mutable alias-table state.
+    #[cfg(test)]
     pub(crate) fn resolve(&self, alias: VmProcessAlias) -> Option<VmProcessId> {
         self.route(alias).map(|route| route.owner)
     }
 
     /// Resolves delivery capabilities without exposing mutable table state.
+    #[cfg(test)]
     pub(crate) fn route(&self, alias: VmProcessAlias) -> Option<VmProcessAliasRoute> {
         self.aliases.get(&alias).copied()
     }
 
     /// Revokes a reply alias after a successful reply delivery.
+    #[cfg(test)]
     pub(crate) fn consume_reply(&mut self, alias: VmProcessAlias) {
         if self.aliases.get(&alias).is_some_and(|route| route.reply) {
             self.aliases.remove(&alias);
@@ -127,6 +136,7 @@ impl VmProcessAliasTable {
     }
 
     /// Removes one alias and returns its process owner.
+    #[cfg(test)]
     pub(crate) fn remove(
         &mut self,
         alias: VmProcessAlias,
@@ -147,6 +157,7 @@ impl VmProcessAliasTable {
     }
 
     /// Reports whether a process owns any priority-capable alias.
+    #[cfg(test)]
     pub(crate) fn has_priority_alias(&self, process: VmProcessId) -> bool {
         self.aliases
             .values()
@@ -163,10 +174,12 @@ impl VmProcessAliasTable {
     }
 
     /// Returns the number of live aliases.
+    #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
         self.aliases.len()
     }
 
+    #[cfg(test)]
     pub(crate) fn exhaust_for_test(&mut self) {
         self.next_alias = u64::MAX;
     }
@@ -174,4 +187,5 @@ impl VmProcessAliasTable {
 
 #[cfg(test)]
 #[path = "process_alias_transfer_test.rs"]
+#[cfg(test)]
 mod process_alias_transfer_test;

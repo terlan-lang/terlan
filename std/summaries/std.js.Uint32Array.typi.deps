@@ -1,7 +1,7 @@
 module=std.js.Uint32Array
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 source_hash=10130494996636959177
 interface_hash=12396138331485919576
 interface_doc_hash=12396138331485919576

@@ -26,9 +26,11 @@ pub(crate) fn core_primitive_intrinsic(
         "std.core.Bool" => core_bool_primitive_intrinsic(function, arity),
         "std.core.Atom" => core_atom_primitive_intrinsic(function, arity),
         "std.core.Type" => core_type_primitive_intrinsic(function, arity),
+        "std.core.Memory" => core_memory_primitive_intrinsic(function, arity),
         "std.core.Int" => core_int_primitive_intrinsic(function, arity),
         "std.core.Float" => core_float_primitive_intrinsic(function, arity),
         "std.core.String" => core_string_primitive_intrinsic(function, arity),
+        "std.crypto.Hash" => core_crypto_hash_primitive_intrinsic(function, arity),
         "std.collections.List" => core_list_primitive_intrinsic(function, arity),
         "std.collections.Iterator" => core_iterator_primitive_intrinsic(function, arity),
         "std.collections.Map" => core_map_primitive_intrinsic(function, arity),
@@ -36,17 +38,44 @@ pub(crate) fn core_primitive_intrinsic(
         "std.collections.Set" => core_set_primitive_intrinsic(function, arity),
         "std.core.Task" => core_task_primitive_intrinsic(function, arity),
         "std.core.Effect" => core_vm_effect_primitive_intrinsic(function, arity),
+        "std.vm.Debugger" => core_vm_debugger_primitive_intrinsic(function, arity),
         "std.vm.Process" => core_vm_process_primitive_intrinsic(function, arity),
-        "std.vm.Agent" => core_vm_agent_primitive_intrinsic(function, arity),
-        "std.vm.GenServer" => core_vm_gen_server_primitive_intrinsic(function, arity),
         "std.vm.NativeBridge" => core_vm_native_bridge_primitive_intrinsic(function, arity),
         "std.vm.Bytes" => core_vm_bytes_primitive_intrinsic(function, arity),
         "std.vm.BitString" => core_vm_bitstring_primitive_intrinsic(function, arity),
         "std.vm.Timeout" => core_vm_timeout_primitive_intrinsic(function, arity),
         "std.vm.Tcp" => core_vm_tcp_primitive_intrinsic(function, arity),
         "std.vm.Port" => core_vm_port_primitive_intrinsic(function, arity),
-        "std.vm.Supervisor" => core_vm_supervisor_primitive_intrinsic(function, arity),
-        "std.vm.Task" => core_vm_task_primitive_intrinsic(function, arity),
+        _ => None,
+    }
+}
+
+fn core_crypto_hash_primitive_intrinsic(
+    function: &str,
+    arity: usize,
+) -> Option<CorePrimitiveIntrinsic> {
+    match (function, arity) {
+        ("sha256", 1) => Some(CorePrimitiveIntrinsic::CryptoSha256),
+        _ => None,
+    }
+}
+
+fn core_vm_debugger_primitive_intrinsic(
+    function: &str,
+    arity: usize,
+) -> Option<CorePrimitiveIntrinsic> {
+    match (function, arity) {
+        ("debug", 0) => Some(CorePrimitiveIntrinsic::VmDebuggerBreak),
+        _ => None,
+    }
+}
+
+/// Resolves physical-layout descriptor projections to closed intrinsics.
+fn core_memory_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePrimitiveIntrinsic> {
+    match (function, arity) {
+        ("size", 1) => Some(CorePrimitiveIntrinsic::MemoryLayoutSize),
+        ("alignment", 1) => Some(CorePrimitiveIntrinsic::MemoryLayoutAlignment),
+        ("storage", 1) => Some(CorePrimitiveIntrinsic::MemoryLayoutStorage),
         _ => None,
     }
 }
@@ -121,15 +150,103 @@ pub(super) fn core_runtime_capability(
 ) -> Option<CoreRuntimeCapability> {
     match (module, function, arity) {
         ("std.io.Console", "println", 1) => Some(CoreRuntimeCapability::ConsolePrintln),
+        ("std.io.Console", "eprintln", 1) => Some(CoreRuntimeCapability::ConsoleEprintln),
+        ("std.time.Clock", "unix_time_ns", 0) => Some(CoreRuntimeCapability::ClockUnixTimeNs),
+        ("std.time.Clock", "monotonic_time_ns", 0) => {
+            Some(CoreRuntimeCapability::ClockMonotonicTimeNs)
+        }
         ("std.log.Log", "debug", 1)
         | ("std.log.Log", "info", 1)
         | ("std.log.Log", "warn", 1)
         | ("std.log.Log", "error", 1) => Some(CoreRuntimeCapability::ConsolePrintln),
         ("std.io.File", "exists", 1) => Some(CoreRuntimeCapability::FileExists),
         ("std.io.File", "read_text", 1) => Some(CoreRuntimeCapability::FileReadText),
+        ("std.io.File", "read_bytes", 1) => Some(CoreRuntimeCapability::FileReadBytes),
+        ("std.io.File", "size", 1) => Some(CoreRuntimeCapability::FileSize),
+        ("std.io.File", "timestamps", 1) => Some(CoreRuntimeCapability::FileTimestamps),
+        ("std.io.File", "set_timestamps", 3) => Some(CoreRuntimeCapability::FileSetTimestamps),
+        ("std.io.File", "is_executable", 1) => Some(CoreRuntimeCapability::FileIsExecutable),
+        ("std.io.File", "set_executable", 2) => Some(CoreRuntimeCapability::FileSetExecutable),
+        ("std.io.File", "copy", 2) => Some(CoreRuntimeCapability::FileCopy),
+        ("std.io.File", "copy_many", 1) => Some(CoreRuntimeCapability::FileCopyMany),
+        ("std.io.File", "read_text_many", 1) => Some(CoreRuntimeCapability::FileReadTextMany),
+        ("std.io.File", "read_text_directory", 1) => {
+            Some(CoreRuntimeCapability::FileReadTextDirectory)
+        }
+        ("std.io.File", "read_text_tree_excluding", 2) => {
+            Some(CoreRuntimeCapability::FileReadTextTreeExcluding)
+        }
+        ("std.io.File", "read_text_tree_matching", 6) => {
+            Some(CoreRuntimeCapability::FileReadTextTreeMatching)
+        }
         ("std.io.File", "write_text", 2) => Some(CoreRuntimeCapability::FileWriteText),
         ("std.io.File", "append_text", 2) => Some(CoreRuntimeCapability::FileAppendText),
         ("std.io.File", "delete", 1) => Some(CoreRuntimeCapability::FileDelete),
+        ("std.system.Arguments", "count", 0) => Some(CoreRuntimeCapability::SystemArgumentsCount),
+        ("std.system.Arguments", "get", 1) => Some(CoreRuntimeCapability::SystemArgumentsGet),
+        ("std.system.Environment", "contains", 1) => {
+            Some(CoreRuntimeCapability::SystemEnvironmentContains)
+        }
+        ("std.system.Environment", "get", 1) => Some(CoreRuntimeCapability::SystemEnvironmentGet),
+        ("std.system.Environment", "current_directory", 0) => {
+            Some(CoreRuntimeCapability::SystemEnvironmentCurrentDirectory)
+        }
+        ("std.system.Platform", "current_metrics", 0) => {
+            Some(CoreRuntimeCapability::SystemPlatformCurrentMetrics)
+        }
+        ("std.system.Process", "limits", 0) => Some(CoreRuntimeCapability::SystemProcessLimits),
+        ("std.system.Process", "run", 1) => Some(CoreRuntimeCapability::SystemProcessRun),
+        ("std.system.Process", "run_many", 1) => Some(CoreRuntimeCapability::SystemProcessRunMany),
+        ("std.system.Process", "run_length_framed", 1) => {
+            Some(CoreRuntimeCapability::SystemProcessRunLengthFramed)
+        }
+        ("std.io.Directory", "entries", 1) => Some(CoreRuntimeCapability::DirectoryEntries),
+        ("std.io.Directory", "files_recursive", 1) => {
+            Some(CoreRuntimeCapability::DirectoryFilesRecursive)
+        }
+        ("std.io.Directory", "files_recursive_excluding", 2) => {
+            Some(CoreRuntimeCapability::DirectoryFilesRecursiveExcluding)
+        }
+        ("std.io.Directory", "find_named_recursive_excluding", 3) => {
+            Some(CoreRuntimeCapability::DirectoryFindNamedRecursiveExcluding)
+        }
+        ("std.io.Directory", "tree_usage", 1) => Some(CoreRuntimeCapability::DirectoryTreeUsage),
+        ("std.io.Directory", "copy_tree_excluding", 3) => {
+            Some(CoreRuntimeCapability::DirectoryCopyTreeExcluding)
+        }
+        ("std.io.Directory", "create_symbolic_link", 2) => {
+            Some(CoreRuntimeCapability::DirectoryCreateSymbolicLink)
+        }
+        ("std.io.Directory", "create_all", 1) => Some(CoreRuntimeCapability::DirectoryCreateAll),
+        ("std.io.Directory", "create_temporary", 1) => {
+            Some(CoreRuntimeCapability::DirectoryCreateTemporary)
+        }
+        ("std.io.Directory", "remove_all", 1) => Some(CoreRuntimeCapability::DirectoryRemoveAll),
+        ("std.io.Archive", "create", 2) => Some(CoreRuntimeCapability::ArchiveCreate),
+        ("std.io.Archive", "extract", 2) => Some(CoreRuntimeCapability::ArchiveExtract),
+        ("std.crypto.Hash", "sha256_file", 1) => Some(CoreRuntimeCapability::HashSha256File),
+        ("std.crypto.Hash", "verify_sha256_manifest", 2) => {
+            Some(CoreRuntimeCapability::HashVerifySha256Manifest)
+        }
+        ("std.crypto.Hash", "sha256_tree", 1) => Some(CoreRuntimeCapability::HashSha256Tree),
+        ("std.crypto.Hash", "sha256_selected_files", 2) => {
+            Some(CoreRuntimeCapability::HashSha256SelectedFiles)
+        }
+        ("std.crypto.Hash", "sha256_labeled_file_digests", 1) => {
+            Some(CoreRuntimeCapability::HashSha256LabeledFileDigests)
+        }
+        ("std.crypto.Hash", "sha256_labeled_file_contents", 1) => {
+            Some(CoreRuntimeCapability::HashSha256LabeledFileContents)
+        }
+        ("std.crypto.Hash", "audit_labeled_files", 2) => {
+            Some(CoreRuntimeCapability::HashAuditLabeledFiles)
+        }
+        ("std.crypto.Hash", "audit_labeled_file_patterns", 3) => {
+            Some(CoreRuntimeCapability::HashAuditLabeledFilePatterns)
+        }
+        ("std.vcs.Git", "source_tree_identity", 1) => {
+            Some(CoreRuntimeCapability::GitSourceTreeIdentity)
+        }
         _ => None,
     }
 }
@@ -278,6 +395,11 @@ fn core_string_primitive_intrinsic(function: &str, arity: usize) -> Option<CoreP
         ("lowercase", 1) => Some(CorePrimitiveIntrinsic::StringLowercase),
         ("uppercase", 1) => Some(CorePrimitiveIntrinsic::StringUppercase),
         ("reverse", 1) => Some(CorePrimitiveIntrinsic::StringReverse),
+        ("characters", 1) => Some(CorePrimitiveIntrinsic::StringCharacters),
+        ("codepoints", 1) => Some(CorePrimitiveIntrinsic::StringCodepoints),
+        ("utf8_byte_at", 2) => Some(CorePrimitiveIntrinsic::StringUtf8ByteAt),
+        ("utf8_find_any_byte", 3) => Some(CorePrimitiveIntrinsic::StringUtf8FindAnyByte),
+        ("utf8_slice", 3) => Some(CorePrimitiveIntrinsic::StringUtf8Slice),
         ("trim", 1) => Some(CorePrimitiveIntrinsic::StringTrim),
         ("trim_start", 1) => Some(CorePrimitiveIntrinsic::StringTrimStart),
         ("trim_end", 1) => Some(CorePrimitiveIntrinsic::StringTrimEnd),
@@ -439,68 +561,6 @@ fn core_task_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePri
     }
 }
 
-/// Resolves a `std.vm.Agent` operation name and arity to a primitive intrinsic.
-///
-/// Inputs:
-/// - `function`: source-level operation name after the `std.vm.Agent` module
-///   path.
-/// - `arity`: argument count after receiver methods have been normalized to
-///   receiver-first calls.
-///
-/// Output:
-/// - `Some(CorePrimitiveIntrinsic)` for admitted executable VM Agent
-///   operations.
-/// - `None` for operations that have not yet received backend lowering.
-///
-/// Transformation:
-/// - Maps the VM-owned state-process surface to closed CoreIR intrinsic
-///   identities so target profiles can admit only operations with concrete
-///   Vm backend lowering.
-fn core_vm_agent_primitive_intrinsic(
-    function: &str,
-    arity: usize,
-) -> Option<CorePrimitiveIntrinsic> {
-    match (function, arity) {
-        ("start", 1) => Some(CorePrimitiveIntrinsic::VmAgentStart),
-        ("get", 1) => Some(CorePrimitiveIntrinsic::VmAgentGet),
-        ("get_and_update", 2) => Some(CorePrimitiveIntrinsic::VmAgentGetAndUpdate),
-        ("update", 2) => Some(CorePrimitiveIntrinsic::VmAgentUpdate),
-        ("cast", 2) => Some(CorePrimitiveIntrinsic::VmAgentCast),
-        ("stop", 1) => Some(CorePrimitiveIntrinsic::VmAgentStop),
-        _ => None,
-    }
-}
-
-/// Resolves a `std.vm.GenServer` operation name and arity to a primitive intrinsic.
-///
-/// Inputs:
-/// - `function`: source-level operation name after the `std.vm.GenServer`
-///   module path.
-/// - `arity`: argument count after receiver methods have been normalized to
-///   receiver-first calls.
-///
-/// Output:
-/// - `Some(CorePrimitiveIntrinsic)` for admitted executable VM GenServer
-///   operations.
-/// - `None` for unsupported operations or arity mismatch.
-///
-/// Transformation:
-/// - Maps the VM-owned callback process surface to closed CoreIR intrinsic
-///   identities so target profiles and backends can handle GenServer calls
-///   without stringly typed module dispatch.
-fn core_vm_gen_server_primitive_intrinsic(
-    function: &str,
-    arity: usize,
-) -> Option<CorePrimitiveIntrinsic> {
-    match (function, arity) {
-        ("start", 1) => Some(CorePrimitiveIntrinsic::VmGenServerStart),
-        ("call", 2) => Some(CorePrimitiveIntrinsic::VmGenServerCall),
-        ("cast", 2) => Some(CorePrimitiveIntrinsic::VmGenServerCast),
-        ("stop", 1) => Some(CorePrimitiveIntrinsic::VmGenServerStop),
-        _ => None,
-    }
-}
-
 /// Resolves a `std.vm.NativeBridge` operation name and arity to a primitive intrinsic.
 ///
 /// Inputs:
@@ -555,6 +615,11 @@ fn core_vm_bytes_primitive_intrinsic(
         ("from_list", 1) => Some(CorePrimitiveIntrinsic::VmBytesFromList),
         ("to_list", 1) => Some(CorePrimitiveIntrinsic::VmBytesToList),
         ("length", 1) => Some(CorePrimitiveIntrinsic::VmBytesLength),
+        ("starts_with", 2) => Some(CorePrimitiveIntrinsic::VmBytesStartsWith),
+        ("contains", 2) => Some(CorePrimitiveIntrinsic::VmBytesContains),
+        ("first_non_ascii_whitespace", 1) => {
+            Some(CorePrimitiveIntrinsic::VmBytesFirstNonAsciiWhitespace)
+        }
         ("concat", 2) => Some(CorePrimitiveIntrinsic::VmBytesConcat),
         ("slice", 3) => Some(CorePrimitiveIntrinsic::VmBytesSlice),
         ("read_uint_be", 3) => Some(CorePrimitiveIntrinsic::VmBytesReadUintBe),
@@ -678,65 +743,6 @@ fn core_vm_port_primitive_intrinsic(
         ("write", 2) => Some(CorePrimitiveIntrinsic::VmPortWrite),
         ("read", 3) => Some(CorePrimitiveIntrinsic::VmPortRead),
         ("close", 1) => Some(CorePrimitiveIntrinsic::VmPortClose),
-        _ => None,
-    }
-}
-
-/// Resolves a `std.vm.Supervisor` operation name and arity to a primitive intrinsic.
-///
-/// Inputs:
-/// - `function`: source-level operation name after the `std.vm.Supervisor`
-///   module path.
-/// - `arity`: argument count after receiver methods have been normalized to
-///   receiver-first calls.
-///
-/// Output:
-/// - `Some(CorePrimitiveIntrinsic)` for admitted executable VM Supervisor
-///   operations.
-/// - `None` for unsupported operations or arity mismatch.
-///
-/// Transformation:
-/// - Maps the supervision contract surface to closed CoreIR intrinsic
-///   identities so target profiles and backends can handle the local
-///   supervision proof without stringly typed module dispatch.
-fn core_vm_supervisor_primitive_intrinsic(
-    function: &str,
-    arity: usize,
-) -> Option<CorePrimitiveIntrinsic> {
-    match (function, arity) {
-        ("start", 0) => Some(CorePrimitiveIntrinsic::VmSupervisorStartRoot),
-        ("child_spec", 1) => Some(CorePrimitiveIntrinsic::VmSupervisorChildSpec),
-        ("start", 2) => Some(CorePrimitiveIntrinsic::VmSupervisorStart),
-        ("stop", 2) => Some(CorePrimitiveIntrinsic::VmSupervisorStop),
-        _ => None,
-    }
-}
-
-/// Resolves a `std.vm.Task` operation name and arity to a primitive intrinsic.
-///
-/// Inputs:
-/// - `function`: source-level operation name after the `std.vm.Task` module
-///   path.
-/// - `arity`: argument count after receiver methods have been normalized to
-///   receiver-first calls.
-///
-/// Output:
-/// - `Some(CorePrimitiveIntrinsic)` for admitted executable VM Task
-///   operations.
-/// - `None` for unsupported operations or arity mismatch.
-///
-/// Transformation:
-/// - Maps the VM-owned task-process surface to closed CoreIR intrinsic
-///   identities so target profiles and backends can handle VM Task
-///   operations without stringly typed module calls.
-fn core_vm_task_primitive_intrinsic(
-    function: &str,
-    arity: usize,
-) -> Option<CorePrimitiveIntrinsic> {
-    match (function, arity) {
-        ("start", 1) => Some(CorePrimitiveIntrinsic::VmTaskStart),
-        ("result", 1) => Some(CorePrimitiveIntrinsic::VmTaskResult),
-        ("cancel", 1) => Some(CorePrimitiveIntrinsic::VmTaskCancel),
         _ => None,
     }
 }

@@ -1,6 +1,11 @@
-SyntaxSpec ::= Program .
+SyntaxSpec ::= Program | Script .
 
 Program ::= { Declaration } .
+
+Script ::= { Declaration } ScriptBody .
+ScriptBody ::= ScriptExpression { ";" ScriptExpression } "." .
+ScriptExpression ::= ScriptBinding | Expr .
+ScriptBinding ::= Binding "=" Expr .
 
 Declaration ::= { Annotation } DeclarationCore .
 
@@ -17,6 +22,7 @@ DeclarationCore
    | TraitImplDecl "."
    | AnnotationSchemaDecl "."
    | TemplateDecl "."
+   | ShapeDecl "."
    | ConfigDecl "."
    | FunctionDecl "."
    | MethodDecl "."
@@ -145,9 +151,10 @@ ModulePath ::= LowerIdent { "." ModulePathSegment } .
 ModulePathSegment ::= LowerIdent | UpperIdent .
 QualifiedValueRef ::= ModulePath "." LowerIdent .
 ScopedValueRef ::= TypeName "." LowerIdent .
-QualifiedTypeRef ::= ModulePath "." TypeName .
 
-TemplateDecl ::= "template" TypeName "from" StringLiteral RawBlock .
+TemplateDecl ::= "template" TypeName "from" StringLiteral "{" [ TemplateProp { "," TemplateProp } [ "," ] ] "}" .
+TemplateProp ::= StructFieldName ":" TypeExpr [ "=" Expr ] .
+ShapeDecl ::= [ "pub" ] "shape" TypeName "(" [ PatternList ] ")" "=" Pattern [ "where" Expr ] .
 ConfigDecl ::= ConfigName ConfigTarget MetadataBlock .
 ConfigName
   ::= "target"
@@ -191,19 +198,30 @@ ImplicationField ::= LowerIdent ":" TypeExpr .
 Variance ::= "+" | "-" .
 HigherKindArity ::= "[" "_" { "," "_" } "]" .
 
-StructBody ::= "{" [ StructField { "," StructField } ] "}" .
+StructBody ::= "{" [ StructField { "," StructField } [ "," ] ] "}" .
 StructField ::= StructFieldName ":" TypeExpr [ "=" Expr ] .
 StructFieldName ::= LowerIdent | "#" LowerIdent .
 ConstructorClause ::= "(" [ ParamList ] ")" ":" TypeExpr "->" Expr .
-ParamList ::= Param { "," Param } .
-Param ::= FixedParam | VarargsParam .
+ParamList ::= Param { "," Param } [ "," ] .
+Param ::= FixedParam | VarargsParam | PatternParam | AliasedPatternParam .
 FixedParam ::= [ "mut" ] LowerIdent ":" TypeExpr [ "=" Expr ] .
 VarargsParam ::= "..." LowerIdent ":" TypeExpr .
+PatternParam ::= StructuralParameterPattern [ ":" TypeExpr ] [ "=" Expr ] .
+AliasedPatternParam ::= StructuralParameterPattern "=" LowerIdent ":" TypeExpr .
+StructuralParameterPattern
+  ::= "_"
+   | TuplePattern
+   | KeyedContainerPattern
+   | ListPattern
+   | StructPattern
+   | ConstructorPattern
+   | StringLiteral
+   .
 
 TypedFunction ::= LowerIdent [ TypeParams ] "(" [ ParamList ] ")" [ ConstraintList ] ":" TypeExpr "->" Expr .
-ClauseFunction ::= LowerIdent [ TypeParams ] "(" [ PatternList ] ")" [ "when" Expr ] "->" Expr { ";" LowerIdent "(" [ PatternList ] ")" [ "when" Expr ] "->" Expr } .
-PatternList ::= Pattern { "," Pattern } .
-PatternList1 ::= Pattern { "," Pattern } .
+ClauseFunction ::= LowerIdent [ TypeParams ] "(" [ PatternList ] ")" [ "where" Expr ] "->" Expr { ";" LowerIdent "(" [ PatternList ] ")" [ "where" Expr ] "->" Expr } .
+PatternList ::= Pattern { "," Pattern } [ "," ] .
+PatternList1 ::= Pattern { "," Pattern } [ "," ] .
 TraitMethodDecl ::= LowerIdent [ TypeParams ] "(" [ ParamList ] ")" [ ConstraintList ] ":" TypeExpr [ "->" Expr ] .
 TraitImplMethod ::= LowerIdent [ TypeParams ] "(" [ ParamList ] ")" [ ConstraintList ] ":" TypeExpr "->" Expr .
 TraitRef ::= TypeRef [ TypeArgs ] .
@@ -219,9 +237,9 @@ TypeArgs ::= "[" TypeExprList "]" .
 TypePlaceholder ::= "_" .
 
 TypeRef ::= [ ModulePath "." ] TypeName .
-TypeTuple ::= "{" TypeExpr "," TypeExpr { "," TypeExpr } "}" .
+TypeTuple ::= "{" TypeExpr "," TypeExpr { "," TypeExpr } [ "," ] "}" .
 TypeList ::= "[" TypeExpr "]" .
-TypeKeyedContainer ::= "{" [ TypeKeyedField { "," TypeKeyedField } ] "}" .
+TypeKeyedContainer ::= "{" [ TypeKeyedField { "," TypeKeyedField } [ "," ] ] "}" .
 TypeKeyedField ::= TypeKeyedFieldName ":" TypeExpr .
 TypeKeyedFieldName ::= LowerIdent | StringLiteral | AtomLiteralExpr .
 TypeLiteral ::= Int | Float | StringLiteral .
@@ -231,19 +249,19 @@ Constraint ::= TraitRef .
 
 Expr ::= LetExpr | AssignExpr .
 
-LetExpr ::= "let" ( LetBinding ";" Expr | "{" RefutableLetBinding { ";" RefutableLetBinding } [ ";" ] "}" "else" "{" Clause { ";" Clause } [ ";" ] "}" ";" Expr ) .
+LetExpr ::= "let" ( LetBinding ";" Expr | RefutableLetBinding "else" "{" Clause { ";" Clause } [ ";" ] "}" ";" Expr | "{" RefutableLetBinding { ";" RefutableLetBinding } [ ";" ] "}" "else" "{" Clause { ";" Clause } [ ";" ] "}" ";" Expr ) .
 LetBinding ::= Pattern "=" Expr .
 RefutableLetBinding ::= Pattern "<-" Expr .
 AssignExpr ::= IndexAssignExpr | PipeExpr .
 IndexAssignExpr ::= PostfixExpr "[" Expr "]" "=" Expr .
 
 CaseExpr ::= "case" Expr "{" [ Clause { ";" Clause } [ ";" ] ] "}" .
-Clause ::= PatternList [ "when" Expr ] "->" Expr .
+Clause ::= PatternList [ "where" Expr ] "->" Expr .
 LambdaExpr ::= "(" [ PatternList ] ")" "->" Expr .
 TryExpr ::= "try" Expr "{" [ Clause { ";" Clause } [ ";" ] ] [ "catch" CatchClause { ";" CatchClause } [ ";" ] ] [ "after" Expr "->" Expr ] "}" .
 
 IfExpr ::= "if" "{" IfClause { ";" IfClause } [ ";" ] "}" .
-CatchClause ::= PatternList [ "when" Expr ] "->" Expr .
+CatchClause ::= PatternList [ "where" Expr ] "->" Expr .
 IfClause ::= Expr "->" Expr .
 QuoteExpr ::= "quote" Expr .
 UnquoteExpr ::= "unquote" "(" Expr ")" .
@@ -256,11 +274,11 @@ MulExpr ::= CastExpr { MulOp CastExpr } .
 CastExpr ::= UnaryExpr { "as" TypeExpr } .
 UnaryExpr ::= UnaryOp UnaryExpr | PostfixExpr .
 UnaryOp ::= "-" | "not" | "!" .
-OrOp ::= "or" | "||" .
-AndOp ::= "and" | "&&" .
-AddOp ::= "+" | "-" .
+OrOp ::= "or" .
+AndOp ::= "and" .
+AddOp ::= "+" | "-" | ".." .
 MulOp ::= "*" | "/" | "div" | "rem" .
-CmpOp ::= "==" | "!=" | ">=" | ">" | "<=" | "<" .
+CmpOp ::= "==" | "!=" | ">=" | ">" | "<=" | "<" | "in" .
 PostfixExpr ::= PrimaryExpr { PostfixSuffix } .
 PostfixSuffix ::= MethodCallSuffix | FieldSuffix | RecordAccessSuffix | RecordUpdateSuffix | IndexSuffix | FunCallSuffix .
 PrimaryExpr
@@ -291,18 +309,18 @@ PrimaryExpr
    | ConstructorChainExpr .
 
 AtomLiteralExpr ::= "Atom" "[" StringLiteral "]" .
-TupleExpr ::= "{" Expr "," Expr { "," Expr } "}" .
-ListExpr ::= "[" [ Expr { "," Expr } ] "]" .
+TupleExpr ::= "{" Expr "," Expr { "," Expr } [ "," ] "}" .
+ListExpr ::= "[" [ Expr { "," Expr } [ "," ] ] "]" .
 ConsListExpr ::= "[" Expr "|" Expr "]" .
-FixedArrayExpr ::= "#[" [ Expr { "," Expr } ] "]" .
+FixedArrayExpr ::= "#[" [ Expr { "," Expr } [ "," ] ] "]" .
 ListGeneratorExpr ::= "[" Expr "|" ComprehensionQualifier { "," ComprehensionQualifier } "]" .
 ComprehensionQualifier ::= Generator | ComprehensionFilter .
 Generator ::= Pattern "<-" Expr .
 ComprehensionFilter ::= Expr .
-KeyedContainerExpr ::= "{" [ KeyedField { "," KeyedField } ] "}" .
+KeyedContainerExpr ::= "{" [ KeyedField { "," KeyedField } [ "," ] ] "}" .
 KeyedField ::= KeyedFieldName ":" Expr .
 KeyedFieldName ::= LowerIdent | StringLiteral | AtomLiteralExpr .
-NominalKeyedExpr ::= TypeName "{" [ KeyedField { "," KeyedField } ] "}" .
+NominalKeyedExpr ::= TypeName "{" [ KeyedField { "," KeyedField } [ "," ] ] "}" .
 
 StructPatternFieldName ::= LowerIdent | "#" LowerIdent .
 RecordFieldName ::= LowerIdent | "#" LowerIdent .
@@ -313,13 +331,13 @@ ScopedCallExpr ::= ScopedValueRef [ TypeArgs ] "(" [ CallArgList ] ")" .
 MethodCallSuffix ::= "." LowerIdent [ TypeArgs ] "(" [ CallArgList ] ")" .
 FieldSuffix ::= "." LowerIdent | "." "#" LowerIdent .
 RecordAccessSuffix ::= "#" TypeName "." RecordFieldName .
-RecordUpdateSuffix ::= "#" TypeName "{" [ RecordFieldName "=" Expr { "," RecordFieldName "=" Expr } ] "}" .
+RecordUpdateSuffix ::= "#" TypeName "{" [ RecordFieldName "=" Expr { "," RecordFieldName "=" Expr } [ "," ] ] "}" .
 IndexSuffix ::= "[" Expr "]" .
 FunCallSuffix ::= "." "(" [ CallArgList ] ")" .
-MacroExpr ::= "?" NameRef [ "(" [ Expr { "," Expr } ] ")" ] .
+MacroExpr ::= "?" NameRef [ "(" [ Expr { "," Expr } [ "," ] ] ")" ] .
 
 Pattern ::= PrimaryPattern .
-ListPattern ::= "[" "]" | "[" Pattern { "," Pattern } "]" | "[" Pattern "|" Pattern "]" .
+ListPattern ::= "[" "]" | "[" Pattern { "," Pattern } [ "," ] "]" | "[" Pattern "|" Pattern "]" .
 PrimaryPattern
   ::= "_"
    | Binding
@@ -336,69 +354,18 @@ PrimaryPattern
    | "(" Pattern ")"
    .
 QualifiedConstantPattern ::= NameRef { "." NameRef } "." ConstName .
-TuplePattern ::= "{" Pattern "," Pattern { "," Pattern } "}" .
+TuplePattern ::= "{" Pattern "," Pattern { "," Pattern } [ "," ] "}" .
 ConstructorPattern ::= ConstructorAtom [ "(" [ PatternList1 ] ")" ] .
-KeyedContainerPattern ::= "{" [ PatternKeyedField { "," PatternKeyedField } ] "}" .
+KeyedContainerPattern ::= "{" [ PatternKeyedField { "," PatternKeyedField } [ "," ] ] "}" .
 PatternKeyedField ::= KeyedFieldName ":" Pattern .
-StructPattern ::= TypeName "{" [ StructPatternField { "," StructPatternField } ] "}" .
+StructPattern ::= TypeName "{" [ StructPatternField { "," StructPatternField } [ "," ] ] "}" .
 StructPatternField ::= StructPatternFieldName ":" Pattern .
 
 RawBlock ::= BalancedRawBlock .
 BalancedRawBlock ::= "{" RawText "}" .
 RawText ::= ? opaque source text whose unescaped braces are balanced ? .
 
-ReservedWord
-  ::= "module"
-   | "import"
-   | "type"
-   | "nominal"
-   | "opaque"
-   | "struct"
-   | "constructor"
-   | "trait"
-   | "impl"
-   | "annotation"
-   | "implements"
-   | "for"
-   | "extends"
-   | "where"
-   | "template"
-   | "target"
-   | "native"
-   | "machine"
-   | "static"
-   | "from"
-   | "file"
-   | "css"
-   | "markdown"
-   | "html"
-   | "pub"
-   | "const"
-   | "macro"
-   | "case"
-   | "let"
-   | "if"
-   | "try"
-   | "catch"
-   | "after"
-   | "when"
-   | "quote"
-   | "unquote"
-   | "as"
-   | "and"
-   | "or"
-   | "not"
-   | "div"
-   | "rem"
-   | "with"
-   | "includes"
-   | "true"
-   | "false"
-
-   .
-
 NameRef ::= LowerIdent | UpperIdent .
-Identifier ::= LowerIdent | UpperIdent .
 ConstName ::= UpperIdent .
 
 LowerIdent ::= LowerLetter { IdentContinue } .
@@ -407,8 +374,7 @@ UpperIdent ::= UpperLetter { IdentContinue } .
 ConstructorAtom ::= UpperIdent .
 
 Binding ::= LowerIdent | "_" LowerIdent .
-ExprList ::= Expr { "," Expr } .
-CallArgList ::= CallArg { "," CallArg } .
+CallArgList ::= CallArg { "," CallArg } [ "," ] .
 CallArg ::= Expr | LowerIdent "=" Expr .
 CallExpr ::= NameRef [ TypeArgs ] "(" [ CallArgList ] ")" .
 

@@ -72,7 +72,11 @@ pub parse_and_to_string_roundtrip_normalized_uri(): Bool ->
 pub component_accessors_read_expected_parts(): Bool ->
     case Uri.parse("https://example.com/docs?q=terlan#intro") {
         Ok(uri) ->
-            assert_equal("https", uri.scheme()) and option_equals(uri.host(), "example.com") and assert_equal("/docs", uri.path()) and option_equals(uri.query(), "q=terlan") and option_equals(uri.fragment(), "intro");
+            assert_equal("https", uri.scheme())
+                and option_equals(uri.host(), "example.com")
+                and assert_equal("/docs", uri.path())
+                and option_equals(uri.query(), "q=terlan")
+                and option_equals(uri.fragment(), "intro");
         Err(_reason) -> false
     }.
 

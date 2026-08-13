@@ -21,11 +21,13 @@ impl VmSchedulerPlacementTransfer {
     }
 
     /// Returns the scheduling class preserved across migration.
+    #[cfg(test)]
     pub(crate) const fn class(&self) -> VmSchedulerClass {
         self.class
     }
 
     /// Returns whether the source had published runnable queue membership.
+    #[cfg(test)]
     pub(crate) const fn was_queued(&self) -> bool {
         self.queued
     }

@@ -155,6 +155,7 @@ function testVscodeManifestSurface(manifest) {
   }
   assert.deepStrictEqual(associationById.get("terlan-test").filenamePatterns, ["*Test.terl"]);
   assert.deepStrictEqual(associationById.get("terlan").extensions, [".terl"]);
+  assert.deepStrictEqual(associationById.get("terlan-script").extensions, [".terls"]);
   assert.deepStrictEqual(associationById.get("terlan-interface").extensions, [".terli"]);
   assert.deepStrictEqual(associationById.get("terlan-template-html").extensions, [".terl.html"]);
   assert.deepStrictEqual(associationById.get("terlan-template-markdown").extensions, [".terl.md"]);

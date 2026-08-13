@@ -1,12 +1,16 @@
-#![cfg_attr(feature = "serve-runtime-bin", allow(dead_code))]
-
-use crate::runtime::vm::sse::{VmSseCallbackPlan, VmSseEndpointPlan};
-use crate::runtime::vm::websocket::{VmWebSocketCallbackPlan, VmWebSocketEndpointPlan};
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+use crate::runtime::vm::sse::VmSseCallbackPlan;
+use crate::runtime::vm::sse::VmSseEndpointPlan;
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+use crate::runtime::vm::websocket::VmWebSocketCallbackPlan;
+use crate::runtime::vm::websocket::VmWebSocketEndpointPlan;
 use crate::terlan_syntax::{SyntaxExprKind, SyntaxExprOutput};
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 use crate::terlan_typeck::{CoreExportKind, CoreExpr, CoreModule, CorePattern};
-
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 use std::collections::HashMap;
 
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 const ROUTER_MODULE: &str = "std.http.Router";
 
 /// One statically resolved callable retained by an AOT router plan.
@@ -64,6 +68,7 @@ pub(crate) struct AotRouterPlan {
 }
 
 /// Extracts static router metadata and removes `router/0` from native execution.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 pub(crate) fn prepare_aot_router_module(
     core: &CoreModule,
 ) -> Result<(CoreModule, Option<AotRouterPlan>), String> {
@@ -93,6 +98,7 @@ pub(crate) fn prepare_aot_router_module(
 }
 
 /// Evaluates only the closed router-builder expression domain.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 fn evaluate_router(
     core: &CoreModule,
     expr: &CoreExpr,
@@ -136,6 +142,7 @@ fn evaluate_router(
 }
 
 /// Applies one statically known builder operation to an immutable plan.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 fn apply_router_call(
     core: &CoreModule,
     function: &str,
@@ -222,6 +229,7 @@ fn apply_router_call(
 }
 
 /// Applies one statically bounded route group and its scoped middleware.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 fn apply_group(
     core: &CoreModule,
     plan: &mut AotRouterPlan,
@@ -271,6 +279,7 @@ fn apply_group(
 }
 
 /// Decodes one checked SSE endpoint expression into the canonical VM plan.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 fn sse_endpoint(core: &CoreModule, expr: &CoreExpr) -> Result<VmSseEndpointPlan, String> {
     if let CoreExpr::RemoteCall {
         module,
@@ -341,6 +350,7 @@ fn sse_endpoint(core: &CoreModule, expr: &CoreExpr) -> Result<VmSseEndpointPlan,
 }
 
 /// Decodes one checked WebSocket endpoint expression into the canonical VM plan.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 fn websocket_endpoint(
     core: &CoreModule,
     expr: &CoreExpr,
@@ -417,6 +427,7 @@ fn websocket_endpoint(
 }
 
 /// Resolves and validates one statically known WebSocket lifecycle callback.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 fn channel_callback(
     core: &CoreModule,
     expr: &CoreExpr,
@@ -439,6 +450,7 @@ fn channel_callback(
 }
 
 /// Decodes one positive target-sized integer from checked router metadata.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 fn positive_usize(expr: &CoreExpr, label: &str) -> Result<usize, String> {
     let value = positive_u64(expr, label)?;
     usize::try_from(value).map_err(|_| {
@@ -447,6 +459,7 @@ fn positive_usize(expr: &CoreExpr, label: &str) -> Result<usize, String> {
 }
 
 /// Decodes one positive integer from checked router metadata.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 fn positive_u64(expr: &CoreExpr, label: &str) -> Result<u64, String> {
     let CoreExpr::Int(value) = expr else {
         return Err(format!(
@@ -460,6 +473,7 @@ fn positive_u64(expr: &CoreExpr, label: &str) -> Result<u64, String> {
 }
 
 /// Resolves one local function value to its exact native entry identity.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 fn callable(core: &CoreModule, expr: &CoreExpr) -> Result<AotRouterCallable, String> {
     let (module, function, declared_arity) =
         match expr {
@@ -504,6 +518,7 @@ fn callable(core: &CoreModule, expr: &CoreExpr) -> Result<AotRouterCallable, Str
 }
 
 /// Decodes one canonical CoreIR UTF-8 route literal.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 fn string_literal(expr: &CoreExpr) -> Result<String, String> {
     let CoreExpr::Binary(value) = expr else {
         return Err(
@@ -516,6 +531,7 @@ fn string_literal(expr: &CoreExpr) -> Result<String, String> {
 }
 
 /// Prefixes one group-local path using the public router path convention.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 fn prefixed_path(prefix: &str, path: &str) -> String {
     let prefix = prefix.trim_end_matches('/');
     if path == "/" {
@@ -528,6 +544,7 @@ fn prefixed_path(prefix: &str, path: &str) -> String {
 }
 
 /// Builds one stable builder arity diagnostic.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 fn router_arity(function: &str, expected: usize, actual: usize) -> String {
     format!(
         "error[native_ir.http_router]: Router.{function} expects {expected} arguments, found {actual}"
@@ -536,6 +553,7 @@ fn router_arity(function: &str, expected: usize, actual: usize) -> String {
 
 #[cfg(test)]
 #[path = "router_test.rs"]
+#[cfg(test)]
 mod router_test;
 
 /// Extracts a router receiver-method name from a call callee.

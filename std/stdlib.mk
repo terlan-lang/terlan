@@ -47,36 +47,50 @@ stdlib-release-runtime-owned-by-check:
 	@echo "[stdlib-release-runtime] canonical check already passed contracts and VM-default release tests."
 
 stdlib-build-interfaces:
-	@$(PYTHON) std/scripts/build_interfaces.py
+	@TERLAN_BUILD_INTERFACES_ROOT="$(CURDIR)" \
+	TERLAN_BUILD_INTERFACES_OUT_DIR="$(CURDIR)/std/summaries" \
+	TERLAN_BUILD_INTERFACES_TERLC="$(CURDIR)/target/debug/terlc" \
+		target/debug/terlc test scripts/self_validation/BuildInterfacesTest.terl
 
 stdlib-doc-format-check:
-	@$(PYTHON) std/scripts/check_doc_comment_format.py
+	@target/debug/terlc test scripts/self_validation/DocCommentFormatTest.terl
 
 stdlib-summary-inventory-check:
-	@$(PYTHON) std/scripts/check_summary_inventory.py
+	@target/debug/terlc test scripts/self_validation/SummaryInventoryTest.terl
 
 stdlib-summary-drift-check:
-	@$(PYTHON) std/scripts/check_summary_drift.py
+	@TERLAN_SUMMARY_DRIFT_ROOT="$(CURDIR)" \
+	TERLAN_SUMMARY_DRIFT_TERLC="$(CURDIR)/target/debug/terlc" \
+	TERLAN_SUMMARY_DRIFT_GENERATOR="$(CURDIR)/scripts/self_validation/BuildInterfacesTest.terl" \
+		target/debug/terlc test scripts/self_validation/SummaryDriftTest.terl
 
 stdlib-embedded-interface-contract-check: $(CANONICAL_RUST_SUITE_OWNER)
-	@$(PYTHON) std/scripts/check_embedded_interface_contracts.py
+	@target/debug/terlc test scripts/self_validation/EmbeddedInterfaceContractsTest.terl
 
 stdlib-js-bindings-drift-check:
-	@$(PYTHON) std/scripts/check_js_bindings_drift.py
+	@TERLAN_JS_BINDINGS_ROOT="$(CURDIR)" \
+	TERLAN_JS_BINDINGS_TERLC="$(CURDIR)/target/debug/terlc" \
+		target/debug/terlc test scripts/self_validation/JsBindingsDriftTest.terl
 
 stdlib-js-review-surface-check:
-	@$(PYTHON) std/scripts/check_js_generated_review_surface.py
+	@TERLAN_JS_REVIEW_ROOT="$(CURDIR)" \
+		target/debug/terlc test scripts/self_validation/JsGeneratedReviewSurfaceTest.terl
 
 stdlib-release-manifest-check:
-	@docs_dir=$$(mktemp -d /tmp/terlan-std-docs.XXXXXX); \
-	trap 'rm -rf "$$docs_dir"' EXIT; \
-	$(PYTHON) std/scripts/check_release_manifest.py --docs-dir "$$docs_dir" --generate-docs
+	@TERLAN_RELEASE_MANIFEST_ROOT="$(CURDIR)" \
+	TERLAN_RELEASE_MANIFEST_TERLC="$(CURDIR)/target/debug/terlc" \
+		target/debug/terlc test std/scripts/ReleaseManifestTest.terl
 
-stdlib-rust-backed-manifest-check:
-	@$(PYTHON) std/scripts/check_rust_backed_manifest.py
+stdlib-rust-backed-manifest-check: stdlib-native-artifacts-check
+	@TERLAN_RUST_BACKED_MANIFEST_ROOT="$(CURDIR)" \
+		target/debug/terlc test scripts/self_validation/RustBackedManifestTest.terl
+	@TERLAN_RUST_BACKED_MANIFEST_ROOT="$(CURDIR)" \
+		target/debug/terlc test scripts/self_validation/RustBackedAdapterTest.terl
 
 stdlib-native-artifacts-check:
-	@$(PYTHON) std/scripts/check_native_artifacts.py
+	@TERLAN_NATIVE_ARTIFACTS_ROOT="$(CURDIR)" \
+	TERLAN_NATIVE_ARTIFACTS_TERLC="$(CURDIR)/target/debug/terlc" \
+		target/debug/terlc test scripts/self_validation/NativeArtifactsTest.terl
 
 stdlib-io-negative-api-tests-check:
 	@bash std/scripts/check_io_negative_api_tests.sh
@@ -94,7 +108,7 @@ stdlib-receiver-methods-check:
 	@bash std/scripts/check_receiver_methods.sh
 
 stdlib-release-tests-vm-default-check:
-	@$(PYTHON) tools/check_stdlib_release_tests_vm_default.py
+	@target/debug/terlc test scripts/self_validation/StdlibReleaseTestsVmDefaultTest.terl
 
 stdlib-data-check:
 	@$(TERLC) test std/data

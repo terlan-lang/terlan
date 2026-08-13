@@ -1,0 +1,1122 @@
+/**
+ * Binds NativeBoundary Lean theorems to generated manifests and VM oracles.
+ */
+module scripts.self_validation.LeanProofNativeBoundaryTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.Directory.{create_all, remove_all}.
+import std.io.File.{read_text_directory, read_text_many, write_text}.
+import std.system.{Environment, Process}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.io.File.TextFile.
+import type std.system.Process.{BatchCompletion, Command, Output}.
+
+struct SecurityPolicy {
+    module_prefix: String,
+    capability: String,
+    blocking_policy: String,
+    cancellation_policy: String,
+    timeout_policy: String,
+    worker_placement: String,
+    resource_policy: String,
+    error_policy: String,
+    notes: String,
+}.
+
+struct FunctionRow {
+    name: String,
+    arity: Int,
+    operation: String,
+}.
+
+struct SourceManifest {
+    source_path: String,
+    source_digest: String,
+    module_name: String,
+    native_policy: String,
+    scheduler: String,
+    source_module: String,
+    functions: List[FunctionRow],
+}.
+
+struct GeneratedFile {
+    path: String,
+    contents: String,
+    manifest_digest: String,
+    source_digest: String,
+    row_digests: List[String],
+}.
+
+struct BuildState {
+    valid: Bool,
+    files: List[GeneratedFile],
+    trace_count: Int,
+}.
+
+struct Inputs {
+    proof: String,
+    promotion_policy: String,
+    security: String,
+    runtime: String,
+    runtime_test: String,
+    dispatch: String,
+    metadata: String,
+    worker: String,
+}.
+
+theorems(): List[String] ->
+    [
+        "distinctGenerationDoesNotAlias",
+        "foreignOwnerRejected",
+        "owningProcessAccepted",
+        "liveHandleIsConsumedExactlyOnce",
+        "consumedHandleCannotBeConsumedAgain",
+        "admittedCallPreservesArity",
+        "admittedCallPreservesArgumentTypes",
+        "admittedCallPreservesReturnType",
+        "sideEffectRequiresAsyncCapabilityRpc",
+        "compliantExportNeverBlocksShardOwner",
+        "fileEffectIsDenyListed",
+        "socketEffectIsDenyListed",
+        "timerEffectIsDenyListed",
+        "processSpawnEffectIsDenyListed",
+        "processRegistryEffectIsDenyListed",
+        "acmeTlsEffectIsDenyListed",
+        "deniedSideEffectCannotBeAdmitted",
+        "beamNifAssumptionRejected",
+        "untypedHandleRejected",
+        "boundManifestRowHasTypedArity",
+        "boundManifestRowHasContentAddresses",
+        "typedVmDispatchAdmitted",
+    ].
+
+runtime_oracles(): List[String] ->
+    [
+        "runtime::native_boundary::runtime::runtime_test::runtime_executes_base64_operations_through_terms",
+        "runtime::native_boundary::runtime::runtime_test::runtime_rejects_cross_process_resource_access",
+        "runtime::native_boundary::runtime::runtime_test::runtime_enforces_postgres_capability_before_adapter_execution",
+        "runtime::native_boundary::runtime::runtime_test::runtime_rejects_malformed_payload_with_typed_error",
+    ].
+
+@pure
+root_path(root: String, relative: String): String ->
+    if {
+        root == "." -> relative;
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+@pure
+sha256(source: String): String ->
+    String.append("sha256:", Hash.sha256(source)).
+
+canonical_digest(value: Json): String ->
+    case Json.stringify(value) {
+        Ok(source) -> sha256(source);
+        Err(_reason) -> ""
+    }.
+
+@pure
+strings_equal(left: List[String], right: List[String]): Bool ->
+    case {left, right} {
+        {[], []} -> true;
+        {[left_value | left_rest], [right_value | right_rest]} ->
+            left_value == right_value and strings_equal(left_rest, right_rest);
+        _ -> false
+    }.
+
+@pure
+contains_all(source: String, fragments: List[String]): Bool ->
+    case fragments {
+        [] -> true;
+        [fragment | rest] -> String.contains(source, fragment) and contains_all(source, rest)
+    }.
+
+@pure
+all_nonempty(values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> value != "" and all_nonempty(rest)
+    }.
+
+@pure
+reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_at(values, []).
+
+@pure
+reverse_strings_at(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_strings_at(rest, [value | output])
+    }.
+
+@pure
+reverse_policies(values: List[SecurityPolicy]): List[SecurityPolicy] ->
+    reverse_policies_at(values, []).
+
+@pure
+reverse_policies_at(
+    values: List[SecurityPolicy],
+    output: List[SecurityPolicy],
+): List[SecurityPolicy] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_policies_at(rest, [value | output])
+    }.
+
+@pure
+reverse_functions(values: List[FunctionRow]): List[FunctionRow] ->
+    reverse_functions_at(values, []).
+
+@pure
+reverse_functions_at(values: List[FunctionRow], output: List[FunctionRow]): List[FunctionRow] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_functions_at(rest, [value | output])
+    }.
+
+@pure
+reverse_manifests(values: List[SourceManifest]): List[SourceManifest] ->
+    reverse_manifests_at(values, []).
+
+@pure
+reverse_manifests_at(
+    values: List[SourceManifest],
+    output: List[SourceManifest],
+): List[SourceManifest] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_manifests_at(rest, [value | output])
+    }.
+
+@pure
+reverse_generated_files(values: List[GeneratedFile]): List[GeneratedFile] ->
+    reverse_generated_files_at(values, []).
+
+@pure
+reverse_generated_files_at(
+    values: List[GeneratedFile],
+    output: List[GeneratedFile],
+): List[GeneratedFile] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_generated_files_at(rest, [value | output])
+    }.
+
+@pure
+string_count(values: List[String]): Int ->
+    case values {
+        [] -> 0;
+        [_value | rest] -> 1 + string_count(rest)
+    }.
+
+@pure
+generated_file_count(values: List[GeneratedFile]): Int ->
+    case values {
+        [] -> 0;
+        [_value | rest] -> 1 + generated_file_count(rest)
+    }.
+
+json_string(value: Json, key: String): Option[String] ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(text) <- field.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+json_int(value: Json, key: String): Option[Int] ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(number) <- field.as_int()
+    } else {
+        _ -> None
+    };
+    Some(number).
+
+json_bool(value: Json, key: String): Option[Bool] ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(flag) <- field.as_bool()
+    } else {
+        _ -> None
+    };
+    Some(flag).
+
+json_string_list(value: Json, key: String): Option[List[String]] ->
+    let {
+        Ok(array) <- value.get(key);
+        Ok(length) <- array.length()
+    } else {
+        _ -> None
+    };
+    json_string_list_at(array, 0, length, []).
+
+json_string_list_at(
+    array: Json,
+    index: Int,
+    length: Int,
+    reversed: List[String],
+): Option[List[String]] ->
+    if {
+        index == length -> Some(reverse_strings(reversed));
+        true -> let {
+            Ok(value) <- array.at(index);
+            Ok(text) <- value.as_string()
+        } else {
+            _ -> None
+        };
+        json_string_list_at(array, index + 1, length, [text | reversed])
+    }.
+
+promotion_policy_holds(source: String): Bool ->
+    let {
+        Ok(policy) <- Json.parse(source);
+        Some(schema) <- json_string(policy, "schema");
+        Some(family) <- json_string(policy, "proof_family");
+        Some(status) <- json_string(policy, "proof_status");
+        Some(critical) <- json_bool(policy, "release_critical");
+        Some(gate) <- json_string(policy, "required_gate");
+        Some(lanes) <- json_string_list(policy, "must_precede_lanes");
+        Some(denied) <- json_string_list(policy, "denied_host_effects");
+        Ok(runtime) <- policy.get("runtime_contract");
+        Some(owner) <- json_string(runtime, "execution_owner");
+        Some(encoding) <- json_string(runtime, "handle_encoding");
+        Some(handoff) <- json_string(runtime, "side_effect_handoff");
+        Some(fallback) <- json_string(runtime, "legacy_fallback")
+    } else {
+        _ -> false
+    };
+    schema == "terlan.native-boundary-proof-promotion.v1"
+        and family == "native-boundary"
+        and status == "current"
+        and critical
+        and gate == "lean-proof-native-boundary-check"
+        and strings_equal(lanes, ["vm_http_critical", "db_runtime"])
+        and strings_equal(denied, ["file", "socket", "timer", "process_spawn", "process_registry", "acme_tls"])
+        and owner == "terlan-vm"
+        and encoding == "typed"
+        and handoff == "async-capability-rpc"
+        and fallback == "deny".
+
+@pure
+proof_holds(source: String): Bool ->
+    proof_theorems_hold(source, theorems()).
+
+@pure
+proof_theorems_hold(source: String, names: List[String]): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            String.contains(source, String.append("theorem ", name))
+                and proof_theorems_hold(source, rest)
+    }.
+
+@pure
+security_header(): String ->
+    "module_prefix\tcapability\tblocking_policy\tcancellation_policy\ttimeout_policy\tworker_placement\tresource_policy\terror_policy\tnotes".
+
+@pure
+security_rows(source: String): Option[List[SecurityPolicy]] ->
+    security_lines(String.split(source, "\n"), false, []).
+
+@pure
+security_lines(
+    lines: List[String],
+    saw_header: Bool,
+    reversed: List[SecurityPolicy],
+): Option[List[SecurityPolicy]] ->
+    case lines {
+        [] ->
+            if {
+                saw_header and reversed != [] -> Some(reverse_policies(reversed));
+                true -> None
+            };
+        [line | rest] ->
+            if {
+                line == "" or String.starts_with(String.trim(line), "#") -> security_lines(rest, saw_header, reversed);
+                not saw_header and line == security_header() -> security_lines(rest, true, reversed);
+                not saw_header -> None;
+                true -> case String.split(line, "\t") {
+                    [prefix, capability, blocking, cancellation, timeout, placement, resource, error, notes] ->
+                        if {
+                            all_nonempty(
+                                [
+                                    prefix,
+                                    capability,
+                                    blocking,
+                                    cancellation,
+                                    timeout,
+                                    placement,
+                                    resource,
+                                    error,
+                                    notes,
+                                ],
+                            ) -> security_lines(
+                                rest,
+                                true,
+                                [SecurityPolicy(
+    module_prefix = prefix,
+    capability = capability,
+    blocking_policy = blocking,
+    cancellation_policy = cancellation,
+    timeout_policy = timeout,
+    worker_placement = placement,
+    resource_policy = resource,
+    error_policy = error,
+    notes = notes,
+) | reversed],
+                            );
+                            true -> None
+                        };
+                    _ -> None
+                }
+            }
+    }.
+
+@pure
+policy_matches(module_name: String, prefix: String): Bool ->
+    module_name == prefix or String.starts_with(module_name, String.append(prefix, ".")).
+
+@pure
+matching_policy(module_name: String, policies: List[SecurityPolicy]): Option[SecurityPolicy] ->
+    matching_policy_at(module_name, policies, None).
+
+@pure
+matching_policy_at(
+    module_name: String,
+    policies: List[SecurityPolicy],
+    best: Option[SecurityPolicy],
+): Option[SecurityPolicy] ->
+    case policies {
+        [] -> best;
+        [policy | rest] ->
+            if {
+                not policy_matches(module_name, policy.module_prefix) -> matching_policy_at(module_name, rest, best);
+                true -> case best {
+                    None -> matching_policy_at(module_name, rest, Some(policy));
+                    Some(current) ->
+                        if {
+                            String.starts_with(
+                                policy.module_prefix,
+                                String.append(current.module_prefix, "."),
+                            ) -> matching_policy_at(module_name, rest, Some(policy));
+                            true -> matching_policy_at(module_name, rest, best)
+                        }
+                }
+            }
+    }.
+
+policy_json(policy: SecurityPolicy): Json ->
+    Json.object()
+        .put("blocking_policy", Json.string(policy.blocking_policy))
+        .put("cancellation_policy", Json.string(policy.cancellation_policy))
+        .put("capability", Json.string(policy.capability))
+        .put("error_policy", Json.string(policy.error_policy))
+        .put("module_prefix", Json.string(policy.module_prefix))
+        .put("notes", Json.string(policy.notes))
+        .put("resource_policy", Json.string(policy.resource_policy))
+        .put("timeout_policy", Json.string(policy.timeout_policy))
+        .put("worker_placement", Json.string(policy.worker_placement)).
+
+manifest_keys(): List[String] ->
+    ["functions", "module", "native_policy", "scheduler", "source_module"].
+
+parse_manifest(file: TextFile): Option[SourceManifest] ->
+    let {
+        Ok(value) <- Json.parse(file.contents);
+        Ok(keys) <- value.keys();
+        Some(module_name) <- json_string(value, "module");
+        Some(native_policy) <- json_string(value, "native_policy");
+        Some(scheduler) <- json_string(value, "scheduler");
+        Some(source_module) <- json_string(value, "source_module");
+        Ok(functions_json) <- value.get("functions");
+        Ok(length) <- functions_json.length();
+        Some(functions) <- parse_functions(functions_json, 0, length, [])
+    } else {
+        _ -> None
+    };
+    if {
+        not strings_equal(keys, manifest_keys())
+            or not all_nonempty([module_name, native_policy, scheduler, source_module])
+            or functions == [] -> None;
+        true -> Some(
+            SourceManifest(
+                source_path = file.path,
+                source_digest = sha256(file.contents),
+                module_name = module_name,
+                native_policy = native_policy,
+                scheduler = scheduler,
+                source_module = source_module,
+                functions = functions,
+            ),
+        )
+    }.
+
+parse_functions(
+    functions: Json,
+    index: Int,
+    length: Int,
+    reversed: List[FunctionRow],
+): Option[List[FunctionRow]] ->
+    if {
+        index == length -> Some(reverse_functions(reversed));
+        true -> let {
+            Ok(row) <- functions.at(index);
+            Ok(keys) <- row.keys();
+            Some(name) <- json_string(row, "name");
+            Some(arity) <- json_int(row, "arity");
+            Some(operation) <- json_string(row, "operation")
+        } else {
+            _ -> None
+        };
+        if {
+            not strings_equal(keys, ["arity", "name", "operation"])
+                or name == ""
+                or operation == ""
+                or arity < 0
+                or identity_exists(reversed, name, arity) -> None;
+            true -> parse_functions(
+                functions,
+                index + 1,
+                length,
+                [FunctionRow(name = name, arity = arity, operation = operation) | reversed],
+            )
+        }
+    }.
+
+@pure
+identity_exists(rows: List[FunctionRow], name: String, arity: Int): Bool ->
+    case rows {
+        [] -> false;
+        [row | rest] ->
+            row.name == name and row.arity == arity or identity_exists(rest, name, arity)
+    }.
+
+source_manifests(files: List[TextFile]): Option[List[SourceManifest]] ->
+    source_manifests_at(files, []).
+
+source_manifests_at(
+    files: List[TextFile],
+    reversed: List[SourceManifest],
+): Option[List[SourceManifest]] ->
+    case files {
+        [] ->
+            if {
+                reversed == [] -> None;
+                true -> Some(reverse_manifests(reversed))
+            };
+        [file | rest] ->
+            if {
+                not String.ends_with(file.path, ".native_boundary.json") -> source_manifests_at(rest, reversed);
+                true -> case parse_manifest(file) {
+                    Some(manifest) -> source_manifests_at(rest, [manifest | reversed]);
+                    None -> None
+                }
+            }
+    }.
+
+@pure
+relative_source_path(path: String): String ->
+    case String.split(path, "std/summaries/") {
+        [_prefix, suffix] -> String.append("std/summaries/", suffix);
+        _ -> path
+    }.
+
+@pure
+basename(path: String): String ->
+    last_path_segment(String.split(path, "/"), path).
+
+@pure
+last_path_segment(parts: List[String], fallback: String): String ->
+    case parts {
+        [] -> fallback;
+        [name] -> name;
+        [_part | rest] -> last_path_segment(rest, fallback)
+    }.
+
+string_array(values: List[String]): Json ->
+    string_array_at(values, Json.array()).
+
+string_array_at(values: List[String], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> string_array_at(rest, output.push(Json.string(value)))
+    }.
+
+argument_types(arity: Int): Json ->
+    argument_types_at(arity, Json.array()).
+
+argument_types_at(remaining: Int, output: Json): Json ->
+    if {
+        remaining == 0 -> output;
+        true -> argument_types_at(remaining - 1, output.push(Json.string("NativeBoundaryTerm")))
+    }.
+
+typed_row(
+    proof_digest: String,
+    source_module: String,
+    function: FunctionRow,
+    policy: SecurityPolicy,
+): Json ->
+    let contract =
+        Json.object()
+            .put("argument_types", argument_types(function.arity))
+            .put("arity", Json.int(function.arity))
+            .put(
+                "async_policy",
+                Json.string(
+                    if {
+                        policy.worker_placement != "direct" -> "async-capability-rpc";
+                        true -> "direct-nonblocking"
+                    },
+                ),
+            )
+            .put(
+                "identity",
+                Json.string(
+                    String.append(
+                        source_module,
+                        String.append(
+                            ".",
+                            String.append(
+                                function.name,
+                                String.append("/", Int.to_string(function.arity)),
+                            ),
+                        ),
+                    ),
+                ),
+            )
+            .put("name", Json.string(function.name))
+            .put("operation", Json.string(function.operation))
+            .put("return_type", Json.string("Result<NativeBoundaryTerm, NativeBoundaryError>"));
+    let digest_input =
+        Json.object()
+            .put("contract", contract)
+            .put("proof_digest", Json.string(proof_digest))
+            .put("security_policy", policy_json(policy));
+    contract.put("row_digest", Json.string(canonical_digest(digest_input))).
+
+typed_rows(
+    proof_digest: String,
+    source_module: String,
+    functions: List[FunctionRow],
+    policy: SecurityPolicy,
+): Json ->
+    typed_rows_at(proof_digest, source_module, functions, policy, Json.array()).
+
+typed_rows_at(
+    proof_digest: String,
+    source_module: String,
+    functions: List[FunctionRow],
+    policy: SecurityPolicy,
+    output: Json,
+): Json ->
+    case functions {
+        [] -> output;
+        [function | rest] ->
+            typed_rows_at(
+                proof_digest,
+                source_module,
+                rest,
+                policy,
+                output.push(typed_row(proof_digest, source_module, function, policy)),
+            )
+    }.
+
+row_digests(rows: Json): List[String] ->
+    case rows.length() {
+        Ok(length) -> row_digests_at(rows, 0, length, []);
+        Err(_reason) -> []
+    }.
+
+row_digests_at(rows: Json, index: Int, length: Int, reversed: List[String]): List[String] ->
+    if {
+        index == length -> reverse_strings(reversed);
+        true -> let {
+            Ok(row) <- rows.at(index);
+            Some(digest) <- json_string(row, "row_digest")
+        } else {
+            _ -> []
+        };
+        row_digests_at(rows, index + 1, length, [digest | reversed])
+    }.
+
+generated_manifest(
+    root: String,
+    proof_digest: String,
+    source: SourceManifest,
+    policy: SecurityPolicy,
+): Option[GeneratedFile] ->
+    let exports = typed_rows(proof_digest, source.source_module, source.functions, policy);
+    let manifest =
+        Json.object()
+            .put("exports", exports)
+            .put("module", Json.string(source.module_name))
+            .put("native_policy", Json.string(source.native_policy))
+            .put("proof_digest", Json.string(proof_digest))
+            .put("proof_family", Json.string("native-boundary"))
+            .put("scheduler", Json.string(source.scheduler))
+            .put("schema", Json.string("terlan.native-boundary-proof-manifest.v1"))
+            .put("security_policy", policy_json(policy))
+            .put("source_digest", Json.string(source.source_digest))
+            .put("source_module", Json.string(source.source_module))
+            .put("source_path", Json.string(relative_source_path(source.source_path)));
+    let digest = canonical_digest(manifest);
+    let complete = manifest.put("manifest_digest", Json.string(digest));
+    case Json.stringify_pretty(complete) {
+        Ok(rendered) ->
+            Some(
+                GeneratedFile(
+                    path = root_path(
+                        root,
+                        String.append(
+                            "build/artifacts/native_boundaries/",
+                            basename(source.source_path),
+                        ),
+                    ),
+                    contents = String.append(rendered, "\n"),
+                    manifest_digest = digest,
+                    source_digest = source.source_digest,
+                    row_digests = row_digests(exports),
+                ),
+            );
+        Err(_reason) -> None
+    }.
+
+build_manifests(
+    root: String,
+    proof_digest: String,
+    sources: List[SourceManifest],
+    policies: List[SecurityPolicy],
+): BuildState ->
+    build_manifests_at(root, proof_digest, sources, policies, [], 0).
+
+build_manifests_at(
+    root: String,
+    proof_digest: String,
+    sources: List[SourceManifest],
+    policies: List[SecurityPolicy],
+    reversed: List[GeneratedFile],
+    trace_count: Int,
+): BuildState ->
+    case sources {
+        [] ->
+            BuildState(
+                valid = true,
+                files = reverse_generated_files(reversed),
+                trace_count = trace_count,
+            );
+        [source | rest] ->
+            let {
+                Some(policy) <- matching_policy(source.source_module, policies);
+                Some(file) <- generated_manifest(root, proof_digest, source, policy)
+            } else {
+                _ -> BuildState(valid = false, files = [], trace_count = 0)
+            };
+            build_manifests_at(
+                root,
+                proof_digest,
+                rest,
+                policies,
+                [file | reversed],
+                trace_count + string_count(file.row_digests),
+            )
+    }.
+
+binding_row(file: GeneratedFile, root: String): Json ->
+    Json.object()
+        .put("manifest_digest", Json.string(file.manifest_digest))
+        .put("path", Json.string(String.replace(file.path, String.append(root, "/"), "")))
+        .put("row_digests", string_array(file.row_digests))
+        .put("source_digest", Json.string(file.source_digest)).
+
+binding_rows(files: List[GeneratedFile], root: String): Json ->
+    binding_rows_at(files, root, Json.array()).
+
+binding_rows_at(files: List[GeneratedFile], root: String, output: Json): Json ->
+    case files {
+        [] -> output;
+        [file | rest] -> binding_rows_at(rest, root, output.push(binding_row(file, root)))
+    }.
+
+theorem_identities(): Json ->
+    theorem_identities_at(theorems(), Json.array()).
+
+theorem_identities_at(names: List[String], output: Json): Json ->
+    case names {
+        [] -> output;
+        [name | rest] ->
+            theorem_identities_at(
+                rest,
+                output.push(Json.string(String.append("Terlan.NativeBoundary.", name))),
+            )
+    }.
+
+binding_file(
+    root: String,
+    proof_digest: String,
+    promotion_policy: Json,
+    files: List[GeneratedFile],
+): Option[GeneratedFile] ->
+    let binding =
+        Json.object()
+            .put("manifests", binding_rows(files, root))
+            .put("proof_digest", Json.string(proof_digest))
+            .put("proof_family", Json.string("native-boundary"))
+            .put("proof_path", Json.string("proofs/lean/native_boundary/NativeBoundary.lean"))
+            .put("promotion_policy_digest", Json.string(canonical_digest(promotion_policy)))
+            .put("schema", Json.string("terlan.native-boundary-proof-binding.v1"))
+            .put("theorem_identity", theorem_identities());
+    let digest = canonical_digest(binding);
+    case Json.stringify_pretty(binding.put("binding_digest", Json.string(digest))) {
+        Ok(rendered) ->
+            Some(
+                GeneratedFile(
+                    path = root_path(root, "build/artifacts/native_boundaries/proof-manifest-binding.json"),
+                    contents = String.append(rendered, "\n"),
+                    manifest_digest = digest,
+                    source_digest = "",
+                    row_digests = [],
+                ),
+            );
+        Err(_reason) -> None
+    }.
+
+@pure
+no_legacy_fallback(inputs: Inputs): Bool ->
+    not contains_all_any(
+    [inputs.runtime, inputs.dispatch, inputs.metadata, inputs.worker],
+    ["load_nif", "erl_nif_", "rustler::", "erts.nif."],
+).
+
+@pure
+contains_all_any(sources: List[String], fragments: List[String]): Bool ->
+    case sources {
+        [] -> false;
+        [source | rest] -> contains_any(source, fragments) or contains_all_any(rest, fragments)
+    }.
+
+@pure
+contains_any(source: String, fragments: List[String]): Bool ->
+    case fragments {
+        [] -> false;
+        [fragment | rest] -> String.contains(source, fragment) or contains_any(source, rest)
+    }.
+
+fixed_paths(root: String): List[String] ->
+    [
+        root_path(root, "proofs/lean/native_boundary/NativeBoundary.lean"),
+        root_path(root, "proofs/lean/native_boundary/promotion-policy.json"),
+        root_path(root, "std/NATIVE_BOUNDARY_SECURITY.tsv"),
+        root_path(root, "crates/terlan/src/runtime/native_boundary/runtime.rs"),
+        root_path(root, "crates/terlan/src/runtime/native_boundary/runtime_test.rs"),
+        root_path(root, "crates/terlan/src/runtime/native_boundary/dispatch.rs"),
+        root_path(root, "crates/terlan/src/runtime/native_boundary/metadata.rs"),
+        root_path(root, "crates/terlan/src/runtime/native_boundary/worker.rs"),
+    ].
+
+inputs_from_files(files: List[TextFile]): Option[Inputs] ->
+    case files {
+        [proof, policy, security, runtime, runtime_test, dispatch, metadata, worker] ->
+            Some(
+                Inputs(
+                    proof = proof.contents,
+                    promotion_policy = policy.contents,
+                    security = security.contents,
+                    runtime = runtime.contents,
+                    runtime_test = runtime_test.contents,
+                    dispatch = dispatch.contents,
+                    metadata = metadata.contents,
+                    worker = worker.contents,
+                ),
+            );
+        _ -> None
+    }.
+
+command(program: String, arguments: List[String], root: String, working: String): Command ->
+    Process.command(program)
+        .with_arguments(arguments)
+        .with_working_directory(root_path(root, working))
+        .with_environment([Process.environment_entry("ELAN_NO_UPDATE_CHECK", "1")])
+        .without_environment(["GITHUB_ACTIONS"])
+        .with_timeout_ms(600000)
+        .with_output_limit_bytes(4194304).
+
+lean_command(root: String): Command ->
+    command("lake", ["env", "lean", "native_boundary/NativeBoundary.lean"], root, "proofs/lean").
+
+oracle_commands(root: String, selectors: List[String]): List[Command] ->
+    case selectors {
+        [] -> empty_commands();
+        [selector | rest] ->
+            [command(
+    "cargo",
+    ["test", "--locked", "-p", "terlan", "--lib", selector, "--", "--exact"],
+    root,
+    ".",
+) | oracle_commands(root, rest)]
+    }.
+
+empty_commands(): List[Command] -> [].
+
+output_passed(output: Output): Bool ->
+    Process.status(output) == 0.
+
+completion_passed(completion: BatchCompletion): Bool ->
+    case {Process.completion_output(completion), Process.completion_error(completion)} {
+        {Some(output), None} -> output_passed(output);
+        _ -> false
+    }.
+
+completions_passed(completions: List[BatchCompletion]): Bool ->
+    case completions {
+        [] -> true;
+        [completion | rest] -> completion_passed(completion) and completions_passed(rest)
+    }.
+
+runtime_source_digests(inputs: Inputs): Json ->
+    Json.object()
+        .put(
+            "crates/terlan/src/runtime/native_boundary/dispatch.rs",
+            Json.string(sha256(inputs.dispatch)),
+        )
+        .put(
+            "crates/terlan/src/runtime/native_boundary/runtime.rs",
+            Json.string(sha256(inputs.runtime)),
+        )
+        .put(
+            "crates/terlan/src/runtime/native_boundary/runtime_test.rs",
+            Json.string(sha256(inputs.runtime_test)),
+        ).
+
+oracle_rows(selectors: List[String], proof_digest: String, inputs: Inputs): Json ->
+    oracle_rows_at(selectors, proof_digest, inputs, Json.array()).
+
+oracle_rows_at(
+    selectors: List[String],
+    proof_digest: String,
+    inputs: Inputs,
+    output: Json,
+): Json ->
+    case selectors {
+        [] -> output;
+        [selector | rest] ->
+            let signature =
+                canonical_digest(
+                    Json.object()
+                        .put("observed", Json.string("pass"))
+                        .put("proof_digest", Json.string(proof_digest))
+                        .put("runtime_sources", runtime_source_digests(inputs))
+                        .put("selector", Json.string(selector)),
+                );
+            oracle_rows_at(
+                rest,
+                proof_digest,
+                inputs,
+                output
+                    .push(
+                        Json.object()
+                            .put("observed", Json.string("pass"))
+                            .put("selector", Json.string(selector))
+                            .put("signature", Json.string(signature)),
+                    ),
+            )
+    }.
+
+runtime_report(
+    proof_digest: String,
+    manifest_count: Int,
+    row_count: Int,
+    inputs: Inputs,
+): Option[String] ->
+    let report =
+        Json.object()
+            .put("manifest_count", Json.int(manifest_count))
+            .put("manifest_row_count", Json.int(row_count))
+            .put("proof_digest", Json.string(proof_digest))
+            .put("runtime_oracles", oracle_rows(runtime_oracles(), proof_digest, inputs))
+            .put("schema", Json.string("terlan.native-boundary-proof-runtime-oracles.v1"))
+            .put("status", Json.string("pass"));
+    let signature = canonical_digest(report);
+    case Json.stringify_pretty(report.put("report_signature", Json.string(signature))) {
+        Ok(rendered) -> Some(String.append(rendered, "\n"));
+        Err(_reason) -> None
+    }.
+
+write_generated_files(files: List[GeneratedFile]): Bool ->
+    case files {
+        [] -> true;
+        [file | rest] ->
+            case write_text(file.path, file.contents) {
+                Ok(Unit) -> write_generated_files(rest);
+                Err(_reason) -> false
+            }
+    }.
+
+fail(message: String): Bool ->
+    let _printed = println(String.append("Lean NativeBoundary proof failed: ", message));
+    false.
+
+run_repository_check(root: String, inputs: Inputs, source_files: List[TextFile]): Bool ->
+    let {
+        Ok(promotion) <- Json.parse(inputs.promotion_policy);
+        Some(policies) <- security_rows(inputs.security);
+        Some(sources) <- source_manifests(source_files)
+    } else {
+        _ -> fail("proof promotion, security, or source manifest input is malformed")
+    };
+    (let proof_digest = sha256(inputs.proof);
+let build = build_manifests(root, proof_digest, sources, policies);
+if {
+    not proof_holds(inputs.proof) -> fail("NativeBoundary theorem inventory is incomplete");
+    not promotion_policy_holds(inputs.promotion_policy) -> fail("promotion policy is not fail-closed");
+    not build.valid -> fail("source manifest generation failed");
+    not no_legacy_fallback(inputs) -> fail("legacy NativeBoundary fallback symbol is forbidden");
+    true -> prepare_output(root, inputs, promotion, proof_digest, build)
+}).
+
+prepare_output(
+    root: String,
+    inputs: Inputs,
+    promotion: Json,
+    proof_digest: String,
+    build: BuildState,
+): Bool ->
+    let output = root_path(root, "build/artifacts/native_boundaries");
+    let _removed = remove_all(output);
+    case create_all(output) {
+        Ok(Unit) ->
+            case binding_file(root, proof_digest, promotion, build.files) {
+                Some(binding) ->
+                    if {
+                        write_generated_files([binding | build.files]) -> run_proof_and_oracles(root, inputs, proof_digest, build);
+                        true -> fail("generated NativeBoundary evidence could not be written")
+                    };
+                None -> fail("proof binding report could not be rendered")
+            };
+        Err(_reason) -> fail("NativeBoundary output directory could not be created")
+    }.
+
+run_proof_and_oracles(
+    root: String,
+    inputs: Inputs,
+    proof_digest: String,
+    build: BuildState,
+): Bool ->
+    case Process.run(lean_command(root)) {
+        Ok(output) ->
+            if {
+                not output_passed(output) -> fail("Lean NativeBoundary proof command failed");
+                true -> run_runtime_oracles(root, inputs, proof_digest, build)
+            };
+        Err(reason) -> fail(Process.error_message(reason))
+    }.
+
+run_runtime_oracles(root: String, inputs: Inputs, proof_digest: String, build: BuildState): Bool ->
+    case Process.run_many(Process.batch(oracle_commands(root, runtime_oracles()), 2)) {
+        Ok(batch) ->
+            if {
+                not completions_passed(Process.completions(batch)) -> fail("one or more NativeBoundary runtime oracles failed");
+                true -> persist_runtime_report(root, inputs, proof_digest, build)
+            };
+        Err(reason) -> fail(Process.error_message(reason))
+    }.
+
+persist_runtime_report(
+    root: String,
+    inputs: Inputs,
+    proof_digest: String,
+    build: BuildState,
+): Bool ->
+    case runtime_report(proof_digest, generated_file_count(build.files), build.trace_count, inputs) {
+        Some(report) ->
+            case write_text(
+    root_path(root, "build/artifacts/native_boundaries/runtime-oracle-signatures.json"),
+    report,
+) {
+                Ok(Unit) ->
+                    let _printed =
+                        println(
+                            String.append(
+                                "Lean NativeBoundary proof passed: ",
+                                String.append(
+                                    Int.to_string(string_count(theorems())),
+                                    String.append(
+                                        " theorems, ",
+                                        String.append(
+                                            Int.to_string(generated_file_count(build.files)),
+                                            String.append(
+                                                " manifests, ",
+                                                String.append(
+                                                    Int.to_string(build.trace_count),
+                                                    String.append(
+                                                        " rows, ",
+                                                        String.append(
+                                                            Int.to_string(
+                                                                string_count(runtime_oracles()),
+                                                            ),
+                                                            " runtime oracles",
+                                                        ),
+                                                    ),
+                                                ),
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        );
+                    true;
+                Err(_reason) -> fail("runtime oracle report could not be written")
+            };
+        None -> fail("runtime oracle report could not be rendered")
+    }.
+
+repository_native_boundary_proof_holds(): Bool ->
+    let root = environment_or("TERLAN_LEAN_PROOF_ROOT", Environment.current_directory());
+    case read_text_many(fixed_paths(root)) {
+        Ok(files) ->
+            case inputs_from_files(files) {
+                Some(inputs) ->
+                    case read_text_directory(root_path(root, "std/summaries")) {
+                        Ok(source_files) -> run_repository_check(root, inputs, source_files);
+                        Err(_reason) -> fail("NativeBoundary source manifests could not be read")
+                    };
+                None -> fail("NativeBoundary fixed input batch has an unexpected shape")
+            };
+        Err(_reason) -> fail("NativeBoundary fixed inputs could not be read")
+    }.
+
+@test
+pub missing_theorem_is_rejected(): Bool ->
+    not proof_holds("theorem distinctGenerationDoesNotAlias : True := by trivial").
+
+@test
+pub unsafe_fallback_policy_is_rejected(): Bool ->
+    let source = "{\"schema\":\"terlan.native-boundary-proof-promotion.v1\",\"proof_family\":\"native-boundary\",\"proof_status\":\"current\",\"release_critical\":true,\"required_gate\":\"lean-proof-native-boundary-check\",\"must_precede_lanes\":[\"vm_http_critical\",\"db_runtime\"],\"denied_host_effects\":[\"file\",\"socket\",\"timer\",\"process_spawn\",\"process_registry\",\"acme_tls\"],\"runtime_contract\":{\"execution_owner\":\"terlan-vm\",\"handle_encoding\":\"typed\",\"side_effect_handoff\":\"async-capability-rpc\",\"legacy_fallback\":\"allow\"}}";
+    not promotion_policy_holds(source).
+
+@test
+pub malformed_security_row_is_rejected(): Bool ->
+    case security_rows(String.append(security_header(), "\nstd.data.Json\tjson\n")) {
+        None -> true;
+        Some(_rows) -> false
+    }.
+
+@test
+pub repository_native_boundary_proof_is_bound_and_executable(): Bool ->
+    repository_native_boundary_proof_holds().

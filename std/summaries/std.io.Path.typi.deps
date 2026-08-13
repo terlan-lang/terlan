@@ -1,8 +1,8 @@
 module=std.io.Path
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=4792171225126024307
-interface_hash=293731789909746823
-interface_doc_hash=16223330479234906323
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=16275603757333958191
+interface_hash=15919485255215146119
+interface_doc_hash=9144683251039394272
 deps=0

@@ -1,0 +1,9 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Dispatches installed-candidate release closeout through one Terlan AOT image.
+ */
+import release_closeout.Main.
+import std.core.Unit.
+
+assert(Main.entry());
+Unit.

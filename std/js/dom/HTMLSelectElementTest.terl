@@ -70,7 +70,7 @@ pub will_validate_typechecks(receiver: HTMLSelectElement): Bool ->
 pub add_typechecks(
     receiver: HTMLSelectElement,
     element: HTMLOptGroupElement | HTMLOptionElement,
-    before: Option[HTMLElement | JsNumber]
+    before: Option[HTMLElement | JsNumber],
 ): Unit ->
     receiver.add(element, before).
 
@@ -102,7 +102,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLSelectElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -110,6 +110,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLSelectElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

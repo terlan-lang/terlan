@@ -17,13 +17,16 @@ use super::*;
 pub(super) fn infer_syntax_remote_call(
     module_name: &str,
     function_name: &str,
-    arg_types: &[Type],
-    type_args: &[SyntaxTypeOutput],
-    arg_names: &[Option<String>],
+    arguments: SyntaxCallArguments<'_>,
     ctx: &ExprInferContext,
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
 ) -> Type {
+    let SyntaxCallArguments {
+        types: arg_types,
+        type_args,
+        names: arg_names,
+    } = arguments;
     let (trait_remote_name, explicit_trait_type_arg) =
         split_explicit_trait_call_target(module_name, ctx);
     let resolved_module_name = ctx
@@ -36,6 +39,9 @@ pub(super) fn infer_syntax_remote_call(
     {
         errors.push(message);
         return Type::Dynamic;
+    }
+    if resolved_module_name == "std.core.Memory" && function_name == "layout_of" {
+        return infer_memory_layout_of(arg_types, type_args, ctx, errors);
     }
 
     if resolved_module_name == "Html" && function_name == "raw" {
@@ -342,6 +348,49 @@ pub(super) fn infer_syntax_remote_call(
         ctx,
     ));
     Type::Dynamic
+}
+
+/// Infers the compiler-owned zero-value `Memory.layout_of[T]()` operation.
+///
+/// The inspected type cannot be inferred from value parameters or the
+/// non-generic `Layout` return type, so this intrinsic validates and consumes
+/// its explicit type argument before ordinary interface-function inference.
+fn infer_memory_layout_of(
+    arg_types: &[Type],
+    type_args: &[SyntaxTypeOutput],
+    ctx: &ExprInferContext<'_>,
+    errors: &mut Vec<String>,
+) -> Type {
+    if !arg_types.is_empty() {
+        errors.push(format!(
+            "wrong arity for std.core.Memory.layout_of: expected 0 args, found {}",
+            arg_types.len()
+        ));
+        return Type::Dynamic;
+    }
+    let [type_arg] = type_args else {
+        errors.push(format!(
+            "wrong type-argument arity for std.core.Memory.layout_of: expected 1 type arg, found {}",
+            type_args.len()
+        ));
+        return Type::Dynamic;
+    };
+    let mut vars = HashMap::new();
+    let mut next_var = 0usize;
+    let mut alias_names = ctx.aliases.keys().cloned().collect::<HashSet<_>>();
+    alias_names.extend(ctx.imported_type_names.keys().cloned());
+    if parse_type_expr(&type_arg.text, &alias_names, &mut vars, &mut next_var).is_none() {
+        errors.push(format!(
+            "invalid type argument `{}` for std.core.Memory.layout_of",
+            type_arg.text
+        ));
+        return Type::Dynamic;
+    }
+    Type::Named {
+        module: Some("std.core.Memory".to_string()),
+        name: "Layout".to_string(),
+        args: Vec::new(),
+    }
 }
 
 /// Builds a diagnostic for an unresolved qualified call.

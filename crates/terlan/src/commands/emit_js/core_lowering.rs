@@ -59,7 +59,7 @@ pub(super) fn emit_core_module_to_js(module: &CoreModule) -> String {
 /// - Accepts only a single unguarded clause whose CoreIR patterns are direct
 ///   variable bindings matching the function parameters, then lowers the typed
 ///   CoreIR body expression into a `return` statement.
-fn emit_core_function_body_to_js(function: &CoreFunction) -> Option<String> {
+pub(super) fn emit_core_function_body_to_js(function: &CoreFunction) -> Option<String> {
     let [clause] = function.clauses.as_slice() else {
         return None;
     };
@@ -86,7 +86,7 @@ fn emit_core_function_body_to_js(function: &CoreFunction) -> Option<String> {
 /// Transformation:
 /// - Rejects destructuring, wildcard, literal, and unsupported patterns so the
 ///   first JS lowering slice does not need pattern dispatch.
-fn core_clause_patterns_match_function_params(
+pub(super) fn core_clause_patterns_match_function_params(
     function: &CoreFunction,
     patterns: &[Option<CorePattern>],
 ) -> bool {
@@ -233,6 +233,53 @@ fn core_intrinsic_call_expr_to_js(call: &CoreIntrinsicCall) -> Option<String> {
                 return None;
             };
             Some(format!("Array.from({}).length", core_expr_to_js(value)?))
+        }
+        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringCharacters) => {
+            let [value] = call.args.as_slice() else {
+                return None;
+            };
+            Some(format!("Array.from({})", core_expr_to_js(value)?))
+        }
+        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringCodepoints) => {
+            let [value] = call.args.as_slice() else {
+                return None;
+            };
+            Some(format!(
+                "Array.from({}, (value) => value.codePointAt(0))",
+                core_expr_to_js(value)?
+            ))
+        }
+        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringUtf8ByteAt) => {
+            let [value, index] = call.args.as_slice() else {
+                return None;
+            };
+            Some(format!(
+                "new TextEncoder().encode({})[{}]",
+                core_expr_to_js(value)?,
+                core_expr_to_js(index)?
+            ))
+        }
+        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringUtf8FindAnyByte) => {
+            let [value, start, candidates] = call.args.as_slice() else {
+                return None;
+            };
+            Some(format!(
+                "((value, start, candidates) => {{ const bytes = new TextEncoder().encode(value); const candidateBytes = new TextEncoder().encode(candidates); if (start < 0 || start > bytes.length || candidateBytes.some((byte) => byte >= 128)) throw new RangeError(\"invalid UTF-8 byte search\"); return bytes.findIndex((byte, index) => index >= start && candidateBytes.includes(byte)); }})({}, {}, {})",
+                core_expr_to_js(value)?,
+                core_expr_to_js(start)?,
+                core_expr_to_js(candidates)?
+            ))
+        }
+        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringUtf8Slice) => {
+            let [value, start, length] = call.args.as_slice() else {
+                return None;
+            };
+            let value = core_expr_to_js(value)?;
+            let start = core_expr_to_js(start)?;
+            let length = core_expr_to_js(length)?;
+            Some(format!(
+                "new TextDecoder().decode(new TextEncoder().encode({value}).slice({start}, ({start}) + ({length})))"
+            ))
         }
         _ => None,
     }
@@ -542,7 +589,7 @@ fn core_case_expr_to_js(scrutinee: &CoreExpr, clauses: &[CoreCaseClause]) -> Opt
 /// - Reuses CoreIR atom artifact lowering, so boolean atoms compare against
 ///   JavaScript booleans and other atoms compare against string-like artifacts.
 ///   Numeric patterns compare against JavaScript numeric literals.
-fn core_case_literal_pattern_condition_to_js(
+pub(super) fn core_case_literal_pattern_condition_to_js(
     scrutinee_name: &str,
     pattern: &CorePattern,
 ) -> Option<String> {
@@ -589,8 +636,8 @@ fn js_binary_operator(operator: &str) -> Option<&'static str> {
         "<=" => Some("<="),
         ">" => Some(">"),
         ">=" => Some(">="),
-        "and" | "&&" => Some("&&"),
-        "or" | "||" => Some("||"),
+        "and" => Some("&&"),
+        "or" => Some("||"),
         _ => None,
     }
 }

@@ -28,6 +28,7 @@ mod receiver;
 mod response;
 mod security;
 mod session;
+mod traversal;
 
 pub(super) use constructors::install_http_constructors;
 
@@ -46,6 +47,7 @@ use option_string::{lower_request_option_case, lower_request_option_default};
 use receiver::{is_jar_expr, is_managed_string_expr, jar_method_arity, response_method_arity};
 use response::{cookie_call, jar_mutation, response_call, response_constructor, response_mutation};
 use security::{lower_security_constructor_args, SECURITY_CONSTRUCTOR};
+use traversal::rewrite_children;
 
 const REQUEST_MODULE: &str = "std.http.Request";
 const RESPONSE_MODULE: &str = "std.http.Response";
@@ -54,7 +56,7 @@ const COOKIES_MODULE: &str = "std.http.Cookies";
 const ERROR_MODULE: &str = "std.http.Error";
 const RESPONSE_CONSTRUCTOR_PREFIX: &str = "$terlan.http.response.";
 const REQUEST_STRING_MAP: &str = "std.http.Request.StringMap";
-const STRING_OPTION: &str = "Option[String]";
+const STRING_OPTION: &str = "Apply(Option;String)";
 const MANAGED_HTTP_MODULE: &str = "$terlan.managed.http";
 const RESPONSE_HEADER: &str = "std.http.Response.Header";
 const RESPONSE_HEADERS: &str = "std.http.Response.Headers";
@@ -85,7 +87,11 @@ pub(super) fn is_managed_http_module(module: &str) -> bool {
 pub(super) fn lower_http_values(core: &mut CoreModule) -> Result<(), String> {
     let router = imports(core, ROUTER_MODULE);
     let session = imports(core, session::SESSION_MODULE);
-    let request = router || session || imports(core, REQUEST_MODULE);
+    let request = router
+        || session
+        || imports(core, REQUEST_MODULE)
+        || uses_opaque_request_type(core)
+        || uses_structural_request_boundary(core);
     let error = router || imports(core, ERROR_MODULE);
     if !request
         && !router
@@ -114,13 +120,44 @@ pub(super) fn lower_http_values(core: &mut CoreModule) -> Result<(), String> {
     Ok(())
 }
 
+/// Reports whether a checked function accepts the opaque HTTP request type.
+fn uses_opaque_request_type(core: &CoreModule) -> bool {
+    core.functions.iter().any(|function| {
+        function.params.first().is_some_and(|parameter| {
+            matches!(
+                parameter.core_ty.as_ref(),
+                Some(CoreType::Named(name))
+                    if name.rsplit('.').next() == Some("Request")
+            )
+        })
+    })
+}
+
+/// Reports whether a checked route handler destructures the public request tuple.
+fn uses_structural_request_boundary(core: &CoreModule) -> bool {
+    core.functions.iter().any(|function| {
+        function.params.first().is_some_and(|parameter| {
+            matches!(
+                parameter.core_ty.as_ref(),
+                Some(CoreType::Tuple(elements))
+                    if matches!(
+                        elements.first(),
+                        Some(crate::terlan_typeck::CoreTupleTypeElem::Type(
+                            CoreType::AtomLiteral(_)
+                        ))
+                    )
+            )
+        })
+    })
+}
+
 /// Returns target-owned aggregate layouts required at the HTTP boundary.
 pub(super) fn http_managed_layouts(core: &CoreModule) -> Result<Vec<Arc<[u8]>>, String> {
     let mut layouts = Vec::new();
     let router = imports(core, ROUTER_MODULE);
     let session = imports(core, session::SESSION_MODULE);
     let error = router || imports(core, ERROR_MODULE);
-    if router || session || imports(core, REQUEST_MODULE) {
+    if router || session || imports(core, REQUEST_MODULE) || uses_opaque_request_type(core) {
         layouts.push(encoded_descriptor(&request_descriptor()?)?);
         layouts.push(encoded_descriptor(&cookie_jar_descriptor()?)?);
         layouts.extend(option_string_layouts()?);
@@ -144,7 +181,7 @@ pub(super) fn http_managed_collections(core: &CoreModule) -> Result<Vec<Arc<[u8]
     let mut collections = Vec::new();
     let router = imports(core, ROUTER_MODULE);
     let session = imports(core, session::SESSION_MODULE);
-    if router || session || imports(core, REQUEST_MODULE) {
+    if router || session || imports(core, REQUEST_MODULE) || uses_opaque_request_type(core) {
         let string = semantic("std.core.String")?;
         let descriptor = ManagedCollectionDescriptor::map(
             REQUEST_STRING_MAP,
@@ -222,9 +259,7 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
             Ok(managed_string_concat(*left, *right))
         }
         CoreExpr::Call { function, args }
-            if features.request
-                && function == "std.core.Option.with_default"
-                && args.len() == 2 =>
+            if function == "std.core.Option.with_default" && args.len() == 2 =>
         {
             let mut args = args.into_iter();
             let option = args.next().expect("checked option argument");
@@ -239,11 +274,7 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
             module,
             function,
             args,
-        } if features.request
-            && module == "std.core.Option"
-            && function == "with_default"
-            && args.len() == 2 =>
-        {
+        } if module == "std.core.Option" && function == "with_default" && args.len() == 2 => {
             let mut args = args.into_iter();
             let option = args.next().expect("checked option argument");
             let default = args.next().expect("checked default argument");
@@ -309,6 +340,13 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
             module,
             function,
             args,
+        } if module == RESPONSE_MODULE && response_method_arity(&function, args.len()) => {
+            response_receiver_call(&function, args)
+        }
+        CoreExpr::RemoteCall {
+            module,
+            function,
+            args,
         } if module == RESPONSE_MODULE => response_call(&function, args),
         CoreExpr::RemoteCall {
             module,
@@ -325,6 +363,9 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
                 .strip_prefix(RESPONSE_MODULE)
                 .and_then(|value| value.strip_prefix('.'))
                 .unwrap_or(&function);
+            if response_method_arity(name, args.len()) {
+                return response_receiver_call(name, args);
+            }
             response_call(name, args)
         }
         CoreExpr::Call { function, args }
@@ -435,141 +476,6 @@ fn jar_receiver_call(method: &str, mut args: Vec<CoreExpr>) -> Result<CoreExpr, 
             effects: Vec::new(),
         },
     )
-}
-
-/// Rewrites all child expressions while preserving the parent node.
-fn rewrite_children(expr: &mut CoreExpr, features: HttpFeatures) -> Result<(), String> {
-    match expr {
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
-            rewrite_many(items, features)?
-        }
-        CoreExpr::ListCons { head, tail }
-        | CoreExpr::Index {
-            base: head,
-            index: tail,
-        } => {
-            **head = rewrite(head, features)?;
-            **tail = rewrite(tail, features)?;
-        }
-        CoreExpr::ListComprehension {
-            expr,
-            generators,
-            guards,
-            ..
-        } => {
-            **expr = rewrite(expr, features)?;
-            for generator in generators {
-                generator.source = rewrite(&generator.source, features)?;
-            }
-            rewrite_many(guards, features)?;
-        }
-        CoreExpr::Let { bindings, body } => {
-            for binding in bindings {
-                binding.value = rewrite(&binding.value, features)?;
-            }
-            **body = rewrite(body, features)?;
-        }
-        CoreExpr::Map(fields) => {
-            for field in fields {
-                field.value = rewrite(&field.value, features)?;
-            }
-        }
-        CoreExpr::RecordConstruct { fields, .. } | CoreExpr::TemplateInstantiate { fields, .. } => {
-            rewrite_fields(fields, features)?
-        }
-        CoreExpr::FieldAccess { base, .. } | CoreExpr::RecordAccess { base, .. } => {
-            **base = rewrite(base, features)?
-        }
-        CoreExpr::RecordUpdate { base, fields, .. } => {
-            **base = rewrite(base, features)?;
-            rewrite_fields(fields, features)?;
-        }
-        CoreExpr::ConstructorChain { args, record, .. } => {
-            rewrite_many(args, features)?;
-            **record = rewrite(record, features)?;
-        }
-        CoreExpr::RemoteCall { args, .. }
-        | CoreExpr::ConstructorCall { args, .. }
-        | CoreExpr::Call { args, .. } => rewrite_many(args, features)?,
-        CoreExpr::MutableReceiverCall { receiver, args, .. } => {
-            **receiver = rewrite(receiver, features)?;
-            rewrite_many(args, features)?;
-        }
-        CoreExpr::FunctionCall { callee, args } => {
-            **callee = rewrite(callee, features)?;
-            rewrite_many(args, features)?;
-        }
-        CoreExpr::Cast { expr, .. } => **expr = rewrite(expr, features)?,
-        CoreExpr::Intrinsic(call) => rewrite_many(&mut call.args, features)?,
-        CoreExpr::SqlQuery { parameters, .. } => rewrite_many(parameters, features)?,
-        CoreExpr::Case { scrutinee, clauses } => {
-            **scrutinee = rewrite(scrutinee, features)?;
-            rewrite_clauses(clauses, features)?;
-        }
-        CoreExpr::Try {
-            body,
-            of_clauses,
-            catch_clauses,
-            after_clause,
-        } => {
-            **body = rewrite(body, features)?;
-            rewrite_clauses(of_clauses, features)?;
-            rewrite_clauses(catch_clauses, features)?;
-            if let Some(after) = after_clause {
-                *after.trigger = rewrite(&after.trigger, features)?;
-                *after.body = rewrite(&after.body, features)?;
-            }
-        }
-        CoreExpr::If { clauses } => {
-            for clause in clauses {
-                clause.condition = rewrite(&clause.condition, features)?;
-                clause.body = rewrite(&clause.body, features)?;
-            }
-        }
-        CoreExpr::Lam { body, .. } => **body = rewrite(body, features)?,
-        CoreExpr::UnaryOp { operand, .. } => **operand = rewrite(operand, features)?,
-        CoreExpr::BinaryOp { left, right, .. } => {
-            **left = rewrite(left, features)?;
-            **right = rewrite(right, features)?;
-        }
-        CoreExpr::Int(_)
-        | CoreExpr::Float(_)
-        | CoreExpr::Binary(_)
-        | CoreExpr::Atom(_)
-        | CoreExpr::Var(_)
-        | CoreExpr::RemoteFunRef { .. } => {}
-    }
-    Ok(())
-}
-
-/// Rewrites one ordered expression list.
-fn rewrite_many(expressions: &mut [CoreExpr], features: HttpFeatures) -> Result<(), String> {
-    for expression in expressions {
-        *expression = rewrite(expression, features)?;
-    }
-    Ok(())
-}
-
-/// Rewrites record-like field payloads.
-fn rewrite_fields(
-    fields: &mut [crate::terlan_typeck::CoreRecordExprField],
-    features: HttpFeatures,
-) -> Result<(), String> {
-    for field in fields {
-        field.value = rewrite(&field.value, features)?;
-    }
-    Ok(())
-}
-
-/// Rewrites guards and bodies retained by case-like clauses.
-fn rewrite_clauses(clauses: &mut [CoreCaseClause], features: HttpFeatures) -> Result<(), String> {
-    for clause in clauses {
-        if let Some(guard) = &mut clause.guard {
-            *guard = rewrite(guard, features)?;
-        }
-        clause.body = rewrite(&clause.body, features)?;
-    }
-    Ok(())
 }
 
 /// Rewrites one portable request receiver call into a compiler-private operation.

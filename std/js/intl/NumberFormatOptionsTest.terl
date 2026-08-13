@@ -24,7 +24,7 @@ pub currency_typechecks(receiver: NumberFormatOptions): Option[std.js.String.JsS
     receiver.currency().
 
 pub currency_display_typechecks(
-    receiver: NumberFormatOptions
+    receiver: NumberFormatOptions,
 ): Option[NumberFormatOptionsCurrencyDisplay] ->
     receiver.currency_display().
 

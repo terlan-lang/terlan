@@ -234,7 +234,25 @@ Varargs parameters bind all remaining positional values into one list value
 inside the callable body. The repeated parameter must be last and cannot declare
 a default value.
 
+## Canonical Formatting
+
+`terlc fmt` owns source layout. Canonical Terlan uses four-space indentation
+and a 100-column target. Calls, collections, records, maps, and declarations
+that do not fit are written one item per line; multiline comma-separated forms
+carry a trailing comma wherever the grammar permits it. Fluent call chains put
+each method on its own continuation line. `case` and `if` arms are indented one
+level inside their structural block, and imports are normalized into a stable
+order.
+
+Run `terlc fmt <path>` to rewrite a directory, or `terlc fmt --check <path>` to
+verify it without mutation. Formatting is deterministic and idempotent.
+Generated files marked with both `@generated true` and `@do-not-edit true`
+remain owned by their generator and are skipped during recursive formatting.
+
 ## Let Expressions
+
+Boolean conjunction and disjunction use the canonical keyword operators `and`
+and `or`. Symbolic aliases such as `&&` and `||` are not Terlan source syntax.
 
 A `let` expression is one explicit binding followed by a required result
 expression. Consecutive bindings are recursive let expressions, so every local
@@ -251,12 +269,34 @@ sequence is the value of the `let` expression. The retired implicit form
 `terlc fmt --migrate-repeated-lets <path>` on 0.0.6 source to migrate implicit
 continuation bindings.
 
+One lexical region cannot introduce the same immutable name twice. Function
+parameters and the function body's top-level sequential `let` chain share a
+region, so `run(x) -> let x = ...; ...` is rejected rather than treated as an
+assignment or equality assertion. Structural patterns also reject duplicate
+names. Use a guard or explicit `==` for an identity condition.
+
+Intentional shadowing remains valid in a genuinely nested branch, lambda,
+comprehension, or handler scope. The nested name denotes a fresh identity and
+does not alter the outer value. See
+`docs/compiler/TERLAN_BINDING_IDENTITIES.md` for the complete region contract.
+
 Refutable bindings use `<-` inside an explicitly braced group and share one
 fallback. Each right-hand side runs once from left to right, and the first
 mismatch dispatches its value to the fallback clauses. Success-bound names are
 available to later bindings and the final expression, but not to the shared
 fallback. The braces delimit only the refutable binding group; they are not a
 general block-expression form.
+
+A single refutable binding omits the grouping braces:
+
+```terlan
+let Ok(user) <- Users.find(id) else {
+    Err(reason) -> Err(reason)
+};
+Ok(user).
+```
+
+Two or more refutable bindings use the grouped form:
 
 ```terlan
 let {

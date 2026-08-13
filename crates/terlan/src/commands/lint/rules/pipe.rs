@@ -2,10 +2,11 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use crate::terlan_syntax::{
-    parse_module_as_syntax_output, SyntaxDeclarationPayload, SyntaxExprKind, SyntaxExprOutput,
-    SyntaxImportKind, SyntaxModuleOutput,
+    SyntaxDeclarationPayload, SyntaxExprKind, SyntaxExprOutput, SyntaxImportKind,
+    SyntaxModuleOutput,
 };
 
+use super::parse_lint_source;
 use crate::commands::lint::diagnostic::{LintDiagnostic, Severity};
 
 const PIPE_CANDIDATE_RULE_ID: &str = "TL1002";
@@ -22,7 +23,7 @@ struct PipeCandidate {
 
 /// Builds pipe-canonicalization diagnostics from parsed syntax output.
 pub(super) fn pipe_candidate_diagnostics(path: &Path, source: &str) -> Vec<LintDiagnostic> {
-    located_pipe_candidates(source)
+    located_pipe_candidates(path, source)
         .into_iter()
         .map(|(start, _candidate)| {
             let (line, column) = source_line_column_at(source, start);
@@ -41,10 +42,10 @@ pub(super) fn pipe_candidate_diagnostics(path: &Path, source: &str) -> Vec<LintD
 }
 
 /// Applies safe pipe-canonicalization fixes.
-pub(super) fn fix_pipe_candidates(source: &str) -> String {
+pub(super) fn fix_pipe_candidates(path: &Path, source: &str) -> String {
     let mut fixed = source.to_string();
-    let mut replacements = located_pipe_candidates(source);
-    replacements.sort_by(|left, right| right.0.cmp(&left.0));
+    let mut replacements = located_pipe_candidates(path, source);
+    replacements.sort_by_key(|replacement| std::cmp::Reverse(replacement.0));
     for (start, candidate) in replacements {
         let end = start + candidate.original.len();
         let Some(current) = fixed.get(start..end) else {
@@ -60,9 +61,9 @@ pub(super) fn fix_pipe_candidates(source: &str) -> String {
     fixed
 }
 
-fn located_pipe_candidates(source: &str) -> Vec<(usize, PipeCandidate)> {
+fn located_pipe_candidates(path: &Path, source: &str) -> Vec<(usize, PipeCandidate)> {
     let mut next_search_start = HashMap::<(usize, usize, String), usize>::new();
-    pipe_candidates(source)
+    pipe_candidates(path, source)
         .into_iter()
         .filter_map(|candidate| {
             let key = (candidate.start, candidate.end, candidate.original.clone());
@@ -139,8 +140,8 @@ fn is_inside_line_comment(source: &str, offset: usize) -> bool {
 }
 
 /// Collects safe nested first-argument call chains from source.
-fn pipe_candidates(source: &str) -> Vec<PipeCandidate> {
-    let Ok(module) = parse_module_as_syntax_output(source) else {
+fn pipe_candidates(path: &Path, source: &str) -> Vec<PipeCandidate> {
+    let Ok(module) = parse_lint_source(path, source) else {
         return Vec::new();
     };
 

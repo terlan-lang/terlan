@@ -100,7 +100,7 @@ pub key_frames_decoded_typechecks(receiver: RTCInboundRtpStreamStats): JsNumber 
     receiver.key_frames_decoded().
 
 pub last_packet_received_timestamp_typechecks(
-    receiver: RTCInboundRtpStreamStats
+    receiver: RTCInboundRtpStreamStats,
 ): DOMHighResTimeStamp ->
     receiver.last_packet_received_timestamp().
 

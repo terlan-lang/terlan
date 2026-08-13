@@ -6,10 +6,11 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use crate::runtime::vm::code_server_compiler::stage_compiled_replacement;
-use crate::runtime::vm::pure_native::{
-    VmNativeGenerationReferenceClass, VmNativeGenerationReferenceSnapshot,
-};
+#[cfg(test)]
+use crate::runtime::vm::pure_native::VmNativeGenerationReferenceClass;
+use crate::runtime::vm::pure_native::VmNativeGenerationReferenceSnapshot;
 use crate::runtime::vm::source_reload::{VmSourceReloadAdapter, VmSourceReloadBatchReport};
+#[cfg(test)]
 use crate::runtime::vm::ReplValue;
 use crate::terlan_typeck::CoreModule;
 use crate::CliState;
@@ -77,9 +78,7 @@ impl VmNativeSourceReloadService {
         let deadline_tick = match self.drain_deadline_tick {
             Some(deadline) => deadline,
             None => {
-                let deadline = observed_tick
-                    .checked_add(DEFAULT_RELOAD_DRAIN_TICKS)
-                    .unwrap_or(u64::MAX);
+                let deadline = observed_tick.saturating_add(DEFAULT_RELOAD_DRAIN_TICKS);
                 self.drain_deadline_tick = Some(deadline);
                 deadline
             }
@@ -146,27 +145,18 @@ impl VmNativeSourceReloadService {
     }
 
     /// Executes one export through the active compiled generation.
-    #[allow(dead_code)] // Long-lived watcher integrations consume this entry.
+    #[cfg(test)]
     pub(super) fn call(&mut self, function: &str, args: &[ReplValue]) -> Result<ReplValue, String> {
         self.runtime.call_native(function, args)
     }
 
     /// Pins one debugger or crash-metadata reference to the active generation.
-    #[allow(dead_code)] // Long-lived debugger integration consumes this entry.
+    #[cfg(test)]
     pub(super) fn pin_generation(
         &mut self,
         class: VmNativeGenerationReferenceClass,
     ) -> Result<(), String> {
         self.runtime.pin_native_generation(class)
-    }
-
-    /// Releases one externally owned generation pin.
-    #[allow(dead_code)] // Paired with the long-lived generation pin entry.
-    pub(super) fn release_generation(
-        &mut self,
-        class: VmNativeGenerationReferenceClass,
-    ) -> Result<(), String> {
-        self.runtime.release_native_generation(class)
     }
 
     /// Returns bounded image-publication evidence for focused lifecycle tests.

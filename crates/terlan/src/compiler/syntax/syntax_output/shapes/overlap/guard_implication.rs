@@ -50,6 +50,9 @@ pub(super) fn guard_relation(
     let (Some(earlier), Some(later)) = (earlier, later) else {
         return GuardRelation::Unknown;
     };
+    if exceeds_logical_branch_budget(earlier) || exceeds_logical_branch_budget(later) {
+        return GuardRelation::Unknown;
+    }
     if !is_simple_guard(earlier) || !is_simple_guard(later) {
         return GuardRelation::Unknown;
     }
@@ -67,6 +70,25 @@ pub(super) fn guard_relation(
     } else {
         GuardRelation::Unknown
     }
+}
+
+/// Rejects oversized Boolean proof trees without recursively entering them.
+fn exceeds_logical_branch_budget(expression: &SyntaxExprOutput) -> bool {
+    let mut logical_operators = 0_usize;
+    let mut pending = vec![expression];
+    while let Some(current) = pending.pop() {
+        if current.kind == SyntaxExprKind::BinaryOp
+            && matches!(current.operator.as_deref(), Some("and" | "or"))
+        {
+            logical_operators = logical_operators.saturating_add(1);
+            if logical_operators >= MAX_INTERVAL_BRANCHES {
+                return true;
+            }
+        }
+        pending.extend(&current.children);
+        pending.extend(current.fields.iter().map(|field| field.value.as_ref()));
+    }
+    false
 }
 
 fn is_simple_guard(expression: &SyntaxExprOutput) -> bool {
@@ -402,7 +424,7 @@ fn relation_fact(expression: &SyntaxExprOutput, operator: &str) -> Option<Relati
 
 fn bound_variable(expression: &SyntaxExprOutput) -> Option<String> {
     (expression.kind == SyntaxExprKind::Var)
-        .then(|| expression.text.as_deref())
+        .then_some(expression.text.as_deref())
         .flatten()
         .filter(|name| name.starts_with("arg"))
         .map(str::to_string)

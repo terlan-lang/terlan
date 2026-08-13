@@ -25,6 +25,6 @@ pub length_typechecks(receiver: SpeechRecognitionResult): JsNumber ->
 
 pub item_typechecks(
     receiver: SpeechRecognitionResult,
-    index: JsNumber
+    index: JsNumber,
 ): SpeechRecognitionAlternative ->
     receiver.item(index).

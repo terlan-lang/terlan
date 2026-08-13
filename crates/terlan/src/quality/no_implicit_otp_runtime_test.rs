@@ -52,12 +52,12 @@ fn marker_audit_accepts_present_runtime_contracts() {
         .expect("create source dir");
     fs::write(
         root.join("crates/terlan/src/main.rs"),
-        "terlc run [project-dir|file.terl] [--target terlan-vm]\n",
+        "terlc run [project-dir|file.terl|file.terls] [--target terlan-vm]\n",
     )
     .expect("write source");
     let rules = [RuntimeSelectionRule {
         path: "crates/terlan/src/main.rs",
-        marker: "terlc run [project-dir|file.terl] [--target terlan-vm]",
+        marker: "terlc run [project-dir|file.terl|file.terls] [--target terlan-vm]",
         reason: "test marker",
     }];
 
@@ -155,7 +155,7 @@ fn forbidden_fragment_audit_accepts_vm_only_usage() {
         .expect("create source dir");
     fs::write(
         root.join("crates/terlan/src/main.rs"),
-        "terlc run [project-dir|file.terl] [--target terlan-vm]\n",
+        "terlc run [project-dir|file.terl|file.terls] [--target terlan-vm]\n",
     )
     .expect("write source");
     let fragments = [ForbiddenRuntimeFragment {

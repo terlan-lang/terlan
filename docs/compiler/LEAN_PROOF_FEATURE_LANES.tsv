@@ -1,0 +1,22 @@
+roadmap_slice	lane	owner	acceptance_gate
+Slice 4	coreir	compiler	lean-proof-track-check
+Slice 5	coreir	compiler	lean-proof-track-check
+Slice 9	vm_runtime	vm	vm-runtime-semantics-check
+Slice 10	coreir	compiler	core-typing-spec-check
+Slice 11	coreir	compiler	lean-proof-track-check
+Slice 12	coreir	compiler	lean-proof-track-check
+Slice 13	parser	compiler	lalrpop-parser-parity-check;lean-proof-parser-shape-check
+Slice 14	native_boundary	runtime	lean-proof-native-boundary-check;native-boundary-security-check;vm-native-boundary-contract-check
+Slice 15	coreir	compiler	core-typing-spec-check
+Slice 16	vm_runtime	vm	vm-runtime-semantics-check
+Slice 17	std_packages	compiler	std-package-coverage-100-check
+Slice 18	wasm	compiler	wasm-coreir-lowering-check
+Slice 19	std_packages	compiler	std-package-coverage-100-check
+Slice 20	std_packages	compiler	std-package-coverage-100-check
+Slice 22	coreir	compiler	lean-proof-track-check
+Slice 23	coreir	compiler	lean-proof-track-check
+Slice 24	vm_runtime	vm	vm-runtime-semantics-check
+Slice 25	coreir	compiler	lean-proof-track-check
+Slice 26	coreir	compiler	lean-proof-track-check
+Slice 27	coreir	compiler	lean-proof-track-check
+Slice 28	coreir	compiler	lean-proof-track-check

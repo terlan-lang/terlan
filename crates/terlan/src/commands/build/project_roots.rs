@@ -32,10 +32,21 @@ pub(super) fn resolve_project_build_roots(
     let git_cache = GitDependencyCache::load_if_present(&root_dir)?;
     let mut resolver = LocalDependencyResolver::new(git_cache);
     resolver.resolve_package(&root_dir, manifest, None)?;
+    let accelerator_closure = if resolver.accelerator_packages.is_empty() {
+        None
+    } else {
+        Some(
+            crate::compiler::accelerator::AcceleratorDependencyClosure::resolve(
+                resolver.accelerator_packages,
+                &project_manifest_path(&root_dir),
+            )?,
+        )
+    };
     Ok(ProjectBuildRoots {
         source_roots: resolver.source_roots,
         native_rust_dependencies: resolver.native_rust_dependencies,
         native_artifact_environment: resolver.native_artifact_environment,
+        accelerator_closure,
     })
 }
 
@@ -121,6 +132,7 @@ struct LocalDependencyResolver {
     source_roots: Vec<ProjectSourceRoot>,
     native_rust_dependencies: Vec<ProjectNativeRustDependency>,
     native_artifact_environment: Vec<(String, PathBuf)>,
+    accelerator_packages: Vec<crate::compiler::accelerator::AcceleratorPackageDescriptor>,
     git_cache: GitDependencyCache,
 }
 
@@ -132,6 +144,7 @@ impl LocalDependencyResolver {
             source_roots: Vec::new(),
             native_rust_dependencies: Vec::new(),
             native_artifact_environment: Vec::new(),
+            accelerator_packages: Vec::new(),
             git_cache,
         }
     }
@@ -222,6 +235,23 @@ impl LocalDependencyResolver {
                 path: source_root,
                 package_path: source_package_path(&manifest.package),
             });
+        }
+
+        if let Some(accelerator) = &manifest.accelerator {
+            let contract = accelerator.contract.clone().ok_or_else(|| {
+                format!(
+                    "{}: accelerator descriptor was not loaded during package resolution",
+                    project_manifest_path(project_dir).display()
+                )
+            })?;
+            self.accelerator_packages.push(
+                crate::compiler::accelerator::AcceleratorPackageDescriptor {
+                    package: manifest.package.name.clone(),
+                    version: manifest.package.version.clone(),
+                    source: format!("{}/{}", manifest.package.name, accelerator.descriptor),
+                    descriptor: contract,
+                },
+            );
         }
 
         self.visiting.remove(project_dir);

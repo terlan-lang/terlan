@@ -76,6 +76,7 @@ impl<P> VmNodeTransportRouter<P> {
 }
 
 /// Encodes one length-prefixed actor message for the logical-node transport.
+#[cfg(test)]
 pub(crate) fn encode_node_transport_frame(
     actor_id: NonZeroU64,
     payload: &[u8],
@@ -192,7 +193,7 @@ impl<P> VmNodeTransportConnection<P> {
                             self.phase = VmNodeTransportPhase::Writing {
                                 bytes: result.map_or_else(
                                     |error| error_ack(&error),
-                                    |route| success_ack(route),
+                                    success_ack,
                                 ),
                                 offset: 0,
                             };

@@ -10,7 +10,7 @@ use crate::runtime::vm::execution_shard_supervisor::{
     VmExecutionShardSupervisor, VmShardProtocolVersion, VmShardSupervisorPolicy,
 };
 use crate::runtime::vm::process::VmProcessSource;
-use crate::runtime::vm::supervision::VmRestartBackoffSchedule;
+use crate::runtime::vm::restart_backoff::VmRestartBackoffSchedule;
 
 use super::super::{
     PureNativeBoundary, PureNativeExecutionRuntime, VmNativeGenerationReferenceSnapshot,

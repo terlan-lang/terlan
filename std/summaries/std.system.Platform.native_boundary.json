@@ -1,0 +1,13 @@
+{
+  "functions": [
+    {
+      "arity": 0,
+      "name": "current",
+      "operation": "std.system.platform.current"
+    }
+  ],
+  "module": "std_system_platform_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.system.Platform"
+}

@@ -4,6 +4,7 @@ use super::process::{VmProcessId, VmProcessLocation, VmProcessSource};
 
 #[cfg(test)]
 #[path = "local_trace_test.rs"]
+#[cfg(test)]
 mod local_trace_test;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -33,6 +34,7 @@ pub(crate) struct VmLocalTraceConfig {
 
 /// Stable event position for incremental local diagnostics inspection.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmLocalTraceCursor {
     event_index: usize,
 }
@@ -65,6 +67,7 @@ pub(crate) struct VmLocalTraceEvent {
 
 /// Immutable incremental trace result.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmLocalTraceSnapshot {
     pub(crate) events: Vec<VmLocalTraceEvent>,
     pub(crate) next_cursor: VmLocalTraceCursor,
@@ -89,22 +92,26 @@ impl VmLocalTraceRegistry {
     }
 
     /// Enables or updates one exact function without disturbing history.
+    #[cfg(test)]
     pub(crate) fn enable(&mut self, source: VmProcessSource, config: VmLocalTraceConfig) -> bool {
         let key = VmLocalTraceKey::from(&source);
         self.enabled.insert(key, (source, config)).is_none()
     }
 
     /// Disables one exact function without deleting already published events.
+    #[cfg(test)]
     pub(crate) fn disable(&mut self, source: &VmProcessSource) -> bool {
         self.enabled
             .remove(&VmLocalTraceKey::from(source))
             .is_some()
     }
 
+    #[cfg(test)]
     pub(crate) fn is_enabled(&self, source: &VmProcessSource) -> bool {
         self.enabled.contains_key(&VmLocalTraceKey::from(source))
     }
 
+    #[cfg(test)]
     pub(crate) fn cursor(&self) -> VmLocalTraceCursor {
         VmLocalTraceCursor {
             event_index: self.events.len(),
@@ -169,6 +176,7 @@ impl VmLocalTraceRegistry {
     }
 
     /// Returns an immutable event suffix without consuming diagnostic state.
+    #[cfg(test)]
     pub(crate) fn since(&self, cursor: VmLocalTraceCursor) -> Result<VmLocalTraceSnapshot, String> {
         if cursor.event_index > self.events.len() {
             return Err(format!(

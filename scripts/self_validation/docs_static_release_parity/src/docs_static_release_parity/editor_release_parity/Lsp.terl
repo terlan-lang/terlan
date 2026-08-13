@@ -1,0 +1,403 @@
+/**
+ * Batched JSON-RPC stdio validation for the installed language server.
+ */
+module docs_static_release_parity.editor_release_parity.Lsp.
+
+import docs_static_release_parity.editor_release_parity.Support.
+import std.core.Int.{to_string}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.Console.{eprintln}.
+import std.io.Directory.
+import std.io.File.{read_text, write_text}.
+import std.system.Process.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.system.Process.{EnvironmentEntry, FramedExchange}.
+
+pub struct LspSummary {
+    hover_categories: List[String],
+    response_count: Int,
+}.
+
+struct HoverCase {
+    category: String,
+    needle: String,
+    last: Bool,
+    expected: String,
+}.
+
+struct Position {
+    line: Int,
+    character: Int,
+}.
+
+pub hover_categories(summary: LspSummary): List[String] ->
+    summary.hover_categories.
+
+lsp_failure(message: String): Option[LspSummary] ->
+    let _printed = eprintln(String.append("editor release LSP failure: ", message));
+    None.
+
+source_text(): String ->
+    "//! Installed module docs.\nmodule release_editor.Hover.\n\nimport std.core.Bool.{compare}.\nimport generated.sample.{generated_value}.\nimport package.sample.{package_value}.\n\n/// Installed struct docs.\npub struct User {\n    name: String\n}.\n\n/// Installed method docs.\npub (user: User) display(): String -> user.name.\n\n/**\n * Returns the installed editor answer.\n */\npub answer(): Int -> 42.\n\npub caller(user: User): Int ->\n    let local = answer();\n    let shown = user.display();\n    let std_value = compare(false, true);\n    let generated = generated_value();\n    let packaged = package_value();\n    local.\n".
+
+hover_cases(): List[HoverCase] ->
+    [
+        HoverCase(
+            category = "module",
+            needle = "Hover",
+            last = false,
+            expected = "Installed module docs",
+        ),
+        HoverCase(
+            category = "struct",
+            needle = "User",
+            last = true,
+            expected = "Installed struct docs",
+        ),
+        HoverCase(
+            category = "function",
+            needle = "answer",
+            last = true,
+            expected = "installed editor answer",
+        ),
+        HoverCase(
+            category = "method",
+            needle = "display",
+            last = true,
+            expected = "Installed method docs",
+        ),
+        HoverCase(
+            category = "stdlib",
+            needle = "compare",
+            last = true,
+            expected = "Compares two `Bool` values",
+        ),
+        HoverCase(
+            category = "generated-summary",
+            needle = "generated_value",
+            last = true,
+            expected = "generated summary docs",
+        ),
+        HoverCase(
+            category = "package",
+            needle = "package_value",
+            last = true,
+            expected = "installed package docs",
+        ),
+    ].
+
+first_position_in_lines(lines: List[String], needle: String, line_number: Int): Option[Position] ->
+    case lines {
+        [] -> None;
+        [line | rest] ->
+            case String.split_once(line, needle) {
+                Some({prefix, _suffix}) ->
+                    Some(Position(line = line_number, character = String.length(prefix)));
+                None -> first_position_in_lines(rest, needle, line_number + 1)
+            }
+    }.
+
+last_position_in_lines(lines: List[String], needle: String, line_number: Int): Option[Position] ->
+    case lines {
+        [] -> None;
+        [line | rest] ->
+            case last_position_in_lines(rest, needle, line_number + 1) {
+                Some(position) -> Some(position);
+                None ->
+                    case String.split_once(line, needle) {
+                        Some({prefix, _suffix}) ->
+                            Some(Position(line = line_number, character = String.length(prefix)));
+                        None -> None
+                    }
+            }
+    }.
+
+position(source: String, item: HoverCase): Option[Position] ->
+    let lines = String.split(source, "\n");
+    if {
+        item.last -> last_position_in_lines(lines, item.needle, 0);
+        true -> first_position_in_lines(lines, item.needle, 0)
+    }.
+
+quoted(value: String): Option[String] ->
+    case Json.stringify(Json.string(value)) {
+        Ok(text) -> Some(text);
+        Err(_reason) -> None
+    }.
+
+frame(body: String): String ->
+    String.append(
+        "Content-Length: ",
+        String.append(to_string(String.byte_size(body)), String.append("\r\n\r\n", body)),
+    ).
+
+request(id: Int, method: String, params: String): String ->
+    frame(
+        String.append(
+            "{\"jsonrpc\":\"2.0\",\"id\":",
+            String.append(
+                to_string(id),
+                String.append(
+                    ",\"method\":\"",
+                    String.append(
+                        method,
+                        String.append("\",\"params\":", String.append(params, "}")),
+                    ),
+                ),
+            ),
+        ),
+    ).
+
+notification(method: String, params: String): String ->
+    frame(
+        String.append(
+            "{\"jsonrpc\":\"2.0\",\"method\":\"",
+            String.append(method, String.append("\",\"params\":", String.append(params, "}"))),
+        ),
+    ).
+
+file_uri(path: String): String ->
+    let escaped = String.replace(String.replace(String.replace(path, "%", "%25"), " ", "%20"), "\\", "/");
+    if {
+        String.starts_with(escaped, "/") -> String.append("file://", escaped);
+        true -> String.append("file:///", escaped)
+    }.
+
+hover_requests(
+    cases: List[HoverCase],
+    source: String,
+    uri: String,
+    request_id: Int,
+    session: String,
+): Option[String] ->
+    case cases {
+        [] -> Some(session);
+        [item | rest] ->
+            let {
+                Some(at) <- position(source, item);
+                Some(uri_json) <- quoted(uri)
+            } else {
+                _ -> None
+            };
+            (let params =
+    String.append(
+        "{\"textDocument\":{\"uri\":",
+        String.append(
+            uri_json,
+            String.append(
+                "},\"position\":{\"line\":",
+                String.append(
+                    to_string(at.line),
+                    String.append(",\"character\":", String.append(to_string(at.character), "}}")),
+                ),
+            ),
+        ),
+    );
+hover_requests(
+    rest,
+    source,
+    uri,
+    request_id + 1,
+    String.append(session, request(request_id, "textDocument/hover", params)),
+))
+    }.
+
+session(source: String, workspace: String, uri: String): Option[List[FramedExchange]] ->
+    let {
+        Some(root_uri) <- quoted(file_uri(workspace));
+        Some(source_uri) <- quoted(uri);
+        Some(source_json) <- quoted(source)
+    } else {
+        _ -> None
+    };
+    (let initialize =
+    request(
+        1,
+        "initialize",
+        String.append("{\"rootUri\":", String.append(root_uri, ",\"capabilities\":{}}")),
+    );
+let initialized = notification("initialized", "{}");
+let did_open =
+    notification(
+        "textDocument/didOpen",
+        String.append(
+            "{\"textDocument\":{\"uri\":",
+            String.append(
+                source_uri,
+                String.append(
+                    ",\"languageId\":\"terlan\",\"version\":1,\"text\":",
+                    String.append(source_json, "}}"),
+                ),
+            ),
+        ),
+    );
+case hover_requests(hover_cases(), source, uri, 2, String.append(initialized, did_open)) {
+    None -> None;
+    Some(hovers) ->
+        Some(
+            [
+                Process.exchange(initialize, 1),
+                Process.exchange(String.append(hovers, request(9, "shutdown", "null")), 8),
+                Process.exchange(notification("exit", "null"), 0),
+            ],
+        )
+}).
+
+parse_frame_bodies(frames: List[String], messages: List[Json]): Option[List[Json]] ->
+    case frames {
+        [] -> Some(messages);
+        [body | rest] ->
+            case Json.parse(body) {
+                Ok(message) -> parse_frame_bodies(rest, [message | messages]);
+                Err(_reason) -> None
+            }
+    }.
+
+message_id(message: Json): Option[Int] ->
+    let {
+        Ok(value) <- message.get("id");
+        Ok(id) <- value.as_int()
+    } else {
+        _ -> None
+    };
+    Some(id).
+
+response(messages: List[Json], expected_id: Int): Option[Json] ->
+    case messages {
+        [] -> None;
+        [message | rest] ->
+            case message_id(message) {
+                Some(id) ->
+                    if {
+                        id == expected_id -> Some(message);
+                        true -> response(rest, expected_id)
+                    };
+                None -> response(rest, expected_id)
+            }
+    }.
+
+has_response(messages: List[Json], expected_id: Int): Bool ->
+    case response(messages, expected_id) {
+        Some(_message) -> true;
+        None -> false
+    }.
+
+initialize_holds(messages: List[Json]): Bool ->
+    let {
+        Some(message) <- response(messages, 1);
+        Ok(result) <- message.get("result");
+        Ok(capabilities) <- result.get("capabilities");
+        Ok(hover) <- capabilities.get("hoverProvider");
+        Ok(enabled) <- hover.as_bool()
+    } else {
+        _ -> false
+    };
+    enabled.
+
+hover_responses_hold(
+    messages: List[Json],
+    cases: List[HoverCase],
+    request_id: Int,
+    categories: List[String],
+): Option[List[String]] ->
+    case cases {
+        [] -> Some(Support.sort_strings(categories));
+        [item | rest] ->
+            let {
+                Some(message) <- response(messages, request_id);
+                Ok(result) <- message.get("result");
+                Ok(rendered) <- Json.stringify(result)
+            } else {
+                _ -> None
+            };
+            if {
+                not String.contains(rendered, item.expected) -> None;
+                true -> hover_responses_hold(messages, rest, request_id + 1, [item.category | categories])
+            }
+    }.
+
+prepare_workspace(installed: String, workspace: String): Option[String] ->
+    let summaries = Support.child(workspace, "std/summaries");
+    let source = Support.child(workspace, "Hover.terl");
+    let {
+        Ok(_root) <- Directory.create_all(summaries);
+        Ok(std_summary) <- read_text(Support.child(installed, "share/terlan/std/summaries/std.core.Bool.typi"));
+        Ok(_std) <- write_text(Support.child(summaries, "std.core.Bool.typi"), std_summary);
+        Ok(_generated) <-
+            write_text(
+                Support.child(summaries, "generated.sample.typi"),
+                "//! Generated summary module docs.\nmodule generated.sample.\n\n/// Returns generated summary docs.\npub generated_value(): Int.\n",
+            );
+        Ok(_package) <-
+            write_text(
+                Support.child(workspace, "package.sample.terli"),
+                "//! Package interface module docs.\nmodule package.sample.\n\n/// Returns installed package docs.\npub package_value(): Int.\n",
+            );
+        Ok(_source) <- write_text(source, source_text())
+    } else {
+        _ -> None
+    };
+    Some(source).
+
+/**
+ * Runs one complete initialize/hover/shutdown session through installed stdio.
+ */
+pub run_smoke(
+    lsp: String,
+    installed: String,
+    workspace: String,
+    environment: List[EnvironmentEntry],
+): Option[LspSummary] ->
+    let {
+        Some(source) <- prepare_workspace(installed, workspace);
+        Some(exchanges) <- session(source_text(), workspace, file_uri(source))
+    } else {
+        _ -> None
+    };
+    (let command = Support.process_command(lsp, ["--stdio"], workspace, environment, 30000, 8388608);
+case Process.run_length_framed(Process.length_framed(command, exchanges, "Content-Length")) {
+    Err(reason) ->
+        lsp_failure(String.append("framed process failed: ", Process.error_message(reason)));
+    Ok(output) ->
+        if {
+            Process.framed_status(output) != 0 -> lsp_failure(String.append("nonzero process status: ", Process.framed_stderr(output)));
+            true -> case parse_frame_bodies(Process.frames(output), []) {
+                None -> lsp_failure("invalid JSON response frame body");
+                Some(messages) ->
+                    case hover_responses_hold(messages, hover_cases(), 2, []) {
+                        None -> lsp_failure("hover response contract failed");
+                        Some(categories) ->
+                            if {
+                                not initialize_holds(messages) -> lsp_failure("initialize response contract failed");
+                                not has_response(messages, 9) -> lsp_failure("shutdown response is missing");
+                                true -> Some(LspSummary(hover_categories = categories, response_count = 9))
+                            }
+                    }
+            }
+        }
+}).
+
+pub summary_json(summary: LspSummary): Json ->
+    Json.object()
+        .put("stdio", Json.string("passed"))
+        .put("hover", Json.string("passed"))
+        .put("hover_categories", category_json(summary.hover_categories, Json.object()))
+        .put("response_count", Json.int(summary.response_count)).
+
+category_json(categories: List[String], result: Json): Json ->
+    case categories {
+        [] -> result;
+        [category | rest] -> category_json(rest, result.put(category, Json.string("passed")))
+    }.
+
+@test
+pub framed_response_bodies_reject_invalid_json(): Bool ->
+    case parse_frame_bodies(["{"], []) {
+        None -> true;
+        Some(_messages) -> false
+    }.

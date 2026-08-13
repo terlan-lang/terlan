@@ -1,0 +1,99 @@
+/**
+ * Proves DB commands remain behind the VM-owned Postgres worker boundary.
+ */
+module scripts.self_validation.DbCommandBoundary.
+
+import std.collections.List.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.Console.{println}.
+import std.io.File.{read_text_directory, text_file_contents, text_file_path}.
+
+pub repository_boundary_holds(root: String): Bool ->
+    let db_root = String.append(root, "/crates/terlan/src/commands/db");
+    case read_text_directory(db_root) {
+        Ok(files) -> repository_files_hold(files, false);
+        _ -> false
+    }.
+
+repository_files_hold(files: List[std.io.File.TextFile], readme_found: Bool): Bool ->
+    case files {
+        [] -> readme_found;
+        [file | rest] ->
+            let path = text_file_path(file);
+            let contents = text_file_contents(file);
+            if {
+                String.ends_with(path, "/README.md") -> String.contains(contents, "VM-owned nonblocking libpq worker")
+                    and repository_files_hold(rest, true);
+                String.ends_with(path, "/psql.rs") -> false;
+                String.ends_with(path, ".rs") and not String.ends_with(path, "_test.rs") -> source_uses_vm_worker(String.split(contents, "\n"))
+                    and repository_files_hold(rest, readme_found);
+                true -> repository_files_hold(rest, readme_found)
+            }
+    }.
+
+pub boundary_holds(readme: String, source_contents: List[String], psql_present: Bool): Bool ->
+    String.contains(readme, "VM-owned nonblocking libpq worker")
+        and not psql_present
+        and sources_use_vm_worker(source_contents).
+
+sources_use_vm_worker(sources: List[String]): Bool ->
+    case sources {
+        [] -> true;
+        [source | rest] ->
+            source_uses_vm_worker(String.split(source, "\n")) and sources_use_vm_worker(rest)
+    }.
+
+source_uses_vm_worker(lines: List[String]): Bool ->
+    case lines {
+        [] -> true;
+        [line | rest] -> not forbidden_database_execution(line) and source_uses_vm_worker(rest)
+    }.
+
+pub forbidden_database_execution(line: String): Bool ->
+    let compact = String.replace(String.replace(line, " ", ""), "\t", "");
+    String.contains(compact, "usestd::process::Command")
+        or String.contains(compact, "Command::new(\"psql\")")
+        or String.contains(compact, "postgres::connect(")
+        or String.contains(compact, "postgres::query(")
+        or String.contains(compact, "postgres::query_one(")
+        or String.contains(compact, "postgres::execute(")
+        or String.contains(compact, "postgres::batch_execute(")
+        or String.contains(compact, "postgres::transaction(").
+
+@test
+pub repository_db_command_boundary_holds(): Bool ->
+    repository_boundary_holds(".").
+
+@test
+pub policy_accepts_documented_vm_worker_sources(): Bool ->
+    boundary_holds(
+        "DB commands use the VM-owned nonblocking libpq worker.",
+        ["worker.dispatch(request);"],
+        false,
+    ).
+
+@test
+pub policy_rejects_missing_worker_marker(): Bool ->
+    not boundary_holds("Postgres commands.", ["worker.dispatch(request);"], false).
+
+@test
+pub policy_rejects_checked_in_psql_adapter(): Bool ->
+    not boundary_holds("VM-owned nonblocking libpq worker", ["worker.dispatch(request);"], true).
+
+@test
+pub policy_rejects_whitespace_varied_process_command(): Bool ->
+    forbidden_database_execution("use\t std::process::Command;")
+        and forbidden_database_execution("Command::new ( \"psql\" )").
+
+@test
+pub policy_rejects_compatibility_adapter_calls(): Bool ->
+    forbidden_database_execution("postgres::connect (config)")
+        and forbidden_database_execution("postgres::query_one (pool, sql)")
+        and forbidden_database_execution("postgres::transaction (pool, callback)").
+
+pub main(): Unit ->
+    if {
+        repository_boundary_holds(".") -> println("DB command maintained adapter boundary OK");
+        true -> println("db-command-check failed")
+    }.

@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::terlan_native::{http, json, path, postgres, uri, vector};
+use crate::terlan_native::{http, json, path, postgres, regex, uri, vector};
 use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
 
 /// Reserved owner id used by trusted runtime calls without actor context.
@@ -19,6 +19,8 @@ pub enum ResourceKind {
     Json,
     /// `std.http.Request.Request`.
     HttpRequest,
+    /// `std.regex.Regex.Regex`.
+    Regex,
     /// `std.http.Response.Response`.
     HttpResponse,
     /// `std.http.Cookies.Jar`.
@@ -42,6 +44,8 @@ pub enum ResourceValue {
     Json(json::Json),
     /// HTTP request resource owned by the Rust HTTP adapter.
     HttpRequest(http::Request),
+    /// Compiled regex resource owned by the Rust regex adapter.
+    Regex(regex::Regex),
     /// HTTP response resource owned by the Rust HTTP adapter.
     HttpResponse(http::Response),
     /// HTTP cookie jar resource owned by the Rust HTTP adapter.
@@ -73,6 +77,7 @@ impl ResourceValue {
         match self {
             Self::Json(_) => ResourceKind::Json,
             Self::HttpRequest(_) => ResourceKind::HttpRequest,
+            Self::Regex(_) => ResourceKind::Regex,
             Self::HttpResponse(_) => ResourceKind::HttpResponse,
             Self::HttpCookieJar(_) => ResourceKind::HttpCookieJar,
             Self::Path(_) => ResourceKind::Path,
@@ -273,6 +278,25 @@ impl ResourceStore {
         match &self.slot(handle)?.value {
             ResourceValue::Json(value) => Ok(value),
             other => Err(kind_error(handle, ResourceKind::Json, other.kind())),
+        }
+    }
+
+    /// Returns a mutable JSON resource for a live handle.
+    pub fn json_mut(
+        &mut self,
+        handle: NativeBoundaryHandle,
+    ) -> Result<&mut json::Json, ResourceError> {
+        match &mut self.slot_mut(handle)?.value {
+            ResourceValue::Json(value) => Ok(value),
+            other => Err(kind_error(handle, ResourceKind::Json, other.kind())),
+        }
+    }
+
+    /// Returns a compiled regex resource for a live handle.
+    pub fn regex(&self, handle: NativeBoundaryHandle) -> Result<&regex::Regex, ResourceError> {
+        match &self.slot(handle)?.value {
+            ResourceValue::Regex(value) => Ok(value),
+            other => Err(kind_error(handle, ResourceKind::Regex, other.kind())),
         }
     }
 
@@ -520,6 +544,14 @@ impl ResourceStore {
         Ok(())
     }
 
+    /// Disposes every resource owned by one completed VM process.
+    pub fn dispose_owner(&mut self, owner_process_id: u64) -> usize {
+        let before = self.resources.len();
+        self.resources
+            .retain(|_, slot| slot.owner_process_id != owner_process_id);
+        before - self.resources.len()
+    }
+
     /// Returns a live resource slot.
     ///
     /// Inputs:
@@ -639,4 +671,5 @@ fn kind_error(
 
 #[cfg(test)]
 #[path = "resource_test.rs"]
+#[cfg(test)]
 mod resource_test;

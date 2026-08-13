@@ -48,14 +48,20 @@ if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
   exit 1
 fi
 
-python3 -B tools/release_promotion_pipeline.py verify --version "$version"
-mapfile -d '' artifacts < <(
-  python3 -B tools/release_promotion_pipeline.py list --version "$version"
+release_promotion=(
+  target/debug/terlan-vm run
+  target/self-validation/release-promotion/vm/scripts_ReleasePromotion.tvm
+  --script-eval --
+)
+
+TERLAN_RELEASE_ROOT="$repo_root" "${release_promotion[@]}" verify --version "$version"
+mapfile -t artifacts < <(
+  TERLAN_RELEASE_ROOT="$repo_root" "${release_promotion[@]}" list --version "$version"
 )
 
 notes="$(mktemp)"
 trap 'rm -f "$notes"' EXIT
-candidate_seal="$(python3 -B tools/release_promotion_pipeline.py digest --version "$version")"
+candidate_seal="$(TERLAN_RELEASE_ROOT="$repo_root" "${release_promotion[@]}" digest --version "$version")"
 printf 'Release candidate seal: `%s`\n\n' "$candidate_seal" > "$notes"
 awk -v version="$version" '
   $0 == "## " version { in_section = 1; next }

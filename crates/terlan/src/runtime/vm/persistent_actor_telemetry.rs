@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::model_sync::VmModelSyncChange;
@@ -106,6 +104,7 @@ pub(crate) struct VmPersistentActorTelemetryTrace {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorDebuggerHandoff {
     pub(crate) source_map_id: String,
     pub(crate) replay_step: u64,
@@ -118,10 +117,12 @@ pub(crate) struct VmPersistentActorDebuggerHandoff {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorTelemetrySupportPolicy {
     private: (),
 }
 
+#[cfg(test)]
 impl VmPersistentActorTelemetrySupportPolicy {
     pub(crate) fn redacted() -> Self {
         Self { private: () }
@@ -129,6 +130,7 @@ impl VmPersistentActorTelemetrySupportPolicy {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorTelemetrySupportStep {
     pub(crate) sequence: u64,
     pub(crate) operation: VmPersistentActorTelemetryKind,
@@ -142,6 +144,7 @@ pub(crate) struct VmPersistentActorTelemetrySupportStep {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorTelemetrySupportBundle {
     pub(crate) actor_reference: &'static str,
     pub(crate) steps: Vec<VmPersistentActorTelemetrySupportStep>,
@@ -279,10 +282,12 @@ impl<A: VmPersistentActorStoreAdapter> VmPersistentActorTelemetryLifecycle<A> {
     ) -> Result<VmPersistentActorStoreOutcome, VmPersistentActorTelemetryLifecycleError> {
         self.ensure_actor(&event.actor_id)?;
         let telemetry = event_telemetry(
-            VmPersistentActorTelemetryKind::Append,
-            &event.schema,
-            0,
-            event.sequence,
+            VmPersistentActorTelemetryPoint {
+                kind: VmPersistentActorTelemetryKind::Append,
+                schema: &event.schema,
+                snapshot_generation: 0,
+                event_sequence: event.sequence,
+            },
             &self.adapter_id,
             None,
             None,
@@ -307,10 +312,12 @@ impl<A: VmPersistentActorStoreAdapter> VmPersistentActorTelemetryLifecycle<A> {
     ) -> Result<VmPersistentActorStoreOutcome, VmPersistentActorTelemetryLifecycleError> {
         self.ensure_actor(&event.actor_id)?;
         let telemetry = event_telemetry(
-            VmPersistentActorTelemetryKind::AdapterFailure,
-            &event.schema,
-            0,
-            event.sequence,
+            VmPersistentActorTelemetryPoint {
+                kind: VmPersistentActorTelemetryKind::AdapterFailure,
+                schema: &event.schema,
+                snapshot_generation: 0,
+                event_sequence: event.sequence,
+            },
             &self.adapter_id,
             Some("partial_write_rejected"),
             None,
@@ -334,10 +341,12 @@ impl<A: VmPersistentActorStoreAdapter> VmPersistentActorTelemetryLifecycle<A> {
             Err(outcome) => {
                 let sequence = outcome_event_sequence(outcome);
                 self.emit(event_telemetry(
-                    VmPersistentActorTelemetryKind::AdapterFailure,
-                    expected_schema,
-                    0,
-                    sequence,
+                    VmPersistentActorTelemetryPoint {
+                        kind: VmPersistentActorTelemetryKind::AdapterFailure,
+                        schema: expected_schema,
+                        snapshot_generation: 0,
+                        event_sequence: sequence,
+                    },
                     &self.adapter_id,
                     Some(store_failure_reason(outcome).unwrap_or("replay_rejected")),
                     None,
@@ -419,10 +428,12 @@ impl SnapshotTelemetryMetadata {
         failure_reason: Option<&str>,
     ) -> VmPersistentActorTelemetryEvent {
         event_telemetry(
-            kind,
-            &self.schema,
-            self.generation,
-            self.event_sequence,
+            VmPersistentActorTelemetryPoint {
+                kind,
+                schema: &self.schema,
+                snapshot_generation: self.generation,
+                event_sequence: self.event_sequence,
+            },
             adapter_id,
             failure_reason,
             self.resource_label.clone(),
@@ -431,17 +442,26 @@ impl SnapshotTelemetryMetadata {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn event_telemetry(
+struct VmPersistentActorTelemetryPoint<'a> {
     kind: VmPersistentActorTelemetryKind,
-    schema: &VmPersistentActorSchema,
+    schema: &'a VmPersistentActorSchema,
     snapshot_generation: u64,
     event_sequence: u64,
+}
+
+fn event_telemetry(
+    point: VmPersistentActorTelemetryPoint<'_>,
     adapter_id: &str,
     failure_reason: Option<&str>,
     resource_label: Option<String>,
     recovery_phase: &str,
 ) -> VmPersistentActorTelemetryEvent {
+    let VmPersistentActorTelemetryPoint {
+        kind,
+        schema,
+        snapshot_generation,
+        event_sequence,
+    } = point;
     VmPersistentActorTelemetryEvent {
         kind,
         schema_id: format!("{}-v{}", schema.id, schema.version),
@@ -468,6 +488,7 @@ fn store_failure_reason(outcome: &VmPersistentActorStoreOutcome) -> Option<&'sta
         VmPersistentActorStoreOutcome::StaleEvent { .. } => Some("stale_event"),
         VmPersistentActorStoreOutcome::DuplicateEvent { .. } => Some("duplicate_event"),
         VmPersistentActorStoreOutcome::IncompatibleSchema { .. } => Some("incompatible_schema"),
+        #[cfg(test)]
         VmPersistentActorStoreOutcome::PartialWriteRejected { .. } => {
             Some("partial_write_rejected")
         }
@@ -487,8 +508,9 @@ fn outcome_event_sequence(outcome: &VmPersistentActorStoreOutcome) -> u64 {
         VmPersistentActorStoreOutcome::StaleEvent {
             incoming_sequence, ..
         } => *incoming_sequence,
-        VmPersistentActorStoreOutcome::DuplicateEvent { sequence, .. }
-        | VmPersistentActorStoreOutcome::PartialWriteRejected { sequence, .. } => *sequence,
+        VmPersistentActorStoreOutcome::DuplicateEvent { sequence, .. } => *sequence,
+        #[cfg(test)]
+        VmPersistentActorStoreOutcome::PartialWriteRejected { sequence, .. } => *sequence,
         VmPersistentActorStoreOutcome::MissingSnapshot(_)
         | VmPersistentActorStoreOutcome::IncompatibleSchema { .. }
         | VmPersistentActorStoreOutcome::PersistenceFailed { .. } => 0,
@@ -725,6 +747,7 @@ fn ensure_cardinality(
     Ok(())
 }
 
+#[cfg(test)]
 pub(crate) fn persistent_actor_debugger_handoff(
     spans: &[VmPersistentActorTelemetrySpan],
     source_map_id: impl Into<String>,
@@ -753,6 +776,7 @@ pub(crate) fn persistent_actor_debugger_handoff(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn persistent_actor_telemetry_support_bundle(
     spans: &[VmPersistentActorTelemetrySpan],
     _policy: &VmPersistentActorTelemetrySupportPolicy,
@@ -879,6 +903,7 @@ pub(crate) fn validate_persistent_actor_telemetry_trace(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn deterministic_restore_trace() -> Vec<VmPersistentActorTelemetrySpan> {
     vec![
         span(1, VmPersistentActorTelemetryKind::Snapshot, 0, 8),
@@ -900,6 +925,7 @@ pub(crate) fn deterministic_restore_trace() -> Vec<VmPersistentActorTelemetrySpa
     ]
 }
 
+#[cfg(test)]
 fn span(
     sequence: u64,
     kind: VmPersistentActorTelemetryKind,
@@ -954,4 +980,5 @@ fn contains_secret_material(label: &str) -> bool {
 
 #[cfg(test)]
 #[path = "persistent_actor_telemetry_test.rs"]
+#[cfg(test)]
 mod persistent_actor_telemetry_test;

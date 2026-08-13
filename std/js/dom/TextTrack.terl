@@ -105,13 +105,13 @@ pub (value: TextTrack) remove_cue(cue: TextTrackCue): Unit ->
 pub (value: TextTrack) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     native.
 
 pub (value: TextTrack) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     native.

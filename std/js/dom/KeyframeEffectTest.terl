@@ -34,6 +34,6 @@ pub get_keyframes_typechecks(receiver: KeyframeEffect): Array[ComputedKeyframe] 
 
 pub set_keyframes_typechecks(
     receiver: KeyframeEffect,
-    keyframes: Option[PropertyIndexedKeyframes | Array[Keyframe]]
+    keyframes: Option[PropertyIndexedKeyframes | Array[Keyframe]],
 ): std.core.Unit ->
     receiver.set_keyframes(keyframes).

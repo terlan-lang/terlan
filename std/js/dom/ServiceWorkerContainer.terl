@@ -63,7 +63,7 @@ pub (value: ServiceWorkerContainer) get_registrations(): Promise[std.js.Array[Se
  */
 pub (value: ServiceWorkerContainer) register(
     script_url: URL | JsString,
-    options: RegistrationOptions
+    options: RegistrationOptions,
 ): Promise[ServiceWorkerRegistration] ->
     native.
 
@@ -78,13 +78,13 @@ pub (value: ServiceWorkerContainer) start_messages(): Unit ->
 pub (value: ServiceWorkerContainer) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     native.
 
 pub (value: ServiceWorkerContainer) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     native.

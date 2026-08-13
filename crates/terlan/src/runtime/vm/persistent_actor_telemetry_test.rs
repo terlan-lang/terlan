@@ -2,8 +2,9 @@ use super::super::model_sync::{
     VmModelSyncChange, VmModelSyncChangeKind, VmModelSyncKey, VmModelSyncVersion,
 };
 use super::super::persistent_actor_store::{
-    VmInMemoryPersistentActorStore, VmPersistentActorEvent, VmPersistentActorId,
-    VmPersistentActorSchema, VmPersistentActorSnapshot, VmPersistentActorStoreOutcome,
+    VmInMemoryPersistentActorStore, VmPersistentActorDurability, VmPersistentActorEvent,
+    VmPersistentActorId, VmPersistentActorSchema, VmPersistentActorSnapshot,
+    VmPersistentActorStoreOutcome,
 };
 use super::super::persistent_actor_telemetry_aggregation::VmPersistentActorMetricLimits;
 use super::super::ReplValue;
@@ -499,8 +500,10 @@ fn vm_persistent_actor_telemetry_lifecycle_emits_store_and_restore_spans() {
         ReplValue::String("pending".to_string()),
         vec![ReplValue::String("ship".to_string())],
         vec![50],
-        vec!["postgres.private-token".to_string()],
-        0,
+        VmPersistentActorDurability {
+            resource_handles: vec!["postgres.private-token".to_string()],
+            last_event_sequence: 0,
+        },
     )
     .expect("snapshot");
 

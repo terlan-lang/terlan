@@ -40,7 +40,7 @@ pub connect_typechecks(
     receiver: AudioNode,
     destination_node: AudioNode,
     output: JsNumber,
-    input: JsNumber
+    input: JsNumber,
 ): AudioNode ->
     receiver.connect(destination_node, output, input).
 
@@ -63,7 +63,7 @@ pub disconnect_typechecks(
     receiver: AudioNode,
     destination_node: AudioNode,
     output: JsNumber,
-    input: JsNumber
+    input: JsNumber,
 ): Unit ->
     receiver.disconnect(destination_node, output, input).
 
@@ -73,6 +73,6 @@ pub disconnect_typechecks(receiver: AudioNode, destination_param: AudioParam): U
 pub disconnect_typechecks(
     receiver: AudioNode,
     destination_param: AudioParam,
-    output: JsNumber
+    output: JsNumber,
 ): Unit ->
     receiver.disconnect(destination_param, output).

@@ -30,7 +30,7 @@ pub get_typechecks(receiver: CookieStore, name: JsString): Promise[Option[Cookie
 
 pub get_typechecks(
     receiver: CookieStore,
-    options: CookieStoreGetOptions
+    options: CookieStoreGetOptions,
 ): Promise[Option[CookieListItem]] ->
     receiver.get(options).
 
@@ -50,7 +50,7 @@ pub add_event_listener_typechecks(
     receiver: CookieStore,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -58,6 +58,6 @@ pub remove_event_listener_typechecks(
     receiver: CookieStore,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

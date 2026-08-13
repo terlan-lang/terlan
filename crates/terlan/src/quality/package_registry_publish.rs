@@ -189,4 +189,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "package_registry_publish_test.rs"]
+#[cfg(test)]
 mod package_registry_publish_test;

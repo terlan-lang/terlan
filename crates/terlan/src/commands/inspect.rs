@@ -95,4 +95,5 @@ fn release_layout_snapshot() -> ReleaseLayoutSnapshot {
 
 #[cfg(test)]
 #[path = "inspect_test.rs"]
+#[cfg(test)]
 mod inspect_test;

@@ -4,6 +4,12 @@ use crate::terlan_hir::FunctionSignature;
 mod generic_struct;
 pub(super) use generic_struct::infer_generic_struct_construction;
 
+/// Diagnostic identity of one field in a raw struct construction.
+struct StructFieldIdentity<'a> {
+    struct_name: &'a str,
+    field_name: &'a str,
+}
+
 /// Infers a raw struct construction expression from syntax output.
 ///
 /// Inputs:
@@ -65,8 +71,10 @@ pub(super) fn infer_syntax_record_construct(
             }
 
             check_record_construct_field_value(
-                &name,
-                lookup_field,
+                StructFieldIdentity {
+                    struct_name: &name,
+                    field_name: lookup_field,
+                },
                 expected_field_type,
                 &field.value,
                 locals,
@@ -111,8 +119,7 @@ pub(super) fn infer_syntax_record_construct(
 ///   ordinary inference, expands aliases, and unifies expected and actual field
 ///   types so raw construction cannot bypass struct field contracts.
 fn check_record_construct_field_value(
-    struct_name: &str,
-    field_name: &str,
+    identity: StructFieldIdentity<'_>,
     expected: &Type,
     value: &SyntaxExprOutput,
     locals: &HashMap<String, Type>,
@@ -120,6 +127,10 @@ fn check_record_construct_field_value(
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
 ) {
+    let StructFieldIdentity {
+        struct_name,
+        field_name,
+    } = identity;
     let expected_expanded = expand_type_aliases(expected, ctx.aliases);
     let actual = infer_imported_module_member_function_value_with_expected(
         value,

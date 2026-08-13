@@ -1,0 +1,1712 @@
+/**
+ * Deterministic binary-protocol benchmark normalization and publication.
+ */
+module scripts.benchmarks.protocol.ProtocolBenchmarkTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Float, Int, String, Unit}.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.Directory.{create_all}.
+import std.io.File.{message, read_text, write_text}.
+import std.system.{Environment, Process}.
+
+import type std.core.Option.
+import type std.data.Json.
+
+pub struct BenchmarkRow {
+    runtime_lane: String,
+    profile: String,
+    commit: String,
+    platform: String,
+    rust_version: String,
+    workload: String,
+    workload_class: String,
+    phase: String,
+    iterations: Int,
+    concurrency: Int,
+    mean_us: Float,
+    median_us: Int,
+    p95_us: Int,
+    p99_us: Int,
+    error_rate_percent: Float,
+    typed_decode_failure_count: Int,
+    baseline_mean_us: Float,
+    winner: String,
+    delta_percent: Float,
+}.
+
+struct Metadata {
+    runtime_lane: String,
+    profile: String,
+    commit: String,
+    platform: String,
+    rust_version: String,
+}.
+
+struct ScenarioBase {
+    metadata: Metadata,
+    workload: String,
+    workload_class: String,
+    iterations: Int,
+    concurrency: Int,
+    error_rate_percent: Float,
+    typed_decode_failure_count: Int,
+}.
+
+struct LegacyComparison {
+    concurrency: Int,
+    winner: String,
+    delta_percent: Float,
+    source_group: String,
+}.
+
+struct LegacyLane {
+    lane: String,
+    workload: String,
+    status: String,
+    scales: List[Int],
+    artifact: Option[String],
+    reason: Option[String],
+    comparisons: List[LegacyComparison],
+}.
+
+manifest_path(): String -> "scripts/benchmarks/protocol/workloads.json".
+
+raw_report_path(): String -> "target/quality/vm-binary-protocol-benchmark.json".
+
+current_json_path(): String -> "target/quality/protocol-stack-comparison.json".
+
+current_tsv_path(): String -> "target/quality/protocol-stack-comparison.tsv".
+
+report_directory(): String -> "../docs/benchmark_reports/protocol".
+
+baseline_json_path(): String ->
+    "../docs/benchmark_reports/protocol/protocol-stack-baseline.v1.json".
+
+baseline_tsv_path(): String -> "../docs/benchmark_reports/protocol/protocol-stack-baseline.v1.tsv".
+
+legacy_http_path(): String -> "../benchmarks/results/http-vm-vs-rust.latest.json".
+
+pub scales(): List[Int] -> [1, 10, 100, 1000].
+
+phases(): List[String] -> ["cold", "warm"].
+
+pub row_header(): String ->
+    "runtime_lane\tprofile\tcommit\tplatform\trust_version\tworkload\tworkload_class\tphase\titerations\tconcurrency\tmean_us\tmedian_us\tp95_us\tp99_us\terror_rate_percent\ttyped_decode_failure_count\tbaseline_mean_us\twinner\tdelta_percent".
+
+string_member(value: Json, key: String): Option[String] ->
+    let {
+        Ok(member) <- value.get(key);
+        Ok(text) <- member.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+int_member(value: Json, key: String): Option[Int] ->
+    let {
+        Ok(member) <- value.get(key);
+        Ok(number) <- member.as_int()
+    } else {
+        _ -> None
+    };
+    Some(number).
+
+float_member(value: Json, key: String): Option[Float] ->
+    let {
+        Ok(member) <- value.get(key);
+        Ok(number) <- member.as_float()
+    } else {
+        _ -> None
+    };
+    Some(number).
+
+array_member(value: Json, key: String): Option[Json] ->
+    let {
+        Ok(member) <- value.get(key);
+        Ok(_length) <- member.length()
+    } else {
+        _ -> None
+    };
+    Some(member).
+
+read_json(path: String): Option[Json] ->
+    case read_text(path) {
+        Err(reason) ->
+            let reason_text = message(reason);
+            let diagnostic =
+                String.append(
+                    "[protocol-benchmark] error: cannot read benchmark JSON `",
+                    String.append(path, String.append("`: ", reason_text)),
+                );
+            let _printed = println(diagnostic);
+            None;
+        Ok(text) ->
+            case Json.parse(text) {
+                Err(reason) ->
+                    let reason_text = Json.error_message(reason);
+                    let diagnostic =
+                        String.append(
+                            "[protocol-benchmark] error: cannot read benchmark JSON `",
+                            String.append(path, String.append("`: ", reason_text)),
+                        );
+                    let _printed = println(diagnostic);
+                    None;
+                Ok(value) -> Some(value)
+            }
+    }.
+
+int_array_equals(value: Json, expected: List[Int]): Bool ->
+    case value.length() {
+        Err(_reason) -> false;
+        Ok(length) -> length == List.length(expected) and int_array_at(value, expected, 0)
+    }.
+
+int_array_at(value: Json, expected: List[Int], index: Int): Bool ->
+    case expected {
+        [] -> true;
+        [item | rest] ->
+            let {
+                Ok(actual) <- value.at(index);
+                Ok(number) <- actual.as_int()
+            } else {
+                _ -> false
+            };
+            number == item and int_array_at(value, rest, index + 1)
+    }.
+
+string_array_equals(value: Json, expected: List[String]): Bool ->
+    case value.length() {
+        Err(_reason) -> false;
+        Ok(length) -> length == List.length(expected) and string_array_at(value, expected, 0)
+    }.
+
+string_array_at(value: Json, expected: List[String], index: Int): Bool ->
+    case expected {
+        [] -> true;
+        [item | rest] ->
+            let {
+                Ok(actual) <- value.at(index);
+                Ok(text) <- actual.as_string()
+            } else {
+                _ -> false
+            };
+            text == item and string_array_at(value, rest, index + 1)
+    }.
+
+array_contains_string(value: Json, expected: String): Bool ->
+    case value.length() {
+        Err(_reason) -> false;
+        Ok(length) -> array_contains_string_at(value, expected, 0, length)
+    }.
+
+array_contains_string_at(value: Json, expected: String, index: Int, length: Int): Bool ->
+    if {
+        index >= length -> false;
+        true -> case value.at(index) {
+            Err(_reason) -> false;
+            Ok(item) ->
+                case item.as_string() {
+                    Ok(text) where text == expected -> true;
+                    _ -> array_contains_string_at(value, expected, index + 1, length)
+                }
+        }
+    }.
+
+required_adversarial_holds(required: Json): Bool ->
+    required_values_hold(required, 0)
+        and array_contains_string(required, "truncated-payloads")
+        and array_contains_string(required, "invalid-utf8")
+        and array_contains_string(required, "malformed-framing")
+        and array_contains_string(required, "impossible-widths")
+        and array_contains_string(required, "duplicate-captures")
+        and array_contains_string(required, "unsupported-backend-paths").
+
+required_values_hold(required: Json, index: Int): Bool ->
+    case required.length() {
+        Err(_reason) -> false;
+        Ok(length) ->
+            if {
+                index >= length -> true;
+                true -> let {
+                    Ok(item) <- required.at(index);
+                    Ok(text) <- item.as_string()
+                } else {
+                    _ -> false
+                };
+                known_adversarial(text) and required_values_hold(required, index + 1)
+            }
+    }.
+
+known_adversarial(value: String): Bool ->
+    value == "truncated-payloads"
+        or value == "invalid-utf8"
+        or value == "malformed-framing"
+        or value == "impossible-widths"
+        or value == "duplicate-captures"
+        or value == "unsupported-backend-paths".
+
+coverage_declared(manifest: Json, expected: String): Bool ->
+    coverage_in_group(manifest, "source_workloads", expected)
+        or coverage_in_group(manifest, "transport_workloads", expected)
+        or coverage_in_group(manifest, "http_workloads", expected).
+
+coverage_in_group(manifest: Json, key: String, expected: String): Bool ->
+    case array_member(manifest, key) {
+        None -> false;
+        Some(group) -> coverage_in_rows(group, expected, 0)
+    }.
+
+coverage_in_rows(rows: Json, expected: String, index: Int): Bool ->
+    case rows.length() {
+        Err(_reason) -> false;
+        Ok(length) ->
+            if {
+                index >= length -> false;
+                true -> case rows.at(index) {
+                    Err(_reason) -> false;
+                    Ok(row) ->
+                        case array_member(row, "covers") {
+                            Some(covers) ->
+                                if {
+                                    array_contains_string(covers, expected) -> true;
+                                    true -> coverage_in_rows(rows, expected, index + 1)
+                                };
+                            None -> coverage_in_rows(rows, expected, index + 1)
+                        }
+                }
+            }
+    }.
+
+required_coverage_declared(manifest: Json): Bool ->
+    coverage_declared(manifest, "truncated-payloads")
+        and coverage_declared(manifest, "invalid-utf8")
+        and coverage_declared(manifest, "malformed-framing")
+        and coverage_declared(manifest, "impossible-widths")
+        and coverage_declared(manifest, "duplicate-captures")
+        and coverage_declared(manifest, "unsupported-backend-paths").
+
+/**
+ * Validates the versioned workload and adversarial-coverage contract.
+ */
+pub validate_manifest(manifest: Json): Bool ->
+    case {
+    string_member(manifest, "schema"),
+    array_member(manifest, "scale_points"),
+    int_member(manifest, "warm_sample_count"),
+    int_member(manifest, "deterministic_seed"),
+    array_member(manifest, "required_adversarial_coverage"),
+} {
+        {Some("terlan.protocol-benchmark-workloads.v1"), Some(scale_points), Some(3), Some(_seed), Some(required)} ->
+            int_array_equals(scale_points, scales())
+                and required_adversarial_holds(required)
+                and required_coverage_declared(manifest);
+        _ -> false
+    }.
+
+winner_holds(winner: String): Bool ->
+    winner == "tie" or winner == "current-terlan-vm" or winner == "baseline-terlan-vm".
+
+parse_row(value: Json): Option[BenchmarkRow] ->
+    case {
+    string_member(value, "runtime_lane"),
+    string_member(value, "profile"),
+    string_member(value, "commit"),
+    string_member(value, "platform"),
+    string_member(value, "rust_version"),
+    string_member(value, "workload"),
+    string_member(value, "workload_class"),
+    string_member(value, "phase"),
+    string_member(value, "winner"),
+} {
+        {Some(runtime_lane), Some(profile), Some(commit), Some(platform), Some(rust_version), Some(workload), Some(workload_class), Some(phase), Some(winner)} ->
+            parse_row_numbers(
+                value,
+                runtime_lane,
+                profile,
+                commit,
+                platform,
+                rust_version,
+                workload,
+                workload_class,
+                phase,
+                winner,
+            );
+        _ -> None
+    }.
+
+parse_row_numbers(
+    value: Json,
+    runtime_lane: String,
+    profile: String,
+    commit: String,
+    platform: String,
+    rust_version: String,
+    workload: String,
+    workload_class: String,
+    phase: String,
+    winner: String,
+): Option[BenchmarkRow] ->
+    case {
+    int_member(value, "iterations"),
+    int_member(value, "concurrency"),
+    float_member(value, "mean_us"),
+    int_member(value, "median_us"),
+    int_member(value, "p95_us"),
+    int_member(value, "p99_us"),
+    float_member(value, "error_rate_percent"),
+    int_member(value, "typed_decode_failure_count"),
+    float_member(value, "baseline_mean_us"),
+    float_member(value, "delta_percent"),
+} {
+        {Some(iterations), Some(concurrency), Some(mean_us), Some(median_us), Some(p95_us), Some(p99_us), Some(error_rate_percent), Some(typed_decode_failure_count), Some(baseline_mean_us), Some(delta_percent)} ->
+            Some(
+                BenchmarkRow(
+                    runtime_lane = runtime_lane,
+                    profile = profile,
+                    commit = commit,
+                    platform = platform,
+                    rust_version = rust_version,
+                    workload = workload,
+                    workload_class = workload_class,
+                    phase = phase,
+                    iterations = iterations,
+                    concurrency = concurrency,
+                    mean_us = mean_us,
+                    median_us = median_us,
+                    p95_us = p95_us,
+                    p99_us = p99_us,
+                    error_rate_percent = error_rate_percent,
+                    typed_decode_failure_count = typed_decode_failure_count,
+                    baseline_mean_us = baseline_mean_us,
+                    winner = winner,
+                    delta_percent = delta_percent,
+                ),
+            );
+        _ -> None
+    }.
+
+parse_rows(values: Json): Option[List[BenchmarkRow]] ->
+    case values.length() {
+        Err(_reason) -> None;
+        Ok(0) -> None;
+        Ok(length) -> parse_rows_at(values, 0, length, List.new[BenchmarkRow]())
+    }.
+
+parse_rows_at(
+    values: Json,
+    index: Int,
+    length: Int,
+    rows: List[BenchmarkRow],
+): Option[List[BenchmarkRow]] ->
+    if {
+        index >= length -> Some(reverse_rows(rows, List.new[BenchmarkRow]()));
+        true -> case values.at(index) {
+            Err(_reason) -> None;
+            Ok(value) ->
+                case parse_row(value) {
+                    None -> None;
+                    Some(row) where winner_holds(row.winner) ->
+                        parse_rows_at(values, index + 1, length, [row | rows]);
+                    Some(_row) -> None
+                }
+        }
+    }.
+
+reverse_rows(values: List[BenchmarkRow], output: List[BenchmarkRow]): List[BenchmarkRow] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_rows(rest, [value | output])
+    }.
+
+row_base(workload: String): Option[String] ->
+    row_base_parts(String.split(workload, "-"), "", false).
+
+row_base_parts(parts: List[String], base: String, present: Bool): Option[String] ->
+    case parts {
+        [] -> None;
+        [_scale | []] ->
+            if {
+                present -> Some(base);
+                true -> None
+            };
+        [part | rest] ->
+            let next =
+                if {
+                    present -> String.append(base, String.append("-", part));
+                    true -> part
+                };
+            row_base_parts(rest, next, true)
+    }.
+
+row_has_point(row: BenchmarkRow, base: String, scale: Int, phase: String): Bool ->
+    row.workload == String.append(base, String.append("-", Int.to_string(scale)))
+        and row.phase == phase.
+
+point_count(rows: List[BenchmarkRow], base: String, scale: Int, phase: String): Int ->
+    point_count_at(rows, base, scale, phase, 0).
+
+point_count_at(
+    rows: List[BenchmarkRow],
+    base: String,
+    scale: Int,
+    phase: String,
+    count: Int,
+): Int ->
+    case rows {
+        [] -> count;
+        [row | rest] ->
+            if {
+                row_has_point(row, base, scale, phase) -> point_count_at(rest, base, scale, phase, count + 1);
+                true -> point_count_at(rest, base, scale, phase, count)
+            }
+    }.
+
+base_coverage_holds(rows: List[BenchmarkRow], base: String): Bool ->
+    point_count(rows, base, 1, "cold") == 1
+        and point_count(rows, base, 1, "warm") == 1
+        and point_count(rows, base, 10, "cold") == 1
+        and point_count(rows, base, 10, "warm") == 1
+        and point_count(rows, base, 100, "cold") == 1
+        and point_count(rows, base, 100, "warm") == 1
+        and point_count(rows, base, 1000, "cold") == 1
+        and point_count(rows, base, 1000, "warm") == 1.
+
+scale_coverage_holds(rows: List[BenchmarkRow]): Bool ->
+    scale_coverage_at(rows, rows).
+
+scale_coverage_at(all_rows: List[BenchmarkRow], remaining: List[BenchmarkRow]): Bool ->
+    case remaining {
+        [] -> true;
+        [row | rest] ->
+            case row_base(row.workload) {
+                None -> false;
+                Some(base) ->
+                    if {
+                        base_coverage_holds(all_rows, base) -> scale_coverage_at(all_rows, rest);
+                        true -> false
+                    }
+            }
+    }.
+
+legacy_status_present(legacy: Json, expected: String, index: Int): Bool ->
+    case legacy.length() {
+        Err(_reason) -> false;
+        Ok(length) ->
+            if {
+                index >= length -> false;
+                true -> case legacy.at(index) {
+                    Err(_reason) -> false;
+                    Ok(lane) ->
+                        case string_member(lane, "status") {
+                            Some(status) where status == expected -> true;
+                            _ -> legacy_status_present(legacy, expected, index + 1)
+                        }
+                }
+            }
+    }.
+
+tsv_line_count(tsv: String): Int ->
+    let count = List.length(String.split(tsv, "\n"));
+    if {
+        String.ends_with(tsv, "\n") -> count - 1;
+        true -> count
+    }.
+
+/**
+ * Validates the authoritative JSON and TSV baseline as one typed artifact.
+ */
+pub validate_baseline_artifacts(manifest: Json): Bool ->
+    let path = baseline_json_path();
+    let report_result = read_json(path);
+    case report_result {
+        None -> false;
+        Some(report) ->
+            let tsv_path = baseline_tsv_path();
+            case read_text(tsv_path) {
+                Ok(tsv) -> validate_baseline_values(manifest, report, tsv);
+                Err(_reason) -> false
+            }
+    }.
+
+validate_baseline_values(manifest: Json, report: Json, tsv: String): Bool ->
+    let {
+        {Some("terlan.protocol-stack-comparison.v1"), Some(scale_points), Some(report_phases), Some(row_values), Some(legacy)} <-
+            {
+                string_member(report, "schema"),
+                array_member(report, "scale_points"),
+                array_member(report, "phases"),
+                array_member(report, "rows"),
+                array_member(report, "legacy_lanes"),
+            };
+        Some(rows) <- parse_rows(row_values)
+    } else {
+        _ -> false
+    };
+    int_array_equals(scale_points, scales())
+        and string_array_equals(report_phases, phases())
+        and scale_coverage_holds(rows)
+        and tsv_header_holds(tsv)
+        and tsv_line_count(tsv) == List.length(rows) + 1
+        and legacy_status_present(legacy, "comparable-cached", 0)
+        and legacy_status_present(legacy, "unsupported", 0)
+        and validate_manifest(manifest).
+
+tsv_header_holds(tsv: String): Bool ->
+    case String.split(tsv, "\n") {
+        [header | _rest] -> header == row_header();
+        _ -> false
+    }.
+
+row_classes_hold(rows: List[BenchmarkRow]): Bool ->
+    class_present(rows, "success") and class_present(rows, "adversarial") and classes_known(rows).
+
+class_present(rows: List[BenchmarkRow], expected: String): Bool ->
+    case rows {
+        [] -> false;
+        [row | rest] -> row.workload_class == expected or class_present(rest, expected)
+    }.
+
+classes_known(rows: List[BenchmarkRow]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            (row.workload_class == "success" or row.workload_class == "adversarial")
+                and classes_known(rest)
+    }.
+
+/**
+ * Validates the cached AOT HTTP concurrency comparison.
+ */
+pub validate_http_concurrency_artifact(report: Json): Bool ->
+    let {
+        {Some("http-vm-vs-rust"), Some("completed")} <- {string_member(report, "benchmark"), string_member(report, "status")};
+        Some(lanes) <- array_member(report, "lanes")
+    } else {
+        _ -> false
+    };
+    http_lane_holds(lanes, "socket-crud-c100", 0) and http_lane_holds(lanes, "socket-crud-c1000", 0).
+
+http_lane_holds(lanes: Json, group: String, index: Int): Bool ->
+    case lanes.length() {
+        Err(_reason) -> false;
+        Ok(length) ->
+            if {
+                index >= length -> false;
+                true -> case lanes.at(index) {
+                    Err(_reason) -> false;
+                    Ok(lane) ->
+                        if {
+                            lane_group_holds(lane, group) -> lane_result_holds(lane);
+                            true -> http_lane_holds(lanes, group, index + 1)
+                        }
+                }
+            }
+    }.
+
+lane_group_holds(lane: Json, expected: String): Bool ->
+    case string_member(lane, "group") {
+        Some(group) -> group == expected;
+        None -> false
+    }.
+
+lane_result_holds(lane: Json): Bool ->
+    case {string_member(lane, "winner"), float_member(lane, "delta_percent")} {
+        {Some(winner), Some(_delta)} ->
+            winner == "terlan-vm" or winner == "axum-tokio" or winner == "tie";
+        _ -> false
+    }.
+
+pub validate_anchor(anchor: String, manifest: Json): Bool ->
+    let baseline_valid = validate_baseline_artifacts(manifest);
+    baseline_valid
+        and if {
+    anchor == "binary_protocol_benchmark" -> let path = baseline_json_path();
+    let report_result = read_json(path);
+    let {
+        Some(report) <- report_result;
+        Some(values) <- array_member(report, "rows");
+        Some(rows) <- parse_rows(values)
+    } else {
+        _ -> false
+    };
+    row_classes_hold(rows);
+    anchor == "binary_protocol_concurrency_benchmark" -> let path = legacy_http_path();
+    let report_result = read_json(path);
+    case report_result {
+        Some(report) -> validate_http_concurrency_artifact(report);
+        None -> false
+    };
+    true -> false
+}.
+
+pub raw_benchmark_arguments(): List[String] ->
+    [
+        "run",
+        "--locked",
+        "-p",
+        "terlan",
+        "--bin",
+        "terlan-benchmark",
+        "--features",
+        "benchmark-tools",
+        "--quiet",
+        "--",
+        "vm-binary-protocol-baseline",
+    ].
+
+run_raw_benchmark(manifest: Json): Bool ->
+    let command =
+        Process.with_output_limit_bytes(
+            Process.with_timeout_ms(
+                Process.with_environment(
+                    Process.with_working_directory(
+                        Process.with_arguments(Process.command("cargo"), raw_benchmark_arguments()),
+                        ".",
+                    ),
+                    [
+                        Process.environment_entry(
+                            "TERLAN_BENCH_BINARY_PROTOCOL_OUTPUT",
+                            raw_report_path(),
+                        ),
+                    ],
+                ),
+                900000,
+            ),
+            8388608,
+        );
+    case Process.run(command) {
+        Err(reason) ->
+            let reason_text = Process.error_message(reason);
+            let diagnostic = String.append("[protocol-benchmark] error: benchmark command failed: ", reason_text);
+            let _printed = println(diagnostic);
+            false;
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> read_and_execute_raw(manifest);
+                true -> let status = Int.to_string(Process.status(output));
+                let diagnostic =
+                    String.append(
+                        "[protocol-benchmark] error: benchmark command failed (",
+                        String.append(
+                            status,
+                            "): cargo run --locked -p terlan --bin terlan-benchmark --features benchmark-tools --quiet -- vm-binary-protocol-baseline",
+                        ),
+                    );
+                let _printed = println(diagnostic);
+                false
+            }
+    }.
+
+git_commit(): String ->
+    let command =
+        Process.with_output_limit_bytes(
+            Process.with_timeout_ms(
+                Process.with_working_directory(
+                    Process.with_arguments(
+                        Process.command("git"),
+                        ["rev-parse", "--short=12", "HEAD"],
+                    ),
+                    ".",
+                ),
+                10000,
+            ),
+            65536,
+        );
+    case Process.run(command) {
+        Ok(output) where Process.status(output) == 0 -> String.trim(Process.stdout(output));
+        _ -> "unknown"
+    }.
+
+metadata(raw: Json): Metadata ->
+    Metadata(
+        runtime_lane = string_member_or(raw, "runtime_lane", "terlan-vm"),
+        profile = string_member_or(raw, "profile", "test"),
+        commit = git_commit(),
+        platform = string_member_or(raw, "platform", "unknown"),
+        rust_version = string_member_or(raw, "rustc_version", "unknown"),
+    ).
+
+string_member_or(value: Json, key: String, fallback: String): String ->
+    case string_member(value, key) {
+        Some(text) where text != "" -> text;
+        _ -> fallback
+    }.
+
+sorted_insert(value: Int, values: List[Int]): List[Int] ->
+    case values {
+        [] -> [value];
+        [head | rest] where value <= head -> [value | values];
+        [head | rest] -> [head | sorted_insert(value, rest)]
+    }.
+
+sort_ints(values: List[Int], output: List[Int]): List[Int] ->
+    case values {
+        [] -> output;
+        [value | rest] -> sort_ints(rest, sorted_insert(value, output))
+    }.
+
+list_int_at(values: List[Int], index: Int): Option[Int] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                index == 0 -> Some(value);
+                true -> list_int_at(rest, index - 1)
+            }
+    }.
+
+sum_ints(values: List[Int]): Int ->
+    case values {
+        [] -> 0;
+        [value | rest] -> value + sum_ints(rest)
+    }.
+
+percentile(values: List[Int], percent: Int): Option[Int] ->
+    let length = List.length(values);
+    if {
+        length == 0 -> None;
+        true -> list_int_at(values, ((length - 1) * percent + 99) / 100)
+    }.
+
+mean(values: List[Int]): Float ->
+    sum_ints(values) * 1.0 / List.length(values).
+
+round_three(value: Float): Float ->
+    if {
+        value >= 0 -> Float.floor(value * 1000 + 0.5) / 1000;
+        true -> Float.ceil(value * 1000 - 0.5) / 1000
+    }.
+
+metric_row(base: ScenarioBase, phase: String, values: List[Int]): Option[BenchmarkRow] ->
+    let ordered = sort_ints(values, List.new[Int]());
+    case {percentile(ordered, 50), percentile(ordered, 95), percentile(ordered, 99)} {
+        {Some(median), Some(p95), Some(p99)} ->
+            Some(
+                BenchmarkRow(
+                    runtime_lane = base.metadata.runtime_lane,
+                    profile = base.metadata.profile,
+                    commit = base.metadata.commit,
+                    platform = base.metadata.platform,
+                    rust_version = base.metadata.rust_version,
+                    workload = base.workload,
+                    workload_class = base.workload_class,
+                    phase = phase,
+                    iterations = base.iterations,
+                    concurrency = base.concurrency,
+                    mean_us = round_three(mean(ordered)),
+                    median_us = median,
+                    p95_us = p95,
+                    p99_us = p99,
+                    error_rate_percent = base.error_rate_percent,
+                    typed_decode_failure_count = base.typed_decode_failure_count,
+                    baseline_mean_us = 0.0,
+                    winner = "tie",
+                    delta_percent = 0.0,
+                ),
+            );
+        _ -> None
+    }.
+
+int_values(value: Json): Option[List[Int]] ->
+    case value.length() {
+        Err(_reason) -> None;
+        Ok(length) -> int_values_at(value, 0, length, List.new[Int]())
+    }.
+
+int_values_at(value: Json, index: Int, length: Int, output: List[Int]): Option[List[Int]] ->
+    if {
+        index >= length -> Some(reverse_ints(output, List.new[Int]()));
+        true -> let {
+            Ok(item) <- value.at(index);
+            Ok(number) <- item.as_int()
+        } else {
+            _ -> None
+        };
+        int_values_at(value, index + 1, length, [number | output])
+    }.
+
+reverse_ints(values: List[Int], output: List[Int]): List[Int] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_ints(rest, [value | output])
+    }.
+
+scenario_base(value: Json, meta: Metadata): Option[ScenarioBase] ->
+    case {
+    string_member(value, "id"),
+    string_member(value, "workload_class"),
+    int_member(value, "operation_count"),
+    float_member(value, "unexpected_error_rate_percent"),
+} {
+        {Some(workload), Some(workload_class), Some(iterations), Some(error_rate)} ->
+            Some(
+                ScenarioBase(
+                    metadata = meta,
+                    workload = workload,
+                    workload_class = workload_class,
+                    iterations = iterations,
+                    concurrency = int_member_or(value, "concurrency", 1),
+                    error_rate_percent = error_rate,
+                    typed_decode_failure_count = int_member_or(value, "expected_typed_failure_count", 0),
+                ),
+            );
+        _ -> None
+    }.
+
+int_member_or(value: Json, key: String, fallback: Int): Int ->
+    case int_member(value, key) {
+        Some(number) -> number;
+        None -> fallback
+    }.
+
+normalize_group(
+    values: Json,
+    meta: Metadata,
+    cold_key: String,
+    warm_key: String,
+    index: Int,
+    output: List[BenchmarkRow],
+): Option[List[BenchmarkRow]] ->
+    case values.length() {
+        Err(_reason) -> None;
+        Ok(length) ->
+            if {
+                index >= length -> Some(output);
+                true -> case values.at(index) {
+                    Err(_reason) -> None;
+                    Ok(value) ->
+                        normalize_scenario(values, value, meta, cold_key, warm_key, index, output)
+                }
+            }
+    }.
+
+normalize_scenario(
+    values: Json,
+    value: Json,
+    meta: Metadata,
+    cold_key: String,
+    warm_key: String,
+    index: Int,
+    output: List[BenchmarkRow],
+): Option[List[BenchmarkRow]] ->
+    let {
+        {Some(base), Some(cold), Some(warm_values)} <- {scenario_base(value, meta), int_member(value, cold_key), array_member(value, warm_key)};
+        Some(warm) <- int_values(warm_values);
+        {Some(cold_row), Some(warm_row)} <- {metric_row(base, "cold", [cold]), metric_row(base, "warm", warm)}
+    } else {
+        _ -> None
+    };
+    normalize_group(values, meta, cold_key, warm_key, index + 1, [warm_row | [cold_row | output]]).
+
+normalize_raw_report(raw: Json): Option[List[BenchmarkRow]] ->
+    let {
+        Some("terlan.vm-binary-protocol-benchmark.v8") <- string_member(raw, "schema");
+        {Some(scale_points), Some(scenarios), Some(transport)} <-
+            {
+                array_member(raw, "scale_points"),
+                array_member(raw, "scenarios"),
+                array_member(raw, "transport_scenarios"),
+            }
+    } else {
+        _ -> None
+    };
+    if {
+        not int_array_equals(scale_points, scales()) -> None;
+        true -> let meta = metadata(raw);
+        let {
+            Some(source_rows) <-
+                normalize_group(
+                    scenarios,
+                    meta,
+                    "cold_end_to_end_us",
+                    "warm_end_to_end_samples_us",
+                    0,
+                    List.new[BenchmarkRow](),
+                );
+            Some(reversed) <-
+                normalize_group(
+                    transport,
+                    meta,
+                    "cold_measurement_us",
+                    "warm_measurement_samples_us",
+                    0,
+                    source_rows,
+                )
+        } else {
+            _ -> None
+        };
+        (let rows = reverse_rows(reversed, List.new[BenchmarkRow]());
+if {
+    scale_coverage_holds(rows) -> Some(rows);
+    true -> None
+})
+    }.
+
+same_key(left: BenchmarkRow, right: BenchmarkRow): Bool ->
+    left.workload == right.workload
+        and left.phase == right.phase
+        and left.iterations == right.iterations
+        and left.concurrency == right.concurrency.
+
+find_reference(rows: List[BenchmarkRow], current: BenchmarkRow): Option[BenchmarkRow] ->
+    case rows {
+        [] -> None;
+        [row | rest] ->
+            if {
+                same_key(row, current) -> Some(row);
+                true -> find_reference(rest, current)
+            }
+    }.
+
+compared_row(row: BenchmarkRow, reference: BenchmarkRow): BenchmarkRow ->
+    let delta =
+        if {
+            reference.mean_us == 0.0 -> if {
+                row.mean_us == 0.0 -> 0.0;
+                true -> 100.0
+            };
+            true -> round_three((row.mean_us - reference.mean_us) * 100 / reference.mean_us)
+        };
+    BenchmarkRow(
+        runtime_lane = row.runtime_lane,
+        profile = row.profile,
+        commit = row.commit,
+        platform = row.platform,
+        rust_version = row.rust_version,
+        workload = row.workload,
+        workload_class = row.workload_class,
+        phase = row.phase,
+        iterations = row.iterations,
+        concurrency = row.concurrency,
+        mean_us = row.mean_us,
+        median_us = row.median_us,
+        p95_us = row.p95_us,
+        p99_us = row.p99_us,
+        error_rate_percent = row.error_rate_percent,
+        typed_decode_failure_count = row.typed_decode_failure_count,
+        baseline_mean_us = reference.mean_us,
+        winner = if {
+            delta < 0 -> "current-terlan-vm";
+            delta > 0 -> "baseline-terlan-vm";
+            true -> "tie"
+        },
+        delta_percent = delta,
+    ).
+
+/**
+ * Compares typed rows against the exact baseline key space.
+ */
+pub compare_rows(
+    rows: List[BenchmarkRow],
+    baseline: List[BenchmarkRow],
+    blessing: Bool,
+): Option[List[BenchmarkRow]] ->
+    if {
+        not blessing and List.length(rows) != List.length(baseline) -> None;
+        true -> compare_rows_at(rows, baseline, blessing, List.new[BenchmarkRow]())
+    }.
+
+compare_rows_at(
+    rows: List[BenchmarkRow],
+    baseline: List[BenchmarkRow],
+    blessing: Bool,
+    output: List[BenchmarkRow],
+): Option[List[BenchmarkRow]] ->
+    case rows {
+        [] -> Some(reverse_rows(output, List.new[BenchmarkRow]()));
+        [row | rest] ->
+            if {
+                blessing -> compare_rows_at(rest, baseline, blessing, [compared_row(row, row) | output]);
+                true -> compare_reference(rest, baseline, row, output)
+            }
+    }.
+
+compare_reference(
+    rest: List[BenchmarkRow],
+    baseline: List[BenchmarkRow],
+    row: BenchmarkRow,
+    output: List[BenchmarkRow],
+): Option[List[BenchmarkRow]] ->
+    case find_reference(baseline, row) {
+        None -> None;
+        Some(reference) ->
+            compare_rows_at(rest, baseline, false, [compared_row(row, reference) | output])
+    }.
+
+row_json(row: BenchmarkRow): Json ->
+    let value = Json.object();
+    let _runtime = value.put("runtime_lane", Json.string(row.runtime_lane));
+    let _profile = value.put("profile", Json.string(row.profile));
+    let _commit = value.put("commit", Json.string(row.commit));
+    let _platform = value.put("platform", Json.string(row.platform));
+    let _rust = value.put("rust_version", Json.string(row.rust_version));
+    let _workload = value.put("workload", Json.string(row.workload));
+    let _class = value.put("workload_class", Json.string(row.workload_class));
+    let _iterations = value.put("iterations", Json.int(row.iterations));
+    let _concurrency = value.put("concurrency", Json.int(row.concurrency));
+    let _error = put_float(value, "error_rate_percent", row.error_rate_percent);
+    let _failures = value.put("typed_decode_failure_count", Json.int(row.typed_decode_failure_count));
+    let _phase = value.put("phase", Json.string(row.phase));
+    let _mean = put_float(value, "mean_us", row.mean_us);
+    let _median = value.put("median_us", Json.int(row.median_us));
+    let _p95 = value.put("p95_us", Json.int(row.p95_us));
+    let _p99 = value.put("p99_us", Json.int(row.p99_us));
+    let _baseline = put_float(value, "baseline_mean_us", row.baseline_mean_us);
+    let _winner = value.put("winner", Json.string(row.winner));
+    let _delta = put_float(value, "delta_percent", row.delta_percent);
+    value.
+
+put_float(mut value: Json, key: String, number: Float): Unit ->
+    case Json.float(number) {
+        Ok(json) -> value.put(key, json);
+        Err(_reason) -> value.put(key, Json.null())
+    }.
+
+rows_json(rows: List[BenchmarkRow]): Json ->
+    let values = Json.array();
+    push_row_json(values, rows);
+    values.
+
+push_row_json(mut values: Json, rows: List[BenchmarkRow]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            let _pushed = values.push(row_json(row));
+            push_row_json(values, rest)
+    }.
+
+row_tsv(row: BenchmarkRow): String ->
+    let line_01 = append_tsv("", tsv_cell(row.runtime_lane));
+    let line_02 = append_tsv(line_01, tsv_cell(row.profile));
+    let line_03 = append_tsv(line_02, tsv_cell(row.commit));
+    let line_04 = append_tsv(line_03, tsv_cell(row.platform));
+    let line_05 = append_tsv(line_04, tsv_cell(row.rust_version));
+    let line_06 = append_tsv(line_05, tsv_cell(row.workload));
+    let line_07 = append_tsv(line_06, tsv_cell(row.workload_class));
+    let line_08 = append_tsv(line_07, tsv_cell(row.phase));
+    let line_09 = append_tsv(line_08, Int.to_string(row.iterations));
+    let line_10 = append_tsv(line_09, Int.to_string(row.concurrency));
+    let line_11 = append_tsv(line_10, Float.to_string(row.mean_us));
+    let line_12 = append_tsv(line_11, Int.to_string(row.median_us));
+    let line_13 = append_tsv(line_12, Int.to_string(row.p95_us));
+    let line_14 = append_tsv(line_13, Int.to_string(row.p99_us));
+    let line_15 = append_tsv(line_14, Float.to_string(row.error_rate_percent));
+    let line_16 = append_tsv(line_15, Int.to_string(row.typed_decode_failure_count));
+    let line_17 = append_tsv(line_16, Float.to_string(row.baseline_mean_us));
+    let line_18 = append_tsv(line_17, tsv_cell(row.winner));
+    String.append(
+        line_18,
+        String.append("\t", String.append(Float.to_string(row.delta_percent), "\n")),
+    ).
+
+append_tsv(current: String, value: String): String ->
+    if {
+        current == "" -> value;
+        true -> String.append(current, String.append("\t", value))
+    }.
+
+tsv_cell(value: String): String ->
+    if {
+        String.contains(value, "\t") or String.contains(value, "\n") or String.contains(value, "\"") -> String.append("\"", String.append(String.replace(value, "\"", "\"\""), "\""));
+        true -> value
+    }.
+
+rows_tsv(rows: List[BenchmarkRow]): String ->
+    String.append(row_header(), String.append("\n", rows_tsv_body(rows))).
+
+rows_tsv_body(rows: List[BenchmarkRow]): String ->
+    case rows {
+        [] -> "";
+        [row | rest] -> String.append(row_tsv(row), rows_tsv_body(rest))
+    }.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+selected_benchmark_mode(): String ->
+    case Environment.get("TERLAN_PROTOCOL_BENCHMARK_MODE") {
+        Some(mode) -> mode;
+        None ->
+            if {
+                environment_or("TERLAN_PROTOCOL_BENCHMARK_AUTORUN", "0") == "1" -> if {
+                    environment_or("TERLAN_PROTOCOL_BENCHMARK_ALREADY_RUN", "0") == "1" -> "validate";
+                    true -> "run"
+                };
+                true -> "validate"
+            }
+    }.
+
+/**
+ * Executes the selected validate/run mode through typed VM capabilities.
+ */
+pub execute(): Bool ->
+    let path = manifest_path();
+    let manifest_result = read_json(path);
+    case manifest_result {
+        None -> false;
+        Some(manifest) ->
+            let mode = selected_benchmark_mode();
+            if {
+                not validate_manifest(manifest) -> false;
+                mode == "run" -> execute_run(manifest);
+                mode == "validate" -> execute_validate(manifest);
+                true -> false
+            }
+    }.
+
+execute_validate(manifest: Json): Bool ->
+    let anchor = environment_or("TERLAN_PROTOCOL_BENCHMARK_ANCHOR", "");
+    if {
+        anchor == "" -> validate_baseline_artifacts(manifest);
+        true -> validate_anchor(anchor, manifest)
+    }.
+
+execute_run(manifest: Json): Bool ->
+    run_raw_benchmark(manifest).
+
+read_and_execute_raw(manifest: Json): Bool ->
+    let path = raw_report_path();
+    let raw_result = read_json(path);
+    case raw_result {
+        None -> false;
+        Some(raw) ->
+            if {
+                seeds_match(raw, manifest) -> execute_raw_report(raw, manifest);
+                true -> false
+            }
+    }.
+
+seeds_match(raw: Json, manifest: Json): Bool ->
+    case {int_member(raw, "deterministic_seed"), int_member(manifest, "deterministic_seed")} {
+        {Some(left), Some(right)} -> left == right;
+        _ -> false
+    }.
+
+execute_raw_report(raw: Json, manifest: Json): Bool ->
+    let normalized = normalize_raw_report(raw);
+    case normalized {
+        None -> false;
+        Some(rows) ->
+            let blessing = environment_or("TERLAN_PROTOCOL_BENCHMARK_UPDATE_BASELINE", "0") == "1";
+            let baseline_result = baseline_rows_for(blessing);
+            case baseline_result {
+                None -> false;
+                Some(baseline) -> compare_and_publish(raw, manifest, rows, baseline, blessing)
+            }
+    }.
+
+compare_and_publish(
+    raw: Json,
+    manifest: Json,
+    rows: List[BenchmarkRow],
+    baseline: List[BenchmarkRow],
+    blessing: Bool,
+): Bool ->
+    case compare_rows(rows, baseline, blessing) {
+        None -> false;
+        Some(compared) -> publish(raw, manifest, compared, blessing)
+    }.
+
+baseline_rows_for(blessing: Bool): Option[List[BenchmarkRow]] ->
+    if {
+        blessing -> Some(List.new[BenchmarkRow]());
+        true -> let path = baseline_json_path();
+        let report_result = read_json(path);
+        let {
+            Some(report) <- report_result;
+            Some(values) <- array_member(report, "rows")
+        } else {
+            _ -> None
+        };
+        parse_rows(values)
+    }.
+
+publish(raw: Json, manifest: Json, rows: List[BenchmarkRow], blessing: Bool): Bool ->
+    case legacy_templates(manifest) {
+        None -> false;
+        Some(templates) -> read_legacy_comparisons(raw, rows, templates, blessing)
+    }.
+
+legacy_templates(manifest: Json): Option[List[LegacyLane]] ->
+    let {
+        Some(values) <- array_member(manifest, "legacy_lanes");
+        Ok(length) <- values.length()
+    } else {
+        _ -> None
+    };
+    legacy_templates_at(values, 0, length, List.new[LegacyLane]()).
+
+legacy_templates_at(
+    values: Json,
+    index: Int,
+    length: Int,
+    output: List[LegacyLane],
+): Option[List[LegacyLane]] ->
+    if {
+        index >= length -> Some(reverse_lanes(output, List.new[LegacyLane]()));
+        true -> let {
+            Ok(value) <- values.at(index);
+            Some(lane) <- legacy_template(value)
+        } else {
+            _ -> None
+        };
+        legacy_templates_at(values, index + 1, length, [lane | output])
+    }.
+
+legacy_template(value: Json): Option[LegacyLane] ->
+    let {
+        {Some(lane), Some(workload), Some(status)} <-
+            {
+                string_member(value, "lane"),
+                string_member(value, "workload"),
+                string_member(value, "status"),
+            };
+        Some(lane_scales) <- optional_int_array(value, "scales")
+    } else {
+        _ -> None
+    };
+    Some(
+        LegacyLane(
+            lane = lane,
+            workload = workload,
+            status = status,
+            scales = lane_scales,
+            artifact = string_member(value, "artifact"),
+            reason = string_member(value, "reason"),
+            comparisons = List.new[LegacyComparison](),
+        ),
+    ).
+
+optional_int_array(value: Json, key: String): Option[List[Int]] ->
+    case value.get(key) {
+        Err(_reason) -> Some(List.new[Int]());
+        Ok(values) -> int_values(values)
+    }.
+
+reverse_lanes(values: List[LegacyLane], output: List[LegacyLane]): List[LegacyLane] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_lanes(rest, [value | output])
+    }.
+
+read_legacy_comparisons(
+    raw: Json,
+    rows: List[BenchmarkRow],
+    templates: List[LegacyLane],
+    blessing: Bool,
+): Bool ->
+    let path = legacy_http_path();
+    let cached_result = read_json(path);
+    let {
+        Some(cached) <- cached_result;
+        Some(cached_lanes) <- array_member(cached, "lanes");
+        Some(lanes) <- complete_legacy_lanes(templates, cached_lanes)
+    } else {
+        _ -> false
+    };
+    build_and_persist_report(raw, rows, lanes, blessing).
+
+complete_legacy_lanes(templates: List[LegacyLane], cached: Json): Option[List[LegacyLane]] ->
+    complete_legacy_lanes_at(templates, cached, List.new[LegacyLane]()).
+
+complete_legacy_lanes_at(
+    templates: List[LegacyLane],
+    cached: Json,
+    output: List[LegacyLane],
+): Option[List[LegacyLane]] ->
+    case templates {
+        [] -> Some(reverse_lanes(output, List.new[LegacyLane]()));
+        [lane | rest] ->
+            case comparisons_for_lane(lane, cached) {
+                None -> None;
+                Some(comparisons) ->
+                    complete_legacy_lanes_at(
+                        rest,
+                        cached,
+                        [LegacyLane(
+    lane = lane.lane,
+    workload = lane.workload,
+    status = lane.status,
+    scales = lane.scales,
+    artifact = lane.artifact,
+    reason = lane.reason,
+    comparisons = comparisons,
+) | output],
+                    )
+            }
+    }.
+
+comparisons_for_lane(lane: LegacyLane, cached: Json): Option[List[LegacyComparison]] ->
+    if {
+        lane.status == "unsupported" -> Some(List.new[LegacyComparison]());
+        lane.status == "comparable-cached" -> comparisons_for_scales(lane.scales, cached, List.new[LegacyComparison]());
+        true -> None
+    }.
+
+comparisons_for_scales(
+    lane_scales: List[Int],
+    cached: Json,
+    output: List[LegacyComparison],
+): Option[List[LegacyComparison]] ->
+    case lane_scales {
+        [] -> Some(reverse_comparisons(output, List.new[LegacyComparison]()));
+        [scale | rest] ->
+            let group = String.append("socket-crud-c", Int.to_string(scale));
+            case find_cached_lane(cached, group, 0) {
+                None -> None;
+                Some(comparison) -> comparisons_for_scales(rest, cached, [comparison | output])
+            }
+    }.
+
+find_cached_lane(cached: Json, group: String, index: Int): Option[LegacyComparison] ->
+    case cached.length() {
+        Err(_reason) -> None;
+        Ok(length) ->
+            if {
+                index >= length -> None;
+                true -> case cached.at(index) {
+                    Err(_reason) -> None;
+                    Ok(lane) ->
+                        case string_member(lane, "group") {
+                            Some(actual) where actual == group -> cached_comparison(lane);
+                            _ -> find_cached_lane(cached, group, index + 1)
+                        }
+                }
+            }
+    }.
+
+cached_comparison(lane: Json): Option[LegacyComparison] ->
+    let {
+        {Some(group), Some(winner), Some(delta)} <-
+            {
+                string_member(lane, "group"),
+                string_member(lane, "winner"),
+                float_member(lane, "delta_percent"),
+            };
+        Some(scale) <- scale_from_group(group)
+    } else {
+        _ -> None
+    };
+    Some(
+        LegacyComparison(
+            concurrency = scale,
+            winner = winner,
+            delta_percent = round_three(delta),
+            source_group = group,
+        ),
+    ).
+
+scale_from_group(group: String): Option[Int] ->
+    case String.split_once(group, "socket-crud-c") {
+        Some({"", text}) -> Int.from_string(text);
+        _ -> None
+    }.
+
+reverse_comparisons(
+    values: List[LegacyComparison],
+    output: List[LegacyComparison],
+): List[LegacyComparison] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_comparisons(rest, [value | output])
+    }.
+
+build_and_persist_report(
+    raw: Json,
+    rows: List[BenchmarkRow],
+    lanes: List[LegacyLane],
+    blessing: Bool,
+): Bool ->
+    if {
+        not row_classes_hold(rows) -> false;
+        true -> let report = build_report(raw, rows, lanes);
+        persist_current_then_baseline(report, rows, blessing)
+    }.
+
+build_report(raw: Json, rows: List[BenchmarkRow], lanes: List[LegacyLane]): Json ->
+    let report = Json.object();
+    let _schema = report.put("schema", Json.string("terlan.protocol-stack-comparison.v1"));
+    let _status = report.put("status", Json.string("completed"));
+    let _runtime = report.put("runtime_lane", Json.string("terlan-vm"));
+    let _profile = report.put("profile", Json.string(string_member_or(raw, "profile", "test")));
+    let _commit = report.put("commit", Json.string(commit_from_rows(rows)));
+    let _platform = report.put("platform", Json.string(string_member_or(raw, "platform", "unknown")));
+    let _rust = report.put("rust_version", Json.string(string_member_or(raw, "rustc_version", "unknown")));
+    let _seed = report.put("deterministic_seed", Json.int(int_member_or(raw, "deterministic_seed", 0)));
+    let _scales = report.put("scale_points", int_list_json(scales()));
+    let _phases = report.put("phases", string_list_json(phases()));
+    let _rows = report.put("rows", rows_json(rows));
+    let _legacy = report.put("legacy_lanes", lanes_json(lanes));
+    report.
+
+commit_from_rows(rows: List[BenchmarkRow]): String ->
+    case rows {
+        [row | _rest] -> row.commit;
+        [] -> "unknown"
+    }.
+
+int_list_json(values: List[Int]): Json ->
+    let array = Json.array();
+    push_int_json(array, values);
+    array.
+
+push_int_json(mut array: Json, values: List[Int]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let _pushed = array.push(Json.int(value));
+            push_int_json(array, rest)
+    }.
+
+string_list_json(values: List[String]): Json ->
+    let array = Json.array();
+    push_string_json(array, values);
+    array.
+
+push_string_json(mut array: Json, values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let _pushed = array.push(Json.string(value));
+            push_string_json(array, rest)
+    }.
+
+lanes_json(lanes: List[LegacyLane]): Json ->
+    let array = Json.array();
+    push_lane_json(array, lanes);
+    array.
+
+push_lane_json(mut array: Json, lanes: List[LegacyLane]): Bool ->
+    case lanes {
+        [] -> true;
+        [lane | rest] ->
+            let _pushed = array.push(lane_json(lane));
+            push_lane_json(array, rest)
+    }.
+
+lane_json(lane: LegacyLane): Json ->
+    let value = Json.object();
+    let _lane = value.put("lane", Json.string(lane.lane));
+    let _workload = value.put("workload", Json.string(lane.workload));
+    let _status = value.put("status", Json.string(lane.status));
+    let with_scales = put_optional_scales(value, lane.scales);
+    let with_artifact = put_optional_string(with_scales, "artifact", lane.artifact);
+    let with_reason = put_optional_string(with_artifact, "reason", lane.reason);
+    put_optional_comparisons(with_reason, lane.status, lane.comparisons).
+
+put_optional_scales(mut value: Json, scales: List[Int]): Json ->
+    if {
+        List.is_empty(scales) -> value;
+        true -> let _put = value.put("scales", int_list_json(scales));
+        value
+    }.
+
+put_optional_string(mut value: Json, key: String, text: Option[String]): Json ->
+    case text {
+        None -> value;
+        Some(actual) ->
+            let _put = value.put(key, Json.string(actual));
+            value
+    }.
+
+put_optional_comparisons(
+    mut value: Json,
+    status: String,
+    comparisons: List[LegacyComparison],
+): Json ->
+    if {
+        status == "comparable-cached" -> let _put = value.put("comparisons", comparisons_json(comparisons));
+        value;
+        true -> value
+    }.
+
+comparisons_json(comparisons: List[LegacyComparison]): Json ->
+    let array = Json.array();
+    push_comparison_json(array, comparisons);
+    array.
+
+push_comparison_json(mut array: Json, comparisons: List[LegacyComparison]): Bool ->
+    case comparisons {
+        [] -> true;
+        [comparison | rest] ->
+            let value = Json.object();
+            let _concurrency = value.put("concurrency", Json.int(comparison.concurrency));
+            let _winner = value.put("winner", Json.string(comparison.winner));
+            let _delta = put_float(value, "delta_percent", comparison.delta_percent);
+            let _source = value.put("source_group", Json.string(comparison.source_group));
+            let _pushed = array.push(value);
+            push_comparison_json(array, rest)
+    }.
+
+persist_current_then_baseline(report: Json, rows: List[BenchmarkRow], blessing: Bool): Bool ->
+    case Json.stringify_pretty(report) {
+        Err(_reason) -> false;
+        Ok(encoded) ->
+            persist_current_encoded(report, rows, blessing, String.append(encoded, "\n"))
+    }.
+
+persist_current_encoded(
+    report: Json,
+    rows: List[BenchmarkRow],
+    blessing: Bool,
+    encoded: String,
+): Bool ->
+    let {
+        Ok(_unit) <- create_all("target/quality");
+        Ok(_unit) <- write_text(current_json_path(), encoded)
+    } else {
+        _ -> false
+    };
+    write_current_tsv(report, rows, blessing, encoded).
+
+write_current_tsv(report: Json, rows: List[BenchmarkRow], blessing: Bool, encoded: String): Bool ->
+    case write_text(current_tsv_path(), rows_tsv(rows)) {
+        Err(_reason) -> false;
+        Ok(_unit) ->
+            if {
+                blessing -> persist_baseline(report, rows, encoded);
+                true -> print_comparisons(rows)
+            }
+    }.
+
+persist_baseline(report: Json, rows: List[BenchmarkRow], encoded: String): Bool ->
+    let {
+        Ok(_unit) <- create_all(report_directory());
+        Ok(_unit) <- write_text(baseline_json_path(), encoded);
+        Ok(_unit) <- write_text(baseline_tsv_path(), rows_tsv(rows))
+    } else {
+        _ -> false
+    };
+    print_comparisons(rows).
+
+print_comparisons(rows: List[BenchmarkRow]): Bool ->
+    let _printed = print_row_comparisons(rows);
+    let _json = println(String.append("[protocol-benchmark] wrote ", current_json_path()));
+    let _tsv = println(String.append("[protocol-benchmark] wrote ", current_tsv_path()));
+    true.
+
+print_row_comparisons(rows: List[BenchmarkRow]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            let line = comparison_line(row);
+            let _printed = println(line);
+            print_row_comparisons(rest)
+    }.
+
+comparison_line(row: BenchmarkRow): String ->
+    String.append(
+        "[protocol-benchmark] ",
+        String.append(
+            row.workload,
+            String.append(
+                " phase=",
+                String.append(
+                    row.phase,
+                    String.append(
+                        " iterations=",
+                        String.append(
+                            Int.to_string(row.iterations),
+                            String.append(
+                                " concurrency=",
+                                String.append(
+                                    Int.to_string(row.concurrency),
+                                    String.append(
+                                        " winner=",
+                                        String.append(
+                                            row.winner,
+                                            String.append(
+                                                " delta=",
+                                                String.append(
+                                                    Float.to_string(row.delta_percent),
+                                                    "%",
+                                                ),
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ).
+
+@test
+pub raw_benchmark_uses_locked_feature_enabled_build(): Bool ->
+    list_contains(raw_benchmark_arguments(), "--locked")
+        and feature_value(raw_benchmark_arguments()) == "benchmark-tools".
+
+list_contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or list_contains(rest, expected)
+    }.
+
+feature_value(values: List[String]): String ->
+    case values {
+        ["--features" | [value | _rest]] -> value;
+        [_value | rest] -> feature_value(rest);
+        [] -> ""
+    }.
+
+@test
+pub workload_manifest_preserves_adversarial_coverage(): Bool ->
+    let {
+        Ok(text) <- read_text(manifest_path());
+        Ok(manifest) <- Json.parse(text)
+    } else {
+        _ -> false
+    };
+    validate_manifest(manifest).
+
+@test
+pub concurrency_anchor_accepts_completed_typed_lanes(): Bool ->
+    case Json.parse(
+    "{\"benchmark\":\"http-vm-vs-rust\",\"status\":\"completed\",\"lanes\":[{\"group\":\"socket-crud-c100\",\"winner\":\"terlan-vm\",\"delta_percent\":1.0},{\"group\":\"socket-crud-c1000\",\"winner\":\"axum-tokio\",\"delta_percent\":-1.0}]}",
+) {
+        Err(_reason) -> false;
+        Ok(report) -> validate_http_concurrency_artifact(report)
+    }.
+
+comparison_fixture(mean_us: Float): BenchmarkRow ->
+    BenchmarkRow(
+        runtime_lane = "terlan-vm",
+        profile = "test",
+        commit = "abc",
+        platform = "test-platform",
+        rust_version = "rustc test",
+        workload = "invalid_width-10",
+        workload_class = "adversarial",
+        phase = "warm",
+        iterations = 10,
+        concurrency = 1,
+        mean_us = mean_us,
+        median_us = 80,
+        p95_us = 90,
+        p99_us = 90,
+        error_rate_percent = 0.0,
+        typed_decode_failure_count = 10,
+        baseline_mean_us = 0.0,
+        winner = "tie",
+        delta_percent = 0.0,
+    ).
+
+@test
+pub comparison_records_numeric_adversarial_winner_delta(): Bool ->
+    case compare_rows([comparison_fixture(80.0)], [comparison_fixture(100.0)], false) {
+        Some([row | []]) -> row.winner == "current-terlan-vm" and row.delta_percent == -20.0;
+        _ -> false
+    }.
+
+@benchmark
+pub repository_protocol_benchmark_gate(): Bool ->
+    execute().

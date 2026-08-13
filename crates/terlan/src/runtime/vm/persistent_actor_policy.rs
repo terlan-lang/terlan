@@ -1,11 +1,8 @@
-#![allow(dead_code)]
-
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) enum VmPersistentActorPolicyRole {
     ActorOwner,
     ActorFamilyOwner,
-    PackageMaintainer,
-    LocalDeveloper,
     ProductionOperator,
     Debugger,
     SupportBundleExporter,
@@ -14,6 +11,7 @@ pub(crate) enum VmPersistentActorPolicyRole {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) enum VmPersistentActorPolicyOperation {
     Append,
     Snapshot,
@@ -29,6 +27,7 @@ pub(crate) enum VmPersistentActorPolicyOperation {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorPolicy {
     pub(crate) policy_id: String,
     pub(crate) actor_id: String,
@@ -39,6 +38,7 @@ pub(crate) struct VmPersistentActorPolicy {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorPolicyRequest {
     pub(crate) role: VmPersistentActorPolicyRole,
     pub(crate) operation: VmPersistentActorPolicyOperation,
@@ -51,6 +51,7 @@ pub(crate) struct VmPersistentActorPolicyRequest {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorPolicyAudit {
     pub(crate) operation: VmPersistentActorPolicyOperation,
     pub(crate) actor_id: String,
@@ -62,11 +63,13 @@ pub(crate) struct VmPersistentActorPolicyAudit {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorPolicyDecision {
     pub(crate) allowed: bool,
     pub(crate) audit: VmPersistentActorPolicyAudit,
 }
 
+#[cfg(test)]
 pub(crate) fn authorize_persistent_actor_operation(
     policy: &VmPersistentActorPolicy,
     request: &VmPersistentActorPolicyRequest,
@@ -90,6 +93,7 @@ pub(crate) fn authorize_persistent_actor_operation(
     }
 }
 
+#[cfg(test)]
 pub(crate) fn default_orders_policy() -> VmPersistentActorPolicy {
     VmPersistentActorPolicy {
         policy_id: "persistent-actor-policy:v1".to_string(),
@@ -101,6 +105,7 @@ pub(crate) fn default_orders_policy() -> VmPersistentActorPolicy {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn owner_append_request() -> VmPersistentActorPolicyRequest {
     VmPersistentActorPolicyRequest {
         role: VmPersistentActorPolicyRole::ActorOwner,
@@ -114,6 +119,7 @@ pub(crate) fn owner_append_request() -> VmPersistentActorPolicyRequest {
     }
 }
 
+#[cfg(test)]
 fn persistent_actor_policy_denial(
     policy: &VmPersistentActorPolicy,
     request: &VmPersistentActorPolicyRequest,
@@ -169,6 +175,7 @@ fn persistent_actor_policy_denial(
     }
 }
 
+#[cfg(test)]
 fn owner_operation_allowed(operation: &VmPersistentActorPolicyOperation) -> bool {
     matches!(
         operation,
@@ -183,4 +190,5 @@ fn owner_operation_allowed(operation: &VmPersistentActorPolicyOperation) -> bool
 
 #[cfg(test)]
 #[path = "persistent_actor_policy_test.rs"]
+#[cfg(test)]
 mod persistent_actor_policy_test;

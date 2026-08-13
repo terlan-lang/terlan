@@ -59,10 +59,14 @@ pub generated_comparisons_compare_self_as_equal(): Bool ->
  */
 @test
 pub generated_comparisons_string_round_trip(): Bool ->
-    for_all(elements([Lt, Eq, Gt]), (value) -> case from_string(to_string(value)) {
-        Some(parsed) -> parsed == value;
-        None -> false
-    }).
+    for_all(
+        elements([Lt, Eq, Gt]),
+        (value) ->
+            case from_string(to_string(value)) {
+                Some(parsed) -> parsed == value;
+                None -> false
+            },
+    ).
 
 /**
  * Verifies comparison is antisymmetric across generated comparison values.
@@ -74,8 +78,16 @@ pub generated_comparisons_string_round_trip(): Bool ->
  */
 @test
 pub generated_comparison_pairs_are_antisymmetric(): Bool ->
-    for_all(elements([Lt, Eq, Gt]), (left) -> for_all(elements([Lt, Eq, Gt]), (right) -> case compare(right, left) {
-        Lt -> compare(left, right) == Gt;
-        Eq -> compare(left, right) == Eq;
-        Gt -> compare(left, right) == Lt
-    })).
+    for_all(
+        elements([Lt, Eq, Gt]),
+        (left) ->
+            for_all(
+                elements([Lt, Eq, Gt]),
+                (right) ->
+                    case compare(right, left) {
+                        Lt -> compare(left, right) == Gt;
+                        Eq -> compare(left, right) == Eq;
+                        Gt -> compare(left, right) == Lt
+                    },
+            ),
+    ).

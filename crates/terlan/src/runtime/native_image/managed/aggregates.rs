@@ -599,4 +599,5 @@ fn read_u32(payload: &[u8], offset: usize) -> Result<u32, ManagedMemoryError> {
 
 #[cfg(test)]
 #[path = "managed_aggregate_test.rs"]
+#[cfg(test)]
 mod managed_aggregate_test;

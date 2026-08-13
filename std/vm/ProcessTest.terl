@@ -1,0 +1,11 @@
+module std.vm.ProcessTest.
+
+import std.test.Test.{assert_equal}.
+import std.vm.Process.{ActorMessage}.
+
+identity_message[T](value: T)[ActorMessage[T]]: T ->
+    ActorMessage.message(value).
+
+@test
+pub process_actor_message_trait_is_available_by_default(): Bool ->
+    assert_equal("payload", identity_message("payload")) and assert_equal(42, identity_message(42)).

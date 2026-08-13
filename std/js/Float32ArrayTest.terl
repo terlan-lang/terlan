@@ -33,7 +33,7 @@ pub byte_offset_typechecks(receiver: Float32Array[TArrayBuffer]): JsNumber ->
 pub index_of_typechecks(
     receiver: Float32Array[TArrayBuffer],
     search_element: JsNumber,
-    from_index: JsNumber
+    from_index: JsNumber,
 ): JsNumber ->
     receiver.index_of(search_element, from_index).
 
@@ -43,7 +43,7 @@ pub join_typechecks(receiver: Float32Array[TArrayBuffer], separator: JsString): 
 pub last_index_of_typechecks(
     receiver: Float32Array[TArrayBuffer],
     search_element: JsNumber,
-    from_index: JsNumber
+    from_index: JsNumber,
 ): JsNumber ->
     receiver.last_index_of(search_element, from_index).
 
@@ -53,21 +53,21 @@ pub length_typechecks(receiver: Float32Array[TArrayBuffer]): JsNumber ->
 pub set_typechecks(
     receiver: Float32Array[TArrayBuffer],
     array: ArrayLike[JsNumber],
-    offset: JsNumber
+    offset: JsNumber,
 ): std.core.Unit ->
     receiver.set(array, offset).
 
 pub slice_typechecks(
     receiver: Float32Array[TArrayBuffer],
     start: JsNumber,
-    end: JsNumber
+    end: JsNumber,
 ): Float32Array[ArrayBuffer] ->
     receiver.slice(start, end).
 
 pub subarray_typechecks(
     receiver: Float32Array[TArrayBuffer],
     begin: JsNumber,
-    end: JsNumber
+    end: JsNumber,
 ): Float32Array[TArrayBuffer] ->
     receiver.subarray(begin, end).
 

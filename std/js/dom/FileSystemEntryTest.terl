@@ -36,6 +36,6 @@ pub name_typechecks(receiver: FileSystemEntry): JsString ->
 pub get_parent_typechecks(
     receiver: FileSystemEntry,
     success_callback: FileSystemEntryCallback,
-    error_callback: ErrorCallback
+    error_callback: ErrorCallback,
 ): std.core.Unit ->
     receiver.get_parent(success_callback, error_callback).

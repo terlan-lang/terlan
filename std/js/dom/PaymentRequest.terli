@@ -75,17 +75,17 @@ pub (value: PaymentRequest) can_make_payment(): Promise[Bool].
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest/show)
  */
 pub (value: PaymentRequest) show(
-    details_promise: PaymentDetailsUpdate | PromiseLike[PaymentDetailsUpdate]
+    details_promise: PaymentDetailsUpdate | PromiseLike[PaymentDetailsUpdate],
 ): Promise[PaymentResponse].
 
 pub (value: PaymentRequest) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit.
 
 pub (value: PaymentRequest) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit.

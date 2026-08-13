@@ -48,6 +48,6 @@ fn collect_lint_paths_into(dir: &Path, paths: &mut Vec<PathBuf>) -> Result<(), S
 fn is_lint_source_path(path: &Path) -> bool {
     matches!(
         path.extension().and_then(|extension| extension.to_str()),
-        Some("terl" | "terli")
+        Some("terl" | "terli" | "terls")
     )
 }

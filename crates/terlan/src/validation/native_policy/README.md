@@ -52,7 +52,9 @@ Important invariants:
 
 - A source that declares `target vm with native_boundary` counts as native usage.
 - Lines whose trimmed text starts with `native ` count as native declarations.
-- Unsafe spelling variants are rejected by substring scan before parsing.
+- Unsafe spelling variants are rejected when they begin a declaration line;
+  identifiers, comments, and string contents do not trigger the pre-parser
+  gate.
 
 ## Testing Notes
 

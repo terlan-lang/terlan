@@ -52,7 +52,7 @@ pub set_orientation_typechecks(
     z: JsNumber,
     x_up: JsNumber,
     y_up: JsNumber,
-    z_up: JsNumber
+    z_up: JsNumber,
 ): Unit ->
     receiver.set_orientation(x, y, z, x_up, y_up, z_up).
 

@@ -289,10 +289,19 @@ pub(super) fn validate_continuation_graph(modules: &[NativeModule]) -> Result<()
     }
     for module in modules {
         for function in &module.functions {
-            validate_continuation_references(&function.body, &owners, &module.name)?;
+            validate_continuation_references(&function.body, &owners, &module.name).map_err(
+                |error| {
+                    format!(
+                        "{error}; referenced by `{}.{}/{}`",
+                        function.source_module, function.source_function, function.source_arity
+                    )
+                },
+            )?;
         }
         for continuation in &module.continuations {
-            validate_continuation_references(&continuation.body, &owners, &module.name)?;
+            validate_continuation_references(&continuation.body, &owners, &module.name).map_err(
+                |error| format!("{error}; referenced by continuation {}", continuation.id),
+            )?;
         }
     }
     Ok(())
@@ -318,16 +327,34 @@ fn validate_continuation_references(
             validate_continuation_references(callee, owners, module)?;
             validate_native_sequence(args, owners, module)
         }
-        NativeExpr::CallThen {
+        NativeExpr::InvokeClosureThen {
+            callee,
             args,
-            callee_continuation_id,
-            continuation_id,
+            resumes,
             completion_continuation_id,
             values,
             ..
         } => {
-            require_continuation(*callee_continuation_id, owners, module)?;
-            require_continuation(*continuation_id, owners, module)?;
+            validate_continuation_references(callee, owners, module)?;
+            for resume in resumes {
+                require_continuation(resume.callee_continuation_id, owners, module)?;
+                require_continuation(resume.continuation_id, owners, module)?;
+            }
+            require_continuation(*completion_continuation_id, owners, module)?;
+            validate_native_sequence(args, owners, module)?;
+            validate_native_sequence(values, owners, module)
+        }
+        NativeExpr::CallThen {
+            args,
+            resumes,
+            completion_continuation_id,
+            values,
+            ..
+        } => {
+            for resume in resumes {
+                require_continuation(resume.callee_continuation_id, owners, module)?;
+                require_continuation(resume.continuation_id, owners, module)?;
+            }
             require_continuation(*completion_continuation_id, owners, module)?;
             validate_native_sequence(args, owners, module)?;
             validate_native_sequence(values, owners, module)

@@ -1,0 +1,971 @@
+/**
+ * Produces and aggregates executable target-native TVM AOT attestations.
+ */
+module tvm_aot_platform_matrix.Core.
+
+import std.collections.List.{length}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.{create_all, files_recursive}.
+import std.io.File.{read_text, write_text}.
+import std.regex.Regex.
+import std.system.{Environment, Platform, Process}.
+import tvm_aot_platform_matrix.ReleaseInstallerSmoke.{smoke as smoke_release_installer}.
+import tvm_aot_platform_matrix.ReleasePackage.{package as package_release}.
+import tvm_aot_platform_matrix.ReleaseSmoke.{smoke as smoke_release}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.system.Process.Output.
+
+pub struct Target {
+    id: String,
+    os: String,
+    arch: String,
+    triple: String,
+    object_format: String,
+    operating_system: String,
+    calling_convention: String,
+    runner: String,
+}.
+
+pub struct Report {
+    target_id: String,
+    value: Json,
+}.
+
+pub struct ProvenanceInput {
+    actions: Bool,
+    repository: String,
+    workflow_ref: String,
+    run_id: String,
+    run_attempt: String,
+    commit_sha: String,
+}.
+
+pub report(target_id: String, value: Json): Report ->
+    Report(target_id = target_id, value = value).
+
+pub provenance_input(
+    actions: Bool,
+    repository: String,
+    workflow_ref: String,
+    run_id: String,
+    run_attempt: String,
+    commit_sha: String,
+): ProvenanceInput ->
+    ProvenanceInput(
+        actions = actions,
+        repository = repository,
+        workflow_ref = workflow_ref,
+        run_id = run_id,
+        run_attempt = run_attempt,
+        commit_sha = commit_sha,
+    ).
+
+pub target_schema(): String -> "terlan.tvm-aot-platform-target.v2".
+
+pub matrix_schema(): String -> "terlan.tvm-aot-platform-matrix.v2".
+
+pub official_repository(): String -> "terlan-lang/terlan".
+
+pub child(parent: String, name: String): String ->
+    if {
+        parent == "." -> name;
+        String.ends_with(parent, "/") -> String.append(parent, name);
+        true -> String.append(parent, String.append("/", name))
+    }.
+
+failure(code: String, message: String): Bool ->
+    let _printed =
+        eprintln(
+            String.append(
+                "error[tvm_aot_platform_matrix.",
+                String.append(code, String.append("]: ", message)),
+            ),
+        );
+    false.
+
+json_failure(code: String, message: String): Option[Json] ->
+    let _failed = failure(code, message);
+    None.
+
+reports_failure(code: String, message: String): Option[List[Report]] ->
+    let _failed = failure(code, message);
+    None.
+
+output_failure(code: String, message: String): Option[Output] ->
+    let _failed = failure(code, message);
+    None.
+
+pub targets(): List[Target] ->
+    [
+        Target(
+            id = "linux-x86_64",
+            os = "linux",
+            arch = "x86_64",
+            triple = "x86_64-unknown-linux-gnu",
+            object_format = "elf",
+            operating_system = "linux",
+            calling_convention = "system_v",
+            runner = "ubuntu-24.04",
+        ),
+        Target(
+            id = "linux-aarch64",
+            os = "linux",
+            arch = "aarch64",
+            triple = "aarch64-unknown-linux-gnu",
+            object_format = "elf",
+            operating_system = "linux",
+            calling_convention = "system_v",
+            runner = "ubuntu-24.04-arm",
+        ),
+        Target(
+            id = "macos-x86_64",
+            os = "macos",
+            arch = "x86_64",
+            triple = "x86_64-apple-darwin",
+            object_format = "mach-o",
+            operating_system = "darwin",
+            calling_convention = "system_v",
+            runner = "macos-15-intel",
+        ),
+        Target(
+            id = "macos-aarch64",
+            os = "macos",
+            arch = "aarch64",
+            triple = "aarch64-apple-darwin",
+            object_format = "mach-o",
+            operating_system = "darwin",
+            calling_convention = "apple_aarch64",
+            runner = "macos-15",
+        ),
+        Target(
+            id = "windows-x86_64",
+            os = "windows",
+            arch = "x86_64",
+            triple = "x86_64-pc-windows-msvc",
+            object_format = "pe",
+            operating_system = "windows",
+            calling_convention = "windows_fastcall",
+            runner = "windows-2025",
+        ),
+        Target(
+            id = "windows-aarch64",
+            os = "windows",
+            arch = "aarch64",
+            triple = "aarch64-pc-windows-msvc",
+            object_format = "pe",
+            operating_system = "windows",
+            calling_convention = "windows_fastcall",
+            runner = "windows-11-arm",
+        ),
+    ].
+
+pub required_checks(): List[String] ->
+    [
+        "compiler-generated-image",
+        "archive-package-admission",
+        "installed-package-admission",
+        "release-binary-smoke",
+        "public-installer-smoke",
+        "native-debug-stack-metadata",
+        "deterministic-support-bundle",
+        "crash-metadata",
+        "hot-reload-replacement",
+        "generation-quarantine",
+        "incompatible-image-rejection",
+    ].
+
+release_evidence(): List[String] ->
+    [
+        "tvm-aot-release-closeout-report.json",
+        "tvm-aot-release-clean-checkout.json",
+        "tvm-aot-platform-matrix-report.json",
+        "tvm-aot-thread-sanitizer-report.json",
+        "vm-multicore-release-closeout.json",
+        "aot-compilation-benchmark.json",
+        "http-aot-performance-comparison.json",
+        "tvm-managed-list-profile.json",
+    ].
+
+pub string_array(values: List[String]): Json ->
+    string_array_at(values, Json.array()).
+
+string_array_at(values: List[String], result: Json): Json ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            let _pushed = result.push(Json.string(value));
+            string_array_at(rest, result)
+    }.
+
+pub json_value(value: Json, field: String): Option[Json] ->
+    case value.get(field) {
+        Ok(member) -> Some(member);
+        Err(_reason) -> None
+    }.
+
+pub json_string(value: Json, field: String): Option[String] ->
+    let {
+        Some(member) <- json_value(value, field);
+        Ok(text) <- member.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+pub json_int(value: Json, field: String): Option[Int] ->
+    let {
+        Some(member) <- json_value(value, field);
+        Ok(number) <- member.as_int()
+    } else {
+        _ -> None
+    };
+    Some(number).
+
+pub json_bool(value: Json, field: String): Option[Bool] ->
+    let {
+        Some(member) <- json_value(value, field);
+        Ok(boolean) <- member.as_bool()
+    } else {
+        _ -> None
+    };
+    Some(boolean).
+
+pub load_json(path: String): Option[Json] ->
+    let {
+        Ok(source) <- read_text(path);
+        Ok(value) <- Json.parse(source)
+    } else {
+        _ -> json_failure("json", String.append("cannot read `", String.append(path, "`")))
+    };
+    Some(value).
+
+pub write_json(path: String, value: Json): Bool ->
+    let {
+        Ok(rendered) <- Json.stringify_pretty(value);
+        Ok(_written) <- write_text(path, String.append(rendered, "\n"))
+    } else {
+        _ -> failure("json", String.append("cannot write `", String.append(path, "`")))
+    };
+    true.
+
+clone_json(value: Json): Option[Json] ->
+    let {
+        Ok(encoded) <- Json.stringify(value);
+        Ok(cloned) <- Json.parse(encoded)
+    } else {
+        _ -> None
+    };
+    Some(cloned).
+
+json_or(value: Option[Json], fallback: Json): Json ->
+    case value {
+        Some(member) -> member;
+        None -> fallback
+    }.
+
+target_by_id(values: List[Target], id: String): Option[Target] ->
+    case values {
+        [] -> None;
+        [target | rest] ->
+            if {
+                target.id == id -> Some(target);
+                true -> target_by_id(rest, id)
+            }
+    }.
+
+pub normalized_host_id(): String ->
+    let host = Platform.current();
+    let os =
+        if {
+            host.operating_system == "darwin" -> "macos";
+            true -> host.operating_system
+        };
+    let arch =
+        if {
+            host.architecture == "amd64" -> "x86_64";
+            host.architecture == "arm64" -> "aarch64";
+            true -> host.architecture
+        };
+    String.append(os, String.append("-", arch)).
+
+pub host_target(): Option[Target] ->
+    let id = normalized_host_id();
+    case target_by_id(targets(), id) {
+        None ->
+            let _failed = failure("host", String.append("unsupported matrix host `", String.append(id, "`")));
+            None;
+        Some(target) ->
+            case Environment.get("TERLAN_MATRIX_TARGET") {
+                Some(expected) ->
+                    if {
+                        expected == id -> Some(target);
+                        true -> let _failed =
+                            failure(
+                                "host",
+                                String.append(
+                                    "runner expected `",
+                                    String.append(
+                                        expected,
+                                        String.append("` but reported `", String.append(id, "`")),
+                                    ),
+                                ),
+                            );
+                        None
+                    };
+                None -> Some(target)
+            }
+    }.
+
+environment_value(name: String): String ->
+    case Environment.get(name) {
+        Some(value) -> String.trim(value);
+        None -> ""
+    }.
+
+/**
+ * Captures the current process's local or GitHub Actions evidence identity.
+ */
+pub current_provenance_input(): ProvenanceInput ->
+    ProvenanceInput(
+        actions = String.lowercase(environment_value("GITHUB_ACTIONS")) == "true",
+        repository = environment_value("GITHUB_REPOSITORY"),
+        workflow_ref = environment_value("GITHUB_WORKFLOW_REF"),
+        run_id = environment_value("GITHUB_RUN_ID"),
+        run_attempt = environment_value("GITHUB_RUN_ATTEMPT"),
+        commit_sha = environment_value("GITHUB_SHA"),
+    ).
+
+pub provenance(source_revision: String, input: ProvenanceInput): Option[Json] ->
+    if {
+        not input.actions -> Some(Json.object().put("execution_environment", Json.string("local")));
+        input.repository == ""
+            or input.workflow_ref == ""
+            or input.run_id == ""
+            or input.run_attempt == ""
+            or input.commit_sha == "" -> json_failure("provenance", "GitHub Actions provenance is incomplete");
+        input.repository != official_repository() -> json_failure("provenance", "evidence must execute in the official repository");
+        not String.starts_with(input.commit_sha, source_revision) -> json_failure("provenance", "source revision does not match the CI commit");
+        true -> let {
+            Some(run_id) <- Int.from_string(input.run_id);
+            Some(run_attempt) <- Int.from_string(input.run_attempt)
+        } else {
+            _ -> json_failure("provenance", "GitHub Actions run identity must be numeric")
+        };
+        Some(
+            Json.object()
+                .put("execution_environment", Json.string("github-actions"))
+                .put("repository", Json.string(input.repository))
+                .put("workflow_ref", Json.string(input.workflow_ref))
+                .put("run_id", Json.int(run_id))
+                .put("run_attempt", Json.int(run_attempt))
+                .put("commit_sha", Json.string(input.commit_sha)),
+        )
+    }.
+
+configured(root: String, program: String, arguments: List[String]): std.system.Process.Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(Process.command(program), arguments),
+                root,
+            ),
+            300000,
+        ),
+        8388608,
+    ).
+
+run_command(root: String, program: String, arguments: List[String]): Option[Output] ->
+    case Process.run(configured(root, program, arguments)) {
+        Err(error) -> output_failure("process", Process.error_message(error));
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> Some(output);
+                true -> output_failure(
+                    "process",
+                    String.concat(
+                        [program, " failed:\n", Process.stdout(output), Process.stderr(output)],
+                    ),
+                )
+            }
+    }.
+
+cargo_test(root: String, binary: String, test_name: String): Bool ->
+    case run_command(
+    root,
+    "cargo",
+    [
+        "test",
+        "--locked",
+        "--no-default-features",
+        "--features",
+        "native-codegen",
+        "-p",
+        "terlan",
+        "--bin",
+        binary,
+        test_name,
+        "--",
+        "--exact",
+    ],
+) {
+        Some(_output) -> true;
+        None -> false
+    }.
+
+run_package_consumer(root: String): Bool ->
+    case run_command(
+    root,
+    child(root, "target/debug/terlan-vm"),
+    [
+        "run",
+        child(
+            root,
+            "target/self-validation/tvm-package-install-consumer/vm/scripts_self_validation_TvmPackageInstallConsumer.tvm",
+        ),
+        "--script-eval",
+        "--",
+        "check",
+    ],
+) {
+        Some(_output) -> true;
+        None -> false
+    }.
+
+run_release_tool(root: String, command: String): Bool ->
+    case command {
+        "package" -> package_release(root);
+        "smoke" -> smoke_release(root);
+        "installer-smoke" -> smoke_release_installer(root);
+        _ ->
+            failure(
+                "release",
+                String.append("unknown release command `", String.append(command, "`")),
+            )
+    }.
+
+target_metadata_valid(release: Json, native: Json, target: Target): Bool ->
+    let {
+        Some(os) <- json_string(release, "os");
+        Some(arch) <- json_string(release, "arch");
+        Some(triple) <- json_string(release, "target_triple");
+        Some(object_format) <- json_string(native, "object_format");
+        Some(operating_system) <- json_string(native, "operating_system");
+        Some(calling_convention) <- json_string(native, "calling_convention");
+        Some(debug_count) <- json_int(native, "native_debug_record_count");
+        Some(continuations) <- json_value(native, "continuation_ids");
+        Ok(continuation_count) <- continuations.length()
+    } else {
+        _ -> failure("target", "release metadata is incomplete")
+    };
+    if {
+        os != target.os or arch != target.arch or triple != target.triple -> failure("target", "release target identity drifted");
+        object_format != target.object_format
+            or operating_system != target.operating_system
+            or calling_convention != target.calling_convention -> failure("target", "release native ABI drifted");
+        debug_count < 2 -> failure("target", "release image omitted debug records");
+        continuation_count == 0 -> failure("target", "release image omitted continuation identities");
+        true -> true
+    }.
+
+pub put_target_identity(report: Json, target: Target): Json ->
+    report
+        .put("schema", Json.string(target_schema()))
+        .put("decision", Json.string("pass"))
+        .put("target_id", Json.string(target.id))
+        .put("os", Json.string(target.os))
+        .put("arch", Json.string(target.arch))
+        .put("target_triple", Json.string(target.triple))
+        .put("object_format", Json.string(target.object_format))
+        .put("operating_system", Json.string(target.operating_system))
+        .put("calling_convention", Json.string(target.calling_convention)).
+
+pub put_target_artifact(
+    report: Json,
+    version: String,
+    revision: String,
+    descriptor: String,
+    image: String,
+    continuations: Json,
+    debug_count: Int,
+): Json ->
+    report
+        .put("version", Json.string(version))
+        .put("source_revision", Json.string(revision))
+        .put("descriptor_digest", Json.string(descriptor))
+        .put("image_sha256", Json.string(image))
+        .put("continuation_ids", continuations)
+        .put("native_debug_record_count", Json.int(debug_count))
+        .put("executed_checks", string_array(required_checks())).
+
+pub put_execution_fields(
+    report: Json,
+    environment: Json,
+    repository: Json,
+    workflow_ref: Json,
+    run_id: Json,
+    run_attempt: Json,
+    commit_sha: Json,
+): Json ->
+    report
+        .put("execution_environment", environment)
+        .put("repository", repository)
+        .put("workflow_ref", workflow_ref)
+        .put("run_id", run_id)
+        .put("run_attempt", run_attempt)
+        .put("commit_sha", commit_sha).
+
+target_report(release: Json, target: Target): Option[Json] ->
+    let {
+        Some(native) <- json_value(release, "native_self_test");
+        Some(version) <- json_string(release, "version");
+        Some(source_revision) <- json_string(release, "source_revision");
+        Some(descriptor_digest) <- json_string(native, "descriptor_digest");
+        Some(image_sha256) <- json_string(native, "sha256");
+        Some(continuations) <- json_value(native, "continuation_ids");
+        Some(debug_count) <- json_int(native, "native_debug_record_count");
+        Some(execution) <- provenance(source_revision, current_provenance_input())
+    } else {
+        _ -> json_failure("target", "release omitted native execution metadata")
+    };
+    if {
+        not target_metadata_valid(release, native, target) -> None;
+        true -> let identity = put_target_identity(Json.object(), target);
+        let artifact =
+            put_target_artifact(
+                identity,
+                version,
+                source_revision,
+                descriptor_digest,
+                image_sha256,
+                continuations,
+                debug_count,
+            );
+        Some(
+            put_execution_fields(
+                artifact,
+                json_or(json_value(execution, "execution_environment"), Json.string("")),
+                json_or(json_value(execution, "repository"), Json.string("")),
+                json_or(json_value(execution, "workflow_ref"), Json.string("")),
+                json_or(json_value(execution, "run_id"), Json.int(0)),
+                json_or(json_value(execution, "run_attempt"), Json.int(0)),
+                json_or(json_value(execution, "commit_sha"), Json.string("")),
+            ),
+        )
+    }.
+
+target_report_path(root: String, target: Target): String ->
+    child(
+        root,
+        String.append("target/quality/tvm-aot-platform/", String.append(target.id, ".json")),
+    ).
+
+finish_target(root: String, target: Target): Bool ->
+    let {
+        Some(release) <- load_json(child(root, "dist/terlan-release.json"));
+        Some(report) <- target_report(release, target)
+    } else {
+        _ -> false
+    };
+    case create_all(child(root, "target/quality/tvm-aot-platform")) {
+        Err(_reason) -> failure("target", "cannot create target report directory");
+        Ok(_unit) ->
+            if {
+                not write_json(target_report_path(root, target), report) -> false;
+                true -> let _printed = println(String.append("TVM AOT platform target passed: ", target.id));
+                true
+            }
+    }.
+
+pub run_target(): Bool ->
+    let root = Environment.current_directory();
+    case host_target() {
+        None -> false;
+        Some(target) ->
+            let debug_build =
+                run_command(
+                    root,
+                    "cargo",
+                    [
+                        "build",
+                        "--locked",
+                        "--no-default-features",
+                        "--features",
+                        "native-codegen",
+                        "-p",
+                        "terlan",
+                        "--bin",
+                        "terlc",
+                        "--bin",
+                        "terlan-vm",
+                    ],
+                );
+            case debug_build {
+                None -> false;
+                Some(_debug_output) ->
+                    if {
+                        not run_package_consumer(root) -> false;
+                        not cargo_test(
+    root,
+    "terlc",
+    "commands::vm::vm_test::vm_native_reload_executes_two_compiled_generations",
+) -> false;
+                        not cargo_test(
+    root,
+    "terlc",
+    "commands::vm::vm_test::vm_native_reload_quarantines_timed_out_generation_without_force_unload",
+) -> false;
+                        not cargo_test(
+    root,
+    "terlan-vm",
+    "runtime::vm::pure_native::execution_shard::execution_shard_test::active_shard_crash_recovery_rejects_early_restart_and_stale_execution",
+) -> false;
+                        true -> let release_build =
+                            run_command(
+                                root,
+                                "cargo",
+                                [
+                                    "build",
+                                    "--locked",
+                                    "--no-default-features",
+                                    "--release",
+                                    "-p",
+                                    "terlan",
+                                    "--features",
+                                    "native-codegen,editor-lsp",
+                                    "--bin",
+                                    "terlc",
+                                    "--bin",
+                                    "terlan-vm",
+                                    "--bin",
+                                    "terlan-native-worker",
+                                    "--bin",
+                                    "terlan-lsp",
+                                ],
+                            );
+                        case release_build {
+                            None -> false;
+                            Some(_release_output) ->
+                                if {
+                                    not run_release_tool(root, "package") -> false;
+                                    not run_release_tool(root, "smoke") -> false;
+                                    not run_release_tool(root, "installer-smoke") -> false;
+                                    true -> finish_target(root, target)
+                                }
+                        }
+                    }
+            }
+    }.
+
+pub occurrences(source: String, fragment: String): Int ->
+    length(String.split(source, fragment)) - 1.
+
+pub fragments_present(source: String, fragments: List[String]): Bool ->
+    case fragments {
+        [] -> true;
+        [fragment | rest] -> source.contains(fragment) and fragments_present(source, rest)
+    }.
+
+runner_rows_valid(workflow: String, values: List[Target]): Bool ->
+    case values {
+        [] -> true;
+        [target | rest] ->
+            let row =
+                String.concat(
+                    [
+                        "          - target: ",
+                        target.id,
+                        "\n            runner: ",
+                        target.runner,
+                        "\n",
+                    ],
+                );
+            occurrences(workflow, row) == 1 and runner_rows_valid(workflow, rest)
+    }.
+
+pub workflow_text_valid(workflow: String): Bool ->
+    if {
+        not workflow.contains("  workflow_dispatch:\n") -> false;
+        occurrences(workflow, "          - target:") != 6 -> false;
+        not runner_rows_valid(workflow, targets()) -> false;
+        true -> fragments_present(
+            workflow,
+            [
+                "make tvm-aot-platform-target-check",
+                "TERLAN_MATRIX_TARGET: ${{ matrix.target }}",
+                "make tvm-aot-platform-aggregate-check",
+                "$installedBin = Join-Path $installed \"bin\"",
+                "Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append",
+                "cargo test --locked --no-default-features --features native-codegen -p terlan --bin terlan-vm",
+                "retention-days: 90",
+                "uses: actions/checkout@v4",
+                "uses: actions/upload-artifact@v4",
+                "uses: actions/download-artifact@v4",
+            ],
+        )
+    }.
+
+ci_trigger_valid(workflow: String): Bool ->
+    workflow.contains("  pull_request:\n")
+        and workflow.contains("    branches:\n      - main\n      - \"agent/aot-*\"\n").
+
+evidence_present(release: String, files: List[String]): Bool ->
+    case files {
+        [] -> true;
+        [file | rest] ->
+            release.contains(String.append("target/quality/", file))
+                and evidence_present(release, rest)
+    }.
+
+pub workflow_contract(): Bool ->
+    let root = Environment.current_directory();
+    let {
+        Ok(ci) <- read_text(child(root, ".github/workflows/ci.yml"));
+        Ok(release) <- read_text(child(root, ".github/workflows/release.yml"));
+        Ok(makefile) <- read_text(child(root, "Makefile"))
+    } else {
+        _ -> failure("workflow", "cannot read workflow contract inputs")
+    };
+    if {
+        not workflow_text_valid(ci) or not workflow_text_valid(release) -> failure("workflow", "native platform matrix workflow drifted");
+        not ci_trigger_valid(ci) -> failure("workflow", "CI trigger contract drifted");
+        occurrences(ci, "      - \"docs/release/evidence/**\"") != 2
+            or occurrences(ci, "      - \"docs/roadmap/**\"") != 2 -> failure("workflow", "CI path filters drifted");
+        not makefile.contains("tvm-aot-roadmap-reconciliation-check:") -> failure("workflow", "roadmap reconciliation gate is missing");
+        not release.contains("      - \"v*\"\n") -> failure("workflow", "release tag trigger is missing");
+        not release.contains("run: make tvm-aot-release-closeout-check") -> failure("workflow", "release closeout gate is missing");
+        not evidence_present(release, release_evidence()) -> failure("workflow", "release evidence retention is incomplete");
+        true -> true
+    }.
+
+pub is_sha256(value: String): Bool ->
+    case Regex.compile("^[0-9a-f]{64}$") {
+        Ok(pattern) -> Regex.is_match(pattern, value);
+        Err(_reason) -> false
+    }.
+
+pub json_equals(left: Json, right: Json): Bool ->
+    case {Json.stringify(left), Json.stringify(right)} {
+        {Ok(left_text), Ok(right_text)} -> left_text == right_text;
+        _ -> false
+    }.
+
+pub report_valid(report: Json, target: Target): Bool ->
+    let {
+        Some(schema) <- json_string(report, "schema");
+        Some(decision) <- json_string(report, "decision");
+        Some(target_id) <- json_string(report, "target_id");
+        Some(os) <- json_string(report, "os");
+        Some(arch) <- json_string(report, "arch");
+        Some(triple) <- json_string(report, "target_triple");
+        Some(object_format) <- json_string(report, "object_format");
+        Some(operating_system) <- json_string(report, "operating_system");
+        Some(calling_convention) <- json_string(report, "calling_convention");
+        Some(descriptor) <- json_string(report, "descriptor_digest");
+        Some(image) <- json_string(report, "image_sha256");
+        Some(continuations) <- json_value(report, "continuation_ids");
+        Ok(continuation_count) <- continuations.length();
+        Some(debug_count) <- json_int(report, "native_debug_record_count");
+        Some(checks) <- json_value(report, "executed_checks")
+    } else {
+        _ -> false
+    };
+    if {
+        schema != target_schema() or decision != "pass" or target_id != target.id -> false;
+        os != target.os or arch != target.arch or triple != target.triple -> false;
+        object_format != target.object_format -> false;
+        operating_system != target.operating_system -> false;
+        calling_convention != target.calling_convention -> false;
+        not is_sha256(descriptor) or not is_sha256(image) -> false;
+        continuation_count == 0 or debug_count < 2 -> false;
+        true -> json_equals(checks, string_array(required_checks()))
+    }.
+
+report_id_exists(reports: List[Report], id: String): Bool ->
+    case reports {
+        [] -> false;
+        [report | rest] -> report.target_id == id or report_id_exists(rest, id)
+    }.
+
+reverse_reports(values: List[Report], reversed: List[Report]): List[Report] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_reports(rest, [value | reversed])
+    }.
+
+load_reports(paths: List[String], reversed: List[Report]): Option[List[Report]] ->
+    case paths {
+        [] -> Some(reverse_reports(reversed, []));
+        [path | rest] ->
+            case load_json(path) {
+                None -> None;
+                Some(value) ->
+                    case json_string(value, "schema") {
+                        Some(schema) ->
+                            if {
+                                schema != target_schema() -> load_reports(rest, reversed);
+                                true -> case json_string(value, "target_id") {
+                                    None ->
+                                        reports_failure(
+                                            "aggregate",
+                                            "target report omitted target_id",
+                                        );
+                                    Some(id) ->
+                                        if {
+                                            report_id_exists(reversed, id) -> reports_failure(
+                                                "aggregate",
+                                                String.append(
+                                                    "duplicate platform attestation `",
+                                                    String.append(id, "`"),
+                                                ),
+                                            );
+                                            true -> load_reports(
+                                                rest,
+                                                [Report(target_id = id, value = value) | reversed],
+                                            )
+                                        }
+                                }
+                            };
+                        None -> load_reports(rest, reversed)
+                    }
+            }
+    }.
+
+find_report(reports: List[Report], id: String): Option[Json] ->
+    case reports {
+        [] -> None;
+        [report | rest] ->
+            if {
+                report.target_id == id -> Some(report.value);
+                true -> find_report(rest, id)
+            }
+    }.
+
+common_provenance(report: Json, reference: Json): Bool ->
+    let {
+        Some(environment) <- json_string(report, "execution_environment");
+        Some(repository) <- json_string(report, "repository");
+        Some(workflow_ref) <- json_string(report, "workflow_ref");
+        Some(run_id) <- json_int(report, "run_id");
+        Some(run_attempt) <- json_int(report, "run_attempt");
+        Some(commit) <- json_string(report, "commit_sha");
+        Some(version) <- json_string(report, "version");
+        Some(revision) <- json_string(report, "source_revision");
+        Some(reference_repository) <- json_string(reference, "repository");
+        Some(reference_workflow) <- json_string(reference, "workflow_ref");
+        Some(reference_run) <- json_int(reference, "run_id");
+        Some(reference_attempt) <- json_int(reference, "run_attempt");
+        Some(reference_commit) <- json_string(reference, "commit_sha");
+        Some(reference_version) <- json_string(reference, "version");
+        Some(reference_revision) <- json_string(reference, "source_revision")
+    } else {
+        _ -> false
+    };
+    if {
+        environment != "github-actions" or repository != official_repository() -> false;
+        repository != reference_repository or workflow_ref != reference_workflow -> false;
+        run_id != reference_run or run_attempt != reference_attempt -> false;
+        commit != reference_commit or version != reference_version -> false;
+        revision != reference_revision -> false;
+        true -> String.starts_with(commit, revision)
+    }.
+
+append_valid_targets(
+    values: List[Target],
+    reports: List[Report],
+    reference: Json,
+    array: Json,
+): Option[Json] ->
+    case values {
+        [] -> Some(array);
+        [target | rest] ->
+            case find_report(reports, target.id) {
+                None ->
+                    json_failure(
+                        "aggregate",
+                        String.append(
+                            "missing platform attestation `",
+                            String.append(target.id, "`"),
+                        ),
+                    );
+                Some(report) ->
+                    if {
+                        not report_valid(report, target) -> json_failure(
+                            "aggregate",
+                            String.append(
+                                "invalid platform attestation `",
+                                String.append(target.id, "`"),
+                            ),
+                        );
+                        not common_provenance(report, reference) -> json_failure(
+                            "aggregate",
+                            "platform attestations do not describe one CI workflow run",
+                        );
+                        true -> append_valid_targets(rest, reports, reference, array.push(report))
+                    }
+            }
+    }.
+
+pub build_matrix(reports: List[Report]): Option[Json] ->
+    if {
+        length(reports) != 6 -> json_failure("aggregate", "platform attestation count is not six");
+        true -> case reports {
+            [] -> json_failure("aggregate", "platform attestations are empty");
+            [first | _rest] ->
+                let reference = first.value;
+                let {
+                    Some(target_rows) <- append_valid_targets(targets(), reports, reference, Json.array());
+                    Some(version) <- json_string(reference, "version");
+                    Some(revision) <- json_string(reference, "source_revision");
+                    Some(workflow_ref) <- json_string(reference, "workflow_ref");
+                    Some(run_id) <- json_int(reference, "run_id");
+                    Some(run_attempt) <- json_int(reference, "run_attempt");
+                    Some(commit) <- json_string(reference, "commit_sha")
+                } else {
+                    _ -> None
+                };
+                (let identity =
+    Json.object()
+        .put("schema", Json.string(matrix_schema()))
+        .put("decision", Json.string("pass"))
+        .put("version", Json.string(version))
+        .put("source_revision", Json.string(revision));
+let execution =
+    put_execution_fields(
+        identity,
+        Json.string("github-actions"),
+        Json.string(official_repository()),
+        Json.string(workflow_ref),
+        Json.int(run_id),
+        Json.int(run_attempt),
+        Json.string(commit),
+    );
+Some(
+    execution
+        .put("target_count", Json.int(6))
+        .put("targets", target_rows)
+        .put("static_or_skipped_rows", Json.int(0)),
+))
+        }
+    }.
+
+pub aggregate(report_root: String): Bool ->
+    let root = Environment.current_directory();
+    let {
+        Ok(paths) <- files_recursive(report_root);
+        Some(reports) <- load_reports(paths, []);
+        Some(matrix) <- build_matrix(reports);
+        Ok(_parent) <- create_all(child(root, "target/quality"))
+    } else {
+        _ -> false
+    };
+    if {
+        not write_json(child(root, "target/quality/tvm-aot-platform-matrix-report.json"), matrix) -> false;
+        true -> let _printed = println("TVM AOT platform matrix passed: 6 executable targets");
+        true
+    }.

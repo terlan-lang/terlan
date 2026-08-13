@@ -22,7 +22,7 @@ pub decrypt_typechecks(
     receiver: SubtleCrypto,
     algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams,
     key: CryptoKey,
-    data: BufferSource
+    data: BufferSource,
 ): Promise[ArrayBuffer] ->
     receiver.decrypt(algorithm, key, data).
 
@@ -30,7 +30,7 @@ pub derive_bits_typechecks(
     receiver: SubtleCrypto,
     algorithm: AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params,
     base_key: CryptoKey,
-    length: Option[std.js.Number.JsNumber]
+    length: Option[std.js.Number.JsNumber],
 ): Promise[ArrayBuffer] ->
     receiver.derive_bits(algorithm, base_key, length).
 
@@ -40,14 +40,14 @@ pub derive_key_typechecks(
     base_key: CryptoKey,
     derived_key_type: AesDerivedKeyParams | AlgorithmIdentifier | HkdfParams | HmacImportParams | Pbkdf2Params,
     extractable: Bool,
-    key_usages: Array[KeyUsage]
+    key_usages: Array[KeyUsage],
 ): Promise[CryptoKey] ->
     receiver.derive_key(algorithm, base_key, derived_key_type, extractable, key_usages).
 
 pub digest_typechecks(
     receiver: SubtleCrypto,
     algorithm: AlgorithmIdentifier,
-    data: BufferSource
+    data: BufferSource,
 ): Promise[ArrayBuffer] ->
     receiver.digest(algorithm, data).
 
@@ -55,14 +55,14 @@ pub encrypt_typechecks(
     receiver: SubtleCrypto,
     algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams,
     key: CryptoKey,
-    data: BufferSource
+    data: BufferSource,
 ): Promise[ArrayBuffer] ->
     receiver.encrypt(algorithm, key, data).
 
 pub export_key_typechecks(
     receiver: SubtleCrypto,
     format: KeyFormat,
-    key: CryptoKey
+    key: CryptoKey,
 ): Promise[ArrayBuffer | JsonWebKey] ->
     receiver.export_key(format, key).
 
@@ -70,7 +70,7 @@ pub generate_key_typechecks(
     receiver: SubtleCrypto,
     algorithm: EcKeyGenParams | RsaHashedKeyGenParams,
     extractable: Bool,
-    key_usages: Array[KeyUsage]
+    key_usages: Array[KeyUsage],
 ): Promise[CryptoKeyPair] ->
     receiver.generate_key(algorithm, extractable, key_usages).
 
@@ -78,7 +78,7 @@ pub generate_key_typechecks(
     receiver: SubtleCrypto,
     algorithm: AesKeyGenParams | HmacKeyGenParams | Pbkdf2Params,
     extractable: Bool,
-    key_usages: Array[KeyUsage]
+    key_usages: Array[KeyUsage],
 ): Promise[CryptoKey] ->
     receiver.generate_key(algorithm, extractable, key_usages).
 
@@ -86,7 +86,7 @@ pub generate_key_typechecks(
     receiver: SubtleCrypto,
     algorithm: AlgorithmIdentifier,
     extractable: Bool,
-    key_usages: Array[KeyUsage]
+    key_usages: Array[KeyUsage],
 ): Promise[CryptoKey | CryptoKeyPair] ->
     receiver.generate_key(algorithm, extractable, key_usages).
 
@@ -94,7 +94,7 @@ pub sign_typechecks(
     receiver: SubtleCrypto,
     algorithm: AlgorithmIdentifier | EcdsaParams | RsaPssParams,
     key: CryptoKey,
-    data: BufferSource
+    data: BufferSource,
 ): Promise[ArrayBuffer] ->
     receiver.sign(algorithm, key, data).
 
@@ -106,16 +106,25 @@ pub unwrap_key_typechecks(
     unwrap_algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams,
     unwrapped_key_algorithm: AesKeyAlgorithm | AlgorithmIdentifier | EcKeyImportParams | HmacImportParams | RsaHashedImportParams,
     extractable: Bool,
-    key_usages: Array[KeyUsage]
+    key_usages: Array[KeyUsage],
 ): Promise[CryptoKey] ->
-    receiver.unwrap_key(format, wrapped_key, unwrapping_key, unwrap_algorithm, unwrapped_key_algorithm, extractable, key_usages).
+    receiver
+        .unwrap_key(
+            format,
+            wrapped_key,
+            unwrapping_key,
+            unwrap_algorithm,
+            unwrapped_key_algorithm,
+            extractable,
+            key_usages,
+        ).
 
 pub verify_typechecks(
     receiver: SubtleCrypto,
     algorithm: AlgorithmIdentifier | EcdsaParams | RsaPssParams,
     key: CryptoKey,
     signature: BufferSource,
-    data: BufferSource
+    data: BufferSource,
 ): Promise[Bool] ->
     receiver.verify(algorithm, key, signature, data).
 
@@ -124,6 +133,6 @@ pub wrap_key_typechecks(
     format: KeyFormat,
     key: CryptoKey,
     wrapping_key: CryptoKey,
-    wrap_algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams
+    wrap_algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams,
 ): Promise[ArrayBuffer] ->
     receiver.wrap_key(format, key, wrapping_key, wrap_algorithm).

@@ -1,0 +1,253 @@
+/**
+ * Graph algorithms shared by the dependency-impact report and policy.
+ */
+module rust_quality.DependencyImpactGraph.
+
+import rust_quality.{CargoMetadata, DependencyImpactSource, SourceInventory}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.{Int, String}.
+
+import type rust_quality.CargoMetadata.GraphNode.
+import type rust_quality.DependencyImpactSource.{DomainMetric, Edge}.
+import type std.core.Option.
+
+pub struct Cycle {
+    path: List[String],
+}.
+
+pub struct BlastRadius {
+    domain: String,
+    dependents: List[String],
+}.
+
+@pure
+pub cycle_path(value: Cycle): List[String] ->
+    value.path.
+
+@pure
+pub blast_domain(value: BlastRadius): String ->
+    value.domain.
+
+@pure
+pub blast_dependents(value: BlastRadius): List[String] ->
+    value.dependents.
+
+struct CycleSearch {
+    cycles: List[Cycle],
+    complete: List[String],
+}.
+
+struct CycleWork {
+    name: String,
+    active: List[String],
+    exiting: Bool,
+}.
+
+@pure
+dependencies_for(name: String, edges: List[Edge], output: List[String]): List[String] ->
+    case edges {
+        [] -> output;
+        [edge | rest] ->
+            dependencies_for(
+                name,
+                rest,
+                if {
+                    edge.source == name -> CargoMetadata.insert_sorted_unique(edge.target, output);
+                    true -> output
+                },
+            )
+    }.
+
+@pure
+domain_graph_at(
+    domains: List[DomainMetric],
+    edges: List[Edge],
+    output: List[GraphNode],
+): List[GraphNode] ->
+    case domains {
+        [] -> SourceInventory.reverse(output);
+        [domain | rest] ->
+            let dependencies = dependencies_for(domain.name, edges, List.new[String]());
+            let node = CargoMetadata.graph_node(domain.name, dependencies);
+            domain_graph_at(rest, edges, [node | output])
+    }.
+
+@pure
+pub domain_graph(domains: List[DomainMetric], edges: List[Edge]): List[GraphNode] ->
+    domain_graph_at(domains, edges, List.new[GraphNode]()).
+
+@pure
+cycle_suffix(path: List[String], expected: String): List[String] ->
+    case path {
+        [] -> [expected];
+        [value | rest] ->
+            if {
+                value == expected -> List.concat(path, [expected]);
+                true -> cycle_suffix(rest, expected)
+            }
+    }.
+
+@pure
+contains_cycle(path: List[String], values: List[Cycle]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.path == path or contains_cycle(path, rest)
+    }.
+
+@pure
+cycle_work_at(
+    names: List[String],
+    active: List[String],
+    output: List[CycleWork],
+): List[CycleWork] ->
+    case names {
+        [] -> SourceInventory.reverse(output);
+        [name | rest] ->
+            cycle_work_at(
+                rest,
+                active,
+                [CycleWork(name = name, active = active, exiting = false) | output],
+            )
+    }.
+
+@pure
+search_cycles(pending: List[CycleWork], nodes: List[GraphNode], state: CycleSearch): CycleSearch ->
+    case pending {
+        [] -> state;
+        [work | rest] ->
+            if {
+                work.exiting -> search_cycles(
+                    rest,
+                    nodes,
+                    CycleSearch(
+                        cycles = state.cycles,
+                        complete = CargoMetadata.insert_sorted_unique(work.name, state.complete),
+                    ),
+                );
+                CargoMetadata.contains(work.active, work.name) -> let path = cycle_suffix(work.active, work.name);
+                search_cycles(
+                    rest,
+                    nodes,
+                    CycleSearch(
+                        cycles = if {
+                            contains_cycle(path, state.cycles) -> state.cycles;
+                            true -> [Cycle(path = path) | state.cycles]
+                        },
+                        complete = state.complete,
+                    ),
+                );
+                CargoMetadata.contains(state.complete, work.name) -> search_cycles(rest, nodes, state);
+                true -> case CargoMetadata.find_node(work.name, nodes) {
+                    None ->
+                        search_cycles(
+                            rest,
+                            nodes,
+                            CycleSearch(
+                                cycles = state.cycles,
+                                complete = CargoMetadata.insert_sorted_unique(work.name, state.complete),
+                            ),
+                        );
+                    Some(node) ->
+                        let path = List.concat(work.active, [work.name]);
+                        let dependencies = cycle_work_at(node.dependencies, path, List.new[CycleWork]());
+                        let remaining_work = [CycleWork(name = work.name, active = work.active, exiting = true) | rest];
+                        search_cycles(List.concat(dependencies, remaining_work), nodes, state)
+                }
+            }
+    }.
+
+@pure
+pub cycles(nodes: List[GraphNode]): List[Cycle] ->
+    let roots = cycle_work_at(CargoMetadata.node_names(nodes), List.new[String](), List.new[CycleWork]());
+    let state =
+        search_cycles(
+            roots,
+            nodes,
+            CycleSearch(cycles = List.new[Cycle](), complete = List.new[String]()),
+        );
+    SourceInventory.reverse(state.cycles).
+
+@pure
+pub direct_dependents(name: String, nodes: List[GraphNode], output: List[String]): List[String] ->
+    case nodes {
+        [] -> output;
+        [node | rest] ->
+            direct_dependents(
+                name,
+                rest,
+                if {
+                    CargoMetadata.contains(node.dependencies, name) -> CargoMetadata.insert_sorted_unique(node.name, output);
+                    true -> output
+                },
+            )
+    }.
+
+@pure
+reachable(
+    origin: String,
+    pending: List[String],
+    reached: List[String],
+    nodes: List[GraphNode],
+): List[String] ->
+    case pending {
+        [] -> reached;
+        [name | rest] ->
+            if {
+                name == origin or CargoMetadata.contains(reached, name) -> reachable(origin, rest, reached, nodes);
+                true -> let next = direct_dependents(name, nodes, List.new[String]());
+                reachable(
+                    origin,
+                    List.concat(next, rest),
+                    CargoMetadata.insert_sorted_unique(name, reached),
+                    nodes,
+                )
+            }
+    }.
+
+@pure
+pub transitive_dependents(name: String, nodes: List[GraphNode]): List[String] ->
+    reachable(name, direct_dependents(name, nodes, List.new[String]()), List.new[String](), nodes).
+
+@pure
+blast_at(
+    nodes: List[GraphNode],
+    all: List[GraphNode],
+    output: List[BlastRadius],
+): List[BlastRadius] ->
+    case nodes {
+        [] -> SourceInventory.reverse(output);
+        [node | rest] ->
+            let dependents = transitive_dependents(node.name, all);
+            blast_at(rest, all, [BlastRadius(domain = node.name, dependents = dependents) | output])
+    }.
+
+@pure
+pub blast_radius(nodes: List[GraphNode]): List[BlastRadius] ->
+    blast_at(nodes, nodes, List.new[BlastRadius]()).
+
+@pure
+pub maximum_blast(values: List[BlastRadius], maximum: Int): Int ->
+    case values {
+        [] -> maximum;
+        [value | rest] ->
+            maximum_blast(
+                rest,
+                if {
+                    List.length(value.dependents) > maximum -> List.length(value.dependents);
+                    true -> maximum
+                },
+            )
+    }.
+
+pub self_test(): Bool ->
+    let graph =
+        List[GraphNode](
+            CargoMetadata.graph_node("api", []),
+            CargoMetadata.graph_node("runtime", ["api"]),
+            CargoMetadata.graph_node("cli", ["runtime"]),
+        );
+    let cyclic = List[GraphNode](CargoMetadata.graph_node("a", ["b"]), CargoMetadata.graph_node("b", ["a"]));
+    List.length(cycles(graph)) == 0
+        and List.length(cycles(cyclic)) > 0
+        and transitive_dependents("api", graph) == ["cli", "runtime"].

@@ -69,6 +69,6 @@ pub (value: FileSystemEntry) name(): JsString ->
  */
 pub (value: FileSystemEntry) get_parent(
     success_callback: FileSystemEntryCallback,
-    error_callback: ErrorCallback
+    error_callback: ErrorCallback,
 ): std.core.Unit ->
     native.

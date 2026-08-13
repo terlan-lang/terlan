@@ -1,14 +1,18 @@
+#[cfg(test)]
+use super::process::VmProcessId;
+use super::process::VmProcessSource;
+#[cfg(test)]
 use std::collections::BTreeMap;
 
-use super::process::{VmProcessId, VmProcessSource};
-
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[cfg(test)]
 struct VmCallMemoryKey {
     module: String,
     function: String,
     arity: usize,
 }
 
+#[cfg(test)]
 impl From<&VmProcessSource> for VmCallMemoryKey {
     fn from(source: &VmProcessSource) -> Self {
         Self {
@@ -44,6 +48,7 @@ pub(crate) struct VmCallMemorySnapshot {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 struct VmCallMemoryEntry {
     source: VmProcessSource,
     processes: BTreeMap<u64, VmCallMemoryProcessSnapshot>,
@@ -56,11 +61,13 @@ struct VmCallMemoryEntry {
 /// not erase the cumulative diagnostic history.
 #[derive(Debug, Default)]
 pub(crate) struct VmCallMemoryRegistry {
+    #[cfg(test)]
     entries: BTreeMap<VmCallMemoryKey, VmCallMemoryEntry>,
 }
 
 impl VmCallMemoryRegistry {
     /// Enables exact function allocation attribution without resetting it.
+    #[cfg(test)]
     pub(crate) fn enable(&mut self, source: VmProcessSource) {
         let key = VmCallMemoryKey::from(&source);
         match self.entries.get_mut(&key) {
@@ -78,6 +85,7 @@ impl VmCallMemoryRegistry {
     }
 
     /// Disables a function profile and removes all retained process rows.
+    #[cfg(test)]
     pub(crate) fn disable(&mut self, source: &VmProcessSource) -> bool {
         self.entries
             .remove(&VmCallMemoryKey::from(source))
@@ -85,6 +93,7 @@ impl VmCallMemoryRegistry {
     }
 
     /// Clears retained rows while leaving function attribution enabled.
+    #[cfg(test)]
     pub(crate) fn restart(&mut self, source: &VmProcessSource) -> Result<(), String> {
         let entry = self
             .entries
@@ -98,6 +107,7 @@ impl VmCallMemoryRegistry {
     ///
     /// Both counters are checked before mutation so either overflow leaves the
     /// previous process row unchanged. Disabled functions are a no-op.
+    #[cfg(test)]
     pub(crate) fn record_allocations(
         &mut self,
         source: &VmProcessSource,
@@ -141,6 +151,7 @@ impl VmCallMemoryRegistry {
     }
 
     /// Returns typed state for one exact function identity.
+    #[cfg(test)]
     pub(crate) fn state(&self, source: &VmProcessSource) -> VmCallMemoryState {
         match self.entries.get(&VmCallMemoryKey::from(source)) {
             None => VmCallMemoryState::Disabled,
@@ -151,6 +162,7 @@ impl VmCallMemoryRegistry {
     }
 
     /// Returns immutable function and process ordered allocation rows.
+    #[cfg(test)]
     pub(crate) fn snapshots(&self) -> Vec<VmCallMemorySnapshot> {
         self.entries
             .values()
@@ -162,6 +174,7 @@ impl VmCallMemoryRegistry {
     }
 }
 
+#[cfg(test)]
 fn disabled_error(action: &str, source: &VmProcessSource) -> String {
     format!(
         "cannot {action} disabled VM call memory for {}.{}/{}",
@@ -169,6 +182,7 @@ fn disabled_error(action: &str, source: &VmProcessSource) -> String {
     )
 }
 
+#[cfg(test)]
 fn overflow_error(
     source: &VmProcessSource,
     pid: VmProcessId,

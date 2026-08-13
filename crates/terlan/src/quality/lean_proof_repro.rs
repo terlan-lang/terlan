@@ -20,6 +20,7 @@ const BASELINE_CLASSES: &[&str] = &[
     "runtime",
     "vm",
     "native-boundary",
+    "parser",
     "wasm",
     "aeneas-bridge",
 ];
@@ -175,6 +176,7 @@ fn feature_class(scope: &str) -> &str {
         "lowering" => "lowering",
         "rejection" => "rejection",
         "NativeBoundary" => "native-boundary",
+        "parser" => "parser",
         _ => "runtime",
     }
 }
@@ -580,4 +582,5 @@ fn render_failure(family: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "lean_proof_repro_test.rs"]
+#[cfg(test)]
 mod lean_proof_repro_test;

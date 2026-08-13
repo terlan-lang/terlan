@@ -3,7 +3,9 @@ module tests.language.ValueLifecycleTest.
 import std.test.Test.{assert_equal}.
 
 const BASE: Int = 40.
+
 const add_two(value: Int): Int -> value + 2.
+
 pub const ANSWER: Int = add_two(BASE).
 
 pub type Status: Int = OK = 200 | NOT_FOUND = 404.
@@ -14,7 +16,8 @@ pub status_code(status: Status): Int ->
         Status.NOT_FOUND -> 404
     }.
 
-pub parse_status(code: Int): Status -> Status.parse(code).
+pub parse_status(code: Int): Status ->
+    Status.parse(code).
 
 @test
 pub module_constants_execute_after_compile_time_substitution(): Bool ->
@@ -28,7 +31,7 @@ pub valued_union_checked_parse_executes(): Bool ->
 pub valued_union_checked_parse_rejects_unlisted_values(): Bool ->
     try Status.parse(500) {
         value -> false
-    catch
+catch
         reason -> true
     }.
 

@@ -149,9 +149,9 @@ pub(super) fn measure_soak(
         .and_then(|before| before.rss_bytes)
         .zip(memory_after.as_ref().and_then(|after| after.rss_bytes))
         .map(|(before, after)| after as i64 - before as i64);
-    if resident_growth_bytes.map_or(false, |growth| {
-        growth > i64::try_from(maximum_growth_bytes).unwrap_or(i64::MAX)
-    }) {
+    if resident_growth_bytes
+        .is_some_and(|growth| growth > i64::try_from(maximum_growth_bytes).unwrap_or(i64::MAX))
+    {
         return Err(format!(
             "HTTP AOT soak RSS growth {:?} exceeds {} bytes",
             resident_growth_bytes, maximum_growth_bytes

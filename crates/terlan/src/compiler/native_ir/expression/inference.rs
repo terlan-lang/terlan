@@ -1,4 +1,7 @@
-pub(super) fn infer_native_type(
+use super::*;
+use crate::terlan_typeck::{CoreIntrinsicId, CorePrimitiveIntrinsic};
+
+pub(in crate::compiler::native_ir) fn infer_native_type(
     expr: &CoreExpr,
     variables: &HashMap<String, NativeType>,
     functions: &HashMap<(String, usize), NativeType>,
@@ -6,7 +9,7 @@ pub(super) fn infer_native_type(
     infer_native_type_impl(expr, variables, functions, None)
 }
 
-pub(super) fn infer_native_type_with_constructors(
+pub(in crate::compiler::native_ir) fn infer_native_type_with_constructors(
     expr: &CoreExpr,
     variables: &HashMap<String, NativeType>,
     functions: &HashMap<(String, usize), NativeType>,
@@ -16,7 +19,7 @@ pub(super) fn infer_native_type_with_constructors(
 }
 
 /// Infers a lowering type while preserving managed-projection diagnostics.
-fn infer_native_type_for_lowering(
+pub(in crate::compiler::native_ir) fn infer_native_type_for_lowering(
     expr: &CoreExpr,
     variables: &HashMap<String, NativeType>,
     functions: &HashMap<(String, usize), NativeType>,
@@ -57,25 +60,43 @@ fn infer_native_type_for_lowering(
 }
 
 /// Shared recursive native-type inference implementation.
-fn infer_native_type_impl(
+pub(super) fn infer_native_type_impl(
     expr: &CoreExpr,
     variables: &HashMap<String, NativeType>,
     functions: &HashMap<(String, usize), NativeType>,
     constructors: Option<&NativeConstructorLayouts>,
 ) -> Option<NativeType> {
-    if let Some(ty) = super::template_values::managed_template_operation_type(expr) {
+    if let Some(ty) = super::super::template_values::managed_template_operation_type(expr) {
         return Some(ty);
     }
-    if let Some(ty) = super::http_values::managed_http_operation_type(expr) {
-        return Some(ty);
-    }
-    if let Some(ty) = super::list_comprehension::managed_comprehension_operation_type(expr) {
+    if let Some(ty) = super::super::http_values::managed_http_operation_type(expr) {
         return Some(ty);
     }
     match expr {
         CoreExpr::Atom(value) | CoreExpr::Var(value) if value == "Unit" => Some(NativeType::Unit),
         CoreExpr::Int(_) => Some(NativeType::Int),
         CoreExpr::Float(_) => Some(NativeType::Float),
+        CoreExpr::Intrinsic(call)
+            if matches!(
+                call.id,
+                CoreIntrinsicId::Primitive(
+                    CorePrimitiveIntrinsic::ListConcat
+                        | CorePrimitiveIntrinsic::ListSubtract
+                        | CorePrimitiveIntrinsic::ListIterator
+                        | CorePrimitiveIntrinsic::ListPush
+                        | CorePrimitiveIntrinsic::ListClear
+                )
+            ) =>
+        {
+            call.args.first().and_then(|operand| {
+                // These list operations preserve the receiver's concrete
+                // element type. Their registry signature is necessarily
+                // polymorphic (`List[Dynamic]`), but a continuation capture
+                // must use the call-site specialization or it will reject the
+                // typed list produced by the operation when the actor resumes.
+                infer_native_type_impl(operand, variables, functions, constructors)
+            })
+        }
         CoreExpr::Intrinsic(call) => intrinsics::infer_intrinsic_type(call),
         CoreExpr::Binary(_) => Some(NativeType::StringRef),
         CoreExpr::Atom(value) | CoreExpr::Var(value)
@@ -90,13 +111,38 @@ fn infer_native_type_impl(
                     expr,
                     |item| infer_native_type_impl(item, variables, functions, constructors),
                     |item| {
-                        constructors.and_then(|layouts| constructor_result_core_type(item, layouts))
+                        constructors.and_then(|layouts| {
+                            constructor_result_core_type(item, layouts).or_else(|| {
+                                infer_native_type_impl(item, variables, functions, constructors)
+                                    .and_then(|native| {
+                                        super::super::constructors::result_core_type_for_native(
+                                            native, layouts,
+                                        )
+                                    })
+                            })
+                        })
                     },
                 )
             })?;
             native_type(Some(&ty), &ty.contract_text())
         }
+        CoreExpr::ListCons { tail, .. } => {
+            let ty = infer_native_type_impl(tail, variables, functions, constructors)?;
+            matches!(ty, NativeType::ManagedRef(_)).then_some(ty)
+        }
         CoreExpr::Var(name) => variables.get(name).copied(),
+        CoreExpr::Call { function, args }
+            if matches!(
+                function.as_str(),
+                "std.core.Option.with_default" | "std.core.Result.with_default"
+            ) && args.len() == 2 =>
+        {
+            // Both helpers return their second argument's generic value type.
+            // Application-wide callable metadata cannot retain a concrete
+            // NativeType for a polymorphic return, but the checked default at
+            // each call site always supplies that specialization.
+            infer_native_type_impl(&args[1], variables, functions, constructors)
+        }
         CoreExpr::Call { function, args } => {
             functions.get(&(function.clone(), args.len())).copied()
         }
@@ -183,9 +229,7 @@ fn infer_native_type_impl(
                 {
                     Some(NativeType::Bool)
                 }
-                "and" | "&&" | "or" | "||"
-                    if left == NativeType::Bool && right == NativeType::Bool =>
-                {
+                "and" | "or" if left == NativeType::Bool && right == NativeType::Bool => {
                     Some(NativeType::Bool)
                 }
                 _ => None,
@@ -203,6 +247,13 @@ fn infer_native_type_impl(
             infer_native_type_impl(body, &locals, functions, constructors)
         }
         CoreExpr::If { clauses } => {
+            let mut types = clauses.iter().map(|clause| {
+                infer_native_type_impl(&clause.body, variables, functions, constructors)
+            });
+            let first = types.next()??;
+            types.all(|ty| ty == Some(first)).then_some(first)
+        }
+        CoreExpr::Case { clauses, .. } => {
             let mut types = clauses.iter().map(|clause| {
                 infer_native_type_impl(&clause.body, variables, functions, constructors)
             });

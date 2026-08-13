@@ -1,9 +1,9 @@
-use std::collections::BTreeMap;
-
 use super::{
     VmPostgresDriverWait, VmPostgresIoInterest, VmPostgresRuntime, VmPostgresTransactionState,
 };
 use crate::runtime::vm::process::VmProcessId;
+#[cfg(test)]
+use std::collections::BTreeMap;
 
 /// Sanitized pending database operation exposed to VM inspection surfaces.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -60,6 +60,7 @@ pub(crate) struct VmPostgresInspectionSnapshot {
 }
 
 #[derive(Default)]
+#[cfg(test)]
 struct OwnerCounts {
     pending_requests: usize,
     registered_pools: usize,
@@ -75,6 +76,7 @@ struct OwnerCounts {
 
 impl VmPostgresRuntime {
     /// Captures deterministic Postgres state without exposing SQL or native resources.
+    #[cfg(test)]
     pub(crate) fn inspection_snapshot(
         &self,
         driver_wait: Option<VmPostgresDriverWait>,

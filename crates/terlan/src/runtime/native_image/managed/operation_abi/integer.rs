@@ -16,18 +16,22 @@ const FROM_STRING_BASE: u8 = 4;
 const OPTION_OPERATION_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES;
 const MAX_INTEGER_PARSE_BYTES: usize = 128;
 
+/// Encodes decimal integer formatting.
 pub fn encode_int_to_string_operation() -> Vec<u8> {
     header(TO_STRING)
 }
 
+/// Encodes checked integer formatting in a caller-supplied radix.
 pub fn encode_int_to_string_base_operation(option_semantic: SemanticTypeId) -> Vec<u8> {
     option_operation(TO_STRING_BASE, option_semantic)
 }
 
+/// Encodes checked decimal integer parsing into the identified option layout.
 pub fn encode_int_from_string_operation(option_semantic: SemanticTypeId) -> Vec<u8> {
     option_operation(FROM_STRING, option_semantic)
 }
 
+/// Encodes checked integer parsing in a caller-supplied radix.
 pub fn encode_int_from_string_base_operation(option_semantic: SemanticTypeId) -> Vec<u8> {
     option_operation(FROM_STRING_BASE, option_semantic)
 }

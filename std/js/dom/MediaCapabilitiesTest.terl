@@ -19,12 +19,12 @@ pub generated_binding_surface_contract(): Bool -> true.
 
 pub decoding_info_typechecks(
     receiver: MediaCapabilities,
-    configuration: MediaDecodingConfiguration
+    configuration: MediaDecodingConfiguration,
 ): Promise[MediaCapabilitiesDecodingInfo] ->
     receiver.decoding_info(configuration).
 
 pub encoding_info_typechecks(
     receiver: MediaCapabilities,
-    configuration: MediaEncodingConfiguration
+    configuration: MediaEncodingConfiguration,
 ): Promise[MediaCapabilitiesEncodingInfo] ->
     receiver.encoding_info(configuration).

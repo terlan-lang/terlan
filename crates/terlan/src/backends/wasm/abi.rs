@@ -1,3 +1,4 @@
+#[cfg(test)]
 use super::types::{WasmAbiType, WasmValue};
 
 /// WebAssembly function ABI.
@@ -8,12 +9,14 @@ use super::types::{WasmAbiType, WasmValue};
 /// Output:
 /// - Stable parameter/result ABI contract for Wasm functions.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg(test)]
 pub struct WasmFunctionAbi {
     pub name: String,
     pub params: Vec<WasmAbiType>,
     pub results: Vec<WasmAbiType>,
 }
 
+#[cfg(test)]
 impl WasmFunctionAbi {
     /// Builds a new function ABI.
     pub fn new(
@@ -31,6 +34,7 @@ impl WasmFunctionAbi {
 
 /// ABI validation failure.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg(test)]
 pub enum WasmAbiError {
     EmptyFunctionName,
     UnsupportedMultiValueResult {
@@ -50,6 +54,7 @@ pub enum WasmAbiError {
     },
 }
 
+#[cfg(test)]
 impl std::fmt::Display for WasmAbiError {
     /// Formats an ABI validation error.
     ///
@@ -89,6 +94,7 @@ impl std::fmt::Display for WasmAbiError {
     }
 }
 
+#[cfg(test)]
 impl std::error::Error for WasmAbiError {}
 
 /// Validates one exported result value against a function ABI.
@@ -105,6 +111,7 @@ impl std::error::Error for WasmAbiError {}
 /// Transformation:
 /// - Keeps scalar ABI validation explicit before host runners or component
 ///   adapters add richer value transport.
+#[cfg(test)]
 pub fn validate_export_result_value(
     abi: &WasmFunctionAbi,
     value: Option<WasmValue>,
@@ -138,4 +145,5 @@ pub fn validate_export_result_value(
 
 #[cfg(test)]
 #[path = "abi_test.rs"]
+#[cfg(test)]
 mod abi_test;

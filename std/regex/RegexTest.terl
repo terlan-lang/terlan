@@ -24,10 +24,26 @@ pub accepts_string_option(value: Option[String]): Option[String] ->
 pub accepts_string_list(value: List[String]): List[String] ->
     value.
 
+pub accepts_int_list(value: List[Int]): List[Int] ->
+    value.
+
 @test
 pub compile_and_match_accepts_valid_pattern(): Bool ->
     case accepts_regex_result(Regex.compile("ter[a-z]+")) {
         Ok(regex) -> assert(Regex.is_match(accepts_regex(regex), "terlan"));
+        Err(_reason) -> false
+    }.
+
+@test
+pub matching_line_numbers_preserves_one_based_source_order(): Bool ->
+    case Regex.compile("(?i)cuda|(^|[^a-z])ptx([^a-z]|$)") {
+        Ok(regex) ->
+            assert_equal(
+                [1, 3],
+                accepts_int_list(
+                    Regex.matching_line_numbers(regex, "CUDA kernel\nordinary text\nptx module\n"),
+                ),
+            );
         Err(_reason) -> false
     }.
 
@@ -37,25 +53,23 @@ pub compile_reports_invalid_pattern(): Bool ->
 
 @test
 pub find_returns_first_match(): Bool ->
-    case Regex.compile("[0-9]+") {
-        Ok(regex) ->
-            case accepts_string_option(Regex.find(regex, "a12 b34")) {
-                Some(value) -> assert_equal("12", value);
-                None -> false
-            };
-        Err(_reason) -> false
-    }.
+    let {
+        Ok(regex) <- Regex.compile("[0-9]+");
+        Some(value) <- accepts_string_option(Regex.find(regex, "a12 b34"))
+    } else {
+        _ -> false
+    };
+    assert_equal("12", value).
 
 @test
 pub find_returns_none_without_match(): Bool ->
-    case Regex.compile("[0-9]+") {
-        Ok(regex) ->
-            case accepts_string_option(Regex.find(regex, "abc")) {
-                None -> true;
-                Some(_value) -> false
-            };
-        Err(_reason) -> false
-    }.
+    let {
+        Ok(regex) <- Regex.compile("[0-9]+");
+        None <- accepts_string_option(Regex.find(regex, "abc"))
+    } else {
+        _ -> false
+    };
+    true.
 
 @test
 pub find_all_returns_all_matches(): Bool ->
@@ -74,33 +88,25 @@ pub find_all_returns_empty_list_without_match(): Bool ->
 
 @test
 pub captures_read_positional_and_named_groups(): Bool ->
-    case Regex.compile("(?P<name>[A-Z][a-z]+) ([0-9]+)") {
-        Ok(regex) ->
-            case Regex.capture(regex, "Ada 42", 2) {
-                Some(age) ->
-                    case Regex.named_capture(regex, "Ada 42", "name") {
-                        Some(name) -> assert_equal("42", age) and assert_equal("Ada", name);
-                        None -> false
-                    };
-                None -> false
-            };
-        Err(_reason) -> false
-    }.
+    let {
+        Ok(regex) <- Regex.compile("(?P<name>[A-Z][a-z]+) ([0-9]+)");
+        Some(age) <- Regex.capture(regex, "Ada 42", 2);
+        Some(name) <- Regex.named_capture(regex, "Ada 42", "name")
+    } else {
+        _ -> false
+    };
+    assert_equal("42", age) and assert_equal("Ada", name).
 
 @test
 pub missing_capture_groups_return_none(): Bool ->
-    case Regex.compile("(?P<name>[A-Z][a-z]+) ([0-9]+)") {
-        Ok(regex) ->
-            case Regex.capture(regex, "Ada 42", 3) {
-                None ->
-                    case Regex.named_capture(regex, "Ada 42", "missing") {
-                        None -> true;
-                        Some(_value) -> false
-                    };
-                Some(_value) -> false
-            };
-        Err(_reason) -> false
-    }.
+    let {
+        Ok(regex) <- Regex.compile("(?P<name>[A-Z][a-z]+) ([0-9]+)");
+        None <- Regex.capture(regex, "Ada 42", 3);
+        None <- Regex.named_capture(regex, "Ada 42", "missing")
+    } else {
+        _ -> false
+    };
+    true.
 
 @test
 pub replace_updates_all_matches(): Bool ->

@@ -44,7 +44,7 @@ impl VmActorRuntimeTransfer {
 #[derive(Debug)]
 pub(crate) struct VmActorRuntimeImportFailure {
     reason: String,
-    transfer: VmActorRuntimeTransfer,
+    transfer: Box<VmActorRuntimeTransfer>,
 }
 
 impl VmActorRuntimeImportFailure {
@@ -55,7 +55,7 @@ impl VmActorRuntimeImportFailure {
 
     /// Returns the entire actor-runtime state for source restoration.
     pub(crate) fn into_transfer(self) -> VmActorRuntimeTransfer {
-        self.transfer
+        *self.transfer
     }
 }
 
@@ -146,7 +146,10 @@ impl VmActorRuntime {
         transfer: VmActorRuntimeTransfer,
     ) -> Result<(), VmActorRuntimeImportFailure> {
         if let Err(reason) = self.validate_actor_runtime_import(&transfer) {
-            return Err(VmActorRuntimeImportFailure { reason, transfer });
+            return Err(VmActorRuntimeImportFailure {
+                reason,
+                transfer: Box::new(transfer),
+            });
         }
         let VmActorRuntimeTransfer {
             owner,
@@ -164,7 +167,7 @@ impl VmActorRuntime {
         if let Err(failure) = self.processes.import_process_transfer(process) {
             return Err(VmActorRuntimeImportFailure {
                 reason: failure.reason().to_string(),
-                transfer: VmActorRuntimeTransfer {
+                transfer: Box::new(VmActorRuntimeTransfer {
                     owner,
                     process: failure.into_transfer(),
                     placement,
@@ -175,7 +178,7 @@ impl VmActorRuntime {
                     delayed_messages,
                     native_continuation,
                     explicitly_suspended,
-                },
+                }),
             });
         }
         if let Err(failure) = self
@@ -188,7 +191,7 @@ impl VmActorRuntime {
                 .expect("just-imported process can be detached for rollback");
             return Err(VmActorRuntimeImportFailure {
                 reason: failure.reason().to_string(),
-                transfer: VmActorRuntimeTransfer {
+                transfer: Box::new(VmActorRuntimeTransfer {
                     owner,
                     process,
                     placement: failure.into_transfer(),
@@ -199,14 +202,14 @@ impl VmActorRuntime {
                     delayed_messages,
                     native_continuation,
                     explicitly_suspended,
-                },
+                }),
             });
         }
         if let Err(failure) = self.aliases.import_alias_transfer(aliases) {
             let (process, placement) = self.detach_imported_base(owner);
             return Err(VmActorRuntimeImportFailure {
                 reason: failure.reason().to_string(),
-                transfer: VmActorRuntimeTransfer {
+                transfer: Box::new(VmActorRuntimeTransfer {
                     owner,
                     process,
                     placement,
@@ -217,7 +220,7 @@ impl VmActorRuntime {
                     delayed_messages,
                     native_continuation,
                     explicitly_suspended,
-                },
+                }),
             });
         }
         if let Err(failure) = self.resources.import_resource_transfer(resources) {
@@ -225,7 +228,7 @@ impl VmActorRuntime {
             let (process, placement) = self.detach_imported_base(owner);
             return Err(VmActorRuntimeImportFailure {
                 reason: failure.reason().to_string(),
-                transfer: VmActorRuntimeTransfer {
+                transfer: Box::new(VmActorRuntimeTransfer {
                     owner,
                     process,
                     placement,
@@ -236,7 +239,7 @@ impl VmActorRuntime {
                     delayed_messages,
                     native_continuation,
                     explicitly_suspended,
-                },
+                }),
             });
         }
         if let Err(failure) = self
@@ -248,7 +251,7 @@ impl VmActorRuntime {
             let (process, placement) = self.detach_imported_base(owner);
             return Err(VmActorRuntimeImportFailure {
                 reason: failure.reason().to_string(),
-                transfer: VmActorRuntimeTransfer {
+                transfer: Box::new(VmActorRuntimeTransfer {
                     owner,
                     process,
                     placement,
@@ -259,7 +262,7 @@ impl VmActorRuntime {
                     delayed_messages,
                     native_continuation,
                     explicitly_suspended,
-                },
+                }),
             });
         }
         if let Err(failure) = self.timers.import_timer_transfer(timers) {
@@ -269,7 +272,7 @@ impl VmActorRuntime {
             let (process, placement) = self.detach_imported_base(owner);
             return Err(VmActorRuntimeImportFailure {
                 reason: failure.reason().to_string(),
-                transfer: VmActorRuntimeTransfer {
+                transfer: Box::new(VmActorRuntimeTransfer {
                     owner,
                     process,
                     placement,
@@ -280,7 +283,7 @@ impl VmActorRuntime {
                     delayed_messages,
                     native_continuation,
                     explicitly_suspended,
-                },
+                }),
             });
         }
         for (timer, message) in delayed_messages {

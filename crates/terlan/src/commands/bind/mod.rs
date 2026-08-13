@@ -574,24 +574,30 @@ fn print_usage() {
 
 #[cfg(test)]
 #[path = "bind_test.rs"]
+#[cfg(test)]
 mod bind_test;
 
 #[cfg(test)]
 #[path = "cpp_package_consumer_test.rs"]
+#[cfg(test)]
 mod cpp_package_consumer_test;
 
 #[cfg(test)]
 #[path = "ts_type_mapping_test.rs"]
+#[cfg(test)]
 mod ts_type_mapping_test;
 
 #[cfg(test)]
 #[path = "ts_input_manifest_test.rs"]
+#[cfg(test)]
 mod ts_input_manifest_test;
 
 #[cfg(test)]
 #[path = "ts_parser_adapter_test.rs"]
+#[cfg(test)]
 mod ts_parser_adapter_test;
 
 #[cfg(test)]
 #[path = "ts_dom_module_mapping_test.rs"]
+#[cfg(test)]
 mod ts_dom_module_mapping_test;

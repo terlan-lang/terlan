@@ -1,0 +1,327 @@
+/**
+ * Deterministic release payload discovery, hashing, staging, and manifests.
+ */
+module tvm_aot_platform_matrix.ReleasePayload.
+
+import std.collections.List.{concat}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+import tvm_aot_platform_matrix.ReleasePlatform.
+import tvm_aot_platform_matrix.ReleasePlatform.{target_triple}.
+
+import type std.core.Option.
+import type std.crypto.Hash.LabeledFile.
+import type std.data.Json.
+import type std.io.File.CopyPlan.
+
+/**
+ * One repository source file and its canonical path inside a release archive.
+ */
+pub struct Payload {
+    source: String,
+    archive: String,
+}.
+
+struct PayloadRoot {
+    source: String,
+    archive: String,
+}.
+
+/**
+ * Paths of generated checksum and install metadata files.
+ */
+pub struct GeneratedMetadata {
+    checksums: String,
+    install_manifest: String,
+}.
+
+@pure
+pub payload(source: String, archive: String): Payload ->
+    Payload(source = source, archive = archive).
+
+@pure
+pub source(value: Payload): String ->
+    value.source.
+
+@pure
+pub archive(value: Payload): String ->
+    value.archive.
+
+@pure
+pub checksums(value: GeneratedMetadata): String ->
+    value.checksums.
+
+@pure
+pub install_manifest(value: GeneratedMetadata): String ->
+    value.install_manifest.
+
+@pure
+pub child(parent: String, name: String): String ->
+    if {
+        parent == "." -> name;
+        String.ends_with(parent, "/") -> String.append(parent, name);
+        true -> String.append(parent, String.append("/", name))
+    }.
+
+payload_roots(root: String): List[PayloadRoot] ->
+    [
+        PayloadRoot(source = child(root, "std"), archive = "share/terlan/std"),
+        PayloadRoot(source = child(root, "editors/vscode"), archive = "share/terlan/editors/vscode"),
+        PayloadRoot(source = child(root, "editors/shared"), archive = "share/terlan/editors/shared"),
+        PayloadRoot(
+            source = child(root, "tree-sitter-terlan"),
+            archive = "share/terlan/tree-sitter-terlan",
+        ),
+    ].
+
+publishable_doc_rows(
+    root: String,
+    rows: List[String],
+    output: List[Payload],
+): Option[List[Payload]] ->
+    case rows {
+        [] -> Some(reverse(output, []));
+        ["" | rest] -> publishable_doc_rows(root, rest, output);
+        ["path" | rest] -> publishable_doc_rows(root, rest, output);
+        [path | rest] ->
+            let source = child(root, path);
+            if {
+                not String.starts_with(path, "docs/") -> None;
+                String.contains(String.lowercase(path), "roadmap") -> None;
+                String.contains(String.lowercase(path), "archive") -> None;
+                String.contains(String.lowercase(path), "baseline") -> None;
+                String.contains(String.lowercase(path), "scratch") -> None;
+                String.contains(String.lowercase(path), "research") -> None;
+                not File.exists(source) -> None;
+                true -> publishable_doc_rows(
+                    root,
+                    rest,
+                    [payload(source, child("share/terlan", path)) | output],
+                )
+            }
+    }.
+
+publishable_docs(root: String): Option[List[Payload]] ->
+    case File.read_text(child(root, "docs/release/PUBLISHABLE_DOCUMENTATION.tsv")) {
+        Ok(source) -> publishable_doc_rows(root, String.split(source, "\n"), []);
+        Err(_reason) -> None
+    }.
+
+fixed_payloads(root: String): List[Payload] ->
+    [
+        payload(child(root, "README.md"), "share/terlan/README.md"),
+        payload(child(root, "CHANGELOG.md"), "share/terlan/CHANGELOG.md"),
+        payload(
+            child(root, "tests/template/INTERPOLATION_TOOLING_FIXTURES.tsv"),
+            "share/terlan/tests/template/INTERPOLATION_TOOLING_FIXTURES.tsv",
+        ),
+    ].
+
+relative_path(root: String, path: String): Option[String] ->
+    let prefix =
+        if {
+            String.ends_with(root, "/") -> root;
+            true -> String.append(root, "/")
+        };
+    if {
+        not String.starts_with(path, prefix) -> None;
+        true -> Some(
+            String.utf8_slice(
+                path,
+                String.length(prefix),
+                String.length(path) - String.length(prefix),
+            ),
+        )
+    }.
+
+accepted(path: String): Bool ->
+    not String.ends_with(path, ".pyc") and not String.ends_with(path, ".vsix").
+
+root_payloads(
+    root: PayloadRoot,
+    paths: List[String],
+    reversed: List[Payload],
+): Option[List[Payload]] ->
+    case paths {
+        [] -> Some(reverse(reversed, []));
+        [path | rest] ->
+            if {
+                not accepted(path) -> root_payloads(root, rest, reversed);
+                true -> case relative_path(root.source, path) {
+                    None -> None;
+                    Some(relative) ->
+                        root_payloads(
+                            root,
+                            rest,
+                            [payload(path, child(root.archive, relative)) | reversed],
+                        )
+                }
+            }
+    }.
+
+reverse(values: List[Payload], reversed: List[Payload]): List[Payload] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse(rest, [value | reversed])
+    }.
+
+all_roots(roots: List[PayloadRoot], values: List[Payload]): Option[List[Payload]] ->
+    case roots {
+        [] -> Some(values);
+        [root | rest] ->
+            let {
+                Ok(paths) <-
+                    Directory.files_recursive_excluding(
+                        root.source,
+                        ["node_modules", "target", "__pycache__"],
+                    );
+                Some(found) <- root_payloads(root, paths, [])
+            } else {
+                _ -> None
+            };
+            all_roots(rest, concat(values, found))
+    }.
+
+fixed_exist(values: List[Payload]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> File.exists(value.source) and fixed_exist(rest)
+    }.
+
+/**
+ * Discovers the exact sorted repository payload set used by release packaging.
+ */
+pub all(root: String): Option[List[Payload]] ->
+    let fixed = fixed_payloads(root);
+    if {
+        not fixed_exist(fixed) -> None;
+        true -> case publishable_docs(root) {
+            None -> None;
+            Some(docs) -> all_roots(payload_roots(root), concat(fixed, docs))
+        }
+    }.
+
+labeled_files(
+    values: List[Payload],
+    prefix: String,
+    reversed: List[LabeledFile],
+): List[LabeledFile] ->
+    case values {
+        [] -> reverse_labeled_files(reversed, std.collections.List.new[LabeledFile]());
+        [value | rest] ->
+            if {
+                not String.starts_with(value.archive, prefix) -> labeled_files(rest, prefix, reversed);
+                true -> let labeled = Hash.labeled_file(value.source, value.archive);
+                labeled_files(rest, prefix, [labeled | reversed])
+            }
+    }.
+
+reverse_labeled_files(values: List[LabeledFile], reversed: List[LabeledFile]): List[LabeledFile] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_labeled_files(rest, [value | reversed])
+    }.
+
+/**
+ * Reproduces the release payload-tree digest over archive path and file digest rows.
+ */
+pub tree_hash(values: List[Payload], prefix: String): Option[String] ->
+    let files = labeled_files(values, prefix, std.collections.List.new[LabeledFile]());
+    let {
+        _ <- files;
+        Ok(digest) <- Hash.sha256_labeled_file_digests(files)
+    } else {
+        _ -> None
+    };
+    Some(digest).
+
+copy_plans(
+    values: List[Payload],
+    destination_root: String,
+    reversed: List[CopyPlan],
+): List[CopyPlan] ->
+    case values {
+        [] -> reverse_plans(reversed, []);
+        [value | rest] ->
+            let destination = child(destination_root, value.archive);
+            copy_plans(
+                rest,
+                destination_root,
+                [File.copy_plan(value.source, destination) | reversed],
+            )
+    }.
+
+reverse_plans(values: List[CopyPlan], reversed: List[CopyPlan]): List[CopyPlan] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_plans(rest, [value | reversed])
+    }.
+
+/**
+ * Copies payloads into a fresh staging tree while preserving file modes.
+ */
+pub copy_all(values: List[Payload], destination_root: String): Bool ->
+    let plans = copy_plans(values, destination_root, []);
+    case File.copy_many(plans) {
+        Ok(Unit) -> true;
+        Err(_reason) -> false
+    }.
+
+checksum_rows(values: List[Payload], result: String): Option[String] ->
+    case values {
+        [] -> Some(result);
+        [value | rest] ->
+            case Hash.sha256_file(value.source) {
+                Err(_reason) -> None;
+                Ok(digest) ->
+                    checksum_rows(rest, String.concat([result, digest, "  ", value.archive, "\n"]))
+            }
+    }.
+
+paths_json(values: List[Payload], result: Json): Json ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            let _pushed = result.push(Json.string(value.archive));
+            paths_json(rest, result)
+    }.
+
+/**
+ * Writes canonical checksums and the exact install/uninstall manifest.
+ */
+pub write_install_metadata(
+    dist: String,
+    platform: ReleasePlatform,
+    version: String,
+    entries: List[Payload],
+): Option[GeneratedMetadata] ->
+    let checksum_path = child(dist, "SHA256SUMS");
+    let install_path = child(dist, "terlan-install-manifest.json");
+    let all_paths = paths_json(entries, Json.array());
+    let _checksum_name = all_paths.push(Json.string("SHA256SUMS"));
+    let _manifest_name = all_paths.push(Json.string("terlan-install-manifest.json"));
+    let manifest =
+        Json.object()
+            .put("schema", Json.string("terlan.install-manifest.v1"))
+            .put("version", Json.string(version))
+            .put("target_triple", Json.string(target_triple(platform)))
+            .put("files", all_paths);
+    let {
+        Some(checksum_text) <- checksum_rows(entries, "");
+        Ok(rendered) <- Json.stringify_pretty(manifest);
+        Ok(Unit) <- File.write_text(checksum_path, checksum_text);
+        Ok(Unit) <- File.write_text(install_path, String.append(rendered, "\n"))
+    } else {
+        _ -> None
+    };
+    Some(GeneratedMetadata(checksums = checksum_path, install_manifest = install_path)).
+
+/**
+ * Contract probe for payload path filtering.
+ */
+pub self_test(): Bool ->
+    accepted("a.terl") and not accepted("a.pyc") and not accepted("a.vsix").

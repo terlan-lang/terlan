@@ -1,11 +1,10 @@
-#![allow(dead_code)]
-
 use std::collections::{HashMap, VecDeque};
 
 use super::process::VmProcessId;
 
 #[cfg(test)]
 #[path = "package_transport_test.rs"]
+#[cfg(test)]
 mod package_transport_test;
 
 /// VM-owned package download handle.
@@ -40,6 +39,7 @@ pub(crate) enum VmPackageDownloadWake {
 /// lifecycle state. Transformation: exposes progress without leaking native
 /// package-registry transport handles.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmPackageDownloadInfo {
     pub(crate) owner: String,
     pub(crate) url: String,
@@ -53,6 +53,7 @@ pub(crate) struct VmPackageDownloadInfo {
 
 /// Package download event returned to actor code.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmPackageDownloadEvent {
     Chunk(Vec<u8>),
     Complete,
@@ -72,12 +73,14 @@ pub(crate) enum VmPackageDownloadEvent {
 ///   leaving actual TLS/HTTP bytes to maintained Rust clients behind a typed
 ///   NativeBoundary adapter.
 #[derive(Debug, Default)]
+#[cfg(test)]
 pub(crate) struct VmPackageDownloadRuntime {
     next_download: u64,
     downloads: HashMap<u64, PackageDownloadState>,
 }
 
 #[derive(Debug)]
+#[cfg(test)]
 struct PackageDownloadState {
     owner: String,
     url: String,
@@ -89,6 +92,7 @@ struct PackageDownloadState {
     complete_delivered: bool,
 }
 
+#[cfg(test)]
 impl VmPackageDownloadRuntime {
     /// Creates an empty package download transport registry.
     pub(crate) fn new() -> Self {

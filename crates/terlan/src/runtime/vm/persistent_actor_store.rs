@@ -1,7 +1,12 @@
-#![allow(dead_code)]
-
 #[cfg(test)]
 #[path = "persistent_actor_store_test.rs"]
+#[cfg(test)]
 mod persistent_actor_store_test;
-include!("persistent_actor_store_part_001.rs");
-include!("persistent_actor_store_part_002.rs");
+
+#[path = "persistent_actor_store/serialization.rs"]
+#[cfg(any(test, feature = "benchmark-tools"))]
+mod serialization;
+#[path = "persistent_actor_store/store.rs"]
+mod store;
+
+pub(crate) use store::*;

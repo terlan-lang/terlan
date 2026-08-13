@@ -161,4 +161,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "function_head_pattern_migration_assist_test.rs"]
+#[cfg(test)]
 mod function_head_pattern_migration_assist_test;

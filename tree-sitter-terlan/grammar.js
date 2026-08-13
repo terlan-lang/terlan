@@ -2,7 +2,7 @@
  * Tree-sitter grammar scaffold for Terlan.
  *
  * Inputs:
- * - Terlan source files using `.terl` or `.terli`.
+ * - Terlan source files using `.terl`, `.terls`, or `.terli`.
  *
  * Outputs:
  * - A syntax tree that recognizes module/import headers, declarations,
@@ -29,7 +29,8 @@ module.exports = grammar({
     [$.shape_pattern, $.tuple_pattern],
     [$.shape_pattern, $.list_pattern],
     [$.shape_list_pattern, $.list_pattern],
-    [$.binary_layout_expression, $.binary_layout_pattern]
+    [$.binary_layout_expression, $.binary_layout_pattern],
+    [$.type_expression, $._type_name_ref]
   ],
 
   rules: {
@@ -392,6 +393,8 @@ module.exports = grammar({
         $.method_call_expression,
         $.call_expression,
         $.field_expression,
+        $.cast_expression,
+        $.unary_expression,
         $.binary_expression,
         $.raw_macro_expression,
         $.interpolation,
@@ -419,11 +422,16 @@ module.exports = grammar({
         4,
         seq(
           "let",
-          "{",
-          field("binding", $.refutable_let_binding),
-          repeat(seq(";", field("binding", $.refutable_let_binding))),
-          optional(";"),
-          "}",
+          choice(
+            field("binding", $.refutable_let_binding),
+            seq(
+              "{",
+              field("binding", $.refutable_let_binding),
+              repeat(seq(";", field("binding", $.refutable_let_binding))),
+              optional(";"),
+              "}"
+            )
+          ),
           "else",
           "{",
           repeat1($.case_arm),
@@ -441,7 +449,7 @@ module.exports = grammar({
 
     case_arm: ($) => seq($.pattern, optional($.guard_clause), "->", $.expression, optional(";")),
 
-    guard_clause: ($) => seq(choice("where", "when"), $.expression),
+    guard_clause: ($) => seq("where", $.expression),
 
     if_expression: ($) => seq("if", "{", repeat1($.case_arm), "}"),
 
@@ -494,12 +502,34 @@ module.exports = grammar({
 
     field_expression: ($) => prec.left(4, seq($.expression, $._field_selector)),
 
+    cast_expression: ($) => prec.left(3, seq($.expression, "as", $.type_expression)),
+
+    unary_expression: ($) => prec(4, seq(choice("-", "not"), $.expression)),
+
     binary_expression: ($) =>
       prec.left(
         1,
         seq(
           $.expression,
-          choice("+", "-", "*", "/", "==", "!=", ">=", "<=", ">", "<", "in", "..", "|>"),
+          choice(
+            "+",
+            "-",
+            "*",
+            "/",
+            "div",
+            "rem",
+            "==",
+            "!=",
+            ">=",
+            "<=",
+            ">",
+            "<",
+            "in",
+            "..",
+            "and",
+            "or",
+            "|>"
+          ),
           $.expression
         )
       ),

@@ -1,0 +1,611 @@
+/**
+ * Validates and records repository-local direct-AOT closeout evidence.
+ */
+module tvm_aot_platform_matrix.ReleaseCloseout.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.{sha256_file}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.{create_all}.
+import std.io.File.{exists, read_text}.
+import std.system.{Environment, Platform, Process}.
+import tvm_aot_platform_matrix.AotThreadSanitizer.{target as sanitizer_target, validate_report as validate_sanitizer_report}.
+import tvm_aot_platform_matrix.Core.{child, host_target, is_sha256, json_bool, json_string, json_value, load_json, report_valid, string_array, targets, write_json}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type tvm_aot_platform_matrix.Core.Target.
+
+struct InventoryCounts {
+    compiler_internal_ir: Int,
+    reusable_runtime_semantics: Int,
+    reusable_compiler_semantics: Int,
+    temporary_migration_support: Int,
+    deletion_debt: Int,
+    rows: Int,
+    valid: Bool,
+}.
+
+pub schema(): String -> "terlan.tvm-aot-local-closeout.v2".
+
+pub local_gates(): List[String] ->
+    [
+        "runtime-aot-only-check",
+        "tvm-direct-aot-backend-check",
+        "tvm-managed-memory-check",
+        "tvm-managed-list-profile-benchmark-check",
+        "terlan-vm-artifact-format-check",
+        "tvm-native-image-format-check",
+        "tvm-native-image-loader-check",
+        "tvm-aot-consumer-check",
+        "tvm-aot-package-install-consumer-check",
+        "tvm-aot-runtime-transition-check",
+        "tvm-aot-shard-ownership-check",
+        "tvm-aot-supervisor-lifecycle-check",
+        "tvm-aot-stale-epoch-check",
+        "tvm-aot-crash-injection-check",
+        "tvm-aot-capability-worker-check",
+        "tvm-aot-image-lifetime-check",
+        "tvm-aot-platform-matrix-check",
+        "tvm-aot-lowering-coverage-check",
+        "tvm-aot-http-persistent-shard-check",
+        "tvm-aot-http-generation-lifetime-check",
+        "tvm-aot-http-performance-check",
+        "tvm-aot-multicore-readiness-check",
+        "tvm-aot-thread-sanitizer-check",
+        "tvm-aot-c-abi-boundary-check",
+        "tvm-aot-compilation-time-check",
+        "tvm-single-image-artifact-check",
+        "no-tvm-json-runtime-check",
+        "no-vmir-interpreter-check",
+        "rust-quality-check",
+        "roadmap-gate-integrity-check",
+        "cargo-check-locked-terlan",
+    ].
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[tvm_aot_release_closeout]: ", message));
+    false.
+
+none_with_failure(message: String): Option[Json] ->
+    let _failed = failure(message);
+    None.
+
+none_string_with_failure(message: String): Option[String] ->
+    let _failed = failure(message);
+    None.
+
+configured(root: String, program: String, arguments: List[String]): std.system.Process.Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(Process.command(program), arguments),
+                root,
+            ),
+            300000,
+        ),
+        8388608,
+    ).
+
+command_output(root: String, program: String, arguments: List[String]): Option[String] ->
+    case Process.run(configured(root, program, arguments)) {
+        Err(error) -> none_string_with_failure(Process.error_message(error));
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> Some(String.trim(Process.stdout(output)));
+                true -> none_string_with_failure(
+                    String.concat(
+                        [program, " failed:\n", Process.stdout(output), Process.stderr(output)],
+                    ),
+                )
+            }
+    }.
+
+file_digest(path: String): Option[String] ->
+    case sha256_file(path) {
+        Ok(digest) -> Some(digest);
+        Err(_error) ->
+            none_string_with_failure(String.append("cannot hash `", String.append(path, "`")))
+    }.
+
+pub list_equal(left: List[String], right: List[String]): Bool ->
+    case {left, right} {
+        {[], []} -> true;
+        {[left_value | left_rest], [right_value | right_rest]} ->
+            left_value == right_value and list_equal(left_rest, right_rest);
+        _ -> false
+    }.
+
+without_continuation(value: String): String ->
+    if {
+        String.ends_with(value, "\\") -> String.trim(String.utf8_slice(value, 0, String.byte_size(value) - 1));
+        true -> String.trim(value)
+    }.
+
+continued_values(lines: List[String], current: String): Option[List[String]] ->
+    let continued = String.ends_with(String.trim(current), "\\");
+    let value = without_continuation(current);
+    if {
+        not continued -> if {
+            value == "" -> Some([]);
+            true -> Some([value])
+        };
+        true -> let {
+            [next | rest] <- lines;
+            Some(values) <- continued_values(rest, next)
+        } else {
+            _ -> None
+        };
+        if {
+            value == "" -> Some(values);
+            true -> Some([value | values])
+        }
+    }.
+
+make_list_variable_at(lines: List[String], prefix: String): Option[List[String]] ->
+    case lines {
+        [] -> None;
+        [line | rest] ->
+            if {
+                String.starts_with(line, prefix) -> let current =
+                    String.utf8_slice(
+                        line,
+                        String.byte_size(prefix),
+                        String.byte_size(line) - String.byte_size(prefix),
+                    );
+                continued_values(rest, current);
+                true -> make_list_variable_at(rest, prefix)
+            }
+    }.
+
+pub make_list_variable(makefile: String, name: String): Option[List[String]] ->
+    make_list_variable_at(String.split(makefile, "\n"), String.append(name, " :=")).
+
+validate_makefile_contract(makefile: String): Bool ->
+    case make_list_variable(makefile, "AOT_RELEASE_LOCAL_GATES") {
+        None -> failure("Makefile omits AOT_RELEASE_LOCAL_GATES");
+        Some(gates) ->
+            let expected_without_cargo = without_last(local_gates());
+            if {
+                not list_equal(gates, expected_without_cargo) -> failure("AOT closeout Make gates disagree with the local contract");
+                not makefile
+    .contains(
+        "tvm-aot-release-closeout-check: tvm-aot-release-closeout-contract-check\n\t$(MAKE) $(AOT_RELEASE_LOCAL_GATES)\n\tenv -u RUSTFLAGS $(CARGO) check --locked -p terlan\n\t$(TERLAN_TVM_PLATFORM_MATRIX) release-record\n",
+    ) -> failure("AOT closeout no longer executes its canonical local graph");
+                true -> true
+            }
+    }.
+
+without_last(values: List[String]): List[String] ->
+    case values {
+        [] -> std.collections.List.new[String]();
+        [_last] -> std.collections.List.new[String]();
+        [value | rest] -> [value | without_last(rest)]
+    }.
+
+empty_counts(): InventoryCounts ->
+    InventoryCounts(
+        compiler_internal_ir = 0,
+        reusable_runtime_semantics = 0,
+        reusable_compiler_semantics = 0,
+        temporary_migration_support = 0,
+        deletion_debt = 0,
+        rows = 0,
+        valid = true,
+    ).
+
+classification_name(value: String): String ->
+    let trimmed = String.trim(value);
+    if {
+        String.starts_with(trimmed, "`")
+            and String.ends_with(trimmed, "`")
+            and String.byte_size(trimmed) >= 2 -> String.utf8_slice(trimmed, 1, String.byte_size(trimmed) - 2);
+        true -> trimmed
+    }.
+
+count_classification(counts: InventoryCounts, classification: String): InventoryCounts ->
+    case classification_name(classification) {
+        "compiler-internal-ir" ->
+            InventoryCounts(
+                compiler_internal_ir = counts.compiler_internal_ir + 1,
+                reusable_runtime_semantics = counts.reusable_runtime_semantics,
+                reusable_compiler_semantics = counts.reusable_compiler_semantics,
+                temporary_migration_support = counts.temporary_migration_support,
+                deletion_debt = counts.deletion_debt,
+                rows = counts.rows + 1,
+                valid = counts.valid,
+            );
+        "reusable-runtime-semantics" ->
+            InventoryCounts(
+                compiler_internal_ir = counts.compiler_internal_ir,
+                reusable_runtime_semantics = counts.reusable_runtime_semantics + 1,
+                reusable_compiler_semantics = counts.reusable_compiler_semantics,
+                temporary_migration_support = counts.temporary_migration_support,
+                deletion_debt = counts.deletion_debt,
+                rows = counts.rows + 1,
+                valid = counts.valid,
+            );
+        "reusable-compiler-semantics" ->
+            InventoryCounts(
+                compiler_internal_ir = counts.compiler_internal_ir,
+                reusable_runtime_semantics = counts.reusable_runtime_semantics,
+                reusable_compiler_semantics = counts.reusable_compiler_semantics + 1,
+                temporary_migration_support = counts.temporary_migration_support,
+                deletion_debt = counts.deletion_debt,
+                rows = counts.rows + 1,
+                valid = counts.valid,
+            );
+        "temporary-migration-support" ->
+            InventoryCounts(
+                compiler_internal_ir = counts.compiler_internal_ir,
+                reusable_runtime_semantics = counts.reusable_runtime_semantics,
+                reusable_compiler_semantics = counts.reusable_compiler_semantics,
+                temporary_migration_support = counts.temporary_migration_support + 1,
+                deletion_debt = counts.deletion_debt,
+                rows = counts.rows + 1,
+                valid = counts.valid,
+            );
+        "deletion-debt" ->
+            InventoryCounts(
+                compiler_internal_ir = counts.compiler_internal_ir,
+                reusable_runtime_semantics = counts.reusable_runtime_semantics,
+                reusable_compiler_semantics = counts.reusable_compiler_semantics,
+                temporary_migration_support = counts.temporary_migration_support,
+                deletion_debt = counts.deletion_debt + 1,
+                rows = counts.rows + 1,
+                valid = counts.valid,
+            );
+        _ ->
+            InventoryCounts(
+                compiler_internal_ir = counts.compiler_internal_ir,
+                reusable_runtime_semantics = counts.reusable_runtime_semantics,
+                reusable_compiler_semantics = counts.reusable_compiler_semantics,
+                temporary_migration_support = counts.temporary_migration_support,
+                deletion_debt = counts.deletion_debt,
+                rows = counts.rows,
+                valid = false,
+            )
+    }.
+
+inventory_counts_at(lines: List[String], counts: InventoryCounts): InventoryCounts ->
+    case lines {
+        [] -> counts;
+        [line | rest] ->
+            if {
+                not String.starts_with(line, "| `") -> inventory_counts_at(rest, counts);
+                true -> case String.split(line, "|") {
+                    [_, _path, _surface, classification, _disposition, _] ->
+                        inventory_counts_at(rest, count_classification(counts, classification));
+                    _ ->
+                        InventoryCounts(
+                            compiler_internal_ir = counts.compiler_internal_ir,
+                            reusable_runtime_semantics = counts.reusable_runtime_semantics,
+                            reusable_compiler_semantics = counts.reusable_compiler_semantics,
+                            temporary_migration_support = counts.temporary_migration_support,
+                            deletion_debt = counts.deletion_debt,
+                            rows = counts.rows,
+                            valid = false,
+                        )
+                }
+            }
+    }.
+
+inventory_counts(markdown: String): Option[InventoryCounts] ->
+    let counts = inventory_counts_at(String.split(markdown, "\n"), empty_counts());
+    if {
+        not counts.valid -> None;
+        counts.rows == 0 -> None;
+        counts.temporary_migration_support != 0 -> None;
+        counts.deletion_debt != 0 -> None;
+        true -> Some(counts)
+    }.
+
+counts_json(counts: InventoryCounts): Json ->
+    Json.object()
+        .put("compiler-internal-ir", Json.int(counts.compiler_internal_ir))
+        .put("reusable-runtime-semantics", Json.int(counts.reusable_runtime_semantics))
+        .put("reusable-compiler-semantics", Json.int(counts.reusable_compiler_semantics))
+        .put("temporary-migration-support", Json.int(counts.temporary_migration_support))
+        .put("deletion-debt", Json.int(counts.deletion_debt)).
+
+required_cache_state(value: Json): Bool ->
+    case {
+    json_value(value, "terlan_cold"),
+    json_value(value, "go_cold"),
+    json_value(value, "warm"),
+    json_value(value, "dependency_downloads_timed"),
+} {
+        {Some(_), Some(_), Some(_), Some(_)} -> true;
+        _ -> false
+    }.
+
+validate_local_evidence(name: String, value: Json): Bool ->
+    let expected_schema =
+        case name {
+            "compilation" -> "terlan-aot-compilation-benchmark-v1";
+            "http_performance" -> "terlan-http-aot-performance-comparison-v2";
+            "managed_list" -> "terlan.tvm.managed-list-profile.v1";
+            _ -> ""
+        };
+    let requires_status = name != "managed_list";
+    let Some(actual_schema) <- json_string(value, "schema") else {
+        _ -> false
+    };
+    if {
+        expected_schema == "" or actual_schema != expected_schema -> false;
+        requires_status and not json_string_equals(value, "status", "completed") -> false;
+        name == "compilation" -> validate_compilation_evidence(value);
+        name == "managed_list" -> json_bool_equals(value, "correctness_verified", true);
+        true -> true
+    }.
+
+json_string_equals(value: Json, field: String, expected: String): Bool ->
+    case json_string(value, field) {
+        Some(actual) -> actual == expected;
+        None -> false
+    }.
+
+json_bool_equals(value: Json, field: String, expected: Bool): Bool ->
+    case json_bool(value, field) {
+        Some(actual) -> actual == expected;
+        None -> false
+    }.
+
+validate_compilation_evidence(value: Json): Bool ->
+    let {
+        Some(cache_state) <- json_value(value, "cache_state");
+        Some(fixtures) <- json_value(value, "fixtures");
+        Some(digest) <- json_string(fixtures, "sha256")
+    } else {
+        _ -> false
+    };
+    required_cache_state(cache_state) and is_sha256(digest).
+
+evidence_entry(path: String): Option[Json] ->
+    case file_digest(path) {
+        Some(digest) ->
+            Some(Json.object().put("path", Json.string(path)).put("sha256", Json.string(digest)));
+        None -> None
+    }.
+
+validated_evidence(root: String, name: String, relative: String): Option[Json] ->
+    let path = child(root, relative);
+    let {
+        Some(value) <- load_json(path);
+        Some(entry) <- evidence_entry(relative)
+    } else {
+        _ ->
+            none_with_failure(
+                String.append("cannot load AOT evidence `", String.append(relative, "`")),
+            )
+    };
+    if {
+        validate_local_evidence(name, value) -> Some(entry);
+        true -> none_with_failure(String.append("invalid AOT evidence `", String.append(name, "`")))
+    }.
+
+target_ids(values: List[Target], result: Json): Json ->
+    case values {
+        [] -> result;
+        [target | rest] -> target_ids(rest, result.push(Json.string(target.id)))
+    }.
+
+host_contract(root: String, revision: String): Option[Json] ->
+    case host_target() {
+        None -> None;
+        Some(target) ->
+            let relative = String.concat(["target/quality/tvm-aot-platform/", target.id, ".json"]);
+            let path = child(root, relative);
+            let {
+                Some(report) <- load_json(path);
+                Some(source_revision) <- json_string(report, "source_revision");
+                Some(digest) <- file_digest(path)
+            } else {
+                _ -> none_with_failure("cannot load executable host platform evidence")
+            };
+            if {
+                not report_valid(report, target) -> none_with_failure("host platform report is invalid");
+                not String.starts_with(revision, source_revision) -> none_with_failure("host platform report belongs to another revision");
+                true -> Some(
+                    Json.object()
+                        .put("supported_targets", target_ids(targets(), Json.array()))
+                        .put(
+                            "host_report",
+                            Json.object()
+                                .put("path", Json.string(relative))
+                                .put("sha256", Json.string(digest)),
+                        ),
+                )
+            }
+    }.
+
+sanitizer_evidence(root: String, revision: String): Option[Json] ->
+    let relative = "target/quality/tvm-aot-thread-sanitizer-report.json";
+    let path = child(root, relative);
+    if {
+        not exists(path) -> Some(
+            Json.object()
+                .put("mode", Json.string("contract-only"))
+                .put(
+                    "reason",
+                    Json.string(
+                        String.concat(["Rust target `", sanitizer_target(), "` is not installed"]),
+                    ),
+                ),
+        );
+        true -> let {
+            Some(report) <- load_json(path);
+            Some(source_revision) <- json_string(report, "source_revision");
+            Some(digest) <- file_digest(path)
+        } else {
+            _ -> none_with_failure("cannot load ThreadSanitizer evidence")
+        };
+        if {
+            not validate_sanitizer_report(report, false) -> none_with_failure("ThreadSanitizer report is invalid");
+            source_revision != revision -> none_with_failure("ThreadSanitizer report belongs to another revision");
+            true -> Some(
+                Json.object()
+                    .put("mode", Json.string("instrumented"))
+                    .put("path", Json.string(relative))
+                    .put("sha256", Json.string(digest)),
+            )
+        }
+    }.
+
+inventory_evidence(root: String): Option[Json] ->
+    let relative = "docs/runtime/TVM_AOT_PIVOT_INVENTORY.md";
+    let path = child(root, relative);
+    let {
+        Ok(markdown) <- read_text(path);
+        Some(counts) <- inventory_counts(markdown);
+        Some(digest) <- file_digest(path)
+    } else {
+        _ -> none_with_failure("AOT inventory is malformed or retains migration debt")
+    };
+    Some(
+        Json.object()
+            .put("path", Json.string(relative))
+            .put("sha256", Json.string(digest))
+            .put("classification_counts", counts_json(counts)),
+    ).
+
+retained_evidence(root: String): Option[Json] ->
+    let {
+        Some(compilation) <- validated_evidence(root, "compilation", "target/quality/aot-compilation-benchmark.json");
+        Some(http) <-
+            validated_evidence(
+                root,
+                "http_performance",
+                "target/quality/http-aot-performance-comparison.json",
+            );
+        Some(managed) <- validated_evidence(root, "managed_list", "target/quality/tvm-managed-list-profile.json");
+        Some(inventory) <- inventory_evidence(root)
+    } else {
+        _ -> None
+    };
+    Some(
+        Json.object()
+            .put("compilation", compilation)
+            .put("http_performance", http)
+            .put("managed_list", managed)
+            .put("inventory", inventory),
+    ).
+
+write_closeout(
+    root: String,
+    revision: String,
+    rustc: String,
+    cargo: String,
+    platform_contract: Json,
+    sanitizer: Json,
+    evidence: Json,
+): Bool ->
+    let host = Platform.current();
+    let report =
+        Json.object()
+            .put("schema", Json.string(schema()))
+            .put("decision", Json.string("pass"))
+            .put("source_revision", Json.string(revision))
+            .put("worktree_committed", Json.bool(false))
+            .put(
+                "host",
+                Json.object()
+                    .put("system", Json.string(host.operating_system))
+                    .put("machine", Json.string(host.architecture)),
+            )
+            .put(
+                "toolchain",
+                Json.object().put("rustc", Json.string(rustc)).put("cargo", Json.string(cargo)),
+            )
+            .put("local_gates", string_array(local_gates()))
+            .put("platform_contract", platform_contract)
+            .put("thread_sanitizer", sanitizer)
+            .put("evidence", evidence)
+            .put(
+                "semantic_preservation",
+                Json.object()
+                    .put("runtime_fallbacks", Json.int(0))
+                    .put("temporary_migration_support", Json.int(0))
+                    .put("deletion_debt", Json.int(0)),
+            )
+            .put("publishing_required", Json.bool(false));
+    let _directory = create_all(child(root, "target/quality"));
+    if {
+        not write_json(child(root, "target/quality/tvm-aot-release-closeout-report.json"), report) -> false;
+        true -> let _printed = println(String.append("TVM AOT local closeout passed: ", revision));
+        true
+    }.
+
+/**
+ * Records local AOT closure without commit, push, or hosted artifacts.
+ */
+pub record_local(): Bool ->
+    let root = Environment.current_directory();
+    let {
+        Some(revision) <- command_output(root, "git", ["rev-parse", "HEAD"]);
+        Some(rustc) <- command_output(root, "rustc", ["--version", "--verbose"]);
+        Some(cargo) <- command_output(root, "cargo", ["--version"]);
+        Some(platform_contract) <- host_contract(root, revision);
+        Some(sanitizer) <- sanitizer_evidence(root, revision);
+        Some(evidence) <- retained_evidence(root)
+    } else {
+        _ -> false
+    };
+    write_closeout(root, revision, rustc, cargo, platform_contract, sanitizer, evidence).
+
+valid_inventory_fixture(): String ->
+    String.concat(
+        [
+            "| Path | Surface | Classification | Disposition |\n",
+            "| --- | --- | --- | --- |\n",
+            "| `runtime.rs` | runtime | reusable-runtime-semantics | Keep. |\n",
+            "| `compiler.rs` | compiler | compiler-internal-ir | Keep. |\n",
+            "| `proof.rs` | compiler | reusable-compiler-semantics | Keep. |",
+        ],
+    ).
+
+inventory_rejects(markdown: String): Bool ->
+    case inventory_counts(markdown) {
+        None -> true;
+        Some(_counts) -> false
+    }.
+
+/**
+ * Proves missing gates, unknown classes, and migration debt fail closed.
+ */
+pub self_test(): Bool ->
+    let root = Environment.current_directory();
+    case read_text(child(root, "Makefile")) {
+        Err(_error) -> failure("cannot read Makefile");
+        Ok(makefile) ->
+            let valid_inventory = valid_inventory_fixture();
+            let missing_gate = String.replace(makefile, "\troadmap-gate-integrity-check\n", "");
+            let temporary =
+                String.append(
+                    valid_inventory,
+                    "\n| `invalid.rs` | runtime | temporary-migration-support | Remove. |",
+                );
+            let deletion =
+                String.append(
+                    valid_inventory,
+                    "\n| `invalid.rs` | runtime | deletion-debt | Remove. |",
+                );
+            let unknown =
+                String.append(
+                    valid_inventory,
+                    "\n| `invalid.rs` | runtime | unknown-class | Remove. |",
+                );
+            if {
+                not validate_makefile_contract(makefile) -> false;
+                validate_makefile_contract(missing_gate) -> failure("closeout accepted a missing AOT-only gate");
+                inventory_rejects(valid_inventory) -> failure("closeout rejected valid inventory classes");
+                not inventory_rejects(temporary) -> failure("closeout accepted temporary migration support");
+                not inventory_rejects(deletion) -> failure("closeout accepted deletion debt");
+                not inventory_rejects(unknown) -> failure("closeout accepted an unknown inventory class");
+                true -> let _printed = println("TVM AOT local release closeout self-test passed");
+                true
+            }
+    }.

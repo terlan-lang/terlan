@@ -1,0 +1,493 @@
+/**
+ * Validates fresh VM-owned AOT HTTP concurrency evidence.
+ */
+module tvm_aot_platform_matrix.VmHttpAotConcurrency.
+
+import std.collections.List.{length}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.File.
+import tvm_aot_platform_matrix.ReleasePayload.{child}.
+
+import type std.core.Option.
+import type std.data.Json.
+
+report_relative(): String -> "target/quality/http-paired-performance.json".
+
+server_relative(): String -> "target/release/terlan-serve-runtime".
+
+required_workloads(): List[String] ->
+    [
+        "maintained-sequential",
+        "maintained-concurrency-100",
+        "maintained-concurrency-1000",
+        "maintained-pressure",
+        "maintained-oversubscribed",
+        "maintained-connection-close",
+        "maintained-empty",
+        "maintained-payload-4k",
+        "maintained-payload-64k",
+        "maintained-payload-1m",
+        "maintained-headers-32",
+        "maintained-json",
+        "maintained-metadata",
+        "maintained-static",
+        "maintained-add",
+        "maintained-crud-create",
+        "maintained-crud-read",
+        "maintained-crud-update",
+        "maintained-crud-delete",
+        "maintained-not-found",
+    ].
+
+required_dimensions(): List[String] ->
+    [
+        "asyncIo",
+        "schedulerFairness",
+        "boundedBackpressure",
+        "fullProtocol",
+        "connectionLifecycle",
+        "ecosystemIntegration",
+        "longRunningLoad",
+    ].
+
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+keys_exact(value: Json, expected: List[String]): Bool ->
+    case value.keys() {
+        Err(_reason) -> false;
+        Ok(keys) -> length(keys) == length(expected) and keys_contain(keys, expected)
+    }.
+
+keys_contain(keys: List[String], expected: List[String]): Bool ->
+    case expected {
+        [] -> true;
+        [value | rest] -> contains(keys, value) and keys_contain(keys, rest)
+    }.
+
+field(value: Json, name: String): Option[Json] ->
+    case value.get(name) {
+        Ok(result) -> Some(result);
+        Err(_reason) -> None
+    }.
+
+string_field(value: Json, name: String): String ->
+    let {
+        Some(result) <- field(value, name);
+        Ok(text) <- result.as_string()
+    } else {
+        _ -> ""
+    };
+    text.
+
+int_field(value: Json, name: String): Int ->
+    let {
+        Some(result) <- field(value, name);
+        Ok(number) <- result.as_int()
+    } else {
+        _ -> 0
+    };
+    number.
+
+bool_field(value: Json, name: String): Bool ->
+    let {
+        Some(result) <- field(value, name);
+        Ok(flag) <- result.as_bool()
+    } else {
+        _ -> false
+    };
+    flag.
+
+positive_number_field(value: Json, name: String): Bool ->
+    case field(value, name) {
+        None -> false;
+        Some(result) ->
+            case result.as_float() {
+                Ok(number) -> number > 0.0;
+                Err(_float_reason) ->
+                    case result.as_int() {
+                        Ok(number) -> number > 0;
+                        Err(_int_reason) -> false
+                    }
+            }
+    }.
+
+array_length_field(value: Json, name: String): Int ->
+    let {
+        Some(result) <- field(value, name);
+        Ok(count) <- result.length()
+    } else {
+        _ -> -1
+    };
+    count.
+
+object_field(value: Json, name: String): Option[Json] ->
+    let {
+        Some(result) <- field(value, name);
+        Ok(_keys) <- result.keys()
+    } else {
+        _ -> None
+    };
+    Some(result).
+
+array_field(value: Json, name: String): Option[Json] ->
+    let {
+        Some(result) <- field(value, name);
+        Ok(_count) <- result.length()
+    } else {
+        _ -> None
+    };
+    Some(result).
+
+protocol_valid(lane: Json, aot: Bool): Bool ->
+    if {
+        aot -> let {
+            Some(evidence) <- object_field(lane, "benchmark_evidence");
+            Some(protocol) <- object_field(evidence, "protocol_validation")
+        } else {
+            _ -> false
+        };
+        string_field(protocol, "status") == "validated";
+        true -> case object_field(lane, "protocol_validation") {
+            None -> false;
+            Some(protocol) -> string_field(protocol, "status") == "validated"
+        }
+    }.
+
+evidence_at(lane: Json, aot: Bool): Option[Json] ->
+    if {
+        aot -> object_field(lane, "benchmark_evidence");
+        true -> Some(lane)
+    }.
+
+workloads_at(lane: Json, aot: Bool): Option[Json] ->
+    case evidence_at(lane, aot) {
+        None -> None;
+        Some(evidence) -> array_field(evidence, "maintained_workloads")
+    }.
+
+workload_named_at(values: Json, name: String, index: Int, count: Int): Option[Json] ->
+    if {
+        index == count -> None;
+        true -> case values.at(index) {
+            Err(_reason) -> None;
+            Ok(value) ->
+                if {
+                    string_field(value, "name") == name -> Some(value);
+                    true -> workload_named_at(values, name, index + 1, count)
+                }
+        }
+    }.
+
+workload_named(values: Json, name: String): Option[Json] ->
+    case values.length() {
+        Err(_reason) -> None;
+        Ok(count) -> workload_named_at(values, name, 0, count)
+    }.
+
+expected_concurrency(name: String): Int ->
+    case name {
+        "maintained-sequential" -> 1;
+        "maintained-concurrency-100" -> 100;
+        "maintained-concurrency-1000" -> 1000;
+        _ -> 0
+    }.
+
+workload_valid(workload: Json, name: String): Bool ->
+    let concurrency = expected_concurrency(name);
+    (concurrency == 0 or int_field(workload, "concurrency") == concurrency)
+        and int_field(workload, "completed_requests") > 0
+        and positive_number_field(workload, "requests_per_second")
+        and int_field(workload, "validation_errors") == 0
+        and int_field(workload, "transport_errors") == 0.
+
+required_workloads_valid(values: Json, names: List[String]): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            case workload_named(values, name) {
+                None -> false;
+                Some(workload) ->
+                    workload_valid(workload, name) and required_workloads_valid(values, rest)
+            }
+    }.
+
+lifecycle_valid(lane: Json, aot: Bool): Bool ->
+    let {
+        Some(evidence) <- evidence_at(lane, aot);
+        Some(lifecycle) <- object_field(evidence, "lifecycle")
+    } else {
+        _ -> false
+    };
+    string_field(lifecycle, "status") == "validated".
+
+lane_valid(lane: Json, aot: Bool): Bool ->
+    if {
+        string_field(lane, "status") != "completed" -> false;
+        true -> case workloads_at(lane, aot) {
+            None -> false;
+            Some(workloads) ->
+                protocol_valid(lane, aot)
+                    and required_workloads_valid(workloads, required_workloads())
+                    and lifecycle_valid(lane, aot)
+        }
+    }.
+
+soak_valid(lane: Json, aot: Bool): Bool ->
+    let {
+        Some(evidence) <- evidence_at(lane, aot);
+        Some(soak) <- object_field(evidence, "soak");
+        Some(timing) <- object_field(soak, "timing")
+    } else {
+        _ -> false
+    };
+    string_field(soak, "status") == "stable"
+        and int_field(soak, "duration_seconds") > 0
+        and int_field(timing, "sample_count") > 0
+        and positive_number_field(timing, "throughput_requests_per_second")
+        and int_field(timing, "total_wall_ns") > 0.
+
+pair_lane(pair: Json, lane_name: String): Option[Json] ->
+    object_field(pair, lane_name).
+
+accepted_pair_valid(pair: Json, server_digest: String): Bool ->
+    let {
+        Some(aot) <- pair_lane(pair, "aot");
+        Some(axum) <- pair_lane(pair, "axum");
+        Some(hyper) <- pair_lane(pair, "hyper")
+    } else {
+        _ -> false
+    };
+    lane_valid(aot, true)
+        and lane_valid(axum, false)
+        and lane_valid(hyper, false)
+        and string_field(aot, "compiler_binary_sha256") == server_digest.
+
+pairs_valid_at(pairs: Json, index: Int, count: Int, server_digest: String): Bool ->
+    if {
+        index == count -> true;
+        true -> case pairs.at(index) {
+            Err(_reason) -> false;
+            Ok(pair) ->
+                (not bool_field(pair, "accepted") or accepted_pair_valid(pair, server_digest))
+                    and pairs_valid_at(pairs, index + 1, count, server_digest)
+        }
+    }.
+
+lane_has_stable_soak_at(pairs: Json, lane_name: String, aot: Bool, index: Int, count: Int): Bool ->
+    if {
+        index == count -> false;
+        true -> case pairs.at(index) {
+            Err(_reason) -> false;
+            Ok(pair) ->
+                case pair_lane(pair, lane_name) {
+                    Some(lane) ->
+                        bool_field(pair, "accepted") and soak_valid(lane, aot)
+                            or lane_has_stable_soak_at(pairs, lane_name, aot, index + 1, count);
+                    None -> lane_has_stable_soak_at(pairs, lane_name, aot, index + 1, count)
+                }
+        }
+    }.
+
+comparison_valid(value: Json, baseline: String): Bool ->
+    if {
+        int_field(value, "samples") < 3 or string_field(value, "baseline") != baseline -> false;
+        string_field(value, "verdict") != "baseline-faster" -> true;
+        true -> string_field(value, "suspected_subsystem") != ""
+            and string_field(value, "next_optimization_hypothesis") != ""
+            and String.contains(string_field(value, "source_location"), "crates/terlan/src/")
+            and String.contains(string_field(value, "source_location"), "::")
+    }.
+
+comparisons_valid_at(comparisons: Json, baseline: String, names: List[String]): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            case object_field(comparisons, name) {
+                None -> false;
+                Some(value) ->
+                    comparison_valid(value, baseline)
+                        and comparisons_valid_at(comparisons, baseline, rest)
+            }
+    }.
+
+comparisons_valid(report: Json, field_name: String, baseline: String): Bool ->
+    case object_field(report, field_name) {
+        None -> false;
+        Some(comparisons) ->
+            keys_exact(comparisons, required_workloads())
+                and comparisons_valid_at(comparisons, baseline, required_workloads())
+    }.
+
+dimensions_covered_at(dimensions: Json, names: List[String]): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            string_field(dimensions, name) == "covered" and dimensions_covered_at(dimensions, rest)
+    }.
+
+realism_entry_valid(entry: Json): Bool ->
+    case object_field(entry, "dimensions") {
+        None -> false;
+        Some(dimensions) ->
+            let exact = keys_exact(dimensions, required_dimensions());
+            let covered = dimensions_covered_at(dimensions, required_dimensions());
+            exact
+                and string_field(entry, "reason") != ""
+                and (covered or string_field(entry, "classification") == "advisory")
+    }.
+
+realism_workloads_valid(matrix: Json, baseline: String, names: List[String]): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            let key = String.concat([baseline, ":", name]);
+            case object_field(matrix, key) {
+                None -> false;
+                Some(entry) ->
+                    realism_entry_valid(entry) and realism_workloads_valid(matrix, baseline, rest)
+            }
+    }.
+
+realism_valid(report: Json): Bool ->
+    let {
+        Some(matrix) <- object_field(report, "realism_matrix");
+        Ok(keys) <- matrix.keys()
+    } else {
+        _ -> false
+    };
+    length(keys) == length(required_workloads()) * 2
+        and realism_workloads_valid(matrix, "axum", required_workloads())
+        and realism_workloads_valid(matrix, "plain-hyper", required_workloads()).
+
+completed_isolation_named_at(values: Json, expected: String, index: Int, count: Int): Bool ->
+    if {
+        index == count -> false;
+        true -> case values.at(index) {
+            Err(_reason) -> false;
+            Ok(value) ->
+                string_field(value, "name") == expected and string_field(value, "status") == "completed"
+                    or completed_isolation_named_at(values, expected, index + 1, count)
+        }
+    }.
+
+isolation_valid(report: Json): Bool ->
+    let {
+        Some(values) <- array_field(report, "isolation");
+        Ok(count) <- values.length()
+    } else {
+        _ -> false
+    };
+    completed_isolation_named_at(values, "aot-runtime-without-http", 0, count)
+        and completed_isolation_named_at(values, "reusable-service-actor", 0, count)
+        and completed_isolation_named_at(values, "http-adapter-and-shard-dispatch", 0, count).
+
+architecture_valid(report: Json): Bool ->
+    case object_field(report, "runtime_architecture") {
+        None -> false;
+        Some(architecture) ->
+            not bool_field(architecture, "hiddenHostAsyncRuntime")
+                and bool_field(architecture, "boundedBackpressure")
+    }.
+
+components_valid(report: Json): Bool ->
+    case object_field(report, "component_lanes") {
+        None -> false;
+        Some(components) ->
+            string_field(components, "handler") != ""
+                and string_field(components, "stack") != ""
+                and string_field(components, "stream") != ""
+                and string_field(components, "socket") != ""
+    }.
+
+report_valid(report: Json, server_digest: String): Bool ->
+    let pair_count = int_field(report, "pair_count");
+    let accepted_count = int_field(report, "accepted_pair_count");
+    let {
+        Some(configuration) <- object_field(report, "configuration");
+        Some(pairs) <- array_field(report, "pairs")
+    } else {
+        _ -> false
+    };
+    (let count = array_length_field(report, "pairs");
+string_field(report, "schema") == "terlan-http-paired-performance-v1"
+    and string_field(report, "status") == "completed"
+    and pair_count >= 3
+    and accepted_count >= 3
+    and count == pair_count
+    and bool_field(configuration, "rotating_order")
+    and int_field(configuration, "soak_seconds") > 0
+    and pairs_valid_at(pairs, 0, count, server_digest)
+    and lane_has_stable_soak_at(pairs, "aot", true, 0, count)
+    and lane_has_stable_soak_at(pairs, "axum", false, 0, count)
+    and lane_has_stable_soak_at(pairs, "hyper", false, 0, count)
+    and comparisons_valid(report, "comparisons", "axum")
+    and comparisons_valid(report, "hyper_comparisons", "plain-hyper")
+    and realism_valid(report)
+    and isolation_valid(report)
+    and architecture_valid(report)
+    and components_valid(report)).
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[vm.http.concurrency]: ", message));
+    false.
+
+pub check(root: String): Bool ->
+    case File.read_text(child(root, report_relative())) {
+        Err(_reason) -> failure("missing paired-performance report");
+        Ok(source) ->
+            case Json.parse(source) {
+                Err(_reason) -> failure("paired-performance report is invalid JSON");
+                Ok(report) ->
+                    case Hash.sha256_file(child(root, server_relative())) {
+                        Err(_reason) -> failure("current release HTTP server is missing");
+                        Ok(server_digest) ->
+                            if {
+                                report_valid(report, server_digest) -> let _printed =
+                                    println(
+                                        "[vm-http-concurrency-investigation-check] fresh AOT evidence validated",
+                                    );
+                                true;
+                                true -> failure(
+                                    "paired-performance evidence violates the AOT concurrency contract",
+                                )
+                            }
+                    }
+            }
+    }.
+
+stable_soak(): Json ->
+    let timing =
+        Json.object()
+            .put("sample_count", Json.int(2))
+            .put("throughput_requests_per_second", Json.int(1))
+            .put("total_wall_ns", Json.int(1));
+    Json.object()
+        .put("status", Json.string("stable"))
+        .put("duration_seconds", Json.int(1))
+        .put("timing", timing).
+
+pub self_test(): Bool ->
+    let empty_rejected = not report_valid(Json.object(), "digest");
+    let aot_evidence = Json.object().put("soak", stable_soak());
+    let aot = Json.object().put("benchmark_evidence", aot_evidence);
+    let incomplete_soak = Json.object().put("status", Json.string("stable"));
+    let incomplete_evidence = Json.object().put("soak", incomplete_soak);
+    let incomplete = Json.object().put("benchmark_evidence", incomplete_evidence);
+    let framework = Json.object().put("soak", stable_soak());
+    if {
+        empty_rejected
+            and soak_valid(aot, true)
+            and not soak_valid(incomplete, true)
+            and soak_valid(framework, false) -> let _printed = println("[vm-http-concurrency-investigation-check] self-test passed");
+        true;
+        true -> failure("self-test accepted malformed evidence or rejected stable evidence")
+    }.

@@ -1,0 +1,42 @@
+/**
+ * Executable behavior checks for portable TOML parsing.
+ */
+module std.data.TomlTest.
+
+import std.core.Result.{Err, Ok}.
+import std.data.{Json, Toml}.
+import std.test.Test.{assert, assert_equal}.
+
+import type std.data.Json.
+import type std.data.Toml.TomlError.
+
+pub accepts_json(value: Json): Json ->
+    value.
+
+pub accepts_error(value: TomlError): TomlError ->
+    value.
+
+@test
+pub parse_projects_nested_tables_and_arrays(): Bool ->
+    let {
+        Ok(root) <-
+            Toml.parse(
+                "[package]\nname = \"terlan\"\nfeatures = [\"aot\", \"multicore\"]\n[package.lints]\nwarnings = true\n",
+            );
+        Ok(package) <- root.get("package");
+        {Ok(name), Ok(features), Ok(lints)} <- {package.get("name"), package.get("features"), package.get("lints")};
+        {Ok(text), Ok(count), Ok(warnings)} <- {name.as_string(), features.length(), lints.get("warnings")};
+        Ok(enabled) <- warnings.as_bool()
+    } else {
+        _ -> false
+    };
+    assert_equal("terlan", text) and assert_equal(2, count) and assert(enabled).
+
+@test
+pub parse_rejects_malformed_documents_with_typed_error(): Bool ->
+    case Toml.parse("[package\nname = \"terlan\"") {
+        Err(reason) ->
+            let typed = accepts_error(reason);
+            Toml.error_message(typed) != "" and Toml.error_offset(typed) >= 0;
+        Ok(_value) -> false
+    }.

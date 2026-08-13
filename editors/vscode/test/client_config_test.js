@@ -129,6 +129,7 @@ function testClientOptions() {
   const languages = first.documentSelector.map((selector) => selector.language);
 
   assert.ok(languages.includes("terlan"));
+  assert.ok(languages.includes("terlan-script"));
   assert.ok(languages.includes("terlan-interface"));
   assert.ok(languages.includes("terlan-template-html"));
   assert.ok(languages.includes("terlan-template-json"));

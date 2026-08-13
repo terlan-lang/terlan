@@ -106,14 +106,8 @@ where
         }
     }
 
-    /// Returns whether the map contains no entries.
-    #[allow(dead_code)]
-    pub(crate) fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
     /// Returns the number of entries.
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
         match self {
             Self::Flat(entries) => entries.len(),
@@ -121,27 +115,26 @@ where
         }
     }
 
-    vm_map_profile_component! {
-        /// Visits every retained key/value allocation without materializing the map.
-        pub(crate) fn visit_retained_entries<'a>(
-            &'a self,
-            mut visit: impl FnMut(&'a K, Option<&'a V>),
-        ) {
-            match self {
-                Self::Flat(entries) => {
-                    for (key, value) in entries {
-                        visit(key, Some(value));
-                    }
+    /// Visits every retained key/value allocation without materializing the map.
+    #[cfg(test)]
+    pub(crate) fn visit_retained_entries<'a>(
+        &'a self,
+        mut visit: impl FnMut(&'a K, Option<&'a V>),
+    ) {
+        match self {
+            Self::Flat(entries) => {
+                for (key, value) in entries {
+                    visit(key, Some(value));
                 }
-                Self::Indexed { base, patches, .. } => {
-                    for (key, value) in base.iter() {
-                        visit(key, Some(value));
-                    }
-                    let mut patch = patches.as_deref();
-                    while let Some(current) = patch {
-                        visit(&current.key, current.value.as_ref());
-                        patch = current.previous.as_deref();
-                    }
+            }
+            Self::Indexed { base, patches, .. } => {
+                for (key, value) in base.iter() {
+                    visit(key, Some(value));
+                }
+                let mut patch = patches.as_deref();
+                while let Some(current) = patch {
+                    visit(&current.key, current.value.as_ref());
+                    patch = current.previous.as_deref();
                 }
             }
         }
@@ -214,7 +207,6 @@ where
     }
 
     /// Returns a persistent-style map with one key inserted or replaced.
-    #[allow(dead_code)]
     pub(crate) fn put_persistent(&self, key: K, value: V) -> Self {
         let mut updated = self.clone();
         updated.insert_or_replace(key, value);
@@ -272,7 +264,6 @@ where
     }
 
     /// Removes one key in place.
-    #[allow(dead_code)]
     pub(crate) fn remove(&mut self, key: &K) {
         match self {
             Self::Flat(entries) => entries.retain(|(entry_key, _)| entry_key != key),
@@ -302,7 +293,7 @@ where
     }
 
     /// Clears the map.
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn clear(&mut self) {
         match self {
             Self::Flat(entries) => entries.clear(),
@@ -828,7 +819,7 @@ where
 /// Transformation:
 /// - Mirrors the current `Map.put` behavior, where updates return a new map
 ///   value rather than mutating the original one.
-#[allow(dead_code)]
+#[cfg(test)]
 pub(crate) fn put_persistent<K, V>(entries: &[(K, V)], key: K, value: V) -> Vec<(K, V)>
 where
     K: Clone + PartialEq,
@@ -841,4 +832,5 @@ where
 
 #[cfg(test)]
 #[path = "map_value_test.rs"]
+#[cfg(test)]
 mod map_value_test;

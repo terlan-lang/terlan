@@ -1,11 +1,14 @@
+#[cfg(test)]
 use super::BenchmarkStatus;
 
 /// Runtime lane selected for capability reporting.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg(test)]
 enum RuntimeLaneKind {
     TerlanVm,
 }
 
+#[cfg(test)]
 impl RuntimeLaneKind {
     /// Returns the stable lane name used in benchmark reports.
     ///
@@ -26,10 +29,12 @@ impl RuntimeLaneKind {
 
 /// Runtime capability selected for capability reporting.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg(test)]
 enum RuntimeCapability {
     HttpRuntime,
 }
 
+#[cfg(test)]
 impl RuntimeCapability {
     /// Returns the stable capability name used in benchmark reports.
     ///
@@ -50,12 +55,14 @@ impl RuntimeCapability {
 
 /// Typed availability decision for one runtime capability.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg(test)]
 enum RuntimeCapabilityStatus {
     Available,
 }
 
 /// One runtime lane represented in benchmark or gate output.
 #[derive(Debug, Clone)]
+#[cfg(test)]
 struct RuntimeLane {
     name: &'static str,
     capability: &'static str,
@@ -64,6 +71,7 @@ struct RuntimeLane {
     detail: Option<&'static str>,
 }
 
+#[cfg(test)]
 impl RuntimeLane {
     /// Returns the current VM HTTP lane status.
     ///
@@ -124,6 +132,7 @@ impl RuntimeLane {
 /// Transformation:
 /// - Keeps the 0.0.7 VM HTTP lane explicit without depending on the removed
 ///   OTP HTTP benchmark.
+#[cfg(test)]
 fn runtime_capability_status(
     lane: RuntimeLaneKind,
     capability: RuntimeCapability,
@@ -136,46 +145,5 @@ fn runtime_capability_status(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Verifies the Terlan VM HTTP lane is a typed executable capability.
-    ///
-    /// Inputs:
-    /// - VM runtime lane and HTTP runtime capability.
-    ///
-    /// Output:
-    /// - Test passes when the capability reports available.
-    ///
-    /// Transformation:
-    /// - Pins VM HTTP availability to an explicit runtime capability result.
-    #[test]
-    fn terlan_vm_http_runtime_capability_is_available() {
-        assert_eq!(
-            runtime_capability_status(RuntimeLaneKind::TerlanVm, RuntimeCapability::HttpRuntime),
-            RuntimeCapabilityStatus::Available
-        );
-    }
-
-    /// Verifies VM HTTP lane reports use the typed capability status.
-    ///
-    /// Inputs:
-    /// - No external runtime state.
-    ///
-    /// Output:
-    /// - Test passes when lane fields contain the executable VM HTTP status.
-    ///
-    /// Transformation:
-    /// - Converts the typed capability decision into the report shape that
-    ///   runtime benchmarks can reuse.
-    #[test]
-    fn runtime_report_vm_lane_uses_typed_capability_status() {
-        let report = RuntimeLane::vm_http();
-
-        assert_eq!(report.name, "terlan-vm-http-runtime");
-        assert_eq!(report.capability, "http_runtime");
-        assert!(matches!(report.status, BenchmarkStatus::Completed));
-        assert_eq!(report.reason, None);
-        assert_eq!(report.detail, None);
-    }
-}
+#[path = "http_runtime_lane_test.rs"]
+mod tests;

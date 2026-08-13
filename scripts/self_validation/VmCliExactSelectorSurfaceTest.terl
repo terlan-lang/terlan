@@ -1,0 +1,71 @@
+/**
+ * Proves release gates retain exact coverage for VM CLI execution surfaces.
+ */
+module scripts.self_validation.VmCliExactSelectorSurface.
+
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.Console.{println}.
+import std.io.File.{read_text}.
+
+pub repository_surface_holds(path: String): Bool ->
+    case read_text(path) {
+        Ok(contents) -> surface_holds(contents);
+        _ -> false
+    }.
+
+pub surface_holds(makefile: String): Bool ->
+    target_present(makefile, "terlan-vm-run-command-check")
+        and target_present(makefile, "terlan-vm-test-command-check")
+        and String.contains(makefile, "commands::run::run_test::validate_run_args_defaults_to_vm_target")
+        and String.contains(makefile, "commands::run::run_test::run_built_native_image_executes_vm_runner")
+        and String.contains(
+    makefile,
+    "commands::test::test_command_test::execution_cases::run_test_defaults_to_terlan_vm_execution",
+)
+        and String.contains(
+    makefile,
+    "commands::test::test_command_test::execution_cases::run_project_directory_tests_default_to_vm_and_prepare_source_roots",
+)
+        and String.contains(makefile, "commands::repl::repl_aot_test::repl_command_rejects_runtime_selection").
+
+target_present(makefile: String, target: String): Bool ->
+    String.starts_with(makefile, String.append(target, ":"))
+        or String.contains(makefile, String.append("\n", String.append(target, ":"))).
+
+complete_fixture(): String ->
+    "terlan-vm-run-command-check:\nterlan-vm-test-command-check:\ncommands::run::run_test::validate_run_args_defaults_to_vm_target\ncommands::run::run_test::run_built_native_image_executes_vm_runner\ncommands::test::test_command_test::execution_cases::run_test_defaults_to_terlan_vm_execution\ncommands::test::test_command_test::execution_cases::run_project_directory_tests_default_to_vm_and_prepare_source_roots\ncommands::repl::repl_aot_test::repl_command_rejects_runtime_selection".
+
+@test
+pub repository_vm_cli_exact_selector_surface_holds(): Bool ->
+    repository_surface_holds("Makefile").
+
+@test
+pub policy_accepts_complete_exact_selector_surface(): Bool ->
+    surface_holds(complete_fixture()).
+
+@test
+pub policy_rejects_target_name_outside_declaration_position(): Bool ->
+    not surface_holds(
+    String.replace(
+        complete_fixture(),
+        "terlan-vm-run-command-check:",
+        "echo terlan-vm-run-command-check:",
+    ),
+).
+
+@test
+pub policy_rejects_missing_exact_selector(): Bool ->
+    not surface_holds(
+    String.replace(
+        complete_fixture(),
+        "commands::repl::repl_aot_test::repl_command_rejects_runtime_selection",
+        "missing-selector",
+    ),
+).
+
+pub main(): Unit ->
+    if {
+        repository_surface_holds("Makefile") -> println("VM CLI exact-selector surface covers repl, run, test, and artifact execution.");
+        true -> println("VM CLI exact-selector surface check failed")
+    }.

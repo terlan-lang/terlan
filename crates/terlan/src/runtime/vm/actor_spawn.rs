@@ -23,18 +23,21 @@ impl Default for VmActorSpawnOptions {
 
 impl VmActorSpawnOptions {
     /// Assigns the child scheduler class.
+    #[cfg(test)]
     pub(crate) fn with_scheduler_class(mut self, scheduler_class: VmSchedulerClass) -> Self {
         self.scheduler_class = scheduler_class;
         self
     }
 
     /// Links the parent and child failure lifecycles.
+    #[cfg(test)]
     pub(crate) fn linked(mut self) -> Self {
         self.link_parent = true;
         self
     }
 
     /// Monitors the child from its parent.
+    #[cfg(test)]
     pub(crate) fn monitored(mut self) -> Self {
         self.monitor_child = true;
         self

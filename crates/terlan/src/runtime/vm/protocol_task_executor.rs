@@ -5,8 +5,6 @@ use std::future::Future;
 use std::io;
 use std::net::{self as std_net, SocketAddr, ToSocketAddrs};
 use std::pin::Pin;
-#[cfg(test)]
-use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc, Mutex, OnceLock, Weak};
 #[cfg(test)]
@@ -161,15 +159,15 @@ pub(crate) fn with_protocol_scheduler_for_test<R>(
     scheduler: VmSchedulerId,
     operation: impl FnOnce() -> R,
 ) -> R {
-    struct Reset(Option<VmSchedulerId>);
-    impl Drop for Reset {
+    struct ProtocolSchedulerReset(Option<VmSchedulerId>);
+    impl Drop for ProtocolSchedulerReset {
         fn drop(&mut self) {
             CURRENT_PROTOCOL_SCHEDULER.with(|current| current.set(self.0));
         }
     }
 
     let prior = CURRENT_PROTOCOL_SCHEDULER.with(|current| current.replace(Some(scheduler)));
-    let _reset = Reset(prior);
+    let _reset = ProtocolSchedulerReset(prior);
     operation()
 }
 
@@ -184,15 +182,15 @@ pub(crate) fn with_protocol_task_for_test<R>(
 
 /// Binds one exact connection route only while its future is being polled.
 fn with_protocol_task<R>(route: VmProtocolTaskRoute, operation: impl FnOnce() -> R) -> R {
-    struct Reset(Option<VmProtocolTaskRoute>);
-    impl Drop for Reset {
+    struct ProtocolTaskReset(Option<VmProtocolTaskRoute>);
+    impl Drop for ProtocolTaskReset {
         fn drop(&mut self) {
             CURRENT_PROTOCOL_TASK.with(|current| current.set(self.0));
         }
     }
 
     let prior = CURRENT_PROTOCOL_TASK.with(|current| current.replace(Some(route)));
-    let _reset = Reset(prior);
+    let _reset = ProtocolTaskReset(prior);
     operation()
 }
 
@@ -226,16 +224,6 @@ pub(crate) fn serve_protocol_tasks(
 ) -> Result<(), String> {
     let topology = VmSchedulerTopology::from_environment()?;
     start_protocol_tasks_with_topology(listener, factory, topology)?.join()
-}
-
-/// Starts a managed protocol server on the environment-selected VM topology.
-#[allow(dead_code)] // Retained for managed embedding without a blocking join.
-pub(crate) fn start_protocol_tasks(
-    listener: std_net::TcpListener,
-    factory: VmProtocolTaskFactory,
-) -> Result<VmProtocolTaskServer, String> {
-    let topology = VmSchedulerTopology::from_environment()?;
-    start_protocol_tasks_with_topology(listener, factory, topology)
 }
 
 /// Starts a managed protocol server on one explicit fixed-scheduler topology.
@@ -861,7 +849,7 @@ struct VmProtocolTask {
 }
 
 /// Allocates one stable connection-task route on a fixed protocol scheduler.
-#[allow(dead_code)] // Retained for actor-addressed protocol admission.
+#[cfg(test)]
 pub(crate) fn next_protocol_task_route(
     scheduler: VmSchedulerId,
 ) -> Result<VmProtocolTaskRoute, String> {
@@ -870,4 +858,5 @@ pub(crate) fn next_protocol_task_route(
 
 #[cfg(test)]
 #[path = "protocol_task_executor_test.rs"]
+#[cfg(test)]
 mod protocol_task_executor_test;

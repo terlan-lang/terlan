@@ -48,7 +48,6 @@ pub fn encode_cookie_header_operation(operation: ManagedCookieHeaderOperation) -
 }
 
 /// Encodes immutable replay of a managed cookie jar into response headers.
-#[allow(clippy::too_many_arguments)]
 pub fn encode_response_cookie_jar_operation(
     response_semantic: SemanticTypeId,
     header_list_semantic: SemanticTypeId,
@@ -260,7 +259,7 @@ fn apply_cookie_jar(
     let jar_layout = layouts
         .layout_for_reference(heap, jar_semantic, jar)
         .map_err(|_| ManagedMemoryError::ManagedTypeMismatch)?;
-    let jar_values = super::aggregate_fields(heap, &jar_layout, jar)?;
+    let jar_values = super::aggregate_fields(heap, jar_layout, jar)?;
     let mutations = match jar_values.get(jar_field) {
         Some(ManagedFieldValue::Reference(reference)) => reference.cast::<ManagedList>(),
         _ => return Err(ManagedMemoryError::InvalidAggregateField),
@@ -273,11 +272,13 @@ fn apply_cookie_jar(
     append_headers(
         heap,
         layouts,
-        response_semantic,
-        header_list_semantic,
-        header_semantic,
-        response_field,
-        response,
+        super::AggregateListTarget {
+            aggregate_semantic: response_semantic,
+            list_semantic: header_list_semantic,
+            pair_semantic: header_semantic,
+            field: response_field,
+            aggregate: response,
+        },
         mutations
             .into_iter()
             .map(|value| match value {
@@ -309,7 +310,7 @@ fn apply_security_headers(
     let policy_layout = layouts
         .layout_for_reference(heap, policy_semantic, policy)
         .map_err(|_| ManagedMemoryError::ManagedTypeMismatch)?;
-    let values = super::aggregate_fields(heap, &policy_layout, policy)?;
+    let values = super::aggregate_fields(heap, policy_layout, policy)?;
     let [ManagedFieldValue::Bool(content_type_options), ManagedFieldValue::Int(frame_options), ManagedFieldValue::Int(referrer_policy), ManagedFieldValue::Int(hsts_max_age), ManagedFieldValue::Bool(hsts_include_subdomains)] =
         values.as_slice()
     else {
@@ -346,45 +347,51 @@ fn apply_security_headers(
     append_headers(
         heap,
         layouts,
-        response_semantic,
-        header_list_semantic,
-        header_semantic,
-        response_field,
-        response,
-        headers.into_iter(),
+        super::AggregateListTarget {
+            aggregate_semantic: response_semantic,
+            list_semantic: header_list_semantic,
+            pair_semantic: header_semantic,
+            field: response_field,
+            aggregate: response,
+        },
+        headers,
     )
 }
 
 /// Appends owned name/value pairs through the generic persistent response primitive.
-#[allow(clippy::too_many_arguments)]
 pub(super) fn append_headers(
     heap: &mut ActorHeap,
     layouts: &ManagedLayoutRegistry,
-    response_semantic: SemanticTypeId,
-    header_list_semantic: SemanticTypeId,
-    header_semantic: SemanticTypeId,
-    response_field: usize,
-    response: i64,
+    target: super::AggregateListTarget,
     headers: impl IntoIterator<Item = (String, String)>,
 ) -> Result<TvmRef<()>, ManagedMemoryError> {
-    let mut response = response;
+    let super::AggregateListTarget {
+        aggregate_semantic,
+        list_semantic,
+        pair_semantic,
+        field,
+        aggregate,
+    } = target;
+    let mut aggregate = aggregate;
     for (name, value) in headers {
         let name = heap.allocate_string(&name)?;
         let value = heap.allocate_string(&value)?;
         let updated = super::append_pair_to_aggregate_list(
             heap,
             layouts,
-            response_semantic,
-            header_list_semantic,
-            header_semantic,
-            response_field,
-            response,
+            super::AggregateListTarget {
+                aggregate_semantic,
+                list_semantic,
+                pair_semantic,
+                field,
+                aggregate,
+            },
             reference_word(name.erase()),
             reference_word(value.erase()),
         )?;
-        response = reference_word(updated);
+        aggregate = reference_word(updated);
     }
-    super::reference_word(response)
+    super::reference_word(aggregate)
 }
 
 /// Reads one owned managed string from a native argument word.
@@ -456,4 +463,5 @@ fn reference_word<T>(reference: TvmRef<T>) -> i64 {
 
 #[cfg(test)]
 #[path = "http_test.rs"]
+#[cfg(test)]
 mod http_test;

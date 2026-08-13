@@ -49,13 +49,13 @@ pub (value: SVGFEBlendElement) mode(): SVGAnimatedEnumeration ->
 pub (value: SVGFEBlendElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     native.
 
 pub (value: SVGFEBlendElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     native.

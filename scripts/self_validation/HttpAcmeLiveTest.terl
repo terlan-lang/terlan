@@ -1,0 +1,227 @@
+/**
+ * Runs the explicitly enabled live ACME smoke through typed Terlan APIs.
+ */
+module scripts.self_validation.HttpAcmeLiveTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.io.{Directory, File}.
+import std.system.{Environment, Process}.
+
+import type std.core.Option.
+
+const DEFAULT_HOST: String = "0.0.0.0".
+
+const DEFAULT_PORT: String = "443".
+
+const DEFAULT_TIMEOUT_SECONDS: String = "60".
+
+pub environment_value(name: String): Option[String] ->
+    case Environment.get(name) {
+        Some(value) -> nonempty(String.trim(value));
+        None -> None
+    }.
+
+nonempty(value: String): Option[String] ->
+    if {
+        value == "" -> None;
+        true -> Some(value)
+    }.
+
+pub valid_port(value: String): Bool ->
+    case Int.from_string(value) {
+        Some(port) -> 1 <= port and port <= 65535;
+        None -> false
+    }.
+
+pub timeout_milliseconds(value: String): Option[Int] ->
+    case String.split_once(value, ".") {
+        Some({whole, fraction}) -> decimal_timeout_milliseconds(whole, fraction);
+        None ->
+            case Int.from_string(value) {
+                Some(seconds) -> positive_timeout(seconds * 1000);
+                None -> None
+            }
+    }.
+
+decimal_timeout_milliseconds(whole: String, fraction: String): Option[Int] ->
+    let whole_text =
+        if {
+            whole == "" -> "0";
+            true -> whole
+        };
+    case {Int.from_string(whole_text), Int.from_string(fraction)} {
+        {Some(seconds), Some(part)} ->
+            let divisor = decimal_power(String.length(fraction));
+            let millis = seconds * 1000 + part * 1000 / divisor;
+            positive_timeout(
+                if {
+                    millis == 0 and (seconds > 0 or part > 0) -> 1;
+                    true -> millis
+                },
+            );
+        _ -> None
+    }.
+
+decimal_power(digits: Int): Int ->
+    if {
+        digits <= 0 -> 1;
+        true -> 10 * decimal_power(digits - 1)
+    }.
+
+positive_timeout(milliseconds: Int): Option[Int] ->
+    if {
+        milliseconds > 0 -> Some(milliseconds);
+        true -> None
+    }.
+
+append(left: String, right: String): String ->
+    String.append(left, right).
+
+path(root: String, suffix: String): String ->
+    append(root, suffix).
+
+write_package(root: String, domain: String, email: String): Bool ->
+    let web = path(root, "/_build/web");
+    let {
+        Ok(_) <- Directory.create_all(web);
+        Ok(_) <-
+            File.write_text(
+                path(web, "/index.html"),
+                "<!doctype html><main>Terlan ACME smoke</main>\n",
+            );
+        Ok(_) <-
+            File.write_text(
+                path(web, "/manifest.json"),
+                "{\n  \"schema\": \"terlan-web-build-v1\",\n  \"build_id\": \"http-acme-live-check\",\n  \"index\": \"index.html\",\n  \"assets\": []\n}\n",
+            );
+        Ok(_) <-
+            File.write_text(
+                path(root, "/terlan.toml"),
+                append(
+                    "[package]\nname = \"http_acme_live_check\"\nversion = \"0.0.0\"\n\n[server.tls]\nmode = \"auto\"\ndomains = [\"",
+                    append(domain, append("\"]\nemail = \"", append(email, "\"\n"))),
+                ),
+            )
+    } else {
+        _ -> false
+    };
+    true.
+
+configured_or(name: String, fallback: String): String ->
+    case environment_value(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+compiler_path(root: String): String ->
+    case environment_value("TERLAN_HTTP_ACME_TERLC") {
+        Some(value) -> value;
+        None -> path(root, "/target/debug/terlc")
+    }.
+
+required_configuration(): Option[{String, String}] ->
+    case {environment_value("TERLAN_HTTP_ACME_DOMAIN"), environment_value("TERLAN_HTTP_ACME_EMAIL")} {
+        {Some(domain), Some(email)} -> Some({domain, email});
+        _ -> None
+    }.
+
+run_live(root: String, domain: String, email: String, timeout_ms: Int): Bool ->
+    case Directory.create_temporary("terlan-http-acme-live.") {
+        Err(_) -> false;
+        Ok(work) -> run_live_in(root, work, domain, email, timeout_ms)
+    }.
+
+run_live_in(root: String, work: String, domain: String, email: String, timeout_ms: Int): Bool ->
+    let compiler = compiler_path(root);
+    let host = configured_or("TERLAN_HTTP_ACME_HOST", DEFAULT_HOST);
+    let port = configured_or("TERLAN_HTTP_ACME_PORT", DEFAULT_PORT);
+    let web = path(work, "/_build/web");
+    let cache = path(work, "/.terlan/tls/acme");
+    if {
+        not File.exists(compiler) -> false;
+        not valid_port(port) -> false;
+        not write_package(work, domain, email) -> false;
+        true -> let command =
+            Process.with_output_limit_bytes(
+                Process.with_timeout_ms(
+                    Process.with_working_directory(
+                        Process.with_arguments(
+                            Process.command(compiler),
+                            ["serve", web, "--host", host, "--port", port],
+                        ),
+                        work,
+                    ),
+                    timeout_ms,
+                ),
+                1048576,
+            );
+        case Process.run(command) {
+            Ok(_) -> inspect_cache(work, cache);
+            Err(_) -> inspect_cache(work, cache)
+        }
+    }.
+
+inspect_cache(work: String, cache: String): Bool ->
+    case Directory.entries(cache) {
+        Ok(entries) ->
+            cleanup_live(
+                work,
+                has_cache_file(entries, "fullchain.pem") and has_cache_file(entries, "privkey.pem"),
+            );
+        Err(_) -> cleanup_live(work, false)
+    }.
+
+has_cache_file(entries: List[String], name: String): Bool ->
+    case entries {
+        [] -> false;
+        [entry | rest] ->
+            String.ends_with(entry, append("/", name))
+                or entry == name
+                or has_cache_file(rest, name)
+    }.
+
+cleanup_live(work: String, observed: Bool): Bool ->
+    case Directory.remove_all(work) {
+        Ok(_) -> observed;
+        Err(_) -> false
+    }.
+
+pub live_contract_holds(): Bool ->
+    case environment_value("TERLAN_HTTP_ACME_LIVE") {
+        Some("1") ->
+            let root = Environment.current_directory();
+            let timeout = configured_or("TERLAN_HTTP_ACME_TIMEOUT_SECONDS", DEFAULT_TIMEOUT_SECONDS);
+            case {required_configuration(), timeout_milliseconds(timeout)} {
+                {Some({domain, email}), Some(timeout_ms)} ->
+                    run_live(root, domain, email, timeout_ms);
+                _ -> false
+            };
+        _ -> true
+    }.
+
+@test
+pub port_validation_matches_tcp_range(): Bool ->
+    valid_port("1")
+        and valid_port("443")
+        and valid_port("65535")
+        and not valid_port("0")
+        and not valid_port("65536")
+        and not valid_port("https").
+
+@test
+pub timeout_validation_accepts_positive_fractional_seconds(): Bool ->
+    case {
+    timeout_milliseconds("0.25"),
+    timeout_milliseconds("60"),
+    timeout_milliseconds("0"),
+    timeout_milliseconds("later"),
+} {
+        {Some(250), Some(60000), None, None} -> true;
+        _ -> false
+    }.
+
+@test
+pub repository_http_acme_live_contract_holds(): Bool ->
+    live_contract_holds().

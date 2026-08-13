@@ -1,0 +1,333 @@
+/**
+ * Classifies every legacy-runtime reference retained by active roadmaps.
+ */
+module scripts.self_validation.RoadmapLegacyRuntimeCleanupTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.File.{exists, read_text}.
+import std.regex.Regex.
+
+import type std.collections.List.
+import type std.core.Option.
+import type std.regex.Regex.
+
+pub struct AllowRow {
+    file_pattern: Regex,
+    line_pattern: Regex,
+    category: String,
+    line_number: Int,
+}.
+
+pub struct ActiveRoadmap {
+    name: String,
+    contents: String,
+}.
+
+pub struct LegacyReference {
+    file_name: String,
+    line_number: Int,
+    text: String,
+}.
+
+@pure
+active_roadmap_names(): List[String] -> ["ROADMAP_0_0_7.md", "ROADMAP_0_0_7_UNBLOCKERS.md"].
+
+@pure
+allowed_category(category: String): Bool ->
+    category == "removal"
+        or category == "parity-port"
+        or category == "stale-proof-cleanup"
+        or category == "legacy-metadata-rejection"
+        or category == "historical-baseline".
+
+@pure
+child(root: String, relative: String): String ->
+    String.append(root, String.append("/", relative)).
+
+glob_pattern(glob: String): String ->
+    let escaped = Regex.escape(glob);
+    let stars = String.replace(escaped, "\\*", ".*");
+    let questions = String.replace(stars, "\\?", ".");
+    String.append("^", String.append(questions, "$")).
+
+parse_allowlist(text: String): Option[List[AllowRow]] ->
+    parse_allowlist_lines(String.split(text, "\n"), 1, []).
+
+parse_allowlist_lines(
+    lines: List[String],
+    line_number: Int,
+    rows: List[AllowRow],
+): Option[List[AllowRow]] ->
+    case lines {
+        [] -> Some(rows);
+        [line | rest] ->
+            if {
+                String.trim(line) == "" or String.starts_with(line, "#") -> parse_allowlist_lines(rest, line_number + 1, rows);
+                true -> case String.split(line, "\t") {
+                    [file_glob, line_source, category, notes] ->
+                        if {
+                            not allowed_category(category) or String.trim(notes) == "" -> None;
+                            true -> let {
+                                Ok(file_pattern) <- Regex.compile(glob_pattern(file_glob));
+                                Ok(line_pattern) <- Regex.compile(line_source)
+                            } else {
+                                _ -> None
+                            };
+                            parse_allowlist_lines(
+                                rest,
+                                line_number + 1,
+                                [AllowRow(
+    file_pattern = file_pattern,
+    line_pattern = line_pattern,
+    category = category,
+    line_number = line_number,
+) | rows],
+                            )
+                        };
+                    _ -> None
+                }
+            }
+    }.
+
+legacy_pattern(): Option[Regex] ->
+    case Regex.compile("\\b(OTP|BEAM|Erlang|EUnit|ERTS|epmd|CoreV0|beam-thin|beam|erlang|eunit|erts)\\b") {
+        Ok(pattern) -> Some(pattern);
+        Err(_reason) -> None
+    }.
+
+references_for_numbers(
+    file_name: String,
+    lines: List[String],
+    matching_lines: List[Int],
+    line_number: Int,
+    found: List[LegacyReference],
+): List[LegacyReference] ->
+    case {lines, matching_lines} {
+        {_, []} -> found;
+        {[], _} -> found;
+        {[line | rest], [matching_line | remaining_matches]} ->
+            if {
+                line_number == matching_line -> references_for_numbers(
+                    file_name,
+                    rest,
+                    remaining_matches,
+                    line_number + 1,
+                    [LegacyReference(file_name = file_name, line_number = line_number, text = line) | found],
+                );
+                true -> references_for_numbers(file_name, rest, matching_lines, line_number + 1, found)
+            }
+    }.
+
+references_in_file(pattern: Regex, file: ActiveRoadmap): List[LegacyReference] ->
+    references_for_numbers(
+        file.name,
+        String.split(file.contents, "\n"),
+        Regex.matching_line_numbers(pattern, file.contents),
+        1,
+        [],
+    ).
+
+references_in_files(pattern: Regex, files: List[ActiveRoadmap]): List[LegacyReference] ->
+    references_in_files_acc(pattern, files, []).
+
+prepend_references(
+    values: List[LegacyReference],
+    found: List[LegacyReference],
+): List[LegacyReference] ->
+    case values {
+        [] -> found;
+        [value | rest] -> prepend_references(rest, [value | found])
+    }.
+
+references_in_files_acc(
+    pattern: Regex,
+    files: List[ActiveRoadmap],
+    found: List[LegacyReference],
+): List[LegacyReference] ->
+    case files {
+        [] -> found;
+        [file | rest] ->
+            let current = references_in_file(pattern, file);
+            references_in_files_acc(pattern, rest, prepend_references(current, found))
+    }.
+
+row_matches(row: AllowRow, reference: LegacyReference): Bool ->
+    Regex.is_match(row.file_pattern, reference.file_name)
+        and Regex.is_match(row.line_pattern, reference.text).
+
+matching_row_count(reference: LegacyReference, rows: List[AllowRow]): Int ->
+    matching_row_count_acc(reference, rows, 0).
+
+matching_row_count_acc(reference: LegacyReference, rows: List[AllowRow], count: Int): Int ->
+    case rows {
+        [] -> count;
+        [row | rest] ->
+            if {
+                row_matches(row, reference) -> matching_row_count_acc(reference, rest, count + 1);
+                true -> matching_row_count_acc(reference, rest, count)
+            }
+    }.
+
+references_are_classified(references: List[LegacyReference], rows: List[AllowRow]): Bool ->
+    case references {
+        [] -> true;
+        [reference | rest] ->
+            if {
+                matching_row_count(reference, rows) == 1 -> references_are_classified(rest, rows);
+                true -> false
+            }
+    }.
+
+row_has_reference(row: AllowRow, references: List[LegacyReference]): Bool ->
+    case references {
+        [] -> false;
+        [reference | rest] -> row_matches(row, reference) or row_has_reference(row, rest)
+    }.
+
+rows_are_live(rows: List[AllowRow], references: List[LegacyReference]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            if {
+                row_has_reference(row, references) -> rows_are_live(rest, references);
+                true -> false
+            }
+    }.
+
+pub audit_text_holds(allowlist: String, files: List[ActiveRoadmap]): Bool ->
+    case {parse_allowlist(allowlist), legacy_pattern()} {
+        {Some(rows), Some(pattern)} ->
+            let references = references_in_files(pattern, files);
+            references_are_classified(references, rows) and rows_are_live(rows, references);
+        _ -> false
+    }.
+
+root_has_active_roadmap(root: String): Bool ->
+    exists(child(root, "ROADMAP_0_0_7.md")) or exists(child(root, "ROADMAP_0_0_7_UNBLOCKERS.md")).
+
+pub select_roadmap_root(first: String, second: String): Option[String] ->
+    select_present_root(
+        first,
+        root_has_active_roadmap(first),
+        second,
+        root_has_active_roadmap(second),
+    ).
+
+@pure
+pub select_present_root(
+    first: String,
+    first_is_active: Bool,
+    second: String,
+    second_is_active: Bool,
+): Option[String] ->
+    if {
+        first_is_active -> Some(first);
+        second_is_active -> Some(second);
+        true -> None
+    }.
+
+read_active_roadmaps(root: String): Option[List[ActiveRoadmap]] ->
+    read_named_roadmaps(root, active_roadmap_names(), []).
+
+read_named_roadmaps(
+    root: String,
+    names: List[String],
+    files: List[ActiveRoadmap],
+): Option[List[ActiveRoadmap]] ->
+    case names {
+        [] -> Some(files);
+        [name | rest] ->
+            let path = child(root, name);
+            if {
+                not exists(path) -> read_named_roadmaps(root, rest, files);
+                true -> case read_text(path) {
+                    Ok(contents) ->
+                        read_named_roadmaps(
+                            root,
+                            rest,
+                            [ActiveRoadmap(name = name, contents = contents) | files],
+                        );
+                    Err(_reason) -> None
+                }
+            }
+    }.
+
+/**
+ * Returns whether every active roadmap legacy reference has one live row.
+ */
+pub repository_holds(root: String): Bool ->
+    let local = child(root, "docs/roadmap");
+    let parent = child(root, "../docs/roadmap");
+    case select_roadmap_root(local, parent) {
+        None -> true;
+        Some(roadmap_root) ->
+            let {
+                Ok(allowlist) <- read_text(child(root, "docs/runtime/LEGACY_RUNTIME_ALLOWED_REFERENCES.tsv"));
+                Some(files) <- read_active_roadmaps(roadmap_root)
+            } else {
+                _ -> false
+            };
+            audit_text_holds(allowlist, files)
+    }.
+
+@pure
+fixture_file(text: String): ActiveRoadmap ->
+    ActiveRoadmap(name = "ROADMAP_0_0_7.md", contents = text).
+
+@pure
+fixture_row(pattern: String, category: String, notes: String): String ->
+    String.append(
+        "ROADMAP_0_0_7.md\t",
+        String.append(
+            pattern,
+            String.append("\t", String.append(category, String.append("\t", notes))),
+        ),
+    ).
+
+@test
+pub accepted_reference_is_classified_once(): Bool ->
+    audit_text_holds(
+        fixture_row("^OTP removal$", "removal", "retired runtime wording"),
+        [fixture_file("ordinary\nOTP removal\n")],
+    ).
+
+@test
+pub unclassified_reference_is_rejected(): Bool ->
+    not audit_text_holds(
+    fixture_row("^BEAM removal$", "removal", "retired runtime wording"),
+    [fixture_file("OTP removal\n")],
+).
+
+@test
+pub duplicate_matching_rows_are_rejected(): Bool ->
+    let row = fixture_row("OTP", "removal", "retired runtime wording");
+    not audit_text_holds(String.append(row, String.append("\n", row)), [fixture_file("OTP")]).
+
+@test
+pub stale_allowlist_row_is_rejected(): Bool ->
+    not audit_text_holds(
+    fixture_row("OTP", "removal", "retired runtime wording"),
+    [fixture_file("ordinary text")],
+).
+
+@test
+pub malformed_regex_category_and_notes_are_rejected(): Bool ->
+    not audit_text_holds(fixture_row("(", "removal", "retired runtime wording"), [fixture_file("OTP")])
+        and not audit_text_holds(
+    fixture_row("OTP", "compatibility", "retired runtime wording"),
+    [fixture_file("OTP")],
+)
+        and not audit_text_holds(fixture_row("OTP", "removal", ""), [fixture_file("OTP")]).
+
+@test
+pub active_roadmap_root_selection_skips_inactive_candidate(): Bool ->
+    case select_present_root("inactive", false, "active", true) {
+        Some(selected) -> selected == "active";
+        None -> false
+    }.
+
+@test
+pub repository_legacy_runtime_allowlist_is_exact(): Bool ->
+    repository_holds(".").

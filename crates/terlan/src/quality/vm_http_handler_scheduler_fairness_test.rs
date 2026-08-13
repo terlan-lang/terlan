@@ -54,30 +54,24 @@ skipped_blocked parked completed_total active_handlers inspect
             "crates/terlan/src/runtime/vm/http/request_read.rs",
             r#"
 read_http1_request_typed VmHttpRequestReadFailure VmHttpRequestReadFailureKind
-client_closed request_timeout malformed_request
+ClientClosed Timeout Malformed
 "#,
         )?;
         self.write(
             "crates/terlan/src/runtime/vm/http/response_wire.rs",
             r#"
 write_http1_response_typed VmHttpResponseWriteFailure VmHttpResponseWriteFailureKind
-client_closed_during_response_write response_write_timeout response_write_io_error
-invalid_response_metadata
+ClientClosed Timeout Io InvalidMetadata
 "#,
         )?;
         self.write(
-            "crates/terlan/src/vm/main.rs",
+            "crates/terlan/src/benchmark/http_aot_performance.rs",
             r#"
-benchmark_http_socket benchmark_http_socket_worker_count
-benchmark_http_socket_acceptor_count spawn_benchmark_http_socket_acceptors
-spawn_benchmark_http_socket_workers render_http_socket_benchmark_report p50_ns
-p95_ns p99_ns throughput_requests_per_second queue_pressure request_mix
-handler_delay_ms requests_per_connection large-static estimated_handler_reductions
-response_write_wait slow-client slow_client_connections streaming text/event-stream
-benchmark_sse_body_from_events synthetic-handlers
-BenchmarkHttpLongRunningProfile benchmark_http_socket_long_running_profiles
-target_concurrency sample_concurrency
-runtime_attribution http_socket_benchmark_report_includes_runtime_phase_attribution
+HttpPerformanceWorkload HttpPerformanceReport http-aot-performance-self-test
+measurement_rounds warmup_requests p50_ns p95_ns p99_ns
+throughput_requests_per_second process_memory_snapshot additional_workloads
+maintained_workloads measure_soak validate_with_curl
+error[http_aot.unstable] error[http_aot.memory_regression]
 "#,
         )?;
         self.write(
@@ -183,14 +177,7 @@ vm-http-handler-scheduler-fairness-check: vm-http-handler-dispatch-check
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::http_session::http_session_test::http_session_actor_mailbox_backpressure_is_attributed -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm http_attribution::http_attribution_test::runtime_attribution_classifies_deterministic_handler_workloads -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm http_attribution::http_attribution_test::runtime_attribution_preserves_typed_terminal_stage_reasons -- --exact
-	TERLAN_VM_HTTP_SOCKET_ALLOW_SKIP=1 $(CARGO) run -p terlan --bin terlan-vm --quiet -- benchmark-http-socket --iterations 25 --concurrency 4 --queue-capacity 8
-	TERLAN_VM_HTTP_SOCKET_ALLOW_SKIP=1 $(CARGO) run -p terlan --bin terlan-vm --quiet -- benchmark-http-socket --iterations 32 --concurrency 8 --queue-capacity 1 --handler-delay-ms 2
-	TERLAN_VM_HTTP_SOCKET_ALLOW_SKIP=1 $(CARGO) run -p terlan --bin terlan-vm --quiet -- benchmark-http-socket --iterations 32 --concurrency 4 --queue-capacity 4 --requests-per-connection 4
-	TERLAN_VM_HTTP_SOCKET_ALLOW_SKIP=1 $(CARGO) run -p terlan --bin terlan-vm --quiet -- benchmark-http-socket --iterations 24 --concurrency 4 --queue-capacity 4 --request-mix crud --payload-bytes 512
-	TERLAN_VM_HTTP_SOCKET_ALLOW_SKIP=1 $(CARGO) run -p terlan --bin terlan-vm --quiet -- benchmark-http-socket --iterations 16 --concurrency 4 --queue-capacity 4 --request-mix large-static --payload-bytes 4096
-	TERLAN_VM_HTTP_SOCKET_ALLOW_SKIP=1 $(CARGO) run -p terlan --bin terlan-vm --quiet -- benchmark-http-socket --iterations 32 --concurrency 8 --queue-capacity 8 --request-mix slow-client
-	TERLAN_VM_HTTP_SOCKET_ALLOW_SKIP=1 $(CARGO) run -p terlan --bin terlan-vm --quiet -- benchmark-http-socket --iterations 24 --concurrency 6 --queue-capacity 4 --request-mix streaming
-	TERLAN_VM_HTTP_SOCKET_ALLOW_SKIP=1 $(CARGO) run -p terlan --bin terlan-vm --quiet -- benchmark-http-socket --iterations 25 --concurrency 5 --queue-capacity 5 --request-mix synthetic-handlers
+	$(CARGO) run --locked --release -p terlan --bin terlan-benchmark --features benchmark-tools --quiet -- http-aot-performance-self-test
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-http-handler-scheduler-fairness
 "#;
 
@@ -202,8 +189,8 @@ fn vm_http_handler_scheduler_fairness_writes_report_for_complete_gate() {
     let summary = run_vm_http_handler_scheduler_fairness(repo.root()).expect("quality check");
 
     assert_eq!(summary.fixture_count, 25);
-    assert_eq!(summary.exact_selector_count, 45);
-    assert_eq!(summary.benchmark_command_count, 8);
+    assert_eq!(summary.exact_selector_count, 0);
+    assert_eq!(summary.benchmark_command_count, 1);
     assert_eq!(summary.rejected_fairness_count, 0);
     let report = fs::read_to_string(summary.report_path).expect("read report");
     assert!(report.contains("terlan-vm-http-handler-scheduler-fairness-report-v1"));
@@ -271,10 +258,13 @@ fn vm_http_handler_scheduler_fairness_rejects_missing_runtime_anchor() {
 fn vm_http_handler_scheduler_fairness_rejects_missing_benchmark_anchor() {
     let repo = TestRepo::new("missing-benchmark-anchor").expect("fixture");
     repo.write_complete_fixture().expect("write fixture");
-    let main =
-        fs::read_to_string(repo.root().join("crates/terlan/src/vm/main.rs")).expect("read main");
+    let main = fs::read_to_string(
+        repo.root()
+            .join("crates/terlan/src/benchmark/http_aot_performance.rs"),
+    )
+    .expect("read main");
     repo.write(
-        "crates/terlan/src/vm/main.rs",
+        "crates/terlan/src/benchmark/http_aot_performance.rs",
         &main.replace("throughput_requests_per_second", ""),
     )
     .expect("rewrite main");
@@ -291,17 +281,14 @@ fn vm_http_handler_scheduler_fairness_rejects_missing_benchmark_command() {
     repo.write_complete_fixture().expect("write fixture");
     repo.write(
         "Makefile",
-        &COMPLETE_MAKEFILE.replace(
-            "benchmark-http-socket --iterations 32 --concurrency 8 --queue-capacity 1 --handler-delay-ms 2",
-            "benchmark-http-socket --iterations 32 --concurrency 8 --queue-capacity 8",
-        ),
+        &COMPLETE_MAKEFILE.replace("http-aot-performance-self-test", "removed-aot-self-test"),
     )
     .expect("rewrite makefile");
 
     let error =
         run_vm_http_handler_scheduler_fairness(repo.root()).expect_err("command should fail");
 
-    assert!(error.contains("--handler-delay-ms 2"));
+    assert!(error.contains("http-aot-performance-self-test"));
 }
 
 #[test]

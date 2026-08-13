@@ -219,4 +219,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "compiler_incremental_cache_test.rs"]
+#[cfg(test)]
 mod compiler_incremental_cache_test;

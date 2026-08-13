@@ -1,0 +1,213 @@
+/**
+ * Negative editor-release contracts executed against isolated mutations.
+ */
+module docs_static_release_parity.editor_release_parity.Adversarial.
+
+import docs_static_release_parity.editor_release_parity.{Editor, Support}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.Directory.
+import std.io.File.{delete, read_text, write_text}.
+import std.system.Process.
+
+import type std.core.Option.
+import type std.system.Process.EnvironmentEntry.
+
+copy_surfaces(source: String, destination: String): Bool ->
+    let editor_parent = Support.child(destination, "share/terlan/editors");
+    let tree_parent = Support.child(destination, "share/terlan");
+    let {
+        Ok(_editor_parent) <- Directory.create_all(editor_parent);
+        Ok(_tree_parent) <- Directory.create_all(tree_parent);
+        Ok(_editor) <-
+            Directory.copy_tree_excluding(
+                Support.child(source, Editor.editor_root()),
+                Support.child(destination, Editor.editor_root()),
+                [],
+            );
+        Ok(_tree) <-
+            Directory.copy_tree_excluding(
+                Support.child(source, Editor.tree_root()),
+                Support.child(destination, Editor.tree_root()),
+                [],
+            )
+    } else {
+        _ -> false
+    };
+    true.
+
+copy_complete(complete: String, destination: String): Bool ->
+    case Directory.copy_tree_excluding(complete, destination, []) {
+        Ok(_unit) -> true;
+        Err(_reason) -> false
+    }.
+
+replace_text(path: String, before: String, replacement: String): Bool ->
+    case read_text(path) {
+        Err(_reason) -> false;
+        Ok(source) ->
+            let changed = String.replace(source, before, replacement);
+            if {
+                changed == source -> false;
+                true -> case write_text(path, changed) {
+                    Ok(_unit) -> true;
+                    Err(_reason) -> false
+                }
+            }
+    }.
+
+missing_command_rejected(complete: String, root: String): Bool ->
+    let manifest = Support.child(root, Support.child(Editor.editor_root(), "package.json"));
+    let copied = copy_complete(complete, root);
+    let replaced = replace_text(manifest, "terlan.inspectRuntime", "terlan.inspectRuntime.removed");
+    let rejected =
+        case Editor.validate_editor(root) {
+            None -> true;
+            Some(_summary) -> false
+        };
+    copied and replaced and rejected.
+
+stale_icon_rejected(complete: String, root: String): Bool ->
+    let manifest_path = Support.child(root, Support.child(Editor.editor_root(), "package.json"));
+    if {
+        not copy_complete(complete, root) -> false;
+        true -> let {
+            Some(manifest) <- Support.read_json(manifest_path);
+            Some(icon) <- Support.json_string(manifest, "icon");
+            Ok(_unit) <- delete(Support.child(Support.child(root, Editor.editor_root()), icon));
+            None <- Editor.validate_editor(root)
+        } else {
+            _ -> false
+        };
+        true
+    }.
+
+workspace_path_rejected(complete: String, root: String): Bool ->
+    let client = Support.child(root, Support.child(Editor.editor_root(), "src/client_config.js"));
+    let copied = copy_complete(complete, root);
+    let replaced = replace_text(client, "\"terlc\"", "\"/workspace/target/debug/terlc\"");
+    let rejected =
+        case Editor.validate_editor(root) {
+            None -> true;
+            Some(_summary) -> false
+        };
+    copied and replaced and rejected.
+
+missing_grammar_rejected(complete: String, root: String): Bool ->
+    let parser = Support.child(root, Support.child(Editor.tree_root(), "src/parser.c"));
+    let copied = copy_complete(complete, root);
+    let removed =
+        case delete(parser) {
+            Ok(_unit) -> true;
+            Err(_reason) -> false
+        };
+    let rejected =
+        case Editor.validate_tree(root) {
+            None -> true;
+            Some(_summary) -> false
+        };
+    copied and removed and rejected.
+
+stale_grammar_rejected(
+    complete: String,
+    root: String,
+    tree_cli: String,
+    environment: List[EnvironmentEntry],
+): Bool ->
+    let tree = Support.child(root, Editor.tree_root());
+    let grammar = Support.child(tree, "grammar.js");
+    if {
+        not copy_complete(complete, root) -> false;
+        not replace_text(grammar, "name: \"terlan\"", "name: \"terlan_mutated\"") -> false;
+        true -> case Support.selected_surface_hash(tree, Editor.generated_tree_files()) {
+            None -> false;
+            Some(before) ->
+                case Support.run_process(tree_cli, ["generate"], tree, environment, "", 60000, 8388608) {
+                    None -> true;
+                    Some(output) ->
+                        if {
+                            Process.status(output) != 0 -> true;
+                            true -> case Support.selected_surface_hash(tree, Editor.generated_tree_files()) {
+                                Some(after_hash) -> before != after_hash;
+                                None -> true
+                            }
+                        }
+                }
+        }
+    }.
+
+malformed_source_rejected(
+    compiler: String,
+    fixture: String,
+    environment: List[EnvironmentEntry],
+): Bool ->
+    let malformed = Support.child(fixture, "Malformed.terl");
+    let {
+        Ok(_unit) <- write_text(malformed, "module malformed\n");
+        Some(output) <-
+            Support.run_process(
+                compiler,
+                ["check", malformed],
+                fixture,
+                environment,
+                "",
+                60000,
+                8388608,
+            )
+    } else {
+        _ -> false
+    };
+    Process.status(output) != 0
+        and String.contains(String.lowercase(Process.stderr(output)), "error").
+
+/**
+ * Executes the eight authoritative negative mutations in stable report order.
+ */
+pub run(
+    installed: String,
+    fixture: String,
+    compiler: String,
+    tree_cli: String,
+    environment: List[EnvironmentEntry],
+): Option[List[String]] ->
+    let complete = Support.child(fixture, "complete");
+    let _removed = Directory.remove_all(fixture);
+    let copied = copy_surfaces(installed, complete);
+    let missing_lsp = not Support.nonempty_file(Support.child(fixture, "missing-terlan-lsp"));
+    let command = missing_command_rejected(complete, Support.child(fixture, "missing-command"));
+    let icon = stale_icon_rejected(complete, Support.child(fixture, "missing-icon"));
+    let path = workspace_path_rejected(complete, Support.child(fixture, "workspace-path"));
+    let grammar = missing_grammar_rejected(complete, Support.child(fixture, "missing-grammar"));
+    let stale =
+        stale_grammar_rejected(
+            complete,
+            Support.child(fixture, "stale-grammar"),
+            tree_cli,
+            environment,
+        );
+    let hover = not String.contains("null", "documented symbol");
+    let malformed = malformed_source_rejected(compiler, fixture, environment);
+    if {
+        copied
+            and missing_lsp
+            and command
+            and icon
+            and path
+            and grammar
+            and stale
+            and hover
+            and malformed -> Some(
+            [
+                "missing-lsp-binary",
+                "missing-command-registration",
+                "stale-icon-bundle",
+                "workspace-terlc-path-leakage",
+                "missing-generated-grammar",
+                "syntax-without-editor-coverage",
+                "broken-hover-docs",
+                "malformed-terlan-source",
+            ],
+        );
+        true -> None
+    }.

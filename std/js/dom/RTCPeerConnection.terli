@@ -120,7 +120,7 @@ pub (value: RTCPeerConnection) add_ice_candidate(candidate: Option[RTCIceCandida
 pub (value: RTCPeerConnection) add_ice_candidate(
     candidate: Option[RTCIceCandidateInit],
     success_callback: VoidFunction,
-    failure_callback: RTCPeerConnectionErrorCallback
+    failure_callback: RTCPeerConnectionErrorCallback,
 ): Promise[Unit].
 
 /**
@@ -137,7 +137,7 @@ pub (value: RTCPeerConnection) add_track(track: MediaStreamTrack): RTCRtpSender.
  */
 pub (value: RTCPeerConnection) add_transceiver(
     track_or_kind: MediaStreamTrack | JsString,
-    init: RTCRtpTransceiverInit
+    init: RTCRtpTransceiverInit,
 ): RTCRtpTransceiver.
 
 /**
@@ -159,7 +159,7 @@ pub (value: RTCPeerConnection) create_answer(options: RTCAnswerOptions): Promise
  */
 pub (value: RTCPeerConnection) create_answer(
     success_callback: RTCSessionDescriptionCallback,
-    failure_callback: RTCPeerConnectionErrorCallback
+    failure_callback: RTCPeerConnectionErrorCallback,
 ): Promise[Unit].
 
 /**
@@ -182,7 +182,7 @@ pub (value: RTCPeerConnection) create_offer(options: RTCOfferOptions): Promise[R
 pub (value: RTCPeerConnection) create_offer(
     success_callback: RTCSessionDescriptionCallback,
     failure_callback: RTCPeerConnectionErrorCallback,
-    options: RTCOfferOptions
+    options: RTCOfferOptions,
 ): Promise[Unit].
 
 /**
@@ -254,7 +254,7 @@ pub (value: RTCPeerConnection) set_local_description(description: RTCLocalSessio
 pub (value: RTCPeerConnection) set_local_description(
     description: RTCLocalSessionDescriptionInit,
     success_callback: VoidFunction,
-    failure_callback: RTCPeerConnectionErrorCallback
+    failure_callback: RTCPeerConnectionErrorCallback,
 ): Promise[Unit].
 
 /**
@@ -270,17 +270,17 @@ pub (value: RTCPeerConnection) set_remote_description(description: RTCSessionDes
 pub (value: RTCPeerConnection) set_remote_description(
     description: RTCSessionDescriptionInit,
     success_callback: VoidFunction,
-    failure_callback: RTCPeerConnectionErrorCallback
+    failure_callback: RTCPeerConnectionErrorCallback,
 ): Promise[Unit].
 
 pub (value: RTCPeerConnection) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit.
 
 pub (value: RTCPeerConnection) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit.

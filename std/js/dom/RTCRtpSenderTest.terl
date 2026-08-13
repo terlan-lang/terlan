@@ -38,14 +38,14 @@ pub get_stats_typechecks(receiver: RTCRtpSender): Promise[RTCStatsReport] ->
 
 pub replace_track_typechecks(
     receiver: RTCRtpSender,
-    with_track: Option[MediaStreamTrack]
+    with_track: Option[MediaStreamTrack],
 ): Promise[Unit] ->
     receiver.replace_track(with_track).
 
 pub set_parameters_typechecks(
     receiver: RTCRtpSender,
     parameters: RTCRtpSendParameters,
-    set_parameter_options: RTCSetParameterOptions
+    set_parameter_options: RTCSetParameterOptions,
 ): Promise[Unit] ->
     receiver.set_parameters(parameters, set_parameter_options).
 

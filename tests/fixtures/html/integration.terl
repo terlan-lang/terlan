@@ -1,7 +1,6 @@
 module html_integration.
 
-pub type User =
-      {user, Int, Text}.
+pub type User = {user, Int, Text}.
 
 pub user_id(User: User): Int ->
     case User {

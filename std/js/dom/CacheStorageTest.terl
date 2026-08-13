@@ -31,7 +31,7 @@ pub keys_typechecks(receiver: CacheStorage): Promise[std.js.Array[JsString]] ->
 pub match_typechecks(
     receiver: CacheStorage,
     request: RequestInfo | URL,
-    options: MultiCacheQueryOptions
+    options: MultiCacheQueryOptions,
 ): Promise[Option[Response]] ->
     receiver.match(request, options).
 

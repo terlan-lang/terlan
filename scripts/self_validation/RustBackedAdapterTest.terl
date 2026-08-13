@@ -1,0 +1,378 @@
+/**
+ * Validates Rust adapter symbols and executable test ownership for std natives.
+ */
+module scripts.self_validation.RustBackedAdapterTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.Console.{println}.
+import std.io.File.{read_text, read_text_many}.
+import std.system.Environment.
+
+import type std.io.File.TextFile.
+
+struct AdapterRow {
+    module_name: String,
+    source: String,
+    crate_name: String,
+    operation: String,
+    function_name: String,
+}.
+
+struct Adapter {
+    known: Bool,
+    source: String,
+    expected_crate: String,
+    implementation_paths: List[String],
+    test_paths: List[String],
+}.
+
+@pure
+child(root: String, relative: String): String ->
+    if {
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+selected_root(): String ->
+    case Environment.get("TERLAN_RUST_BACKED_MANIFEST_ROOT") {
+        Some(root) -> root;
+        None -> Environment.current_directory()
+    }.
+
+@pure
+reverse_rows(values: List[AdapterRow]): List[AdapterRow] ->
+    reverse_rows_at(values, []).
+
+@pure
+reverse_rows_at(values: List[AdapterRow], reversed: List[AdapterRow]): List[AdapterRow] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_rows_at(rest, [value | reversed])
+    }.
+
+@pure
+parse_rows(source: String): List[AdapterRow] ->
+    reverse_rows(parse_rows_at(String.split(source, "\n"), false, [])).
+
+@pure
+parse_rows_at(lines: List[String], header_seen: Bool, rows: List[AdapterRow]): List[AdapterRow] ->
+    case lines {
+        [] -> rows;
+        [raw | rest] ->
+            let line = String.trim(raw);
+            if {
+                line == "" or String.starts_with(line, "#") -> parse_rows_at(rest, header_seen, rows);
+                not header_seen -> parse_rows_at(rest, true, rows);
+                true -> case String.split(raw, "\t") {
+                    [module_name | [source | [crate_name | [operation | [function_name | [_arity | []]]]]]] ->
+                        parse_rows_at(
+                            rest,
+                            true,
+                            [AdapterRow(
+    module_name = module_name,
+    source = source,
+    crate_name = crate_name,
+    operation = operation,
+    function_name = function_name,
+) | rows],
+                        );
+                    _ -> parse_rows_at(rest, true, rows)
+                }
+            }
+    }.
+
+@pure
+native_path(name: String): String ->
+    String.append("crates/terlan/src/runtime/native/", name).
+
+@pure
+vm_path(name: String): String ->
+    String.append("crates/terlan/src/runtime/vm/", name).
+
+@pure
+single_native(source: String, crate_name: String, stem: String): Adapter ->
+    Adapter(
+        known = true,
+        source = source,
+        expected_crate = crate_name,
+        implementation_paths = [native_path(String.append(stem, ".rs"))],
+        test_paths = [native_path(String.append(stem, "_test.rs"))],
+    ).
+
+@pure
+pub adapter(module_name: String): Adapter ->
+    case module_name {
+        "std.crypto.Hash" -> single_native("std/crypto/Hash.terl", "sha2", "hash");
+        "std.data.Json" -> single_native("std/data/Json.terl", "serde_json", "json");
+        "std.data.Toml" -> single_native("std/data/Toml.terl", "basic-toml", "toml");
+        "std.encoding.Base64" -> single_native("std/encoding/Base64.terl", "base64", "base64");
+        "std.encoding.Md5" -> single_native("std/encoding/Md5.terl", "md-5", "md5");
+        "std.io.Path" -> single_native("std/io/Path.terl", "std::path", "path");
+        "std.net.Uri" -> single_native("std/net/Uri.terl", "url", "uri");
+        "std.random.Random" -> single_native("std/random/Random.terl", "rand_chacha", "random");
+        "std.regex.Regex" -> single_native("std/regex/Regex.terl", "regex", "regex");
+        "std.system.Platform" ->
+            single_native("std/system/Platform.terl", "std::env::consts", "platform");
+        "std.http.Request" -> single_native("std/http/Request.terl", "std::http", "http");
+        "std.http.Cookies" -> single_native("std/http/Cookies.terl", "std::http", "http");
+        "std.http.Response" -> single_native("std/http/Response.terl", "std::http", "http");
+        "std.http.Session" ->
+            Adapter(
+                known = true,
+                source = "std/http/Session.terl",
+                expected_crate = "terlan-vm",
+                implementation_paths = [
+                    vm_path("http_session/state/runtime.rs"),
+                    vm_path("http_session/state/commands.rs"),
+                ],
+                test_paths = [vm_path("http_session_test/session_actor_fixtures.rs")],
+            );
+        "std.http.Sse" ->
+            Adapter(
+                known = true,
+                source = "std/http/Sse.terl",
+                expected_crate = "terlan-vm",
+                implementation_paths = [vm_path("sse.rs")],
+                test_paths = [vm_path("sse_test.rs")],
+            );
+        "std.http.WebSocket" ->
+            Adapter(
+                known = true,
+                source = "std/http/WebSocket.terl",
+                expected_crate = "terlan-vm",
+                implementation_paths = [vm_path("websocket/state/runtime.rs")],
+                test_paths = [vm_path("websocket_test/upgrade_and_endpoints.rs")],
+            );
+        "std.db.Postgres" -> single_native("std/db/Postgres.terl", "postgres-native", "postgres");
+        "std.native.collections.Vector" ->
+            single_native("std/native/collections/Vector.terl", "std::vec", "vector");
+        _ ->
+            Adapter(
+                known = false,
+                source = "",
+                expected_crate = "",
+                implementation_paths = [],
+                test_paths = [],
+            )
+    }.
+
+@pure
+contains_string(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains_string(rest, expected)
+    }.
+
+@pure
+all_paths(root: String, rows: List[AdapterRow]): List[String] ->
+    reverse_strings(all_paths_at(root, rows, [], [])).
+
+@pure
+all_paths_at(
+    root: String,
+    rows: List[AdapterRow],
+    seen: List[String],
+    paths: List[String],
+): List[String] ->
+    case rows {
+        [] -> paths;
+        [row | rest] ->
+            if {
+                contains_string(seen, row.module_name) -> all_paths_at(root, rest, seen, paths);
+                true -> let selected = adapter(row.module_name);
+                let added_impl = prepend_paths(root, selected.implementation_paths, paths);
+                let added_tests = prepend_paths(root, selected.test_paths, added_impl);
+                all_paths_at(root, rest, [row.module_name | seen], added_tests)
+            }
+    }.
+
+@pure
+prepend_paths(root: String, selected: List[String], paths: List[String]): List[String] ->
+    case selected {
+        [] -> paths;
+        [path | rest] -> prepend_paths(root, rest, [child(root, path) | paths])
+    }.
+
+@pure
+reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_at(values, []).
+
+@pure
+reverse_strings_at(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings_at(rest, [value | reversed])
+    }.
+
+@pure
+file_contents(files: List[TextFile], path: String): String ->
+    case files {
+        [] -> "";
+        [file | rest] ->
+            if {
+                file.path == path -> file.contents;
+                true -> file_contents(rest, path)
+            }
+    }.
+
+@pure
+pub public_function_declared(source: String, function_name: String): Bool ->
+    public_function_lines(String.split(source, "\n"), function_name).
+
+@pure
+public_function_lines(lines: List[String], function_name: String): Bool ->
+    case lines {
+        [] -> false;
+        [raw | rest] ->
+            let line = String.trim(raw);
+            public_function_line(line, function_name) or public_function_lines(rest, function_name)
+    }.
+
+@pure
+public_function_line(line: String, function_name: String): Bool ->
+    if {
+        String.starts_with(line, "pub fn ") -> let normal = String.append("pub fn ", function_name);
+        let raw = String.append("pub fn r#", function_name);
+        String.starts_with(line, String.append(normal, "("))
+            or String.starts_with(line, String.append(normal, "<"))
+            or String.starts_with(line, String.append(raw, "("))
+            or String.starts_with(line, String.append(raw, "<"));
+        String.starts_with(line, "pub use ") -> reexport_contains(line, function_name);
+        true -> false
+    }.
+
+@pure
+reexport_contains(line: String, function_name: String): Bool ->
+    let {
+        Some({_prefix, tail}) <- String.split_once(line, "{");
+        Some({items, _suffix}) <- String.split_once(tail, "}")
+    } else {
+        _ -> false
+    };
+    reexport_items(String.split(items, ","), function_name).
+
+@pure
+reexport_items(items: List[String], function_name: String): Bool ->
+    case items {
+        [] -> false;
+        [item | rest] ->
+            let normalized = reexport_name(String.trim(item));
+            normalized == function_name or reexport_items(rest, function_name)
+    }.
+
+@pure
+reexport_name(item: String): String ->
+    case String.split_once(item, " as ") {
+        Some({_source, alias}) -> remove_raw_prefix(String.trim(alias));
+        None -> remove_raw_prefix(item)
+    }.
+
+@pure
+remove_raw_prefix(value: String): String ->
+    if {
+        String.starts_with(value, "r#") -> String.replace(value, "r#", "");
+        true -> value
+    }.
+
+@pure
+test_references(source: String, function_name: String): Bool ->
+    String.contains(source, "#[test]") and String.contains(source, String.append(function_name, "("))
+        or String.contains(source, String.append("r#", String.append(function_name, "("))).
+
+@pure
+adapter_function_present(
+    root: String,
+    paths: List[String],
+    files: List[TextFile],
+    function_name: String,
+): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            let contents = file_contents(files, child(root, path));
+            public_function_declared(contents, function_name)
+                or adapter_function_present(root, rest, files, function_name)
+    }.
+
+@pure
+adapter_test_present(
+    root: String,
+    paths: List[String],
+    files: List[TextFile],
+    function_name: String,
+): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            let contents = file_contents(files, child(root, path));
+            test_references(contents, function_name)
+                or adapter_test_present(root, rest, files, function_name)
+    }.
+
+pub validate(root: String): Bool ->
+    case read_text(child(root, "std/RUST_BACKED_MANIFEST.tsv")) {
+        Err(_reason) -> false;
+        Ok(source) ->
+            let rows = parse_rows(source);
+            validate_rows(root, rows)
+    }.
+
+validate_rows(root: String, rows: List[AdapterRow]): Bool ->
+    let paths = all_paths(root, rows);
+    case read_text_many(paths) {
+        Err(_reason) -> false;
+        Ok(files) -> validate_loaded_rows(root, rows, files)
+    }.
+
+validate_loaded_rows(root: String, rows: List[AdapterRow], files: List[TextFile]): Bool ->
+    adapter_rows_hold(root, rows, files).
+
+adapter_rows_hold(root: String, rows: List[AdapterRow], files: List[TextFile]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            let selected = adapter(row.module_name);
+            if {
+                adapter_row_holds(root, row, selected, files) -> adapter_rows_hold(root, rest, files);
+                true -> let _reported =
+                    println(
+                        String.append(
+                            "[rust-backed-std-manifest] missing adapter ownership for ",
+                            row.operation,
+                        ),
+                    );
+                false
+            }
+    }.
+
+@pure
+adapter_row_holds(root: String, row: AdapterRow, selected: Adapter, files: List[TextFile]): Bool ->
+    if {
+        not selected.known -> false;
+        row.source != selected.source -> false;
+        row.crate_name != selected.expected_crate -> false;
+        not adapter_function_present(root, selected.implementation_paths, files, row.function_name) -> false;
+        true -> adapter_test_present(root, selected.test_paths, files, row.function_name)
+    }.
+
+@test
+pub rust_function_parser_accepts_direct_raw_and_reexported_functions(): Bool ->
+    let source = "pub fn parse(text: &str) {}\npub fn r#bool(value: bool) {}\npub use row::{int, json as json_value};";
+    public_function_declared(source, "parse")
+        and public_function_declared(source, "bool")
+        and public_function_declared(source, "int")
+        and public_function_declared(source, "json_value")
+        and not public_function_declared(source, "missing").
+
+@test
+pub repository_adapters_and_tests_cover_manifest(): Bool ->
+    let root = selected_root();
+    validate(root).
+
+pub main(): Unit ->
+    if {
+        repository_adapters_and_tests_cover_manifest() -> Unit;
+        true -> println("[rust-backed-std-manifest] adapter validation failed")
+    }.

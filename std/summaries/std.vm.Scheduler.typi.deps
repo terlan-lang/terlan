@@ -1,8 +1,9 @@
 module=std.vm.Scheduler
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=3805356853634397514
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=14474815134618037881
 interface_hash=10251961069467350552
 interface_doc_hash=7186490167350348418
-deps=0
+deps=1
+std.collections.List=5599785960849014878

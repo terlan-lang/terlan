@@ -48,6 +48,6 @@ pub close_typechecks(receiver: AudioData): Unit ->
 pub copy_to_typechecks(
     receiver: AudioData,
     destination: AllowSharedBufferSource,
-    options: AudioDataCopyToOptions
+    options: AudioDataCopyToOptions,
 ): Unit ->
     receiver.copy_to(destination, options).

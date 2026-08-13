@@ -1,0 +1,7 @@
+[package]
+name = "proof-release-evidence"
+version = "0.0.7"
+
+[build]
+source_roots = ["src"]
+artifact = "library"

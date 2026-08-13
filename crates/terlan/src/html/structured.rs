@@ -663,4 +663,5 @@ fn find_string_interpolation_end(bytes: &[u8], start: usize) -> Option<usize> {
 
 #[cfg(test)]
 #[path = "structured_test.rs"]
+#[cfg(test)]
 mod structured_test;

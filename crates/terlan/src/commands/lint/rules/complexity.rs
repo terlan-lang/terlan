@@ -1,8 +1,9 @@
 use std::path::Path;
 
-use crate::terlan_syntax::{parse_module_as_syntax_output, SyntaxDeclarationPayload};
+use crate::terlan_syntax::SyntaxDeclarationPayload;
 
 use super::super::diagnostic::{LintDiagnostic, Severity};
+use super::parse_lint_source;
 
 const FUNCTION_SIZE_RULE_ID: &str = "TL0901";
 const FUNCTION_SIZE_RULE_NAME: &str = "complexity.function-size";
@@ -16,7 +17,7 @@ const MAX_MATCH_ARM_LINES: usize = 20;
 
 /// Builds diagnostics for function or method clauses that exceed size limits.
 pub(super) fn function_size_diagnostics(path: &Path, source: &str) -> Vec<LintDiagnostic> {
-    let Ok(module) = parse_module_as_syntax_output(source) else {
+    let Ok(module) = parse_lint_source(path, source) else {
         return Vec::new();
     };
 

@@ -1,11 +1,11 @@
-#![allow(dead_code)]
-
 use std::collections::BTreeSet;
 
+#[cfg(test)]
 use super::distributed_state::{
     VmDistributedStateEntry, VmDistributedStatePolicy, VmDistributedStateScope,
     VmDistributedStateVersion,
 };
+#[cfg(test)]
 use super::distributed_storage::{
     VmDistributedStorageAdapter, VmDistributedStorageCasToken, VmDistributedStorageMode,
     VmDistributedStorageOperation, VmDistributedStorageOutcome, VmDistributedStoragePolicy,
@@ -17,12 +17,13 @@ use super::persistent_actor_restore::{
     VmPersistentActorRestoreExecution, VmPersistentActorRestoreTarget,
 };
 use super::persistent_actor_store::{
-    VmDatabaseBackedPersistentActorStore, VmPersistentActorEvent, VmPersistentActorId,
-    VmPersistentActorSchema, VmPersistentActorSnapshot,
+    VmDatabaseBackedPersistentActorStore, VmPersistentActorDurability, VmPersistentActorEvent,
+    VmPersistentActorId, VmPersistentActorSchema, VmPersistentActorSnapshot,
 };
 use super::ReplValue;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorAdapterCapabilityManifest {
     pub(crate) adapter_name: String,
     pub(crate) mode_kind: &'static str,
@@ -31,6 +32,7 @@ pub(crate) struct VmPersistentActorAdapterCapabilityManifest {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorAdapterEntryFixture {
     pub(crate) namespace: String,
     pub(crate) key: String,
@@ -38,6 +40,7 @@ pub(crate) struct VmPersistentActorAdapterEntryFixture {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorAdapterCheckpointFixture {
     pub(crate) checkpoint_id: String,
     pub(crate) sequence: u64,
@@ -47,6 +50,7 @@ pub(crate) struct VmPersistentActorAdapterCheckpointFixture {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorAdapterConformanceFixture {
     pub(crate) name: String,
     pub(crate) policy: VmDistributedStoragePolicy,
@@ -58,6 +62,7 @@ pub(crate) struct VmPersistentActorAdapterConformanceFixture {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorAdapterReplayResult {
     pub(crate) checkpoint_id: String,
     pub(crate) sequence: u64,
@@ -65,6 +70,7 @@ pub(crate) struct VmPersistentActorAdapterReplayResult {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorAdapterConformanceReport {
     pub(crate) fixture_name: String,
     pub(crate) manifest: VmPersistentActorAdapterCapabilityManifest,
@@ -74,6 +80,7 @@ pub(crate) struct VmPersistentActorAdapterConformanceReport {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) enum VmPersistentActorAdapterConformanceError {
     EmptyFixtureName,
     EmptyCheckpointSet,
@@ -97,6 +104,7 @@ pub(crate) enum VmPersistentActorAdapterConformanceError {
     },
 }
 
+#[cfg(test)]
 pub(crate) fn plan_persistent_actor_adapter_conformance(
     fixture: VmPersistentActorAdapterConformanceFixture,
 ) -> Result<VmPersistentActorAdapterConformanceReport, VmPersistentActorAdapterConformanceError> {
@@ -203,6 +211,7 @@ pub(crate) fn plan_persistent_actor_adapter_conformance(
     })
 }
 
+#[cfg(test)]
 fn capability_manifest(
     adapter: &VmDistributedStorageAdapter,
 ) -> VmPersistentActorAdapterCapabilityManifest {
@@ -231,6 +240,7 @@ fn capability_manifest(
     }
 }
 
+#[cfg(test)]
 fn snapshot_from_fixture(
     checkpoint: &VmPersistentActorAdapterCheckpointFixture,
 ) -> VmDistributedStorageSnapshot {
@@ -270,6 +280,7 @@ fn snapshot_from_fixture(
     }
 }
 
+#[cfg(test)]
 fn rejected(
     step: &'static str,
     checkpoint_id: &str,
@@ -284,6 +295,7 @@ fn rejected(
     }
 }
 
+#[cfg(test)]
 pub(crate) fn local_persistent_actor_adapter_fixture(
     name: impl Into<String>,
 ) -> VmPersistentActorAdapterConformanceFixture {
@@ -301,6 +313,7 @@ pub(crate) fn local_persistent_actor_adapter_fixture(
     }
 }
 
+#[cfg(test)]
 pub(crate) fn cluster_persistent_actor_adapter_fixture(
     name: impl Into<String>,
 ) -> VmPersistentActorAdapterConformanceFixture {
@@ -316,6 +329,7 @@ pub(crate) fn cluster_persistent_actor_adapter_fixture(
     }
 }
 
+#[cfg(test)]
 pub(crate) fn file_backed_persistent_actor_adapter_fixture(
     name: impl Into<String>,
 ) -> VmPersistentActorAdapterConformanceFixture {
@@ -338,6 +352,7 @@ pub(crate) fn file_backed_persistent_actor_adapter_fixture(
     }
 }
 
+#[cfg(test)]
 pub(crate) fn database_backed_persistent_actor_adapter_fixture(
     name: impl Into<String>,
 ) -> VmPersistentActorAdapterConformanceFixture {
@@ -361,6 +376,7 @@ pub(crate) fn database_backed_persistent_actor_adapter_fixture(
     }
 }
 
+#[cfg(test)]
 pub(crate) fn embedded_key_value_persistent_actor_adapter_fixture(
     name: impl Into<String>,
 ) -> VmPersistentActorAdapterConformanceFixture {
@@ -383,6 +399,7 @@ pub(crate) fn embedded_key_value_persistent_actor_adapter_fixture(
     }
 }
 
+#[cfg(test)]
 pub(crate) fn package_provided_persistent_actor_adapter_fixture(
     name: impl Into<String>,
 ) -> VmPersistentActorAdapterConformanceFixture {
@@ -417,8 +434,10 @@ pub(crate) fn execute_persistent_actor_adapter_cross_adapter_restore(
         ReplValue::String("redacted-state".to_string()),
         Vec::new(),
         vec![50],
-        vec!["db-session".to_string()],
-        2,
+        VmPersistentActorDurability {
+            resource_handles: vec!["db-session".to_string()],
+            last_event_sequence: 2,
+        },
     )
     .expect("snapshot");
     let export = VmPersistentActorExport::new(
@@ -458,6 +477,7 @@ pub(crate) fn execute_persistent_actor_adapter_cross_adapter_restore(
     execute_persistent_actor_restore(&export, &target, &mut destination)
 }
 
+#[cfg(test)]
 fn checkpoint(
     checkpoint_id: impl Into<String>,
     sequence: u64,
@@ -480,4 +500,5 @@ fn checkpoint(
 
 #[cfg(test)]
 #[path = "persistent_actor_adapter_test.rs"]
+#[cfg(test)]
 mod persistent_actor_adapter_test;

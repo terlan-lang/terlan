@@ -12,18 +12,31 @@ pub totals(limit: Int): Option[Map[String, Int]] ->
 accumulate(index: Int, limit: Int, even: Bool, totals: Map[String, Int]): Map[String, Int] ->
     case index > limit {
         true -> totals;
-        false -> case even {
-            true -> case totals.get("even") {
-                Some(current) ->
-                    accumulate(index + 1, limit, toggle(even), updated(totals, "even", current, index));
-                None -> totals
-            };
-            false -> case totals.get("odd") {
-                Some(current) ->
-                    accumulate(index + 1, limit, toggle(even), updated(totals, "odd", current, index));
-                None -> totals
+        false ->
+            case even {
+                true ->
+                    case totals.get("even") {
+                        Some(current) ->
+                            accumulate(
+                                index + 1,
+                                limit,
+                                toggle(even),
+                                updated(totals, "even", current, index),
+                            );
+                        None -> totals
+                    };
+                false ->
+                    case totals.get("odd") {
+                        Some(current) ->
+                            accumulate(
+                                index + 1,
+                                limit,
+                                toggle(even),
+                                updated(totals, "odd", current, index),
+                            );
+                        None -> totals
+                    }
             }
-        }
     }.
 
 updated(totals: Map[String, Int], key: String, current: Int, value: Int): Map[String, Int] ->
@@ -40,19 +53,12 @@ matches(totals: Map[String, Int], even: Int, odd: Int): Bool ->
     totals.get("even") == Some(even) and totals.get("odd") == Some(odd).
 
 pub run(): Bool ->
-    case totals(-1) {
-        Some(_invalid) -> false;
-        None -> case totals(0) {
-            Some(zero) -> case totals(10) {
-                Some(ten) -> case totals(1000) {
-                    Some(thousand) ->
-                        matches(zero, 0, 0)
-                            and matches(ten, 30, 25)
-                            and matches(thousand, 250500, 250000);
-                    None -> false
-                };
-                None -> false
-            };
-            None -> false
-        }
-    }.
+    let {
+        None <- totals(-1);
+        Some(zero) <- totals(0);
+        Some(ten) <- totals(10);
+        Some(thousand) <- totals(1000)
+    } else {
+        _ -> false
+    };
+    matches(zero, 0, 0) and matches(ten, 30, 25) and matches(thousand, 250500, 250000).

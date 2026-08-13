@@ -27,7 +27,7 @@ pub playback_state_typechecks(receiver: MediaSession): MediaSessionPlaybackState
 pub set_action_handler_typechecks(
     receiver: MediaSession,
     action: MediaSessionAction,
-    handler: Option[MediaSessionActionHandler]
+    handler: Option[MediaSessionActionHandler],
 ): Unit ->
     receiver.set_action_handler(action, handler).
 

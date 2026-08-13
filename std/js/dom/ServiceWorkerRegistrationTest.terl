@@ -45,14 +45,14 @@ pub waiting_typechecks(receiver: ServiceWorkerRegistration): Option[ServiceWorke
 
 pub get_notifications_typechecks(
     receiver: ServiceWorkerRegistration,
-    filter: GetNotificationOptions
+    filter: GetNotificationOptions,
 ): Promise[std.js.Array[Notification]] ->
     receiver.get_notifications(filter).
 
 pub show_notification_typechecks(
     receiver: ServiceWorkerRegistration,
     title: JsString,
-    options: NotificationOptions
+    options: NotificationOptions,
 ): Promise[Unit] ->
     receiver.show_notification(title, options).
 
@@ -66,7 +66,7 @@ pub add_event_listener_typechecks(
     receiver: ServiceWorkerRegistration,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -74,6 +74,6 @@ pub remove_event_listener_typechecks(
     receiver: ServiceWorkerRegistration,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

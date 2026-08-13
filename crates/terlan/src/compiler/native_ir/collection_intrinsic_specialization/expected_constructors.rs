@@ -2,7 +2,19 @@
 
 use crate::terlan_typeck::{CoreExpr, CoreTupleTypeElem, CoreType};
 
-pub(super) fn annotate_expected_structural_constructors(expr: &mut CoreExpr, expected: &CoreType) {
+pub(crate) fn annotate_expected_structural_constructors(expr: &mut CoreExpr, expected: &CoreType) {
+    if let CoreExpr::Cast {
+        expr: constructor,
+        target_type,
+    } = expr
+    {
+        if let CoreExpr::ConstructorCall { constructor, .. } = constructor.as_ref() {
+            if structural_constructor_matches(constructor, expected) {
+                *target_type = expected.clone();
+                return;
+            }
+        }
+    }
     if let CoreExpr::ConstructorCall { constructor, .. } = expr {
         if structural_constructor_matches(constructor, expected) {
             let constructor = std::mem::replace(expr, CoreExpr::Atom("Unit".to_string()));

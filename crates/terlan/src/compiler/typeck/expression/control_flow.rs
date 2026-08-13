@@ -256,7 +256,7 @@ fn widen_case_scrutinee_type_for_patterns(
     ctx: &ExprInferContext,
     subst: &HashMap<TypeVarId, Type>,
 ) -> Option<Type> {
-    if !case_has_discriminating_pattern(expr) {
+    if !case_has_constructor_pattern(expr) {
         return None;
     }
     if matches!(scrutinee_type, Type::Dynamic | Type::Term | Type::Union(_)) {
@@ -270,7 +270,7 @@ fn widen_case_scrutinee_type_for_patterns(
     }
 
     let mut visible_aliases = ctx.aliases.iter().collect::<Vec<_>>();
-    visible_aliases.sort_by(|(left, _), (right, _)| left.cmp(right));
+    visible_aliases.sort_by_key(|(left, _)| *left);
 
     for (alias_name, alias) in visible_aliases {
         if alias.is_opaque {
@@ -316,30 +316,27 @@ fn widen_case_scrutinee_type_for_patterns(
     None
 }
 
-/// Returns whether a case branch needs structural union-alias widening.
+/// Returns whether a case branch needs constructor union-alias widening.
 ///
-/// Variable, wildcard, ignore, and placeholder patterns already accept the
-/// concrete scrutinee type. Widening those patterns to an arbitrary visible
-/// union can change receiver-method resolution without adding match evidence.
-fn case_has_discriminating_pattern(expr: &SyntaxExprOutput) -> bool {
+/// Only constructor patterns provide evidence that a concrete constructor
+/// scrutinee should be widened to its visible union alias. Lists, tuples, maps,
+/// and literals already carry their complete structural type; probing those
+/// shapes against an unrelated generic union such as `T0 | T1 | T2` invents
+/// phantom variants and false exhaustiveness errors.
+fn case_has_constructor_pattern(expr: &SyntaxExprOutput) -> bool {
     expr.clauses.iter().any(|clause| {
         clause
             .patterns
             .first()
-            .is_some_and(pattern_is_discriminating)
+            .is_some_and(pattern_contains_constructor)
     })
 }
 
-/// Reports whether a pattern contributes structural case discrimination.
-fn pattern_is_discriminating(pattern: &SyntaxPatternOutput) -> bool {
-    match pattern.kind {
-        SyntaxPatternKind::Wildcard
-        | SyntaxPatternKind::Var
-        | SyntaxPatternKind::Ignore
-        | SyntaxPatternKind::Placeholder => false,
-        SyntaxPatternKind::Alias => pattern.children.iter().any(pattern_is_discriminating),
-        _ => true,
-    }
+/// Reports whether a pattern or aliased child is a named constructor pattern.
+fn pattern_contains_constructor(pattern: &SyntaxPatternOutput) -> bool {
+    matches!(pattern.kind, SyntaxPatternKind::Constructor)
+        || (matches!(pattern.kind, SyntaxPatternKind::Alias)
+            && pattern.children.iter().any(pattern_contains_constructor))
 }
 
 /// Rejects union candidates whose structural variants do not represent the
@@ -389,12 +386,9 @@ fn type_inhabits_union_alias(
 
     for variant in variants {
         let mut trial_subst = subst.clone();
-        match unify(variant, scrutinee_type, &mut trial_subst) {
-            Ok(()) => {
-                *subst = trial_subst;
-                return true;
-            }
-            Err(_) => {}
+        if let Ok(()) = unify(variant, scrutinee_type, &mut trial_subst) {
+            *subst = trial_subst;
+            return true;
         }
     }
 

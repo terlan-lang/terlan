@@ -19,6 +19,6 @@ pub generated_binding_surface_contract(): Bool -> true.
 pub decode_typechecks(
     receiver: TextDecoder,
     input: AllowSharedBufferSource,
-    options: TextDecodeOptions
+    options: TextDecodeOptions,
 ): std.js.String.JsString ->
     receiver.decode(input, options).

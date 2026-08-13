@@ -26,6 +26,6 @@ pub delete_database_typechecks(receiver: IDBFactory, name: JsString): IDBOpenDBR
 pub open_typechecks(
     receiver: IDBFactory,
     name: JsString,
-    version: std.js.Number.JsNumber
+    version: std.js.Number.JsNumber,
 ): IDBOpenDBRequest ->
     receiver.open(name, version).

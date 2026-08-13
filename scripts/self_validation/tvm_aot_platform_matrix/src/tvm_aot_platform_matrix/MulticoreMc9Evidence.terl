@@ -1,0 +1,858 @@
+/**
+ * Joins enforced multicore performance and sanitizer evidence for MC-9.
+ */
+module tvm_aot_platform_matrix.MulticoreMc9Evidence.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.{sha256_file}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.{create_all}.
+import std.io.File.{read_text}.
+import std.regex.Regex.
+import std.system.Environment.
+import tvm_aot_platform_matrix.Core.{child, is_sha256, json_bool, json_equals, json_int, json_string, json_value, load_json, official_repository, write_json}.
+import tvm_aot_platform_matrix.MulticoreThreadSanitizer as Sanitizer.
+
+import type std.core.Option.
+import type std.data.Json.
+
+pub schema(): String -> "terlan.vm-multicore-mc9-evidence.v2".
+
+performance_schema(): String -> "terlan.vm-multicore-performance.v1".
+
+performance_policy_schema(): String -> "terlan-vm-multicore-performance-limits-v1".
+
+pub dedicated_runner(): String -> "terlan-linux-x86_64-multicore-v1".
+
+performance_toolchain(): String -> "1.96.0".
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[vm.multicore.mc9]: ", message));
+    false.
+
+json_clone(value: Json): Option[Json] ->
+    let {
+        Ok(source) <- Json.stringify(value);
+        Ok(copy) <- Json.parse(source)
+    } else {
+        _ -> None
+    };
+    Some(copy).
+
+pub is_revision(value: String): Bool ->
+    case Regex.compile("^[0-9a-f]{40}$") {
+        Ok(pattern) -> Regex.is_match(pattern, value);
+        Err(_reason) -> false
+    }.
+
+json_float(value: Json, field: String): Option[Float] ->
+    let {
+        Some(member) <- json_value(value, field);
+        Ok(number) <- member.as_float()
+    } else {
+        _ -> None
+    };
+    Some(number).
+
+fixture_float(value: Float): Json ->
+    case Json.float(value) {
+        Ok(number) -> number;
+        Err(_reason) -> Json.null()
+    }.
+
+json_null(value: Json, field: String): Bool ->
+    case json_value(value, field) {
+        Some(member) -> member.is_null();
+        None -> false
+    }.
+
+string_field_is(value: Json, field: String, expected: String): Bool ->
+    case json_string(value, field) {
+        Some(actual) -> actual == expected;
+        None -> false
+    }.
+
+bool_field_is(value: Json, field: String, expected: Bool): Bool ->
+    case json_bool(value, field) {
+        Some(actual) -> actual == expected;
+        None -> false
+    }.
+
+field_equal(left: Json, right: Json, field: String): Bool ->
+    let {
+        Some(left_value) <- json_value(left, field);
+        Some(right_value) <- json_value(right, field)
+    } else {
+        _ -> false
+    };
+    json_equals(left_value, right_value).
+
+json_or_null(value: Json, field: String): Json ->
+    case json_value(value, field) {
+        Some(member) -> member;
+        None -> Json.null()
+    }.
+
+github_fields_null(provenance: Json): Bool ->
+    json_null(provenance, "repository")
+        and json_null(provenance, "workflow_ref")
+        and json_null(provenance, "run_id")
+        and json_null(provenance, "run_attempt")
+        and json_null(provenance, "commit_sha").
+
+self_hosted_valid(provenance: Json): Bool ->
+    let {
+        Some(runner_name) <- json_string(provenance, "runner_name");
+        Some(runner_environment) <- json_string(provenance, "runner_environment")
+    } else {
+        _ -> false
+    };
+    runner_name != "" and runner_environment == "self-hosted".
+
+github_provenance_valid(
+    provenance: Json,
+    revision_value: String,
+    require_self_hosted: Bool,
+): Bool ->
+    let {
+        Some(repository) <- json_string(provenance, "repository");
+        Some(workflow_ref) <- json_string(provenance, "workflow_ref");
+        Some(_run_id) <- json_int(provenance, "run_id");
+        Some(_run_attempt) <- json_int(provenance, "run_attempt");
+        Some(commit) <- json_string(provenance, "commit_sha")
+    } else {
+        _ -> false
+    };
+    repository == official_repository()
+        and workflow_ref != ""
+        and commit == revision_value
+        and if {
+    require_self_hosted -> self_hosted_valid(provenance);
+    true -> true
+}.
+
+pub validate_execution_provenance(
+    provenance: Json,
+    revision_value: String,
+    require_self_hosted: Bool,
+): Bool ->
+    let {
+        Some(environment) <- json_string(provenance, "execution_environment");
+        Some(source_clean) <- json_bool(provenance, "source_tree_clean")
+    } else {
+        _ -> false
+    };
+    if {
+        environment == "local" -> github_fields_null(provenance);
+        environment != "github-actions" -> false;
+        not source_clean -> false;
+        true -> github_provenance_valid(provenance, revision_value, require_self_hosted)
+    }.
+
+sanitizer_provenance(report: Json): Json ->
+    let identity =
+        Json.object()
+            .put("execution_environment", json_or_null(report, "execution_environment"))
+            .put("source_tree_clean", json_or_null(report, "source_tree_clean"))
+            .put("repository", json_or_null(report, "repository"))
+            .put("workflow_ref", json_or_null(report, "workflow_ref"))
+            .put("run_id", json_or_null(report, "run_id"));
+    identity
+        .put("run_attempt", json_or_null(report, "run_attempt"))
+        .put("commit_sha", json_or_null(report, "commit_sha"))
+        .put("runner_name", json_or_null(report, "runner_name"))
+        .put("runner_environment", json_or_null(report, "runner_environment")).
+
+same_github_attempt(performance: Json, sanitizer: Json): Bool ->
+    if {
+        not field_equal(performance, sanitizer, "repository") -> false;
+        not field_equal(performance, sanitizer, "workflow_ref") -> false;
+        not field_equal(performance, sanitizer, "run_id") -> false;
+        not field_equal(performance, sanitizer, "run_attempt") -> false;
+        true -> field_equal(performance, sanitizer, "commit_sha")
+    }.
+
+github_pair(performance: Json, sanitizer: Json): Bool ->
+    let {
+        Some(performance_environment) <- json_string(performance, "execution_environment");
+        Some(sanitizer_environment) <- json_string(sanitizer, "execution_environment")
+    } else {
+        _ -> false
+    };
+    if {
+        performance_environment != "github-actions" -> false;
+        sanitizer_environment != "github-actions" -> false;
+        true -> same_github_attempt(performance, sanitizer)
+    }.
+
+pub provenance_mode(performance: Json, sanitizer: Json): String ->
+    let performance_environment =
+        case json_string(performance, "execution_environment") {
+            Some(value) -> value;
+            None -> ""
+        };
+    let sanitizer_environment =
+        case json_string(sanitizer, "execution_environment") {
+            Some(value) -> value;
+            None -> ""
+        };
+    if {
+        performance_environment == "local" and sanitizer_environment == "local" -> "local";
+        github_pair(performance, sanitizer) -> "github-single-attempt";
+        true -> "distributed"
+    }.
+
+metric_row(rows: Json, metric: String, index: Int): Option[Json] ->
+    case rows.length() {
+        Err(_reason) -> None;
+        Ok(count) ->
+            if {
+                index >= count -> None;
+                true -> case rows.at(index) {
+                    Err(_reason) -> None;
+                    Ok(row) ->
+                        case json_string(row, "metric") {
+                            Some(actual) ->
+                                if {
+                                    actual == metric -> Some(row);
+                                    true -> metric_row(rows, metric, index + 1)
+                                };
+                            None -> metric_row(rows, metric, index + 1)
+                        }
+                }
+            }
+    }.
+
+metric_valid(rows: Json, metric: String): Bool ->
+    case metric_row(rows, metric, 0) {
+        None -> false;
+        Some(row) ->
+            let {
+                Some(p95) <- json_float(row, "p95_ratio");
+                Some(p99) <- json_float(row, "p99_ratio")
+            } else {
+                _ -> false
+            };
+            p95 >= 0.0 and p95 <= 2.0 and p99 >= 0.0 and p99 <= 2.0
+    }.
+
+mixed_metrics_valid(rows: Json): Bool ->
+    case rows.length() {
+        Ok(7) ->
+            metrics_valid(
+                rows,
+                [
+                    "scheduler_wait",
+                    "mailbox_delivery",
+                    "timer_delay",
+                    "http_latency",
+                    "failed_steal_backoff",
+                    "allocation_pause",
+                    "collection_pause",
+                ],
+            );
+        _ -> false
+    }.
+
+metrics_valid(rows: Json, metrics: List[String]): Bool ->
+    case metrics {
+        [] -> true;
+        [metric | rest] ->
+            if {
+                not metric_valid(rows, metric) -> false;
+                true -> metrics_valid(rows, rest)
+            }
+    }.
+
+measurement(rows: Json, width: Int, index: Int): Option[Json] ->
+    case rows.length() {
+        Err(_reason) -> None;
+        Ok(count) ->
+            if {
+                index >= count -> None;
+                true -> case rows.at(index) {
+                    Err(_reason) -> None;
+                    Ok(row) ->
+                        case json_int(row, "requested_schedulers") {
+                            Some(actual) ->
+                                if {
+                                    actual == width -> Some(row);
+                                    true -> measurement(rows, width, index + 1)
+                                };
+                            None -> measurement(rows, width, index + 1)
+                        }
+                }
+            }
+    }.
+
+measurements_valid(rows: Json): Bool ->
+    case {rows.length(), measurement(rows, 1, 0), measurement(rows, 2, 0), measurement(rows, 4, 0)} {
+        {Ok(3), Some(_one), Some(two), Some(_four)} ->
+            let {
+                Some(true) <- json_bool(two, "overlap_proven");
+                Some(active) <- json_int(two, "maximum_simultaneously_active_schedulers")
+            } else {
+                _ -> false
+            };
+            active >= 2;
+        _ -> false
+    }.
+
+digests_valid(report: Json, fields: List[String]): Bool ->
+    case fields {
+        [] -> true;
+        [field | rest] ->
+            case json_string(report, field) {
+                Some(value) -> is_sha256(value) and digests_valid(report, rest);
+                None -> false
+            }
+    }.
+
+performance_header_valid(report: Json): Bool ->
+    let {
+        Some(report_schema) <- json_string(report, "schema");
+        Some(target_os) <- json_string(report, "target_os");
+        Some(target_arch) <- json_string(report, "target_arch");
+        Some(profile) <- json_string(report, "optimization_profile");
+        Some(eligible) <- json_bool(report, "eligible_for_parallel_assertion");
+        Some(source_revision) <- json_string(report, "source_revision");
+        Some(rustc) <- json_string(report, "rustc_version")
+    } else {
+        _ -> false
+    };
+    if {
+        report_schema != performance_schema() -> false;
+        target_os != "linux" or target_arch != "x86_64" -> false;
+        profile != "release" or not eligible -> false;
+        not is_revision(source_revision) -> false;
+        true -> String.starts_with(rustc, String.concat(["rustc ", performance_toolchain(), " "]))
+    }.
+
+performance_digests_valid(report: Json): Bool ->
+    digests_valid(
+        report,
+        [
+            "source_tree_sha256",
+            "workload_sha256",
+            "native_image_sha256",
+            "runtime_workload_contract_sha256",
+            "mixed_tail_contract_sha256",
+            "performance_policy_sha256",
+            "benchmark_sha256",
+        ],
+    ).
+
+performance_machine_valid(report: Json): Bool ->
+    let {
+        Some(background) <- json_value(report, "background_load");
+        Some(hardware) <- json_value(report, "hardware");
+        Some(effective_parallelism) <- json_int(hardware, "effective_parallelism")
+    } else {
+        _ -> false
+    };
+    string_field_is(background, "declared_state", "controlled") and effective_parallelism >= 2.
+
+performance_policy_valid(report: Json): Bool ->
+    let {
+        Some(policy) <- json_value(report, "performance_policy");
+        Some(speedup) <- json_float(policy, "observed_two_scheduler_median_speedup");
+        Some(lower_bound) <- json_float(policy, "observed_two_scheduler_confidence_lower_bound");
+        Some(mixed_tail) <- json_value(policy, "mixed_tail")
+    } else {
+        _ -> false
+    };
+    if {
+        not string_field_is(policy, "schema", performance_policy_schema()) -> false;
+        not string_field_is(policy, "dedicated_runner_label", dedicated_runner()) -> false;
+        not string_field_is(policy, "requested_runner_label", dedicated_runner()) -> false;
+        not bool_field_is(policy, "enforced", true) -> false;
+        not string_field_is(policy, "status", "passed") -> false;
+        not json_null(policy, "record_only_reason") -> false;
+        speedup < 1.5 or lower_bound < 1.25 -> false;
+        true -> mixed_metrics_valid(mixed_tail)
+    }.
+
+performance_overlap_valid(report: Json): Bool ->
+    let {
+        Some(measurement_rows) <- json_value(report, "measurements");
+        Some(mixed_load) <- json_value(report, "mixed_load_tail");
+        Some(active_schedulers) <- json_int(mixed_load, "maximum_simultaneously_active_schedulers");
+        Some(cpu_overlap) <- json_bool(mixed_load, "cpu_overlap_proven")
+    } else {
+        _ -> false
+    };
+    if {
+        not measurements_valid(measurement_rows) -> false;
+        not cpu_overlap -> false;
+        true -> active_schedulers >= 2
+    }.
+
+pub validate_performance_report(report: Json): Option[Json] ->
+    let {
+        Some(source_revision) <- json_string(report, "source_revision");
+        Some(provenance) <- json_value(report, "provenance")
+    } else {
+        _ -> None
+    };
+    if {
+        not performance_header_valid(report) -> None;
+        not performance_digests_valid(report) -> None;
+        not validate_execution_provenance(provenance, source_revision, true) -> None;
+        not performance_machine_valid(report) -> None;
+        not performance_policy_valid(report) -> None;
+        not performance_overlap_valid(report) -> None;
+        true -> Some(provenance)
+    }.
+
+pub build_closeout(
+    performance: Json,
+    sanitizer_report: Json,
+    performance_digest: String,
+    sanitizer_digest: String,
+): Option[Json] ->
+    let {
+        Some(performance_identity) <- validate_performance_report(performance);
+        Some(source_revision) <- json_string(performance, "source_revision");
+        Some(source_digest) <- json_string(performance, "source_tree_sha256");
+        Some(sanitizer_revision) <- json_string(sanitizer_report, "source_revision");
+        Some(sanitizer_source_digest) <- json_string(sanitizer_report, "source_tree_sha256");
+        Some(performance_clean) <- json_bool(performance_identity, "source_tree_clean")
+    } else {
+        _ -> None
+    };
+    (let sanitizer_identity = sanitizer_provenance(sanitizer_report);
+let sanitizer_environment =
+    case json_string(sanitizer_identity, "execution_environment") {
+        Some(value) -> value;
+        None -> ""
+    };
+let sanitizer_clean =
+    case json_bool(sanitizer_identity, "source_tree_clean") {
+        Some(value) -> value;
+        None -> false
+    };
+if {
+    not Sanitizer.validate_report(sanitizer_report, sanitizer_environment == "github-actions") -> None;
+    sanitizer_revision != source_revision or sanitizer_source_digest != source_digest -> None;
+    not validate_execution_provenance(sanitizer_identity, source_revision, false) -> None;
+    not is_sha256(performance_digest) or not is_sha256(sanitizer_digest) -> None;
+    true -> Some(
+        closeout_report(
+            source_revision,
+            source_digest,
+            performance_clean and sanitizer_clean,
+            performance_identity,
+            sanitizer_identity,
+            performance_digest,
+            sanitizer_digest,
+        ),
+    )
+}).
+
+closeout_report(
+    source_revision: String,
+    source_digest: String,
+    source_clean: Bool,
+    performance_identity: Json,
+    sanitizer_identity: Json,
+    performance_digest: String,
+    sanitizer_digest: String,
+): Json ->
+    let mode = provenance_mode(performance_identity, sanitizer_identity);
+    let identity =
+        Json.object()
+            .put("schema", Json.string(schema()))
+            .put("decision", Json.string("pass"))
+            .put("source_revision", Json.string(source_revision))
+            .put("source_tree_sha256", Json.string(source_digest))
+            .put("evidence_scope", Json.string("technical"))
+            .put("provenance_mode", Json.string(mode))
+            .put("source_tree_clean", Json.bool(source_clean));
+    let evidence =
+        identity
+            .put("performance_provenance", performance_identity)
+            .put("sanitizer_provenance", sanitizer_identity)
+            .put("dedicated_runner_label", Json.string(dedicated_runner()))
+            .put("performance_report_sha256", Json.string(performance_digest));
+    evidence
+        .put("sanitizer_toolchain", Json.string(Sanitizer.toolchain()))
+        .put("sanitizer_target", Json.string(Sanitizer.target()))
+        .put("sanitizer_report_sha256", Json.string(sanitizer_digest)).
+
+closeout_header_valid(
+    report_schema: String,
+    decision: String,
+    scope: String,
+    runner: String,
+    toolchain: String,
+    sanitizer_target: String,
+): Bool ->
+    if {
+        report_schema != schema() or decision != "pass" -> false;
+        scope != "technical" or runner != dedicated_runner() -> false;
+        toolchain != Sanitizer.toolchain() -> false;
+        true -> sanitizer_target == Sanitizer.target()
+    }.
+
+closeout_identity_valid(
+    source_revision: String,
+    source_clean: Bool,
+    source_digest: String,
+    performance_identity: Json,
+    sanitizer_identity: Json,
+    mode: String,
+): Bool ->
+    let expected_clean =
+        case {
+    json_bool(performance_identity, "source_tree_clean"),
+    json_bool(sanitizer_identity, "source_tree_clean"),
+} {
+            {Some(left), Some(right)} -> left and right;
+            _ -> false
+        };
+    if {
+        not is_revision(source_revision) or not is_sha256(source_digest) -> false;
+        not validate_execution_provenance(performance_identity, source_revision, true) -> false;
+        not validate_execution_provenance(sanitizer_identity, source_revision, false) -> false;
+        mode != provenance_mode(performance_identity, sanitizer_identity) -> false;
+        true -> source_clean == expected_clean
+    }.
+
+pub validate_closeout(report: Json): Bool ->
+    let {
+        Some(report_schema) <- json_string(report, "schema");
+        Some(decision) <- json_string(report, "decision");
+        Some(scope) <- json_string(report, "evidence_scope");
+        Some(runner) <- json_string(report, "dedicated_runner_label");
+        Some(toolchain) <- json_string(report, "sanitizer_toolchain");
+        Some(sanitizer_target) <- json_string(report, "sanitizer_target");
+        Some(source_revision) <- json_string(report, "source_revision");
+        Some(source_clean) <- json_bool(report, "source_tree_clean");
+        Some(source_digest) <- json_string(report, "source_tree_sha256");
+        Some(performance_identity) <- json_value(report, "performance_provenance");
+        Some(sanitizer_identity) <- json_value(report, "sanitizer_provenance");
+        Some(mode) <- json_string(report, "provenance_mode");
+        Some(performance_digest) <- json_string(report, "performance_report_sha256");
+        Some(sanitizer_digest) <- json_string(report, "sanitizer_report_sha256")
+    } else {
+        _ -> false
+    };
+    if {
+        not closeout_header_valid(report_schema, decision, scope, runner, toolchain, sanitizer_target) -> false;
+        not closeout_identity_valid(
+    source_revision,
+    source_clean,
+    source_digest,
+    performance_identity,
+    sanitizer_identity,
+    mode,
+) -> false;
+        not is_sha256(performance_digest) -> false;
+        true -> is_sha256(sanitizer_digest)
+    }.
+
+pub seal(): Bool ->
+    let root = Environment.current_directory();
+    let performance_path = child(root, "target/quality/vm-multicore-performance.json");
+    let sanitizer_path = child(root, "target/quality/vm-multicore-thread-sanitizer-report.json");
+    let {
+        Some(performance) <- load_json(performance_path);
+        Some(sanitizer) <- load_json(sanitizer_path);
+        Ok(performance_digest) <- sha256_file(performance_path);
+        Ok(sanitizer_digest) <- sha256_file(sanitizer_path);
+        Some(closeout) <- build_closeout(performance, sanitizer, performance_digest, sanitizer_digest);
+        Ok(_created) <- create_all(child(root, "target/quality"))
+    } else {
+        _ -> false
+    };
+    (let revision_value =
+    case json_string(closeout, "source_revision") {
+        Some(value) -> value;
+        None -> ""
+    };
+if {
+    not validate_closeout(closeout) -> failure("generated MC-9 closeout is invalid");
+    not write_json(child(root, "target/quality/vm-multicore-mc9-evidence.json"), closeout) -> false;
+    true -> let _printed = println(String.append("VM multicore MC-9 evidence passed: ", revision_value));
+    true
+}).
+
+tail_metric_fields(mut row: Json, metric: String): Json ->
+    row
+        .put("metric", Json.string(metric))
+        .put("p95_ratio", fixture_float(1.0))
+        .put("p99_ratio", fixture_float(1.0)).
+
+tail_metric(metric: String): Json ->
+    tail_metric_fields(Json.object(), metric).
+
+controlled_background(): Json ->
+    Json.object().put("declared_state", Json.string("controlled")).
+
+hardware_fixture(): Json ->
+    Json.object().put("effective_parallelism", Json.int(4)).
+
+mixed_tail_fixture(): Json ->
+    Json.array()
+        .push(tail_metric("scheduler_wait"))
+        .push(tail_metric("mailbox_delivery"))
+        .push(tail_metric("timer_delay"))
+        .push(tail_metric("http_latency"))
+        .push(tail_metric("failed_steal_backoff"))
+        .push(tail_metric("allocation_pause"))
+        .push(tail_metric("collection_pause")).
+
+github_provenance(): Json ->
+    Json.object()
+        .put("execution_environment", Json.string("github-actions"))
+        .put("source_tree_clean", Json.bool(true))
+        .put("repository", Json.string(official_repository()))
+        .put(
+            "workflow_ref",
+            Json.string("terlan-lang/terlan/.github/workflows/release.yml@refs/tags/v0.0.7"),
+        )
+        .put("run_id", Json.int(7))
+        .put("run_attempt", Json.int(1))
+        .put("commit_sha", Json.string("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+        .put("runner_name", Json.string("performance-1"))
+        .put("runner_environment", Json.string("self-hosted")).
+
+performance_identity_fixture(): Json ->
+    Json.object()
+        .put("schema", Json.string(performance_schema()))
+        .put("source_revision", Json.string("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+        .put(
+            "source_tree_sha256",
+            Json.string("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+        )
+        .put(
+            "rustc_version",
+            Json.string(String.concat(["rustc ", performance_toolchain(), " (pinned)"])),
+        )
+        .put("target_os", Json.string("linux"))
+        .put("target_arch", Json.string("x86_64"))
+        .put("optimization_profile", Json.string("release"))
+        .put("eligible_for_parallel_assertion", Json.bool(true))
+        .put("background_load", controlled_background())
+        .put("hardware", hardware_fixture())
+        .put("provenance", github_provenance()).
+
+performance_digests_fixture(mut report: Json): Json ->
+    report
+        .put(
+            "workload_sha256",
+            Json.string("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+        )
+        .put(
+            "native_image_sha256",
+            Json.string("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+        )
+        .put(
+            "runtime_workload_contract_sha256",
+            Json.string("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+        )
+        .put(
+            "mixed_tail_contract_sha256",
+            Json.string("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+        )
+        .put(
+            "performance_policy_sha256",
+            Json.string("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+        )
+        .put(
+            "benchmark_sha256",
+            Json.string("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+        ).
+
+performance_policy_fields(mut policy: Json): Json ->
+    policy
+        .put("schema", Json.string(performance_policy_schema()))
+        .put("dedicated_runner_label", Json.string(dedicated_runner()))
+        .put("requested_runner_label", Json.string(dedicated_runner()))
+        .put("enforced", Json.bool(true))
+        .put("status", Json.string("passed"))
+        .put("record_only_reason", Json.null())
+        .put("observed_two_scheduler_median_speedup", fixture_float(1.75))
+        .put("observed_two_scheduler_confidence_lower_bound", fixture_float(1.5))
+        .put("mixed_tail", mixed_tail_fixture()).
+
+performance_policy_fixture(): Json ->
+    performance_policy_fields(Json.object()).
+
+scheduler_measurement(width: Int): Json ->
+    Json.object()
+        .put("requested_schedulers", Json.int(width))
+        .put("overlap_proven", Json.bool(true))
+        .put("maximum_simultaneously_active_schedulers", Json.int(width)).
+
+measurements_fixture(): Json ->
+    Json.array()
+        .push(scheduler_measurement(1))
+        .push(scheduler_measurement(2))
+        .push(scheduler_measurement(4)).
+
+performance_overlap_fixture(mut report: Json): Json ->
+    report
+        .put("measurements", measurements_fixture())
+        .put(
+            "mixed_load_tail",
+            Json.object()
+                .put("cpu_overlap_proven", Json.bool(true))
+                .put("maximum_simultaneously_active_schedulers", Json.int(2)),
+        ).
+
+pub synthetic_performance(): Json ->
+    performance_overlap_fixture(
+        performance_digests_fixture(performance_identity_fixture())
+            .put("performance_policy", performance_policy_fixture()),
+    ).
+
+sanitizer_header_fixture(): Json ->
+    Json.object()
+        .put("schema", Json.string(Sanitizer.schema()))
+        .put("decision", Json.string("pass"))
+        .put("host", Json.string("linux-x86_64"))
+        .put("toolchain", Json.string(Sanitizer.toolchain()))
+        .put(
+            "rustc",
+            Json.string(
+                String.concat(["rustc ", Sanitizer.toolchain(), " (pinned)\nbinary: rustc"]),
+            ),
+        )
+        .put("instrumented_target", Json.string(Sanitizer.target()))
+        .put("test_name", Json.string(Sanitizer.test_name()))
+        .put("seed_count", Json.int(Sanitizer.seed_count())).
+
+sanitizer_evidence_fixture(mut report: Json): Json ->
+    report
+        .put(
+            "stress_report_sha256",
+            Json.string("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+        )
+        .put("source_revision", Json.string("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+        .put("source_tree_clean", Json.bool(true))
+        .put(
+            "source_tree_sha256",
+            Json.string("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+        ).
+
+sanitizer_provenance_fixture(mut report: Json): Json ->
+    report
+        .put("execution_environment", Json.string("github-actions"))
+        .put("repository", Json.string(official_repository()))
+        .put(
+            "workflow_ref",
+            Json.string("terlan-lang/terlan/.github/workflows/release.yml@refs/tags/v0.0.7"),
+        )
+        .put("run_id", Json.int(7))
+        .put("run_attempt", Json.int(1))
+        .put("commit_sha", Json.string("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")).
+
+pub synthetic_sanitizer(): Json ->
+    sanitizer_provenance_fixture(sanitizer_evidence_fixture(sanitizer_header_fixture())).
+
+local_provenance(): Json ->
+    Json.object()
+        .put("execution_environment", Json.string("local"))
+        .put("source_tree_clean", Json.bool(false))
+        .put("repository", Json.null())
+        .put("workflow_ref", Json.null())
+        .put("run_id", Json.null())
+        .put("run_attempt", Json.null())
+        .put("commit_sha", Json.null())
+        .put("runner_name", Json.null())
+        .put("runner_environment", Json.null()).
+
+contract_files_valid(root: String): Bool ->
+    let {
+        Ok(makefile) <- read_text(child(root, "Makefile"));
+        Ok(release) <- read_text(child(root, ".github/workflows/release.yml"))
+    } else {
+        _ -> false
+    };
+    makefile.contains("vm-multicore-mc9-evidence-contract-check:")
+        and makefile.contains("vm-multicore-mc9-evidence-check:")
+        and makefile.contains("vm-multicore-mc9-local-evidence-check:")
+        and makefile.contains("$(TERLAN_TVM_PLATFORM_MATRIX) multicore-mc9-seal")
+        and makefile.contains("$(MAKE) vm-multicore-mc9-evidence-check")
+        and release.contains("runs-on: [self-hosted, linux, x64, terlan-linux-x86_64-multicore-v1]")
+        and release.contains("TERLAN_VM_MULTICORE_DEDICATED_RUNNER: terlan-linux-x86_64-multicore-v1")
+        and release.contains("TERLAN_BENCH_BACKGROUND_LOAD: controlled")
+        and release.contains("make vm-multicore-release-check")
+        and release.contains("vm-multicore-mc9-evidence.json").
+
+mutation_rejected(performance: Json, sanitizer: Json, field: String, value: Json): Bool ->
+    case json_clone(performance) {
+        None -> false;
+        Some(copy) ->
+            let changed = copy.put(field, value);
+            case build_closeout(
+    changed,
+    sanitizer,
+    "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+) {
+                None -> true;
+                Some(_value) -> false
+            }
+    }.
+
+pub self_test(): Bool ->
+    let performance = synthetic_performance();
+    let sanitizer = synthetic_sanitizer();
+    let {
+        Some(closeout) <-
+            build_closeout(
+                performance,
+                sanitizer,
+                "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            );
+        Some(rerun_sanitizer) <- json_clone(sanitizer);
+        Some(rerun_closeout) <-
+            build_closeout(
+                performance,
+                rerun_sanitizer.put("run_attempt", Json.int(2)),
+                "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            );
+        Some(local_performance) <- json_clone(performance);
+        Some(local_sanitizer) <- json_clone(sanitizer)
+    } else {
+        _ -> false
+    };
+    (let updated_local_performance = local_performance.put("provenance", local_provenance());
+let local_sanitizer_source =
+    local_sanitizer
+        .put("source_tree_clean", Json.bool(false))
+        .put("execution_environment", Json.string("local"));
+let local_sanitizer_identity =
+    local_sanitizer_source
+        .put("repository", Json.null())
+        .put("workflow_ref", Json.null())
+        .put("run_id", Json.null())
+        .put("run_attempt", Json.null())
+        .put("commit_sha", Json.null());
+case build_closeout(
+    updated_local_performance,
+    local_sanitizer_identity,
+    "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+) {
+    None -> failure("valid local MC-9 evidence was rejected");
+    Some(local_closeout) ->
+        if {
+            not validate_closeout(closeout) -> failure("valid MC-9 closeout was rejected");
+            not string_field_is(closeout, "provenance_mode", "github-single-attempt") -> failure("same-attempt evidence was misclassified");
+            not string_field_is(rerun_closeout, "provenance_mode", "distributed") -> failure("partial rerun was misclassified");
+            not string_field_is(local_closeout, "provenance_mode", "local") -> failure("local evidence was misclassified");
+            not mutation_rejected(performance, sanitizer, "eligible_for_parallel_assertion", Json.bool(false)) -> failure("record-only evidence was accepted");
+            not mutation_rejected(performance, sanitizer, "rustc_version", Json.string("rustc stable")) -> failure("unfixed compiler was accepted");
+            not contract_files_valid(Environment.current_directory()) -> failure("repository MC-9 contract drifted");
+            true -> let _printed = println("VM multicore MC-9 evidence self-test passed");
+            true
+        }
+}).

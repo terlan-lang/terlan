@@ -13,11 +13,16 @@ use std::{
 use super::{
     actor::VmActorRuntime,
     postgres::{
-        VmPostgresConnectConfig, VmPostgresDecodeType, VmPostgresDecodedValue, VmPostgresPool,
+        VmPostgresDeadline, VmPostgresDecodeType, VmPostgresDecodedValue, VmPostgresPool,
         VmPostgresQueryTarget, VmPostgresReply, VmPostgresRow, VmPostgresTransaction,
     },
-    process::{VmExitReason, VmProcessId, VmProcessSource},
+    process::{VmExitReason, VmProcessId},
 };
+#[cfg(any(
+    test,
+    all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+))]
+use super::{postgres::VmPostgresConnectConfig, process::VmProcessSource};
 use crate::{
     terlan_native::{json, postgres, postgres::libpq::DriverReadinessPoller},
     terlan_native_boundary::request::RequestId,
@@ -36,30 +41,58 @@ pub(crate) struct VmPostgresCommandClient {
 impl VmPostgresCommandClient {
     /// Creates a VM-owned pool for one synchronous command invocation.
     pub(crate) fn connect(config: &postgres::Config) -> Result<Self, String> {
-        let timeout_ms = config
-            .wait_timeout_ms()
-            .max(config.connect_timeout_ms())
-            .max(1);
-        let operation_timeout = Duration::from_millis(timeout_ms);
-        let timeout_ticks = timeout_ms;
-        let mut runtime = VmActorRuntime::default();
-        let owner = runtime.spawn_root(VmProcessSource::new("terlc.db", "command", 0));
-        let vm_config = VmPostgresConnectConfig::new(config.clone())
-            .map_err(|error| format_postgres_error(error.code(), error.message()))?;
-        let request = runtime.postgres_connect(owner, vm_config, 0, timeout_ticks)?;
-        let mut client = Self {
-            runtime,
-            owner,
-            pool: None,
-            operation_timeout,
-            readiness: DriverReadinessPoller::new()
-                .map_err(|error| format!("error[{}]: {}", error.code(), error.message()))?,
-        };
-        client.pool = Some(match client.await_reply(request)? {
-            VmPostgresReply::Pool(pool) => pool,
-            reply => return Err(unexpected_reply("connect", &reply)),
-        });
-        Ok(client)
+        #[cfg(not(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        )))]
+        {
+            let _ = config;
+            Err(
+                "error[postgres.capability_worker.required]: synchronous Postgres commands require the external capability-worker transport"
+                    .to_string(),
+            )
+        }
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
+        {
+            let timeout_ms = config
+                .wait_timeout_ms()
+                .max(config.connect_timeout_ms())
+                .max(1);
+            let operation_timeout = Duration::from_millis(timeout_ms);
+            let timeout_ticks = timeout_ms;
+            let mut runtime = VmActorRuntime::default();
+            let owner = runtime.spawn_root(VmProcessSource::new("terlc.db", "command", 0));
+            let vm_config = VmPostgresConnectConfig::new(config.clone())
+                .map_err(|error| format_postgres_error(error.code(), error.message()))?;
+            let request = runtime.postgres_connect(
+                owner,
+                vm_config,
+                VmPostgresDeadline {
+                    now_tick: 0,
+                    timeout_ticks,
+                },
+            )?;
+            let mut client = Self {
+                runtime,
+                owner,
+                pool: None,
+                operation_timeout,
+                readiness: DriverReadinessPoller::new()
+                    .map_err(|error| format!("error[{}]: {}", error.code(), error.message()))?,
+            };
+            client.pool = Some(match client.await_reply(request)? {
+                #[cfg(any(
+                    test,
+                    all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+                ))]
+                VmPostgresReply::Pool(pool) => pool,
+                reply => return Err(unexpected_reply("connect", &reply)),
+            });
+            Ok(client)
+        }
     }
 
     /// Executes trusted multi-statement SQL through the VM-owned pool.
@@ -149,10 +182,13 @@ impl VmPostgresCommandClient {
             sql,
             parameters,
             one,
-            0,
-            self.timeout_ticks(),
+            self.request_deadline(),
         )?;
         match self.await_reply(request)? {
+            #[cfg(any(
+                test,
+                all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+            ))]
             VmPostgresReply::Rows { rows, .. } => Ok(rows),
             reply => Err(unexpected_reply("query", &reply)),
         }
@@ -169,10 +205,13 @@ impl VmPostgresCommandClient {
             row,
             column,
             VmPostgresDecodeType::Dynamic,
-            0,
-            self.timeout_ticks(),
+            self.request_deadline(),
         )?;
         match self.await_reply(request)? {
+            #[cfg(any(
+                test,
+                all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+            ))]
             VmPostgresReply::Decoded(value) => Ok(value),
             reply => Err(unexpected_reply("decode", &reply)),
         }
@@ -189,10 +228,13 @@ impl VmPostgresCommandClient {
             row,
             column,
             VmPostgresDecodeType::String,
-            0,
-            self.timeout_ticks(),
+            self.request_deadline(),
         )?;
         match self.await_reply(request)? {
+            #[cfg(any(
+                test,
+                all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+            ))]
             VmPostgresReply::Decoded(VmPostgresDecodedValue::String(value)) => Ok(value),
             reply => Err(unexpected_reply("decode", &reply)),
         }
@@ -200,19 +242,43 @@ impl VmPostgresCommandClient {
 
     /// Acquires one connection and starts a typed VM transaction.
     pub(crate) fn begin(&mut self) -> Result<VmPostgresTransaction, String> {
-        let acquire =
-            self.runtime
-                .postgres_acquire(self.owner, self.pool(), 0, self.timeout_ticks())?;
-        let connection = match self.await_reply(acquire)? {
-            VmPostgresReply::Connection(connection) => connection,
-            reply => return Err(unexpected_reply("acquire", &reply)),
-        };
-        let begin = self
-            .runtime
-            .postgres_begin(self.owner, connection, 0, self.timeout_ticks())?;
-        match self.await_reply(begin)? {
-            VmPostgresReply::Transaction(transaction) => Ok(transaction),
-            reply => Err(unexpected_reply("begin", &reply)),
+        #[cfg(not(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        )))]
+        {
+            Err(
+                "error[postgres.capability_worker.required]: transactions require the external capability-worker transport"
+                    .to_string(),
+            )
+        }
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
+        {
+            let acquire =
+                self.runtime
+                    .postgres_acquire(self.owner, self.pool(), self.request_deadline())?;
+            let connection = match self.await_reply(acquire)? {
+                #[cfg(any(
+                    test,
+                    all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+                ))]
+                VmPostgresReply::Connection(connection) => connection,
+                reply => return Err(unexpected_reply("acquire", &reply)),
+            };
+            let begin =
+                self.runtime
+                    .postgres_begin(self.owner, connection, self.request_deadline())?;
+            match self.await_reply(begin)? {
+                #[cfg(any(
+                    test,
+                    all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+                ))]
+                VmPostgresReply::Transaction(transaction) => Ok(transaction),
+                reply => Err(unexpected_reply("begin", &reply)),
+            }
         }
     }
 
@@ -249,10 +315,13 @@ impl VmPostgresCommandClient {
             self.owner,
             transaction,
             commit,
-            0,
-            self.timeout_ticks(),
+            self.request_deadline(),
         )?;
         match self.await_reply(request)? {
+            #[cfg(any(
+                test,
+                all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+            ))]
             VmPostgresReply::Unit => Ok(()),
             reply => Err(unexpected_reply(
                 if commit { "commit" } else { "rollback" },
@@ -272,10 +341,13 @@ impl VmPostgresCommandClient {
             target,
             sql,
             parameters,
-            0,
-            self.timeout_ticks(),
+            self.request_deadline(),
         )?;
         match self.await_reply(request)? {
+            #[cfg(any(
+                test,
+                all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+            ))]
             VmPostgresReply::AffectedRows(count) => Ok(count),
             reply => Err(unexpected_reply("execute", &reply)),
         }
@@ -290,10 +362,13 @@ impl VmPostgresCommandClient {
             self.owner,
             target,
             sql,
-            0,
-            self.timeout_ticks(),
+            self.request_deadline(),
         )?;
         match self.await_reply(request)? {
+            #[cfg(any(
+                test,
+                all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+            ))]
             VmPostgresReply::Unit => Ok(()),
             reply => Err(unexpected_reply("batch_execute", &reply)),
         }
@@ -326,6 +401,13 @@ impl VmPostgresCommandClient {
         u64::try_from(self.operation_timeout.as_millis()).unwrap_or(u64::MAX)
     }
 
+    fn request_deadline(&self) -> VmPostgresDeadline {
+        VmPostgresDeadline {
+            now_tick: 0,
+            timeout_ticks: self.timeout_ticks(),
+        }
+    }
+
     fn pool(&self) -> VmPostgresPool {
         self.pool
             .expect("connected VM Postgres command client owns a pool")
@@ -342,6 +424,10 @@ impl Drop for VmPostgresCommandClient {
 fn reply_result(reply: VmPostgresReply) -> Result<VmPostgresReply, String> {
     match reply {
         VmPostgresReply::Error(error) => Err(format_postgres_error(&error.code, &error.message)),
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         reply => Ok(reply),
     }
 }
@@ -359,13 +445,42 @@ fn unexpected_reply(operation: &str, reply: &VmPostgresReply) -> String {
 
 fn reply_name(reply: &VmPostgresReply) -> &'static str {
     match reply {
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresReply::Pool(_) => "pool",
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresReply::Connection(_) => "connection",
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresReply::Transaction(_) => "transaction",
+        #[cfg(test)]
         VmPostgresReply::PreparedStatement(_) => "prepared_statement",
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresReply::Rows { .. } => "rows",
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresReply::AffectedRows(_) => "affected_rows",
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresReply::Decoded(_) => "decoded",
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresReply::Unit => "unit",
         VmPostgresReply::Error(_) => "error",
     }
@@ -373,4 +488,5 @@ fn reply_name(reply: &VmPostgresReply) -> &'static str {
 
 #[cfg(test)]
 #[path = "postgres_command_test.rs"]
+#[cfg(test)]
 mod postgres_command_test;

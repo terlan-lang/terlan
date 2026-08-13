@@ -351,4 +351,5 @@ impl VmShardEpochFence {
 
 #[cfg(test)]
 #[path = "execution_shard_epoch_test.rs"]
+#[cfg(test)]
 mod execution_shard_epoch_test;

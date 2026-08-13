@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use crate::terlan_syntax::{
-    ebnf::EbnfCompileResult, expand_shape_imports, syntax_module_import_identity,
-    SyntaxDeclarationPayload, SyntaxImportKind, SyntaxModuleOutput, SyntaxShapeImport,
+    ebnf::EbnfCompileResult, expand_shape_imports, raw_shape_signature,
+    syntax_module_import_identity, SyntaxDeclarationPayload, SyntaxImportKind, SyntaxModuleOutput,
+    SyntaxShapeImport,
 };
 
 use super::ShapeSignature;
@@ -38,11 +39,7 @@ pub fn expand_syntax_shape_imports(
         else {
             continue;
         };
-        let provider_name = if *is_selected {
-            module_name.clone()
-        } else {
-            syntax_module_import_identity(module_name, items)
-        };
+        let provider_name = syntax_module_import_identity(module_name, items, *is_selected);
         let Some(interface) = interfaces.get(&provider_name) else {
             continue;
         };
@@ -89,8 +86,7 @@ pub(super) fn collect_syntax_shape_signatures(
     let mut shapes = HashMap::new();
     for declaration in &module.declarations {
         if let SyntaxDeclarationPayload::Raw { raw_kind, text } = &declaration.payload {
-            let Some((name, is_public, signature)) = parse_raw_shape_signature(raw_kind, text)
-            else {
+            let Some((name, is_public, signature)) = raw_shape_signature(raw_kind, text) else {
                 continue;
             };
             if is_public {
@@ -106,42 +102,4 @@ pub(super) fn collect_syntax_shape_signatures(
         }
     }
     shapes
-}
-
-/// Parses declaration-head metadata from one raw shape declaration.
-fn parse_raw_shape_signature(raw_kind: &str, text: &str) -> Option<(String, bool, String)> {
-    if raw_kind != "shape" {
-        return None;
-    }
-
-    let trimmed = text.trim();
-    let (is_public, after_visibility) =
-        if let Some(rest) = trimmed.strip_prefix("pub").and_then(trim_keyword_rest) {
-            (true, rest)
-        } else {
-            (false, trimmed)
-        };
-    let after_shape = after_visibility
-        .strip_prefix("shape")
-        .and_then(trim_keyword_rest)?;
-    let name = after_shape
-        .chars()
-        .take_while(|ch| ch.is_ascii_alphanumeric() || *ch == '_')
-        .collect::<String>();
-    if name.is_empty() {
-        return None;
-    }
-
-    let signature = trimmed.strip_suffix('.').unwrap_or(trimmed).trim_end();
-    Some((name, is_public, format!("{signature}.")))
-}
-
-/// Trims required whitespace after a recognized keyword token.
-fn trim_keyword_rest(rest: &str) -> Option<&str> {
-    let mut chars = rest.chars();
-    let first = chars.next()?;
-    if !first.is_whitespace() {
-        return None;
-    }
-    Some(chars.as_str().trim_start())
 }

@@ -97,8 +97,8 @@ vm-http-benchmark-comparability-check: $(VM_HTTP_BENCHMARK_COMPARABILITY_DEPS)
 vm-http-runtime-attribution-check: vm-http-benchmark-comparability-check
 	cargo run -- vm-http-runtime-attribution
 
-vm-http-vs-axum-check:
-	python3 tools/check_vm_benchmark_family_plan.py vm-http-vs-axum-check
+vm-http-vs-axum-check: tvm-http-paired-performance-check
+	TERLAN_VM_BENCHMARK_GATE=vm-http-vs-axum-check target/debug/terlc test scripts/self_validation/VmBenchmarkFamilyPlanTest.terl
 
 release-0-0-7-preflight: vm-http-runtime-attribution-check release-version-channel-check
 "#;
@@ -192,13 +192,13 @@ fn attribution_contract_rejects_release_order_drift() {
 }
 
 #[test]
-fn attribution_contract_rejects_unrelated_http_benchmark_prerequisites() {
+fn attribution_contract_requires_the_paired_http_benchmark_prerequisite() {
     let repo = TestRepo::new("benchmark-prerequisite").expect("fixture");
     repo.write_complete_fixture().expect("write fixture");
     repo.write(
         "Makefile",
         &COMPLETE_MAKEFILE.replace(
-            "vm-http-vs-axum-check:\n",
+            "vm-http-vs-axum-check: tvm-http-paired-performance-check\n",
             "vm-http-vs-axum-check: binary-bitstring-processing-check\n",
         ),
     )

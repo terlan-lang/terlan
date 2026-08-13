@@ -1,0 +1,17 @@
+/**
+ * Exercises first-class VM-native benchmark discovery and execution.
+ */
+module tests.language.BenchmarkFrameworkTest.
+
+@test
+pub ordinary_test_is_separate(): Bool -> true.
+
+benchmark_sum(value: Int, total: Int): Int ->
+    if {
+        value == 0 -> total;
+        true -> benchmark_sum(value - 1, total + value)
+    }.
+
+@benchmark
+pub native_sample_executes_checked_work(): Bool ->
+    benchmark_sum(100, 0) == 5050.

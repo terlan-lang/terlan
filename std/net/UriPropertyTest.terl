@@ -38,14 +38,28 @@ pub option_text_equals(left: Option[String], right: Option[String]): Bool ->
  */
 @test
 pub generated_valid_uris_render_idempotently_after_parse(): Bool ->
-    for_all(elements(["https://example.com", "https://EXAMPLE.com", "https://example.com/docs", "https://example.com/a/../docs", "https://example.com/docs?q=terlan", "https://example.com/docs?q=terlan#intro", "http://localhost:80/api/status", "http://localhost:8080/api/status"]), (text) -> case parse(text) {
-        Ok(uri) ->
-            case parse(uri.to_string()) {
-                Ok(roundtrip) -> assert_equal(uri.to_string(), roundtrip.to_string());
+    for_all(
+        elements(
+            [
+                "https://example.com",
+                "https://EXAMPLE.com",
+                "https://example.com/docs",
+                "https://example.com/a/../docs",
+                "https://example.com/docs?q=terlan",
+                "https://example.com/docs?q=terlan#intro",
+                "http://localhost:80/api/status",
+                "http://localhost:8080/api/status",
+            ],
+        ),
+        (text) ->
+            let {
+                Ok(uri) <- parse(text);
+                Ok(roundtrip) <- parse(uri.to_string())
+            } else {
                 _ -> false
             };
-        _ -> false
-    }).
+            assert_equal(uri.to_string(), roundtrip.to_string()),
+    ).
 
 /**
  * Verifies normalized rendering preserves every exposed URI component.
@@ -58,15 +72,29 @@ pub generated_valid_uris_render_idempotently_after_parse(): Bool ->
  */
 @test
 pub generated_uri_components_survive_render_and_reparse(): Bool ->
-    for_all(elements(["https://example.com", "https://EXAMPLE.com/a/../docs", "https://example.com/docs?q=terlan", "https://example.com/docs?q=terlan#intro", "http://localhost:80/api/status"]), (text) -> case parse(text) {
-        Ok(uri) ->
-            case parse(uri.to_string()) {
-                Ok(roundtrip) ->
-                    uri.scheme() == roundtrip.scheme() and option_text_equals(uri.host(), roundtrip.host()) and uri.path() == roundtrip.path() and option_text_equals(uri.query(), roundtrip.query()) and option_text_equals(uri.fragment(), roundtrip.fragment());
+    for_all(
+        elements(
+            [
+                "https://example.com",
+                "https://EXAMPLE.com/a/../docs",
+                "https://example.com/docs?q=terlan",
+                "https://example.com/docs?q=terlan#intro",
+                "http://localhost:80/api/status",
+            ],
+        ),
+        (text) ->
+            let {
+                Ok(uri) <- parse(text);
+                Ok(roundtrip) <- parse(uri.to_string())
+            } else {
                 _ -> false
             };
-        _ -> false
-    }).
+            uri.scheme() == roundtrip.scheme()
+                and option_text_equals(uri.host(), roundtrip.host())
+                and uri.path() == roundtrip.path()
+                and option_text_equals(uri.query(), roundtrip.query())
+                and option_text_equals(uri.fragment(), roundtrip.fragment()),
+    ).
 
 /**
  * Verifies malformed generated URI text is rejected deterministically.
@@ -79,4 +107,9 @@ pub generated_uri_components_survive_render_and_reparse(): Bool ->
  */
 @test
 pub generated_malformed_uris_return_typed_errors(): Bool ->
-    for_all(elements(["not a uri", "://missing-scheme", "https://[::1", "https://exa mple.com", "http://"]), (text) -> is_err(parse(text))).
+    for_all(
+        elements(
+            ["not a uri", "://missing-scheme", "https://[::1", "https://exa mple.com", "http://"],
+        ),
+        (text) -> is_err(parse(text)),
+    ).

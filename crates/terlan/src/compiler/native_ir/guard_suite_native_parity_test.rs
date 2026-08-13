@@ -16,23 +16,23 @@ module guard_suite_native.\n\
 \n\
 pub ordered(value: Int): Int ->\n\
     case value {\n\
-        item where item >= -10 && item < 0 -> 1;\n\
-        item where item >= 0 && item <= 10 -> 2;\n\
+        item where item >= -10 and item < 0 -> 1;\n\
+        item where item >= 0 and item <= 10 -> 2;\n\
         _ -> 3\n\
     }.\n\
 pub guarded_division(divisor: Int): Int ->\n\
     case divisor {\n\
-        value where value != 0 && 84 div value > 10 -> 1;\n\
+        value where value != 0 and 84 div value > 10 -> 1;\n\
         _ -> 0\n\
     }.\n\
 pub guarded_or(value: Int): Int ->\n\
     case value {\n\
-        item where item == 0 || 84 div item > 10 -> 1;\n\
+        item where item == 0 or 84 div item > 10 -> 1;\n\
         _ -> 0\n\
     }.\n\
 pub overflow_safe_increment(value: Int): Int ->\n\
     case value {\n\
-        item where item < 9223372036854775807 && item + 1 > item -> item + 1;\n\
+        item where item < 9223372036854775807 and item + 1 > item -> item + 1;\n\
         _ -> value\n\
     }.\n\
 pub negated(flag: Bool): Int ->\n\
@@ -150,7 +150,7 @@ module guard_suite_invalid_operand.\n\
 \n\
 pub invalid_operand(value: Int): Int ->\n\
     case value {\n\
-        item where true && item -> item;\n\
+        item where true and item -> item;\n\
         _ -> 0\n\
     }.\n",
     )

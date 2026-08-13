@@ -77,15 +77,19 @@ fn private_projection_calls_lower_to_scalar_native_ir() {
         .expect("local native function");
 
     for function in [direct, local] {
-        assert!(matches!(
-            function.body,
-            NativeExpr::Let { ref bindings, ref body }
-                if bindings.len() == 2
-                    && matches!(body.as_ref(), NativeExpr::Binary {
-                        operator: NativeBinaryOperator::Add,
-                        ..
-                    })
-        ));
+        assert!(
+            matches!(
+                function.body,
+                NativeExpr::Let { ref bindings, ref body }
+                    if bindings.len() == 2
+                        && matches!(body.as_ref(), NativeExpr::Binary {
+                            operator: NativeBinaryOperator::Add,
+                            ..
+                        })
+            ),
+            "unexpected scalar replacement body: {:#?}",
+            function.body
+        );
         assert_eq!(function.params, Vec::new());
     }
 }

@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use super::{
     extract_cli_exact_selectors, extract_grouped_test_filters, missing_required_test_coverage,
-    parse_cargo_test_names, stale_selectors,
+    parse_cargo_test_names, stale_grouped_filters, stale_selectors,
 };
 
 /// Verifies Makefile exact-selector extraction.
@@ -126,6 +126,23 @@ fn stale_selectors_accepts_all_resolved_selectors() {
     assert!(stale.is_empty());
 }
 
+#[test]
+fn stale_grouped_filters_require_a_nonzero_library_match() {
+    let filters = vec![
+        "commands::serve::serve_test::dynamic_dispatch".to_string(),
+        "commands::serve::serve_test::removed_module".to_string(),
+        "commands::serve::serve_test::removed_module".to_string(),
+    ];
+    let tests = BTreeSet::from([
+        "commands::serve::serve_test::dynamic_dispatch::vm_stream_request_executes".to_string(),
+    ]);
+
+    assert_eq!(
+        stale_grouped_filters(&filters, &tests),
+        vec!["stale grouped test filter `commands::serve::serve_test::removed_module`".to_string()]
+    );
+}
+
 /// Verifies required VM-stream serve selectors are release-gated.
 ///
 /// Inputs:
@@ -140,12 +157,9 @@ fn stale_selectors_accepts_all_resolved_selectors() {
 #[test]
 fn missing_required_exact_selectors_accepts_vm_stream_contract() {
     let selectors = vec![
-        "runtime::vm::http::http_test::vm_http_roundtrips_request_and_response_over_vm_tcp_streams"
-            .to_string(),
-        "commands::serve::serve_test::vm_stream_request_executes_dynamic_handler_without_hyper"
-            .to_string(),
-        "commands::serve::serve_test::vm_stream_request_returns_websocket_upgrade_handshake_without_hyper"
-            .to_string(),
+        "runtime::vm::http::http_test::transport_fixtures::vm_http_roundtrips_request_and_response_over_vm_tcp_streams".to_string(),
+        "commands::serve::serve_test::dynamic_dispatch::vm_stream_request_executes_dynamic_handler_without_hyper".to_string(),
+        "commands::serve::serve_test::upgrades_and_acme::vm_stream_request_returns_websocket_upgrade_handshake_without_hyper".to_string(),
     ];
 
     let missing = missing_required_test_coverage(&selectors, &[]);
@@ -171,7 +185,7 @@ fn missing_required_exact_selectors_reports_vm_stream_contract_gaps() {
     assert!(
         missing.iter().any(|diagnostic| {
             diagnostic.contains(
-                "commands::serve::serve_test::vm_stream_request_executes_dynamic_handler_without_hyper",
+                "commands::serve::serve_test::dynamic_dispatch::vm_stream_request_executes_dynamic_handler_without_hyper",
             )
         }),
         "expected VM-stream dynamic handler selector diagnostic: {missing:?}"
@@ -179,7 +193,7 @@ fn missing_required_exact_selectors_reports_vm_stream_contract_gaps() {
     assert!(
         missing.iter().any(|diagnostic| {
             diagnostic.contains(
-                "runtime::vm::http::http_test::vm_http_roundtrips_request_and_response_over_vm_tcp_streams",
+                "runtime::vm::http::http_test::transport_fixtures::vm_http_roundtrips_request_and_response_over_vm_tcp_streams",
             )
         }),
         "expected VM HTTP/TCP selector diagnostic: {missing:?}"
@@ -189,27 +203,27 @@ fn missing_required_exact_selectors_reports_vm_stream_contract_gaps() {
 #[test]
 fn grouped_filter_satisfies_required_vm_stream_contract() {
     let exact = vec![
-        "runtime::vm::http::http_test::vm_http_roundtrips_request_and_response_over_vm_tcp_streams"
-            .to_string(),
+        "runtime::vm::http::http_test::transport_fixtures::vm_http_roundtrips_request_and_response_over_vm_tcp_streams".to_string(),
     ];
-    let grouped = vec!["commands::serve::serve_test::vm_stream_".to_string()];
+    let grouped = vec![
+        "commands::serve::serve_test::dynamic_dispatch::vm_stream_".to_string(),
+        "commands::serve::serve_test::upgrades_and_acme::vm_stream_".to_string(),
+    ];
 
     assert!(missing_required_test_coverage(&exact, &grouped).is_empty());
 }
 
 #[test]
-fn grouped_filter_extraction_reads_binary_test_filter() {
+fn grouped_filter_extraction_reads_library_test_filter() {
     let makefile = r#"
 check:
-	$(RUST_TEST) -p terlan --bin terlan-vm runtime::vm::http::http_test
-	$(RUST_TEST) -p terlan --bin terlc commands::serve::serve_test::vm_stream_ -- --quiet
+	$(RUST_TEST) -p terlan --lib runtime::vm::http::http_test
+	$(RUST_TEST) -p terlan --features editor-lsp --lib vm_stream_ -- --quiet
+	$(RUST_TEST) --locked --workspace --bins --no-run
 "#;
 
     assert_eq!(
         extract_grouped_test_filters(makefile),
-        vec![
-            "runtime::vm::http::http_test",
-            "commands::serve::serve_test::vm_stream_",
-        ]
+        vec!["runtime::vm::http::http_test", "vm_stream_",]
     );
 }

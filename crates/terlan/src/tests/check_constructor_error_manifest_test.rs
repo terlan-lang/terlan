@@ -1,2 +1,7 @@
-include!("check_constructor_error_manifest_test_part_001.rs");
-include!("check_constructor_error_manifest_test_part_002.rs");
+pub(super) use super::*;
+#[cfg(test)]
+#[path = "check_constructor_error_manifest_test/alias_chain_errors.rs"]
+mod alias_chain_errors;
+#[cfg(test)]
+#[path = "check_constructor_error_manifest_test/constructor_errors.rs"]
+mod constructor_errors;

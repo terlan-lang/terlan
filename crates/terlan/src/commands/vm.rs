@@ -58,7 +58,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
         } => match reload_native_source_files_in_vm(&sources, &state) {
             Ok(report) => {
                 for event in &report.sources.events {
-                    println!("{}", render_reload_event(&event));
+                    println!("{}", render_reload_event(event));
                 }
                 if diagnostics {
                     println!("{}", render_native_reload_diagnostics(&report));
@@ -215,6 +215,9 @@ fn run_source_file_in_vm(
     let image = crate::commands::build::vm_artifact::native_image::compile_repl_native_image(
         &workspace,
         &module_stem,
+        &source_name,
+        &contents,
+        &artifacts.syntax_output,
         &artifacts.core,
     )?
     .ok_or_else(|| {
@@ -264,9 +267,9 @@ fn call_with_command_capabilities(
                         return Err(error);
                     }
                 };
-                shard.resume_capability_call(owner, suspension, wait, reply)?
+                shard.resume_capability_call(owner, *suspension, wait, reply)?
             }
-            PureNativeExecution::Suspended(suspension) => shard.resume_call(owner, suspension)?,
+            PureNativeExecution::Suspended(suspension) => shard.resume_call(owner, *suspension)?,
         };
     }
 }
@@ -289,6 +292,15 @@ fn command_capability_reply(
             crate::runtime::native_image::TvmBoundaryType::Unit,
         ) => {
             output(line);
+            Ok(NativeBoundaryReplyTerm::Ok(NativeBoundaryTerm::Unit))
+        }
+        (
+            "stdio",
+            "std.io.console.eprintln",
+            [NativeBoundaryTerm::Text(line)],
+            crate::runtime::native_image::TvmBoundaryType::Unit,
+        ) => {
+            eprintln!("{line}");
             Ok(NativeBoundaryReplyTerm::Ok(NativeBoundaryTerm::Unit))
         }
         (capability, operation, _, _) => Err(format!(
@@ -423,4 +435,5 @@ fn print_vm_usage() {
 
 #[cfg(test)]
 #[path = "vm_test.rs"]
+#[cfg(test)]
 mod vm_test;

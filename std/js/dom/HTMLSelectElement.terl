@@ -158,7 +158,7 @@ pub (value: HTMLSelectElement) will_validate(): Bool ->
  */
 pub (value: HTMLSelectElement) add(
     element: HTMLOptGroupElement | HTMLOptionElement,
-    before: Option[HTMLElement | JsNumber]
+    before: Option[HTMLElement | JsNumber],
 ): Unit ->
     native.
 
@@ -224,13 +224,13 @@ pub (value: HTMLSelectElement) show_picker(): Unit ->
 pub (value: HTMLSelectElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     native.
 
 pub (value: HTMLSelectElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     native.

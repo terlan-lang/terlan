@@ -42,7 +42,7 @@ impl TestRepo {
             "crates/terlan/src/runtime/vm/supervision.rs",
             r#"
 VmSupervisionSystem VmSupervisorSnapshot VmSupervisorRestartHistoryEntry VmSupervisorRestartHistoryOutcome VmSupervisorState VmSupervisionRestart VmRestartPolicy
-VmChildRestartClass VmRestartBackoffSchedule VmShutdownTimeout VmChildSpec create_supervisor create_child_supervisor_with_policy start_child restart_child snapshot
+VmChildRestartClass VmRestartBackoffSchedule VmShutdownTimeout VmChildSpec create_supervisor create_child_supervisor_with_policy start_child restart_child restart_failed_supervisor snapshot
 LimitReached Restarted RestartedGroup NotRestarted RestForOne Permanent Transient Temporary Failed ChildSupervisorFailed
 last_restart_delay_ms restart_delay_ms shutdown_timeout_ms last_shutdown_timeout_ms restart_history parent_id
 "#,
@@ -55,34 +55,46 @@ begin_shutdown complete_shutdown advance_clock handle_timer_event ShutdownTimeou
 "#,
         )?;
         self.write(
+            "crates/terlan/src/runtime/vm/supervision/runtime.rs",
+            r#"
+VmSupervisionRuntime VmSupervisionChildSpec restart_failed_supervisor schedule_restart advance_restart_clock
+begin_shutdown advance_shutdown_clock charge_child_memory pending_lifecycle_count
+"#,
+        )?;
+        self.write("crates/terlan/src/runtime/vm.rs", "pub mod supervision;\n")?;
+        self.write(
             "Makefile",
             r#"
 vm-supervision-restart-check: vm-supervision-primitives-check
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::actor::actor_relationship_test::actor_unlinked_child_termination_preserves_parent_mailbox_progress -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_starts_child_and_exposes_inspection_snapshot -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_restarts_only_failed_child_for_one_for_one_policy -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_restarts_all_children_for_one_for_all_policy -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_one_for_all_enforces_restart_limit_before_group_restart -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_restarts_failed_and_later_children_for_rest_for_one_policy -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_rest_for_one_enforces_restart_limit_before_group_restart -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_temporary_child_never_restarts -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_transient_child_restarts_only_after_abnormal_exit -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_group_restart_skips_non_restartable_children_without_blocking_restartable_siblings -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_applies_exponential_restart_backoff_for_one_for_one_policy -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_group_restart_reports_per_child_backoff_delays -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_records_shutdown_timeout_for_live_child_restart -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_group_restart_reports_per_child_shutdown_timeouts -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_enforces_restart_limit -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_records_supervisor_failure_when_restart_limit_escalates -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_propagates_child_supervisor_failure_to_parent_snapshot -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_records_restart_history_for_restart_and_limit -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_records_restart_history_for_non_restartable_child -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_reports_missing_child_diagnostic -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_reports_missing_supervisor_diagnostic -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_rejects_duplicate_child_id -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_restart_exits_live_child_before_restarting -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_reports_missing_process_instead_of_panicking_on_restart -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::supervision_system_reports_missing_supervisor_for_restart_and_snapshot -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --test vm_supervision_runtime product_parent_strategy_restarts_failed_and_sibling_supervisor_subtrees -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --test vm_supervision_runtime product_native_boundary_worker_crash_uses_vm_backoff_and_restart -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --test vm_supervision_runtime product_handler_pool_memory_exhaustion_restarts_the_group -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --test vm_supervision_runtime product_in_flight_shutdown_timeout_cancels_old_actor_and_restarts -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::actor::tests::actor_relationship_test::actor_unlinked_child_termination_preserves_parent_mailbox_progress -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_starts_child_and_exposes_inspection_snapshot -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_restarts_only_failed_child_for_one_for_one_policy -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_restarts_all_children_for_one_for_all_policy -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_one_for_all_enforces_restart_limit_before_group_restart -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_restarts_failed_and_later_children_for_rest_for_one_policy -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_rest_for_one_enforces_restart_limit_before_group_restart -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_temporary_child_never_restarts -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_transient_child_restarts_only_after_abnormal_exit -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_group_restart_skips_non_restartable_children_without_blocking_restartable_siblings -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_applies_exponential_restart_backoff_for_one_for_one_policy -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_group_restart_reports_per_child_backoff_delays -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_records_shutdown_timeout_for_live_child_restart -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_group_restart_reports_per_child_shutdown_timeouts -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_enforces_restart_limit -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_records_supervisor_failure_when_restart_limit_escalates -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_propagates_child_supervisor_failure_to_parent_snapshot -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_records_restart_history_for_restart_and_limit -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_records_restart_history_for_non_restartable_child -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_reports_missing_child_diagnostic -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_reports_missing_supervisor_diagnostic -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_rejects_duplicate_child_id -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_restart_exits_live_child_before_restarting -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_reports_missing_process_instead_of_panicking_on_restart -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_reports_missing_supervisor_for_restart_and_snapshot -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_waits_for_clean_exit_and_cancels_deadline -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_distinguishes_in_budget_and_overdue_child_termination -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_deadline_forces_typed_exit_and_restarts_child -- --exact
@@ -107,9 +119,9 @@ fn vm_supervision_restart_writes_report_for_current_baseline() {
 
     let summary = run_vm_supervision_restart(repo.root()).expect("quality check");
 
-    assert_eq!(summary.fixture_count, 30);
-    assert_eq!(summary.exact_selector_count, 30);
-    assert_eq!(summary.open_gap_count, 4);
+    assert_eq!(summary.fixture_count, 34);
+    assert_eq!(summary.exact_selector_count, 34);
+    assert_eq!(summary.open_gap_count, 0);
     let report = fs::read_to_string(summary.report_path).expect("read report");
     assert!(report.contains("terlan-vm-supervision-report-v1"));
     assert!(report.contains("one_for_one"));
@@ -126,6 +138,10 @@ fn vm_supervision_restart_writes_report_for_current_baseline() {
     assert!(report.contains("typed forced shutdown timeout exit"));
     assert!(report.contains("restart intensity exhaustion marks supervisor failed"));
     assert!(report.contains("parent supervisor observes terminal child supervisor failure"));
+    assert!(report.contains("parent restart strategy rebuilds selected child-supervisor subtrees"));
+    assert!(report.contains("NativeBoundary worker crash restart"));
+    assert!(report.contains("handler pool exhaustion restart"));
+    assert!(report.contains("in-flight request cancellation during restart"));
     assert!(report.contains("supervisor failure reason"));
     assert!(report.contains("parent supervisor id"));
     assert!(report.contains("child supervisor failure state"));
@@ -168,9 +184,7 @@ fn vm_supervision_restart_writes_report_for_current_baseline() {
     assert!(!gaps
         .iter()
         .any(|gap| gap.as_str() == Some("parent supervisor failure propagation")));
-    assert!(gaps
-        .iter()
-        .any(|gap| gap.as_str() == Some("parent supervisor restart strategy execution")));
+    assert!(gaps.is_empty());
 }
 
 fn assert_json_array_contains(json: &Value, key: &str, expected: &str) {
@@ -202,6 +216,40 @@ fn vm_supervision_restart_rejects_missing_runtime_anchor() {
 }
 
 #[test]
+fn vm_supervision_restart_rejects_test_only_product_module() {
+    let repo = TestRepo::new("test-only-product-module").expect("fixture");
+    repo.write_complete_fixture().expect("write fixture");
+    repo.write(
+        "crates/terlan/src/runtime/vm.rs",
+        "#[cfg(test)]\npub mod supervision;\n",
+    )
+    .expect("rewrite module graph");
+
+    let error = run_vm_supervision_restart(repo.root()).expect_err("test-only module should fail");
+
+    assert!(error.contains("supervision cannot be test-only"));
+}
+
+#[test]
+fn vm_supervision_restart_rejects_missing_product_runtime_anchor() {
+    let repo = TestRepo::new("missing-product-anchor").expect("fixture");
+    repo.write_complete_fixture().expect("write fixture");
+    let path = repo
+        .root()
+        .join("crates/terlan/src/runtime/vm/supervision/runtime.rs");
+    let runtime = fs::read_to_string(&path).expect("read product runtime");
+    fs::write(
+        &path,
+        runtime.replace("charge_child_memory", "removed_memory_hook"),
+    )
+    .expect("rewrite product runtime");
+
+    let error = run_vm_supervision_restart(repo.root()).expect_err("missing anchor should fail");
+
+    assert!(error.contains("charge_child_memory"));
+}
+
+#[test]
 fn vm_supervision_restart_rejects_missing_make_selector() {
     let repo = TestRepo::new("missing-selector").expect("fixture");
     repo.write_complete_fixture().expect("write fixture");
@@ -209,8 +257,8 @@ fn vm_supervision_restart_rejects_missing_make_selector() {
     repo.write(
         "Makefile",
         &makefile.replace(
-            "runtime::vm::supervision::supervision_test::supervision_system_enforces_restart_limit",
-            "runtime::vm::supervision::supervision_test::renamed_restart_limit",
+            "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_enforces_restart_limit",
+            "runtime::vm::supervision::supervision_test::restart_fixtures::renamed_restart_limit",
         ),
     )
     .expect("rewrite makefile");

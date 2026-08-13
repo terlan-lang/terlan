@@ -44,12 +44,12 @@ fn write_compiler_intrinsic_files(root: &PathBuf) {
     write_file(
         root,
         "crates/terlan/src/compiler/typeck/core_ir/intrinsics.rs",
-        "VmAgentStart VmGenServerStart VmSupervisorStart VmTaskStart",
+        "pub enum CorePrimitiveIntrinsic { VmProcessYield }",
     );
     write_file(
         root,
         "crates/terlan/src/compiler/typeck/core_intrinsic_lowering/registry.rs",
-        "VmAgentStart VmGenServerStart VmSupervisorStart VmTaskStart",
+        "fn process_intrinsic() {}",
     );
 }
 
@@ -72,12 +72,29 @@ Magic lowering is reserved for thin primitive wrappers.
     }
 }
 
+fn write_executable_evidence(root: &PathBuf) {
+    write_file(
+        root,
+        "tests/language/VmServiceActorTest.terl",
+        "@test\npub agent_service_orders_state_and_discards_stale_replies(): Bool -> true.\n\
+         @test\npub gen_server_init_call_cast_timeout_terminate_and_policy_wrappers_execute(): Bool -> true.\n\
+         @test\npub monitored_child_crash_does_not_crash_the_watcher(): Bool -> true.\n\
+         @test\npub task_result_monitor_and_cancel_execute_from_terlan(): Bool -> true.\n",
+    );
+    write_file(
+        root,
+        "tests/language/VmSupervisorPolicyTest.terl",
+        "@test\npub restart_strategies_select_ordered_children(): Bool -> true.\n",
+    );
+}
+
 #[test]
 fn vm_otp_abstractions_gate_accepts_current_inventory_shape() {
     let root = temp_repo("complete");
     write_behavior_modules(&root);
     write_compiler_intrinsic_files(&root);
     write_policy_docs(&root);
+    write_executable_evidence(&root);
     write_file(
         &root,
         "crates/terlan/src/runtime/vm/process.rs",
@@ -87,9 +104,34 @@ fn vm_otp_abstractions_gate_accepts_current_inventory_shape() {
     let summary = run_vm_otp_abstractions_terlan_stdlib(&root).expect("gate should pass");
 
     assert_eq!(summary.behavior_module_count, 4);
-    assert_eq!(summary.pending_framework_intrinsic_count, 8);
+    assert_eq!(summary.pending_framework_intrinsic_count, 0);
     assert_eq!(summary.runtime_magic_count, 0);
     assert_eq!(summary.policy_doc_count, 2);
+    assert_eq!(summary.executable_evidence_count, 5);
+    fs::remove_dir_all(root).expect("remove temp repo");
+}
+
+#[test]
+fn vm_otp_abstractions_gate_rejects_framework_compiler_intrinsics() {
+    let root = temp_repo("framework-intrinsics");
+    write_behavior_modules(&root);
+    write_policy_docs(&root);
+    write_executable_evidence(&root);
+    write_file(
+        &root,
+        "crates/terlan/src/compiler/typeck/core_ir/intrinsics.rs",
+        "VmAgentStart VmGenServerStart VmSupervisorStart VmTaskStart",
+    );
+    write_file(
+        &root,
+        "crates/terlan/src/compiler/typeck/core_intrinsic_lowering/registry.rs",
+        "VmAgentStart VmGenServerStart VmSupervisorStart VmTaskStart",
+    );
+
+    let error = run_vm_otp_abstractions_terlan_stdlib(&root)
+        .expect_err("framework compiler intrinsics must fail");
+
+    assert!(error.contains("8 high-level framework intrinsic marker(s)"));
     fs::remove_dir_all(root).expect("remove temp repo");
 }
 
@@ -106,6 +148,27 @@ fn vm_otp_abstractions_gate_rejects_missing_behavior_module() {
             .iter()
             .any(|diagnostic| diagnostic.contains("std/vm/GenServer.terl")),
         "expected missing GenServer diagnostic, got {diagnostics:?}"
+    );
+    fs::remove_dir_all(root).expect("remove temp repo");
+}
+
+#[test]
+fn vm_otp_abstractions_gate_rejects_high_level_native_placeholder() {
+    let root = temp_repo("native-placeholder");
+    write_behavior_modules(&root);
+    write_file(
+        &root,
+        "std/vm/Task.terl",
+        "module std.vm.Task.\n@target.vm {process_mailbox: true}\npub start(): Unit ->\n    native.\n",
+    );
+
+    let diagnostics = validate_behavior_modules(&root).expect("validate behavior modules");
+
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("not a native placeholder")),
+        "expected native-placeholder diagnostic, got {diagnostics:?}"
     );
     fs::remove_dir_all(root).expect("remove temp repo");
 }

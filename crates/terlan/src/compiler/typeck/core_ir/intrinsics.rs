@@ -39,6 +39,9 @@ impl CoreEffectSet {
 pub enum CorePrimitiveIntrinsic {
     TypeOf,
     IsType,
+    MemoryLayoutSize,
+    MemoryLayoutAlignment,
+    MemoryLayoutStorage,
     BoolEqual,
     BoolCompare,
     BoolToString,
@@ -71,12 +74,18 @@ pub enum CorePrimitiveIntrinsic {
     StringLowercase,
     StringUppercase,
     StringReverse,
+    StringCharacters,
+    StringCodepoints,
+    StringUtf8ByteAt,
+    StringUtf8FindAnyByte,
+    StringUtf8Slice,
     StringTrim,
     StringTrimStart,
     StringTrimEnd,
     StringReplace,
     StringSplit,
     StringSplitOnce,
+    CryptoSha256,
     ListNew,
     ListIsEmpty,
     ListLength,
@@ -113,6 +122,7 @@ pub enum CorePrimitiveIntrinsic {
     TaskFailed,
     TaskResult,
     VmEffectRun,
+    VmDebuggerBreak,
     VmProcessYield,
     VmProcessSendInt,
     VmProcessReceiveInt,
@@ -127,16 +137,6 @@ pub enum CorePrimitiveIntrinsic {
     VmProcessSleep,
     VmProcessFail,
     VmProcessSchedule,
-    VmAgentStart,
-    VmAgentGet,
-    VmAgentGetAndUpdate,
-    VmAgentUpdate,
-    VmAgentCast,
-    VmAgentStop,
-    VmGenServerStart,
-    VmGenServerCall,
-    VmGenServerCast,
-    VmGenServerStop,
     VmNativeBridgeStart,
     VmNativeBridgeCall,
     VmNativeBridgeDispose,
@@ -144,6 +144,9 @@ pub enum CorePrimitiveIntrinsic {
     VmBytesFromList,
     VmBytesToList,
     VmBytesLength,
+    VmBytesStartsWith,
+    VmBytesContains,
+    VmBytesFirstNonAsciiWhitespace,
     VmBytesConcat,
     VmBytesSlice,
     VmBytesReadUintBe,
@@ -192,13 +195,6 @@ pub enum CorePrimitiveIntrinsic {
     VmPortWrite,
     VmPortRead,
     VmPortClose,
-    VmSupervisorStartRoot,
-    VmSupervisorChildSpec,
-    VmSupervisorStart,
-    VmSupervisorStop,
-    VmTaskStart,
-    VmTaskResult,
-    VmTaskCancel,
 }
 
 impl CorePrimitiveIntrinsic {
@@ -218,6 +214,9 @@ impl CorePrimitiveIntrinsic {
         match self {
             Self::TypeOf => "core.type.type_of",
             Self::IsType => "core.type.is_type",
+            Self::MemoryLayoutSize => "core.memory.layout.size",
+            Self::MemoryLayoutAlignment => "core.memory.layout.alignment",
+            Self::MemoryLayoutStorage => "core.memory.layout.storage",
             Self::BoolEqual => "core.bool.equal",
             Self::BoolCompare => "core.bool.compare",
             Self::BoolToString => "core.bool.to_string",
@@ -250,12 +249,18 @@ impl CorePrimitiveIntrinsic {
             Self::StringLowercase => "core.string.lowercase",
             Self::StringUppercase => "core.string.uppercase",
             Self::StringReverse => "core.string.reverse",
+            Self::StringCharacters => "core.string.characters",
+            Self::StringCodepoints => "core.string.codepoints",
+            Self::StringUtf8ByteAt => "core.string.utf8_byte_at",
+            Self::StringUtf8FindAnyByte => "core.string.utf8_find_any_byte",
+            Self::StringUtf8Slice => "core.string.utf8_slice",
             Self::StringTrim => "core.string.trim",
             Self::StringTrimStart => "core.string.trim_start",
             Self::StringTrimEnd => "core.string.trim_end",
             Self::StringReplace => "core.string.replace",
             Self::StringSplit => "core.string.split",
             Self::StringSplitOnce => "core.string.split_once",
+            Self::CryptoSha256 => "core.crypto.sha256",
             Self::ListNew => "core.list.new",
             Self::ListIsEmpty => "core.list.is_empty",
             Self::ListLength => "core.list.length",
@@ -292,6 +297,7 @@ impl CorePrimitiveIntrinsic {
             Self::TaskFailed => "core.task.failed",
             Self::TaskResult => "core.task.result",
             Self::VmEffectRun => "vm.effect.run",
+            Self::VmDebuggerBreak => "vm.debugger.break",
             Self::VmProcessYield => "vm.process.yield_now",
             Self::VmProcessSendInt => "vm.process.send_int",
             Self::VmProcessReceiveInt => "vm.process.receive_int",
@@ -306,16 +312,6 @@ impl CorePrimitiveIntrinsic {
             Self::VmProcessSleep => "vm.process.sleep",
             Self::VmProcessFail => "vm.process.fail",
             Self::VmProcessSchedule => "vm.process.schedule",
-            Self::VmAgentStart => "vm.agent.start",
-            Self::VmAgentGet => "vm.agent.get",
-            Self::VmAgentGetAndUpdate => "vm.agent.get_and_update",
-            Self::VmAgentUpdate => "vm.agent.update",
-            Self::VmAgentCast => "vm.agent.cast",
-            Self::VmAgentStop => "vm.agent.stop",
-            Self::VmGenServerStart => "vm.gen_server.start",
-            Self::VmGenServerCall => "vm.gen_server.call",
-            Self::VmGenServerCast => "vm.gen_server.cast",
-            Self::VmGenServerStop => "vm.gen_server.stop",
             Self::VmNativeBridgeStart => "vm.native_bridge.start",
             Self::VmNativeBridgeCall => "vm.native_bridge.call",
             Self::VmNativeBridgeDispose => "vm.native_bridge.dispose",
@@ -323,6 +319,9 @@ impl CorePrimitiveIntrinsic {
             Self::VmBytesFromList => "vm.bytes.from_list",
             Self::VmBytesToList => "vm.bytes.to_list",
             Self::VmBytesLength => "vm.bytes.length",
+            Self::VmBytesStartsWith => "vm.bytes.starts_with",
+            Self::VmBytesContains => "vm.bytes.contains",
+            Self::VmBytesFirstNonAsciiWhitespace => "vm.bytes.first_non_ascii_whitespace",
             Self::VmBytesConcat => "vm.bytes.concat",
             Self::VmBytesSlice => "vm.bytes.slice",
             Self::VmBytesReadUintBe => "vm.bytes.read_uint_be",
@@ -371,13 +370,6 @@ impl CorePrimitiveIntrinsic {
             Self::VmPortWrite => "vm.port.write",
             Self::VmPortRead => "vm.port.read",
             Self::VmPortClose => "vm.port.close",
-            Self::VmSupervisorStartRoot => "vm.supervisor.start_root",
-            Self::VmSupervisorChildSpec => "vm.supervisor.child_spec",
-            Self::VmSupervisorStart => "vm.supervisor.start",
-            Self::VmSupervisorStop => "vm.supervisor.stop",
-            Self::VmTaskStart => "vm.task.start",
-            Self::VmTaskResult => "vm.task.result",
-            Self::VmTaskCancel => "vm.task.cancel",
         }
     }
 }
@@ -390,11 +382,57 @@ impl CorePrimitiveIntrinsic {
 /// backend implementation.
 pub enum CoreRuntimeCapability {
     ConsolePrintln,
+    ConsoleEprintln,
+    ClockUnixTimeNs,
+    ClockMonotonicTimeNs,
     FileExists,
     FileReadText,
+    FileReadBytes,
+    FileSize,
+    FileTimestamps,
+    FileSetTimestamps,
+    FileIsExecutable,
+    FileSetExecutable,
+    FileCopy,
+    FileCopyMany,
+    FileReadTextMany,
+    FileReadTextDirectory,
+    FileReadTextTreeExcluding,
+    FileReadTextTreeMatching,
     FileWriteText,
     FileAppendText,
     FileDelete,
+    SystemArgumentsCount,
+    SystemArgumentsGet,
+    SystemEnvironmentContains,
+    SystemEnvironmentGet,
+    SystemEnvironmentCurrentDirectory,
+    SystemPlatformCurrentMetrics,
+    SystemProcessLimits,
+    SystemProcessRun,
+    SystemProcessRunMany,
+    SystemProcessRunLengthFramed,
+    DirectoryEntries,
+    DirectoryFilesRecursive,
+    DirectoryFilesRecursiveExcluding,
+    DirectoryFindNamedRecursiveExcluding,
+    DirectoryTreeUsage,
+    DirectoryCopyTreeExcluding,
+    DirectoryCreateSymbolicLink,
+    DirectoryCreateAll,
+    DirectoryCreateTemporary,
+    DirectoryRemoveAll,
+    ArchiveCreate,
+    ArchiveExtract,
+    HashSha256File,
+    HashVerifySha256Manifest,
+    HashSha256Tree,
+    HashSha256SelectedFiles,
+    HashSha256LabeledFileDigests,
+    HashSha256LabeledFileContents,
+    HashAuditLabeledFiles,
+    HashAuditLabeledFilePatterns,
+    GitSourceTreeIdentity,
 }
 
 impl CoreRuntimeCapability {
@@ -413,11 +451,61 @@ impl CoreRuntimeCapability {
     pub fn registry_key(&self) -> &'static str {
         match self {
             Self::ConsolePrintln => "runtime.console.println",
+            Self::ConsoleEprintln => "runtime.console.eprintln",
+            Self::ClockUnixTimeNs => "runtime.clock.unix_time_ns",
+            Self::ClockMonotonicTimeNs => "runtime.clock.monotonic_time_ns",
             Self::FileExists => "runtime.file.exists",
             Self::FileReadText => "runtime.file.read_text",
+            Self::FileReadBytes => "runtime.file.read_bytes",
+            Self::FileSize => "runtime.file.size",
+            Self::FileTimestamps => "runtime.file.timestamps",
+            Self::FileSetTimestamps => "runtime.file.set_timestamps",
+            Self::FileIsExecutable => "runtime.file.is_executable",
+            Self::FileSetExecutable => "runtime.file.set_executable",
+            Self::FileCopy => "runtime.file.copy",
+            Self::FileCopyMany => "runtime.file.copy_many",
+            Self::FileReadTextMany => "runtime.file.read_text_many",
+            Self::FileReadTextDirectory => "runtime.file.read_text_directory",
+            Self::FileReadTextTreeExcluding => "runtime.file.read_text_tree_excluding",
+            Self::FileReadTextTreeMatching => "runtime.file.read_text_tree_matching",
             Self::FileWriteText => "runtime.file.write_text",
             Self::FileAppendText => "runtime.file.append_text",
             Self::FileDelete => "runtime.file.delete",
+            Self::SystemArgumentsCount => "runtime.system.arguments.count",
+            Self::SystemArgumentsGet => "runtime.system.arguments.get",
+            Self::SystemEnvironmentContains => "runtime.system.environment.contains",
+            Self::SystemEnvironmentGet => "runtime.system.environment.get",
+            Self::SystemEnvironmentCurrentDirectory => {
+                "runtime.system.environment.current_directory"
+            }
+            Self::SystemPlatformCurrentMetrics => "runtime.system.platform.current_metrics",
+            Self::SystemProcessLimits => "runtime.system.process.limits",
+            Self::SystemProcessRun => "runtime.system.process.run",
+            Self::SystemProcessRunMany => "runtime.system.process.run_many",
+            Self::SystemProcessRunLengthFramed => "runtime.system.process.run_length_framed",
+            Self::DirectoryEntries => "runtime.directory.entries",
+            Self::DirectoryFilesRecursive => "runtime.directory.files_recursive",
+            Self::DirectoryFilesRecursiveExcluding => "runtime.directory.files_recursive_excluding",
+            Self::DirectoryFindNamedRecursiveExcluding => {
+                "runtime.directory.find_named_recursive_excluding"
+            }
+            Self::DirectoryTreeUsage => "runtime.directory.tree_usage",
+            Self::DirectoryCopyTreeExcluding => "runtime.directory.copy_tree_excluding",
+            Self::DirectoryCreateSymbolicLink => "runtime.directory.create_symbolic_link",
+            Self::DirectoryCreateAll => "runtime.directory.create_all",
+            Self::DirectoryCreateTemporary => "runtime.directory.create_temporary",
+            Self::DirectoryRemoveAll => "runtime.directory.remove_all",
+            Self::ArchiveCreate => "runtime.archive.create",
+            Self::ArchiveExtract => "runtime.archive.extract",
+            Self::HashSha256File => "runtime.hash.sha256_file",
+            Self::HashVerifySha256Manifest => "runtime.hash.verify_sha256_manifest",
+            Self::HashSha256Tree => "runtime.hash.sha256_tree",
+            Self::HashSha256SelectedFiles => "runtime.hash.sha256_selected_files",
+            Self::HashSha256LabeledFileDigests => "runtime.hash.sha256_labeled_file_digests",
+            Self::HashSha256LabeledFileContents => "runtime.hash.sha256_labeled_file_contents",
+            Self::HashAuditLabeledFiles => "runtime.hash.audit_labeled_files",
+            Self::HashAuditLabeledFilePatterns => "runtime.hash.audit_labeled_file_patterns",
+            Self::GitSourceTreeIdentity => "runtime.git.source_tree_identity",
         }
     }
 }
@@ -431,6 +519,12 @@ impl CoreRuntimeCapability {
 pub enum CoreIntrinsicId {
     Primitive(CorePrimitiveIntrinsic),
     Runtime(CoreRuntimeCapability),
+    /// Type-directed physical layout inspection retained through specialization.
+    MemoryLayoutOf(CoreType),
+    /// Type-directed direct memory accounting for one value.
+    MemoryShallowSize(CoreType),
+    /// Type-directed transitive memory accounting for one value.
+    MemoryRetainedSize(CoreType),
     /// Manifest-declared package operation executed through VM-owned
     /// capability RPC rather than linked into generated code.
     NativeOperation {
@@ -443,6 +537,10 @@ pub enum CoreIntrinsicId {
     VmProcessReceiveMessage(CoreType),
     /// Typed process spawn retaining the child mailbox payload type.
     VmProcessSpawn(CoreType),
+    /// Typed image-local spawn entry retaining its child mailbox payload type.
+    VmProcessEntry(CoreType),
+    /// Typed handle for the currently executing process.
+    VmProcessCurrent(CoreType),
     /// Typed process link retaining the peer mailbox payload type.
     VmProcessLink(CoreType),
     /// Typed process monitor retaining the target mailbox payload type.
@@ -469,6 +567,15 @@ impl CoreIntrinsicId {
         match self {
             Self::Primitive(intrinsic) => intrinsic.registry_key().to_string(),
             Self::Runtime(capability) => capability.registry_key().to_string(),
+            Self::MemoryLayoutOf(value_type) => {
+                format!("core.memory.layout_of[{}]", value_type.contract_text())
+            }
+            Self::MemoryShallowSize(value_type) => {
+                format!("core.memory.shallow_size[{}]", value_type.contract_text())
+            }
+            Self::MemoryRetainedSize(value_type) => {
+                format!("core.memory.retained_size[{}]", value_type.contract_text())
+            }
             Self::NativeOperation {
                 operation,
                 parameter_types,
@@ -488,6 +595,12 @@ impl CoreIntrinsicId {
             }
             Self::VmProcessSpawn(value_type) => {
                 format!("vm.process.spawn[{}]", value_type.contract_text())
+            }
+            Self::VmProcessEntry(value_type) => {
+                format!("vm.process.entry[{}]", value_type.contract_text())
+            }
+            Self::VmProcessCurrent(value_type) => {
+                format!("vm.process.current[{}]", value_type.contract_text())
             }
             Self::VmProcessLink(value_type) => {
                 format!("vm.process.link[{}]", value_type.contract_text())

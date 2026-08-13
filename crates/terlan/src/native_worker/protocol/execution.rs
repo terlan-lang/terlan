@@ -98,14 +98,16 @@ impl CapabilityExecutor for NativeCapabilityExecutor {
             .map(CapabilityValue::into_term)
             .collect::<Vec<_>>();
         self.worker.call_for_process_with_policy_and_cancellation(
-            RequestId {
-                value: call.request_id,
+            crate::terlan_native_boundary::worker::NativeBoundaryWorkerCall {
+                request_id: RequestId {
+                    value: call.request_id,
+                },
+                owner_process_id: call.owner_id,
+                granted_capabilities: &capabilities,
+                admitted_worker_classes: &self.classes,
+                operation: &call.operation,
+                args: &terms,
             },
-            call.owner_id,
-            &capabilities,
-            &self.classes,
-            &call.operation,
-            &terms,
             cancellation,
         )
     }
@@ -488,9 +490,7 @@ fn operation_admission(
     if let Some(export) = postgres_worker_manifest().export_for_operation(operation) {
         return Some((export.required_capability, export.cancellation));
     }
-    if operation_arity(operation).is_none() {
-        return None;
-    }
+    operation_arity(operation)?;
     if operation.starts_with("std.io.file.") {
         return Some((
             "filesystem",

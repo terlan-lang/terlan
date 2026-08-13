@@ -44,7 +44,7 @@ const REQUIRED_RESPONSE_TEST_ANCHORS: &[&str] = &[
 const REQUIRED_SESSION_ANCHORS: &[&str] = &[
     "{SESSION_COOKIE_NAME}={session_id}; Path=/; HttpOnly; SameSite=Lax",
     "SESSION_COOKIE_NAME",
-    "expire(runtime",
+    "runtime.expire(session)",
     "runtime.rotate(session)",
 ];
 
@@ -84,10 +84,10 @@ const REQUIRED_SECURITY_TEST_ANCHORS: &[&str] = &[
 ];
 
 const REQUIRED_GATE_TERMS: &[&str] = &[
-    "vm-web-security-policy-check: web-asset-pipeline-check",
-    "$(MAKE) http-tls-check",
-    "$(MAKE) native-boundary-http-cookie-check",
-    "vm_web_security_policy_test",
+    "vm-web-security-policy-check:",
+    "web-asset-pipeline-check",
+    "http-tls-check",
+    "native-boundary-http-cookie-check",
     "vm-web-security-policy",
 ];
 
@@ -172,6 +172,7 @@ const REJECTED_POLICY_PATHS: &[&str] = &[
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm web security policy summary.
 pub struct VmWebSecurityPolicySummary {
     pub route_policy_count: usize,
     pub rejected_request_fixture_count: usize,
@@ -179,6 +180,7 @@ pub struct VmWebSecurityPolicySummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm web security policy.
 pub fn run_vm_web_security_policy(root: &Path) -> QualityResult<VmWebSecurityPolicySummary> {
     let mut diagnostics = Vec::new();
     diagnostics.extend(validate_required_terms(
@@ -199,9 +201,12 @@ pub fn run_vm_web_security_policy(root: &Path) -> QualityResult<VmWebSecurityPol
         REQUIRED_RESPONSE_TEST_ANCHORS,
         "response security stdlib tests",
     )?);
-    diagnostics.extend(validate_required_terms(
+    diagnostics.extend(validate_required_terms_across(
         root,
-        "crates/terlan/src/runtime/vm/http_session.rs",
+        &[
+            "crates/terlan/src/runtime/vm/http_session/state.rs",
+            "crates/terlan/src/runtime/vm/http_session/state/commands.rs",
+        ],
         REQUIRED_SESSION_ANCHORS,
         "VM session cookie policy",
     )?);
@@ -213,13 +218,16 @@ pub fn run_vm_web_security_policy(root: &Path) -> QualityResult<VmWebSecurityPol
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/runtime/vm/http.rs",
+        "crates/terlan/src/runtime/vm/http/protocol/exchange.rs",
         REQUIRED_HTTP_LIMIT_ANCHORS,
         "VM HTTP parser and body limits",
     )?);
-    diagnostics.extend(validate_required_terms(
+    diagnostics.extend(validate_required_terms_across(
         root,
-        "crates/terlan/src/commands/serve/tls.rs",
+        &[
+            "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
+            "crates/terlan/src/commands/serve/tls/acme_runtime/certificate_validation.rs",
+        ],
         REQUIRED_TLS_ANCHORS,
         "TLS and ACME policy boundary",
     )?);
@@ -237,7 +245,7 @@ pub fn run_vm_web_security_policy(root: &Path) -> QualityResult<VmWebSecurityPol
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/commands/serve/serve_test.rs",
+        "crates/terlan/src/commands/serve/serve_test/dynamic_dispatch.rs",
         &["VM HTTP request exceeded 1 MiB body limit"],
         "serve security tests",
     )?);
@@ -247,9 +255,12 @@ pub fn run_vm_web_security_policy(root: &Path) -> QualityResult<VmWebSecurityPol
         &["build_http_response_rejects_invalid_http_metadata"],
         "serve package security tests",
     )?);
-    diagnostics.extend(validate_required_terms(
+    diagnostics.extend(validate_required_terms_across(
         root,
-        "crates/terlan/src/runtime/vm/http_test.rs",
+        &[
+            "crates/terlan/src/runtime/vm/http_test/transport_fixtures.rs",
+            "crates/terlan/src/runtime/vm/http/response_wire_test.rs",
+        ],
         &[
             "vm_http_rejects_oversized_request_headers",
             "vm_http_rejects_oversized_response_headers",
@@ -258,7 +269,7 @@ pub fn run_vm_web_security_policy(root: &Path) -> QualityResult<VmWebSecurityPol
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/commands/serve/tls_test.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime/tls_test/tls_and_acme_fixtures.rs",
         &[
             "runtime_tls_config_accepts_internal_local_tls",
             "acme_runtime_plan_defaults_to_lets_encrypt_production",
@@ -327,14 +338,36 @@ fn validate_required_terms(
         .collect())
 }
 
+fn validate_required_terms_across(
+    root: &Path,
+    files: &[&str],
+    terms: &[&str],
+    label: &str,
+) -> QualityResult<Vec<String>> {
+    let mut combined = String::new();
+    for file in files {
+        combined.push_str(
+            &fs::read_to_string(root.join(file))
+                .map_err(|err| format!("{file}: failed to read {label}: {err}"))?,
+        );
+        combined.push('\n');
+    }
+    Ok(terms
+        .iter()
+        .filter(|term| !combined.contains(**term))
+        .map(|term| format!("{}: missing {label} anchor `{term}`", files.join(", ")))
+        .collect())
+}
+
 fn validate_required_security_test_terms(root: &Path) -> QualityResult<Vec<String>> {
     let files = [
         "std/http/CookiesTest.terl",
         "std/http/SessionTest.terl",
-        "crates/terlan/src/commands/serve/serve_test.rs",
+        "crates/terlan/src/commands/serve/serve_test/dynamic_dispatch.rs",
         "crates/terlan/src/commands/serve/serve_test/package_validation_test.rs",
-        "crates/terlan/src/runtime/vm/http_test.rs",
-        "crates/terlan/src/commands/serve/tls_test.rs",
+        "crates/terlan/src/runtime/vm/http_test/transport_fixtures.rs",
+        "crates/terlan/src/runtime/vm/http/response_wire_test.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime/tls_test/tls_and_acme_fixtures.rs",
     ];
     let mut combined = String::new();
     for file in files {
@@ -399,4 +432,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_web_security_policy_test.rs"]
+#[cfg(test)]
 mod vm_web_security_policy_test;

@@ -1,0 +1,22 @@
+{
+  "application": {
+    "controller_export": "controller_name",
+    "di_token": "todoModel",
+    "directive": "terlanCallback",
+    "initial_state_export": "initial_state",
+    "lifecycle_event": "terlan:probe",
+    "module_export": "app_module"
+  },
+  "bootstrap": "examples/todo/todo.js",
+  "flows": {
+    "create": "create_item",
+    "delete": "keep_item",
+    "filter": "visible",
+    "mutate": "toggle_item",
+    "render": "render_row"
+  },
+  "ownership": "terlan-source",
+  "schema": "terlan.angular-ts.app.v1",
+  "source": "src/terlan/angular/Todo.terl",
+  "template": "examples/todo/index.html"
+}

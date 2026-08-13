@@ -42,13 +42,13 @@ pub slice_typechecks(receiver: ReadonlyArray[T], start: JsNumber, end: JsNumber)
 pub index_of_typechecks(
     receiver: ReadonlyArray[T],
     search_element: T,
-    from_index: JsNumber
+    from_index: JsNumber,
 ): JsNumber ->
     receiver.index_of(search_element, from_index).
 
 pub last_index_of_typechecks(
     receiver: ReadonlyArray[T],
     search_element: T,
-    from_index: JsNumber
+    from_index: JsNumber,
 ): JsNumber ->
     receiver.last_index_of(search_element, from_index).

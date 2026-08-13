@@ -206,4 +206,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "source_map_debug_info_test.rs"]
+#[cfg(test)]
 mod source_map_debug_info_test;

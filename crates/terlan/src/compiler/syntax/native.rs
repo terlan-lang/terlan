@@ -149,9 +149,7 @@ pub fn extract_native_function_signatures(source: &str) -> Vec<NativeFunctionSig
 /// - Finds `native core module`, then balances braces to return only the block
 ///   contents.
 fn extract_native_block_and_source(source: &str) -> Option<(usize, &str)> {
-    let Some(native_start) = source.find("native core module ") else {
-        return None;
-    };
+    let native_start = source.find("native core module ")?;
     let after_start = &source[native_start..];
     let open_index = after_start.find('{')?;
 
@@ -199,7 +197,6 @@ fn normalize_native_spacing(source: &str) -> String {
     normalized = normalized.replace("( ", "(");
     normalized = normalized.replace(" (", "(");
     normalized = normalized.replace(" )", ")");
-    normalized = normalized.replace(":", ":");
     normalized = normalized.replace(" : ", ":");
     normalized = normalized.replace(" ,", ",");
     normalized = normalized.replace(", ", ",");
@@ -344,10 +341,23 @@ fn split_top_level(input: &str, delimiter: char) -> Vec<String> {
     let mut paren_depth = 0isize;
     let mut bracket_depth = 0isize;
     let mut brace_depth = 0isize;
+    let mut quote = None;
+    let mut escaped = false;
     let mut last = 0usize;
 
     for (idx, ch) in input.char_indices() {
+        if let Some(active_quote) = quote {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == active_quote {
+                quote = None;
+            }
+            continue;
+        }
         match ch {
+            '"' | '\'' => quote = Some(ch),
             '(' => paren_depth += 1,
             ')' => paren_depth -= 1,
             '[' => bracket_depth += 1,
@@ -376,31 +386,15 @@ fn split_top_level(input: &str, delimiter: char) -> Vec<String> {
 ///
 /// Transformation:
 /// - Uses delimiter-depth tracking so nested type syntax does not affect arity.
-fn native_signature_arity(args: &str) -> usize {
+pub(crate) fn native_signature_arity(args: &str) -> usize {
     let trimmed = args.trim();
     if trimmed.is_empty() {
         return 0;
     }
-
-    let mut paren_depth = 0isize;
-    let mut bracket_depth = 0isize;
-    let mut brace_depth = 0isize;
-    let mut commas = 0usize;
-
-    for ch in args.chars() {
-        match ch {
-            '(' => paren_depth += 1,
-            ')' => paren_depth -= 1,
-            '[' => bracket_depth += 1,
-            ']' => bracket_depth -= 1,
-            '{' => brace_depth += 1,
-            '}' => brace_depth -= 1,
-            ',' if paren_depth == 0 && bracket_depth == 0 && brace_depth == 0 => commas += 1,
-            _ => {}
-        }
-    }
-
-    commas + 1
+    split_top_level(trimmed, ',')
+        .into_iter()
+        .filter(|parameter| !parameter.trim().is_empty())
+        .count()
 }
 
 /// Finds the closing parenthesis matching an opening parenthesis.
@@ -417,14 +411,25 @@ fn native_signature_arity(args: &str) -> usize {
 ///   balances the requested opening parenthesis.
 pub(crate) fn find_matching_paren(input: &str, open_idx: usize) -> Option<usize> {
     let mut depth = 0usize;
+    let mut quote = None;
+    let mut escaped = false;
     for (offset, ch) in input.char_indices().skip(open_idx) {
+        if let Some(active_quote) = quote {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == active_quote {
+                quote = None;
+            }
+            continue;
+        }
         match ch {
+            '"' | '\'' => quote = Some(ch),
             '(' => depth += 1,
             ')' if depth == 1 => return Some(offset),
             ')' => {
-                if depth > 0 {
-                    depth -= 1;
-                }
+                depth = depth.saturating_sub(1);
             }
             _ => {}
         }
@@ -434,4 +439,5 @@ pub(crate) fn find_matching_paren(input: &str, open_idx: usize) -> Option<usize>
 
 #[cfg(test)]
 #[path = "native_test.rs"]
+#[cfg(test)]
 mod native_test;

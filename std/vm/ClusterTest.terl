@@ -62,7 +62,10 @@ pub disconnect_reason_round_trips(reason: DisconnectReason, tick: Int): Bool ->
     let session = Cluster.open(local_profile(), remote_profile(), 1024);
     let result = session.disconnect(reason, tick);
     let disconnected_session = result.session;
-    result.event.reason == reason and result.event.tick == tick and result.event.pending_ack_count == 0 and is_disconnected(disconnected_session.state()).
+    result.event.reason == reason
+        and result.event.tick == tick
+        and result.event.pending_ack_count == 0
+        and is_disconnected(disconnected_session.state()).
 
 @test
 pub profile_exposes_explicit_node_identity(): Bool ->
@@ -85,7 +88,10 @@ pub membership_timeout_and_heartbeat_recovery_are_deterministic(): Bool ->
     let fresh = joined.expire(6);
     let expired = fresh.expire(7);
     let recovered = expired.heartbeat("node-b", 8);
-    assert_equal(Active, fresh.state("node-b")) and assert_equal(Unreachable, expired.state("node-b")) and assert_equal(Active, recovered.state("node-b")) and assert_equal(Active, recovered.state("node-a")).
+    assert_equal(Active, fresh.state("node-b"))
+        and assert_equal(Unreachable, expired.state("node-b"))
+        and assert_equal(Active, recovered.state("node-b"))
+        and assert_equal(Active, recovered.state("node-a")).
 
 @test
 pub membership_leave_and_fence_have_distinct_terminal_states(): Bool ->
@@ -95,7 +101,10 @@ pub membership_leave_and_fence_have_distinct_terminal_states(): Bool ->
     let joined = membership.join(remote, 1, "web");
     let left = joined.leave("node-b", 2);
     let fenced = joined.fence("node-b", 3);
-    assert_equal(Active, joined.state("node-b")) and assert_equal(Left, left.state("node-b")) and assert_equal(Fenced, fenced.state("node-b")) and assert_equal(Missing, fenced.state("node-missing")).
+    assert_equal(Active, joined.state("node-b"))
+        and assert_equal(Left, left.state("node-b"))
+        and assert_equal(Fenced, fenced.state("node-b"))
+        and assert_equal(Missing, fenced.state("node-missing")).
 
 @test
 pub membership_view_health_and_leader_hint_are_deterministic(): Bool ->
@@ -106,7 +115,18 @@ pub membership_view_health_and_leader_hint_are_deterministic(): Bool ->
     let expired = joined.expire(7);
     case joined.view() {
         [Node {node_id: local_id, state: local_state, last_seen_tick: local_tick, roles: local_roles}, Node {node_id: remote_id, state: remote_state, last_seen_tick: remote_tick, roles: remote_roles}] ->
-            assert_equal("node-a", local_id) and assert_equal(Active, local_state) and assert_equal(0, local_tick) and assert_equal(["local"], local_roles) and assert_equal("node-b", remote_id) and assert_equal(Active, remote_state) and assert_equal(1, remote_tick) and assert_equal(["leader"], remote_roles) and assert_equal(Healthy, joined.health()) and assert_equal(Some("node-b"), joined.leader_hint()) and assert_equal(Degraded, expired.health()) and assert_equal(None, expired.leader_hint());
+            assert_equal("node-a", local_id)
+                and assert_equal(Active, local_state)
+                and assert_equal(0, local_tick)
+                and assert_equal(["local"], local_roles)
+                and assert_equal("node-b", remote_id)
+                and assert_equal(Active, remote_state)
+                and assert_equal(1, remote_tick)
+                and assert_equal(["leader"], remote_roles)
+                and assert_equal(Healthy, joined.health())
+                and assert_equal(Some("node-b"), joined.leader_hint())
+                and assert_equal(Degraded, expired.health())
+                and assert_equal(None, expired.leader_hint());
         _ -> false
     }.
 
@@ -123,7 +143,12 @@ pub membership_pruning_respects_retention_and_fencing(): Bool ->
     let fenced_after_retention = fenced.prune(100, 5);
     let unreachable = joined.expire(7);
     let unreachable_after_retention = unreachable.prune(7, 5);
-    assert_equal(Left, at_boundary.state("node-b")) and assert_equal(Missing, after_boundary.state("node-b")) and assert_equal(Fenced, fenced_after_retention.state("node-b")) and assert_equal(Active, fenced_after_retention.state("node-a")) and assert_equal(Unreachable, unreachable.state("node-b")) and assert_equal(Missing, unreachable_after_retention.state("node-b")).
+    assert_equal(Left, at_boundary.state("node-b"))
+        and assert_equal(Missing, after_boundary.state("node-b"))
+        and assert_equal(Fenced, fenced_after_retention.state("node-b"))
+        and assert_equal(Active, fenced_after_retention.state("node-a"))
+        and assert_equal(Unreachable, unreachable.state("node-b"))
+        and assert_equal(Missing, unreachable_after_retention.state("node-b")).
 
 @test
 pub membership_restart_uses_a_new_epoch_and_preserves_roles(): Bool ->
@@ -134,7 +159,11 @@ pub membership_restart_uses_a_new_epoch_and_preserves_roles(): Bool ->
     let unreachable = joined.expire(7);
     let restarted_profile = remote.next_epoch();
     let restarted = unreachable.restart(restarted_profile, 8);
-    assert_equal(1, remote.epoch()) and assert_equal(2, restarted_profile.epoch()) and assert_equal(Unreachable, unreachable.state("node-b")) and assert_equal(Active, restarted.state("node-b")) and case restarted.view() {
+    assert_equal(1, remote.epoch())
+        and assert_equal(2, restarted_profile.epoch())
+        and assert_equal(Unreachable, unreachable.state("node-b"))
+        and assert_equal(Active, restarted.state("node-b"))
+        and case restarted.view() {
     [_, Node {node_id: "node-b", state: Active, last_seen_tick: 8, roles: ["worker"]}] -> true;
     _ -> false
 }.
@@ -146,7 +175,11 @@ pub partition_heal_moves_leadership_hint_deterministically(): Bool ->
     let redundant = primary.join(backup_profile(), 1, "leader");
     let partitioned = redundant.partition("node-b", 2);
     let healed = partitioned.heal("node-b", 3);
-    assert_equal(Some("node-b"), redundant.leader_hint()) and assert_equal(Unreachable, partitioned.state("node-b")) and assert_equal(Some("node-c"), partitioned.leader_hint()) and assert_equal(Active, healed.state("node-b")) and assert_equal(Some("node-b"), healed.leader_hint()).
+    assert_equal(Some("node-b"), redundant.leader_hint())
+        and assert_equal(Unreachable, partitioned.state("node-b"))
+        and assert_equal(Some("node-c"), partitioned.leader_hint())
+        and assert_equal(Active, healed.state("node-b"))
+        and assert_equal(Some("node-b"), healed.leader_hint()).
 
 @test
 pub bootstrap_delivery_failover_and_restart_execute_end_to_end(): Bool ->
@@ -167,7 +200,14 @@ pub bootstrap_delivery_failover_and_restart_execute_end_to_end(): Bool ->
     let backup_accept = backup_inbound.accept(backup_send.frame);
     let restarted_profile = primary_profile.next_epoch();
     let restarted = partitioned.restart(restarted_profile, 3);
-    is_accepted(primary_accept.outcome) and assert_equal(Some("node-b"), redundant.leader_hint()) and assert_equal(Unreachable, partitioned.state("node-b")) and assert_equal(Some("node-c"), partitioned.leader_hint()) and is_accepted(backup_accept.outcome) and assert_equal(2, restarted_profile.epoch()) and assert_equal(Active, restarted.state("node-b")) and assert_equal(Some("node-b"), restarted.leader_hint()).
+    is_accepted(primary_accept.outcome)
+        and assert_equal(Some("node-b"), redundant.leader_hint())
+        and assert_equal(Unreachable, partitioned.state("node-b"))
+        and assert_equal(Some("node-c"), partitioned.leader_hint())
+        and is_accepted(backup_accept.outcome)
+        and assert_equal(2, restarted_profile.epoch())
+        and assert_equal(Active, restarted.state("node-b"))
+        and assert_equal(Some("node-b"), restarted.leader_hint()).
 
 @test
 pub two_node_message_exchange_preserves_order_and_duplicate_history(): Bool ->
@@ -187,7 +227,10 @@ pub two_node_message_exchange_preserves_order_and_duplicate_history(): Bool ->
     let second_accept = inbound_after_first.accept(second);
     let inbound_after_second = second_accept.session;
     let duplicate_accept = inbound_after_second.accept(first);
-    expects_first_message(gap_accept.outcome) and is_accepted(first_accept.outcome) and is_accepted(second_accept.outcome) and is_duplicate(duplicate_accept.outcome).
+    expects_first_message(gap_accept.outcome)
+        and is_accepted(first_accept.outcome)
+        and is_accepted(second_accept.outcome)
+        and is_duplicate(duplicate_accept.outcome).
 
 @test
 pub explicit_delivery_and_acknowledgement_lifecycle_is_typed(): Bool ->
@@ -200,7 +243,17 @@ pub explicit_delivery_and_acknowledgement_lifecycle_is_typed(): Bool ->
     let at_most_once_send = after_ack.send_with("message", "best effort", AtMostOnce);
     let at_most_once_session = at_most_once_send.session;
     let at_most_once_frame = at_most_once_send.frame;
-    assert_equal(NeedsAck, needs_ack_frame.delivery()) and assert_equal(1, needs_ack_frame.message_id()) and pending.needs_ack(needs_ack_frame) and assert_equal(1, pending.pending_ack_count()) and assert_equal(1, acknowledged.message_id) and after_ack.needs_ack(needs_ack_frame) == false and assert_equal(0, after_ack.pending_ack_count()) and assert_equal(AtMostOnce, at_most_once_frame.delivery()) and assert_equal(2, at_most_once_frame.message_id()) and at_most_once_session.needs_ack(at_most_once_frame) == false and assert_equal(0, at_most_once_session.pending_ack_count()).
+    assert_equal(NeedsAck, needs_ack_frame.delivery())
+        and assert_equal(1, needs_ack_frame.message_id())
+        and pending.needs_ack(needs_ack_frame)
+        and assert_equal(1, pending.pending_ack_count())
+        and assert_equal(1, acknowledged.message_id)
+        and after_ack.needs_ack(needs_ack_frame) == false
+        and assert_equal(0, after_ack.pending_ack_count())
+        and assert_equal(AtMostOnce, at_most_once_frame.delivery())
+        and assert_equal(2, at_most_once_frame.message_id())
+        and at_most_once_session.needs_ack(at_most_once_frame) == false
+        and assert_equal(0, at_most_once_session.pending_ack_count()).
 
 @test
 pub session_disconnect_and_reconnect_preserve_transport_continuity(): Bool ->
@@ -226,8 +279,21 @@ pub session_disconnect_and_reconnect_preserve_transport_continuity(): Bool ->
     let first_accept = inbound_after_gap.accept(first);
     let inbound_after_first = first_accept.session;
     let second_accept = inbound_after_first.accept(second);
-    is_already_connected(no_op_reconnect.outcome) and disconnected.event.reason == TransportFailure and disconnected.event.tick == 10 and disconnected.event.pending_ack_count == 0 and is_disconnected(disconnected_state) and is_reconnected_without_pending_ack(reconnected.outcome) and is_connected(reconnected_state) and expects_first_message(gap_accept.outcome) and is_accepted(first_accept.outcome) and is_accepted(second_accept.outcome).
+    is_already_connected(no_op_reconnect.outcome)
+        and disconnected.event.reason == TransportFailure
+        and disconnected.event.tick == 10
+        and disconnected.event.pending_ack_count == 0
+        and is_disconnected(disconnected_state)
+        and is_reconnected_without_pending_ack(reconnected.outcome)
+        and is_connected(reconnected_state)
+        and expects_first_message(gap_accept.outcome)
+        and is_accepted(first_accept.outcome)
+        and is_accepted(second_accept.outcome).
 
 @test
 pub session_disconnect_reasons_are_typed_and_lossless(): Bool ->
-    disconnect_reason_round_trips(LocalClose, 1) and disconnect_reason_round_trips(RemoteClose, 2) and disconnect_reason_round_trips(TransportFailure, 3) and disconnect_reason_round_trips(HeartbeatTimeout, 4) and disconnect_reason_round_trips(SessionFenced, 5).
+    disconnect_reason_round_trips(LocalClose, 1)
+        and disconnect_reason_round_trips(RemoteClose, 2)
+        and disconnect_reason_round_trips(TransportFailure, 3)
+        and disconnect_reason_round_trips(HeartbeatTimeout, 4)
+        and disconnect_reason_round_trips(SessionFenced, 5).

@@ -78,20 +78,20 @@ pub (value: IDBDatabase) delete_object_store(name: JsString): Unit ->
 pub (value: IDBDatabase) transaction(
     store_names: std.js.Array[JsString] | JsString,
     mode: IDBTransactionMode,
-    options: IDBTransactionOptions
+    options: IDBTransactionOptions,
 ): IDBTransaction ->
     native.
 
 pub (value: IDBDatabase) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     native.
 
 pub (value: IDBDatabase) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     native.

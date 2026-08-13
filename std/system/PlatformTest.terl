@@ -1,0 +1,28 @@
+module std.system.PlatformTest.
+
+import std.system.Platform.
+
+@test
+pub current_host_has_portable_path_properties(): Bool ->
+    let host = Platform.current();
+    host.operating_system != "" and host.architecture != "" and host.path_separator == ":"
+        or host.path_separator == ";" and host.executable_suffix == ""
+        or host.executable_suffix == ".exe".
+
+@test
+pub current_metrics_never_fabricates_an_available_snapshot(): Bool ->
+    let metrics = Platform.current_metrics();
+    if {
+        metrics.available -> metrics.message == ""
+            and metrics.kernel != ""
+            and metrics.operating_system != ""
+            and metrics.cpu_model != ""
+            and metrics.memory_bytes > 0
+            and metrics.available_memory_bytes > 0
+            and metrics.cpu_affinity != []
+            and metrics.cpu_governor != ""
+            and metrics.load_1m >= 0.0
+            and metrics.load_5m >= 0.0
+            and metrics.load_15m >= 0.0;
+        true -> metrics.message != ""
+    }.

@@ -8,7 +8,14 @@ fn connect(runtime: &mut VmActorRuntime, owner: VmProcessId) {
     ))
     .expect("valid lazy Postgres config");
     let request = runtime
-        .postgres_connect(owner, config, 0, 10)
+        .postgres_connect(
+            owner,
+            config,
+            crate::runtime::vm::postgres::VmPostgresDeadline {
+                now_tick: 0,
+                timeout_ticks: 10,
+            },
+        )
         .expect("submit lazy pool registration");
     assert_eq!(
         runtime

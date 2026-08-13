@@ -1,4 +1,6 @@
 mod html;
+#[path = "render/method_rendering.rs"]
+mod method_rendering;
 mod signatures;
 mod support;
 
@@ -6,6 +8,7 @@ use std::collections::HashSet;
 
 use html::render_constructor_clause_signature;
 pub(crate) use html::render_syntax_module_docs_html;
+use method_rendering::render_syntax_method_decl_docs_markdown;
 use signatures::{
     render_constructor_signature, render_function_signature, render_method_signature,
     render_purity_marked_signature, render_raw_shape_signature, render_struct_signature,
@@ -28,17 +31,34 @@ use const_expr::render_const_expr_text;
 
 use crate::terlan_purity::{infer_body_available_pure_callables, CallableIdentity};
 
-/// Renders syntax-output module documentation as Markdown.
-///
-/// Inputs:
-/// - `module`: formal syntax-output module containing documentation metadata.
-///
-/// Output:
-/// - Markdown documentation for the module.
-///
-/// Transformation:
-/// - Groups declarations by documentation section and renders declaration
-///   signatures from syntax-output fields.
+struct SyntaxTypeDocumentation<'a> {
+    name: &'a str,
+    params: &'a [String],
+    is_public: bool,
+    is_opaque: bool,
+    variants: &'a [SyntaxTypeOutput],
+    representation: Option<&'a SyntaxTypeOutput>,
+    valued_arms: &'a [crate::terlan_syntax::SyntaxValuedUnionArmOutput],
+}
+
+struct SyntaxTraitImplDocumentation<'a> {
+    trait_ref: &'a SyntaxTypeOutput,
+    generic_params: &'a [String],
+    for_type: &'a SyntaxTypeOutput,
+    is_negative: bool,
+    is_public: bool,
+    methods: &'a [SyntaxImplMethodOutput],
+}
+
+pub(super) struct SyntaxCallableDocumentation<'a> {
+    pub(super) name: &'a str,
+    pub(super) params: &'a [SyntaxParamOutput],
+    pub(super) return_type: &'a SyntaxTypeOutput,
+    pub(super) is_public: bool,
+    pub(super) is_pure: bool,
+}
+
+/// Renders public syntax declarations and their metadata as Markdown.
 pub(crate) fn render_syntax_module_docs_markdown(module: &SyntaxModuleOutput) -> String {
     let known_pure = infer_body_available_pure_callables(module);
     let mut out = String::new();
@@ -131,13 +151,15 @@ pub(crate) fn render_syntax_module_docs_markdown(module: &SyntaxModuleOutput) ->
             render_syntax_type_decl_docs_markdown(
                 &mut out,
                 docs,
-                name,
-                params,
-                *is_public,
-                *is_opaque,
-                variants,
-                representation.as_ref(),
-                valued_arms,
+                SyntaxTypeDocumentation {
+                    name,
+                    params,
+                    is_public: *is_public,
+                    is_opaque: *is_opaque,
+                    variants,
+                    representation: representation.as_ref(),
+                    valued_arms,
+                },
             );
         }
     }
@@ -271,12 +293,14 @@ pub(crate) fn render_syntax_module_docs_markdown(module: &SyntaxModuleOutput) ->
             render_syntax_trait_impl_docs_markdown(
                 &mut out,
                 docs,
-                trait_ref,
-                generic_params,
-                for_type,
-                *is_negative,
-                *is_public,
-                methods,
+                SyntaxTraitImplDocumentation {
+                    trait_ref,
+                    generic_params,
+                    for_type,
+                    is_negative: *is_negative,
+                    is_public: *is_public,
+                    methods,
+                },
             );
         }
     }
@@ -310,12 +334,14 @@ pub(crate) fn render_syntax_module_docs_markdown(module: &SyntaxModuleOutput) ->
             render_syntax_function_decl_docs_markdown(
                 &mut out,
                 docs,
-                name,
-                params,
-                return_type,
-                *is_public,
+                SyntaxCallableDocumentation {
+                    name,
+                    params,
+                    return_type,
+                    is_public: *is_public,
+                    is_pure,
+                },
                 *is_macro,
-                is_pure,
             );
         }
     }
@@ -350,11 +376,13 @@ pub(crate) fn render_syntax_module_docs_markdown(module: &SyntaxModuleOutput) ->
                 &mut out,
                 docs,
                 receiver,
-                name,
-                params,
-                return_type,
-                *is_public,
-                is_pure,
+                SyntaxCallableDocumentation {
+                    name,
+                    params,
+                    return_type,
+                    is_public: *is_public,
+                    is_pure,
+                },
             );
         }
     }
@@ -660,14 +688,17 @@ fn push_markdown_doc_block(out: &mut String, docs: &[String]) {
 fn render_syntax_type_decl_docs_markdown(
     out: &mut String,
     docs: &[String],
-    name: &str,
-    params: &[String],
-    is_public: bool,
-    is_opaque: bool,
-    variants: &[SyntaxTypeOutput],
-    representation: Option<&SyntaxTypeOutput>,
-    valued_arms: &[crate::terlan_syntax::SyntaxValuedUnionArmOutput],
+    declaration: SyntaxTypeDocumentation<'_>,
 ) {
+    let SyntaxTypeDocumentation {
+        name,
+        params,
+        is_public,
+        is_opaque,
+        variants,
+        representation,
+        valued_arms,
+    } = declaration;
     out.push_str(&format!("### `{}`\n\n", name));
     push_markdown_doc_block(out, docs);
     out.push_str("```terlan\n");
@@ -864,13 +895,16 @@ fn render_syntax_trait_decl_docs_markdown(
 fn render_syntax_trait_impl_docs_markdown(
     out: &mut String,
     docs: &[String],
-    trait_ref: &SyntaxTypeOutput,
-    generic_params: &[String],
-    for_type: &SyntaxTypeOutput,
-    is_negative: bool,
-    is_public: bool,
-    methods: &[SyntaxImplMethodOutput],
+    declaration: SyntaxTraitImplDocumentation<'_>,
 ) {
+    let SyntaxTraitImplDocumentation {
+        trait_ref,
+        generic_params,
+        for_type,
+        is_negative,
+        is_public,
+        methods,
+    } = declaration;
     let rendered_trait_ref =
         crate::terlan_syntax::render_trait_impl_ref(&trait_ref.text, generic_params);
     let relationship = if is_negative {
@@ -936,13 +970,16 @@ fn render_syntax_trait_impl_docs_markdown(
 fn render_syntax_function_decl_docs_markdown(
     out: &mut String,
     docs: &[String],
-    name: &str,
-    params: &[SyntaxParamOutput],
-    return_type: &SyntaxTypeOutput,
-    is_public: bool,
+    declaration: SyntaxCallableDocumentation<'_>,
     is_macro: bool,
-    is_pure: bool,
 ) {
+    let SyntaxCallableDocumentation {
+        name,
+        params,
+        return_type,
+        is_public,
+        is_pure,
+    } = declaration;
     out.push_str(&format!("### `{}/{}`\n\n", name, params.len()));
     push_markdown_doc_block(out, docs);
     out.push_str("```terlan\n");
@@ -953,48 +990,7 @@ fn render_syntax_function_decl_docs_markdown(
     out.push_str("\n```\n\n");
 }
 
-/// Appends a receiver method documentation section.
-///
-/// Inputs:
-/// - `out`: Markdown output buffer.
-/// - `docs`: documentation lines for the method.
-/// - `receiver`: method receiver parameter.
-/// - `name`: method name.
-/// - `params`: method call parameters.
-/// - `return_type`: return type.
-/// - `is_public`: whether the method is public.
-/// - `is_pure`: whether the method carries marker-only `@pure`.
-///
-/// Output:
-/// - No return value.
-///
-/// Transformation:
-/// - Renders docs and a Terlan receiver method signature fence.
-fn render_syntax_method_decl_docs_markdown(
-    out: &mut String,
-    docs: &[String],
-    receiver: &SyntaxParamOutput,
-    name: &str,
-    params: &[SyntaxParamOutput],
-    return_type: &SyntaxTypeOutput,
-    is_public: bool,
-    is_pure: bool,
-) {
-    out.push_str(&format!(
-        "### `{}.{}({})`\n\n",
-        receiver.annotation.text,
-        name,
-        params.len()
-    ));
-    push_markdown_doc_block(out, docs);
-    out.push_str("```terlan\n");
-    out.push_str(&render_purity_marked_signature(
-        is_pure,
-        render_method_signature(receiver, name, params, return_type, is_public),
-    ));
-    out.push_str("\n```\n\n");
-}
-
 #[cfg(test)]
 #[path = "render_test.rs"]
+#[cfg(test)]
 mod render_test;

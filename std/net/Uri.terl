@@ -32,7 +32,7 @@ pub opaque type Uri.
  * without exposing target-specific exception values.
  */
 pub struct UriError includes Error {
-    offset: Int
+    offset: Int,
 }.
 
 /**

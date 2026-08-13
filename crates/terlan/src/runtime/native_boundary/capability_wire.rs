@@ -10,7 +10,7 @@ use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
 use crate::terlan_native_boundary::term::{NativeBoundaryReplyTerm, NativeBoundaryTerm};
 
 /// Current capability-worker protocol version.
-pub(crate) const CAPABILITY_PROTOCOL_VERSION: u16 = 2;
+pub(crate) const CAPABILITY_PROTOCOL_VERSION: u16 = 3;
 
 /// Maximum recursively nested values admitted in one request.
 pub(crate) const MAX_CAPABILITY_TERM_COUNT: usize = 4_096;
@@ -61,6 +61,15 @@ pub(crate) enum CapabilityValue {
     Float(f64),
     /// Boolean value.
     Bool(bool),
+    /// Terlan atom identity.
+    Atom(String),
+    /// Recursively bounded Terlan record or constructor.
+    Record {
+        /// Constructor or record name.
+        name: String,
+        /// Ordered named fields.
+        fields: Vec<(String, CapabilityValue)>,
+    },
     /// Opaque worker resource.
     Handle(CapabilityHandle),
     /// Optional owned text.
@@ -83,6 +92,14 @@ impl CapabilityValue {
             Self::Int(value) => NativeBoundaryTerm::Int(value),
             Self::Float(value) => NativeBoundaryTerm::Float(value),
             Self::Bool(value) => NativeBoundaryTerm::Bool(value),
+            Self::Atom(value) => NativeBoundaryTerm::Atom(value),
+            Self::Record { name, fields } => NativeBoundaryTerm::Record {
+                name,
+                fields: fields
+                    .into_iter()
+                    .map(|(name, value)| (name, value.into_term()))
+                    .collect(),
+            },
             Self::Handle(value) => NativeBoundaryTerm::Handle {
                 id: value.id,
                 generation: value.generation,
@@ -107,6 +124,14 @@ impl CapabilityValue {
             NativeBoundaryTerm::Int(value) => Self::Int(value),
             NativeBoundaryTerm::Float(value) => Self::Float(value),
             NativeBoundaryTerm::Bool(value) => Self::Bool(value),
+            NativeBoundaryTerm::Atom(value) => Self::Atom(value),
+            NativeBoundaryTerm::Record { name, fields } => Self::Record {
+                name,
+                fields: fields
+                    .into_iter()
+                    .map(|(name, value)| (name, Self::from_term(value)))
+                    .collect(),
+            },
             NativeBoundaryTerm::Handle { id, generation } => {
                 Self::Handle(CapabilityHandle { id, generation })
             }
@@ -119,6 +144,37 @@ impl CapabilityValue {
                 Self::List(values.into_iter().map(Self::from_term).collect::<Vec<_>>())
             }
         }
+    }
+
+    /// Collects every owned resource transferred by a successful worker reply.
+    ///
+    /// A handle in a reply is an ownership transfer, including handles nested
+    /// in records, lists, and optional values. Workers that need to expose a
+    /// borrowed identity must create a separately disposable resource instead.
+    pub(crate) fn owned_handles(&self) -> Vec<CapabilityHandle> {
+        let mut handles = Vec::new();
+        let mut pending = vec![self];
+        while let Some(value) = pending.pop() {
+            match value {
+                Self::Handle(handle) => handles.push(*handle),
+                Self::OptionalHandle(Some(handle)) => handles.push(*handle),
+                Self::Record { fields, .. } => {
+                    pending.extend(fields.iter().map(|(_, value)| value));
+                }
+                Self::List(values) => pending.extend(values),
+                Self::Unit
+                | Self::Text(_)
+                | Self::Bytes(_)
+                | Self::Int(_)
+                | Self::Float(_)
+                | Self::Bool(_)
+                | Self::Atom(_)
+                | Self::OptionalText(_)
+                | Self::OptionalHandle(None)
+                | Self::PostgresConfig(_) => {}
+            }
+        }
+        handles
     }
 }
 
@@ -294,8 +350,12 @@ pub(crate) fn validate_capability_term_budget(values: &[CapabilityValue]) -> Res
                 "error[capability_worker.term_limit]: request exceeds {MAX_CAPABILITY_TERM_COUNT} terms"
             ));
         }
-        if let CapabilityValue::List(items) = value {
-            pending.extend(items);
+        match value {
+            CapabilityValue::List(items) => pending.extend(items),
+            CapabilityValue::Record { fields, .. } => {
+                pending.extend(fields.iter().map(|(_, value)| value));
+            }
+            _ => {}
         }
     }
     Ok(())
@@ -399,4 +459,5 @@ impl Write for BoundedBuffer {
 
 #[cfg(test)]
 #[path = "capability_wire_test.rs"]
+#[cfg(test)]
 mod capability_wire_test;

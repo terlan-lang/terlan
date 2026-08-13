@@ -45,7 +45,7 @@ fn artifact(status: &str, proof_digest: &str) -> ArtifactRow {
         path: "proofs/lean/Core.lean".to_string(),
         status: status.to_string(),
         theorem_scope: "CoreIR".to_string(),
-        targeted_manifests: vec!["docs/compiler/core.toml".to_string()],
+        targeted_manifests: vec!["docs/compiler/type_spec/terlan_core_typing_spec.toml".to_string()],
         expected_exit: 0,
         stderr_class: "none".to_string(),
         proof_digest: proof_digest.to_string(),
@@ -216,6 +216,25 @@ fn lean_proof_gap_hygiene_accepts_closed_gap_with_current_artifact_note() {
     );
 
     assert!(diagnostics.is_empty(), "diagnostics = {diagnostics:?}");
+}
+
+#[test]
+fn lean_proof_gap_hygiene_rejects_unrelated_current_closure_artifact() {
+    let mut unrelated = artifact("current", "sha256:restored");
+    unrelated.targeted_manifests = vec!["docs/compiler/unrelated.toml".to_string()];
+    let diagnostics = validate_gap_closures(
+        &[gap_with_status(
+            "closed",
+            "2026-07-16",
+            "core-typing-spec-check",
+        )],
+        &[unrelated],
+        &[closure("typed CoreIR preservation", "sha256:restored")],
+    );
+
+    assert!(diagnostics
+        .iter()
+        .any(|item| item.contains("proof_gap[unrelated-closure-artifact]")));
 }
 
 #[test]

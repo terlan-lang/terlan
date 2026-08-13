@@ -1,16 +1,19 @@
-#![allow(dead_code)]
-
 use std::collections::HashMap;
 
-use super::process::{VmProcessId, VmProcessTable};
+use super::process::VmProcessId;
+#[cfg(test)]
+use super::process::VmProcessTable;
+#[cfg(test)]
 use super::support_bundle::{
     VmSupportBundleReplayRecorder, VmSupportBundleReplayResource,
     VmSupportBundleReplayResourceKind, VmSupportBundleReplayStep,
 };
+#[cfg(test)]
 use super::timer::{VmTimerEvent, VmTimerId, VmTimerTable};
 
 #[cfg(test)]
 #[path = "acme_worker_test.rs"]
+#[cfg(test)]
 mod acme_worker_test;
 
 /// VM-owned handle for one ACME worker lifecycle.
@@ -26,18 +29,21 @@ impl VmAcmeWorkerHandle {
 /// ACME endpoint mode captured by the VM for cache provenance.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmAcmeMode {
+    #[cfg(test)]
     Staging,
     Live,
 }
 
 /// VM-owned retry and jitter policy for ACME renewal attempts.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmAcmeRenewalRetryPolicy {
     pub(crate) max_attempts: u8,
     pub(crate) base_delay_ticks: u64,
     pub(crate) jitter_seed: u64,
 }
 
+#[cfg(test)]
 impl VmAcmeRenewalRetryPolicy {
     pub(crate) fn new(
         max_attempts: u8,
@@ -109,12 +115,18 @@ impl VmAcmeWorkerRequest {
 /// VM-visible execution lane for the same ACME worker contract.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum VmAcmeWorkerExecutionLane {
-    DeterministicFixture { fixture_id: String },
-    Live { directory_url: String },
+    #[cfg(test)]
+    DeterministicFixture {
+        fixture_id: String,
+    },
+    Live {
+        directory_url: String,
+    },
 }
 
 /// HTTP-01 challenge routing data produced by maintained ACME machinery.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(any(test, feature = "acme-live"))]
 pub(crate) struct VmAcmeHttp01Challenge {
     pub(crate) token: String,
     pub(crate) key_authorization: String,
@@ -125,18 +137,33 @@ pub(crate) struct VmAcmeHttp01Challenge {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum VmAcmeWorkerState {
     Requested,
+    #[cfg(any(test, feature = "acme-live"))]
     ChallengeReady(VmAcmeHttp01Challenge),
+    #[cfg(any(test, feature = "acme-live"))]
     Issuing,
-    CacheWriting { cache_version: u64 },
-    RenewalScheduled { not_before_epoch_secs: u64 },
+    #[cfg(any(test, feature = "acme-live"))]
+    CacheWriting {
+        cache_version: u64,
+    },
+    #[cfg(test)]
+    RenewalScheduled {
+        not_before_epoch_secs: u64,
+    },
+    #[cfg(any(test, feature = "acme-live"))]
     Completed,
-    Cancelled { reason: String },
+    #[cfg(test)]
+    Cancelled {
+        reason: String,
+    },
+    #[cfg(test)]
     Shutdown,
 }
 
 /// Scheduler wake emitted when ACME worker state becomes runnable/observable.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(any(test, feature = "acme-live"))]
 pub(crate) enum VmAcmeWorkerWake {
+    #[cfg(test)]
     RenewalDue {
         owner: VmProcessId,
         worker: VmAcmeWorkerHandle,
@@ -162,6 +189,7 @@ pub(crate) enum VmAcmeWorkerWake {
 
 /// Runtime-inspectable ACME worker summary.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmAcmeWorkerInfo {
     pub(crate) owner: VmProcessId,
     pub(crate) request: VmAcmeWorkerRequest,
@@ -184,6 +212,7 @@ pub(crate) struct VmAcmeWorkerTelemetrySpan {
 
 /// VM-owned access-policy decision for ACME HTTP-01 routing.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmAcmeWorkerAccessDecision {
     Allow { route: String },
     Deny { reason: String },
@@ -191,6 +220,7 @@ pub(crate) enum VmAcmeWorkerAccessDecision {
 
 /// VM-owned ACME renewal actor state.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmAcmeRenewalActorState {
     Waiting,
     Renewing,
@@ -204,6 +234,7 @@ pub(crate) enum VmAcmeRenewalActorState {
 /// Transformation: binds renewal work to VM process/timer ownership rather
 /// than host-runtime timers or external task handles.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmAcmeRenewalActor {
     pub(crate) owner: VmProcessId,
     pub(crate) worker: VmAcmeWorkerHandle,
@@ -213,6 +244,7 @@ pub(crate) struct VmAcmeRenewalActor {
 
 /// VM-owned shutdown result for an ACME renewal actor.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmAcmeRenewalActorShutdown {
     pub(crate) cancelled_timer: Option<VmTimerEvent>,
     pub(crate) terminal_wake: VmAcmeWorkerWake,
@@ -247,6 +279,7 @@ impl VmAcmeWorkerRuntime {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn with_owner_limit(max_open_workers_per_owner: usize) -> Result<Self, String> {
         if max_open_workers_per_owner == 0 {
             return Err("ACME worker owner limit must be positive".to_string());
@@ -258,6 +291,7 @@ impl VmAcmeWorkerRuntime {
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn start_worker(
         &mut self,
         owner: VmProcessId,
@@ -300,6 +334,7 @@ impl VmAcmeWorkerRuntime {
         Ok(handle)
     }
 
+    #[cfg(any(test, feature = "acme-live"))]
     pub(crate) fn prepare_http01_challenge(
         &mut self,
         handle: VmAcmeWorkerHandle,
@@ -330,6 +365,7 @@ impl VmAcmeWorkerRuntime {
         })
     }
 
+    #[cfg(any(test, feature = "acme-live"))]
     pub(crate) fn start_issuance(
         &mut self,
         handle: VmAcmeWorkerHandle,
@@ -356,6 +392,7 @@ impl VmAcmeWorkerRuntime {
         Ok(wakes)
     }
 
+    #[cfg(any(test, feature = "acme-live"))]
     pub(crate) fn begin_cache_write(
         &mut self,
         handle: VmAcmeWorkerHandle,
@@ -376,6 +413,7 @@ impl VmAcmeWorkerRuntime {
         })
     }
 
+    #[cfg(any(test, feature = "acme-live"))]
     pub(crate) fn complete_worker(
         &mut self,
         handle: VmAcmeWorkerHandle,
@@ -393,6 +431,7 @@ impl VmAcmeWorkerRuntime {
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn schedule_renewal(
         &mut self,
         handle: VmAcmeWorkerHandle,
@@ -411,6 +450,7 @@ impl VmAcmeWorkerRuntime {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(crate) fn schedule_renewal_timer(
         &mut self,
         handle: VmAcmeWorkerHandle,
@@ -432,6 +472,7 @@ impl VmAcmeWorkerRuntime {
     }
 
     /// Spawns a VM-owned ACME renewal actor for a completed worker.
+    #[cfg(test)]
     pub(crate) fn spawn_renewal_actor(
         &mut self,
         processes: &mut VmProcessTable,
@@ -460,6 +501,7 @@ impl VmAcmeWorkerRuntime {
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn renewal_due_wakeups(&self, now_epoch_secs: u64) -> Vec<VmAcmeWorkerWake> {
         self.workers
             .iter()
@@ -483,6 +525,7 @@ impl VmAcmeWorkerRuntime {
             .collect()
     }
 
+    #[cfg(test)]
     pub(crate) fn begin_due_renewal(
         &mut self,
         handle: VmAcmeWorkerHandle,
@@ -515,6 +558,7 @@ impl VmAcmeWorkerRuntime {
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn cancel_worker(
         &mut self,
         handle: VmAcmeWorkerHandle,
@@ -541,6 +585,7 @@ impl VmAcmeWorkerRuntime {
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn shutdown_worker(
         &mut self,
         handle: VmAcmeWorkerHandle,
@@ -557,6 +602,7 @@ impl VmAcmeWorkerRuntime {
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn shutdown_owner_workers(&mut self, owner: VmProcessId) -> Vec<VmAcmeWorkerWake> {
         let mut wakes = Vec::new();
         for (handle, worker) in &mut self.workers {
@@ -581,6 +627,7 @@ impl VmAcmeWorkerRuntime {
         wakes
     }
 
+    #[cfg(test)]
     pub(crate) fn inspect_worker(
         &self,
         handle: VmAcmeWorkerHandle,
@@ -596,6 +643,7 @@ impl VmAcmeWorkerRuntime {
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn park_issuance_waiter(
         &mut self,
         handle: VmAcmeWorkerHandle,
@@ -614,6 +662,7 @@ impl VmAcmeWorkerRuntime {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(crate) fn telemetry_spans(
         &self,
         handle: VmAcmeWorkerHandle,
@@ -621,6 +670,7 @@ impl VmAcmeWorkerRuntime {
         Ok(self.worker(handle)?.telemetry_spans.clone())
     }
 
+    #[cfg(test)]
     pub(crate) fn challenge_route_access_decision(
         &self,
         handle: VmAcmeWorkerHandle,
@@ -648,6 +698,7 @@ impl VmAcmeWorkerRuntime {
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn capture_support_bundle_step(
         &self,
         handle: VmAcmeWorkerHandle,
@@ -689,6 +740,7 @@ impl VmAcmeWorkerRuntime {
     /// Transformation:
     /// - Converts a completed fixture renewal into a deterministic local replay
     ///   trace without exposing account id, cache key, or certificate material.
+    #[cfg(test)]
     pub(crate) fn capture_deterministic_renewal_cache_tls_handoff_replay(
         &self,
         handle: VmAcmeWorkerHandle,
@@ -757,6 +809,7 @@ impl VmAcmeWorkerRuntime {
         Ok(steps)
     }
 
+    #[cfg(any(test, feature = "acme-live"))]
     fn worker(&self, handle: VmAcmeWorkerHandle) -> Result<&VmAcmeWorker, String> {
         self.workers
             .get(&handle)
@@ -807,6 +860,7 @@ impl VmAcmeWorkerRuntime {
     }
 }
 
+#[cfg(test)]
 impl VmAcmeRenewalActor {
     /// Starts a due renewal through the VM-owned ACME worker runtime.
     pub(crate) fn begin_due_renewal(
@@ -851,127 +905,6 @@ impl VmAcmeRenewalActor {
     }
 }
 
-fn validate_execution_lane(lane: &VmAcmeWorkerExecutionLane) -> Result<(), String> {
-    match lane {
-        VmAcmeWorkerExecutionLane::DeterministicFixture { fixture_id } => {
-            if fixture_id.trim().is_empty() {
-                Err("ACME deterministic fixture id must not be empty".to_string())
-            } else {
-                Ok(())
-            }
-        }
-        VmAcmeWorkerExecutionLane::Live { directory_url } => {
-            if directory_url.trim().is_empty() {
-                return Err("ACME live directory URL must not be empty".to_string());
-            }
-            if !directory_url.starts_with("https://") {
-                return Err("ACME live directory URL must use https".to_string());
-            }
-            Ok(())
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum VmAcmeWorkerStateName {
-    Requested,
-    ChallengeReady,
-    Issuing,
-    CacheWriting,
-    Completed,
-}
-
-fn state_name(state: &VmAcmeWorkerState) -> VmAcmeWorkerStateName {
-    match state {
-        VmAcmeWorkerState::Requested => VmAcmeWorkerStateName::Requested,
-        VmAcmeWorkerState::ChallengeReady(_) => VmAcmeWorkerStateName::ChallengeReady,
-        VmAcmeWorkerState::Issuing => VmAcmeWorkerStateName::Issuing,
-        VmAcmeWorkerState::CacheWriting { .. } => VmAcmeWorkerStateName::CacheWriting,
-        VmAcmeWorkerState::RenewalScheduled { .. } => VmAcmeWorkerStateName::Completed,
-        VmAcmeWorkerState::Completed => VmAcmeWorkerStateName::Completed,
-        VmAcmeWorkerState::Cancelled { .. } => VmAcmeWorkerStateName::Completed,
-        VmAcmeWorkerState::Shutdown => VmAcmeWorkerStateName::Completed,
-    }
-}
-
-fn ensure_state(
-    state: &VmAcmeWorkerState,
-    allowed: &[VmAcmeWorkerStateName],
-) -> Result<(), String> {
-    let actual = state_name(state);
-    if allowed.contains(&actual) {
-        Ok(())
-    } else {
-        Err(format!(
-            "invalid ACME worker state transition from {actual:?}"
-        ))
-    }
-}
-
-fn validate_request(request: &VmAcmeWorkerRequest) -> Result<(), String> {
-    if request.domain.trim().is_empty() {
-        return Err("ACME worker domain must not be empty".to_string());
-    }
-    if request.account_id.trim().is_empty() {
-        return Err("ACME worker account id must not be empty".to_string());
-    }
-    if request.cache_key.trim().is_empty() {
-        return Err("ACME worker cache key must not be empty".to_string());
-    }
-    if request.domain.contains("://") || request.domain.contains('/') {
-        return Err("ACME worker domain must be a host name, not a URL".to_string());
-    }
-    Ok(())
-}
-
-fn validate_http01_token(token: &str) -> Result<(), String> {
-    if token.trim().is_empty() {
-        return Err("ACME HTTP-01 token must not be empty".to_string());
-    }
-    if !token
-        .bytes()
-        .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
-    {
-        return Err("ACME HTTP-01 token contains invalid characters".to_string());
-    }
-    Ok(())
-}
-
-fn mode_support_bundle_label(mode: VmAcmeMode) -> &'static str {
-    match mode {
-        VmAcmeMode::Staging => "staging",
-        VmAcmeMode::Live => "live",
-    }
-}
-
-fn execution_lane_support_bundle_label(lane: &VmAcmeWorkerExecutionLane) -> &'static str {
-    match lane {
-        VmAcmeWorkerExecutionLane::DeterministicFixture { .. } => "deterministic-fixture",
-        VmAcmeWorkerExecutionLane::Live { .. } => "live",
-    }
-}
-
-fn redact_acme_support_bundle_value(value: &str) -> &'static str {
-    if value.is_empty() {
-        "empty"
-    } else {
-        "<redacted>"
-    }
-}
-
-fn state_support_bundle_operation(state: &VmAcmeWorkerState) -> &'static str {
-    match state {
-        VmAcmeWorkerState::Requested => "acme.worker.requested",
-        VmAcmeWorkerState::ChallengeReady(_) => "acme.worker.challenge_ready",
-        VmAcmeWorkerState::Issuing => "acme.worker.issuing",
-        VmAcmeWorkerState::CacheWriting { .. } => "acme.worker.cache_writing",
-        VmAcmeWorkerState::RenewalScheduled { .. } => "acme.worker.renewal_scheduled",
-        VmAcmeWorkerState::Completed => "acme.worker.completed",
-        VmAcmeWorkerState::Cancelled { .. } => "acme.worker.cancelled",
-        VmAcmeWorkerState::Shutdown => "acme.worker.shutdown",
-    }
-}
-
-fn renewal_actor_resource_handle(handle: VmAcmeWorkerHandle) -> String {
-    format!("acme-renewal-actor:{}", handle.as_u64())
-}
+#[path = "acme_worker/validation.rs"]
+mod validation;
+use validation::*;

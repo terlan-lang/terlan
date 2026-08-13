@@ -9,6 +9,7 @@
   </description>
 
   <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.ultimate</depends>
 
   <extensions defaultExtensionNs="com.intellij">
     <!--
@@ -20,12 +21,14 @@
 
       Transformation:
       - Keeps editor identity declarative while diagnostics and symbols remain
-        owned by terlc lsp --stdio.
+        owned by the compiler LSP process.
     -->
     <fileType
       name="Terlan"
       language="Terlan"
-      extensions="terl;terli;terl.html;terl.md;terl.json;terl.toml;terl.yaml;terl.yml;terl.txt"
+      extensions="terl;terls;terli;terl.html;terl.md;terl.json;terl.toml;terl.yaml;terl.yml;terl.txt"
       icon="/icons/terlan-file.svg" />
+    <platform.lsp.serverSupportProvider
+      implementation="org.terlan.intellij.TerlanLspServerSupportProvider" />
   </extensions>
 </idea-plugin>

@@ -1,0 +1,132 @@
+/**
+ * Installed-candidate project upgrade and migration matrix.
+ */
+module release_closeout.Upgrade.
+
+import release_closeout.Support.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.{Directory, File}.
+
+import type release_closeout.Support.{Candidate, CommandResult}.
+
+fixture(candidate: Candidate, name: String, manifest: String, source: String): String ->
+    let root = Support.child(candidate.workspace, name);
+    let module_name = String.replace(name, "-", "_");
+    let source_root = Support.child(root, String.concat(["src/", module_name]));
+    let {
+        Ok(Unit) <- Directory.create_all(source_root);
+        Ok(Unit) <- File.write_text(Support.child(root, "terlan.toml"), manifest);
+        Ok(Unit) <- File.write_text(Support.child(source_root, "Main.terl"), source)
+    } else {
+        _ -> ""
+    };
+    root.
+
+preview_unchanged(candidate: Candidate, project: String): {Bool, CommandResult} ->
+    let before = Support.tree_hash(project);
+    let result = Support.run(candidate, "migration-preview", "terlc", ["fmt", "--check", project], project);
+    {before == Support.tree_hash(project), result}.
+
+valid_fixture(candidate: Candidate): {Bool, List[CommandResult]} ->
+    let project =
+        fixture(
+            candidate,
+            "prior-baseline",
+            "[package]\nname = \"prior-baseline\"\nversion = \"0.0.6\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n",
+            "module prior_baseline.Main.\n\n/**\n * Installed upgrade fixture entry point.\n */\npub main(): Bool -> true.\n",
+        );
+    let {unchanged, preview} = preview_unchanged(candidate, project);
+    let build = Support.run(candidate, "prior-build", "terlc", ["build"], project);
+    let run = Support.run(candidate, "prior-run", "terlc", ["run"], project);
+    {
+        unchanged
+            and Support.succeeded(preview)
+            and Support.succeeded(build)
+            and Support.succeeded(run),
+        [preview, build, run],
+    }.
+
+stale_fixture(candidate: Candidate): {Bool, CommandResult} ->
+    let project =
+        fixture(
+            candidate,
+            "stale-layout",
+            "[package]\nname = \"stale-layout\"\nversion = \"0.0.5\"\n\n[build]\nsource_roots = [\"legacy\"]\ntarget = \"beam-thin\"\n",
+            "module wrong.Legacy.\n\npub main(): Int -> std.collections.List.removed_symbol([]).\n",
+        );
+    let before = Support.tree_hash(project);
+    let result = Support.run(candidate, "stale-preview", "terlc", ["check", project], project);
+    let output = String.concat([result.stdout, result.stderr]);
+    {
+        before == Support.tree_hash(project)
+            and result.status != 0
+            and String.contains(output, "error[")
+            and not String.contains(output, "internal compiler error"),
+        result,
+    }.
+
+classifications_json(): Json ->
+    case Json.string_object_rows(
+    ["fixture", "baseline", "classification"],
+    [
+        ["prior-baseline", "0.0.6", "direct-success"],
+        ["stale-layout", "0.0.5", "expected-diagnostic-with-guidance"],
+    ],
+) {
+        Ok(value) -> value;
+        Err(_reason) -> Json.array()
+    }.
+
+pub check(root: String): Bool ->
+    case Support.prepare(root, "upgrade") {
+        None -> false;
+        Some(candidate) ->
+            let {valid, commands} = valid_fixture(candidate);
+            let {stale, stale_command} = stale_fixture(candidate);
+            let validated = Support.candidate_identity_holds(candidate) and valid and stale;
+            let cleaned = Support.cleanup(candidate, true);
+            let passed = validated and cleaned;
+            let report =
+                Json.object()
+                    .put("schema", Json.string("terlan.release-project-upgrade-matrix-report.v1"))
+                    .put(
+                        "decision",
+                        Json.string(
+                            if {
+                                passed -> "pass";
+                                true -> "fail"
+                            },
+                        ),
+                    )
+                    .put("installed_compiler", Json.string("<installed>/terlc"))
+                    .put(
+                        "fixtures",
+                        Support.commands_json(
+                            List.concat(commands, [stale_command]),
+                            root,
+                            candidate.temporary,
+                        ),
+                    )
+                    .put("migration_classifications", classifications_json())
+                    .put("preview_non_mutating", Json.bool(valid and stale))
+                    .put(
+                        "cleanup_status",
+                        Json.string(
+                            if {
+                                cleaned -> "pass";
+                                true -> "fail"
+                            },
+                        ),
+                    );
+            let written = Support.write_report(root, "release-project-upgrade-matrix-report.json", report);
+            if {
+                passed and written -> let _printed = println("installed project upgrade matrix passed");
+                true;
+                true -> false
+            }
+    }.

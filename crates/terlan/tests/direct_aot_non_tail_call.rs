@@ -5,8 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use object::{Object, ObjectSection};
 
 #[path = "support/direct_aot.rs"]
-#[allow(dead_code)]
-mod support;
+pub mod support;
 use support::*;
 
 #[test]
@@ -538,7 +537,8 @@ fn native_aot_wraps_terminal_non_tail_calls_in_caller_continuations() {
         descriptor_digest,
         bool_export,
         &[1],
-        SuspendedAction::Resume {
+        SuspendedAction {
+            operation: 9,
             request_id: 2,
             continuation_id_xor: 0,
             values: vec![1],
@@ -550,7 +550,8 @@ fn native_aot_wraps_terminal_non_tail_calls_in_caller_continuations() {
         descriptor_digest,
         bool_export,
         &[1],
-        SuspendedAction::Resume {
+        SuspendedAction {
+            operation: 9,
             request_id: 1,
             continuation_id_xor: 0,
             values: vec![2],

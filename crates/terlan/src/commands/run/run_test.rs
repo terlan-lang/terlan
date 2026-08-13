@@ -175,17 +175,8 @@ fn expand_script_run_command_resolves_convention_script() {
     let temp = shared_temp_dir("run_command", "resolve_convention_script");
     let scripts_dir = temp.join("scripts");
     fs::create_dir_all(&scripts_dir).expect("create scripts dir");
-    let script = scripts_dir.join("SeedDatabase.terl");
-    fs::write(
-        &script,
-        "\
-module scripts.SeedDatabase.
-
-pub main(): Unit ->
-    Unit.
-",
-    )
-    .expect("write script");
+    let script = scripts_dir.join("SeedDatabase.terls");
+    fs::write(&script, "Unit.\n").expect("write script");
     let expanded = expand_script_run_command_in_project(
         CliCommand {
             verb: Some("run".to_string()),
@@ -430,6 +421,9 @@ fn run_built_native_image_executes_vm_runner() {
         &format!(
             r#"test "$1" = "run"
 test -f "$2"
+test "$3" = "--"
+test "$4" = "alpha"
+test "$5" = "--flag"
 test "${helper_env}" = "{}"
 exit 0"#,
             helper.display()
@@ -441,9 +435,81 @@ exit 0"#,
     };
 
     assert_eq!(
-        run_built_native_image_with_runner(&state, &runner, &source).expect("run native image"),
+        run_built_native_image_with_runner(
+            &state,
+            &runner,
+            &source,
+            &["alpha".to_string(), "--flag".to_string()],
+        )
+        .expect("run native image"),
         ExitCode::SUCCESS
     );
+}
+
+/// Verifies `.terls` execution asks the VM to propagate the final script value.
+#[test]
+fn run_built_native_script_propagates_result() {
+    let temp = shared_temp_dir("run_command", "script_result");
+    let vm_dir = temp.join("vm");
+    fs::create_dir_all(&vm_dir).expect("create vm dir");
+    let source = temp.join("Check.terls");
+    fs::write(&source, "42.\n").expect("write script");
+    fs::write(vm_dir.join("script_Check.tvm"), "image").expect("write artifact");
+    let runner = temp.join("terlan-vm");
+    write_executable_script(
+        &runner,
+        r#"test "$1" = "run"
+test -f "$2"
+test "$3" = "--script-eval"
+test "$4" = "--"
+exit 0"#,
+    );
+    let state = CliState {
+        out_dir: temp,
+        ..CliState::default()
+    };
+
+    assert_eq!(
+        run_built_native_image_with_runner(&state, &runner, &source, &[])
+            .expect("run native script"),
+        ExitCode::SUCCESS
+    );
+}
+
+/// Verifies run artifact lookup derives the compiler-owned `.terls` module identity.
+#[test]
+fn find_native_image_for_script_uses_script_module_identity() {
+    let temp = shared_temp_dir("run_command", "script_native_image");
+    let scripts = temp.join("scripts");
+    let out = temp.join("build");
+    fs::create_dir_all(&scripts).expect("create scripts dir");
+    fs::create_dir_all(out.join("vm")).expect("create VM dir");
+    let source = scripts.join("Smoke.terls");
+    fs::write(&source, "Unit.\n").expect("write script source");
+    let artifact = out.join("vm/scripts_Smoke.tvm");
+    fs::write(&artifact, "image").expect("write script image");
+
+    assert_eq!(
+        find_native_image_for_source(&out, &source).expect("find script image"),
+        artifact
+    );
+}
+
+#[test]
+fn split_program_arguments_keeps_values_out_of_build_arguments() {
+    let cmd = CliCommand {
+        verb: Some("run".to_string()),
+        args: vec![
+            "scripts/Check.terl".to_string(),
+            "--".to_string(),
+            "input.tsv".to_string(),
+            "--strict".to_string(),
+        ],
+    };
+
+    let (command, program) = split_program_arguments(cmd);
+    assert_eq!(command.args, ["scripts/Check.terl"]);
+    assert_eq!(program, ["input.tsv", "--strict"]);
 }
 
 /// Verifies native helper metadata is converted into child environment.
@@ -628,7 +694,7 @@ fn run_built_executable_executes_metadata_launcher() {
     };
 
     assert_eq!(
-        run_built_executable(&state).expect("run executable"),
+        run_built_executable(&state, &[]).expect("run executable"),
         ExitCode::SUCCESS
     );
 }

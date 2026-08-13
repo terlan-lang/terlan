@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
+use super::support::write_json_report;
 use crate::terlan_quality::{render_failure, QualityResult};
 use crate::terlan_syntax::format_source_module;
 
@@ -623,18 +624,7 @@ fn diagnostic_code(diagnostic: &str) -> String {
 
 /// Writes the executable documentation report.
 fn write_report(path: &Path, report: &DocsCodeblockExecutableReport) -> QualityResult<()> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|err| {
-            format!(
-                "{}: failed to create report directory: {err}",
-                parent.display()
-            )
-        })?;
-    }
-    let text = serde_json::to_string_pretty(report)
-        .map_err(|err| format!("{}: failed to serialize report: {err}", path.display()))?;
-    fs::write(path, format!("{text}\n"))
-        .map_err(|err| format!("{}: failed to write report: {err}", path.display()))
+    write_json_report(path, report)
 }
 
 /// Collects user-facing Markdown files.
@@ -913,4 +903,5 @@ fn should_skip_dir(path: &Path) -> bool {
 
 #[cfg(test)]
 #[path = "executable_docs_vm_test.rs"]
+#[cfg(test)]
 mod executable_docs_vm_test;

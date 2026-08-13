@@ -22,8 +22,12 @@ import std.test.Test.{assert_false}.
  */
 @test
 pub generated_key_put_updates_presence_and_size(): Bool ->
-    for_all(elements(["alpha", "beta", "gamma"]), (key) -> let state = Map({key, 1});
-    state.contains_key(key) and state.size() == 1).
+    for_all(
+        elements(["alpha", "beta", "gamma"]),
+        (key) ->
+            let state = Map({key, 1});
+            state.contains_key(key) and state.size() == 1,
+    ).
 
 /**
  * Verifies removing generated keys restores missing state.
@@ -35,9 +39,13 @@ pub generated_key_put_updates_presence_and_size(): Bool ->
  */
 @test
 pub generated_key_remove_restores_missing_state(): Bool ->
-    for_all(elements(["alpha", "beta", "gamma"]), (key) -> let state = Map({key, 1});
-    state.remove(key);
-    assert_false(state.contains_key(key)) and state.size() == 0).
+    for_all(
+        elements(["alpha", "beta", "gamma"]),
+        (key) ->
+            let state = Map({key, 1});
+            state.remove(key);
+            assert_false(state.contains_key(key)) and state.size() == 0,
+    ).
 
 /**
  * Verifies taking generated keys preserves the source and removes only the
@@ -51,12 +59,19 @@ pub generated_key_remove_restores_missing_state(): Bool ->
  */
 @test
 pub generated_key_take_is_persistent(): Bool ->
-    for_all(elements(["alpha", "beta", "gamma"]), (key) -> let state = Map({key, 1});
-    case Map.take(state, key) {
-        {Some(value), remaining} ->
-            value == 1 and state.contains_key(key) and remaining.contains_key(key) == false and remaining.size() == 0;
-        {None, _remaining} -> false
-    }).
+    for_all(
+        elements(["alpha", "beta", "gamma"]),
+        (key) ->
+            let state = Map({key, 1});
+            case Map.take(state, key) {
+                {Some(value), remaining} ->
+                    value == 1
+                        and state.contains_key(key)
+                        and remaining.contains_key(key) == false
+                        and remaining.size() == 0;
+                {None, _remaining} -> false
+            },
+    ).
 
 /**
  * Verifies duplicate generated keys retain the latest value without growing
@@ -70,5 +85,9 @@ pub generated_key_take_is_persistent(): Bool ->
  */
 @test
 pub generated_duplicate_key_keeps_latest_value(): Bool ->
-    for_all(elements(["alpha", "beta", "gamma"]), (key) -> let state = Map({key, 1}, {key, 2});
-    state.size() == 1 and state.get(key) == Some(2)).
+    for_all(
+        elements(["alpha", "beta", "gamma"]),
+        (key) ->
+            let state = Map({key, 1}, {key, 2});
+            state.size() == 1 and state.get(key) == Some(2),
+    ).

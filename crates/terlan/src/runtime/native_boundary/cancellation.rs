@@ -30,4 +30,5 @@ impl NativeBoundaryCancellationToken {
 
 #[cfg(test)]
 #[path = "cancellation_test.rs"]
+#[cfg(test)]
 mod cancellation_test;

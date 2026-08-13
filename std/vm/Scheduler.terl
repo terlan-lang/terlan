@@ -264,7 +264,7 @@ pub (scheduler: Scheduler) place_for_actor_group(
     actor_id: String,
     route_id: String,
     actor_group_id: String,
-    default_policy: Policy
+    default_policy: Policy,
 ): PlacementResult ->
     native.
 
@@ -294,7 +294,7 @@ pub (scheduler: Scheduler) request_migration(
     actor_id: String,
     from_node_id: String,
     to_node_id: String,
-    stateful: Bool
+    stateful: Bool,
 ): MigrationResult ->
     native.
 

@@ -1,0 +1,17 @@
+{
+  "schema": "terlan.vm-counterexample-fixture.v1",
+  "theorem_id": "typed-coreir-return-type-preservation",
+  "feature_class": "coreir",
+  "lane_id": "coreir",
+  "source_fixture": "proofs/lean/counterexamples/fixtures/terlc/typed-coreir-return-type-preservation.terl",
+  "runtime_oracle": {
+    "harness": "terlc_check",
+    "namespace": "bench_lean_counterexample",
+    "expected_exit": "nonzero",
+    "stderr_contains": [
+      "error[type_mismatch]",
+      "expected: Binary",
+      "found:    Int"
+    ]
+  }
+}

@@ -140,15 +140,15 @@ Task.spawn(() -> 1).\n",
 /// - A source module that imports `std.data.Json` and calls `Json.parse`.
 ///
 /// Output:
-/// - Test passes when default VM validation rejects JSON and the explicit
-///   NativeBoundary-enabled VM option admits it.
+/// - Test passes when default VM validation and the explicit
+///   NativeBoundary-enabled VM option both admit it.
 ///
 /// Transformation:
 /// - Resolves the portable JSON std contract from checked-in summaries,
 ///   lowers the module to CoreIR, and validates that executable JSON use is
-///   blocked until the selected command owns the Rust/NativeBoundary bridge.
+///   admitted through the VM-owned in-process Rust/NativeBoundary bridge.
 #[test]
-fn gates_rust_backed_json_std_module_for_vm_profile() {
+fn admits_vm_owned_json_std_module_for_vm_profile() {
     let module = lower(
         "\
 module profile_json_operation.\n\
@@ -166,13 +166,13 @@ Json.parse(text).\n",
     let violations = target_profile_checks(&module, TargetProfile::Vm);
 
     assert!(
-        violations.iter().any(|violation| {
+        !violations.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
                 && violation
                     .message
                     .contains("rust-backed std module std.data.Json")
         }),
-        "expected Rust-backed JSON target-profile diagnostic, got {violations:?}"
+        "VM-owned JSON dispatch should be accepted, got {violations:?}"
     );
 
     let allowed = target_profile_checks_with_options(
@@ -553,21 +553,18 @@ Unit.\n",
     }
 }
 
-/// Verifies paired VM Agent state transitions are admitted after runtime
-/// lowering exists.
+/// Verifies source-owned Agent state policy is admitted by the VM profile.
 ///
 /// Inputs:
-/// - A source module that imports `std.vm.Agent` and calls the deferred
-///   paired-result `Agent.get_and_update` operation.
+/// - A source module that imports `std.vm.Agent` and calls its typed
+///   source-level `get_and_update` function.
 ///
 /// Output:
-/// - Test passes when the full VM profile accepts `get_and_update`
-///   without an unsupported VM Agent operation diagnostic.
+/// - Test passes when the full VM profile accepts the Agent source API.
 ///
 /// Transformation:
-/// - Resolves the Agent type contract from checked-in summaries, lowers the
-///   source to CoreIR, and validates that the paired state/value operation
-///   is part of the admitted VM Agent runtime surface.
+/// - Resolves the Agent type contract from checked-in summaries and validates
+///   that only its underlying process primitives require VM admission.
 #[test]
 fn accepts_vm_agent_get_and_update_operation_for_vm_profile() {
     let module = lower(
@@ -576,11 +573,8 @@ module profile_vm_agent_operation.\n\
 \n\
 import std.vm.Agent.\n\
 import type std.vm.Agent.Agent.\n\
-import type std.core.Error.Error.\n\
-import type std.core.Result.Result.\n\
-\n\
 pub queue_update(agent: Agent[Int]): Int ->\n\
-Agent.get_and_update(agent, (value: Int) -> {state: value, value: value}).\n",
+Agent.get_and_update[Int](agent, 1, 7).\n",
         "src/profile_vm_agent_operation.terl",
     );
 
@@ -589,28 +583,24 @@ Agent.get_and_update(agent, (value: Int) -> {state: value, value: value}).\n",
     assert!(
         !violations.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
-                && violation
-                    .message
-                    .contains("VM Agent operation std.vm.Agent.get_and_update")
+                && violation.message.contains("VM Agent operation")
         }),
-        "VM Agent get_and_update should be admitted, got {violations:?}"
+        "source-owned Agent policy should not require framework admission, got {violations:?}"
     );
 }
 
-/// Verifies GenServer runtime operations are admitted after callback lowering exists.
+/// Verifies source-owned GenServer policy is admitted for the VM profile.
 ///
 /// Inputs:
-/// - A source module importing `std.vm.GenServer` and calling
-///   `GenServer.start(server)`.
+/// - A source module importing `std.vm.GenServer` and calling its typed
+///   source-level request function.
 ///
 /// Output:
-/// - Test passes when the full VM profile accepts `GenServer.start`
-///   without an unsupported GenServer operation diagnostic.
+/// - Test passes when the full VM profile accepts the GenServer source API.
 ///
 /// Transformation:
-/// - Resolves the GenServer contract from checked-in summaries, lowers the
-///   source to CoreIR, and validates that callback-process startup is part
-///   of the admitted VM GenServer runtime surface.
+/// - Resolves the GenServer contract from checked-in summaries and validates
+///   that only its underlying process primitives require VM admission.
 #[test]
 fn accepts_vm_gen_server_operation_for_vm_profile() {
     let module = lower(
@@ -618,26 +608,10 @@ fn accepts_vm_gen_server_operation_for_vm_profile() {
 module profile_vm_gen_server_operation.\n\
 \n\
 import std.vm.GenServer.\n\
-import type std.vm.GenServer.{CallReply, GenServer, ServerRef}.\n\
-import std.core.Result.{Ok}.\n\
-import type std.core.Result.Result.\n\
-import type std.core.Error.Error.\n\
+import type std.vm.GenServer.ServerRef.\n\
 \n\
-pub struct CounterServer implements GenServer[CounterServer, Int, Int, Int, Int] {\n\
-seed: Int\n\
-}.\n\
-\n\
-pub (server: CounterServer) init(): Result[Int, Error] ->\n\
-Ok(server.seed).\n\
-\n\
-pub (server: CounterServer) handle_call(state: Int, request: Int): Result[CallReply[Int, Int], Error] ->\n\
-Ok({state: state, reply: request}).\n\
-\n\
-pub (server: CounterServer) handle_cast(state: Int, event: Int): Result[Int, Error] ->\n\
-Ok(state + event).\n\
-\n\
-pub start_server(server: CounterServer): Result[ServerRef[Int, Int, Int, Int], Error] ->\n\
-GenServer.start(server).\n",
+pub request(server: ServerRef[Int]): Int ->\n\
+GenServer.call[Int](server, 1, 7).\n",
         "src/profile_vm_gen_server_operation.terl",
     );
 
@@ -646,11 +620,9 @@ GenServer.start(server).\n",
     assert!(
         !violations.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
-                && violation
-                    .message
-                    .contains("VM GenServer operation std.vm.GenServer.start")
+                && violation.message.contains("VM GenServer operation")
         }),
-        "VM GenServer.start should be admitted, got {violations:?}"
+        "source-owned GenServer policy should not require framework admission, got {violations:?}"
     );
 }
 
@@ -698,15 +670,14 @@ NativeBridge.start(resource).\n",
     );
 }
 
-/// Verifies Supervisor runtime operations are admitted once local lowering exists.
+/// Verifies Supervisor source policy is admitted by the VM profile.
 ///
 /// Inputs:
-/// - A source module importing `std.vm.Supervisor` and calling
-///   `Supervisor.child_spec(value)`.
+/// - A source module importing `std.vm.Supervisor` and evaluating restart
+///   strategy selection.
 ///
 /// Output:
-/// - Test passes when the full VM profile accepts the Supervisor
-///   operation without an unsupported-operation diagnostic.
+/// - Test passes when the full VM profile accepts the Supervisor source API.
 ///
 /// Transformation:
 /// - Keeps the callable Supervisor contract visible while proving the
@@ -718,10 +689,10 @@ fn accepts_vm_supervisor_operation_for_vm_profile() {
         "\
 module profile_vm_supervisor_operation.\n\
 \n\
-import std.vm.Supervisor.\n\
+import std.vm.Supervisor.{RestForOne, selects_child}.\n\
 \n\
-pub make_spec(value: Int): Dynamic ->\n\
-Supervisor.child_spec(value).\n",
+pub selected(failed: Int, candidate: Int): Bool ->\n\
+selects_child(RestForOne, failed, candidate).\n",
         "src/profile_vm_supervisor_operation.terl",
     );
 
@@ -730,22 +701,19 @@ Supervisor.child_spec(value).\n",
     assert!(
         !violations.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
-                && violation
-                    .message
-                    .contains("VM Supervisor operation std.vm.Supervisor.child_spec")
+                && violation.message.contains("VM Supervisor operation")
         }),
-        "VM Supervisor.child_spec should be admitted for VM, got {violations:?}"
+        "source-owned Supervisor policy should not require framework admission, got {violations:?}"
     );
 }
 
-/// Verifies VM Task operations are admitted once process lowering exists.
+/// Verifies source-owned Task policy is admitted once process lowering exists.
 ///
 /// Inputs:
-/// - A source module that imports `std.vm.Task` and calls `Task.start`.
+/// - A source module that imports `std.vm.Task` and calls `Task.result`.
 ///
 /// Output:
-/// - Test passes when the full VM profile accepts `Task.start`
-///   without an unsupported VM Task operation diagnostic.
+/// - Test passes when the full VM profile accepts the Task source API.
 ///
 /// Transformation:
 /// - Resolves the VM Task type contract from checked-in summaries,
@@ -760,11 +728,9 @@ module profile_vm_task_operation.\n\
 \n\
 import std.vm.Task.\n\
 import type std.vm.Task.Task.\n\
-import type std.core.Error.Error.\n\
-import type std.core.Result.Result.\n\
 \n\
-pub start_work(): Result[Task[Int], Error] ->\n\
-Task.start(() -> 1).\n",
+pub await_work(task: Task[Int]): Int ->\n\
+Task.result[Int](task, 1).\n",
         "src/profile_vm_task_operation.terl",
     );
 
@@ -773,11 +739,9 @@ Task.start(() -> 1).\n",
     assert!(
         !violations.iter().any(|violation| {
             violation.code == "target_profile_unsupported"
-                && violation
-                    .message
-                    .contains("VM Task operation std.vm.Task.start")
+                && violation.message.contains("VM Task operation")
         }),
-        "VM Task.start should be admitted, got {violations:?}"
+        "source-owned Task policy should not require framework admission, got {violations:?}"
     );
 }
 
@@ -788,15 +752,15 @@ Task.start(() -> 1).\n",
 ///   `std.net.Uri`.
 ///
 /// Output:
-/// - Test passes when VM target-profile validation reports stable
-///   unsupported Rust-backed std module diagnostics for all three imports.
+/// - Test passes when VM target-profile validation accepts the direct-safe Path
+///   adapter and reports stable unsupported diagnostics for Base64 and URI.
 ///
 /// Transformation:
 /// - Resolves the portable utility std contracts from checked-in summaries,
 ///   lowers the module to CoreIR, and validates that executable utility use
 ///   is blocked until the selected target owns the Rust/NativeBoundary bridge.
 #[test]
-fn rejects_rust_backed_web_data_std_modules_for_vm_profile() {
+fn vm_profile_accepts_direct_path_and_rejects_unsupported_web_data_adapters() {
     let module = lower(
         "\
 module profile_web_data_operation.\n\
@@ -833,10 +797,7 @@ Uri.parse(text).\n",
         messages.contains("rust-backed std module std.encoding.Base64"),
         "expected Base64 target-profile diagnostic, got {violations:?}"
     );
-    assert!(
-        messages.contains("rust-backed std module std.io.Path"),
-        "expected Path target-profile diagnostic, got {violations:?}"
-    );
+    assert!(!messages.contains("rust-backed std module std.io.Path"));
     assert!(
         messages.contains("rust-backed std module std.net.Uri"),
         "expected Uri target-profile diagnostic, got {violations:?}"

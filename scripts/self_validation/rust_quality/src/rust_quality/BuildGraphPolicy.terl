@@ -1,0 +1,433 @@
+/**
+ * Validates the reviewed Rust crate-ownership and timing policy.
+ */
+module rust_quality.BuildGraphPolicy.
+
+import rust_quality.{CargoMetadata, SourceInventory}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+import std.io.File.
+
+import type rust_quality.CargoMetadata.GraphNode.
+import type std.core.Option.
+import type std.data.Json.
+import type std.data.Json.RequiredFieldRow.
+
+pub struct PolicyResult {
+    valid: Bool,
+    diagnostics: List[String],
+    message: String,
+}.
+
+struct PackageRows {
+    valid: Bool,
+    names: List[String],
+    diagnostics: List[String],
+    message: String,
+}.
+
+struct MeasurementRows {
+    valid: Bool,
+    scenarios: List[String],
+    diagnostics: List[String],
+    message: String,
+}.
+
+@pure
+word_count_at(words: List[String], count: Int): Int ->
+    case words {
+        [] -> count;
+        [word | rest] ->
+            word_count_at(
+                rest,
+                if {
+                    String.trim(word) == "" -> count;
+                    true -> count + 1
+                },
+            )
+    }.
+
+@pure
+word_count(value: String): Int ->
+    word_count_at(String.split(value, " "), 0).
+
+@pure
+ascii_digit(byte: Int): Bool ->
+    byte >= 48 and byte <= 57.
+
+@pure
+digits_at(value: String, index: Int): Bool ->
+    if {
+        value.byte_size() == 0 -> false;
+        index == value.byte_size() -> true;
+        not ascii_digit(value.utf8_byte_at(index)) -> false;
+        true -> digits_at(value, index + 1)
+    }.
+
+@pure
+chronology_base(value: String, base: String): Bool ->
+    if {
+        not String.starts_with(value, base) -> false;
+        value.byte_size() == base.byte_size() -> false;
+        true -> let suffix = value.utf8_slice(base.byte_size(), value.byte_size() - base.byte_size());
+        let normalized =
+            if {
+                String.starts_with(suffix, "_") -> suffix.utf8_slice(1, suffix.byte_size() - 1);
+                true -> suffix
+            };
+        digits_at(normalized, 0)
+    }.
+
+@pure
+chronology_segment(value: String): Bool ->
+    chronology_base(value, "part")
+        or chronology_base(value, "phase")
+        or chronology_base(value, "step")
+        or chronology_base(value, "slice")
+        or chronology_base(value, "stage").
+
+@pure
+last(values: List[String], fallback: String): String ->
+    case values {
+        [] -> fallback;
+        [value] -> value;
+        [_value | rest] -> last(rest, fallback)
+    }.
+
+@pure
+previous(values: List[String], fallback: String): String ->
+    case values {
+        [] -> fallback;
+        [_value] -> fallback;
+        [value, _last] -> value;
+        [_value | rest] -> previous(rest, fallback)
+    }.
+
+@pure
+three_digit_suffix(value: String): Bool ->
+    if {
+        value.byte_size() < 4 -> false;
+        true -> let start = value.byte_size() - 4;
+        value.utf8_byte_at(start) == 95
+            and ascii_digit(value.utf8_byte_at(start + 1))
+            and ascii_digit(value.utf8_byte_at(start + 2))
+            and ascii_digit(value.utf8_byte_at(start + 3))
+    }.
+
+@pure
+chronology_module(value: String): Bool ->
+    let segments = String.split(value, "_");
+    let final_segment = last(segments, "");
+    let prior_segment = previous(segments, "");
+    chronology_segment(final_segment)
+        or digits_at(final_segment, 0)
+    and (prior_segment == "part"
+    or prior_segment == "phase"
+    or prior_segment == "step"
+    or prior_segment == "slice"
+    or prior_segment == "stage")
+        or three_digit_suffix(value).
+
+@pure
+chronology_diagnostics(
+    modules: List[String],
+    package: String,
+    output: List[String],
+): List[String] ->
+    case modules {
+        [] -> output;
+        [name | rest] ->
+            chronology_diagnostics(
+                rest,
+                package,
+                if {
+                    chronology_module(name) -> [String.concat(
+    [
+        "docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json: `",
+        package,
+        "` chronology/size module `",
+        name,
+        "`",
+    ],
+) | output];
+                    true -> output
+                },
+            )
+    }.
+
+package_rows(
+    packages: Json,
+    index: Int,
+    count: Int,
+    names: List[String],
+    diagnostics: List[String],
+): PackageRows ->
+    if {
+        index == count -> PackageRows(
+            valid = true,
+            names = CargoMetadata.sort_unique(names),
+            diagnostics = diagnostics,
+            message = "",
+        );
+        true -> let {
+            Ok(package) <- Json.at(packages, index);
+            Ok(fields) <- Json.required_fields(package, ["name", "responsibility"], [], []);
+            Ok(modules_value) <- Json.get(package, "top_level_feature_modules");
+            Some(modules) <- CargoMetadata.string_array(modules_value)
+        } else {
+            _ ->
+                PackageRows(
+                    valid = false,
+                    names = [],
+                    diagnostics = [],
+                    message = "package responsibility inventory has an unsupported shape",
+                )
+        };
+        case Json.required_field_strings(fields) {
+            [name, responsibility] ->
+                let responsibility_diagnostics =
+                    if {
+                        word_count(responsibility) >= 6 -> diagnostics;
+                        true -> [String.concat(
+    [
+        "docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json: `",
+        name,
+        "` lacks one concrete responsibility",
+    ],
+) | diagnostics]
+                    };
+                let module_diagnostics =
+                    if {
+                        List.length(modules) > 0 and modules == CargoMetadata.sort_unique(modules) -> responsibility_diagnostics;
+                        true -> [String.concat(
+    [
+        "docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json: `",
+        name,
+        "` module inventory must be nonempty, unique, and sorted",
+    ],
+) | responsibility_diagnostics]
+                    };
+                let chronology = chronology_diagnostics(modules, name, module_diagnostics);
+                package_rows(packages, index + 1, count, [name | names], chronology);
+            _ ->
+                PackageRows(
+                    valid = false,
+                    names = [],
+                    diagnostics = [],
+                    message = "package responsibility fields have an unsupported shape",
+                )
+        }
+    }.
+
+packages(document: Json): PackageRows ->
+    let {
+        Ok(values) <- Json.get(document, "packages");
+        Ok(count) <- Json.length(values)
+    } else {
+        _ ->
+            PackageRows(
+                valid = false,
+                names = [],
+                diagnostics = [],
+                message = "policy package inventory is missing",
+            )
+    };
+    package_rows(values, 0, count, List.new[String](), List.new[String]()).
+
+@pure
+strings_from_rows(rows: List[RequiredFieldRow], output: List[String]): Option[List[String]] ->
+    case rows {
+        [] -> Some(output);
+        [row | rest] ->
+            case Json.required_field_row_strings(row) {
+                [value] -> strings_from_rows(rest, [value | output]);
+                _ -> None
+            }
+    }.
+
+string_inventory(document: Json, field: String, member: String): Option[List[String]] ->
+    let {
+        Ok(values) <- Json.get(document, field);
+        Ok(rows) <- Json.required_field_rows(values, [member], [], [])
+    } else {
+        _ -> None
+    };
+    strings_from_rows(rows, List.new[String]()).
+
+@pure
+required_owners(): List[String] ->
+    CargoMetadata.sort_unique(
+        [
+            "compiler",
+            "runtime protocol",
+            "runtime implementation",
+            "CLI",
+            "LSP",
+            "quality",
+            "benchmark",
+        ],
+    ).
+
+@pure
+required_scenarios(): List[String] ->
+    [
+        "facade-clean-terlc",
+        "facade-parser-incremental",
+        "facade-runtime-incremental",
+        "quality-audit-clean",
+        "quality-audit-incremental",
+    ].
+
+@pure
+decision_inventory_valid(values: List[String]): Bool ->
+    List.length(values) >= 3
+        and CargoMetadata.contains(values, "selected")
+        and CargoMetadata.contains(values, "deferred").
+
+measurement_rows(
+    rows: List[RequiredFieldRow],
+    scenarios: List[String],
+    diagnostics: List[String],
+): MeasurementRows ->
+    case rows {
+        [] ->
+            MeasurementRows(
+                valid = true,
+                scenarios = CargoMetadata.sort_unique(scenarios),
+                diagnostics = diagnostics,
+                message = "",
+            );
+        [row | rest] ->
+            case {Json.required_field_row_strings(row), Json.required_field_row_ints(row)} {
+                {[scenario, command, edited_file], [wall_time_ms]} ->
+                    let timing_diagnostics =
+                        if {
+                            wall_time_ms > 0 -> diagnostics;
+                            true -> [String.concat(
+    ["docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json: `", scenario, "` lacks a positive timing"],
+) | diagnostics]
+                        };
+                    let evidence_diagnostics =
+                        if {
+                            command != "" and edited_file != "" -> timing_diagnostics;
+                            true -> [String.concat(
+    [
+        "docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json: `",
+        scenario,
+        "` lacks reproducible command/edit evidence",
+    ],
+) | timing_diagnostics]
+                        };
+                    measurement_rows(rest, [scenario | scenarios], evidence_diagnostics);
+                _ ->
+                    MeasurementRows(
+                        valid = false,
+                        scenarios = [],
+                        diagnostics = [],
+                        message = "timing evidence rows have an unsupported shape",
+                    )
+            }
+    }.
+
+measurements(document: Json): MeasurementRows ->
+    let {
+        Ok(values) <- Json.get(document, "measurements");
+        Ok(rows) <-
+            Json.required_field_rows(
+                values,
+                ["scenario", "command", "edited_file"],
+                ["wall_time_ms"],
+                [],
+            )
+    } else {
+        _ ->
+            MeasurementRows(
+                valid = false,
+                scenarios = [],
+                diagnostics = [],
+                message = "timing evidence inventory has an unsupported shape",
+            )
+    };
+    measurement_rows(rows, List.new[String](), List.new[String]()).
+
+policy_failure(message: String): PolicyResult ->
+    PolicyResult(valid = false, diagnostics = [], message = message).
+
+validate(document: Json, nodes: List[GraphNode]): PolicyResult ->
+    let {
+        Ok(schema_value) <- Json.get(document, "schema_version");
+        Ok(schema) <- Json.as_int(schema_value)
+    } else {
+        _ -> policy_failure("policy schema version is missing")
+    };
+    (let package_rows = packages(document);
+if {
+    not package_rows.valid -> policy_failure(package_rows.message);
+    true -> let owner_values = string_inventory(document, "ownership", "responsibility");
+    case owner_values {
+        None -> policy_failure("responsibility ownership inventory has an unsupported shape");
+        Some(owners) ->
+            let decision_values = string_inventory(document, "design_candidates", "decision");
+            case decision_values {
+                None -> policy_failure("design candidate inventory has an unsupported shape");
+                Some(decisions) ->
+                    let measurement_rows = measurements(document);
+                    if {
+                        not measurement_rows.valid -> policy_failure(measurement_rows.message);
+                        true -> let schema_diagnostics =
+                            if {
+                                schema == 1 -> package_rows.diagnostics;
+                                true -> ["docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json: unsupported schema" | package_rows.diagnostics]
+                            };
+                        let workspace_names = CargoMetadata.node_names(nodes);
+                        let package_diagnostics =
+                            if {
+                                package_rows.names == workspace_names -> schema_diagnostics;
+                                true -> ["docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json: package responsibilities do not match workspace members" | schema_diagnostics]
+                            };
+                        let owner_diagnostics =
+                            if {
+                                CargoMetadata.sort_unique(owners) == required_owners() -> package_diagnostics;
+                                true -> ["docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json: responsibility ownership inventory is incomplete" | package_diagnostics]
+                            };
+                        let decision_diagnostics =
+                            if {
+                                decision_inventory_valid(decisions) -> owner_diagnostics;
+                                true -> ["docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json: facade and internal-crate decisions are incomplete" | owner_diagnostics]
+                            };
+                        let scenario_diagnostics =
+                            if {
+                                measurement_rows.scenarios == required_scenarios() -> decision_diagnostics;
+                                true -> ["docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json: checked timing scenarios are incomplete" | decision_diagnostics]
+                            };
+                        PolicyResult(
+                            valid = true,
+                            diagnostics = List.concat(measurement_rows.diagnostics, scenario_diagnostics),
+                            message = "",
+                        )
+                    }
+            }
+    }
+}).
+
+pub check(root: String, nodes: List[GraphNode]): PolicyResult ->
+    case File.read_text(SourceInventory.child(root, "docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json")) {
+        Err(_reason) -> policy_failure("docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json is missing");
+        Ok(source) ->
+            case Json.parse(source) {
+                Err(reason) -> policy_failure(Json.error_message(reason));
+                Ok(document) -> validate(document, nodes)
+            }
+    }.
+
+pub self_test(): Bool ->
+    chronology_module("parser_part_001")
+        and chronology_module("parser_slice7")
+        and chronology_module("parser_stage_2")
+        and not chronology_module("parser_stage")
+        and not chronology_module("parser_12")
+        and word_count("one two three four five six") == 6
+        and decision_inventory_valid(["selected", "deferred", "deferred"]).

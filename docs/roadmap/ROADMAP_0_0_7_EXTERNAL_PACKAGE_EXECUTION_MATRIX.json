@@ -1,0 +1,67 @@
+{
+  "allowed_reason_codes": [
+    "cpp-binding-generator-failed",
+    "cuda-device-unavailable",
+    "cuda-driver-unavailable",
+    "cuda-not-requested",
+    "cuda-package-failed",
+    "generated-package-contract-failed",
+    "libtorch-cuda-unavailable",
+    "none",
+    "status-artifact-missing"
+  ],
+  "explicit_opt_in_gates": [
+    "cuda-package-check"
+  ],
+  "rows": [
+    {
+      "default": "required",
+      "experimental": "required",
+      "fixture_id": "cpp-native-boundary",
+      "gate": "cpp-binding-generator-check",
+      "import_proof": "import cpp_fixture.NativeBoundary.{create, dispose, value}.",
+      "manifest": "crates/terlan/tests/fixtures/cpp_native_boundary/native-binding.json",
+      "namespace": "cpp_fixture",
+      "native_mode": true,
+      "provenance_key": "generated_fixture_source",
+      "vm_mode": true
+    },
+    {
+      "default": "required",
+      "experimental": "required",
+      "fixture_id": "host-cuda-capability-probe",
+      "gate": "cuda-package-availability-check",
+      "import_proof": "import cuda.Device.{count}.",
+      "manifest": "target/quality/cuda-package-availability-status.json",
+      "namespace": "cuda",
+      "native_mode": false,
+      "provenance_key": "CUDA_HOME|CUDA_PATH|LIBTORCH",
+      "vm_mode": false
+    },
+    {
+      "default": "optional",
+      "experimental": "optional",
+      "fixture_id": "terlan-cuda-typed-execution",
+      "gate": "cuda-package-check",
+      "import_proof": "import cuda.Buffer.{from_f64, matmul}; import cuda.Execution.{create_stream}; import cuda.Kernel.{load}.",
+      "manifest": "${TERLAN_CUDA_DIR}/terlan.toml",
+      "namespace": "cuda",
+      "native_mode": true,
+      "provenance_key": "TERLAN_CUDA_DIR",
+      "vm_mode": true
+    },
+    {
+      "default": "required",
+      "experimental": "required",
+      "fixture_id": "generated-cpp-package-contract",
+      "gate": "generated-package-contract-check",
+      "import_proof": "import cpp_fixture.NativeBoundary.{create, dispose}.",
+      "manifest": "target/quality/cpp-binding-generator.gen_report.json",
+      "namespace": "cpp_fixture",
+      "native_mode": true,
+      "provenance_key": "generated_fixture_source",
+      "vm_mode": true
+    }
+  ],
+  "schema": "terlan.external-package-execution-policy.v1"
+}

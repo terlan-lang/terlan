@@ -1,0 +1,34 @@
+/**
+ * Entry dispatcher for local installed-candidate release closeout.
+ */
+module release_closeout.Main.
+
+import release_closeout.{Diagnostics, Examples, ReferenceApps, ReleaseEvidence, SupplyChain, Support, Upgrade}.
+import std.core.Option.{None, Some}.
+import std.core.String.
+import std.system.Arguments.
+
+command(): String ->
+    case Arguments.get(0) {
+        Some(value) -> value;
+        None -> ""
+    }.
+
+pub entry(): Bool ->
+    let root = Support.repository_root();
+    case command() {
+        "examples" -> Examples.check(root);
+        "upgrade" -> Upgrade.check(root);
+        "reference-apps" -> ReferenceApps.check(root);
+        "diagnostic-catalog" -> Diagnostics.diagnostic_catalog(root);
+        "compatibility-baseline" -> Diagnostics.compatibility_baseline(root);
+        "release-notes" -> Diagnostics.release_notes(root);
+        "supply-chain" -> SupplyChain.provenance(root);
+        "security" -> SupplyChain.security(root);
+        "support-bundle" -> ReleaseEvidence.support_bundle(root);
+        "performance" -> ReleaseEvidence.performance(root);
+        "adversarial" -> ReleaseEvidence.adversarial(root);
+        "mutation" -> ReleaseEvidence.mutation(root);
+        "fault" -> ReleaseEvidence.fault(root);
+        _ -> Support.fail("arguments", "expected an installed-candidate release closeout mode")
+    }.

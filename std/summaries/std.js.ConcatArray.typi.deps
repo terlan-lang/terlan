@@ -1,7 +1,7 @@
 module=std.js.ConcatArray
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 source_hash=11829164199600060090
 interface_hash=9504677617120699200
 interface_doc_hash=9504677617120699200

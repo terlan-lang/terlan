@@ -6,6 +6,7 @@ pub enum TemplateInterpolationContext {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Variants representing template attribute slot kind.
 pub enum TemplateAttributeSlotKind {
     Scalar,
     Url,
@@ -13,6 +14,7 @@ pub enum TemplateAttributeSlotKind {
     TokenList,
 }
 
+/// Returns template attribute slot kind.
 pub fn template_attribute_slot_kind(name: &str) -> TemplateAttributeSlotKind {
     match name.to_ascii_lowercase().as_str() {
         "href" | "src" | "action" | "formaction" | "poster" => TemplateAttributeSlotKind::Url,
@@ -244,4 +246,5 @@ fn line_and_column(source: &str, offset: usize) -> (usize, usize) {
 
 #[cfg(test)]
 #[path = "interpolation_test.rs"]
+#[cfg(test)]
 mod interpolation_test;

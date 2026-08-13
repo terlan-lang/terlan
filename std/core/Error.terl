@@ -19,7 +19,7 @@ module std.core.Error.
  */
 pub struct Error {
     code: Atom,
-    message: String
+    message: String,
 }.
 
 /**

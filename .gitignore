@@ -5,8 +5,12 @@
 /dist/
 /_build/
 **/_build/
+/scripts/self_validation/**/.terlan/
 **/.gradle/
 **/node_modules/
+/editors/intellij/.intellijPlatform/
+/editors/intellij/.kotlin/
+/editors/intellij/build/
 *.rlib
 
 # Legacy standalone VM checkout retained outside the compiler repository

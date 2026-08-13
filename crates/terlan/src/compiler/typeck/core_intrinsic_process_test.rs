@@ -270,7 +270,7 @@ fn syntax_output_lowering_canonicalizes_typed_process_lifecycle_transitions() {
 }
 
 #[test]
-fn syntax_output_lowering_erases_typed_lifecycle_descriptors() {
+fn syntax_output_lowering_keeps_entry_operation_and_erases_value_descriptors() {
     let module = parse_module_as_syntax_output(concat!(
         "module core_process_descriptors.\n\nimport std.vm.Process.\n",
         "import type std.vm.Process.{Entry, ExitReason, ResourceKind, SchedulingClass, Timer}.\n\n",
@@ -285,7 +285,24 @@ fn syntax_output_lowering_erases_typed_lifecycle_descriptors() {
     .expect("parse Process lifecycle descriptor fixture");
     let resolved = resolve_syntax_module_output(&module).module;
     let core = lower_syntax_module_output_to_core(&module, &resolved);
-    for name in ["entry", "timer", "kind", "reason"] {
+    let entry = core
+        .functions
+        .iter()
+        .find(|function| function.name == "entry")
+        .and_then(|function| function.clauses.first())
+        .and_then(|clause| clause.body.core_expr.as_ref())
+        .expect("entry CoreIR body");
+    assert!(matches!(
+        entry,
+        CoreExpr::Intrinsic(CoreIntrinsicCall {
+            id: CoreIntrinsicId::VmProcessEntry(CoreType::Int),
+            args,
+            effects,
+            ..
+        }) if matches!(args.as_slice(), [CoreExpr::Var(tag)] if tag == "tag")
+            && effects.effects == ["vm_effect_execution"]
+    ));
+    for name in ["timer", "kind", "reason"] {
         let body = core
             .functions
             .iter()

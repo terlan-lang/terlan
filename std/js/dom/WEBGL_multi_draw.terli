@@ -36,7 +36,7 @@ pub (value: WEBGL_multi_draw) multi_draw_arrays_instanced_webgl(
     counts_offset: JsNumber,
     instance_counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
     instance_counts_offset: JsNumber,
-    drawcount: GLsizei
+    drawcount: GLsizei,
 ): Unit.
 
 /**
@@ -50,7 +50,7 @@ pub (value: WEBGL_multi_draw) multi_draw_arrays_webgl(
     firsts_offset: JsNumber,
     counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
     counts_offset: JsNumber,
-    drawcount: GLsizei
+    drawcount: GLsizei,
 ): Unit.
 
 /**
@@ -67,7 +67,7 @@ pub (value: WEBGL_multi_draw) multi_draw_elements_instanced_webgl(
     offsets_offset: JsNumber,
     instance_counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
     instance_counts_offset: JsNumber,
-    drawcount: GLsizei
+    drawcount: GLsizei,
 ): Unit.
 
 /**
@@ -82,5 +82,5 @@ pub (value: WEBGL_multi_draw) multi_draw_elements_webgl(
     type_: GLenum,
     offsets_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
     offsets_offset: JsNumber,
-    drawcount: GLsizei
+    drawcount: GLsizei,
 ): Unit.

@@ -1,6 +1,6 @@
 use crate::terlan_syntax::parse_tree::{Expr, ListComprehensionGenerator};
 
-use super::{format_expr, format_pattern};
+use super::{format_assignment_child, format_pattern};
 
 /// Formats one list comprehension with canonical generator and guard spacing.
 pub(super) fn format_list_comprehension(
@@ -14,18 +14,18 @@ pub(super) fn format_list_comprehension(
             format!(
                 "{} <- {}",
                 format_pattern(&generator.pattern),
-                format_expr(&generator.source, 0)
+                format_assignment_child(&generator.source, 0)
             )
         })
         .collect::<Vec<_>>()
         .join(", ");
-    let value = format_expr(expr, 0);
+    let value = format_assignment_child(expr, 0);
     if guards.is_empty() {
         format!("[{value} | {generators}]")
     } else {
         let guards = guards
             .iter()
-            .map(|guard| format_expr(guard, 0))
+            .map(|guard| format_assignment_child(guard, 0))
             .collect::<Vec<_>>()
             .join(", ");
         format!("[{value} | {generators}, {guards}]")

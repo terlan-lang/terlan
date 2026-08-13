@@ -34,7 +34,7 @@ pub copy_from_channel_typechecks(
     receiver: AudioBuffer,
     destination: Float32Array[ArrayBuffer],
     channel_number: JsNumber,
-    buffer_offset: JsNumber
+    buffer_offset: JsNumber,
 ): Unit ->
     receiver.copy_from_channel(destination, channel_number, buffer_offset).
 
@@ -42,7 +42,7 @@ pub copy_to_channel_typechecks(
     receiver: AudioBuffer,
     source: Float32Array[ArrayBuffer],
     channel_number: JsNumber,
-    buffer_offset: JsNumber
+    buffer_offset: JsNumber,
 ): Unit ->
     receiver.copy_to_channel(source, channel_number, buffer_offset).
 

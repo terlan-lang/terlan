@@ -1,0 +1,9 @@
+/**
+ * Synthetic second-backend buffer fixture.
+ */
+module synthetic_vector.Buffer.
+
+/**
+ * Opaque buffer owned by the synthetic accelerator package.
+ */
+pub opaque type Buffer.

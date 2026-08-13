@@ -22,6 +22,7 @@ pub(crate) struct PureNativeActorTransfer {
 
 impl PureNativeActorTransfer {
     /// Returns the process authorized to import and resume this transfer.
+    #[cfg(test)]
     pub(crate) const fn owner(&self) -> VmProcessId {
         self.owner
     }
@@ -31,13 +32,17 @@ impl PureNativeActorTransfer {
 #[derive(Debug)]
 pub(crate) struct PureNativeActorImportFailure {
     reason: String,
-    transfer: PureNativeActorTransfer,
+    transfer: Box<PureNativeActorTransfer>,
 }
 
 impl PureNativeActorImportFailure {
     /// Creates a preflight rejection without consuming the transfer.
+    #[cfg(test)]
     pub(crate) fn rejected(reason: String, transfer: PureNativeActorTransfer) -> Self {
-        Self { reason, transfer }
+        Self {
+            reason,
+            transfer: Box::new(transfer),
+        }
     }
 
     /// Returns the stable destination rejection.
@@ -47,7 +52,7 @@ impl PureNativeActorImportFailure {
 
     /// Returns complete actor ownership for source restoration.
     pub(crate) fn into_transfer(self) -> PureNativeActorTransfer {
-        self.transfer
+        *self.transfer
     }
 }
 
@@ -108,7 +113,10 @@ impl PureNativeExecutionShard {
         transfer: PureNativeActorTransfer,
     ) -> Result<(), PureNativeActorImportFailure> {
         if let Err(reason) = self.validate_actor_state_import(&transfer) {
-            return Err(PureNativeActorImportFailure { reason, transfer });
+            return Err(PureNativeActorImportFailure {
+                reason,
+                transfer: Box::new(transfer),
+            });
         }
         let PureNativeActorTransfer {
             owner,
@@ -180,12 +188,12 @@ fn actor_import_failure(
 ) -> PureNativeActorImportFailure {
     PureNativeActorImportFailure {
         reason: failure.reason().to_string(),
-        transfer: PureNativeActorTransfer {
+        transfer: Box::new(PureNativeActorTransfer {
             owner,
             actor: failure.into_transfer(),
             execution,
             generation,
-        },
+        }),
     }
 }
 
@@ -198,11 +206,11 @@ fn execution_import_failure(
 ) -> PureNativeActorImportFailure {
     PureNativeActorImportFailure {
         reason: failure.reason().to_string(),
-        transfer: PureNativeActorTransfer {
+        transfer: Box::new(PureNativeActorTransfer {
             owner,
             actor,
             execution: failure.into_transfer(),
             generation,
-        },
+        }),
     }
 }

@@ -30,7 +30,7 @@ pub (value: ANGLE_instanced_arrays) draw_arrays_instanced_angle(
     mode: GLenum,
     first: GLint,
     count: GLsizei,
-    primcount: GLsizei
+    primcount: GLsizei,
 ): Unit ->
     native.
 
@@ -44,7 +44,7 @@ pub (value: ANGLE_instanced_arrays) draw_elements_instanced_angle(
     count: GLsizei,
     type_: GLenum,
     offset: GLintptr,
-    primcount: GLsizei
+    primcount: GLsizei,
 ): Unit ->
     native.
 

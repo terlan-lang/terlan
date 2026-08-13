@@ -57,6 +57,57 @@ fn typed_map_literal_lowers_in_source_field_order() {
     ));
 }
 
+#[test]
+fn typed_map_constructor_cast_lowers_from_return_context() {
+    let modules = lower(
+        "module native_map_constructor.\n\n\
+         pub values(): Map[String, Int] -> Map({\"answer\", 42}).\n",
+    );
+    let values = &modules[0].functions[0];
+    assert!(matches!(
+        values.body,
+        NativeExpr::ManagedOperation { ref encoded, ref args }
+            if encoded.starts_with(b"TVMC") && encoded[6] == 3 && args.len() == 2
+    ));
+}
+
+#[test]
+fn typed_map_constructor_lowers_as_direct_receiver_argument() {
+    let modules = lower(
+        "module native_map_argument.\n\n\
+         import std.collections.Map.\n\
+         import std.core.Option.{None, Some}.\n\n\
+         pub lookup(): Bool ->\n\
+             case Map.get(Map({\"answer\", 42}), \"answer\") {\n\
+                 Some(value) -> value == 42;\n\
+                 None -> false\n\
+             }.\n",
+    );
+    let lookup = modules[0]
+        .functions
+        .iter()
+        .find(|function| function.name == "lookup")
+        .expect("map lookup function");
+    assert!(contains_collection_tag(&lookup.body, 3));
+}
+
+#[test]
+fn managed_locals_recover_checked_element_type_for_list_literals() {
+    let modules = lower(
+        "module native_managed_local_list.\n\n\
+         pub type Item = { value: Int }.\n\n\
+         pub collect(item: Item): List[Item] ->\n\
+             let retained = item;\n\
+             [retained].\n",
+    );
+    let collect = modules[0]
+        .functions
+        .iter()
+        .find(|function| function.name == "collect")
+        .expect("managed list function");
+    assert!(contains_collection_tag(&collect.body, 1));
+}
+
 fn contains_collection_tag(expr: &NativeExpr, tag: u8) -> bool {
     match expr {
         NativeExpr::ManagedOperation { encoded, args } => {
@@ -75,6 +126,10 @@ fn contains_collection_tag(expr: &NativeExpr, tag: u8) -> bool {
         NativeExpr::Call { args, .. } | NativeExpr::TailCall { args, .. } => {
             args.iter().any(|arg| contains_collection_tag(arg, tag))
         }
+        NativeExpr::CallThen { args, values, .. } => args
+            .iter()
+            .chain(values)
+            .any(|arg| contains_collection_tag(arg, tag)),
         NativeExpr::Binary { left, right, .. } => {
             contains_collection_tag(left, tag) || contains_collection_tag(right, tag)
         }
@@ -101,32 +156,49 @@ fn pure_single_generator_comprehension_expands_to_private_native_recursion() {
         .iter()
         .find(|function| function.name.starts_with("$aot_comprehension_"))
         .expect("private comprehension helper");
-    assert!(matches!(public.body, NativeExpr::Call { .. }));
+    assert!(public.public);
     assert!(!helper.public);
-    for tag in [2, 4, 5, 6] {
+    for tag in [22, 25] {
         assert!(
-            contains_collection_tag(&helper.body, tag),
+            functions
+                .iter()
+                .any(|function| contains_collection_tag(&function.body, tag))
+                || modules
+                    .iter()
+                    .flat_map(|module| &module.continuations)
+                    .any(|continuation| contains_collection_tag(&continuation.body, tag)),
             "missing collection operation {tag}"
         );
     }
 }
 
 #[test]
-fn unsupported_comprehension_shape_has_stable_prelink_rejection() {
-    let syntax = parse_module_as_syntax_output(
+fn multiple_generator_comprehension_expands_to_ordered_native_collectors() {
+    let modules = lower(
         "module comprehension_shape.\n\n\
          pub pairs(left: List[Int], right: List[Int]): List[Int] ->\n\
              [first + second | first <- left, second <- right].\n",
-    )
-    .expect("parse comprehension shape source");
-    let resolved = resolve_syntax_module_output(&syntax).module;
-    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
-    let error = NativeModule::lower_application(&[&core]).expect_err("reject comprehension shape");
+    );
+    let functions = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .collect::<Vec<_>>();
 
     assert_eq!(
-        error,
-        "error[native_ir.comprehension_shape]: AOT comprehensions require one generator and no lifted result"
+        functions
+            .iter()
+            .filter(|function| function.name.starts_with("$aot_comprehension_"))
+            .count(),
+        2
     );
+    assert!(functions
+        .iter()
+        .all(|function| !function.name.starts_with("$aot_comprehension_") || !function.public));
+    for tag in [22, 25] {
+        assert!(functions
+            .iter()
+            .any(|function| contains_collection_tag(&function.body, tag)));
+    }
 }
 
 #[test]

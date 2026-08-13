@@ -1,0 +1,889 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Exercises native TVM image admission through archive and installed layouts.
+ *
+ * The checker owns its package fixture and every adversarial mutation through
+ * typed standard-library capabilities.
+ */
+import std.collections.List.{length}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.{copy_tree_excluding, create_all, create_temporary, files_recursive, remove_all}.
+import std.io.File.{copy, delete, exists, read_text, write_text}.
+import std.system.{Arguments, Environment, Platform, Process}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.system.Process.Output.
+
+struct HostAbi {
+    valid: Bool,
+    object_format: String,
+    architecture: String,
+    operating_system: String,
+    calling_convention: String,
+}.
+
+struct ImageFixture {
+    image: String,
+    metadata: Json,
+}.
+
+package_image_path(): String -> "runtime/release-self-test.tvm".
+
+entry_name(): String -> "release_validation.Main.main".
+
+child(parent: String, name: String): String ->
+    if {
+        parent == "." -> name;
+        String.ends_with(parent, "/") -> String.append(parent, name);
+        true -> String.append(parent, String.append("/", name))
+    }.
+
+failure(code: String, message: String): Bool ->
+    let _printed =
+        eprintln(
+            String.append(
+                "error[tvm_package_install_consumer.",
+                String.append(code, String.append("]: ", message)),
+            ),
+        );
+    false.
+
+fixture_failure(code: String, message: String): Option[ImageFixture] ->
+    let _failed = failure(code, message);
+    None.
+
+output_failure(code: String, message: String): Option[Output] ->
+    let _failed = failure(code, message);
+    None.
+
+host_abi(): HostAbi ->
+    let host = Platform.current();
+    let architecture =
+        if {
+            host.architecture == "amd64" or host.architecture == "x86_64" -> "x86_64";
+            host.architecture == "arm64" or host.architecture == "aarch64" -> "aarch64";
+            true -> ""
+        };
+    let object_format =
+        if {
+            host.operating_system == "linux" -> "elf";
+            host.operating_system == "darwin" or host.operating_system == "macos" -> "mach-o";
+            host.operating_system == "windows" -> "pe";
+            true -> ""
+        };
+    let operating_system =
+        if {
+            host.operating_system == "macos" -> "darwin";
+            true -> host.operating_system
+        };
+    let calling_convention =
+        if {
+            operating_system == "windows" -> "windows_fastcall";
+            operating_system == "darwin" and architecture == "aarch64" -> "apple_aarch64";
+            true -> "system_v"
+        };
+    HostAbi(
+        valid = architecture != ""
+            and object_format != ""
+            and (operating_system == "linux" or operating_system == "darwin" or operating_system == "windows"),
+        object_format = object_format,
+        architecture = architecture,
+        operating_system = operating_system,
+        calling_convention = calling_convention,
+    ).
+
+repository_root(): String ->
+    Environment.current_directory().
+
+target_directory(root: String): String ->
+    case Environment.get("CARGO_TARGET_DIR") {
+        Some(value) -> value;
+        None -> child(root, "target")
+    }.
+
+compiler_path(root: String): String ->
+    let host = Platform.current();
+    child(target_directory(root), String.append("debug/terlc", host.executable_suffix)).
+
+vm_path(root: String): String ->
+    let host = Platform.current();
+    child(target_directory(root), String.append("debug/terlan-vm", host.executable_suffix)).
+
+bounded_command(
+    root: String,
+    program: String,
+    arguments: List[String],
+): std.system.Process.Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(Process.command(program), arguments),
+                root,
+            ),
+            120000,
+        ),
+        4194304,
+    ).
+
+run_success(root: String, program: String, arguments: List[String]): Option[Output] ->
+    case Process.run(bounded_command(root, program, arguments)) {
+        Err(error) ->
+            output_failure(
+                "process",
+                String.append(
+                    "cannot run `",
+                    String.append(program, String.append("`: ", Process.error_message(error))),
+                ),
+            );
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> Some(output);
+                true -> output_failure(
+                    "command",
+                    String.concat(
+                        [
+                            "command failed: ",
+                            program,
+                            "\n",
+                            Process.stdout(output),
+                            Process.stderr(output),
+                        ],
+                    ),
+                )
+            }
+    }.
+
+run_failure(root: String, program: String, arguments: List[String]): Option[Output] ->
+    case Process.run(bounded_command(root, program, arguments)) {
+        Err(error) ->
+            output_failure(
+                "process",
+                String.append(
+                    "cannot run `",
+                    String.append(program, String.append("`: ", Process.error_message(error))),
+                ),
+            );
+        Ok(output) ->
+            if {
+                Process.status(output) != 0 -> Some(output);
+                true -> output_failure(
+                    "command",
+                    String.append("command unexpectedly succeeded: ", program),
+                )
+            }
+    }.
+
+json_value(value: Json, field: String): Option[Json] ->
+    case value.get(field) {
+        Ok(member) -> Some(member);
+        Err(_reason) -> None
+    }.
+
+json_string(value: Json, field: String): Option[String] ->
+    let {
+        Some(member) <- json_value(value, field);
+        Ok(text) <- member.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+json_int(value: Json, field: String): Option[Int] ->
+    let {
+        Some(member) <- json_value(value, field);
+        Ok(number) <- member.as_int()
+    } else {
+        _ -> None
+    };
+    Some(number).
+
+json_bool(value: Json, field: String): Option[Bool] ->
+    let {
+        Some(member) <- json_value(value, field);
+        Ok(flag) <- member.as_bool()
+    } else {
+        _ -> None
+    };
+    Some(flag).
+
+parse_output(output: Output, context: String): Option[Json] ->
+    case Json.parse(String.trim(Process.stdout(output))) {
+        Ok(value) -> Some(value);
+        Err(_reason) ->
+            let _failed = failure("json", String.append("cannot parse ", context));
+            None
+    }.
+
+write_json(path: String, value: Json): Bool ->
+    let {
+        Ok(rendered) <- Json.stringify_pretty(value);
+        Ok(_written) <- write_text(path, String.append(rendered, "\n"))
+    } else {
+        _ ->
+            failure(
+                "json",
+                String.append("cannot write canonical JSON `", String.append(path, "`")),
+            )
+    };
+    true.
+
+metadata_matches_host(metadata: Json, abi: HostAbi): Bool ->
+    let {
+        Some(object_format) <- json_string(metadata, "object_format");
+        Some(architecture) <- json_string(metadata, "architecture");
+        Some(operating_system) <- json_string(metadata, "operating_system");
+        Some(calling_convention) <- json_string(metadata, "calling_convention");
+        Some(continuations) <- json_value(metadata, "continuation_ids");
+        Ok(continuation_count) <- continuations.length();
+        Some(debug_count) <- json_int(metadata, "native_debug_record_count")
+    } else {
+        _ -> failure("metadata", "package fixture metadata is incomplete")
+    };
+    if {
+        object_format != abi.object_format -> failure("metadata", "package fixture object format drifted");
+        architecture != abi.architecture -> failure("metadata", "package fixture architecture drifted");
+        operating_system != abi.operating_system -> failure("metadata", "package fixture operating system drifted");
+        calling_convention != abi.calling_convention -> failure("metadata", "package fixture calling convention drifted");
+        continuation_count == 0 -> failure("metadata", "package fixture omitted continuation metadata");
+        debug_count < 2 -> failure("metadata", "package fixture omitted native debug records");
+        true -> true
+    }.
+
+fixture_source(): String ->
+    String.concat(
+        [
+            "module release_validation.Main.\n\n",
+            "pub main(): Bool ->\n",
+            "    true.\n\n",
+            "continuation_probe(): Unit ->\n",
+            "    std.io.Console.println(\"release native continuation probe\").\n",
+        ],
+    ).
+
+is_tvm(path: String): Bool ->
+    String.ends_with(path, ".tvm").
+
+reverse_strings(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings(rest, [value | reversed])
+    }.
+
+tvm_images(paths: List[String], reversed: List[String]): List[String] ->
+    case paths {
+        [] -> reverse_strings(reversed, []);
+        [path | rest] ->
+            if {
+                is_tvm(path) -> tvm_images(rest, [path | reversed]);
+                true -> tvm_images(rest, reversed)
+            }
+    }.
+
+compile_image(
+    root: String,
+    temporary: String,
+    compiler: String,
+    vm: String,
+): Option[ImageFixture] ->
+    let source_directory = child(temporary, "source");
+    let source = child(source_directory, "Main.terl");
+    let build = child(temporary, "build");
+    let {
+        Ok(_source_directory) <- create_all(source_directory);
+        Ok(_source) <- write_text(source, fixture_source());
+        Some(_build) <-
+            run_success(
+                root,
+                compiler,
+                ["--out-dir", build, "build", source, "--target", "terlan-vm"],
+            );
+        Ok(discovered) <- files_recursive(child(build, "vm"))
+    } else {
+        _ -> fixture_failure("fixture", "cannot compile the release native-image fixture")
+    };
+    (let images = tvm_images(discovered, []);
+case images {
+    [image | rest] ->
+        if {
+            length(rest) != 0 -> fixture_failure(
+                "fixture",
+                String.append(
+                    "expected exactly one compiler-emitted image, found ",
+                    Int.to_string(length(images)),
+                ),
+            );
+            true -> let {
+                Some(metadata_output) <-
+                    run_success(
+                        root,
+                        vm,
+                        [
+                            "package-image-metadata",
+                            image,
+                            "--entry",
+                            entry_name(),
+                            "--package-path",
+                            package_image_path(),
+                        ],
+                    );
+                Some(metadata) <- parse_output(metadata_output, "package-image-metadata output")
+            } else {
+                _ -> fixture_failure("metadata", "cannot inspect the compiled package fixture")
+            };
+            if {
+                metadata_matches_host(metadata, host_abi()) -> Some(ImageFixture(image = image, metadata = metadata));
+                true -> None
+            }
+        };
+    _ ->
+        fixture_failure(
+            "fixture",
+            String.append(
+                "expected exactly one compiler-emitted image, found ",
+                Int.to_string(length(images)),
+            ),
+        )
+}).
+
+support_value_ok(left: Json, right: Json): Bool ->
+    let {
+        Some(schema) <- json_string(left, "schema");
+        Some(native) <- json_value(left, "nativeImage");
+        Some(compiler) <- json_string(right, "compiler");
+        Some(build) <- json_string(right, "build");
+        Some(package) <- json_string(right, "package");
+        Some(module_name) <- json_string(right, "module");
+        Some(identity) <- json_string(native, "imageIdentity");
+        Some(descriptor_digest) <- json_string(right, "descriptor_digest");
+        Some(bundle_digest) <- json_string(native, "descriptorDigest");
+        Some(continuations) <- json_value(right, "continuation_ids");
+        Some(bundle_continuations) <- json_value(native, "continuationIds");
+        Ok(continuation_text) <- Json.stringify(continuations);
+        Ok(bundle_continuation_text) <- Json.stringify(bundle_continuations);
+        Some(generation) <- json_int(native, "generationEpoch");
+        Some(quiescent) <- json_bool(native, "generationQuiescent");
+        Ok(rendered) <- Json.stringify(left)
+    } else {
+        _ -> failure("support_bundle", "native support bundle is incomplete")
+    };
+    (let expected_identity = String.concat([compiler, ":", build, ":", package, ":", module_name]);
+if {
+    schema != "terlan.vm.native-support-bundle.v1" -> failure("support_bundle", "unsupported support-bundle schema");
+    identity != expected_identity -> failure("support_bundle", "native image identity drifted");
+    bundle_digest != descriptor_digest -> failure("support_bundle", "native descriptor digest drifted");
+    bundle_continuation_text != continuation_text -> failure("support_bundle", "native continuation identity drifted");
+    generation != 1 -> failure("support_bundle", "admitted generation is missing");
+    not quiescent -> failure("support_bundle", "idle generation is not quiescent");
+    rendered.contains("coreIr") -> failure("support_bundle", "support bundle leaked coreIr");
+    rendered.contains("coreIR") -> failure("support_bundle", "support bundle leaked coreIR");
+    rendered.contains("instructions") -> failure("support_bundle", "support bundle leaked instructions");
+    rendered.contains("executableBytes") -> failure("support_bundle", "support bundle leaked executable bytes");
+    rendered.contains("sourcePath") -> failure("support_bundle", "support bundle leaked source paths");
+    true -> true
+}).
+
+check_support_bundle(root: String, vm: String, fixture: ImageFixture, temporary: String): Bool ->
+    let arguments = ["support-bundle", fixture.image];
+    let {
+        Some(first) <- run_success(root, vm, arguments);
+        Some(second) <- run_success(root, vm, arguments);
+        Some(bundle) <- parse_output(first, "native support bundle")
+    } else {
+        _ -> false
+    };
+    (let renamed = child(temporary, "renamed-support-bundle.tvm");
+let deterministic = Process.stdout(first) == Process.stdout(second);
+let bundle_valid = support_value_ok(bundle, fixture.metadata);
+let rejection =
+    case write_text(renamed, "{}\n") {
+        Err(_reason) -> failure("support_bundle", "cannot stage renamed JSON rejection");
+        Ok(_written) ->
+            case run_failure(root, vm, ["support-bundle", renamed]) {
+                Some(output) -> Process.stderr(output).contains("tvm.image.native_format");
+                None -> false
+            }
+    };
+if {
+    not deterministic -> failure("support_bundle", "support bundle changed across identical captures");
+    not bundle_valid -> false;
+    not rejection -> failure("support_bundle", "support-bundle consumer accepted renamed JSON");
+    true -> true
+}).
+
+replace_tvm_suffix(path: String, replacement: String): String ->
+    let total = String.length(path);
+    if {
+        total < 4 -> String.append(path, replacement);
+        true -> String.append(String.utf8_slice(path, 0, total - 4), replacement)
+    }.
+
+remove_file(path: String): Bool ->
+    if {
+        not exists(path) -> true;
+        true -> case delete(path) {
+            Ok(_unit) -> true;
+            Err(_reason) ->
+                failure("cleanup", String.append("cannot remove `", String.append(path, "`")))
+        }
+    }.
+
+check_sidecars(root: String, vm: String, image: String, sidecars: List[String]): Bool ->
+    case sidecars {
+        [] -> true;
+        [sidecar | rest] ->
+            case write_text(sidecar, "{}\n") {
+                Err(_reason) ->
+                    failure("sidecar", String.append("cannot stage `", String.append(sidecar, "`")));
+                Ok(_written) ->
+                    let rejected =
+                        case run_failure(root, vm, ["run", image, "--entry", entry_name(), "--test-eval"]) {
+                            Some(output) -> Process.stderr(output).contains("tvm.image.sidecar");
+                            None -> false
+                        };
+                    let removed = remove_file(sidecar);
+                    if {
+                        not rejected -> failure(
+                            "sidecar",
+                            String.append(
+                                "direct image admitted mutable sidecar `",
+                                String.append(sidecar, "`"),
+                            ),
+                        );
+                        not removed -> false;
+                        true -> check_sidecars(root, vm, image, rest)
+                    }
+            }
+    }.
+
+check_direct_admission_rejections(
+    root: String,
+    vm: String,
+    image: String,
+    temporary: String,
+): Bool ->
+    let sidecars =
+        [
+            replace_tvm_suffix(image, ".json"),
+            String.append(image, ".json"),
+            String.append(image, ".reuse"),
+        ];
+    let third_party = child(temporary, "third-party.tvm");
+    if {
+        not check_sidecars(root, vm, image, sidecars) -> false;
+        true -> let {
+            Ok(_copied) <- copy(vm, third_party);
+            Some(output) <- run_failure(root, vm, ["run", third_party, "--entry", entry_name(), "--test-eval"])
+        } else {
+            _ -> failure("native_format", "cannot stage unrelated executable rejection")
+        };
+        if {
+            Process.stderr(output).contains("tvm.image.descriptor_section") -> true;
+            true -> failure("native_format", "direct image consumer admitted an unrelated executable")
+        }
+    }.
+
+release_metadata(metadata: Json): Option[Json] ->
+    case json_string(metadata, "target_triple") {
+        None -> None;
+        Some(target) ->
+            Some(
+                Json.object()
+                    .put("schema", Json.string("terlan.release-artifact.v1"))
+                    .put("target_triple", Json.string(target))
+                    .put("native_self_test", metadata),
+            )
+    }.
+
+write_archive_package(temporary: String, image: String, metadata: Json): Option[String] ->
+    let package = child(temporary, "archive");
+    let destination = child(package, String.append("share/terlan/", package_image_path()));
+    let parent = child(package, "share/terlan/runtime");
+    let {
+        Ok(_parent) <- create_all(parent);
+        Ok(_image) <- copy(image, destination);
+        Some(release) <- release_metadata(metadata)
+    } else {
+        _ -> None
+    };
+    if {
+        write_json(child(package, "terlan-release.json"), release) -> Some(package);
+        true -> None
+    }.
+
+validate_success(root: String, vm: String, package: String): Bool ->
+    let {
+        Some(output) <- run_success(root, vm, ["validate-package", package]);
+        Some(report) <- parse_output(output, "validate-package output");
+        Some(entry) <- json_string(report, "entry")
+    } else {
+        _ -> false
+    };
+    if {
+        entry == entry_name() -> true;
+        true -> failure("validation", "package validation returned the wrong entry")
+    }.
+
+expect_rejection(root: String, vm: String, package: String, diagnostic: String): Bool ->
+    case run_failure(root, vm, ["validate-package", package]) {
+        None -> false;
+        Some(output) ->
+            if {
+                Process.stderr(output).contains(diagnostic) -> true;
+                true -> failure(
+                    "rejection",
+                    String.concat(
+                        [
+                            "expected `",
+                            diagnostic,
+                            "`, received:\n",
+                            Process.stdout(output),
+                            Process.stderr(output),
+                        ],
+                    ),
+                )
+            }
+    }.
+
+clone_package(source: String, temporary: String, name: String): Option[String] ->
+    let destination = child(temporary, name);
+    case copy_tree_excluding(source, destination, []) {
+        Ok(_copied) -> Some(destination);
+        Err(_reason) ->
+            let _failed =
+                failure(
+                    "fixture",
+                    String.append("cannot clone package case `", String.append(name, "`")),
+                );
+            None
+    }.
+
+load_release(package: String): Option[Json] ->
+    let path = child(package, "terlan-release.json");
+    let {
+        Ok(source) <- read_text(path);
+        Ok(value) <- Json.parse(source)
+    } else {
+        _ -> None
+    };
+    Some(value).
+
+mutate_native_field(package: String, field: String, value: String): Bool ->
+    let {
+        Some(release) <- load_release(package);
+        Some(native) <- json_value(release, "native_self_test")
+    } else {
+        _ -> failure("fixture", "cannot load native self-test metadata")
+    };
+    (let changed_native = native.put(field, Json.string(value)); let changed_release = release.put("native_self_test", changed_native); write_json(child(package, "terlan-release.json"), changed_release)).
+
+mutate_release_field(package: String, field: String, value: String): Bool ->
+    case load_release(package) {
+        Some(release) ->
+            write_json(
+                child(package, "terlan-release.json"),
+                release.put(field, Json.string(value)),
+            );
+        None -> failure("fixture", "cannot load release metadata")
+    }.
+
+check_installed_layout(archive: String, temporary: String, root: String, vm: String): Bool ->
+    let installed = child(temporary, "installed");
+    let {
+        Ok(_tree) <- copy_tree_excluding(child(archive, "share/terlan"), installed, []);
+        Ok(_release) <- copy(child(archive, "terlan-release.json"), child(installed, "terlan-release.json"))
+    } else {
+        _ -> failure("installed", "cannot stage installed package layout")
+    };
+    validate_success(root, vm, installed).
+
+check_native_mutation(
+    archive: String,
+    temporary: String,
+    root: String,
+    vm: String,
+    name: String,
+    field: String,
+    value: String,
+): Bool ->
+    case clone_package(archive, temporary, name) {
+        None -> false;
+        Some(package) ->
+            mutate_native_field(package, field, value)
+                and expect_rejection(root, vm, package, "tvm.package.metadata_drift")
+    }.
+
+check_forged_abi_fields(
+    archive: String,
+    temporary: String,
+    root: String,
+    vm: String,
+    fields: List[String],
+): Bool ->
+    case fields {
+        [] -> true;
+        [field | rest] ->
+            check_native_mutation(
+    archive,
+    temporary,
+    root,
+    vm,
+    String.append("forged-", field),
+    field,
+    String.append("forged-", field),
+)
+                and check_forged_abi_fields(archive, temporary, root, vm, rest)
+    }.
+
+check_negative_packages(archive: String, temporary: String, root: String, vm: String): Bool ->
+    let stale =
+        check_native_mutation(
+            archive,
+            temporary,
+            root,
+            vm,
+            "stale",
+            "sha256",
+            "0000000000000000000000000000000000000000000000000000000000000000",
+        );
+    let incompatible =
+        case clone_package(archive, temporary, "incompatible") {
+            Some(package) ->
+                mutate_release_field(package, "target_triple", "incompatible-unknown-target")
+                    and expect_rejection(root, vm, package, "tvm.package.release_target");
+            None -> false
+        };
+    let sidecar =
+        case clone_package(archive, temporary, "sidecar") {
+            Some(package) ->
+                let image = child(package, String.append("share/terlan/", package_image_path()));
+                case write_text(String.append(image, ".json"), "{}\n") {
+                    Ok(_written) -> expect_rejection(root, vm, package, "tvm.package.sidecar");
+                    Err(_reason) -> failure("fixture", "cannot stage package sidecar")
+                };
+            None -> false
+        };
+    let renamed_json =
+        case clone_package(archive, temporary, "renamed-json") {
+            Some(package) ->
+                let image = child(package, String.append("share/terlan/", package_image_path()));
+                case write_text(image, "{}\n") {
+                    Ok(_written) -> expect_rejection(root, vm, package, "tvm.image.native_format");
+                    Err(_reason) -> failure("fixture", "cannot stage renamed JSON package")
+                };
+            None -> false
+        };
+    let stale_descriptor =
+        check_native_mutation(
+            archive,
+            temporary,
+            root,
+            vm,
+            "stale-descriptor",
+            "descriptor_digest",
+            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        );
+    stale
+        and incompatible
+        and sidecar
+        and renamed_json
+        and stale_descriptor
+        and check_forged_abi_fields(
+    archive,
+    temporary,
+    root,
+    vm,
+    ["object_format", "architecture", "operating_system", "calling_convention"],
+).
+
+finish_temporary(temporary: String, passed: Bool): Bool ->
+    case remove_all(temporary) {
+        Ok(_unit) -> report_check(passed);
+        Err(_reason) -> failure("cleanup", "cannot remove temporary package workspace")
+    }.
+
+after_negative_packages(temporary: String, passed: Bool): Bool ->
+    finish_temporary(temporary, passed).
+
+run_negative_packages(archive: String, temporary: String, root: String, vm: String): Bool ->
+    let passed = check_negative_packages(archive, temporary, root, vm);
+    after_negative_packages(temporary, passed).
+
+after_installed_layout(
+    archive: String,
+    temporary: String,
+    root: String,
+    vm: String,
+    passed: Bool,
+): Bool ->
+    if {
+        not passed -> finish_temporary(temporary, false);
+        true -> run_negative_packages(archive, temporary, root, vm)
+    }.
+
+run_installed_layout(archive: String, temporary: String, root: String, vm: String): Bool ->
+    let passed = check_installed_layout(archive, temporary, root, vm);
+    after_installed_layout(archive, temporary, root, vm, passed).
+
+after_archive_validation(
+    archive: String,
+    temporary: String,
+    root: String,
+    vm: String,
+    passed: Bool,
+): Bool ->
+    if {
+        not passed -> finish_temporary(temporary, false);
+        true -> run_installed_layout(archive, temporary, root, vm)
+    }.
+
+run_archive_validation(archive: String, temporary: String, root: String, vm: String): Bool ->
+    let passed = validate_success(root, vm, archive);
+    after_archive_validation(archive, temporary, root, vm, passed).
+
+after_archive_written(
+    archive: Option[String],
+    temporary: String,
+    root: String,
+    vm: String,
+): Bool ->
+    case archive {
+        Some(package) -> run_archive_validation(package, temporary, root, vm);
+        None -> finish_temporary(temporary, false)
+    }.
+
+write_and_validate_archive(
+    fixture: ImageFixture,
+    temporary: String,
+    root: String,
+    vm: String,
+): Bool ->
+    let archive = write_archive_package(temporary, fixture.image, fixture.metadata);
+    after_archive_written(archive, temporary, root, vm).
+
+after_support_bundle(
+    fixture: ImageFixture,
+    temporary: String,
+    root: String,
+    vm: String,
+    passed: Bool,
+): Bool ->
+    if {
+        not passed -> finish_temporary(temporary, false);
+        true -> write_and_validate_archive(fixture, temporary, root, vm)
+    }.
+
+run_support_bundle(fixture: ImageFixture, temporary: String, root: String, vm: String): Bool ->
+    let passed = check_support_bundle(root, vm, fixture, temporary);
+    after_support_bundle(fixture, temporary, root, vm, passed).
+
+after_direct_admission(
+    fixture: ImageFixture,
+    temporary: String,
+    root: String,
+    vm: String,
+    passed: Bool,
+): Bool ->
+    if {
+        not passed -> finish_temporary(temporary, false);
+        true -> run_support_bundle(fixture, temporary, root, vm)
+    }.
+
+run_direct_admission(fixture: ImageFixture, temporary: String, root: String, vm: String): Bool ->
+    let passed = check_direct_admission_rejections(root, vm, fixture.image, temporary);
+    after_direct_admission(fixture, temporary, root, vm, passed).
+
+after_compile(fixture: Option[ImageFixture], temporary: String, root: String, vm: String): Bool ->
+    case fixture {
+        Some(value) -> run_direct_admission(value, temporary, root, vm);
+        None -> finish_temporary(temporary, false)
+    }.
+
+run_temporary(temporary: String, root: String, compiler: String, vm: String): Bool ->
+    let fixture = compile_image(root, temporary, compiler, vm);
+    after_compile(fixture, temporary, root, vm).
+
+start_temporary(root: String, compiler: String, vm: String): Bool ->
+    case create_temporary("terlan-tvm-package-consumer.") {
+        Ok(temporary) -> run_temporary(temporary, root, compiler, vm);
+        Err(_reason) -> failure("temporary", "cannot create package-consumer workspace")
+    }.
+
+after_host_abi(root: String, compiler: String, vm: String, abi: HostAbi): Bool ->
+    if {
+        not abi.valid -> failure("platform", "unsupported host ABI");
+        true -> start_temporary(root, compiler, vm)
+    }.
+
+check_host_abi(root: String, compiler: String, vm: String): Bool ->
+    let abi = host_abi();
+    after_host_abi(root, compiler, vm, abi).
+
+after_vm_exists(root: String, compiler: String, vm: String, available: Bool): Bool ->
+    if {
+        not available -> failure("binary", String.append("required VM is missing: ", vm));
+        true -> check_host_abi(root, compiler, vm)
+    }.
+
+check_vm_exists(root: String, compiler: String, vm: String): Bool ->
+    let available = exists(vm);
+    after_vm_exists(root, compiler, vm, available).
+
+after_compiler_exists(root: String, compiler: String, vm: String, available: Bool): Bool ->
+    if {
+        not available -> failure("binary", String.append("required compiler is missing: ", compiler));
+        true -> check_vm_exists(root, compiler, vm)
+    }.
+
+check_compiler_exists(root: String, compiler: String, vm: String): Bool ->
+    let available = exists(compiler);
+    after_compiler_exists(root, compiler, vm, available).
+
+run_check(): Bool ->
+    let root = repository_root();
+    let compiler = compiler_path(root);
+    let vm = vm_path(root);
+    check_compiler_exists(root, compiler, vm).
+
+self_test(): Bool ->
+    let abi = host_abi();
+    let sample =
+        Json.object()
+            .put("schema", Json.string("terlan.vm.native-support-bundle.v1"))
+            .put("generationEpoch", Json.int(1));
+    let {
+        Ok(encoded) <- Json.stringify(sample);
+        Ok(decoded) <- Json.parse(encoded);
+        Some(schema) <- json_string(decoded, "schema");
+        Some(epoch) <- json_int(decoded, "generationEpoch")
+    } else {
+        _ -> failure("self_test", "JSON helper round trip failed")
+    };
+    if {
+        not abi.valid -> failure("self_test", "host ABI normalization failed");
+        schema != "terlan.vm.native-support-bundle.v1" -> failure("self_test", "JSON string projection failed");
+        epoch != 1 -> failure("self_test", "JSON integer projection failed");
+        replace_tvm_suffix("fixture.tvm", ".json") != "fixture.json" -> failure("self_test", "suffix replacement failed");
+        true -> true
+    }.
+
+report_check(passed: Bool): Bool ->
+    if {
+        not passed -> false;
+        true -> let _printed = println("TVM package/install consumer check passed");
+        true
+    }.
+
+entry(): Bool ->
+    case Arguments.get(0) {
+        Some("self-test") -> self_test();
+        Some("check") -> run_check();
+        Some(value) -> failure("arguments", String.append("unsupported argument: ", value));
+        None -> failure("arguments", "expected check or self-test")
+    }.
+
+assert(entry()).

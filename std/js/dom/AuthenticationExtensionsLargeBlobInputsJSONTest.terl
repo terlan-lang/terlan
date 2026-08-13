@@ -20,7 +20,7 @@ pub read_typechecks(receiver: AuthenticationExtensionsLargeBlobInputsJSON): std.
     receiver.read().
 
 pub support_typechecks(
-    receiver: AuthenticationExtensionsLargeBlobInputsJSON
+    receiver: AuthenticationExtensionsLargeBlobInputsJSON,
 ): std.js.String.JsString ->
     receiver.support().
 

@@ -144,7 +144,7 @@ fn scan_manifest(root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<(), S
             path: relative.clone(),
             code: "doctor_retired_manifest_artifact",
             message: "manifest uses retired BEAM artifact metadata".to_string(),
-            fix: retired_manifest_artifact_fix(&root, &text),
+            fix: retired_manifest_artifact_fix(root, &text),
         });
     }
     if text.contains("target = \"erlang\"") || text.contains("runtime = \"beam\"") {
@@ -359,4 +359,5 @@ fn relative_path(root: &Path, path: &Path) -> PathBuf {
 
 #[cfg(test)]
 #[path = "doctor_test.rs"]
+#[cfg(test)]
 mod doctor_test;

@@ -466,4 +466,5 @@ fn normalize_text(text: &str) -> String {
 
 #[cfg(test)]
 #[path = "no_terlan_vm_erts_rust_dependency_test.rs"]
+#[cfg(test)]
 mod no_terlan_vm_erts_rust_dependency_test;

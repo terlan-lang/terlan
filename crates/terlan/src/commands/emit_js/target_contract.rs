@@ -1,6 +1,3 @@
-#![allow(dead_code)]
-
-// Consumed by the upcoming `terlc build --target js` implementation; tests pin
 // the release contract before the build command writes JS artifacts.
 
 use std::path::PathBuf;

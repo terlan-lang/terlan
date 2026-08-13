@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use super::roadmap_gate_integrity::parse_make_list_variable_values;
+use super::support::{make_target_body, write_json_report};
 use crate::terlan_quality::{render_failure, QualityResult};
 
 const REPORT_PATH: &str = "target/quality/dev-fast-feedback-profile-report.json";
@@ -245,42 +246,11 @@ fn validate_gate_target(makefile: &str) -> Vec<String> {
     diagnostics
 }
 
-fn make_target_body(makefile: &str, target: &str) -> Option<String> {
-    let target_prefix = format!("{target}:");
-    let mut lines = makefile.lines();
-    for line in lines.by_ref() {
-        if line.trim_end().starts_with(&target_prefix) {
-            break;
-        }
-    }
-    let body = lines
-        .take_while(|line| {
-            line.starts_with('\t') || line.trim().is_empty() || line.starts_with('#')
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-    if body.is_empty() {
-        None
-    } else {
-        Some(body)
-    }
-}
-
 fn write_report(path: &Path, report: &DevFastFeedbackReport) -> QualityResult<()> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|err| {
-            format!(
-                "{}: failed to create report directory: {err}",
-                parent.display()
-            )
-        })?;
-    }
-    let text = serde_json::to_string_pretty(report)
-        .map_err(|err| format!("{}: failed to serialize report: {err}", path.display()))?;
-    fs::write(path, format!("{text}\n"))
-        .map_err(|err| format!("{}: failed to write report: {err}", path.display()))
+    write_json_report(path, report)
 }
 
 #[cfg(test)]
 #[path = "dev_fast_feedback_profile_test.rs"]
+#[cfg(test)]
 mod dev_fast_feedback_profile_test;

@@ -43,12 +43,16 @@ fn worker_cooperative_call_observes_request_token_before_dispatch() {
     cancellation.cancel();
 
     let reply = worker.call_for_process_with_policy_and_cancellation(
-        request_id(1),
-        7,
-        &["postgres"],
-        &[crate::terlan_native_boundary::metadata::NativeBoundaryWorkerClass::ResourceOwning],
-        "std.db.postgres.connect",
-        &[],
+        crate::terlan_native_boundary::worker::NativeBoundaryWorkerCall {
+            request_id: request_id(1),
+            owner_process_id: 7,
+            granted_capabilities: &["postgres"],
+            admitted_worker_classes: &[
+                crate::terlan_native_boundary::metadata::NativeBoundaryWorkerClass::ResourceOwning,
+            ],
+            operation: "std.db.postgres.connect",
+            args: &[],
+        },
         &cancellation,
     );
 
@@ -475,7 +479,7 @@ fn worker_lifecycle_events_write_native_boundary_report() {
     assert_eq!(proof["proofFamily"], "native-boundary");
     assert_eq!(
         proof["proofPath"],
-        "proofs/lean/Terlan/Runtime/NativeBoundary.lean"
+        "proofs/lean/native_boundary/NativeBoundary.lean"
     );
     assert!(proof["proofDigest"]
         .as_str()

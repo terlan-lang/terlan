@@ -111,18 +111,21 @@ pub(in super::super) fn stability_violations(input: VmHttpSoakStabilityInput<'_>
             input.policy.max_post_warmup_error_rate_bps,
         ),
     ];
-    violations.extend(checks.into_iter().filter_map(|(class, observed, limit)| {
-        (observed > limit).then(|| {
-            diagnostic(
-                class,
-                "none",
-                input.last_request_id,
-                "final",
-                observed,
-                limit,
-            )
-        })
-    }));
+    violations.extend(
+        checks
+            .into_iter()
+            .filter(|&(_class, observed, limit)| observed > limit)
+            .map(|(class, observed, limit)| {
+                diagnostic(
+                    class,
+                    "none",
+                    input.last_request_id,
+                    "final",
+                    observed,
+                    limit,
+                )
+            }),
+    );
     violations
 }
 
@@ -148,10 +151,8 @@ fn final_resource_violations(
     ];
     let mut violations = candidates
         .into_iter()
-        .filter_map(|(class, observed)| {
-            (observed != 0)
-                .then(|| diagnostic(class, "none", last_request_id, "final", observed, 0))
-        })
+        .filter(|&(_class, observed)| observed != 0)
+        .map(|(class, observed)| diagnostic(class, "none", last_request_id, "final", observed, 0))
         .collect::<Vec<_>>();
     for leak in request_resource_leaks {
         for class in ["body_buffer", "telemetry_span", "route_context"] {

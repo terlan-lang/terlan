@@ -45,7 +45,7 @@ impl TestRepo {
         }
         self.write(
             "Makefile",
-            "vm-dev-dependency-orchestration-check:\n\tcargo test -p terlan --bin terlc commands::dev_dependencies\n\tcargo test -p terlan --bin terlan-quality vm_dev_dependency_orchestration\n\tcargo run -p terlan --bin terlan-quality --quiet -- vm-dev-dependency-orchestration\n\ttest -s target/quality/vm-dev-dependency-report.json\nvm-db-migration-command-check: vm-dev-dependency-orchestration-check db-command-check\n",
+            "vm-dev-dependency-orchestration-check:\n\tcargo test -p terlan --lib commands::dev_dependencies\n\tcargo test -p terlan --lib --features quality-tools vm_dev_dependency_orchestration\n\tcargo run -p terlan --bin terlan-quality --features quality-tools --quiet -- vm-dev-dependency-orchestration\n\ttest -s target/quality/vm-dev-dependency-report.json\nvm-db-migration-command-check: vm-dev-dependency-orchestration-check db-command-check\n",
         );
     }
 }
@@ -66,7 +66,7 @@ fn gate_writes_deterministic_shared_dependency_evidence() {
     let second = run_vm_dev_dependency_orchestration(repo.root()).expect("second gate");
     let second_text = fs::read_to_string(&second.report_path).expect("second report");
 
-    assert_eq!(first.command_count, 6);
+    assert_eq!(first.command_count, 8);
     assert_eq!(first.diagnostic_count, 5);
     assert_eq!(first.contract_fingerprint, second.contract_fingerprint);
     assert_eq!(first_text, second_text);
@@ -77,6 +77,10 @@ fn gate_writes_deterministic_shared_dependency_evidence() {
     assert!(first_text.contains("redact-and-bound-log-excerpts"));
     assert!(first_text.contains("preserve-external"));
     assert!(first_text.contains("stop-and-remove-owned"));
+    assert!(first_text.contains("reuse-stopped-container"));
+    assert!(first_text.contains("preserve-stale-volumes"));
+    assert!(first_text.contains("sql-validation-snapshot-discovery"));
+    assert!(first_text.contains("\"remaining_lifecycle\": []"));
     assert!(!first_text.contains("POSTGRES_PASSWORD"));
 }
 
@@ -144,7 +148,7 @@ fn gate_rejects_db_ordering_drift() {
     repo.write_complete_fixture();
     repo.write(
         "Makefile",
-        "vm-dev-dependency-orchestration-check:\n\tcargo test -p terlan --bin terlan-quality vm_dev_dependency_orchestration\n\tcargo run -p terlan --bin terlan-quality --quiet -- vm-dev-dependency-orchestration\n\ttest -s target/quality/vm-dev-dependency-report.json\nvm-db-migration-command-check: db-command-check\n",
+        "vm-dev-dependency-orchestration-check:\n\tcargo test -p terlan --lib --features quality-tools vm_dev_dependency_orchestration\n\tcargo run -p terlan --bin terlan-quality --features quality-tools --quiet -- vm-dev-dependency-orchestration\n\ttest -s target/quality/vm-dev-dependency-report.json\nvm-db-migration-command-check: db-command-check\n",
     );
 
     let error = run_vm_dev_dependency_orchestration(repo.root()).expect_err("gate must fail");

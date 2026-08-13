@@ -1,0 +1,121 @@
+/**
+ * Keeps SQL form analysis behind maintained parser and VM runtime boundaries.
+ */
+module scripts.self_validation.SqlFormBoundary.
+
+import std.collections.List.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.File.{read_text, read_text_tree_matching}.
+import std.regex.Regex.
+
+import type std.io.File.TextFile.
+import type std.regex.Regex.
+
+/**
+ * Returns whether the repository SQL boundary remains explicit and narrow.
+ */
+pub repository_boundary_holds(root: String): Bool ->
+    let sql_root = String.append(root, "/crates/terlan/src/compiler/typeck/sql_forms");
+    let {
+        Ok(readme) <- read_text(String.append(sql_root, "/README.md"));
+        Ok(classification) <- read_text(String.append(sql_root, "/classification.rs"));
+        Ok(projection) <- read_text(String.append(sql_root, "/projection.rs"));
+        Ok(runtime) <- read_text(String.append(root, "/crates/terlan/src/commands/sql_runtime.rs"))
+    } else {
+        _ -> false
+    };
+    required_markers_hold(readme, classification, projection, runtime)
+        and source_rejects_no_patterns(runtime, runtime_forbidden_patterns())
+        and sql_form_sources_hold(sql_root).
+
+@pure
+required_markers_hold(
+    readme: String,
+    classification: String,
+    projection: String,
+    runtime: String,
+): Bool ->
+    String.contains(readme, "not an authoritative SQL")
+        and String.contains(classification, "without inspecting rendered SQL")
+        and String.contains(projection, "Postgres-backed validation")
+        and String.contains(runtime, "VmPostgresCommandClient").
+
+sql_form_sources_hold(sql_root: String): Bool ->
+    case read_text_tree_matching(sql_root, List.new[String](), [".rs"], List.new[String](), 0, 256) {
+        Ok(files) -> files_reject_patterns(files, parser_forbidden_patterns());
+        _ -> false
+    }.
+
+files_reject_patterns(files: List[TextFile], patterns: List[String]): Bool ->
+    case files {
+        [] -> true;
+        [file | rest] ->
+            source_rejects_no_patterns(file.contents, patterns)
+                and files_reject_patterns(rest, patterns)
+    }.
+
+source_rejects_no_patterns(source: String, patterns: List[String]): Bool ->
+    case patterns {
+        [] -> true;
+        [pattern | rest] ->
+            not regex_matches(pattern, source) and source_rejects_no_patterns(source, rest)
+    }.
+
+regex_matches(pattern: String, source: String): Bool ->
+    case Regex.compile(pattern) {
+        Ok(regex) -> Regex.is_match(regex, source);
+        _ -> true
+    }.
+
+@pure
+parser_forbidden_patterns(): List[String] ->
+    [
+        "\\bstruct\\s+Sql(?:Ast|Parser|Statement|Expression|Node)\\b",
+        "\\benum\\s+Sql(?:Ast|Parser|Statement|Expression|Node)\\b",
+        "\\bparse_sql_(?:statement|expression|ast|node)\\b",
+        "\\bvalidate_sql_(?:syntax|semantics)\\b",
+    ].
+
+@pure
+runtime_forbidden_patterns(): List[String] ->
+    [
+        "\\bpostgres::connect\\s*\\(",
+        "\\bpostgres::query(?:_one)?\\s*\\(",
+        "\\bpostgres::execute\\s*\\(",
+        "\\bpostgres::transaction\\s*\\(",
+    ].
+
+@test
+pub repository_sql_form_boundary_holds(): Bool ->
+    repository_boundary_holds(".").
+
+@test
+pub markers_require_all_documented_owners(): Bool ->
+    required_markers_hold(
+    "not an authoritative SQL",
+    "without inspecting rendered SQL",
+    "Postgres-backed validation",
+    "VmPostgresCommandClient",
+)
+        and not required_markers_hold(
+    "authoritative",
+    "without inspecting rendered SQL",
+    "Postgres-backed validation",
+    "VmPostgresCommandClient",
+).
+
+@test
+pub hand_rolled_sql_ast_is_rejected(): Bool ->
+    not source_rejects_no_patterns("struct SqlParser { state: Int }", parser_forbidden_patterns()).
+
+@test
+pub direct_postgres_adapter_execution_is_rejected(): Bool ->
+    not source_rejects_no_patterns("postgres::query(pool, text)", runtime_forbidden_patterns()).
+
+@test
+pub narrow_projection_helpers_are_accepted(): Bool ->
+    source_rejects_no_patterns(
+        "struct ProjectionMetadata { fields: Vec<Field> }",
+        parser_forbidden_patterns(),
+    ).

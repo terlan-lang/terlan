@@ -1,0 +1,282 @@
+/**
+ * Shared deterministic data-plane helpers for proof release evidence.
+ */
+module proof_release_evidence.Support.
+
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.File.{read_text, write_text}.
+import std.system.Process.
+
+import type std.core.Option.
+import type std.data.Json.
+
+pub struct Decision {
+    valid: Bool,
+    code: String,
+    message: String,
+}.
+
+pub struct RustIdentity {
+    valid: Bool,
+    version: String,
+    target: String,
+}.
+
+pub pass(): Decision ->
+    Decision(valid = true, code = "pass", message = "").
+
+pub reject(code: String, message: String): Decision ->
+    Decision(valid = false, code = code, message = message).
+
+pub root_path(root: String, relative: String): String ->
+    if {
+        root == "." -> relative;
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+pub append_strings(left: List[String], right: List[String]): List[String] ->
+    prepend_reversed(reverse_strings(left), right).
+
+prepend_reversed(left: List[String], right: List[String]): List[String] ->
+    case left {
+        [] -> right;
+        [value | rest] -> prepend_reversed(rest, [value | right])
+    }.
+
+pub reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_at(values, []).
+
+reverse_strings_at(values: List[String], result: List[String]): List[String] ->
+    case values {
+        [] -> result;
+        [value | rest] -> reverse_strings_at(rest, [value | result])
+    }.
+
+pub string_count(values: List[String]): Int ->
+    string_count_at(values, 0).
+
+string_count_at(values: List[String], count: Int): Int ->
+    case values {
+        [] -> count;
+        [_value | rest] -> string_count_at(rest, count + 1)
+    }.
+
+pub contains_string(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains_string(rest, expected)
+    }.
+
+pub unique_strings(values: List[String]): List[String] ->
+    unique_strings_at(values, []).
+
+unique_strings_at(values: List[String], collected: List[String]): List[String] ->
+    case values {
+        [] -> reverse_strings(collected);
+        [value | rest] ->
+            unique_strings_at(
+                rest,
+                if {
+                    contains_string(collected, value) -> collected;
+                    true -> [value | collected]
+                },
+            )
+    }.
+
+pub sort_strings(values: List[String]): List[String] ->
+    sort_strings_at(values, []).
+
+sort_strings_at(values: List[String], sorted: List[String]): List[String] ->
+    case values {
+        [] -> sorted;
+        [value | rest] -> sort_strings_at(rest, insert_string(value, sorted, []))
+    }.
+
+insert_string(value: String, values: List[String], prefix: List[String]): List[String] ->
+    case values {
+        [] -> append_strings(reverse_strings(prefix), [value]);
+        [head | rest] ->
+            case String.compare(value, head) {
+                Lt -> append_strings(reverse_strings(prefix), [value | values]);
+                _ -> insert_string(value, rest, [head | prefix])
+            }
+    }.
+
+pub same_strings(left: List[String], right: List[String]): Bool ->
+    case {left, right} {
+        {[], []} -> true;
+        {[left_value | left_rest], [right_value | right_rest]} ->
+            left_value == right_value and same_strings(left_rest, right_rest);
+        _ -> false
+    }.
+
+pub json_member(value: Json, field: String): Option[Json] ->
+    case value.get(field) {
+        Ok(member) -> Some(member);
+        Err(_reason) -> None
+    }.
+
+pub json_string(value: Json, field: String): Option[String] ->
+    let {
+        Ok(member) <- value.get(field);
+        Ok(text) <- member.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+pub json_int(value: Json, field: String): Option[Int] ->
+    let {
+        Ok(member) <- value.get(field);
+        Ok(number) <- member.as_int()
+    } else {
+        _ -> None
+    };
+    Some(number).
+
+pub json_bool(value: Json, field: String): Option[Bool] ->
+    let {
+        Ok(member) <- value.get(field);
+        Ok(flag) <- member.as_bool()
+    } else {
+        _ -> None
+    };
+    Some(flag).
+
+pub json_array_strings(value: Json): Option[List[String]] ->
+    case value.length() {
+        Ok(count) -> json_array_strings_at(value, 0, count, []);
+        Err(_reason) -> None
+    }.
+
+json_array_strings_at(
+    value: Json,
+    index: Int,
+    count: Int,
+    collected: List[String],
+): Option[List[String]] ->
+    if {
+        index >= count -> Some(reverse_strings(collected));
+        true -> let {
+            Ok(item) <- value.at(index);
+            Ok(text) <- item.as_string()
+        } else {
+            _ -> None
+        };
+        json_array_strings_at(value, index + 1, count, [text | collected])
+    }.
+
+pub json_string_array(values: List[String]): Json ->
+    json_string_array_at(values, Json.array()).
+
+json_string_array_at(values: List[String], result: Json): Json ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            let _pushed = result.push(Json.string(value));
+            json_string_array_at(rest, result)
+    }.
+
+pub load_json(root: String, relative: String): Option[Json] ->
+    let {
+        Ok(source) <- read_text(root_path(root, relative));
+        Ok(value) <- Json.parse(source)
+    } else {
+        _ -> None
+    };
+    Some(value).
+
+pub canonical_json(value: Json): Option[String] ->
+    case Json.stringify(value) {
+        Ok(source) -> Some(source);
+        Err(_reason) -> None
+    }.
+
+pub prefixed_sha256(source: String): String ->
+    String.append("sha256:", Hash.sha256(source)).
+
+pub json_digest(value: Json): Option[String] ->
+    case canonical_json(value) {
+        Some(source) -> Some(prefixed_sha256(source));
+        None -> None
+    }.
+
+pub file_digest(root: String, relative: String): Option[String] ->
+    case Hash.sha256_file(root_path(root, relative)) {
+        Ok(digest) -> Some(String.append("sha256:", digest));
+        Err(_reason) -> None
+    }.
+
+pub write_json(root: String, relative: String, value: Json): Bool ->
+    let {
+        Ok(source) <- Json.stringify_pretty(value);
+        Ok(Unit) <- write_text(root_path(root, relative), String.append(source, "\n"))
+    } else {
+        _ -> false
+    };
+    true.
+
+command_stdout(root: String, program: String, arguments: List[String]): Option[String] ->
+    let configured = Process.with_arguments(Process.command(program), arguments);
+    let command = Process.with_working_directory(configured, root);
+    case Process.run(command) {
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> Some(String.trim(Process.stdout(output)));
+                true -> None
+            };
+        Err(_reason) -> None
+    }.
+
+rustc_target(lines: List[String]): Option[String] ->
+    case lines {
+        [] -> None;
+        [line | rest] ->
+            if {
+                String.starts_with(line, "host: ") -> case String.split_once(line, "host: ") {
+                    Some({_prefix, target}) -> Some(target);
+                    None -> None
+                };
+                true -> rustc_target(rest)
+            }
+    }.
+
+pub rust_identity(root: String): RustIdentity ->
+    let {
+        {Some(version), Some(verbose)} <- {command_stdout(root, "rustc", ["--version"]), command_stdout(root, "rustc", ["-vV"])};
+        Some(target) <- rustc_target(String.split(verbose, "\n"))
+    } else {
+        _ -> RustIdentity(valid = false, version = "", target = "")
+    };
+    RustIdentity(valid = true, version = version, target = target).
+
+pub source_revision(root: String): String ->
+    case command_stdout(root, "git", ["rev-parse", "HEAD"]) {
+        Some(revision) -> revision;
+        None -> "unversioned"
+    }.
+
+pub release_version(root: String): Option[String] ->
+    case read_text(root_path(root, "Cargo.toml")) {
+        Ok(source) -> release_version_lines(String.split(source, "\n"));
+        Err(_reason) -> None
+    }.
+
+release_version_lines(lines: List[String]): Option[String] ->
+    case lines {
+        [] -> None;
+        [line | rest] ->
+            if {
+                String.starts_with(line, "version = \"") -> case String.split(line, "\"") {
+                    [_prefix, version, _suffix] -> Some(version);
+                    _ -> None
+                };
+                true -> release_version_lines(rest)
+            }
+    }.

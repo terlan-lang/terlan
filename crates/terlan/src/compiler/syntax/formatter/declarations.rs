@@ -1,4 +1,4 @@
-use super::let_else::format_let_expr;
+use super::let_else::format_function_body_let;
 use super::{
     format_docs, format_expr, format_pattern, format_statement_parts, format_type_expr,
     DEFAULT_MAX_LINE_LENGTH,
@@ -9,6 +9,13 @@ use crate::terlan_syntax::parse_tree::{
     TraitImplDecl, TypeDecl, TypeExpr, UnsupportedDecl,
 };
 use crate::terlan_syntax::type_name_to_atom_payload;
+
+#[path = "declaration_tail.rs"]
+mod declaration_tail;
+use declaration_tail::{
+    format_function_clause, single_clause_matches_header, single_clause_signature_patterns,
+};
+pub(super) use declaration_tail::{format_raw_decl, format_shape_decl};
 
 const STRUCTURAL_TYPE_ALIAS_MAX_LINE_LENGTH: usize = 120;
 
@@ -271,7 +278,7 @@ pub(super) fn format_struct_decl(decl: &StructDecl) -> String {
         );
     }
     out.push_str(" {\n");
-    for (index, field) in decl.fields.iter().enumerate() {
+    for field in &decl.fields {
         let docs = format_docs(&field.docs, 1);
         if !docs.is_empty() {
             out.push_str(&docs);
@@ -279,9 +286,7 @@ pub(super) fn format_struct_decl(decl: &StructDecl) -> String {
         }
         out.push_str("    ");
         out.push_str(&format_struct_field(field));
-        if index + 1 < decl.fields.len() {
-            out.push(',');
-        }
+        out.push(',');
         out.push('\n');
     }
     out.push_str("}.");
@@ -446,6 +451,15 @@ pub(super) fn format_function(function: &FunctionDecl) -> String {
 }
 
 fn format_function_body_expr(expr: &Expr, indent: usize) -> String {
+    if let Expr::Let {
+        bindings,
+        else_clauses,
+        body,
+    } = expr
+    {
+        return format_function_body_let(bindings, else_clauses, body.as_deref(), indent);
+    }
+
     let rendered = format_expr(expr, indent);
     if rendered
         .lines()
@@ -455,11 +469,6 @@ fn format_function_body_expr(expr: &Expr, indent: usize) -> String {
     }
 
     match expr {
-        Expr::Let {
-            bindings,
-            else_clauses,
-            body,
-        } => format_let_expr(bindings, else_clauses, body.as_deref(), indent),
         Expr::Sequence(expressions) => format_statement_parts(
             expressions
                 .iter()
@@ -608,12 +617,10 @@ fn format_function_signature_with_patterns(
     }
 
     out.push('\n');
-    for (index, param) in rendered_params.iter().enumerate() {
+    for param in &rendered_params {
         out.push_str("    ");
         out.push_str(param);
-        if index + 1 < rendered_params.len() {
-            out.push(',');
-        }
+        out.push(',');
         out.push('\n');
     }
     out.push(')');
@@ -797,200 +804,4 @@ pub(super) fn format_trait_impl_decl(trait_impl: &TraitImplDecl) -> String {
     }
     out.push_str("}.");
     out
-}
-
-/// Formats a raw/unsupported declaration.
-///
-/// Inputs: raw declaration payload. Output: raw text with terminating period.
-/// Transformation: preserves raw declaration text exactly apart from appending
-/// the declaration terminator, except for shape declarations whose parser raw
-/// scanner stores token-spaced text before shape expansion exists.
-pub(super) fn format_raw_decl(raw: &UnsupportedDecl) -> String {
-    if raw.kind == "shape" {
-        return format!("{}.", normalize_shape_raw_text(&raw.text));
-    }
-    format!("{}.", raw.text)
-}
-
-/// Formats a reserved shape-synonym declaration.
-///
-/// Inputs: parsed shape declaration. Output: canonical shape source text.
-/// Transformation: reuses raw-shape text normalization until semantic shape
-/// expansion owns body and guard formatting.
-pub(super) fn format_shape_decl(shape: &ShapeDecl) -> String {
-    let mut text = String::new();
-    if shape.is_public {
-        text.push_str("pub ");
-    }
-    text.push_str("shape ");
-    text.push_str(&shape.name);
-    if !shape.params.is_empty() {
-        text.push('(');
-        text.push_str(&shape.params.join(", "));
-        text.push(')');
-    }
-    text.push_str(" = ");
-    text.push_str(&shape.body);
-    if let Some(guard) = &shape.guard {
-        text.push_str(" where ");
-        text.push_str(guard);
-    }
-    format!("{}.", normalize_shape_raw_text(&text))
-}
-
-/// Normalizes parse-preserved shape declaration text.
-///
-/// Inputs: raw shape text emitted by the shape parser scaffold.
-/// Output: user-facing shape source with canonical punctuation spacing.
-/// Transformation: walks the text once, preserving string literals exactly and
-/// adjusting only declaration/pattern punctuation outside strings.
-fn normalize_shape_raw_text(text: &str) -> String {
-    let mut out = String::new();
-    let mut chars = text.chars().peekable();
-    let mut in_string = false;
-    let mut escape_next = false;
-
-    while let Some(ch) = chars.next() {
-        if in_string {
-            out.push(ch);
-            if escape_next {
-                escape_next = false;
-            } else if ch == '\\' {
-                escape_next = true;
-            } else if ch == '"' {
-                in_string = false;
-            }
-            continue;
-        }
-
-        if ch == '"' {
-            in_string = true;
-            out.push(ch);
-            continue;
-        }
-
-        if ch.is_whitespace() {
-            if !out.ends_with(' ')
-                && !out.ends_with('(')
-                && !out.ends_with('[')
-                && !out.ends_with('{')
-            {
-                out.push(' ');
-            }
-            continue;
-        }
-
-        match ch {
-            '(' | '[' => {
-                trim_trailing_space(&mut out);
-                out.push(ch);
-                consume_following_spaces(&mut chars);
-            }
-            '{' => {
-                out.push(ch);
-                consume_following_spaces(&mut chars);
-            }
-            ')' | ']' | '}' => {
-                trim_trailing_space(&mut out);
-                out.push(ch);
-            }
-            ',' => {
-                trim_trailing_space(&mut out);
-                out.push(',');
-                out.push(' ');
-                consume_following_spaces(&mut chars);
-            }
-            _ => out.push(ch),
-        }
-    }
-
-    out.trim().to_string()
-}
-
-fn trim_trailing_space(out: &mut String) {
-    if out.ends_with(' ') {
-        out.pop();
-    }
-}
-
-fn consume_following_spaces<I>(chars: &mut std::iter::Peekable<I>)
-where
-    I: Iterator<Item = char>,
-{
-    while chars.peek().is_some_and(|ch| ch.is_whitespace()) {
-        chars.next();
-    }
-}
-
-/// Formats one multi-clause function clause.
-///
-/// Inputs: parent function metadata and parsed clause. Output: source clause
-/// text. Transformation: uses the parent function name and clause patterns,
-/// optional guard, and body.
-pub(super) fn format_function_clause(function: &FunctionDecl, clause: &FunctionClause) -> String {
-    let mut out = String::new();
-    out.push_str(&function.name);
-    out.push('(');
-    out.push_str(
-        &clause
-            .patterns
-            .iter()
-            .map(format_pattern)
-            .collect::<Vec<_>>()
-            .join(", "),
-    );
-    out.push(')');
-
-    if let Some(guard) = &clause.guard {
-        out.push(' ');
-        out.push_str("where");
-        out.push(' ');
-        out.push_str(&format_expr(guard, 1));
-    }
-
-    out.push_str(" ->\n    ");
-    out.push_str(&format_expr(&clause.body, 1));
-
-    out
-}
-
-/// Returns whether a single function clause duplicates the declaration header.
-///
-/// Inputs: parsed function declaration. Output: `true` when the first clause
-/// patterns are exactly the header parameter names. Transformation: compares
-/// clause variables with params to decide compact formatting.
-fn single_clause_matches_header(function: &FunctionDecl) -> bool {
-    let Some(clause) = function.clauses.first() else {
-        return false;
-    };
-
-    if clause.patterns.len() != function.params.len() {
-        return false;
-    }
-
-    clause
-        .patterns
-        .iter()
-        .zip(function.params.iter())
-        .all(|(pattern, param)| match pattern {
-            Pattern::Var(name) => name == &param.name,
-            _ => false,
-        })
-}
-
-fn single_clause_signature_patterns(function: &FunctionDecl) -> Option<&[Pattern]> {
-    let clause = function.clauses.first()?;
-    if clause.guard.is_some() || clause.patterns.len() != function.params.len() {
-        return None;
-    }
-    let has_non_header_pattern =
-        clause
-            .patterns
-            .iter()
-            .zip(function.params.iter())
-            .any(|(pattern, param)| match pattern {
-                Pattern::Var(name) => name != &param.name,
-                _ => true,
-            });
-    has_non_header_pattern.then_some(clause.patterns.as_slice())
 }

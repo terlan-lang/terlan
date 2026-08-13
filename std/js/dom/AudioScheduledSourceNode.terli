@@ -40,11 +40,11 @@ pub (value: AudioScheduledSourceNode) stop(when_: JsNumber): Unit.
 pub (value: AudioScheduledSourceNode) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit.
 
 pub (value: AudioScheduledSourceNode) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit.

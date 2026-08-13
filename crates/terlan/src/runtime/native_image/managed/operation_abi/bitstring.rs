@@ -46,6 +46,7 @@ pub(super) fn is_bitstring_operation(encoded: &[u8]) -> bool {
     encoded.starts_with(MAGIC)
 }
 
+/// Encodes one bounded bitstring operation for generated native code.
 pub fn encode_bitstring_operation(operation: ManagedBitStringOperation) -> Vec<u8> {
     let mut encoded = Vec::with_capacity(OPERATION_BYTES);
     encoded.extend_from_slice(MAGIC);

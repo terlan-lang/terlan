@@ -1,6 +1,6 @@
 use super::{
-    format_case_clause, format_expr, format_let_binding_assignment, format_let_binding_value,
-    format_pattern, format_statement_parts,
+    format_assignment_child, format_case_clause, format_let_binding_assignment,
+    format_let_binding_value, format_pattern, format_statement_parts,
 };
 use crate::terlan_syntax::parse_tree::{CaseClause, Expr, LetBinding};
 
@@ -17,17 +17,24 @@ pub(super) fn format_let_expr(
 
     let spacing = "    ".repeat(indent);
     let inner_spacing = "    ".repeat(indent + 1);
-    let mut out = String::from("let {\n");
-    for (index, binding) in bindings.iter().enumerate() {
-        out.push_str(&inner_spacing);
-        out.push_str(&format_refutable_binding(binding, indent + 1));
-        if index + 1 < bindings.len() {
-            out.push_str(";\n");
+    let mut out = String::new();
+    if let [binding] = bindings {
+        out.push_str("let ");
+        out.push_str(&format_refutable_binding(binding, indent));
+        out.push_str(" else {\n");
+    } else {
+        out.push_str("let {\n");
+        for (index, binding) in bindings.iter().enumerate() {
+            out.push_str(&inner_spacing);
+            out.push_str(&format_refutable_binding(binding, indent + 1));
+            if index + 1 < bindings.len() {
+                out.push_str(";\n");
+            }
         }
+        out.push('\n');
+        out.push_str(&spacing);
+        out.push_str("} else {\n");
     }
-    out.push('\n');
-    out.push_str(&spacing);
-    out.push_str("} else {\n");
     for (index, clause) in else_clauses.iter().enumerate() {
         out.push_str(&inner_spacing);
         out.push_str(&format_case_clause(clause, indent + 1));
@@ -41,7 +48,7 @@ pub(super) fn format_let_expr(
     if let Some(body) = body {
         out.push('\n');
         out.push_str(&spacing);
-        out.push_str(&format_expr(body, indent));
+        out.push_str(&format_assignment_child(body, indent));
     }
     out
 }
@@ -68,11 +75,40 @@ fn format_ordinary_let(bindings: &[LetBinding], body: Option<&Expr>, indent: usi
         })
         .collect::<Vec<_>>();
     if let Some(body) = body {
-        parts.push(format_expr(body, indent));
+        parts.push(format_assignment_child(body, indent));
     }
     if indent > 0 || parts.iter().any(|part| part.contains('\n')) {
         format_statement_parts(parts, indent)
     } else {
         parts.join("; ")
     }
+}
+
+/// Formats a let expression used as the complete body of a function clause.
+pub(super) fn format_function_body_let(
+    bindings: &[LetBinding],
+    else_clauses: &[CaseClause],
+    body: Option<&Expr>,
+    indent: usize,
+) -> String {
+    if !else_clauses.is_empty() {
+        return format_let_expr(bindings, else_clauses, body, indent);
+    }
+
+    let mut parts = bindings
+        .iter()
+        .map(|binding| {
+            format_let_binding_assignment("let ", &binding.pattern, &binding.value, indent)
+        })
+        .collect::<Vec<_>>();
+    match body {
+        Some(Expr::Sequence(expressions)) => parts.extend(
+            expressions
+                .iter()
+                .map(|expression| super::format_expr(expression, indent)),
+        ),
+        Some(body) => parts.push(super::format_expr(body, indent)),
+        None => {}
+    }
+    format_statement_parts(parts, indent)
 }

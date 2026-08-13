@@ -17,6 +17,17 @@ struct RenderValue {
     ty: CoreType,
 }
 
+/// Shared immutable inputs and mutable output buffers for one render walk.
+struct RenderTraversal<'a> {
+    plan: &'a CoreTemplateRenderPlan,
+    templates: &'a [CoreTemplateRenderPlan],
+    types: &'a [CoreTypeDecl],
+    values: &'a BTreeMap<String, RenderValue>,
+    stack: &'a mut Vec<String>,
+    static_text: &'a mut String,
+    fragments: &'a mut Vec<CoreExpr>,
+}
+
 /// Compiles one checked template instantiation into managed string operations.
 pub(super) fn render_template_instantiation(
     name: &str,
@@ -48,13 +59,15 @@ fn render_plan(
     let mut static_text = String::new();
     render_nodes(
         &plan.template.nodes,
-        plan,
-        templates,
-        types,
-        values,
-        stack,
-        &mut static_text,
-        &mut fragments,
+        &mut RenderTraversal {
+            plan,
+            templates,
+            types,
+            values,
+            stack,
+            static_text: &mut static_text,
+            fragments: &mut fragments,
+        },
     )?;
     stack.pop();
     flush_static(&mut static_text, &mut fragments);
@@ -125,44 +138,30 @@ fn add_defaults(
 }
 
 /// Renders one ordered node sequence into static and dynamic fragments.
-#[allow(clippy::too_many_arguments)]
 fn render_nodes(
     nodes: &[crate::terlan_html::HtmlNode],
-    plan: &CoreTemplateRenderPlan,
-    templates: &[CoreTemplateRenderPlan],
-    types: &[CoreTypeDecl],
-    values: &BTreeMap<String, RenderValue>,
-    stack: &mut Vec<String>,
-    static_text: &mut String,
-    fragments: &mut Vec<CoreExpr>,
+    traversal: &mut RenderTraversal<'_>,
 ) -> Result<(), String> {
     for node in nodes {
-        render_node(
-            node,
-            plan,
-            templates,
-            types,
-            values,
-            stack,
-            static_text,
-            fragments,
-        )?;
+        render_node(node, traversal)?;
     }
     Ok(())
 }
 
 /// Renders one validated template node without reopening source.
-#[allow(clippy::too_many_arguments)]
 fn render_node(
     node: &crate::terlan_html::HtmlNode,
-    plan: &CoreTemplateRenderPlan,
-    templates: &[CoreTemplateRenderPlan],
-    types: &[CoreTypeDecl],
-    values: &BTreeMap<String, RenderValue>,
-    stack: &mut Vec<String>,
-    static_text: &mut String,
-    fragments: &mut Vec<CoreExpr>,
+    traversal: &mut RenderTraversal<'_>,
 ) -> Result<(), String> {
+    let RenderTraversal {
+        plan,
+        templates,
+        types,
+        values,
+        stack,
+        static_text,
+        fragments,
+    } = traversal;
     match node {
         crate::terlan_html::HtmlNode::Text(text) => static_text.push_str(text),
         crate::terlan_html::HtmlNode::Comment(text) => {
@@ -211,13 +210,15 @@ fn render_node(
             static_text.push('>');
             render_nodes(
                 &element.children,
-                plan,
-                templates,
-                types,
-                values,
-                stack,
-                static_text,
-                fragments,
+                &mut RenderTraversal {
+                    plan,
+                    templates,
+                    types,
+                    values,
+                    stack,
+                    static_text,
+                    fragments,
+                },
             )?;
             static_text.push_str("</");
             static_text.push_str(&element.name);
@@ -283,13 +284,15 @@ fn render_component(
     let mut child_fragments = Vec::new();
     render_nodes(
         &element.children,
-        owner,
-        templates,
-        types,
-        owner_values,
-        stack,
-        &mut child_static,
-        &mut child_fragments,
+        &mut RenderTraversal {
+            plan: owner,
+            templates,
+            types,
+            values: owner_values,
+            stack,
+            static_text: &mut child_static,
+            fragments: &mut child_fragments,
+        },
     )?;
     flush_static(&mut child_static, &mut child_fragments);
     values.insert(
@@ -511,6 +514,26 @@ fn literal_attribute_value(
                 }
                 _ => return Ok(None),
             }
+        }
+        (CoreType::Apply { constructor, args }, CoreExpr::Tuple(values))
+            if constructor.rsplit('.').next() == Some("Option") && args.len() == 1 =>
+        {
+            match values.as_slice() {
+                [CoreExpr::Atom(tag), value] if tag.eq_ignore_ascii_case("some") => {
+                    let Some(value) = literal_attribute_value(&args[0], value)? else {
+                        return Ok(None);
+                    };
+                    value
+                }
+                _ => return Ok(None),
+            }
+        }
+        (CoreType::Apply { constructor, args }, CoreExpr::Atom(value))
+            if constructor.rsplit('.').next() == Some("Option")
+                && args.len() == 1
+                && value.eq_ignore_ascii_case("none") =>
+        {
+            TemplateAttributeValue::Missing
         }
         _ => return Ok(None),
     };

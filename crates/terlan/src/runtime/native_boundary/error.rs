@@ -89,4 +89,5 @@ pub fn is_canonical_error(error: NativeBoundaryError, kind: ErrorKind) -> bool {
 
 #[cfg(test)]
 #[path = "error_test.rs"]
+#[cfg(test)]
 mod error_test;

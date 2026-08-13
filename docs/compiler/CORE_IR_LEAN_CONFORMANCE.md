@@ -7,45 +7,29 @@ The full proof tree lives under `proofs/lean/Terlan/Core` in the development
 workspace. Release gates should not depend on files outside the repository
 checkout, so this document keeps the anchor names stable for CI.
 
-## Lean Covered Subset
+## Executable Lean-Covered Subset
 
-Lean currently models the following initial Core forms:
+The checked-in Lean tree currently proves only the following CoreIR contracts:
 
-- `Ty.int`
-- `Ty.bool`
-- `Ty.atom`
-- `Ty.binary`
-- `Ty.never`
-- `Ty.tuple`
-- `Ty.list`
-- `Ty.struct`
-- `Ty.arrow`
-- `Ty.constructor`
-- `Pattern.wildcard`
-- `Pattern.var`
-- `Pattern.int`
-- `Pattern.atom`
-- `Pattern.tuple`
-- `Pattern.list`
-- `Pattern.constructor`
-- `Expr.int`
-- `Expr.bool`
-- `Expr.atom`
-- `Expr.binary`
-- `Expr.var`
-- `Expr.tuple`
-- `Expr.list`
-- `Expr.listCons`
-- `Expr.lam`
-- `Expr.call`
-- `Expr.caseOf`
-- `Expr.ifThen`
-- `Expr.fieldAccess`
-- `Expr.constructor`
-- `Expr.unaryOp`
-- `Expr.binaryOp`
+- integer literals and integer addition are typed and evaluable;
+- lowering integer literals, addition, and the typed process-spawn seed is
+  deterministic;
+- that lowering preserves the modeled Core type and evaluation result;
+- the VM profile admits the process-spawn seed while the shared-JavaScript and
+  core-Wasm profiles reject it;
+- closed structural-shape implication evidence preserves field access,
+  lexical scope, and runtime values without conversion.
 
-The Lean track proves typing, progress, and checked preservation for this
-subset. Forms outside this list must be marked `proof-model-required`,
-`runtime-boundary`, or `artifact-only` in the machine-readable type-spec index
-until their Lean model and proof status are promoted.
+The executable families are
+`proofs/lean/Terlan/Core/Arithmetic.lean`,
+`proofs/lean/Terlan/Core/CheckedLowering.lean`, and
+`proofs/lean/Terlan/Type/ShapeImplication.lean`. Their replay metadata records
+the exact theorem names and source-contract fingerprints.
+
+Constructors, general patterns, calls, effects, collections, closures,
+case/receive semantics, and the rest of the CoreIR surface are not claimed as
+Lean-proven in 0.0.7. They remain classified by the `typed CoreIR
+preservation`, `target-profile inference`, `VM execution subset`, and
+`pattern and operator coverage` rows in
+`docs/compiler/proof_track/lean_proof_gaps.tsv` until executable families
+replace those gaps.

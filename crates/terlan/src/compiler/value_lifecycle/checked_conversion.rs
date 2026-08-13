@@ -1,4 +1,6 @@
-fn lower_checked_valued_union_parsing(
+use super::*;
+
+pub(super) fn lower_checked_valued_union_parsing(
     module: &mut SyntaxModuleOutput,
     values: &HashMap<String, ConstValue>,
     diagnostics: &mut Vec<ValueLifecycleDiagnostic>,
@@ -14,7 +16,10 @@ fn lower_checked_valued_union_parsing(
         if owner.contains('.') || arm.is_empty() {
             continue;
         }
-        unions.entry(owner.to_string()).or_default().push(value.clone());
+        unions
+            .entry(owner.to_string())
+            .or_default()
+            .push(value.clone());
     }
     for arms in unions.values_mut() {
         arms.sort_by_key(ConstValue::stable_text);
@@ -27,12 +32,15 @@ fn lower_checked_valued_union_parsing(
     }
 }
 
-fn lower_checked_parse_expr(
+pub(super) fn lower_checked_parse_expr(
     expr: &mut SyntaxExprOutput,
     unions: &HashMap<String, Vec<ConstValue>>,
     diagnostics: &mut Vec<ValueLifecycleDiagnostic>,
 ) {
-    if !matches!(expr.kind, SyntaxExprKind::Call | SyntaxExprKind::FunctionCall) {
+    if !matches!(
+        expr.kind,
+        SyntaxExprKind::Call | SyntaxExprKind::FunctionCall
+    ) {
         return;
     }
     let Some(callee) = expr.children.first() else {
@@ -40,8 +48,7 @@ fn lower_checked_parse_expr(
     };
     let owner = if expr.remote.is_some() && callee.text.as_deref() == Some("parse") {
         expr.remote.clone()
-    } else if callee.kind == SyntaxExprKind::FieldAccess
-        && callee.text.as_deref() == Some("parse")
+    } else if callee.kind == SyntaxExprKind::FieldAccess && callee.text.as_deref() == Some("parse")
     {
         callee.children.first().and_then(qualified_expr_name)
     } else {
@@ -92,7 +99,7 @@ fn lower_checked_parse_expr(
     };
 }
 
-fn checked_parse_failure_clause(
+pub(super) fn checked_parse_failure_clause(
     arms: &[ConstValue],
     span: EbnfSourceSpan,
 ) -> Option<SyntaxClauseOutput> {
@@ -125,7 +132,7 @@ fn checked_parse_failure_clause(
     })
 }
 
-fn empty_checked_expr(
+pub(super) fn empty_checked_expr(
     kind: SyntaxExprKind,
     text: Option<String>,
     span: EbnfSourceSpan,
@@ -152,7 +159,7 @@ fn empty_checked_expr(
     }
 }
 
-fn checked_parse_clause(
+pub(super) fn checked_parse_clause(
     value: &ConstValue,
     span: EbnfSourceSpan,
 ) -> Option<SyntaxClauseOutput> {

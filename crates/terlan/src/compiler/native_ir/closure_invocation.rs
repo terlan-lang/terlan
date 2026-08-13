@@ -18,17 +18,26 @@ struct ClosureSignature {
     result: NativeType,
 }
 
+pub(super) struct ClosureInvocationEnvironment<'a> {
+    pub(super) functions: &'a HashMap<(String, usize), usize>,
+    pub(super) function_types: &'a HashMap<(String, usize), NativeType>,
+    pub(super) callable_shapes: &'a HashMap<(String, usize), NativeCallableShape>,
+    pub(super) constructors: &'a NativeConstructorLayouts,
+}
+
+struct ClosureInvocationScope<'a> {
+    params: &'a HashMap<String, usize>,
+    param_types: &'a HashMap<String, NativeType>,
+    signatures: &'a HashMap<String, ClosureSignature>,
+}
+
 /// Lowers a tail-position call through one declared closure parameter.
-#[allow(clippy::too_many_arguments)]
 pub(super) fn lower_boundary_closure_invocation(
     body: &CoreExpr,
     function: &CoreFunction,
     params: &HashMap<String, usize>,
     param_types: &HashMap<String, NativeType>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    callable_shapes: &HashMap<(String, usize), NativeCallableShape>,
-    constructors: &NativeConstructorLayouts,
+    environment: &ClosureInvocationEnvironment<'_>,
 ) -> Result<Option<NativeExpr>, String> {
     let mut signatures = HashMap::new();
     for parameter in &function.params {
@@ -42,28 +51,31 @@ pub(super) fn lower_boundary_closure_invocation(
     lower_closure_invocation_at(
         body,
         function,
+        ClosureInvocationScope {
+            params,
+            param_types,
+            signatures: &signatures,
+        },
+        environment,
+    )
+}
+fn lower_closure_invocation_at(
+    body: &CoreExpr,
+    function: &CoreFunction,
+    scope: ClosureInvocationScope<'_>,
+    environment: &ClosureInvocationEnvironment<'_>,
+) -> Result<Option<NativeExpr>, String> {
+    let ClosureInvocationScope {
         params,
         param_types,
-        &signatures,
+        signatures,
+    } = scope;
+    let ClosureInvocationEnvironment {
         functions,
         function_types,
         callable_shapes,
         constructors,
-    )
-}
-
-#[allow(clippy::too_many_arguments)]
-fn lower_closure_invocation_at(
-    body: &CoreExpr,
-    function: &CoreFunction,
-    params: &HashMap<String, usize>,
-    param_types: &HashMap<String, NativeType>,
-    signatures: &HashMap<String, ClosureSignature>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    callable_shapes: &HashMap<(String, usize), NativeCallableShape>,
-    constructors: &NativeConstructorLayouts,
-) -> Result<Option<NativeExpr>, String> {
+    } = environment;
     if let CoreExpr::Let { bindings, body } = body {
         let mut slots = params.clone();
         let mut types = param_types.clone();
@@ -87,17 +99,23 @@ fn lower_closure_invocation_at(
                 lowered.push(lower_closure_value(
                     &binding.value,
                     &signature,
-                    &slots,
-                    &types,
-                    &closure_signatures,
-                    functions,
-                    function_types,
-                    callable_shapes,
-                    constructors,
+                    ClosureInvocationScope {
+                        params: &slots,
+                        param_types: &types,
+                        signatures: &closure_signatures,
+                    },
+                    environment,
                 )?);
                 types.insert(name.clone(), closure_native_type(&signature)?);
                 closure_signatures.insert(name.clone(), signature);
             } else {
+                if !super::expr_is_scalar(&binding.value) {
+                    // This recognizer is speculative and only owns a lexical
+                    // prefix that can be lowered without structured control.
+                    // Cases and other control expressions belong to the
+                    // primary suspension-aware lowering path.
+                    return Ok(None);
+                }
                 let Some(ty) = infer_native_type_with_constructors(
                     &binding.value,
                     &types,
@@ -127,13 +145,12 @@ fn lower_closure_invocation_at(
         let Some(body) = lower_closure_invocation_at(
             body,
             function,
-            &slots,
-            &types,
-            &closure_signatures,
-            functions,
-            function_types,
-            callable_shapes,
-            constructors,
+            ClosureInvocationScope {
+                params: &slots,
+                param_types: &types,
+                signatures: &closure_signatures,
+            },
+            environment,
         )?
         else {
             return Ok(None);
@@ -146,16 +163,18 @@ fn lower_closure_invocation_at(
     if let CoreExpr::If { clauses } = body {
         let mut lowered = Vec::with_capacity(clauses.len());
         for clause in clauses {
+            if !super::expr_is_scalar(&clause.condition) {
+                return Ok(None);
+            }
             let Some(branch) = lower_closure_invocation_at(
                 &clause.body,
                 function,
-                params,
-                param_types,
-                signatures,
-                functions,
-                function_types,
-                callable_shapes,
-                constructors,
+                ClosureInvocationScope {
+                    params,
+                    param_types,
+                    signatures,
+                },
+                environment,
             )?
             else {
                 return Ok(None);
@@ -316,19 +335,23 @@ fn closure_native_type(signature: &ClosureSignature) -> Result<NativeType, Strin
         .map(NativeType::ManagedRef)
         .map_err(|error| format!("error[native_ir.dynamic_signature]: {error}"))
 }
-
-#[allow(clippy::too_many_arguments)]
 fn lower_closure_value(
     value: &CoreExpr,
     signature: &ClosureSignature,
-    params: &HashMap<String, usize>,
-    param_types: &HashMap<String, NativeType>,
-    signatures: &HashMap<String, ClosureSignature>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    callable_shapes: &HashMap<(String, usize), NativeCallableShape>,
-    constructors: &NativeConstructorLayouts,
+    scope: ClosureInvocationScope<'_>,
+    environment: &ClosureInvocationEnvironment<'_>,
 ) -> Result<NativeExpr, String> {
+    let ClosureInvocationScope {
+        params,
+        param_types,
+        signatures,
+    } = scope;
+    let ClosureInvocationEnvironment {
+        functions,
+        function_types,
+        callable_shapes,
+        constructors,
+    } = environment;
     match value {
         CoreExpr::Var(name) if signatures.contains_key(name) => params
             .get(name)
@@ -375,13 +398,12 @@ fn lower_closure_value(
                         lower_closure_value(
                             &clause.body,
                             signature,
-                            params,
-                            param_types,
-                            signatures,
-                            functions,
-                            function_types,
-                            callable_shapes,
-                            constructors,
+                            ClosureInvocationScope {
+                                params,
+                                param_types,
+                                signatures,
+                            },
+                            environment,
                         )?,
                     ))
                 })

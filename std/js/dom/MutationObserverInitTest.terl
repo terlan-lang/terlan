@@ -18,7 +18,7 @@ import type std.js.Dom.MutationObserverInit.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub attribute_filter_typechecks(
-    receiver: MutationObserverInit
+    receiver: MutationObserverInit,
 ): std.js.Array[std.js.String.JsString] ->
     receiver.attribute_filter().
 

@@ -10,8 +10,11 @@ use crate::runtime::vm::{
 /// Policy applied when the VM HTTP worker queue reaches its bound.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmHttpOverloadPolicy {
+    #[cfg(test)]
     Queue,
+    #[cfg(test)]
     Reject,
+    #[cfg(test)]
     Spill,
 }
 
@@ -37,6 +40,7 @@ impl VmHttpOverloadConfig {
 
 impl VmHttpTcpServer {
     /// Creates server state from one validated materialized router.
+    #[cfg(test)]
     pub(crate) fn from_router(
         listener: VmTcpListener,
         handler_source: VmProcessSource,
@@ -49,6 +53,7 @@ impl VmHttpTcpServer {
 
     /// Returns the saturated policy, if the configured pending-work bound has
     /// been reached.
+    #[cfg(test)]
     pub(super) fn saturated_overload_policy(&self) -> Option<VmHttpOverloadPolicy> {
         self.overload
             .filter(|config| self.handlers.len() >= config.max_pending)
@@ -57,6 +62,7 @@ impl VmHttpTcpServer {
 
     /// Transfers one accepted handler into the configured server admission
     /// lane while preserving explicit reject and spill accounting.
+    #[cfg(test)]
     pub(super) fn admit_handler(
         &mut self,
         processes: &mut VmProcessTable,
@@ -93,6 +99,7 @@ impl VmHttpTcpServer {
 /// Typed ownership result from one VM HTTP queue admission attempt.
 #[must_use = "rejected and spilled HTTP work remains caller-owned"]
 #[derive(Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmHttpEnqueueOutcome<T> {
     Enqueued,
     Rejected(T),
@@ -101,6 +108,7 @@ pub(crate) enum VmHttpEnqueueOutcome<T> {
 
 impl<T> VmHttpQueue<T> {
     /// Admits work according to an explicit bounded-overload policy.
+    #[cfg(test)]
     pub(crate) fn enqueue_with_policy(
         &self,
         item: T,

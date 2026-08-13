@@ -15,6 +15,29 @@ use crate::runtime::native_image::TVM_INDIRECT_TRANSITION_WORD_CAPACITY;
 
 const MAX_INVOCATION_WORDS: usize = 128;
 
+/// VM-owned values forwarded through one generated indirect invocation.
+pub(super) struct IndirectRuntimeValues {
+    pub(super) context: Value,
+    pub(super) allocator: Value,
+    pub(super) resolver: Value,
+    pub(super) lookup: Value,
+}
+
+/// Statically known closure-call shape plus its emitted operands.
+pub(super) struct IndirectInvocation<'a> {
+    pub(super) closure: Value,
+    pub(super) arguments: &'a [Value],
+    pub(super) parameter_types: &'a [NativeType],
+    pub(super) result_type: NativeType,
+}
+
+/// Optional caller-owned transition storage for a suspending invocation.
+#[derive(Clone, Copy)]
+pub(super) struct IndirectTransition {
+    pub(super) pointer: Option<Value>,
+    pub(super) len_pointer: Option<Value>,
+}
+
 /// Evaluates one closure operand followed by its ordered caller arguments.
 pub(super) fn emit_operands(
     callee: &super::super::NativeExpr,
@@ -27,31 +50,22 @@ pub(super) fn emit_operands(
 }
 
 /// Invokes a closure that is statically proven not to suspend.
-#[allow(clippy::too_many_arguments)]
 pub(super) fn emit_invoke_closure(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
-    runtime_context: Value,
-    allocator: Value,
-    resolver: Value,
-    closure: Value,
-    arguments: &[Value],
-    parameter_types: &[NativeType],
-    result_type: NativeType,
+    runtime: IndirectRuntimeValues,
+    invocation: IndirectInvocation<'_>,
     error_block: Block,
 ) -> Result<Value, String> {
-    let (dispatch_status, value) = emit_invoke_closure_raw(
+    let (dispatch_status, value, _) = emit_invoke_closure_raw(
         builder,
         module,
-        runtime_context,
-        allocator,
-        resolver,
-        closure,
-        arguments,
-        parameter_types,
-        result_type,
-        None,
-        None,
+        runtime,
+        invocation,
+        IndirectTransition {
+            pointer: None,
+            len_pointer: None,
+        },
         error_block,
     )?;
     branch_status(builder, dispatch_status, error_block);
@@ -59,53 +73,45 @@ pub(super) fn emit_invoke_closure(
 }
 
 /// Invokes a closure while forwarding the caller's bounded transition frame.
-#[allow(clippy::too_many_arguments)]
 pub(super) fn emit_suspending_invoke_closure(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
-    runtime_context: Value,
-    allocator: Value,
-    resolver: Value,
-    closure: Value,
-    arguments: &[Value],
-    parameter_types: &[NativeType],
-    result_type: NativeType,
-    transition_pointer: Value,
-    transition_len_pointer: Value,
+    runtime: IndirectRuntimeValues,
+    invocation: IndirectInvocation<'_>,
+    transition: IndirectTransition,
     error_block: Block,
-) -> Result<(Value, Value), String> {
+) -> Result<(Value, Value, Value), String> {
     emit_invoke_closure_raw(
         builder,
         module,
-        runtime_context,
-        allocator,
-        resolver,
-        closure,
-        arguments,
-        parameter_types,
-        result_type,
-        Some(transition_pointer),
-        Some(transition_len_pointer),
+        runtime,
+        invocation,
+        transition,
         error_block,
     )
 }
 
 /// Validates an actor-owned closure and recursively enters the sealed dispatcher.
-#[allow(clippy::too_many_arguments)]
 fn emit_invoke_closure_raw(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
-    runtime_context: Value,
-    allocator: Value,
-    resolver: Value,
-    closure: Value,
-    arguments: &[Value],
-    parameter_types: &[NativeType],
-    result_type: NativeType,
-    transition_pointer: Option<Value>,
-    transition_len_pointer: Option<Value>,
+    runtime: IndirectRuntimeValues,
+    invocation: IndirectInvocation<'_>,
+    transition: IndirectTransition,
     error_block: Block,
-) -> Result<(Value, Value), String> {
+) -> Result<(Value, Value, Value), String> {
+    let IndirectRuntimeValues {
+        context: runtime_context,
+        allocator,
+        resolver,
+        lookup,
+    } = runtime;
+    let IndirectInvocation {
+        closure,
+        arguments,
+        parameter_types,
+        result_type,
+    } = invocation;
     if arguments.len() != parameter_types.len() {
         return Err("error[cranelift.closure_arity]: inconsistent indirect call shape".into());
     }
@@ -202,16 +208,17 @@ fn emit_invoke_closure_raw(
     let invocation_len = builder.ins().stack_load(types::I64, invocation_len_slot, 0);
     let result_pointer = builder.ins().stack_addr(pointer, result_slot, 0);
     let null = builder.ins().iconst(pointer, 0);
-    let transition_pointer = transition_pointer.unwrap_or(null);
+    let has_transition_storage = transition.pointer.is_some();
+    let transition_pointer = transition.pointer.unwrap_or(null);
     let transition_capacity = builder.ins().iconst(
         types::I64,
-        if transition_pointer == null {
-            0
-        } else {
+        if has_transition_storage {
             TVM_INDIRECT_TRANSITION_WORD_CAPACITY as i64
+        } else {
+            0
         },
     );
-    let transition_len_pointer = if let Some(pointer) = transition_len_pointer {
+    let transition_len_pointer = if let Some(pointer) = transition.len_pointer {
         pointer
     } else {
         let slot = scalar_slot(builder);
@@ -224,6 +231,7 @@ fn emit_invoke_closure_raw(
             runtime_context,
             allocator,
             resolver,
+            lookup,
             target,
             invocation_pointer,
             invocation_len,
@@ -235,7 +243,7 @@ fn emit_invoke_closure_raw(
     );
     let dispatch_status = builder.inst_results(dispatch_call)[0];
     let result = builder.ins().stack_load(types::I64, result_slot, 0);
-    Ok((dispatch_status, result))
+    Ok((dispatch_status, result, target))
 }
 
 /// Stores canonical three-word boundary identities in generated stack memory.

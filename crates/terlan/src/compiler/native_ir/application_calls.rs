@@ -57,7 +57,9 @@ pub(super) fn expr_calls_are_local(expr: &CoreExpr, identities: &[(&str, usize)]
                     .iter()
                     .all(|field| expr_calls_are_local(&field.value, identities))
         }
-        CoreExpr::UnaryOp { operand, .. } => expr_calls_are_local(operand, identities),
+        CoreExpr::UnaryOp { operand, .. } | CoreExpr::Cast { expr: operand, .. } => {
+            expr_calls_are_local(operand, identities)
+        }
         CoreExpr::FieldAccess { base, .. } | CoreExpr::RecordAccess { base, .. } => {
             expr_calls_are_local(base, identities)
         }
@@ -74,6 +76,16 @@ pub(super) fn expr_calls_are_local(expr: &CoreExpr, identities: &[(&str, usize)]
             expr_calls_are_local(&clause.condition, identities)
                 && expr_calls_are_local(&clause.body, identities)
         }),
+        CoreExpr::Case { scrutinee, clauses } => {
+            expr_calls_are_local(scrutinee, identities)
+                && clauses.iter().all(|clause| {
+                    clause
+                        .guard
+                        .as_ref()
+                        .is_none_or(|guard| expr_calls_are_local(guard, identities))
+                        && expr_calls_are_local(&clause.body, identities)
+                })
+        }
         _ => true,
     }
 }
@@ -90,6 +102,7 @@ pub(super) fn expr_calls_suspending(
                     .iter()
                     .any(|arg| expr_calls_suspending(arg, suspending))
         }
+        CoreExpr::FunctionCall { .. } => true,
         CoreExpr::ConstructorCall { args, .. }
         | CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => args
             .iter()
@@ -106,7 +119,9 @@ pub(super) fn expr_calls_suspending(
         CoreExpr::FieldAccess { base, .. } | CoreExpr::RecordAccess { base, .. } => {
             expr_calls_suspending(base, suspending)
         }
-        CoreExpr::UnaryOp { operand, .. } => expr_calls_suspending(operand, suspending),
+        CoreExpr::UnaryOp { operand, .. } | CoreExpr::Cast { expr: operand, .. } => {
+            expr_calls_suspending(operand, suspending)
+        }
         CoreExpr::BinaryOp { left, right, .. } => {
             expr_calls_suspending(left, suspending) || expr_calls_suspending(right, suspending)
         }
@@ -120,6 +135,16 @@ pub(super) fn expr_calls_suspending(
             expr_calls_suspending(&clause.condition, suspending)
                 || expr_calls_suspending(&clause.body, suspending)
         }),
+        CoreExpr::Case { scrutinee, clauses } => {
+            expr_calls_suspending(scrutinee, suspending)
+                || clauses.iter().any(|clause| {
+                    clause
+                        .guard
+                        .as_ref()
+                        .is_some_and(|guard| expr_calls_suspending(guard, suspending))
+                        || expr_calls_suspending(&clause.body, suspending)
+                })
+        }
         _ => false,
     }
 }

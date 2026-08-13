@@ -4,6 +4,7 @@ use super::{VmDistributedScheduler, VmPlacementDecision, VmPlacementPolicy};
 
 impl VmDistributedScheduler {
     /// Declares an immutable route-level placement policy override.
+    #[cfg(test)]
     pub(crate) fn declare_route_policy(
         &mut self,
         route_id: impl Into<String>,
@@ -16,6 +17,7 @@ impl VmDistributedScheduler {
     }
 
     /// Declares an immutable actor-group policy scoped to one route.
+    #[cfg(test)]
     pub(crate) fn declare_actor_group_policy(
         &mut self,
         route_id: impl Into<String>,
@@ -35,6 +37,7 @@ impl VmDistributedScheduler {
     }
 
     /// Places an actor with a route override taking precedence over the default.
+    #[cfg(test)]
     pub(crate) fn place_for_route(
         &mut self,
         actor_id: impl Into<String>,
@@ -52,6 +55,7 @@ impl VmDistributedScheduler {
     }
 
     /// Places an actor with actor-group, route, then default policy precedence.
+    #[cfg(test)]
     pub(crate) fn place_for_actor_group(
         &mut self,
         actor_id: impl Into<String>,
@@ -85,6 +89,7 @@ pub(super) fn validate_policy(policy: &VmPlacementPolicy) -> Result<(), String> 
     }
 }
 
+#[cfg(test)]
 fn validate_scope_id(value: &str, label: &str) -> Result<(), String> {
     if value.is_empty() {
         return Err(format!(
@@ -94,6 +99,7 @@ fn validate_scope_id(value: &str, label: &str) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(test)]
 fn insert_override<K>(
     overrides: &mut BTreeMap<K, VmPlacementPolicy>,
     key: K,

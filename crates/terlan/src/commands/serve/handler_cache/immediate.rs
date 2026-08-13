@@ -3,9 +3,11 @@
 use crate::runtime::native::http::{RequestFieldProjection, RequestParts};
 use crate::runtime::native_image::control::TvmTransitionOperation;
 use crate::runtime::vm::process::VmProcessId;
+#[cfg(test)]
+use crate::runtime::vm::pure_native::PureNativeIoWake;
 use crate::runtime::vm::pure_native::{
-    PureNativeCapabilityWait, PureNativeExecution, PureNativeExecutionShard, PureNativeIoWake,
-    PureNativeSuspension, PureNativeTimerWait,
+    PureNativeCapabilityWait, PureNativeExecution, PureNativeExecutionShard, PureNativeSuspension,
+    PureNativeTimerWait,
 };
 use crate::runtime::vm::scheduler_topology::VmFixedActorRoute;
 use crate::runtime::vm::ReplValue;
@@ -24,7 +26,6 @@ pub(super) struct LocalImmediateShard {
     owner: VmProcessId,
     function: String,
     export: String,
-    #[allow(dead_code)] // Read by single-argument fast paths selected by code generation.
     argument_scratch: Vec<ReplValue>,
     request_scratch: Option<ReplValue>,
     timer_origin: Instant,
@@ -72,23 +73,6 @@ impl LocalImmediateShard {
         self.call_selected(args)
     }
 
-    #[allow(dead_code)] // Selected only for generated single-argument calls.
-    pub(super) fn call_one(
-        &mut self,
-        module: &str,
-        function: &str,
-        argument: ReplValue,
-    ) -> Result<ReplValue, String> {
-        self.select_export(module, function);
-        self.argument_scratch.clear();
-        self.argument_scratch.push(argument);
-        let result =
-            self.shard
-                .call_on_fixed_owner(self.owner, &self.export, &self.argument_scratch);
-        self.argument_scratch.clear();
-        self.finish_call(result, 1)
-    }
-
     pub(super) fn call_http_response(
         &mut self,
         module: &str,
@@ -101,8 +85,6 @@ impl LocalImmediateShard {
                 .call_on_admitted_fixed_owner_http_response(self.owner, &self.export, args);
         self.finish_http_call(result, args.len())
     }
-
-    #[allow(dead_code)] // Selected only for generated typed HTTP response calls.
     pub(super) fn call_one_http_response(
         &mut self,
         module: &str,
@@ -151,7 +133,7 @@ impl LocalImmediateShard {
         let result = self
             .shard
             .call_on_fixed_owner(self.owner, &self.export, args);
-        self.finish_call(result, args.len())
+        self.finish_call(result.map_err(String::from), args.len())
     }
 
     fn finish_call(
@@ -204,6 +186,7 @@ impl LocalImmediateShard {
     }
 
     /// Resumes one protocol-owned actor from its exact typed I/O wake.
+    #[cfg(test)]
     pub(super) fn resume(
         &mut self,
         route: VmFixedActorRoute,
@@ -273,7 +256,7 @@ impl LocalImmediateShard {
                     return Ok(OwnedInvocationStep::Waiting {
                         route,
                         owner,
-                        suspension,
+                        suspension: *suspension,
                         wait,
                     });
                 }
@@ -284,7 +267,7 @@ impl LocalImmediateShard {
                     return Ok(OwnedInvocationStep::CapabilityWaiting {
                         route,
                         owner,
-                        suspension,
+                        suspension: *suspension,
                         wait,
                     });
                 }
@@ -305,13 +288,13 @@ impl LocalImmediateShard {
                     return Ok(OwnedInvocationStep::TimerWaiting {
                         route,
                         owner,
-                        suspension,
+                        suspension: *suspension,
                         wait,
                         due,
                     });
                 }
                 PureNativeExecution::Suspended(suspension) => {
-                    execution = self.shard.resume_call(owner, suspension)?;
+                    execution = self.shard.resume_call(owner, *suspension)?;
                 }
             }
         }

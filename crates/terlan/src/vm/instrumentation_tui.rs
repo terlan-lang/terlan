@@ -34,6 +34,7 @@ use super::instrumentation::{
 /// Transformation:
 /// - Uses the provider, mode, and component descriptors from
 ///   `vm::instrumentation`; the terminal layer only chooses presentation.
+#[cfg(test)]
 pub(crate) fn render_local_vm_dashboard(
     frame: &mut Frame<'_>,
     config: &VmDashboardConfig,
@@ -65,6 +66,7 @@ pub(crate) fn render_local_vm_dashboard(
 /// Transformation:
 /// - Converts typed component identity into a compact read-only terminal
 ///   summary while preserving stable ids for tests and future CLI plumbing.
+#[cfg(test)]
 fn dashboard_lines(config: &VmDashboardConfig) -> Vec<Line<'static>> {
     let mut lines = vec![
         styled_pair("Provider", config.provider.display_name),
@@ -109,6 +111,7 @@ fn dashboard_lines(config: &VmDashboardConfig) -> Vec<Line<'static>> {
 /// Transformation:
 /// - Keeps invalid dashboards visible for local debugging without weakening
 ///   the runtime validation contract.
+#[cfg(test)]
 fn dashboard_error_lines(
     config: &VmDashboardConfig,
     diagnostics: &[VmInstrumentationDiagnostic],
@@ -144,12 +147,14 @@ fn dashboard_error_lines(
 }
 
 /// Renders a list of dashboard lines into the full terminal frame.
+#[cfg(test)]
 fn render_dashboard_widget(frame: &mut Frame<'_>, title: &'static str, lines: Vec<Line<'static>>) {
     let widget = Paragraph::new(lines).block(Block::default().title(title).borders(Borders::ALL));
     frame.render_widget(widget, frame.area());
 }
 
 /// Builds one bold-label dashboard line.
+#[cfg(test)]
 fn styled_pair(label: &'static str, value: &'static str) -> Line<'static> {
     Line::from(vec![
         Span::styled(
@@ -162,4 +167,5 @@ fn styled_pair(label: &'static str, value: &'static str) -> Line<'static> {
 
 #[cfg(test)]
 #[path = "instrumentation_tui_test.rs"]
+#[cfg(test)]
 mod instrumentation_tui_test;

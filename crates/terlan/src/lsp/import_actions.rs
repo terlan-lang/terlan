@@ -682,4 +682,5 @@ fn is_terlan_name(name: &str) -> bool {
 
 #[cfg(test)]
 #[path = "import_actions_test.rs"]
+#[cfg(test)]
 mod import_actions_test;

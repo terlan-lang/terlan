@@ -1,11 +1,20 @@
 pub mod ebnf;
 mod ebnf_lexer;
 pub mod formatter;
+mod html_syntax;
+pub mod lalrpop_boundary;
+#[cfg(test)]
+mod lalrpop_boundary_test;
+mod lalrpop_diagnostics;
+mod lalrpop_lowering;
+mod lalrpop_projection;
+pub mod lalrpop_syntax;
 pub mod lexer;
 pub mod native;
 mod parse_tree;
 mod parser;
 mod parser_contract;
+mod raw_shape;
 pub mod span;
 pub(crate) mod sql_regions;
 pub mod syntax_contract;
@@ -15,7 +24,7 @@ mod trait_impl_ref;
 
 pub use ebnf::*;
 pub use formatter::{
-    format_interface_source_module, format_source_module,
+    format_interface_source_module, format_script_source, format_source_module,
     format_source_module_migrating_repeated_lets, migrate_repeated_let_source,
 };
 pub use lexer::*;
@@ -23,6 +32,7 @@ pub use native::*;
 #[cfg(test)]
 pub(crate) use parser::{parse_interface_module, parse_module, parse_terlan_expr};
 pub use parser::{ParseResult, ParserError};
+pub(crate) use raw_shape::raw_shape_signature;
 pub use span::Span;
 pub const REPEATED_LET_BINDING_DIAGNOSTIC: &str =
     "subsequent local binding must start with `let`; insert `let` before this binding";
@@ -45,28 +55,45 @@ pub use syntax_contract::{
     check_syntax_contract_artifact_against_current, ensure_canonical_syntax_contract_valid,
     extract_syntax_contract_artifact_fingerprint, syntax_contract_artifact_matches_current,
     syntax_contract_fingerprint, syntax_contract_identity_from_fingerprint,
-    syntax_contract_identity_matches_current, validate_syntax_contract,
-    validated_canonical_terlan_syntax_contract, SyntaxContractArtifact,
-    SyntaxContractArtifactCheck, SyntaxContractDiagnostic, SyntaxContractError,
-    SyntaxContractIdentity, CANONICAL_TERLAN_EBNF, SYNTAX_CONTRACT_ARTIFACT_SCHEMA,
-    SYNTAX_CONTRACT_FINGERPRINT_ALGORITHM,
+    syntax_contract_identity_matches_current, validate_ebnf_source, validate_syntax_contract,
+    validated_canonical_terlan_syntax_contract, EbnfValidationFinding, EbnfValidationReport,
+    SyntaxContractArtifact, SyntaxContractArtifactCheck, SyntaxContractDiagnostic,
+    SyntaxContractError, SyntaxContractIdentity, CANONICAL_TERLAN_EBNF,
+    SYNTAX_CONTRACT_ARTIFACT_SCHEMA, SYNTAX_CONTRACT_FINGERPRINT_ALGORITHM,
 };
 pub use syntax_output::{
     expand_shape_imports, parse_expr_as_syntax_output, parse_interface_module_as_syntax_output,
-    parse_module_as_syntax_output, syntax_module_import_identities, syntax_module_import_identity,
-    SyntaxClauseOutput, SyntaxConfigEntryOutput, SyntaxConfigValueOutput,
-    SyntaxConstructorClauseOutput, SyntaxConstructorParamOutput, SyntaxDeclarationOutput,
-    SyntaxDeclarationPayload, SyntaxExportItem, SyntaxExprFieldOutput, SyntaxExprKind,
-    SyntaxExprOutput, SyntaxFunctionClauseOutput, SyntaxHtmlAttrOutput, SyntaxHtmlAttrValueOutput,
-    SyntaxHtmlElementOutput, SyntaxHtmlNamedSlotOutput, SyntaxHtmlNodeOutput,
-    SyntaxImplConstOutput, SyntaxImplMethodOutput, SyntaxImportItem, SyntaxImportKind,
-    SyntaxModuleOutput, SyntaxParamOutput, SyntaxPatternFieldOutput, SyntaxPatternKind,
-    SyntaxPatternOutput, SyntaxShapeImport, SyntaxSourceKind, SyntaxStructFieldOutput,
-    SyntaxTemplatePropOutput, SyntaxTraitConstOutput, SyntaxTraitMethodOutput, SyntaxTypeOutput,
-    SyntaxValuedUnionArmOutput, SYNTAX_MODULE_OUTPUT_SCHEMA,
+    parse_module_as_syntax_output, parse_script_as_syntax_output, syntax_module_import_identities,
+    syntax_module_import_identity, SyntaxClauseOutput, SyntaxConfigEntryOutput,
+    SyntaxConfigValueOutput, SyntaxConstructorClauseOutput, SyntaxConstructorParamOutput,
+    SyntaxDeclarationOutput, SyntaxDeclarationPayload, SyntaxExportItem, SyntaxExprFieldOutput,
+    SyntaxExprKind, SyntaxExprOutput, SyntaxFunctionClauseOutput, SyntaxHtmlAttrOutput,
+    SyntaxHtmlAttrValueOutput, SyntaxHtmlElementOutput, SyntaxHtmlNamedSlotOutput,
+    SyntaxHtmlNodeOutput, SyntaxImplConstOutput, SyntaxImplMethodOutput, SyntaxImportItem,
+    SyntaxImportKind, SyntaxModuleOutput, SyntaxParamOutput, SyntaxPatternFieldOutput,
+    SyntaxPatternKind, SyntaxPatternOutput, SyntaxShapeImport, SyntaxSourceKind,
+    SyntaxStructFieldOutput, SyntaxTemplatePropOutput, SyntaxTraitConstOutput,
+    SyntaxTraitMethodOutput, SyntaxTypeOutput, SyntaxValuedUnionArmOutput,
+    SYNTAX_MODULE_OUTPUT_SCHEMA,
 };
 pub use token::{Token, TokenKind};
-pub(crate) use trait_impl_ref::render_trait_impl_ref;
+pub(crate) use trait_impl_ref::{render_trait_impl_ref, split_trait_impl_ref};
+
+/// Parses, validates through syntax output, and formats a source module once.
+pub fn format_validated_source_module(input: &str) -> EbnfCompileResult<String> {
+    let module = parser::parse_module(input)
+        .map_err(|error| EbnfCompileError::Parse(error.message, error.span))?;
+    syntax_output::module_as_validated_syntax_output(&module, SyntaxSourceKind::Module)?;
+    Ok(formatter::format_module(&module))
+}
+
+/// Parses, validates through syntax output, and formats an interface once.
+pub fn format_validated_interface_module(input: &str) -> EbnfCompileResult<String> {
+    let module = parser::parse_interface_module(input)
+        .map_err(|error| EbnfCompileError::Parse(error.message, error.span))?;
+    syntax_output::module_as_validated_syntax_output(&module, SyntaxSourceKind::Interface)?;
+    Ok(formatter::format_module(&module))
+}
 
 /// Converts a type alias name into its implicit singleton atom payload.
 ///

@@ -1,3 +1,4 @@
+use super::super::binding_identity::CoreBindingIdentityEvidence;
 use super::*;
 use crate::terlan_hir::ModuleInterface;
 
@@ -79,6 +80,12 @@ pub struct CoreModule {
     pub templates: Vec<CoreTemplateRenderPlan>,
     /// Backend-neutral trait conformance facts represented by this Core module.
     pub trait_conformances: Vec<CoreTraitConformance>,
+    /// Exact immutable binding identities and resolved local references.
+    #[serde(default)]
+    pub binding_identities: CoreBindingIdentityEvidence,
+    /// Backend-independent termination and actor-productivity certificates.
+    #[serde(default)]
+    pub termination: CoreTerminationEvidence,
     /// Backend-independent counts and phase metadata.
     pub metadata: CoreModuleMetadata,
     /// Public interface snapshot for backend-independent emission.
@@ -284,6 +291,23 @@ impl CoreModule {
                 conformance.trait_ref, conformance.for_type, conformance.source, conformance.public
             )
         }));
+        lines.push(format!(
+            "binding_fingerprint={}",
+            self.binding_identities.fingerprint
+        ));
+        lines.extend(self.binding_identities.bindings.iter().map(|binding| {
+            format!(
+                "binding={:016x} region={:016x} name={} kind={:?} path={}",
+                binding.id.0, binding.region.0, binding.name, binding.kind, binding.path
+            )
+        }));
+        lines.extend(self.binding_identities.references.iter().map(|reference| {
+            format!(
+                "binding_reference={:016x} name={} path={}",
+                reference.binding.0, reference.name, reference.path
+            )
+        }));
+        lines.extend(self.termination.contract_lines());
         lines.push(format!(
             "metadata=functions:{} types:{} constructors:{} proof_readiness:{} proof_expr_lean:{} proof_expr_partial:{} proof_expr_model_required:{} proof_expr_runtime_boundary:{} proof_expr_artifact_only:{} proof_pattern_lean:{} proof_pattern_partial:{} proof_pattern_model_required:{} proof_pattern_runtime_boundary:{} proof_pattern_artifact_only:{} typed_core_expr:{} summary_only_expr:{} typed_core_pattern:{} summary_only_pattern:{} typed_core_type:{} summary_only_type:{} checked_preservation_expr:{} checked_preservation_pattern:{} checked_preservation_expr_structural:{} checked_preservation_pattern_structural:{} checked_preservation_expr_no_runtime_bindings:{} checked_preservation_pattern_no_runtime_bindings:{} checked_preservation_expr_runtime_bindings_required:{} checked_preservation_pattern_runtime_bindings_required:{} resolved_constructor_call_identity:{} resolved_constructor_chain_identity:{} resolved_constructor_pattern_identity:{} unresolved_constructor_call_candidate:{} unresolved_constructor_chain_candidate:{} unresolved_constructor_pattern_candidate:{}",
             self.metadata.interface_function_count,

@@ -106,7 +106,7 @@ pub rotate_typechecks(
     receiver: DOMMatrixReadOnly,
     rot_x: JsNumber,
     rot_y: JsNumber,
-    rot_z: JsNumber
+    rot_z: JsNumber,
 ): DOMMatrix ->
     receiver.rotate(rot_x, rot_y, rot_z).
 
@@ -115,7 +115,7 @@ pub rotate_axis_angle_typechecks(
     x: JsNumber,
     y: JsNumber,
     z: JsNumber,
-    angle: JsNumber
+    angle: JsNumber,
 ): DOMMatrix ->
     receiver.rotate_axis_angle(x, y, z, angle).
 
@@ -129,7 +129,7 @@ pub scale_typechecks(
     scale_z: JsNumber,
     origin_x: JsNumber,
     origin_y: JsNumber,
-    origin_z: JsNumber
+    origin_z: JsNumber,
 ): DOMMatrix ->
     receiver.scale(scale_x, scale_y, scale_z, origin_x, origin_y, origin_z).
 
@@ -138,14 +138,14 @@ pub scale3d_typechecks(
     scale: JsNumber,
     origin_x: JsNumber,
     origin_y: JsNumber,
-    origin_z: JsNumber
+    origin_z: JsNumber,
 ): DOMMatrix ->
     receiver.scale3d(scale, origin_x, origin_y, origin_z).
 
 pub scale_non_uniform_typechecks(
     receiver: DOMMatrixReadOnly,
     scale_x: JsNumber,
-    scale_y: JsNumber
+    scale_y: JsNumber,
 ): DOMMatrix ->
     receiver.scale_non_uniform(scale_x, scale_y).
 
@@ -168,7 +168,7 @@ pub translate_typechecks(
     receiver: DOMMatrixReadOnly,
     tx: JsNumber,
     ty: JsNumber,
-    tz: JsNumber
+    tz: JsNumber,
 ): DOMMatrix ->
     receiver.translate(tx, ty, tz).
 

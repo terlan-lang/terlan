@@ -47,7 +47,7 @@ Important invariants:
 - Missing sibling artifacts are allowed because standard-library and
   runtime-native modules may not have package-local artifact files. Present
   but malformed or misidentified dependencies fail explicitly.
-- `--test-eval` accepts only boolean test results.
+- `--test` (alias for `--test-eval`) accepts only boolean test results.
 - User-facing errors must identify whether failure happened during read,
   compile, load, or execution.
 - Local VM instrumentation must use local-process providers and must not

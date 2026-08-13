@@ -1,0 +1,59 @@
+//! Portable UTC civil dates for validation, release evidence, and applications.
+
+module std.time.Date.
+
+/// One proleptic-Gregorian calendar date.
+
+pub struct Date {
+    year: Int,
+    month: Int,
+    day: Int
+}.
+
+/// Returns the one-based day of month.
+
+@pure
+pub day(date: Date): Int.
+
+/// Returns signed whole days from `start` to `end`.
+
+@pure
+pub days_between(start: Date, end: Date): Int.
+
+/// Returns whether both dates identify the same civil day.
+
+@pure
+pub equal(left: Date, right: Date): Bool.
+
+/// Returns whether `left` is earlier than `right`.
+
+@pure
+pub is_before(left: Date, right: Date): Bool.
+
+/// Returns the one-based calendar month.
+
+@pure
+pub month(date: Date): Int.
+
+/// Constructs a validated date between years 1 and 9999.
+
+@pure
+pub new(year: Int, month: Int, day: Int): Option[Date].
+
+/// Parses an exact `YYYY-MM-DD` date.
+
+pub parse_iso(source: String): Option[Date].
+
+/// Renders a canonical `YYYY-MM-DD` date.
+
+@pure
+pub to_iso(date: Date): String.
+
+/// Returns today's date in UTC through the VM-owned wall clock.
+
+pub today_utc(): Date.
+
+/// Returns the calendar year.
+
+@pure
+pub year(date: Date): Int.

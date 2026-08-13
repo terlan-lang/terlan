@@ -8,7 +8,10 @@ use crate::terlan_hir::{
 use crate::terlan_html::{
     scan_template_interpolations, validate_artifact_template_structure, HtmlDiagnostic, HtmlSpan,
 };
-use crate::terlan_syntax::{parse_module_as_syntax_output, EbnfCompileError, ParserError, Span};
+use crate::terlan_syntax::{
+    format_interface_source_module, format_script_source, format_source_module,
+    parse_module_as_syntax_output, EbnfCompileError, ParserError, Span,
+};
 use crate::terlan_typeck::{
     type_check_syntax_module_output_with_database_schema, DiagSeverity,
     Diagnostic as TypeDiagnostic,
@@ -28,14 +31,12 @@ use tower_lsp::lsp_types::{Position, Range, Url};
 ///   diagnostics can be republished without reparsing on close/snapshot paths.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct OpenDocument {
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) version: i32,
     pub(crate) language_id: String,
     pub(crate) kind: DocumentKind,
     pub(crate) text: String,
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) parse_ok: bool,
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) resolve_diagnostics: Vec<crate::terlan_hir::Diagnostic>,
     pub(crate) type_diagnostics: Vec<TypeDiagnostic>,
     pub(crate) template_diagnostics: Vec<HtmlDiagnostic>,
@@ -55,7 +56,47 @@ impl OpenDocument {
     /// - Projects the cached document kind into the parser routing decision used
     ///   by diagnostics, symbols, and definition lookup.
     pub(crate) fn is_source_like(&self) -> bool {
-        self.kind == DocumentKind::Source
+        matches!(self.kind, DocumentKind::Source | DocumentKind::Script)
+    }
+
+    /// Parses this document through its extension-selected compiler source mode.
+    pub(crate) fn parse_syntax(
+        &self,
+    ) -> crate::terlan_syntax::ebnf::EbnfCompileResult<crate::terlan_syntax::SyntaxModuleOutput>
+    {
+        match self.kind {
+            DocumentKind::Script => {
+                crate::terlan_syntax::parse_script_as_syntax_output(&self.text, "script.Editor")
+            }
+            DocumentKind::Source => parse_module_as_syntax_output(&self.text),
+            DocumentKind::Template => parse_module_as_syntax_output(&self.text),
+        }
+    }
+
+    /// Formats this document through the compiler-owned canonical formatter.
+    ///
+    /// Template documents deliberately return `None`: their outer syntax is
+    /// owned by HTML, Markdown, JSON, TOML, YAML, or plain-text tooling rather
+    /// than by the Terlan source formatter.
+    pub(crate) fn formatted_text(&self) -> Result<Option<String>, ParserError> {
+        let formatted = match self.kind {
+            DocumentKind::Script => format_script_source(&self.text),
+            DocumentKind::Source if self.language_id == "terlan-interface" => {
+                format_interface_source_module(&self.text)
+            }
+            DocumentKind::Source => format_source_module(&self.text),
+            DocumentKind::Template => return Ok(None),
+        };
+        formatted.map(Some)
+    }
+
+    /// Returns the UTF-16 LSP range covering the complete document.
+    pub(crate) fn full_range(&self) -> Range {
+        Range::new(
+            Position::new(0, 0),
+            Self::position_from_byte_offset(&self.text, self.text.len())
+                .expect("document end is always a valid byte offset"),
+        )
     }
 
     /// Converts an LSP UTF-16 position to a byte offset in this document.
@@ -125,9 +166,8 @@ impl OpenDocument {
         }
 
         let mut line_start = 0usize;
-        let mut line_number = 0u32;
 
-        for raw_line in text.split('\n') {
+        for (line_number, raw_line) in (0u32..).zip(text.split('\n')) {
             let line_length = raw_line.len();
             let normalized_line = if raw_line.ends_with('\r') {
                 &raw_line[..line_length.saturating_sub(1)]
@@ -168,7 +208,6 @@ impl OpenDocument {
             }
 
             line_start += raw_line.len() + 1;
-            line_number += 1;
         }
 
         None
@@ -232,6 +271,7 @@ impl OpenDocument {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum DocumentKind {
     Source,
+    Script,
     Template,
 }
 
@@ -266,9 +306,17 @@ impl DocumentKind {
     /// Transformation:
     /// - Uses the shared editor language-id prefix convention instead of file
     ///   extension parsing so untitled template buffers behave consistently.
-    fn from_language_id(language_id: &str) -> Self {
+    fn from_document(uri: &Url, language_id: &str) -> Self {
         if language_id.starts_with("terlan-template-") {
             Self::Template
+        } else if language_id == "terlan-script"
+            || uri
+                .path()
+                .rsplit('/')
+                .next()
+                .is_some_and(|name| name.ends_with(".terls"))
+        {
+            Self::Script
         } else {
             Self::Source
         }
@@ -302,7 +350,7 @@ impl OpenDocuments {
     ///
     /// Transformation:
     /// - Performs a read-only lookup in the open-document cache.
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn is_open(&self, uri: &Url) -> bool {
         self.documents
             .lock()
@@ -332,12 +380,24 @@ impl OpenDocuments {
         version: i32,
         language_id: String,
     ) -> Option<ParserError> {
-        let kind = DocumentKind::from_language_id(&language_id);
-        let (parse_ok, parse_error, resolve_diagnostics, type_diagnostics, template_diagnostics) =
+        let kind = DocumentKind::from_document(&uri, &language_id);
+        let (_parse_ok, parse_error, resolve_diagnostics, type_diagnostics, template_diagnostics) =
             match kind {
-                DocumentKind::Source => {
-                    let parse_result =
-                        parse_module_as_syntax_output(&text).map_err(Self::parser_error);
+                DocumentKind::Source | DocumentKind::Script => {
+                    let parse_result = match kind {
+                        DocumentKind::Script => {
+                            crate::terlan_syntax::parse_script_as_syntax_output(
+                                &text,
+                                &uri.to_file_path().ok().map_or_else(
+                                    || "script.Editor".to_string(),
+                                    |path| crate::formal_pipeline::script_module_name(&path),
+                                ),
+                            )
+                        }
+                        DocumentKind::Source => parse_module_as_syntax_output(&text),
+                        DocumentKind::Template => unreachable!("template handled separately"),
+                    }
+                    .map_err(Self::parser_error);
                     match parse_result {
                         Ok(module) => {
                             let interfaces = Self::interfaces_for_uri(&uri);
@@ -386,7 +446,8 @@ impl OpenDocuments {
                 language_id,
                 kind,
                 text,
-                parse_ok,
+                #[cfg(test)]
+                parse_ok: _parse_ok,
                 resolve_diagnostics,
                 type_diagnostics,
                 template_diagnostics,
@@ -406,7 +467,7 @@ impl OpenDocuments {
         };
         match crate::database_schema::DatabaseSchemaSnapshot::discover_for_source(&path) {
             Ok(snapshot) => (snapshot, None),
-            Err(error) => (None, Some(error)),
+            Err(error) => (None, Some(error.to_string())),
         }
     }
 
@@ -531,7 +592,7 @@ impl OpenDocuments {
     ///
     /// Transformation:
     /// - Performs a read-only cache length lookup for tests.
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn count(&self) -> usize {
         self.documents.lock().expect("open documents lock").len()
     }

@@ -2,7 +2,9 @@
 
 use std::collections::HashMap;
 
-use crate::terlan_typeck::{CoreExpr, CoreTupleTypeElem, CoreType};
+use crate::terlan_typeck::{
+    CoreExpr, CoreIntrinsicId, CorePattern, CorePrimitiveIntrinsic, CoreTupleTypeElem, CoreType,
+};
 
 use super::super::{native_type, NativeExpr, NativeType};
 
@@ -20,7 +22,7 @@ pub(super) fn core_expr_type(
     types: &HashMap<String, CoreType>,
     functions: &HashMap<(String, usize), CoreType>,
 ) -> Option<CoreType> {
-    match expr {
+    let inferred = match expr {
         CoreExpr::Int(_) => Some(CoreType::Int),
         CoreExpr::Float(_) => Some(CoreType::Float),
         CoreExpr::Binary(_) => Some(CoreType::String),
@@ -29,6 +31,16 @@ pub(super) fn core_expr_type(
         CoreExpr::Var(name) => types.get(name).cloned(),
         CoreExpr::Call { function, args } => {
             functions.get(&(function.clone(), args.len())).cloned()
+        }
+        CoreExpr::FunctionCall { callee, args } => {
+            let CoreType::Arrow {
+                params,
+                return_type,
+            } = core_expr_type(callee, types, functions)?
+            else {
+                return None;
+            };
+            (params.len() == args.len()).then(|| return_type.as_ref().clone())
         }
         CoreExpr::Tuple(items) => items
             .iter()
@@ -42,9 +54,148 @@ pub(super) fn core_expr_type(
                 .all(|item| core_expr_type(item, types, functions) == Some(first.clone()))
                 .then(|| CoreType::List(Box::new(first)))
         }
+        CoreExpr::FieldAccess { base, field } | CoreExpr::RecordAccess { base, field, .. } => {
+            let base = core_expr_type(base, types, functions)?;
+            let CoreType::Struct { fields, .. } = base else {
+                return None;
+            };
+            fields
+                .into_iter()
+                .find(|candidate| candidate.name == *field)
+                .map(|candidate| candidate.ty)
+        }
+        CoreExpr::Index { base, index } => {
+            let CoreExpr::Int(index) = index.as_ref() else {
+                return None;
+            };
+            let index = usize::try_from(*index).ok()?;
+            match core_expr_type(base, types, functions)? {
+                CoreType::Tuple(elements) => elements.get(index).map(tuple_element_type).cloned(),
+                CoreType::List(element) => Some(*element),
+                CoreType::Apply { constructor, args }
+                    if constructor.rsplit('.').next() == Some("List") && args.len() == 1 =>
+                {
+                    args.into_iter().next()
+                }
+                _ => None,
+            }
+        }
+        CoreExpr::Cast { expr, target_type }
+            if matches!(target_type, CoreType::Dynamic)
+                || matches!(target_type, CoreType::Named(name) if name == "Dynamic") =>
+        {
+            core_expr_type(expr, types, functions)
+        }
         CoreExpr::Cast { target_type, .. } => Some(target_type.clone()),
+        CoreExpr::Intrinsic(call)
+            if matches!(
+                call.id,
+                CoreIntrinsicId::Primitive(
+                    CorePrimitiveIntrinsic::ListConcat
+                        | CorePrimitiveIntrinsic::ListSubtract
+                        | CorePrimitiveIntrinsic::ListIterator
+                        | CorePrimitiveIntrinsic::ListPush
+                        | CorePrimitiveIntrinsic::ListClear
+                )
+            ) =>
+        {
+            call.args
+                .first()
+                .and_then(|operand| core_expr_type(operand, types, functions))
+        }
         CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
+        CoreExpr::Let { bindings, body } => {
+            let mut lexical = types.clone();
+            for binding in bindings {
+                let CorePattern::Var(name) = &binding.pattern else {
+                    return None;
+                };
+                if let Some(ty) = core_expr_type(&binding.value, &lexical, functions) {
+                    lexical.insert(name.clone(), ty);
+                }
+            }
+            core_expr_type(body, &lexical, functions)
+        }
+        CoreExpr::If { clauses } => {
+            control_result_type(clauses.iter().map(|clause| &clause.body), types, functions)
+        }
+        CoreExpr::Case { clauses, .. } => {
+            control_result_type(clauses.iter().map(|clause| &clause.body), types, functions)
+        }
         _ => None,
+    };
+    inferred.map(transparent_message_payload)
+}
+
+/// Recovers one checked control result while permitting the atom-form nullary
+/// `None` arm to inherit the concrete managed `Option` representation from a
+/// sibling. Type checking has already established branch compatibility; this
+/// step restores the erased structural type needed by NativeIR allocation.
+fn control_result_type<'a>(
+    expressions: impl Iterator<Item = &'a CoreExpr>,
+    types: &HashMap<String, CoreType>,
+    functions: &HashMap<(String, usize), CoreType>,
+) -> Option<CoreType> {
+    let mut result = None;
+    let mut inherited_none = false;
+    for expression in expressions {
+        if is_nullary_none(expression) {
+            inherited_none = true;
+            continue;
+        }
+        match core_expr_type(expression, types, functions) {
+            Some(found) => match &result {
+                Some(expected) if expected != &found => return None,
+                None => result = Some(found),
+                _ => {}
+            },
+            None => return None,
+        }
+    }
+    let result = result?;
+    if inherited_none && !option_like_type(&result) {
+        return None;
+    }
+    Some(result)
+}
+
+fn is_nullary_none(expr: &CoreExpr) -> bool {
+    match expr {
+        CoreExpr::Atom(name) | CoreExpr::Var(name) => name.eq_ignore_ascii_case("none"),
+        CoreExpr::ConstructorCall {
+            constructor, args, ..
+        } => args.is_empty() && constructor.rsplit('.').next() == Some("None"),
+        CoreExpr::Cast { expr, .. } => is_nullary_none(expr),
+        CoreExpr::Let { body, .. } => is_nullary_none(body),
+        CoreExpr::If { clauses } => {
+            !clauses.is_empty() && clauses.iter().all(|clause| is_nullary_none(&clause.body))
+        }
+        CoreExpr::Case { clauses, .. } => {
+            !clauses.is_empty() && clauses.iter().all(|clause| is_nullary_none(&clause.body))
+        }
+        _ => false,
+    }
+}
+
+fn option_like_type(ty: &CoreType) -> bool {
+    match ty {
+        CoreType::Apply { constructor, args } => {
+            constructor.rsplit('.').next() == Some("Option") && args.len() == 1
+        }
+        CoreType::Union(variants) => variants
+            .iter()
+            .any(|variant| matches!(variant, CoreType::AtomLiteral(name) if name == "none")),
+        _ => false,
+    }
+}
+
+fn transparent_message_payload(ty: CoreType) -> CoreType {
+    match ty {
+        CoreType::Apply {
+            constructor,
+            mut args,
+        } if constructor.rsplit('.').next() == Some("Message") && args.len() == 1 => args.remove(0),
+        other => other,
     }
 }
 

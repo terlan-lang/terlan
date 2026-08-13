@@ -1,0 +1,46 @@
+{
+  "schema": "terlan.lean-proof-replay.v1",
+  "family": "semantic-smoke-chain",
+  "theorem_names": [
+    "Terlan.Smoke.SemanticChain.parserToCoreTyping",
+    "Terlan.Smoke.SemanticChain.coreToVmEvaluation",
+    "Terlan.Smoke.SemanticChain.vmOwnsProcessExecution",
+    "Terlan.Smoke.SemanticChain.unsupportedTargetsRejectProcessExecution",
+    "Terlan.Smoke.SemanticChain.nativeBoundaryDispatchAdmitted",
+    "Terlan.Smoke.SemanticChain.nativeBoundaryRejectsForeignOwner",
+    "Terlan.Smoke.SemanticChain.semanticChain"
+  ],
+  "manifest_fingerprints": {
+    "proofs/lean/smoke/SemanticSmokeTest.terl": "sha256:61ece286c59dbe360eda67ab96fbde0591a387a98dd34ad8ec1783ba0d5a2cdf",
+    "proofs/lean/smoke/UnsupportedNativeBridge.terl": "sha256:68881809a18a4e17e87634767fd963ccc3df1388bed6fd4d4267ddf6bfe02d3a",
+    "proofs/lean/smoke/smoke-manifest.tsv": "sha256:356840be700a6aee9cc9ed65e97a209746e2bf2f3a74674082e7bc35d548c42c"
+  },
+  "dependency_files": [
+    "proofs/lean/lake-manifest.json",
+    "proofs/lean/lakefile.lean",
+    "proofs/lean/lean-toolchain"
+  ],
+  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+  "source_digest": "sha256:35e967e46a00e564f0e56ea95afc63b6d032496f435cf2bb87a095e9e6ea2014",
+  "execution_command": [
+    "lake",
+    "env",
+    "lean",
+    "Terlan/Smoke/SemanticChain.lean"
+  ],
+  "working_directory": "proofs/lean",
+  "deterministic_timestamp_strategy": "none-content-addressed",
+  "output_signature": {
+    "stdout_class": "empty",
+    "stderr_class": "empty",
+    "exit_class": "success"
+  },
+  "toolchain": {
+    "lean_version": "4.31.0",
+    "elan_channel": "leanprover/lean4:v4.31.0",
+    "lake_flags": [
+      "env",
+      "lean"
+    ]
+  }
+}

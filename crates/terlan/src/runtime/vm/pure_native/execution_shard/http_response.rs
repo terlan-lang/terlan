@@ -106,24 +106,6 @@ impl PureNativeExecutionShard {
         Ok(execution)
     }
 
-    /// Runs one synchronous handler call and copies a non-file Response into a
-    /// typed envelope before releasing the request heap.
-    #[allow(dead_code)] // Retained for the typed HTTP response fast path.
-    pub(crate) fn call_on_fixed_owner_http_response(
-        &mut self,
-        owner: VmProcessId,
-        function: &str,
-        args: &[ReplValue],
-    ) -> Result<VmHttpCallResult, String> {
-        if !self.actors.is_alive(owner) {
-            return Err(format!(
-                "error[execution_shard.fixed_owner]: actor {} is not alive",
-                owner.as_u64()
-            ));
-        }
-        self.call_on_admitted_fixed_owner_http_response(owner, function, args)
-    }
-
     /// Runs a synchronous call on the service actor retained exclusively by
     /// an admitted owner-local shard.
     ///
@@ -161,7 +143,7 @@ impl PureNativeExecutionShard {
                         return Ok(VmHttpCallResult::Response(response));
                     }
                     PureNativeExecution::Suspended(suspension) => {
-                        self.resume_call(owner, suspension)?
+                        self.resume_call(owner, *suspension)?
                     }
                 };
             }

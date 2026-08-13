@@ -1,4 +1,7 @@
-use super::{VmSupervisionBackoffCompletion, VmSupervisionBackoffQueue, VmSupervisionBackoffStart};
+use super::{
+    VmSupervisionBackoffCompletion, VmSupervisionBackoffQueue, VmSupervisionBackoffStart,
+    VmSupervisionRestartRequest,
+};
 use crate::runtime::vm::{
     process::{VmExitReason, VmProcessId, VmProcessSource, VmProcessState, VmProcessTable},
     scheduler::VmScheduler,
@@ -68,10 +71,7 @@ fn one_for_all_backoff_restarts_children_at_individual_vm_deadlines() {
             &mut supervision,
             &mut timers,
             &mut processes,
-            supervisor,
-            "alpha",
-            VmExitReason::Killed,
-            100,
+            VmSupervisionRestartRequest::new(supervisor, "alpha", VmExitReason::Killed, 100),
         )
         .expect("schedule group")
     else {
@@ -171,10 +171,7 @@ fn rest_for_one_backoff_preserves_earlier_children() {
             &mut supervision,
             &mut timers,
             &mut processes,
-            supervisor,
-            "failed",
-            VmExitReason::Killed,
-            20,
+            VmSupervisionRestartRequest::new(supervisor, "failed", VmExitReason::Killed, 20),
         )
         .expect("schedule rest-for-one")
     else {
@@ -235,10 +232,7 @@ fn group_backoff_restarts_zero_delay_child_before_delayed_sibling() {
             &mut supervision,
             &mut timers,
             &mut processes,
-            supervisor,
-            "immediate",
-            VmExitReason::Killed,
-            10,
+            VmSupervisionRestartRequest::new(supervisor, "immediate", VmExitReason::Killed, 10),
         )
         .expect("schedule mixed group")
     else {
@@ -285,10 +279,12 @@ fn group_backoff_preflight_is_atomic_for_limit_and_deadline_overflow() {
                         &mut supervision,
                         &mut timers,
                         &mut processes,
-                        supervisor,
-                        "alpha",
-                        VmExitReason::Killed,
-                        now_tick,
+                        VmSupervisionRestartRequest::new(
+                            supervisor,
+                            "alpha",
+                            VmExitReason::Killed,
+                            now_tick,
+                        ),
                     )
                     .expect("limit outcome"),
                 VmSupervisionBackoffStart::Immediate(VmSupervisionRestart::LimitReached {
@@ -302,10 +298,12 @@ fn group_backoff_preflight_is_atomic_for_limit_and_deadline_overflow() {
                     &mut supervision,
                     &mut timers,
                     &mut processes,
-                    supervisor,
-                    "alpha",
-                    VmExitReason::Killed,
-                    now_tick,
+                    VmSupervisionRestartRequest::new(
+                        supervisor,
+                        "alpha",
+                        VmExitReason::Killed,
+                        now_tick,
+                    ),
                 )
                 .expect_err("deadline overflow");
             assert!(error.contains("deadline overflow"));

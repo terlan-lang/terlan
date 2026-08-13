@@ -13,8 +13,8 @@ pub struct VmDiagnosticsQualitySummary {
 const DIAGNOSTICS_CONTRACT_DOC: &str = "docs/runtime/VM_DIAGNOSTICS_QUALITY.md";
 
 const VM_MAIN_SOURCES: &[&str] = &[
-    "crates/terlan/src/vm/main_part_001.rs",
-    "crates/terlan/src/vm/main_part_002.rs",
+    "crates/terlan/src/lib.rs",
+    "crates/terlan/src/vm/arguments.rs",
     "crates/terlan/src/vm/main/inspection.rs",
 ];
 
@@ -59,12 +59,12 @@ const REQUIRED_REPL_TERMS: &[&str] = &[
 const REQUIRED_MAKE_SELECTORS: &[&str] = &[
     "runtime::native_image::native_image_test::native_inspection_rejects_json_and_non_executables",
     "runtime::native_image::native_image_test::descriptor_rejects_tampering_and_noncanonical_records",
-    "runtime::vm::actor::actor_test::actor_runtime_reports_missing_and_exited_context_diagnostics",
+    "runtime::vm::actor::tests::actor_test::actor_runtime_reports_missing_and_exited_context_diagnostics",
     "runtime::vm::code_server::code_server_test::code_server_reports_missing_module_and_exited_process_diagnostics",
     "runtime::vm::resource::resource_test::resource_table_reports_stale_handle_after_release",
     "runtime::native_boundary::runtime::runtime_test::runtime_rejects_malformed_payload_with_typed_error",
     "runtime::native_boundary::worker::worker_test::worker_begin_request_rejects_duplicate_request_id",
-    "commands::repl::repl_test::repl_json_event_without_extra_fields_is_valid_json",
+    "commands::repl::repl_test::prompt_state::repl_json_event_without_extra_fields_is_valid_json",
     "runtime::vm::io_diagnostics::io_diagnostics_test::diagnostic_probe_latches_only_post_install_typed_resource_fault",
     "runtime::vm::io_diagnostics::io_diagnostics_test::diagnostic_probe_enforces_log_identity_and_close_lifecycle",
 ];
@@ -203,4 +203,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_diagnostics_quality_test.rs"]
+#[cfg(test)]
 mod vm_diagnostics_quality_test;

@@ -8,15 +8,21 @@ mod tests {
     use crate::terlan_syntax::{parse_module_as_syntax_output, SyntaxModuleOutput};
     use crate::terlan_typeck::{
         CoreCaseClause, CoreCheckedPreservationEvidence, CoreCheckedPreservationEvidenceKind,
-        CoreFunction, CoreFunctionClause, CoreIfClause, CoreModuleMetadata, CoreParam,
-        CoreProofReadiness, CoreSourceIdentity, CoreSubstitutionFreshnessEvidence, CORE_IR_SCHEMA,
+        CoreExpr, CoreExprSummary, CoreFunction, CoreFunctionClause, CoreIfClause,
+        CoreModuleMetadata, CoreParam, CorePattern, CoreProofReadiness, CoreSourceIdentity,
+        CoreSubstitutionFreshnessEvidence, CORE_IR_SCHEMA,
     };
     use std::collections::{HashMap, HashSet};
 
+    #[cfg(test)]
     mod a0_progression_test;
+    #[cfg(test)]
     mod binary_pattern_test;
+    #[cfg(test)]
     mod direct_core_shape_test;
+    #[cfg(test)]
     mod std_bridge_test;
+    #[cfg(test)]
     mod target_family_test;
 
     /// Lowers source text to a typed Core module through the formal syntax-output

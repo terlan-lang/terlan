@@ -8,11 +8,24 @@ module benchmark.BinaryProtocolBenchmarkTest.
 
 import std.binary.Binary.{BigEndian, BinaryConstructError, DecodedField, DecodedProtocol, DuplicateField, InvalidWidth, ProtocolShape, UnsupportedRuntime, compact_frame_shape, compose_header_body, decode_exact, decode_prefixed_body, decoded_bytes_field, decoded_int_field, decoded_protocol_bytes_value, decoded_protocol_int_value, decoded_protocol_remaining_bytes, encode_exact, make_byte_span, make_rest, make_uint, protocol_field, protocol_shape, validate_protocol_shape}.
 import std.collections.List.
-import std.core.Option.{Some}.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.test.Test.{assert_equal}.
 import std.vm.Bytes.
-import type std.core.Result.
+
+import type std.core.{Option, Result}.
+
+option_int_equals(value: Option[Int], expected: Int): Bool ->
+    case value {
+        Some(actual) -> actual == expected;
+        None -> false
+    }.
+
+option_bytes_equals(value: Option[std.vm.Bytes.Bytes], expected: std.vm.Bytes.Bytes): Bool ->
+    case value {
+        Some(actual) -> actual == expected;
+        None -> false
+    }.
 
 pub benchmark_int_field(name: String, value: Int): DecodedField ->
     decoded_int_field(name, value).
@@ -31,9 +44,9 @@ pub fixed_header_shape(): ProtocolShape ->
             protocol_field("request_id", make_uint(32)),
             protocol_field("flags", make_uint(8)),
             protocol_field("sequence", make_uint(16)),
-            protocol_field("checksum", make_byte_span(2))
+            protocol_field("checksum", make_byte_span(2)),
         ),
-        false
+        false,
     ).
 
 pub fixed_header_value(): DecodedProtocol ->
@@ -42,46 +55,32 @@ pub fixed_header_value(): DecodedProtocol ->
             benchmark_int_field("request_id", 16909060),
             benchmark_int_field("flags", 5),
             benchmark_int_field("sequence", 258),
-            benchmark_bytes_field("checksum", Bytes.from_list([170, 187]))
+            benchmark_bytes_field("checksum", Bytes.from_list([170, 187])),
         ),
-        Bytes.from_list([])
+        Bytes.from_list([]),
     ).
 
 pub repeat_fixed_header(count: Int): Bool ->
     if {
-    count <= 0 -> true;
-    true -> case encode_exact(fixed_header_shape(), fixed_header_value()) {
-            Err(_reason) -> false;
-            Ok(frame) -> case decode_prefixed_body(fixed_header_shape(), frame) {
-                    Err(_reason) -> false;
-                    Ok(decoded) ->
-                        assert_equal(Bytes.from_list([1, 2, 3, 4, 5, 1, 2, 170, 187]), frame) and
-                            decoded_protocol_int_value(decoded, "request_id") == Some(16909060) and
-                            decoded_protocol_bytes_value(decoded, "checksum") == Some(Bytes.from_list([170, 187])) and
-                            decoded_protocol_remaining_bytes(decoded).length() == 0 and
-                            repeat_fixed_header(count - 1)
-                }
-        }
+        count <= 0 -> true;
+        true -> let {
+            Ok(frame) <- encode_exact(fixed_header_shape(), fixed_header_value());
+            Ok(decoded) <- decode_prefixed_body(fixed_header_shape(), frame)
+        } else {
+            _ -> false
+        };
+        assert_equal(Bytes.from_list([1, 2, 3, 4, 5, 1, 2, 170, 187]), frame)
+            and option_int_equals(decoded_protocol_int_value(decoded, "request_id"), 16909060)
+            and option_bytes_equals(decoded_protocol_bytes_value(decoded, "checksum"), Bytes.from_list([170, 187]))
+            and decoded_protocol_remaining_bytes(decoded).length() == 0
+            and repeat_fixed_header(count - 1)
     }.
 
 pub repeat_fixed_header_100(): Bool ->
-    repeat_fixed_header(20) and
-        repeat_fixed_header(20) and
-        repeat_fixed_header(20) and
-        repeat_fixed_header(20) and
-        repeat_fixed_header(20).
+    repeat_fixed_header(100).
 
 pub repeat_fixed_header_1000(): Bool ->
-    repeat_fixed_header_100() and
-        repeat_fixed_header_100() and
-        repeat_fixed_header_100() and
-        repeat_fixed_header_100() and
-        repeat_fixed_header_100() and
-        repeat_fixed_header_100() and
-        repeat_fixed_header_100() and
-        repeat_fixed_header_100() and
-        repeat_fixed_header_100() and
-        repeat_fixed_header_100().
+    repeat_fixed_header(1000).
 
 pub variable_body_value(length: Int, body: std.vm.Bytes.Bytes): DecodedProtocol ->
     benchmark_protocol(
@@ -90,53 +89,36 @@ pub variable_body_value(length: Int, body: std.vm.Bytes.Bytes): DecodedProtocol 
             benchmark_int_field("flags", 5),
             benchmark_int_field("version", 1),
             benchmark_int_field("kind", 2),
-            benchmark_int_field("length", length)
+            benchmark_int_field("length", length),
         ),
-        body
+        body,
     ).
 
 pub repeat_variable_body(shape: ProtocolShape, count: Int): Bool ->
     if {
-    count <= 0 -> true;
-    true ->
-        let short = variable_body_value(1, Bytes.from_list([170]));
+        count <= 0 -> true;
+        true -> let short = variable_body_value(1, Bytes.from_list([170]));
         let long = variable_body_value(4, Bytes.from_list([170, 187, 204, 221]));
-        case encode_exact(shape, short) {
-            Err(_reason) -> false;
-            Ok(short_frame) -> case encode_exact(shape, long) {
-                    Err(_reason) -> false;
-                    Ok(long_frame) -> case decode_prefixed_body(shape, long_frame) {
-                            Err(_reason) -> false;
-                            Ok(decoded) ->
-                                assert_equal(Bytes.from_list([18, 52, 5, 18, 0, 1, 170]), short_frame) and
-                                    assert_equal(Bytes.from_list([18, 52, 5, 18, 0, 4, 170, 187, 204, 221]), long_frame) and
-                                    decoded_protocol_int_value(decoded, "stream_id") == Some(4660) and
-                                    decoded_protocol_int_value(decoded, "length") == Some(4) and
-                                    assert_equal(Bytes.from_list([170, 187, 204, 221]), decoded_protocol_remaining_bytes(decoded)) and
-                                    repeat_variable_body(shape, count - 1)
-                        }
-                }
-        }
+        let {
+            Ok(short_frame) <- encode_exact(shape, short);
+            Ok(long_frame) <- encode_exact(shape, long);
+            Ok(decoded) <- decode_prefixed_body(shape, long_frame)
+        } else {
+            _ -> false
+        };
+        assert_equal(Bytes.from_list([18, 52, 5, 18, 0, 1, 170]), short_frame)
+            and assert_equal(Bytes.from_list([18, 52, 5, 18, 0, 4, 170, 187, 204, 221]), long_frame)
+            and option_int_equals(decoded_protocol_int_value(decoded, "stream_id"), 4660)
+            and option_int_equals(decoded_protocol_int_value(decoded, "length"), 4)
+            and assert_equal(Bytes.from_list([170, 187, 204, 221]), decoded_protocol_remaining_bytes(decoded))
+            and repeat_variable_body(shape, count - 1)
     }.
 
 pub repeat_variable_body_100(shape: ProtocolShape): Bool ->
-    repeat_variable_body(shape, 20) and
-        repeat_variable_body(shape, 20) and
-        repeat_variable_body(shape, 20) and
-        repeat_variable_body(shape, 20) and
-        repeat_variable_body(shape, 20).
+    repeat_variable_body(shape, 100).
 
 pub repeat_variable_body_1000(shape: ProtocolShape): Bool ->
-    repeat_variable_body_100(shape) and
-        repeat_variable_body_100(shape) and
-        repeat_variable_body_100(shape) and
-        repeat_variable_body_100(shape) and
-        repeat_variable_body_100(shape) and
-        repeat_variable_body_100(shape) and
-        repeat_variable_body_100(shape) and
-        repeat_variable_body_100(shape) and
-        repeat_variable_body_100(shape) and
-        repeat_variable_body_100(shape).
+    repeat_variable_body(shape, 1000).
 
 pub invalid_fixed_header_value(): DecodedProtocol ->
     benchmark_protocol(
@@ -144,116 +126,74 @@ pub invalid_fixed_header_value(): DecodedProtocol ->
             benchmark_int_field("request_id", 16909060),
             benchmark_int_field("flags", 256),
             benchmark_int_field("sequence", 258),
-            benchmark_bytes_field("checksum", Bytes.from_list([170, 187]))
+            benchmark_bytes_field("checksum", Bytes.from_list([170, 187])),
         ),
-        Bytes.from_list([])
+        Bytes.from_list([]),
     ).
 
 pub repeat_invalid_width(count: Int): Bool ->
     if {
-    count <= 0 -> true;
-    true -> case encode_exact(fixed_header_shape(), invalid_fixed_header_value()) {
+        count <= 0 -> true;
+        true -> case encode_exact(fixed_header_shape(), invalid_fixed_header_value()) {
             Err(reason) -> assert_equal(InvalidWidth, reason) and repeat_invalid_width(count - 1);
             Ok(_frame) -> false
         }
     }.
 
 pub repeat_invalid_width_100(): Bool ->
-    repeat_invalid_width(20) and
-        repeat_invalid_width(20) and
-        repeat_invalid_width(20) and
-        repeat_invalid_width(20) and
-        repeat_invalid_width(20).
+    repeat_invalid_width(100).
 
 pub repeat_invalid_width_1000(): Bool ->
-    repeat_invalid_width_100() and
-        repeat_invalid_width_100() and
-        repeat_invalid_width_100() and
-        repeat_invalid_width_100() and
-        repeat_invalid_width_100() and
-        repeat_invalid_width_100() and
-        repeat_invalid_width_100() and
-        repeat_invalid_width_100() and
-        repeat_invalid_width_100() and
-        repeat_invalid_width_100().
+    repeat_invalid_width(1000).
 
 pub duplicate_capture_shape(): ProtocolShape ->
     protocol_shape(
         "duplicate_capture",
         BigEndian,
-        List(
-            protocol_field("capture", make_uint(8)),
-            protocol_field("capture", make_uint(16))
-        ),
-        false
+        List(protocol_field("capture", make_uint(8)), protocol_field("capture", make_uint(16))),
+        false,
     ).
 
 pub repeat_duplicate_capture(count: Int): Bool ->
     if {
-    count <= 0 -> true;
-    true -> case validate_protocol_shape(duplicate_capture_shape()) {
-            Err(reason) -> assert_equal(DuplicateField, reason) and repeat_duplicate_capture(count - 1);
+        count <= 0 -> true;
+        true -> case validate_protocol_shape(duplicate_capture_shape()) {
+            Err(reason) ->
+                assert_equal(DuplicateField, reason) and repeat_duplicate_capture(count - 1);
             Ok(_shape) -> false
         }
     }.
 
 pub repeat_duplicate_capture_100(): Bool ->
-    repeat_duplicate_capture(20) and
-        repeat_duplicate_capture(20) and
-        repeat_duplicate_capture(20) and
-        repeat_duplicate_capture(20) and
-        repeat_duplicate_capture(20).
+    repeat_duplicate_capture(100).
 
 pub repeat_duplicate_capture_1000(): Bool ->
-    repeat_duplicate_capture_100() and
-        repeat_duplicate_capture_100() and
-        repeat_duplicate_capture_100() and
-        repeat_duplicate_capture_100() and
-        repeat_duplicate_capture_100() and
-        repeat_duplicate_capture_100() and
-        repeat_duplicate_capture_100() and
-        repeat_duplicate_capture_100() and
-        repeat_duplicate_capture_100() and
-        repeat_duplicate_capture_100().
+    repeat_duplicate_capture(1000).
 
 pub repeat_unsupported_backend(count: Int): Bool ->
     if {
-    count <= 0 -> true;
-    true -> case decode_exact(make_rest(), "protocol payload") {
-            Err(reason) -> assert_equal(UnsupportedRuntime, reason) and repeat_unsupported_backend(count - 1);
+        count <= 0 -> true;
+        true -> case decode_exact(make_rest(), "protocol payload") {
+            Err(reason) ->
+                assert_equal(UnsupportedRuntime, reason) and repeat_unsupported_backend(count - 1);
             Ok(_value) -> false
         }
     }.
 
 pub repeat_unsupported_backend_100(): Bool ->
-    repeat_unsupported_backend(20) and
-        repeat_unsupported_backend(20) and
-        repeat_unsupported_backend(20) and
-        repeat_unsupported_backend(20) and
-        repeat_unsupported_backend(20).
+    repeat_unsupported_backend(100).
 
 pub repeat_unsupported_backend_1000(): Bool ->
-    repeat_unsupported_backend_100() and
-        repeat_unsupported_backend_100() and
-        repeat_unsupported_backend_100() and
-        repeat_unsupported_backend_100() and
-        repeat_unsupported_backend_100() and
-        repeat_unsupported_backend_100() and
-        repeat_unsupported_backend_100() and
-        repeat_unsupported_backend_100() and
-        repeat_unsupported_backend_100() and
-        repeat_unsupported_backend_100().
+    repeat_unsupported_backend(1000).
 
 pub variable_body_shape(): Result[ProtocolShape, BinaryConstructError] ->
-    let header = protocol_shape(
-        "benchmark_outer_header",
-        BigEndian,
-        List(
-            protocol_field("stream_id", make_uint(16)),
-            protocol_field("flags", make_uint(8))
-        ),
-        false
-    );
+    let header =
+        protocol_shape(
+            "benchmark_outer_header",
+            BigEndian,
+            List(protocol_field("stream_id", make_uint(16)), protocol_field("flags", make_uint(8))),
+            false,
+        );
     compose_header_body(header, compact_frame_shape()).
 
 pub run_variable_body(count: Int): Bool ->
@@ -275,66 +215,84 @@ pub run_variable_body_1000(): Bool ->
     }.
 
 @test
-pub fixed_header_protocol_benchmark_1(): Bool -> repeat_fixed_header(1).
+pub fixed_header_protocol_benchmark_1(): Bool ->
+    repeat_fixed_header(1).
 
 @test
-pub fixed_header_protocol_benchmark_10(): Bool -> repeat_fixed_header(10).
+pub fixed_header_protocol_benchmark_10(): Bool ->
+    repeat_fixed_header(10).
 
 @test
-pub fixed_header_protocol_benchmark_100(): Bool -> repeat_fixed_header_100().
+pub fixed_header_protocol_benchmark_100(): Bool ->
+    repeat_fixed_header_100().
 
 @test
-pub fixed_header_protocol_benchmark_1000(): Bool -> repeat_fixed_header_1000().
+pub fixed_header_protocol_benchmark_1000(): Bool ->
+    repeat_fixed_header_1000().
 
 @test
-pub composed_variable_body_protocol_benchmark_1(): Bool -> run_variable_body(1).
+pub composed_variable_body_protocol_benchmark_1(): Bool ->
+    run_variable_body(1).
 
 @test
-pub composed_variable_body_protocol_benchmark_10(): Bool -> run_variable_body(10).
+pub composed_variable_body_protocol_benchmark_10(): Bool ->
+    run_variable_body(10).
 
 @test
-pub composed_variable_body_protocol_benchmark_100(): Bool -> run_variable_body_100().
+pub composed_variable_body_protocol_benchmark_100(): Bool ->
+    run_variable_body_100().
 
 @test
-pub composed_variable_body_protocol_benchmark_1000(): Bool -> run_variable_body_1000().
+pub composed_variable_body_protocol_benchmark_1000(): Bool ->
+    run_variable_body_1000().
 
 @test
-pub adversarial_invalid_width_protocol_benchmark_1(): Bool -> repeat_invalid_width(1).
+pub adversarial_invalid_width_protocol_benchmark_1(): Bool ->
+    repeat_invalid_width(1).
 
 @test
-pub adversarial_invalid_width_protocol_benchmark_10(): Bool -> repeat_invalid_width(10).
+pub adversarial_invalid_width_protocol_benchmark_10(): Bool ->
+    repeat_invalid_width(10).
 
 @test
-pub adversarial_invalid_width_protocol_benchmark_100(): Bool -> repeat_invalid_width_100().
+pub adversarial_invalid_width_protocol_benchmark_100(): Bool ->
+    repeat_invalid_width_100().
 
 @test
-pub adversarial_invalid_width_protocol_benchmark_1000(): Bool -> repeat_invalid_width_1000().
+pub adversarial_invalid_width_protocol_benchmark_1000(): Bool ->
+    repeat_invalid_width_1000().
 
 @test
-pub adversarial_duplicate_capture_protocol_benchmark_1(): Bool -> repeat_duplicate_capture(1).
+pub adversarial_duplicate_capture_protocol_benchmark_1(): Bool ->
+    repeat_duplicate_capture(1).
 
 @test
-pub adversarial_duplicate_capture_protocol_benchmark_10(): Bool -> repeat_duplicate_capture(10).
+pub adversarial_duplicate_capture_protocol_benchmark_10(): Bool ->
+    repeat_duplicate_capture(10).
 
 @test
-pub adversarial_duplicate_capture_protocol_benchmark_100(): Bool -> repeat_duplicate_capture_100().
+pub adversarial_duplicate_capture_protocol_benchmark_100(): Bool ->
+    repeat_duplicate_capture_100().
 
 @test
-pub adversarial_duplicate_capture_protocol_benchmark_1000(): Bool -> repeat_duplicate_capture_1000().
+pub adversarial_duplicate_capture_protocol_benchmark_1000(): Bool ->
+    repeat_duplicate_capture_1000().
 
 @test
-pub adversarial_unsupported_backend_protocol_benchmark_1(): Bool -> repeat_unsupported_backend(1).
+pub adversarial_unsupported_backend_protocol_benchmark_1(): Bool ->
+    repeat_unsupported_backend(1).
 
 @test
-pub adversarial_unsupported_backend_protocol_benchmark_10(): Bool -> repeat_unsupported_backend(10).
+pub adversarial_unsupported_backend_protocol_benchmark_10(): Bool ->
+    repeat_unsupported_backend(10).
 
 @test
-pub adversarial_unsupported_backend_protocol_benchmark_100(): Bool -> repeat_unsupported_backend_100().
+pub adversarial_unsupported_backend_protocol_benchmark_100(): Bool ->
+    repeat_unsupported_backend_100().
 
 @test
-pub adversarial_unsupported_backend_protocol_benchmark_1000(): Bool -> repeat_unsupported_backend_1000().
-
-/* Warm cases execute three fixed steady-state loops after one module load. */
+pub adversarial_unsupported_backend_protocol_benchmark_1000(): Bool ->
+    repeat_unsupported_backend_1000().
 
 @test
 pub fixed_header_protocol_benchmark_1_warm(): Bool ->
@@ -394,27 +352,39 @@ pub adversarial_duplicate_capture_protocol_benchmark_10_warm(): Bool ->
 
 @test
 pub adversarial_duplicate_capture_protocol_benchmark_100_warm(): Bool ->
-    repeat_duplicate_capture_100() and repeat_duplicate_capture_100() and repeat_duplicate_capture_100().
+    repeat_duplicate_capture_100()
+        and repeat_duplicate_capture_100()
+        and repeat_duplicate_capture_100().
 
 @test
 pub adversarial_duplicate_capture_protocol_benchmark_1000_warm(): Bool ->
-    repeat_duplicate_capture_1000() and repeat_duplicate_capture_1000() and repeat_duplicate_capture_1000().
+    repeat_duplicate_capture_1000()
+        and repeat_duplicate_capture_1000()
+        and repeat_duplicate_capture_1000().
 
 @test
 pub adversarial_unsupported_backend_protocol_benchmark_1_warm(): Bool ->
-    repeat_unsupported_backend(1) and repeat_unsupported_backend(1) and repeat_unsupported_backend(1).
+    repeat_unsupported_backend(1)
+        and repeat_unsupported_backend(1)
+        and repeat_unsupported_backend(1).
 
 @test
 pub adversarial_unsupported_backend_protocol_benchmark_10_warm(): Bool ->
-    repeat_unsupported_backend(10) and repeat_unsupported_backend(10) and repeat_unsupported_backend(10).
+    repeat_unsupported_backend(10)
+        and repeat_unsupported_backend(10)
+        and repeat_unsupported_backend(10).
 
 @test
 pub adversarial_unsupported_backend_protocol_benchmark_100_warm(): Bool ->
-    repeat_unsupported_backend_100() and repeat_unsupported_backend_100() and repeat_unsupported_backend_100().
+    repeat_unsupported_backend_100()
+        and repeat_unsupported_backend_100()
+        and repeat_unsupported_backend_100().
 
 @test
 pub adversarial_unsupported_backend_protocol_benchmark_1000_warm(): Bool ->
-    repeat_unsupported_backend_1000() and repeat_unsupported_backend_1000() and repeat_unsupported_backend_1000().
+    repeat_unsupported_backend_1000()
+        and repeat_unsupported_backend_1000()
+        and repeat_unsupported_backend_1000().
 
 @test
 pub protocol_benchmark_noop(): Bool -> true.

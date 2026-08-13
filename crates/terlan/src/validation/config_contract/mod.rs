@@ -85,4 +85,5 @@ fn config_entries_preserved_warning(name: &str, target: &str, span: Span) -> Dia
 
 #[cfg(test)]
 #[path = "config_contract_test.rs"]
+#[cfg(test)]
 mod config_contract_test;

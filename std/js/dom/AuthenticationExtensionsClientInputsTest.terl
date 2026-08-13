@@ -25,12 +25,12 @@ pub cred_props_typechecks(receiver: AuthenticationExtensionsClientInputs): Bool 
     receiver.cred_props().
 
 pub credential_protection_policy_typechecks(
-    receiver: AuthenticationExtensionsClientInputs
+    receiver: AuthenticationExtensionsClientInputs,
 ): JsString ->
     receiver.credential_protection_policy().
 
 pub enforce_credential_protection_policy_typechecks(
-    receiver: AuthenticationExtensionsClientInputs
+    receiver: AuthenticationExtensionsClientInputs,
 ): Bool ->
     receiver.enforce_credential_protection_policy().
 
@@ -38,7 +38,7 @@ pub hmac_create_secret_typechecks(receiver: AuthenticationExtensionsClientInputs
     receiver.hmac_create_secret().
 
 pub large_blob_typechecks(
-    receiver: AuthenticationExtensionsClientInputs
+    receiver: AuthenticationExtensionsClientInputs,
 ): AuthenticationExtensionsLargeBlobInputs ->
     receiver.large_blob().
 
@@ -46,6 +46,6 @@ pub min_pin_length_typechecks(receiver: AuthenticationExtensionsClientInputs): B
     receiver.min_pin_length().
 
 pub prf_typechecks(
-    receiver: AuthenticationExtensionsClientInputs
+    receiver: AuthenticationExtensionsClientInputs,
 ): AuthenticationExtensionsPRFInputs ->
     receiver.prf().

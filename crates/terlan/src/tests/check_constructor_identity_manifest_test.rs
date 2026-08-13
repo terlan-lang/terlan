@@ -1,2 +1,7 @@
-include!("check_constructor_identity_manifest_test_part_001.rs");
-include!("check_constructor_identity_manifest_test_part_002.rs");
+pub(super) use super::*;
+#[cfg(test)]
+#[path = "check_constructor_identity_manifest_test/constructor_chains.rs"]
+mod constructor_chains;
+#[cfg(test)]
+#[path = "check_constructor_identity_manifest_test/constructor_identity.rs"]
+mod constructor_identity;

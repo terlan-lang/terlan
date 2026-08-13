@@ -251,6 +251,7 @@ const ROLLBACK_OUTCOMES: &[&str] = &[
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm persistent actor schema summary.
 pub struct VmPersistentActorSchemaSummary {
     pub schema_id_count: usize,
     pub migration_graph_case_count: usize,
@@ -259,6 +260,7 @@ pub struct VmPersistentActorSchemaSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm persistent actor schema.
 pub fn run_vm_persistent_actor_schema(
     root: &Path,
 ) -> QualityResult<VmPersistentActorSchemaSummary> {
@@ -419,4 +421,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_persistent_actor_schema_test.rs"]
+#[cfg(test)]
 mod vm_persistent_actor_schema_test;

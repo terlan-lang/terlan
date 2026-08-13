@@ -31,10 +31,14 @@ pub add_one(value: Int): Int ->
  */
 @test
 pub generated_results_are_classified_by_shape(): Bool ->
-    for_all(result_of(elements([1, 2, 3]), elements([4, 5])), (value) -> case value {
-        Ok(_) -> is_ok(value) and is_err(value) == false;
-        Err(_) -> is_err(value) and is_ok(value) == false
-    }).
+    for_all(
+        result_of(elements([1, 2, 3]), elements([4, 5])),
+        (value) ->
+            case value {
+                Ok(_) -> is_ok(value) and is_err(value) == false;
+                Err(_) -> is_err(value) and is_ok(value) == false
+            },
+    ).
 
 /**
  * Verifies generated results use defaults only when failed.
@@ -46,10 +50,14 @@ pub generated_results_are_classified_by_shape(): Bool ->
  */
 @test
 pub generated_results_with_default_respects_shape(): Bool ->
-    for_all(result_of(elements([1, 2, 3]), elements([4, 5])), (value) -> case value {
-        Ok(payload) -> with_default(value, 7) == payload;
-        Err(_) -> with_default(value, 7) == 7
-    }).
+    for_all(
+        result_of(elements([1, 2, 3]), elements([4, 5])),
+        (value) ->
+            case value {
+                Ok(payload) -> with_default(value, 7) == payload;
+                Err(_) -> with_default(value, 7) == 7
+            },
+    ).
 
 /**
  * Verifies `map` transforms only successful generated values.
@@ -60,10 +68,14 @@ pub generated_results_with_default_respects_shape(): Bool ->
  */
 @test
 pub generated_results_map_only_success_values(): Bool ->
-    for_all(result_of(elements([1, 2, 3]), elements([4, 5])), (value) -> case value {
-        Ok(payload) -> map(value, (item) -> item + 1) == Ok(payload + 1);
-        Err(reason) -> map(value, (item) -> item + 1) == Err(reason)
-    }).
+    for_all(
+        result_of(elements([1, 2, 3]), elements([4, 5])),
+        (value) ->
+            case value {
+                Ok(payload) -> map(value, (item) -> item + 1) == Ok(payload + 1);
+                Err(reason) -> map(value, (item) -> item + 1) == Err(reason)
+            },
+    ).
 
 /**
  * Verifies `map_error` transforms only generated error values.
@@ -74,7 +86,11 @@ pub generated_results_map_only_success_values(): Bool ->
  */
 @test
 pub generated_results_map_error_only_error_values(): Bool ->
-    for_all(result_of(elements([1, 2, 3]), elements([4, 5])), (value) -> case value {
-        Ok(payload) -> map_error(value, (item) -> item + 1) == Ok(payload);
-        Err(reason) -> map_error(value, (item) -> item + 1) == Err(reason + 1)
-    }).
+    for_all(
+        result_of(elements([1, 2, 3]), elements([4, 5])),
+        (value) ->
+            case value {
+                Ok(payload) -> map_error(value, (item) -> item + 1) == Ok(payload);
+                Err(reason) -> map_error(value, (item) -> item + 1) == Err(reason + 1)
+            },
+    ).

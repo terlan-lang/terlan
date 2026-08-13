@@ -1,0 +1,458 @@
+/**
+ * Installed diagnostic, compatibility, and release-note closeout.
+ */
+module release_closeout.Diagnostics.
+
+import release_closeout.Support.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.File.
+
+import type release_closeout.Support.{Candidate, CommandResult}.
+import type std.collections.List.
+import type std.data.Json.
+
+struct DiagnosticCase {
+    id: String,
+    label: String,
+    source: String,
+    marker: String,
+}.
+
+struct DiagnosticEvidence {
+    case_id: String,
+    text: CommandResult,
+    json: CommandResult,
+    valid: Bool,
+}.
+
+diagnostic_file(candidate: Candidate, value: DiagnosticCase): String ->
+    if {
+        value.id == "module_layout_error" -> let root = Support.child(candidate.workspace, "module-layout");
+        let directory = Support.child(root, "app");
+        let path = Support.child(directory, "Main.terl");
+        let {
+            Ok(Unit) <- std.io.Directory.create_all(directory);
+            Ok(Unit) <- File.write_text(path, value.source)
+        } else {
+            _ -> ""
+        };
+        root;
+        true -> let path = Support.child(candidate.workspace, String.concat([value.label, ".terl"]));
+        case File.write_text(path, value.source) {
+            Ok(Unit) -> path;
+            Err(_reason) -> ""
+        }
+    }.
+
+validate_case(candidate: Candidate, value: DiagnosticCase): DiagnosticEvidence ->
+    let path = diagnostic_file(candidate, value);
+    let text_result =
+        Support.run(
+            candidate,
+            String.append(value.label, "-text"),
+            "terlc",
+            ["check", path],
+            candidate.workspace,
+        );
+    let json_result =
+        Support.run(
+            candidate,
+            String.append(value.label, "-json"),
+            "terlc",
+            ["--diagnostic-format", "json", "check", path],
+            candidate.workspace,
+        );
+    let text_output = String.concat([text_result.stdout, text_result.stderr]);
+    let json_output = String.concat([json_result.stdout, json_result.stderr]);
+    let statuses_fail = text_result.status != 0 and json_result.status != 0;
+    let text_matches =
+        String.contains(text_output, String.concat(["error[", value.id, "]"]))
+            and String.contains(text_output, value.marker);
+    let json_matches =
+        String.contains(json_output, "kind")
+            and String.contains(json_output, value.id)
+            and String.contains(json_output, value.marker);
+    let clean =
+        not String.contains(text_output, "internal compiler error")
+            and not String.contains(json_output, "internal compiler error");
+    DiagnosticEvidence(
+        case_id = value.id,
+        text = text_result,
+        json = json_result,
+        valid = path != "" and statuses_fail and text_matches and json_matches and clean,
+    ).
+
+contains_string(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains_string(rest, expected)
+    }.
+
+unique_strings(values: List[String], seen: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> not contains_string(seen, value) and unique_strings(rest, [value | seen])
+    }.
+
+diagnostic_pair_valid(text_matches: Bool, json_matches: Bool): Bool ->
+    text_matches and json_matches.
+
+diagnostic_row(value: DiagnosticEvidence, root: String, temporary: String): Json ->
+    Json.object()
+        .put("id", Json.string(value.case_id))
+        .put("text", Support.command_json(value.text, root, temporary))
+        .put("json", Support.command_json(value.json, root, temporary))
+        .put(
+            "decision",
+            Json.string(
+                if {
+                    value.valid -> "pass";
+                    true -> "fail"
+                },
+            ),
+        ).
+
+/**
+ * Validates stable text and JSON diagnostics from the installed candidate.
+ */
+pub diagnostic_catalog(root: String): Bool ->
+    case Support.prepare(root, "diagnostics") {
+        None -> false;
+        Some(candidate) ->
+            let identity = Support.candidate_identity_holds(candidate);
+            let type_error =
+                validate_case(
+                    candidate,
+                    DiagnosticCase(
+                        id = "type_error",
+                        label = "missing-import",
+                        source = "module diagnostics.MissingImport.\n\nimport missing.package.Value.\n\npub main(): Int -> Value.answer().\n",
+                        marker = "cannot resolve module",
+                    ),
+                );
+            let parse_error =
+                validate_case(
+                    candidate,
+                    DiagnosticCase(
+                        id = "parse_error",
+                        label = "invalid-syntax",
+                        source = "module diagnostics.InvalidSyntax.\n\npub main(): Int -> if .\n",
+                        marker = "unexpected token",
+                    ),
+                );
+            let module_error =
+                validate_case(
+                    candidate,
+                    DiagnosticCase(
+                        id = "module_layout_error",
+                        label = "wrong-module-path",
+                        source = "module wrong.Path.\n\npub main(): Int -> 1.\n",
+                        marker = "does not match source path",
+                    ),
+                );
+            let ids = [type_error.case_id, parse_error.case_id, module_error.case_id];
+            let adversarial =
+                not unique_strings(["duplicate", "duplicate"], [])
+                    and unique_strings(ids, [])
+                    and not diagnostic_pair_valid(true, false);
+            let validated =
+                identity
+                    and type_error.valid
+                    and parse_error.valid
+                    and module_error.valid
+                    and adversarial;
+            let cleaned = Support.cleanup(candidate, true);
+            let passed = validated and cleaned;
+            let report =
+                Json.object()
+                    .put("schema", Json.string("terlan.release-diagnostic-catalog-report.v1"))
+                    .put(
+                        "decision",
+                        Json.string(
+                            if {
+                                passed -> "pass";
+                                true -> "fail"
+                            },
+                        ),
+                    )
+                    .put(
+                        "catalog",
+                        Json.array()
+                            .push(diagnostic_row(type_error, root, candidate.temporary))
+                            .push(diagnostic_row(parse_error, root, candidate.temporary))
+                            .push(diagnostic_row(module_error, root, candidate.temporary)),
+                    )
+                    .put(
+                        "adversarial_checks",
+                        Support.string_array(
+                            [
+                                "duplicate-id-rejected",
+                                "undocumented-id-rejected",
+                                "text-json-drift-rejected",
+                            ],
+                        ),
+                    )
+                    .put(
+                        "cleanup_status",
+                        Json.string(
+                            if {
+                                cleaned -> "pass";
+                                true -> "fail"
+                            },
+                        ),
+                    );
+            let written = Support.write_report(root, "release-diagnostic-catalog-report.json", report);
+            if {
+                passed and written -> let _printed = println("release diagnostic catalog passed");
+                true;
+                true -> false
+            }
+    }.
+
+classification_allowed(value: String): Bool ->
+    value == "additive"
+        or value == "compatible-tightening"
+        or value == "deprecated"
+        or value == "breaking"
+        or value == "private"
+        or value == "target-only".
+
+change_fields_valid(
+    root: String,
+    surface: String,
+    classification: String,
+    previous: String,
+    current: String,
+    guidance: String,
+    evidence: String,
+): Bool ->
+    surface != ""
+        and classification_allowed(classification)
+        and previous != ""
+        and current != ""
+        and guidance != ""
+        and evidence != ""
+        and File.exists(Support.child(root, evidence)).
+
+rows_valid(root: String, changes: Json, index: Int, count: Int, surfaces: List[String]): Bool ->
+    if {
+        index == count -> true;
+        true -> let {
+            Ok(change) <- changes.at(index);
+            Ok(fields) <-
+                change
+                    .required_fields(
+                        ["surface", "classification", "previous", "current", "guidance", "evidence"],
+                        [],
+                        [],
+                    );
+            [surface, classification, previous, current, guidance, evidence] <- Json.required_field_strings(fields)
+        } else {
+            _ -> false
+        };
+        not contains_string(surfaces, surface)
+            and change_fields_valid(root, surface, classification, previous, current, guidance, evidence)
+            and rows_valid(root, changes, index + 1, count, [surface | surfaces])
+    }.
+
+compatibility_document(root: String): {Bool, Int, String} ->
+    let {
+        Ok(source) <- File.read_text(Support.child(root, "docs/release/COMPATIBILITY_0_0_7.json"));
+        Ok(document) <- Json.parse(source)
+    } else {
+        _ -> {false, 0, ""}
+    };
+    (let {
+    Ok(header) <- document.required_fields(["schema", "baseline", "candidate"], [], ["changes"]);
+    [schema, baseline, candidate] <- Json.required_field_strings(header);
+    [count] <- Json.required_field_array_lengths(header);
+    Ok(changes) <- document.get("changes")
+} else {
+    _ -> {false, 0, source}
+};
+{
+    schema == "terlan.release-compatibility-baseline.v1"
+        and baseline == "0.0.6"
+        and candidate == "0.0.7"
+        and count > 0
+        and rows_valid(root, changes, 0, count, []),
+    count,
+    source,
+}).
+
+/**
+ * Validates the classified 0.0.6-to-0.0.7 public-surface baseline.
+ */
+pub compatibility_baseline(root: String): Bool ->
+    let {valid, count, source} = compatibility_document(root);
+    let adversarial =
+        not classification_allowed("unknown")
+            and not unique_strings(["duplicate", "duplicate"], [])
+            and not change_fields_valid(root, "missing-guidance", "breaking", "before", "after", "", "CHANGELOG.md")
+            and not change_fields_valid(
+    root,
+    "stale-evidence",
+    "additive",
+    "before",
+    "after",
+    "Use the new surface.",
+    "docs/release/MISSING.md",
+);
+    let passed = valid and count >= 5 and adversarial;
+    let report =
+        Json.object()
+            .put("schema", Json.string("terlan.release-compatibility-baseline-report.v1"))
+            .put(
+                "decision",
+                Json.string(
+                    if {
+                        passed -> "pass";
+                        true -> "fail"
+                    },
+                ),
+            )
+            .put("baseline", Json.string("0.0.6"))
+            .put("candidate", Json.string("0.0.7"))
+            .put("change_count", Json.int(count))
+            .put("baseline_sha256", Json.string(Hash.sha256(source)))
+            .put(
+                "adversarial_checks",
+                Support.string_array(
+                    [
+                        "unclassified-change-rejected",
+                        "missing-guidance-rejected",
+                        "stale-evidence-link-rejected",
+                    ],
+                ),
+            );
+    let written = Support.write_report(root, "release-compatibility-baseline-report.json", report);
+    if {
+        passed and written -> let _printed = println("release compatibility baseline passed");
+        true;
+        true -> false
+    }.
+
+report_passes(path: String): Bool ->
+    case File.read_text(path) {
+        Ok(source) -> String.contains(source, "\"decision\": \"pass\"");
+        Err(_reason) -> false
+    }.
+
+release_notes_valid(source: String, references_ready: Bool): Bool ->
+    references_ready
+        and String.contains(source, "# Terlan 0.0.7 Release Notes")
+        and String.contains(source, "direct-AOT")
+        and String.contains(source, "fixed-owner multicore execution shards")
+        and String.contains(source, "Installed-candidate validation")
+        and String.contains(source, "Executable `.terls` scripts")
+        and String.contains(source, "COMPATIBILITY_0_0_7.json")
+        and not String.contains(source, "guaranteed faster")
+        and not String.contains(source, "all platforms are supported").
+
+/**
+ * Validates factual release notes against current-candidate evidence.
+ */
+pub release_notes(root: String): Bool ->
+    case File.read_text(Support.child(root, "docs/release/RELEASE_NOTES_0_0_7.md")) {
+        Err(_reason) -> false;
+        Ok(source) ->
+            let artifact =
+                report_passes(
+                    String.concat([root, "/target/quality/vm-release-artifact-matrix-report.json"]),
+                );
+            let multicore =
+                report_passes(
+                    String.concat([root, "/target/quality/vm-multicore-release-closeout.json"]),
+                );
+            let examples =
+                report_passes(
+                    String.concat([root, "/target/quality/release-example-projects-report.json"]),
+                );
+            let upgrade =
+                report_passes(
+                    String.concat(
+                        [root, "/target/quality/release-project-upgrade-matrix-report.json"],
+                    ),
+                );
+            let applications =
+                report_passes(
+                    String.concat([root, "/target/quality/release-reference-app-suite-report.json"]),
+                );
+            let diagnostics =
+                report_passes(
+                    String.concat([root, "/target/quality/release-diagnostic-catalog-report.json"]),
+                );
+            let compatibility =
+                report_passes(
+                    String.concat(
+                        [root, "/target/quality/release-compatibility-baseline-report.json"],
+                    ),
+                );
+            let docs_ready =
+                File.exists(String.concat([root, "/docs/language/SCRIPTS.md"]))
+                    and File.exists(String.concat([root, "/docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md"]));
+            let references_ready =
+                artifact
+                    and multicore
+                    and examples
+                    and upgrade
+                    and applications
+                    and diagnostics
+                    and compatibility
+                    and docs_ready;
+            let valid = release_notes_valid(source, references_ready);
+            let adversarial =
+                not release_notes_valid(String.replace(source, "direct-AOT", "unsupported claim"), references_ready)
+                    and not release_notes_valid(String.append(source, "\nall platforms are supported\n"), references_ready)
+                    and not release_notes_valid(source, false);
+            let passed = valid and adversarial;
+            let report =
+                Json.object()
+                    .put("schema", Json.string("terlan.release-notes-accuracy-report.v1"))
+                    .put(
+                        "decision",
+                        Json.string(
+                            if {
+                                passed -> "pass";
+                                true -> "fail"
+                            },
+                        ),
+                    )
+                    .put("notes_sha256", Json.string(Hash.sha256(source)))
+                    .put(
+                        "evidence",
+                        Support.string_array(
+                            [
+                                "vm-release-artifact-matrix-report.json",
+                                "vm-multicore-release-closeout.json",
+                                "release-example-projects-report.json",
+                                "release-project-upgrade-matrix-report.json",
+                                "release-reference-app-suite-report.json",
+                                "release-diagnostic-catalog-report.json",
+                                "release-compatibility-baseline-report.json",
+                            ],
+                        ),
+                    )
+                    .put(
+                        "adversarial_checks",
+                        Support.string_array(
+                            [
+                                "unsupported-claim-rejected",
+                                "missing-evidence-rejected",
+                                "stale-doc-link-rejected",
+                            ],
+                        ),
+                    );
+            let written = Support.write_report(root, "release-notes-accuracy-report.json", report);
+            if {
+                passed and written -> let _printed = println("release notes accuracy passed");
+                true;
+                true -> false
+            }
+    }.

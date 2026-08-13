@@ -1,0 +1,121 @@
+/**
+ * Canonical release artifact naming for repository-owned Terlan tools.
+ */
+module installer_contract.ReleaseArtifact.
+
+import std.core.Option.{None, Some}.
+import std.core.String.
+
+import type std.core.Option.
+
+pub struct Platform {
+    operating_system: String,
+    architecture: String,
+    artifact: String,
+    compiler: String,
+    vm: String,
+    native_worker: String,
+    lsp: String,
+}.
+
+@pure
+pub operating_system(platform: Platform): String ->
+    platform.operating_system.
+
+@pure
+pub architecture(platform: Platform): String ->
+    platform.architecture.
+
+@pure
+pub artifact(platform: Platform): String ->
+    platform.artifact.
+
+@pure
+pub compiler(platform: Platform): String ->
+    platform.compiler.
+
+@pure
+pub vm(platform: Platform): String ->
+    platform.vm.
+
+@pure
+pub native_worker(platform: Platform): String ->
+    platform.native_worker.
+
+@pure
+pub lsp(platform: Platform): String ->
+    platform.lsp.
+
+@pure
+pub normalize_os(raw: String): Option[String] ->
+    let value = String.lowercase(String.trim(raw));
+    if {
+        value == "linux" -> Some("linux");
+        value == "darwin" or value == "macos" or value == "mac" -> Some("macos");
+        value == "windows" or value == "win32" or value == "mingw" or value == "msys" -> Some("windows");
+        true -> None
+    }.
+
+@pure
+pub normalize_arch(raw: String): Option[String] ->
+    let value = String.lowercase(String.trim(raw));
+    if {
+        value == "x86_64" or value == "amd64" -> Some("x86_64");
+        value == "aarch64" or value == "arm64" -> Some("aarch64");
+        true -> None
+    }.
+
+@pure
+pub resolve(raw_os: String, raw_arch: String): Option[Platform] ->
+    case {normalize_os(raw_os), normalize_arch(raw_arch)} {
+        {Some(os), Some(arch)} -> Some(build(os, arch));
+        _ -> None
+    }.
+
+@pure
+build(os: String, arch: String): Platform ->
+    let windows = os == "windows";
+    let suffix =
+        if {
+            windows -> ".zip";
+            true -> ".tar.gz"
+        };
+    let prefix =
+        if {
+            windows -> "terlc-windows-";
+            true -> String.append("terlc-", String.append(os, "-"))
+        };
+    Platform(
+        operating_system = os,
+        architecture = arch,
+        artifact = String.append(prefix, String.append(arch, suffix)),
+        compiler = executable("terlc", windows),
+        vm = executable("terlan-vm", windows),
+        native_worker = executable("terlan-native-worker", windows),
+        lsp = executable("terlan-lsp", windows),
+    ).
+
+@pure
+executable(name: String, windows: Bool): String ->
+    if {
+        windows -> String.append(name, ".exe");
+        true -> name
+    }.
+
+pub aliases_and_artifacts_are_canonical(): Bool ->
+    case {
+    resolve("Linux", "AMD64"),
+    resolve("Darwin", "arm64"),
+    resolve("Windows", "ARM64"),
+    resolve("plan9", "x86_64"),
+} {
+        {Some(linux), Some(macos), Some(windows), None} ->
+            artifact(linux) == "terlc-linux-x86_64.tar.gz"
+                and artifact(macos) == "terlc-macos-aarch64.tar.gz"
+                and artifact(windows) == "terlc-windows-aarch64.zip"
+                and compiler(windows) == "terlc.exe"
+                and vm(windows) == "terlan-vm.exe"
+                and native_worker(windows) == "terlan-native-worker.exe"
+                and lsp(windows) == "terlan-lsp.exe";
+        _ -> false
+    }.

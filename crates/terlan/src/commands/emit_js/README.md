@@ -60,6 +60,22 @@ _build/js/
 Unsupported JS target features use the `js_emit_unsupported` diagnostic family
 unless they are rejected earlier by the general `target_profile` validator.
 
+### Tail-recursion boundary
+
+Stack-safe tail recursion is a compiler contract for the typed Terlan
+constructs admitted by the JavaScript target. The backend recognizes direct and
+statically resolved mutual tail-recursive components and emits explicit
+JavaScript loops or component dispatchers. It does not depend on host-engine
+proper-tail-call support, and Terlan developers do not need to rewrite portable
+recursive source as target-specific JavaScript `while` loops.
+
+This contract does not create a JavaScript actor runtime. Actor scheduling,
+mailboxes, suspension/resume, cancellation, shard ownership, capability
+execution, and hot-reload generation retention remain native VM concerns.
+JavaScript operations that require those semantics continue to produce the
+documented target errors below. Cross-backend tail-recursion conformance covers
+only the pure typed source subset admitted by both backends.
+
 ## Oxc Codegen Migration
 
 When the backend moves beyond the bootstrap string emitter, use this module

@@ -12,7 +12,6 @@ mod shape;
 /// Transformation:
 /// - Encodes profile constraints over proof-coverage classes and core
 ///   expression form families.
-#[allow(dead_code)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum TargetProfile {
     /// Legacy VM backend path retained only for migration/reference checks.
@@ -74,6 +73,35 @@ pub(crate) enum TargetProfile {
     CoreV0,
 }
 
+/// Ordered compatibility profiles retained for old artifact/profile evidence.
+///
+/// Keeping the inventory executable prevents these historical identities from
+/// becoming disconnected match-only enum shapes while they remain supported.
+const LEGACY_VM_PROFILES: &[TargetProfile] = &[
+    TargetProfile::A0Vm,
+    TargetProfile::A01Vm,
+    TargetProfile::A02Vm,
+    TargetProfile::A03Vm,
+    TargetProfile::A04Vm,
+    TargetProfile::A05Vm,
+    TargetProfile::A06Vm,
+    TargetProfile::A07Vm,
+    TargetProfile::A08Vm,
+    TargetProfile::A09Vm,
+    TargetProfile::A010Vm,
+    TargetProfile::A011Vm,
+    TargetProfile::A012Vm,
+    TargetProfile::A013Vm,
+    TargetProfile::A014Vm,
+    TargetProfile::A015Vm,
+    TargetProfile::A016Vm,
+    TargetProfile::A017Vm,
+    TargetProfile::A018Vm,
+    TargetProfile::A019Vm,
+    TargetProfile::A020Vm,
+    TargetProfile::A021Vm,
+];
+
 /// Coarse backend/runtime family for target routing.
 ///
 /// Inputs:
@@ -81,7 +109,6 @@ pub(crate) enum TargetProfile {
 ///
 /// Output:
 /// - Stable family identity used by CLI dispatch and diagnostics.
-#[allow(dead_code)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum TargetFamily {
     Vm,
@@ -196,8 +223,10 @@ impl TargetProfile {
     ///
     /// Output:
     /// - Family identity used by dispatch code.
-    #[allow(dead_code)]
     pub(crate) const fn family(&self) -> TargetFamily {
+        if legacy_vm_profile(*self) {
+            return TargetFamily::Vm;
+        }
         match self {
             Self::JsShared | Self::JsBrowser | Self::JsWorker => TargetFamily::Js,
             Self::WasmCore => TargetFamily::Wasm,
@@ -227,4 +256,15 @@ impl TargetProfile {
             | Self::A021Vm => TargetFamily::Vm,
         }
     }
+}
+
+const fn legacy_vm_profile(profile: TargetProfile) -> bool {
+    let mut index = 0;
+    while index < LEGACY_VM_PROFILES.len() {
+        if profile as u8 == LEGACY_VM_PROFILES[index] as u8 {
+            return true;
+        }
+        index += 1;
+    }
+    false
 }

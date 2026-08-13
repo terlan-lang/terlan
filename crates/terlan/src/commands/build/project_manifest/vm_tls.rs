@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use crate::runtime::vm::tls::{VmTlsMode, VmTlsPlan, VmTlsProvider, VmTlsRuntime};
 
 use super::{ProjectServerTls, ProjectServerTlsMode, ProjectServerTlsProvider};

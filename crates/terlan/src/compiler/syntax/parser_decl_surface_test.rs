@@ -139,16 +139,24 @@ pub impl Show[Int] for Int {
 module provider_iface.
 
 pub type ExternalUser.
+pub type ExternalBox[T].
 "#;
 
         let module = parse_interface_module(source).expect("parse bodyless interface type");
-        assert_eq!(module.declarations.len(), 1);
+        assert_eq!(module.declarations.len(), 2);
         let Decl::Type(type_decl) = &module.declarations[0] else {
             panic!("expected type declaration");
         };
         assert_eq!(type_decl.name, "ExternalUser");
         assert!(type_decl.variants.is_empty());
         assert!(type_decl.is_public);
+        let Decl::Type(generic_type) = &module.declarations[1] else {
+            panic!("expected generic type declaration");
+        };
+        assert_eq!(generic_type.name, "ExternalBox");
+        assert_eq!(generic_type.params, ["T"]);
+        assert!(generic_type.variants.is_empty());
+        assert!(generic_type.is_public);
     }
 
     #[test]

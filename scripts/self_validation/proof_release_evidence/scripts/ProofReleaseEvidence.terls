@@ -1,0 +1,345 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Builds and validates deterministic local proof-release evidence for 0.0.7.
+ */
+import proof_release_evidence.{Builder, Support, Validator}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.system.{Arguments, Environment}.
+
+import type std.core.Option.
+import type std.data.Json.
+
+root(): String ->
+    case Environment.get("TERLAN_PROOF_RELEASE_ROOT") {
+        Some(value) -> value;
+        None -> Environment.current_directory()
+    }.
+
+clone_json(value: Json): Option[Json] ->
+    let {
+        Ok(source) <- Json.stringify(value);
+        Ok(copy) <- Json.parse(source)
+    } else {
+        _ -> None
+    };
+    Some(copy).
+
+diagnostic(code: String, message: String): Bool ->
+    case Json.stringify(
+    Json.object()
+        .put("schema", Json.string("terlan.proof-release-diagnostic.v1"))
+        .put("code", Json.string(code))
+        .put("message", Json.string(message)),
+) {
+        Ok(source) ->
+            let _printed = eprintln(source);
+            false;
+        Err(_reason) ->
+            let _printed = eprintln(String.append(code, String.append(": ", message)));
+            false
+    }.
+
+expect_code(repository: String, document: Json, expected: String): Bool ->
+    let result = Validator.validate(repository, document);
+    not result.valid and result.code == expected.
+
+schema_mutation_is_rejected(repository: String, document: Json): Bool ->
+    case clone_json(document) {
+        Some(mutation) ->
+            let _changed = mutation.put("schema", Json.string("broken"));
+            expect_code(repository, mutation, "corrupt_schema");
+        None -> false
+    }.
+
+missing_proof_mutation_is_rejected(repository: String, document: Json): Bool ->
+    let {
+        Some(mutation) <- clone_json(document);
+        Some(records) <- Support.json_member(mutation, "records")
+    } else {
+        _ -> false
+    };
+    case records.at(0) {
+        Ok(record) ->
+            let _changed = record.put("proof_ids", Json.array());
+            let _record = records.set(0, record);
+            let _records = mutation.put("records", records);
+            expect_code(repository, mutation, "missing_proof");
+        Err(_reason) -> false
+    }.
+
+stale_material_mutation_is_rejected(repository: String, document: Json): Bool ->
+    let {
+        Some(mutation) <- clone_json(document);
+        Some(materials) <- Support.json_member(mutation, "candidate_materials");
+        Some(candidate) <- Support.json_member(mutation, "candidate")
+    } else {
+        _ -> false
+    };
+    case materials.at(0) {
+        Ok(material) ->
+            let _changed =
+                material
+                    .put(
+                        "sha256",
+                        Json.string(
+                            "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+                        ),
+                    );
+            let _material = materials.set(0, material);
+            let _materials = mutation.put("candidate_materials", materials);
+            case Validator.expected_candidate_id(mutation) {
+                Some(candidate_id) ->
+                    let _identity = candidate.put("candidate_id", Json.string(candidate_id));
+                    let _candidate = mutation.put("candidate", candidate);
+                    expect_code(repository, mutation, "stale_input");
+                None -> false
+            };
+        Err(_reason) -> false
+    }.
+
+duplicate_slice_mutation_is_rejected(repository: String, document: Json): Bool ->
+    let {
+        Some(mutation) <- clone_json(document);
+        Some(records) <- Support.json_member(mutation, "records")
+    } else {
+        _ -> false
+    };
+    case records.at(0) {
+        Ok(record) ->
+            let _pushed = records.push(record);
+            let _records = mutation.put("records", records);
+            expect_code(repository, mutation, "duplicate_event");
+        Err(_reason) -> false
+    }.
+
+lane_mutation_is_rejected(repository: String, document: Json): Bool ->
+    let {
+        Some(mutation) <- clone_json(document);
+        Some(records) <- Support.json_member(mutation, "records")
+    } else {
+        _ -> false
+    };
+    case records.at(0) {
+        Ok(record) ->
+            let _changed = record.put("runtime_lane", Json.string("wrong"));
+            case Validator.record_trace(record) {
+                Some(trace) ->
+                    let _trace = record.put("trace_id", Json.string(trace));
+                    let _record = records.set(0, record);
+                    let _records = mutation.put("records", records);
+                    expect_code(repository, mutation, "mismatched_runtime_lane");
+                None -> false
+            };
+        Err(_reason) -> false
+    }.
+
+candidate_mutation_is_rejected(repository: String, document: Json): Bool ->
+    let {
+        Some(mutation) <- clone_json(document);
+        Some(candidate) <- Support.json_member(mutation, "candidate")
+    } else {
+        _ -> false
+    };
+    (let _changed =
+    candidate
+        .put(
+            "candidate_id",
+            Json.string("sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+        );
+let _candidate = mutation.put("candidate", candidate);
+expect_code(repository, mutation, "candidate_mismatch")).
+
+cross_machine_normalization_is_stable(document: Json): Bool ->
+    let {
+        Some(mutation) <- clone_json(document);
+        Some(candidate) <- Support.json_member(mutation, "candidate");
+        Some(original) <- Validator.normalized_digest(document)
+    } else {
+        _ -> false
+    };
+    (let _changed = candidate.put("source_revision", Json.string("different-checkout-same-content"));
+let _candidate = mutation.put("candidate", candidate);
+case Validator.normalized_digest(mutation) {
+    Some(changed) -> changed == original;
+    None -> false
+}).
+
+self_test(repository: String): Bool ->
+    let built = Builder.build(repository);
+    if {
+        not built.valid -> diagnostic(built.code, built.message);
+        true -> let canonical = Validator.validate(repository, built.evidence);
+        if {
+            not canonical.valid -> diagnostic(canonical.code, canonical.message);
+            not schema_mutation_is_rejected(repository, built.evidence) -> diagnostic("self_test", "corrupt schema mutation was accepted");
+            not missing_proof_mutation_is_rejected(repository, built.evidence) -> diagnostic("self_test", "missing proof mutation was accepted");
+            not stale_material_mutation_is_rejected(repository, built.evidence) -> diagnostic("self_test", "stale material mutation was accepted");
+            not duplicate_slice_mutation_is_rejected(repository, built.evidence) -> diagnostic("self_test", "duplicate slice mutation was accepted");
+            not lane_mutation_is_rejected(repository, built.evidence) -> diagnostic("self_test", "runtime lane mutation was accepted");
+            not candidate_mutation_is_rejected(repository, built.evidence) -> diagnostic("self_test", "candidate mutation was accepted");
+            not cross_machine_normalization_is_stable(built.evidence) -> diagnostic("self_test", "cross-machine normalization changed identity");
+            true -> let _printed = println("Proof release evidence adversarial self-test passed");
+            true
+        }
+    }.
+
+record_count(document: Json): Int ->
+    let {
+        Some(records) <- Support.json_member(document, "records");
+        Ok(count) <- records.length()
+    } else {
+        _ -> 0
+    };
+    count.
+
+replay_count(document: Json): Int ->
+    let {
+        Some(replay) <- Support.json_member(document, "replay_corpus");
+        Ok(count) <- replay.length()
+    } else {
+        _ -> 0
+    };
+    count.
+
+candidate_id(document: Json): String ->
+    let {
+        Some(candidate) <- Support.json_member(document, "candidate");
+        Some(value) <- Support.json_string(candidate, "candidate_id")
+    } else {
+        _ -> "unknown"
+    };
+    value.
+
+run_check(repository: String): Bool ->
+    let result = Validator.check(repository);
+    if {
+        not result.valid -> diagnostic(result.code, result.message);
+        true -> let count = record_count(result.document);
+        let count_text = Int.to_string(count);
+        let suffix = String.append(count_text, " slices");
+        let message = String.append("Proof release evidence passed: ", suffix);
+        let _printed = println(message);
+        true
+    }.
+
+record_baseline(repository: String): Bool ->
+    let result = Validator.record_baseline(repository);
+    if {
+        not result.valid -> diagnostic(result.code, result.message);
+        true -> let count = record_count(result.document);
+        let count_text = Int.to_string(count);
+        let suffix = String.append(count_text, " slices");
+        let message = String.append("Recorded proof release evidence baseline for ", suffix);
+        let _printed = println(message);
+        true
+    }.
+
+release_mode(repository: String): Bool ->
+    let checked = Validator.check(repository);
+    let {
+        Some(config) <- Support.load_json(repository, "proofs/lean/release_evidence/release-mode.json");
+        Some(local_command) <- Support.json_string(config, "local_command");
+        Some(ci_command) <- Support.json_string(config, "ci_command");
+        Some(stage_values) <- Support.json_member(config, "stage_order");
+        Some(stage_order) <- Support.json_array_strings(stage_values);
+        Some(features) <- Support.json_member(config, "feature_set")
+    } else {
+        _ -> diagnostic("corrupt_schema", "release-mode configuration is malformed")
+    };
+    (let expected_stages =
+    [
+        "proof-repro-check",
+        "lean-proof-track-runtime-check",
+        "release-artifacts-closeout-check",
+        "proof-readiness-release-mode-check",
+        "lean-proof-track-regression-check",
+        "lean-proof-track-pr-gate",
+    ];
+if {
+    not checked.valid -> diagnostic(checked.code, checked.message);
+    local_command != ci_command -> diagnostic("candidate_mismatch", "local and CI release-mode commands differ");
+    not Support.same_strings(stage_order, expected_stages) -> diagnostic("replay_order_drift", "release-readiness stage order drifted");
+    true -> let selected_candidate = candidate_id(checked.document);
+    let payload =
+        Json.object()
+            .put("release_readiness_mode", Json.bool(true))
+            .put("candidate_id", Json.string(selected_candidate))
+            .put("feature_set", features)
+            .put("stage_order", stage_values)
+            .put("command_signature", Json.string(local_command));
+    case Support.json_digest(payload) {
+        Some(fingerprint) ->
+            let schedule =
+                Json.object()
+                    .put("schema", Json.string("terlan.proof-readiness-release-mode.v1"))
+                    .put("release_readiness_mode", Json.bool(true))
+                    .put("candidate_id", Json.string(selected_candidate))
+                    .put("feature_set", features)
+                    .put("stage_order", stage_values)
+                    .put("command_signature", Json.string(local_command))
+                    .put("scheduler_fingerprint", Json.string(fingerprint));
+            if {
+                not Support.write_json(repository, "build/artifacts/proof-readiness-release-mode.json", schedule) -> diagnostic("corrupt_artifact", "release schedule could not be written");
+                true -> let stage_count = Support.string_count(stage_order);
+                let stage_text = Int.to_string(stage_count);
+                let stage_suffix = String.append(" stages=", stage_text);
+                let candidate_suffix = String.append(selected_candidate, stage_suffix);
+                let message =
+                    String.append(
+                        "Proof readiness release mode passed: candidate=",
+                        candidate_suffix,
+                    );
+                let _printed = println(message);
+                true
+            };
+        None -> diagnostic("corrupt_artifact", "release schedule could not be hashed")
+    }
+}).
+
+summary(repository: String): Bool ->
+    case Support.load_json(repository, "build/artifacts/proof-release-evidence.json") {
+        Some(document) ->
+            let selected_candidate = candidate_id(document);
+            let records = record_count(document);
+            let replays = replay_count(document);
+            let record_text = Int.to_string(records);
+            let replay_text = Int.to_string(replays);
+            let replay_suffix = String.append(replay_text, " replays");
+            let slice_suffix = String.append(" slices ", replay_suffix);
+            let counts = String.append(record_text, slice_suffix);
+            let separated = String.append(" ", counts);
+            let identity = String.append(selected_candidate, separated);
+            let message = String.append("proof release evidence: ", identity);
+            let _printed = println(message);
+            true;
+        None -> diagnostic("missing_input", "proof release evidence is missing")
+    }.
+
+run(repository: String, command: String): Bool ->
+    if {
+        command == "self-test" -> self_test(repository);
+        command == "record-baseline" -> record_baseline(repository);
+        command == "check" -> run_check(repository);
+        command == "release-mode" -> release_mode(repository);
+        command == "summary" -> summary(repository);
+        true -> diagnostic(
+            "usage",
+            "usage: ProofReleaseEvidence.terls <self-test|record-baseline|check|release-mode|summary>",
+        )
+    }.
+
+entry(): Bool ->
+    let repository = root();
+    let command =
+        case Arguments.get(0) {
+            Some(value) -> value;
+            None -> ""
+        };
+    run(repository, command).
+
+assert(entry());
+Unit.

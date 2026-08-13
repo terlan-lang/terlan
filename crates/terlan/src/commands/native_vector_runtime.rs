@@ -464,4 +464,5 @@ fn error_response(code: &str, message: &str) -> String {
 
 #[cfg(test)]
 #[path = "native_vector_runtime_test.rs"]
+#[cfg(test)]
 mod native_vector_runtime_test;

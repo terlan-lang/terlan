@@ -1,32 +1,30 @@
-use std::collections::{BTreeMap, BTreeSet};
-
-use sha2::{Digest, Sha256};
-
 pub use super::boundary_type::TvmBoundaryType;
 use super::managed::{
     decode_aggregate_layout, decode_collection_layout, encode_aggregate_layout,
     encode_collection_layout, AtomTable, ManagedAggregateKind,
 };
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
 
 mod codec;
 use codec::*;
 mod callables;
 use callables::*;
+mod collections;
+use collections::*;
 
 const MAGIC: &[u8; 8] = b"TVMDSC01";
 const FORMAT_MAJOR: u16 = 1;
 const FORMAT_MINOR: u16 = 5;
 const HEADER_LEN: usize = 32;
 const DIGEST_LEN: usize = 32;
-// Large closed AOT applications can legitimately carry thousands of typed
-// continuation entries. Keep decoding bounded, but do not constrain static
-// image metadata to the former request-sized 1 MiB ceiling.
+// Bounded for decoding while accommodating large closed AOT applications.
 const MAX_DESCRIPTOR_LEN: usize = 16 * 1024 * 1024;
 const MAX_TEXT_LEN: usize = u16::MAX as usize;
 const OPTIONAL_RECORD: u16 = 1;
 
-/// Uniform format-1 symbol loaded by the supervised native-image worker.
-pub const TVM_DISPATCH_SYMBOL_V2: &str = "terlan_native_dispatch_v2";
+/// Runtime-ABI-3 symbol loaded by the supervised native-image worker.
+pub const TVM_DISPATCH_SYMBOL_V3: &str = "terlan_native_dispatch_v3";
 /// Format-1 native image entry marker used for static admission and linking.
 pub const TVM_IMAGE_ENTRY_SYMBOL_V1: &str = "terlan_tvm_image_entry_v1";
 
@@ -176,7 +174,9 @@ pub struct TvmExecutableDescriptor {
 }
 
 /// Encodes one descriptor using the frozen format-1 canonical record order.
-pub fn encode_descriptor(descriptor: &TvmExecutableDescriptor) -> Result<Vec<u8>, String> {
+pub(super) fn encode_descriptor_untyped(
+    descriptor: &TvmExecutableDescriptor,
+) -> Result<Vec<u8>, String> {
     validate_descriptor(descriptor)?;
     let mut records = Vec::new();
     append_record(
@@ -311,7 +311,7 @@ pub fn encode_descriptor(descriptor: &TvmExecutableDescriptor) -> Result<Vec<u8>
 }
 
 /// Decodes and validates one canonical format-1 descriptor.
-pub fn decode_descriptor(bytes: &[u8]) -> Result<TvmExecutableDescriptor, String> {
+pub(super) fn decode_descriptor_untyped(bytes: &[u8]) -> Result<TvmExecutableDescriptor, String> {
     if bytes.len() < HEADER_LEN + DIGEST_LEN || bytes.len() > MAX_DESCRIPTOR_LEN {
         return Err("error[tvm.image.descriptor_size]: invalid descriptor length".to_string());
     }
@@ -432,6 +432,32 @@ pub fn decode_descriptor(bytes: &[u8]) -> Result<TvmExecutableDescriptor, String
     };
     validate_descriptor(&descriptor)?;
     Ok(descriptor)
+}
+
+/// Encodes one executable descriptor with a typed image-boundary failure.
+pub fn encode_descriptor(
+    descriptor: &TvmExecutableDescriptor,
+) -> Result<Vec<u8>, terlan_runtime_abi::BoundaryError> {
+    encode_descriptor_untyped(descriptor).map_err(|error| {
+        terlan_runtime_abi::BoundaryError::message(
+            terlan_runtime_abi::ErrorDomain::NativeImageAdmission,
+            "encode TVM executable descriptor",
+            error,
+        )
+    })
+}
+
+/// Decodes one executable descriptor with a typed image-boundary failure.
+pub fn decode_descriptor(
+    bytes: &[u8],
+) -> Result<TvmExecutableDescriptor, terlan_runtime_abi::BoundaryError> {
+    decode_descriptor_untyped(bytes).map_err(|error| {
+        terlan_runtime_abi::BoundaryError::message(
+            terlan_runtime_abi::ErrorDomain::NativeImageAdmission,
+            "decode TVM executable descriptor",
+            error,
+        )
+    })
 }
 
 fn validate_descriptor(descriptor: &TvmExecutableDescriptor) -> Result<(), String> {
@@ -843,10 +869,22 @@ fn validate_managed_layouts(layouts: &[TvmManagedLayoutDescriptor]) -> Result<()
                 || variant.canonical_type() != first.canonical_type()
                 || variant.variant_count() != first.variant_count()
         }) {
-            return Err(
-                "error[tvm.image.managed_layout_family]: one semantic identity has incompatible aggregate layouts"
-                    .to_string(),
-            );
+            let layouts = variants
+                .iter()
+                .map(|variant| {
+                    format!(
+                        "{}:{:?}:{:?}/{:?}",
+                        variant.canonical_type(),
+                        variant.kind(),
+                        variant.discriminant(),
+                        variant.variant_count()
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            return Err(format!(
+                "error[tvm.image.managed_layout_family]: one semantic identity has incompatible aggregate layouts: {layouts}"
+            ));
         }
         let mut names = BTreeSet::new();
         let mut discriminants = BTreeSet::new();
@@ -860,115 +898,6 @@ fn validate_managed_layouts(layouts: &[TvmManagedLayoutDescriptor]) -> Result<()
                 );
             }
         }
-    }
-    Ok(())
-}
-
-/// Encodes the canonical ordered managed-collection schema table.
-fn encode_managed_collections(
-    layouts: &[TvmManagedCollectionDescriptor],
-) -> Result<Vec<u8>, String> {
-    let mut bytes = Vec::new();
-    push_u16_count(&mut bytes, layouts.len())?;
-    for layout in layouts {
-        bytes.extend_from_slice(&layout.semantic_id);
-        push_u32(
-            &mut bytes,
-            u32::try_from(layout.encoded_layout.len()).map_err(|_| {
-                "error[tvm.image.managed_collection_size]: collection schema exceeds u32"
-                    .to_string()
-            })?,
-        );
-        bytes.extend_from_slice(&layout.encoded_layout);
-    }
-    Ok(bytes)
-}
-
-/// Decodes the bounded managed-collection schema table before validation.
-fn decode_managed_collections(bytes: &[u8]) -> Result<Vec<TvmManagedCollectionDescriptor>, String> {
-    let mut reader = Reader::new(bytes);
-    let count = reader.u16()? as usize;
-    let mut layouts = Vec::with_capacity(count);
-    for _ in 0..count {
-        let semantic_id = reader.array()?;
-        let length = reader.u32()? as usize;
-        layouts.push(TvmManagedCollectionDescriptor {
-            semantic_id,
-            encoded_layout: reader.take(length)?.to_vec(),
-        });
-    }
-    reader.finish()?;
-    Ok(layouts)
-}
-
-/// Validates collection ordering, semantic ownership, and canonical bytes.
-fn validate_managed_collections(layouts: &[TvmManagedCollectionDescriptor]) -> Result<(), String> {
-    for pair in layouts.windows(2) {
-        let left = (&pair[0].semantic_id, pair[0].encoded_layout.as_slice());
-        let right = (&pair[1].semantic_id, pair[1].encoded_layout.as_slice());
-        if left >= right {
-            return Err(
-                "error[tvm.image.managed_collection_order]: collection schemas must be unique and ordered"
-                    .to_string(),
-            );
-        }
-    }
-    for layout in layouts {
-        let decoded = decode_collection_layout(&layout.encoded_layout)
-            .map_err(|error| format!("error[tvm.image.managed_collection]: {error}"))?;
-        if decoded.semantic_id().bytes() != layout.semantic_id {
-            return Err(
-                "error[tvm.image.managed_collection_identity]: collection semantic identity mismatch"
-                    .to_string(),
-            );
-        }
-        let canonical = encode_collection_layout(&decoded)
-            .map_err(|error| format!("error[tvm.image.managed_collection]: {error}"))?;
-        if canonical != layout.encoded_layout {
-            return Err(
-                "error[tvm.image.managed_collection_canonical]: collection schema is not canonical"
-                    .to_string(),
-            );
-        }
-    }
-    Ok(())
-}
-
-/// Encodes one canonical bounded list of UTF-8 identities.
-fn encode_text_list(values: &[String]) -> Result<Vec<u8>, String> {
-    let mut bytes = Vec::new();
-    push_u16_count(&mut bytes, values.len())?;
-    for value in values {
-        push_text(&mut bytes, value)?;
-    }
-    Ok(bytes)
-}
-
-/// Decodes one bounded list of UTF-8 identities.
-fn decode_text_list(bytes: &[u8]) -> Result<Vec<String>, String> {
-    let mut reader = Reader::new(bytes);
-    let count = reader.u16()? as usize;
-    let values = (0..count)
-        .map(|_| reader.text())
-        .collect::<Result<Vec<_>, _>>()?;
-    reader.finish()?;
-    Ok(values)
-}
-
-/// Validates canonical ordering through the shared finite atom-table type.
-fn validate_atoms(atoms: &[String]) -> Result<(), String> {
-    let table = AtomTable::new(atoms.iter().cloned())
-        .map_err(|error| format!("error[tvm.image.atoms]: {error}"))?;
-    let canonical = table.identities().collect::<Vec<_>>();
-    if canonical.len() != atoms.len()
-        || canonical
-            .iter()
-            .zip(atoms)
-            .any(|(canonical, actual)| *canonical != actual)
-    {
-        return Err(
-            "error[tvm.image.atom_order]: atom identities must be unique and ordered".to_string(),
-        );
     }
     Ok(())
 }

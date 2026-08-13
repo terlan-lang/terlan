@@ -1,14 +1,19 @@
+pub(crate) use super::call_metric::VmCallMetricMode as VmCallTimeMode;
+#[cfg(test)]
+use super::process::VmProcessId;
+use super::process::VmProcessSource;
+#[cfg(test)]
 use std::collections::BTreeMap;
 
-use super::process::{VmProcessId, VmProcessSource};
-
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[cfg(test)]
 struct VmCallTimeKey {
     module: String,
     function: String,
     arity: usize,
 }
 
+#[cfg(test)]
 impl From<&VmProcessSource> for VmCallTimeKey {
     fn from(source: &VmProcessSource) -> Self {
         Self {
@@ -17,13 +22,6 @@ impl From<&VmProcessSource> for VmCallTimeKey {
             arity: source.arity,
         }
     }
-}
-
-/// Recording mode for one exact function-time profile.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum VmCallTimeMode {
-    Active,
-    Paused,
 }
 
 /// Per-process cumulative exclusive execution attributed to one function.
@@ -55,6 +53,7 @@ pub(crate) struct VmCallTimeSnapshot {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 struct VmCallTimeEntry {
     source: VmProcessSource,
     mode: VmCallTimeMode,
@@ -68,11 +67,13 @@ struct VmCallTimeEntry {
 /// in every caller. Inspection never reads a host clock or mutates a profile.
 #[derive(Debug, Default)]
 pub(crate) struct VmCallTimeRegistry {
+    #[cfg(test)]
     entries: BTreeMap<VmCallTimeKey, VmCallTimeEntry>,
 }
 
 impl VmCallTimeRegistry {
     /// Enables a profile without discarding its retained process rows.
+    #[cfg(test)]
     pub(crate) fn enable(&mut self, source: VmProcessSource) {
         let key = VmCallTimeKey::from(&source);
         match self.entries.get_mut(&key) {
@@ -94,11 +95,13 @@ impl VmCallTimeRegistry {
     }
 
     /// Disables a profile and removes all retained process rows.
+    #[cfg(test)]
     pub(crate) fn disable(&mut self, source: &VmProcessSource) -> bool {
         self.entries.remove(&VmCallTimeKey::from(source)).is_some()
     }
 
     /// Pauses recording while preserving all retained process rows.
+    #[cfg(test)]
     pub(crate) fn pause(&mut self, source: &VmProcessSource) -> Result<(), String> {
         let entry = self.entry_mut(source, "pause")?;
         entry.mode = VmCallTimeMode::Paused;
@@ -106,6 +109,7 @@ impl VmCallTimeRegistry {
     }
 
     /// Clears retained rows and resumes an enabled profile.
+    #[cfg(test)]
     pub(crate) fn restart(&mut self, source: &VmProcessSource) -> Result<(), String> {
         let entry = self.entry_mut(source, "restart")?;
         entry.processes.clear();
@@ -117,6 +121,7 @@ impl VmCallTimeRegistry {
     ///
     /// Both counters are checked before mutation. Disabled and paused profiles
     /// are no-ops, while overflow leaves the previous row unchanged.
+    #[cfg(test)]
     pub(crate) fn record_execution(
         &mut self,
         source: &VmProcessSource,
@@ -162,6 +167,7 @@ impl VmCallTimeRegistry {
     }
 
     /// Returns typed state for one exact function identity.
+    #[cfg(test)]
     pub(crate) fn state(&self, source: &VmProcessSource) -> VmCallTimeState {
         let Some(entry) = self.entries.get(&VmCallTimeKey::from(source)) else {
             return VmCallTimeState::Disabled;
@@ -174,6 +180,7 @@ impl VmCallTimeRegistry {
     }
 
     /// Returns immutable function- and process-ordered execution profiles.
+    #[cfg(test)]
     pub(crate) fn snapshots(&self) -> Vec<VmCallTimeSnapshot> {
         self.entries
             .values()
@@ -185,6 +192,7 @@ impl VmCallTimeRegistry {
             .collect()
     }
 
+    #[cfg(test)]
     fn entry_mut(
         &mut self,
         source: &VmProcessSource,
@@ -196,6 +204,7 @@ impl VmCallTimeRegistry {
     }
 }
 
+#[cfg(test)]
 fn disabled_error(action: &str, source: &VmProcessSource) -> String {
     format!(
         "cannot {action} disabled VM call time for {}.{}/{}",
@@ -203,6 +212,7 @@ fn disabled_error(action: &str, source: &VmProcessSource) -> String {
     )
 }
 
+#[cfg(test)]
 fn overflow_error(
     source: &VmProcessSource,
     pid: VmProcessId,

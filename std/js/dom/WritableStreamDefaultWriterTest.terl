@@ -22,7 +22,7 @@ pub closed_typechecks(receiver: WritableStreamDefaultWriter[W]): Promise[Unit] -
     receiver.closed().
 
 pub desired_size_typechecks(
-    receiver: WritableStreamDefaultWriter[W]
+    receiver: WritableStreamDefaultWriter[W],
 ): Option[std.js.Number.JsNumber] ->
     receiver.desired_size().
 

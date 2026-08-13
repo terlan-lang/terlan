@@ -68,6 +68,7 @@ const REQUIRED_ICON_FILE_NAMES = Object.freeze({
 
 const REQUIRED_ICON_FILE_EXTENSIONS = Object.freeze([
   "terl",
+  "terls",
   "terli",
   "terl.html",
   "terl.md",

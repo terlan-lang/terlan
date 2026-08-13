@@ -1,0 +1,86 @@
+{
+  "angular_ts_imports": [
+    "../../../../dist/index.js"
+  ],
+  "app_ownership": {
+    "application": {
+      "controller_export": "controller_name",
+      "di_token": "todoModel",
+      "directive": "terlanCallback",
+      "initial_state_export": "initial_state",
+      "lifecycle_event": "terlan:probe",
+      "module_export": "app_module"
+    },
+    "bootstrap": "examples/todo/todo.js",
+    "flows": {
+      "create": "create_item",
+      "delete": "keep_item",
+      "filter": "visible",
+      "mutate": "toggle_item",
+      "render": "render_row"
+    },
+    "ownership": "terlan-source",
+    "schema": "terlan.angular-ts.app.v1",
+    "source": "src/terlan/angular/Todo.terl",
+    "template": "examples/todo/index.html"
+  },
+  "artifacts": [
+    "build/js/manifest.json",
+    "build/js/modules/terlan/angular/Todo.js",
+    "examples/todo/angular-ts.json",
+    "src/terlan/angular/TodoSummary.terl.html"
+  ],
+  "client_runtime": {
+    "default": true,
+    "handrolled_browser_runtime": false,
+    "package": "@angular-wave/angular.ts",
+    "source_checkout": "ANGULAR_TS_ROOT"
+  },
+  "commands": {
+    "app_ownership_check": "make app-ownership-check",
+    "artifact_check": "make artifact-check",
+    "browser_test": "make browser-test",
+    "build": "make build",
+    "check": "make check",
+    "clean": "make clean",
+    "generate": "make generate",
+    "generate_check": "make generate-check",
+    "harness_check": "make harness-check",
+    "namespace_check": "make namespace-check",
+    "run": "make run",
+    "test": "make test"
+  },
+  "examples": [
+    "examples/todo/index.html",
+    "examples/todo/todo.js",
+    "examples/todo/angular-ts.json",
+    "src/terlan/angular/TodoSummary.terl.html"
+  ],
+  "generator": "tool/generate_terlan_todo.mjs",
+  "live_update_transport": {
+    "angular_ts_service": "$sse",
+    "browser_api": "EventSource",
+    "factory": "createSseService",
+    "http1": "sse",
+    "http2": "stream-native",
+    "http3": "stream-native"
+  },
+  "name": "terlan",
+  "root_makefile_hooks": [
+    "generated-check: @$(MAKE) -C integrations/terlan generate-check",
+    "test-integrations: @$(MAKE) -C integrations/terlan check"
+  ],
+  "source": "src/terlan/angular/Todo.terl",
+  "terlan_js_imports": [
+    "../../build/js/modules/terlan/angular/Todo.js"
+  ],
+  "tests": [
+    "tests/todo_boundary.test.mjs",
+    "tests/todo_harness_contract.test.mjs",
+    "terlan.test.ts",
+    "tool/check_ng_namespace_bindings.mjs"
+  ],
+  "typescript_declaration_inputs": [
+    "@types/namespace.d.ts"
+  ]
+}

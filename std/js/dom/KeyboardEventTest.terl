@@ -66,6 +66,18 @@ pub init_keyboard_event_typechecks(
     ctrl_key: Bool,
     alt_key: Bool,
     shift_key: Bool,
-    meta_key: Bool
+    meta_key: Bool,
 ): std.core.Unit ->
-    receiver.init_keyboard_event(type_arg, bubbles_arg, cancelable_arg, view_arg, key_arg, location_arg, ctrl_key, alt_key, shift_key, meta_key).
+    receiver
+        .init_keyboard_event(
+            type_arg,
+            bubbles_arg,
+            cancelable_arg,
+            view_arg,
+            key_arg,
+            location_arg,
+            ctrl_key,
+            alt_key,
+            shift_key,
+            meta_key,
+        ).

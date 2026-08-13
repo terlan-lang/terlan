@@ -146,7 +146,7 @@ pub enum SyntaxDeclarationPayload {
         clauses: Vec<SyntaxFunctionClauseOutput>,
     },
     Method {
-        receiver: SyntaxParamOutput,
+        receiver: Box<SyntaxParamOutput>,
         name: String,
         generic_params: Vec<String>,
         params: Vec<SyntaxParamOutput>,
@@ -199,6 +199,7 @@ pub enum SyntaxDeclarationPayload {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Data describing syntax valued union arm output.
 pub struct SyntaxValuedUnionArmOutput {
     pub name: String,
     pub value: SyntaxExprOutput,
@@ -206,6 +207,7 @@ pub struct SyntaxValuedUnionArmOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Data describing syntax trait const output.
 pub struct SyntaxTraitConstOutput {
     pub name: String,
     pub annotation: SyntaxTypeOutput,
@@ -215,6 +217,7 @@ pub struct SyntaxTraitConstOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Data describing syntax impl const output.
 pub struct SyntaxImplConstOutput {
     pub name: String,
     pub annotation: Option<SyntaxTypeOutput>,

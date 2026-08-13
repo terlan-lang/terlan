@@ -135,4 +135,5 @@ impl CapabilitySandboxLimits {
 
 #[cfg(test)]
 #[path = "capability_sandbox_test.rs"]
+#[cfg(test)]
 mod capability_sandbox_test;

@@ -1,0 +1,137 @@
+/**
+ * Canonical replay, lane, and semantic runtime evidence rendering.
+ */
+module proof_release_evidence.RuntimeEvidence.
+
+import proof_release_evidence.Support.
+import std.core.Option.{None, Some}.
+import std.data.Json.
+
+import type proof_release_evidence.Model.{Lane, Repro, Semantic}.
+import type std.core.Option.
+import type std.data.Json.
+
+find_repro(values: List[Repro], family: String): Option[Repro] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.family == family -> Some(value);
+                true -> find_repro(rest, family)
+            }
+    }.
+
+pub replay_json(config: Json, repros: List[Repro]): Option[Json] ->
+    let {
+        Some(values) <- Support.json_member(config, "replay_families");
+        Some(families) <- Support.json_array_strings(values)
+    } else {
+        _ -> None
+    };
+    replay_json_at(families, repros, Json.array()).
+
+replay_json_at(families: List[String], repros: List[Repro], result: Json): Option[Json] ->
+    case families {
+        [] -> Some(result);
+        [family | rest] ->
+            case find_repro(repros, family) {
+                Some(repro) ->
+                    if {
+                        repro.verdict != "pass" -> None;
+                        true -> let _pushed =
+                            result
+                                .push(
+                                    Json.object()
+                                        .put("family", Json.string(family))
+                                        .put("proof_digest", Json.string(repro.proof_digest))
+                                        .put("verdict", Json.string("pass")),
+                                );
+                        replay_json_at(rest, repros, result)
+                    };
+                None -> None
+            }
+    }.
+
+find_lane(values: List[Lane], lane: String): Option[Lane] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.lane == lane -> Some(value);
+                true -> find_lane(rest, lane)
+            }
+    }.
+
+pub lane_json(values: List[Lane]): Json ->
+    lane_json_at(
+        [
+            "coreir",
+            "distribution",
+            "native_boundary",
+            "parser",
+            "std_packages",
+            "target_profile",
+            "vm_runtime",
+            "wasm",
+        ],
+        values,
+        Json.array(),
+    ).
+
+lane_json_at(names: List[String], values: List[Lane], result: Json): Json ->
+    case names {
+        [] -> result;
+        [name | rest] ->
+            case find_lane(values, name) {
+                Some(value) ->
+                    let _pushed =
+                        result
+                            .push(
+                                Json.object()
+                                    .put("lane", Json.string(value.lane))
+                                    .put("status", Json.string(value.status))
+                                    .put("coverage_status", Json.string(value.coverage_status))
+                                    .put("checksum", Json.string(value.checksum)),
+                            );
+                    lane_json_at(rest, values, result);
+                None -> lane_json_at(rest, values, result)
+            }
+    }.
+
+pub semantic_json(values: List[Semantic]): Json ->
+    semantic_json_at(Support.sort_strings(semantic_names(values, [])), values, Json.array()).
+
+semantic_names(values: List[Semantic], collected: List[String]): List[String] ->
+    case values {
+        [] -> Support.reverse_strings(collected);
+        [value | rest] -> semantic_names(rest, [value.family | collected])
+    }.
+
+find_semantic(values: List[Semantic], family: String): Option[Semantic] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.family == family -> Some(value);
+                true -> find_semantic(rest, family)
+            }
+    }.
+
+semantic_json_at(names: List[String], values: List[Semantic], result: Json): Json ->
+    case names {
+        [] -> result;
+        [name | rest] ->
+            case find_semantic(values, name) {
+                Some(value) ->
+                    let _pushed =
+                        result
+                            .push(
+                                Json.object()
+                                    .put("family", Json.string(value.family))
+                                    .put("proof_digest", Json.string(value.proof_digest))
+                                    .put("runtime_oracle", value.runtime_oracle),
+                            );
+                    semantic_json_at(rest, values, result);
+                None -> semantic_json_at(rest, values, result)
+            }
+    }.

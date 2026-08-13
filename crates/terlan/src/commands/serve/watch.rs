@@ -144,7 +144,6 @@ fn watch_web_package_for_reload(
         .filter_map(|path| path.parent().map(Path::to_path_buf))
         .collect::<BTreeSet<_>>();
     let watched_sources = Arc::new(source_paths);
-    let callback_sources = Arc::clone(&watched_sources);
     let cache_root = web_root.clone();
     let mut watcher = match RecommendedWatcher::new(
         move |result: notify::Result<Event>| match result {
@@ -152,11 +151,7 @@ fn watch_web_package_for_reload(
                 if event.paths.iter().any(|path| path == &manifest_path) {
                     super::manifest::invalidate_web_manifest_cache(&cache_root);
                 }
-                let source_changed = event
-                    .paths
-                    .iter()
-                    .any(|path| callback_sources.contains(path));
-                let _ = event_tx.send(source_changed);
+                let _ = event_tx.send(event.paths);
             }
             Ok(_) => {}
             Err(err) => eprintln!("error[serve_watch]: failed to watch package changes: {err}"),
@@ -184,20 +179,48 @@ fn watch_web_package_for_reload(
             );
         }
     }
+    if let Some(project_root) = super::manifest::adjacent_project_root(&web_root) {
+        for directory in ["src", "templates", "styles", ".terlan/generated-bindings"] {
+            let path = project_root.join(directory);
+            if path.is_dir() {
+                if let Err(err) = watcher.watch(&path, RecursiveMode::Recursive) {
+                    eprintln!(
+                        "error[serve_watch]: failed to watch development input `{}`: {err}",
+                        path.display()
+                    );
+                }
+            }
+        }
+        for file in ["terlan.toml", "terlan.lock", "package.json"] {
+            let path = project_root.join(file);
+            if path.is_file() {
+                if let Err(err) = watcher.watch(&path, RecursiveMode::NonRecursive) {
+                    eprintln!(
+                        "error[serve_watch]: failed to watch package input `{}`: {err}",
+                        path.display()
+                    );
+                }
+            }
+        }
+    }
 
     let mut version = 0_u64;
     let debounce_interval = debounce_interval.max(Duration::from_millis(1));
 
-    while let Ok(source_changed) = event_rx.recv() {
-        if source_changed && stage_source_replacement(&web_root).is_err() {
-            continue;
-        }
+    while let Ok(paths) = event_rx.recv() {
+        let mut changed_paths = paths.into_iter().collect::<BTreeSet<_>>();
         thread::sleep(debounce_interval);
-        let mut followup_source_changed = false;
-        while let Ok(source_changed) = event_rx.try_recv() {
-            followup_source_changed |= source_changed;
+        while let Ok(followup_paths) = event_rx.try_recv() {
+            changed_paths.extend(followup_paths);
         }
-        if followup_source_changed && stage_source_replacement(&web_root).is_err() {
+        let compiler_paths = changed_paths
+            .iter()
+            .filter(|path| is_compiler_reload_input(path, &watched_sources))
+            .cloned()
+            .collect::<Vec<_>>();
+        if !compiler_paths.is_empty()
+            && stage_source_replacement(&web_root, &compiler_paths).is_err()
+        {
             continue;
         }
         version = version.saturating_add(1);
@@ -205,17 +228,26 @@ fn watch_web_package_for_reload(
     }
 }
 
-fn stage_source_replacement(web_root: &Path) -> Result<(), ()> {
-    match super::handler_cache::stage_source_generation(web_root) {
-        Ok(()) => {
-            super::handler_cache::invalidate_vm_handler_cache();
-            Ok(())
-        }
+fn stage_source_replacement(web_root: &Path, changed_paths: &[PathBuf]) -> Result<(), ()> {
+    match super::handler_cache::stage_source_generation(web_root, changed_paths) {
+        Ok(()) => Ok(()),
         Err(error) => {
             eprintln!("{error}");
             Err(())
         }
     }
+}
+
+fn is_compiler_reload_input(path: &Path, handler_sources: &BTreeSet<PathBuf>) -> bool {
+    handler_sources.contains(path)
+        || path.extension().and_then(|extension| extension.to_str()) == Some("terl")
+        || path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| {
+                matches!(name, "terlan.toml" | "terlan.lock" | "package.json")
+                    || name.ends_with(".binding.json")
+            })
 }
 
 /// Returns whether one filesystem event should trigger live reload.
@@ -257,4 +289,5 @@ pub(super) fn broadcast_reload(reload_hub: &ReloadHub, version: u64) {
 
 #[cfg(test)]
 #[path = "watch_test.rs"]
+#[cfg(test)]
 mod watch_test;

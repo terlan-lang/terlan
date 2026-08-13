@@ -6,11 +6,10 @@ use crate::terlan_typeck::{
     CoreExpr, CoreFunction, CoreLetBinding, CoreModule, CoreParam, CorePattern, CoreType,
 };
 
+use super::LocalFunctionIdentity as FunctionIdentity;
+
 /// Maximum private higher-order calls expanded in one module.
 const MAX_HIGHER_ORDER_SPECIALIZATIONS: usize = 128;
-
-/// Local function identity used by specialization lookup.
-type FunctionIdentity = (String, usize);
 
 /// One private higher-order function used as an AOT specialization template.
 #[derive(Clone)]
@@ -67,6 +66,7 @@ pub(super) fn specialize_higher_order_helpers_with_budget(
         .filter(|function| {
             !function.public
                 && !function.name.starts_with("$aot_generic_")
+                && !function.name.starts_with("$aot_comprehension_")
                 && has_function_parameter(function)
         })
         .map(higher_order_helper)
@@ -164,6 +164,10 @@ impl HigherOrderSpecializer<'_> {
                 params: params.clone(),
                 body: Box::new(self.rewrite(body)?),
             }),
+            CoreExpr::Cast { expr, target_type } => Ok(CoreExpr::Cast {
+                expr: Box::new(self.rewrite(expr)?),
+                target_type: target_type.clone(),
+            }),
             CoreExpr::UnaryOp { operator, operand } => Ok(CoreExpr::UnaryOp {
                 operator: operator.clone(),
                 operand: Box::new(self.rewrite(operand)?),
@@ -198,6 +202,21 @@ impl HigherOrderSpecializer<'_> {
                     lowered.push(clause);
                 }
                 Ok(CoreExpr::If { clauses: lowered })
+            }
+            CoreExpr::Case { scrutinee, clauses } => {
+                let mut lowered = Vec::with_capacity(clauses.len());
+                for clause in clauses {
+                    let mut clause = clause.clone();
+                    if let Some(guard) = &mut clause.guard {
+                        *guard = self.rewrite(guard)?;
+                    }
+                    clause.body = self.rewrite(&clause.body)?;
+                    lowered.push(clause);
+                }
+                Ok(CoreExpr::Case {
+                    scrutinee: Box::new(self.rewrite(scrutinee)?),
+                    clauses: lowered,
+                })
             }
             _ => Ok(expr.clone()),
         }
@@ -412,9 +431,9 @@ fn mentions_helper(expr: &CoreExpr, helpers: &HashSet<FunctionIdentity>) -> bool
         CoreExpr::FunctionCall { callee, args } => {
             mentions_helper(callee, helpers) || args.iter().any(|arg| mentions_helper(arg, helpers))
         }
-        CoreExpr::Lam { body, .. } | CoreExpr::UnaryOp { operand: body, .. } => {
-            mentions_helper(body, helpers)
-        }
+        CoreExpr::Lam { body, .. }
+        | CoreExpr::UnaryOp { operand: body, .. }
+        | CoreExpr::Cast { expr: body, .. } => mentions_helper(body, helpers),
         CoreExpr::BinaryOp { left, right, .. } => {
             mentions_helper(left, helpers) || mentions_helper(right, helpers)
         }
@@ -427,6 +446,16 @@ fn mentions_helper(expr: &CoreExpr, helpers: &HashSet<FunctionIdentity>) -> bool
         CoreExpr::If { clauses } => clauses.iter().any(|clause| {
             mentions_helper(&clause.condition, helpers) || mentions_helper(&clause.body, helpers)
         }),
+        CoreExpr::Case { scrutinee, clauses } => {
+            mentions_helper(scrutinee, helpers)
+                || clauses.iter().any(|clause| {
+                    clause
+                        .guard
+                        .as_ref()
+                        .is_some_and(|guard| mentions_helper(guard, helpers))
+                        || mentions_helper(&clause.body, helpers)
+                })
+        }
         _ => false,
     }
 }

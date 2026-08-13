@@ -22,7 +22,7 @@ import type std.collections.List.
  */
 pub struct EnvVar {
     key: String,
-    value: String
+    value: String,
 }.
 
 /**
@@ -36,7 +36,7 @@ pub struct EnvVar {
 pub struct Command {
     executable: String,
     arguments: List[String],
-    environment: List[EnvVar]
+    environment: List[EnvVar],
 }.
 
 /**

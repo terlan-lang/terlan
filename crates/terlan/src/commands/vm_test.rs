@@ -97,7 +97,7 @@ fn vm_run_rejects_unwired_capability_instead_of_spinning() {
 /// Verifies VM reload publishes source files through the code server adapter.
 ///
 /// Inputs:
-/// - Two source files declaring the same module with different function bodies.
+/// - One source file rewritten with a different function body.
 ///
 /// Output:
 /// - Initial publish event followed by a hot-reload event.
@@ -109,13 +109,20 @@ fn vm_run_rejects_unwired_capability_instead_of_spinning() {
 fn vm_reload_publishes_changed_sources_through_code_server() {
     let root = unique_temp_dir("terlan-vm-reload");
     fs::create_dir_all(&root).expect("create temp dir");
-    let first = root.join("First.terl");
-    let second = root.join("Second.terl");
-    fs::write(&first, "module app.\n\npub value(): Int ->\n    1.\n").expect("write first source");
-    fs::write(&second, "module app.\n\npub value(): Int ->\n    2.\n")
-        .expect("write second source");
-
-    let events = reload_source_files_in_vm(&[first, second]).expect("reload sources");
+    let source = root.join("App.terl");
+    fs::write(&source, "module app.\n\npub value(): Int ->\n    1.\n").expect("write first source");
+    let mut adapter = VmSourceReloadAdapter::new();
+    let first = adapter
+        .publish_changed_file(&source)
+        .expect("publish first generation")
+        .expect("first generation event");
+    fs::write(&source, "module app.\n\npub value(): Int ->\n    2.\n")
+        .expect("write second generation");
+    let second = adapter
+        .publish_changed_file(&source)
+        .expect("publish second generation")
+        .expect("second generation event");
+    let events = [first, second];
 
     assert_eq!(events.len(), 2);
     assert_eq!(

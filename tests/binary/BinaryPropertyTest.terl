@@ -5,30 +5,30 @@ import std.vm.BitString.{from_bytes}.
 import std.vm.Bytes.{from_list}.
 
 pub roundtrip_uint16_big(value: Int): Bool ->
-    let packet = Binary[big] { value: UInt[16] };
+    let packet = Binary[big] {value: UInt[16]};
     case packet {
-        Binary[big] { decoded: UInt[16] } -> decoded == value;
+        Binary[big] {decoded: UInt[16]} -> decoded == value;
         _ -> false
     }.
 
 pub roundtrip_uint16_little(value: Int): Bool ->
-    let packet = Binary[little] { value: UInt[16] };
+    let packet = Binary[little] {value: UInt[16]};
     case packet {
-        Binary[little] { decoded: UInt[16] } -> decoded == value;
+        Binary[little] {decoded: UInt[16]} -> decoded == value;
         _ -> false
     }.
 
 pub roundtrip_int12_big(value: Int): Bool ->
-    let packet = Binary[big] { value: IntBits[12] };
+    let packet = Binary[big] {value: IntBits[12]};
     case packet {
-        Binary[big] { decoded: IntBits[12] } -> decoded == value;
+        Binary[big] {decoded: IntBits[12]} -> decoded == value;
         _ -> false
     }.
 
 pub roundtrip_int12_little(value: Int): Bool ->
-    let packet = Binary[little] { value: IntBits[12] };
+    let packet = Binary[little] {value: IntBits[12]};
     case packet {
-        Binary[little] { decoded: IntBits[12] } -> decoded == value;
+        Binary[little] {decoded: IntBits[12]} -> decoded == value;
         _ -> false
     }.
 
@@ -36,19 +36,9 @@ pub roundtrip_mixed_layout(marker: Int, flag: Int, tail: Int): Bool ->
     let prefix = from_list([marker, tail]);
     let flags = from_bytes(from_list([flag * 32]), 3);
     let body = from_list([tail, marker]);
-    let packet = Binary[big] {
-        marker: UInt[8],
-        prefix: Bytes[2],
-        flags: Bits[3],
-        body: Rest
-    };
+    let packet = Binary[big] {marker: UInt[8], prefix: Bytes[2], flags: Bits[3], body: Rest};
     case packet {
-        Binary[big] {
-            decoded_marker: UInt[8],
-            decoded_prefix: Bytes[2],
-            decoded_flags: Bits[3],
-            decoded_body: Rest
-        } ->
+        Binary[big] {decoded_marker: UInt[8], decoded_prefix: Bytes[2], decoded_flags: Bits[3], decoded_body: Rest} ->
             decoded_marker == marker
                 and decoded_prefix.to_list() == [marker, tail]
                 and decoded_flags.bit_length() == 3
@@ -58,9 +48,9 @@ pub roundtrip_mixed_layout(marker: Int, flag: Int, tail: Int): Bool ->
     }.
 
 pub roundtrip_utf8_scalar(value: Int): Bool ->
-    let packet = Binary[big] { value: Utf8 };
+    let packet = Binary[big] {value: Utf8};
     case packet {
-        Binary[big] { decoded: Utf8 } -> decoded == value;
+        Binary[big] {decoded: Utf8} -> decoded == value;
         _ -> false
     }.
 
@@ -68,14 +58,14 @@ pub roundtrip_utf8_scalar(value: Int): Bool ->
 pub generated_unsigned_values_roundtrip_in_both_endian_modes(): Bool ->
     for_all(
         elements([0, 1, 255, 256, 4660, 32767, 65534, 65535]),
-        (value) -> roundtrip_uint16_big(value) and roundtrip_uint16_little(value)
+        (value) -> roundtrip_uint16_big(value) and roundtrip_uint16_little(value),
     ).
 
 @test
 pub generated_signed_values_roundtrip_in_both_endian_modes(): Bool ->
     for_all(
         elements([-2048, -2047, -257, -1, 0, 1, 255, 2046, 2047]),
-        (value) -> roundtrip_int12_big(value) and roundtrip_int12_little(value)
+        (value) -> roundtrip_int12_big(value) and roundtrip_int12_little(value),
     ).
 
 @test
@@ -88,58 +78,58 @@ pub generated_mixed_descriptor_values_roundtrip_at_unaligned_offsets(): Bool ->
                 (flag) ->
                     for_all(
                         elements([0, 1, 128, 255]),
-                        (tail) -> roundtrip_mixed_layout(marker, flag, tail)
-                    )
-            )
+                        (tail) -> roundtrip_mixed_layout(marker, flag, tail),
+                    ),
+            ),
     ).
 
 @test
 pub generated_utf8_scalar_boundaries_roundtrip(): Bool ->
     for_all(
         elements([0, 36, 127, 128, 162, 2047, 2048, 8364, 65535, 65536, 1114111]),
-        (value) -> roundtrip_utf8_scalar(value)
+        roundtrip_utf8_scalar,
     ).
 
 @test
 pub generated_fixed_integer_layout_truncations_never_match(): Bool ->
     let first = 18;
     let second = 13398;
-    let packet = Binary[big] { first: UInt[8], second: UInt[16] };
+    let packet = Binary[big] {first: UInt[8], second: UInt[16]};
     for_all(
         int_range(0, 23),
         (bit_length) ->
             let prefix = packet.slice(0, bit_length);
             case prefix {
-                Binary[big] { decoded_first: UInt[8], decoded_second: UInt[16] } -> false;
+                Binary[big] {decoded_first: UInt[8], decoded_second: UInt[16]} -> false;
                 _ -> true
-            }
+            },
     ).
 
 @test
 pub generated_utf8_layout_truncations_never_match(): Bool ->
     let scalar = 8364;
-    let packet = Binary[big] { scalar: Utf8 };
+    let packet = Binary[big] {scalar: Utf8};
     for_all(
         int_range(0, 23),
         (bit_length) ->
             let prefix = packet.slice(0, bit_length);
             case prefix {
-                Binary[big] { decoded: Utf8 } -> false;
+                Binary[big] {decoded: Utf8} -> false;
                 _ -> true
-            }
+            },
     ).
 
 @test
 pub generated_exact_byte_and_bit_layout_truncations_never_match(): Bool ->
     let bytes = from_list([170, 85]);
     let flags = from_bytes(from_list([160]), 3);
-    let packet = Binary[big] { bytes: Bytes[2], flags: Bits[3] };
+    let packet = Binary[big] {bytes: Bytes[2], flags: Bits[3]};
     for_all(
         int_range(0, 18),
         (bit_length) ->
             let prefix = packet.slice(0, bit_length);
             case prefix {
-                Binary[big] { decoded_bytes: Bytes[2], decoded_flags: Bits[3] } -> false;
+                Binary[big] {decoded_bytes: Bytes[2], decoded_flags: Bits[3]} -> false;
                 _ -> true
-            }
+            },
     ).

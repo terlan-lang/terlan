@@ -31,18 +31,18 @@ pub close_typechecks(receiver: AudioContext): Promise[Unit] ->
 
 pub create_media_element_source_typechecks(
     receiver: AudioContext,
-    media_element: HTMLMediaElement
+    media_element: HTMLMediaElement,
 ): MediaElementAudioSourceNode ->
     receiver.create_media_element_source(media_element).
 
 pub create_media_stream_destination_typechecks(
-    receiver: AudioContext
+    receiver: AudioContext,
 ): MediaStreamAudioDestinationNode ->
     receiver.create_media_stream_destination().
 
 pub create_media_stream_source_typechecks(
     receiver: AudioContext,
-    media_stream: MediaStream
+    media_stream: MediaStream,
 ): MediaStreamAudioSourceNode ->
     receiver.create_media_stream_source(media_stream).
 
@@ -59,7 +59,7 @@ pub add_event_listener_typechecks(
     receiver: AudioContext,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -67,6 +67,6 @@ pub remove_event_listener_typechecks(
     receiver: AudioContext,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

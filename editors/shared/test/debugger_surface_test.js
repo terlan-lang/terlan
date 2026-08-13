@@ -12,7 +12,7 @@ const VM_IMAGE_DOC = "docs/runtime/TVM_EXECUTABLE_IMAGE_SPEC.md";
 const VM_IMAGE_SOURCE = "crates/terlan/src/runtime/native_image/image.rs";
 const BUILD_IMAGE_SOURCE = "crates/terlan/src/commands/build/vm_artifact/native_image.rs";
 const NATIVE_DEBUG_SOURCE = "crates/terlan/src/runtime/native_image/debug.rs";
-const CLI_MAIN_SOURCE = "crates/terlan/src/main.rs";
+const CLI_DISPATCH_SOURCE = "crates/terlan/src/lib.rs";
 const CLI_USAGE_SOURCE = "crates/terlan/src/cli_usage.rs";
 const CLI_DEBUG_SOURCE = "crates/terlan/src/commands/debug/mod.rs";
 const CLI_DEBUG_SESSION_SOURCE = "crates/terlan/src/commands/debug/session.rs";
@@ -53,12 +53,15 @@ const REQUIRED_CLI_DEBUG_TERMS = Object.freeze([
 ]);
 
 const REQUIRED_IMAGE_DOC_TERMS = Object.freeze([
-  "TVMDBG01",
+  "TVMDBG05",
   ".debug_terlan",
   "__terlan",
-  ".debug$T",
+  ".tdbg$D",
+  ".tdbg",
   "UTF-8-safe declaration",
-  "debugger metadata, not executable IR",
+  "SHA-256 digest",
+  "never embeds source text",
+  "metadata, not executable IR",
 ]);
 
 /**
@@ -139,7 +142,7 @@ function testVmImageDebuggerMetadataContract() {
   );
   assert.ok(imageSource.includes(".debug_terlan"), "ELF images must use the native debug section");
   assert.ok(buildSource.includes("encode_native_debug"), "build path must encode native debug metadata");
-  assert.ok(debugSource.includes("TVMDBG01"), "native debug records must carry a versioned magic");
+  assert.ok(debugSource.includes("TVMDBG05"), "native debug records must carry a versioned magic");
 }
 
 /**
@@ -152,12 +155,12 @@ function testVmImageDebuggerMetadataContract() {
  * the DAP adapter is still future work.
  */
 function testCliDebuggerFallbackContract() {
-  const mainSource = readText(CLI_MAIN_SOURCE);
+  const dispatchSource = readText(CLI_DISPATCH_SOURCE);
   const usageSource = readText(CLI_USAGE_SOURCE);
   const debugSource = readText(CLI_DEBUG_SOURCE);
   const debugSessionSource = readText(CLI_DEBUG_SESSION_SOURCE);
 
-  assertContainsAll(CLI_MAIN_SOURCE, mainSource, ["debug\" => commands::debug::run"]);
+  assertContainsAll(CLI_DISPATCH_SOURCE, dispatchSource, ["\"debug\" => commands::debug::run"]);
   assertContainsAll(CLI_USAGE_SOURCE, usageSource, ["terlc debug <image.tvm>"]);
   assertContainsAll(CLI_DEBUG_SOURCE, debugSource, REQUIRED_CLI_DEBUG_TERMS);
   assertContainsAll(CLI_DEBUG_SESSION_SOURCE, debugSessionSource, [

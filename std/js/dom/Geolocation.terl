@@ -38,7 +38,7 @@ pub (value: Geolocation) clear_watch(watch_id: JsNumber): Unit ->
 pub (value: Geolocation) get_current_position(
     success_callback: PositionCallback,
     error_callback: Option[PositionErrorCallback],
-    options: PositionOptions
+    options: PositionOptions,
 ): Unit ->
     native.
 
@@ -50,6 +50,6 @@ pub (value: Geolocation) get_current_position(
 pub (value: Geolocation) watch_position(
     success_callback: PositionCallback,
     error_callback: Option[PositionErrorCallback],
-    options: PositionOptions
+    options: PositionOptions,
 ): JsNumber ->
     native.

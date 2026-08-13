@@ -820,3 +820,77 @@ impl HasCode for Int { const CODE = ANSWER. }.
       name: (type_identifier)
       (expression
         (type_identifier)))))
+
+==================
+word, unary, and cast operators
+==================
+
+module app.Operators.
+
+pub parity(left: Int, right: Int): Bool ->
+  not (left div 2 == right rem 2) or left in [right].
+
+pub widen(value: Int): Float -> value as Float.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier)))
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (binary_expression
+        (expression
+          (binary_expression
+            (expression
+              (unary_expression
+                (expression
+                  (expression
+                    (binary_expression
+                      (expression
+                        (binary_expression
+                          (expression
+                            (binary_expression
+                              (expression
+                                (identifier))
+                              (expression
+                                (number))))
+                          (expression
+                            (identifier))))
+                      (expression
+                        (number)))))))
+            (expression
+              (identifier))))
+        (expression
+          (list_expression
+            (expression
+              (identifier)))))))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (cast_expression
+        (expression
+          (identifier))
+        (type_expression
+          (type_identifier))))))

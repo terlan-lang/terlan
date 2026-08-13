@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::{BTreeMap, VecDeque};
 
 use super::actor_directory::VmActorDirectory;
@@ -11,10 +9,14 @@ mod actor_ownership;
 mod identity;
 #[path = "process/parking.rs"]
 mod parking;
+mod snapshot;
 #[path = "process/transfer.rs"]
 pub(crate) mod transfer;
 
 pub(crate) use identity::VmProcessId;
+#[cfg(test)]
+pub(crate) use snapshot::VmProcessTableMetrics;
+pub(crate) use snapshot::{VmMailboxMessageSnapshot, VmMailboxSnapshot, VmProcessSnapshot};
 
 /// Local VM process execution state.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -52,6 +54,7 @@ pub(crate) enum VmExitReason {
 
 /// Stable process name registry error.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmProcessRegistryError {
     EmptyName,
     NameNotRegistered(String),
@@ -106,6 +109,7 @@ impl VmProcessSource {
 
 impl VmProcessLocation {
     /// Renders one stable source-facing VM stack frame.
+    #[cfg(test)]
     pub(crate) fn render(&self) -> String {
         let identity = format!(
             "{}.{}/{}",
@@ -122,6 +126,7 @@ impl VmProcessLocation {
     }
 }
 
+#[cfg(test)]
 fn escape_source_path(path: &str) -> String {
     path.chars().flat_map(char::escape_debug).collect()
 }
@@ -152,6 +157,15 @@ pub(crate) struct VmManagedMailboxToken {
     receiver: u64,
     /// Receiver graph bytes plus fixed VM mailbox-token storage.
     accounted_bytes: usize,
+}
+
+/// Payload, ownership, accounting, and priority admitted to one mailbox.
+struct VmMessageDelivery {
+    payload: ReplValue,
+    boundary_type: Option<crate::runtime::native_image::TvmBoundaryType>,
+    managed_fragment: Option<VmManagedMailboxToken>,
+    accounted_bytes: usize,
+    priority: VmMessagePriority,
 }
 
 impl VmManagedMailboxToken {
@@ -259,6 +273,7 @@ impl VmProcess {
     }
 
     /// Enters a called function and records the caller continuation atomically.
+    #[cfg(test)]
     pub(crate) fn enter_execution_frame(
         &mut self,
         source: VmProcessSource,
@@ -280,6 +295,7 @@ impl VmProcess {
     }
 
     /// Returns from the current function while preserving the root frame.
+    #[cfg(test)]
     pub(crate) fn pop_execution_frame(&mut self) -> Result<VmProcessLocation, String> {
         if self.execution_stack.len() == 1 {
             return Err("cannot pop the root process execution frame".to_string());
@@ -301,6 +317,7 @@ impl VmProcess {
     }
 
     /// Returns logical bytes retained by messages currently in the mailbox.
+    #[cfg(test)]
     pub(crate) fn mailbox_accounted_bytes(&self) -> Result<usize, String> {
         self.mailbox.iter().try_fold(0usize, |total, message| {
             total.checked_add(message.accounted_bytes).ok_or_else(|| {
@@ -354,6 +371,7 @@ impl VmProcess {
     }
 
     /// Receives the oldest mailbox message.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn receive_next(&mut self) -> Option<VmMessage> {
         self.mailbox.pop_front()
     }
@@ -403,34 +421,6 @@ pub(crate) struct VmProcessTable {
     names: BTreeMap<String, VmProcessId>,
 }
 
-/// Aggregate process ownership retained by the local VM process table.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub(crate) struct VmProcessTableMetrics {
-    pub(crate) total_processes: usize,
-    pub(crate) live_processes: usize,
-    pub(crate) exited_processes: usize,
-    pub(crate) mailbox_messages: usize,
-    pub(crate) heap_bytes: usize,
-    pub(crate) resource_handles: usize,
-}
-
-/// Read-only process state exposed to VM diagnostics and runtime tooling.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct VmProcessSnapshot {
-    pub(crate) pid: VmProcessId,
-    pub(crate) parent: Option<VmProcessId>,
-    pub(crate) source: VmProcessSource,
-    pub(crate) state: VmProcessState,
-    pub(crate) reductions: u64,
-    pub(crate) heap_bytes: usize,
-    pub(crate) mailbox_messages: usize,
-    pub(crate) cancellation_requested: bool,
-    pub(crate) resource_handles: Vec<String>,
-    pub(crate) registered_names: Vec<String>,
-    pub(crate) current_location: VmProcessLocation,
-    pub(crate) current_stacktrace: Vec<VmProcessLocation>,
-}
-
 impl VmProcessTable {
     /// Spawns a root VM process.
     pub(crate) fn spawn_root(&mut self, source: VmProcessSource) -> VmProcessId {
@@ -465,6 +455,7 @@ impl VmProcessTable {
     }
 
     /// Returns all live process ids in deterministic allocation order.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn live_process_ids(&self) -> Vec<VmProcessId> {
         self.processes
             .iter()
@@ -506,6 +497,7 @@ impl VmProcessTable {
     /// Missing and exited identities are intentionally indistinguishable at
     /// this boundary. Internal diagnostics continue to use `snapshot` so a
     /// completed process retains useful postmortem state.
+    #[cfg(test)]
     pub(crate) fn live_snapshot(&self, pid: VmProcessId) -> Option<VmProcessSnapshot> {
         let process = self.processes.get(pid)?;
         if matches!(process.state, VmProcessState::Exited(_)) {
@@ -523,6 +515,38 @@ impl VmProcessTable {
             .values()
             .map(|process| self.snapshot_process(process))
             .collect()
+    }
+
+    /// Captures at most `limit` messages without changing selective-receive order.
+    pub(crate) fn mailbox_snapshot(
+        &self,
+        pid: VmProcessId,
+        limit: usize,
+    ) -> Result<VmMailboxSnapshot, VmProcessInspectionError> {
+        let process = self
+            .processes
+            .get(pid)
+            .ok_or(VmProcessInspectionError::MissingProcess(pid))?;
+        let messages = process
+            .mailbox
+            .iter()
+            .take(limit)
+            .map(|message| VmMailboxMessageSnapshot {
+                id: message.id,
+                publication_sequence: message.publication_sequence,
+                sender: message.sender,
+                payload: message.payload.clone(),
+                managed: message.managed_fragment.is_some(),
+                accounted_bytes: message.accounted_bytes,
+                priority: message.priority,
+            })
+            .collect();
+        Ok(VmMailboxSnapshot {
+            process: pid,
+            selective_receive_cursor: 0,
+            messages,
+            omitted_messages: process.mailbox.len().saturating_sub(limit),
+        })
     }
 
     fn snapshot_process(&self, process: &VmProcess) -> VmProcessSnapshot {
@@ -543,6 +567,7 @@ impl VmProcessTable {
     }
 
     /// Returns deterministic aggregate ownership for leak and soak checks.
+    #[cfg(test)]
     pub(crate) fn metrics(&self) -> VmProcessTableMetrics {
         let mut metrics = VmProcessTableMetrics {
             total_processes: self.processes.len(),
@@ -562,6 +587,7 @@ impl VmProcessTable {
     }
 
     /// Registers a stable process name.
+    #[cfg(test)]
     pub(crate) fn register_name(
         &mut self,
         name: impl Into<String>,
@@ -583,16 +609,19 @@ impl VmProcessTable {
     }
 
     /// Looks up a registered process name.
+    #[cfg(test)]
     pub(crate) fn lookup_name(&self, name: &str) -> Option<VmProcessId> {
         self.names.get(name).copied()
     }
 
     /// Returns the number of registered process names.
+    #[cfg(test)]
     pub(crate) fn registered_name_count(&self) -> usize {
         self.names.len()
     }
 
     /// Returns all registered names in deterministic lexical order.
+    #[cfg(test)]
     pub(crate) fn registered_names(&self) -> Vec<String> {
         self.names.keys().cloned().collect()
     }
@@ -607,6 +636,7 @@ impl VmProcessTable {
     }
 
     /// Removes one registered name and returns its process owner.
+    #[cfg(test)]
     pub(crate) fn unregister_name(
         &mut self,
         name: &str,
@@ -617,6 +647,7 @@ impl VmProcessTable {
     }
 
     /// Removes every registered name for one existing process.
+    #[cfg(test)]
     pub(crate) fn unregister_process_names(
         &mut self,
         pid: VmProcessId,
@@ -628,6 +659,7 @@ impl VmProcessTable {
     }
 
     /// Sends a message from one VM process to another.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn send(
         &mut self,
         sender: VmProcessId,
@@ -654,11 +686,13 @@ impl VmProcessTable {
         self.enqueue_message(
             origin,
             recipient,
-            payload,
-            None,
-            None,
-            0,
-            VmMessagePriority::Ordinary,
+            VmMessageDelivery {
+                payload,
+                boundary_type: None,
+                managed_fragment: None,
+                accounted_bytes: 0,
+                priority: VmMessagePriority::Ordinary,
+            },
         )
     }
 
@@ -676,11 +710,13 @@ impl VmProcessTable {
         self.enqueue_message(
             origin,
             recipient,
-            payload,
-            None,
-            None,
-            0,
-            VmMessagePriority::Priority,
+            VmMessageDelivery {
+                payload,
+                boundary_type: None,
+                managed_fragment: None,
+                accounted_bytes: 0,
+                priority: VmMessagePriority::Priority,
+            },
         )
     }
 
@@ -719,15 +755,18 @@ impl VmProcessTable {
         self.enqueue_message(
             sender,
             recipient,
-            payload,
-            None,
-            None,
-            accounted_bytes,
-            VmMessagePriority::Ordinary,
+            VmMessageDelivery {
+                payload,
+                boundary_type: None,
+                managed_fragment: None,
+                accounted_bytes,
+                priority: VmMessagePriority::Ordinary,
+            },
         )
     }
 
     /// Sends an explicitly priority message carrying a logical-heap charge.
+    #[cfg(test)]
     pub(crate) fn send_priority_accounted(
         &mut self,
         sender: VmProcessId,
@@ -740,11 +779,13 @@ impl VmProcessTable {
         self.enqueue_message(
             sender,
             recipient,
-            payload,
-            None,
-            None,
-            accounted_bytes,
-            VmMessagePriority::Priority,
+            VmMessageDelivery {
+                payload,
+                boundary_type: None,
+                managed_fragment: None,
+                accounted_bytes,
+                priority: VmMessagePriority::Priority,
+            },
         )
     }
 
@@ -761,11 +802,13 @@ impl VmProcessTable {
         self.enqueue_message(
             sender,
             recipient,
-            payload,
-            Some(boundary_type),
-            None,
-            accounted_bytes,
-            VmMessagePriority::Ordinary,
+            VmMessageDelivery {
+                payload,
+                boundary_type: Some(boundary_type),
+                managed_fragment: None,
+                accounted_bytes,
+                priority: VmMessagePriority::Ordinary,
+            },
         )
     }
 
@@ -782,11 +825,13 @@ impl VmProcessTable {
         self.enqueue_message(
             sender,
             recipient,
-            ReplValue::Unit,
-            Some(boundary_type),
-            Some(fragment),
-            accounted_bytes,
-            VmMessagePriority::Ordinary,
+            VmMessageDelivery {
+                payload: ReplValue::Unit,
+                boundary_type: Some(boundary_type),
+                managed_fragment: Some(fragment),
+                accounted_bytes,
+                priority: VmMessagePriority::Ordinary,
+            },
         )
     }
 
@@ -808,12 +853,15 @@ impl VmProcessTable {
         &mut self,
         sender: VmProcessId,
         recipient: VmProcessId,
-        payload: ReplValue,
-        boundary_type: Option<crate::runtime::native_image::TvmBoundaryType>,
-        managed_fragment: Option<VmManagedMailboxToken>,
-        accounted_bytes: usize,
-        priority: VmMessagePriority,
+        delivery: VmMessageDelivery,
     ) -> Result<u64, String> {
+        let VmMessageDelivery {
+            payload,
+            boundary_type,
+            managed_fragment,
+            accounted_bytes,
+            priority,
+        } = delivery;
         let message_id = self.next_message_id.saturating_add(1);
         self.processes
             .publish_fragment(
@@ -843,6 +891,7 @@ impl VmProcessTable {
         names
     }
 
+    #[cfg(test)]
     fn ensure_live_process(&self, pid: VmProcessId) -> Result<(), VmProcessRegistryError> {
         let process = self
             .processes
@@ -884,32 +933,40 @@ impl VmProcessTable {
 
 #[cfg(test)]
 #[path = "process_test.rs"]
+#[cfg(test)]
 mod process_test;
 
 #[cfg(test)]
 #[path = "process_mailbox_storage_parity_test.rs"]
+#[cfg(test)]
 mod process_mailbox_storage_parity_test;
 
 #[cfg(test)]
 #[path = "process_inspection_test.rs"]
+#[cfg(test)]
 mod process_inspection_test;
 
 #[cfg(test)]
 #[path = "process_registry_test.rs"]
+#[cfg(test)]
 mod process_registry_test;
 
 #[cfg(test)]
 #[path = "process_location_test.rs"]
+#[cfg(test)]
 mod process_location_test;
 
 #[cfg(test)]
 #[path = "process_unicode_source_path_test.rs"]
+#[cfg(test)]
 mod process_unicode_source_path_test;
 
 #[cfg(test)]
 #[path = "process_transfer_test.rs"]
+#[cfg(test)]
 mod process_transfer_test;
 
 #[cfg(test)]
 #[path = "process_environment_parity_test.rs"]
+#[cfg(test)]
 mod process_environment_parity_test;

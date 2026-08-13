@@ -132,6 +132,6 @@ pub (value: VideoFrame) close(): std.core.Unit ->
  */
 pub (value: VideoFrame) copy_to(
     destination: AllowSharedBufferSource,
-    options: VideoFrameCopyToOptions
+    options: VideoFrameCopyToOptions,
 ): std.js.Promise[std.js.Array[PlaneLayout]] ->
     native.

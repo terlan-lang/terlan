@@ -1,0 +1,9 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Dispatches sealed release-promotion operations through one AOT image.
+ */
+import release_promotion.Main.
+import std.core.Unit.
+
+assert(Main.entry());
+Unit.

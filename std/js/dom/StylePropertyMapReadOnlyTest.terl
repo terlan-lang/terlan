@@ -25,7 +25,7 @@ pub get_typechecks(receiver: StylePropertyMapReadOnly, property: JsString): Opti
 
 pub get_all_typechecks(
     receiver: StylePropertyMapReadOnly,
-    property: JsString
+    property: JsString,
 ): std.js.Array[CSSStyleValue] ->
     receiver.get_all(property).
 

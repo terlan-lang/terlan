@@ -22,11 +22,22 @@ import std.test.Test.{assert_equal}.
  */
 @test
 pub generated_paths_render_idempotently_after_parse(): Bool ->
-    for_all(elements(["src/main.terl", "std/io/Path.terl", "docs/roadmap/ROADMAP_0_0_7.md", "/tmp/terlan", "/tmp/terlan/std/io"]), (text) -> case Path.from_string(text) {
-        Ok(path) ->
-            case Path.from_string(path.to_string()) {
-                Ok(roundtrip) -> assert_equal(path.to_string(), roundtrip.to_string());
+    for_all(
+        elements(
+            [
+                "src/main.terl",
+                "std/io/Path.terl",
+                "docs/roadmap/ROADMAP_0_0_7.md",
+                "/tmp/terlan",
+                "/tmp/terlan/std/io",
+            ],
+        ),
+        (text) ->
+            let {
+                Ok(path) <- Path.from_string(text);
+                Ok(roundtrip) <- Path.from_string(path.to_string())
+            } else {
                 _ -> false
             };
-        _ -> false
-    }).
+            assert_equal(path.to_string(), roundtrip.to_string()),
+    ).

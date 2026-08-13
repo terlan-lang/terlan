@@ -39,6 +39,6 @@ pub get_stats_typechecks(receiver: RTCRtpReceiver): std.js.Promise[RTCStatsRepor
     receiver.get_stats().
 
 pub get_synchronization_sources_typechecks(
-    receiver: RTCRtpReceiver
+    receiver: RTCRtpReceiver,
 ): Array[RTCRtpSynchronizationSource] ->
     receiver.get_synchronization_sources().

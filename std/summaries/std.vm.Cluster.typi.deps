@@ -1,8 +1,10 @@
 module=std.vm.Cluster
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=4470908946367195542
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=7267847942805188013
 interface_hash=15638391989920657216
 interface_doc_hash=147286568765169573
-deps=0
+deps=2
+std.collections.List=5599785960849014878
+std.core.Option=11539230284316612175

@@ -1,0 +1,12 @@
+schema = "terlan.lean-proof-gap.v1"
+feature = "VM execution subset"
+lifecycle_status = "blocked"
+proof_gap_category = "model_gap"
+gap_reason = "Terlan VM semantics are expanding and currently proven by Rust unit/adversarial gates."
+remediation_owner = "vm"
+planned_gate = "vm-runtime-semantics-check"
+deadline_or_exception = "exception:vm_runtime@2026-08-31"
+exception_approved_by = "vm"
+blocker_updated_at = "2026-07-16"
+blocker_hash = "sha256:8917ce1bed441d5bc25165b893123a26cfd0b51ef1bb06fc16429bfc3f70af9c"
+covered_manifests = ["docs/runtime/TERLAN_VM_RUNTIME_CONCEPTS.md"]

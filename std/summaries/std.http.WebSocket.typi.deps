@@ -1,8 +1,8 @@
 module=std.http.WebSocket
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=14585821313673220453
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=17229743883537660479
 interface_hash=14221707510797958434
 interface_doc_hash=16341635801552831628
 deps=0

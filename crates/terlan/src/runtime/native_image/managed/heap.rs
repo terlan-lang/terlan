@@ -15,6 +15,10 @@ use super::{
 
 #[path = "heap/descriptor_cache.rs"]
 mod descriptor_cache;
+#[path = "heap/introspection.rs"]
+mod introspection;
+#[path = "heap/object_table.rs"]
+mod object_table;
 #[path = "heap/support.rs"]
 mod support;
 use descriptor_cache::{
@@ -22,6 +26,7 @@ use descriptor_cache::{
     MAX_CACHED_AGGREGATE_DESCRIPTORS, MAX_CACHED_SEQUENCE_DESCRIPTORS,
     MAX_CACHED_SPECIALIZED_DESCRIPTORS, OWNER_DESCRIPTOR_CACHE,
 };
+use object_table::{ObjectMetadata, ObjectTable};
 use support::{
     align_up, next_token, read_reference, reference_with_token, relocate_object_fields,
     write_reference,
@@ -38,67 +43,6 @@ const REUSE_UNDERUTILIZED_LIMIT: u8 = 8;
 const TOKEN_RESERVATION_SIZE: u32 = 1_024;
 static NEXT_HEAP_TOKEN: AtomicU32 = AtomicU32::new(1);
 
-#[derive(Clone, Debug)]
-struct ObjectMetadata {
-    descriptor: Arc<ManagedTypeDescriptor>,
-}
-
-/// Offset-ordered metadata for append-only semispace objects.
-///
-/// Managed allocation is monotonic until collection or rollback, so a tree
-/// node per object only adds allocator traffic to the actor hot path. A compact
-/// vector preserves ordered lookup and precise traversal without per-object
-/// host allocations.
-#[derive(Clone, Debug, Default)]
-struct ObjectTable {
-    entries: Vec<(usize, ObjectMetadata)>,
-}
-
-impl ObjectTable {
-    fn len(&self) -> usize {
-        self.entries.len()
-    }
-
-    fn is_empty(&self) -> bool {
-        self.entries.is_empty()
-    }
-
-    fn clear(&mut self) {
-        self.entries.clear();
-    }
-
-    fn get(&self, offset: &usize) -> Option<&ObjectMetadata> {
-        if let Some((last_offset, metadata)) = self.entries.last() {
-            if last_offset == offset {
-                return Some(metadata);
-            }
-        }
-        self.entries
-            .binary_search_by_key(offset, |(object_offset, _)| *object_offset)
-            .ok()
-            .map(|index| &self.entries[index].1)
-    }
-
-    fn contains_key(&self, offset: &usize) -> bool {
-        self.get(offset).is_some()
-    }
-
-    fn insert(&mut self, offset: usize, metadata: ObjectMetadata) {
-        debug_assert!(
-            self.entries.last().is_none_or(|(prior, _)| *prior < offset),
-            "managed objects must be appended in offset order"
-        );
-        self.entries.push((offset, metadata));
-    }
-
-    fn truncate_from(&mut self, offset: usize) {
-        let retained = self
-            .entries
-            .partition_point(|(object_offset, _)| *object_offset < offset);
-        self.entries.truncate(retained);
-    }
-}
-
 /// Independently collectible managed heap owned by exactly one actor.
 #[derive(Debug)]
 pub struct ActorHeap {
@@ -109,6 +53,7 @@ pub struct ActorHeap {
     latest_retired_token: Option<u32>,
     retired_tokens: HashSet<u32>,
     limits: HeapLimits,
+    next_collection_bytes: usize,
     space: Vec<u8>,
     objects: ObjectTable,
     external_strings: BTreeMap<usize, Bytes>,
@@ -130,6 +75,7 @@ impl ActorHeap {
             latest_retired_token: None,
             retired_tokens: HashSet::new(),
             limits,
+            next_collection_bytes: limits.soft_bytes,
             space: Vec::with_capacity(limits.soft_bytes.min(INITIAL_HEAP_BYTES)),
             objects: ObjectTable::default(),
             external_strings: BTreeMap::new(),
@@ -156,11 +102,6 @@ impl ActorHeap {
     /// Returns the number of completed moving collections.
     pub fn collection_count(&self) -> u64 {
         self.collections
-    }
-
-    /// Reports whether allocation has crossed the actor's soft limit.
-    pub fn should_collect(&self) -> bool {
-        self.allocated_bytes() >= self.limits.soft_bytes
     }
 
     /// Rolls back append-only allocations when a compound allocation fails.
@@ -518,15 +459,25 @@ impl ActorHeap {
         encoded: u64,
         semantic_id: super::SemanticTypeId,
     ) -> Result<TvmRef<()>, ManagedMemoryError> {
+        let (reference, actual) = self.abi_reference_semantic_id(encoded)?;
+        if actual != semantic_id {
+            return Err(ManagedMemoryError::ManagedTypeMismatch);
+        }
+        Ok(reference)
+    }
+
+    /// Decodes one actor-local ABI reference and reports its semantic identity.
+    pub(crate) fn abi_reference_semantic_id(
+        &self,
+        encoded: u64,
+    ) -> Result<(TvmRef<()>, SemanticTypeId), ManagedMemoryError> {
         let encoded = usize::try_from(encoded)
             .ok()
             .and_then(NonZeroUsize::new)
             .ok_or(ManagedMemoryError::UnknownReference)?;
         let reference = TvmRef::from_encoded(encoded);
-        if self.descriptor(reference)?.semantic_id() != semantic_id {
-            return Err(ManagedMemoryError::ManagedTypeMismatch);
-        }
-        Ok(reference)
+        let semantic_id = self.descriptor(reference)?.semantic_id();
+        Ok((reference, semantic_id))
     }
 
     /// Reads and validates one managed-reference field from a live object.
@@ -589,6 +540,7 @@ impl ActorHeap {
             latest_retired_token: receiver.latest_retired_token,
             retired_tokens: receiver.retired_tokens.clone(),
             limits: receiver.limits,
+            next_collection_bytes: receiver.next_collection_bytes,
             space: receiver.space.clone(),
             objects: receiver.objects.clone(),
             external_strings: receiver.external_strings.clone(),
@@ -781,6 +733,7 @@ impl ActorHeap {
         self.space = new_space;
         self.objects = new_objects;
         self.external_strings = new_external_strings;
+        self.adapt_collection_threshold();
         self.collections = self.collections.saturating_add(1);
         Ok(CollectionStats {
             bytes_before,
@@ -805,6 +758,7 @@ impl ActorHeap {
         self.space.clear();
         self.objects.clear();
         self.external_strings.clear();
+        self.reset_collection_threshold();
         self.reuse_underutilized_count = 0;
         self.retire_token(self.token);
         self.token = self.next_reuse_token();
@@ -823,6 +777,7 @@ impl ActorHeap {
         self.space.clear();
         self.objects.clear();
         self.external_strings.clear();
+        self.reset_collection_threshold();
         if self.reuse_underutilized_count >= REUSE_UNDERUTILIZED_LIMIT {
             self.space
                 .shrink_to(INITIAL_HEAP_BYTES.min(self.limits.soft_bytes));
@@ -984,4 +939,5 @@ impl ActorHeap {
 
 #[cfg(test)]
 #[path = "heap_support_test.rs"]
+#[cfg(test)]
 mod heap_test_support;

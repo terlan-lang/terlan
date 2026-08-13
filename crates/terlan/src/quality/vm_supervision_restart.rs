@@ -54,37 +54,53 @@ const REQUIRED_SHUTDOWN_ANCHORS: &[&str] = &[
     "ShutdownTimeout",
 ];
 
+const REQUIRED_PRODUCT_RUNTIME_ANCHORS: &[&str] = &[
+    "VmSupervisionRuntime",
+    "VmSupervisionChildSpec",
+    "restart_failed_supervisor",
+    "schedule_restart",
+    "advance_restart_clock",
+    "begin_shutdown",
+    "advance_shutdown_clock",
+    "charge_child_memory",
+    "pending_lifecycle_count",
+];
+
 const REQUIRED_TEST_SELECTORS: &[&str] = &[
-    "runtime::vm::actor::actor_relationship_test::actor_unlinked_child_termination_preserves_parent_mailbox_progress",
-    "runtime::vm::supervision::supervision_test::supervision_system_starts_child_and_exposes_inspection_snapshot",
-    "runtime::vm::supervision::supervision_test::supervision_system_restarts_only_failed_child_for_one_for_one_policy",
-    "runtime::vm::supervision::supervision_test::supervision_system_restarts_all_children_for_one_for_all_policy",
-    "runtime::vm::supervision::supervision_test::supervision_system_one_for_all_enforces_restart_limit_before_group_restart",
-    "runtime::vm::supervision::supervision_test::supervision_system_restarts_failed_and_later_children_for_rest_for_one_policy",
-    "runtime::vm::supervision::supervision_test::supervision_system_rest_for_one_enforces_restart_limit_before_group_restart",
-    "runtime::vm::supervision::supervision_test::supervision_system_temporary_child_never_restarts",
-    "runtime::vm::supervision::supervision_test::supervision_system_transient_child_restarts_only_after_abnormal_exit",
-    "runtime::vm::supervision::supervision_test::supervision_system_group_restart_skips_non_restartable_children_without_blocking_restartable_siblings",
-    "runtime::vm::supervision::supervision_test::supervision_system_applies_exponential_restart_backoff_for_one_for_one_policy",
-    "runtime::vm::supervision::supervision_test::supervision_system_group_restart_reports_per_child_backoff_delays",
-    "runtime::vm::supervision::supervision_test::supervision_system_records_shutdown_timeout_for_live_child_restart",
-    "runtime::vm::supervision::supervision_test::supervision_system_group_restart_reports_per_child_shutdown_timeouts",
-    "runtime::vm::supervision::supervision_test::supervision_system_enforces_restart_limit",
-    "runtime::vm::supervision::supervision_test::supervision_system_records_supervisor_failure_when_restart_limit_escalates",
-    "runtime::vm::supervision::supervision_test::supervision_system_propagates_child_supervisor_failure_to_parent_snapshot",
-    "runtime::vm::supervision::supervision_test::supervision_system_records_restart_history_for_restart_and_limit",
-    "runtime::vm::supervision::supervision_test::supervision_system_records_restart_history_for_non_restartable_child",
-    "runtime::vm::supervision::supervision_test::supervision_system_reports_missing_child_diagnostic",
-    "runtime::vm::supervision::supervision_test::supervision_system_reports_missing_supervisor_diagnostic",
-    "runtime::vm::supervision::supervision_test::supervision_system_rejects_duplicate_child_id",
-    "runtime::vm::supervision::supervision_test::supervision_system_restart_exits_live_child_before_restarting",
-    "runtime::vm::supervision::supervision_test::supervision_system_reports_missing_process_instead_of_panicking_on_restart",
-    "runtime::vm::supervision::supervision_test::supervision_system_reports_missing_supervisor_for_restart_and_snapshot",
+    "runtime::vm::actor::tests::actor_relationship_test::actor_unlinked_child_termination_preserves_parent_mailbox_progress",
+    "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_starts_child_and_exposes_inspection_snapshot",
+    "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_restarts_only_failed_child_for_one_for_one_policy",
+    "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_restarts_all_children_for_one_for_all_policy",
+    "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_one_for_all_enforces_restart_limit_before_group_restart",
+    "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_restarts_failed_and_later_children_for_rest_for_one_policy",
+    "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_rest_for_one_enforces_restart_limit_before_group_restart",
+    "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_temporary_child_never_restarts",
+    "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_transient_child_restarts_only_after_abnormal_exit",
+    "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_group_restart_skips_non_restartable_children_without_blocking_restartable_siblings",
+    "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_applies_exponential_restart_backoff_for_one_for_one_policy",
+    "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_group_restart_reports_per_child_backoff_delays",
+    "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_records_shutdown_timeout_for_live_child_restart",
+    "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_group_restart_reports_per_child_shutdown_timeouts",
+    "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_enforces_restart_limit",
+    "runtime::vm::supervision::supervision_test::restart_fixtures::supervision_system_records_supervisor_failure_when_restart_limit_escalates",
+    "runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_propagates_child_supervisor_failure_to_parent_snapshot",
+    "runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_records_restart_history_for_restart_and_limit",
+    "runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_records_restart_history_for_non_restartable_child",
+    "runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_reports_missing_child_diagnostic",
+    "runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_reports_missing_supervisor_diagnostic",
+    "runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_rejects_duplicate_child_id",
+    "runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_restart_exits_live_child_before_restarting",
+    "runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_reports_missing_process_instead_of_panicking_on_restart",
+    "runtime::vm::supervision::supervision_test::hierarchy_and_history::supervision_system_reports_missing_supervisor_for_restart_and_snapshot",
     "runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_waits_for_clean_exit_and_cancels_deadline",
     "runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_distinguishes_in_budget_and_overdue_child_termination",
     "runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_deadline_forces_typed_exit_and_restarts_child",
     "runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_normal_exit_honors_transient_restart_class",
     "runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_rejects_duplicate_and_deadline_overflow_atomically",
+    "product_parent_strategy_restarts_failed_and_sibling_supervisor_subtrees",
+    "product_native_boundary_worker_crash_uses_vm_backoff_and_restart",
+    "product_handler_pool_memory_exhaustion_restarts_the_group",
+    "product_in_flight_shutdown_timeout_cancels_old_actor_and_restarts",
 ];
 
 const SUPERVISION_FIXTURES: &[&str] = &[
@@ -118,14 +134,13 @@ const SUPERVISION_FIXTURES: &[&str] = &[
     "shutdown deadline forces a typed timeout exit and child replacement",
     "transient child clean shutdown remains non-restarting",
     "duplicate and overflowing shutdown deadlines are rejected atomically",
+    "parent supervisor strategy rebuilds selected subtrees",
+    "NativeBoundary worker crash uses VM backoff",
+    "handler pool exhaustion restarts the selected group",
+    "in-flight shutdown timeout cancels and replaces the old actor",
 ];
 
-const OPEN_RESTART_GAPS: &[&str] = &[
-    "parent supervisor restart strategy execution",
-    "NativeBoundary worker crash restart",
-    "handler pool exhaustion restart",
-    "in-flight request cancellation during restart",
-];
+const OPEN_RESTART_GAPS: &[&str] = &[];
 
 /// Summary produced by the VM supervision restart gate.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -166,6 +181,13 @@ pub fn run_vm_supervision_restart(root: &Path) -> QualityResult<VmSupervisionRes
         REQUIRED_SHUTDOWN_ANCHORS,
         "VM supervision shutdown runtime",
     )?);
+    diagnostics.extend(validate_terms(
+        root,
+        "crates/terlan/src/runtime/vm/supervision/runtime.rs",
+        REQUIRED_PRODUCT_RUNTIME_ANCHORS,
+        "product VM supervision runtime",
+    )?);
+    diagnostics.extend(validate_product_compilation(root)?);
     diagnostics.extend(validate_makefile(root)?);
     if !diagnostics.is_empty() {
         return Err(render_failure("vm-supervision-restart", &diagnostics));
@@ -210,13 +232,19 @@ pub fn run_vm_supervision_restart(root: &Path) -> QualityResult<VmSupervisionRes
             "restart intensity exhaustion marks supervisor failed",
             "failed supervisor records triggering child",
             "failed supervisor records terminal exit reason",
-            "parent supervisor observes terminal child supervisor failure"
+            "parent supervisor observes terminal child supervisor failure",
+            "parent restart strategy rebuilds selected child-supervisor subtrees"
         ],
         "implementedRestartHistory": [
             "snapshot-visible restart history",
             "successful restart history entries",
             "terminal restart history entries",
             "non-restart history entries"
+        ],
+        "implementedProductIntegrations": [
+            "NativeBoundary worker crash restart",
+            "handler pool exhaustion restart",
+            "in-flight request cancellation during restart"
         ],
         "supervisionFixtures": SUPERVISION_FIXTURES,
         "restartOutcomes": [
@@ -348,6 +376,26 @@ fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
     Ok(diagnostics)
 }
 
+fn validate_product_compilation(root: &Path) -> QualityResult<Vec<String>> {
+    let text = fs::read_to_string(root.join("crates/terlan/src/runtime/vm.rs")).map_err(|err| {
+        format!("crates/terlan/src/runtime/vm.rs: failed to read VM module graph: {err}")
+    })?;
+    let mut diagnostics = Vec::new();
+    if !text.contains("pub mod supervision;") {
+        diagnostics.push(
+            "crates/terlan/src/runtime/vm.rs: supervision must be part of the shipping VM module graph"
+                .to_string(),
+        );
+    }
+    if text.contains("#[cfg(test)]\npub mod supervision;")
+        || text.contains("#[cfg(test)]\npub(crate) mod supervision;")
+    {
+        diagnostics
+            .push("crates/terlan/src/runtime/vm.rs: supervision cannot be test-only".to_string());
+    }
+    Ok(diagnostics)
+}
+
 fn render_failure(label: &str, diagnostics: &[String]) -> String {
     let mut message = format!("[{label}] failures:");
     for diagnostic in diagnostics {
@@ -359,4 +407,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_supervision_restart_test.rs"]
+#[cfg(test)]
 mod vm_supervision_restart_test;

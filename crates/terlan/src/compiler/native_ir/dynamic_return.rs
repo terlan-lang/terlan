@@ -10,7 +10,9 @@ use crate::terlan_typeck::{CoreExpr, CoreFunction, CorePattern, CoreTupleTypeEle
 /// whose complete type is recoverable from checked CoreIR without name
 /// resolution or a second typechecker.
 pub(super) fn inferred_dynamic_return_type(function: &CoreFunction) -> Option<CoreType> {
-    if !matches!(function.core_return_type.as_ref(), Some(CoreType::Dynamic)) {
+    if !function.core_return_type.as_ref().is_some_and(|ty| {
+        matches!(ty, CoreType::Dynamic) || matches!(ty, CoreType::Named(name) if name == "Dynamic")
+    }) {
         return None;
     }
     let variables = function
@@ -58,8 +60,17 @@ pub(super) fn infer_expression_type(
                 let CorePattern::Var(name) = &binding.pattern else {
                     return None;
                 };
-                let ty = infer_expression_type(&binding.value, &scoped)?;
-                scoped.insert(name.clone(), ty);
+                let inferred = infer_expression_type(&binding.value, &scoped);
+                // Core sequencing is represented as generated let bindings.
+                // An effectful intermediate expression need not have a
+                // structurally recoverable result type when the final value
+                // does not depend on it. Remove any shadowed value first so a
+                // later reference still fails closed instead of inheriting a
+                // stale outer type.
+                scoped.remove(name);
+                if let Some(ty) = inferred {
+                    scoped.insert(name.clone(), ty);
+                }
             }
             infer_expression_type(body, &scoped)
         }
@@ -85,6 +96,12 @@ pub(super) fn infer_expression_type(
             infer_expression_type(left, variables)?,
             infer_expression_type(right, variables)?,
         ),
+        CoreExpr::Cast { expr, target_type }
+            if matches!(target_type, CoreType::Dynamic)
+                || matches!(target_type, CoreType::Named(name) if name == "Dynamic") =>
+        {
+            infer_expression_type(expr, variables)
+        }
         CoreExpr::Cast { target_type, .. } => Some(target_type.clone()),
         _ => None,
     }
@@ -125,9 +142,7 @@ fn infer_binary_type(operator: &str, left: CoreType, right: CoreType) -> Option<
         "div" | "rem" if left == CoreType::Int && right == CoreType::Int => Some(CoreType::Int),
         "==" | "!=" if left == right => Some(CoreType::Bool),
         "<" | "<=" | ">" | ">=" if numeric => Some(CoreType::Bool),
-        "and" | "&&" | "or" | "||" if left == CoreType::Bool && right == CoreType::Bool => {
-            Some(CoreType::Bool)
-        }
+        "and" | "or" if left == CoreType::Bool && right == CoreType::Bool => Some(CoreType::Bool),
         _ => None,
     }
 }

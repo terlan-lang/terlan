@@ -2,6 +2,7 @@ use super::process_environment::VmRuntimeEnvironmentSnapshot;
 
 /// Cumulative VM work performed between two immutable environment snapshots.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmRuntimeStatisticsDelta {
     pub(crate) processes_created: usize,
     pub(crate) processes_exited: usize,
@@ -18,6 +19,7 @@ impl VmRuntimeEnvironmentSnapshot {
     /// Returns deterministic cumulative work since an earlier compatible
     /// snapshot. Runtime gauges such as run-queue depth and live-process count
     /// remain available on the snapshots themselves.
+    #[cfg(test)]
     pub(crate) fn statistics_delta_since(
         &self,
         earlier: &Self,
@@ -75,6 +77,7 @@ impl VmRuntimeEnvironmentSnapshot {
     }
 }
 
+#[cfg(test)]
 fn difference<T>(label: &str, current: T, earlier: T) -> Result<T, String>
 where
     T: Copy + std::fmt::Display + std::ops::Sub<Output = T> + PartialOrd,

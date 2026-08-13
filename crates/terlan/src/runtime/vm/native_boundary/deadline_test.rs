@@ -35,10 +35,7 @@ fn native_boundary_deadline_parks_actor_and_completion_wakes_it_once() {
             &mut timers,
             &mut processes,
             &mut scheduler,
-            owner,
-            request_id(1),
-            10,
-            5,
+            VmNativeBoundaryDeadlineStart::new(owner, request_id(1), 10, 5),
         )
         .expect("park request");
 
@@ -84,10 +81,7 @@ fn native_boundary_deadline_charges_only_successful_parks_to_scheduler() {
             &mut timers,
             &mut processes,
             &mut scheduler,
-            owner,
-            request_id(1),
-            0,
-            10,
+            VmNativeBoundaryDeadlineStart::new(owner, request_id(1), 0, 10),
         )
         .expect("successful park");
     assert!(queue
@@ -95,10 +89,7 @@ fn native_boundary_deadline_charges_only_successful_parks_to_scheduler() {
             &mut timers,
             &mut processes,
             &mut scheduler,
-            rejected_owner,
-            request_id(2),
-            0,
-            10,
+            VmNativeBoundaryDeadlineStart::new(rejected_owner, request_id(2), 0, 10),
         )
         .expect_err("backpressured park")
         .contains("native_boundary.backpressure_limit"));
@@ -125,10 +116,7 @@ fn native_boundary_deadline_timeout_wakes_actor_and_rejects_late_completion() {
             &mut timers,
             &mut processes,
             &mut scheduler,
-            owner,
-            request_id(1),
-            0,
-            5,
+            VmNativeBoundaryDeadlineStart::new(owner, request_id(1), 0, 5),
         )
         .expect("park request");
     let events = timers.advance_clock(&mut processes, &mut scheduler, 5);
@@ -178,10 +166,7 @@ fn native_boundary_deadline_delivery_wins_completion_race_before_event_handling(
             &mut timers,
             &mut processes,
             &mut scheduler,
-            owner,
-            request_id(1),
-            0,
-            1,
+            VmNativeBoundaryDeadlineStart::new(owner, request_id(1), 0, 1),
         )
         .expect("park request");
     let events = timers.advance_clock(&mut processes, &mut scheduler, 1);
@@ -220,10 +205,7 @@ fn native_boundary_deadline_manual_cancel_releases_credit_and_wakes_actor() {
             &mut timers,
             &mut processes,
             &mut scheduler,
-            owner,
-            request_id(1),
-            0,
-            10,
+            VmNativeBoundaryDeadlineStart::new(owner, request_id(1), 0, 10),
         )
         .expect("park request");
     let completion = queue
@@ -256,10 +238,7 @@ fn native_boundary_deadline_owner_exit_cleans_worker_without_waking_dead_actor()
             &mut timers,
             &mut processes,
             &mut scheduler,
-            owner,
-            request_id(1),
-            0,
-            10,
+            VmNativeBoundaryDeadlineStart::new(owner, request_id(1), 0, 10),
         )
         .expect("park request");
     processes
@@ -320,10 +299,7 @@ fn native_boundary_deadline_rejects_invalid_start_and_backpressure_atomically() 
                 &mut timers,
                 &mut processes,
                 &mut scheduler,
-                owner,
-                request_id(1),
-                0,
-                0,
+                VmNativeBoundaryDeadlineStart::new(owner, request_id(1), 0, 0),
             )
             .expect_err("zero timeout"),
         "NativeBoundary timeout must be positive"
@@ -334,10 +310,7 @@ fn native_boundary_deadline_rejects_invalid_start_and_backpressure_atomically() 
                 &mut timers,
                 &mut processes,
                 &mut scheduler,
-                owner,
-                request_id(1),
-                u64::MAX,
-                1,
+                VmNativeBoundaryDeadlineStart::new(owner, request_id(1), u64::MAX, 1),
             )
             .expect_err("overflow"),
         "NativeBoundary deadline overflow"
@@ -347,10 +320,7 @@ fn native_boundary_deadline_rejects_invalid_start_and_backpressure_atomically() 
             &mut timers,
             &mut processes,
             &mut scheduler,
-            owner,
-            request_id(1),
-            0,
-            10,
+            VmNativeBoundaryDeadlineStart::new(owner, request_id(1), 0, 10),
         )
         .expect("first request");
     let error = queue
@@ -358,10 +328,7 @@ fn native_boundary_deadline_rejects_invalid_start_and_backpressure_atomically() 
             &mut timers,
             &mut processes,
             &mut scheduler,
-            second,
-            request_id(2),
-            0,
-            10,
+            VmNativeBoundaryDeadlineStart::new(second, request_id(2), 0, 10),
         )
         .expect_err("worker backpressure");
 
@@ -385,10 +352,7 @@ fn native_boundary_deadline_rejects_foreign_and_invalid_events_without_mutation(
             &mut timers,
             &mut processes,
             &mut scheduler,
-            owner,
-            request_id(1),
-            0,
-            10,
+            VmNativeBoundaryDeadlineStart::new(owner, request_id(1), 0, 10),
         )
         .expect("park request");
     let foreign_event = VmTimerEvent::Fired {

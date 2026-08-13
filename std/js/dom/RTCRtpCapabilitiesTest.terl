@@ -21,6 +21,6 @@ pub codecs_typechecks(receiver: RTCRtpCapabilities): Array[RTCRtpCodec] ->
     receiver.codecs().
 
 pub header_extensions_typechecks(
-    receiver: RTCRtpCapabilities
+    receiver: RTCRtpCapabilities,
 ): Array[RTCRtpHeaderExtensionCapability] ->
     receiver.header_extensions().

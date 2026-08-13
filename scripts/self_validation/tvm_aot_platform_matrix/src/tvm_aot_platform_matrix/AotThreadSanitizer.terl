@@ -1,0 +1,352 @@
+/**
+ * Runs and validates the Rust-instrumented AOT ThreadSanitizer lane.
+ */
+module tvm_aot_platform_matrix.AotThreadSanitizer.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.{create_all}.
+import std.io.File.{write_text}.
+import std.system.{Environment, Platform, Process}.
+import tvm_aot_platform_matrix.Core.{json_int, json_string, official_repository, provenance, provenance_input}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.system.Process.{EnvironmentEntry, Output}.
+
+schema(): String -> "terlan.tvm-aot-thread-sanitizer.v1".
+
+toolchain(): String -> "nightly-2026-07-16".
+
+pub target(): String -> "x86_64-unknown-linux-gnu".
+
+test_filter(): String -> "runtime::vm::pure_native".
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[tvm_aot_thread_sanitizer]: ", message));
+    false.
+
+child(parent: String, name: String): String ->
+    if {
+        String.ends_with(parent, "/") -> String.append(parent, name);
+        true -> String.append(parent, String.append("/", name))
+    }.
+
+configured(
+    root: String,
+    program: String,
+    arguments: List[String],
+    environment: List[EnvironmentEntry],
+): std.system.Process.Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_environment(
+                Process.with_working_directory(
+                    Process.with_arguments(Process.command(program), arguments),
+                    root,
+                ),
+                environment,
+            ),
+            300000,
+        ),
+        8388608,
+    ).
+
+run_command(
+    root: String,
+    program: String,
+    arguments: List[String],
+    environment: List[EnvironmentEntry],
+): Option[Output] ->
+    case Process.run(configured(root, program, arguments, environment)) {
+        Err(error) ->
+            let _failed = failure(Process.error_message(error));
+            None;
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> Some(output);
+                true -> let _failed =
+                    failure(
+                        String.concat(
+                            [program, " failed:\n", Process.stdout(output), Process.stderr(output)],
+                        ),
+                    );
+                None
+            }
+    }.
+
+command_output(root: String, program: String, arguments: List[String]): Option[String] ->
+    case run_command(root, program, arguments, []) {
+        Some(output) -> Some(String.trim(Process.stdout(output)));
+        None -> None
+    }.
+
+toolchain_is_installed(lines: List[String]): Bool ->
+    case lines {
+        [] -> false;
+        [line | rest] ->
+            String.starts_with(line, String.append(toolchain(), "-"))
+                or toolchain_is_installed(rest)
+    }.
+
+local_ci_required(): Bool ->
+    case Environment.get("GITHUB_ACTIONS") {
+        Some(value) -> String.lowercase(String.trim(value)) == "true";
+        None -> false
+    }.
+
+report_fields_valid(value: Json): Bool ->
+    let {
+        Some(report_schema) <- json_string(value, "schema");
+        Some(decision) <- json_string(value, "decision");
+        Some(host) <- json_string(value, "host");
+        Some(instrumented_target) <- json_string(value, "instrumented_target");
+        Some(instrumentation) <- json_string(value, "instrumentation");
+        Some(sanitizer) <- json_string(value, "sanitizer");
+        Some(filter) <- json_string(value, "test_filter");
+        Some(report_toolchain) <- json_string(value, "toolchain");
+        Some(revision) <- json_string(value, "source_revision");
+        Some(rustc) <- json_string(value, "rustc")
+    } else {
+        _ -> false
+    };
+    if {
+        report_schema != schema() -> false;
+        decision != "pass" -> false;
+        host != "linux-x86_64" -> false;
+        instrumented_target != target() -> false;
+        instrumentation != "rustflags-build-std" -> false;
+        sanitizer != "thread" -> false;
+        filter != test_filter() -> false;
+        report_toolchain != toolchain() -> false;
+        String.length(revision) != 40 -> false;
+        true -> String.contains(rustc, "rustc ")
+    }.
+
+ci_fields_valid(value: Json): Bool ->
+    let {
+        Some(revision) <- json_string(value, "source_revision");
+        Some(environment) <- json_string(value, "execution_environment");
+        Some(repository) <- json_string(value, "repository");
+        Some(commit) <- json_string(value, "commit_sha");
+        Some(_run_id) <- json_int(value, "run_id");
+        Some(_run_attempt) <- json_int(value, "run_attempt")
+    } else {
+        _ -> false
+    };
+    if {
+        environment != "github-actions" -> false;
+        repository != official_repository() -> false;
+        commit != revision -> false;
+        true -> true
+    }.
+
+pub validate_report(value: Json, require_ci: Bool): Bool ->
+    report_fields_valid(value)
+        and if {
+    require_ci -> ci_fields_valid(value);
+    true -> true
+}.
+
+base_report(revision: String, rustc: String): Json ->
+    Json.object()
+        .put("schema", Json.string(schema()))
+        .put("decision", Json.string("pass"))
+        .put("host", Json.string("linux-x86_64"))
+        .put("instrumented_target", Json.string(target()))
+        .put("instrumentation", Json.string("rustflags-build-std"))
+        .put("sanitizer", Json.string("thread"))
+        .put("test_filter", Json.string(test_filter()))
+        .put("toolchain", Json.string(toolchain()))
+        .put("source_revision", Json.string(revision))
+        .put("rustc", Json.string(rustc)).
+
+clone_json(value: Json): Option[Json] ->
+    let {
+        Ok(source) <- Json.stringify(value);
+        Ok(copy) <- Json.parse(source)
+    } else {
+        _ -> None
+    };
+    Some(copy).
+
+mutation_rejected(valid: Json, field: String, value: Json): Bool ->
+    case clone_json(valid) {
+        Some(mutation) ->
+            let changed = mutation.put(field, value);
+            not validate_report(changed, true);
+        None -> failure(String.append("cannot clone mutation fixture for ", field))
+    }.
+
+string_mutation_rejected(valid: Json, field: String, invalid: String): Bool ->
+    case clone_json(valid) {
+        Some(mutation) ->
+            let changed = mutation.put(field, Json.string(invalid));
+            case json_string(changed, field) {
+                Some(observed) ->
+                    if {
+                        observed != invalid -> failure(String.append("mutation did not replace ", field));
+                        true -> not validate_report(changed, true)
+                    };
+                None -> failure(String.append("mutation removed ", field))
+            };
+        None -> failure(String.append("cannot clone mutation fixture for ", field))
+    }.
+
+mutations_rejected(valid: Json): Bool ->
+    if {
+        not string_mutation_rejected(valid, "instrumented_target", "x86_64-unknown-linux-gnutsan") -> failure("invalid instrumented_target was accepted");
+        not string_mutation_rejected(valid, "instrumentation", "plain") -> failure("invalid instrumentation was accepted");
+        not string_mutation_rejected(valid, "sanitizer", "none") -> failure("invalid sanitizer was accepted");
+        not string_mutation_rejected(valid, "toolchain", "stable") -> failure("invalid toolchain was accepted");
+        not string_mutation_rejected(valid, "decision", "skipped") -> failure("invalid decision was accepted");
+        not string_mutation_rejected(valid, "repository", "fork/terlan") -> failure("invalid repository was accepted");
+        not string_mutation_rejected(valid, "commit_sha", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb") -> failure("invalid commit_sha was accepted");
+        not mutation_rejected(valid, "run_id", Json.string("7")) -> failure("invalid run_id was accepted");
+        true -> true
+    }.
+
+/**
+ * Exercises valid and adversarial ThreadSanitizer attestations without running
+ * the instrumented Rust suite.
+ */
+pub self_test(): Bool ->
+    let revision = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    let valid =
+        base_report(revision, "rustc 1.96.0\nbinary: rustc")
+            .put("execution_environment", Json.string("github-actions"))
+            .put("repository", Json.string(official_repository()))
+            .put(
+                "workflow_ref",
+                Json.string("terlan-lang/terlan/.github/workflows/ci.yml@refs/heads/main"),
+            )
+            .put("run_id", Json.int(7))
+            .put("run_attempt", Json.int(1))
+            .put("commit_sha", Json.string(revision));
+    if {
+        not validate_report(valid, true) -> failure("valid report was rejected");
+        not mutations_rejected(valid) -> failure("an invalid report mutation was accepted");
+        true -> let _printed = println("TVM AOT ThreadSanitizer self-test passed");
+        true
+    }.
+
+write_report(root: String, value: Json): Bool ->
+    let {
+        Ok(source) <- Json.stringify_pretty(value);
+        Ok(_directory) <- create_all(child(root, "target/quality"));
+        Ok(_written) <-
+            write_text(
+                child(root, "target/quality/tvm-aot-thread-sanitizer-report.json"),
+                String.append(source, "\n"),
+            )
+    } else {
+        _ -> failure("cannot write ThreadSanitizer report")
+    };
+    true.
+
+finish_report(root: String, revision: String, rustc: String): Bool ->
+    case provenance(revision, current_provenance_input()) {
+        None -> false;
+        Some(execution) ->
+            let value = base_report(revision, rustc).extend(execution);
+            if {
+                not validate_report(value, local_ci_required()) -> failure("generated report is invalid");
+                not write_report(root, value) -> false;
+                true -> let _printed = println(String.append("TVM AOT ThreadSanitizer passed: ", target()));
+                true
+            }
+    }.
+
+current_provenance_input(): tvm_aot_platform_matrix.Core.ProvenanceInput ->
+    let actions = local_ci_required();
+    let repository = environment_or_empty("GITHUB_REPOSITORY");
+    let workflow_ref = environment_or_empty("GITHUB_WORKFLOW_REF");
+    let run_id = environment_or_empty("GITHUB_RUN_ID");
+    let run_attempt = environment_or_empty("GITHUB_RUN_ATTEMPT");
+    let commit = environment_or_empty("GITHUB_SHA");
+    provenance_input(actions, repository, workflow_ref, run_id, run_attempt, commit).
+
+environment_or_empty(name: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> ""
+    }.
+
+after_revision(root: String, revision: String): Bool ->
+    case command_output(root, "rustc", [String.append("+", toolchain()), "--version", "--verbose"]) {
+        Some(rustc) -> finish_report(root, revision, rustc);
+        None -> false
+    }.
+
+after_tests(root: String): Bool ->
+    case command_output(root, "git", ["rev-parse", "HEAD"]) {
+        Some(revision) -> after_revision(root, revision);
+        None -> false
+    }.
+
+rustflags(): String ->
+    case Environment.get("RUSTFLAGS") {
+        Some(value) ->
+            if {
+                String.trim(value) == "" -> "-Zsanitizer=thread";
+                true -> String.append(value, " -Zsanitizer=thread")
+            };
+        None -> "-Zsanitizer=thread"
+    }.
+
+after_test_command(root: String, output: Option[Output]): Bool ->
+    case output {
+        Some(_completed) -> after_tests(root);
+        None -> false
+    }.
+
+run_tests(root: String): Bool ->
+    let toolchain_argument = String.append("+", toolchain());
+    let selected_target = target();
+    let selected_filter = test_filter();
+    let flags = rustflags();
+    let rustflags_entry = Process.environment_entry("RUSTFLAGS", flags);
+    let tsan_entry = Process.environment_entry("TSAN_OPTIONS", "halt_on_error=1");
+    let output =
+        run_command(
+            root,
+            "cargo",
+            [
+                toolchain_argument,
+                "test",
+                "-Zbuild-std",
+                "--locked",
+                "-p",
+                "terlan",
+                "--bin",
+                "terlan-vm",
+                "--target",
+                selected_target,
+                selected_filter,
+            ],
+            [rustflags_entry, tsan_entry],
+        );
+    after_test_command(root, output).
+
+after_toolchains(root: String, installed: String): Bool ->
+    if {
+        not toolchain_is_installed(String.split(installed, "\n")) -> failure(String.append("required Rust toolchain is missing: ", toolchain()));
+        true -> run_tests(root)
+    }.
+
+/**
+ * Runs the pinned Linux x86-64 ThreadSanitizer lane and writes its attestation.
+ */
+pub run(): Bool ->
+    let host = Platform.current();
+    if {
+        host.operating_system != "linux" or host.architecture != "x86_64" -> failure("ThreadSanitizer validation requires Linux x86-64");
+        true -> let root = Environment.current_directory();
+        case command_output(root, "rustup", ["toolchain", "list"]) {
+            Some(installed) -> after_toolchains(root, installed);
+            None -> false
+        }
+    }.

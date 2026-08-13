@@ -18,6 +18,6 @@ pub generated_binding_surface_contract(): Bool -> true.
 
 pub named_item_typechecks(
     receiver: HTMLFormControlsCollection,
-    name: std.js.String.JsString
+    name: std.js.String.JsString,
 ): Option[Element | RadioNodeList] ->
     receiver.named_item(name).

@@ -1,10 +1,19 @@
 //! Canonical source identities embedded in admitted TVM native images.
 
 use object::{BinaryFormat, Object, ObjectSection};
+use sha2::{Digest, Sha256};
 
-const MAGIC: &[u8; 8] = b"TVMDBG01";
+const MAGIC: &[u8; 8] = b"TVMDBG05";
 const COFF_DEBUG_SECTION: &str = ".tdbg$D";
 const PE_DEBUG_SECTION: &str = ".tdbg";
+
+/// Returns the canonical digest used to bind debug records to compiler input.
+pub(crate) fn tvm_debug_source_sha256(source: &[u8]) -> String {
+    Sha256::digest(source)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
 
 /// One compiler source identity carried by a native function.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,10 +30,28 @@ pub(crate) struct TvmNativeDebugRecord {
     pub(crate) span_start: usize,
     /// Exclusive UTF-8 byte offset where the declaration ends.
     pub(crate) span_end: usize,
+    /// SHA-256 digest of the exact compiler input used by this record.
+    pub(crate) source_sha256: String,
+    /// Whether the record names direct source or a generated/template owner.
+    pub(crate) source_origin: String,
+    /// Compiler-generated continuation identities owned by this source declaration.
+    pub(crate) continuation_ids: Vec<u64>,
+    /// Exact source expressions retained for generated VM resume entries.
+    pub(crate) continuation_spans: Vec<TvmNativeDebugContinuationRecord>,
     /// Checked CoreIR schema that produced the function.
     pub(crate) core_schema: String,
     /// Compiler proof-readiness classification for the function module.
     pub(crate) proof_readiness: String,
+}
+
+/// One generated VM continuation mapped to its exact source expression.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct TvmNativeDebugContinuationRecord {
+    pub(crate) id: u64,
+    pub(crate) span_start: usize,
+    pub(crate) span_end: usize,
+    /// Source-level continuation captures in native value order.
+    pub(crate) local_names: Vec<String>,
 }
 
 /// Encodes ordered native source records into the canonical debug section.
@@ -39,6 +66,22 @@ pub(crate) fn encode_tvm_native_debug(records: &[TvmNativeDebugRecord]) -> Resul
         push_u32(&mut bytes, record.arity)?;
         push_u64(&mut bytes, record.span_start)?;
         push_u64(&mut bytes, record.span_end)?;
+        push_string(&mut bytes, &record.source_sha256)?;
+        push_string(&mut bytes, &record.source_origin)?;
+        push_u32(&mut bytes, record.continuation_ids.len())?;
+        for continuation_id in &record.continuation_ids {
+            push_u64_value(&mut bytes, *continuation_id);
+        }
+        push_u32(&mut bytes, record.continuation_spans.len())?;
+        for continuation in &record.continuation_spans {
+            push_u64_value(&mut bytes, continuation.id);
+            push_u64(&mut bytes, continuation.span_start)?;
+            push_u64(&mut bytes, continuation.span_end)?;
+            push_u32(&mut bytes, continuation.local_names.len())?;
+            for name in &continuation.local_names {
+                push_string(&mut bytes, name)?;
+            }
+        }
         push_string(&mut bytes, &record.core_schema)?;
         push_string(&mut bytes, &record.proof_readiness)?;
     }
@@ -62,6 +105,32 @@ pub(crate) fn decode_tvm_native_debug(bytes: &[u8]) -> Result<Vec<TvmNativeDebug
             arity: read_u32(&mut input)? as usize,
             span_start: read_u64(&mut input)? as usize,
             span_end: read_u64(&mut input)? as usize,
+            source_sha256: read_string(&mut input)?,
+            source_origin: read_string(&mut input)?,
+            continuation_ids: {
+                let count = read_u32(&mut input)? as usize;
+                (0..count)
+                    .map(|_| read_u64(&mut input))
+                    .collect::<Result<Vec<_>, _>>()?
+            },
+            continuation_spans: {
+                let count = read_u32(&mut input)? as usize;
+                (0..count)
+                    .map(|_| {
+                        Ok(TvmNativeDebugContinuationRecord {
+                            id: read_u64(&mut input)?,
+                            span_start: read_u64(&mut input)? as usize,
+                            span_end: read_u64(&mut input)? as usize,
+                            local_names: {
+                                let count = read_u32(&mut input)? as usize;
+                                (0..count)
+                                    .map(|_| read_string(&mut input))
+                                    .collect::<Result<Vec<_>, _>>()?
+                            },
+                        })
+                    })
+                    .collect::<Result<Vec<_>, String>>()?
+            },
             core_schema: read_string(&mut input)?,
             proof_readiness: read_string(&mut input)?,
         });
@@ -131,6 +200,10 @@ fn push_u64(output: &mut Vec<u8>, value: usize) -> Result<(), String> {
         .map_err(|_| "error[tvm.debug.size]: native debug value exceeds u64".to_string())?;
     output.extend_from_slice(&value.to_le_bytes());
     Ok(())
+}
+
+fn push_u64_value(output: &mut Vec<u8>, value: u64) {
+    output.extend_from_slice(&value.to_le_bytes());
 }
 
 /// Reads one length-prefixed UTF-8 field.

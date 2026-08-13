@@ -4,6 +4,7 @@ use std::path::Path;
 
 use serde_json::Value;
 
+use crate::terlan_quality::support::{has_annotated_public_function, has_public_function};
 use crate::terlan_quality::{render_failure, QualityResult};
 
 const TYPE_MAPPING_MANIFEST: &str = "std/js/manifests/std_js_type_mapping.json";
@@ -212,7 +213,7 @@ fn check_generated_bindings(root: &Path, bindings: &Value, diagnostics: &mut Vec
                         path.display()
                     ));
                 }
-                if contract.is_some_and(|name| has_annotated_test_function(text, name)) {
+                if contract.is_some_and(|name| has_annotated_public_function(text, name)) {
                     diagnostics.push(format!(
                         "{}: generated surface contract must not be annotated with `@test`",
                         path.display()
@@ -315,34 +316,6 @@ fn meaningful_contract_text(text: &str) -> bool {
 }
 
 /// Returns whether a file contains an `@test`-annotated public function.
-fn has_annotated_test_function(text: &str, function_name: &str) -> bool {
-    let mut pending_test = false;
-    for line in text.lines() {
-        let trimmed = line.trim();
-        if trimmed == "@test" {
-            pending_test = true;
-            continue;
-        }
-        if trimmed.is_empty() {
-            continue;
-        }
-        if pending_test && starts_public_function(trimmed, function_name) {
-            return true;
-        }
-        if pending_test {
-            pending_test = false;
-        }
-    }
-    false
-}
-
-/// Returns whether a file contains a public function.
-fn has_public_function(text: &str, function_name: &str) -> bool {
-    text.lines()
-        .map(str::trim)
-        .any(|line| starts_public_function(line, function_name))
-}
-
 /// Returns the generated contract function name used by one test artifact.
 fn generated_contract_function(text: &str) -> Option<&'static str> {
     [
@@ -353,13 +326,7 @@ fn generated_contract_function(text: &str) -> Option<&'static str> {
     .find(|name| has_public_function(text, name))
 }
 
-/// Returns whether a trimmed line starts `pub function_name(`.
-fn starts_public_function(line: &str, function_name: &str) -> bool {
-    line.strip_prefix("pub ").is_some_and(|tail| {
-        tail.starts_with(function_name) && tail[function_name.len()..].starts_with('(')
-    })
-}
-
 #[cfg(test)]
 #[path = "js_type_emission_contract_test.rs"]
+#[cfg(test)]
 mod js_type_emission_contract_test;

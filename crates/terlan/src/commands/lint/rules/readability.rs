@@ -1,8 +1,9 @@
 use std::path::Path;
 
+use super::parse_lint_source;
 use crate::terlan_syntax::{
-    parse_module_as_syntax_output, SyntaxClauseOutput, SyntaxDeclarationPayload, SyntaxExprKind,
-    SyntaxExprOutput, SyntaxPatternKind, SyntaxPatternOutput,
+    SyntaxClauseOutput, SyntaxDeclarationPayload, SyntaxExprKind, SyntaxExprOutput,
+    SyntaxPatternKind, SyntaxPatternOutput,
 };
 
 use crate::commands::lint::diagnostic::{LintDiagnostic, Severity};
@@ -21,6 +22,10 @@ const PUBLIC_DOCS_RULE_ID: &str = "TL0006";
 const PUBLIC_DOCS_RULE_NAME: &str = "readability.public-docs";
 const DOC_COMMENT_SPACING_RULE_ID: &str = "TL0007";
 const DOC_COMMENT_SPACING_RULE_NAME: &str = "readability.doc-comment-spacing";
+const GROUPED_BINDING_RULE_ID: &str = "TL0009";
+const GROUPED_BINDING_RULE_NAME: &str = "readability.grouped-binding";
+const FUNCTION_REFERENCE_RULE_ID: &str = "TL0010";
+const FUNCTION_REFERENCE_RULE_NAME: &str = "readability.function-reference";
 const MAX_EXPRESSION_DEPTH: usize = 8;
 
 /// Builds diagnostics for branch conditions with too many boolean operators.
@@ -34,7 +39,7 @@ pub(super) fn deep_expression_diagnostics(path: &Path, source: &str) -> Vec<Lint
         return Vec::new();
     }
 
-    let Ok(module) = parse_module_as_syntax_output(source) else {
+    let Ok(module) = parse_lint_source(path, source) else {
         return Vec::new();
     };
 
@@ -65,9 +70,223 @@ pub(super) fn deep_expression_diagnostics(path: &Path, source: &str) -> Vec<Lint
     diagnostics
 }
 
+/// Builds diagnostics for linear nested cases that repeat one fallback.
+pub(super) fn grouped_binding_diagnostics(path: &Path, source: &str) -> Vec<LintDiagnostic> {
+    let Ok(module) = parse_lint_source(path, source) else {
+        return Vec::new();
+    };
+
+    let mut diagnostics = Vec::new();
+    for declaration in module.declarations {
+        match declaration.payload {
+            SyntaxDeclarationPayload::Function { clauses, .. }
+            | SyntaxDeclarationPayload::Method { clauses, .. } => {
+                for clause in clauses {
+                    collect_grouped_binding_diagnostics(
+                        path,
+                        source,
+                        &clause.body,
+                        &mut diagnostics,
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+    diagnostics
+}
+
+/// Builds diagnostics for lambdas that only forward their parameters.
+pub(super) fn function_reference_diagnostics(path: &Path, source: &str) -> Vec<LintDiagnostic> {
+    let Ok(module) = parse_lint_source(path, source) else {
+        return Vec::new();
+    };
+
+    let mut diagnostics = Vec::new();
+    for declaration in module.declarations {
+        match declaration.payload {
+            SyntaxDeclarationPayload::Function { clauses, .. }
+            | SyntaxDeclarationPayload::Method { clauses, .. } => {
+                for clause in clauses {
+                    collect_function_reference_diagnostics(
+                        path,
+                        source,
+                        &clause.body,
+                        &mut diagnostics,
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+    diagnostics
+}
+
+fn collect_function_reference_diagnostics(
+    path: &Path,
+    source: &str,
+    expr: &SyntaxExprOutput,
+    diagnostics: &mut Vec<LintDiagnostic>,
+) {
+    if is_forwarding_lambda(expr) {
+        let (line, column) = source_line_column_at(source, expr.span.start);
+        diagnostics.push(LintDiagnostic {
+            path: path.to_path_buf(),
+            line,
+            column,
+            rule_id: FUNCTION_REFERENCE_RULE_ID,
+            rule_name: FUNCTION_REFERENCE_RULE_NAME,
+            severity: Severity::Error,
+            message:
+                "a lambda that only forwards its parameters should be a direct function reference",
+            fix_available: false,
+        });
+        return;
+    }
+    for child in expression_children(expr) {
+        collect_function_reference_diagnostics(path, source, child, diagnostics);
+    }
+}
+
+fn is_forwarding_lambda(expr: &SyntaxExprOutput) -> bool {
+    if expr.kind != SyntaxExprKind::Fun || expr.clauses.len() != 1 {
+        return false;
+    }
+    let clause = &expr.clauses[0];
+    if clause.guard.is_some()
+        || !matches!(
+            clause.body.kind,
+            SyntaxExprKind::Call | SyntaxExprKind::FunctionCall
+        )
+        || !clause.body.type_args.is_empty()
+        || clause.body.arg_names.iter().any(Option::is_some)
+    {
+        return false;
+    }
+    let Some((callee, arguments)) = clause.body.children.split_first() else {
+        return false;
+    };
+    if callee.kind != SyntaxExprKind::Var || clause.patterns.len() != arguments.len() {
+        return false;
+    }
+    clause
+        .patterns
+        .iter()
+        .zip(arguments)
+        .all(|(pattern, argument)| {
+            pattern.kind == SyntaxPatternKind::Var
+                && argument.kind == SyntaxExprKind::Var
+                && pattern.text == argument.text
+        })
+}
+
+fn collect_grouped_binding_diagnostics(
+    path: &Path,
+    source: &str,
+    expr: &SyntaxExprOutput,
+    diagnostics: &mut Vec<LintDiagnostic>,
+) {
+    if repeated_fallback_case_pair(expr) {
+        let (line, column) = source_line_column_at(source, expr.span.start);
+        diagnostics.push(LintDiagnostic {
+            path: path.to_path_buf(),
+            line,
+            column,
+            rule_id: GROUPED_BINDING_RULE_ID,
+            rule_name: GROUPED_BINDING_RULE_NAME,
+            severity: Severity::Error,
+            message: "linear nested cases with one repeated fallback should use grouped `let { ... } else { ... }` bindings",
+            fix_available: false,
+        });
+        return;
+    }
+    for child in expression_children(expr) {
+        collect_grouped_binding_diagnostics(path, source, child, diagnostics);
+    }
+}
+
+fn repeated_fallback_case_pair(expr: &SyntaxExprOutput) -> bool {
+    if expr.kind != SyntaxExprKind::Case || expr.clauses.len() != 2 {
+        return false;
+    }
+    for nested_index in 0..2 {
+        if expr.clauses[nested_index].guard.is_some()
+            || expr.clauses[1 - nested_index].guard.is_some()
+        {
+            continue;
+        }
+        let nested = expr.clauses[nested_index].body.as_ref();
+        if nested.kind != SyntaxExprKind::Case || nested.clauses.len() != 2 {
+            continue;
+        }
+        let fallback = expr.clauses[1 - nested_index].body.as_ref();
+        if nested.clauses.iter().any(|clause| {
+            clause.guard.is_none()
+                && !expression_reads_pattern_binding(&clause.body, &clause.patterns)
+                && expressions_equal_ignoring_spans(fallback, &clause.body)
+        }) {
+            return true;
+        }
+    }
+    false
+}
+
+fn expression_reads_pattern_binding(
+    expr: &SyntaxExprOutput,
+    patterns: &[SyntaxPatternOutput],
+) -> bool {
+    let mut names = Vec::new();
+    for pattern in patterns {
+        collect_pattern_variable_names(pattern, &mut names);
+    }
+    expression_reads_any_name(expr, &names)
+}
+
+fn expression_reads_any_name(expr: &SyntaxExprOutput, names: &[&str]) -> bool {
+    (expr.kind == SyntaxExprKind::Var
+        && expr
+            .text
+            .as_deref()
+            .is_some_and(|name| names.contains(&name)))
+        || expression_children(expr)
+            .into_iter()
+            .any(|child| expression_reads_any_name(child, names))
+}
+
+fn expressions_equal_ignoring_spans(left: &SyntaxExprOutput, right: &SyntaxExprOutput) -> bool {
+    let mut left = left.clone();
+    let mut right = right.clone();
+    clear_expression_spans(&mut left);
+    clear_expression_spans(&mut right);
+    left == right
+}
+
+fn clear_expression_spans(expr: &mut SyntaxExprOutput) {
+    expr.span = Default::default();
+    for child in &mut expr.children {
+        clear_expression_spans(child);
+    }
+    for guard in expr.let_guards.iter_mut().filter_map(Option::as_deref_mut) {
+        clear_expression_spans(guard);
+    }
+    for field in &mut expr.fields {
+        clear_expression_spans(&mut field.value);
+    }
+    for clause in expr.clauses.iter_mut().chain(&mut expr.catch_clauses) {
+        if let Some(guard) = clause.guard.as_deref_mut() {
+            clear_expression_spans(guard);
+        }
+        clear_expression_spans(&mut clause.body);
+    }
+    if let Some(after) = &mut expr.try_after {
+        clear_expression_spans(&mut after.trigger);
+        clear_expression_spans(&mut after.body);
+    }
+}
+
 /// Builds diagnostics for multi-expression callbacks with throwaway names.
 pub(super) fn callback_name_diagnostics(path: &Path, source: &str) -> Vec<LintDiagnostic> {
-    let Ok(module) = parse_module_as_syntax_output(source) else {
+    let Ok(module) = parse_lint_source(path, source) else {
         return Vec::new();
     };
 
@@ -91,7 +310,7 @@ pub(super) fn unused_destructure_binding_diagnostics(
     path: &Path,
     source: &str,
 ) -> Vec<LintDiagnostic> {
-    let Ok(module) = parse_module_as_syntax_output(source) else {
+    let Ok(module) = parse_lint_source(path, source) else {
         return Vec::new();
     };
 
@@ -151,11 +370,13 @@ pub(super) fn redundant_comment_diagnostics(path: &Path, source: &str) -> Vec<Li
 
 /// Builds diagnostics for public declarations missing API documentation.
 pub(super) fn public_docs_diagnostics(path: &Path, source: &str) -> Vec<LintDiagnostic> {
-    if is_test_source_path(path) {
+    if is_test_source_path(path)
+        || path.extension().and_then(|extension| extension.to_str()) == Some("terls")
+    {
         return Vec::new();
     }
 
-    let Ok(module) = parse_module_as_syntax_output(source) else {
+    let Ok(module) = parse_lint_source(path, source) else {
         return Vec::new();
     };
 

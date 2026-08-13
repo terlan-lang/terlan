@@ -44,12 +44,14 @@ pub enum CorePattern {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Variants representing core binary pattern endian.
 pub enum CoreBinaryPatternEndian {
     Big,
     Little,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Variants representing core binary pattern descriptor.
 pub enum CoreBinaryPatternDescriptor {
     UInt(u64),
     IntBits(u64),
@@ -62,6 +64,7 @@ pub enum CoreBinaryPatternDescriptor {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Data describing core binary pattern field.
 pub struct CoreBinaryPatternField {
     pub name: String,
     pub descriptor: CoreBinaryPatternDescriptor,

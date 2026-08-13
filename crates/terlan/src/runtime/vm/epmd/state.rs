@@ -12,6 +12,7 @@ use super::protocol::{
 };
 
 /// Maximum number of unregistered node records retained for creation reuse.
+#[cfg(test)]
 pub const MAX_UNREGISTERED: usize = 1000;
 
 /// A unique identifier for the socket that owns an ALIVE2 registration.
@@ -41,6 +42,7 @@ pub struct ServerOptions {
     pub max_unregistered: usize,
 }
 
+#[cfg(test)]
 impl ServerOptions {
     /// Return server options for a specific epmd port.
     pub fn new(epmd_port: u16) -> Self {
@@ -51,17 +53,7 @@ impl ServerOptions {
         }
     }
 
-    /// Return options with relaxed command checks enabled.
-    pub fn with_relaxed_command_check(mut self, enabled: bool) -> Self {
-        self.relaxed_command_check = enabled;
-        self
-    }
 
-    /// Return options with a custom unregistered record retention limit.
-    pub fn with_max_unregistered(mut self, max_unregistered: usize) -> Self {
-        self.max_unregistered = max_unregistered;
-        self
-    }
 }
 
 /// Mutable EPMD server state.
@@ -93,10 +85,6 @@ impl ServerState {
         self.registered.len()
     }
 
-    /// Return the number of retained unregistered node records.
-    pub fn unregistered_len(&self) -> usize {
-        self.unregistered.len()
-    }
 
     /// Register an ALIVE2 node for a connection.
     pub fn register_alive2(

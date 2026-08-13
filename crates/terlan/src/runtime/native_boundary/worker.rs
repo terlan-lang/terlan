@@ -21,6 +21,7 @@ use crate::terlan_native_boundary::runtime::NativeBoundaryRuntime;
 use crate::terlan_native_boundary::term::{
     NativeBoundaryCommandTerm, NativeBoundaryReplyTerm, NativeBoundaryTerm,
 };
+use terlan_runtime_abi::{BoundaryError, ErrorDomain};
 
 const EVENT_HISTORY_LIMIT: usize = 1_024;
 
@@ -67,6 +68,23 @@ pub struct NativeBoundaryWorkerReply {
     pub reserved_credits: u64,
     /// Credits still available inside the normalized credit limit.
     pub available_credits: u64,
+}
+
+/// Complete admitted operation data for one NativeBoundary worker request.
+pub struct NativeBoundaryWorkerCall<'a> {
+    /// Monotonic request identity owned by the VM.
+    pub request_id: RequestId,
+    /// Actor or process that owns any returned resources.
+    pub owner_process_id: u64,
+    /// Capabilities granted to the caller.
+    pub granted_capabilities: &'a [&'a str],
+    /// Scheduler classes admitted for this operation.
+    pub admitted_worker_classes:
+        &'a [crate::terlan_native_boundary::metadata::NativeBoundaryWorkerClass],
+    /// Stable NativeBoundary operation name.
+    pub operation: &'a str,
+    /// Typed operation arguments.
+    pub args: &'a [NativeBoundaryTerm],
 }
 
 /// Transport-neutral NativeBoundary worker state.
@@ -154,20 +172,29 @@ impl NativeBoundaryWorker {
     }
 
     /// Writes the worker's observable NativeBoundary lifecycle report.
-    pub fn write_report(&self, path: &std::path::Path) -> Result<(), String> {
+    pub fn write_report(&self, path: &std::path::Path) -> Result<(), BoundaryError> {
         let resource_events = self.runtime.resource_events().collect::<Vec<_>>();
         let dispatch_events = self.runtime.dispatch_events().collect::<Vec<_>>();
         crate::terlan_native_boundary::worker_report::write_worker_report(
             path,
-            self.credit_limit,
-            self.reserved_credits,
-            self.available_credits(),
-            self.last_started_request_id,
-            EVENT_HISTORY_LIMIT,
-            &self.events,
-            &resource_events,
-            &dispatch_events,
+            crate::terlan_native_boundary::worker_report::NativeBoundaryWorkerReport {
+                credit_limit: self.credit_limit,
+                reserved_credits: self.reserved_credits,
+                available_credits: self.available_credits(),
+                last_started_request_id: self.last_started_request_id,
+                event_history_limit: EVENT_HISTORY_LIMIT,
+                events: &self.events,
+                resource_events: &resource_events,
+                dispatch_events: &dispatch_events,
+            },
         )
+        .map_err(|error| {
+            BoundaryError::message(
+                ErrorDomain::NativeBoundary,
+                "write NativeBoundary worker report",
+                error,
+            )
+        })
     }
 
     /// Starts tracking an in-flight request.
@@ -421,13 +448,16 @@ impl NativeBoundaryWorker {
     ///   manifest capability and scheduler admission boundary.
     pub fn call_for_process_with_policy(
         &mut self,
-        request_id: RequestId,
-        owner_process_id: u64,
-        granted_capabilities: &[&str],
-        admitted_worker_classes: &[crate::terlan_native_boundary::metadata::NativeBoundaryWorkerClass],
-        operation: &str,
-        args: &[NativeBoundaryTerm],
+        call: NativeBoundaryWorkerCall<'_>,
     ) -> NativeBoundaryWorkerReply {
+        let NativeBoundaryWorkerCall {
+            request_id,
+            owner_process_id,
+            granted_capabilities,
+            admitted_worker_classes,
+            operation,
+            args,
+        } = call;
         if let Err(error) = self.begin_request(request_id) {
             return self.reply(request_id, error);
         }
@@ -448,14 +478,17 @@ impl NativeBoundaryWorker {
     /// Calls one admitted operation with a request-scoped cancellation token.
     pub fn call_for_process_with_policy_and_cancellation(
         &mut self,
-        request_id: RequestId,
-        owner_process_id: u64,
-        granted_capabilities: &[&str],
-        admitted_worker_classes: &[crate::terlan_native_boundary::metadata::NativeBoundaryWorkerClass],
-        operation: &str,
-        args: &[NativeBoundaryTerm],
+        call: NativeBoundaryWorkerCall<'_>,
         cancellation: &NativeBoundaryCancellationToken,
     ) -> NativeBoundaryWorkerReply {
+        let NativeBoundaryWorkerCall {
+            request_id,
+            owner_process_id,
+            granted_capabilities,
+            admitted_worker_classes,
+            operation,
+            args,
+        } = call;
         if let Err(error) = self.begin_request(request_id) {
             return self.reply(request_id, error);
         }
@@ -617,8 +650,10 @@ fn worker_error_reply(kind: ErrorKind) -> NativeBoundaryReplyTerm {
 
 #[cfg(test)]
 #[path = "worker_test.rs"]
+#[cfg(test)]
 mod worker_test;
 
 #[cfg(test)]
 #[path = "nif_suite_parity_test.rs"]
+#[cfg(test)]
 mod nif_suite_parity_test;

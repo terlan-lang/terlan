@@ -1,15 +1,14 @@
 //! Scheduler-visible execution state for direct native image calls.
 
-#![allow(dead_code)] // The step API is consumed by terlan-vm, not every binary embedding this module.
-
-use std::collections::HashSet;
-
 use super::{
-    native_status_error, validate_continuation, validate_owner_id, validate_request_id,
-    NativeDecodedResult, NativeResultProjection, PreparedNativeCall, PureNativeBoundary,
-    PureNativeExecutionContext, PureNativeExportSpec, PureNativeIoWake, PureNativeSuspension,
+    native_status_error, validate_owner_id, validate_request_id, NativeDecodedResult,
+    NativeResultProjection, PreparedNativeCall, PureNativeBoundary, PureNativeExecutionContext,
+    PureNativeExportSpec, PureNativeIoWake, PureNativeSuspension,
 };
-use crate::runtime::native_image::control::{TvmControlFrame, TvmTransitionOperation};
+use crate::runtime::native_image::control::{
+    TvmControlFrame, TvmTransitionOperation, TVM_SQL_CAPABILITY_PREFIX_WORDS,
+    TVM_SQL_CAPABILITY_TAG,
+};
 use crate::runtime::native_image::TvmBoundaryType;
 use crate::runtime::vm::actor::{VmActorRuntime, VmNativeTraceCall};
 use crate::runtime::vm::process::{VmExitReason, VmProcessId, VmProcessSource, VmProcessState};
@@ -19,6 +18,21 @@ use crate::terlan_native_boundary::term::NativeBoundaryTerm;
 
 #[path = "execution/entry.rs"]
 mod entry;
+#[path = "execution/reply.rs"]
+mod reply;
+#[path = "execution/support.rs"]
+mod support;
+#[path = "execution/transition_validation.rs"]
+mod transition_validation;
+
+use reply::handle_reply;
+use support::{
+    capability_identity, native_actor_exit_error, repl_value_to_boundary_term,
+    transition_capture_types, validate_capability_arguments, validate_transition_continuation,
+};
+pub(crate) use transition_validation::validate_transition_arguments;
+
+const MAX_NATIVE_RESUME_COUNT: usize = 1_048_576;
 
 /// Owned capability RPC prepared from one generated suspension.
 #[derive(Clone, Debug, PartialEq)]
@@ -36,10 +50,52 @@ pub(crate) struct PureNativeCapabilityRequest {
 pub(crate) enum PureNativeExecution {
     Complete(ReplValue),
     HttpResponse(crate::runtime::vm::VmAotHttpResponse),
-    Suspended(PureNativeSuspension),
+    Suspended(Box<PureNativeSuspension>),
 }
 
 impl PureNativeBoundary {
+    /// Materializes one parked capture through its actor-owned heap.
+    pub(crate) fn debugger_decode_capture(
+        &self,
+        context: &PureNativeExecutionContext<'_>,
+        boundary_type: &TvmBoundaryType,
+        value: i64,
+    ) -> Result<ReplValue, String> {
+        self.backend
+            .as_deref()
+            .ok_or_else(|| {
+                "error[pure_native_backend_missing]: no active native execution backend".to_string()
+            })?
+            .decode_transition_value(context, boundary_type, value)
+    }
+
+    /// Resumes a stopped failure/debug continuation through a typed debugger restart.
+    pub(crate) fn resume_debug_restart_for_actor(
+        &mut self,
+        actors: &mut VmActorRuntime,
+        context: &mut PureNativeExecutionContext<'_>,
+        suspension: PureNativeSuspension,
+    ) -> Result<PureNativeExecution, String> {
+        if suspension.owner_id() != context.owner_id() {
+            return Err("error[pure_native_debug_restart_owner]: foreign suspension owner".into());
+        }
+        if !matches!(
+            suspension.operation(),
+            TvmTransitionOperation::Failure | TvmTransitionOperation::Debug
+        ) {
+            return Err(format!(
+                "error[pure_native_debug_restart_operation]: cannot bypass {:?}",
+                suspension.operation()
+            ));
+        }
+        actors.resume_native_continuation(
+            suspension.owner_id(),
+            suspension.request_id(),
+            suspension.continuation_id(),
+        )?;
+        self.finish_transition_resume(actors, context, suspension, Vec::new(), None, None)
+    }
+
     /// Decodes one generated capability suspension without exposing heap words
     /// or worker transport identity outside the owning execution shard.
     pub(crate) fn capability_request_for_actor(
@@ -98,19 +154,176 @@ impl PureNativeBoundary {
                 result_type,
             });
         }
+        if arguments[0] == TVM_SQL_CAPABILITY_TAG {
+            let decode_string = |index: usize, label: &str| {
+                backend
+                    .decode_transition_value(context, &TvmBoundaryType::String, arguments[index])
+                    .and_then(|value| match value {
+                        ReplValue::String(value) => Ok(NativeBoundaryTerm::Text(value)),
+                        _ => Err(format!(
+                            "error[pure_native_capability_argument]: expected SQL {label} String"
+                        )),
+                    })
+            };
+            let mut sql_arguments = (4..=8)
+                .zip([
+                    "row type",
+                    "statement",
+                    "query kind",
+                    "transaction requirement",
+                    "cardinality",
+                ])
+                .map(|(index, label)| decode_string(index, label))
+                .collect::<Result<Vec<_>, _>>()?;
+            let projection_type = TvmBoundaryType::Managed(
+                crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
+                    "List(String)",
+                )
+                .map_err(|error| format!("error[pure_native_capability_argument]: {error}"))?
+                .bytes(),
+            );
+            sql_arguments.push(
+                backend
+                    .decode_transition_value(context, &projection_type, arguments[9])
+                    .and_then(|value| repl_value_to_boundary_term(value).map_err(String::from))?,
+            );
+            let parameter_count = usize::try_from(arguments[10]).map_err(|_| {
+                "error[pure_native_capability_arguments]: SQL parameter count must be nonnegative"
+                    .to_string()
+            })?;
+            for index in 0..parameter_count {
+                let offset = TVM_SQL_CAPABILITY_PREFIX_WORDS + index * 4;
+                let boundary_type =
+                    TvmBoundaryType::from_transition_words(&arguments[offset..offset + 3])?;
+                sql_arguments.push(
+                    backend
+                        .decode_transition_value(
+                            context,
+                            &boundary_type,
+                            arguments[offset + 3],
+                        )
+                        .and_then(|value| repl_value_to_boundary_term(value).map_err(String::from))
+                        .map_err(|error| {
+                            format!(
+                                "error[pure_native_capability_argument]: SQL parameter {} ({boundary_type:?}): {error}",
+                                index + 1
+                            )
+                        })?,
+                );
+            }
+            return Ok(PureNativeCapabilityRequest {
+                capability: "postgres".to_string(),
+                operation: "std.db.sql.query".to_string(),
+                arguments: sql_arguments,
+                package_arguments: None,
+                result_type,
+            });
+        }
         let (capability, operation) = capability_identity(arguments[0])?;
         let boundary_arguments = arguments[4..]
             .iter()
-            .map(|value| {
+            .enumerate()
+            .map(|(index, value)| {
+                let boundary_type = match (arguments[0], index) {
+                    (9, 0) => TvmBoundaryType::Int,
+                    (41, 1) | (41, 2) => TvmBoundaryType::Int,
+                    (50, 1) => TvmBoundaryType::Bool,
+                    (21, 4) | (21, 5) => TvmBoundaryType::Int,
+                    (22, 0) => TvmBoundaryType::Managed(
+                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
+                            "std.system.Process.Command",
+                        )
+                        .map_err(|error| {
+                            format!("error[pure_native_capability_argument]: {error}")
+                        })?
+                        .bytes(),
+                    ),
+                    (31, 0) => TvmBoundaryType::Managed(
+                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
+                            "std.system.Process.BatchRequest",
+                        )
+                        .map_err(|error| {
+                            format!("error[pure_native_capability_argument]: {error}")
+                        })?
+                        .bytes(),
+                    ),
+                    (48, 0) => TvmBoundaryType::Managed(
+                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
+                            "std.system.Process.FramedRequest",
+                        )
+                        .map_err(|error| {
+                            format!("error[pure_native_capability_argument]: {error}")
+                        })?
+                        .bytes(),
+                    ),
+                    (54, 0) => TvmBoundaryType::Managed(
+                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
+                            "List(Struct(std.io.File.CopyPlan;source:String,destination:String))",
+                        )
+                        .map_err(|error| {
+                            format!("error[pure_native_capability_argument]: {error}")
+                        })?
+                        .bytes(),
+                    ),
+                    (55 | 58, 0) => TvmBoundaryType::Managed(
+                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
+                            "List(Struct(std.crypto.Hash.LabeledFile;path:String,label:String))",
+                        )
+                        .map_err(|error| {
+                            format!("error[pure_native_capability_argument]: {error}")
+                        })?
+                        .bytes(),
+                    ),
+                    (56, 0) => TvmBoundaryType::Managed(
+                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
+                            "List(Struct(std.crypto.Hash.LabeledFile;path:String,label:String))",
+                        )
+                        .map_err(|error| {
+                            format!("error[pure_native_capability_argument]: {error}")
+                        })?
+                        .bytes(),
+                    ),
+                    (57, 1) => TvmBoundaryType::Managed(
+                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
+                            "List(Struct(std.crypto.Hash.LabeledFilePattern;id:String,pattern:String))",
+                        )
+                        .map_err(|error| {
+                            format!("error[pure_native_capability_argument]: {error}")
+                        })?
+                        .bytes(),
+                    ),
+                    (17, 1) | (24, 2) | (39, 2) | (47, 1) | (56, 1) | (57, 2) => TvmBoundaryType::Managed(
+                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
+                            "List(String)",
+                        )
+                        .map_err(|error| {
+                            format!("error[pure_native_capability_argument]: {error}")
+                        })?
+                        .bytes(),
+                    ),
+                    (18, 0) => TvmBoundaryType::Managed(
+                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
+                            "List(String)",
+                        )
+                        .map_err(|error| {
+                            format!("error[pure_native_capability_argument]: {error}")
+                        })?
+                        .bytes(),
+                    ),
+                    (20, 1) | (21, 1) | (21, 2) | (21, 3) => TvmBoundaryType::Managed(
+                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
+                            "List(String)",
+                        )
+                        .map_err(|error| {
+                            format!("error[pure_native_capability_argument]: {error}")
+                        })?
+                        .bytes(),
+                    ),
+                    _ => TvmBoundaryType::String,
+                };
                 backend
-                    .decode_transition_value(context, &TvmBoundaryType::String, *value)
-                    .and_then(|value| match value {
-                        ReplValue::String(value) => Ok(NativeBoundaryTerm::Text(value)),
-                        _ => Err(
-                            "error[pure_native_capability_argument]: expected String payload"
-                                .to_string(),
-                        ),
-                    })
+                    .decode_transition_value(context, &boundary_type, *value)
+                    .and_then(|value| repl_value_to_boundary_term(value).map_err(String::from))
             })
             .collect::<Result<Vec<_>, _>>()?;
         Ok(PureNativeCapabilityRequest {
@@ -122,19 +335,19 @@ impl PureNativeBoundary {
         })
     }
 
-    /// Injects one worker-owned capability completion into its exact parked continuation.
-    pub(crate) fn resume_capability_for_actor(
+    /// Resumes a decoded capability without rereading relocated request arguments.
+    pub(crate) fn resume_capability_value_for_actor(
         &mut self,
         actors: &mut VmActorRuntime,
         context: &mut PureNativeExecutionContext<'_>,
         suspension: PureNativeSuspension,
+        result_type: &TvmBoundaryType,
         result: &ReplValue,
     ) -> Result<PureNativeExecution, String> {
-        let request = self.capability_request_for_actor(context, &suspension)?;
         let backend = self.backend.as_deref_mut().ok_or_else(|| {
             "error[pure_native_backend_missing]: no active native execution backend".to_string()
         })?;
-        let encoded = backend.encode_transition_value(context, &request.result_type, result)?;
+        let encoded = backend.encode_transition_value(context, result_type, result)?;
         actors.resume_native_continuation(
             suspension.owner_id(),
             suspension.request_id(),
@@ -172,6 +385,10 @@ impl PureNativeBoundary {
             (&operation, arguments.len()),
             (TvmTransitionOperation::Send, 5) | (TvmTransitionOperation::Receive, 3)
         );
+        let resident_recipient = matches!(operation, TvmTransitionOperation::Send)
+            .then(|| arguments.first().copied())
+            .flatten()
+            .and_then(|value| u64::try_from(value).ok());
         let mut consumed_mailbox_fragment = None;
         let transition_result = if typed_transition {
             let boundary_type = match operation {
@@ -261,16 +478,20 @@ impl PureNativeBoundary {
             )?
         };
         let Some(resume_values) = transition_result else {
-            return Ok(PureNativeExecution::Suspended(suspension));
+            return Ok(PureNativeExecution::Suspended(Box::new(suspension)));
         };
-        self.finish_transition_resume(
+        let execution = self.finish_transition_resume(
             actors,
             context,
             suspension,
             resume_values,
             consumed_mailbox_fragment,
             spawn_export,
-        )
+        )?;
+        if let Some(recipient) = resident_recipient {
+            self.drive_resident_actor(actors, context, recipient)?;
+        }
+        Ok(execution)
     }
 
     /// Injects one typed VM I/O wake and advances its exact native continuation.
@@ -403,13 +624,14 @@ impl PureNativeBoundary {
             actors,
             context,
             prepared,
-            resume_state.observed_continuations,
+            resume_state.resume_count,
             resume_state.trace_call,
             reply,
         )
     }
 
     /// Drives the step API synchronously for callers that only need a final value.
+    #[cfg(test)]
     pub(crate) fn call_for_actor(
         &mut self,
         actors: &mut VmActorRuntime,
@@ -425,7 +647,7 @@ impl PureNativeBoundary {
                     return Err("error[pure_native.result_projection]: typed HTTP response returned through a public-value call".to_string())
                 }
                 PureNativeExecution::Suspended(suspension) => {
-                    self.resume_transition_for_actor(actors, context, suspension)?
+                    self.resume_transition_for_actor(actors, context, *suspension)?
                 }
             };
         }
@@ -478,149 +700,130 @@ impl PureNativeBoundary {
             call_cache: None,
         };
         let function = format!("{}.{}", export.module, export.function);
-        let result: Result<(), String> = (|| {
+        let result: Result<bool, String> = (|| {
             let mut child_context = context.reborrow(child);
             let mut execution =
                 boundary.begin_call_for_actor(actors, &mut child_context, &function, &[])?;
             loop {
                 execution = match execution {
-                    PureNativeExecution::Complete(_) => return Ok(()),
+                    PureNativeExecution::Complete(_) => return Ok(true),
                     PureNativeExecution::HttpResponse(_) => {
                         return Err("error[pure_native.result_projection]: spawned child returned an HTTP-only result".to_string())
                     }
-                    PureNativeExecution::Suspended(suspension) => boundary
-                        .resume_transition_for_actor(actors, &mut child_context, suspension)?,
+                    PureNativeExecution::Suspended(suspension) => {
+                        let parked_identity = (
+                            suspension.request_id(),
+                            suspension.continuation_id(),
+                        );
+                        match boundary.resume_transition_for_actor(
+                            actors,
+                            &mut child_context,
+                            *suspension,
+                        )? {
+                            PureNativeExecution::Suspended(next)
+                                if (next.request_id(), next.continuation_id())
+                                    == parked_identity =>
+                            {
+                                child_context.park_resident_suspension(*next)?;
+                                return Ok(false);
+                            }
+                            next => next,
+                        }
+                    }
                 };
             }
         })();
-        let release = {
+        let completed = result.as_ref().copied().unwrap_or(true);
+        let release = if completed {
             let mut child_context = context.reborrow(child);
             boundary.release_owner(&mut child_context)
+        } else {
+            Ok(())
         };
         let shutdown = boundary.shutdown();
         let failure = result
             .err()
             .or_else(|| release.err())
             .or_else(|| shutdown.err());
-        let reason = failure.map_or(VmExitReason::Normal, VmExitReason::Error);
-        actors.exit_actor(child, reason)?;
+        if completed || failure.is_some() {
+            let reason = failure.map_or(VmExitReason::Normal, VmExitReason::Error);
+            actors.exit_actor(child, reason)?;
+        }
         Ok(())
     }
-}
 
-fn handle_reply(
-    backend: &dyn super::NativeImageBackend,
-    actors: &mut VmActorRuntime,
-    context: &PureNativeExecutionContext<'_>,
-    prepared: PreparedNativeCall,
-    mut observed_continuations: HashSet<u64>,
-    trace_call: VmNativeTraceCall,
-    reply: TvmControlFrame,
-) -> Result<PureNativeExecution, String> {
-    match reply {
-        TvmControlFrame::Success {
-            request_id,
-            owner_id,
-            value,
-        } => {
-            validate_request_id(request_id, prepared.request_id)?;
-            validate_owner_id(owner_id, prepared.owner_id)?;
-            match backend.decode_result(
-                context,
-                &prepared.result_type,
-                value,
-                prepared.result_projection,
-            ) {
-                Ok(NativeDecodedResult::Value(value)) => {
-                    actors.complete_native_trace_call(
-                        VmProcessId::from_native_owner(owner_id)?,
-                        trace_call,
-                    )?;
-                    Ok(PureNativeExecution::Complete(value))
+    /// Runs a woken spawned actor until it blocks again or exits.
+    fn drive_resident_actor(
+        &mut self,
+        actors: &mut VmActorRuntime,
+        context: &mut PureNativeExecutionContext<'_>,
+        owner_id: u64,
+    ) -> Result<(), String> {
+        let Some(suspension) = context.take_resident_suspension(owner_id) else {
+            return Ok(());
+        };
+        let owner = VmProcessId::from_native_owner(owner_id)?;
+        self.drive_resident_execution(
+            actors,
+            context,
+            owner,
+            PureNativeExecution::Suspended(Box::new(suspension)),
+        )?;
+        Ok(())
+    }
+
+    /// Drives an externally resumed resident actor to its next park point or exit.
+    pub(crate) fn drive_resident_execution(
+        &mut self,
+        actors: &mut VmActorRuntime,
+        context: &mut PureNativeExecutionContext<'_>,
+        owner: VmProcessId,
+        mut execution: PureNativeExecution,
+    ) -> Result<bool, String> {
+        loop {
+            match execution {
+                PureNativeExecution::Complete(_) => {
+                    let mut resident_context = context.reborrow(owner);
+                    self.release_owner(&mut resident_context)?;
+                    actors.exit_actor(owner, VmExitReason::Normal)?;
+                    return Ok(true);
                 }
-                Ok(NativeDecodedResult::HttpResponse(response)) => {
-                    actors.complete_native_trace_call(
-                        VmProcessId::from_native_owner(owner_id)?,
-                        trace_call,
-                    )?;
-                    Ok(PureNativeExecution::HttpResponse(response))
+                PureNativeExecution::HttpResponse(_) => {
+                    let error = "error[pure_native.resident_result_projection]: spawned actor returned an HTTP-only result".to_string();
+                    let mut resident_context = context.reborrow(owner);
+                    self.release_owner(&mut resident_context)?;
+                    actors.exit_actor(owner, VmExitReason::Error(error.clone()))?;
+                    return Ok(true);
                 }
-                Err(error) => {
-                    let _ = actors.fail_native_trace_call(
-                        VmProcessId::from_native_owner(owner_id)?,
-                        trace_call,
-                        error.clone(),
-                    );
-                    Err(error)
+                PureNativeExecution::Suspended(suspension) => {
+                    let parked_identity = (suspension.request_id(), suspension.continuation_id());
+                    let resumed = {
+                        let mut resident_context = context.reborrow(owner);
+                        self.resume_transition_for_actor(actors, &mut resident_context, *suspension)
+                    };
+                    execution = match resumed {
+                        Ok(PureNativeExecution::Suspended(next))
+                            if (next.request_id(), next.continuation_id()) == parked_identity =>
+                        {
+                            context.park_resident_suspension(*next)?;
+                            return Ok(false);
+                        }
+                        Ok(next) => next,
+                        Err(error) => {
+                            let mut resident_context = context.reborrow(owner);
+                            let release = self.release_owner(&mut resident_context);
+                            let exit = actors.exit_actor(owner, VmExitReason::Error(error.clone()));
+                            release?;
+                            exit?;
+                            // Spawned actors are isolation boundaries. Their
+                            // terminal failure must not escape into the actor
+                            // which happened to wake the continuation.
+                            return Ok(true);
+                        }
+                    };
                 }
             }
         }
-        TvmControlFrame::Failure {
-            request_id,
-            owner_id,
-            status,
-        } => {
-            validate_request_id(request_id, prepared.request_id)?;
-            validate_owner_id(owner_id, prepared.owner_id)?;
-            let error = native_status_error(status);
-            let _ = actors.fail_native_trace_call(
-                VmProcessId::from_native_owner(owner_id)?,
-                trace_call,
-                error.clone(),
-            );
-            Err(error)
-        }
-        TvmControlFrame::Transition {
-            request_id,
-            owner_id,
-            continuation_id,
-            operation,
-            arguments,
-            values,
-        } => {
-            validate_request_id(request_id, prepared.request_id)?;
-            validate_owner_id(owner_id, prepared.owner_id)?;
-            validate_transition_arguments(&operation, &arguments)?;
-            if !observed_continuations.insert(continuation_id) {
-                return Err(format!(
-                    "error[pure_native_continuation_cycle]: continuation {continuation_id} was yielded more than once"
-                ));
-            }
-            let continuations = prepared.continuations.as_ref().ok_or_else(|| {
-                "error[pure_native_continuation_metadata]: transition has no admitted continuation table"
-                    .to_string()
-            })?;
-            let continuation = continuations
-                .iter()
-                .find(|entry| entry.id == continuation_id)
-                .ok_or_else(|| {
-                    format!(
-                        "error[pure_native_continuation_unknown]: image yielded undeclared continuation {continuation_id}"
-                    )
-                })?;
-            validate_transition_continuation(
-                continuation,
-                &prepared.result_type,
-                &operation,
-                &arguments,
-                &values,
-            )?;
-            actors.park_native_continuation(owner_id, request_id, continuation_id)?;
-            Ok(PureNativeExecution::Suspended(PureNativeSuspension::new(
-                request_id,
-                owner_id,
-                continuation_id,
-                operation,
-                arguments,
-                values,
-                prepared.result_type,
-                prepared.result_projection,
-                continuations.clone(),
-                observed_continuations,
-                trace_call,
-            )))
-        }
-        _ => Err("error[pure_native_continuation_reply]: unexpected control frame".to_string()),
     }
 }
 
@@ -634,6 +837,19 @@ pub(crate) fn dispatch_transition_operation(
 ) -> Result<Option<Vec<i64>>, String> {
     validate_transition_arguments(operation, arguments)?;
     match operation {
+        TvmTransitionOperation::Debug => actors
+            .resume_native_continuation(owner_id, request_id, continuation_id)
+            .map(|()| Some(Vec::new())),
+        TvmTransitionOperation::Identity => actors
+            .resume_native_continuation(owner_id, request_id, continuation_id)
+            .and_then(|()| {
+                i64::try_from(owner_id)
+                    .map(|identity| Some(vec![identity]))
+                    .map_err(|_| {
+                        "error[pure_native_identity_result]: process identity exceeds native Int"
+                            .to_string()
+                    })
+            }),
         TvmTransitionOperation::Yield => actors
             .resume_native_continuation(owner_id, request_id, continuation_id)
             .map(|()| Some(Vec::new())),
@@ -742,233 +958,5 @@ pub(crate) fn dispatch_transition_operation(
                 .map(|()| Some(Vec::new()))
         }
         TvmTransitionOperation::Capability => Ok(None),
-    }
-}
-
-pub(crate) fn validate_transition_arguments(
-    operation: &TvmTransitionOperation,
-    arguments: &[i64],
-) -> Result<(), String> {
-    match operation {
-        TvmTransitionOperation::Yield if arguments.is_empty() => Ok(()),
-        TvmTransitionOperation::Yield => Err(
-            "error[pure_native_transition_arguments]: Yield transition must not carry operation arguments"
-                .to_string(),
-        ),
-        TvmTransitionOperation::Send if !matches!(arguments.len(), 2 | 5) => Err(format!(
-            "error[pure_native_transition_arguments]: Send transition requires 2 scalar or 5 typed arguments, received {} arguments",
-            arguments.len()
-        )),
-        TvmTransitionOperation::Send if arguments[0] <= 0 => Err(
-            "error[pure_native_transition_arguments]: Send recipient must be a positive process identity"
-                .to_string(),
-        ),
-        TvmTransitionOperation::Send if arguments.len() == 5 => {
-            TvmBoundaryType::from_transition_words(&arguments[1..4]).map(|_| ())
-        }
-        TvmTransitionOperation::Send => Ok(()),
-        TvmTransitionOperation::Receive if arguments.is_empty() => Ok(()),
-        TvmTransitionOperation::Receive if arguments.len() == 3 => {
-            TvmBoundaryType::from_transition_words(arguments).map(|_| ())
-        }
-        TvmTransitionOperation::Receive => Err(format!(
-            "error[pure_native_transition_arguments]: Receive transition requires 0 scalar or 3 typed arguments, received {} arguments",
-            arguments.len()
-        )),
-        TvmTransitionOperation::Spawn if arguments.len() != 1 => Err(format!(
-            "error[pure_native_transition_arguments]: Spawn transition requires one native entry identity, received {} arguments",
-            arguments.len()
-        )),
-        TvmTransitionOperation::Spawn if arguments[0] <= 0 => Err(
-            "error[pure_native_transition_arguments]: Spawn entry must be a positive native identity"
-                .to_string(),
-        ),
-        TvmTransitionOperation::Spawn => Ok(()),
-        TvmTransitionOperation::Timer if arguments.len() != 1 => Err(format!(
-            "error[pure_native_transition_arguments]: Timer transition requires one positive delay, received {} arguments",
-            arguments.len()
-        )),
-        TvmTransitionOperation::Timer if arguments[0] <= 0 => Err(
-            "error[pure_native_transition_arguments]: Timer delay must be positive".to_string(),
-        ),
-        TvmTransitionOperation::Timer => Ok(()),
-        TvmTransitionOperation::Link if arguments.len() != 1 => Err(format!(
-            "error[pure_native_transition_arguments]: Link transition requires one positive peer identity, received {} arguments",
-            arguments.len()
-        )),
-        TvmTransitionOperation::Link if arguments[0] <= 0 => Err(
-            "error[pure_native_transition_arguments]: Link peer must be a positive process identity"
-                .to_string(),
-        ),
-        TvmTransitionOperation::Link => Ok(()),
-        TvmTransitionOperation::Monitor if arguments.len() != 1 => Err(format!(
-            "error[pure_native_transition_arguments]: Monitor transition requires one positive target identity, received {} arguments",
-            arguments.len()
-        )),
-        TvmTransitionOperation::Monitor if arguments[0] <= 0 => Err(
-            "error[pure_native_transition_arguments]: Monitor target must be a positive process identity"
-                .to_string(),
-        ),
-        TvmTransitionOperation::Monitor => Ok(()),
-        TvmTransitionOperation::Resource if arguments.len() != 1 => Err(format!(
-            "error[pure_native_transition_arguments]: Resource transition requires one positive kind tag, received {} arguments",
-            arguments.len()
-        )),
-        TvmTransitionOperation::Resource if arguments[0] <= 0 => Err(
-            "error[pure_native_transition_arguments]: Resource kind tag must be positive"
-                .to_string(),
-        ),
-        TvmTransitionOperation::Resource => Ok(()),
-        TvmTransitionOperation::Cancellation if arguments.len() != 1 => Err(format!(
-            "error[pure_native_transition_arguments]: Cancellation transition requires one positive target identity, received {} arguments",
-            arguments.len()
-        )),
-        TvmTransitionOperation::Cancellation if arguments[0] <= 0 => Err(
-            "error[pure_native_transition_arguments]: Cancellation target must be a positive process identity"
-                .to_string(),
-        ),
-        TvmTransitionOperation::Cancellation => Ok(()),
-        TvmTransitionOperation::Failure if arguments.len() != 1 => Err(format!(
-            "error[pure_native_transition_arguments]: Failure transition requires one positive failure code, received {} arguments",
-            arguments.len()
-        )),
-        TvmTransitionOperation::Failure if arguments[0] <= 0 => Err(
-            "error[pure_native_transition_arguments]: Failure code must be positive".to_string(),
-        ),
-        TvmTransitionOperation::Failure => Ok(()),
-        TvmTransitionOperation::Scheduling if arguments.len() != 1 => Err(format!(
-            "error[pure_native_transition_arguments]: Scheduling transition requires one class tag, received {} arguments",
-            arguments.len()
-        )),
-        TvmTransitionOperation::Scheduling if !(1..=3).contains(&arguments[0]) => Err(
-            "error[pure_native_transition_arguments]: Scheduling class tag must be 1, 2, or 3"
-                .to_string(),
-        ),
-        TvmTransitionOperation::Scheduling => Ok(()),
-        TvmTransitionOperation::Capability => validate_capability_arguments(arguments),
-    }
-}
-
-fn native_actor_exit_error(owner_id: u64, reason: &VmExitReason) -> String {
-    match reason {
-        VmExitReason::Error(message) => {
-            format!("error[pure_native_failure]: native actor {owner_id} failed: {message}")
-        }
-        other => format!(
-            "error[pure_native_failure]: native actor {owner_id} exited before resume: {other:?}"
-        ),
-    }
-}
-
-fn validate_transition_continuation(
-    continuation: &crate::runtime::native_image::TvmContinuationDescriptor,
-    result_type: &crate::runtime::native_image::TvmBoundaryType,
-    operation: &TvmTransitionOperation,
-    arguments: &[i64],
-    values: &[i64],
-) -> Result<(), String> {
-    if !matches!(
-        operation,
-        TvmTransitionOperation::Receive
-            | TvmTransitionOperation::Spawn
-            | TvmTransitionOperation::Monitor
-            | TvmTransitionOperation::Resource
-            | TvmTransitionOperation::Capability
-    ) {
-        return validate_continuation(continuation, result_type, values);
-    }
-    let injected_type =
-        if matches!(operation, TvmTransitionOperation::Receive) && arguments.len() == 3 {
-            TvmBoundaryType::from_transition_words(arguments)?
-        } else if matches!(operation, TvmTransitionOperation::Capability) {
-            TvmBoundaryType::from_transition_words(&arguments[1..4])?
-        } else {
-            TvmBoundaryType::Int
-        };
-    if continuation.parameters.first() != Some(&injected_type) {
-        return Err(format!(
-            "error[pure_native_continuation_type]: {operation:?} continuation {} must accept a {injected_type:?} result first", continuation.id
-        ));
-    }
-    let mut captures = continuation.clone();
-    captures.parameters.remove(0);
-    validate_continuation(&captures, result_type, values)
-}
-
-fn validate_capability_arguments(arguments: &[i64]) -> Result<(), String> {
-    if arguments.first() == Some(&7) {
-        if arguments.len() < 6 {
-            return Err(
-                "error[pure_native_capability_arguments]: package capability frame is truncated"
-                    .to_string(),
-            );
-        }
-        let argument_count = usize::try_from(arguments[5]).map_err(|_| {
-            "error[pure_native_capability_arguments]: package argument count must be nonnegative"
-                .to_string()
-        })?;
-        let expected = 6usize
-            .checked_add(argument_count.checked_mul(4).ok_or_else(|| {
-                "error[pure_native_capability_arguments]: package argument count overflow"
-                    .to_string()
-            })?)
-            .ok_or_else(|| {
-                "error[pure_native_capability_arguments]: package frame length overflow".to_string()
-            })?;
-        return if arguments.len() == expected {
-            Ok(())
-        } else {
-            Err(format!(
-                "error[pure_native_capability_arguments]: package capability requires {expected} words, received {}",
-                arguments.len()
-            ))
-        };
-    }
-    let expected = match arguments.first().copied() {
-        Some(1 | 2 | 3 | 6) => 5,
-        Some(4 | 5) => 6,
-        Some(tag) => {
-            return Err(format!(
-                "error[pure_native_capability_arguments]: unknown capability tag {tag}"
-            ));
-        }
-        None => {
-            return Err(
-                "error[pure_native_capability_arguments]: missing capability tag".to_string(),
-            );
-        }
-    };
-    if arguments.len() == expected {
-        Ok(())
-    } else {
-        Err(format!(
-            "error[pure_native_capability_arguments]: capability tag {} requires {} payload words, received {}",
-            arguments[0],
-            expected - 4,
-            arguments.len() - 1
-        ))
-    }
-}
-
-fn capability_identity(tag: i64) -> Result<(String, String), String> {
-    match tag {
-        1 => Ok(("stdio".to_string(), "std.io.console.println".to_string())),
-        2 => Ok(("filesystem".to_string(), "std.io.file.exists".to_string())),
-        3 => Ok((
-            "filesystem".to_string(),
-            "std.io.file.read_text".to_string(),
-        )),
-        4 => Ok((
-            "filesystem".to_string(),
-            "std.io.file.write_text".to_string(),
-        )),
-        5 => Ok((
-            "filesystem".to_string(),
-            "std.io.file.append_text".to_string(),
-        )),
-        6 => Ok(("filesystem".to_string(), "std.io.file.delete".to_string())),
-        _ => Err(format!(
-            "error[pure_native_capability_arguments]: unknown capability tag {tag}"
-        )),
     }
 }

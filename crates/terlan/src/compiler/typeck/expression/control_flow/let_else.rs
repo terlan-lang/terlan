@@ -1,6 +1,4 @@
 use super::*;
-
-#[allow(clippy::too_many_arguments)]
 pub(super) fn infer_syntax_let_else(
     expr: &SyntaxExprOutput,
     locals: &HashMap<String, Type>,

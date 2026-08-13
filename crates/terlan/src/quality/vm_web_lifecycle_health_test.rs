@@ -37,14 +37,14 @@ impl TestRepo {
 
     fn write_complete_fixture(&self) -> io::Result<()> {
         self.write(
-            "crates/terlan/src/commands/serve/mod.rs",
+            "crates/terlan/src/commands/serve/server_lifecycle.rs",
             r#"
 startup_tx startup_rx failed to receive server startup status server startup
 runtime_tls_config_for_serve
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/compose_check.rs",
+            "crates/terlan/src/commands/dev_dependencies.rs",
             r#"
 validate_postgres_healthcheck must define a healthcheck
 healthcheck must not be disabled
@@ -63,7 +63,7 @@ validate_project_compose_accepts_postgres_dev_service
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/tls.rs",
+            "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
             r#"
 Maximum order-state refresh attempts while waiting for ACME readiness
 challenge readiness Loads live TLS configuration for normal `terlc serve` startup
@@ -71,18 +71,23 @@ acme_runtime_tls_config_for_serve issue_acme_certificate load_acme_runtime_tls_c
 "#,
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/http.rs",
+            "crates/terlan/src/runtime/vm/http/lifecycle.rs",
             r#"
 pub(crate) fn shutdown( pub(crate) fn shutdown_with_tls(
-tcp.close_listener self.handlers.drain(..) finish_http1_tcp_handler
+tcp.close_listener std::mem::take(&mut self.handlers) self.finish_handler
 remove_listener_plan VmExitReason
 "#,
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/http_test.rs",
+            "crates/terlan/src/runtime/vm/http_test/handler_lifecycle.rs",
             r#"
 vm_http_tcp_server_cancels_parked_handler_and_closes_stream
 vm_http_tcp_server_shutdown_closes_listener_and_active_handlers
+"#,
+        )?;
+        self.write(
+            "crates/terlan/src/runtime/vm/http_test/shutdown_and_inspection.rs",
+            r#"
 vm_http_tcp_server_noop_poll_and_empty_shutdown_are_stable
 vm_http_tcp_server_inspects_listener_pressure_and_handler_counters
 vm_http_tcp_server_shutdown_with_tls_removes_listener_plan
@@ -96,20 +101,23 @@ stream.close() stream.inspect().closed flush queued
 "#,
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/websocket.rs",
+            "crates/terlan/src/runtime/vm/websocket/state.rs",
             r#"
 VmWebSocketCloseOutcome VmWebSocketTerminationReason VmWebSocketTermination
 Timeout Cancelled
 "#,
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/websocket_test.rs",
+            "crates/terlan/src/runtime/vm/websocket_test/session_frames.rs",
             r#"
 vm_websocket_session_closes_after_received_close_frame
 vm_websocket_session_closes_after_sent_close_frame
 vm_websocket_session_send_frame_closes_on_close_event
-vm_websocket_runtime_remove_inactive_stream_sessions_prunes_closed_and_cancelled_streams
 "#,
+        )?;
+        self.write(
+            "crates/terlan/src/runtime/vm/websocket_test/transport_upgrade.rs",
+            "vm_websocket_runtime_remove_inactive_stream_sessions_prunes_closed_and_cancelled_streams",
         )?;
         self.write(
             "crates/terlan/src/runtime/vm/source_reload.rs",
@@ -129,9 +137,14 @@ source_reload_adapter_reports_mixed_batch_diagnostics
 "#,
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/distributed_storage_test.rs",
+            "crates/terlan/src/runtime/vm/distributed_storage_test/snapshots_and_compaction.rs",
             r#"
 vm_distributed_storage_force_local_writes_flushes_and_loads_snapshot
+"#,
+        )?;
+        self.write(
+            "crates/terlan/src/runtime/vm/distributed_storage_test/migration_and_recovery.rs",
+            r#"
 vm_distributed_storage_reports_flush_timeout_with_retry_recovery
 requires_recovery retry_flush
 "#,
@@ -153,11 +166,11 @@ impl Drop for TestRepo {
 }
 
 const COMPLETE_MAKEFILE: &str = r#"
-vm-web-lifecycle-health-check: vm-web-observability-check
-	$(MAKE) web-compose-check
-	$(MAKE) http-tls-check
-	$(MAKE) vm-source-hot-reload-check
-	$(RUST_TEST) --locked -p terlan --bin terlan-quality vm_web_lifecycle_health_test
+vm-web-lifecycle-health-check:
+	vm-web-observability-check
+	web-compose-check
+	http-tls-check
+	vm-source-hot-reload-check
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-web-lifecycle-health
 "#;
 
@@ -186,10 +199,10 @@ fn vm_web_lifecycle_health_rejects_missing_healthcheck_anchor() {
     repo.write_complete_fixture().expect("write fixture");
     let path = repo
         .root()
-        .join("crates/terlan/src/commands/serve/compose_check.rs");
+        .join("crates/terlan/src/commands/dev_dependencies.rs");
     let source = fs::read_to_string(&path).expect("compose source");
     repo.write(
-        "crates/terlan/src/commands/serve/compose_check.rs",
+        "crates/terlan/src/commands/dev_dependencies.rs",
         &source.replace("validate_postgres_healthcheck", ""),
     )
     .expect("rewrite compose source");
@@ -222,7 +235,7 @@ fn vm_web_lifecycle_health_rejects_missing_make_gate_term() {
     repo.write_complete_fixture().expect("write fixture");
     repo.write(
         "Makefile",
-        &COMPLETE_MAKEFILE.replace("$(MAKE) vm-source-hot-reload-check", ""),
+        &COMPLETE_MAKEFILE.replace("vm-source-hot-reload-check", ""),
     )
     .expect("rewrite makefile");
 

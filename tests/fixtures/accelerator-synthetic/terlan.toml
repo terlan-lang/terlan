@@ -1,0 +1,12 @@
+[package]
+name = "terlan-synthetic-vector"
+version = "0.0.8"
+namespace = "synthetic_vector"
+
+[accelerator]
+schema = 1
+descriptor = "accelerator.toml"
+
+[build]
+source_roots = ["src"]
+artifact = "library"

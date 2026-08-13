@@ -316,4 +316,5 @@ fn resource_error_reply(error: ResourceError) -> NativeBoundaryReplyTerm {
 
 #[cfg(test)]
 #[path = "runtime_test.rs"]
+#[cfg(test)]
 mod runtime_test;

@@ -20,7 +20,7 @@ pub acceleration_typechecks(receiver: DeviceMotionEventInit): DeviceMotionEventA
     receiver.acceleration().
 
 pub acceleration_including_gravity_typechecks(
-    receiver: DeviceMotionEventInit
+    receiver: DeviceMotionEventInit,
 ): DeviceMotionEventAccelerationInit ->
     receiver.acceleration_including_gravity().
 

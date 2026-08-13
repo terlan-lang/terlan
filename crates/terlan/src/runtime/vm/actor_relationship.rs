@@ -1,13 +1,17 @@
-use super::super::failure::{is_monitor_down_message, VmMonitorRef, VmTrapExitUpdate};
+use super::super::failure::VmMonitorRef;
+#[cfg(test)]
+use super::super::failure::{is_monitor_down_message, VmTrapExitUpdate};
 use super::super::process::VmProcessId;
 use super::{VmActorRuntime, ACTOR_OPERATION_REDUCTIONS};
 
 /// Options controlling removal of one actor monitor.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmActorDemonitorOptions {
     flush_down: bool,
 }
 
+#[cfg(test)]
 impl VmActorDemonitorOptions {
     /// Removes an already-delivered completion from the observer mailbox.
     pub(crate) fn flush_down(mut self) -> Self {
@@ -18,6 +22,7 @@ impl VmActorDemonitorOptions {
 
 /// Observable effects of removing one actor monitor.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmActorDemonitorResult {
     pub(crate) removed: bool,
     pub(crate) flushed_down: bool,
@@ -50,6 +55,7 @@ impl VmActorRuntime {
     }
 
     /// Removes a relationship between two live actors when present.
+    #[cfg(test)]
     pub(crate) fn unlink_actors(
         &mut self,
         left: VmProcessId,
@@ -102,12 +108,14 @@ impl VmActorRuntime {
     }
 
     /// Reports whether an actor owns an active priority link or monitor.
+    #[cfg(test)]
     pub(crate) fn actor_has_priority_messages(&self, pid: VmProcessId) -> Result<bool, String> {
         self.ensure_live_process(pid, "inspect priority messages for")?;
         Ok(self.failures.has_priority_relationship(pid) || self.aliases.has_priority_alias(pid))
     }
 
     /// Removes an observer-owned monitor and optionally flushes its completion.
+    #[cfg(test)]
     pub(crate) fn demonitor_actor(
         &mut self,
         observer: VmProcessId,
@@ -137,6 +145,7 @@ impl VmActorRuntime {
     }
 
     /// Changes whether a live actor converts linked exits into messages.
+    #[cfg(test)]
     pub(crate) fn set_actor_trap_exits(
         &mut self,
         pid: VmProcessId,

@@ -23,3 +23,7 @@ Wasm CoreIR lowering	triaged	blocked	2026-07-16	sha256:23ade72fb112c88fa06225a71
 Aeneas Rust verification bridge	none	open	2026-07-16	sha256:330f4a20d8f32af9ba8117b095a7fc31c010c10964fab7aeebe77180385f147c	Registered the Rust-to-Terlan proof bridge obligation.
 Aeneas Rust verification bridge	open	triaged	2026-07-16	sha256:330f4a20d8f32af9ba8117b095a7fc31c010c10964fab7aeebe77180385f147c	Assigned formal verification ownership and the proof-track gate.
 Aeneas Rust verification bridge	triaged	blocked	2026-07-16	sha256:330f4a20d8f32af9ba8117b095a7fc31c010c10964fab7aeebe77180385f147c	Recorded the missing explicit bridge artifact.
+EBNF syntax preservation	blocked	remediated	2026-07-31	sha256:809baa8bc19f5a7f9cd9894522fc426eb19e9e86e96d65fa0e75ceb431b2c4b9	Added executable parser-shape theorems and canonical grammar fingerprint binding.
+EBNF syntax preservation	remediated	closed	2026-07-31	sha256:809baa8bc19f5a7f9cd9894522fc426eb19e9e86e96d65fa0e75ceb431b2c4b9	Replayed the parser-shape proof and connected it to the release closeout gate.
+native-boundary contracts	blocked	remediated	2026-07-31	sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2	Added executable NativeBoundary theorems, typed manifest-row bindings, and fail-closed VM runtime oracles.
+native-boundary contracts	remediated	closed	2026-07-31	sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2	Replayed the native-boundary proof and connected it to smoke and release closeout gates.

@@ -142,3 +142,102 @@ fn lean_proof_gap_metrics_preserve_gate_report_and_emit_freshness() {
     assert!(report.contains("\"gap_classification_confidence\": 1.0"));
     fs::remove_dir_all(root).expect("remove fixture");
 }
+
+#[test]
+fn lean_proof_gap_toml_mirror_accepts_owner_approved_unexpired_lane_exception() {
+    let root = std::env::temp_dir().join(format!(
+        "terlan_lean_gap_toml_{}_{}",
+        std::process::id(),
+        OffsetDateTime::now_utc().unix_timestamp_nanos()
+    ));
+    fs::create_dir_all(root.join(GAP_TOML_DIR)).expect("gap directory");
+    let gap = gap("blocked", "model_gap", "exception:coreir@2026-08-31");
+    fs::write(
+        root.join(GAP_TOML_DIR)
+            .join("typed_coreir_preservation.toml"),
+        format!(
+            concat!(
+                "schema = \"terlan.lean-proof-gap.v1\"\n",
+                "feature = \"{}\"\n",
+                "lifecycle_status = \"{}\"\n",
+                "proof_gap_category = \"{}\"\n",
+                "gap_reason = \"{}\"\n",
+                "remediation_owner = \"{}\"\n",
+                "planned_gate = \"{}\"\n",
+                "deadline_or_exception = \"{}\"\n",
+                "exception_approved_by = \"compiler\"\n",
+                "blocker_updated_at = \"{}\"\n",
+                "blocker_hash = \"{}\"\n",
+                "covered_manifests = [\"{}\"]\n"
+            ),
+            gap.feature,
+            gap.lifecycle_status,
+            gap.category,
+            gap.reason,
+            gap.remediation_owner,
+            gap.planned_gate,
+            gap.deadline_or_exception,
+            gap.blocker_updated_at,
+            gap.blocker_hash,
+            gap.covered_manifests[0],
+        ),
+    )
+    .expect("gap TOML");
+
+    let diagnostics =
+        validate_gap_toml_mirror(&root, &[gap], today()).expect("validate TOML mirror");
+
+    fs::remove_dir_all(root).expect("remove fixture");
+    assert!(diagnostics.is_empty(), "diagnostics = {diagnostics:?}");
+}
+
+#[test]
+fn lean_proof_gap_toml_mirror_rejects_wrong_approver_and_expired_exception() {
+    let root = std::env::temp_dir().join(format!(
+        "terlan_lean_gap_toml_bad_{}_{}",
+        std::process::id(),
+        OffsetDateTime::now_utc().unix_timestamp_nanos()
+    ));
+    fs::create_dir_all(root.join(GAP_TOML_DIR)).expect("gap directory");
+    let gap = gap("blocked", "model_gap", "exception:coreir@2026-07-15");
+    fs::write(
+        root.join(GAP_TOML_DIR)
+            .join("typed_coreir_preservation.toml"),
+        format!(
+            concat!(
+                "schema = \"terlan.lean-proof-gap.v1\"\n",
+                "feature = \"{}\"\n",
+                "lifecycle_status = \"{}\"\n",
+                "proof_gap_category = \"{}\"\n",
+                "gap_reason = \"{}\"\n",
+                "remediation_owner = \"{}\"\n",
+                "planned_gate = \"{}\"\n",
+                "deadline_or_exception = \"{}\"\n",
+                "exception_approved_by = \"vm\"\n",
+                "blocker_updated_at = \"{}\"\n",
+                "blocker_hash = \"{}\"\n",
+                "covered_manifests = [\"{}\"]\n"
+            ),
+            gap.feature,
+            gap.lifecycle_status,
+            gap.category,
+            gap.reason,
+            gap.remediation_owner,
+            gap.planned_gate,
+            gap.deadline_or_exception,
+            gap.blocker_updated_at,
+            gap.blocker_hash,
+            gap.covered_manifests[0],
+        ),
+    )
+    .expect("gap TOML");
+
+    let diagnostics =
+        validate_gap_toml_mirror(&root, &[gap], today()).expect("validate TOML mirror");
+
+    fs::remove_dir_all(root).expect("remove fixture");
+    assert!(diagnostics
+        .iter()
+        .any(|item| item.contains("approver `vm`")));
+    assert!(diagnostics.iter().any(|item| item.contains("expired")));
+}

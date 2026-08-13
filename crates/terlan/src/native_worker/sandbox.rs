@@ -161,4 +161,5 @@ fn validate_file_descriptors(descriptors: &BTreeSet<u32>) -> Result<(), String> 
 
 #[cfg(test)]
 #[path = "sandbox_test.rs"]
+#[cfg(test)]
 mod sandbox_test;

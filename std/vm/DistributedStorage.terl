@@ -319,7 +319,7 @@ pub (adapter: Adapter) can_cluster_replicate(): Bool ->
 pub checkpoint(
     checkpoint_id: String,
     sequence: Int,
-    state: std.vm.DistributedState.Snapshot
+    state: std.vm.DistributedState.Snapshot,
 ): Snapshot ->
     native.
 

@@ -189,4 +189,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "package_cli_workflow_test.rs"]
+#[cfg(test)]
 mod package_cli_workflow_test;

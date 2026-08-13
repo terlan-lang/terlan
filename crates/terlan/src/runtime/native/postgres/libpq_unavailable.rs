@@ -3,6 +3,7 @@
 //! The VM process must not load or call `libpq` directly. Database access from
 //! this process belongs behind the asynchronous capability-worker protocol.
 
+#[cfg(test)]
 use super::PostgresError;
 
 /// Placeholder that prevents command code from silently creating an in-process
@@ -11,6 +12,7 @@ use super::PostgresError;
 pub(crate) struct DriverReadinessPoller;
 
 impl DriverReadinessPoller {
+    #[cfg(test)]
     pub(crate) fn new() -> Result<Self, PostgresError> {
         Err(PostgresError::new(
             "postgres.capability_worker.required",

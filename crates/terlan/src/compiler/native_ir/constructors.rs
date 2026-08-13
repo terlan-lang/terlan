@@ -5,22 +5,30 @@ use std::sync::Arc;
 
 use crate::runtime::native_image::managed::{
     encode_aggregate_field_operation, encode_aggregate_layout,
-    encode_aggregate_scalar_field_operation, ManagedAggregateDescriptor, ManagedFieldType,
-    SemanticTypeId,
+    encode_aggregate_scalar_field_operation, ManagedAggregateDescriptor, SemanticTypeId,
 };
 use crate::terlan_typeck::{
-    core_type_from_text, CoreConstructorDecl, CoreExpr, CoreRecordExprField, CoreType, CoreTypeDecl,
+    core_type_from_text, CoreConstructorDecl, CoreExpr, CoreRecordExprField, CoreTupleTypeElem,
+    CoreType, CoreTypeDecl,
 };
 
-use super::{native_type, NativeExpr, NativeType};
+use super::{call_composition::rebase_callee_locals, native_type, NativeExpr, NativeType};
+
+mod field_types;
+pub(super) use field_types::managed_field_type;
+use field_types::native_field_type;
 
 /// One fixed constructor admitted to managed NativeIR.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct NativeConstructorLayout {
     /// Native parameter kinds in source order.
     pub(super) parameters: Vec<NativeType>,
+    /// Checked source types retained for representation-aware field lowering.
+    pub(super) parameter_core_types: Vec<Option<CoreType>>,
     /// Exact managed result kind shared by every variant in the union.
     pub(super) result: NativeType,
+    /// Checked semantic result retained without reparsing runtime descriptors.
+    pub(super) result_core_type: Option<CoreType>,
     /// Canonical runtime descriptor for this active variant.
     pub(super) descriptor: Arc<ManagedAggregateDescriptor>,
     /// Bounded immutable descriptor bytes passed through the allocation ABI.
@@ -29,6 +37,24 @@ pub(super) struct NativeConstructorLayout {
 
 /// Constructor identities resolved for one application module.
 pub(super) type NativeConstructorLayouts = HashMap<(String, usize), NativeConstructorLayout>;
+
+/// Recovers the checked semantic type carried by a managed native value.
+///
+/// Continuation lowering retains the compact native representation for local
+/// variables. Collection literals assembled from those variables still need
+/// the original semantic element type so their List schema remains identical
+/// to the checked program rather than becoming an opaque managed collection.
+pub(super) fn result_core_type_for_native(
+    result: NativeType,
+    layouts: &NativeConstructorLayouts,
+) -> Option<CoreType> {
+    let mut matches = layouts
+        .values()
+        .filter(|layout| layout.result == result)
+        .filter_map(|layout| layout.result_core_type.clone());
+    let first = matches.next()?;
+    matches.all(|candidate| candidate == first).then_some(first)
+}
 
 /// Builds deterministic fixed-constructor layouts visible from one module.
 pub(super) fn native_constructor_layouts(
@@ -48,7 +74,16 @@ pub(super) fn native_constructor_layouts(
             if !result.is_managed_reference() {
                 continue;
             }
-            let canonical = return_core.contract_text();
+            // Transparent records are nominal managed values even though
+            // their field shape is visible. Their ordinary record literal
+            // layout and imported function signatures use the qualified
+            // record name, so an explicit `pub constructor` must use that
+            // same semantic identity instead of hashing `Struct(name;...)`.
+            let is_record = matches!(return_core, CoreType::Struct { .. });
+            let canonical = match return_core {
+                CoreType::Struct { name, .. } => name.clone(),
+                _ => return_core.contract_text(),
+            };
             let group = ((*module).to_owned(), canonical.clone());
             let parameters = declaration
                 .params
@@ -67,10 +102,11 @@ pub(super) fn native_constructor_layouts(
                 canonical,
                 result,
                 parameters,
+                is_record,
             ));
         }
     }
-    variants.retain(|(module, _, canonical, _, _)| {
+    variants.retain(|(module, _, canonical, _, _, _)| {
         !blocked_groups.contains(&(module.clone(), canonical.clone()))
     });
     variants.sort_by(|left, right| {
@@ -82,7 +118,7 @@ pub(super) fn native_constructor_layouts(
     });
 
     let mut group_sizes = HashMap::<(String, String), u32>::new();
-    for (module, _, canonical, _, _) in &variants {
+    for (module, _, canonical, _, _, _) in &variants {
         let count = group_sizes
             .entry((module.clone(), canonical.clone()))
             .or_default();
@@ -93,7 +129,7 @@ pub(super) fn native_constructor_layouts(
     }
     let mut discriminants = HashMap::<(String, String), u32>::new();
     let mut layouts = HashMap::new();
-    for (module, declaration, canonical, result, parameters) in variants {
+    for (module, declaration, canonical, result, parameters, is_record) in variants {
         let group = (module.clone(), canonical.clone());
         let discriminant = discriminants.entry(group.clone()).or_default();
         let field_types = parameters
@@ -101,19 +137,27 @@ pub(super) fn native_constructor_layouts(
             .copied()
             .map(managed_field_type)
             .collect::<Result<Vec<_>, _>>()?;
+        let fields = declaration
+            .params
+            .iter()
+            .map(|parameter| parameter.name.clone())
+            .zip(field_types)
+            .collect::<Vec<_>>();
         let descriptor = Arc::new(
-            ManagedAggregateDescriptor::constructor(
-                &canonical,
-                &declaration.name,
-                *discriminant,
-                group_sizes[&group],
-                declaration
-                    .params
-                    .iter()
-                    .map(|parameter| Some(parameter.name.clone()))
-                    .zip(field_types)
-                    .collect(),
-            )
+            if is_record {
+                ManagedAggregateDescriptor::record(&canonical, fields)
+            } else {
+                ManagedAggregateDescriptor::constructor(
+                    &canonical,
+                    &declaration.name,
+                    *discriminant,
+                    group_sizes[&group],
+                    fields
+                        .into_iter()
+                        .map(|(name, ty)| (Some(name), ty))
+                        .collect(),
+                )
+            }
             .map_err(|error| format!("error[native_ir.constructor_layout]: {error}"))?,
         );
         *discriminant += 1;
@@ -124,8 +168,19 @@ pub(super) fn native_constructor_layouts(
                 .map_err(|error| format!("error[native_ir.constructor_abi]: {error}"))?,
         );
         let layout = NativeConstructorLayout {
+            parameter_core_types: declaration
+                .params
+                .iter()
+                .map(|parameter| {
+                    parameter
+                        .core_ty
+                        .clone()
+                        .or_else(|| core_type_from_text(&parameter.ty))
+                })
+                .collect(),
             parameters,
             result,
+            result_core_type: declaration.core_return_type.clone(),
             descriptor,
             encoded_layout,
         };
@@ -181,11 +236,13 @@ pub(super) fn install_struct_layouts(
                     .map_err(|error| format!("error[native_ir.struct_layout_abi]: {error}"))?,
             );
             let layout = NativeConstructorLayout {
+                parameter_core_types: fields.iter().map(|field| Some(field.ty.clone())).collect(),
                 parameters,
                 result: NativeType::ManagedRef(
                     SemanticTypeId::from_canonical(name)
                         .map_err(|error| format!("error[native_ir.struct_layout]: {error}"))?,
                 ),
+                result_core_type: declaration.core_body.clone(),
                 descriptor,
                 encoded_layout,
             };
@@ -206,7 +263,7 @@ pub(super) fn install_struct_layouts(
 pub(super) fn lower_constructor_call(
     expr: &CoreExpr,
     layouts: &NativeConstructorLayouts,
-    lower_field: impl Fn(&CoreExpr) -> Result<(NativeExpr, NativeType), String>,
+    lower_field: impl Fn(&CoreExpr, Option<&CoreType>) -> Result<(NativeExpr, NativeType), String>,
 ) -> Result<Option<(NativeExpr, NativeType)>, String> {
     let CoreExpr::ConstructorCall {
         constructor,
@@ -228,9 +285,13 @@ pub(super) fn lower_constructor_call(
     let fields = args
         .iter()
         .zip(&layout.parameters)
+        .zip(&layout.parameter_core_types)
         .enumerate()
-        .map(|(index, (argument, expected))| {
-            let (field, actual) = lower_field(argument)?;
+        .map(|(index, ((argument, expected), expected_core))| {
+            if let Some(field) = lower_zero_field_managed_variant(argument, *expected, layouts)? {
+                return Ok(field);
+            }
+            let (field, actual) = lower_field(argument, expected_core.as_ref())?;
             if actual != *expected {
                 return Err(format!(
                     "error[native_ir.constructor_field]: constructor `{identity}` field {index} requires {expected:?}, found {actual:?}"
@@ -247,6 +308,47 @@ pub(super) fn lower_constructor_call(
         },
         layout.result,
     )))
+}
+
+/// Reifies an atom-form zero-field variant when a containing aggregate field
+/// requires the managed union representation.
+pub(super) fn lower_zero_field_managed_variant(
+    argument: &CoreExpr,
+    expected: NativeType,
+    layouts: &NativeConstructorLayouts,
+) -> Result<Option<NativeExpr>, String> {
+    let NativeType::ManagedRef(_) = expected else {
+        return Ok(None);
+    };
+    let identity = match argument {
+        CoreExpr::Atom(identity) | CoreExpr::Var(identity) => identity,
+        CoreExpr::ConstructorCall {
+            constructor, args, ..
+        } if args.is_empty() => constructor,
+        _ => return Ok(None),
+    };
+    let identity = identity.rsplit('.').next().unwrap_or(identity);
+    let mut candidates = layouts.values().filter(|layout| {
+        layout.result == expected
+            && layout.parameters.is_empty()
+            && layout
+                .descriptor
+                .variant_name()
+                .is_some_and(|variant| variant.eq_ignore_ascii_case(identity))
+    });
+    let Some(candidate) = candidates.next() else {
+        return Ok(None);
+    };
+    if candidates.any(|other| other.encoded_layout != candidate.encoded_layout) {
+        return Err(format!(
+            "error[native_ir.constructor_variant]: atom `{identity}` has ambiguous managed layouts"
+        ));
+    }
+    Ok(Some(NativeExpr::Construct {
+        descriptor: candidate.descriptor.clone(),
+        encoded_layout: candidate.encoded_layout.clone(),
+        fields: Vec::new(),
+    }))
 }
 
 /// Lowers a structural Option/Result constructor using its checked target type.
@@ -312,6 +414,70 @@ pub(super) fn lower_structural_constructor_call(
     }))
 }
 
+/// Lowers a generic named record using the concrete checked cast target.
+///
+/// Generic struct declarations retain type parameters in the application-wide
+/// layout template. At a monomorphized construction site the cast target owns
+/// the concrete semantic identity, while the already checked field values own
+/// the concrete physical kinds. Combining those two facts produces one exact
+/// managed layout without weakening runtime type validation.
+pub(super) fn lower_structural_record_construct(
+    expr: &CoreExpr,
+    target: &CoreType,
+    layouts: &NativeConstructorLayouts,
+    lower_field: impl Fn(&CoreExpr) -> Result<(NativeExpr, NativeType), String>,
+) -> Result<Option<NativeExpr>, String> {
+    let CoreExpr::RecordConstruct { name, fields } = expr else {
+        return Ok(None);
+    };
+    let target_name = match target {
+        CoreType::Apply { constructor, .. } | CoreType::Named(constructor) => constructor,
+        CoreType::Struct { name, .. } => name,
+        _ => return Ok(None),
+    };
+    if target_name.rsplit('.').next() != name.rsplit('.').next() {
+        return Ok(None);
+    }
+    let template = record_layout(name, fields.len(), layouts)?;
+    let mut source = HashMap::new();
+    for field in fields {
+        if source.insert(field.key.as_str(), &field.value).is_some() {
+            return Err(format!(
+                "error[native_ir.record_field_duplicate]: record `{name}` repeats field `{}`",
+                field.key
+            ));
+        }
+    }
+    let mut lowered = Vec::with_capacity(fields.len());
+    let mut descriptor_fields = Vec::with_capacity(fields.len());
+    for expected in template.descriptor.fields() {
+        let field_name = expected.name().ok_or_else(|| {
+            format!(
+                "error[native_ir.structural_record_shape]: record `{name}` has an unnamed field"
+            )
+        })?;
+        let value = source.get(field_name).ok_or_else(|| {
+            format!("error[native_ir.structural_record_field]: record `{name}` is missing field `{field_name}`")
+        })?;
+        let (value, ty) = lower_field(value)?;
+        descriptor_fields.push((field_name.to_string(), managed_field_type(ty)?));
+        lowered.push(value);
+    }
+    let descriptor = Arc::new(
+        ManagedAggregateDescriptor::record(&target.contract_text(), descriptor_fields)
+            .map_err(|error| format!("error[native_ir.structural_record_layout]: {error}"))?,
+    );
+    let encoded_layout = Arc::<[u8]>::from(
+        encode_aggregate_layout(&descriptor)
+            .map_err(|error| format!("error[native_ir.structural_record_abi]: {error}"))?,
+    );
+    Ok(Some(NativeExpr::Construct {
+        descriptor,
+        encoded_layout,
+        fields: lowered,
+    }))
+}
+
 type StructuralFields = Vec<(Option<String>, CoreType)>;
 
 fn structural_constructor_fields(
@@ -338,6 +504,13 @@ fn structural_constructor_fields(
             }
         }
         CoreType::Union(variants) => variants.iter().enumerate().find_map(|(index, variant)| {
+            if name == "None" && matches!(variant, CoreType::AtomLiteral(atom) if atom == "none") {
+                return Some((
+                    u32::try_from(index).ok()?,
+                    u32::try_from(variants.len()).ok()?,
+                    Vec::new(),
+                ));
+            }
             let CoreType::Tuple(elements) = variant else {
                 return None;
             };
@@ -367,8 +540,40 @@ fn structural_constructor_fields(
                     .collect(),
             ))
         }),
+        CoreType::Tuple(elements) => {
+            let CoreTupleTypeElem::Type(CoreType::AtomLiteral(tag)) = elements.first()? else {
+                return None;
+            };
+            if constructor_tag(name) != *tag {
+                return None;
+            }
+            let fields = elements
+                .iter()
+                .skip(1)
+                .map(|element| match element {
+                    CoreTupleTypeElem::Type(ty) => (None, ty.clone()),
+                    CoreTupleTypeElem::Field { name, ty } => (Some(name.clone()), ty.clone()),
+                })
+                .collect();
+            Some((0, 1, fields))
+        }
         _ => None,
     }
+}
+
+fn constructor_tag(name: &str) -> String {
+    let mut tag = String::new();
+    for (index, character) in name.chars().enumerate() {
+        if character.is_uppercase() {
+            if index != 0 {
+                tag.push('_');
+            }
+            tag.extend(character.to_lowercase());
+        } else {
+            tag.push(character);
+        }
+    }
+    tag
 }
 
 /// Returns the exact result kind for one resolved constructor call.
@@ -404,8 +609,10 @@ pub(super) fn constructor_result_core_type(
         return None;
     };
     let identity = constructor_identity.as_deref().unwrap_or(constructor);
-    let layout = layouts.get(&(identity.to_owned(), args.len()))?;
-    core_type_from_text(layout.descriptor.canonical_type())
+    layouts
+        .get(&(identity.to_owned(), args.len()))?
+        .result_core_type
+        .clone()
 }
 
 /// Resolves and lowers one fixed named record construction.
@@ -428,7 +635,9 @@ pub(super) fn lower_record_construct(
                 field.key
             ));
         }
-        lowered.push((field, lower_field(&field.value)?));
+        let (value, ty) = lower_field(&field.value)?;
+        let value = rebase_callee_locals(&value, local_base, lowered.len());
+        lowered.push((field, (value, ty)));
     }
     let ordered = ordered_record_fields(name, &layout.descriptor, fields, &lowered, local_base)?;
     let construct = NativeExpr::Construct {
@@ -494,7 +703,9 @@ pub(super) fn lower_record_update(
                 field.key
             ));
         }
-        lowered.push((field, lower_value(&field.value)?));
+        let (value, ty) = lower_value(&field.value)?;
+        let value = rebase_callee_locals(&value, local_base, lowered.len().saturating_add(1));
+        lowered.push((field, (value, ty)));
     }
     let NativeType::ManagedRef(semantic) = base_type else {
         return Err(format!(
@@ -717,46 +928,4 @@ pub(super) fn managed_field_projection(
     }
     .map_err(|error| format!("error[native_ir.field_operation]: {error}"))?;
     Ok((Arc::from(encoded), field_type))
-}
-
-/// Resolves one managed physical field category into its NativeIR word kind.
-fn native_field_type(field: ManagedFieldType) -> Result<NativeType, String> {
-    Ok(match field {
-        ManagedFieldType::Unit => NativeType::Unit,
-        ManagedFieldType::Bool => NativeType::Bool,
-        ManagedFieldType::Int => NativeType::Int,
-        ManagedFieldType::Float => NativeType::Float,
-        ManagedFieldType::Atom => NativeType::Atom,
-        ManagedFieldType::Reference(identity) if identity == semantic("std.core.String")? => {
-            NativeType::StringRef
-        }
-        ManagedFieldType::Reference(identity) if identity == semantic("std.binary.Bytes")? => {
-            NativeType::BytesRef
-        }
-        ManagedFieldType::Reference(identity) if identity == semantic("std.binary.Binary")? => {
-            NativeType::BinaryRef
-        }
-        ManagedFieldType::Reference(identity) => NativeType::ManagedRef(identity),
-    })
-}
-
-/// Converts one closed NativeIR value kind into the shared managed field kind.
-pub(super) fn managed_field_type(native: NativeType) -> Result<ManagedFieldType, String> {
-    Ok(match native {
-        NativeType::Unit => ManagedFieldType::Unit,
-        NativeType::Int => ManagedFieldType::Int,
-        NativeType::Float => ManagedFieldType::Float,
-        NativeType::Bool => ManagedFieldType::Bool,
-        NativeType::Atom => ManagedFieldType::Atom,
-        NativeType::StringRef => ManagedFieldType::Reference(semantic("std.core.String")?),
-        NativeType::BytesRef => ManagedFieldType::Reference(semantic("std.binary.Bytes")?),
-        NativeType::BinaryRef => ManagedFieldType::Reference(semantic("std.binary.Binary")?),
-        NativeType::ManagedRef(identity) => ManagedFieldType::Reference(identity),
-    })
-}
-
-/// Builds one infallible built-in semantic identity through the checked API.
-fn semantic(canonical: &str) -> Result<SemanticTypeId, String> {
-    SemanticTypeId::from_canonical(canonical)
-        .map_err(|error| format!("error[native_ir.constructor_type]: {error}"))
 }

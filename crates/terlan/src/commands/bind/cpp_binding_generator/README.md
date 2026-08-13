@@ -20,6 +20,13 @@ independently, passes an ordinary CXX `&T`, and releases every borrow when the
 call returns. Mutable receivers with secondary resources are rejected before
 source generation to avoid identity-dependent aliasing.
 
+Generated operation metadata distinguishes copied values, call-scoped borrowed
+views, owned non-null handles, mutable handles, nullable C++ handle results,
+disposal, and transfer. A nullable producer does not publish a null handle to
+Terlan: it must declare a finite package-owned `null_failure` policy, and the
+helper converts the null branch into that stable error before allocating a
+handle token.
+
 The renderer derives dispatch from each module's structured functions. It does
 not embed fixture names, duplicate the runtime request/response structs per
 resource, or recover types from C++ source text. It also assembles ordinary

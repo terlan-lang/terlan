@@ -14,6 +14,18 @@ pub empty_byte_list_roundtrip_is_stable(): Bool ->
     assert_equal(0, bytes.length()).
 
 @test
+pub byte_search_stays_on_compact_buffers(): Bool ->
+    let bytes = from_list([32, 10, 65, 66, 67, 66]);
+    assert_equal(true, bytes.starts_with(from_list([32, 10])));
+    assert_equal(true, bytes.contains(from_list([65, 66, 67])));
+    assert_equal(false, bytes.contains(from_list([67, 65])));
+    assert_equal(2, bytes.first_non_ascii_whitespace()).
+
+@test
+pub all_ascii_whitespace_has_no_content_index(): Bool ->
+    assert_equal(-1, from_list([9, 10, 13, 32]).first_non_ascii_whitespace()).
+
+@test
 pub byte_slice_accepts_start_middle_and_end_boundaries(): Bool ->
     let bytes = from_list([65, 66, 67, 68]);
     assert_equal(from_list([]), bytes.slice(0, 0));

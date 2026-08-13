@@ -10,17 +10,16 @@ mod direct_helpers;
 mod direct_reachability;
 mod oxc_backend;
 mod std_core_string_intrinsics;
+mod tail_recursion;
 pub(crate) mod target_contract;
 mod template_runtime;
 
 pub(crate) use declarations::emit_core_module_to_typescript_declarations;
-pub(crate) use oxc_backend::validate_js_module_with_oxc;
-
-#[cfg(test)]
-pub(crate) use oxc_backend::assert_oxc_accepts_js_artifact;
-
 #[cfg(test)]
 pub(crate) use declarations::{split_top_level_args, typer_type_to_typescript};
+#[cfg(test)]
+pub(crate) use oxc_backend::assert_oxc_accepts_js_artifact;
+pub(crate) use oxc_backend::validate_js_module_with_oxc;
 
 use crate::{
     formal_pipeline::compile_syntax_module_through_phases_with_profile,
@@ -33,8 +32,13 @@ pub(crate) fn emit_core_module_with_template_runtime(
     syntax: &crate::terlan_syntax::SyntaxModuleOutput,
     source_path: &Path,
 ) -> Result<Option<String>, String> {
-    let Some(module_source) = oxc_backend::emit_core_module_with_direct_oxc_ast(core) else {
-        return Ok(None);
+    let module_source = if let Some(source) = tail_recursion::emit_stack_safe_tail_module(core) {
+        oxc_backend::emit_js_with_oxc_codegen(&source)?
+    } else {
+        let Some(source) = oxc_backend::emit_core_module_with_direct_oxc_ast(core) else {
+            return Ok(None);
+        };
+        source
     };
     let runtime_source = format!(
         "{}\n{}",
@@ -193,36 +197,55 @@ pub(crate) fn parse_emit_js_args(args: &[String]) -> Result<EmitJsArgs, String> 
 
 #[cfg(test)]
 #[path = "cast_emit_test.rs"]
+#[cfg(test)]
 mod cast_emit_test;
 
 #[cfg(test)]
 #[path = "core_lowering_test.rs"]
+#[cfg(test)]
 mod core_lowering_test;
 
 #[cfg(test)]
 #[path = "direct_ast_test.rs"]
+#[cfg(test)]
 mod direct_ast_test;
 
 #[cfg(test)]
 #[path = "emit_js_test.rs"]
+#[cfg(test)]
 mod emit_js_test;
 
 #[cfg(test)]
 #[path = "record_template_emit_test.rs"]
+#[cfg(test)]
 mod record_template_emit_test;
 
 #[cfg(test)]
 #[path = "comprehension_guard_result_emit_test.rs"]
+#[cfg(test)]
 mod comprehension_guard_result_emit_test;
 
 #[cfg(test)]
 #[path = "comprehension_pattern_emit_test.rs"]
+#[cfg(test)]
 mod comprehension_pattern_emit_test;
 
 #[cfg(test)]
 #[path = "std_core_string_intrinsic_test.rs"]
+#[cfg(test)]
 mod std_core_string_intrinsic_test;
 
 #[cfg(test)]
 #[path = "target_contract_test.rs"]
+#[cfg(test)]
 mod target_contract_test;
+
+#[cfg(test)]
+#[path = "tail_recursion_test.rs"]
+#[cfg(test)]
+mod tail_recursion_test;
+
+#[cfg(test)]
+#[path = "binding_identity_emit_test.rs"]
+#[cfg(test)]
+mod binding_identity_emit_test;

@@ -48,7 +48,7 @@ impl TargetInferenceInput {
     /// Transformation:
     /// - Copies caller-provided evidence into a self-contained value so target
     ///   inference remains independent of parser and resolver lifetimes.
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn from_typed_evidence(
         imports: &[&str],
         capabilities: &[&str],

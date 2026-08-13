@@ -50,7 +50,7 @@ pub (value: CanvasTransform) set_transform(
     c: JsNumber,
     d: JsNumber,
     e: JsNumber,
-    f: JsNumber
+    f: JsNumber,
 ): Unit ->
     native.
 

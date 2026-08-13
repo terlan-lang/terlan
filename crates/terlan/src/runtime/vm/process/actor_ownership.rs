@@ -1,6 +1,8 @@
-use super::super::actor_directory::{
-    VmActorDirectoryError, VmActorLifecycle, VmActorMutatorToken, VmActorTransitionEvent,
-};
+#[cfg(any(test, feature = "benchmark-tools"))]
+use super::super::actor_directory::VmActorLifecycle;
+#[cfg(all(test, not(feature = "multicore-tsan-harness")))]
+use super::super::actor_directory::VmActorTransitionEvent;
+use super::super::actor_directory::{VmActorDirectoryError, VmActorMutatorToken};
 use super::{VmExitReason, VmProcess, VmProcessId, VmProcessState, VmProcessTable};
 
 const VM_CONTROL_PLANE_OWNER: u64 = (1_u64 << 20) - 1;
@@ -93,13 +95,8 @@ impl VmProcessTable {
             .map_err(actor_directory_error)
     }
 
-    /// Returns actor lifecycle for focused scheduler ownership tests.
-    #[cfg(test)]
-    pub(crate) fn actor_lifecycle(&self, pid: VmProcessId) -> Result<VmActorLifecycle, String> {
-        self.processes.lifecycle(pid).map_err(actor_directory_error)
-    }
-
     /// Acquires exclusive scheduler ownership of one queued actor.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn acquire_actor_mutator(
         &mut self,
         pid: VmProcessId,
@@ -111,6 +108,7 @@ impl VmProcessTable {
     }
 
     /// Executes one operation against actor state protected by a mutator token.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn with_actor_mutator<R>(
         &mut self,
         token: &VmActorMutatorToken,
@@ -152,6 +150,7 @@ impl VmProcessTable {
     }
 
     /// Releases scheduler ownership into a stable actor lifecycle state.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn release_actor_mutator(
         &mut self,
         token: VmActorMutatorToken,
@@ -162,7 +161,8 @@ impl VmProcessTable {
             .map_err(actor_directory_error)
     }
 
-    /// Returns stable actor ownership events for diagnostics and replay.
+    /// Returns stable actor ownership events for focused ownership tests.
+    #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
     pub(crate) fn actor_transition_events(&self) -> Vec<VmActorTransitionEvent> {
         self.processes.transition_events()
     }

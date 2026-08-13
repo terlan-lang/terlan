@@ -460,4 +460,5 @@ fn attribute_kind_name(kind: TemplateAttributeSlotKind) -> &'static str {
 
 #[cfg(test)]
 #[path = "template_runtime_test.rs"]
+#[cfg(test)]
 mod template_runtime_test;

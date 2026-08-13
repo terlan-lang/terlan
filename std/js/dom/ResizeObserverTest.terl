@@ -23,7 +23,7 @@ pub disconnect_typechecks(receiver: ResizeObserver): Unit ->
 pub observe_typechecks(
     receiver: ResizeObserver,
     target_: Element,
-    options: ResizeObserverOptions
+    options: ResizeObserverOptions,
 ): Unit ->
     receiver.observe(target_, options).
 

@@ -6,7 +6,7 @@ uses the installed compiler.
 
 ## Responsibilities
 
-- Register `.terl`, `.terli`, and `.terl.*` template files.
+- Register `.terl`, `.terls`, `.terli`, and `.terl.*` template files.
 - Provide a conservative `terlan-mode` for source editing.
 - Prefer `terlan-ts-mode` when Emacs Tree-sitter support and the shared
   `terlan` grammar are available.

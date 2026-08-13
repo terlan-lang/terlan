@@ -1,21 +1,21 @@
-#![allow(dead_code)]
-
 #[cfg(test)]
 #[path = "io_runtime_boundary_test.rs"]
+#[cfg(test)]
 mod io_runtime_boundary_test;
 
 /// Host-side work an external I/O helper may perform for the VM.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmExternalIoRuntimeRole {
     ByteProducer,
     ByteConsumer,
     NameResolver,
     CryptoHandshake,
-    CertificateIssuer,
 }
 
 /// Scheduling behavior an external I/O helper is allowed to have.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmExternalIoSchedulingPolicy {
     /// The helper may block or poll host I/O but must report readiness back to
     /// `VmIoReactorLoop` as typed VM wakeups.
@@ -42,6 +42,7 @@ pub(crate) enum VmExternalIoSchedulingPolicy {
 ///   rejecting any plan that transfers actor scheduling, continuations, or
 ///   readiness replay ownership out of the Terlan VM.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmExternalIoRuntimePlan {
     pub(crate) name: String,
     pub(crate) role: VmExternalIoRuntimeRole,
@@ -51,6 +52,7 @@ pub(crate) struct VmExternalIoRuntimePlan {
     pub(crate) records_support_bundle_replay: bool,
 }
 
+#[cfg(test)]
 impl VmExternalIoRuntimePlan {
     /// Creates a candidate external runtime plan.
     pub(crate) fn new(
@@ -89,11 +91,13 @@ impl VmExternalIoRuntimePlan {
 
 /// Validated external I/O helper boundary.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmExternalIoRuntimeBoundary {
     pub(crate) name: String,
     pub(crate) role: VmExternalIoRuntimeRole,
 }
 
+#[cfg(test)]
 impl VmExternalIoRuntimeBoundary {
     /// Validates that an external I/O helper cannot own VM scheduling.
     pub(crate) fn validate(plan: VmExternalIoRuntimePlan) -> Result<Self, String> {

@@ -3,7 +3,9 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use crate::runtime::native_image::managed::{encode_aggregate_layout, ManagedAggregateDescriptor};
+use crate::runtime::native_image::managed::{
+    encode_aggregate_layout, ManagedAggregateDescriptor, ManagedFieldType,
+};
 use crate::terlan_typeck::{
     CoreExpr, CoreIntrinsicId, CorePrimitiveIntrinsic, CoreTupleTypeElem, CoreType,
 };
@@ -28,6 +30,27 @@ pub(super) fn managed_expression_layouts<'a>(
         inventory_expr(expression, &mut layouts)?;
     }
     Ok(layouts.into_iter().map(Arc::from).collect())
+}
+
+/// Builds the one canonical physical descriptor for `std.core.Memory.Layout`.
+pub(super) fn memory_layout_descriptor(
+) -> Result<(Arc<ManagedAggregateDescriptor>, Arc<[u8]>), String> {
+    let descriptor = Arc::new(
+        ManagedAggregateDescriptor::record(
+            "std.core.Memory.Layout",
+            vec![
+                ("size".to_string(), ManagedFieldType::Int),
+                ("alignment".to_string(), ManagedFieldType::Int),
+                ("storage".to_string(), ManagedFieldType::Atom),
+            ],
+        )
+        .map_err(|error| format!("error[native_ir.memory_layout]: {error}"))?,
+    );
+    let encoded_layout = Arc::from(
+        encode_aggregate_layout(&descriptor)
+            .map_err(|error| format!("error[native_ir.memory_layout]: {error}"))?,
+    );
+    Ok((descriptor, encoded_layout))
 }
 
 fn inventory(ty: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), String> {
@@ -173,7 +196,29 @@ fn inventory(ty: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), Strin
                 inventory(argument, layouts)?;
             }
         }
-        CoreType::Struct { fields, .. } => {
+        CoreType::Struct { name, fields } => {
+            let descriptor = ManagedAggregateDescriptor::record(
+                name,
+                fields
+                    .iter()
+                    .map(|field| {
+                        native_type(Some(&field.ty), &field.ty.contract_text())
+                            .ok_or_else(|| {
+                                format!(
+                                    "error[native_ir.struct_layout_type]: unsupported field `{}`",
+                                    field.ty.contract_text()
+                                )
+                            })
+                            .and_then(managed_field_type)
+                            .map(|ty| (field.name.clone(), ty))
+                    })
+                    .collect::<Result<Vec<_>, _>>()?,
+            )
+            .map_err(|error| format!("error[native_ir.struct_layout]: {error}"))?;
+            layouts.insert(
+                encode_aggregate_layout(&descriptor)
+                    .map_err(|error| format!("error[native_ir.struct_layout_abi]: {error}"))?,
+            );
             for field in fields {
                 inventory(&field.ty, layouts)?;
             }
@@ -213,6 +258,31 @@ fn inventory(ty: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), Strin
                 inventory(parameter, layouts)?;
             }
             inventory(return_type, layouts)?;
+        }
+        CoreType::Named(name)
+            if matches!(
+                name.as_str(),
+                "Error" | "std.core.Error" | "std.core.Error.Error"
+            ) =>
+        {
+            let descriptor = ManagedAggregateDescriptor::record(
+                &ty.contract_text(),
+                vec![
+                    ("code".to_string(), ManagedFieldType::Atom),
+                    (
+                        "message".to_string(),
+                        ManagedFieldType::Reference(
+                            crate::runtime::native_image::managed::managed_string_semantic_id(),
+                        ),
+                    ),
+                ],
+            )
+            .map_err(|error| format!("error[native_ir.portable_error_layout]: {error}"))?;
+            layouts.insert(
+                encode_aggregate_layout(&descriptor).map_err(|error| {
+                    format!("error[native_ir.portable_error_layout_abi]: {error}")
+                })?,
+            );
         }
         CoreType::Int
         | CoreType::Float
@@ -275,6 +345,10 @@ fn inventory_expr(expr: &CoreExpr, layouts: &mut BTreeSet<Vec<u8>>) -> Result<()
     match expr {
         CoreExpr::Intrinsic(call) => {
             inventory(&call.return_type, layouts)?;
+            if matches!(call.id, CoreIntrinsicId::MemoryLayoutOf(_)) {
+                let (_, encoded) = memory_layout_descriptor()?;
+                layouts.insert(encoded.as_ref().to_vec());
+            }
             if matches!(
                 call.id,
                 CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapFromEntries)
@@ -358,7 +432,14 @@ fn inventory_expr(expr: &CoreExpr, layouts: &mut BTreeSet<Vec<u8>>) -> Result<()
             inventory_expr(callee, layouts)?;
             inventory_exprs(args, layouts)
         }
-        CoreExpr::SqlQuery { parameters, .. } => inventory_exprs(parameters, layouts),
+        CoreExpr::SqlQuery {
+            parameters,
+            result_core_type,
+            ..
+        } => {
+            inventory(result_core_type, layouts)?;
+            inventory_exprs(parameters, layouts)
+        }
         CoreExpr::Case { scrutinee, clauses } => {
             inventory_expr(scrutinee, layouts)?;
             inventory_clauses(clauses, layouts)

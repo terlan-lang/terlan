@@ -166,4 +166,5 @@ pub fn timeout_request(state: RequestState, request_id: RequestId) -> Option<Req
 
 #[cfg(test)]
 #[path = "request_test.rs"]
+#[cfg(test)]
 mod request_test;

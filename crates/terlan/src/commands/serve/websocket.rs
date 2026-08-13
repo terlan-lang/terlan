@@ -1,4 +1,7 @@
+#[cfg(test)]
 use std::path::Path;
+#[cfg(test)]
+use std::sync::Arc;
 
 #[cfg(test)]
 use bytes::Bytes;
@@ -6,9 +9,8 @@ use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
 #[cfg(test)]
 use hyper::{Request, Response};
-#[cfg(test)]
-use std::sync::Arc;
 
+#[cfg(test)]
 use super::handler::WebPackageWebSocket;
 #[cfg(test)]
 use super::ServeBody;
@@ -55,7 +57,7 @@ pub(super) fn websocket_hub() -> WebSocketHub {
 /// Transformation:
 /// - Keeps WebSocket route discovery manifest-owned while runtime socket
 ///   dispatch remains blocked until the generic VM handler ABI exists.
-#[allow(dead_code)] // Retained for the legacy request adapter during Hyper promotion.
+#[cfg(test)]
 pub(super) fn manifest_websocket_for_path(
     web_root: &Path,
     request_path: &str,
@@ -181,4 +183,5 @@ pub(super) fn websocket_upgrade_response<B>(request: &Request<B>) -> Response<Se
 
 #[cfg(test)]
 #[path = "websocket_test.rs"]
+#[cfg(test)]
 mod websocket_test;

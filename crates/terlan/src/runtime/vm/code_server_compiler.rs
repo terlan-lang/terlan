@@ -2,9 +2,10 @@
 
 use std::collections::BTreeSet;
 
-use crate::commands::artifacts::fingerprint;
-use crate::validation::native_policy::NativePolicy;
-use crate::validation::target_profile::TargetProfile;
+use crate::support::fingerprint;
+#[cfg(test)]
+use crate::validation::{native_policy::NativePolicy, target_profile::TargetProfile};
+#[cfg(test)]
 use crate::{ColorChoice, DiagnosticFormat};
 
 use crate::runtime::vm::code_server::{
@@ -16,6 +17,7 @@ use crate::runtime::vm::code_server::{
 /// This module-level boundary is used by watcher/REPL source replacement so
 /// compiler ownership remains explicit instead of hiding behind an unrelated
 /// inherent method call.
+#[cfg(test)]
 pub(crate) fn stage_source_replacement(
     source_name: &str,
     source: &str,
@@ -34,6 +36,7 @@ pub(crate) fn stage_compiled_replacement(
 }
 
 /// Publishes one fully staged source replacement as an atomic generation.
+#[cfg(test)]
 pub(crate) fn publish_staged_replacement(
     code_server: &mut VmCodeServer,
     staged: VmStagedModuleArtifact,
@@ -43,6 +46,7 @@ pub(crate) fn publish_staged_replacement(
 
 impl VmCodeServer {
     /// Compiles source into an artifact that remains invisible until publish.
+    #[cfg(test)]
     pub(crate) fn stage_source(
         source_name: &str,
         source: &str,
@@ -52,6 +56,7 @@ impl VmCodeServer {
     }
 
     /// Compiles Terlan source into VM generation metadata.
+    #[cfg(test)]
     pub(crate) fn compile_source_artifact(
         source_name: &str,
         source: &str,
@@ -119,6 +124,7 @@ impl VmCodeServer {
     }
 
     /// Compiles Terlan source and publishes its newest module generation.
+    #[cfg(test)]
     pub(crate) fn publish_source(
         &mut self,
         source_name: &str,

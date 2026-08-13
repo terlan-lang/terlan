@@ -6,7 +6,7 @@ use sha2::{Digest, Sha256};
 
 use crate::terlan_quality::lean_proof_track::lean_proof_gap::{
     current_utc_date, parse_gap_manifest, read_gap_policy, validate_gap_lifecycle,
-    write_gap_metrics, LeanProofGap, GAP_PATH,
+    validate_gap_toml_mirror, write_gap_metrics, LeanProofGap, GAP_PATH,
 };
 use crate::terlan_quality::QualityResult;
 
@@ -30,7 +30,14 @@ pub(super) const ARTIFACT_PATH: &str = "proofs/lean/ci/lean-proof-artifacts.tsv"
 const INVENTORY_HEADER: &str = "path\tstatus\tsource_contract\tterlan_version\tgate\tnotes";
 const ARTIFACT_HEADER: &str =
     "path\tstatus\ttheorem_scope\ttargeted_manifests\texpected_exit\tstderr_class\tproof_digest\treplay_metadata\tremediation_plan";
-const VALID_THEOREM_SCOPES: &[&str] = &["CoreIR", "NativeBoundary", "lowering", "rejection"];
+const VALID_THEOREM_SCOPES: &[&str] = &[
+    "CoreIR",
+    "NativeBoundary",
+    "lowering",
+    "parser",
+    "rejection",
+];
+const REQUIRED_CURRENT_THEOREM_SCOPES: &[&str] = &["CoreIR", "lowering", "rejection"];
 
 const VALID_INVENTORY_STATUSES: &[&str] = &[
     "current",
@@ -181,6 +188,7 @@ pub fn run_lean_proof_track(root: &Path) -> QualityResult<LeanProofTrackSummary>
     diagnostics.extend(validate_inventory(&inventory_rows, &lean_files));
     diagnostics.extend(validate_gaps(&gap_rows, &make_check_targets));
     diagnostics.extend(validate_gap_lifecycle(&gap_rows, &gap_policy, today));
+    diagnostics.extend(validate_gap_toml_mirror(root, &gap_rows, today)?);
     diagnostics.extend(validate_gap_manifest_paths(root, &gap_rows));
     diagnostics.extend(validate_lean_files(root, &lean_files));
     diagnostics.extend(validate_artifacts(root, &artifact_rows, &inventory_rows));
@@ -524,6 +532,7 @@ fn validate_artifacts(
         .map(|row| row.path.as_str())
         .collect::<BTreeSet<_>>();
     let mut artifact_paths = BTreeSet::new();
+    let mut current_scopes = BTreeSet::new();
     for artifact in artifacts {
         if !artifact_paths.insert(artifact.path.as_str()) {
             diagnostics.push(format!(
@@ -556,6 +565,9 @@ fn validate_artifacts(
                 "`{ARTIFACT_PATH}` artifact `{}` has invalid theorem scope `{}`",
                 artifact.path, artifact.theorem_scope
             ));
+        }
+        if artifact.status == "current" {
+            current_scopes.insert(artifact.theorem_scope.as_str());
         }
         if artifact.targeted_manifests.is_empty() {
             diagnostics.push(format!(
@@ -617,6 +629,13 @@ fn validate_artifacts(
         diagnostics.push(format!(
             "`{ARTIFACT_PATH}` must contain at least one executable proof artifact"
         ));
+    }
+    for required_scope in REQUIRED_CURRENT_THEOREM_SCOPES {
+        if !current_scopes.contains(required_scope) {
+            diagnostics.push(format!(
+                "`{ARTIFACT_PATH}` requires a current executable `{required_scope}` proof family"
+            ));
+        }
     }
     diagnostics
 }
@@ -718,4 +737,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "lean_proof_track_test.rs"]
+#[cfg(test)]
 mod lean_proof_track_test;

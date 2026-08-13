@@ -5,8 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use object::{Object, ObjectSection};
 
 #[path = "support/direct_aot.rs"]
-#[allow(dead_code)]
-mod support;
+pub mod support;
 use support::*;
 
 #[test]
@@ -309,7 +308,8 @@ fn native_aot_wraps_bounded_linear_multi_stage_callees() {
         descriptor_digest,
         bool_export,
         &[1],
-        SuspendedAction::Resume {
+        SuspendedAction {
+            operation: 9,
             request_id: 2,
             continuation_id_xor: 0,
             values: vec![1],
@@ -321,7 +321,8 @@ fn native_aot_wraps_bounded_linear_multi_stage_callees() {
         descriptor_digest,
         bool_export,
         &[1],
-        SuspendedAction::Resume {
+        SuspendedAction {
+            operation: 9,
             request_id: 1,
             continuation_id_xor: 0,
             values: vec![2],
@@ -331,8 +332,6 @@ fn native_aot_wraps_bounded_linear_multi_stage_callees() {
     assert_multi_stage_duplicate_resume_rejected(&image_path, descriptor_digest, bool_export, &[1]);
     fs::remove_dir_all(root).expect("remove multi-stage fixture root");
 }
-
-#[allow(clippy::too_many_arguments)]
 fn assert_two_stage_result(
     input: &mut impl std::io::Write,
     output: &mut impl std::io::Read,

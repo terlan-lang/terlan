@@ -1,8 +1,8 @@
 module=std.vm.PersistentActor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=3460099666307406404
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=14429335463160270857
 interface_hash=17266512906894397094
 interface_doc_hash=6856637730504717612
 deps=0

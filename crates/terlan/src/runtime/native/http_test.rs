@@ -62,11 +62,13 @@ fn request_from_parts_with_metadata_preserves_lookup_pairs() {
         "GET",
         "/users/42",
         "",
-        vec![("id".to_string(), "42".to_string())],
-        "tab=profile",
-        vec![("tab".to_string(), "profile".to_string())],
-        vec![("Accept".to_string(), "application/json".to_string())],
-        vec![("theme".to_string(), "dark".to_string())],
+        crate::terlan_native::http::RequestMetadata {
+            params: vec![("id".to_string(), "42".to_string())],
+            query_string: ("tab=profile").into(),
+            query: vec![("tab".to_string(), "profile".to_string())],
+            headers: vec![("Accept".to_string(), "application/json".to_string())],
+            cookies: vec![("theme".to_string(), "dark".to_string())],
+        },
     );
 
     assert_eq!(method(&request), "GET");
@@ -105,11 +107,13 @@ fn request_metadata_names_that_look_like_atom_builders_remain_strings() {
         "GET",
         "/debug",
         "",
-        vec![("binary_to_atom".to_string(), "route".to_string())],
-        "list_to_atom=query",
-        vec![("list_to_atom".to_string(), "query".to_string())],
-        vec![("Binary-To-Atom".to_string(), "header".to_string())],
-        vec![("list_to_atom".to_string(), "cookie".to_string())],
+        crate::terlan_native::http::RequestMetadata {
+            params: vec![("binary_to_atom".to_string(), "route".to_string())],
+            query_string: ("list_to_atom=query").into(),
+            query: vec![("list_to_atom".to_string(), "query".to_string())],
+            headers: vec![("Binary-To-Atom".to_string(), "header".to_string())],
+            cookies: vec![("list_to_atom".to_string(), "cookie".to_string())],
+        },
     );
 
     assert_eq!(param(&request, "binary_to_atom"), Some("route".to_string()));
@@ -798,11 +802,13 @@ fn request_converts_to_rust_http_request() {
         "GET",
         "/api/users",
         "",
-        Vec::new(),
-        "active=true",
-        vec![("active".to_string(), "true".to_string())],
-        Vec::new(),
-        Vec::new(),
+        crate::terlan_native::http::RequestMetadata {
+            params: Vec::new(),
+            query_string: ("active=true").into(),
+            query: vec![("active".to_string(), "true".to_string())],
+            headers: Vec::new(),
+            cookies: Vec::new(),
+        },
     );
     let converted = request
         .to_http_request()

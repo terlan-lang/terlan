@@ -36,6 +36,6 @@ pub convert_to_specified_units_typechecks(receiver: SVGAngle, unit_type: JsNumbe
 pub new_value_specified_units_typechecks(
     receiver: SVGAngle,
     unit_type: JsNumber,
-    value_in_specified_units: JsNumber
+    value_in_specified_units: JsNumber,
 ): Unit ->
     receiver.new_value_specified_units(unit_type, value_in_specified_units).

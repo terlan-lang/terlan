@@ -59,6 +59,6 @@ pub close_typechecks(receiver: VideoFrame): std.core.Unit ->
 pub copy_to_typechecks(
     receiver: VideoFrame,
     destination: AllowSharedBufferSource,
-    options: VideoFrameCopyToOptions
+    options: VideoFrameCopyToOptions,
 ): std.js.Promise[std.js.Array[PlaneLayout]] ->
     receiver.copy_to(destination, options).

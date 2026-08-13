@@ -27,6 +27,6 @@ pub opaque type Worklet.
  */
 pub (value: Worklet) add_module(
     module_url: URL | std.js.String.JsString,
-    options: WorkletOptions
+    options: WorkletOptions,
 ): std.js.Promise[std.core.Unit] ->
     native.

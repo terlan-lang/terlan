@@ -88,6 +88,15 @@ pub fn is_match(regex: &Regex, text: &str) -> bool {
     regex.as_regex().is_match(text)
 }
 
+/// Returns one-based source line numbers whose text matches the regex.
+pub fn matching_line_numbers(regex: &Regex, text: &str) -> Vec<i64> {
+    text.lines()
+        .enumerate()
+        .filter(|(_index, line)| regex.as_regex().is_match(line))
+        .map(|(index, _line)| i64::try_from(index.saturating_add(1)).unwrap_or(i64::MAX))
+        .collect()
+}
+
 /// Returns the first matched text, when present.
 pub fn find(regex: &Regex, text: &str) -> Option<String> {
     regex
@@ -144,4 +153,5 @@ pub fn escape(text: &str) -> String {
 
 #[cfg(test)]
 #[path = "regex_test.rs"]
+#[cfg(test)]
 mod regex_test;

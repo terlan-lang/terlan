@@ -1,0 +1,56 @@
+{
+  "schema": "terlan.lean-proof-replay.v1",
+  "family": "parser-shape",
+  "theorem_names": [
+    "Terlan.ParserShape.canonicalGrammarIdentityIsStable",
+    "Terlan.ParserShape.canonicalModuleClassificationAccepted",
+    "Terlan.ParserShape.plainAssignmentClassificationRejected",
+    "Terlan.ParserShape.multiplicationBindsAboveAddition",
+    "Terlan.ParserShape.generatedFoldIsLeftAssociative",
+    "Terlan.ParserShape.tupleOutputWellFormed",
+    "Terlan.ParserShape.recordOutputWellFormed",
+    "Terlan.ParserShape.listOutputWellFormed",
+    "Terlan.ParserShape.mapOutputWellFormed",
+    "Terlan.ParserShape.bitstringOutputWellFormed",
+    "Terlan.ParserShape.implContractOutputWellFormed",
+    "Terlan.ParserShape.capabilityDenyOutputWellFormed",
+    "Terlan.ParserShape.loweringPreservesShapeKind",
+    "Terlan.ParserShape.loweringPreservesShapeArity",
+    "Terlan.ParserShape.loweringPreservesShapeFields",
+    "Terlan.ParserShape.checkedCapabilityDenyListHasNoDuplicates",
+    "Terlan.ParserShape.acceptedBoundaryCanEnterCheckedLowering"
+  ],
+  "manifest_fingerprints": {
+    "crates/terlan/src/compiler/syntax/syntax_output.rs": "sha256:5651f5c025b4d0e0830d5d144f1c8f354ff425dcd339d9b66bddc58daeca88b1",
+    "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop": "sha256:d58f8b067419b4378a435f7c8e0a4f98a6fade708097388008caf94e5e47f81f",
+    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:f15e5e3b8d546024312cb9e097495f268c179e272e341e26c04fe2811fd53405"
+  },
+  "dependency_files": [
+    "proofs/lean/lake-manifest.json",
+    "proofs/lean/lakefile.lean",
+    "proofs/lean/lean-toolchain"
+  ],
+  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+  "source_digest": "sha256:b1af86ef1a14129efe0e7497472d71ee23fb68fb356539de82cfb2c4335e2789",
+  "execution_command": [
+    "lake",
+    "env",
+    "lean",
+    "parser_shape/ParserShape.lean"
+  ],
+  "working_directory": "proofs/lean",
+  "deterministic_timestamp_strategy": "none-content-addressed",
+  "output_signature": {
+    "stdout_class": "empty",
+    "stderr_class": "empty",
+    "exit_class": "success"
+  },
+  "toolchain": {
+    "lean_version": "4.31.0",
+    "elan_channel": "leanprover/lean4:v4.31.0",
+    "lake_flags": [
+      "env",
+      "lean"
+    ]
+  }
+}

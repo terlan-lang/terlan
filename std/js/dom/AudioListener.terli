@@ -97,7 +97,7 @@ pub (value: AudioListener) set_orientation(
     z: JsNumber,
     x_up: JsNumber,
     y_up: JsNumber,
-    z_up: JsNumber
+    z_up: JsNumber,
 ): Unit.
 
 /**

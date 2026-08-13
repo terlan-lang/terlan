@@ -4,6 +4,13 @@ use crate::terlan_syntax::{span::Span, SyntaxImportItem};
 
 use crate::terlan_hir::{Diagnostic, ImportedItem, ModuleInterface, TypeVisibility};
 
+pub(super) struct ImportResolutionTables<'a> {
+    pub(super) types: &'a mut HashMap<String, ImportedItem>,
+    pub(super) traits: &'a mut HashMap<String, ImportedItem>,
+    pub(super) constants: &'a mut HashMap<String, ImportedItem>,
+    pub(super) diagnostics: &'a mut Vec<Diagnostic>,
+}
+
 /// Resolves one syntax-output import declaration.
 ///
 /// Inputs: module name, selected items, type-import flag, visible interfaces,
@@ -15,26 +22,14 @@ pub(crate) fn resolve_syntax_import(
     items: &[SyntaxImportItem],
     is_type: bool,
     interfaces: &HashMap<String, ModuleInterface>,
-    imported_types: &mut HashMap<String, ImportedItem>,
-    imported_traits: &mut HashMap<String, ImportedItem>,
-    imported_constants: &mut HashMap<String, ImportedItem>,
-    diagnostics: &mut Vec<Diagnostic>,
+    tables: &mut ImportResolutionTables<'_>,
 ) {
     let iface = interfaces.get(module_name);
     for item in items {
         if item.name == "*" {
             match iface {
-                Some(iface) => resolve_wildcard_import(
-                    module_name,
-                    item,
-                    is_type,
-                    iface,
-                    imported_types,
-                    imported_traits,
-                    imported_constants,
-                    diagnostics,
-                ),
-                None if is_type => diagnostics.push(Diagnostic {
+                Some(iface) => resolve_wildcard_import(module_name, item, is_type, iface, tables),
+                None if is_type => tables.diagnostics.push(Diagnostic {
                     span: item.span.into(),
                     message: format!("cannot find interface for module {module_name}"),
                 }),
@@ -44,21 +39,21 @@ pub(crate) fn resolve_syntax_import(
         }
 
         if let Some(default_import) =
-            resolve_default_type_import(module_name, item, interfaces, imported_types)
+            resolve_default_type_import(module_name, item, interfaces, tables.types)
         {
             if let Err(diagnostic) =
-                insert_imported_type(default_import, item.span.into(), imported_types)
+                insert_imported_type(default_import, item.span.into(), tables.types)
             {
-                diagnostics.push(diagnostic);
+                tables.diagnostics.push(diagnostic);
             }
             continue;
         }
 
         if let Some(default_import) = resolve_default_trait_import(module_name, item, interfaces) {
             if let Err(diagnostic) =
-                insert_imported_trait(default_import, item.span.into(), imported_traits)
+                insert_imported_trait(default_import, item.span.into(), tables.traits)
             {
-                diagnostics.push(diagnostic);
+                tables.diagnostics.push(diagnostic);
             }
             continue;
         }
@@ -77,7 +72,7 @@ pub(crate) fn resolve_syntax_import(
                 let has_public_constant = iface.constants.contains_key(&item.name);
 
                 if iface.private_types.contains(&item.name) {
-                    diagnostics.push(Diagnostic {
+                    tables.diagnostics.push(Diagnostic {
                         span: item.span.into(),
                         message: format!("type {module_name}.{} is private", item.name),
                     });
@@ -86,7 +81,7 @@ pub(crate) fn resolve_syntax_import(
 
                 if is_type {
                     if !has_public_type && !has_public_trait {
-                        diagnostics.push(Diagnostic {
+                        tables.diagnostics.push(Diagnostic {
                             span: item.span.into(),
                             message: format!(
                                 "cannot find type {module_name}.{} in interface",
@@ -105,7 +100,7 @@ pub(crate) fn resolve_syntax_import(
 
                 if !is_type && has_public_constant {
                     if !is_screaming_snake_case(&local_name) {
-                        diagnostics.push(Diagnostic {
+                        tables.diagnostics.push(Diagnostic {
                             span: item.span.into(),
                             message: format!(
                                 "imported constant alias `{local_name}` must use SCREAMING_SNAKE_CASE"
@@ -120,11 +115,12 @@ pub(crate) fn resolve_syntax_import(
                         visibility: TypeVisibility::Public,
                         span: item.span.into(),
                     };
-                    if imported_constants
+                    if tables
+                        .constants
                         .insert(local_name.clone(), imported)
                         .is_some()
                     {
-                        diagnostics.push(Diagnostic {
+                        tables.diagnostics.push(Diagnostic {
                             span: item.span.into(),
                             message: format!("duplicate imported constant `{local_name}`"),
                         });
@@ -140,9 +136,9 @@ pub(crate) fn resolve_syntax_import(
                         span: item.span.into(),
                     };
                     if let Err(diagnostic) =
-                        insert_imported_type(imported, item.span.into(), imported_types)
+                        insert_imported_type(imported, item.span.into(), tables.types)
                     {
-                        diagnostics.push(diagnostic);
+                        tables.diagnostics.push(diagnostic);
                         continue;
                     }
                 }
@@ -156,9 +152,9 @@ pub(crate) fn resolve_syntax_import(
                         span: item.span.into(),
                     };
                     if let Err(diagnostic) =
-                        insert_imported_trait(imported, item.span.into(), imported_traits)
+                        insert_imported_trait(imported, item.span.into(), tables.traits)
                     {
-                        diagnostics.push(diagnostic);
+                        tables.diagnostics.push(diagnostic);
                         continue;
                     }
                 }
@@ -172,16 +168,16 @@ pub(crate) fn resolve_syntax_import(
                         span: item.span.into(),
                     };
                     if let Err(diagnostic) =
-                        insert_imported_type(imported, item.span.into(), imported_types)
+                        insert_imported_type(imported, item.span.into(), tables.types)
                     {
-                        diagnostics.push(diagnostic);
+                        tables.diagnostics.push(diagnostic);
                         continue;
                     }
                 }
             }
             None => {
                 if is_type {
-                    diagnostics.push(Diagnostic {
+                    tables.diagnostics.push(Diagnostic {
                         span: item.span.into(),
                         message: format!("cannot find interface for module {module_name}"),
                     });
@@ -223,10 +219,7 @@ fn resolve_wildcard_import(
     item: &SyntaxImportItem,
     is_type: bool,
     iface: &ModuleInterface,
-    imported_types: &mut HashMap<String, ImportedItem>,
-    imported_traits: &mut HashMap<String, ImportedItem>,
-    imported_constants: &mut HashMap<String, ImportedItem>,
-    diagnostics: &mut Vec<Diagnostic>,
+    tables: &mut ImportResolutionTables<'_>,
 ) {
     let mut type_names = BTreeSet::new();
     type_names.extend(iface.public_types.iter().cloned());
@@ -240,8 +233,8 @@ fn resolve_wildcard_import(
             visibility: TypeVisibility::Public,
             span: item.span.into(),
         };
-        if let Err(diagnostic) = insert_imported_type(imported, item.span.into(), imported_types) {
-            diagnostics.push(diagnostic);
+        if let Err(diagnostic) = insert_imported_type(imported, item.span.into(), tables.types) {
+            tables.diagnostics.push(diagnostic);
         }
     }
 
@@ -254,9 +247,8 @@ fn resolve_wildcard_import(
             visibility: TypeVisibility::Public,
             span: item.span.into(),
         };
-        if let Err(diagnostic) = insert_imported_trait(imported, item.span.into(), imported_traits)
-        {
-            diagnostics.push(diagnostic);
+        if let Err(diagnostic) = insert_imported_trait(imported, item.span.into(), tables.traits) {
+            tables.diagnostics.push(diagnostic);
         }
     }
 
@@ -265,7 +257,8 @@ fn resolve_wildcard_import(
     }
 
     for name in iface.constants.keys() {
-        imported_constants
+        tables
+            .constants
             .entry(name.clone())
             .or_insert_with(|| ImportedItem {
                 local_name: name.clone(),
@@ -295,8 +288,8 @@ fn resolve_wildcard_import(
             visibility: TypeVisibility::Public,
             span: item.span.into(),
         };
-        if let Err(diagnostic) = insert_imported_type(imported, item.span.into(), imported_types) {
-            diagnostics.push(diagnostic);
+        if let Err(diagnostic) = insert_imported_type(imported, item.span.into(), tables.types) {
+            tables.diagnostics.push(diagnostic);
         }
     }
 }

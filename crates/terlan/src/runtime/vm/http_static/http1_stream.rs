@@ -11,6 +11,7 @@ use super::{VmHttpStaticError, VmHttpStreamPlan};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 /// HTTP/1 stream lifecycle including head and terminal framing phases.
+#[cfg(test)]
 pub(crate) enum VmHttp1StreamState {
     Starting,
     Open,
@@ -22,6 +23,7 @@ pub(crate) enum VmHttp1StreamState {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 /// HTTP/1 wire component selected for the next transport write.
+#[cfg(test)]
 pub(crate) enum VmHttp1StreamPart {
     Head,
     Chunk,
@@ -30,6 +32,7 @@ pub(crate) enum VmHttp1StreamPart {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 /// Scheduler-visible outcome of one HTTP/1 stream flush attempt.
+#[cfg(test)]
 pub(crate) enum VmHttp1StreamTcpFlush {
     Idle,
     Parked {
@@ -45,6 +48,7 @@ pub(crate) enum VmHttp1StreamTcpFlush {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 /// Inspectable HTTP/1 framing and body-stream progress.
+#[cfg(test)]
 pub(crate) struct VmHttp1StreamInfo {
     pub(crate) state: VmHttp1StreamState,
     pub(crate) body: VmHttpStreamInfo,
@@ -62,6 +66,7 @@ pub(crate) struct VmHttp1ResponseStream {
     wire_bytes: usize,
 }
 
+#[cfg(test)]
 impl VmHttp1ResponseStream {
     /// Creates a stream with validated response head and terminal framing.
     pub(super) fn new(

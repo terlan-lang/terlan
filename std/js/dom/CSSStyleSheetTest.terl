@@ -32,7 +32,7 @@ pub add_rule_typechecks(
     receiver: CSSStyleSheet,
     selector: JsString,
     style: JsString,
-    index: JsNumber
+    index: JsNumber,
 ): JsNumber ->
     receiver.add_rule(selector, style, index).
 

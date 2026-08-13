@@ -89,7 +89,6 @@ fn counters_suite_modes_basics_limits_validation_and_slot_isolation_contract() {
 #[test]
 fn counters_suite_write_concurrency_accumulates_wrapping_deltas_exactly() {
     const CELLS: usize = 100;
-    const WORKERS: usize = 8;
     const ROUNDS: usize = 1_000;
     let counters = Arc::new(
         VmCounterArray::new(CELLS, VmCounterMode::WriteConcurrent)

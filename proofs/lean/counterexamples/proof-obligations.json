@@ -1,0 +1,14 @@
+{
+  "schema": "terlan.lean-proof-obligations.v1",
+  "obligations": [
+    {
+      "theorem_id": "typed-coreir-return-type-preservation",
+      "proof_family_id": "typed-coreir-preservation",
+      "proof_status": "stale",
+      "classification": "soundness_gap",
+      "feature_class": "coreir",
+      "lane_id": "coreir",
+      "source_contract": "docs/compiler/type_spec/terlan_core_typing_spec.toml"
+    }
+  ]
+}

@@ -6,14 +6,18 @@ use serde_json::json;
 
 use crate::terlan_quality::QualityResult;
 
-const ROADMAP_PATH: &str = "../docs/roadmap/ROADMAP_0_0_7.md";
+use super::support::{make_target_body, make_target_prerequisites};
+
+const ROADMAP_PATH: &str = "docs/roadmap/ROADMAP_0_0_7_CODE_QUALITY.md";
 const MAKEFILE_PATH: &str = "Makefile";
+const CODE_QUALITY_MAKEFILE_PATH: &str = "mk/code-quality.mk";
 const REPORT_PATH: &str = "target/quality/release-code-hygiene-report.json";
 const GATE_TARGET: &str = "release-code-hygiene-check";
 
 const REQUIRED_SUB_GATES: &[&str] = &[
     "rust-warnings-check",
     "rust-quality-check",
+    "rust-file-headroom-check",
     "dormant-runtime-code-check",
     "vm-deterministic-hashmap-check",
     "shared-helper-check",
@@ -22,10 +26,11 @@ const REQUIRED_SUB_GATES: &[&str] = &[
 ];
 
 const REQUIRED_ROADMAP_TERMS: &[&str] = &[
-    "Slice 63: enforce release code hygiene",
+    "CQ-6: 0.0.7 Structural Closeout",
     "Rust warnings",
     "dead-code",
     "file-size",
+    "rust-file-headroom-check",
     "function-size",
     "module-size",
     "panic!",
@@ -54,7 +59,7 @@ pub struct ReleaseCodeHygieneSummary {
 ///
 /// Inputs:
 /// - The 0.0.7 roadmap.
-/// - The repository Makefile.
+/// - The repository Makefile and Rust code-quality Make fragment.
 ///
 /// Output:
 /// - A deterministic report proving release hygiene is represented by one
@@ -71,9 +76,7 @@ pub fn run_release_code_hygiene(root: &Path) -> QualityResult<ReleaseCodeHygiene
             ROADMAP_PATH
         )
     })?;
-    let makefile_text = fs::read_to_string(root.join(MAKEFILE_PATH)).map_err(|err| {
-        format!("{MAKEFILE_PATH}: failed to read release code hygiene Makefile: {err}")
-    })?;
+    let makefile_text = read_make_graph(root)?;
 
     let mut diagnostics = validate_release_code_hygiene_contract(&roadmap_text, &makefile_text);
     diagnostics.extend(validate_report_payload(&report_payload()));
@@ -88,6 +91,18 @@ pub fn run_release_code_hygiene(root: &Path) -> QualityResult<ReleaseCodeHygiene
         roadmap_term_count: REQUIRED_ROADMAP_TERMS.len(),
         report_path: REPORT_PATH.to_string(),
     })
+}
+
+fn read_make_graph(root: &Path) -> QualityResult<String> {
+    [MAKEFILE_PATH, CODE_QUALITY_MAKEFILE_PATH]
+        .iter()
+        .map(|relative| {
+            fs::read_to_string(root.join(relative)).map_err(|err| {
+                format!("{relative}: failed to read release code hygiene Make source: {err}")
+            })
+        })
+        .collect::<QualityResult<Vec<_>>>()
+        .map(|sources| sources.join("\n"))
 }
 
 fn validate_release_code_hygiene_contract(roadmap_text: &str, makefile_text: &str) -> Vec<String> {
@@ -117,39 +132,37 @@ fn validate_makefile_targets(makefile_text: &str) -> Vec<String> {
         }
     }
 
-    let Some(body) = makefile_target_body(makefile_text, GATE_TARGET) else {
+    let Some(body) = make_target_body(makefile_text, GATE_TARGET) else {
         diagnostics.push(format!(
             "{MAKEFILE_PATH}: target `{GATE_TARGET}` has no executable body"
         ));
         return diagnostics;
     };
 
-    let expected_commands = REQUIRED_SUB_GATES
-        .iter()
-        .map(|gate| format!("$(MAKE) --no-print-directory {gate}"))
-        .chain([
-            "$(RUST_TEST) -p terlan --bin terlan-quality release_code_hygiene_test".to_string(),
-            "$(CARGO) run -p terlan --bin terlan-quality --quiet -- release-code-hygiene"
-                .to_string(),
-        ])
-        .collect::<Vec<_>>();
-
-    let mut previous_index = None;
-    for command in &expected_commands {
-        let Some(index) = body.iter().position(|line| line.trim() == command) else {
+    let prerequisites = make_target_prerequisites(makefile_text, GATE_TARGET).unwrap_or_default();
+    for gate in REQUIRED_SUB_GATES {
+        if !prerequisites.iter().any(|candidate| candidate == gate) {
             diagnostics.push(format!(
-                "{MAKEFILE_PATH}: `{GATE_TARGET}` must run `{command}`"
+                "{MAKEFILE_PATH}: `{GATE_TARGET}` must declare prerequisite `{gate}`"
             ));
-            continue;
-        };
-        if let Some(previous_index) = previous_index {
-            if index <= previous_index {
-                diagnostics.push(format!(
-                    "{MAKEFILE_PATH}: `{GATE_TARGET}` must run `{command}` after the previous hygiene command"
-                ));
-            }
         }
-        previous_index = Some(index);
+    }
+    let ordered_required = prerequisites
+        .iter()
+        .filter(|candidate| REQUIRED_SUB_GATES.contains(&candidate.as_str()))
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    if ordered_required != REQUIRED_SUB_GATES {
+        diagnostics.push(format!(
+            "{MAKEFILE_PATH}: `{GATE_TARGET}` hygiene prerequisites must retain canonical order"
+        ));
+    }
+
+    let report_command = "$(CARGO) run -p terlan --bin terlan-quality --features quality-tools --quiet -- release-code-hygiene";
+    if !body.lines().any(|line| line.trim() == report_command) {
+        diagnostics.push(format!(
+            "{MAKEFILE_PATH}: `{GATE_TARGET}` must run `{report_command}`"
+        ));
     }
 
     diagnostics
@@ -175,25 +188,6 @@ fn parse_makefile_target(line: &str) -> Option<String> {
         return None;
     }
     Some(target.to_string())
-}
-
-fn makefile_target_body(makefile_text: &str, target: &str) -> Option<Vec<String>> {
-    let mut lines = makefile_text.lines();
-    while let Some(line) = lines.next() {
-        if parse_makefile_target(line).as_deref() == Some(target) {
-            let mut body = Vec::new();
-            for line in lines {
-                if parse_makefile_target(line).is_some() {
-                    break;
-                }
-                if line.starts_with('\t') {
-                    body.push(line.trim_start_matches('\t').to_string());
-                }
-            }
-            return Some(body);
-        }
-    }
-    None
 }
 
 fn validate_report_payload(report: &serde_json::Value) -> Vec<String> {
@@ -304,4 +298,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "release_code_hygiene_test.rs"]
+#[cfg(test)]
 mod release_code_hygiene_test;

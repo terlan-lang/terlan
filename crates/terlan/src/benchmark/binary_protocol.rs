@@ -533,4 +533,5 @@ fn unix_seconds() -> u64 {
 
 #[cfg(test)]
 #[path = "binary_protocol_test.rs"]
+#[cfg(test)]
 mod binary_protocol_test;

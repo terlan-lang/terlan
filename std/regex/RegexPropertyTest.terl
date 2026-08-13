@@ -22,7 +22,11 @@ import std.test.Test.{assert}.
  */
 @test
 pub generated_escaped_text_matches_literal_text(): Bool ->
-    for_all(strings(), (text) -> case Regex.compile(Regex.escape(text)) {
-        Ok(regex) -> assert(Regex.is_match(regex, text));
-        _ -> false
-    }).
+    for_all(
+        strings(),
+        (text) ->
+            case Regex.compile(Regex.escape(text)) {
+                Ok(regex) -> assert(Regex.is_match(regex, text));
+                _ -> false
+            },
+    ).

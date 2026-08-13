@@ -61,6 +61,7 @@ integrations.")
 
 (defconst terlan-file-extensions
   '("\\.terl\\'"
+    "\\.terls\\'"
     "\\.terli\\'"
     "\\.terl\\.html\\'"
     "\\.terl\\.md\\'"

@@ -1,7 +1,6 @@
-#![allow(dead_code)]
-
 use std::collections::VecDeque;
 
+#[cfg(test)]
 use super::acme_worker::VmAcmeWorkerWake;
 use super::debugger_transport::VmDebuggerWake;
 use super::package_transport::VmPackageDownloadWake;
@@ -11,10 +10,12 @@ use super::tcp::VmTcpWake;
 use super::timer::VmTimerEvent;
 use super::udp::VmUdpWake;
 
+#[cfg(test)]
 const MAX_CONSECUTIVE_TIMER_WAKEUPS: usize = 32;
 
 #[cfg(test)]
 #[path = "io_reactor_test.rs"]
+#[cfg(test)]
 mod io_reactor_test;
 
 /// VM-owned I/O wake intent normalized from concrete protocol runtimes.
@@ -29,6 +30,7 @@ mod io_reactor_test;
 /// - Keeps protocol-specific readiness producers independent from scheduler
 ///   queue details while giving the VM a single place to own readiness order.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmIoReactorWake {
     TcpAccept { process: VmProcessId },
     TcpRead { process: VmProcessId },
@@ -49,6 +51,7 @@ pub(crate) enum VmIoReactorWake {
     TimerOverflow { process: VmProcessId },
 }
 
+#[cfg(test)]
 impl VmIoReactorWake {
     fn process(&self) -> VmProcessId {
         match self {
@@ -97,6 +100,7 @@ impl VmIoReactorWake {
 
 /// Wake counts emitted by one deterministic reactor drain.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmIoReactorWakeCounts {
     pub(crate) tcp: usize,
     pub(crate) udp: usize,
@@ -108,6 +112,7 @@ pub(crate) struct VmIoReactorWakeCounts {
 
 /// Stable result of draining VM I/O readiness into the scheduler.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmIoReactorDrain {
     pub(crate) counts: VmIoReactorWakeCounts,
     pub(crate) deterministic_trace: Vec<String>,
@@ -119,6 +124,7 @@ pub(crate) struct VmIoReactorDrain {
 
 /// Typed timer outcome retained independently from scheduler wake decisions.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmTimerOutcomeTrace {
     pub(crate) timer_id: u64,
     pub(crate) owner: u64,
@@ -127,6 +133,7 @@ pub(crate) struct VmTimerOutcomeTrace {
     pub(crate) detail: Option<String>,
 }
 
+#[cfg(test)]
 impl VmIoReactorDrain {
     /// Returns the number of wake attempts handled by this drain.
     pub(crate) fn total_wakeups(&self) -> usize {
@@ -152,11 +159,13 @@ impl VmIoReactorDrain {
 ///   transport, debugger transport, ACME worker, and timer behavior can move
 ///   through one VM reactor path instead of independent special cases.
 #[derive(Debug, Default)]
+#[cfg(test)]
 pub(crate) struct VmIoReactorLoop {
     pending: VecDeque<VmIoReactorWake>,
     timer_outcomes: VecDeque<VmTimerOutcomeTrace>,
 }
 
+#[cfg(test)]
 impl VmIoReactorLoop {
     /// Creates an empty VM I/O reactor loop.
     pub(crate) fn new() -> Self {
@@ -319,6 +328,7 @@ impl VmIoReactorLoop {
     }
 }
 
+#[cfg(test)]
 fn timer_outcome_trace(event: &VmTimerEvent) -> VmTimerOutcomeTrace {
     let (timer_id, owner, kind, outcome, detail) = match *event {
         VmTimerEvent::Fired {
@@ -378,6 +388,7 @@ fn timer_outcome_trace(event: &VmTimerEvent) -> VmTimerOutcomeTrace {
     }
 }
 
+#[cfg(test)]
 impl VmIoReactorWake {
     fn is_timer(&self) -> bool {
         matches!(
@@ -390,6 +401,7 @@ impl VmIoReactorWake {
     }
 }
 
+#[cfg(test)]
 fn count_wake(counts: &mut VmIoReactorWakeCounts, wake: &VmIoReactorWake) {
     match wake {
         VmIoReactorWake::TcpAccept { .. }

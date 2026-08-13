@@ -72,6 +72,31 @@ fn should_reload_for_event_accepts_artifact_changes() {
 }
 
 #[test]
+fn compiler_reload_inputs_cover_source_package_and_generated_bindings() {
+    let handler = PathBuf::from("src/app/Handler.terl");
+    let sources = BTreeSet::from([handler.clone()]);
+
+    assert!(is_compiler_reload_input(&handler, &sources));
+    assert!(is_compiler_reload_input(
+        Path::new("src/app/Dependency.terl"),
+        &sources
+    ));
+    assert!(is_compiler_reload_input(Path::new("terlan.toml"), &sources));
+    assert!(is_compiler_reload_input(
+        Path::new("generated/opencv.binding.json"),
+        &sources
+    ));
+    assert!(!is_compiler_reload_input(
+        Path::new("templates/page.html"),
+        &sources
+    ));
+    assert!(!is_compiler_reload_input(
+        Path::new("styles/app.css"),
+        &sources
+    ));
+}
+
+#[test]
 fn broadcast_reload_removes_disconnected_subscribers() {
     let hub = Arc::new(Mutex::new(Vec::new()));
     let (connected_tx, connected_rx) = mpsc::channel();

@@ -37,7 +37,7 @@ pub set_transform_typechecks(
     c: JsNumber,
     d: JsNumber,
     e: JsNumber,
-    f: JsNumber
+    f: JsNumber,
 ): Unit ->
     receiver.set_transform(a, b, c, d, e, f).
 
@@ -51,7 +51,7 @@ pub transform_typechecks(
     c: JsNumber,
     d: JsNumber,
     e: JsNumber,
-    f: JsNumber
+    f: JsNumber,
 ): Unit ->
     receiver.transform(a, b, c, d, e, f).
 

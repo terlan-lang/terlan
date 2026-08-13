@@ -6,17 +6,18 @@ use std::sync::Arc;
 use crate::runtime::native_image::managed::{
     encode_list_empty_operation, encode_list_prepend_operation,
 };
-use crate::terlan_typeck::{CoreExpr, CoreIfClause};
+use crate::terlan_typeck::{CoreExpr, CoreIfClause, CoreType};
 
 use super::{
-    composed_call_region,
-    composed_continuation::wrap_composed_continuation,
-    condition_yield_region,
+    call_composition::{CallTarget, DynamicCallProfiles, DynamicCallSignature},
+    composed_call_region, condition_yield_region,
     constructors::NativeConstructorLayouts,
+    contains_process_yield,
     control_completion::{complete, CompletionTarget},
-    expr_is_scalar, free_variables, lower_expr_with_constructors, lower_yield_region,
-    rebase_callee_locals, stable_continuation_id, yield_region, CallRegion, ComposedCallProfile,
-    NativeContinuation, NativeExpr, NativeType, YieldRegion,
+    expr_calls_suspending, expr_is_scalar, free_variables, lower_expr_with_constructors,
+    lower_yield_region, stable_composed_completion_id, stable_continuation_id, yield_region,
+    CallRegion, ComposedCallProfile, NativeContinuation, NativeExpr, NativeType, YieldRegion,
+    YieldRegionEnvironment, YieldRegionRequest,
 };
 
 /// Returns the first unoccupied NativeIR local even when hidden continuation
@@ -29,67 +30,133 @@ pub(super) fn next_local_index(params: &HashMap<String, usize>) -> usize {
         .map_or(0, |index| index.saturating_add(1))
 }
 
-#[allow(clippy::too_many_arguments)]
+#[derive(Clone, Copy)]
+pub(super) struct YieldLoweringScope<'a> {
+    pub(super) param_names: &'a [String],
+    pub(super) params: &'a HashMap<String, usize>,
+    pub(super) param_types: &'a HashMap<String, NativeType>,
+    pub(super) param_core_types: &'a HashMap<String, CoreType>,
+    pub(super) completion: Option<&'a CompletionTarget>,
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct YieldLoweringEnvironment<'a> {
+    pub(super) functions: &'a HashMap<(String, usize), usize>,
+    pub(super) function_types: &'a HashMap<(String, usize), NativeType>,
+    pub(super) function_core_types: &'a HashMap<(String, usize), CoreType>,
+    pub(super) constructors: &'a NativeConstructorLayouts,
+    pub(super) suspending_functions: &'a HashSet<(String, usize)>,
+    pub(super) terminal_profiles: &'a HashMap<usize, ComposedCallProfile>,
+    pub(super) dynamic_profiles: &'a DynamicCallProfiles,
+    pub(super) module: &'a str,
+    pub(super) function: &'a str,
+    pub(super) arity: usize,
+    pub(super) return_type: NativeType,
+}
+
+pub(super) struct YieldLoweringState<'a> {
+    pub(super) ordinal: &'a mut usize,
+    pub(super) stable_ids: &'a mut HashSet<u64>,
+}
+
+/// Recovers the native result type of one lexical expression, including
+/// structured cases whose pattern bindings are not visible to scalar inference.
+pub(super) fn lexical_result_type(
+    expr: &CoreExpr,
+    native_types: &HashMap<String, NativeType>,
+    core_types: &HashMap<String, CoreType>,
+    environment: &YieldLoweringEnvironment<'_>,
+) -> Option<NativeType> {
+    super::infer_native_type_with_constructors(
+        expr,
+        native_types,
+        environment.function_types,
+        environment.constructors,
+    )
+    .or_else(|| {
+        super::structured_case::core_expr_type(expr, core_types, environment.function_core_types)
+            .and_then(|core_type| super::native_type(Some(&core_type), &core_type.contract_text()))
+    })
+    .or_else(|| {
+        super::structured_case::contains_case(expr)
+            .then(|| {
+                super::structured_case::structured_result_type(
+                    expr,
+                    native_types,
+                    core_types,
+                    super::structured_case::StructuredCaseEnvironment {
+                        functions: environment.functions,
+                        function_types: environment.function_types,
+                        function_core_types: environment.function_core_types,
+                        constructors: environment.constructors,
+                    },
+                )
+                .ok()
+            })
+            .flatten()
+    })
+}
+
 pub(super) fn lower_expr_with_yields(
     expr: &CoreExpr,
-    param_names: &[String],
-    params: &HashMap<String, usize>,
-    param_types: &HashMap<String, NativeType>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    constructors: &NativeConstructorLayouts,
-    suspending_functions: &HashSet<(String, usize)>,
-    terminal_profiles: &HashMap<usize, ComposedCallProfile>,
-    module: &str,
-    function: &str,
-    arity: usize,
-    return_type: NativeType,
-    ordinal: &mut usize,
-    stable_ids: &mut HashSet<u64>,
+    scope: YieldLoweringScope<'_>,
+    environment: &YieldLoweringEnvironment<'_>,
+    state: &mut YieldLoweringState<'_>,
 ) -> Result<(NativeExpr, Vec<NativeContinuation>), String> {
-    lower_owned_expr_with_yields(
-        expr.clone(),
+    lower_owned_expr_with_yields(expr.clone(), scope, environment, state)
+}
+pub(super) fn lower_owned_expr_with_yields(
+    owned_expr: CoreExpr,
+    scope: YieldLoweringScope<'_>,
+    environment: &YieldLoweringEnvironment<'_>,
+    state: &mut YieldLoweringState<'_>,
+) -> Result<(NativeExpr, Vec<NativeContinuation>), String> {
+    let YieldLoweringScope {
         param_names,
         params,
         param_types,
+        param_core_types,
+        completion,
+    } = scope;
+    let YieldLoweringEnvironment {
         functions,
         function_types,
+        function_core_types,
         constructors,
         suspending_functions,
         terminal_profiles,
+        dynamic_profiles,
         module,
         function,
         arity,
         return_type,
-        ordinal,
-        stable_ids,
-        None,
-    )
-}
-
-#[allow(clippy::too_many_arguments)]
-fn lower_owned_expr_with_yields(
-    owned_expr: CoreExpr,
-    param_names: &[String],
-    params: &HashMap<String, usize>,
-    param_types: &HashMap<String, NativeType>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    constructors: &NativeConstructorLayouts,
-    suspending_functions: &HashSet<(String, usize)>,
-    terminal_profiles: &HashMap<usize, ComposedCallProfile>,
-    module: &str,
-    function: &str,
-    arity: usize,
-    return_type: NativeType,
-    ordinal: &mut usize,
-    stable_ids: &mut HashSet<u64>,
-    completion: Option<&CompletionTarget>,
-) -> Result<(NativeExpr, Vec<NativeContinuation>), String> {
+    } = *environment;
+    let ordinal = &mut *state.ordinal;
+    let stable_ids = &mut *state.stable_ids;
     let expr = &owned_expr;
+    let lower_current_lexical = |value: &CoreExpr| {
+        super::structured_case::lower_lexical_expr(
+            value,
+            params,
+            param_types,
+            param_core_types,
+            super::structured_case::StructuredCaseEnvironment {
+                functions,
+                function_types,
+                function_core_types,
+                constructors,
+            },
+        )
+    };
     if let CoreExpr::Call { function, args } = expr {
         let identity = (function.clone(), args.len());
-        if suspending_functions.contains(&identity) && completion.is_none() {
+        if suspending_functions.contains(&identity)
+            && completion.is_none()
+            && args.iter().all(|argument| {
+                !expr_calls_suspending(argument, suspending_functions)
+                    && !contains_process_yield(argument)
+            })
+        {
             let function = functions.get(&identity).copied().ok_or_else(|| {
                 format!(
                     "error[native_ir.tail_call]: suspending call `{}/{}` is not in the native module",
@@ -98,18 +165,16 @@ fn lower_owned_expr_with_yields(
             })?;
             let args = args
                 .iter()
-                .map(|arg| {
-                    lower_expr_with_constructors(
-                        arg,
-                        params,
-                        param_types,
-                        functions,
-                        function_types,
-                        constructors,
-                    )
-                })
+                .map(lower_current_lexical)
                 .collect::<Result<Vec<_>, _>>()?;
-            return Ok((NativeExpr::TailCall { function, args }, Vec::new()));
+            return Ok((
+                NativeExpr::TailCall {
+                    function,
+                    args,
+                    yield_continuation_id: None,
+                },
+                Vec::new(),
+            ));
         }
     }
 
@@ -125,53 +190,117 @@ fn lower_owned_expr_with_yields(
         drop(owned_expr);
         return lower_prepared_call(
             region,
-            param_names,
-            params,
-            param_types,
-            functions,
-            function_types,
-            constructors,
-            suspending_functions,
-            terminal_profiles,
-            module,
-            function,
-            arity,
-            return_type,
-            ordinal,
-            stable_ids,
-            completion,
+            YieldLoweringScope {
+                param_names,
+                params,
+                param_types,
+                param_core_types,
+                completion,
+            },
+            &YieldLoweringEnvironment {
+                functions,
+                function_types,
+                function_core_types,
+                constructors,
+                suspending_functions,
+                terminal_profiles,
+                dynamic_profiles,
+                module,
+                function,
+                arity,
+                return_type,
+            },
+            &mut YieldLoweringState {
+                ordinal,
+                stable_ids,
+            },
         );
     }
 
     if let Some(region) = condition_yield_region(expr) {
         return lower_prepared_yield(
             &region,
-            param_names,
-            params,
-            param_types,
-            functions,
-            function_types,
-            constructors,
-            suspending_functions,
-            terminal_profiles,
-            module,
-            function,
-            arity,
-            return_type,
-            ordinal,
-            stable_ids,
-            completion,
+            YieldLoweringScope {
+                param_names,
+                params,
+                param_types,
+                param_core_types,
+                completion,
+            },
+            &YieldLoweringEnvironment {
+                functions,
+                function_types,
+                function_core_types,
+                constructors,
+                suspending_functions,
+                terminal_profiles,
+                dynamic_profiles,
+                module,
+                function,
+                arity,
+                return_type,
+            },
+            &mut YieldLoweringState {
+                ordinal,
+                stable_ids,
+            },
         );
     }
 
     if let CoreExpr::Let { bindings, body } = expr {
-        if super::contains_process_yield(body) {
+        if let Some(lowered) = lower_suspending_let_binding(
+            bindings,
+            body,
+            YieldLoweringScope {
+                param_names,
+                params,
+                param_types,
+                param_core_types,
+                completion,
+            },
+            environment,
+            &mut YieldLoweringState {
+                ordinal,
+                stable_ids,
+            },
+        )? {
+            return Ok(lowered);
+        }
+    }
+
+    if matches!(expr, CoreExpr::Case { .. }) {
+        return super::structured_case::lower_suspending_case(
+            expr,
+            YieldLoweringScope {
+                param_names,
+                params,
+                param_types,
+                param_core_types,
+                completion,
+            },
+            environment,
+            &mut YieldLoweringState {
+                ordinal,
+                stable_ids,
+            },
+        );
+    }
+
+    if let CoreExpr::Let { bindings, body } = expr {
+        if super::contains_process_yield(body)
+            || super::expr_calls_suspending(body, suspending_functions)
+        {
             let mut entry_names = param_names.to_vec();
             let mut entry_vars = params.clone();
             let mut entry_types = param_types.clone();
+            let mut entry_core_types = param_core_types.clone();
             let mut entry_bindings = Vec::with_capacity(bindings.len());
             let mut next_entry_local = next_local_index(&entry_vars);
-            for binding in bindings {
+            let retained = super::escape::retained_managed_bindings(bindings, body);
+            for (binding, retained) in bindings.iter().zip(retained) {
+                if !retained {
+                    continue;
+                }
                 let crate::terlan_typeck::CorePattern::Var(name) = &binding.pattern else {
                     return Err("error[native_ir.control_prefix]: \
                          native control prefix requires variable bindings"
@@ -183,43 +312,73 @@ fn lower_owned_expr_with_yields(
                     function_types,
                     constructors,
                 )
+                .or_else(|| {
+                    super::structured_case::core_expr_type(
+                        &binding.value,
+                        &entry_core_types,
+                        function_core_types,
+                    )
+                    .and_then(|core_type| {
+                        super::native_type(Some(&core_type), &core_type.contract_text())
+                    })
+                })
                 .ok_or_else(|| {
                     format!(
                         "error[native_ir.control_prefix]: cannot infer native type for `{name}`"
                     )
                 })?;
-                let value = lower_expr_with_constructors(
+                let value = super::structured_case::lower_lexical_expr(
                     &binding.value,
                     &entry_vars,
                     &entry_types,
-                    functions,
-                    function_types,
-                    constructors,
+                    &entry_core_types,
+                    super::structured_case::StructuredCaseEnvironment {
+                        functions,
+                        function_types,
+                        function_core_types,
+                        constructors,
+                    },
                 )?;
                 entry_names.retain(|entry| entry != name);
                 entry_names.push(name.clone());
                 entry_vars.insert(name.clone(), next_entry_local);
                 entry_types.insert(name.clone(), value_type);
+                if let Some(core_type) = super::structured_case::core_expr_type(
+                    &binding.value,
+                    &entry_core_types,
+                    function_core_types,
+                ) {
+                    entry_core_types.insert(name.clone(), core_type);
+                }
                 entry_bindings.push(value);
                 next_entry_local = next_entry_local.saturating_add(1);
             }
             let (body, continuations) = lower_owned_expr_with_yields(
                 body.as_ref().clone(),
-                &entry_names,
-                &entry_vars,
-                &entry_types,
-                functions,
-                function_types,
-                constructors,
-                suspending_functions,
-                terminal_profiles,
-                module,
-                function,
-                arity,
-                return_type,
-                ordinal,
-                stable_ids,
-                completion,
+                YieldLoweringScope {
+                    param_names: &entry_names,
+                    params: &entry_vars,
+                    param_types: &entry_types,
+                    param_core_types: &entry_core_types,
+                    completion,
+                },
+                &YieldLoweringEnvironment {
+                    functions,
+                    function_types,
+                    function_core_types,
+                    constructors,
+                    suspending_functions,
+                    terminal_profiles,
+                    dynamic_profiles,
+                    module,
+                    function,
+                    arity,
+                    return_type,
+                },
+                &mut YieldLoweringState {
+                    ordinal,
+                    stable_ids,
+                },
             )?;
             return Ok((
                 NativeExpr::Let {
@@ -247,27 +406,38 @@ fn lower_owned_expr_with_yields(
                 operation: condition_region.operation,
                 arguments: condition_region.arguments,
                 result: condition_region.result,
+                result_core_type: condition_region.result_core_type,
                 resume: CoreExpr::If {
                     clauses: resumed_clauses,
                 },
+                source_span: condition_region.source_span,
             };
             return lower_prepared_yield(
                 &region,
-                param_names,
-                params,
-                param_types,
-                functions,
-                function_types,
-                constructors,
-                suspending_functions,
-                terminal_profiles,
-                module,
-                function,
-                arity,
-                return_type,
-                ordinal,
-                stable_ids,
-                completion,
+                YieldLoweringScope {
+                    param_names,
+                    params,
+                    param_types,
+                    param_core_types,
+                    completion,
+                },
+                &YieldLoweringEnvironment {
+                    functions,
+                    function_types,
+                    function_core_types,
+                    constructors,
+                    suspending_functions,
+                    terminal_profiles,
+                    dynamic_profiles,
+                    module,
+                    function,
+                    arity,
+                    return_type,
+                },
+                &mut YieldLoweringState {
+                    ordinal,
+                    stable_ids,
+                },
             );
         }
 
@@ -288,21 +458,30 @@ fn lower_owned_expr_with_yields(
             };
             return lower_prepared_call(
                 call_region,
-                param_names,
-                params,
-                param_types,
-                functions,
-                function_types,
-                constructors,
-                suspending_functions,
-                terminal_profiles,
-                module,
-                function,
-                arity,
-                return_type,
-                ordinal,
-                stable_ids,
-                completion,
+                YieldLoweringScope {
+                    param_names,
+                    params,
+                    param_types,
+                    param_core_types,
+                    completion,
+                },
+                &YieldLoweringEnvironment {
+                    functions,
+                    function_types,
+                    function_core_types,
+                    constructors,
+                    suspending_functions,
+                    terminal_profiles,
+                    dynamic_profiles,
+                    module,
+                    function,
+                    arity,
+                    return_type,
+                },
+                &mut YieldLoweringState {
+                    ordinal,
+                    stable_ids,
+                },
             );
         }
 
@@ -312,17 +491,8 @@ fn lower_owned_expr_with_yields(
             right,
         } = &first.condition
         {
-            if matches!(operator.as_str(), "and" | "&&" | "or" | "||")
-                && !expr_is_scalar(&first.condition)
-            {
-                let left = lower_expr_with_constructors(
-                    left,
-                    params,
-                    param_types,
-                    functions,
-                    function_types,
-                    constructors,
-                )?;
+            if matches!(operator.as_str(), "and" | "or") && !expr_is_scalar(&first.condition) {
+                let left = lower_current_lexical(left)?;
                 let mut right_clauses = Vec::with_capacity(clauses.len());
                 right_clauses.push(CoreIfClause {
                     condition: right.as_ref().clone(),
@@ -333,23 +503,32 @@ fn lower_owned_expr_with_yields(
                     CoreExpr::If {
                         clauses: right_clauses,
                     },
-                    param_names,
-                    params,
-                    param_types,
-                    functions,
-                    function_types,
-                    constructors,
-                    suspending_functions,
-                    terminal_profiles,
-                    module,
-                    function,
-                    arity,
-                    return_type,
-                    ordinal,
-                    stable_ids,
-                    completion,
+                    YieldLoweringScope {
+                        param_names,
+                        params,
+                        param_types,
+                        param_core_types,
+                        completion,
+                    },
+                    &YieldLoweringEnvironment {
+                        functions,
+                        function_types,
+                        function_core_types,
+                        constructors,
+                        suspending_functions,
+                        terminal_profiles,
+                        dynamic_profiles,
+                        module,
+                        function,
+                        arity,
+                        return_type,
+                    },
+                    &mut YieldLoweringState {
+                        ordinal,
+                        stable_ids,
+                    },
                 )?;
-                if matches!(operator.as_str(), "and" | "&&") {
+                if operator == "and" {
                     let (fallback, fallback_continuations) = if remaining.is_empty() {
                         (
                             NativeExpr::If {
@@ -362,21 +541,30 @@ fn lower_owned_expr_with_yields(
                             CoreExpr::If {
                                 clauses: remaining.to_vec(),
                             },
-                            param_names,
-                            params,
-                            param_types,
-                            functions,
-                            function_types,
-                            constructors,
-                            suspending_functions,
-                            terminal_profiles,
-                            module,
-                            function,
-                            arity,
-                            return_type,
-                            ordinal,
-                            stable_ids,
-                            completion,
+                            YieldLoweringScope {
+                                param_names,
+                                params,
+                                param_types,
+                                param_core_types,
+                                completion,
+                            },
+                            &YieldLoweringEnvironment {
+                                functions,
+                                function_types,
+                                function_core_types,
+                                constructors,
+                                suspending_functions,
+                                terminal_profiles,
+                                dynamic_profiles,
+                                module,
+                                function,
+                                arity,
+                                return_type,
+                            },
+                            &mut YieldLoweringState {
+                                ordinal,
+                                stable_ids,
+                            },
                         )?
                     };
                     continuations.extend(fallback_continuations);
@@ -389,21 +577,30 @@ fn lower_owned_expr_with_yields(
                 }
                 let (selected, selected_continuations) = lower_owned_expr_with_yields(
                     first.body.clone(),
-                    param_names,
-                    params,
-                    param_types,
-                    functions,
-                    function_types,
-                    constructors,
-                    suspending_functions,
-                    terminal_profiles,
-                    module,
-                    function,
-                    arity,
-                    return_type,
-                    ordinal,
-                    stable_ids,
-                    completion,
+                    YieldLoweringScope {
+                        param_names,
+                        params,
+                        param_types,
+                        param_core_types,
+                        completion,
+                    },
+                    &YieldLoweringEnvironment {
+                        functions,
+                        function_types,
+                        function_core_types,
+                        constructors,
+                        suspending_functions,
+                        terminal_profiles,
+                        dynamic_profiles,
+                        module,
+                        function,
+                        arity,
+                        return_type,
+                    },
+                    &mut YieldLoweringState {
+                        ordinal,
+                        stable_ids,
+                    },
                 )?;
                 continuations.extend(selected_continuations);
                 return Ok((
@@ -415,31 +612,33 @@ fn lower_owned_expr_with_yields(
             }
         }
 
-        let condition = lower_expr_with_constructors(
-            &first.condition,
-            params,
-            param_types,
-            functions,
-            function_types,
-            constructors,
-        )?;
+        let condition = lower_current_lexical(&first.condition)?;
         let (body, mut continuations) = lower_owned_expr_with_yields(
             first.body.clone(),
-            param_names,
-            params,
-            param_types,
-            functions,
-            function_types,
-            constructors,
-            suspending_functions,
-            terminal_profiles,
-            module,
-            function,
-            arity,
-            return_type,
-            ordinal,
-            stable_ids,
-            completion,
+            YieldLoweringScope {
+                param_names,
+                params,
+                param_types,
+                param_core_types,
+                completion,
+            },
+            &YieldLoweringEnvironment {
+                functions,
+                function_types,
+                function_core_types,
+                constructors,
+                suspending_functions,
+                terminal_profiles,
+                dynamic_profiles,
+                module,
+                function,
+                arity,
+                return_type,
+            },
+            &mut YieldLoweringState {
+                ordinal,
+                stable_ids,
+            },
         )?;
         let mut lowered_clauses = vec![(condition, body)];
         if !remaining.is_empty() {
@@ -447,21 +646,30 @@ fn lower_owned_expr_with_yields(
                 CoreExpr::If {
                     clauses: remaining.to_vec(),
                 },
-                param_names,
-                params,
-                param_types,
-                functions,
-                function_types,
-                constructors,
-                suspending_functions,
-                terminal_profiles,
-                module,
-                function,
-                arity,
-                return_type,
-                ordinal,
-                stable_ids,
-                completion,
+                YieldLoweringScope {
+                    param_names,
+                    params,
+                    param_types,
+                    param_core_types,
+                    completion,
+                },
+                &YieldLoweringEnvironment {
+                    functions,
+                    function_types,
+                    function_core_types,
+                    constructors,
+                    suspending_functions,
+                    terminal_profiles,
+                    dynamic_profiles,
+                    module,
+                    function,
+                    arity,
+                    return_type,
+                },
+                &mut YieldLoweringState {
+                    ordinal,
+                    stable_ids,
+                },
             )?;
             lowered_clauses.push((NativeExpr::Bool(true), fallback));
             continuations.extend(fallback_continuations);
@@ -480,65 +688,78 @@ fn lower_owned_expr_with_yields(
         right,
     } = expr
     {
-        if matches!(operator.as_str(), "and" | "&&" | "or" | "||") {
+        if matches!(operator.as_str(), "and" | "or") {
             if let Some(left_region) = yield_region(left) {
                 let region = YieldRegion {
                     prefix: left_region.prefix,
                     operation: left_region.operation,
                     arguments: left_region.arguments,
                     result: left_region.result,
+                    result_core_type: left_region.result_core_type,
                     resume: CoreExpr::BinaryOp {
                         operator: operator.clone(),
                         left: Box::new(left_region.resume),
                         right: right.clone(),
                     },
+                    source_span: left_region.source_span,
                 };
                 return lower_prepared_yield(
                     &region,
+                    YieldLoweringScope {
+                        param_names,
+                        params,
+                        param_types,
+                        param_core_types,
+                        completion,
+                    },
+                    &YieldLoweringEnvironment {
+                        functions,
+                        function_types,
+                        function_core_types,
+                        constructors,
+                        suspending_functions,
+                        terminal_profiles,
+                        dynamic_profiles,
+                        module,
+                        function,
+                        arity,
+                        return_type,
+                    },
+                    &mut YieldLoweringState {
+                        ordinal,
+                        stable_ids,
+                    },
+                );
+            }
+            let left = lower_current_lexical(left)?;
+            let (right, continuations) = lower_owned_expr_with_yields(
+                right.as_ref().clone(),
+                YieldLoweringScope {
                     param_names,
                     params,
                     param_types,
+                    param_core_types,
+                    completion,
+                },
+                &YieldLoweringEnvironment {
                     functions,
                     function_types,
+                    function_core_types,
                     constructors,
                     suspending_functions,
                     terminal_profiles,
+                    dynamic_profiles,
                     module,
                     function,
                     arity,
                     return_type,
+                },
+                &mut YieldLoweringState {
                     ordinal,
                     stable_ids,
-                    completion,
-                );
-            }
-            let left = lower_expr_with_constructors(
-                left,
-                params,
-                param_types,
-                functions,
-                function_types,
-                constructors,
+                },
             )?;
-            let (right, continuations) = lower_owned_expr_with_yields(
-                right.as_ref().clone(),
-                param_names,
-                params,
-                param_types,
-                functions,
-                function_types,
-                constructors,
-                suspending_functions,
-                terminal_profiles,
-                module,
-                function,
-                arity,
-                return_type,
-                ordinal,
-                stable_ids,
-                completion,
-            )?;
-            let clauses = if matches!(operator.as_str(), "and" | "&&") {
+            let clauses = if operator == "and" {
                 vec![
                     (left, right),
                     (NativeExpr::Bool(true), NativeExpr::Bool(false)),
@@ -553,385 +774,86 @@ fn lower_owned_expr_with_yields(
         }
     }
 
-    let value = match (expr, return_type) {
-        (CoreExpr::List(items), NativeType::ManagedRef(semantic)) if items.is_empty() => {
-            NativeExpr::ManagedOperation {
-                encoded: Arc::from(encode_list_empty_operation(semantic)),
-                args: Vec::new(),
-            }
-        }
-        (CoreExpr::ListCons { head, tail }, NativeType::ManagedRef(semantic)) => {
-            NativeExpr::ManagedOperation {
-                encoded: Arc::from(encode_list_prepend_operation(semantic)),
-                args: vec![
-                    lower_expr_with_constructors(
-                        head,
-                        params,
-                        param_types,
-                        functions,
-                        function_types,
-                        constructors,
-                    )?,
-                    lower_expr_with_constructors(
-                        tail,
-                        params,
-                        param_types,
-                        functions,
-                        function_types,
-                        constructors,
-                    )?,
-                ],
-            }
-        }
-        _ => lower_expr_with_constructors(
-            expr,
-            params,
-            param_types,
-            functions,
-            function_types,
-            constructors,
-        )?,
+    if super::expr_calls_suspending(expr, suspending_functions)
+        || super::contains_process_yield(expr)
+    {
+        return Err(format!(
+            "error[native_ir.unlowered_suspension_context]: suspension-aware lowering has no evaluation context for {expr:#?}"
+        ));
+    }
+
+    let expected_type = completion.map_or(return_type, |target| target.result_type);
+    let declared_return = function_core_types
+        .get(&(function.to_string(), arity))
+        .or_else(|| function_core_types.get(&(format!("{module}.{function}"), arity)));
+    let expected_core = match completion {
+        Some(target) => target.result_core_type.as_ref(),
+        None => declared_return,
     };
-    Ok((complete(value, completion, params)?, Vec::new()))
-}
-
-#[allow(clippy::too_many_arguments)]
-fn lower_prepared_call(
-    mut region: CallRegion,
-    param_names: &[String],
-    params: &HashMap<String, usize>,
-    param_types: &HashMap<String, NativeType>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    constructors: &NativeConstructorLayouts,
-    suspending_functions: &HashSet<(String, usize)>,
-    terminal_profiles: &HashMap<usize, ComposedCallProfile>,
-    module: &str,
-    function: &str,
-    arity: usize,
-    return_type: NativeType,
-    ordinal: &mut usize,
-    stable_ids: &mut HashSet<u64>,
-    completion: Option<&CompletionTarget>,
-) -> Result<(NativeExpr, Vec<NativeContinuation>), String> {
-    if !region.gates.is_empty() {
-        return lower_gated_prepared_call(
-            region,
-            param_names,
-            params,
-            param_types,
-            functions,
-            function_types,
-            constructors,
-            suspending_functions,
-            terminal_profiles,
-            module,
-            function,
-            arity,
-            return_type,
-            ordinal,
-            stable_ids,
-            completion,
-        );
-    }
-    let identity = (region.function.clone(), region.args.len());
-    let function_index = functions.get(&identity).copied().ok_or_else(|| {
-        format!(
-            "error[native_ir.call_then]: composed call `{}/{}` is not in the native module",
-            identity.0, identity.1
-        )
-    })?;
-    let profile = terminal_profiles.get(&function_index).ok_or_else(|| {
-        format!(
-            "error[native_ir.call_then]: composed call `{}/{}` has no continuation profile",
-            identity.0, identity.1
-        )
-    })?;
-    let mut wrapper_ids = HashMap::with_capacity(profile.continuations.len());
-    for callee in &profile.continuations {
-        let continuation_id = stable_continuation_id(module, function, arity, *ordinal);
-        *ordinal = ordinal.saturating_add(1);
-        if !stable_ids.insert(continuation_id) {
-            return Err(format!(
-                "error[native_ir.continuation_id_collision]: continuation id {continuation_id} collides in module `{module}`"
-            ));
-        }
-        wrapper_ids.insert(callee.id, continuation_id);
-    }
-    let completion_id = stable_continuation_id(module, function, arity, *ordinal);
-    *ordinal = ordinal.saturating_add(1);
-    if !stable_ids.insert(completion_id) {
-        return Err(format!(
-            "error[native_ir.continuation_id_collision]: continuation id {completion_id} collides in module `{module}`"
-        ));
-    }
-
-    let mut entry_vars = params.clone();
-    let mut entry_types = param_types.clone();
-    let mut entry_bindings = Vec::with_capacity(region.prefix.len());
-    let mut prefix_names = Vec::with_capacity(region.prefix.len());
-    let mut next_entry_local = next_local_index(&entry_vars);
-    for binding in &region.prefix {
-        let crate::terlan_typeck::CorePattern::Var(name) = &binding.pattern else {
-            return Err(
-                "error[native_ir.call_prefix]: composed call prefix requires scalar variable bindings"
-                    .to_string(),
-            );
-        };
-        if entry_vars.contains_key(name) {
-            return Err(format!(
-                "error[native_ir.call_prefix]: composed call prefix shadows scalar `{name}`"
-            ));
-        }
-        let value_type = super::infer_native_type_with_constructors(
-            &binding.value,
-            &entry_types,
-            function_types,
-            constructors,
-        )
-        .ok_or_else(|| {
-            format!("error[native_ir.call_prefix]: cannot infer scalar prefix `{name}`")
-        })?;
-        let value = lower_expr_with_constructors(
-            &binding.value,
-            &entry_vars,
-            &entry_types,
-            functions,
-            function_types,
-            constructors,
-        )?;
-        entry_bindings.push(value);
-        entry_vars.insert(name.clone(), next_entry_local);
-        entry_types.insert(name.clone(), value_type);
-        prefix_names.push(name.clone());
-        next_entry_local = next_entry_local.saturating_add(1);
-    }
-
-    let mut captures = free_variables(&region.resume);
-    captures.remove(&region.result_name);
-    if let Some(completion) = completion {
-        captures.extend(completion.captures.iter().cloned());
-    }
-    let capture_names = param_names
-        .iter()
-        .chain(prefix_names.iter())
-        .filter(|name| captures.contains(*name))
-        .cloned()
-        .collect::<Vec<_>>();
-    if let Some(unknown) = captures.iter().find(|name| !entry_vars.contains_key(*name)) {
-        return Err(format!(
-            "error[native_ir.call_capture]: continuation references unavailable scalar `{unknown}`"
-        ));
-    }
-    let values = capture_names
-        .iter()
-        .map(|name| {
-            entry_vars
-                .get(name)
-                .copied()
-                .map(NativeExpr::Param)
-                .ok_or_else(|| {
-                    format!("error[native_ir.call_capture]: scalar `{name}` was not materialized")
-                })
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-
-    let capture_types = capture_names
-        .iter()
-        .map(|name| {
-            entry_types.get(name).copied().ok_or_else(|| {
-                format!("error[native_ir.call_type]: scalar `{name}` has no native type")
-            })
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    let result_type = function_types.get(&identity).copied().ok_or_else(|| {
-        format!(
-            "error[native_ir.call_type]: composed call `{}/{}` has no native return type",
-            identity.0, identity.1
-        )
-    })?;
-    let mut resume_names = capture_names.clone();
-    resume_names.push(region.result_name.clone());
-    let mut resume_vars = capture_names
-        .iter()
-        .enumerate()
-        .map(|(capture_index, name)| (name.clone(), capture_index))
-        .collect::<HashMap<_, _>>();
-    resume_vars.insert(region.result_name.clone(), capture_names.len());
-    let mut resume_types = capture_names
-        .iter()
-        .zip(capture_types.iter().copied())
-        .map(|(name, ty)| (name.clone(), ty))
-        .collect::<HashMap<_, _>>();
-    resume_types.insert(region.result_name.clone(), result_type);
-    let resume = std::mem::replace(
-        &mut region.resume,
-        CoreExpr::Atom("$native_moved_resume".to_string()),
-    );
-    let (resumed_caller, nested_continuations) = lower_owned_expr_with_yields(
-        resume,
-        &resume_names,
-        &resume_vars,
-        &resume_types,
-        functions,
-        function_types,
-        constructors,
-        suspending_functions,
-        terminal_profiles,
-        module,
-        function,
-        arity,
-        return_type,
-        ordinal,
-        stable_ids,
-        completion,
-    )?;
-
-    let mut wrappers = Vec::with_capacity(
-        profile
-            .continuations
-            .len()
-            .saturating_add(1)
-            .saturating_add(nested_continuations.len()),
-    );
-    for callee in &profile.continuations {
-        let callee_capture_count = callee.params.len();
-        let mut continuation_params = callee.params.clone();
-        continuation_params.extend(capture_types.iter().copied());
-        let rebased_body =
-            rebase_callee_locals(&callee.body, callee_capture_count, capture_names.len());
-        let body = wrap_composed_continuation(
-            &rebased_body,
-            callee_capture_count,
-            capture_names.len(),
-            &wrapper_ids,
-            completion_id,
-        )?;
-        wrappers.push(NativeContinuation {
-            id: wrapper_ids[&callee.id],
-            source_module: module.to_string(),
-            source_function: function.to_string(),
-            source_arity: arity,
-            params: continuation_params,
-            return_type,
-            body,
-        });
-    }
-    let mut completion_params = capture_types;
-    completion_params.push(result_type);
-    wrappers.push(NativeContinuation {
-        id: completion_id,
-        source_module: module.to_string(),
-        source_function: function.to_string(),
-        source_arity: arity,
-        params: completion_params,
-        return_type,
-        body: resumed_caller,
-    });
-    wrappers.extend(nested_continuations);
-    let first_callee = &profile.continuations[0];
-    let args = region
-        .args
-        .iter()
-        .map(|arg| {
-            lower_expr_with_constructors(
-                arg,
-                &entry_vars,
-                &entry_types,
+    let typed_value = expected_core
+        .map(|expected_core| {
+            super::collection_values::try_lower_typed_value(
+                expr,
+                expected_core,
+                params,
+                param_types,
                 functions,
                 function_types,
                 constructors,
             )
+            .map_err(|error| {
+                format!(
+                    "{error}; while lowering typed aggregate result of `{module}.{function}/{arity}` as `{}`",
+                    expected_core.contract_text()
+                )
+            })
         })
-        .collect::<Result<Vec<_>, _>>()?;
-    let call = NativeExpr::CallThen {
-        function: function_index,
-        args,
-        callee_continuation_id: first_callee.id,
-        callee_capture_count: first_callee.params.len(),
-        continuation_id: wrapper_ids[&first_callee.id],
-        completion_continuation_id: completion_id,
-        completion_function: None,
-        values,
-    };
-    Ok((
-        if entry_bindings.is_empty() {
-            call
-        } else {
-            NativeExpr::Let {
-                bindings: entry_bindings,
-                body: Box::new(call),
+        .transpose()?
+        .flatten();
+    let value = if let Some(value) = typed_value {
+        value
+    } else if let Some(value) =
+        super::constructors::lower_zero_field_managed_variant(expr, expected_type, constructors)?
+    {
+        value
+    } else {
+        match (expr, expected_type) {
+            (CoreExpr::List(items), NativeType::ManagedRef(semantic)) if items.is_empty() => {
+                NativeExpr::ManagedOperation {
+                    encoded: Arc::from(encode_list_empty_operation(semantic)),
+                    args: Vec::new(),
+                }
             }
-        },
-        wrappers,
-    ))
+            (CoreExpr::ListCons { head, tail }, NativeType::ManagedRef(semantic)) => {
+                NativeExpr::ManagedOperation {
+                    encoded: Arc::from(encode_list_prepend_operation(semantic)),
+                    args: vec![lower_current_lexical(head)?, lower_current_lexical(tail)?],
+                }
+            }
+            _ => super::structured_case::lower_lexical_expr(
+                expr,
+                params,
+                param_types,
+                param_core_types,
+                super::structured_case::StructuredCaseEnvironment {
+                    functions,
+                    function_types,
+                    function_core_types,
+                    constructors,
+                },
+            )?,
+        }
+    };
+    Ok((complete(value, completion, params)?, Vec::new()))
 }
-include!("control_gated.rs");
+#[path = "control/prepared_call.rs"]
+mod prepared_call;
+use prepared_call::*;
 
-#[allow(clippy::too_many_arguments)]
-fn lower_prepared_yield(
-    region: &YieldRegion,
-    param_names: &[String],
-    params: &HashMap<String, usize>,
-    param_types: &HashMap<String, NativeType>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    constructors: &NativeConstructorLayouts,
-    suspending_functions: &HashSet<(String, usize)>,
-    terminal_profiles: &HashMap<usize, ComposedCallProfile>,
-    module: &str,
-    function: &str,
-    arity: usize,
-    return_type: NativeType,
-    ordinal: &mut usize,
-    stable_ids: &mut HashSet<u64>,
-    completion: Option<&CompletionTarget>,
-) -> Result<(NativeExpr, Vec<NativeContinuation>), String> {
-    let continuation_id = stable_continuation_id(module, function, arity, *ordinal);
-    *ordinal = ordinal.saturating_add(1);
-    if !stable_ids.insert(continuation_id) {
-        return Err(format!(
-            "error[native_ir.continuation_id_collision]: continuation id {continuation_id} collides in module `{module}`"
-        ));
-    }
-    let lowered = lower_yield_region(
-        region,
-        param_names,
-        params,
-        param_types,
-        functions,
-        function_types,
-        constructors,
-        continuation_id,
-    )?;
-    let (resume_body, nested) = lower_owned_expr_with_yields(
-        lowered.resume.clone(),
-        &lowered.resume_names,
-        &lowered.resume_vars,
-        &lowered.resume_types,
-        functions,
-        function_types,
-        constructors,
-        suspending_functions,
-        terminal_profiles,
-        module,
-        function,
-        arity,
-        return_type,
-        ordinal,
-        stable_ids,
-        completion,
-    )?;
-    let mut continuations = Vec::with_capacity(nested.len() + 1);
-    continuations.push(NativeContinuation {
-        id: continuation_id,
-        source_module: module.to_string(),
-        source_function: function.to_string(),
-        source_arity: arity,
-        params: lowered.continuation_params,
-        return_type,
-        body: resume_body,
-    });
-    continuations.extend(nested);
-    Ok((lowered.entry, continuations))
-}
+mod gated_call;
+mod let_binding;
+mod yield_lowering;
+
+use gated_call::lower_gated_prepared_call;
+use let_binding::lower_suspending_let_binding;
+use yield_lowering::lower_prepared_yield;

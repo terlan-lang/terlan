@@ -1,0 +1,871 @@
+/**
+ * Validates the checked-in Angular.ts integration through typed VM capabilities.
+ */
+module scripts.self_validation.AngularTsIntegrationTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.{copy_tree_excluding, create_all, create_symbolic_link, create_temporary, entries, files_recursive, remove_all}.
+import std.io.File.{exists, read_text, read_text_many, text_file_contents, text_file_path, write_text}.
+import std.system.{Arguments, Environment, Process}.
+
+import type std.io.File.TextFile.
+
+struct Patch {
+    valid: Bool,
+    text: String,
+}.
+
+@pure
+valid_patch(text: String): Patch ->
+    Patch(valid = true, text = text).
+
+@pure
+invalid_patch(): Patch ->
+    Patch(valid = false, text = "").
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+@pure
+child(root: String, relative: String): String ->
+    if {
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+@pure
+contains_all(text: String, markers: List[String]): Bool ->
+    case markers {
+        [] -> true;
+        [marker | rest] ->
+            if {
+                String.contains(text, marker) -> contains_all(text, rest);
+                true -> false
+            }
+    }.
+
+file_contains_all(path: String, markers: List[String]): Bool ->
+    case read_text(path) {
+        Ok(text) -> contains_all(text, markers);
+        Err(_reason) -> false
+    }.
+
+@pure
+supported_mode(mode: String): Bool ->
+    mode == "integration" or mode == "namespace" or mode == "app-ownership".
+
+print_process_failure(output: std.system.Process.Output): Bool ->
+    if {
+        Process.status(output) == 0 -> false;
+        true -> false
+    }.
+
+@pure
+make_arguments(
+    integration: String,
+    target: String,
+    compiler: String,
+    browser: Bool,
+): List[String] ->
+    if {
+        browser -> ["-C", integration, target, String.append("TERLC=", compiler)];
+        true -> ["-C", integration, target, String.append("TERLC=", compiler), "APP_BROWSER_TARGET="]
+    }.
+
+run_make(integration: String, target: String, compiler: String, browser: Bool): Bool ->
+    let limits = Process.limits();
+    let command =
+        Process.with_output_limit_bytes(
+            Process.with_timeout_ms(
+                Process.with_arguments(
+                    Process.command("make"),
+                    make_arguments(integration, target, compiler, browser),
+                ),
+                600000,
+            ),
+            Process.maximum_output_bytes(limits),
+        );
+    case Process.run(command) {
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> true;
+                true -> print_process_failure(output)
+            };
+        Err(_reason) -> false
+    }.
+
+run_package_mode(root: String, workspace: String, mode: String, browser: Bool): Bool ->
+    let compiler = child(root, "target/debug/terlc");
+    let js = child(workspace, "integrations/terlan");
+    let wasm = child(workspace, "integrations/wasm/terlan");
+    if {
+        mode == "namespace" -> run_make(js, "namespace-check", compiler, false)
+            and run_make(wasm, "namespace-check", compiler, false);
+        mode == "app-ownership" -> run_make(js, "app-ownership-check", compiler, browser);
+        mode == "integration" -> run_make(js, "check", compiler, browser) and run_make(wasm, "check", compiler, false);
+        true -> false
+    }.
+
+hermetic_integration_holds(root: String, mode: String): Bool ->
+    case create_temporary("terlan-angular-ts") {
+        Ok(temporary) ->
+            let workspace = child(temporary, "angular.ts");
+            let copied = copy_tree_excluding(child(root, "tests/fixtures/angular_ts"), workspace, []);
+            let passed =
+                case copied {
+                    Ok(_unit) -> run_package_mode(root, workspace, mode, false);
+                    Err(_reason) -> false
+                };
+            let cleaned = remove_all(temporary);
+            case cleaned {
+                Ok(_unit) -> passed;
+                Err(_reason) -> false
+            };
+        Err(_reason) -> false
+    }.
+
+selected_external_root(root: String): Option[String] ->
+    case Environment.get("ANGULAR_TS_ROOT") {
+        Some(explicit) -> Some(explicit);
+        None ->
+            first_external_root(
+                [
+                    child(root, "../angular.ts"),
+                    child(root, "../../angular.ts"),
+                    child(root, "../../ng/angular.ts"),
+                ],
+            )
+    }.
+
+first_external_root(candidates: List[String]): Option[String] ->
+    case candidates {
+        [] -> None;
+        [candidate | rest] ->
+            if {
+                exists(child(candidate, "Makefile"))
+                    and exists(child(candidate, "@types/namespace.d.ts")) -> Some(candidate);
+                true -> first_external_root(rest)
+            }
+    }.
+
+external_root_holds(root: String): Bool ->
+    file_contains_all(
+    child(root, "Makefile"),
+    [
+        "test-integrations:",
+        "generated-check:",
+        "integrations/closure/Makefile",
+        "integrations/kotlin",
+        "integrations/wasm/rust",
+    ],
+)
+        and exemplar_integrations_hold(root)
+        and external_sse_runtime_holds(root)
+        and external_declarations_hold(root).
+
+exemplar_integrations_hold(root: String): Bool ->
+    exists(child(root, "integrations/closure/README.md"))
+        and exists(child(root, "integrations/closure/Makefile"))
+        and exists(child(root, "integrations/kotlin/README.md"))
+        and exists(child(root, "integrations/kotlin/Makefile"))
+        and exists(child(root, "integrations/gleam/README.md"))
+        and exists(child(root, "integrations/gleam/Makefile")).
+
+external_sse_runtime_holds(root: String): Bool ->
+    let source = child(root, "src/services/sse/sse.ts");
+    let distribution = child(root, "dist/services/sse/sse.js");
+    if {
+        exists(source) -> file_contains_all(source, ["createSseService", "EventSource", "ConnectionManager"]);
+        exists(distribution) -> file_contains_all(distribution, ["createSseService", "EventSource", "ConnectionManager"]);
+        true -> false
+    }.
+
+external_declarations_hold(root: String): Bool ->
+    file_contains_all(
+    child(root, "@types/services/sse/sse.d.ts"),
+    [
+        "export interface SseConfig",
+        "extends ConnectionConfig",
+        "export interface SseConnection",
+        "close(): void;",
+        "reconnect(): void;",
+        "export type SseService",
+    ],
+)
+        and file_contains_all(
+    child(root, "@types/namespace.d.ts"),
+    [
+        "type SseService = TSseService;",
+        "type SseConfig = TSseConfig;",
+        "type SseConnection = TSseConnection;",
+        "type RealtimeProtocolEventDetail",
+        "type RealtimeProtocolMessage",
+    ],
+)
+        and file_contains_all(
+    child(root, "@types/ng.d.ts"),
+    ["ngSseDirective", "$sse: RuntimeRegistrationRecipe;"],
+)
+        and file_contains_all(
+    child(root, "@types/interface.d.ts"),
+    ["$sse: ng.SseService;", "readonly $sse: \"$sse\";"],
+)
+        and file_contains_all(child(root, "@types/directive/http/http.d.ts"), ["ngSseDirective"]).
+
+external_contract_holds(root: String): Bool ->
+    case selected_external_root(root) {
+        Some(external) ->
+            external_root_holds(external)
+                and external_execution_holds(root, external, selected_mode());
+        None -> true
+    }.
+
+selected_mode(): String ->
+    environment_or("TERLAN_ANGULAR_TS_MODE", "integration").
+
+link_external_directory(external: String, workspace: String, name: String): Bool ->
+    let source = child(external, name);
+    let destination = child(workspace, name);
+    let {
+        Ok(_children) <- entries(source);
+        Ok(_unit) <- create_symbolic_link(source, destination)
+    } else {
+        _ -> false
+    };
+    true.
+
+link_external_runtime(external: String, workspace: String, mode: String): Bool ->
+    if {
+        mode == "namespace" -> link_external_directory(external, workspace, "@types");
+        true -> link_external_directory(external, workspace, "@types")
+            and link_external_directory(external, workspace, "dist")
+            and link_external_directory(external, workspace, "node_modules")
+    }.
+
+copy_external_workspace(root: String, external: String, workspace: String): Bool ->
+    let integrations = child(workspace, "integrations");
+    let created = create_all(workspace);
+    let copied = copy_tree_excluding(child(root, "tests/fixtures/angular_ts/integrations"), integrations, []);
+    let makefile = read_text(child(external, "Makefile"));
+    let {
+        {Ok(_created), Ok(_copied), Ok(contents)} <- {created, copied, makefile};
+        Ok(_written) <- write_text(child(workspace, "Makefile"), contents)
+    } else {
+        _ -> false
+    };
+    true.
+
+external_execution_holds(root: String, external: String, mode: String): Bool ->
+    case create_temporary("terlan-angular-ts-external") {
+        Ok(temporary) ->
+            let workspace = child(temporary, "angular.ts");
+            let prepared = copy_external_workspace(root, external, workspace);
+            let linked =
+                if {
+                    prepared -> link_external_runtime(external, workspace, mode);
+                    true -> false
+                };
+            let passed =
+                if {
+                    linked -> run_package_mode(root, workspace, mode, true);
+                    true -> false
+                };
+            let cleaned = remove_all(temporary);
+            case cleaned {
+                Ok(_unit) -> passed;
+                Err(_reason) -> false
+            };
+        Err(_reason) -> false
+    }.
+
+@pure
+join_lines(lines: List[String]): String ->
+    case lines {
+        [] -> "";
+        [line] -> line;
+        [line | rest] -> String.append(line, String.append("\n", join_lines(rest)))
+    }.
+
+@pure
+insert_hook_after_target(
+    lines: List[String],
+    target: String,
+    hook: String,
+    prefix: String,
+): Option[String] ->
+    case lines {
+        [] -> None;
+        [line | rest] ->
+            let line_with_end = String.append(line, "\n");
+            if {
+                String.starts_with(line, target) -> Some(
+                    String.append(
+                        prefix,
+                        String.append(
+                            line_with_end,
+                            String.append(hook, String.append("\n", join_lines(rest))),
+                        ),
+                    ),
+                );
+                true -> insert_hook_after_target(rest, target, hook, String.append(prefix, line_with_end))
+            }
+    }.
+
+@pure
+apply_one_root_hook(text: String, target: String, hook: String): Option[String] ->
+    if {
+        String.contains(text, hook) -> Some(text);
+        true -> insert_hook_after_target(String.split(text, "\n"), target, hook, "")
+    }.
+
+@pure
+apply_root_makefile_hooks(text: String): Option[String] ->
+    let {
+        Some(first) <-
+            apply_one_root_hook(
+                text,
+                "generated-check:",
+                "\t@$(MAKE) -C integrations/terlan generate-check",
+            );
+        Some(second) <-
+            apply_one_root_hook(
+                first,
+                "generated-check:",
+                "\t@$(MAKE) -C integrations/wasm/terlan generate-check",
+            );
+        Some(third) <-
+            apply_one_root_hook(
+                second,
+                "test-integrations:",
+                "\t@$(MAKE) -C integrations/terlan check",
+            )
+    } else {
+        _ -> None
+    };
+    apply_one_root_hook(third, "test-integrations:", "\t@$(MAKE) -C integrations/wasm/terlan check").
+
+root_makefile_wiring_holds(root: String): Bool ->
+    file_contains_all(
+        child(root, "Makefile"),
+        [
+            "@$(MAKE) -C integrations/terlan generate-check",
+            "@$(MAKE) -C integrations/wasm/terlan generate-check",
+            "@$(MAKE) -C integrations/terlan check",
+            "@$(MAKE) -C integrations/wasm/terlan check",
+        ],
+    ).
+
+patch_root_makefile(root: String): Bool ->
+    let {
+        Ok(text) <- read_text(child(root, "Makefile"));
+        Some(patched) <- apply_root_makefile_hooks(text);
+        Ok(_unit) <- write_text(child(root, "Makefile"), patched)
+    } else {
+        _ -> false
+    };
+    root_makefile_wiring_holds(root).
+
+@pure
+line_count(text: String): Int ->
+    if {
+        text == "" -> 0;
+        String.ends_with(text, "\n") -> List.length(String.split(text, "\n")) - 1;
+        true -> List.length(String.split(text, "\n"))
+    }.
+
+@pure
+render_prefixed_lines(lines: List[String], prefix: String): String ->
+    case lines {
+        [] -> "";
+        [line] ->
+            if {
+                line == "" -> "";
+                true -> String.append(prefix, line)
+            };
+        [line | rest] ->
+            case rest {
+                [""] -> String.append(prefix, line);
+                _ ->
+                    String.append(
+                        prefix,
+                        String.append(
+                            line,
+                            String.append("\n", render_prefixed_lines(rest, prefix)),
+                        ),
+                    )
+            }
+    }.
+
+@pure
+diff_range(text: String): String ->
+    let count = line_count(text);
+    if {
+        count == 0 -> "0,0";
+        true -> String.append("1,", std.core.Int.to_string(count))
+    }.
+
+@pure
+unified_text_diff(
+    before_text: String,
+    after_text: String,
+    before_path: String,
+    after_path: String,
+): String ->
+    if {
+        before_text == after_text -> "";
+        true -> let header =
+            String.append(
+                "--- ",
+                String.append(
+                    before_path,
+                    String.append(
+                        "\n+++ ",
+                        String.append(
+                            after_path,
+                            String.append(
+                                "\n@@ -",
+                                String.append(
+                                    diff_range(before_text),
+                                    String.append(
+                                        " +",
+                                        String.append(diff_range(after_text), " @@"),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            );
+        let removed = render_prefixed_lines(String.split(before_text, "\n"), "-");
+        let added = render_prefixed_lines(String.split(after_text, "\n"), "+");
+        append_nonempty_patch(append_nonempty_patch(header, removed), added)
+    }.
+
+@pure
+append_nonempty_patch(current: String, next: String): String ->
+    if {
+        current == "" -> next;
+        next == "" -> current;
+        true -> String.append(current, String.append("\n", next))
+    }.
+
+@pure
+relative_fixture_path(root: String, path: String): String ->
+    let prefix = child(root, "");
+    case String.split_once(path, prefix) {
+        Some({before, relative}) ->
+            if {
+                before == "" and relative != "" -> relative;
+                true -> ""
+            };
+        None -> ""
+    }.
+
+@pure
+render_application_files(files: List[TextFile], fixture_root: String, patch: String): Patch ->
+    case files {
+        [] -> valid_patch(patch);
+        [file | rest] ->
+            let relative = relative_fixture_path(fixture_root, text_file_path(file));
+            if {
+                relative == "" -> invalid_patch();
+                true -> let destination = String.append("b/integrations/", relative);
+                let file_patch = unified_text_diff("", text_file_contents(file), "/dev/null", destination);
+                render_application_files(
+                    rest,
+                    fixture_root,
+                    append_nonempty_patch(patch, file_patch),
+                )
+            }
+    }.
+
+root_makefile_patch(root: String): Patch ->
+    let {
+        Ok(current) <- read_text(child(root, "Makefile"));
+        Some(patched) <- apply_root_makefile_hooks(current)
+    } else {
+        _ -> invalid_patch()
+    };
+    valid_patch(unified_text_diff(current, patched, "a/Makefile", "b/Makefile")).
+
+application_patch(root: String, angular_root: String): Patch ->
+    let fixture_root = child(root, "tests/fixtures/angular_ts/integrations");
+    let makefile_patch = root_makefile_patch(angular_root);
+    if {
+        not makefile_patch.valid -> invalid_patch();
+        true -> let {
+            Ok(paths) <- files_recursive(fixture_root);
+            Ok(files) <- read_text_many(paths)
+        } else {
+            _ -> invalid_patch()
+        };
+        render_application_files(files, fixture_root, makefile_patch.text)
+    }.
+
+directory_is_present(path: String): Bool ->
+    case entries(path) {
+        Ok(_entries) -> true;
+        Err(_reason) -> false
+    }.
+
+remove_destination_for_materialization(path: String, force: Bool): Bool ->
+    case entries(path) {
+        Ok([]) ->
+            case remove_all(path) {
+                Ok(_unit) -> true;
+                Err(_reason) -> false
+            };
+        Ok(_entries) ->
+            if {
+                force -> case remove_all(path) {
+                    Ok(_unit) -> true;
+                    Err(_reason) -> false
+                };
+                true -> false
+            };
+        Err(_reason) -> true
+    }.
+
+materialize_package(source: String, destination: String, force: Bool): Bool ->
+    remove_destination_for_materialization(destination, force)
+        and case copy_tree_excluding(source, destination, []) {
+    Ok(_unit) -> true;
+    Err(_reason) -> false
+}.
+
+materialize_integration(root: String, angular_root: String, force: Bool): Bool ->
+    if {
+        directory_is_present(child(angular_root, "integrations")) -> case create_all(child(angular_root, "integrations/wasm")) {
+            Ok(_unit) -> materialize_integration_packages(root, angular_root, force);
+            Err(_reason) -> false
+        };
+        true -> false
+    }.
+
+materialize_integration_packages(root: String, angular_root: String, force: Bool): Bool ->
+    if {
+        materialize_package(
+            child(root, "tests/fixtures/angular_ts/integrations/terlan"),
+            child(angular_root, "integrations/terlan"),
+            force,
+        ) -> materialize_package(
+            child(root, "tests/fixtures/angular_ts/integrations/wasm/terlan"),
+            child(angular_root, "integrations/wasm/terlan"),
+            force,
+        );
+        true -> false
+    }.
+
+check_materialized_integration(root: String, angular_root: String): Bool ->
+    external_root_holds(angular_root)
+        and root_makefile_wiring_holds(angular_root)
+        and run_package_mode(root, angular_root, "integration", true).
+
+argument_is_present_from(expected: String, index: Int, count: Int): Bool ->
+    if {
+        index >= count -> false;
+        true -> case Arguments.get(index) {
+            Some(value) ->
+                value == expected or argument_is_present_from(expected, index + 1, count);
+            None -> false
+        }
+    }.
+
+materialize_options_hold(index: Int, count: Int): Bool ->
+    if {
+        index >= count -> true;
+        true -> case Arguments.get(index) {
+            Some("--force") -> materialize_options_hold(index + 1, count);
+            Some("--patch-root-makefile") -> materialize_options_hold(index + 1, count);
+            _ -> false
+        }
+    }.
+
+check_materialized_options_hold(index: Int, count: Int): Bool ->
+    if {
+        index >= count -> true;
+        true -> case Arguments.get(index) {
+            Some("--patch-root-makefile") -> check_materialized_options_hold(index + 1, count);
+            _ -> false
+        }
+    }.
+
+tool_root(): String ->
+    environment_or("TERLAN_REPOSITORY_ROOT", Environment.current_directory()).
+
+fail_tool(code: Int, message: String): Bool ->
+    let _printed = eprintln(message);
+    let _failed = std.vm.Process.fail(std.vm.Process.exit_reason(code));
+    false.
+
+finish_tool(passed: Bool): Bool ->
+    finish_tool_with_message(passed, "").
+
+finish_tool_with_message(passed: Bool, message: String): Bool ->
+    if {
+        passed -> if {
+            message == "" -> true;
+            true -> let _printed = println(message);
+            true
+        };
+        true -> fail_tool(1, "angular-ts Terlan integration failed")
+    }.
+
+run_selected_tool_mode(mode: String): Bool ->
+    let root = tool_root();
+    finish_tool_with_message(
+        supported_mode(mode)
+            and hermetic_integration_holds(root, mode)
+            and external_contract_holds(root),
+        String.append("angular-ts Terlan ", String.append(mode, " boundary passed")),
+    ).
+
+run_materialize_tool(angular_root: String): Bool ->
+    let count = Arguments.count();
+    let force = argument_is_present_from("--force", 2, count);
+    let patch = argument_is_present_from("--patch-root-makefile", 2, count);
+    let root = tool_root();
+    let materialized = materialize_integration(root, angular_root, force);
+    let passed =
+        if {
+            materialized and patch -> patch_root_makefile(angular_root);
+            true -> materialized
+        };
+    finish_tool_with_message(
+        passed,
+        String.append(
+            "angular-ts Terlan integration materialized: ",
+            child(angular_root, "integrations/terlan"),
+        ),
+    ).
+
+run_check_materialized_tool(angular_root: String): Bool ->
+    let patched =
+        if {
+            argument_is_present_from("--patch-root-makefile", 2, Arguments.count()) -> patch_root_makefile(angular_root);
+            true -> true
+        };
+    let root = tool_root();
+    let valid =
+        if {
+            patched -> check_materialized_integration(root, angular_root);
+            true -> false
+        };
+    finish_tool_with_message(
+        valid,
+        String.append(
+            "angular-ts Terlan integration materialized package passed: ",
+            child(angular_root, "integrations/terlan"),
+        ),
+    ).
+
+run_root_patch_tool(angular_root: String): Bool ->
+    let patch = root_makefile_patch(angular_root);
+    if {
+        not patch.valid -> finish_tool(false);
+        patch.text == "" -> finish_tool_with_message(
+            true,
+            "angular-ts root Makefile already contains Terlan integration hooks",
+        );
+        true -> let _printed = println(patch.text);
+        true
+    }.
+
+run_application_patch_tool(angular_root: String): Bool ->
+    let root = tool_root();
+    finish_application_patch(application_patch(root, angular_root)).
+
+finish_application_patch(patch: Patch): Bool ->
+    if {
+        patch.valid -> let _printed = println(patch.text);
+        true;
+        true -> finish_tool(false)
+    }.
+
+pub main(): Bool ->
+    let count = Arguments.count();
+    case Arguments.get(0) {
+        None -> run_selected_tool_mode("integration");
+        Some("--namespace-generation-check") ->
+            if {
+                count == 1 -> run_selected_tool_mode("namespace");
+                true -> fail_tool(2, "--namespace-generation-check accepts no additional arguments")
+            };
+        Some("--facade-parity-check") ->
+            if {
+                count == 1 -> run_selected_tool_mode("namespace");
+                true -> fail_tool(2, "--facade-parity-check accepts no additional arguments")
+            };
+        Some("--facade-parity-hardening-check") ->
+            if {
+                count == 1 -> run_selected_tool_mode("integration");
+                true -> fail_tool(2, "--facade-parity-hardening-check accepts no additional arguments")
+            };
+        Some("--app-ownership-check") ->
+            if {
+                count == 1 -> run_selected_tool_mode("app-ownership");
+                true -> fail_tool(2, "--app-ownership-check accepts no additional arguments")
+            };
+        Some("--materialize") ->
+            case Arguments.get(1) {
+                Some(root) ->
+                    if {
+                        materialize_options_hold(2, count) -> run_materialize_tool(root);
+                        true -> fail_tool(2, "--materialize accepts only --force and --patch-root-makefile")
+                    };
+                None -> fail_tool(2, "--materialize requires ANGULAR_TS_ROOT")
+            };
+        Some("--check-materialized") ->
+            case Arguments.get(1) {
+                Some(root) ->
+                    if {
+                        check_materialized_options_hold(2, count) -> run_check_materialized_tool(root);
+                        true -> fail_tool(2, "--check-materialized accepts only --patch-root-makefile")
+                    };
+                None -> fail_tool(2, "--check-materialized requires ANGULAR_TS_ROOT")
+            };
+        Some("--print-root-makefile-patch") ->
+            case Arguments.get(1) {
+                Some(root) ->
+                    if {
+                        count == 2 -> run_root_patch_tool(root);
+                        true -> fail_tool(2, "--print-root-makefile-patch accepts one ANGULAR_TS_ROOT")
+                    };
+                None -> fail_tool(2, "--print-root-makefile-patch requires ANGULAR_TS_ROOT")
+            };
+        Some("--print-application-patch") ->
+            case Arguments.get(1) {
+                Some(root) ->
+                    if {
+                        count == 2 -> run_application_patch_tool(root);
+                        true -> fail_tool(2, "--print-application-patch accepts one ANGULAR_TS_ROOT")
+                    };
+                None -> fail_tool(2, "--print-application-patch requires ANGULAR_TS_ROOT")
+            };
+        Some("--patch-root-makefile") ->
+            fail_tool(2, "--patch-root-makefile requires --materialize or --check-materialized");
+        Some("--force") -> fail_tool(2, "--force requires --materialize");
+        Some(unsupported) ->
+            fail_tool(
+                2,
+                String.append("unsupported Angular.ts integration argument: ", unsupported),
+            )
+    }.
+
+repository_gate(): Bool ->
+    let root = environment_or("TERLAN_ANGULAR_TS_ROOT", Environment.current_directory());
+    let mode = selected_mode();
+    supported_mode(mode)
+        and hermetic_integration_holds(root, mode)
+        and external_contract_holds(root).
+
+@test
+pub selected_angular_ts_integration_holds(): Bool ->
+    repository_gate().
+
+@test
+pub selected_external_angular_ts_contract_holds(): Bool ->
+    let current = Environment.current_directory();
+    let root = environment_or("TERLAN_ANGULAR_TS_ROOT", current);
+    external_contract_holds(root).
+
+@test
+pub selected_hermetic_angular_ts_package_holds(): Bool ->
+    let current = Environment.current_directory();
+    let root = environment_or("TERLAN_ANGULAR_TS_ROOT", current);
+    let mode = selected_mode();
+    hermetic_integration_holds(root, mode).
+
+@test
+pub unsupported_angular_mode_is_rejected(): Bool ->
+    supported_mode("integration")
+        and supported_mode("namespace")
+        and supported_mode("app-ownership")
+        and not supported_mode("unknown").
+
+@test
+pub root_makefile_hooks_are_complete_and_idempotent(): Bool ->
+    let source = "generated-check: types\n\t@echo generated\n\ntest-integrations: ensure-deps\n\t@echo tests\n";
+    case apply_root_makefile_hooks(source) {
+        Some(first) ->
+            contains_all(
+    first,
+    [
+        "generated-check: types\n\t@$(MAKE) -C integrations/wasm/terlan generate-check\n\t@$(MAKE) -C integrations/terlan generate-check",
+        "test-integrations: ensure-deps\n\t@$(MAKE) -C integrations/wasm/terlan check\n\t@$(MAKE) -C integrations/terlan check",
+    ],
+)
+                and case apply_root_makefile_hooks(first) {
+    Some(second) -> second == first;
+    None -> false
+};
+        None -> false
+    }.
+
+@test
+pub unified_patch_is_deterministic_and_complete(): Bool ->
+    unified_text_diff("one\ntwo\n", "one\nthree\n", "a/value.txt", "b/value.txt") == "--- a/value.txt\n+++ b/value.txt\n@@ -1,2 +1,2 @@\n-one\n-two\n+one\n+three"
+        and unified_text_diff("same\n", "same\n", "a/same", "b/same") == "".
+
+@test
+pub application_patch_covers_both_checked_packages(): Bool ->
+    let root = environment_or("TERLAN_ANGULAR_TS_ROOT", Environment.current_directory());
+    let makefile = "generated-check: types\n\ntest-integrations: ensure-deps\n";
+    case apply_root_makefile_hooks(makefile) {
+        Some(patched) ->
+            let root_patch = unified_text_diff(makefile, patched, "a/Makefile", "b/Makefile");
+            let js_patch = unified_text_diff("", "js\n", "/dev/null", "b/integrations/terlan/Makefile");
+            let wasm_patch = unified_text_diff("", "wasm\n", "/dev/null", "b/integrations/wasm/terlan/Makefile");
+            let combined = append_nonempty_patch(append_nonempty_patch(root_patch, js_patch), wasm_patch);
+            root != ""
+                and contains_all(
+    combined,
+    [
+        "--- a/Makefile",
+        "+++ b/integrations/terlan/Makefile",
+        "+++ b/integrations/wasm/terlan/Makefile",
+    ],
+);
+        None -> false
+    }.
+
+@test
+pub typed_materialization_copies_packages_and_patches_root(): Bool ->
+    let root = environment_or("TERLAN_ANGULAR_TS_ROOT", Environment.current_directory());
+    case create_temporary("terlan-angular-tool-materialize") {
+        Ok(temporary) -> typed_materialization_temporary_holds(root, temporary);
+        Err(_reason) -> false
+    }.
+
+typed_materialization_temporary_holds(root: String, temporary: String): Bool ->
+    let angular = child(temporary, "angular.ts");
+    let materialized = typed_materialization_workspace_holds(root, angular);
+    let cleaned = remove_all(temporary);
+    case cleaned {
+        Ok(_unit) -> materialized;
+        Err(_reason) -> false
+    }.
+
+typed_materialization_workspace_holds(root: String, angular: String): Bool ->
+    let integrations = child(angular, "integrations");
+    let created = create_all(integrations);
+    let makefile =
+        write_text(
+            child(angular, "Makefile"),
+            "generated-check: types\n\ntest-integrations: ensure-deps\n",
+        );
+    case {created, makefile} {
+        {Ok(_created), Ok(_written)} ->
+            materialize_integration(root, angular, false)
+                and patch_root_makefile(angular)
+                and exists(child(angular, "integrations/terlan/Makefile"))
+                and exists(child(angular, "integrations/wasm/terlan/Makefile"));
+        _ -> false
+    }.

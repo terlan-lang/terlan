@@ -1,0 +1,336 @@
+/**
+ * Enforces acyclic Cargo ownership, isolated tool features, and source-level
+ * crate boundaries without a Python control plane.
+ */
+module rust_quality.BuildGraphBoundary.
+
+import rust_quality.{BuildGraphPolicy, CanonicalTypes, CargoMetadata, SourceInventory}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.File.
+
+import type rust_quality.CargoMetadata.GraphNode.
+import type std.core.Option.
+import type std.data.Json.
+
+struct WorkItem {
+    name: String,
+    path: List[String],
+}.
+
+struct FeatureTarget {
+    name: String,
+    feature: String,
+}.
+
+struct AstResult {
+    valid: Bool,
+    diagnostics: List[String],
+    message: String,
+}.
+
+@pure
+prepend_work(
+    dependencies: List[String],
+    path: List[String],
+    pending: List[WorkItem],
+): List[WorkItem] ->
+    case dependencies {
+        [] -> pending;
+        [dependency | rest] ->
+            prepend_work(rest, path, [WorkItem(name = dependency, path = path) | pending])
+    }.
+
+@pure
+has_cycle(pending: List[WorkItem], nodes: List[GraphNode]): Bool ->
+    case pending {
+        [] -> false;
+        [item | rest] ->
+            if {
+                CargoMetadata.contains(item.path, item.name) -> true;
+                true -> case CargoMetadata.find_node(item.name, nodes) {
+                    None -> has_cycle(rest, nodes);
+                    Some(node) ->
+                        let expanded = prepend_work(node.dependencies, [item.name | item.path], rest);
+                        has_cycle(expanded, nodes)
+                }
+            }
+    }.
+
+@pure
+cycle_diagnostics_at(
+    nodes: List[GraphNode],
+    all: List[GraphNode],
+    output: List[String],
+): List[String] ->
+    case nodes {
+        [] -> SourceInventory.reverse(output);
+        [node | rest] ->
+            let pending = [WorkItem(name = node.name, path = List.new[String]())];
+            if {
+                has_cycle(pending, all) -> cycle_diagnostics_at(
+                    rest,
+                    all,
+                    [String.append("workspace dependency cycle involving `", String.append(node.name, "`")) | output],
+                );
+                true -> cycle_diagnostics_at(rest, all, output)
+            }
+    }.
+
+@pure
+cycle_diagnostics(nodes: List[GraphNode]): List[String] ->
+    cycle_diagnostics_at(nodes, nodes, List.new[String]()).
+
+@pure
+required_targets(): List[FeatureTarget] ->
+    [
+        FeatureTarget(name = "terlan-lsp", feature = "editor-lsp"),
+        FeatureTarget(name = "terlan-quality", feature = "quality-tools"),
+        FeatureTarget(name = "terlan-native-target-feasibility", feature = "quality-tools"),
+        FeatureTarget(name = "terlan-lean-proof-closeout", feature = "quality-tools"),
+        FeatureTarget(name = "terlan-benchmark", feature = "benchmark-tools"),
+        FeatureTarget(name = "terlan-http-paired-benchmark", feature = "benchmark-tools"),
+    ].
+
+package_named(packages: Json, index: Int, count: Int, expected: String): Option[Json] ->
+    if {
+        index == count -> None;
+        true -> let {
+            Ok(package) <- Json.at(packages, index);
+            Ok(name_value) <- Json.get(package, "name");
+            Ok(name) <- Json.as_string(name_value)
+        } else {
+            _ -> None
+        };
+        if {
+            name == expected -> Some(package);
+            true -> package_named(packages, index + 1, count, expected)
+        }
+    }.
+
+target_has_feature(targets: Json, index: Int, count: Int, expected: FeatureTarget): Bool ->
+    if {
+        index == count -> false;
+        true -> let {
+            Ok(target) <- Json.at(targets, index);
+            Ok(name_value) <- Json.get(target, "name");
+            Ok(name) <- Json.as_string(name_value)
+        } else {
+            _ -> false
+        };
+        if {
+            name != expected.name -> target_has_feature(targets, index + 1, count, expected);
+            true -> case CargoMetadata.object_string_array(target, "required-features") {
+                Some(features) -> CargoMetadata.contains(features, expected.feature);
+                None -> false
+            }
+        }
+    }.
+
+feature_findings(
+    targets: Json,
+    count: Int,
+    required: List[FeatureTarget],
+    output: List[String],
+): List[String] ->
+    case required {
+        [] -> SourceInventory.reverse(output);
+        [target | rest] ->
+            if {
+                target_has_feature(targets, 0, count, target) -> feature_findings(targets, count, rest, output);
+                true -> feature_findings(
+                    targets,
+                    count,
+                    rest,
+                    [String.concat(["crates/terlan/Cargo.toml: `", target.name, "` must require `", target.feature, "`"]) | output],
+                )
+            }
+    }.
+
+manifest_feature_diagnostics(metadata: Json): List[String] ->
+    let {
+        Ok(packages) <- Json.get(metadata, "packages");
+        Ok(package_count) <- Json.length(packages);
+        Some(package) <- package_named(packages, 0, package_count, "terlan");
+        Ok(targets) <- Json.get(package, "targets");
+        Ok(target_count) <- Json.length(targets)
+    } else {
+        _ -> ["cargo metadata lacks the `terlan` package target inventory"]
+    };
+    feature_findings(targets, target_count, required_targets(), List.new[String]()).
+
+ast_rows(rows: Json, index: Int, count: Int, kind: String, output: List[String]): List[String] ->
+    if {
+        index == count -> SourceInventory.reverse(output);
+        true -> let {
+            Ok(row) <- Json.at(rows, index);
+            Ok(path_value) <- Json.get(row, "path");
+            Ok(path) <- Json.as_string(path_value)
+        } else {
+            _ ->
+                [String.append("malformed Rust boundary AST `", String.append(kind, "` row")) | output]
+        };
+        if {
+            kind == "parse" -> let message =
+                (let {
+    Ok(value) <- Json.get(row, "error");
+    Ok(text) <- Json.as_string(value)
+} else {
+    _ -> "unknown parse error"
+};
+text);
+            ast_rows(
+                rows,
+                index + 1,
+                count,
+                kind,
+                [String.concat([path, ": AST source-boundary parse failed: ", message]) | output],
+            );
+            kind == "attribute" -> let target =
+                case Json.get(row, "target") {
+                    Err(_reason) -> "<missing>";
+                    Ok(value) ->
+                        case Json.as_string(value) {
+                            Err(_reason) -> "<invalid>";
+                            Ok(text) -> text
+                        }
+                };
+            ast_rows(
+                rows,
+                index + 1,
+                count,
+                kind,
+                [String.concat([path, ": cross-tree #[path] compilation of `", target, "`"]) | output],
+            );
+            true -> let message =
+                (let {
+    Ok(value) <- Json.get(row, "message");
+    Ok(text) <- Json.as_string(value)
+} else {
+    _ -> "malformed thin binary diagnostic"
+};
+text);
+            ast_rows(rows, index + 1, count, kind, [String.concat([path, ": ", message]) | output])
+        }
+    }.
+
+ast_array(report: Json, field: String, kind: String): List[String] ->
+    let {
+        Ok(rows) <- Json.get(report, field);
+        Ok(count) <- Json.length(rows)
+    } else {
+        _ -> [String.append("Rust boundary AST report lacks `", String.append(field, "`"))]
+    };
+    ast_rows(rows, 0, count, kind, List.new[String]()).
+
+ast_source_diagnostics(root: String): AstResult ->
+    case File.read_text(SourceInventory.child(root, "target/quality/rust-structural-input.json")) {
+        Err(_reason) ->
+            AstResult(
+                valid = false,
+                diagnostics = [],
+                message = "target/quality/rust-structural-input.json is missing",
+            );
+        Ok(source) ->
+            case Json.parse(source) {
+                Err(reason) ->
+                    AstResult(valid = false, diagnostics = [], message = Json.error_message(reason));
+                Ok(report) ->
+                    let schema =
+                        (let {
+    Ok(value) <- Json.get(report, "schema");
+    Ok(text) <- Json.as_string(value)
+} else {
+    _ -> ""
+};
+text);
+                    let parse = ast_array(report, "source_boundary_parse_failures", "parse");
+                    let attributes = ast_array(report, "cross_tree_path_attributes", "attribute");
+                    let thin = ast_array(report, "thin_binary_diagnostics", "thin");
+                    let features = ast_array(report, "feature_module_diagnostics", "feature");
+                    let source = List.concat(parse, attributes);
+                    let entrypoints = List.concat(source, thin);
+                    AstResult(
+                        valid = schema == "terlan.rust-structural-input.v1",
+                        diagnostics = List.concat(entrypoints, features),
+                        message = if {
+                            schema == "terlan.rust-structural-input.v1" -> "";
+                            true -> "Rust structural input has an unsupported schema"
+                        },
+                    )
+            }
+    }.
+
+print_diagnostics(values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            let _printed = eprintln(String.append("  - ", value));
+            print_diagnostics(rest)
+    }.
+
+pub check(root: String): Bool ->
+    let metadata = CargoMetadata.load_precomputed(root);
+    if {
+        not metadata.valid -> let _printed = eprintln(String.append("Rust build-graph boundary check failed: ", metadata.message));
+        false;
+        true -> let graph = CargoMetadata.workspace_graph(metadata.document);
+        if {
+            not graph.valid -> let _printed = eprintln(String.append("Rust build-graph boundary check failed: ", graph.message));
+            false;
+            true -> let source = ast_source_diagnostics(root);
+            let canonical = CanonicalTypes.check(root);
+            let policy = BuildGraphPolicy.check(root, graph.nodes);
+            if {
+                not source.valid -> let _printed =
+                    eprintln(
+                        String.append("Rust build-graph boundary check failed: ", source.message),
+                    );
+                false;
+                not canonical.valid -> let _printed =
+                    eprintln(
+                        String.append("Rust build-graph boundary check failed: ", canonical.message),
+                    );
+                false;
+                not policy.valid -> let _printed =
+                    eprintln(
+                        String.append("Rust build-graph boundary check failed: ", policy.message),
+                    );
+                false;
+                true -> let cycles = cycle_diagnostics(graph.nodes);
+                let manifest_features = manifest_feature_diagnostics(metadata.document);
+                let source_and_features = List.concat(source.diagnostics, manifest_features);
+                let canonical_and_policy = List.concat(canonical.diagnostics, policy.diagnostics);
+                let boundary_diagnostics = List.concat(source_and_features, canonical_and_policy);
+                let diagnostics = List.concat(cycles, boundary_diagnostics);
+                if {
+                    List.length(diagnostics) == 0 -> let _printed =
+                        println(
+                            "Rust build graph: acyclic workspace, thin binaries, isolated tooling, canonical AST types, and reviewed crate responsibilities verified.",
+                        );
+                    true;
+                    true -> let _printed = eprintln("Rust build-graph boundary check failed:");
+                    print_diagnostics(diagnostics)
+                }
+            }
+        }
+    }.
+
+pub self_test(): Bool ->
+    let acyclic =
+        List[GraphNode](
+            CargoMetadata.graph_node("a", ["b"]),
+            CargoMetadata.graph_node("b", List.new[String]()),
+        );
+    let cyclic = List[GraphNode](CargoMetadata.graph_node("a", ["b"]), CargoMetadata.graph_node("b", ["a"]));
+    let acyclic_diagnostics = cycle_diagnostics(acyclic);
+    let cyclic_diagnostics = cycle_diagnostics(cyclic);
+    List.length(acyclic_diagnostics) == 0
+        and List.length(cyclic_diagnostics) > 0
+        and BuildGraphPolicy.self_test()
+        and CanonicalTypes.self_test()
+        and CargoMetadata.self_test().

@@ -35,7 +35,7 @@ pub close_typechecks(receiver: ImageDecoder): Unit ->
 
 pub decode_typechecks(
     receiver: ImageDecoder,
-    options: ImageDecodeOptions
+    options: ImageDecodeOptions,
 ): Promise[ImageDecodeResult] ->
     receiver.decode(options).
 

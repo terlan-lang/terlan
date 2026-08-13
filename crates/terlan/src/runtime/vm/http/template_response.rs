@@ -19,6 +19,7 @@ pub(crate) struct VmHttpTemplateResponse {
     target: ArtifactTemplateTarget,
 }
 
+#[cfg(test)]
 impl VmHttpTemplateResponse {
     pub(crate) fn typed(
         template_name: impl Into<String>,
@@ -72,6 +73,7 @@ pub(crate) fn render_http_template_response(
 
 /// Typed failure from VM-owned template and response-buffer accounting.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmAccountedHttpOutputError {
     Template(String),
     Memory(String),
@@ -82,14 +84,15 @@ pub(crate) enum VmAccountedHttpOutputError {
 
 /// Rendered template whose body remains owned by a VM process.
 #[derive(Debug)]
+#[cfg(test)]
 pub(crate) struct VmAccountedHttpTemplateResponse {
     template: VmHttpTemplateResponse,
     owner: VmProcessId,
     allocation: VmSharedAllocationId,
 }
 
+#[cfg(test)]
 impl VmAccountedHttpTemplateResponse {
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn typed(
         memory: &mut VmMemoryAccountant,
         scheduler: &mut VmScheduler,
@@ -103,8 +106,6 @@ impl VmAccountedHttpTemplateResponse {
             .map_err(VmAccountedHttpOutputError::Template)?;
         Self::account(memory, scheduler, processes, owner, template)
     }
-
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn html(
         memory: &mut VmMemoryAccountant,
         scheduler: &mut VmScheduler,
@@ -194,12 +195,14 @@ impl VmAccountedHttpTemplateResponse {
 
 /// HTTP response retaining its VM-owned response-buffer allocation until write.
 #[derive(Debug)]
+#[cfg(test)]
 pub(crate) struct VmAccountedHttpResponse {
     response: ::http::Response<String>,
     owner: VmProcessId,
     allocation: VmSharedAllocationId,
 }
 
+#[cfg(test)]
 impl VmAccountedHttpResponse {
     pub(crate) fn allocation(&self) -> VmSharedAllocationId {
         self.allocation
@@ -239,6 +242,7 @@ fn build_template_response(
         .map_err(|error| format!("failed to build VM HTTP template response: {error}"))
 }
 
+#[cfg(test)]
 fn release_output(
     memory: &mut VmMemoryAccountant,
     scheduler: &mut VmScheduler,

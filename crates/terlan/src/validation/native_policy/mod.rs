@@ -129,14 +129,19 @@ pub(crate) fn source_uses_native(source: &str) -> bool {
 /// - `false` when the source does not contain unsafe-native markers.
 ///
 /// Transformation:
-/// - Performs a conservative textual scan for the unsafe-native spellings that
-///   should not pass the native-boundary policy gate.
+/// - Recognizes unsafe-native spellings only at the start of a declaration
+///   line, so identifiers, comments, and string contents cannot trigger the
+///   early pre-parser policy gate.
 pub(crate) fn source_contains_unsafe_native(source: &str) -> bool {
-    source.contains("unsafe_native")
-        || source.contains("unsafe native")
-        || source.contains("native unsafe")
+    source.lines().any(|line| {
+        let declaration = line.trim_start();
+        declaration.starts_with("unsafe_native ")
+            || declaration.starts_with("unsafe native ")
+            || declaration.starts_with("native unsafe ")
+    })
 }
 
 #[cfg(test)]
 #[path = "native_policy_test.rs"]
+#[cfg(test)]
 mod native_policy_test;

@@ -44,6 +44,22 @@ hidden(x: Int): Int ->
     assert!(rust.contains("fn hidden(x: i64) -> i64"), "{rust}");
 }
 
+/// Verifies Rust probes implement indexed UTF-8 candidate search directly.
+#[test]
+fn emit_core_module_to_rust_compiles_utf8_find_any_byte() {
+    let source = "\
+module rust_core_utf8_search.
+
+pub delimiter(): Int ->
+    \"λ🔥 alpha\\n\".utf8_find_any_byte(0, \" \\n\").
+";
+    let rust = compile_source_to_rust_probe("rust_core_utf8_search.terl", source);
+
+    assert!(rust.contains("position(|byte|"), "{rust}");
+    assert!(rust.contains("candidates.is_ascii()"), "{rust}");
+    assert_rust_probe_compiles(&rust);
+}
+
 /// Verifies unsupported native lowering fails instead of emitting a callable
 /// placeholder body.
 #[test]
@@ -416,6 +432,8 @@ fn core_module_with_functions(module: &str, functions: Vec<CoreFunction>) -> Cor
         constructors: Vec::new(),
         templates: Vec::new(),
         trait_conformances: Vec::new(),
+        binding_identities: Default::default(),
+        termination: Default::default(),
         metadata: empty_core_metadata(),
         interface: empty_interface(module),
     }

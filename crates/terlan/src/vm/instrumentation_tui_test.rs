@@ -1,7 +1,7 @@
 use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
 use super::render_local_vm_dashboard;
-use crate::instrumentation::{
+use crate::vm::instrumentation::{
     cloud_vm_instrumentation_provider, default_local_vm_dashboard_config,
     vm_dashboard_render_snapshot, VmDashboardMode,
 };
@@ -126,7 +126,7 @@ fn ratatui_renderer_models_operator_mode_as_disabled() {
 }
 
 /// Renders one dashboard to a plain text buffer.
-fn render_dashboard_text(config: &crate::instrumentation::VmDashboardConfig) -> String {
+fn render_dashboard_text(config: &crate::vm::instrumentation::VmDashboardConfig) -> String {
     let backend = TestBackend::new(96, 16);
     let mut terminal = Terminal::new(backend).expect("test terminal");
     terminal
@@ -137,9 +137,9 @@ fn render_dashboard_text(config: &crate::instrumentation::VmDashboardConfig) -> 
 
 /// Renders one invalid dashboard and returns diagnostics plus terminal text.
 fn render_dashboard_error_text(
-    config: &crate::instrumentation::VmDashboardConfig,
+    config: &crate::vm::instrumentation::VmDashboardConfig,
 ) -> (
-    Vec<crate::instrumentation::VmInstrumentationDiagnostic>,
+    Vec<crate::vm::instrumentation::VmInstrumentationDiagnostic>,
     String,
 ) {
     let backend = TestBackend::new(112, 18);

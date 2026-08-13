@@ -1,0 +1,848 @@
+/**
+ * Builds and validates the deterministic Rust dependency-impact report.
+ */
+module rust_quality.DependencyImpact.
+
+import rust_quality.{CargoMetadata, CompilationInputs, DependencyClassifications, DependencyImpactCargo, DependencyImpactGraph, DependencyImpactSource, SourceInventory}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.File.
+
+import type rust_quality.CargoMetadata.GraphNode.
+import type rust_quality.DependencyClassifications.{Classification, ClassificationResult, Duplicate}.
+import type rust_quality.DependencyImpactCargo.{CargoAnalysis, DependencyFeature, PackageFanout}.
+import type rust_quality.DependencyImpactGraph.{BlastRadius, Cycle}.
+import type rust_quality.DependencyImpactSource.{DomainMetric, Edge, SourceAnalysis}.
+import type std.core.Option.
+import type std.data.Json.
+
+struct TimingRow {
+    scenario: String,
+    domain: String,
+    milliseconds: Int,
+}.
+
+struct TimingResult {
+    valid: Bool,
+    rows: List[TimingRow],
+    message: String,
+}.
+
+struct DocumentResult {
+    valid: Bool,
+    document: Json,
+    message: String,
+}.
+
+struct Model {
+    valid: Bool,
+    document: String,
+    diagnostics: List[String],
+    production_domains: Int,
+    production_edges: Int,
+    test_edges: Int,
+    integration_targets: Int,
+    message: String,
+}.
+
+model_failure(message: String): Model ->
+    Model(
+        valid = false,
+        document = "",
+        diagnostics = List.new[String](),
+        production_domains = 0,
+        production_edges = 0,
+        test_edges = 0,
+        integration_targets = 0,
+        message = message,
+    ).
+
+document_failure(message: String): DocumentResult ->
+    DocumentResult(valid = false, document = Json.null(), message = message).
+
+@pure
+append_item(output: String, item: String): String ->
+    if {
+        output == "" -> item;
+        true -> String.concat([output, ",", item])
+    }.
+
+@pure
+json_bool(value: Bool): String ->
+    if {
+        value -> "true";
+        true -> "false"
+    }.
+
+@pure
+strings_at(values: List[String], output: String): String ->
+    case values {
+        [] -> String.concat(["[", output, "]"]);
+        [value | rest] -> strings_at(rest, append_item(output, Json.quote_string(value)))
+    }.
+
+@pure
+strings_json(values: List[String]): String ->
+    strings_at(values, "").
+
+@pure
+domains_at(values: List[DomainMetric], output: String): String ->
+    case values {
+        [] -> String.concat(["[", output, "]"]);
+        [value | rest] ->
+            let row =
+                String.concat(
+                    [
+                        "{\"name\":",
+                        Json.quote_string(DependencyImpactSource.domain_name(value)),
+                        ",\"physical_lines\":",
+                        Int.to_string(DependencyImpactSource.domain_physical_lines(value)),
+                        ",\"rust_files\":",
+                        Int.to_string(DependencyImpactSource.domain_rust_files(value)),
+                        "}",
+                    ],
+                );
+            domains_at(rest, append_item(output, row))
+    }.
+
+@pure
+domains_json(values: List[DomainMetric]): String ->
+    domains_at(values, "").
+
+@pure
+edges_at(values: List[Edge], output: String): String ->
+    case values {
+        [] -> String.concat(["[", output, "]"]);
+        [value | rest] ->
+            let row =
+                String.concat(
+                    [
+                        "{\"from\":",
+                        Json.quote_string(DependencyImpactSource.edge_source(value)),
+                        ",\"reference_sites\":",
+                        Int.to_string(DependencyImpactSource.edge_reference_sites(value)),
+                        ",\"to\":",
+                        Json.quote_string(DependencyImpactSource.edge_target(value)),
+                        "}",
+                    ],
+                );
+            edges_at(rest, append_item(output, row))
+    }.
+
+@pure
+edges_json(values: List[Edge]): String ->
+    edges_at(values, "").
+
+@pure
+workspace_packages_at(values: List[GraphNode], all: List[GraphNode], output: String): String ->
+    case values {
+        [] -> String.concat(["[", output, "]"]);
+        [value | rest] ->
+            let reverse = DependencyImpactGraph.direct_dependents(value.name, all, List.new[String]());
+            let row =
+                String.concat(
+                    [
+                        "{\"direct_dependencies\":",
+                        strings_json(value.dependencies),
+                        ",\"name\":",
+                        Json.quote_string(value.name),
+                        ",\"reverse_dependents\":",
+                        strings_json(reverse),
+                        "}",
+                    ],
+                );
+            workspace_packages_at(rest, all, append_item(output, row))
+    }.
+
+@pure
+workspace_packages_json(values: List[GraphNode]): String ->
+    workspace_packages_at(values, values, "").
+
+@pure
+cycles_at(values: List[Cycle], output: String): String ->
+    case values {
+        [] -> String.concat(["[", output, "]"]);
+        [value | rest] ->
+            cycles_at(
+                rest,
+                append_item(output, strings_json(DependencyImpactGraph.cycle_path(value))),
+            )
+    }.
+
+@pure
+cycles_json(values: List[Cycle]): String ->
+    cycles_at(values, "").
+
+@pure
+blast_at(values: List[BlastRadius], output: String): String ->
+    case values {
+        [] -> String.concat(["[", output, "]"]);
+        [value | rest] ->
+            let row =
+                String.concat(
+                    [
+                        "{\"dependent_count\":",
+                        Int.to_string(List.length(DependencyImpactGraph.blast_dependents(value))),
+                        ",\"dependent_domains\":",
+                        strings_json(DependencyImpactGraph.blast_dependents(value)),
+                        ",\"domain\":",
+                        Json.quote_string(DependencyImpactGraph.blast_domain(value)),
+                        "}",
+                    ],
+                );
+            blast_at(rest, append_item(output, row))
+    }.
+
+@pure
+blast_json(values: List[BlastRadius]): String ->
+    blast_at(values, "").
+
+@pure
+fan_in_sources(domain: String, edges: List[Edge], output: List[String]): List[String] ->
+    case edges {
+        [] -> output;
+        [edge | rest] ->
+            fan_in_sources(
+                domain,
+                rest,
+                if {
+                    DependencyImpactSource.edge_target(edge) == domain -> CargoMetadata.insert_sorted_unique(
+                        DependencyImpactSource.edge_source(edge),
+                        output,
+                    );
+                    true -> output
+                },
+            )
+    }.
+
+@pure
+fan_in_sites(domain: String, edges: List[Edge], count: Int): Int ->
+    case edges {
+        [] -> count;
+        [edge | rest] ->
+            fan_in_sites(
+                domain,
+                rest,
+                if {
+                    DependencyImpactSource.edge_target(edge) == domain -> count + DependencyImpactSource.edge_reference_sites(edge);
+                    true -> count
+                },
+            )
+    }.
+
+@pure
+fan_in_at(domains: List[DomainMetric], edges: List[Edge], output: String): String ->
+    case domains {
+        [] -> String.concat(["[", output, "]"]);
+        [domain | rest] ->
+            let row =
+                String.concat(
+                    [
+                        "{\"domain\":",
+                        Json.quote_string(DependencyImpactSource.domain_name(domain)),
+                        ",\"reference_sites\":",
+                        Int.to_string(
+                            fan_in_sites(DependencyImpactSource.domain_name(domain), edges, 0),
+                        ),
+                        ",\"source_domains\":",
+                        strings_json(
+                            fan_in_sources(
+                                DependencyImpactSource.domain_name(domain),
+                                edges,
+                                List.new[String](),
+                            ),
+                        ),
+                        "}",
+                    ],
+                );
+            fan_in_at(rest, edges, append_item(output, row))
+    }.
+
+@pure
+fan_in_json(domains: List[DomainMetric], edges: List[Edge]): String ->
+    fan_in_at(domains, edges, "").
+
+@pure
+versions_at(values: List[Duplicate], output: String): String ->
+    case values {
+        [] -> String.concat(["[", output, "]"]);
+        [value | rest] ->
+            let row =
+                String.concat(
+                    [
+                        "{\"name\":",
+                        Json.quote_string(DependencyClassifications.duplicate_name(value)),
+                        ",\"versions\":",
+                        strings_json(DependencyClassifications.duplicate_versions(value)),
+                        "}",
+                    ],
+                );
+            versions_at(rest, append_item(output, row))
+    }.
+
+@pure
+versions_json(values: List[Duplicate]): String ->
+    versions_at(values, "").
+
+@pure
+classifications_at(values: List[Classification], output: String): String ->
+    case values {
+        [] -> String.concat(["[", output, "]"]);
+        [value | rest] ->
+            let row =
+                String.concat(
+                    [
+                        "{\"classification\":",
+                        Json.quote_string(DependencyClassifications.classification_kind(value)),
+                        ",\"milestone\":",
+                        Json.quote_string(DependencyClassifications.classification_milestone(value)),
+                        ",\"name\":",
+                        Json.quote_string(DependencyClassifications.classification_name(value)),
+                        ",\"owner\":",
+                        Json.quote_string(DependencyClassifications.classification_owner(value)),
+                        ",\"rationale\":",
+                        Json.quote_string(DependencyClassifications.classification_rationale(value)),
+                        ",\"versions\":",
+                        Json.quote_string(DependencyClassifications.classification_versions(value)),
+                        "}",
+                    ],
+                );
+            classifications_at(rest, append_item(output, row))
+    }.
+
+@pure
+classifications_json(values: List[Classification]): String ->
+    classifications_at(values, "").
+
+@pure
+features_at(values: List[DependencyFeature], output: String): String ->
+    case values {
+        [] -> String.concat(["[", output, "]"]);
+        [value | rest] ->
+            let row =
+                String.concat(
+                    [
+                        "{\"default_features\":",
+                        json_bool(DependencyImpactCargo.feature_default_features(value)),
+                        ",\"features\":",
+                        strings_json(DependencyImpactCargo.feature_features(value)),
+                        ",\"kind\":",
+                        Json.quote_string(DependencyImpactCargo.feature_kind(value)),
+                        ",\"name\":",
+                        Json.quote_string(DependencyImpactCargo.feature_name(value)),
+                        ",\"optional\":",
+                        json_bool(DependencyImpactCargo.feature_optional(value)),
+                        "}",
+                    ],
+                );
+            features_at(rest, append_item(output, row))
+    }.
+
+@pure
+features_json(values: List[DependencyFeature]): String ->
+    features_at(values, "").
+
+@pure
+fanout_at(values: List[PackageFanout], output: String): String ->
+    case values {
+        [] -> String.concat(["[", output, "]"]);
+        [value | rest] ->
+            let row =
+                String.concat(
+                    [
+                        "{\"dependencies\":",
+                        features_json(DependencyImpactCargo.fanout_dependencies(value)),
+                        ",\"package\":",
+                        Json.quote_string(DependencyImpactCargo.fanout_name(value)),
+                        "}",
+                    ],
+                );
+            fanout_at(rest, append_item(output, row))
+    }.
+
+@pure
+fanout_json(values: List[PackageFanout]): String ->
+    fanout_at(values, "").
+
+@pure
+timings_at(values: List[TimingRow], output: String): String ->
+    case values {
+        [] -> String.concat(["[", output, "]"]);
+        [value | rest] ->
+            let row =
+                String.concat(
+                    [
+                        "{\"cq6_ms\":",
+                        Int.to_string(value.milliseconds),
+                        ",\"domain\":",
+                        Json.quote_string(value.domain),
+                        ",\"scenario\":",
+                        Json.quote_string(value.scenario),
+                        "}",
+                    ],
+                );
+            timings_at(rest, append_item(output, row))
+    }.
+
+@pure
+timings_json(values: List[TimingRow]): String ->
+    timings_at(values, "").
+
+edited_domain(row: Json): String ->
+    case Json.get(row, "edited_file") {
+        Err(_reason) -> "workspace";
+        Ok(value) ->
+            if {
+                Json.is_null(value) -> "workspace";
+                true -> case Json.as_string(value) {
+                    Err(_reason) -> "workspace";
+                    Ok(path) ->
+                        if {
+                            String.starts_with(path, "crates/terlan/src/") -> DependencyImpactSource.source_domain(path);
+                            true -> "workspace"
+                        }
+                }
+            }
+    }.
+
+timing_rows(values: Json, index: Int, count: Int, output: List[TimingRow]): TimingResult ->
+    if {
+        index == count -> TimingResult(valid = true, rows = SourceInventory.reverse(output), message = "");
+        true -> let {
+            Ok(row) <- Json.at(values, index);
+            Ok(name_value) <- Json.get(row, "name");
+            Ok(name) <- Json.as_string(name_value);
+            Ok(time_value) <- Json.get(row, "wall_time_ms");
+            Ok(wall_time_ms) <- Json.as_int(time_value)
+        } else {
+            _ ->
+                TimingResult(
+                    valid = false,
+                    rows = [],
+                    message = "Rust structure timing scenarios have an unsupported shape",
+                )
+        };
+        (let domain = edited_domain(row);
+timing_rows(
+    values,
+    index + 1,
+    count,
+    [TimingRow(scenario = name, domain = domain, milliseconds = wall_time_ms) | output],
+))
+    }.
+
+load_timings(root: String): TimingResult ->
+    case File.read_text(SourceInventory.child(root, "docs/quality/RUST_STRUCTURE_TIMINGS_CLOSEOUT.json")) {
+        Err(reason) -> TimingResult(valid = false, rows = [], message = File.message(reason));
+        Ok(source) ->
+            case Json.parse(source) {
+                Err(reason) ->
+                    TimingResult(valid = false, rows = [], message = Json.error_message(reason));
+                Ok(document) ->
+                    let {
+                        Ok(values) <- Json.get(document, "scenarios");
+                        Ok(count) <- Json.length(values)
+                    } else {
+                        _ ->
+                            TimingResult(
+                                valid = false,
+                                rows = [],
+                                message = "Rust structure timing report lacks scenarios",
+                            )
+                    };
+                    timing_rows(values, 0, count, List.new[TimingRow]())
+            }
+    }.
+
+load_ast(root: String): DocumentResult ->
+    case File.read_text(SourceInventory.child(root, "target/quality/rust-structural-input.json")) {
+        Err(reason) -> document_failure(File.message(reason));
+        Ok(source) ->
+            case Json.parse(source) {
+                Err(reason) -> document_failure(Json.error_message(reason));
+                Ok(document) -> DocumentResult(valid = true, document = document, message = "")
+            }
+    }.
+
+ast_parse_diagnostics(report: Json): List[String] ->
+    let {
+        Ok(primary) <- Json.get(report, "parse_failures");
+        Ok(primary_count) <- Json.length(primary);
+        Ok(boundary) <- Json.get(report, "source_boundary_parse_failures");
+        Ok(boundary_count) <- Json.length(boundary)
+    } else {
+        _ -> ["Rust boundary AST report lacks parse-failure evidence"]
+    };
+    if {
+        primary_count == 0 and boundary_count == 0 -> List.new[String]();
+        true -> ["Rust boundary AST report contains parse failures"]
+    }.
+
+@pure
+budget_diagnostics(
+    direct_dependencies: Int,
+    duplicate_count: Int,
+    integration_targets: List[String],
+    workspace_cycle_count: Int,
+    domain_cycle_count: Int,
+    maximum_blast: Int,
+    timing_count: Int,
+    source: SourceAnalysis,
+    enforce_milestone: Bool,
+): List[String] ->
+    let diagnostics = List.new[String]();
+    let workspace =
+        if {
+            workspace_cycle_count == 0 -> diagnostics;
+            true -> ["workspace dependency graph contains a cycle" | diagnostics]
+        };
+    let dependencies =
+        if {
+            direct_dependencies <= 56 -> workspace;
+            true -> [String.concat(
+    [
+        "main-package non-optional normal dependency count ",
+        Int.to_string(direct_dependencies),
+        " exceeds 56",
+    ],
+) | workspace]
+        };
+    let duplicates =
+        if {
+            duplicate_count <= 30 -> dependencies;
+            true -> [String.concat(
+    ["resolved duplicate-version family count ", Int.to_string(duplicate_count), " exceeds 30"],
+) | dependencies]
+        };
+    let integrations =
+        if {
+            List.length(integration_targets) <= 12
+                and integration_targets == CargoMetadata.sort_unique(integration_targets) -> duplicates;
+            true -> ["integration-test target inventory exceeds its unique sorted budget" | duplicates]
+        };
+    let evidence =
+        if {
+            List.length(DependencyImpactSource.analysis_production_domains(source)) > 0
+                and timing_count > 0 -> integrations;
+            true -> ["dependency-impact report lacks domain or timing evidence" | integrations]
+        };
+    let cycles =
+        if {
+            domain_cycle_count == 0 -> evidence;
+            true -> [String.concat(["domain cycle count ", Int.to_string(domain_cycle_count), " exceeds 0"]) | evidence]
+        };
+    let blast_diagnostics =
+        if {
+            maximum_blast <= 13 -> cycles;
+            true -> [String.concat(["domain blast radius exceeds budget: maximum=", Int.to_string(maximum_blast)]) | cycles]
+        };
+    let semantic =
+        if {
+            List.length(DependencyImpactSource.analysis_production_domains(source)) > 0 -> blast_diagnostics;
+            true -> ["dependency-impact report lacks semantic fanout evidence" | blast_diagnostics]
+        };
+    let milestone_dependencies =
+        if {
+            enforce_milestone and direct_dependencies > 50 -> ["0.0.8 main dependency target 50 not met" | semantic];
+            true -> semantic
+        };
+    let milestone_duplicates =
+        if {
+            enforce_milestone and duplicate_count > 24 -> ["0.0.8 duplicate-family target 24 not met" | milestone_dependencies];
+            true -> milestone_dependencies
+        };
+    if {
+        enforce_milestone and maximum_blast > 9 -> [String.concat(
+    ["0.0.8 production blast-radius target 9 not met (actual ", Int.to_string(maximum_blast), ")"],
+) | milestone_duplicates];
+        true -> milestone_duplicates
+    }.
+
+@pure
+build_report(
+    compilation_digest: String,
+    cargo: CargoAnalysis,
+    classifications: ClassificationResult,
+    source: SourceAnalysis,
+    timings: TimingResult,
+    workspace_cycles: List[Cycle],
+    domain_cycles: List[Cycle],
+    blast: List[BlastRadius],
+): String ->
+    let integration_policy =
+        String.concat(
+            [
+                "{\"maximum_targets\":12,\"targets\":",
+                strings_json(DependencyImpactCargo.analysis_integration_targets(cargo)),
+                "}",
+            ],
+        );
+    let fanout_policy =
+        String.concat(
+            [
+                "{\"maximum_non_optional_normal_dependencies\":56,",
+                "\"maximum_resolved_duplicate_families\":30,",
+                "\"milestone\":\"0.0.8\",",
+                "\"non_optional_normal_dependencies\":",
+                Int.to_string(DependencyImpactCargo.analysis_direct_dependency_count(cargo)),
+                ",\"package\":\"terlan\",",
+                "\"target_non_optional_normal_dependencies\":50,",
+                "\"target_resolved_duplicate_families\":24}",
+            ],
+        );
+    let cycle_policy = String.concat(["{\"cycles\":", cycles_json(domain_cycles), ",\"maximum_cycles\":0}"]);
+    let blast_policy = "{\"maximum_dependents\":13,\"milestone\":\"0.0.8\",\"target_dependents\":9}";
+    String.concat(
+        [
+            "{\"blast_radius_policy\":",
+            blast_policy,
+            ",\"compilation_input_sha256\":",
+            Json.quote_string(compilation_digest),
+            ",\"dependency_fanout_policy\":",
+            fanout_policy,
+            ",\"domain_api_fan_in\":",
+            fan_in_json(
+                DependencyImpactSource.analysis_production_domains(source),
+                DependencyImpactSource.analysis_production_edges(source),
+            ),
+            ",\"domain_change_blast_radius\":",
+            blast_json(blast),
+            ",\"domain_cycle_policy\":",
+            cycle_policy,
+            ",\"duplicate_dependency_classifications\":",
+            classifications_json(DependencyClassifications.result_rows(classifications)),
+            ",\"incremental_scenarios\":",
+            timings_json(timings.rows),
+            ",\"integration_test_policy\":",
+            integration_policy,
+            ",\"production_cross_domain_edges\":",
+            edges_json(DependencyImpactSource.analysis_production_edges(source)),
+            ",\"production_domains\":",
+            domains_json(DependencyImpactSource.analysis_production_domains(source)),
+            ",\"resolved_dependency_duplicates\":",
+            versions_json(DependencyImpactCargo.analysis_duplicates(cargo)),
+            ",\"schema_version\":4,",
+            "\"test_cross_domain_edges\":",
+            edges_json(DependencyImpactSource.analysis_test_edges(source)),
+            ",\"test_domains\":",
+            domains_json(DependencyImpactSource.analysis_test_domains(source)),
+            ",\"workspace_cycles\":",
+            cycles_json(workspace_cycles),
+            ",\"workspace_feature_fanout\":",
+            fanout_json(DependencyImpactCargo.analysis_feature_fanout(cargo)),
+            ",\"workspace_packages\":",
+            workspace_packages_json(DependencyImpactCargo.analysis_nodes(cargo)),
+            "}",
+        ],
+    ).
+
+build(root: String, enforce_milestone: Bool): Model ->
+    let metadata = CargoMetadata.load_precomputed(root);
+    if {
+        not metadata.valid -> model_failure(metadata.message);
+        true -> let cargo = DependencyImpactCargo.analyze(metadata.document);
+        if {
+            not DependencyImpactCargo.analysis_valid(cargo) -> model_failure(DependencyImpactCargo.analysis_message(cargo));
+            true -> let ast = load_ast(root);
+            if {
+                not ast.valid -> model_failure(ast.message);
+                true -> let source = DependencyImpactSource.analyze(ast.document);
+                if {
+                    not DependencyImpactSource.analysis_valid(source) -> model_failure(DependencyImpactSource.analysis_message(source));
+                    true -> let classifications =
+                        DependencyClassifications.check(
+                            root,
+                            DependencyImpactCargo.analysis_duplicates(cargo),
+                        );
+                    if {
+                        not DependencyClassifications.result_valid(classifications) -> model_failure(DependencyClassifications.result_message(classifications));
+                        true -> let compilation = CompilationInputs.digest(root);
+                        if {
+                            not CompilationInputs.result_valid(compilation) -> model_failure(CompilationInputs.result_message(compilation));
+                            true -> let timings = load_timings(root);
+                            if {
+                                not timings.valid -> model_failure(timings.message);
+                                true -> let workspace_cycles =
+                                    DependencyImpactGraph.cycles(
+                                        DependencyImpactCargo.analysis_nodes(cargo),
+                                    );
+                                let domain_graph =
+                                    DependencyImpactGraph.domain_graph(
+                                        DependencyImpactSource.analysis_production_domains(source),
+                                        DependencyImpactSource.analysis_production_edges(source),
+                                    );
+                                let domain_cycles = DependencyImpactGraph.cycles(domain_graph);
+                                let blast = DependencyImpactGraph.blast_radius(domain_graph);
+                                let policy =
+                                    budget_diagnostics(
+                                        DependencyImpactCargo.analysis_direct_dependency_count(
+                                            cargo,
+                                        ),
+                                        List.length(
+                                            DependencyImpactCargo.analysis_duplicates(cargo),
+                                        ),
+                                        DependencyImpactCargo.analysis_integration_targets(cargo),
+                                        List.length(workspace_cycles),
+                                        List.length(domain_cycles),
+                                        DependencyImpactGraph.maximum_blast(blast, 0),
+                                        List.length(timings.rows),
+                                        source,
+                                        enforce_milestone,
+                                    );
+                                let parsed = ast_parse_diagnostics(ast.document);
+                                let reviewed =
+                                    List.concat(
+                                        DependencyClassifications.result_diagnostics(
+                                            classifications,
+                                        ),
+                                        parsed,
+                                    );
+                                let diagnostics = List.concat(policy, reviewed);
+                                Model(
+                                    valid = true,
+                                    document = build_report(
+                                        CompilationInputs.result_digest(compilation),
+                                        cargo,
+                                        classifications,
+                                        source,
+                                        timings,
+                                        workspace_cycles,
+                                        domain_cycles,
+                                        blast,
+                                    ),
+                                    diagnostics = diagnostics,
+                                    production_domains = List.length(
+                                        DependencyImpactSource.analysis_production_domains(source),
+                                    ),
+                                    production_edges = List.length(
+                                        DependencyImpactSource.analysis_production_edges(source),
+                                    ),
+                                    test_edges = List.length(DependencyImpactSource.analysis_test_edges(source)),
+                                    integration_targets = List.length(
+                                        DependencyImpactCargo.analysis_integration_targets(cargo),
+                                    ),
+                                    message = "",
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }.
+
+print_diagnostics(values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            let _printed = eprintln(String.append("  - ", value));
+            print_diagnostics(rest)
+    }.
+
+canonical_json(source: String): Option[String] ->
+    let {
+        Ok(document) <- Json.parse(source);
+        Ok(rendered) <- Json.stringify(document)
+    } else {
+        _ -> None
+    };
+    Some(rendered).
+
+same_json(left: String, right: String): Bool ->
+    let {
+        Some(left_text) <- canonical_json(left);
+        Some(right_text) <- canonical_json(right)
+    } else {
+        _ -> false
+    };
+    left_text == right_text.
+
+checked_diagnostics(root: String, current: String): List[String] ->
+    case File.read_text(SourceInventory.child(root, "docs/quality/RUST_DEPENDENCY_IMPACT.json")) {
+        Err(_reason) -> ["missing docs/quality/RUST_DEPENDENCY_IMPACT.json"];
+        Ok(source) ->
+            if {
+                same_json(current, source) -> List.new[String]();
+                true -> ["checked dependency-impact report is stale"]
+            }
+    }.
+
+write_report(root: String, source: String): Bool ->
+    case Json.parse(source) {
+        Err(reason) ->
+            let _printed = eprintln(Json.error_message(reason));
+            false;
+        Ok(document) ->
+            case Json.stringify_pretty(document) {
+                Err(reason) ->
+                    let _printed = eprintln(Json.error_message(reason));
+                    false;
+                Ok(rendered) ->
+                    case File.write_text(
+    SourceInventory.child(root, "docs/quality/RUST_DEPENDENCY_IMPACT.json"),
+    String.append(rendered, "\n"),
+) {
+                        Err(reason) ->
+                            let _printed = eprintln(File.message(reason));
+                            false;
+                        Ok(_written) -> true
+                    }
+            }
+    }.
+
+pub check(root: String, enforce_milestone: Bool): Bool ->
+    let model = build(root, enforce_milestone);
+    if {
+        not model.valid -> let _printed = eprintln(String.append("Rust dependency impact failed: ", model.message));
+        false;
+        true -> let stale = checked_diagnostics(root, model.document);
+        let diagnostics = List.concat(model.diagnostics, stale);
+        if {
+            List.length(diagnostics) > 0 -> let _printed = eprintln("Rust dependency impact failed:");
+            print_diagnostics(diagnostics);
+            true -> let _printed =
+                println(
+                    String.concat(
+                        [
+                            "Rust dependency impact passed: ",
+                            Int.to_string(model.production_domains),
+                            " production domains, ",
+                            Int.to_string(model.production_edges),
+                            " production coupling edges, ",
+                            Int.to_string(model.test_edges),
+                            " test coupling edges, ",
+                            Int.to_string(model.integration_targets),
+                            " integration-test targets",
+                        ],
+                    ),
+                );
+            true
+        }
+    }.
+
+pub record(root: String): Bool ->
+    let model = build(root, false);
+    if {
+        not model.valid -> let _printed = eprintln(String.append("Rust dependency impact failed: ", model.message));
+        false;
+        List.length(model.diagnostics) > 0 -> let _printed = eprintln("Rust dependency impact failed:");
+        print_diagnostics(model.diagnostics);
+        true -> let written = write_report(root, model.document);
+        if {
+            written -> let _printed = println("Recorded docs/quality/RUST_DEPENDENCY_IMPACT.json");
+            true;
+            true -> false
+        }
+    }.
+
+pub self_test(): Bool ->
+    CompilationInputs.self_test()
+        and DependencyClassifications.self_test()
+        and DependencyImpactCargo.self_test()
+        and DependencyImpactGraph.self_test()
+        and DependencyImpactSource.self_test()
+        and Json.quote_string("a\n\"b") == "\"a\\u000a\\\"b\"".

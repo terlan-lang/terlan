@@ -6,8 +6,9 @@ use super::super::symbol::{native_continuation_symbol, native_symbol};
 use super::super::{NativeCodegenPolicy, NativeModule};
 use super::{
     application_functions, define_dispatch, define_image_entry, define_native_function,
-    flattened_application, is_suspending, native_signature, object_module, suspension_profile,
-    suspension_value_count, validate_callable_shapes, ManagedLayouts,
+    flattened_application, is_suspending, managed_tail_loop_slots, native_signature,
+    normalize_tail_component_profiles, object_module, suspension_profile, suspension_value_count,
+    validate_callable_shapes, ManagedLayouts, NativeFunctionCatalog, NativeFunctionDefinition,
 };
 
 /// Produces the application ABI identity that invalidates module object units.
@@ -17,11 +18,18 @@ use super::{
 /// owning unit without poisoning otherwise compatible dependency objects.
 pub(crate) fn native_application_abi_fingerprint(
     natives: &[NativeModule],
-) -> Result<String, String> {
+) -> Result<String, terlan_runtime_abi::BoundaryError> {
+    native_application_abi_fingerprint_untyped(natives)
+        .map_err(|error| super::super::native_ir_boundary_error("fingerprint NativeIR ABI", error))
+}
+
+fn native_application_abi_fingerprint_untyped(natives: &[NativeModule]) -> Result<String, String> {
     validate_callable_shapes(natives)?;
     let application_native = flattened_application("abi", natives);
-    let (suspending, transition_counts) = suspension_profile(&application_native);
+    let (suspending, transition_counts) = suspension_profile(&application_native)?;
     let functions = application_functions(natives);
+    let externally_resumable =
+        super::super::continuation_sharing::externally_resumable_continuation_ids(natives);
     let mut fingerprint = String::new();
     for (index, (native, function)) in functions.iter().enumerate() {
         fingerprint.push_str(&format!(
@@ -36,6 +44,11 @@ pub(crate) fn native_application_abi_fingerprint(
             transition_counts[index]
         ));
     }
+    let mut resumable_ids = externally_resumable.into_iter().collect::<Vec<_>>();
+    resumable_ids.sort_unstable();
+    for continuation_id in resumable_ids {
+        fingerprint.push_str(&format!("resume\0{continuation_id}\n"));
+    }
     Ok(fingerprint)
 }
 
@@ -49,17 +62,49 @@ pub(crate) fn emit_native_module_object_with_policy(
     natives: &[NativeModule],
     module_index: usize,
     policy: NativeCodegenPolicy,
+) -> Result<Vec<u8>, terlan_runtime_abi::BoundaryError> {
+    emit_native_module_object_with_policy_untyped(application, natives, module_index, policy)
+        .map_err(|error| super::super::native_ir_boundary_error("emit native module object", error))
+}
+
+fn emit_native_module_object_with_policy_untyped(
+    application: &str,
+    natives: &[NativeModule],
+    module_index: usize,
+    policy: NativeCodegenPolicy,
 ) -> Result<Vec<u8>, String> {
     let selected = natives.get(module_index).ok_or_else(|| {
         format!("error[cranelift.module_index]: native module index {module_index} is out of range")
     })?;
     validate_callable_shapes(natives)?;
+    super::super::tail_position::validate_recursive_tail_targets(natives)?;
     let mut module = object_module(&format!("{application}.{}", selected.name), policy)?;
-    let managed_layouts = ManagedLayouts::declare(&mut module, std::slice::from_ref(selected))?;
+    // A module object can inline every body in an application-wide mutual-tail
+    // component.  Its constructor and atom table must therefore use the same
+    // closed application inventory as the dispatcher and monolithic emitter,
+    // not merely the selected module's declarations.
+    let managed_layouts = ManagedLayouts::declare(&mut module, natives)?;
     let pointer = module.target_config().pointer_type();
     let application_native = flattened_application(application, natives);
-    let (function_suspending, function_transition_counts) = suspension_profile(&application_native);
+    let (function_suspending, mut function_transition_counts) =
+        suspension_profile(&application_native)?;
     let functions = application_functions(natives);
+    let externally_resumable =
+        super::super::continuation_sharing::externally_resumable_continuation_ids(natives);
+    let function_managed_returns = functions
+        .iter()
+        .map(|(_, function)| function.return_type.is_managed_reference())
+        .collect::<Vec<_>>();
+    let function_parameter_types = functions
+        .iter()
+        .map(|(_, function)| function.params.clone())
+        .collect::<Vec<_>>();
+    let tail_components = super::super::tail_position::mutual_tail_components(natives);
+    normalize_tail_component_profiles(
+        &function_suspending,
+        &mut function_transition_counts,
+        &tail_components,
+    )?;
     let signatures = functions
         .iter()
         .enumerate()
@@ -92,15 +137,44 @@ pub(crate) fn emit_native_module_object_with_policy(
         .collect::<Result<Vec<_>, _>>()?;
     for (index, (native, function)) in functions.iter().enumerate() {
         if std::ptr::eq(*native, selected) {
+            let tail_component = tail_components
+                .iter()
+                .find(|component| component.binary_search(&index).is_ok());
+            let managed_loop_slots = managed_tail_loop_slots(
+                &function.params,
+                tail_component.map(Vec::as_slice),
+                &functions,
+            );
+            let tail_component_bodies = tail_component.map(|component| {
+                component
+                    .iter()
+                    .map(|member| {
+                        (
+                            *member,
+                            functions[*member].1.arity,
+                            &functions[*member].1.body,
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            });
             define_native_function(
                 &mut module,
-                function_ids[index],
-                &signatures[index],
-                &function.body,
-                &function_ids,
-                &function_suspending,
-                &function_transition_counts,
-                &managed_layouts,
+                NativeFunctionDefinition {
+                    id: function_ids[index],
+                    self_function: Some(index),
+                    tail_component_bodies: tail_component_bodies.as_deref(),
+                    signature: &signatures[index],
+                    body: &function.body,
+                    managed_loop_slots: &managed_loop_slots,
+                },
+                NativeFunctionCatalog {
+                    ids: &function_ids,
+                    parameter_types: &function_parameter_types,
+                    suspending: &function_suspending,
+                    transition_counts: &function_transition_counts,
+                    managed_returns: &function_managed_returns,
+                    managed_layouts: &managed_layouts,
+                },
             )
             .map_err(|error| {
                 format!(
@@ -111,6 +185,9 @@ pub(crate) fn emit_native_module_object_with_policy(
         }
     }
     for continuation in &selected.continuations {
+        if !externally_resumable.contains(&continuation.id) {
+            continue;
+        }
         let transition_count =
             suspension_value_count(&continuation.body, &function_transition_counts);
         let suspending = is_suspending(&continuation.body, &function_suspending);
@@ -127,15 +204,29 @@ pub(crate) fn emit_native_module_object_with_policy(
                 &signature,
             )
             .map_err(|error| format!("error[cranelift.continuation_declare]: {error}"))?;
+        let managed_loop_slots = continuation
+            .params
+            .iter()
+            .map(|parameter| parameter.is_managed_reference())
+            .collect::<Vec<_>>();
         define_native_function(
             &mut module,
-            id,
-            &signature,
-            &continuation.body,
-            &function_ids,
-            &function_suspending,
-            &function_transition_counts,
-            &managed_layouts,
+            NativeFunctionDefinition {
+                id,
+                self_function: None,
+                tail_component_bodies: None,
+                signature: &signature,
+                body: &continuation.body,
+                managed_loop_slots: &managed_loop_slots,
+            },
+            NativeFunctionCatalog {
+                ids: &function_ids,
+                parameter_types: &function_parameter_types,
+                suspending: &function_suspending,
+                transition_counts: &function_transition_counts,
+                managed_returns: &function_managed_returns,
+                managed_layouts: &managed_layouts,
+            },
         )
         .map_err(|error| {
             format!(
@@ -155,6 +246,17 @@ pub(crate) fn emit_native_application_dispatch_object_with_policy(
     application: &str,
     natives: &[NativeModule],
     policy: NativeCodegenPolicy,
+) -> Result<Vec<u8>, terlan_runtime_abi::BoundaryError> {
+    emit_native_application_dispatch_object_with_policy_untyped(application, natives, policy)
+        .map_err(|error| {
+            super::super::native_ir_boundary_error("emit native dispatch object", error)
+        })
+}
+
+fn emit_native_application_dispatch_object_with_policy_untyped(
+    application: &str,
+    natives: &[NativeModule],
+    policy: NativeCodegenPolicy,
 ) -> Result<Vec<u8>, String> {
     if natives.is_empty() {
         return Err("error[cranelift.application]: native application has no modules".to_string());
@@ -163,8 +265,11 @@ pub(crate) fn emit_native_application_dispatch_object_with_policy(
     let mut module = object_module(&format!("{application}.dispatch"), policy)?;
     let pointer = module.target_config().pointer_type();
     let application_native = flattened_application(application, natives);
-    let (function_suspending, function_transition_counts) = suspension_profile(&application_native);
+    let (function_suspending, function_transition_counts) =
+        suspension_profile(&application_native)?;
     let functions = application_functions(natives);
+    let externally_resumable =
+        super::super::continuation_sharing::externally_resumable_continuation_ids(natives);
     let mut dispatch_functions = Vec::new();
     for (index, (native, function)) in functions.iter().enumerate() {
         let signature = native_signature(
@@ -180,16 +285,21 @@ pub(crate) fn emit_native_application_dispatch_object_with_policy(
                 &signature,
             )
             .map_err(|error| format!("error[cranelift.dispatch_import]: {error}"))?;
-        dispatch_functions.push((
-            function.export_id,
-            function.arity,
-            id,
-            function_transition_counts[index],
-            function_suspending[index],
-        ));
+        if !super::super::is_materialized_continuation_module(native) {
+            dispatch_functions.push((
+                function.export_id,
+                function.arity,
+                id,
+                function_transition_counts[index],
+                function_suspending[index],
+            ));
+        }
     }
     for native in natives {
         for continuation in &native.continuations {
+            if !externally_resumable.contains(&continuation.id) {
+                continue;
+            }
             let transition_count =
                 suspension_value_count(&continuation.body, &function_transition_counts);
             let suspending = is_suspending(&continuation.body, &function_suspending);

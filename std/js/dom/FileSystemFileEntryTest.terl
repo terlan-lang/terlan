@@ -19,6 +19,6 @@ pub generated_binding_surface_contract(): Bool -> true.
 pub file__typechecks(
     receiver: FileSystemFileEntry,
     success_callback: FileCallback,
-    error_callback: ErrorCallback
+    error_callback: ErrorCallback,
 ): std.core.Unit ->
     receiver.file_(success_callback, error_callback).

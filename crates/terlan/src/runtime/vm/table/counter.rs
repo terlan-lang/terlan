@@ -1,9 +1,9 @@
-#![allow(dead_code)]
-
+#[cfg(test)]
 use super::atomic::{VmAtomicArray, VmAtomicError, VmAtomicKind, VmAtomicValue};
 
 /// Publication mode requested for a VM counter array.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmCounterMode {
     Atomic,
     WriteConcurrent,
@@ -11,6 +11,7 @@ pub(crate) enum VmCounterMode {
 
 /// Stable validation failures for counter operations.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmCounterError {
     EmptyArray,
     IndexOutOfBounds { index: usize, len: usize },
@@ -21,6 +22,7 @@ pub(crate) enum VmCounterError {
 
 /// Deterministic counter metadata independent of host scheduler layout.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmCounterInfo {
     pub(crate) len: usize,
     pub(crate) logical_bytes: usize,
@@ -33,11 +35,13 @@ pub(crate) struct VmCounterInfo {
 /// declares intent for heavily contended callers without exposing ERTS
 /// scheduler shards or host allocation geometry.
 #[derive(Debug)]
+#[cfg(test)]
 pub(crate) struct VmCounterArray {
     mode: VmCounterMode,
     cells: VmAtomicArray,
 }
 
+#[cfg(test)]
 impl VmCounterArray {
     pub(crate) fn new(len: usize, mode: VmCounterMode) -> Result<Self, VmCounterError> {
         len.checked_mul(std::mem::size_of::<u64>())
@@ -77,6 +81,7 @@ impl VmCounterArray {
     }
 }
 
+#[cfg(test)]
 fn map_atomic_error(error: VmAtomicError) -> VmCounterError {
     match error {
         VmAtomicError::EmptyArray => VmCounterError::EmptyArray,
@@ -92,4 +97,5 @@ fn map_atomic_error(error: VmAtomicError) -> VmCounterError {
 
 #[cfg(test)]
 #[path = "counter_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod counter_beam_suite_parity_test;

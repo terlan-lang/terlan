@@ -256,4 +256,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "function_head_migration_lint_test.rs"]
+#[cfg(test)]
 mod function_head_migration_lint_test;

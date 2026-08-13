@@ -23,6 +23,6 @@ pub clear_app_badge_typechecks(receiver: NavigatorBadge): Promise[Unit] ->
 
 pub set_app_badge_typechecks(
     receiver: NavigatorBadge,
-    contents: std.js.Number.JsNumber
+    contents: std.js.Number.JsNumber,
 ): Promise[Unit] ->
     receiver.set_app_badge(contents).

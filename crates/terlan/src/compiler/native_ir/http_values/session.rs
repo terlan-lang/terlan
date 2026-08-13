@@ -135,6 +135,18 @@ pub(super) fn lower_session_case(
     scrutinee: &CoreExpr,
     clauses: &[CoreCaseClause],
 ) -> Result<Option<CoreExpr>, String> {
+    let scrutinee = match scrutinee {
+        CoreExpr::Cast { expr, .. }
+            if matches!(
+                &**expr,
+                CoreExpr::RemoteCall { module, function, args }
+                    if module == MANAGED_HTTP_MODULE && function == "session_get" && args.len() == 2
+            ) =>
+        {
+            expr.as_ref()
+        }
+        _ => scrutinee,
+    };
     if !matches!(
         scrutinee,
         CoreExpr::RemoteCall { module, function, args }

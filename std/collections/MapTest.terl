@@ -34,7 +34,9 @@ pub sequential_put_matches_bulk_construction(): Bool ->
     sequential.put("alice", 1);
     sequential.put("bob", 2);
     sequential.put("alice", 3);
-    bulk.size() == sequential.size() and bulk.get("alice") == sequential.get("alice") and bulk.get("bob") == sequential.get("bob").
+    bulk.size() == sequential.size()
+        and bulk.get("alice") == sequential.get("alice")
+        and bulk.get("bob") == sequential.get("bob").
 
 @test
 pub from_entries_packs_entries(): Bool ->
@@ -52,9 +54,9 @@ pub put_updates_size_and_lookup(): Bool ->
     let users = Map.new();
     users.put("alice", 1);
     case users.get("alice") {
-    Some(found) -> assert_equal(1, found);
-    None -> false
-}.
+        Some(found) -> assert_equal(1, found);
+        None -> false
+    }.
 
 @test
 pub contains_key_tracks_mutations(): Bool ->
@@ -67,9 +69,16 @@ pub contains_key_tracks_mutations(): Bool ->
 pub take_returns_value_and_persistent_remainder(): Bool ->
     let users = Map({"alice", 1}, {"bob", 2});
     case Map.take(users, "alice") {
+        {None, _remaining} -> false;
         {Some(value), remaining} ->
-            assert_equal(1, value) and users.contains_key("alice") and remaining.contains_key("alice") == false and remaining.contains_key("bob") and remaining.size() == 1;
-        {None, _remaining} -> false
+            let selected_value_is_expected = assert_equal(1, value);
+            let source_is_unchanged = users.contains_key("alice");
+            let selected_key_is_removed = remaining.contains_key("alice") == false;
+            let remainder_is_expected = remaining.contains_key("bob") and remaining.size() == 1;
+            selected_value_is_expected
+                and source_is_unchanged
+                and selected_key_is_removed
+                and remainder_is_expected
     }.
 
 @test

@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 use super::{VmDriverCloseReport, VmDriverId, VmDriverQueuePlacement};
 use crate::runtime::vm::process::VmProcessId;
 
+#[cfg(test)]
 const VM_DRIVER_TRACE_CAPACITY: usize = 4_096;
 
 /// Coarse event classes selected by an external diagnostics adapter.
@@ -106,6 +107,7 @@ pub(crate) enum VmDriverTraceEventKind {
     },
 }
 
+#[cfg(test)]
 impl VmDriverTraceEventKind {
     const fn class(&self) -> VmDriverTraceClass {
         match self {
@@ -140,6 +142,7 @@ pub(crate) struct VmDriverTraceEvent {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct VmDriverTraceCursor(u64);
 
+#[cfg(test)]
 impl VmDriverTraceCursor {
     pub(crate) const fn from_position(position: u64) -> Self {
         Self(position)
@@ -178,6 +181,7 @@ impl Default for VmDriverTraceLog {
     }
 }
 
+#[cfg(test)]
 impl VmDriverTraceLog {
     pub(super) fn configure(&mut self, config: VmDriverTraceConfig) {
         self.config = config;

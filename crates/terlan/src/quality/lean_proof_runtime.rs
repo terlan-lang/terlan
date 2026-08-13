@@ -295,4 +295,5 @@ fn write_report(root: &Path, report: &LeanProofRuntimeReport) -> QualityResult<P
 
 #[cfg(test)]
 #[path = "lean_proof_runtime_test.rs"]
+#[cfg(test)]
 mod lean_proof_runtime_test;

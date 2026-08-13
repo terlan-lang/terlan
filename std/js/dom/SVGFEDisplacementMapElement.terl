@@ -65,13 +65,13 @@ pub (value: SVGFEDisplacementMapElement) y_channel_selector(): SVGAnimatedEnumer
 pub (value: SVGFEDisplacementMapElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     native.
 
 pub (value: SVGFEDisplacementMapElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     native.

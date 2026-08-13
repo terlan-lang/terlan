@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use crate::terlan_typeck::{CoreExpr, CoreFunction, CoreType};
+use crate::terlan_typeck::{CoreExpr, CoreFunction, CoreIntrinsicId, CoreType};
 
 use super::substitute;
 
@@ -33,6 +33,30 @@ fn substitute_expr_types(
     match expr {
         CoreExpr::Intrinsic(call) => {
             call.return_type = substitute(&call.return_type, parameters, values);
+            match &mut call.id {
+                CoreIntrinsicId::MemoryLayoutOf(ty)
+                | CoreIntrinsicId::MemoryShallowSize(ty)
+                | CoreIntrinsicId::MemoryRetainedSize(ty)
+                | CoreIntrinsicId::VmProcessSendMessage(ty)
+                | CoreIntrinsicId::VmProcessReceiveMessage(ty)
+                | CoreIntrinsicId::VmProcessSpawn(ty)
+                | CoreIntrinsicId::VmProcessEntry(ty)
+                | CoreIntrinsicId::VmProcessCurrent(ty)
+                | CoreIntrinsicId::VmProcessLink(ty)
+                | CoreIntrinsicId::VmProcessMonitor(ty)
+                | CoreIntrinsicId::VmProcessAcquireResource(ty)
+                | CoreIntrinsicId::VmProcessCancel(ty) => {
+                    *ty = substitute(ty, parameters, values);
+                }
+                CoreIntrinsicId::NativeOperation {
+                    parameter_types, ..
+                } => {
+                    for ty in parameter_types {
+                        *ty = substitute(ty, parameters, values);
+                    }
+                }
+                CoreIntrinsicId::Primitive(_) | CoreIntrinsicId::Runtime(_) => {}
+            }
             substitute_many(&mut call.args, parameters, values);
         }
         CoreExpr::Cast { expr, target_type } => {

@@ -1,0 +1,170 @@
+{
+  "generated_date": "2026-08-02",
+  "warning_threshold_percent": 5,
+  "hard_threshold_percent": 10,
+  "baseline": [
+    {
+      "feature_class": "EBNF syntax preservation",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    },
+    {
+      "feature_class": "typed CoreIR preservation",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    },
+    {
+      "feature_class": "target-profile inference",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    },
+    {
+      "feature_class": "VM execution subset",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    },
+    {
+      "feature_class": "pattern and operator coverage",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    },
+    {
+      "feature_class": "native-boundary contracts",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    },
+    {
+      "feature_class": "Wasm CoreIR lowering",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    },
+    {
+      "feature_class": "Aeneas Rust verification bridge",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    }
+  ],
+  "current": [
+    {
+      "feature_class": "EBNF syntax preservation",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    },
+    {
+      "feature_class": "typed CoreIR preservation",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    },
+    {
+      "feature_class": "target-profile inference",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    },
+    {
+      "feature_class": "VM execution subset",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    },
+    {
+      "feature_class": "pattern and operator coverage",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    },
+    {
+      "feature_class": "native-boundary contracts",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    },
+    {
+      "feature_class": "Wasm CoreIR lowering",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    },
+    {
+      "feature_class": "Aeneas Rust verification bridge",
+      "current_proof_count": 0,
+      "stale_count": 0,
+      "gap_count": 1,
+      "nondeterministic_count": 0,
+      "repro_fail_count": 0,
+      "repro_pass_rate_7d": 100,
+      "lane_pass_rate_30d": 100
+    }
+  ],
+  "warnings": []
+}

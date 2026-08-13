@@ -1,0 +1,619 @@
+/**
+ * Validates the executable VM benchmark-family plans without Python.
+ */
+module scripts.self_validation.VmBenchmarkFamilyPlanTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.io.Console.{println}.
+import std.io.File.{exists, read_text, read_text_tree_matching}.
+import std.system.Environment.
+
+import type std.io.File.TextFile.
+
+struct FamilyInventory {
+    rows: List[List[String]],
+    valid: Bool,
+}.
+
+struct EquivalenceInventory {
+    rows: List[List[String]],
+    valid: Bool,
+}.
+
+@pure
+child(root: String, relative: String): String ->
+    if {
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+selected_root(): String ->
+    case Environment.get("TERLAN_VM_BENCHMARK_ROOT") {
+        Some(root) -> root;
+        None -> Environment.current_directory()
+    }.
+
+selected_gate(): String ->
+    case Environment.get("TERLAN_VM_BENCHMARK_GATE") {
+        Some(gate) -> gate;
+        None -> "vm-http-vs-axum-check"
+    }.
+
+docs_root(root: String): String ->
+    let nested = child(root, "docs/runtime/VM_BENCHMARK_FAMILIES.tsv");
+    if {
+        exists(nested) -> child(root, "docs");
+        true -> child(root, "../docs")
+    }.
+
+workspace_path(root: String, relative: String): String ->
+    let nested = child(root, relative);
+    if {
+        exists(nested) -> nested;
+        true -> child(root, String.append("../", relative))
+    }.
+
+@pure
+reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_at(values, []).
+
+@pure
+reverse_strings_at(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings_at(rest, [value | reversed])
+    }.
+
+@pure
+reverse_rows(values: List[List[String]]): List[List[String]] ->
+    reverse_rows_at(values, []).
+
+@pure
+reverse_rows_at(values: List[List[String]], reversed: List[List[String]]): List[List[String]] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_rows_at(rest, [value | reversed])
+    }.
+
+@pure
+contains_string(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains_string(rest, expected)
+    }.
+
+@pure
+all_strings_present(expected: List[String], actual: List[String]): Bool ->
+    case expected {
+        [] -> true;
+        [value | rest] ->
+            if {
+                contains_string(actual, value) -> all_strings_present(rest, actual);
+                true -> false
+            }
+    }.
+
+@pure
+expected_tracks(gate: String): List[String] ->
+    if {
+        gate == "vm-http-vs-axum-check" -> [
+            "static",
+            "json-handler",
+            "metadata",
+            "route-matching",
+            "keep-alive",
+            "concurrency-1",
+            "concurrency-100",
+            "concurrency-1000",
+        ];
+        gate == "vm-semantics-vs-otp-check" -> [
+            "process-spawn",
+            "mailbox-send-receive",
+            "selective-receive",
+            "timers",
+            "links-monitors",
+            "supervision",
+            "registry",
+            "scheduler-fairness",
+            "hot-reload",
+            "distribution",
+        ];
+        true -> []
+    }.
+
+@pure
+expected_status(gate: String): String ->
+    if {
+        gate == "vm-http-vs-axum-check" -> "executable-baseline-with-socket-permission-skip";
+        gate == "vm-semantics-vs-otp-check" -> "planned-after-terlan-vm-erl-suite-audit";
+        true -> ""
+    }.
+
+@pure
+supported_gate(gate: String): Bool ->
+    expected_tracks(gate) != [].
+
+@pure
+parse_families(text: String): FamilyInventory ->
+    parse_family_lines(String.split(text, "\n"), [], true).
+
+@pure
+parse_family_lines(lines: List[String], rows: List[List[String]], valid: Bool): FamilyInventory ->
+    case lines {
+        [] -> FamilyInventory(rows = reverse_rows(rows), valid = valid);
+        [raw | rest] ->
+            if {
+                String.trim(raw) == "" or String.starts_with(raw, "#") -> parse_family_lines(rest, rows, valid);
+                true -> case String.split(raw, "\t") {
+                    [_family, gate, reference, _scope, tracks, clue, status] ->
+                        parse_family_lines(
+                            rest,
+                            [[gate, reference, tracks, clue, status] | rows],
+                            valid,
+                        );
+                    _ -> parse_family_lines(rest, rows, false)
+                }
+            }
+    }.
+
+@pure
+nonempty_strings(values: List[String]): List[String] ->
+    reverse_strings(nonempty_strings_at(values, [])).
+
+@pure
+nonempty_strings_at(values: List[String], kept: List[String]): List[String] ->
+    case values {
+        [] -> kept;
+        [value | rest] ->
+            if {
+                value == "" -> nonempty_strings_at(rest, kept);
+                true -> nonempty_strings_at(rest, [value | kept])
+            }
+    }.
+
+@pure
+family_matches_once(rows: List[List[String]], gate: String, found: Bool): Bool ->
+    case rows {
+        [] -> found;
+        [[row_gate, _reference, _tracks, _clue, _status] | rest] ->
+            if {
+                row_gate != gate -> family_matches_once(rest, gate, found);
+                found -> false;
+                true -> family_matches_once(rest, gate, true)
+            };
+        [_invalid | _rest] -> false
+    }.
+
+@pure
+family_for_gate(rows: List[List[String]], gate: String): List[String] ->
+    case rows {
+        [[row_gate, reference, tracks, clue, status] | rest] ->
+            if {
+                row_gate == gate -> [row_gate, reference, tracks, clue, status];
+                true -> family_for_gate(rest, gate)
+            };
+        [_invalid | rest] -> family_for_gate(rest, gate);
+        [] -> []
+    }.
+
+@pure
+family_shape_holds(family: List[String]): Bool ->
+    case family {
+        [gate, reference, tracks_text, clue_report, status] ->
+            let tracks = nonempty_strings(String.split(tracks_text, ","));
+            supported_gate(gate)
+    and all_strings_present(expected_tracks(gate), tracks)
+    and reference == "axum-tokio"
+                or reference == "otp" and status == expected_status(gate) and clue_report != "";
+        _ -> false
+    }.
+
+@pure
+required_clue_columns(gate: String): List[String] ->
+    if {
+        gate == "vm-semantics-vs-otp-check" -> [
+            "Lane",
+            "Port Plan Area",
+            "Symptom",
+            "Suspected Subsystem",
+            "Source Files",
+            "Hypothesis",
+            "Next Measurement",
+        ];
+        true -> ["Lane", "Symptom", "Suspected Subsystem", "Source Files", "Hypothesis", "Next Measurement"]
+    }.
+
+@pure
+text_contains_all(text: String, values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> String.contains(text, value) and text_contains_all(text, rest)
+    }.
+
+@pure
+table_cells(line: String): List[String] ->
+    trim_empty_edge_cells(String.split(String.trim(line), "|")).
+
+@pure
+trim_empty_edge_cells(values: List[String]): List[String] ->
+    trim_trailing_empty(trim_leading_empty(values)).
+
+@pure
+trim_leading_empty(values: List[String]): List[String] ->
+    case values {
+        [value | rest] ->
+            if {
+                String.trim(value) == "" -> trim_leading_empty(rest);
+                true -> trim_cells(values)
+            };
+        [] -> []
+    }.
+
+@pure
+trim_cells(values: List[String]): List[String] ->
+    reverse_strings(trim_cells_at(values, [])).
+
+@pure
+trim_cells_at(values: List[String], trimmed: List[String]): List[String] ->
+    case values {
+        [] -> trimmed;
+        [value | rest] -> trim_cells_at(rest, [String.trim(value) | trimmed])
+    }.
+
+@pure
+trim_trailing_empty(values: List[String]): List[String] ->
+    reverse_strings(trim_leading_empty(reverse_strings(values))).
+
+@pure
+source_index(gate: String): Int ->
+    if {
+        gate == "vm-semantics-vs-otp-check" -> 4;
+        true -> 3
+    }.
+
+@pure
+string_at(values: List[String], index: Int): String ->
+    case values {
+        [] -> "";
+        [value | rest] ->
+            if {
+                index == 0 -> value;
+                true -> string_at(rest, index - 1)
+            }
+    }.
+
+@pure
+is_separator_cell(value: String): Bool ->
+    let stripped = String.replace(String.replace(value, "-", ""), ":", "");
+    String.trim(stripped) == "" and String.contains(value, "-").
+
+@pure
+is_separator_row(cells: List[String]): Bool ->
+    case cells {
+        [] -> false;
+        [value | rest] -> is_separator_cell(value) and separator_tail(rest)
+    }.
+
+@pure
+separator_tail(cells: List[String]): Bool ->
+    case cells {
+        [] -> true;
+        [value | rest] -> is_separator_cell(value) and separator_tail(rest)
+    }.
+
+@pure
+normalize_source(value: String): String ->
+    let unquoted = String.trim(String.replace(value, "`", ""));
+    case String.split_once(unquoted, "::") {
+        Some({path, _symbol}) -> String.trim(path);
+        None -> unquoted
+    }.
+
+source_cell_holds(root: String, cell: String): Bool ->
+    source_values_hold(root, String.split(cell, ",")).
+
+source_values_hold(root: String, values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [raw | rest] ->
+            let source = normalize_source(raw);
+            if {
+                source == "" or source == "pending" -> source_values_hold(root, rest);
+                true -> let resolved = workspace_path(root, source);
+                let source_present = exists(resolved);
+                source_present and source_values_hold(root, rest)
+            }
+    }.
+
+clue_rows_hold(root: String, gate: String, lines: List[String], in_table: Bool): Bool ->
+    case lines {
+        [] -> true;
+        [raw | rest] ->
+            let line = String.trim(raw);
+            if {
+                not String.starts_with(line, "|") or not String.ends_with(line, "|") -> clue_rows_hold(root, gate, rest, false);
+                true -> let cells = table_cells(line);
+                if {
+                    contains_string(cells, "Source Files") -> clue_rows_hold(root, gate, rest, true);
+                    not in_table or is_separator_row(cells) -> clue_rows_hold(root, gate, rest, in_table);
+                    true -> let cell = string_at(cells, source_index(gate));
+                    cell != ""
+                        and source_cell_holds(root, cell)
+                        and clue_rows_hold(root, gate, rest, true)
+                }
+            }
+    }.
+
+clue_report_holds(root: String, family: List[String]): Bool ->
+    case family {
+        [gate, _reference, _tracks, clue_report, _status] ->
+            let path = workspace_path(root, clue_report);
+            case read_text(path) {
+                Ok(text) ->
+                    String.contains(text, gate)
+                        and text_contains_all(text, required_clue_columns(gate))
+                        and clue_rows_hold(root, gate, String.split(text, "\n"), false);
+                Err(_reason) -> false
+            };
+        _ -> false
+    }.
+
+@pure
+track_port_area(track: String): String ->
+    if {
+        track == "process-spawn" -> "process-registry";
+        track == "mailbox-send-receive" -> "mailbox";
+        track == "selective-receive" -> "mailbox";
+        track == "timers" -> "timers";
+        track == "links-monitors" -> "links-monitors";
+        track == "supervision" -> "links-monitors";
+        track == "registry" -> "process-registry";
+        track == "scheduler-fairness" -> "scheduler";
+        track == "hot-reload" -> "scheduler";
+        track == "distribution" -> "distribution-framing";
+        true -> ""
+    }.
+
+@pure
+port_plan_areas(text: String): List[String] ->
+    reverse_strings(port_plan_areas_at(String.split(text, "\n"), [])).
+
+@pure
+port_plan_areas_at(lines: List[String], areas: List[String]): List[String] ->
+    case lines {
+        [] -> areas;
+        [raw | rest] ->
+            if {
+                String.trim(raw) == "" or String.starts_with(raw, "#") -> port_plan_areas_at(rest, areas);
+                true -> case String.split(raw, "\t") {
+                    [_priority | [area | _remaining]] -> port_plan_areas_at(rest, [area | areas]);
+                    _ -> port_plan_areas_at(rest, areas)
+                }
+            }
+    }.
+
+@pure
+tracks_map_to_port_plan(tracks: List[String], areas: List[String]): Bool ->
+    case tracks {
+        [] -> true;
+        [track | rest] ->
+            let area = track_port_area(track);
+            area != "" and contains_string(areas, area) and tracks_map_to_port_plan(rest, areas)
+    }.
+
+@pure
+parse_equivalence(text: String): EquivalenceInventory ->
+    parse_equivalence_lines(String.split(text, "\n"), [], true).
+
+@pure
+parse_equivalence_lines(
+    lines: List[String],
+    rows: List[List[String]],
+    valid: Bool,
+): EquivalenceInventory ->
+    case lines {
+        [] -> EquivalenceInventory(rows = reverse_rows(rows), valid = valid);
+        [raw | rest] ->
+            if {
+                String.trim(raw) == "" or String.starts_with(raw, "#") -> parse_equivalence_lines(rest, rows, valid);
+                true -> case String.split(raw, "\t") {
+                    [track, area, gate, otp, status, evidence] ->
+                        parse_equivalence_lines(
+                            rest,
+                            [[track, area, gate, otp, status, evidence] | rows],
+                            valid,
+                        );
+                    _ -> parse_equivalence_lines(rest, rows, false)
+                }
+            }
+    }.
+
+@pure
+equivalence_track_present(rows: List[List[String]], track: String): Bool ->
+    case rows {
+        [] -> false;
+        [[row_track, _area, _gate, _otp, _status, _evidence] | rest] ->
+            row_track == track or equivalence_track_present(rest, track);
+        [_invalid | rest] -> equivalence_track_present(rest, track)
+    }.
+
+@pure
+expected_equivalence_tracks_hold(rows: List[List[String]], expected: List[String]): Bool ->
+    case expected {
+        [] -> true;
+        [track | rest] ->
+            equivalence_track_present(rows, track) and expected_equivalence_tracks_hold(rows, rest)
+    }.
+
+@pure
+equivalence_tracks_are_unique(rows: List[List[String]], seen: List[String]): Bool ->
+    case rows {
+        [] -> true;
+        [[track, _area, _gate, _otp, _status, _evidence] | rest] ->
+            not contains_string(seen, track) and equivalence_tracks_are_unique(rest, [track | seen]);
+        [_invalid | _rest] -> false
+    }.
+
+@pure
+make_target_in_source(source: String, target: String): Bool ->
+    String.starts_with(source, String.append(target, ":"))
+        or String.contains(source, String.append("\n", String.append(target, ":"))).
+
+@pure
+make_target_exists(files: List[TextFile], target: String): Bool ->
+    case files {
+        [] -> false;
+        [file | rest] ->
+            make_target_in_source(file.contents, target) or make_target_exists(rest, target)
+    }.
+
+@pure
+allowed_equivalence_status(status: String): Bool ->
+    status == "planned" or status == "partial" or status == "complete".
+
+@pure
+row_holds(
+    row: List[String],
+    expected: List[String],
+    areas: List[String],
+    make_files: List[TextFile],
+): Bool ->
+    case row {
+        [track, port_area, vm_gate, otp_reference, status, evidence] ->
+            contains_string(expected, track)
+    and port_area == track_port_area(track)
+    and contains_string(areas, port_area)
+    and make_target_exists(make_files, vm_gate)
+    and otp_reference != ""
+    and allowed_equivalence_status(status)
+    and status == "planned"
+                or evidence != "" and status != "complete"
+                or String.contains(String.lowercase(evidence), "benchmark");
+        _ -> false
+    }.
+
+@pure
+equivalence_rows_hold(
+    rows: List[List[String]],
+    expected: List[String],
+    areas: List[String],
+    make_files: List[TextFile],
+): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            row_holds(row, expected, areas, make_files)
+                and equivalence_rows_hold(rest, expected, areas, make_files)
+    }.
+
+semantics_artifacts_hold(root: String, family: List[String]): Bool ->
+    let port_path = child(root, "docs/runtime/TERLAN_VM_BEAM_TEST_PORT_PLAN.tsv");
+    let matrix_path = child(docs_root(root), "runtime/VM_SEMANTICS_EQUIVALENCE_MATRIX.tsv");
+    case read_text(port_path) {
+        Ok(port_text) -> semantics_matrix_holds(root, family, matrix_path, port_text);
+        Err(_reason) -> false
+    }.
+
+semantics_matrix_holds(
+    root: String,
+    family: List[String],
+    matrix_path: String,
+    port_text: String,
+): Bool ->
+    case read_text(matrix_path) {
+        Ok(matrix_text) -> semantics_make_targets_hold(root, family, port_text, matrix_text);
+        Err(_reason) -> false
+    }.
+
+semantics_make_targets_hold(
+    root: String,
+    family: List[String],
+    port_text: String,
+    matrix_text: String,
+): Bool ->
+    case read_text_tree_matching(
+    root,
+    [".git", "target", "node_modules", "vendor", "dist", "build"],
+    ["Makefile", ".mk"],
+    [],
+    0,
+    512,
+) {
+        Ok(make_files) -> validate_semantics_documents(family, port_text, matrix_text, make_files);
+        Err(_reason) -> false
+    }.
+
+@pure
+validate_semantics_documents(
+    family: List[String],
+    port_text: String,
+    matrix_text: String,
+    make_files: List[TextFile],
+): Bool ->
+    let areas = port_plan_areas(port_text);
+    let inventory = parse_equivalence(matrix_text);
+    case family {
+        [gate, _reference, tracks_text, _clue, _status] ->
+            let expected = expected_tracks(gate);
+            let family_tracks = nonempty_strings(String.split(tracks_text, ","));
+            inventory.valid
+                and equivalence_tracks_are_unique(inventory.rows, [])
+                and tracks_map_to_port_plan(family_tracks, areas)
+                and expected_equivalence_tracks_hold(inventory.rows, expected)
+                and equivalence_rows_hold(inventory.rows, expected, areas, make_files);
+        _ -> false
+    }.
+
+repository_gate(root: String, gate: String): Bool ->
+    if {
+        not supported_gate(gate) -> false;
+        true -> let manifest_path = child(docs_root(root), "runtime/VM_BENCHMARK_FAMILIES.tsv");
+        case read_text(manifest_path) {
+            Ok(text) ->
+                let inventory = parse_families(text);
+                let family = family_for_gate(inventory.rows, gate);
+                inventory.valid
+    and family_matches_once(inventory.rows, gate, false)
+    and family_shape_holds(family)
+    and clue_report_holds(root, family)
+    and gate != "vm-semantics-vs-otp-check"
+                    or semantics_artifacts_hold(root, family);
+            Err(_reason) -> false
+        }
+    }.
+
+@test
+pub selected_benchmark_family_plan_is_valid(): Bool ->
+    let gate = selected_gate();
+    let passed = repository_gate(selected_root(), gate);
+    if {
+        passed -> let _message = println(String.append("[", String.append(gate, "] benchmark family plan validated")));
+        true;
+        true -> false
+    }.
+
+@test
+pub malformed_family_tsv_is_rejected(): Bool ->
+    let inventory = parse_families("broken\trow\n");
+    not inventory.valid.
+
+@test
+pub missing_required_track_is_rejected(): Bool ->
+    let inventory =
+        parse_families(
+            "x\tvm-http-vs-axum-check\taxum-tokio\thttp\tstatic\tdocs/clues.md\texecutable-baseline-with-socket-permission-skip\n",
+        );
+    let family = family_for_gate(inventory.rows, "vm-http-vs-axum-check");
+    not family_shape_holds(family).
+
+@test
+pub duplicate_equivalence_track_is_rejected(): Bool ->
+    let rows =
+        [
+            ["timers", "timers", "vm-timer-primitives-check", "OTP timers", "partial", "typed gate"],
+            ["timers", "timers", "vm-timer-primitives-check", "OTP timers", "partial", "typed gate"],
+        ];
+    not equivalence_tracks_are_unique(rows, []).

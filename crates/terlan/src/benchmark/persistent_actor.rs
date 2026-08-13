@@ -6,31 +6,17 @@ use std::time::Instant;
 
 use serde::Serialize;
 
-use crate::memory::{
+use crate::runtime::vm::memory::{
     logical_value_bytes, VmMemoryAccountant, VmMemoryLimits, VmMemoryPressureOutcome,
 };
-use crate::process::{VmExitReason, VmProcessSource, VmProcessTable};
-use crate::scheduler::{VmScheduler, VmSchedulerDecision, VmSchedulerOutcome};
-pub(crate) use crate::ReplValue;
+use crate::runtime::vm::process::{VmExitReason, VmProcessSource, VmProcessTable};
+use crate::runtime::vm::scheduler::{VmScheduler, VmSchedulerDecision, VmSchedulerOutcome};
+pub(crate) use crate::runtime::vm::ReplValue;
 
-#[path = "../runtime/vm/checksum.rs"]
-mod checksum;
-#[path = "../runtime/vm/distributed_state.rs"]
-pub(crate) mod distributed_state;
-#[path = "../runtime/vm/distributed_storage.rs"]
-pub(crate) mod distributed_storage;
-#[path = "../runtime/vm/model_sync.rs"]
-mod model_sync;
-#[path = "../runtime/vm/persistent_actor_adapter.rs"]
-mod persistent_actor_adapter;
-#[path = "../runtime/vm/persistent_actor_compaction.rs"]
-mod persistent_actor_compaction;
-#[path = "../runtime/vm/persistent_actor_restore.rs"]
-mod persistent_actor_restore;
-#[path = "../runtime/vm/persistent_actor_schema.rs"]
-mod persistent_actor_schema;
-#[path = "../runtime/vm/persistent_actor_store.rs"]
-mod persistent_actor_store;
+use crate::runtime::vm::{
+    persistent_actor_adapter, persistent_actor_compaction, persistent_actor_schema,
+    persistent_actor_store,
+};
 
 use super::write_report;
 use persistent_actor_adapter::execute_persistent_actor_adapter_cross_adapter_restore;
@@ -43,9 +29,9 @@ use persistent_actor_schema::{
     VmPersistentActorSchemaDescriptor, VmPersistentActorSchemaKey,
 };
 use persistent_actor_store::{
-    VmFileBackedPersistentActorStore, VmInMemoryPersistentActorStore, VmPersistentActorEvent,
-    VmPersistentActorId, VmPersistentActorSchema, VmPersistentActorSnapshot,
-    VmPersistentActorStoreAdapter, VmPersistentActorStoreOutcome,
+    VmFileBackedPersistentActorStore, VmInMemoryPersistentActorStore, VmPersistentActorDurability,
+    VmPersistentActorEvent, VmPersistentActorId, VmPersistentActorSchema,
+    VmPersistentActorSnapshot, VmPersistentActorStoreAdapter, VmPersistentActorStoreOutcome,
 };
 
 pub(crate) const COMMAND: &str = "vm-persistent-actor-runtime-baseline";
@@ -621,8 +607,10 @@ fn execute_compaction_sample(sample: usize) -> Result<u128, String> {
         ReplValue::Int(0),
         Vec::new(),
         Vec::new(),
-        Vec::new(),
-        0,
+        VmPersistentActorDurability {
+            resource_handles: Vec::new(),
+            last_event_sequence: 0,
+        },
     )?;
     let events = (1..=COMPACTION_EVENTS)
         .map(|sequence| {
@@ -645,8 +633,10 @@ fn execute_compaction_sample(sample: usize) -> Result<u128, String> {
         ReplValue::Int(COMPACTED_THROUGH as i64),
         Vec::new(),
         Vec::new(),
-        Vec::new(),
-        COMPACTED_THROUGH as u64,
+        VmPersistentActorDurability {
+            resource_handles: Vec::new(),
+            last_event_sequence: COMPACTED_THROUGH as u64,
+        },
     )?;
     let equivalence = VmPersistentActorReplayEquivalence::from_snapshot(&compacted_snapshot);
     let candidate = VmPersistentActorCompactionCandidate {
@@ -711,8 +701,10 @@ fn execute_file_backed_sample(
         ReplValue::Int(0),
         Vec::new(),
         Vec::new(),
-        Vec::new(),
-        0,
+        VmPersistentActorDurability {
+            resource_handles: Vec::new(),
+            last_event_sequence: 0,
+        },
     )?;
     let mut store = VmFileBackedPersistentActorStore::open_file_backed(&path)?;
     let snapshot_started = Instant::now();
@@ -822,8 +814,10 @@ fn execute_sample(sample: usize, event_count: usize) -> Result<(), String> {
         ReplValue::Int(0),
         Vec::new(),
         Vec::new(),
-        Vec::new(),
-        0,
+        VmPersistentActorDurability {
+            resource_handles: Vec::new(),
+            last_event_sequence: 0,
+        },
     )?;
     let mut store = VmInMemoryPersistentActorStore::new();
     if !matches!(

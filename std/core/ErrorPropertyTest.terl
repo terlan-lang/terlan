@@ -21,11 +21,15 @@ import std.test.Test.{each}.
  */
 @test
 pub constructor_preserves_generated_fields(): Bool ->
-    for_all(pair_of(atoms(), strings()), (pair) -> case pair {
-        {error_code, error_message} ->
-            let value = new(error_code, error_message);
-            code(value) == error_code and message(value) == error_message
-    }).
+    for_all(
+        pair_of(atoms(), strings()),
+        (pair) ->
+            case pair {
+                {error_code, error_message} ->
+                    let value = new(error_code, error_message);
+                    code(value) == error_code and message(value) == error_message
+            },
+    ).
 
 /**
  * Verifies `to_string` is a message projection for generated errors.
@@ -36,8 +40,12 @@ pub constructor_preserves_generated_fields(): Bool ->
  */
 @test
 pub generated_errors_to_string_is_message_projection(): Bool ->
-    for_all(pair_of(atoms(), strings()), (pair) -> case pair {
-        {error_code, error_message} ->
-            let value = new(error_code, error_message);
-            to_string(value) == error_message
-    }).
+    for_all(
+        pair_of(atoms(), strings()),
+        (pair) ->
+            case pair {
+                {error_code, error_message} ->
+                    let value = new(error_code, error_message);
+                    to_string(value) == error_message
+            },
+    ).

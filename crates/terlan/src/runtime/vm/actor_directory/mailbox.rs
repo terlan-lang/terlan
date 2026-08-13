@@ -90,15 +90,10 @@ impl<P> VmActorMailbox<P> {
     /// Drains fragments in queue publication order for the single consumer.
     pub(super) fn drain(&self, mut consume: impl FnMut(VmPublishedFragment<P>)) -> usize {
         let mut drained = 0usize;
-        loop {
-            match self.queue.pop() {
-                Ok(fragment) => {
-                    self.admitted.fetch_sub(1, Ordering::AcqRel);
-                    consume(fragment);
-                    drained = drained.saturating_add(1);
-                }
-                Err(_) => break,
-            }
+        while let Ok(fragment) = self.queue.pop() {
+            self.admitted.fetch_sub(1, Ordering::AcqRel);
+            consume(fragment);
+            drained = drained.saturating_add(1);
         }
         if self.queue.is_empty() {
             let _ = self.wake_state.compare_exchange(
@@ -146,5 +141,7 @@ impl<P> VmActorMailbox<P> {
 }
 
 #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
+#[cfg(test)]
 #[path = "mailbox_test.rs"]
+#[cfg(test)]
 mod mailbox_test;

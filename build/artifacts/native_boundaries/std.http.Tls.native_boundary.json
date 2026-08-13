@@ -1,0 +1,63 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Tls.auto/2",
+      "name": "auto",
+      "operation": "std.http.tls.auto",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:b9e6f79e930bc992c2f83b595ddbaad5f942a00719038e64d1eb1825434099f9"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Tls.manual/2",
+      "name": "manual",
+      "operation": "std.http.tls.manual",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:59f3b5d950a933a2b3d66d4cb4d565a72cdee95bfe67bf7feaed585fc8d1e494"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Tls.internal/1",
+      "name": "internal",
+      "operation": "std.http.tls.internal",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:9a64ad98d37f8e89f95617475473e9cd73d34666fca7d2ae9d631e8bbeaaf034"
+    }
+  ],
+  "manifest_digest": "sha256:cd3ee171c829a742a819e074fa800ddbd5d0906c240a087e71c8ec45b2c01db8",
+  "module": "std_http_tls_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "acme.tls",
+    "error_policy": "typed-result",
+    "module_prefix": "std.http.Tls",
+    "notes": "TLS APIs construct typed configuration; certificate and ACME host work requires asynchronous capability handoff.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:870c62d576053f7bf51276019620b32521cf28f3baecdabe59546633065a6ab6",
+  "source_module": "std.http.Tls",
+  "source_path": "std/summaries/std.http.Tls.native_boundary.json"
+}

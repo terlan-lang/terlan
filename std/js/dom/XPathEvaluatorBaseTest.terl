@@ -20,7 +20,7 @@ pub generated_binding_surface_contract(): Bool -> true.
 pub create_expression_typechecks(
     receiver: XPathEvaluatorBase,
     expression: JsString,
-    resolver: Option[XPathNSResolver]
+    resolver: Option[XPathNSResolver],
 ): XPathExpression ->
     receiver.create_expression(expression, resolver).
 
@@ -33,6 +33,6 @@ pub evaluate_typechecks(
     context_node: Node,
     resolver: Option[XPathNSResolver],
     type_: std.js.Number.JsNumber,
-    result: Option[XPathResult]
+    result: Option[XPathResult],
 ): XPathResult ->
     receiver.evaluate(expression, context_node, resolver, type_, result).

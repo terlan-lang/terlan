@@ -198,8 +198,10 @@ fn hex_bytes(bytes: &[u8]) -> String {
 
 #[cfg(test)]
 #[path = "pure_native/generation_lifetime_test.rs"]
+#[cfg(test)]
 mod generation_lifetime_test;
 
 #[cfg(test)]
 #[path = "native_image_diagnostics_test.rs"]
+#[cfg(test)]
 mod native_image_diagnostics_test;

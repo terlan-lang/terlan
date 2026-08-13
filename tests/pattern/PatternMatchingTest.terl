@@ -8,9 +8,9 @@ import std.core.Unit.
 import std.test.Test.{assert_equal}.
 import std.vm.Bytes.
 
-pub type Ready = Atom["ready"].
+pub type Ready.
 
-pub type Done = Atom["done"].
+pub type Done.
 
 pub type Status = Ready | Done.
 
@@ -21,7 +21,7 @@ pub constructor Ship {
 
 pub struct ResponseShape {
     status: Int,
-    body: String
+    body: String,
 }.
 
 pub choose_status(): Status ->
@@ -119,8 +119,7 @@ pub case_string_literal_requires_exact_value(): Bool ->
 @test
 pub case_string_capture_binds_typed_value(): Bool ->
     case "users/42/alice.json" {
-        "users/${id: Int}/${name}.json" ->
-            assert_equal(43, id + 1) and assert_equal("alice", name);
+        "users/${id: Int}/${name}.json" -> assert_equal(43, id + 1) and assert_equal("alice", name);
         _ -> false
     }.
 
@@ -134,7 +133,7 @@ pub case_string_capture_falls_through_on_failed_conversion(): Bool ->
 @test
 pub case_string_capture_guard_uses_bound_value(): Bool ->
     case "users/204/ok.json" {
-        "users/${status: Int}/${body}.json" where (status >= 200 and status <= 299) ->
+        "users/${status: Int}/${body}.json" where status >= 200 and status <= 299 ->
             assert_equal("ok", body);
         _ -> false
     }.
@@ -174,14 +173,13 @@ pub case_result_constructors_match_both_shapes(): Bool ->
             Err(_reason) -> 0
         };
     let failure =
-        case Err(Ready) {
-            Ok(_value) -> 0;
-            Err(reason) ->
-                case reason {
-                    Ready -> 1;
-                    Done -> 0
-                }
-        };
+        (let {
+    Err(reason) <- Err(Ready);
+    Ready <- reason
+} else {
+    _ -> 0
+};
+1);
     assert_equal(43, success + failure).
 
 @test
@@ -206,14 +204,13 @@ pub case_empty_list_pattern_matches_empty_list(): Bool ->
 
 @test
 pub case_list_cons_pattern_splits_head_and_tail(): Bool ->
-    case [1, 2, 3] {
-        [head | tail] ->
-            case tail {
-                [next, last] -> assert_equal(6, head + next + last);
-                _ -> false
-            };
-        [] -> false
-    }.
+    let {
+        [head | tail] <- [1, 2, 3];
+        [next, last] <- tail
+    } else {
+        _ -> false
+    };
+    assert_equal(6, head + next + last).
 
 @test
 pub case_list_cons_pattern_falls_through_on_empty_list(): Bool ->
@@ -238,52 +235,43 @@ pub case_custom_constructor_pattern_binds_payloads(): Bool ->
 
 @test
 pub binary_protocol_shape_helpers_resolve_and_split_tcp_header(): Bool ->
-    let payload = Bytes.from_list([0, 80, 1, 187, 0, 0, 0, 1, 0, 0, 0, 2, 80, 18, 16, 0, 18, 52, 0, 0, 170, 187]);
-    case protocol_shape_set("transport", List(tcp_header_shape()), List.new[std.binary.Binary.ProtocolShapeAlias]()) {
-        Err(_reason) -> false;
-        Ok(set) ->
-            case protocol_shape_set_resolve(set, "tcp_header") {
-                Err(_reason) -> false;
-                Ok(shape) ->
-                    case decode_fixed_header(shape, payload) {
-                        Err(_reason) -> false;
-                        Ok({header, body}) ->
-                            assert_equal(20, header.length()) and assert_equal(Bytes.from_list([170, 187]), body)
-                    }
-            }
-    }.
+    let payload =
+        Bytes.from_list(
+            [0, 80, 1, 187, 0, 0, 0, 1, 0, 0, 0, 2, 80, 18, 16, 0, 18, 52, 0, 0, 170, 187],
+        );
+    let {
+        Ok(set) <-
+            protocol_shape_set(
+                "transport",
+                List(tcp_header_shape()),
+                List.new[std.binary.Binary.ProtocolShapeAlias](),
+            );
+        Ok(shape) <- protocol_shape_set_resolve(set, "tcp_header");
+        Ok({header, body}) <- decode_fixed_header(shape, payload)
+    } else {
+        _ -> false
+    };
+    assert_equal(20, header.length()) and assert_equal(Bytes.from_list([170, 187]), body).
 
 @test
 pub binary_protocol_shape_helpers_roundtrip_aliased_compact_frame(): Bool ->
-    let fields =
-        List(
-            decoded_field("version", 1),
-            decoded_field("kind", 2),
-            decoded_field("length", 2)
-        );
+    let fields = List(decoded_field("version", 1), decoded_field("kind", 2), decoded_field("length", 2));
     let decoded = decoded_protocol(fields, Bytes.from_list([170, 187]));
     let aliases = List(protocol_shape_alias("current", "compact_frame"));
-    case protocol_shape_set("frames", List(compact_frame_shape()), aliases) {
-        Err(_reason) -> false;
-        Ok(set) ->
-            case protocol_shape_set_encode_exact(set, "current", decoded) {
-                Err(_reason) -> false;
-                Ok(encoded) ->
-                    case protocol_shape_set_decode(set, "current", encoded) {
-                        Err(_reason) -> false;
-                        Ok(roundtrip) ->
-                            case {
-                                decoded_protocol_value(roundtrip, "version"),
-                                decoded_protocol_value(roundtrip, "kind"),
-                                decoded_protocol_value(roundtrip, "length")
-                            } {
-                                {Some(1), Some(2), Some(2)} ->
-                                    assert_equal(Bytes.from_list([170, 187]), decoded_protocol_remaining_bytes(roundtrip));
-                                _ -> false
-                            }
-                    }
+    let {
+        Ok(set) <- protocol_shape_set("frames", List(compact_frame_shape()), aliases);
+        Ok(encoded) <- protocol_shape_set_encode_exact(set, "current", decoded);
+        Ok(roundtrip) <- protocol_shape_set_decode(set, "current", encoded);
+        {Some(1), Some(2), Some(2)} <-
+            {
+                decoded_protocol_value(roundtrip, "version"),
+                decoded_protocol_value(roundtrip, "kind"),
+                decoded_protocol_value(roundtrip, "length"),
             }
-    }.
+    } else {
+        _ -> false
+    };
+    assert_equal(Bytes.from_list([170, 187]), decoded_protocol_remaining_bytes(roundtrip)).
 
 @test
 pub case_guard_uses_bound_value_and_falls_through(): Bool ->
@@ -318,14 +306,15 @@ pub case_where_guard_accepts_pure_helper_call(): Bool ->
 @test
 pub case_where_guard_accepts_field_read(): Bool ->
     case ResponseShape {status: 204, body: "ok"} {
-        response where response.status >= 200 and response.status <= 299 -> assert_equal("ok", response.body);
+        response where response.status >= 200 and response.status <= 299 ->
+            assert_equal("ok", response.body);
         _ -> false
     }.
 
 @test
 pub case_where_guard_accepts_index_read(): Bool ->
     case [100, 204] {
-        values where (values[1] >= 200 and values[1] <= 299) -> assert_equal(204, values[1]);
+        values where values[1] >= 200 and values[1] <= 299 -> assert_equal(204, values[1]);
         _ -> false
     }.
 
@@ -344,7 +333,7 @@ pub function_head_where_guard_orders_clauses(): Bool ->
 pub typed_function_head_where_guard_uses_signature(): Bool ->
     assert_equal("negative", classify_typed_guarded(-1)).
 
-pub clause_add_pair_from_function_head({left, right}: Dynamic): Int.
+pub clause_add_pair_from_function_head(_Arg1: Dynamic): Int.
 clause_add_pair_from_function_head({left, right}) ->
     left + right;
 clause_add_pair_from_function_head(_) ->
@@ -368,8 +357,7 @@ pub status_from_function_head({status: code, body: _body}: Dynamic): Int ->
 pub response_status_from_function_head(ResponseShape {status: code, body: _body}: Dynamic): Int ->
     code.
 
-pub wildcard_from_function_head(_: Dynamic): Int ->
-    42.
+pub wildcard_from_function_head(_: Dynamic): Int -> 42.
 
 @test
 pub function_head_tuple_pattern_binds_expression_body_argument(): Bool ->
@@ -407,7 +395,7 @@ pub function_head_record_pattern_binds_expression_body_argument(): Bool ->
 @test
 pub record_update_is_immutable_and_preserves_unmodified_fields(): Bool ->
     let original = ResponseShape {status: 200, body: "old"};
-        let updated = original#ResponseShape {body: "new"};
+    let updated = original#ResponseShape{body: "new"};
     assert_equal(200, updated.status)
         and assert_equal("new", updated.body)
         and assert_equal("old", original.body).
@@ -418,11 +406,13 @@ pub function_head_wildcard_pattern_ignores_expression_body_argument(): Bool ->
 
 @test
 pub let_tuple_destructuring_binds_values(): Bool ->
-    let {left, right} = {2, 5}; assert_equal(7, left + right).
+    let {left, right} = {2, 5};
+    assert_equal(7, left + right).
 
 @test
 pub let_list_destructuring_binds_exact_entries(): Bool ->
-    let [left, right] = [3, 4]; assert_equal(7, left + right).
+    let [left, right] = [3, 4];
+    assert_equal(7, left + right).
 
 @test
 pub let_list_cons_destructuring_binds_tail(): Bool ->
@@ -434,11 +424,13 @@ pub let_list_cons_destructuring_binds_tail(): Bool ->
 
 @test
 pub let_constructor_destructuring_binds_payloads(): Bool ->
-    let Ship(id, size) = Ship(8, 3); assert_equal(11, id + size).
+    let Ship(id, size) = Ship(8, 3);
+    assert_equal(11, id + size).
 
 @test
 pub let_string_literal_pattern_requires_exact_value(): Bool ->
-    let "terlan" = "terlan"; assert_equal("terlan", "terlan").
+    let "terlan" = "terlan";
+    assert_equal("terlan", "terlan").
 
 @test
 pub let_string_capture_binds_typed_values(): Bool ->
@@ -447,16 +439,19 @@ pub let_string_capture_binds_typed_values(): Bool ->
 
 @test
 pub lambda_variable_pattern_binds_argument(): Bool ->
-    let double = ((value) -> value * 2); assert_equal(8, double(4)).
+    let double = ((value) -> value * 2);
+    assert_equal(8, double(4)).
 
 @test
 pub lambda_tuple_pattern_binds_argument_shape(): Bool ->
-    let add_pair = (({left, right}) -> left + right); assert_equal(9, add_pair({4, 5})).
+    let add_pair = (({left, right}) -> left + right);
+    assert_equal(9, add_pair({4, 5})).
 
 @test
 pub lambda_list_cons_pattern_binds_argument_shape(): Bool ->
     let head_plus_tail =
-        (([head | tail]) -> case tail {
+        (([head | tail]) ->
+            case tail {
                 [next] -> head + next;
                 _ -> 0
             });
@@ -464,15 +459,18 @@ pub lambda_list_cons_pattern_binds_argument_shape(): Bool ->
 
 @test
 pub lambda_constructor_pattern_binds_argument_shape(): Bool ->
-    let size_score = ((Ship(_id, size)) -> size * 10); assert_equal(30, size_score(Ship(7, 3))).
+    let size_score = ((Ship(_id, size)) -> size * 10);
+    assert_equal(30, size_score(Ship(7, 3))).
 
 @test
 pub lambda_string_literal_pattern_requires_exact_value(): Bool ->
-    let classify = (("terlan") -> "language"); assert_equal("language", classify("terlan")).
+    let classify = (("terlan") -> "language");
+    assert_equal("language", classify("terlan")).
 
 @test
 pub lambda_string_capture_binds_argument_shape(): Bool ->
-    let next_id = (("users/${id: Int}") -> id + 1); assert_equal(43, next_id("users/42")).
+    let next_id = (("users/${id: Int}") -> id + 1);
+    assert_equal(43, next_id("users/42")).
 
 @test
 pub function_variable_parameters_bind_arguments(): Bool ->
@@ -485,11 +483,11 @@ pub function_wildcard_parameters_ignore_arguments(): Bool ->
 @test
 pub function_head_string_literal_pattern_requires_exact_value(): Bool ->
     let exact = classify_string_literal("terlan");
-        let fallback = classify_string_literal("other");
+    let fallback = classify_string_literal("other");
     assert_equal("language:other", exact + ":" + fallback).
 
 @test
 pub function_head_string_capture_binds_argument_shape(): Bool ->
     let exact = classify_user_path("users/42/alice.json");
-        let fallback = classify_user_path("users/not-int/alice.json");
+    let fallback = classify_user_path("users/not-int/alice.json");
     assert_equal("alice:other", exact + ":" + fallback).

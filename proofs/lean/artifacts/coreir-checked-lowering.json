@@ -1,0 +1,45 @@
+{
+  "schema": "terlan.lean-proof-replay.v1",
+  "family": "coreir-checked-lowering",
+  "theorem_names": [
+    "Terlan.Core.CheckedLowering.loweringIsDeterministic",
+    "Terlan.Core.CheckedLowering.loweringPreservesTyping",
+    "Terlan.Core.CheckedLowering.loweringPreservesEvaluation",
+    "Terlan.Core.CheckedLowering.vmAcceptsTypedProcessForm",
+    "Terlan.Core.CheckedLowering.jsRejectsProcessForm",
+    "Terlan.Core.CheckedLowering.wasmRejectsProcessForm"
+  ],
+  "manifest_fingerprints": {
+    "docs/compiler/CORE_IR_LEAN_CONFORMANCE.md": "sha256:1e9e52dcd1b10f2a63583853df5701009cc084233363e840c493abc45eab02a0",
+    "docs/compiler/TERLAN_TARGET_INFERENCE.md": "sha256:121e8f01df61d9a60694ef71d89244b8186fc6620290db3a4c5f82466ccf077f",
+    "docs/compiler/type_spec/terlan_core_typing_spec.toml": "sha256:ad3030afeacca68027a719071a87526c0e8902067d639475cdd350539a6fefd3"
+  },
+  "dependency_files": [
+    "proofs/lean/lake-manifest.json",
+    "proofs/lean/lakefile.lean",
+    "proofs/lean/lean-toolchain"
+  ],
+  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+  "source_digest": "sha256:46422c5fd264e49c147c5f08a436b3a92d647550be498d0db140d1966c082974",
+  "execution_command": [
+    "lake",
+    "env",
+    "lean",
+    "Terlan/Core/CheckedLowering.lean"
+  ],
+  "working_directory": "proofs/lean",
+  "deterministic_timestamp_strategy": "none-content-addressed",
+  "output_signature": {
+    "stdout_class": "empty",
+    "stderr_class": "empty",
+    "exit_class": "success"
+  },
+  "toolchain": {
+    "lean_version": "4.31.0",
+    "elan_channel": "leanprover/lean4:v4.31.0",
+    "lake_flags": [
+      "env",
+      "lean"
+    ]
+  }
+}

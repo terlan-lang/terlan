@@ -1,0 +1,18 @@
+{
+  "functions": [
+    {
+      "arity": 1,
+      "name": "contains",
+      "operation": "std.system.environment.contains"
+    },
+    {
+      "arity": 0,
+      "name": "current_directory",
+      "operation": "std.system.environment.current_directory"
+    }
+  ],
+  "module": "std_system_environment_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.system.Environment"
+}

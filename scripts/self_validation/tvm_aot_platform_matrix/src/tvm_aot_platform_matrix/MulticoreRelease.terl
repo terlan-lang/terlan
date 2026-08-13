@@ -1,0 +1,395 @@
+/**
+ * Validates and records the distributed multicore VM release closeout.
+ */
+module tvm_aot_platform_matrix.MulticoreRelease.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.{sha256, sha256_domain_framed, sha256_file}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.{create_all}.
+import std.io.File.{read_text}.
+import std.system.Environment.
+import std.vcs.Git.{revision, sha256 as source_sha256, source_tree_identity}.
+import tvm_aot_platform_matrix.Core.{child, fragments_present, is_sha256, json_bool, json_equals, json_string, json_value, load_json, occurrences, string_array, write_json}.
+import tvm_aot_platform_matrix.MulticoreMc9Evidence as Mc9.
+import tvm_aot_platform_matrix.ReleaseCloseout.{list_equal, make_list_variable}.
+
+import type std.core.Option.
+import type std.data.Json.
+
+pub schema(): String -> "terlan.vm-multicore-release-closeout.v3".
+
+invariant_schema(): String -> "terlan.tvm-multicore-invariant-inventory.v1".
+
+pub local_gates(): List[String] ->
+    [
+        "vm-multicore-invariant-inventory-check",
+        "vm-actor-mutator-ownership-check",
+        "vm-multicore-mailbox-publication-check",
+        "vm-multicore-fixed-placement-check",
+        "tvm-aot-multicore-migration-check",
+        "vm-multicore-work-stealing-check",
+        "vm-multicore-runtime-cleanup-check",
+        "vm-multicore-runtime-integration-check",
+        "vm-epmd-discovery-check",
+        "vm-multicore-replay-observability-check",
+        "vm-multicore-memory-model-check",
+        "vm-scheduler-fairness-check",
+        "tvm-aot-runtime-transition-check",
+        "tvm-managed-memory-check",
+        "rust-quality-check",
+        "roadmap-gate-integrity-check",
+    ].
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[vm.multicore.release]: ", message));
+    false.
+
+json_clone(value: Json): Option[Json] ->
+    let {
+        Ok(source) <- Json.stringify(value);
+        Ok(copy) <- Json.parse(source)
+    } else {
+        _ -> None
+    };
+    Some(copy).
+
+gates_source(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> String.concat([value, "\n", gates_source(rest)])
+    }.
+
+local_gate_graph_sha256(): String ->
+    sha256(gates_source(local_gates())).
+
+invariant_revision(inventory: String, contract: String): String ->
+    sha256_domain_framed("terlan.vm-multicore-invariants.v1", [inventory, contract]).
+
+release_target(): String ->
+    "vm-multicore-release-check: vm-multicore-release-contract-check\n\t$(MAKE) vm-multicore-mc9-evidence-check\n\t$(MAKE) $(VM_MULTICORE_RELEASE_LOCAL_GATES)\n\t$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-record\n\ttest -s target/quality/vm-multicore-release-closeout.json\n\t@rg -q '\"schema\": \"terlan.vm-multicore-release-closeout.v3\"' target/quality/vm-multicore-release-closeout.json\n\t@rg -q '\"decision\": \"pass\"' target/quality/vm-multicore-release-closeout.json\n".
+
+pub validate_makefile(makefile: String): Bool ->
+    case make_list_variable(makefile, "VM_MULTICORE_RELEASE_LOCAL_GATES") {
+        None -> false;
+        Some(gates) ->
+            if {
+                not list_equal(gates, local_gates()) -> false;
+                list_equal(gates, []) -> false;
+                makefile
+                    .contains(
+                        "VM_MULTICORE_RELEASE_LOCAL_GATES := \\\n\tvm-multicore-performance-check",
+                    ) -> false;
+                makefile
+                    .contains(
+                        "VM_MULTICORE_RELEASE_LOCAL_GATES := \\\n\tvm-multicore-thread-sanitizer-check",
+                    ) -> false;
+                not makefile.contains(release_target()) -> false;
+                true -> fragments_present(
+                    makefile,
+                    [
+                        "rustup toolchain list | grep -Eq '^nightly-2026-07-16-'",
+                        "rustup target list --installed --toolchain 1.96.0 2>/dev/null | grep -Fqx 'x86_64-unknown-linux-gnutsan'",
+                        "error[aot.tsan]: pinned nightly ThreadSanitizer toolchain is mandatory in CI",
+                        "error[vm.multicore.tsan]: pinned Rust 1.96.0 ThreadSanitizer target is mandatory in CI",
+                    ],
+                )
+            }
+    }.
+
+count_requirements(workflow: String, requirements: List[{String, Int}]): Bool ->
+    case requirements {
+        [] -> true;
+        [{fragment, count} | rest] ->
+            occurrences(workflow, fragment) == count and count_requirements(workflow, rest)
+    }.
+
+final_check_ordered(workflow: String): Bool ->
+    case String.split_once(workflow, "run: make vm-multicore-release-check") {
+        None -> false;
+        Some({prefix, suffix}) ->
+            prefix.contains("Download joined multicore evidence")
+                and suffix.contains("Validate and seal complete AOT closeout")
+    }.
+
+pub validate_workflow(workflow: String): Bool ->
+    if {
+        not count_requirements(
+    workflow,
+    [
+        {"multicore-evidence:", 1},
+        {"seal VM multicore MC-9 evidence", 1},
+        {"run: make vm-multicore-mc9-evidence-check", 1},
+        {"name: release-vm-multicore-evidence", 2},
+        {"Download joined multicore evidence", 1},
+        {"Install pinned Rust ThreadSanitizer toolchain", 1},
+        {"rustup toolchain install nightly-2026-07-16 --profile minimal --component rust-src", 1},
+        {"context: \"release-validation/run\"", 2},
+        {"      - name: Install release utilities\n", 4},
+        {"run: make vm-multicore-thread-sanitizer-check", 1},
+        {"run: make vm-multicore-performance-check", 1},
+        {"run: make vm-multicore-release-check", 1},
+    ],
+) -> false;
+        not fragments_present(
+    workflow,
+    [
+        "statuses: write",
+        "release-validation-identity:",
+        "release-validation-result:",
+        "const targetUrl =",
+        "/actions/runs/${context.runId}",
+        "needs: validate",
+        "if: always()",
+        "target/quality/vm-multicore-release-closeout.json",
+    ],
+) -> false;
+        true -> final_check_ordered(workflow)
+    }.
+
+pub validate_repository(root: String): Bool ->
+    let {
+        Ok(makefile) <- read_text(child(root, "Makefile"));
+        Ok(workflow) <- read_text(child(root, ".github/workflows/release.yml"))
+    } else {
+        _ -> false
+    };
+    if {
+        not validate_makefile(makefile) -> false;
+        true -> validate_workflow(workflow)
+    }.
+
+validate_invariants(inventory: Json): Bool ->
+    let {
+        Some(report_schema) <- json_string(inventory, "schema");
+        Some(contract) <- json_string(inventory, "contract_document");
+        Some(upstream) <- json_value(inventory, "upstream");
+        Some(upstream_revision) <- json_string(upstream, "revision");
+        Some(product_dependency) <- json_bool(upstream, "product_dependency")
+    } else {
+        _ -> false
+    };
+    if {
+        report_schema != invariant_schema() -> false;
+        contract != "docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md" -> false;
+        not Mc9.is_revision(upstream_revision) -> false;
+        true -> not product_dependency
+    }.
+
+mode_valid(mode: String): Bool ->
+    mode == "local" or mode == "distributed" or mode == "github-single-attempt".
+
+digest_field_valid(value: Json, field: String): Bool ->
+    case json_string(value, field) {
+        Some(digest) -> is_sha256(digest);
+        None -> false
+    }.
+
+string_field_is(value: Json, field: String, expected: String): Bool ->
+    case json_string(value, field) {
+        Some(actual) -> actual == expected;
+        None -> false
+    }.
+
+pub validate_closeout(report: Json): Bool ->
+    let {
+        Some(report_schema) <- json_string(report, "schema");
+        Some(decision) <- json_string(report, "decision");
+        Some(scope) <- json_string(report, "evidence_scope");
+        Some(source_revision) <- json_string(report, "source_revision");
+        Some(mode) <- json_string(report, "provenance_mode");
+        Some(_source_clean) <- json_bool(report, "source_tree_clean");
+        Some(source_digest) <- json_string(report, "source_tree_sha256");
+        Some(gate_graph) <- json_value(report, "local_gate_graph");
+        Some(gates) <- json_value(gate_graph, "gates");
+        Some(invariants) <- json_value(report, "runtime_invariants");
+        Some(inventory) <- json_value(invariants, "inventory");
+        Some(contract) <- json_value(invariants, "contract");
+        Some(evidence) <- json_value(report, "evidence");
+        Some(mc9) <- json_value(evidence, "mc9")
+    } else {
+        _ -> false
+    };
+    if {
+        report_schema != schema() or decision != "pass" -> false;
+        scope != "technical" or not mode_valid(mode) -> false;
+        not Mc9.is_revision(source_revision) or not is_sha256(source_digest) -> false;
+        not json_equals(gates, string_array(local_gates())) -> false;
+        not string_field_is(gate_graph, "sha256", local_gate_graph_sha256()) -> false;
+        not digest_field_valid(invariants, "revision") -> false;
+        not digest_field_valid(inventory, "sha256") -> false;
+        not digest_field_valid(contract, "sha256") -> false;
+        true -> digest_field_valid(mc9, "sha256")
+    }.
+
+gate_graph_report(): Json ->
+    Json.object()
+        .put("gates", string_array(local_gates()))
+        .put("sha256", Json.string(local_gate_graph_sha256())).
+
+inventory_report(inventory_source: String): Json ->
+    Json.object()
+        .put("path", Json.string("docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json"))
+        .put("schema", Json.string(invariant_schema()))
+        .put("sha256", Json.string(sha256(inventory_source))).
+
+contract_report(contract_source: String): Json ->
+    Json.object()
+        .put("path", Json.string("docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md"))
+        .put("sha256", Json.string(sha256(contract_source))).
+
+runtime_invariants_report(inventory_source: String, contract_source: String): Json ->
+    let inventory = inventory_report(inventory_source);
+    let contract = contract_report(contract_source);
+    Json.object()
+        .put("revision", Json.string(invariant_revision(inventory_source, contract_source)))
+        .put("inventory", inventory)
+        .put("contract", contract).
+
+mc9_report(mc9_digest: String): Json ->
+    Json.object()
+        .put("path", Json.string("target/quality/vm-multicore-mc9-evidence.json"))
+        .put("schema", Json.string(Mc9.schema()))
+        .put("sha256", Json.string(mc9_digest)).
+
+release_report(
+    source_revision: String,
+    source_digest: String,
+    mode: String,
+    source_clean: Bool,
+    inventory_source: String,
+    contract_source: String,
+    mc9_digest: String,
+): Json ->
+    let gate_graph = gate_graph_report();
+    let invariants = runtime_invariants_report(inventory_source, contract_source);
+    let evidence = Json.object().put("mc9", mc9_report(mc9_digest));
+    Json.object()
+        .put("schema", Json.string(schema()))
+        .put("decision", Json.string("pass"))
+        .put("source_revision", Json.string(source_revision))
+        .put("source_tree_sha256", Json.string(source_digest))
+        .put("evidence_scope", Json.string("technical"))
+        .put("provenance_mode", Json.string(mode))
+        .put("source_tree_clean", Json.bool(source_clean))
+        .put("local_gate_graph", gate_graph)
+        .put("runtime_invariants", invariants)
+        .put("evidence", evidence).
+
+pub build_closeout(
+    joined_mc9: Json,
+    inventory: Json,
+    inventory_source: String,
+    contract_source: String,
+    source_revision: String,
+    source_digest: String,
+    mc9_digest: String,
+): Option[Json] ->
+    let {
+        Some(joined_revision) <- json_string(joined_mc9, "source_revision");
+        Some(joined_digest) <- json_string(joined_mc9, "source_tree_sha256");
+        Some(mode) <- json_string(joined_mc9, "provenance_mode");
+        Some(source_clean) <- json_bool(joined_mc9, "source_tree_clean")
+    } else {
+        _ -> None
+    };
+    if {
+        not Mc9.validate_closeout(joined_mc9) -> None;
+        joined_revision != source_revision or joined_digest != source_digest -> None;
+        not validate_invariants(inventory) or not is_sha256(mc9_digest) -> None;
+        true -> let report =
+            release_report(
+                source_revision,
+                source_digest,
+                mode,
+                source_clean,
+                inventory_source,
+                contract_source,
+                mc9_digest,
+            );
+        if {
+            validate_closeout(report) -> Some(report);
+            true -> None
+        }
+    }.
+
+pub record(): Bool ->
+    let root = Environment.current_directory();
+    let mc9_path = child(root, "target/quality/vm-multicore-mc9-evidence.json");
+    let inventory_path = child(root, "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json");
+    let contract_path = child(root, "docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md");
+    let {
+        Some(joined_mc9) <- load_json(mc9_path);
+        Ok(inventory_source) <- read_text(inventory_path);
+        Ok(inventory) <- Json.parse(inventory_source);
+        Ok(contract_source) <- read_text(contract_path);
+        Ok(identity) <- source_tree_identity(root);
+        Ok(mc9_digest) <- sha256_file(mc9_path);
+        Some(report) <-
+            build_closeout(
+                joined_mc9,
+                inventory,
+                inventory_source,
+                contract_source,
+                revision(identity),
+                source_sha256(identity),
+                mc9_digest,
+            );
+        Ok(_created) <- create_all(child(root, "target/quality"))
+    } else {
+        _ -> false
+    };
+    if {
+        not write_json(child(root, "target/quality/vm-multicore-release-closeout.json"), report) -> false;
+        true -> let _printed = println(String.append("VM multicore release closeout passed: ", revision(identity)));
+        true
+    }.
+
+mutation_rejected(report: Json, field: String, value: Json): Bool ->
+    case json_clone(report) {
+        None -> false;
+        Some(copy) ->
+            let changed = copy.put(field, value);
+            not validate_closeout(changed)
+    }.
+
+pub self_test(): Bool ->
+    let root = Environment.current_directory();
+    let {
+        Ok(makefile) <- read_text(child(root, "Makefile"));
+        Ok(workflow) <- read_text(child(root, ".github/workflows/release.yml"));
+        Ok(inventory_source) <- read_text(child(root, "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json"));
+        Ok(inventory) <- Json.parse(inventory_source);
+        Ok(contract_source) <- read_text(child(root, "docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md"));
+        Some(joined_mc9) <-
+            Mc9.build_closeout(
+                Mc9.synthetic_performance(),
+                Mc9.synthetic_sanitizer(),
+                "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            );
+        Some(closeout) <-
+            build_closeout(
+                joined_mc9,
+                inventory,
+                inventory_source,
+                contract_source,
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            )
+    } else {
+        _ -> false
+    };
+    if {
+        not validate_makefile(makefile) -> failure("release Make contract drifted");
+        not validate_workflow(workflow) -> failure("release workflow contract drifted");
+        not validate_closeout(closeout) -> failure("valid release closeout was rejected");
+        not mutation_rejected(closeout, "source_tree_sha256", Json.string("not-a-digest")) -> failure("invalid source digest was accepted");
+        invariant_revision(inventory_source, contract_source) == invariant_revision(inventory_source, String.append(contract_source, "\nchanged")) -> failure("invariant revision ignored a contract change");
+        true -> let _printed = println("VM multicore release composition self-test passed");
+        true
+    }.

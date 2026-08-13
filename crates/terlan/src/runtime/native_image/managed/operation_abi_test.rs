@@ -15,20 +15,36 @@ use super::{
     encode_aggregate_replace_field_operation, encode_aggregate_scalar_field_operation,
     encode_binary_pattern_extract_operation, encode_binary_pattern_matches_operation,
     encode_bitstring_operation, encode_bytes_from_list_operation, encode_bytes_length_operation,
-    encode_bytes_to_list_operation, encode_list_empty_operation, encode_list_first_operation,
-    encode_list_from_elements_operation, encode_list_get_operation, encode_list_is_empty_operation,
-    encode_list_prepend_operation, encode_list_rest_operation,
+    encode_bytes_to_list_operation, encode_list_append_operation, encode_list_empty_operation,
+    encode_list_first_operation, encode_list_from_elements_operation, encode_list_get_operation,
+    encode_list_is_empty_operation, encode_list_prepend_operation, encode_list_rest_operation,
     encode_managed_value_equal_operation, encode_map_contains_operation,
-    encode_map_from_entries_operation, encode_map_get_operation, encode_string_append_operation,
+    encode_map_from_entries_operation, encode_map_get_operation, encode_set_add_operation,
+    encode_set_clear_operation, encode_set_contains_operation, encode_set_empty_operation,
+    encode_set_from_list_operation, encode_set_is_empty_operation, encode_set_iterator_operation,
+    encode_set_length_operation, encode_set_remove_operation, encode_string_append_operation,
+    encode_string_byte_size_operation, encode_string_compare_operation,
     encode_string_concat_operation, encode_string_equal_operation,
     encode_string_escape_html_attribute_operation, encode_string_escape_html_text_operation,
-    encode_string_list_join_operation, encode_string_map_get_option_operation,
-    encode_string_prepend_literal_operation, encode_string_prepend_projected_literal_operation,
-    encode_template_render_operation, execute_managed_operation, managed_abi_result_is_reference,
+    encode_string_length_operation, encode_string_list_join_operation,
+    encode_string_map_get_option_operation, encode_string_prepend_literal_operation,
+    encode_string_prepend_projected_literal_operation, encode_string_trim_end_operation,
+    encode_string_trim_operation, encode_string_trim_start_operation,
+    encode_string_utf8_find_any_byte_operation, encode_template_render_operation,
+    execute_managed_operation_with_context, managed_abi_result_is_reference,
     ManagedBinaryPatternEndian, ManagedBinaryPatternField, ManagedBitStringOperation,
     ManagedTemplateValueKind,
 };
 use crate::runtime::vm::ReplValue;
+
+pub(crate) fn execute_managed_operation(
+    heap: &mut ActorHeap,
+    layouts: &ManagedLayoutRegistry,
+    encoded: &[u8],
+    words: &[i64],
+) -> Result<u64, ManagedMemoryError> {
+    execute_managed_operation_with_context(heap, layouts, None, encoded, words)
+}
 
 const REQUEST: &str = "Named(Request)";
 const STRING_MAP: &str = "std.http.Request.StringMap";
@@ -38,6 +54,7 @@ const RESPONSE_HEADER: &str = "std.http.Response.Header";
 const RESPONSE_HEADERS: &str = "std.http.Response.Headers";
 const HTML_FRAGMENTS: &str = "List(Named(Template.Html))";
 const INT_LIST: &str = "List(Int)";
+const INT_SET: &str = "Set(Int)";
 
 /// Independent public-boundary string semantics used to construct fixture maps.
 struct PublicStringSemantics;
@@ -188,6 +205,103 @@ fn generated_collection_values_use_admitted_persistent_schemas() {
         Ok(vec![ManagedFieldValue::Int(2), ManagedFieldValue::Int(3)])
     );
 
+    let set_semantic = semantic(INT_SET);
+    let set = execute_managed_operation(
+        &mut heap,
+        &layouts,
+        &encode_set_from_list_operation(set_semantic, list_semantic),
+        &[word(prepended)],
+    )
+    .expect("set from list");
+    let contains = encode_set_contains_operation(set_semantic);
+    assert!(managed_abi_result_is_reference(
+        &encode_set_from_list_operation(set_semantic, list_semantic,)
+    ));
+    assert!(!managed_abi_result_is_reference(&contains));
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &contains, &[set as i64, 2]),
+        Ok(1)
+    );
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &contains, &[set as i64, 9]),
+        Ok(0)
+    );
+    let length = encode_set_length_operation(set_semantic);
+    let is_empty = encode_set_is_empty_operation(set_semantic);
+    assert!(!managed_abi_result_is_reference(&length));
+    assert!(!managed_abi_result_is_reference(&is_empty));
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &length, &[set as i64]),
+        Ok(3)
+    );
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &is_empty, &[set as i64]),
+        Ok(0)
+    );
+    let added = execute_managed_operation(
+        &mut heap,
+        &layouts,
+        &encode_set_add_operation(set_semantic),
+        &[set as i64, 9],
+    )
+    .expect("set add");
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &contains, &[added as i64, 9]),
+        Ok(1)
+    );
+    let iterated = execute_managed_operation(
+        &mut heap,
+        &layouts,
+        &encode_set_iterator_operation(set_semantic, list_semantic),
+        &[added as i64],
+    )
+    .expect("set iterator");
+    let iterated = TvmRef::<ManagedList>::from_encoded(
+        std::num::NonZeroUsize::new(iterated as usize).unwrap(),
+    );
+    assert_eq!(
+        heap.list_elements(list_descriptor, iterated),
+        Ok(vec![
+            ManagedFieldValue::Int(1),
+            ManagedFieldValue::Int(2),
+            ManagedFieldValue::Int(3),
+            ManagedFieldValue::Int(9),
+        ])
+    );
+    let removed = execute_managed_operation(
+        &mut heap,
+        &layouts,
+        &encode_set_remove_operation(set_semantic),
+        &[added as i64, 2],
+    )
+    .expect("set remove");
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &contains, &[removed as i64, 2]),
+        Ok(0)
+    );
+    let cleared = execute_managed_operation(
+        &mut heap,
+        &layouts,
+        &encode_set_clear_operation(set_semantic),
+        &[removed as i64],
+    )
+    .expect("set clear");
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &is_empty, &[cleared as i64]),
+        Ok(1)
+    );
+    let empty = execute_managed_operation(
+        &mut heap,
+        &layouts,
+        &encode_set_empty_operation(set_semantic),
+        &[],
+    )
+    .expect("set empty");
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &is_empty, &[empty as i64]),
+        Ok(1)
+    );
+
     let key = heap.allocate_string("route").expect("map key");
     let value = heap.allocate_string("native").expect("map value");
     let map_semantic = semantic(STRING_MAP);
@@ -227,6 +341,59 @@ fn generated_collection_values_use_admitted_persistent_schemas() {
     );
 }
 
+#[test]
+fn list_mutation_abi_preserves_persistent_path_copying_at_scale() {
+    let layouts = registry();
+    let list_semantic = semantic(INT_LIST);
+    let descriptor = layouts
+        .collection(list_semantic)
+        .and_then(|collection| collection.list_descriptor())
+        .expect("list schema");
+    let prepend = encode_list_prepend_operation(list_semantic);
+    let append = encode_list_append_operation(list_semantic);
+    let mut heap = heap();
+    let mut front = heap
+        .list_from_elements(descriptor, &[])
+        .expect("empty front list");
+    let before_front = heap.object_count();
+    for value in 0..1024 {
+        let result =
+            execute_managed_operation(&mut heap, &layouts, &prepend, &[value, word(front)])
+                .expect("ABI prepend");
+        front = TvmRef::from_encoded(
+            std::num::NonZeroUsize::new(result as usize).expect("prepend reference"),
+        );
+    }
+    assert!(
+        heap.object_count() - before_front < 10_000,
+        "ABI prepend must not materialize every prior list"
+    );
+
+    let mut back = heap
+        .list_from_elements(descriptor, &[])
+        .expect("empty back list");
+    let before_back = heap.object_count();
+    for value in 0..1024 {
+        let result = execute_managed_operation(&mut heap, &layouts, &append, &[word(back), value])
+            .expect("ABI append");
+        back = TvmRef::from_encoded(
+            std::num::NonZeroUsize::new(result as usize).expect("append reference"),
+        );
+    }
+    assert!(
+        heap.object_count() - before_back < 10_000,
+        "ABI append must not materialize every prior list"
+    );
+    assert_eq!(
+        heap.list_first(descriptor, front),
+        Ok(Some(ManagedFieldValue::Int(1023)))
+    );
+    assert_eq!(
+        heap.list_get(descriptor, back, 1023),
+        Ok(ManagedFieldValue::Int(1023))
+    );
+}
+
 /// Managed string equality compares values and rejects invalid operand shapes.
 #[test]
 fn string_equal_operation_is_value_based_and_checked() {
@@ -256,6 +423,113 @@ fn string_equal_operation_is_value_based_and_checked() {
         execute_managed_operation(&mut heap, &layouts, &operation, &[word(left)]),
         Err(ManagedMemoryError::InvalidAggregateArity)
     );
+}
+
+#[test]
+fn string_length_operations_distinguish_unicode_scalars_and_utf8_bytes() {
+    let mut heap = heap();
+    let layouts = ManagedLayoutRegistry::default();
+    let value = heap.allocate_string("éx").expect("string");
+    assert_eq!(
+        execute_managed_operation(
+            &mut heap,
+            &layouts,
+            &encode_string_length_operation(),
+            &[word(value)],
+        ),
+        Ok(2)
+    );
+    assert_eq!(
+        execute_managed_operation(
+            &mut heap,
+            &layouts,
+            &encode_string_byte_size_operation(),
+            &[word(value)],
+        ),
+        Ok(3)
+    );
+    assert!(!managed_abi_result_is_reference(
+        &encode_string_byte_size_operation()
+    ));
+}
+
+#[test]
+fn string_utf8_find_any_byte_jumps_between_ascii_lexical_delimiters() {
+    let mut heap = heap();
+    let layouts = ManagedLayoutRegistry::default();
+    let value = heap.allocate_string("λ🔥 alpha\nnext").expect("string");
+    let candidates = heap.allocate_string(" /\n").expect("ASCII candidates");
+    let operation = encode_string_utf8_find_any_byte_operation();
+
+    let first = execute_managed_operation(
+        &mut heap,
+        &layouts,
+        &operation,
+        &[word(value), 0, word(candidates)],
+    )
+    .expect("find first delimiter");
+    assert_eq!(i64::from_ne_bytes(first.to_ne_bytes()), 6);
+    let newline = execute_managed_operation(
+        &mut heap,
+        &layouts,
+        &operation,
+        &[word(value), 7, word(candidates)],
+    )
+    .expect("find newline");
+    assert_eq!(i64::from_ne_bytes(newline.to_ne_bytes()), 12);
+    let absent = execute_managed_operation(
+        &mut heap,
+        &layouts,
+        &operation,
+        &[word(value), 13, word(candidates)],
+    )
+    .expect("missing delimiter");
+    assert_eq!(i64::from_ne_bytes(absent.to_ne_bytes()), -1);
+    assert!(!managed_abi_result_is_reference(&operation));
+}
+
+#[test]
+fn string_trim_operations_apply_unicode_whitespace_boundaries() {
+    let mut heap = heap();
+    let layouts = ManagedLayoutRegistry::default();
+    let value = heap.allocate_string(" \u{2003}hello \n").expect("string");
+    for (operation, expected) in [
+        (encode_string_trim_operation(), "hello"),
+        (encode_string_trim_start_operation(), "hello \n"),
+        (encode_string_trim_end_operation(), " \u{2003}hello"),
+    ] {
+        let result = execute_managed_operation(&mut heap, &layouts, &operation, &[word(value)])
+            .expect("trim operation");
+        let result = reference(result).cast::<ManagedString>();
+        assert_eq!(heap.read_string(result).expect("trimmed string"), expected);
+        assert!(managed_abi_result_is_reference(&operation));
+    }
+}
+
+#[test]
+fn string_compare_returns_image_local_ordering_atoms() {
+    let layouts = ManagedLayoutRegistry::from_image(
+        &[],
+        &[],
+        &["gt".to_string(), "lt".to_string(), "eq".to_string()],
+    )
+    .expect("atom registry");
+    let mut heap = heap();
+    let alpha = heap.allocate_string("alpha").expect("alpha");
+    let beta = heap.allocate_string("beta").expect("beta");
+    let operation = encode_string_compare_operation();
+
+    for (left, right, expected) in [
+        (alpha, beta, "lt"),
+        (beta, alpha, "gt"),
+        (alpha, alpha, "eq"),
+    ] {
+        let result =
+            execute_managed_operation(&mut heap, &layouts, &operation, &[word(left), word(right)])
+                .expect("compare");
+        let result = super::super::AtomIndex::from_runtime(result as u32);
+        assert_eq!(layouts.atom_identity(result), Ok(expected));
+    }
 }
 
 /// Schema-directed equality compares collection values instead of references.
@@ -692,7 +966,9 @@ fn registry() -> ManagedLayoutRegistry {
     .expect("HTML fragment list schema");
     let int_list = ManagedCollectionDescriptor::list(INT_LIST, ManagedFieldType::Int)
         .expect("integer list schema");
-    let collections = [string_map, headers, html_fragments, int_list].map(|collection| {
+    let int_set = ManagedCollectionDescriptor::set(INT_SET, ManagedFieldType::Int)
+        .expect("integer set schema");
+    let collections = [string_map, headers, html_fragments, int_list, int_set].map(|collection| {
         TvmManagedCollectionDescriptor {
             semantic_id: collection.semantic_id().bytes(),
             encoded_layout: encode_collection_layout(&collection).expect("encode collection"),

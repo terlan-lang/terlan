@@ -1,4 +1,4 @@
-use crate::terlan_native::{base64, http, json, path, postgres, uri, vector};
+use crate::terlan_native::{base64, http, json, path, postgres, regex, uri, vector};
 use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
 use crate::terlan_native_boundary::resource::ResourceError;
 
@@ -133,6 +133,18 @@ pub(super) fn expect_json<'a>(
     match args.get(index) {
         Some(NativeBoundaryValue::Json(value)) => Ok(value),
         _ => Err(type_error(operation, index, "Json")),
+    }
+}
+
+/// Reads a compiled regex argument from a neutral value slice.
+pub(super) fn expect_regex<'a>(
+    operation: &str,
+    args: &'a [NativeBoundaryValue],
+    index: usize,
+) -> Result<&'a regex::Regex, DispatchError> {
+    match args.get(index) {
+        Some(NativeBoundaryValue::Regex(value)) => Ok(value),
+        _ => Err(type_error(operation, index, "Regex")),
     }
 }
 
@@ -625,6 +637,11 @@ pub(super) fn type_error(operation: &str, index: usize, expected: &str) -> Dispa
 /// Transformation:
 /// - Erases the adapter-specific error type while preserving stable fields.
 pub(super) fn dispatch_json_error(error: json::JsonError) -> DispatchError {
+    DispatchError::new(error.code(), error.message(), error.offset())
+}
+
+/// Converts a regex adapter error into a stable dispatch error.
+pub(super) fn dispatch_regex_error(error: regex::RegexError) -> DispatchError {
     DispatchError::new(error.code(), error.message(), error.offset())
 }
 

@@ -11,17 +11,19 @@ use std::sync::atomic::Ordering;
 
 use crate::runtime::native_image::control::TvmTransitionOperation;
 use crate::runtime::vm::actor_directory::VmActorLifecycle;
-use crate::runtime::vm::debugger_control::{
-    VmDebuggerControlCommand, VmDebuggerScheduleControl, VmDebuggerSlicePermit,
-};
+#[cfg(test)]
+use crate::runtime::vm::debugger_control::VmDebuggerControlCommand;
+use crate::runtime::vm::debugger_control::{VmDebuggerScheduleControl, VmDebuggerSlicePermit};
 use crate::runtime::vm::fixed_scheduler_control::{VmFixedActorLease, VmFixedSchedulerControl};
 use crate::runtime::vm::fixed_scheduler_telemetry::{
     VmFixedSchedulerEventKind, VmFixedSchedulerTelemetry,
 };
 use crate::runtime::vm::process::VmProcessId;
+#[cfg(test)]
+use crate::runtime::vm::pure_native::PureNativeActorImportFailure;
 use crate::runtime::vm::pure_native::{
-    PureNativeActorImportFailure, PureNativeCapabilityWait, PureNativeExecution,
-    PureNativeExecutionShard, PureNativeIoWait, PureNativeSuspension, PureNativeTimerWait,
+    PureNativeCapabilityWait, PureNativeExecution, PureNativeExecutionShard, PureNativeIoWait,
+    PureNativeSuspension, PureNativeTimerWait,
 };
 use crate::runtime::vm::scheduler_topology::{VmFixedActorRoute, VmSchedulerId};
 use crate::runtime::vm::ReplValue;
@@ -65,6 +67,16 @@ enum ScheduledInvocationStep {
     },
 }
 
+pub(super) struct ShardOwnerState<'a> {
+    pub(super) shard: &'a mut PureNativeExecutionShard,
+    pub(super) routes: &'a mut BTreeMap<std::num::NonZeroU64, VmProcessId>,
+    pub(super) runnable: &'a mut GeneratedRunnableQueues,
+    pub(super) timers: &'a mut GeneratedTimerQueue,
+    pub(super) control: &'a VmFixedSchedulerControl<AotSchedulerPublication>,
+    pub(super) telemetry: &'a VmFixedSchedulerTelemetry,
+    pub(super) scheduler: VmSchedulerId,
+}
+
 /// Runs command ingress and one real runnable actor slice in alternation.
 pub(super) fn owner_loop(
     shard: &mut PureNativeExecutionShard,
@@ -81,14 +93,16 @@ pub(super) fn owner_loop(
     let mut reject_runnable_imports = false;
     loop {
         publish_due_timers(
-            shard,
-            &mut routes,
-            &mut runnable,
-            &mut timers,
+            &mut ShardOwnerState {
+                shard,
+                routes: &mut routes,
+                runnable: &mut runnable,
+                timers: &mut timers,
+                control: &control,
+                telemetry,
+                scheduler,
+            },
             &mut capabilities,
-            &control,
-            telemetry,
-            scheduler,
         )
         .unwrap_or_else(|error| panic!("fixed scheduler timer corruption: {error}"));
         capabilities
@@ -124,14 +138,16 @@ pub(super) fn owner_loop(
 
         if let Some(command) = command {
             if handle_command(
-                shard,
-                &mut routes,
-                &mut runnable,
-                &mut timers,
+                &mut ShardOwnerState {
+                    shard,
+                    routes: &mut routes,
+                    runnable: &mut runnable,
+                    timers: &mut timers,
+                    control: &control,
+                    telemetry,
+                    scheduler,
+                },
                 &mut capabilities,
-                &control,
-                telemetry,
-                scheduler,
                 &mut debugger,
                 &mut reject_runnable_imports,
                 command,
@@ -147,14 +163,16 @@ pub(super) fn owner_loop(
                 continue;
             };
             service_runnable(
-                shard,
-                &mut routes,
-                &mut runnable,
-                &mut timers,
+                &mut ShardOwnerState {
+                    shard,
+                    routes: &mut routes,
+                    runnable: &mut runnable,
+                    timers: &mut timers,
+                    control: &control,
+                    telemetry,
+                    scheduler,
+                },
                 &mut capabilities,
-                &control,
-                telemetry,
-                scheduler,
                 pending,
                 permit,
             )
@@ -171,14 +189,16 @@ pub(super) fn owner_loop(
         "owner command channel closed",
     );
     cancel_timers(
-        shard,
-        &mut routes,
-        &mut runnable,
-        &mut timers,
+        &mut ShardOwnerState {
+            shard,
+            routes: &mut routes,
+            runnable: &mut runnable,
+            timers: &mut timers,
+            control: &control,
+            telemetry,
+            scheduler,
+        },
         &mut capabilities,
-        &control,
-        telemetry,
-        scheduler,
         "owner command channel closed",
     )
     .unwrap_or_else(|error| panic!("fixed scheduler timer cancellation failed: {error}"));
@@ -213,18 +233,23 @@ fn scheduler_wait_timeout(
 
 /// Applies one command and reports whether orderly shutdown completed.
 fn handle_command(
-    shard: &mut PureNativeExecutionShard,
-    routes: &mut BTreeMap<std::num::NonZeroU64, VmProcessId>,
-    runnable: &mut GeneratedRunnableQueues,
-    timers: &mut GeneratedTimerQueue,
+    state: &mut ShardOwnerState<'_>,
     capabilities: &mut GeneratedCapabilityDispatcher,
-    control: &VmFixedSchedulerControl<AotSchedulerPublication>,
-    telemetry: &VmFixedSchedulerTelemetry,
-    scheduler: VmSchedulerId,
     debugger: &mut VmDebuggerScheduleControl,
     _reject_runnable_imports: &mut bool,
     command: ShardCommand,
 ) -> bool {
+    let ShardOwnerState {
+        shard,
+        routes,
+        runnable,
+        timers,
+        control,
+        telemetry,
+        scheduler,
+    } = state;
+    #[cfg(not(test))]
+    let _ = debugger;
     match command {
         ShardCommand::Begin {
             route,
@@ -235,7 +260,7 @@ fn handle_command(
             record_or_panic(telemetry, VmFixedSchedulerEventKind::Command, Some(route));
             let lease = reject_duplicate_route(routes, route)
                 .and_then(|()| validate_scheduler_route(route, &thread::current()))
-                .and_then(|()| control.acquire(route, scheduler));
+                .and_then(|()| control.acquire(route, *scheduler));
             match lease {
                 Ok(lease) => {
                     telemetry
@@ -246,19 +271,23 @@ fn handle_command(
                     let result = execute_interval(telemetry, &lease, || {
                         shard
                             .begin_call(&export, &args)
+                            .map_err(String::from)
                             .and_then(|(owner, execution)| {
                                 advance_slice(shard, owner, execution, timers.observed_tick())
                             })
                             .and_then(|step| register_route(routes, route, step))
                     });
                     finish_execution(
-                        shard,
-                        routes,
-                        runnable,
-                        timers,
+                        &mut ShardOwnerState {
+                            shard,
+                            routes,
+                            runnable,
+                            timers,
+                            control,
+                            telemetry,
+                            scheduler: *scheduler,
+                        },
                         capabilities,
-                        control,
-                        telemetry,
                         route,
                         lease,
                         result,
@@ -275,18 +304,21 @@ fn handle_command(
         ShardCommand::Drain { route } => {
             record_or_panic(telemetry, VmFixedSchedulerEventKind::Command, Some(route));
             drain_route(
-                shard,
-                routes,
-                runnable,
-                timers,
+                &mut ShardOwnerState {
+                    shard,
+                    routes,
+                    runnable,
+                    timers,
+                    control,
+                    telemetry,
+                    scheduler: *scheduler,
+                },
                 capabilities,
-                control,
-                telemetry,
-                scheduler,
                 route,
             )
             .unwrap_or_else(|error| panic!("fixed scheduler control corruption: {error}"));
         }
+        #[cfg(test)]
         ShardCommand::DetachMigration {
             route,
             owner,
@@ -301,6 +333,7 @@ fn handle_command(
             }
             let _ = reply.send(result);
         }
+        #[cfg(test)]
         ShardCommand::ImportMigration {
             route,
             transfer,
@@ -347,18 +380,19 @@ fn handle_command(
                     reason:
                         "error[vm.work_stealing.import_injected]: destination rejected runnable"
                             .to_string(),
-                    transfer: Some(transfer),
+                    transfer: Some(Box::new(*transfer)),
                 })
             } else {
                 import_runnable(
-                    shard, routes, runnable, telemetry, scheduler, route, transfer,
+                    shard, routes, runnable, telemetry, *scheduler, route, *transfer,
                 )
             };
             let _ = reply.send(result);
         }
         ShardCommand::RunnableSnapshot { reply } => {
-            let _ = reply.send(runnable.snapshot(scheduler));
+            let _ = reply.send(runnable.snapshot(*scheduler));
         }
+        #[cfg(test)]
         ShardCommand::DebuggerControl { command, reply } => {
             record_or_panic(telemetry, VmFixedSchedulerEventKind::Command, None);
             let result = debugger.apply(command);
@@ -385,7 +419,7 @@ fn handle_command(
         #[cfg(test)]
         ShardCommand::PanicWhileOwning { route } => {
             record_or_panic(telemetry, VmFixedSchedulerEventKind::Command, Some(route));
-            let lease = control.acquire(route, scheduler).unwrap_or_else(|error| {
+            let lease = control.acquire(route, *scheduler).unwrap_or_else(|error| {
                 panic!("failed to acquire injected panic actor lease: {error}")
             });
             record_or_panic(telemetry, VmFixedSchedulerEventKind::Entry, Some(route));
@@ -410,7 +444,7 @@ fn handle_command(
             reply,
         } => {
             record_or_panic(telemetry, VmFixedSchedulerEventKind::Command, Some(route));
-            let result = control.acquire(route, scheduler).and_then(|lease| {
+            let result = control.acquire(route, *scheduler).and_then(|lease| {
                 telemetry.record_owned(VmFixedSchedulerEventKind::Entry, &lease)?;
                 let now = active.fetch_add(1, Ordering::SeqCst) + 1;
                 maximum.fetch_max(now, Ordering::SeqCst);
@@ -432,18 +466,20 @@ fn handle_command(
                 runnable,
                 control,
                 telemetry,
-                scheduler,
+                *scheduler,
                 "scheduler shutdown",
             );
             cancel_timers(
-                shard,
-                routes,
-                runnable,
-                timers,
+                &mut ShardOwnerState {
+                    shard,
+                    routes,
+                    runnable,
+                    timers,
+                    control,
+                    telemetry,
+                    scheduler: *scheduler,
+                },
                 capabilities,
-                control,
-                telemetry,
-                scheduler,
                 "scheduler shutdown",
             )
             .unwrap_or_else(|error| panic!("fixed scheduler timer cancellation failed: {error}"));
@@ -465,17 +501,20 @@ fn handle_command(
 
 /// Executes one queued continuation under a newly acquired owner lease.
 fn service_runnable(
-    shard: &mut PureNativeExecutionShard,
-    routes: &mut BTreeMap<std::num::NonZeroU64, VmProcessId>,
-    runnable: &mut GeneratedRunnableQueues,
-    timers: &mut GeneratedTimerQueue,
+    state: &mut ShardOwnerState<'_>,
     capabilities: &mut GeneratedCapabilityDispatcher,
-    control: &VmFixedSchedulerControl<AotSchedulerPublication>,
-    telemetry: &VmFixedSchedulerTelemetry,
-    scheduler: VmSchedulerId,
     pending: PendingRunnableInvocation,
     permit: VmDebuggerSlicePermit,
 ) -> Result<(), String> {
+    let ShardOwnerState {
+        shard,
+        routes,
+        runnable,
+        timers,
+        control,
+        telemetry,
+        scheduler,
+    } = state;
     let PendingRunnableInvocation {
         route,
         owner,
@@ -484,7 +523,7 @@ fn service_runnable(
         enqueued_at: _,
         reply,
     } = pending;
-    let lease = control.acquire(route, scheduler)?;
+    let lease = control.acquire(route, *scheduler)?;
     if permit == VmDebuggerSlicePermit::Step {
         telemetry.record_owned(VmFixedSchedulerEventKind::DebuggerStepped, &lease)?;
     }
@@ -497,13 +536,16 @@ fn service_runnable(
         })
     });
     finish_execution(
-        shard,
-        routes,
-        runnable,
-        timers,
+        &mut ShardOwnerState {
+            shard,
+            routes,
+            runnable,
+            timers,
+            control,
+            telemetry,
+            scheduler: *scheduler,
+        },
         capabilities,
-        control,
-        telemetry,
         route,
         lease,
         result,
@@ -512,20 +554,23 @@ fn service_runnable(
 }
 
 /// Releases a slice and either replies externally or retains runnable work.
-#[allow(clippy::too_many_arguments)]
 fn finish_execution(
-    shard: &mut PureNativeExecutionShard,
-    routes: &mut BTreeMap<std::num::NonZeroU64, VmProcessId>,
-    runnable: &mut GeneratedRunnableQueues,
-    timers: &mut GeneratedTimerQueue,
+    state: &mut ShardOwnerState<'_>,
     capabilities: &mut GeneratedCapabilityDispatcher,
-    control: &VmFixedSchedulerControl<AotSchedulerPublication>,
-    telemetry: &VmFixedSchedulerTelemetry,
     route: VmFixedActorRoute,
     lease: VmFixedActorLease,
     result: Result<ScheduledInvocationStep, String>,
     reply: SyncSender<Result<OwnedInvocationStep, String>>,
 ) -> Result<(), String> {
+    let ShardOwnerState {
+        shard,
+        routes,
+        runnable,
+        timers,
+        control,
+        telemetry,
+        scheduler: _,
+    } = state;
     match result {
         Ok(ScheduledInvocationStep::Runnable {
             owner,
@@ -611,6 +656,7 @@ fn finish_execution(
                             .record_with_context(VmFixedSchedulerEventKind::Parked, context)?;
                     }
                     Err((reason, pending)) => {
+                        let pending = *pending;
                         let result: Result<OwnedInvocationStep, String> =
                             shard.cancel_call(owner, reason.clone()).and(Err(reason));
                         routes.remove(&route.actor_id());
@@ -651,17 +697,20 @@ fn finish_execution(
 
 /// Drains one published event after acquiring its fixed scheduler lease.
 pub(super) fn drain_route(
-    shard: &mut PureNativeExecutionShard,
-    routes: &mut BTreeMap<std::num::NonZeroU64, VmProcessId>,
-    runnable: &mut GeneratedRunnableQueues,
-    timers: &mut GeneratedTimerQueue,
+    state: &mut ShardOwnerState<'_>,
     capabilities: &mut GeneratedCapabilityDispatcher,
-    control: &VmFixedSchedulerControl<AotSchedulerPublication>,
-    telemetry: &VmFixedSchedulerTelemetry,
-    scheduler: VmSchedulerId,
     route: VmFixedActorRoute,
 ) -> Result<(), String> {
-    let lease = control.acquire(route, scheduler)?;
+    let ShardOwnerState {
+        shard,
+        routes,
+        runnable,
+        timers,
+        control,
+        telemetry,
+        scheduler,
+    } = state;
+    let lease = control.acquire(route, *scheduler)?;
     let mut publications = control.drain_identified(&lease)?;
     if publications.len() != 1 {
         let count = publications.len();
@@ -676,6 +725,7 @@ pub(super) fn drain_route(
     let (identity, publication) = publications.pop().expect("exactly one publication");
     telemetry.record_dispatch(publication.dispatched_kind(), &lease, identity)?;
     match publication {
+        #[cfg(test)]
         AotSchedulerPublication::IoCompletion {
             owner,
             suspension,
@@ -692,13 +742,16 @@ pub(super) fn drain_route(
                 })
             });
             finish_execution(
-                shard,
-                routes,
-                runnable,
-                timers,
+                &mut ShardOwnerState {
+                    shard,
+                    routes,
+                    runnable,
+                    timers,
+                    control,
+                    telemetry,
+                    scheduler: *scheduler,
+                },
                 capabilities,
-                control,
-                telemetry,
                 route,
                 lease,
                 result,
@@ -721,13 +774,16 @@ pub(super) fn drain_route(
                 })
             });
             finish_execution(
-                shard,
-                routes,
-                runnable,
-                timers,
+                &mut ShardOwnerState {
+                    shard,
+                    routes,
+                    runnable,
+                    timers,
+                    control,
+                    telemetry,
+                    scheduler: *scheduler,
+                },
                 capabilities,
-                control,
-                telemetry,
                 route,
                 lease,
                 result,
@@ -751,13 +807,16 @@ pub(super) fn drain_route(
                 })
             });
             finish_execution(
-                shard,
-                routes,
-                runnable,
-                timers,
+                &mut ShardOwnerState {
+                    shard,
+                    routes,
+                    runnable,
+                    timers,
+                    control,
+                    telemetry,
+                    scheduler: *scheduler,
+                },
                 capabilities,
-                control,
-                telemetry,
                 route,
                 lease,
                 result,
@@ -772,7 +831,7 @@ pub(super) fn drain_route(
             let retained = timers.remove_route(route);
             let (retained_capability, capability_error) = match capabilities.cancel_route(route) {
                 Ok(pending) => (pending, None),
-                Err((error, pending)) => (Some(pending), Some(error)),
+                Err((error, pending)) => (Some(*pending), Some(error)),
             };
             let mut result = execute_interval(telemetry, &lease, || {
                 validate_live_route(routes, route, owner)
@@ -845,7 +904,7 @@ fn advance_slice(
                 let wait = shard.io_wait(owner, &suspension)?;
                 return Ok(ScheduledInvocationStep::Waiting {
                     owner,
-                    suspension,
+                    suspension: *suspension,
                     wait,
                 });
             }
@@ -855,7 +914,7 @@ fn advance_slice(
                 let wait = shard.begin_timer_call(owner, &suspension, observed_tick)?;
                 return Ok(ScheduledInvocationStep::TimerWaiting {
                     owner,
-                    suspension,
+                    suspension: *suspension,
                     wait,
                 });
             }
@@ -866,7 +925,7 @@ fn advance_slice(
                 return Ok(ScheduledInvocationStep::Runnable {
                     owner,
                     class,
-                    suspension,
+                    suspension: *suspension,
                 });
             }
             PureNativeExecution::Suspended(suspension)
@@ -875,97 +934,21 @@ fn advance_slice(
                 let wait = shard.begin_capability_call(owner, &suspension)?;
                 return Ok(ScheduledInvocationStep::CapabilityWaiting {
                     owner,
-                    suspension,
+                    suspension: *suspension,
                     wait,
                 });
             }
             PureNativeExecution::Suspended(suspension) => {
-                execution = shard.resume_call(owner, suspension)?;
+                execution = shard.resume_call(owner, *suspension)?;
             }
         }
     }
 }
 
 /// Registers a route only while generated state survives the current slice.
-fn register_route(
-    routes: &mut BTreeMap<std::num::NonZeroU64, VmProcessId>,
-    route: VmFixedActorRoute,
-    step: ScheduledInvocationStep,
-) -> Result<ScheduledInvocationStep, String> {
-    let owner = match &step {
-        ScheduledInvocationStep::Waiting { owner, .. }
-        | ScheduledInvocationStep::TimerWaiting { owner, .. }
-        | ScheduledInvocationStep::CapabilityWaiting { owner, .. }
-        | ScheduledInvocationStep::Runnable { owner, .. } => Some(*owner),
-        ScheduledInvocationStep::Complete(_) => None,
-    };
-    if let Some(owner) = owner {
-        if routes.insert(route.actor_id(), owner).is_some() {
-            return Err("error[vm.actor_route]: duplicate live actor route".to_string());
-        }
-    }
-    Ok(step)
-}
-
-/// Converts telemetry corruption into the scheduler's fail-stop panic path.
-pub(super) fn record_or_panic(
-    telemetry: &VmFixedSchedulerTelemetry,
-    kind: VmFixedSchedulerEventKind,
-    route: Option<VmFixedActorRoute>,
-) {
-    if let Err(error) = telemetry.record(kind, route) {
-        panic!("fixed scheduler telemetry corruption: {error}");
-    }
-}
-
-/// Rejects duplicate shard-global identities before actor state allocation.
-pub(super) fn reject_duplicate_route(
-    routes: &BTreeMap<std::num::NonZeroU64, VmProcessId>,
-    route: VmFixedActorRoute,
-) -> Result<(), String> {
-    if routes.contains_key(&route.actor_id()) {
-        Err(format!(
-            "error[vm.actor_route]: route {} is already live",
-            route.actor_id()
-        ))
-    } else {
-        Ok(())
-    }
-}
-
-/// Validates the shard-global route before touching mutable actor state.
-pub(super) fn validate_live_route(
-    routes: &BTreeMap<std::num::NonZeroU64, VmProcessId>,
-    route: VmFixedActorRoute,
-    owner: VmProcessId,
-) -> Result<(), String> {
-    match routes.get(&route.actor_id()) {
-        Some(expected) if *expected == owner => Ok(()),
-        Some(expected) => Err(format!(
-            "error[vm.actor_route]: route {} owns process {}, not {}",
-            route.actor_id(),
-            expected.as_u64(),
-            owner.as_u64()
-        )),
-        None => Err(format!(
-            "error[vm.actor_route]: route {} is not live",
-            route.actor_id()
-        )),
-    }
-}
-
-/// Rejects a command delivered to a scheduler other than its fixed home.
-pub(super) fn validate_scheduler_route(
-    route: VmFixedActorRoute,
-    current: &thread::Thread,
-) -> Result<(), String> {
-    let expected = format!("terlan-aot-scheduler-{}", route.scheduler().index());
-    if current.name() == Some(expected.as_str()) {
-        Ok(())
-    } else {
-        Err(format!(
-            "error[vm.actor_route]: route {} reached the wrong scheduler",
-            route.actor_id()
-        ))
-    }
-}
+#[path = "owner_loop/validation.rs"]
+mod validation;
+use validation::{record_or_panic, register_route};
+pub(super) use validation::{
+    reject_duplicate_route, validate_live_route, validate_scheduler_route,
+};

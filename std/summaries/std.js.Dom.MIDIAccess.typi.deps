@@ -1,8 +1,8 @@
 module=std.js.Dom.MIDIAccess
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
-source_hash=11232253195375630812
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=9219068500505707162
 interface_hash=9559599063816756486
 interface_doc_hash=9559599063816756486
 deps=0

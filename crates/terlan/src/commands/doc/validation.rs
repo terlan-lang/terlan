@@ -943,4 +943,5 @@ fn doctest_module_name(module_name: &str) -> String {
 
 #[cfg(test)]
 #[path = "validation_test.rs"]
+#[cfg(test)]
 mod validation_test;

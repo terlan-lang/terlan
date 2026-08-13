@@ -51,3 +51,22 @@ fn atom_alias_used_as_managed_union_variant_keeps_constructor_pattern() {
     );
     assert!(matches!(pattern, CorePattern::Constructor { .. }));
 }
+
+#[test]
+fn unit_alias_keeps_the_native_unit_sentinel() {
+    let aliases = HashMap::from([(
+        "Unit".to_string(),
+        AliasValue {
+            atom: "unit".to_string(),
+            managed_variant: false,
+        },
+    )]);
+    let mut expression = crate::terlan_typeck::CoreExpr::Var("Unit".to_string());
+
+    rewrite(&mut expression, &aliases);
+
+    assert_eq!(
+        expression,
+        crate::terlan_typeck::CoreExpr::Atom("Unit".to_string())
+    );
+}

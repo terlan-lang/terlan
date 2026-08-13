@@ -1,7 +1,5 @@
 //! Thread-neutral state retained while direct native execution is parked.
 
-use std::collections::HashSet;
-
 use crate::runtime::native_image::control::TvmTransitionOperation;
 use crate::runtime::native_image::{TvmBoundaryType, TvmContinuationDescriptor};
 use crate::runtime::vm::actor::VmNativeTraceCall;
@@ -10,27 +8,28 @@ use super::NativeResultProjection;
 
 /// Stable identities required to resume one exact native call.
 #[derive(Debug)]
-struct NativeContinuationIdentity {
-    request_id: u64,
-    owner_id: u64,
-    continuation_id: u64,
+pub(super) struct NativeContinuationIdentity {
+    pub(super) request_id: u64,
+    pub(super) owner_id: u64,
+    pub(super) continuation_id: u64,
 }
 
 /// Owned scheduler operation and words retained independently of native stack memory.
 #[derive(Debug)]
-struct OwnedNativeTransition {
-    operation: TvmTransitionOperation,
-    arguments: Vec<i64>,
-    values: Vec<i64>,
+pub(super) struct OwnedNativeTransition {
+    pub(super) operation: TvmTransitionOperation,
+    pub(super) arguments: Vec<i64>,
+    pub(super) values: Vec<i64>,
+    pub(super) capture_types: Vec<TvmBoundaryType>,
 }
 
 /// Immutable image metadata required to validate subsequent resume entries.
 #[derive(Debug)]
-struct OwnedNativeResumeProgram {
-    result_type: TvmBoundaryType,
-    result_projection: NativeResultProjection,
-    continuations: Vec<TvmContinuationDescriptor>,
-    observed_continuations: HashSet<u64>,
+pub(super) struct OwnedNativeResumeProgram {
+    pub(super) result_type: TvmBoundaryType,
+    pub(super) result_projection: NativeResultProjection,
+    pub(super) continuations: Vec<TvmContinuationDescriptor>,
+    pub(super) resume_count: usize,
 }
 
 /// Owned native continuation state retained while its VM actor is parked.
@@ -54,49 +53,28 @@ pub(super) struct NativeResumeState {
     pub(super) result_type: TvmBoundaryType,
     pub(super) result_projection: NativeResultProjection,
     pub(super) continuations: Vec<TvmContinuationDescriptor>,
-    pub(super) observed_continuations: HashSet<u64>,
+    pub(super) resume_count: usize,
     pub(super) trace_call: VmNativeTraceCall,
 }
 
 impl PureNativeSuspension {
     /// Captures one validated transition into scheduler-independent owned state.
-    #[allow(clippy::too_many_arguments)]
     pub(super) fn new(
-        request_id: u64,
-        owner_id: u64,
-        continuation_id: u64,
-        operation: TvmTransitionOperation,
-        arguments: Vec<i64>,
-        values: Vec<i64>,
-        result_type: TvmBoundaryType,
-        result_projection: NativeResultProjection,
-        continuations: Vec<TvmContinuationDescriptor>,
-        observed_continuations: HashSet<u64>,
+        identity: NativeContinuationIdentity,
+        transition: OwnedNativeTransition,
+        resume: OwnedNativeResumeProgram,
         trace_call: VmNativeTraceCall,
     ) -> Self {
         Self {
-            identity: NativeContinuationIdentity {
-                request_id,
-                owner_id,
-                continuation_id,
-            },
-            transition: OwnedNativeTransition {
-                operation,
-                arguments,
-                values,
-            },
-            resume: OwnedNativeResumeProgram {
-                result_type,
-                result_projection,
-                continuations,
-                observed_continuations,
-            },
+            identity,
+            transition,
+            resume,
             trace_call,
         }
     }
 
     /// Returns the stable native request identity.
-    pub(super) fn request_id(&self) -> u64 {
+    pub(crate) fn request_id(&self) -> u64 {
         self.identity.request_id
     }
 
@@ -106,7 +84,7 @@ impl PureNativeSuspension {
     }
 
     /// Returns the stable generated continuation identity.
-    pub(super) fn continuation_id(&self) -> u64 {
+    pub(crate) fn continuation_id(&self) -> u64 {
         self.identity.continuation_id
     }
 
@@ -120,6 +98,19 @@ impl PureNativeSuspension {
         &self.transition.arguments
     }
 
+    /// Returns pointer-free continuation captures for debugger inspection.
+    ///
+    /// Slots remain encoded native values because managed heap ownership stays
+    /// with the execution shard; debugger rendering must not dereference them.
+    pub(crate) fn debugger_capture_slots(&self) -> &[i64] {
+        &self.transition.values
+    }
+
+    /// Returns descriptor-directed types in generated capture order.
+    pub(crate) fn debugger_capture_types(&self) -> &[TvmBoundaryType] {
+        &self.transition.capture_types
+    }
+
     /// Consumes a completed transition into the data needed for native resume.
     pub(super) fn into_resume_state(self) -> NativeResumeState {
         NativeResumeState {
@@ -129,7 +120,7 @@ impl PureNativeSuspension {
             result_type: self.resume.result_type,
             result_projection: self.resume.result_projection,
             continuations: self.resume.continuations,
-            observed_continuations: self.resume.observed_continuations,
+            resume_count: self.resume.resume_count,
             trace_call: self.trace_call,
         }
     }
@@ -137,4 +128,5 @@ impl PureNativeSuspension {
 
 #[cfg(test)]
 #[path = "thread_neutral_test.rs"]
+#[cfg(test)]
 mod thread_neutral_test;

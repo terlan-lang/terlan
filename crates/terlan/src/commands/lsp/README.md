@@ -9,7 +9,7 @@ stdio execution to `terlan_lsp`.
 - Execute `terlc lsp` and `terlc lsp --stdio`.
 - Print command-local help for `terlc lsp --help`.
 - Reject unsupported LSP command arguments with usage output.
-- Keep LSP command routing out of `main.rs`.
+- Keep LSP command routing out of the thin binary entry points.
 
 ## Public Surface
 
@@ -22,7 +22,7 @@ and returns an `ExitCode`.
 
 The main flow is:
 
-1. `main.rs` routes the `lsp` verb to `run`.
+1. The library CLI dispatcher routes the `lsp` verb to `run`.
 2. `run` handles `--help`, no arguments, or `--stdio`.
 3. Valid stdio requests delegate to `crate::terlan_lsp::run_stdio_server`.
 4. Invalid arguments print usage and return exit code `2`.
@@ -37,7 +37,7 @@ Important invariants:
 
 ## Integration Points
 
-- `main.rs`: routes the `lsp` verb.
+- `crate::run_cli`: routes the `lsp` verb from the library-owned CLI surface.
 - `terlan_lsp`: owns the language-server stdio loop.
 
 ## Edge Cases

@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use super::{parse_source, run};
+use super::{is_generated_do_not_edit, parse_source, run};
 use crate::support::test_fs::{temp_dir, write_file};
 use crate::terlan_syntax::migrate_repeated_let_source;
 
@@ -395,7 +395,8 @@ pub value(input: Int): Int -> input.
 /// Verifies checked-in std tests stay canonical under `terlc fmt`.
 ///
 /// Inputs:
-/// - Every `*Test.terl` file under the workspace `std` directory.
+/// - Every human-owned `*Test.terl` file under the workspace `std` directory;
+///   generated do-not-edit bindings remain generator-owned.
 ///
 /// Output:
 /// - Test assertion listing non-canonical files, capped to keep diagnostics
@@ -425,6 +426,9 @@ fn fmt_keeps_std_test_sources_canonical() {
     for path in paths {
         let source = fs::read_to_string(&path)
             .unwrap_or_else(|err| panic!("failed to read {}: {err}", path.display()));
+        if is_generated_do_not_edit(&source) {
+            continue;
+        }
         let relative_path = path.strip_prefix(workspace_root).unwrap_or(&path);
         let formatted = parse_source(&relative_path.to_string_lossy(), &source)
             .unwrap_or_else(|err| panic!("failed to format {}: {err}", path.display()));
@@ -629,6 +633,44 @@ export value/1.
     assert_eq!(run(&[path.display().to_string()]), ExitCode::SUCCESS);
 }
 
+/// Verifies explicit single-file write mode formats only after parsing succeeds.
+#[test]
+fn fmt_write_formats_one_file_in_place() {
+    let dir = temp_dir("fmt", "write_single_file");
+    let path = dir.join("Sample.terl");
+    write_file(
+        &path,
+        "module sample.\npub value( input : Int ): Int -> input.\n",
+    );
+
+    assert_eq!(
+        run(&["--write".to_owned(), path.display().to_string()]),
+        ExitCode::SUCCESS
+    );
+    assert_eq!(
+        fs::read_to_string(path).expect("read formatted source"),
+        "module sample.\n\npub value(input: Int): Int ->\n    input.\n"
+    );
+}
+
+/// Verifies explicit write mode leaves malformed source byte-for-byte intact.
+#[test]
+fn fmt_write_rejects_malformed_file_without_truncation() {
+    let dir = temp_dir("fmt", "write_malformed_source");
+    let path = dir.join("Broken.terl");
+    let source = "module broken.\npub value(: Int): Int -> 1.\n";
+    write_file(&path, source);
+
+    assert_eq!(
+        run(&["--write".to_owned(), path.display().to_string()]),
+        ExitCode::from(1)
+    );
+    assert_eq!(
+        fs::read_to_string(path).expect("read rejected source"),
+        source
+    );
+}
+
 /// Verifies the command wrapper formats directories in place.
 ///
 /// Inputs:
@@ -679,6 +721,92 @@ export value/1.
     assert_eq!(template, "<p>${title}</p>\n");
 }
 
+/// Verifies check mode accepts canonical input without changing it.
+#[test]
+fn fmt_check_accepts_canonical_file_without_mutation() {
+    let dir = temp_dir("fmt", "check_canonical_file");
+    let path = dir.join("Sample.terl");
+    let source = "module sample.\n\npub value(input: Int): Int ->\n    input.\n";
+    write_file(&path, source);
+
+    assert_eq!(
+        run(&["--check".to_owned(), path.display().to_string()]),
+        ExitCode::SUCCESS
+    );
+    assert_eq!(
+        fs::read_to_string(path).expect("read checked source"),
+        source
+    );
+}
+
+/// Verifies check mode reports formatting drift without changing the source.
+#[test]
+fn fmt_check_rejects_noncanonical_file_without_mutation() {
+    let dir = temp_dir("fmt", "check_noncanonical_file");
+    let path = dir.join("Sample.terl");
+    let source = "module sample.\npub value( input : Int ): Int -> input.\n";
+    write_file(&path, source);
+
+    assert_eq!(
+        run(&["--check".to_owned(), path.display().to_string()]),
+        ExitCode::from(1)
+    );
+    assert_eq!(
+        fs::read_to_string(path).expect("read checked source"),
+        source
+    );
+}
+
+/// Verifies directory check mode is non-mutating and fails on any drift.
+#[test]
+fn fmt_check_rejects_noncanonical_directory_without_mutation() {
+    let dir = temp_dir("fmt", "check_noncanonical_directory");
+    let canonical_path = dir.join("Canonical.terl");
+    let drifted_path = dir.join("nested").join("Drifted.terl");
+    let canonical = "module canonical.\n\npub value(input: Int): Int ->\n    input.\n";
+    let drifted = "module drifted.\npub value( input : Int ): Int -> input.\n";
+    write_file(&canonical_path, canonical);
+    write_file(&drifted_path, drifted);
+
+    assert_eq!(
+        run(&["--check".to_owned(), dir.display().to_string()]),
+        ExitCode::from(1)
+    );
+    assert_eq!(
+        fs::read_to_string(canonical_path).expect("read canonical source"),
+        canonical
+    );
+    assert_eq!(
+        fs::read_to_string(drifted_path).expect("read drifted source"),
+        drifted
+    );
+}
+
+/// Verifies recursive formatting respects generator-owned do-not-edit files.
+#[test]
+fn fmt_directory_skips_generated_do_not_edit_sources() {
+    let dir = temp_dir("fmt", "generated_do_not_edit");
+    let path = dir.join("Generated.terl");
+    let source = r#"/**
+ * @generated true
+ * @do-not-edit true
+ */
+module generated.
+pub value( input : Int ): Int -> input.
+"#;
+    write_file(&path, source);
+
+    assert_eq!(
+        run(&["--check".to_owned(), dir.display().to_string()]),
+        ExitCode::SUCCESS
+    );
+    assert_eq!(run(&[dir.display().to_string()]), ExitCode::SUCCESS);
+    assert_eq!(
+        fs::read_to_string(path).expect("read generated source"),
+        source
+    );
+}
+
 /// Verifies directory formatting fails when any contained Terlan source fails
 /// to parse.
 ///
@@ -717,4 +845,25 @@ fn fmt_command_rejects_malformed_source_file() {
     write_file(&path, "module broken.\npub value(: Int): Int -> 1.\n");
 
     assert_eq!(run(&[path.display().to_string()]), ExitCode::from(1));
+}
+
+/// Verifies script formatting preserves source mode and never prints a hidden entrypoint.
+#[test]
+fn fmt_formats_headerless_script_with_shebang_idempotently() {
+    let source = "#!/usr/bin/env terlc\nimport std.io.Console.{println}.\nlet value=40+2; assert_equal(value, 42); println(\"ok\").\n";
+
+    let formatted = parse_source("scripts/Smoke.terls", source).expect("format script");
+
+    assert!(formatted.starts_with("#!/usr/bin/env terlc\n"));
+    assert!(formatted.contains("import std.io.Console.{println}."));
+    assert!(formatted.contains("value = 40 + 2;"));
+    assert!(formatted.contains("assert_equal(value, 42);"));
+    assert!(formatted.contains("println(\"ok\")."));
+    assert!(!formatted.contains("__script_"));
+    assert!(!formatted.contains("module "));
+    assert!(!formatted.contains("main("));
+    assert_eq!(
+        parse_source("scripts/Smoke.terls", &formatted).expect("format script twice"),
+        formatted
+    );
 }

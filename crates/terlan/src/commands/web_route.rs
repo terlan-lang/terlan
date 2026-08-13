@@ -275,4 +275,5 @@ pub(crate) fn typed_route_param_segment(segment: &str) -> Option<(&str, &str)> {
 
 #[cfg(test)]
 #[path = "web_route_test.rs"]
+#[cfg(test)]
 mod web_route_test;

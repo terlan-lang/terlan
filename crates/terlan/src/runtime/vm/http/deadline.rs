@@ -16,6 +16,7 @@ pub(super) struct VmHttpHandlerDeadlines {
 
 /// HTTP poll outcome with typed VM timer evidence.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmHttpDeadlinePoll {
     pub(crate) http: VmHttpTcpServerPoll,
     pub(crate) timer_events: Vec<VmTimerEvent>,
@@ -24,6 +25,7 @@ pub(crate) struct VmHttpDeadlinePoll {
 
 impl VmHttpTcpServer {
     /// Creates server state with a VM-owned request deadline for every handler.
+    #[cfg(test)]
     pub(crate) fn with_handler_timeout_ticks(
         listener: crate::runtime::vm::tcp::VmTcpListener,
         handler_source: crate::runtime::vm::process::VmProcessSource,
@@ -38,6 +40,7 @@ impl VmHttpTcpServer {
     }
 
     /// Polls keep-alive HTTP handlers while enforcing VM-owned request deadlines.
+    #[cfg(test)]
     pub(crate) fn poll_keep_alive_with_deadlines(
         &mut self,
         processes: &mut VmProcessTable,
@@ -114,6 +117,7 @@ impl VmHttpTcpServer {
     }
 }
 
+#[cfg(test)]
 impl VmHttpHandlerDeadlines {
     fn contains(&self, process: VmProcessId) -> bool {
         self.timers.contains_key(&process)

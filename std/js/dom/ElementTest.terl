@@ -107,7 +107,7 @@ pub get_attribute_typechecks(receiver: Element, qualified_name: JsString): Optio
 pub get_attribute_ns_typechecks(
     receiver: Element,
     namespace: Option[JsString],
-    local_name: JsString
+    local_name: JsString,
 ): Option[JsString] ->
     receiver.get_attribute_ns(namespace, local_name).
 
@@ -120,7 +120,7 @@ pub get_attribute_node_typechecks(receiver: Element, qualified_name: JsString): 
 pub get_attribute_node_ns_typechecks(
     receiver: Element,
     namespace: Option[JsString],
-    local_name: JsString
+    local_name: JsString,
 ): Option[Attr] ->
     receiver.get_attribute_node_ns(namespace, local_name).
 
@@ -132,20 +132,20 @@ pub get_client_rects_typechecks(receiver: Element): DOMRectList ->
 
 pub get_elements_by_class_name_typechecks(
     receiver: Element,
-    class_names: JsString
+    class_names: JsString,
 ): HTMLCollectionOf[Element] ->
     receiver.get_elements_by_class_name(class_names).
 
 pub get_elements_by_tag_name_typechecks(
     receiver: Element,
-    qualified_name: JsString
+    qualified_name: JsString,
 ): HTMLCollectionOf[Element] ->
     receiver.get_elements_by_tag_name(qualified_name).
 
 pub get_elements_by_tag_name_ns_typechecks(
     receiver: Element,
     namespace: Option[JsString],
-    local_name: JsString
+    local_name: JsString,
 ): HTMLCollectionOf[Element] ->
     receiver.get_elements_by_tag_name_ns(namespace, local_name).
 
@@ -158,7 +158,7 @@ pub has_attribute_typechecks(receiver: Element, qualified_name: JsString): Bool 
 pub has_attribute_ns_typechecks(
     receiver: Element,
     namespace: Option[JsString],
-    local_name: JsString
+    local_name: JsString,
 ): Bool ->
     receiver.has_attribute_ns(namespace, local_name).
 
@@ -171,14 +171,14 @@ pub has_pointer_capture_typechecks(receiver: Element, pointer_id: JsNumber): Boo
 pub insert_adjacent_element_typechecks(
     receiver: Element,
     where_: InsertPosition,
-    element: Element
+    element: Element,
 ): Option[Element] ->
     receiver.insert_adjacent_element(where_, element).
 
 pub insert_adjacent_html_typechecks(
     receiver: Element,
     position: InsertPosition,
-    string: JsString
+    string: JsString,
 ): Unit ->
     receiver.insert_adjacent_html(position, string).
 
@@ -197,7 +197,7 @@ pub remove_attribute_typechecks(receiver: Element, qualified_name: JsString): Un
 pub remove_attribute_ns_typechecks(
     receiver: Element,
     namespace: Option[JsString],
-    local_name: JsString
+    local_name: JsString,
 ): Unit ->
     receiver.remove_attribute_ns(namespace, local_name).
 
@@ -238,7 +238,7 @@ pub set_attribute_ns_typechecks(
     receiver: Element,
     namespace: Option[JsString],
     qualified_name: JsString,
-    value: JsString
+    value: JsString,
 ): Unit ->
     receiver.set_attribute_ns(namespace, qualified_name, value).
 
@@ -267,7 +267,7 @@ pub add_event_listener_typechecks(
     receiver: Element,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -275,6 +275,6 @@ pub remove_event_listener_typechecks(
     receiver: Element,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

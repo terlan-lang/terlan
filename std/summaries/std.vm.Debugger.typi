@@ -1,0 +1,10 @@
+//! VM-owned debugger control surface.
+
+module std.vm.Debugger.
+
+/// Stops the current actor at an AOT continuation boundary.
+///
+/// The VM resumes this call with `Unit` after a debugger continue, step, next,
+/// or finish command. Native code publishes only owned continuation state.
+
+pub debug(): Unit.

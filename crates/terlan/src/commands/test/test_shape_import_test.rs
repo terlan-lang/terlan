@@ -207,3 +207,4 @@ fn write_project_file(root: &Path, relative: &str, contents: &str) {
         .expect("create fixture directory");
     fs::write(path, contents).expect("write project fixture");
 }
+use crate::{CliCommand, CliState};

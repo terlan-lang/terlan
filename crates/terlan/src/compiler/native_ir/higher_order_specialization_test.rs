@@ -113,3 +113,56 @@ fn higher_order_specialization_budget_fails_before_native_linking() {
         "error[native_ir.specialization_limit]: higher-order specialization exceeds 128 calls"
     );
 }
+
+#[test]
+fn recursive_higher_order_helpers_receive_distinct_finite_callsite_contexts() {
+    let mut core = core(
+        "module higher_order_context.\n\n\
+         apply(value: Int, callback: (Int) -> Int): Int -> apply(value, callback).\n\n\
+         pub first(): Int -> apply(1, ((value: Int) -> value + 1)).\n\n\
+         pub second(): Int -> apply(2, ((value: Int) -> value + 2)).\n",
+    );
+    let mut budget = super::specialization_budget::SpecializationBudget::default();
+
+    super::higher_order_context::specialize_higher_order_contexts(&mut core, &mut budget)
+        .expect("specialize recursive callsite contexts");
+
+    let entry_target = |name: &str| {
+        let function = core
+            .functions
+            .iter()
+            .find(|function| function.name == name)
+            .expect("entry function");
+        let crate::terlan_typeck::CoreExpr::Call { function, .. } = function.clauses[0]
+            .body
+            .core_expr
+            .as_ref()
+            .expect("entry body")
+        else {
+            panic!("entry must remain a direct call");
+        };
+        function.clone()
+    };
+    let first = entry_target("first");
+    let second = entry_target("second");
+    assert_ne!(first, second);
+    assert!(first.starts_with("$aot_hof_context_apply_2_"));
+    assert!(second.starts_with("$aot_hof_context_apply_2_"));
+
+    for clone_name in [first, second] {
+        let clone = core
+            .functions
+            .iter()
+            .find(|function| function.name == clone_name)
+            .expect("context clone");
+        let crate::terlan_typeck::CoreExpr::Call { function, .. } = clone.clauses[0]
+            .body
+            .core_expr
+            .as_ref()
+            .expect("clone body")
+        else {
+            panic!("recursive clone body must remain a direct call");
+        };
+        assert_eq!(function, &clone_name);
+    }
+}

@@ -30,7 +30,7 @@ pub opaque type FileSystemDirectoryHandle.
  */
 pub (value: FileSystemDirectoryHandle) get_directory_handle(
     name: JsString,
-    options: FileSystemGetDirectoryOptions
+    options: FileSystemGetDirectoryOptions,
 ): Promise[FileSystemDirectoryHandle].
 
 /**
@@ -40,7 +40,7 @@ pub (value: FileSystemDirectoryHandle) get_directory_handle(
  */
 pub (value: FileSystemDirectoryHandle) get_file_handle(
     name: JsString,
-    options: FileSystemGetFileOptions
+    options: FileSystemGetFileOptions,
 ): Promise[FileSystemFileHandle].
 
 /**

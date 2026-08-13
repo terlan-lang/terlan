@@ -17,6 +17,7 @@ must preserve:
 - file path normalization
 - module identity
 - function identity
+- lexical binding and binding-region identity
 - line/column offsets
 
 VM runtime errors, test failures, panic-like internal failures, package
@@ -37,6 +38,9 @@ traces, and support bundles to agree.
 
 The redaction rule must explicitly cover host-local absolute paths.
 Debugger and runtime evidence must explicitly preserve stack traces.
+Debugger locals, editor definition/references/rename, and semantic tokens must
+use the exact compiler-owned `CoreBindingId`; same-spelled variables in nested
+or sibling regions cannot be merged by a source-text scan.
 
 The contract applies equally to:
 

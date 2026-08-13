@@ -29,7 +29,7 @@ pub (value: WebGL2RenderingContextOverloads) buffer_data(
     src_data: ArrayBufferView[ArrayBufferLike],
     usage: GLenum,
     src_offset: JsNumber,
-    length: GLuint
+    length: GLuint,
 ): Unit.
 
 /**
@@ -38,7 +38,7 @@ pub (value: WebGL2RenderingContextOverloads) buffer_data(
 pub (value: WebGL2RenderingContextOverloads) buffer_sub_data(
     target_: GLenum,
     dst_byte_offset: GLintptr,
-    src_data: AllowSharedBufferSource
+    src_data: AllowSharedBufferSource,
 ): Unit.
 
 pub (value: WebGL2RenderingContextOverloads) buffer_sub_data(
@@ -46,7 +46,7 @@ pub (value: WebGL2RenderingContextOverloads) buffer_sub_data(
     dst_byte_offset: GLintptr,
     src_data: ArrayBufferView[ArrayBufferLike],
     src_offset: JsNumber,
-    length: GLuint
+    length: GLuint,
 ): Unit.
 
 /**
@@ -60,7 +60,7 @@ pub (value: WebGL2RenderingContextOverloads) compressed_tex_image2_d(
     height: GLsizei,
     border: GLint,
     image_size: GLsizei,
-    offset: GLintptr
+    offset: GLintptr,
 ): Unit.
 
 pub (value: WebGL2RenderingContextOverloads) compressed_tex_image2_d(
@@ -72,7 +72,7 @@ pub (value: WebGL2RenderingContextOverloads) compressed_tex_image2_d(
     border: GLint,
     src_data: ArrayBufferView[ArrayBufferLike],
     src_offset: JsNumber,
-    src_length_override: GLuint
+    src_length_override: GLuint,
 ): Unit.
 
 /**
@@ -87,7 +87,7 @@ pub (value: WebGL2RenderingContextOverloads) compressed_tex_sub_image2_d(
     height: GLsizei,
     format: GLenum,
     image_size: GLsizei,
-    offset: GLintptr
+    offset: GLintptr,
 ): Unit.
 
 pub (value: WebGL2RenderingContextOverloads) compressed_tex_sub_image2_d(
@@ -100,7 +100,7 @@ pub (value: WebGL2RenderingContextOverloads) compressed_tex_sub_image2_d(
     format: GLenum,
     src_data: ArrayBufferView[ArrayBufferLike],
     src_offset: JsNumber,
-    src_length_override: GLuint
+    src_length_override: GLuint,
 ): Unit.
 
 /**
@@ -113,7 +113,7 @@ pub (value: WebGL2RenderingContextOverloads) read_pixels(
     height: GLsizei,
     format: GLenum,
     type_: GLenum,
-    dst_data: Option[ArrayBufferView[ArrayBufferLike]]
+    dst_data: Option[ArrayBufferView[ArrayBufferLike]],
 ): Unit.
 
 pub (value: WebGL2RenderingContextOverloads) read_pixels(
@@ -123,7 +123,7 @@ pub (value: WebGL2RenderingContextOverloads) read_pixels(
     height: GLsizei,
     format: GLenum,
     type_: GLenum,
-    offset: GLintptr
+    offset: GLintptr,
 ): Unit.
 
 pub (value: WebGL2RenderingContextOverloads) read_pixels(
@@ -134,7 +134,7 @@ pub (value: WebGL2RenderingContextOverloads) read_pixels(
     format: GLenum,
     type_: GLenum,
     dst_data: ArrayBufferView[ArrayBufferLike],
-    dst_offset: JsNumber
+    dst_offset: JsNumber,
 ): Unit.
 
 /**
@@ -149,7 +149,7 @@ pub (value: WebGL2RenderingContextOverloads) tex_image2_d(
     border: GLint,
     format: GLenum,
     type_: GLenum,
-    pixels: Option[ArrayBufferView[ArrayBufferLike]]
+    pixels: Option[ArrayBufferView[ArrayBufferLike]],
 ): Unit.
 
 pub (value: WebGL2RenderingContextOverloads) tex_image2_d(
@@ -158,19 +158,7 @@ pub (value: WebGL2RenderingContextOverloads) tex_image2_d(
     internalformat: GLint,
     format: GLenum,
     type_: GLenum,
-    source: TexImageSource
-): Unit.
-
-pub (value: WebGL2RenderingContextOverloads) tex_image2_d(
-    target_: GLenum,
-    level: GLint,
-    internalformat: GLint,
-    width: GLsizei,
-    height: GLsizei,
-    border: GLint,
-    format: GLenum,
-    type_: GLenum,
-    pbo_offset: GLintptr
+    source: TexImageSource,
 ): Unit.
 
 pub (value: WebGL2RenderingContextOverloads) tex_image2_d(
@@ -182,7 +170,19 @@ pub (value: WebGL2RenderingContextOverloads) tex_image2_d(
     border: GLint,
     format: GLenum,
     type_: GLenum,
-    source: TexImageSource
+    pbo_offset: GLintptr,
+): Unit.
+
+pub (value: WebGL2RenderingContextOverloads) tex_image2_d(
+    target_: GLenum,
+    level: GLint,
+    internalformat: GLint,
+    width: GLsizei,
+    height: GLsizei,
+    border: GLint,
+    format: GLenum,
+    type_: GLenum,
+    source: TexImageSource,
 ): Unit.
 
 pub (value: WebGL2RenderingContextOverloads) tex_image2_d(
@@ -195,7 +195,7 @@ pub (value: WebGL2RenderingContextOverloads) tex_image2_d(
     format: GLenum,
     type_: GLenum,
     src_data: ArrayBufferView[ArrayBufferLike],
-    src_offset: JsNumber
+    src_offset: JsNumber,
 ): Unit.
 
 /**
@@ -210,7 +210,7 @@ pub (value: WebGL2RenderingContextOverloads) tex_sub_image2_d(
     height: GLsizei,
     format: GLenum,
     type_: GLenum,
-    pixels: Option[ArrayBufferView[ArrayBufferLike]]
+    pixels: Option[ArrayBufferView[ArrayBufferLike]],
 ): Unit.
 
 pub (value: WebGL2RenderingContextOverloads) tex_sub_image2_d(
@@ -220,19 +220,7 @@ pub (value: WebGL2RenderingContextOverloads) tex_sub_image2_d(
     yoffset: GLint,
     format: GLenum,
     type_: GLenum,
-    source: TexImageSource
-): Unit.
-
-pub (value: WebGL2RenderingContextOverloads) tex_sub_image2_d(
-    target_: GLenum,
-    level: GLint,
-    xoffset: GLint,
-    yoffset: GLint,
-    width: GLsizei,
-    height: GLsizei,
-    format: GLenum,
-    type_: GLenum,
-    pbo_offset: GLintptr
+    source: TexImageSource,
 ): Unit.
 
 pub (value: WebGL2RenderingContextOverloads) tex_sub_image2_d(
@@ -244,7 +232,19 @@ pub (value: WebGL2RenderingContextOverloads) tex_sub_image2_d(
     height: GLsizei,
     format: GLenum,
     type_: GLenum,
-    source: TexImageSource
+    pbo_offset: GLintptr,
+): Unit.
+
+pub (value: WebGL2RenderingContextOverloads) tex_sub_image2_d(
+    target_: GLenum,
+    level: GLint,
+    xoffset: GLint,
+    yoffset: GLint,
+    width: GLsizei,
+    height: GLsizei,
+    format: GLenum,
+    type_: GLenum,
+    source: TexImageSource,
 ): Unit.
 
 pub (value: WebGL2RenderingContextOverloads) tex_sub_image2_d(
@@ -257,7 +257,7 @@ pub (value: WebGL2RenderingContextOverloads) tex_sub_image2_d(
     format: GLenum,
     type_: GLenum,
     src_data: ArrayBufferView[ArrayBufferLike],
-    src_offset: JsNumber
+    src_offset: JsNumber,
 ): Unit.
 
 /**
@@ -267,7 +267,7 @@ pub (value: WebGL2RenderingContextOverloads) uniform1fv(
     location: Option[WebGLUniformLocation],
     data: Float32List,
     src_offset: JsNumber,
-    src_length: GLuint
+    src_length: GLuint,
 ): Unit.
 
 /**
@@ -277,7 +277,7 @@ pub (value: WebGL2RenderingContextOverloads) uniform1iv(
     location: Option[WebGLUniformLocation],
     data: Int32List,
     src_offset: JsNumber,
-    src_length: GLuint
+    src_length: GLuint,
 ): Unit.
 
 /**
@@ -287,7 +287,7 @@ pub (value: WebGL2RenderingContextOverloads) uniform2fv(
     location: Option[WebGLUniformLocation],
     data: Float32List,
     src_offset: JsNumber,
-    src_length: GLuint
+    src_length: GLuint,
 ): Unit.
 
 /**
@@ -297,7 +297,7 @@ pub (value: WebGL2RenderingContextOverloads) uniform2iv(
     location: Option[WebGLUniformLocation],
     data: Int32List,
     src_offset: JsNumber,
-    src_length: GLuint
+    src_length: GLuint,
 ): Unit.
 
 /**
@@ -307,7 +307,7 @@ pub (value: WebGL2RenderingContextOverloads) uniform3fv(
     location: Option[WebGLUniformLocation],
     data: Float32List,
     src_offset: JsNumber,
-    src_length: GLuint
+    src_length: GLuint,
 ): Unit.
 
 /**
@@ -317,7 +317,7 @@ pub (value: WebGL2RenderingContextOverloads) uniform3iv(
     location: Option[WebGLUniformLocation],
     data: Int32List,
     src_offset: JsNumber,
-    src_length: GLuint
+    src_length: GLuint,
 ): Unit.
 
 /**
@@ -327,7 +327,7 @@ pub (value: WebGL2RenderingContextOverloads) uniform4fv(
     location: Option[WebGLUniformLocation],
     data: Float32List,
     src_offset: JsNumber,
-    src_length: GLuint
+    src_length: GLuint,
 ): Unit.
 
 /**
@@ -337,7 +337,7 @@ pub (value: WebGL2RenderingContextOverloads) uniform4iv(
     location: Option[WebGLUniformLocation],
     data: Int32List,
     src_offset: JsNumber,
-    src_length: GLuint
+    src_length: GLuint,
 ): Unit.
 
 /**
@@ -348,7 +348,7 @@ pub (value: WebGL2RenderingContextOverloads) uniform_matrix2fv(
     transpose: GLboolean,
     data: Float32List,
     src_offset: JsNumber,
-    src_length: GLuint
+    src_length: GLuint,
 ): Unit.
 
 /**
@@ -359,7 +359,7 @@ pub (value: WebGL2RenderingContextOverloads) uniform_matrix3fv(
     transpose: GLboolean,
     data: Float32List,
     src_offset: JsNumber,
-    src_length: GLuint
+    src_length: GLuint,
 ): Unit.
 
 /**
@@ -370,5 +370,5 @@ pub (value: WebGL2RenderingContextOverloads) uniform_matrix4fv(
     transpose: GLboolean,
     data: Float32List,
     src_offset: JsNumber,
-    src_length: GLuint
+    src_length: GLuint,
 ): Unit.

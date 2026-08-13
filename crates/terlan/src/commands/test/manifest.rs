@@ -20,6 +20,7 @@ struct TestDiscoveryManifest {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 struct TestDiscoveryManifestEntry {
     name: String,
+    kind: String,
     span_start: usize,
     span_end: usize,
 }
@@ -40,8 +41,13 @@ struct TestResultManifest {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 struct TestResultManifestEntry {
     name: String,
+    kind: String,
     status: String,
     message: Option<String>,
+    execution_nanoseconds: u128,
+    benchmark_samples: Option<usize>,
+    benchmark_min_nanoseconds: Option<u128>,
+    benchmark_p95_nanoseconds: Option<u128>,
     span_start: usize,
     span_end: usize,
 }
@@ -58,8 +64,14 @@ pub(super) struct TestRunReport {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct TestRunResult {
     pub(super) name: String,
+    pub(super) kind: super::discovery::TestKind,
     pub(super) status: TestRunStatus,
     pub(super) message: Option<String>,
+    /// Time spent executing this test after compilation and image loading.
+    pub(super) execution_nanoseconds: u128,
+    pub(super) benchmark_samples: Option<usize>,
+    pub(super) benchmark_min_nanoseconds: Option<u128>,
+    pub(super) benchmark_p95_nanoseconds: Option<u128>,
     pub(super) span_start: usize,
     pub(super) span_end: usize,
 }
@@ -126,8 +138,13 @@ pub(super) fn validation_pass_report(tests: &[DiscoveredTest]) -> TestRunReport 
             .iter()
             .map(|test| TestRunResult {
                 name: test.name.clone(),
+                kind: test.kind,
                 status: TestRunStatus::Passed,
                 message: Some("validated without runtime execution".to_string()),
+                execution_nanoseconds: 0,
+                benchmark_samples: None,
+                benchmark_min_nanoseconds: None,
+                benchmark_p95_nanoseconds: None,
                 span_start: test.span_start,
                 span_end: test.span_end,
             })
@@ -209,6 +226,7 @@ pub(super) fn write_test_manifest(
             .iter()
             .map(|test| TestDiscoveryManifestEntry {
                 name: test.name.clone(),
+                kind: test.kind.as_str().to_string(),
                 span_start: test.span_start,
                 span_end: test.span_end,
             })
@@ -273,8 +291,13 @@ pub(super) fn write_test_result_manifest(
             .iter()
             .map(|result| TestResultManifestEntry {
                 name: result.name.clone(),
+                kind: result.kind.as_str().to_string(),
                 status: result.status.as_str().to_string(),
                 message: result.message.clone(),
+                execution_nanoseconds: result.execution_nanoseconds,
+                benchmark_samples: result.benchmark_samples,
+                benchmark_min_nanoseconds: result.benchmark_min_nanoseconds,
+                benchmark_p95_nanoseconds: result.benchmark_p95_nanoseconds,
                 span_start: result.span_start,
                 span_end: result.span_end,
             })

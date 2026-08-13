@@ -1,0 +1,74 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.crypto.Hash.sha256_bytes/1",
+      "name": "sha256_bytes",
+      "operation": "std.crypto.hash.sha256_bytes",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:3808b46d374eeee1c866351ec5bce0e355f69f88f6c78a94b9813b7c3a541de1"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.crypto.Hash.sha256_framed/1",
+      "name": "sha256_framed",
+      "operation": "std.crypto.hash.sha256_framed",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:d5ad6f29addee411b70470b35cad9144670226a0f96e814c45947dcc22365b80"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.crypto.Hash.sha256_domain_framed/2",
+      "name": "sha256_domain_framed",
+      "operation": "std.crypto.hash.sha256_domain_framed",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:95288628958e688b4f69eb78f28c0d5307ac3bc0f8a72916a27ba2c4e4903960"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.crypto.Hash.sha256_nul_separated/1",
+      "name": "sha256_nul_separated",
+      "operation": "std.crypto.hash.sha256_nul_separated",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:3480c40d7b86016063ecd99a2bf632d02bd6fcaaf644fc707c64ff3a8af0379a"
+    }
+  ],
+  "manifest_digest": "sha256:66b0de47b9ed46d548a2cb3d991bb288e53439dfc3bd568ed4fd26a653ebdd51",
+  "module": "std_crypto_hash_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "crypto.hash",
+    "error_policy": "typed-result",
+    "module_prefix": "std.crypto.Hash",
+    "notes": "SHA-256 byte and framed-field operations are bounded value transformations and return VM-owned digest text.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:b5d8b7dbaa3e909dff21292be401335cc0f0f82fcad1526b71b3be175df14bee",
+  "source_module": "std.crypto.Hash",
+  "source_path": "std/summaries/std.crypto.Hash.native_boundary.json"
+}

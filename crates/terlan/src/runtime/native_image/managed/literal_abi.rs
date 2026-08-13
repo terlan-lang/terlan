@@ -70,4 +70,5 @@ fn decode_string_literal(bytes: &[u8]) -> Result<&str, ManagedMemoryError> {
 
 #[cfg(test)]
 #[path = "literal_abi_test.rs"]
+#[cfg(test)]
 mod literal_abi_test;

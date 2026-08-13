@@ -26,6 +26,18 @@ fn asm_labels_parity_classifies_pure_local_call_graph_as_native_aot() {
     let target = crate::runtime::native_image::host_tvm_target().expect("host TVM target");
     let inspection = crate::runtime::native_image::inspect_tvm_image(&image, &target.triple)
         .expect("inspect call-dependency native image");
-    assert_eq!(inspection.descriptor.exports.len(), 1);
-    assert_eq!(inspection.descriptor.exports[0].name, "asm_labels.main/0");
+    let exports = inspection
+        .descriptor
+        .exports
+        .iter()
+        .map(|export| export.name.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        exports,
+        [
+            "asm_labels.main/0",
+            "asm_labels.marker/0",
+            "asm_labels.choose/1",
+        ]
+    );
 }

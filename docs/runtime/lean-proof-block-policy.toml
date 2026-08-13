@@ -1,0 +1,5 @@
+coverage_regression_tolerance = 0
+owner_change_window = 7
+max_new_blockers_per_cycle = 0
+unresolved_warning_ttl_days = 14
+critical_feature_classes = ["coreir", "native_boundary", "vm_runtime"]

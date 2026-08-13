@@ -96,7 +96,7 @@ pub struct Node {
     node_id: String,
     state: NodeState,
     last_seen_tick: Int,
-    roles: List[String]
+    roles: List[String],
 }.
 
 /**
@@ -170,7 +170,7 @@ pub type Duplicate.
  * so the missing frame can be accepted before retrying.
  */
 pub struct OutOfOrder {
-    expected_message_id: Int
+    expected_message_id: Int,
 }.
 
 /**
@@ -186,7 +186,7 @@ pub type InboundOutcome = Accepted | Duplicate | OutOfOrder.
  */
 pub struct SendResult {
     session: Session,
-    frame: Frame
+    frame: Frame,
 }.
 
 /**
@@ -197,7 +197,7 @@ pub struct SendResult {
  */
 pub struct AcceptResult {
     session: Session,
-    outcome: InboundOutcome
+    outcome: InboundOutcome,
 }.
 
 /**
@@ -205,7 +205,7 @@ pub struct AcceptResult {
  */
 pub struct AcknowledgeResult {
     session: Session,
-    message_id: Int
+    message_id: Int,
 }.
 
 /**
@@ -264,7 +264,7 @@ pub type DisconnectReason =
 pub struct DisconnectEvent {
     reason: DisconnectReason,
     tick: Int,
-    pending_ack_count: Int
+    pending_ack_count: Int,
 }.
 
 /**
@@ -272,7 +272,7 @@ pub struct DisconnectEvent {
  */
 pub struct DisconnectResult {
     session: Session,
-    event: DisconnectEvent
+    event: DisconnectEvent,
 }.
 
 /**
@@ -284,7 +284,7 @@ pub type AlreadyConnected.
  * Reconnected identifies a successful disconnected-to-connected transition.
  */
 pub struct Reconnected {
-    pending_ack_count: Int
+    pending_ack_count: Int,
 }.
 
 /**
@@ -297,7 +297,7 @@ pub type ReconnectOutcome = AlreadyConnected | Reconnected.
  */
 pub struct ReconnectResult {
     session: Session,
-    outcome: ReconnectOutcome
+    outcome: ReconnectOutcome,
 }.
 
 /**
@@ -344,7 +344,7 @@ pub profile(
     node_id: String,
     cluster_id: String,
     runtime_version: String,
-    capability: String
+    capability: String,
 ): Profile ->
     native.
 
@@ -583,7 +583,7 @@ pub (session: Session) send[Payload](capability: String, payload: Payload)[SendA
 pub (session: Session) send_with[Payload](
     capability: String,
     payload: Payload,
-    delivery: Delivery
+    delivery: Delivery,
 )[SendAcrossNode[Payload]]: SendResult ->
     native.
 

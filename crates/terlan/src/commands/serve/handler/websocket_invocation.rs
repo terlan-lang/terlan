@@ -1,16 +1,18 @@
-#![cfg_attr(not(test), allow(dead_code))]
-
 //! Native invocation ownership for one admitted WebSocket connection.
 
 use std::sync::Arc;
 
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
+#[cfg(test)]
 use crate::runtime::native_image::TvmBoundaryType;
 use crate::runtime::vm::native_callable::VmNativeCallableRef;
+#[cfg(test)]
 use crate::runtime::vm::pure_native::PureNativeIoWake;
+#[cfg(test)]
+use crate::runtime::vm::websocket::VmWebSocketFrame;
 use crate::runtime::vm::websocket::{
-    VmWebSocketCallbackPlan, VmWebSocketEndpointPlan, VmWebSocketFrame,
-    VmWebSocketInboundQueueInfo, VmWebSocketLiveSession,
+    VmWebSocketCallbackPlan, VmWebSocketEndpointPlan, VmWebSocketInboundQueueInfo,
+    VmWebSocketLiveSession,
 };
 use crate::runtime::vm::ReplValue;
 
@@ -22,12 +24,16 @@ pub(in crate::commands::serve) enum AotWebSocketCallbackEvent {
     /// Opening upgrade admission completed.
     Open,
     /// One bounded inbound frame became available.
+    #[cfg(test)]
     Inbound,
     /// Outbound transport capacity became available.
+    #[cfg(test)]
     Writable,
     /// The transport closed gracefully.
+    #[cfg(test)]
     Close,
     /// The scheduler or transport cancelled the connection.
+    #[cfg(test)]
     Cancellation,
 }
 
@@ -76,16 +82,19 @@ impl AotWebSocketCallbackSession {
     }
 
     /// Returns callback events that have completed for runtime instrumentation.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn completed_events(&self) -> &[AotWebSocketCallbackEvent] {
         self.invocation.completed_events()
     }
 
     /// Returns whether generated callback work is parked on typed VM I/O.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn is_waiting(&self) -> bool {
         self.invocation.is_waiting()
     }
 
     /// Queues one decoded frame under the admitted endpoint pressure limits.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn enqueue_inbound(
         &mut self,
         frame: VmWebSocketFrame,
@@ -94,6 +103,7 @@ impl AotWebSocketCallbackSession {
     }
 
     /// Dispatches or wakes generated code with the oldest queued text frame.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn dispatch_next_inbound(&mut self) -> Result<bool, String> {
         let Some(frame) = self.live.next_inbound() else {
             return Ok(false);
@@ -119,6 +129,7 @@ impl AotWebSocketCallbackSession {
     }
 
     /// Dispatches one admitted inbound text frame through generated code.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn inbound(
         &mut self,
         frame: VmWebSocketFrame,
@@ -136,6 +147,7 @@ impl AotWebSocketCallbackSession {
     }
 
     /// Dispatches one writable transport notification through generated code.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn writable(
         &mut self,
     ) -> Result<AotWebSocketCallbackState, String> {
@@ -143,6 +155,7 @@ impl AotWebSocketCallbackSession {
     }
 
     /// Dispatches graceful close and ends the live-session lease.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn close(
         &mut self,
     ) -> Result<AotWebSocketCallbackState, String> {
@@ -155,6 +168,7 @@ impl AotWebSocketCallbackSession {
     }
 
     /// Cancels parked work, dispatches cancellation, and ends the live lease.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn cancel(
         &mut self,
         reason: String,
@@ -170,6 +184,7 @@ impl AotWebSocketCallbackSession {
     }
 
     /// Resumes the exact parked callback from one typed VM I/O wake.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn resume(
         &mut self,
         wake: PureNativeIoWake,
@@ -192,9 +207,13 @@ impl AotWebSocketCallbackSession {
         let callbacks = self.callbacks.as_ref()?;
         Some(match event {
             AotWebSocketCallbackEvent::Open => &callbacks.open,
+            #[cfg(test)]
             AotWebSocketCallbackEvent::Inbound => &callbacks.inbound,
+            #[cfg(test)]
             AotWebSocketCallbackEvent::Writable => &callbacks.writable,
+            #[cfg(test)]
             AotWebSocketCallbackEvent::Close => &callbacks.close,
+            #[cfg(test)]
             AotWebSocketCallbackEvent::Cancellation => &callbacks.cancellation,
         })
     }
@@ -202,4 +221,5 @@ impl AotWebSocketCallbackSession {
 
 #[cfg(test)]
 #[path = "websocket_invocation_test.rs"]
+#[cfg(test)]
 mod websocket_invocation_test;

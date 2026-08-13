@@ -566,12 +566,14 @@ pub(crate) fn emit_or_log_phase_manifest_error(
 
         if let Err(err) = emit_phase_manifest(
             manifest_path,
-            source_path,
-            None,
-            source_hash,
-            0,
-            0,
-            0,
+            PhaseManifestIdentity {
+                source_path,
+                module_name: None,
+                source_hash,
+                interface_hash: 0,
+                interface_doc_hash: 0,
+                core_ir_hash: 0,
+            },
             PhaseManifestCoreProofCoverage::default(),
             &[],
             &output_phases,
@@ -583,6 +585,17 @@ pub(crate) fn emit_or_log_phase_manifest_error(
         }
     }
     exit_code
+}
+
+/// Stable source and compiler-artifact identity serialized into one manifest.
+#[derive(Clone, Copy)]
+pub(crate) struct PhaseManifestIdentity<'a> {
+    pub(crate) source_path: &'a str,
+    pub(crate) module_name: Option<&'a str>,
+    pub(crate) source_hash: u64,
+    pub(crate) interface_hash: u64,
+    pub(crate) interface_doc_hash: u64,
+    pub(crate) core_ir_hash: u64,
 }
 
 /// Serializes and writes a phase manifest.
@@ -610,16 +623,19 @@ pub(crate) fn emit_or_log_phase_manifest_error(
 ///   manifest, and writes it with a trailing newline.
 pub(crate) fn emit_phase_manifest(
     manifest_path: &Path,
-    source_path: &str,
-    module_name: Option<&str>,
-    source_hash: u64,
-    interface_hash: u64,
-    interface_doc_hash: u64,
-    core_ir_hash: u64,
+    identity: PhaseManifestIdentity<'_>,
     core_proof_coverage: PhaseManifestCoreProofCoverage,
     dependencies: &[(String, u64)],
     phases: &[PhaseOutput],
 ) -> Result<(), String> {
+    let PhaseManifestIdentity {
+        source_path,
+        module_name,
+        source_hash,
+        interface_hash,
+        interface_doc_hash,
+        core_ir_hash,
+    } = identity;
     let module_name = module_name.unwrap_or("<unparsed>");
     let manifest_dependencies = dependencies
         .iter()
@@ -791,4 +807,5 @@ pub(crate) fn current_syntax_contract_identity() -> Result<SyntaxContractIdentit
 
 #[cfg(test)]
 #[path = "phase_manifest_test.rs"]
+#[cfg(test)]
 mod phase_manifest_test;

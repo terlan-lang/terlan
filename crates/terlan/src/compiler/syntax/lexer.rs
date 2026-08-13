@@ -32,6 +32,11 @@ pub struct LexError {
 ///   keywords, and literals into parser tokens while preserving source spans.
 pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
     let chars: Vec<char> = input.chars().collect();
+    let mut byte_offsets = input
+        .char_indices()
+        .map(|(offset, _)| offset)
+        .collect::<Vec<_>>();
+    byte_offsets.push(input.len());
     let mut tokens = Vec::new();
     let mut errors = Vec::new();
     let mut i = 0usize;
@@ -52,15 +57,15 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
                         errors.push(LexError {
                             message: "nested documentation block comments are not supported"
                                 .to_string(),
-                            span: Span::new(start, end),
+                            span: byte_span(&byte_offsets, start, end),
                         });
                         break;
                     }
                     tokens.push(Token::new(
                         TokenKind::DocBlockComment,
                         normalize_doc_block_comment_text(&text),
-                        start,
-                        end,
+                        byte_offsets[start],
+                        byte_offsets[end],
                     ));
                     i = end;
                     continue;
@@ -68,7 +73,7 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
                 None => {
                     errors.push(LexError {
                         message: "unterminated documentation block comment".to_string(),
-                        span: Span::new(i, chars.len()),
+                        span: byte_span(&byte_offsets, i, chars.len()),
                     });
                     break;
                 }
@@ -78,14 +83,19 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
         if ch == '/' && i + 1 < chars.len() && chars[i + 1] == '*' {
             match parse_block_comment(&chars, i) {
                 Some((text, end)) => {
-                    tokens.push(Token::new(TokenKind::Comment, text, i, end));
+                    tokens.push(Token::new(
+                        TokenKind::Comment,
+                        text,
+                        byte_offsets[i],
+                        byte_offsets[end],
+                    ));
                     i = end;
                     continue;
                 }
                 None => {
                     errors.push(LexError {
                         message: "unterminated block comment".to_string(),
-                        span: Span::new(i, chars.len()),
+                        span: byte_span(&byte_offsets, i, chars.len()),
                     });
                     break;
                 }
@@ -99,7 +109,12 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
                 i += 1;
             }
             let text = normalize_doc_comment_text(&chars[start + 3..i]);
-            tokens.push(Token::new(TokenKind::DocComment, text, start, i));
+            tokens.push(Token::new(
+                TokenKind::DocComment,
+                text,
+                byte_offsets[start],
+                byte_offsets[i],
+            ));
             continue;
         }
 
@@ -110,7 +125,12 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
                 i += 1;
             }
             let text = normalize_doc_comment_text(&chars[start + 3..i]);
-            tokens.push(Token::new(TokenKind::ModuleDocComment, text, start, i));
+            tokens.push(Token::new(
+                TokenKind::ModuleDocComment,
+                text,
+                byte_offsets[start],
+                byte_offsets[i],
+            ));
             continue;
         }
 
@@ -120,7 +140,12 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
                 i += 1;
             }
             let text: String = chars[start..i].iter().collect();
-            tokens.push(Token::new(TokenKind::Comment, text, start, i));
+            tokens.push(Token::new(
+                TokenKind::Comment,
+                text,
+                byte_offsets[start],
+                byte_offsets[i],
+            ));
             continue;
         }
 
@@ -130,21 +155,31 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
                 i += 1;
             }
             let text: String = chars[start..i].iter().collect();
-            tokens.push(Token::new(TokenKind::Comment, text, start, i));
+            tokens.push(Token::new(
+                TokenKind::Comment,
+                text,
+                byte_offsets[start],
+                byte_offsets[i],
+            ));
             continue;
         }
 
         if ch == '"' {
             match parse_string(&chars, i) {
                 Some((text, end)) => {
-                    tokens.push(Token::new(TokenKind::String, text, i, end));
+                    tokens.push(Token::new(
+                        TokenKind::String,
+                        text,
+                        byte_offsets[i],
+                        byte_offsets[end],
+                    ));
                     i = end;
                     continue;
                 }
                 None => {
                     errors.push(LexError {
                         message: "unterminated string literal".to_string(),
-                        span: Span::new(i, chars.len()),
+                        span: byte_span(&byte_offsets, i, chars.len()),
                     });
                     break;
                 }
@@ -154,14 +189,19 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
         if ch == '\'' {
             match parse_single_quoted(&chars, i) {
                 Some((text, end)) => {
-                    tokens.push(Token::new(TokenKind::String, text, i, end));
+                    tokens.push(Token::new(
+                        TokenKind::String,
+                        text,
+                        byte_offsets[i],
+                        byte_offsets[end],
+                    ));
                     i = end;
                     continue;
                 }
                 None => {
                     errors.push(LexError {
                         message: "unterminated string literal".to_string(),
-                        span: Span::new(i, chars.len()),
+                        span: byte_span(&byte_offsets, i, chars.len()),
                     });
                     break;
                 }
@@ -170,14 +210,31 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
 
         if ch == '<' && i + 1 < chars.len() && chars[i + 1] == '<' {
             if let Some((text, end)) = parse_binary(&chars, i) {
-                tokens.push(Token::new(TokenKind::Binary, text, i, end));
+                tokens.push(Token::new(
+                    TokenKind::Binary,
+                    text,
+                    byte_offsets[i],
+                    byte_offsets[end],
+                ));
                 i = end;
                 continue;
             }
         }
 
+        if i + 1 < chars.len() && matches!((chars[i], chars[i + 1]), ('&', '&') | ('|', '|')) {
+            let replacement = if ch == '&' { "and" } else { "or" };
+            errors.push(LexError {
+                message: format!(
+                    "symbolic Boolean operators are not supported; use `{replacement}`"
+                ),
+                span: byte_span(&byte_offsets, i, i + 2),
+            });
+            i += 2;
+            continue;
+        }
+
         if let Some((kind, text, end)) = match_two_char_token(&chars, i) {
-            tokens.push(Token::new(kind, text, i, end));
+            tokens.push(Token::new(kind, text, byte_offsets[i], byte_offsets[end]));
             i = end;
             continue;
         }
@@ -208,7 +265,7 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
             _ => {
                 if ch.is_ascii_digit() {
                     let (kind, text, end) = lex_number_token(&chars, i);
-                    tokens.push(Token::new(kind, text, i, end));
+                    tokens.push(Token::new(kind, text, byte_offsets[i], byte_offsets[end]));
                     i = end;
                     continue;
                 }
@@ -261,31 +318,35 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
                             }
                         }
                     };
-                    tokens.push(Token::new(kind, text, start, j));
+                    tokens.push(Token::new(kind, text, byte_offsets[start], byte_offsets[j]));
                     i = j;
                     continue;
                 }
 
                 errors.push(LexError {
                     message: format!("unrecognized character {:?}", ch),
-                    span: Span::new(i, i + 1),
+                    span: byte_span(&byte_offsets, i, i + 1),
                 });
                 i += 1;
                 continue;
             }
         };
 
-        tokens.push(Token::new(kind, text, i, end));
+        tokens.push(Token::new(kind, text, byte_offsets[i], byte_offsets[end]));
         i = end;
     }
 
-    tokens.push(Token::new(TokenKind::EOF, "", chars.len(), chars.len()));
+    tokens.push(Token::new(TokenKind::EOF, "", input.len(), input.len()));
 
     if errors.is_empty() {
         Ok(tokens)
     } else {
         Err(errors)
     }
+}
+
+fn byte_span(byte_offsets: &[usize], start: usize, end: usize) -> Span {
+    Span::new(byte_offsets[start], byte_offsets[end])
 }
 
 /// Lexes one numeric literal token from a digit-starting source position.
@@ -441,8 +502,6 @@ fn match_two_char_token(chars: &[char], i: usize) -> Option<(TokenKind, String, 
         ('<', '=') => Some((TokenKind::LtEq, "<=".to_string(), i + 2)),
         ('>', '=') => Some((TokenKind::GtEq, ">=".to_string(), i + 2)),
         ('|', '>') => Some((TokenKind::PipeForward, "|>".to_string(), i + 2)),
-        ('|', '|') => Some((TokenKind::Or, "||".to_string(), i + 2)),
-        ('&', '&') => Some((TokenKind::And, "&&".to_string(), i + 2)),
         ('=', _) => Some((TokenKind::Equals, "=".to_string(), i + 1)),
         _ => None,
     }
@@ -625,9 +684,12 @@ fn normalize_doc_block_comment_text(text: &str) -> String {
         .map(|line| {
             let trimmed = line.trim_start();
             if let Some(rest) = trimmed.strip_prefix('*') {
-                rest.strip_prefix(' ').unwrap_or(rest).to_string()
+                rest.strip_prefix(' ')
+                    .unwrap_or(rest)
+                    .trim_end()
+                    .to_string()
             } else {
-                trimmed.to_string()
+                trimmed.trim_end().to_string()
             }
         })
         .collect::<Vec<_>>();
@@ -672,4 +734,5 @@ fn is_ident_continue(ch: char) -> bool {
 
 #[cfg(test)]
 #[path = "lexer_test.rs"]
+#[cfg(test)]
 mod lexer_test;

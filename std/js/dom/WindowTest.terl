@@ -163,7 +163,7 @@ pub focus_typechecks(receiver: Window): Unit ->
 pub get_computed_style_typechecks(
     receiver: Window,
     elt: Element,
-    pseudo_elt: Option[JsString]
+    pseudo_elt: Option[JsString],
 ): CSSStyleDeclaration ->
     receiver.get_computed_style(elt, pseudo_elt).
 
@@ -183,7 +183,7 @@ pub open_typechecks(
     receiver: Window,
     url: URL | JsString,
     target_: JsString,
-    features: JsString
+    features: JsString,
 ): Option[WindowProxy] ->
     receiver.open(url, target_, features).
 
@@ -199,7 +199,7 @@ pub release_events_typechecks(receiver: Window): Unit ->
 pub request_idle_callback_typechecks(
     receiver: Window,
     callback: IdleRequestCallback,
-    options: IdleRequestOptions
+    options: IdleRequestOptions,
 ): JsNumber ->
     receiver.request_idle_callback(callback, options).
 
@@ -234,7 +234,7 @@ pub add_event_listener_typechecks(
     receiver: Window,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -242,6 +242,6 @@ pub remove_event_listener_typechecks(
     receiver: Window,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

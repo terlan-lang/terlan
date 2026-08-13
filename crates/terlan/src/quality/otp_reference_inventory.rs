@@ -459,4 +459,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "otp_reference_inventory_test.rs"]
+#[cfg(test)]
 mod otp_reference_inventory_test;

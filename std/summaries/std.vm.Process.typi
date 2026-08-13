@@ -100,6 +100,16 @@ pub background(): SchedulingClass.
 
 pub cancel[T](target: Process[T]): Unit.
 
+/// Returns the typed handle for the currently executing process.
+///
+/// Input: mailbox payload type `T`.
+/// Output: the VM-owned `Process[T]` identity of the calling actor.
+/// Transformation: suspends at the scheduler boundary so identity is supplied
+/// by the owning execution shard; generated code never manufactures process
+/// identifiers.
+
+pub current[T](): Process[T].
+
 /// Builds an image-local typed process entry.
 ///
 /// Input: a positive image entry tag and mailbox payload type `T`.

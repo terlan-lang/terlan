@@ -1,0 +1,9 @@
+module=std.system.Environment
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=15097359581626772096
+interface_hash=5458174910261098983
+interface_doc_hash=207961856358994494
+deps=1
+std.core.Option=11539230284316612175

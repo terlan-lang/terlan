@@ -1,20 +1,17 @@
 //! VM-owned asynchronous transport for external capability workers.
 
-#[path = "capability_worker/sandbox.rs"]
-mod sandbox;
-#[path = "capability_worker/parked.rs"]
-mod parked;
 #[path = "capability_worker/event_pump.rs"]
 mod event_pump;
-#[allow(dead_code)] // MC-6 pool surface is staged before its runtime consumer.
+#[path = "capability_worker/parked.rs"]
+mod parked;
 #[path = "capability_worker/pool.rs"]
 mod pool;
+#[path = "capability_worker/sandbox.rs"]
+mod sandbox;
 
+pub(crate) use event_pump::{VmCapabilityWorkerEventPump, VmCapabilityWorkerEventPumpEvent};
 pub(crate) use pool::{
     VmCapabilityWorkerParkedRequest, VmCapabilityWorkerPool, VmCapabilityWorkerPoolSlot,
-};
-pub(crate) use event_pump::{
-    VmCapabilityWorkerEventPump, VmCapabilityWorkerEventPumpEvent,
 };
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -29,20 +26,32 @@ use std::thread::{self, JoinHandle};
 use crate::runtime::vm::execution_shard_epoch::{VmShardEpochOperation, VmShardOperationKind};
 use crate::runtime::vm::native_boundary::deadline::{
     VmNativeBoundaryDeadlineCompletion, VmNativeBoundaryDeadlineQueue,
-    VmScheduledNativeBoundaryRequest,
 };
-use crate::runtime::vm::process::{VmProcessId, VmProcessTable};
+#[cfg(test)]
+use crate::runtime::vm::native_boundary::deadline::{
+    VmNativeBoundaryDeadlineStart, VmScheduledNativeBoundaryRequest,
+};
+use crate::runtime::vm::process::VmProcessId;
+#[cfg(test)]
+use crate::runtime::vm::process::VmProcessTable;
+#[cfg(test)]
 use crate::runtime::vm::scheduler::VmScheduler;
+#[cfg(test)]
 use crate::runtime::vm::timer::{VmTimerEvent, VmTimerId, VmTimerTable};
 use crate::terlan_native_boundary::capability_sandbox::CapabilitySandboxProfile;
 use crate::terlan_native_boundary::capability_wire::{
-    read_json_frame, validate_capability_term_budget, validate_protocol_version, write_json_frame,
-    CapabilityHandle, CapabilityRequest, CapabilityResponse, CapabilityValue,
+    read_json_frame, write_json_frame, CapabilityRequest, CapabilityResponse,
     CAPABILITY_PROTOCOL_VERSION,
+};
+#[cfg(test)]
+use crate::terlan_native_boundary::capability_wire::{
+    validate_capability_term_budget, validate_protocol_version, CapabilityValue,
 };
 use crate::terlan_native_boundary::metadata::NativeBoundaryExecutionProfile;
 use crate::terlan_native_boundary::request::{next_request_id, RequestId};
-use crate::terlan_native_boundary::term::{NativeBoundaryReplyTerm, NativeBoundaryTerm};
+use crate::terlan_native_boundary::term::NativeBoundaryReplyTerm;
+#[cfg(test)]
+use crate::terlan_native_boundary::term::NativeBoundaryTerm;
 
 /// Default maximum bytes admitted by one capability-worker frame.
 const DEFAULT_MAX_PAYLOAD_BYTES: usize = 1024 * 1024;
@@ -172,6 +181,27 @@ impl VmCapabilityRequestContext {
     }
 }
 
+/// Complete scheduler admission data for one capability worker call.
+#[cfg(test)]
+pub(crate) struct VmCapabilityWorkerCall {
+    pub(crate) owner: VmProcessId,
+    pub(crate) context: VmCapabilityRequestContext,
+    pub(crate) operation: String,
+    pub(crate) arguments: Vec<NativeBoundaryTerm>,
+    pub(crate) now_tick: u64,
+    pub(crate) timeout_ticks: u64,
+}
+
+#[cfg(test)]
+struct VmCapabilityRequestAdmission {
+    owner: VmProcessId,
+    request_id: RequestId,
+    context: VmCapabilityRequestContext,
+    now_tick: u64,
+    timeout_ticks: u64,
+    request: CapabilityRequest,
+}
+
 /// Closed process policy used when the VM starts a capability worker.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct VmCapabilityWorkerPolicy {
@@ -219,12 +249,14 @@ impl VmCapabilityWorkerPolicy {
     }
 
     /// Adds one explicit scheduler-class grant to the worker policy.
+    #[cfg(test)]
     pub(crate) fn admit_worker_class(mut self, worker_class: impl Into<String>) -> Self {
         self.worker_classes.push(worker_class.into());
         self
     }
 
     /// Replaces the default frame-size limit with a positive bound.
+    #[cfg(test)]
     pub(crate) fn with_max_payload_bytes(mut self, maximum: usize) -> Result<Self, String> {
         if maximum == 0 {
             return Err("capability-worker payload limit must be positive".to_string());
@@ -234,6 +266,7 @@ impl VmCapabilityWorkerPolicy {
     }
 
     /// Replaces the default lifetime request limit with a positive bound.
+    #[cfg(test)]
     pub(crate) fn with_max_requests(mut self, maximum: u64) -> Result<Self, String> {
         if maximum == 0 {
             return Err("capability-worker request limit must be positive".to_string());
@@ -253,6 +286,7 @@ impl VmCapabilityWorkerPolicy {
 }
 
 /// Borrowed VM tables required to park and wake capability callers.
+#[cfg(test)]
 pub(crate) struct VmCapabilityWorkerRuntime<'a> {
     /// VM timer ownership table.
     pub(crate) timers: &'a mut VmTimerTable,
@@ -317,6 +351,7 @@ pub(crate) enum VmCapabilityWorkerCompletion {
 
 /// Terminal VM deadline result and cancellation-delivery status.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmCapabilityWorkerTerminal {
     /// Exactly-once VM deadline completion.
     pub(crate) completion: VmNativeBoundaryDeadlineCompletion,
@@ -333,9 +368,12 @@ pub(crate) struct VmCapabilityWorkerClient {
     /// VM-owned parking, deadline, and single-completion state.
     deadlines: VmNativeBoundaryDeadlineQueue,
     /// Capability and epoch ownership for each live request.
+    #[cfg(test)]
     pending_contexts: BTreeMap<u64, VmCapabilityRequestContext>,
     /// Generated continuations already parked by their execution shard.
     parked_contexts: BTreeMap<u64, (VmProcessId, VmCapabilityRequestContext)>,
+    /// Correlation and bounded disposal state for resources in late replies.
+    late_cleanup: parked::VmCapabilityLateCleanupState,
     /// Closed capability names granted to this worker process.
     capabilities: BTreeSet<String>,
     /// Last locally allocated request identity.
@@ -345,6 +383,42 @@ pub(crate) struct VmCapabilityWorkerClient {
 }
 
 impl VmCapabilityWorkerClient {
+    /// Creates an in-memory client around owned test streams.
+    #[cfg(test)]
+    pub(crate) fn from_test_streams(
+        identity: VmCapabilityWorkerIdentity,
+        capabilities: &[&str],
+        credit_limit: u64,
+        input: impl Write + Send + 'static,
+        output: impl Read + Send + 'static,
+    ) -> Result<Self, String> {
+        if credit_limit == 0 {
+            return Err("test capability-worker credit limit must be positive".to_string());
+        }
+        let transport = VmCapabilityWorkerTransport::from_streams(
+            input,
+            output,
+            4_096,
+            credit_limit,
+            None,
+            None,
+        )?;
+        Ok(Self {
+            identity,
+            transport,
+            deadlines: VmNativeBoundaryDeadlineQueue::new(credit_limit),
+            pending_contexts: BTreeMap::new(),
+            parked_contexts: BTreeMap::new(),
+            late_cleanup: parked::VmCapabilityLateCleanupState::default(),
+            capabilities: capabilities
+                .iter()
+                .map(|capability| (*capability).to_string())
+                .collect(),
+            last_request_id: RequestId { value: 0 },
+            remote_credit_limit: credit_limit,
+        })
+    }
+
     /// Returns the exact logical slot and process generation of this client.
     pub(crate) fn identity(&self) -> &VmCapabilityWorkerIdentity {
         &self.identity
@@ -422,8 +496,10 @@ impl VmCapabilityWorkerClient {
             identity,
             transport,
             deadlines: VmNativeBoundaryDeadlineQueue::new(policy.credit_limit),
+            #[cfg(test)]
             pending_contexts: BTreeMap::new(),
             parked_contexts: BTreeMap::new(),
+            late_cleanup: parked::VmCapabilityLateCleanupState::default(),
             capabilities: policy.capabilities.into_iter().collect(),
             last_request_id: RequestId { value: 0 },
             remote_credit_limit: policy.credit_limit,
@@ -431,16 +507,20 @@ impl VmCapabilityWorkerClient {
     }
 
     /// Starts one operation and parks its owner without blocking the scheduler.
+    #[cfg(test)]
     pub(crate) fn start_call(
         &mut self,
         runtime: &mut VmCapabilityWorkerRuntime<'_>,
-        owner: VmProcessId,
-        context: VmCapabilityRequestContext,
-        operation: impl Into<String>,
-        arguments: Vec<NativeBoundaryTerm>,
-        now_tick: u64,
-        timeout_ticks: u64,
+        call: VmCapabilityWorkerCall,
     ) -> Result<VmScheduledNativeBoundaryRequest, String> {
+        let VmCapabilityWorkerCall {
+            owner,
+            context,
+            operation,
+            arguments,
+            now_tick,
+            timeout_ticks,
+        } = call;
         self.require_capability(&context.capability)?;
         let arguments = arguments
             .into_iter()
@@ -450,52 +530,26 @@ impl VmCapabilityWorkerClient {
         let request_id = self.allocate_request_id()?;
         self.start_request(
             runtime,
-            owner,
-            request_id,
-            context.clone(),
-            now_tick,
-            timeout_ticks,
-            CapabilityRequest::Call {
-                version: CAPABILITY_PROTOCOL_VERSION,
-                request_id: request_id.value,
-                owner_id: owner.as_u64(),
-                capability: context.capability.as_str().to_string(),
-                operation: operation.into(),
-                arguments,
-            },
-        )
-    }
-
-    /// Starts disposal of one process-owned external resource.
-    pub(crate) fn start_dispose(
-        &mut self,
-        runtime: &mut VmCapabilityWorkerRuntime<'_>,
-        owner: VmProcessId,
-        context: VmCapabilityRequestContext,
-        handle: CapabilityHandle,
-        now_tick: u64,
-        timeout_ticks: u64,
-    ) -> Result<VmScheduledNativeBoundaryRequest, String> {
-        self.require_capability(&context.capability)?;
-        let request_id = self.allocate_request_id()?;
-        self.start_request(
-            runtime,
-            owner,
-            request_id,
-            context.clone(),
-            now_tick,
-            timeout_ticks,
-            CapabilityRequest::Dispose {
-                version: CAPABILITY_PROTOCOL_VERSION,
-                request_id: request_id.value,
-                owner_id: owner.as_u64(),
-                capability: context.capability.as_str().to_string(),
-                handle,
+            VmCapabilityRequestAdmission {
+                owner,
+                request_id,
+                context: context.clone(),
+                now_tick,
+                timeout_ticks,
+                request: CapabilityRequest::Call {
+                    version: CAPABILITY_PROTOCOL_VERSION,
+                    request_id: request_id.value,
+                    owner_id: owner.as_u64(),
+                    capability: context.capability.as_str().to_string(),
+                    operation,
+                    arguments,
+                },
             },
         )
     }
 
     /// Polls at most one transport event and applies live replies to the VM.
+    #[cfg(test)]
     pub(crate) fn poll(
         &mut self,
         runtime: &mut VmCapabilityWorkerRuntime<'_>,
@@ -539,6 +593,7 @@ impl VmCapabilityWorkerClient {
     }
 
     /// Cancels one parked call and delivers cooperative cancellation.
+    #[cfg(test)]
     pub(crate) fn cancel(
         &mut self,
         runtime: &mut VmCapabilityWorkerRuntime<'_>,
@@ -555,6 +610,7 @@ impl VmCapabilityWorkerClient {
     }
 
     /// Applies timeout or owner-exit events and delivers worker cancellation.
+    #[cfg(test)]
     pub(crate) fn handle_timer_event(
         &mut self,
         runtime: &mut VmCapabilityWorkerRuntime<'_>,
@@ -579,7 +635,9 @@ impl VmCapabilityWorkerClient {
 
     /// Returns the number of VM requests currently parked on this worker.
     pub(crate) fn pending_len(&self) -> usize {
-        self.deadlines.pending_len() + self.parked_contexts.len()
+        self.deadlines.pending_len()
+            + self.parked_contexts.len()
+            + self.late_cleanup.in_flight_len()
     }
 
     /// Registers a protocol task for the next background transport event.
@@ -588,24 +646,25 @@ impl VmCapabilityWorkerClient {
     }
 
     /// Starts VM deadline ownership before publishing the request to transport.
+    #[cfg(test)]
     fn start_request(
         &mut self,
         runtime: &mut VmCapabilityWorkerRuntime<'_>,
-        owner: VmProcessId,
-        request_id: RequestId,
-        context: VmCapabilityRequestContext,
-        now_tick: u64,
-        timeout_ticks: u64,
-        request: CapabilityRequest,
+        admission: VmCapabilityRequestAdmission,
     ) -> Result<VmScheduledNativeBoundaryRequest, String> {
+        let VmCapabilityRequestAdmission {
+            owner,
+            request_id,
+            context,
+            now_tick,
+            timeout_ticks,
+            request,
+        } = admission;
         let scheduled = self.deadlines.start(
             runtime.timers,
             runtime.processes,
             runtime.scheduler,
-            owner,
-            request_id,
-            now_tick,
-            timeout_ticks,
+            VmNativeBoundaryDeadlineStart::new(owner, request_id, now_tick, timeout_ticks),
         )?;
         self.pending_contexts.insert(request_id.value, context);
         if let Err(error) = self.transport.try_send(request) {
@@ -643,6 +702,7 @@ impl VmCapabilityWorkerClient {
     }
 
     /// Correlates one typed response with the VM-owned deadline queue.
+    #[cfg(test)]
     fn apply_response(
         &mut self,
         runtime: &mut VmCapabilityWorkerRuntime<'_>,
@@ -725,6 +785,7 @@ impl VmCapabilityWorkerClient {
     }
 
     /// Publishes cancellation after the VM has made the request terminal.
+    #[cfg(test)]
     fn terminal_with_cancellation(
         &mut self,
         identity: Option<(VmProcessId, RequestId)>,
@@ -747,6 +808,7 @@ impl VmCapabilityWorkerClient {
     }
 
     /// Cancels every parked request after terminal transport failure.
+    #[cfg(test)]
     fn cancel_all_pending(
         &mut self,
         runtime: &mut VmCapabilityWorkerRuntime<'_>,
@@ -912,89 +974,10 @@ impl Drop for VmCapabilityWorkerTransport {
     }
 }
 
-/// Serializes queued requests outside VM scheduler threads.
-fn run_writer(
-    mut input: impl Write,
-    requests: Receiver<CapabilityRequest>,
-    events: SyncSender<VmCapabilityWorkerTransportEvent>,
-    event_wakers: Arc<Mutex<Vec<Waker>>>,
-    max_payload_bytes: usize,
-) {
-    while let Ok(request) = requests.recv() {
-        if let Err(error) = write_json_frame(&mut input, &request, max_payload_bytes) {
-            publish_transport_event(
-                &events,
-                &event_wakers,
-                VmCapabilityWorkerTransportEvent::Failed(error),
-            );
-            break;
-        }
-    }
-}
-
-/// Decodes worker replies outside VM scheduler threads.
-fn run_reader(
-    output: impl Read,
-    events: SyncSender<VmCapabilityWorkerTransportEvent>,
-    event_wakers: Arc<Mutex<Vec<Waker>>>,
-    max_payload_bytes: usize,
-) {
-    let mut output = BufReader::new(output);
-    loop {
-        match read_json_frame(&mut output, max_payload_bytes) {
-            Ok(Some(response)) => {
-                if !publish_transport_event(
-                    &events,
-                    &event_wakers,
-                    VmCapabilityWorkerTransportEvent::Response(response),
-                ) {
-                    break;
-                }
-            }
-            Ok(None) => {
-                publish_transport_event(
-                    &events,
-                    &event_wakers,
-                    VmCapabilityWorkerTransportEvent::Closed,
-                );
-                break;
-            }
-            Err(error) => {
-                publish_transport_event(
-                    &events,
-                    &event_wakers,
-                    VmCapabilityWorkerTransportEvent::Failed(error),
-                );
-                break;
-            }
-        }
-    }
-}
-
-fn publish_transport_event(
-    events: &SyncSender<VmCapabilityWorkerTransportEvent>,
-    event_wakers: &Arc<Mutex<Vec<Waker>>>,
-    event: VmCapabilityWorkerTransportEvent,
-) -> bool {
-    if events.send(event).is_err() {
-        return false;
-    }
-    let wakers = event_wakers
-        .lock()
-        .map(|mut wakers| std::mem::take(&mut *wakers))
-        .unwrap_or_default();
-    for waker in wakers {
-        waker.wake();
-    }
-    true
-}
-
-/// Terminates and reaps one child without panicking during cleanup.
-fn terminate_child(child: &mut Child) {
-    let _ = child.kill();
-    let _ = child.wait();
-}
-
 #[cfg(test)]
 #[path = "capability_worker_test.rs"]
+#[cfg(test)]
 mod capability_worker_test;
+#[path = "capability_worker/transport_io.rs"]
+mod transport_io;
+use transport_io::{run_reader, run_writer, terminate_child};

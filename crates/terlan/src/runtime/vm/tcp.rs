@@ -1,18 +1,19 @@
-#![allow(dead_code)]
-
 use std::collections::{HashMap, VecDeque};
 
 use super::process::VmProcessId;
 
 #[cfg(test)]
 #[path = "tcp_async_ports_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod tcp_async_ports_beam_suite_parity_test;
 #[cfg(test)]
 #[path = "tcp_busy_port_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod tcp_busy_port_beam_suite_parity_test;
 
 #[cfg(test)]
 #[path = "tcp_test.rs"]
+#[cfg(test)]
 mod tcp_test;
 
 /// VM-owned TCP listener handle.
@@ -35,15 +36,8 @@ pub(crate) struct VmTcpStream {
 }
 
 impl VmTcpStream {
-    /// Returns the opaque numeric identity used by runtime diagnostics.
-    pub(crate) fn as_u64(self) -> u64 {
-        self.id
-    }
-}
-
-#[cfg(test)]
-impl VmTcpStream {
     /// Builds an opaque stream handle for adversarial runtime tests.
+    #[cfg(test)]
     pub(crate) fn test_handle(id: u64) -> Self {
         Self { id }
     }
@@ -72,6 +66,7 @@ pub(crate) struct VmTcpStreamInfo {
 /// Transformation: exposes accept-side backpressure and lifecycle state
 /// without exposing mutable listener internals or host socket descriptors.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmTcpListenerInfo {
     pub(crate) address: String,
     pub(crate) backlog_limit: usize,
@@ -122,6 +117,7 @@ pub(crate) struct VmTcpRuntime {
 
 /// Aggregate listener and stream ownership retained by the VM TCP runtime.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmTcpRuntimeMetrics {
     pub(crate) listeners: usize,
     pub(crate) open_listeners: usize,
@@ -163,6 +159,7 @@ impl VmTcpRuntime {
     }
 
     /// Returns deterministic aggregate ownership for leak and soak checks.
+    #[cfg(test)]
     pub(crate) fn metrics(&self) -> VmTcpRuntimeMetrics {
         let mut metrics = VmTcpRuntimeMetrics {
             listeners: self.listeners.len(),
@@ -299,6 +296,7 @@ impl VmTcpRuntime {
     }
 
     /// Parks a process until a listener has an accepted stream.
+    #[cfg(test)]
     pub(crate) fn park_accept(
         &mut self,
         listener: VmTcpListener,
@@ -368,6 +366,7 @@ impl VmTcpRuntime {
     }
 
     /// Sets the maximum queued unread bytes for a stream.
+    #[cfg(test)]
     pub(crate) fn set_stream_inbox_limit(
         &mut self,
         stream: VmTcpStream,
@@ -424,6 +423,7 @@ impl VmTcpRuntime {
     }
 
     /// Parks a process until a stream has readable bytes.
+    #[cfg(test)]
     pub(crate) fn park_receive(
         &mut self,
         stream: VmTcpStream,
@@ -446,6 +446,7 @@ impl VmTcpRuntime {
     }
 
     /// Parks a process until this stream can send to its peer.
+    #[cfg(test)]
     pub(crate) fn park_send(
         &mut self,
         stream: VmTcpStream,
@@ -484,6 +485,7 @@ impl VmTcpRuntime {
     }
 
     /// Closes a stream handle.
+    #[cfg(test)]
     pub(crate) fn close_stream(&mut self, stream: VmTcpStream) -> Result<(), String> {
         self.terminate_stream(stream, false)
     }
@@ -511,6 +513,7 @@ impl VmTcpRuntime {
     }
 
     /// Closes a listener handle.
+    #[cfg(test)]
     pub(crate) fn close_listener(&mut self, listener: VmTcpListener) -> Result<(), String> {
         let pending = {
             let state = self.listener_mut(listener)?;
@@ -525,11 +528,13 @@ impl VmTcpRuntime {
     }
 
     /// Cancels a stream and drops queued unread bytes.
+    #[cfg(test)]
     pub(crate) fn cancel_stream(&mut self, stream: VmTcpStream) -> Result<(), String> {
         self.terminate_stream(stream, true)
     }
 
     /// Closes every stream owned by one VM actor or runtime component.
+    #[cfg(test)]
     pub(crate) fn close_owner_streams(&mut self, owner: &str) -> usize {
         let streams = self
             .streams
@@ -563,6 +568,7 @@ impl VmTcpRuntime {
     }
 
     /// Returns an inspectable listener state snapshot.
+    #[cfg(test)]
     pub(crate) fn inspect_listener(
         &self,
         listener: VmTcpListener,
@@ -600,6 +606,7 @@ impl VmTcpRuntime {
     }
 
     /// Terminates one stream and releases all readiness and buffered state.
+    #[cfg(test)]
     fn terminate_stream(&mut self, stream: VmTcpStream, cancelled: bool) -> Result<(), String> {
         let state = self.stream_mut(stream)?;
         state.closed = !cancelled;
@@ -621,6 +628,7 @@ impl VmTcpRuntime {
             .ok_or_else(|| "VM TCP listener handle is unknown".to_string())
     }
 
+    #[cfg(test)]
     fn listener(&self, listener: VmTcpListener) -> Result<&ListenerState, String> {
         self.listeners
             .get(&listener.id)

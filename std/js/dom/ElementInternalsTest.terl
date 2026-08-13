@@ -48,7 +48,7 @@ pub report_validity_typechecks(receiver: ElementInternals): Bool ->
 pub set_form_value_typechecks(
     receiver: ElementInternals,
     value: Option[File | FormData | JsString],
-    state: Option[File | FormData | JsString]
+    state: Option[File | FormData | JsString],
 ): Unit ->
     receiver.set_form_value(value, state).
 
@@ -56,6 +56,6 @@ pub set_validity_typechecks(
     receiver: ElementInternals,
     flags: ValidityStateFlags,
     message: JsString,
-    anchor: HTMLElement
+    anchor: HTMLElement,
 ): Unit ->
     receiver.set_validity(flags, message, anchor).

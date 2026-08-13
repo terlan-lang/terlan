@@ -392,4 +392,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "multicore_invariant_inventory_test.rs"]
+#[cfg(test)]
 mod multicore_invariant_inventory_test;

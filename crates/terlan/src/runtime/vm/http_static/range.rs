@@ -8,6 +8,7 @@ pub(crate) enum VmHttpByteRange {
     Suffix { length: usize },
 }
 
+#[cfg(test)]
 impl VmHttpByteRange {
     /// Creates an inclusive byte range such as bytes 10 through 19.
     pub(crate) fn inclusive(start: usize, end: usize) -> Result<Self, VmHttpStaticError> {
@@ -48,6 +49,7 @@ impl VmHttpByteRange {
 
 impl VmHttpStaticAsset {
     /// Builds a deterministic single-range `206 Partial Content` response.
+    #[cfg(test)]
     pub(crate) fn range_http_response(
         &self,
         range: VmHttpByteRange,

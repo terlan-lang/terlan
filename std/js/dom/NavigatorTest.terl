@@ -70,7 +70,7 @@ pub request_midi_access_typechecks(receiver: Navigator, options: MIDIOptions): P
 pub request_media_key_system_access_typechecks(
     receiver: Navigator,
     key_system: JsString,
-    supported_configurations: Array[MediaKeySystemConfiguration]
+    supported_configurations: Array[MediaKeySystemConfiguration],
 ): Promise[MediaKeySystemAccess] ->
     receiver.request_media_key_system_access(key_system, supported_configurations).
 

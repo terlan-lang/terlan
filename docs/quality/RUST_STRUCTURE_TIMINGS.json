@@ -1,0 +1,70 @@
+{
+  "policy": {
+    "cargo": "cargo 1.96.0 (30a34c682 2026-05-25)",
+    "host": "x86_64-unknown-linux-gnu",
+    "logical_cpus": 24,
+    "procedure": "Clean the isolated target once; prewarm the editor feature; restore source mtimes after each representative edit; retain Cargo HTML artifacts under target/quality.",
+    "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+    "target_directory": "target/cq0-timings",
+    "workspace": "."
+  },
+  "scenarios": [
+    {
+      "cargo_timing_artifact": "target/quality/rust-structure-timings/clean.html",
+      "cargo_timing_sha256": "cf820f503b7f30fe0be96039f830abfc40ac09126569dc79e706366237d2c56a",
+      "command": "cargo check --locked -p terlan --bins --target-dir ./target/cq0-timings --timings",
+      "edited_file": null,
+      "name": "clean",
+      "wall_time_ms": 71723
+    },
+    {
+      "cargo_timing_artifact": "target/quality/rust-structure-timings/parser-edit.html",
+      "cargo_timing_sha256": "52f0b4ddfa4773c00b142165c32008f989407ce5628e40b01e86de17f2aa9fc2",
+      "command": "cargo check --locked -p terlan --bins --target-dir ./target/cq0-timings --timings",
+      "edited_file": "crates/terlan/src/compiler/syntax/parser.rs",
+      "name": "parser-edit",
+      "wall_time_ms": 10604
+    },
+    {
+      "cargo_timing_artifact": "target/quality/rust-structure-timings/type-model-edit.html",
+      "cargo_timing_sha256": "241e6c5b589d87aea8a9e53bf1a1957523f03ad8f2383a2f6724cbe132ce6fdd",
+      "command": "cargo check --locked -p terlan --bins --target-dir ./target/cq0-timings --timings",
+      "edited_file": "crates/terlan/src/compiler/typeck/trait_model.rs",
+      "name": "type-model-edit",
+      "wall_time_ms": 9377
+    },
+    {
+      "cargo_timing_artifact": "target/quality/rust-structure-timings/runtime-leaf-edit.html",
+      "cargo_timing_sha256": "d3be13ed2f1aafd724f3de7ed5311f8df0c677118fc157d6470a13d656ddcb92",
+      "command": "cargo check --locked -p terlan --bins --target-dir ./target/cq0-timings --timings",
+      "edited_file": "crates/terlan/src/runtime/vm/actor_timer.rs",
+      "name": "runtime-leaf-edit",
+      "wall_time_ms": 9340
+    },
+    {
+      "cargo_timing_artifact": "target/quality/rust-structure-timings/lsp-edit.html",
+      "cargo_timing_sha256": "c620ea819358f2a805f1a9f87441f0cc275de7130b3ecb3890fa1c078ccc8bd7",
+      "command": "cargo check --locked -p terlan --bin terlan-lsp --features editor-lsp --target-dir ./target/cq0-timings --timings",
+      "edited_file": "crates/terlan/src/lsp/document.rs",
+      "name": "lsp-edit",
+      "wall_time_ms": 6074
+    },
+    {
+      "cargo_timing_artifact": "target/quality/rust-structure-timings/focused-test.html",
+      "cargo_timing_sha256": "456705f5648e93a2c5a97ca85a5313cfd058124d9d8e946b0813941adc682757",
+      "command": "cargo test --locked -p terlan --test direct_aot_memory --no-run --target-dir ./target/cq0-timings --timings",
+      "edited_file": null,
+      "name": "focused-test",
+      "wall_time_ms": 140370
+    },
+    {
+      "cargo_timing_artifact": "target/quality/rust-structure-timings/full-test.html",
+      "cargo_timing_sha256": "5e11a030d6acbce0f624cfce5356a8884303d9aea2da9a4c5b7fd0bb6912faab",
+      "command": "cargo test --locked -p terlan --all-targets --no-run --target-dir ./target/cq0-timings --timings",
+      "edited_file": null,
+      "name": "full-test",
+      "wall_time_ms": 95254
+    }
+  ],
+  "schema_version": 1
+}

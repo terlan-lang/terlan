@@ -6,8 +6,8 @@ use crate::terlan_quality::lean_proof_track::gap_transition::{
     parse_gap_transitions, validate_gap_transitions, TRANSITION_PATH,
 };
 use crate::terlan_quality::lean_proof_track::lean_proof_gap::{
-    current_utc_date, parse_gap_manifest, read_gap_policy, validate_gap_lifecycle, LeanProofGap,
-    GAP_PATH,
+    current_utc_date, parse_gap_manifest, read_gap_policy, validate_gap_lifecycle,
+    validate_gap_toml_mirror, LeanProofGap, GAP_PATH,
 };
 use crate::terlan_quality::lean_proof_track::{
     collect_make_check_targets, parse_artifacts, parse_inventory, validate_gaps, ArtifactRow,
@@ -60,6 +60,7 @@ pub(crate) fn run_lean_proof_gap_hygiene(root: &Path) -> QualityResult<LeanProof
         &transitions,
         current_utc_date(),
     ));
+    diagnostics.extend(validate_gap_toml_mirror(root, &gaps, current_utc_date())?);
     if !diagnostics.is_empty() {
         return Err(render_failure(&diagnostics));
     }
@@ -152,11 +153,10 @@ fn validate_gap_closures(
         .filter(|gap| gap.lifecycle_status == "closed")
         .map(|gap| gap.feature.as_str())
         .collect::<BTreeSet<_>>();
-    let current_hashes = artifacts
+    let current_artifacts = artifacts
         .iter()
         .filter(|artifact| artifact.status == "current")
-        .map(|artifact| artifact.proof_digest.as_str())
-        .collect::<BTreeSet<_>>();
+        .collect::<Vec<_>>();
     let mut diagnostics = Vec::new();
     let mut noted_features = BTreeSet::new();
 
@@ -173,7 +173,10 @@ fn validate_gap_closures(
                 note.feature
             ));
         }
-        if !current_hashes.contains(note.artifact_hash.as_str()) {
+        let matching_artifact = current_artifacts
+            .iter()
+            .find(|artifact| artifact.proof_digest == note.artifact_hash);
+        if matching_artifact.is_none() {
             diagnostics.push(format!(
                 concat!(
                     "proof_gap[invalid-closure-artifact]: feature `{}` references `{}`, ",
@@ -181,6 +184,20 @@ fn validate_gap_closures(
                 ),
                 note.feature, note.artifact_hash
             ));
+        } else if let Some(gap) = gaps.iter().find(|gap| gap.feature == note.feature) {
+            let covers_gap = matching_artifact.is_some_and(|artifact| {
+                artifact.targeted_manifests.iter().any(|manifest| {
+                    gap.covered_manifests
+                        .iter()
+                        .any(|covered| covered == manifest)
+                })
+            });
+            if !covers_gap {
+                diagnostics.push(format!(
+                    "proof_gap[unrelated-closure-artifact]: feature `{}` artifact `{}` covers none of the gap manifests",
+                    note.feature, note.artifact_hash
+                ));
+            }
         }
         if note.rationale.trim().is_empty() {
             diagnostics.push(format!(
@@ -224,4 +241,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "lean_proof_gap_hygiene_test.rs"]
+#[cfg(test)]
 mod lean_proof_gap_hygiene_test;

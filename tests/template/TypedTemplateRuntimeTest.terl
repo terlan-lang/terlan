@@ -1,15 +1,15 @@
 module tests.TypedTemplateRuntimeTest.
 
+import std.core.Option.{Some}.
 import std.http.Response.
 import std.template.Template.
-import std.core.Option.{Some}.
 
-import type std.core.Option.Option.
-import type std.http.Response.Response.
+import type std.core.Option.
+import type std.http.Response.
 
 struct User {
     id: Int,
-    name: String
+    name: String,
 }.
 
 template Page from "./typed-runtime-page.terl.html" {
@@ -20,11 +20,11 @@ template Page from "./typed-runtime-page.terl.html" {
     tooltip: Option[String],
     count: Int,
     trusted: Template.Html,
-    user: User
+    user: User,
 }.
 
 template Badge from "./typed-runtime-badge.terl.html" {
-    label: String
+    label: String,
 }.
 
 @pure
@@ -40,7 +40,7 @@ pub page(): Template.Html ->
         tooltip = Some("profile"),
         count = 7,
         trusted = Template.trusted("<em>trusted</em>"),
-        user = User(id = 7, name = "Ada & Bob")
+        user = User(id = 7, name = "Ada & Bob"),
     ).
 
 pub response(): Response ->
@@ -48,4 +48,8 @@ pub response(): Response ->
 
 @test
 pub vm_renders_typed_template_http_response(): Bool ->
-    response() == Response.html(Template.trusted("<main class=\"hero wide\" title=\"profile\" data-count=\"7\"><h1>&lt;Terlan&gt;</h1><a href=\"/users/7\">Ada&#32;&amp;&#32;Bob</a><button disabled>14</button><em>trusted</em><strong>&lt;Terlan&gt;:<span>child</span></strong>\n</main>\n")).
+    response() == Response.html(
+    Template.trusted(
+        "<main class=\"hero wide\" title=\"profile\" data-count=\"7\"><h1>&lt;Terlan&gt;</h1><a href=\"/users/7\">Ada&#32;&amp;&#32;Bob</a><button disabled>14</button><em>trusted</em><strong>&lt;Terlan&gt;:<span>child</span></strong>\n</main>\n",
+    ),
+).

@@ -11,9 +11,9 @@ use super::*;
 /// Transformation:
 /// - Indexes user schemas while rejecting duplicate paths and overlap with
 ///   compiler-owned annotation namespaces.
-pub(super) fn collect_user_annotation_schemas<'a>(
-    declarations: &'a [SyntaxDeclarationOutput],
-) -> EbnfCompileResult<std::collections::BTreeMap<String, &'a SyntaxDeclarationPayload>> {
+pub(super) fn collect_user_annotation_schemas(
+    declarations: &[SyntaxDeclarationOutput],
+) -> EbnfCompileResult<std::collections::BTreeMap<String, &SyntaxDeclarationPayload>> {
     let mut schemas = std::collections::BTreeMap::new();
     for declaration in declarations {
         if let SyntaxDeclarationPayload::AnnotationSchema { path, .. } = &declaration.payload {

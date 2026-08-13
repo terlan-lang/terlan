@@ -1,0 +1,389 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Validates EBNF through the compiler-owned parser and renders its typed report.
+ */
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.{create_temporary, message, remove_all}.
+import std.io.File.{write_text}.
+import std.system.{Arguments, Environment, Process}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.system.Process.Output.
+
+struct Options {
+    valid: Bool,
+    self_test: Bool,
+    strict: Bool,
+    path: String,
+}.
+
+struct ReportSummary {
+    valid: Bool,
+    definitions: Int,
+    undefined_count: Int,
+    unreachable_count: Int,
+    strict_count: Int,
+}.
+
+root(): String ->
+    case Environment.get("TERLAN_EBNF_ROOT") {
+        Some(value) -> value;
+        None -> Environment.current_directory()
+    }.
+
+compiler(repository: String): String ->
+    case Environment.get("TERLAN_EBNF_COMPILER") {
+        Some(value) -> value;
+        None -> join(repository, "target/debug/terlc")
+    }.
+
+join(parent: String, child: String): String ->
+    if {
+        parent == "." -> child;
+        String.ends_with(parent, "/") -> String.append(parent, child);
+        true -> String.append(parent, String.append("/", child))
+    }.
+
+options(): Options ->
+    let count = Arguments.count();
+    if {
+        count == 0 -> Options(
+            valid = true,
+            self_test = false,
+            strict = true,
+            path = "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf",
+        );
+        count == 1 -> one_argument_options();
+        count == 2 -> two_argument_options();
+        true -> invalid_options()
+    }.
+
+one_argument_options(): Options ->
+    case Arguments.get(0) {
+        Some(value) ->
+            if {
+                value == "--self-test" -> Options(valid = true, self_test = true, strict = true, path = "");
+                value == "--strict" -> Options(
+                    valid = true,
+                    self_test = false,
+                    strict = true,
+                    path = "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf",
+                );
+                value == "--no-strict" -> Options(
+                    valid = true,
+                    self_test = false,
+                    strict = false,
+                    path = "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf",
+                );
+                String.starts_with(value, "--") -> invalid_options();
+                true -> Options(valid = true, self_test = false, strict = true, path = value)
+            };
+        None -> invalid_options()
+    }.
+
+two_argument_options(): Options ->
+    let {
+        Some(mode) <- Arguments.get(0);
+        Some(path) <- Arguments.get(1)
+    } else {
+        _ -> invalid_options()
+    };
+    if {
+        mode == "--strict" -> Options(valid = true, self_test = false, strict = true, path = path);
+        mode == "--no-strict" -> Options(valid = true, self_test = false, strict = false, path = path);
+        true -> invalid_options()
+    }.
+
+invalid_options(): Options ->
+    Options(valid = false, self_test = false, strict = true, path = "").
+
+command(
+    repository: String,
+    compiler_path: String,
+    path: String,
+    strict: Bool,
+): std.system.Process.Command ->
+    let arguments =
+        if {
+            strict -> ["syntax-contract", "--validate", path];
+            true -> ["syntax-contract", "--validate", path, "--no-strict"]
+        };
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(Process.command(compiler_path), arguments),
+                repository,
+            ),
+            30000,
+        ),
+        1048576,
+    ).
+
+json_member(value: Json, field: String): Option[Json] ->
+    case value.get(field) {
+        Ok(member) -> Some(member);
+        Err(_reason) -> None
+    }.
+
+json_string(value: Json, field: String): Option[String] ->
+    let {
+        Ok(member) <- value.get(field);
+        Ok(text) <- member.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+json_int(value: Json, field: String): Option[Int] ->
+    let {
+        Ok(member) <- value.get(field);
+        Ok(number) <- member.as_int()
+    } else {
+        _ -> None
+    };
+    Some(number).
+
+array_length(value: Json, field: String): Option[Int] ->
+    let {
+        Some(array) <- json_member(value, field);
+        Ok(count) <- array.length()
+    } else {
+        _ -> None
+    };
+    Some(count).
+
+report_summary(source: String): Option[ReportSummary] ->
+    let {
+        Ok(report) <- Json.parse(String.trim(source));
+        Some(schema) <- json_string(report, "schema");
+        Some(definitions) <- json_int(report, "definitions");
+        Some(undefined_count) <- array_length(report, "undefined_symbols");
+        Some(unreachable_count) <- array_length(report, "unreachable_symbols");
+        Some(strict_count) <- array_length(report, "strict_findings")
+    } else {
+        _ -> None
+    };
+    if {
+        schema != "terlan.ebnf-validation.v1" -> None;
+        true -> Some(
+            ReportSummary(
+                valid = undefined_count == 0 and unreachable_count == 0 and strict_count == 0,
+                definitions = definitions,
+                undefined_count = undefined_count,
+                unreachable_count = unreachable_count,
+                strict_count = strict_count,
+            ),
+        )
+    }.
+
+render_count(label: String, count: Int): Unit ->
+    println(String.append(label, Int.to_string(count))).
+
+render_findings(report: Json, field: String, heading: String, index: Int, count: Int): Bool ->
+    if {
+        index >= count -> true;
+        true -> let {
+            Some(findings) <- json_member(report, field);
+            Ok(finding) <- findings.at(index);
+            Some(line) <- json_int(finding, "line");
+            Some(message) <- json_string(finding, "message")
+        } else {
+            _ -> false
+        };
+        (let prefix =
+    if {
+        index == 0 -> String.append("\n", String.append(heading, ":\n"));
+        true -> ""
+    };
+let _printed =
+    println(
+        String.append(
+            prefix,
+            String.append(
+                "  line ",
+                String.append(Int.to_string(line), String.append(": ", message)),
+            ),
+        ),
+    );
+render_findings(report, field, heading, index + 1, count))
+    }.
+
+render_report(path: String, strict: Bool, source: String, summary: ReportSummary): Bool ->
+    case Json.parse(String.trim(source)) {
+        Ok(report) ->
+            let _path = println(String.append("Validated ", path));
+            let _definitions = render_count("  definitions: ", summary.definitions);
+            let _undefined = render_count("  undefined symbols: ", summary.undefined_count);
+            let _unreachable = render_count("  unreachable symbols: ", summary.unreachable_count);
+            let _strict =
+                if {
+                    strict -> render_count("  strict EBNF findings: ", summary.strict_count);
+                    true -> Unit
+                };
+            render_findings(
+    report,
+    "undefined_symbols",
+    "Undefined symbol findings",
+    0,
+    summary.undefined_count,
+)
+                and render_findings(
+    report,
+    "unreachable_symbols",
+    "Unreachable symbol findings",
+    0,
+    summary.unreachable_count,
+)
+                and render_findings(report, "strict_findings", "Strict EBNF findings", 0, summary.strict_count);
+        Err(_reason) -> false
+    }.
+
+validation_output(
+    repository: String,
+    compiler_path: String,
+    path: String,
+    strict: Bool,
+): Option[Output] ->
+    case Process.run(command(repository, compiler_path, path, strict)) {
+        Ok(output) -> Some(output);
+        Err(reason) ->
+            let _printed =
+                eprintln(
+                    String.append("EBNF validator failed to start: ", Process.error_message(reason)),
+                );
+            None
+    }.
+
+validate(repository: String, compiler_path: String, path: String, strict: Bool): Bool ->
+    case validation_output(repository, compiler_path, path, strict) {
+        Some(output) ->
+            case report_summary(Process.stdout(output)) {
+                Some(summary) ->
+                    let rendered = render_report(path, strict, Process.stdout(output), summary);
+                    if {
+                        not rendered -> failure("compiler emitted a malformed EBNF report");
+                        Process.status(output) == 0 and summary.valid -> true;
+                        Process.status(output) == 1 and not summary.valid -> false;
+                        true -> failure("compiler status disagrees with its EBNF report")
+                    };
+                None ->
+                    failure(
+                        String.append(
+                            "compiler did not emit a valid EBNF report: ",
+                            String.append(Process.stderr(output), Process.stdout(output)),
+                        ),
+                    )
+            };
+        None -> false
+    }.
+
+write_fixtures(directory: String): Bool ->
+    let {
+        Ok(_valid) <- write_text(join(directory, "valid.ebnf"), "Root ::= Child .\nChild ::= \"ok\" .\n");
+        Ok(_undefined) <- write_text(join(directory, "undefined.ebnf"), "Root ::= Missing .\n");
+        Ok(_unreachable) <-
+            write_text(
+                join(directory, "unreachable.ebnf"),
+                "Root ::= \"ok\" .\nUnused ::= \"unused\" .\n",
+            );
+        Ok(_strict) <- write_text(join(directory, "strict.ebnf"), "Root ::= [a-z]+ .\n")
+    } else {
+        _ -> false
+    };
+    true.
+
+output_matches(
+    output: Output,
+    expected_status: Int,
+    expected_valid: Bool,
+    expected_strict: Int,
+): Bool ->
+    case report_summary(Process.stdout(output)) {
+        Some(summary) ->
+            Process.status(output) == expected_status
+                and summary.valid == expected_valid
+                and summary.strict_count == expected_strict;
+        None -> false
+    }.
+
+self_test(repository: String, compiler_path: String): Bool ->
+    case create_temporary("terlan-ebnf-validator.") {
+        Ok(directory) ->
+            let result =
+                if {
+                    not write_fixtures(directory) -> false;
+                    true -> let {
+                        Some(valid) <-
+                            validation_output(
+                                repository,
+                                compiler_path,
+                                join(directory, "valid.ebnf"),
+                                true,
+                            );
+                        Some(undefined) <-
+                            validation_output(
+                                repository,
+                                compiler_path,
+                                join(directory, "undefined.ebnf"),
+                                true,
+                            );
+                        Some(unreachable) <-
+                            validation_output(
+                                repository,
+                                compiler_path,
+                                join(directory, "unreachable.ebnf"),
+                                true,
+                            );
+                        Some(strict) <-
+                            validation_output(
+                                repository,
+                                compiler_path,
+                                join(directory, "strict.ebnf"),
+                                true,
+                            );
+                        Some(portable) <-
+                            validation_output(
+                                repository,
+                                compiler_path,
+                                join(directory, "strict.ebnf"),
+                                false,
+                            )
+                    } else {
+                        _ -> false
+                    };
+                    output_matches(valid, 0, true, 0)
+                        and output_matches(undefined, 1, false, 0)
+                        and output_matches(unreachable, 1, false, 0)
+                        and output_matches(strict, 1, false, 2)
+                        and output_matches(portable, 0, true, 0)
+                };
+            let _removed = remove_all(directory);
+            if {
+                result -> let _printed = println("Terlan EBNF validator self-test passed");
+                true;
+                true -> failure("self-test cases did not produce the expected reports")
+            };
+        Err(reason) ->
+            failure(String.append("could not create self-test directory: ", message(reason)))
+    }.
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("EBNF validation failed: ", message));
+    false.
+
+entry(): Bool ->
+    let repository = root();
+    let selected = options();
+    if {
+        not selected.valid -> failure("usage: EbnfValidator.terls [--strict|--no-strict] [path] | --self-test");
+        selected.self_test -> self_test(repository, compiler(repository));
+        true -> validate(repository, compiler(repository), selected.path, selected.strict)
+    }.
+
+assert(entry());
+Unit.

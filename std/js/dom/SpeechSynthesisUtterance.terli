@@ -68,11 +68,11 @@ pub (value: SpeechSynthesisUtterance) volume(): JsNumber.
 pub (value: SpeechSynthesisUtterance) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit.
 
 pub (value: SpeechSynthesisUtterance) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit.

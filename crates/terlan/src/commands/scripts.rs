@@ -28,7 +28,7 @@ pub(crate) struct ProjectScriptEntry {
 /// - Failure when a configured alias points at an invalid runnable file.
 ///
 /// Transformation:
-/// - Discovers runnable `scripts/**/*.terl` files, merges `[scripts]` aliases
+/// - Discovers runnable `scripts/**/*.terls` files, merges `[scripts]` aliases
 ///   from `terlan.toml` when present, and prints a stable inventory.
 pub(crate) fn run(cmd: CliCommand) -> ExitCode {
     let project_root = match parse_scripts_args(&cmd.args) {
@@ -135,7 +135,7 @@ fn print_script_inventory(scripts: &[ProjectScriptEntry]) {
     println!("  terlc run script <name>");
 }
 
-/// Discovers `scripts/**/*.terl` files that define `pub main`.
+/// Discovers first-class `scripts/**/*.terls` executable sources.
 fn discover_convention_scripts(root: &Path) -> Result<Vec<ProjectScriptEntry>, String> {
     let scripts_root = root.join(SCRIPTS_DIR);
     if !scripts_root.is_dir() {
@@ -169,7 +169,7 @@ fn collect_convention_scripts(
         let path = child.path();
         if path.is_dir() {
             collect_convention_scripts(root, &path, entries)?;
-        } else if is_terlan_source(&path) && source_has_public_main(&path)? {
+        } else if is_terlan_script_source(&path) {
             entries.push(ProjectScriptEntry {
                 name: script_name_from_path(root, &path)?,
                 path,
@@ -198,9 +198,9 @@ fn configured_scripts(root: &Path) -> Result<Vec<ProjectScriptEntry>, String> {
                 path.display()
             ));
         }
-        if !source_has_public_main(&path)? {
+        if !is_terlan_script_source(&path) {
             return Err(format!(
-                "configured script `{}` must define `pub main`: {}",
+                "configured script `{}` must use the `.terls` script extension: {}",
                 script.name,
                 path.display()
             ));
@@ -214,16 +214,9 @@ fn configured_scripts(root: &Path) -> Result<Vec<ProjectScriptEntry>, String> {
     Ok(entries)
 }
 
-/// Returns whether a path is a Terlan source file.
-fn is_terlan_source(path: &Path) -> bool {
-    path.extension().and_then(|ext| ext.to_str()) == Some("terl")
-}
-
-/// Returns whether a source file declares a public main function.
-fn source_has_public_main(path: &Path) -> Result<bool, String> {
-    let source = fs::read_to_string(path)
-        .map_err(|err| format!("failed to read script `{}`: {err}", path.display()))?;
-    Ok(source.contains("pub main("))
+/// Returns whether a path is a first-class Terlan script source.
+fn is_terlan_script_source(path: &Path) -> bool {
+    path.extension().and_then(|ext| ext.to_str()) == Some("terls")
 }
 
 /// Derives the default script name from a path below `scripts/`.
@@ -273,4 +266,5 @@ fn to_snake_case(value: &str) -> String {
 
 #[cfg(test)]
 #[path = "scripts_test.rs"]
+#[cfg(test)]
 mod scripts_test;

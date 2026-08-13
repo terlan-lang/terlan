@@ -91,5 +91,6 @@ expressions. Generator validation consumes those fields directly instead of
 recovering safety facts from C++ type strings.
 
 This fixture is not a PyTorch implementation or a compiler-local prototype of
-one. The future `terlan-pytorch` package will consume this generator from its
-own Git repository.
+one. The external `terlan-pytorch` package consumes the generic stable-C
+generator from its own Git repository; the companion `torch.*` C++ fixture
+only proves that generated package namespaces remain package-owned.

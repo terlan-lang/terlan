@@ -2,12 +2,14 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use serde::Deserialize;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
 use crate::terlan_quality::QualityResult;
 
 const REPORT_PATH: &str = "target/quality/vm-db-migration-report.json";
+const LIVE_EVIDENCE_PATH: &str = "target/quality/vm-db-migration-live-evidence.json";
 const FIXTURE_ROOT: &str = "crates/terlan/src/commands/db/testdata";
 const MIGRATION_FIXTURES: &[(&str, &str)] = &[
     ("20260619123000_create_live_users.sql", "committed"),
@@ -95,9 +97,17 @@ const SOURCE_CONTRACTS: &[(&str, &[&str])] = &[
             "validate_development_database_config",
             "prepare_local_database_dependencies",
             "is_local_database_host",
+            "execute_migration_request",
+        ],
+    ),
+    (
+        "crates/terlan/src/commands/db/database_config.rs",
+        &[
+            "DatabaseConfigError::ProtectedTransport",
+            "DatabaseConfigError::ConfirmationRequired",
             "protected_transport_option",
             "requires --confirm",
-            "execute_migration_request",
+            "refuses non-local destructive database target",
         ],
     ),
 ];
@@ -122,6 +132,7 @@ const DIAGNOSTIC_COVERAGE: &[&str] = &[
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm db migration command summary.
 pub struct VmDbMigrationCommandSummary {
     pub migration_count: usize,
     pub diagnostic_count: usize,
@@ -135,6 +146,18 @@ struct MigrationFixtureEvidence {
     name: String,
     checksum: String,
     expected_outcome: &'static str,
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+struct LiveDatabaseEvidence {
+    schema: String,
+    migration_snapshot_id: String,
+    schema_fingerprint: String,
+    replay_migration_snapshot_id: String,
+    replay_schema_fingerprint: String,
+    lock_conflict_observed: bool,
+    failed_migration_rolled_back: bool,
+    schema_drift_rejected: bool,
 }
 
 /// Validates VM migration ownership and writes deterministic release evidence.
@@ -161,6 +184,7 @@ pub fn run_vm_db_migration_command(root: &Path) -> QualityResult<VmDbMigrationCo
         &mut contract_hasher,
         &mut diagnostics,
     )?;
+    let live_evidence = load_live_database_evidence(root)?;
     diagnostics.extend(validate_make_ownership(root)?);
     if !diagnostics.is_empty() {
         return Err(render_failure(&diagnostics));
@@ -184,8 +208,8 @@ pub fn run_vm_db_migration_command(root: &Path) -> QualityResult<VmDbMigrationCo
         "input_digests": input_digests,
         "tool_versions": {"terlan": env!("CARGO_PKG_VERSION")},
         "environment": {
-            "default_gate": "static-and-unit",
-            "live_database_gate": "docker-required",
+            "default_gate": "static-unit-and-live-postgres",
+            "live_database_gate": "docker-executed",
             "credentials_reported": false,
             "sql_text_reported": false,
         },
@@ -193,7 +217,7 @@ pub fn run_vm_db_migration_command(root: &Path) -> QualityResult<VmDbMigrationCo
             "coverage": DIAGNOSTIC_COVERAGE,
             "failures": [],
         },
-        "coverage_deltas": {"status": "contract-evidence-only"},
+        "coverage_deltas": {"status": "live-contract-covered"},
         "benchmark_data": null,
         "support_bundle_references": [],
         "decision": "pass",
@@ -202,8 +226,16 @@ pub fn run_vm_db_migration_command(root: &Path) -> QualityResult<VmDbMigrationCo
         "artifact_evidence": {
             "contract_fingerprint_sha256": contract_fingerprint,
             "migration_evidence": migration_evidence,
-            "schema_fingerprint": null,
-            "schema_fingerprint_status": "docker-live-gate-required",
+            "schema_fingerprint": live_evidence.schema_fingerprint,
+            "migration_snapshot_id": live_evidence.migration_snapshot_id,
+            "replay_schema_fingerprint": live_evidence.replay_schema_fingerprint,
+            "replay_migration_snapshot_id": live_evidence.replay_migration_snapshot_id,
+            "schema_fingerprint_status": "live-replay-matched",
+            "live_adversarial_observations": {
+                "lock_conflict": live_evidence.lock_conflict_observed,
+                "failed_migration_rolled_back": live_evidence.failed_migration_rolled_back,
+                "schema_drift_rejected": live_evidence.schema_drift_rejected,
+            },
             "lock_behavior": {
                 "scope": "transaction",
                 "acquisition": "nonblocking",
@@ -263,6 +295,56 @@ pub fn run_vm_db_migration_command(root: &Path) -> QualityResult<VmDbMigrationCo
     })
 }
 
+fn load_live_database_evidence(root: &Path) -> QualityResult<LiveDatabaseEvidence> {
+    let text = read(root, LIVE_EVIDENCE_PATH)?;
+    let evidence = serde_json::from_str::<LiveDatabaseEvidence>(&text).map_err(|error| {
+        format!("{LIVE_EVIDENCE_PATH}: malformed live database evidence: {error}")
+    })?;
+    let mut diagnostics = Vec::new();
+    if evidence.schema != "terlan.vm-db-migration-live-evidence.v1" {
+        diagnostics.push("unsupported live evidence schema".to_string());
+    }
+    if evidence.migration_snapshot_id != evidence.replay_migration_snapshot_id {
+        diagnostics.push("migration snapshot replay did not reproduce its identity".to_string());
+    }
+    if evidence.schema_fingerprint != evidence.replay_schema_fingerprint {
+        diagnostics.push("schema replay did not reproduce its fingerprint".to_string());
+    }
+    for (name, digest) in [
+        (
+            "migration snapshot",
+            evidence.migration_snapshot_id.as_str(),
+        ),
+        ("schema", evidence.schema_fingerprint.as_str()),
+    ] {
+        if digest.len() != 71
+            || !digest.starts_with("sha256:")
+            || !digest[7..].bytes().all(|byte| byte.is_ascii_hexdigit())
+        {
+            diagnostics.push(format!(
+                "{name} fingerprint is not a canonical SHA-256 digest"
+            ));
+        }
+    }
+    if !evidence.lock_conflict_observed {
+        diagnostics.push("live lock contention was not observed".to_string());
+    }
+    if !evidence.failed_migration_rolled_back {
+        diagnostics.push("live failed-migration rollback was not observed".to_string());
+    }
+    if !evidence.schema_drift_rejected {
+        diagnostics.push("live schema drift rejection was not observed".to_string());
+    }
+    if diagnostics.is_empty() {
+        Ok(evidence)
+    } else {
+        Err(format!(
+            "{LIVE_EVIDENCE_PATH}: invalid live database evidence: {}",
+            diagnostics.join("; ")
+        ))
+    }
+}
+
 fn load_migration_fixtures(
     root: &Path,
     input_digests: &mut BTreeMap<String, String>,
@@ -320,7 +402,8 @@ fn validate_make_ownership(root: &Path) -> QualityResult<Vec<String>> {
     let makefile = read(root, "Makefile")?;
     let required = [
         "vm-db-migration-command-check: vm-dev-dependency-orchestration-check db-command-check",
-        "terlan-quality --quiet -- vm-db-migration-command",
+        "run_db_migration_and_snapshot_lifecycle_against_docker_postgres -- --ignored --exact",
+        "--features quality-tools --quiet -- vm-db-migration-command",
         "test -s target/quality/vm-db-migration-report.json",
         "vm-sql-macro-validation-check: vm-db-migration-command-check",
     ];
@@ -412,4 +495,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_db_migration_command_test.rs"]
+#[cfg(test)]
 mod vm_db_migration_command_test;

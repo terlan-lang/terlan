@@ -14,17 +14,22 @@ use crate::compiler::native_ir::{
 
 const MAX_STRUCTURED_CASE_CLAUSES: usize = 256;
 
-#[allow(clippy::too_many_arguments)]
+/// Application-wide callable and constructor knowledge used by case lowering.
+#[derive(Clone, Copy)]
+pub(crate) struct StructuredCaseEnvironment<'a> {
+    pub(crate) functions: &'a HashMap<(String, usize), usize>,
+    pub(crate) function_types: &'a HashMap<(String, usize), NativeType>,
+    pub(crate) function_core_types: &'a HashMap<(String, usize), CoreType>,
+    pub(crate) constructors: &'a NativeConstructorLayouts,
+}
+
 pub(crate) fn lower_structured_case(
     body: &CoreExpr,
     function: &CoreFunction,
     params: &HashMap<String, usize>,
     param_types: &HashMap<String, NativeType>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    function_core_types: &HashMap<(String, usize), CoreType>,
-    constructors: &NativeConstructorLayouts,
-) -> Result<Option<NativeExpr>, String> {
+    environment: StructuredCaseEnvironment<'_>,
+) -> Result<Option<NativeExpr>, crate::compiler::native_ir::NativeIrError> {
     if !contains_case(body) {
         return Ok(None);
     }
@@ -38,30 +43,27 @@ pub(crate) fn lower_structured_case(
                 .map(|ty| (parameter.name.clone(), ty.clone()))
         })
         .collect::<HashMap<_, _>>();
-    lower_containing_case(
+    Ok(Some(lower_containing_case(
         body,
         params,
         param_types,
         &core_types,
-        functions,
-        function_types,
-        function_core_types,
-        constructors,
-    )
-    .map(Some)
+        environment,
+    )?))
 }
-
-#[allow(clippy::too_many_arguments)]
 fn lower_containing_case(
     expr: &CoreExpr,
     params: &HashMap<String, usize>,
     param_types: &HashMap<String, NativeType>,
     core_types: &HashMap<String, CoreType>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    function_core_types: &HashMap<(String, usize), CoreType>,
-    constructors: &NativeConstructorLayouts,
+    environment: StructuredCaseEnvironment<'_>,
 ) -> Result<NativeExpr, String> {
+    let StructuredCaseEnvironment {
+        function_types,
+        function_core_types,
+        constructors,
+        ..
+    } = environment;
     match expr {
         CoreExpr::Case { scrutinee, clauses } => lower_case(
             scrutinee,
@@ -69,10 +71,7 @@ fn lower_containing_case(
             params,
             param_types,
             core_types,
-            functions,
-            function_types,
-            function_core_types,
-            constructors,
+            environment,
         ),
         CoreExpr::Let { bindings, body } => {
             let mut locals = params.clone();
@@ -114,10 +113,7 @@ fn lower_containing_case(
                                         &locals,
                                         &local_types,
                                         &local_core_types,
-                                        functions,
-                                        function_types,
-                                        function_core_types,
-                                        constructors,
+                                        environment,
                                     )?;
                                     return Ok(if lowered.is_empty() {
                                         case
@@ -138,9 +134,7 @@ fn lower_containing_case(
                         &binding.value,
                         &local_types,
                         &local_core_types,
-                        function_types,
-                        function_core_types,
-                        constructors,
+                        environment,
                     )?
                 } else {
                     infer_native_type_with_constructors(
@@ -178,10 +172,7 @@ fn lower_containing_case(
                         &locals,
                         &local_types,
                         &local_core_types,
-                        functions,
-                        function_types,
-                        function_core_types,
-                        constructors,
+                        environment,
                     )?
                 } else {
                     lower_plain(
@@ -189,10 +180,7 @@ fn lower_containing_case(
                         &locals,
                         &local_types,
                         &local_core_types,
-                        functions,
-                        function_types,
-                        function_core_types,
-                        constructors,
+                        environment,
                     )?
                 });
                 locals.insert(name.clone(), next_local);
@@ -209,10 +197,7 @@ fn lower_containing_case(
                 &locals,
                 &local_types,
                 &local_core_types,
-                functions,
-                function_types,
-                function_core_types,
-                constructors,
+                environment,
             )?;
             Ok(if lowered.is_empty() {
                 body
@@ -233,20 +218,14 @@ fn lower_containing_case(
                             params,
                             param_types,
                             core_types,
-                            functions,
-                            function_types,
-                            function_core_types,
-                            constructors,
+                            environment,
                         )?,
                         lower_child(
                             &clause.body,
                             params,
                             param_types,
                             core_types,
-                            functions,
-                            function_types,
-                            function_core_types,
-                            constructors,
+                            environment,
                         )?,
                     ))
                 })
@@ -258,19 +237,20 @@ fn lower_containing_case(
         ),
     }
 }
-
-#[allow(clippy::too_many_arguments)]
 fn lower_case(
     scrutinee: &CoreExpr,
     clauses: &[crate::terlan_typeck::CoreCaseClause],
     params: &HashMap<String, usize>,
     param_types: &HashMap<String, NativeType>,
     core_types: &HashMap<String, CoreType>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    function_core_types: &HashMap<(String, usize), CoreType>,
-    constructors: &NativeConstructorLayouts,
+    environment: StructuredCaseEnvironment<'_>,
 ) -> Result<NativeExpr, String> {
+    let StructuredCaseEnvironment {
+        function_types,
+        function_core_types,
+        constructors,
+        ..
+    } = environment;
     if clauses.is_empty() || clauses.len() > MAX_STRUCTURED_CASE_CLAUSES {
         return Err(format!(
             "error[native_ir.structured_case_clauses]: structured case has {} clauses; limit is {MAX_STRUCTURED_CASE_CLAUSES}",
@@ -291,10 +271,7 @@ fn lower_case(
                 params,
                 param_types,
                 core_types,
-                functions,
-                function_types,
-                function_core_types,
-                constructors,
+                environment,
             );
         }
     }
@@ -312,16 +289,7 @@ fn lower_case(
                 )
             })?;
     let scrutinee_core = core_expr_type(scrutinee, core_types, function_core_types);
-    let scrutinee = lower_plain(
-        scrutinee,
-        params,
-        param_types,
-        core_types,
-        functions,
-        function_types,
-        function_core_types,
-        constructors,
-    )?;
+    let scrutinee = lower_plain(scrutinee, params, param_types, core_types, environment)?;
     let scrutinee_slot = params
         .values()
         .copied()
@@ -374,10 +342,7 @@ fn lower_case(
                     &binding_slots,
                     &binding_types,
                     &binding_core_types,
-                    functions,
-                    function_types,
-                    function_core_types,
-                    constructors,
+                    environment,
                 )
             })
             .transpose()?
@@ -388,10 +353,7 @@ fn lower_case(
             &binding_slots,
             &binding_types,
             &binding_core_types,
-            functions,
-            function_types,
-            function_core_types,
-            constructors,
+            environment,
         )?;
         native_clauses.push((condition, bind_values(&plan.bindings, selected)));
     }
@@ -439,8 +401,6 @@ fn tuple_scrutinee<'a>(
         _ => None,
     }
 }
-
-#[allow(clippy::too_many_arguments)]
 fn lower_scalar_tuple_case(
     items: &[CoreExpr],
     item_core_types: Vec<CoreType>,
@@ -448,11 +408,13 @@ fn lower_scalar_tuple_case(
     params: &HashMap<String, usize>,
     param_types: &HashMap<String, NativeType>,
     core_types: &HashMap<String, CoreType>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    function_core_types: &HashMap<(String, usize), CoreType>,
-    constructors: &NativeConstructorLayouts,
+    environment: StructuredCaseEnvironment<'_>,
 ) -> Result<NativeExpr, String> {
+    let StructuredCaseEnvironment {
+        function_types,
+        constructors,
+        ..
+    } = environment;
     let item_types = items
         .iter()
         .zip(&item_core_types)
@@ -474,18 +436,7 @@ fn lower_scalar_tuple_case(
         .collect::<Result<Vec<_>, _>>()?;
     let lowered_items = items
         .iter()
-        .map(|item| {
-            lower_plain(
-                item,
-                params,
-                param_types,
-                core_types,
-                functions,
-                function_types,
-                function_core_types,
-                constructors,
-            )
-        })
+        .map(|item| lower_plain(item, params, param_types, core_types, environment))
         .collect::<Result<Vec<_>, _>>()?;
     let first_item_slot = params
         .values()
@@ -544,10 +495,7 @@ fn lower_scalar_tuple_case(
                     &binding_slots,
                     &binding_types,
                     &binding_core_types,
-                    functions,
-                    function_types,
-                    function_core_types,
-                    constructors,
+                    environment,
                 )
             })
             .transpose()?
@@ -558,10 +506,7 @@ fn lower_scalar_tuple_case(
             &binding_slots,
             &binding_types,
             &binding_core_types,
-            functions,
-            function_types,
-            function_core_types,
-            constructors,
+            environment,
         )?;
         native_clauses.push((condition, bind_values(&bindings, selected)));
     }
@@ -572,41 +517,36 @@ fn lower_scalar_tuple_case(
         }),
     })
 }
-
-#[allow(clippy::too_many_arguments)]
 fn lower_child(
     expr: &CoreExpr,
     params: &HashMap<String, usize>,
     param_types: &HashMap<String, NativeType>,
     core_types: &HashMap<String, CoreType>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    function_core_types: &HashMap<(String, usize), CoreType>,
-    constructors: &NativeConstructorLayouts,
+    environment: StructuredCaseEnvironment<'_>,
 ) -> Result<NativeExpr, String> {
-    if contains_case(expr) || contains_indirect_call(expr) {
-        lower_containing_case(
-            expr,
-            params,
-            param_types,
-            core_types,
-            functions,
-            function_types,
-            function_core_types,
-            constructors,
-        )
-    } else {
-        lower_plain(
-            expr,
-            params,
-            param_types,
-            core_types,
-            functions,
-            function_types,
-            function_core_types,
-            constructors,
-        )
+    if matches!(expr, CoreExpr::FunctionCall { .. }) {
+        return lower_plain(expr, params, param_types, core_types, environment);
     }
+    if contains_case(expr) || contains_indirect_call(expr) {
+        lower_containing_case(expr, params, param_types, core_types, environment)
+    } else {
+        lower_plain(expr, params, param_types, core_types, environment)
+    }
+}
+
+/// Lowers one checked expression with its complete lexical type environment.
+///
+/// Suspension-aware control prefixes use this entry point for values that can
+/// include indirect closure calls or nested structured cases before the
+/// continuation boundary is assembled.
+pub(in crate::compiler::native_ir) fn lower_lexical_expr(
+    expr: &CoreExpr,
+    params: &HashMap<String, usize>,
+    param_types: &HashMap<String, NativeType>,
+    core_types: &HashMap<String, CoreType>,
+    environment: StructuredCaseEnvironment<'_>,
+) -> Result<NativeExpr, String> {
+    lower_child(expr, params, param_types, core_types, environment)
 }
 
 fn contains_indirect_call(expr: &CoreExpr) -> bool {
@@ -635,16 +575,19 @@ fn contains_indirect_call(expr: &CoreExpr) -> bool {
     }
 }
 
-fn lower_plain(
+pub(super) fn lower_plain(
     expr: &CoreExpr,
     params: &HashMap<String, usize>,
     param_types: &HashMap<String, NativeType>,
     core_types: &HashMap<String, CoreType>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    function_core_types: &HashMap<(String, usize), CoreType>,
-    constructors: &NativeConstructorLayouts,
+    environment: StructuredCaseEnvironment<'_>,
 ) -> Result<NativeExpr, String> {
+    let StructuredCaseEnvironment {
+        functions,
+        function_types,
+        function_core_types,
+        constructors,
+    } = environment;
     if matches!(expr, CoreExpr::Tuple(_)) {
         if let Some(core_type) = core_expr_type(expr, core_types, function_core_types) {
             if let Some(lowered) =
@@ -733,16 +676,19 @@ fn closure_invocation_signature(
     let result = super::super::native_type(Some(return_type), &return_type.contract_text())?;
     Some((params, result))
 }
-
-#[allow(clippy::too_many_arguments)]
-fn structured_result_type(
+/// Infers the native result type of a structured expression in its lexical environment.
+pub(in crate::compiler::native_ir) fn structured_result_type(
     expr: &CoreExpr,
     types: &HashMap<String, NativeType>,
     core_types: &HashMap<String, CoreType>,
-    functions: &HashMap<(String, usize), NativeType>,
-    function_core_types: &HashMap<(String, usize), CoreType>,
-    constructors: &NativeConstructorLayouts,
+    environment: StructuredCaseEnvironment<'_>,
 ) -> Result<NativeType, String> {
+    let StructuredCaseEnvironment {
+        function_types,
+        function_core_types,
+        constructors,
+        ..
+    } = environment;
     match expr {
         CoreExpr::Let { bindings, body } => {
             let mut local_types = types.clone();
@@ -759,15 +705,13 @@ fn structured_result_type(
                         &binding.value,
                         &local_types,
                         &local_core_types,
-                        functions,
-                        function_core_types,
-                        constructors,
+                        environment,
                     )?
                 } else {
                     infer_native_type_with_constructors(
                         &binding.value,
                         &local_types,
-                        functions,
+                        function_types,
                         constructors,
                     )
                     .ok_or_else(|| {
@@ -783,18 +727,11 @@ fn structured_result_type(
                     local_core_types.insert(name.clone(), core_type);
                 }
             }
-            structured_result_type(
-                body,
-                &local_types,
-                &local_core_types,
-                functions,
-                function_core_types,
-                constructors,
-            )
+            structured_result_type(body, &local_types, &local_core_types, environment)
         }
         CoreExpr::Case { scrutinee, clauses } if !clauses.is_empty() => {
             let scrutinee_type =
-                infer_native_type_with_constructors(scrutinee, types, functions, constructors)
+                infer_native_type_with_constructors(scrutinee, types, function_types, constructors)
                     .or_else(|| {
                         core_expr_type(scrutinee, core_types, function_core_types).and_then(|ty| {
                             crate::compiler::native_ir::native_type(
@@ -839,9 +776,7 @@ fn structured_result_type(
                     &clause.body,
                     &clause_types,
                     &clause_core_types,
-                    functions,
-                    function_core_types,
-                    constructors,
+                    environment,
                 )?;
                 if result.is_some_and(|expected| expected != ty) {
                     return Err(
@@ -858,14 +793,7 @@ fn structured_result_type(
         CoreExpr::If { clauses } if !clauses.is_empty() => {
             let mut result = None;
             for clause in clauses {
-                let ty = structured_result_type(
-                    &clause.body,
-                    types,
-                    core_types,
-                    functions,
-                    function_core_types,
-                    constructors,
-                )?;
+                let ty = structured_result_type(&clause.body, types, core_types, environment)?;
                 if result.is_some_and(|expected| expected != ty) {
                     return Err(
                         "error[native_ir.structured_case_result_type]: if clauses have different native types"
@@ -878,13 +806,12 @@ fn structured_result_type(
                 "error[native_ir.structured_case_result_type]: if has no result".into()
             })
         }
-        _ => infer_native_type_with_constructors(expr, types, functions, constructors).ok_or_else(
-            || {
+        _ => infer_native_type_with_constructors(expr, types, function_types, constructors)
+            .ok_or_else(|| {
                 format!(
                     "error[native_ir.structured_case_result_type]: cannot infer result for {expr:?}"
                 )
-            },
-        ),
+            }),
     }
 }
 

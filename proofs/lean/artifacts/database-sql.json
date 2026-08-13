@@ -1,0 +1,43 @@
+{
+  "dependency_files": [
+    "proofs/lean/lake-manifest.json",
+    "proofs/lean/lakefile.lean",
+    "proofs/lean/lean-toolchain"
+  ],
+  "deterministic_timestamp_strategy": "none-content-addressed",
+  "execution_command": [
+    "lake",
+    "env",
+    "lean",
+    "database_sql/DatabaseSql.lean"
+  ],
+  "family": "database-sql",
+  "manifest_fingerprints": {
+    "std/summaries/std.db.Postgres.native_boundary.json": "sha256:0684e2277c917c92903dfd4c5f47459a369d627f5ef5ca99fe04b39568aa9ac2"
+  },
+  "output_signature": {
+    "exit_class": "success",
+    "stderr_class": "empty",
+    "stdout_class": "empty"
+  },
+  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+  "schema": "terlan.lean-proof-replay.v1",
+  "source_digest": "sha256:0f746de88857fdacc2fc85f6a1f255b3150e0dca758bdac8fcd3aa753a4fdfdf",
+  "theorem_names": [
+    "Terlan.DatabaseSql.matchingPreparedStatementAccepted",
+    "Terlan.DatabaseSql.wrongParameterArityRejected",
+    "Terlan.DatabaseSql.wrongParameterTypeRejected",
+    "Terlan.DatabaseSql.beginThenCommitIsWellFormed",
+    "Terlan.DatabaseSql.commitWithoutBeginRejected",
+    "Terlan.DatabaseSql.databaseEffectRejectedInPureRegion"
+  ],
+  "toolchain": {
+    "elan_channel": "leanprover/lean4:v4.31.0",
+    "lake_flags": [
+      "env",
+      "lean"
+    ],
+    "lean_version": "4.31.0"
+  },
+  "working_directory": "proofs/lean"
+}

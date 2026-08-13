@@ -1,0 +1,106 @@
+//! Deterministic portable directory operations for applications and tools.
+//!
+//! Returned paths are UTF-8, target-normalized, and sorted bytewise. Recursive
+//! traversal never follows symbolic links; symlink entries are omitted.
+
+module std.io.Directory.
+
+pub struct DirectoryError {
+    path: String
+}.
+
+pub type DirectoryErrorCode =
+    NotFound
+  | PermissionDenied
+  | InvalidPath
+  | Unknown.
+
+pub type InvalidPath =
+    Atom["invalid_path"].
+
+pub type NotFound =
+    Atom["not_found"].
+
+pub type PermissionDenied =
+    Atom["permission_denied"].
+
+/// Deterministic storage usage for one directory tree.
+///
+/// `logical_file_bytes` sums regular-file lengths. `allocated_bytes` includes
+/// filesystem allocation for regular files, directories, and symbolic-link
+/// entries without following links; targets that do not expose allocation
+/// blocks use logical lengths as the conservative portable approximation.
+
+pub struct TreeUsage {
+    logical_file_bytes: Int,
+    allocated_bytes: Int,
+    regular_file_count: Int,
+    directory_count: Int,
+    symbolic_link_count: Int
+}.
+
+pub type Unknown =
+    Atom["unknown"].
+
+@pure
+pub code(error: DirectoryError): Atom.
+
+/// Copies one directory tree into a destination that does not yet exist.
+/// Exact entry basenames in `excluded_entry_names` are pruned, symbolic links
+/// are omitted, regular-file permissions are preserved, and a failed copy
+/// removes the partial destination before returning.
+
+pub copy_tree_excluding(source: String, destination: String, excluded_entry_names: List[String]): Result[Unit, DirectoryError].
+
+/// Creates `path` and every missing parent.
+
+pub create_all(path: String): Result[Unit, DirectoryError].
+
+/// Creates a symbolic link at `link_path` pointing to an existing directory.
+///
+/// The operation never replaces an existing entry. Platforms that cannot
+/// create directory symbolic links return a typed directory error.
+
+pub create_symbolic_link(target_directory: String, link_path: String): Result[Unit, DirectoryError].
+
+/// Atomically creates and returns a unique directory below the host temporary root.
+
+pub create_temporary(prefix: String): Result[String, DirectoryError].
+
+/// Returns the sorted immediate children of `path`.
+
+pub entries(path: String): Result[List[String], DirectoryError].
+
+/// Returns sorted regular files below `path` without following symlinks.
+
+pub files_recursive(path: String): Result[List[String], DirectoryError].
+
+/// Returns sorted regular files while pruning directories by exact basename.
+
+pub files_recursive_excluding(path: String, excluded_directory_names: List[String]): Result[List[String], DirectoryError].
+
+/// Finds directories with one exact basename below `path`.
+///
+/// Returned paths are relative to `path` and sorted bytewise. Exact excluded
+/// ancestor basenames and symbolic links are pruned. A matched directory is
+/// returned but not traversed, which makes this suitable for discovering
+/// independent artifact roots without walking their potentially large trees.
+
+pub find_named_recursive_excluding(path: String, name: String, excluded_directory_names: List[String]): Result[List[String], DirectoryError].
+
+@pure
+pub message(error: DirectoryError): String.
+
+@pure
+pub new(code: Atom, message: String, path: String): DirectoryError.
+
+@pure
+pub path(error: DirectoryError): String.
+
+/// Removes one directory tree without traversing symlink targets.
+
+pub remove_all(path: String): Result[Unit, DirectoryError].
+
+/// Measures a directory tree without following symbolic links.
+
+pub tree_usage(path: String): Result[TreeUsage, DirectoryError].

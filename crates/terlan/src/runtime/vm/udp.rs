@@ -1,11 +1,10 @@
-#![allow(dead_code)]
-
 use std::collections::{HashMap, VecDeque};
 
 use super::process::VmProcessId;
 
 #[cfg(test)]
 #[path = "udp_test.rs"]
+#[cfg(test)]
 mod udp_test;
 
 /// VM-owned UDP socket handle.
@@ -23,6 +22,7 @@ pub(crate) struct VmUdpSocket {
 /// state. Transformation: exposes packet pressure without leaking mutable
 /// socket internals.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmUdpSocketInfo {
     pub(crate) address: String,
     pub(crate) owner: Option<String>,
@@ -59,6 +59,7 @@ pub(crate) enum VmUdpWake {
 /// - Models datagram readiness and backpressure inside the VM without handing
 ///   scheduling semantics to a host async runtime.
 #[derive(Debug, Default)]
+#[cfg(test)]
 pub(crate) struct VmUdpRuntime {
     next_socket: u64,
     sockets: HashMap<u64, UdpSocketState>,
@@ -66,12 +67,14 @@ pub(crate) struct VmUdpRuntime {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmUdpPacket {
     pub(crate) source: String,
     pub(crate) bytes: Vec<u8>,
 }
 
 #[derive(Debug)]
+#[cfg(test)]
 struct UdpSocketState {
     address: String,
     owner: Option<String>,
@@ -81,6 +84,7 @@ struct UdpSocketState {
     closed: bool,
 }
 
+#[cfg(test)]
 impl VmUdpRuntime {
     /// Creates an empty UDP runtime registry.
     pub(crate) fn new() -> Self {

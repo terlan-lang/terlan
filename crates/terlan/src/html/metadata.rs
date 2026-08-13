@@ -471,4 +471,5 @@ fn parse_template_header_string_value(
 
 #[cfg(test)]
 #[path = "metadata_test.rs"]
+#[cfg(test)]
 mod metadata_test;

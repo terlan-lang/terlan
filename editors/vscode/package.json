@@ -26,7 +26,7 @@
     "check": "node -c src/client_config.js && node -c src/run_command.js && node -c src/template_links.js && node -c src/extension.js && node -c test/client_config_test.js && node -c test/run_command_test.js && node -c test/template_links_test.js && node -c test/manifest_test.js && node -c test/package_smoke_test.js && node -c test/diagnostics_smoke_test.js && node -c test/pack_dry_run_test.js && node -c test/textmate_bridge_test.js"
   },
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.91.0"
   },
   "categories": [
     "Programming Languages"
@@ -34,6 +34,7 @@
   "activationEvents": [
     "onStartupFinished",
     "onLanguage:terlan",
+    "onLanguage:terlan-script",
     "onLanguage:terlan-test",
     "onLanguage:terlan-interface",
     "onLanguage:terlan-template-html",
@@ -182,47 +183,47 @@
       "editor/title": [
         {
           "command": "terlan.runMain",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runCheck",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runBuild",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runServe",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runWatch",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runDoctor",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runDebug",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runDebugAtCursor",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runClean",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
@@ -239,47 +240,47 @@
       "explorer/context": [
         {
           "command": "terlan.runMain",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runCheck",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runBuild",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runServe",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runWatch",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runDoctor",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runDebug",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runDebugAtCursor",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
           "command": "terlan.runClean",
-          "when": "resourceFilename =~ /\\.terl$/",
+          "when": "resourceFilename =~ /\\.terls?$/",
           "group": "navigation"
         },
         {
@@ -313,6 +314,21 @@
         ],
         "extensions": [
           ".terl"
+        ],
+        "icon": {
+          "light": "./icons/terlan-file.svg",
+          "dark": "./icons/terlan-file.svg"
+        },
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "terlan-script",
+        "aliases": [
+          "Terlan Script",
+          "terlan-script"
+        ],
+        "extensions": [
+          ".terls"
         ],
         "icon": {
           "light": "./icons/terlan-file.svg",
@@ -435,6 +451,11 @@
         "path": "./syntaxes/terlan.tmLanguage.json"
       },
       {
+        "language": "terlan-script",
+        "scopeName": "source.terlan",
+        "path": "./syntaxes/terlan.tmLanguage.json"
+      },
+      {
         "language": "terlan-interface",
         "scopeName": "source.terlan.interface",
         "path": "./syntaxes/terlan.tmLanguage.json"
@@ -483,10 +504,10 @@
     ]
   },
   "dependencies": {
-    "vscode-languageclient": "^9.0.1"
+    "vscode-languageclient": "^10.1.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/vscode": "^1.90.0"
+    "@types/node": "^22.20.1",
+    "@types/vscode": "^1.125.0"
   }
 }

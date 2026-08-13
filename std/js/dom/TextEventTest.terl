@@ -27,6 +27,6 @@ pub init_text_event_typechecks(
     bubbles: Bool,
     cancelable: Bool,
     view: Option[Window],
-    data: JsString
+    data: JsString,
 ): std.core.Unit ->
     receiver.init_text_event(type_, bubbles, cancelable, view, data).

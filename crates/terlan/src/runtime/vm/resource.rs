@@ -1,6 +1,8 @@
-#![allow(dead_code)]
-
 use std::collections::BTreeMap;
+
+use crate::accelerator_contract::{
+    AcceleratorResourceClass, AcceleratorResourceHandle, AcceleratorResourceRole,
+};
 
 use super::process::{VmProcessId, VmProcessState, VmProcessTable};
 
@@ -32,6 +34,7 @@ impl VmResourceId {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmResourceTransferPolicy {
     OwnerOnly,
+    #[cfg(any(test, feature = "benchmark-tools"))]
     Transferable,
 }
 
@@ -59,6 +62,8 @@ pub(crate) struct VmResourceRecord {
     pub(crate) owner: VmProcessId,
     pub(crate) descriptor: VmResourceDescriptor,
     pub(crate) transfer_policy: VmResourceTransferPolicy,
+    /// Canonical package handle when this row owns an external accelerator resource.
+    pub(crate) accelerator_handle: Option<AcceleratorResourceHandle>,
 }
 
 /// Read-only resource row for runtime inspection.
@@ -69,6 +74,8 @@ pub(crate) struct VmResourceSnapshot {
     pub(crate) kind: String,
     pub(crate) label: String,
     pub(crate) transfer_policy: VmResourceTransferPolicy,
+    /// Canonical package handle retained without any backend pointer.
+    pub(crate) accelerator_handle: Option<AcceleratorResourceHandle>,
 }
 
 /// Resource lifecycle event emitted by ownership operations.
@@ -78,11 +85,13 @@ pub(crate) enum VmResourceEvent {
         id: VmResourceId,
         owner: VmProcessId,
     },
+    #[cfg(any(test, feature = "benchmark-tools"))]
     Transferred {
         id: VmResourceId,
         from: VmProcessId,
         to: VmProcessId,
     },
+    #[cfg(any(test, feature = "benchmark-tools"))]
     Released {
         id: VmResourceId,
         owner: VmProcessId,
@@ -134,12 +143,52 @@ impl VmResourceTable {
                 owner,
                 descriptor,
                 transfer_policy,
+                accelerator_handle: None,
             },
         );
         Ok(VmResourceEvent::Registered { id, owner })
     }
 
+    /// Registers one compiler-validated accelerator handle under an actor owner.
+    pub(crate) fn register_accelerator(
+        &mut self,
+        processes: &mut VmProcessTable,
+        owner: VmProcessId,
+        handle: AcceleratorResourceHandle,
+    ) -> Result<VmResourceEvent, String> {
+        handle
+            .validate()
+            .map_err(|error| format!("error[accelerator.resource_handle]: {error}"))?;
+        if !matches!(handle.role, AcceleratorResourceRole::Owned { .. }) {
+            return Err(
+                "error[accelerator.resource_handle]: borrowed handle escaped package dispatch"
+                    .to_string(),
+            );
+        }
+        let label = format!(
+            "{}:{}:{}",
+            accelerator_class_name(handle.class),
+            handle.id.slot,
+            handle.id.generation
+        );
+        let event = self.register(
+            processes,
+            owner,
+            VmResourceDescriptor::new("accelerator", label),
+            VmResourceTransferPolicy::OwnerOnly,
+        )?;
+        let VmResourceEvent::Registered { id, .. } = event else {
+            unreachable!("resource registration returns a registered event")
+        };
+        self.resources
+            .get_mut(&id)
+            .expect("registered accelerator resource remains live")
+            .accelerator_handle = Some(handle);
+        Ok(event)
+    }
+
     /// Returns a resource record if the requester is the current owner.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn get_for_owner(
         &self,
         requester: VmProcessId,
@@ -158,6 +207,7 @@ impl VmResourceTable {
     }
 
     /// Transfers an owned resource to another live process when policy allows.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn transfer(
         &mut self,
         processes: &mut VmProcessTable,
@@ -187,6 +237,7 @@ impl VmResourceTable {
     }
 
     /// Validates resource transfer without mutating ownership state.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn validate_transfer(
         &self,
         processes: &VmProcessTable,
@@ -216,6 +267,7 @@ impl VmResourceTable {
     }
 
     /// Releases a resource by its current owner.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn release(
         &mut self,
         processes: &mut VmProcessTable,
@@ -235,6 +287,7 @@ impl VmResourceTable {
     }
 
     /// Validates resource release without mutating ownership state.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn validate_release(
         &self,
         processes: &VmProcessTable,
@@ -304,6 +357,7 @@ impl VmResourceTable {
     }
 
     /// Returns deterministic live resource rows for one process owner.
+    #[cfg(test)]
     pub(crate) fn snapshots_for_owner(&self, owner: VmProcessId) -> Vec<VmResourceSnapshot> {
         self.resources
             .values()
@@ -312,6 +366,7 @@ impl VmResourceTable {
             .collect()
     }
 
+    #[cfg(any(test, feature = "benchmark-tools"))]
     fn live_resource(&self, resource: VmResourceId) -> Result<&VmResourceRecord, String> {
         self.resources
             .get(&resource)
@@ -326,6 +381,22 @@ fn resource_snapshot(record: &VmResourceRecord) -> VmResourceSnapshot {
         kind: record.descriptor.kind.clone(),
         label: record.descriptor.label.clone(),
         transfer_policy: record.transfer_policy,
+        accelerator_handle: record.accelerator_handle.clone(),
+    }
+}
+
+/// Returns a stable inspection spelling for one canonical accelerator class.
+fn accelerator_class_name(class: AcceleratorResourceClass) -> &'static str {
+    match class {
+        AcceleratorResourceClass::DeviceContext => "device-context",
+        AcceleratorResourceClass::Allocation => "allocation",
+        AcceleratorResourceClass::Stream => "stream",
+        AcceleratorResourceClass::Event => "event",
+        AcceleratorResourceClass::Module => "module",
+        AcceleratorResourceClass::Kernel => "kernel",
+        AcceleratorResourceClass::Graph => "graph",
+        AcceleratorResourceClass::Communicator => "communicator",
+        AcceleratorResourceClass::ImportedTensor => "imported-tensor",
     }
 }
 
@@ -347,22 +418,27 @@ fn resource_handle_name(resource: VmResourceId) -> String {
     format!("resource:{}", resource.as_u64())
 }
 
+#[cfg(any(test, feature = "benchmark-tools"))]
 fn stale_resource_diagnostic(resource: VmResourceId) -> String {
     format!("stale native resource handle {}", resource.as_u64())
 }
 
 #[cfg(test)]
 #[path = "resource_cancellation_test.rs"]
+#[cfg(test)]
 mod resource_cancellation_test;
 
 #[cfg(test)]
 #[path = "resource_owner_test.rs"]
+#[cfg(test)]
 mod resource_owner_test;
 
 #[cfg(test)]
 #[path = "resource_test.rs"]
+#[cfg(test)]
 mod resource_test;
 
 #[cfg(test)]
 #[path = "resource_transfer_test.rs"]
+#[cfg(test)]
 mod resource_transfer_test;

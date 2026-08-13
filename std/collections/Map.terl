@@ -45,6 +45,7 @@ pub constructor Map[K, V] {
  * Transformation: lowers through the compiler-owned `core.map.new`
  * intrinsic, using the selected backend's canonical empty-map value.
  */
+@pure
 @compiler.intrinsic
 pub new[K, V](): Map[K, V] ->
     {}.
@@ -58,6 +59,7 @@ pub new[K, V](): Map[K, V] ->
  * intrinsic. Backends choose the efficient map representation and duplicate
  * key handling behind the portable `Map[K, V]` contract.
  */
+@pure
 @compiler.intrinsic
 pub from_entries[K, V](entries: List[{K, V}]): Map[K, V] ->
     new().
@@ -71,6 +73,7 @@ pub from_entries[K, V](entries: List[{K, V}]): Map[K, V] ->
  * Transformation: lowers through the compiler-owned `core.map.is_empty`
  * intrinsic and observes the receiver without changing its contents.
  */
+@pure
 @compiler.intrinsic
 pub (map: Map[K, V]) is_empty(): Bool -> true.
 
@@ -82,6 +85,7 @@ pub (map: Map[K, V]) is_empty(): Bool -> true.
  * Transformation: lowers through the compiler-owned `core.map.size`
  * intrinsic and observes the receiver without changing its contents.
  */
+@pure
 @compiler.intrinsic
 pub (map: Map[K, V]) size(): Int -> 0.
 
@@ -94,6 +98,7 @@ pub (map: Map[K, V]) size(): Int -> 0.
  * Transformation: lowers through the compiler-owned `core.map.get`
  * intrinsic and observes the receiver without changing its contents.
  */
+@pure
 @compiler.intrinsic
 pub (map: Map[K, V]) get(key: K): Option[V] ->
     None.
@@ -107,6 +112,7 @@ pub (map: Map[K, V]) get(key: K): Option[V] ->
  * Transformation: lowers through the compiler-owned `core.map.contains_key`
  * intrinsic and observes the receiver without changing its contents.
  */
+@pure
 @compiler.intrinsic
 pub (map: Map[K, V]) contains_key(key: K): Bool -> false.
 
@@ -119,6 +125,7 @@ pub (map: Map[K, V]) contains_key(key: K): Bool -> false.
  * Transformation: observes the value before removing the key from a local
  * persistent map value. The input map remains available to the caller.
  */
+@pure
 @compiler.intrinsic
 pub take[K, V](map: Map[K, V], key: K): {Option[V], Map[K, V]} ->
     {None, map}.
@@ -132,6 +139,7 @@ pub take[K, V](map: Map[K, V], key: K): {Option[V], Map[K, V]} ->
  * intrinsic. Backends choose their own traversal order and representation while
  * preserving the portable pair-yielding contract.
  */
+@pure
 @compiler.intrinsic
 pub (map: Map[K, V]) iterator(): Iterator[{K, V}] ->
     map.
@@ -145,6 +153,7 @@ pub (map: Map[K, V]) iterator(): Iterator[{K, V}] ->
  * intrinsic and updates the receiver binding in source order. Pipe chains
  * continue with the updated receiver.
  */
+@pure
 @compiler.intrinsic
 pub (mut map: Map[K, V]) put(key: K, value: V): Unit ->
     map.
@@ -157,6 +166,7 @@ pub (mut map: Map[K, V]) put(key: K, value: V): Unit ->
  * Transformation: lowers through the compiler-owned `core.map.remove`
  * intrinsic and updates the receiver binding in source order.
  */
+@pure
 @compiler.intrinsic
 pub (mut map: Map[K, V]) remove(key: K): Unit ->
     map.
@@ -169,6 +179,7 @@ pub (mut map: Map[K, V]) remove(key: K): Unit ->
  * Transformation: lowers through the compiler-owned `core.map.clear`
  * intrinsic and updates the receiver binding so it becomes empty.
  */
+@pure
 @compiler.intrinsic
 pub (mut map: Map[K, V]) clear(): Unit ->
     map.

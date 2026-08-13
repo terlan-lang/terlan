@@ -1,4 +1,8 @@
-use super::model::{ProjectServerProfile, ProjectServerTls, ProjectServerTlsProvider};
+use super::model::{
+    ProjectServerProfile, ProjectServerTls, ProjectServerTlsProvider, ProjectWasiTarget,
+    ProjectWasmTarget,
+};
+use super::parser::parse_project_manifest;
 use super::*;
 use std::path::PathBuf;
 
@@ -47,6 +51,72 @@ fn project_manifest_parses_package_namespace() {
 }
 
 #[test]
+fn project_manifest_parses_backend_neutral_accelerator_descriptor() {
+    let parsed = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.8\"\n\n[accelerator]\nschema = 1\ndescriptor = \"accelerator.toml\"\n",
+        &manifest_path(),
+    )
+    .expect("manifest should parse generic accelerator metadata");
+
+    assert_eq!(
+        parsed.accelerator,
+        Some(model::ProjectAccelerator {
+            schema: 1,
+            descriptor: "accelerator.toml".to_string(),
+            contract: None,
+        })
+    );
+}
+
+#[test]
+fn project_manifest_rejects_unknown_or_unsafe_accelerator_descriptors() {
+    let unknown = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.8\"\n\n[accelerator]\nschema = 2\ndescriptor = \"accelerator.toml\"\n",
+        &manifest_path(),
+    )
+    .expect_err("unknown schema must fail");
+    assert!(unknown.contains("unsupported [accelerator] schema `2`"));
+
+    let traversal = parse_project_manifest(
+        "[package]\nname = \"demo\"\nversion = \"0.0.8\"\n\n[accelerator]\nschema = 1\ndescriptor = \"../accelerator.toml\"\n",
+        &manifest_path(),
+    )
+    .expect_err("descriptor traversal must fail");
+    assert!(traversal.contains("package-relative .toml path without traversal"));
+}
+
+#[test]
+fn project_manifest_read_validates_and_loads_accelerator_contract() {
+    let unique = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("clock")
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!(
+        "terlan-accelerator-manifest-{}-{unique}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&root).expect("create fixture");
+    std::fs::write(
+        root.join("terlan.toml"),
+        "[package]\nname = \"demo\"\nversion = \"0.0.8\"\n\n[accelerator]\nschema = 1\ndescriptor = \"accelerator.toml\"\n",
+    )
+    .expect("write manifest");
+    std::fs::write(
+        root.join("accelerator.toml"),
+        "schema = 1\nbackend = \"vector-test\"\ndevice_classes = [\"synthetic-vector\"]\nartifact_formats = [\"vector-object\"]\ndtypes = [\"f32\"]\nlayouts = [\"row-major\"]\naddress_spaces = [\"host\", \"device\"]\nresource_classes = [\"buffer\"]\nasynchronous_operations = [\"execute\"]\ncapabilities = [\"accelerator.execute\"]\n\n[[targets]]\ntriple = \"x86_64-unknown-linux-gnu\"\navailability = \"experimental\"\nartifact_formats = [\"vector-object\"]\n\n[[operations]]\nid = \"buffer.add\"\neffects = [\"execute\"]\nasynchronous = true\n",
+    )
+    .expect("write descriptor");
+
+    let parsed = read_project_manifest(&root.join("terlan.toml")).expect("load descriptor");
+    let contract = parsed
+        .accelerator
+        .and_then(|metadata| metadata.contract)
+        .expect("normalized contract");
+    assert_eq!(contract.backend, "vector-test");
+    std::fs::remove_dir_all(root).expect("remove fixture");
+}
+
+#[test]
 fn project_manifest_rejects_invalid_package_namespace() {
     let err = parse_project_manifest(
         "[package]\nname = \"demo\"\nversion = \"0.0.1\"\nnamespace = \"std.Native\"\n",
@@ -80,8 +150,8 @@ name = \"demo\"
 version = \"0.0.1\"
 
 [scripts]
-seed = \"scripts/SeedDatabase.terl\"
-db.reset = \"scripts/db/Reset.terl\"
+seed = \"scripts/SeedDatabase.terls\"
+db.reset = \"scripts/db/Reset.terls\"
 ",
         &manifest_path(),
     )
@@ -92,11 +162,11 @@ db.reset = \"scripts/db/Reset.terl\"
         vec![
             ProjectScript {
                 name: "seed".to_string(),
-                path: "scripts/SeedDatabase.terl".to_string(),
+                path: "scripts/SeedDatabase.terls".to_string(),
             },
             ProjectScript {
                 name: "db.reset".to_string(),
-                path: "scripts/db/Reset.terl".to_string(),
+                path: "scripts/db/Reset.terls".to_string(),
             },
         ]
     );
@@ -639,7 +709,7 @@ fn adversarial_project_manifest_rejects_whitespace_padded_source_root() {
 #[test]
 fn project_manifest_parses_script_entrypoints() {
     let parsed = parse_project_manifest(
-        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nseed-db = \"scripts/SeedDatabase.terl\"\nreports.daily = \"scripts/reports/Daily.terl\"\n",
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nseed-db = \"scripts/SeedDatabase.terls\"\nreports.daily = \"scripts/reports/Daily.terls\"\n",
         &manifest_path(),
     )
     .expect("manifest should parse script entrypoints");
@@ -649,11 +719,11 @@ fn project_manifest_parses_script_entrypoints() {
         vec![
             ProjectScript {
                 name: "seed-db".to_string(),
-                path: "scripts/SeedDatabase.terl".to_string(),
+                path: "scripts/SeedDatabase.terls".to_string(),
             },
             ProjectScript {
                 name: "reports.daily".to_string(),
-                path: "scripts/reports/Daily.terl".to_string(),
+                path: "scripts/reports/Daily.terls".to_string(),
             },
         ]
     );
@@ -662,7 +732,7 @@ fn project_manifest_parses_script_entrypoints() {
 #[test]
 fn adversarial_project_manifest_rejects_duplicate_script_aliases() {
     let err = parse_project_manifest(
-        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nseed = \"scripts/Seed.terl\"\nseed = \"scripts/Other.terl\"\n",
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nseed = \"scripts/Seed.terls\"\nseed = \"scripts/Other.terls\"\n",
         &manifest_path(),
     )
     .expect_err("manifest should reject duplicate script aliases");
@@ -673,7 +743,7 @@ fn adversarial_project_manifest_rejects_duplicate_script_aliases() {
 #[test]
 fn adversarial_project_manifest_rejects_invalid_script_alias() {
     let err = parse_project_manifest(
-        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nSeed = \"scripts/Seed.terl\"\n",
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nSeed = \"scripts/Seed.terls\"\n",
         &manifest_path(),
     )
     .expect_err("manifest should reject invalid script aliases");
@@ -684,24 +754,24 @@ fn adversarial_project_manifest_rejects_invalid_script_alias() {
 #[test]
 fn adversarial_project_manifest_rejects_absolute_script_path() {
     let err = parse_project_manifest(
-        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nseed = \"/tmp/Seed.terl\"\n",
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nseed = \"/tmp/Seed.terls\"\n",
         &manifest_path(),
     )
     .expect_err("manifest should reject absolute script paths");
 
-    assert!(err.contains("[scripts] path `/tmp/Seed.terl` must be package-relative"));
+    assert!(err.contains("[scripts] path `/tmp/Seed.terls` must be package-relative"));
 }
 
 #[test]
 fn adversarial_project_manifest_rejects_parent_traversal_script_path() {
     let err = parse_project_manifest(
-        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nseed = \"../Seed.terl\"\n",
+        "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[scripts]\nseed = \"../Seed.terls\"\n",
         &manifest_path(),
     )
     .expect_err("manifest should reject script paths that escape the package");
 
     assert!(err.contains(
-        "[scripts] path `../Seed.terl` cannot use current-directory or parent traversal"
+        "[scripts] path `../Seed.terls` cannot use current-directory or parent traversal"
     ));
 }
 
@@ -713,7 +783,7 @@ fn adversarial_project_manifest_rejects_non_terlan_script_path() {
     )
     .expect_err("manifest should reject non-Terlan script paths");
 
-    assert!(err.contains("[scripts] path `scripts/Seed.txt` must point to a .terl file"));
+    assert!(err.contains("[scripts] path `scripts/Seed.txt` must point to a .terls file"));
 }
 
 #[test]

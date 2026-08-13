@@ -1,0 +1,790 @@
+/**
+ * Validates Rust-backed std manifest rows against compiler-owned metadata.
+ */
+module scripts.self_validation.RustBackedManifestTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.File.{message, read_text, read_text_many}.
+import std.system.Environment.
+
+import type std.data.Json.{Json, StringFieldRow}.
+import type std.io.File.TextFile.
+
+struct ManifestRow {
+    module_name: String,
+    source: String,
+    crate_name: String,
+    operation: String,
+    function_name: String,
+    arity: Int,
+}.
+
+struct ManifestInventory {
+    rows: List[ManifestRow],
+    diagnostics: List[String],
+}.
+
+struct MetadataDocument {
+    module_name: String,
+    functions: Json,
+    rows: List[StringFieldRow],
+}.
+
+struct FunctionTask {
+    module_name: String,
+    functions: Json,
+    index: Int,
+    row: StringFieldRow,
+}.
+
+struct NativeOperation {
+    module_name: String,
+    operation: String,
+    function_name: String,
+    arity: Int,
+}.
+
+struct OperationMatch {
+    found: Bool,
+    function_name: String,
+    arity: Int,
+}.
+
+@pure
+child(root: String, relative: String): String ->
+    if {
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+selected_root(): String ->
+    case Environment.get("TERLAN_RUST_BACKED_MANIFEST_ROOT") {
+        Some(root) -> root;
+        None -> Environment.current_directory()
+    }.
+
+@pure
+manifest_relative(): String -> "std/RUST_BACKED_MANIFEST.tsv".
+
+@pure
+add_diagnostic(diagnostics: List[String], message: String): List[String] ->
+    [message | diagnostics].
+
+@pure
+line_diagnostic(path: String, line: Int, message: String): String ->
+    String.append(
+        path,
+        String.append(":", String.append(Int.to_string(line), String.append(": ", message))),
+    ).
+
+@pure
+reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_at(values, []).
+
+@pure
+reverse_strings_at(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings_at(rest, [value | reversed])
+    }.
+
+@pure
+reverse_manifest_rows(values: List[ManifestRow]): List[ManifestRow] ->
+    reverse_manifest_rows_at(values, []).
+
+@pure
+reverse_manifest_rows_at(
+    values: List[ManifestRow],
+    reversed: List[ManifestRow],
+): List[ManifestRow] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_manifest_rows_at(rest, [value | reversed])
+    }.
+
+@pure
+header_holds(parts: List[String]): Bool ->
+    parts == ["module", "source", "crate", "operation", "function", "arity"].
+
+@pure
+pub parse_manifest(source: String, path: String): ManifestInventory ->
+    parse_manifest_lines(String.split(source, "\n"), path, 1, false, [], []).
+
+@pure
+parse_manifest_lines(
+    lines: List[String],
+    path: String,
+    line_number: Int,
+    header_seen: Bool,
+    rows: List[ManifestRow],
+    diagnostics: List[String],
+): ManifestInventory ->
+    case lines {
+        [] ->
+            let finished =
+                if {
+                    header_seen -> diagnostics;
+                    true -> add_diagnostic(diagnostics, String.append(path, ": missing header"))
+                };
+            ManifestInventory(
+                rows = reverse_manifest_rows(rows),
+                diagnostics = reverse_strings(finished),
+            );
+        [raw | rest] ->
+            let line = String.trim(raw);
+            if {
+                line == "" or String.starts_with(line, "#") -> parse_manifest_lines(rest, path, line_number + 1, header_seen, rows, diagnostics);
+                not header_seen -> let next =
+                    if {
+                        header_holds(String.split(raw, "\t")) -> diagnostics;
+                        true -> add_diagnostic(
+                            diagnostics,
+                            line_diagnostic(path, line_number, "invalid header"),
+                        )
+                    };
+                parse_manifest_lines(rest, path, line_number + 1, true, rows, next);
+                true -> parse_manifest_row(
+                    rest,
+                    path,
+                    line_number,
+                    true,
+                    rows,
+                    diagnostics,
+                    String.split(raw, "\t"),
+                )
+            }
+    }.
+
+@pure
+parse_manifest_row(
+    rest: List[String],
+    path: String,
+    line_number: Int,
+    header_seen: Bool,
+    rows: List[ManifestRow],
+    diagnostics: List[String],
+    parts: List[String],
+): ManifestInventory ->
+    case parts {
+        [module_name | [source | [crate_name | [operation | [function_name | [arity_text | []]]]]]] ->
+            case Int.from_string(arity_text) {
+                Some(arity) ->
+                    parse_manifest_lines(
+                        rest,
+                        path,
+                        line_number + 1,
+                        header_seen,
+                        [ManifestRow(
+    module_name = module_name,
+    source = source,
+    crate_name = crate_name,
+    operation = operation,
+    function_name = function_name,
+    arity = arity,
+) | rows],
+                        diagnostics,
+                    );
+                None ->
+                    parse_manifest_lines(
+                        rest,
+                        path,
+                        line_number + 1,
+                        header_seen,
+                        rows,
+                        add_diagnostic(
+                            diagnostics,
+                            line_diagnostic(
+                                path,
+                                line_number,
+                                String.append("invalid arity `", String.append(arity_text, "`")),
+                            ),
+                        ),
+                    )
+            };
+        _ ->
+            parse_manifest_lines(
+                rest,
+                path,
+                line_number + 1,
+                header_seen,
+                rows,
+                add_diagnostic(
+                    diagnostics,
+                    line_diagnostic(path, line_number, "expected 6 columns"),
+                ),
+            )
+    }.
+
+@pure
+allowed_crate(value: String): Bool ->
+    value == "serde_json"
+        or value == "basic-toml"
+        or value == "base64"
+        or value == "md-5"
+        or value == "sha2"
+        or value == "std::path"
+        or value == "std::env::consts"
+        or value == "url"
+        or value == "rand_chacha"
+        or value == "regex"
+        or value == "std::http"
+        or value == "postgres-native"
+        or value == "std::vec"
+        or value == "terlan-vm".
+
+@pure
+metadata_name(module_name: String): String ->
+    String.append(module_name, ".native_boundary.json").
+
+@pure
+metadata_paths(root: String, rows: List[ManifestRow]): List[String] ->
+    reverse_strings(metadata_paths_at(root, rows, [], [])).
+
+@pure
+metadata_paths_at(
+    root: String,
+    rows: List[ManifestRow],
+    seen: List[String],
+    paths: List[String],
+): List[String] ->
+    case rows {
+        [] -> paths;
+        [row | rest] ->
+            if {
+                contains_string(seen, row.module_name) -> metadata_paths_at(root, rest, seen, paths);
+                true -> let relative = String.append("std/summaries/", metadata_name(row.module_name));
+                metadata_paths_at(
+                    root,
+                    rest,
+                    [row.module_name | seen],
+                    [child(root, relative) | paths],
+                )
+            }
+    }.
+
+@pure
+contains_string(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains_string(rest, expected)
+    }.
+
+pub validate(root: String): Bool ->
+    let manifest = child(root, manifest_relative());
+    case read_text(manifest) {
+        Err(_reason) -> report([String.append("missing manifest: ", manifest)]);
+        Ok(source) -> validate_inventory(root, parse_manifest(source, manifest))
+    }.
+
+validate_inventory(root: String, inventory: ManifestInventory): Bool ->
+    if {
+        diagnostics_empty(inventory.diagnostics) -> read_metadata(root, inventory.rows);
+        true -> report(inventory.diagnostics)
+    }.
+
+@pure
+diagnostics_empty(diagnostics: List[String]): Bool ->
+    case diagnostics {
+        [] -> true;
+        _ -> false
+    }.
+
+read_metadata(root: String, rows: List[ManifestRow]): Bool ->
+    let paths = metadata_paths(root, rows);
+    case read_text_many(paths) {
+        Err(reason) -> report([message(reason)]);
+        Ok(files) -> load_metadata_documents(files, [], rows, [])
+    }.
+
+load_metadata_documents(
+    files: List[TextFile],
+    documents: List[MetadataDocument],
+    manifest_rows: List[ManifestRow],
+    diagnostics: List[String],
+): Bool ->
+    case files {
+        [] ->
+            let tasks = function_tasks(documents);
+            load_arities(tasks, manifest_rows, [], diagnostics);
+        [file | rest] -> parse_metadata_file(file, rest, documents, manifest_rows, diagnostics)
+    }.
+
+parse_metadata_file(
+    file: TextFile,
+    rest: List[TextFile],
+    documents: List[MetadataDocument],
+    manifest_rows: List[ManifestRow],
+    diagnostics: List[String],
+): Bool ->
+    case Json.parse(file.contents) {
+        Err(reason) ->
+            load_metadata_documents(
+                rest,
+                documents,
+                manifest_rows,
+                [String.append(file.path, String.append(": invalid JSON: ", Json.error_message(reason))) | diagnostics],
+            );
+        Ok(metadata) ->
+            read_metadata_module(file.path, metadata, rest, documents, manifest_rows, diagnostics)
+    }.
+
+read_metadata_module(
+    path: String,
+    metadata: Json,
+    rest: List[TextFile],
+    documents: List[MetadataDocument],
+    manifest_rows: List[ManifestRow],
+    diagnostics: List[String],
+): Bool ->
+    case metadata.string_fields(["source_module"]) {
+        Ok([Some(module_name) | []]) ->
+            read_metadata_functions(
+                path,
+                module_name,
+                metadata,
+                rest,
+                documents,
+                manifest_rows,
+                diagnostics,
+            );
+        _ ->
+            load_metadata_documents(
+                rest,
+                documents,
+                manifest_rows,
+                [String.append(path, ": missing source_module") | diagnostics],
+            )
+    }.
+
+read_metadata_functions(
+    path: String,
+    module_name: String,
+    metadata: Json,
+    rest: List[TextFile],
+    documents: List[MetadataDocument],
+    manifest_rows: List[ManifestRow],
+    diagnostics: List[String],
+): Bool ->
+    case metadata.get("functions") {
+        Err(_reason) ->
+            load_metadata_documents(
+                rest,
+                documents,
+                manifest_rows,
+                [String.append(path, ": missing functions array") | diagnostics],
+            );
+        Ok(functions) ->
+            project_metadata_functions(
+                path,
+                module_name,
+                functions,
+                rest,
+                documents,
+                manifest_rows,
+                diagnostics,
+            )
+    }.
+
+project_metadata_functions(
+    path: String,
+    module_name: String,
+    functions: Json,
+    rest: List[TextFile],
+    documents: List[MetadataDocument],
+    manifest_rows: List[ManifestRow],
+    diagnostics: List[String],
+): Bool ->
+    case functions.string_field_rows(["operation", "name"]) {
+        Err(_reason) ->
+            load_metadata_documents(
+                rest,
+                documents,
+                manifest_rows,
+                [String.append(path, ": invalid functions array") | diagnostics],
+            );
+        Ok(rows) ->
+            load_metadata_documents(
+                rest,
+                [MetadataDocument(module_name = module_name, functions = functions, rows = rows) | documents],
+                manifest_rows,
+                diagnostics,
+            )
+    }.
+
+@pure
+function_tasks(documents: List[MetadataDocument]): List[FunctionTask] ->
+    reverse_function_tasks(function_tasks_at(documents, [])).
+
+@pure
+function_tasks_at(
+    documents: List[MetadataDocument],
+    tasks: List[FunctionTask],
+): List[FunctionTask] ->
+    case documents {
+        [] -> tasks;
+        [document | rest] ->
+            function_tasks_at(rest, document_tasks(document, document.rows, 0, tasks))
+    }.
+
+@pure
+document_tasks(
+    document: MetadataDocument,
+    rows: List[StringFieldRow],
+    index: Int,
+    tasks: List[FunctionTask],
+): List[FunctionTask] ->
+    case rows {
+        [] -> tasks;
+        [row | rest] ->
+            document_tasks(
+                document,
+                rest,
+                index + 1,
+                [FunctionTask(
+    module_name = document.module_name,
+    functions = document.functions,
+    index = index,
+    row = row,
+) | tasks],
+            )
+    }.
+
+@pure
+reverse_function_tasks(values: List[FunctionTask]): List[FunctionTask] ->
+    reverse_function_tasks_at(values, []).
+
+@pure
+reverse_function_tasks_at(
+    values: List[FunctionTask],
+    reversed: List[FunctionTask],
+): List[FunctionTask] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_function_tasks_at(rest, [value | reversed])
+    }.
+
+load_arities(
+    tasks: List[FunctionTask],
+    manifest_rows: List[ManifestRow],
+    operations: List[NativeOperation],
+    diagnostics: List[String],
+): Bool ->
+    case tasks {
+        [] -> finish_validation(manifest_rows, operations, diagnostics);
+        [task | rest] -> read_function_row(task, rest, manifest_rows, operations, diagnostics)
+    }.
+
+read_function_row(
+    task: FunctionTask,
+    rest: List[FunctionTask],
+    manifest_rows: List[ManifestRow],
+    operations: List[NativeOperation],
+    diagnostics: List[String],
+): Bool ->
+    case task.functions.at(task.index) {
+        Err(_reason) ->
+            load_arities(
+                rest,
+                manifest_rows,
+                operations,
+                [String.append(task.module_name, ": invalid function row") | diagnostics],
+            );
+        Ok(function) ->
+            read_function_arity(task, function, rest, manifest_rows, operations, diagnostics)
+    }.
+
+read_function_arity(
+    task: FunctionTask,
+    function: Json,
+    rest: List[FunctionTask],
+    manifest_rows: List[ManifestRow],
+    operations: List[NativeOperation],
+    diagnostics: List[String],
+): Bool ->
+    case function.get("arity") {
+        Err(_reason) ->
+            load_arities(
+                rest,
+                manifest_rows,
+                operations,
+                [String.append(task.module_name, ": missing function arity") | diagnostics],
+            );
+        Ok(arity_value) ->
+            decode_function_arity(task, arity_value, rest, manifest_rows, operations, diagnostics)
+    }.
+
+decode_function_arity(
+    task: FunctionTask,
+    arity_value: Json,
+    rest: List[FunctionTask],
+    manifest_rows: List[ManifestRow],
+    operations: List[NativeOperation],
+    diagnostics: List[String],
+): Bool ->
+    case arity_value.as_int() {
+        Err(_reason) ->
+            load_arities(
+                rest,
+                manifest_rows,
+                operations,
+                [String.append(task.module_name, ": invalid function arity") | diagnostics],
+            );
+        Ok(arity) ->
+            append_native_operation(task, arity, rest, manifest_rows, operations, diagnostics)
+    }.
+
+append_native_operation(
+    task: FunctionTask,
+    arity: Int,
+    rest: List[FunctionTask],
+    manifest_rows: List[ManifestRow],
+    operations: List[NativeOperation],
+    diagnostics: List[String],
+): Bool ->
+    if {
+        not Json.string_field_row_is_object(task.row) -> load_arities(
+            rest,
+            manifest_rows,
+            operations,
+            [String.append(task.module_name, ": function row must be an object") | diagnostics],
+        );
+        true -> case Json.string_field_row_values(task.row) {
+            [Some(operation) | [Some(function_name) | []]] ->
+                load_arities(
+                    rest,
+                    manifest_rows,
+                    [NativeOperation(
+    module_name = task.module_name,
+    operation = operation,
+    function_name = function_name,
+    arity = arity,
+) | operations],
+                    diagnostics,
+                );
+            _ ->
+                load_arities(
+                    rest,
+                    manifest_rows,
+                    operations,
+                    [String.append(task.module_name, ": invalid function projection") | diagnostics],
+                )
+        }
+    }.
+
+finish_validation(
+    rows: List[ManifestRow],
+    operations: List[NativeOperation],
+    diagnostics: List[String],
+): Bool ->
+    let checked_rows = validate_manifest_rows(rows, rows, operations, diagnostics);
+    let checked_operations = validate_native_operations(operations, rows, checked_rows);
+    report_result(row_count(rows), reverse_strings(checked_operations)).
+
+@pure
+validate_manifest_rows(
+    rows: List[ManifestRow],
+    all_rows: List[ManifestRow],
+    operations: List[NativeOperation],
+    diagnostics: List[String],
+): List[String] ->
+    case rows {
+        [] -> diagnostics;
+        [row | rest] ->
+            let next = validate_manifest_row(row, all_rows, operations, diagnostics);
+            validate_manifest_rows(rest, all_rows, operations, next)
+    }.
+
+@pure
+validate_manifest_row(
+    row: ManifestRow,
+    all_rows: List[ManifestRow],
+    operations: List[NativeOperation],
+    diagnostics: List[String],
+): List[String] ->
+    let d1 =
+        if {
+            allowed_crate(row.crate_name) -> diagnostics;
+            true -> [String.append(
+    row.source,
+    String.append(": unsupported Rust crate `", String.append(row.crate_name, "`")),
+) | diagnostics]
+        };
+    let duplicates = operation_count(all_rows, row.module_name, row.operation);
+    let d2 =
+        if {
+            duplicates <= 1 -> d1;
+            true -> [String.append(
+    row.source,
+    String.append(": duplicate operation `", String.append(row.operation, "`")),
+) | d1]
+        };
+    let found = find_native_operation(operations, row.module_name, row.operation);
+    if {
+        not found.found -> [String.append(
+    row.source,
+    String.append(": manifest row `", String.append(row.operation, "` is not in source")),
+) | d2];
+        true -> if {
+            row.function_name == found.function_name and row.arity == found.arity -> d2;
+            true -> [String.append(
+    row.source,
+    String.append(
+        String.append(": `", row.operation),
+        String.append("` manifest function/arity does not match compiler metadata", ""),
+    ),
+) | d2]
+        }
+    }.
+
+@pure
+operation_count(rows: List[ManifestRow], module_name: String, operation: String): Int ->
+    operation_count_at(rows, module_name, operation, 0).
+
+@pure
+operation_count_at(
+    rows: List[ManifestRow],
+    module_name: String,
+    operation: String,
+    count: Int,
+): Int ->
+    case rows {
+        [] -> count;
+        [row | rest] ->
+            let next =
+                if {
+                    row.module_name == module_name and row.operation == operation -> count + 1;
+                    true -> count
+                };
+            operation_count_at(rest, module_name, operation, next)
+    }.
+
+@pure
+find_native_operation(
+    operations: List[NativeOperation],
+    module_name: String,
+    operation: String,
+): OperationMatch ->
+    case operations {
+        [] -> OperationMatch(found = false, function_name = "", arity = 0);
+        [candidate | rest] ->
+            if {
+                candidate.module_name == module_name and candidate.operation == operation -> OperationMatch(
+                    found = true,
+                    function_name = candidate.function_name,
+                    arity = candidate.arity,
+                );
+                true -> find_native_operation(rest, module_name, operation)
+            }
+    }.
+
+@pure
+validate_native_operations(
+    operations: List[NativeOperation],
+    rows: List[ManifestRow],
+    diagnostics: List[String],
+): List[String] ->
+    case operations {
+        [] -> diagnostics;
+        [operation | rest] ->
+            let next =
+                if {
+                    manifest_has_operation(rows, operation.module_name, operation.operation) -> diagnostics;
+                    true -> [String.append(
+    expected_source(operation.module_name),
+    String.append(": missing manifest row for `", String.append(operation.operation, "`")),
+) | diagnostics]
+                };
+            validate_native_operations(rest, rows, next)
+    }.
+
+@pure
+manifest_has_operation(rows: List[ManifestRow], module_name: String, operation: String): Bool ->
+    case rows {
+        [] -> false;
+        [row | rest] ->
+            row.module_name == module_name and row.operation == operation
+                or manifest_has_operation(rest, module_name, operation)
+    }.
+
+@pure
+expected_source(module_name: String): String ->
+    case module_name {
+        "std.data.Json" -> "std/data/Json.terl";
+        "std.data.Toml" -> "std/data/Toml.terl";
+        "std.encoding.Base64" -> "std/encoding/Base64.terl";
+        "std.encoding.Md5" -> "std/encoding/Md5.terl";
+        "std.io.Path" -> "std/io/Path.terl";
+        "std.net.Uri" -> "std/net/Uri.terl";
+        "std.random.Random" -> "std/random/Random.terl";
+        "std.regex.Regex" -> "std/regex/Regex.terl";
+        "std.http.Request" -> "std/http/Request.terl";
+        "std.http.Cookies" -> "std/http/Cookies.terl";
+        "std.http.Session" -> "std/http/Session.terl";
+        "std.http.Sse" -> "std/http/Sse.terl";
+        "std.http.WebSocket" -> "std/http/WebSocket.terl";
+        "std.http.Response" -> "std/http/Response.terl";
+        "std.db.Postgres" -> "std/db/Postgres.terl";
+        "std.native.collections.Vector" -> "std/native/collections/Vector.terl";
+        _ -> module_name
+    }.
+
+@pure
+row_count(rows: List[ManifestRow]): Int ->
+    row_count_at(rows, 0).
+
+@pure
+row_count_at(rows: List[ManifestRow], count: Int): Int ->
+    case rows {
+        [] -> count;
+        [_row | rest] -> row_count_at(rest, count + 1)
+    }.
+
+report_result(count: Int, diagnostics: List[String]): Bool ->
+    case diagnostics {
+        [] ->
+            let _printed =
+                println(
+                    String.append(
+                        "[rust-backed-std-manifest] ",
+                        String.append(Int.to_string(count), " operations are covered."),
+                    ),
+                );
+            true;
+        _ -> report(diagnostics)
+    }.
+
+report(diagnostics: List[String]): Bool ->
+    let _header = println("[rust-backed-std-manifest] failures:");
+    print_diagnostics(diagnostics).
+
+print_diagnostics(diagnostics: List[String]): Bool ->
+    case diagnostics {
+        [] -> false;
+        [entry | rest] ->
+            let _printed = println(String.append("  - ", entry));
+            print_diagnostics(rest)
+    }.
+
+@test
+pub parser_accepts_rows_and_rejects_bad_arity(): Bool ->
+    let good = "module\tsource\tcrate\toperation\tfunction\tarity\nstd.data.Json\tstd/data/Json.terl\tserde_json\tstd.data.json.parse\tparse\t1\n";
+    let bad = "module\tsource\tcrate\toperation\tfunction\tarity\nstd.data.Json\tstd/data/Json.terl\tserde_json\tstd.data.json.parse\tparse\tbad\n";
+    let good_inventory = parse_manifest(good, "manifest");
+    let good_count = row_count(good_inventory.rows);
+    let bad_inventory = parse_manifest(bad, "manifest");
+    let bad_empty = diagnostics_empty(bad_inventory.diagnostics);
+    good_count == 1 and not bad_empty.
+
+@test
+pub repository_manifest_matches_compiler_metadata(): Bool ->
+    validate(selected_root()).
+
+pub main(): Unit ->
+    if {
+        repository_manifest_matches_compiler_metadata() -> Unit;
+        true -> println("[rust-backed-std-manifest] validation failed")
+    }.

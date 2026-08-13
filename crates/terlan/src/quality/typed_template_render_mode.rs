@@ -151,6 +151,7 @@ const REJECTED_MODE_COMBINATIONS: &[&str] = &[
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing typed template render mode summary.
 pub struct TypedTemplateRenderModeSummary {
     pub render_mode_count: usize,
     pub implemented_mode_count: usize,
@@ -159,6 +160,7 @@ pub struct TypedTemplateRenderModeSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs typed template render mode.
 pub fn run_typed_template_render_mode(
     root: &Path,
 ) -> QualityResult<TypedTemplateRenderModeSummary> {
@@ -351,4 +353,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "typed_template_render_mode_test.rs"]
+#[cfg(test)]
 mod typed_template_render_mode_test;

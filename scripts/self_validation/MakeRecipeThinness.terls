@@ -1,0 +1,499 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Keeps Make as a dependency graph and moves validation logic into Terlan.
+ */
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.io.Console.{println}.
+import std.io.File.{read_text_tree_matching}.
+import std.system.Environment.
+
+import type std.collections.List.
+import type std.core.Option.
+import type std.io.File.TextFile.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+@pure
+is_make_source(path: String): Bool ->
+    String.ends_with(path, "Makefile") or String.ends_with(path, ".mk").
+
+@pure
+target_name(line: String): String ->
+    if {
+        line == ""
+            or String.starts_with(line, "\t")
+            or String.starts_with(line, " ")
+            or String.starts_with(line, "#") -> "";
+        true -> case String.split_once(line, ":") {
+            Some({name, _rest}) ->
+                if {
+                    String.contains(name, "=") -> "";
+                    true -> String.trim(name)
+                };
+            None -> ""
+        }
+    }.
+
+@pure
+make_target_prerequisites(source: String, expected: String): Option[List[String]] ->
+    find_target_prerequisites(String.split(source, "\n"), expected).
+
+@pure
+find_target_prerequisites(lines: List[String], expected: String): Option[List[String]] ->
+    case lines {
+        [] -> None;
+        [line | rest] ->
+            if {
+                target_name(line) == expected -> case String.split_once(line, ":") {
+                    Some({_name, declaration}) ->
+                        collect_target_prerequisites(rest, declaration, List.new[String]());
+                    None -> Some(List.new[String]())
+                };
+                true -> find_target_prerequisites(rest, expected)
+            }
+    }.
+
+@pure
+collect_target_prerequisites(
+    remaining_lines: List[String],
+    declaration: String,
+    collected: List[String],
+): Option[List[String]] ->
+    let trimmed = String.trim(declaration);
+    let continued = String.ends_with(trimmed, "\\");
+    let fields =
+        nonempty_strings(
+            String.split(
+                String.trim(
+                    if {
+                        continued -> String.replace(trimmed, "\\", "");
+                        true -> trimmed
+                    },
+                ),
+                " ",
+            ),
+        );
+    let next = append_strings(collected, fields);
+    if {
+        not continued -> Some(next);
+        true -> case remaining_lines {
+            [] -> Some(next);
+            [line | rest] -> collect_target_prerequisites(rest, line, next)
+        }
+    }.
+
+@pure
+nonempty_strings(values: List[String]): List[String] ->
+    reverse_strings(nonempty_strings_at(values, List.new[String]())).
+
+@pure
+nonempty_strings_at(values: List[String], collected: List[String]): List[String] ->
+    case values {
+        [] -> collected;
+        [value | rest] ->
+            if {
+                value == "" -> nonempty_strings_at(rest, collected);
+                true -> nonempty_strings_at(rest, [value | collected])
+            }
+    }.
+
+@pure
+is_terlan_tool_recipe(line: String): Bool ->
+    String.starts_with(line, "\t")
+    and String.contains(line, "terlc test ")
+    and String.contains(line, ".terl")
+        or String.contains(line, "TERLAN_SELF_VALIDATION_IMAGE")
+        or String.contains(line, "TERLAN_BOOTSTRAP_VM) run")
+        or String.contains(line, "target/debug/terlan-vm run").
+
+@pure
+forbidden_reason(line: String, target: String): String ->
+    let trimmed = String.trim(line);
+    if {
+        not String.starts_with(line, "\t") -> "";
+        target != "terlan-compiler-bootstrap"
+            and String.contains(line, "$(CARGO) build")
+            and String.contains(line, "--bin terlc")
+            and not String.contains(line, "--release") -> "repeats the compiler bootstrap inside a validation recipe";
+        String.contains(line, "$(PYTHON)") or String.contains(line, "python3") -> "delegates recipe logic to Python";
+        String.starts_with(trimmed, "bash ") or String.starts_with(trimmed, "sh ") -> "delegates recipe logic to a shell script";
+        String.contains(line, "mktemp") -> "creates a shell-owned temporary workspace";
+        String.contains(line, "trap ") -> "uses shell cleanup control flow";
+        String.contains(line, "$$(") -> "uses shell command substitution";
+        String.contains(line, "&&") or String.contains(line, "||") -> "uses shell boolean control flow";
+        String.starts_with(trimmed, "if ")
+            or String.starts_with(trimmed, "@if ")
+            or String.starts_with(trimmed, "for ")
+            or String.starts_with(trimmed, "@for ")
+            or String.starts_with(trimmed, "while ")
+            or String.starts_with(trimmed, "@while ")
+            or String.starts_with(trimmed, "case ")
+            or String.starts_with(trimmed, "@case ") -> "uses shell branching or iteration";
+        String.starts_with(trimmed, "find ")
+            or String.starts_with(trimmed, "awk ")
+            or String.starts_with(trimmed, "sed ")
+            or String.starts_with(trimmed, "grep ") -> "implements validation in a text utility";
+        true -> ""
+    }.
+
+@pure
+reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_at(values, List.new[String]()).
+
+@pure
+reverse_strings_at(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings_at(rest, [value | reversed])
+    }.
+
+@pure
+append_strings(left: List[String], right: List[String]): List[String] ->
+    prepend_reversed(reverse_strings(left), right).
+
+@pure
+prepend_reversed(left: List[String], right: List[String]): List[String] ->
+    case left {
+        [] -> right;
+        [value | rest] -> prepend_reversed(rest, [value | right])
+    }.
+
+@pure
+scan_make_source(path: String, source: String): List[String] ->
+    append_strings(
+        reverse_strings(
+            scan_make_lines(
+                path,
+                String.split(source, "\n"),
+                1,
+                "",
+                false,
+                List.new[String](),
+                List.new[String](),
+            ),
+        ),
+        scan_duplicate_recipe_work(path, String.split(source, "\n")),
+    ).
+
+@pure
+scan_duplicate_recipe_work(path: String, lines: List[String]): List[String] ->
+    reverse_strings(
+        scan_duplicate_recipe_lines(path, lines, 1, "", "", List.new[String](), List.new[String]()),
+    ).
+
+@pure
+scan_duplicate_recipe_lines(
+    path: String,
+    lines: List[String],
+    line_number: Int,
+    target: String,
+    continued_prefix: String,
+    seen_work: List[String],
+    findings: List[String],
+): List[String] ->
+    case lines {
+        [] -> findings;
+        [line | rest] ->
+            let next_target = target_name(line);
+            if {
+                next_target != "" -> scan_duplicate_recipe_lines(
+                    path,
+                    rest,
+                    line_number + 1,
+                    next_target,
+                    "",
+                    List.new[String](),
+                    findings,
+                );
+                String.starts_with(line, "\t") and String.ends_with(String.trim(line), "\\") -> scan_duplicate_recipe_lines(
+                    path,
+                    rest,
+                    line_number + 1,
+                    target,
+                    String.append(continued_prefix, String.trim(line)),
+                    seen_work,
+                    findings,
+                );
+                is_validation_work(line) -> let identity = String.append(continued_prefix, String.trim(line));
+                let duplicate = string_member(seen_work, identity);
+                scan_duplicate_recipe_lines(
+                    path,
+                    rest,
+                    line_number + 1,
+                    target,
+                    "",
+                    [identity | seen_work],
+                    if {
+                        duplicate -> [render_finding(path, line_number, target, "repeats an identical validation command in one recipe") | findings];
+                        true -> findings
+                    },
+                );
+                true -> scan_duplicate_recipe_lines(
+                    path,
+                    rest,
+                    line_number + 1,
+                    target,
+                    "",
+                    seen_work,
+                    findings,
+                )
+            }
+    }.
+
+@pure
+is_validation_work(line: String): Bool ->
+    let command = String.trim(line);
+    String.starts_with(line, "\t")
+    and not String.ends_with(command, "\\")
+    and String.starts_with(command, "$(CARGO) ")
+        or String.starts_with(command, "$(RUST_TEST) ")
+        or String.starts_with(command, "$(TERLC) ")
+        or String.starts_with(command, "target/debug/terlc ")
+        or String.starts_with(command, "target/debug/terlan-").
+
+@pure
+string_member(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or string_member(rest, expected)
+    }.
+
+@pure
+string_lists_equal(left: List[String], right: List[String]): Bool ->
+    case left {
+        [] ->
+            case right {
+                [] -> true;
+                [_right_value | _right_rest] -> false
+            };
+        [left_value | left_rest] ->
+            case right {
+                [] -> false;
+                [right_value | right_rest] ->
+                    left_value == right_value and string_lists_equal(left_rest, right_rest)
+            }
+    }.
+
+@pure
+scan_make_lines(
+    path: String,
+    lines: List[String],
+    line_number: Int,
+    target: String,
+    has_terlan_tool: Bool,
+    recipe_findings: List[String],
+    findings: List[String],
+): List[String] ->
+    case lines {
+        [] -> finish_recipe(has_terlan_tool, recipe_findings, findings);
+        [line | rest] ->
+            let next_target = target_name(line);
+            if {
+                next_target != "" -> scan_make_lines(
+                    path,
+                    rest,
+                    line_number + 1,
+                    next_target,
+                    false,
+                    List.new[String](),
+                    finish_recipe(has_terlan_tool, recipe_findings, findings),
+                );
+                String.starts_with(line, "\t") -> let reason = forbidden_reason(line, target);
+                scan_make_lines(
+                    path,
+                    rest,
+                    line_number + 1,
+                    target,
+                    has_terlan_tool or is_terlan_tool_recipe(line),
+                    if {
+                        reason == "" -> recipe_findings;
+                        true -> [render_finding(path, line_number, target, reason) | recipe_findings]
+                    },
+                    findings,
+                );
+                true -> scan_make_lines(
+                    path,
+                    rest,
+                    line_number + 1,
+                    target,
+                    has_terlan_tool,
+                    recipe_findings,
+                    findings,
+                )
+            }
+    }.
+
+@pure
+finish_recipe(
+    has_terlan_tool: Bool,
+    recipe_findings: List[String],
+    findings: List[String],
+): List[String] ->
+    if {
+        has_terlan_tool -> append_strings(recipe_findings, findings);
+        true -> findings
+    }.
+
+@pure
+render_finding(path: String, line_number: Int, target: String, reason: String): String ->
+    String.append(
+        path,
+        String.append(
+            ":",
+            String.append(
+                Int.to_string(line_number),
+                String.append(": target `", String.append(target, String.append("` ", reason))),
+            ),
+        ),
+    ).
+
+@pure
+scan_make_files(files: List[TextFile], findings: List[String]): List[String] ->
+    case files {
+        [] -> reverse_strings(findings);
+        [file | rest] ->
+            scan_make_files(
+                rest,
+                if {
+                    is_make_source(file.path) -> append_strings(scan_make_source(file.path, file.contents), findings);
+                    true -> findings
+                },
+            )
+    }.
+
+print_findings(findings: List[String]): Bool ->
+    let _header = println("[make-recipe-thinness] logic remains in Terlan-owned Make recipes:");
+    print_finding_rows(findings).
+
+print_finding_rows(findings: List[String]): Bool ->
+    case findings {
+        [] -> false;
+        [finding | rest] ->
+            let _row = println(String.append("  - ", finding));
+            print_finding_rows(rest)
+    }.
+
+validate_make_files(files: List[TextFile]): Bool ->
+    let findings = scan_make_files(files, List.new[String]());
+    case findings {
+        [] ->
+            let _passed = println("[make-recipe-thinness] Terlan-owned Make recipes are thin.");
+            true;
+        _ -> print_findings(findings)
+    }.
+
+repository_gate(): Bool ->
+    let root = environment_or("TERLAN_MAKE_RECIPE_ROOT", ".");
+    case read_text_tree_matching(
+    root,
+    [".git", "target", "node_modules", "vendor", "dist", "build"],
+    ["Makefile", ".mk"],
+    List.new[String](),
+    0,
+    512,
+) {
+        Ok(files) -> validate_make_files(files);
+        Err(_reason) -> false
+    }.
+
+@test
+pub repository_terlan_make_recipes_are_thin(): Bool ->
+    repository_gate().
+
+@test
+pub shell_control_is_rejected_for_terlan_owned_recipe(): Bool ->
+    scan_make_source(
+    "Makefile",
+    "gate:\n\tif test -f value; then true; fi\n\ttarget/debug/terlc test scripts/CheckTest.terl\n",
+) != List.new[String]().
+
+@test
+pub silent_shell_control_is_rejected_for_terlan_owned_recipe(): Bool ->
+    scan_make_source(
+    "Makefile",
+    "gate:\n\t@if test -f value; then true; fi\n\ttarget/debug/terlc test scripts/CheckTest.terl\n",
+) != List.new[String]().
+
+@test
+pub repeated_compiler_build_is_rejected_for_terlan_dispatch(): Bool ->
+    scan_make_source(
+    "Makefile",
+    "gate:\n\t$(CARGO) build -p terlan --bin terlc\n\tROOT=\"$(CURDIR)\" \\\n\t\ttarget/debug/terlc test scripts/CheckTest.terl\n",
+) != List.new[String]().
+
+@test
+pub identical_validation_work_is_rejected_within_one_recipe(): Bool ->
+    scan_make_source(
+    "Makefile",
+    "gate:\n\t$(RUST_TEST) -p terlan --lib focused_test\n\t$(RUST_TEST) -p terlan --lib focused_test\n",
+) != List.new[String]().
+
+@test
+pub distinct_validation_selectors_are_not_duplicate_work(): Bool ->
+    scan_make_source(
+    "Makefile",
+    "gate:\n\t$(RUST_TEST) -p terlan --lib first_test\n\t$(RUST_TEST) -p terlan --lib second_test\n",
+) == List.new[String]().
+
+@test
+pub prebuilt_terlan_dispatch_is_accepted(): Bool ->
+    scan_make_source(
+    "Makefile",
+    "gate: | terlan-self-validation-bootstrap\n\tROOT=\"$(CURDIR)\" \\\n\t\t$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SELF_VALIDATION_IMAGE)\n",
+) == List.new[String]().
+
+@test
+pub modular_prebuilt_terlan_tool_is_accepted(): Bool ->
+    scan_make_source(
+    "Makefile",
+    "gate: | terlan-compiler-bootstrap\n\tTERLAN_REPOSITORY_ROOT=\"$(CURDIR)\" $(TERLAN_BOOTSTRAP_VM) run $(TOOL_IMAGE) --entry package.Main.run_entry\n",
+) == List.new[String]().
+
+@test
+pub reads_single_line_prerequisites(): Bool ->
+    case make_target_prerequisites("check: rust-test-suite check-gates\n", "check") {
+        Some(values) ->
+            string_lists_equal(values, String.split("rust-test-suite check-gates", " "));
+        None -> false
+    }.
+
+@test
+pub reads_continued_prerequisites_without_recipe_lines(): Bool ->
+    case make_target_prerequisites(
+    "http-check: \\\n\tvm-stream-check \\\n\tvm-router-check\n\tcargo test http\n",
+    "http-check",
+) {
+        Some(values) ->
+            string_lists_equal(values, String.split("vm-stream-check vm-router-check", " "));
+        None -> false
+    }.
+
+@test
+pub reports_missing_target(): Bool ->
+    case make_target_prerequisites("check:\n", "missing") {
+        None -> true;
+        Some(_values) -> false
+    }.
+
+complete_gate(): Bool ->
+    reads_single_line_prerequisites()
+        and reads_continued_prerequisites_without_recipe_lines()
+        and reports_missing_target()
+        and shell_control_is_rejected_for_terlan_owned_recipe()
+        and silent_shell_control_is_rejected_for_terlan_owned_recipe()
+        and repeated_compiler_build_is_rejected_for_terlan_dispatch()
+        and identical_validation_work_is_rejected_within_one_recipe()
+        and distinct_validation_selectors_are_not_duplicate_work()
+        and prebuilt_terlan_dispatch_is_accepted()
+        and modular_prebuilt_terlan_tool_is_accepted()
+        and repository_gate().
+
+assert(complete_gate());
+Unit.

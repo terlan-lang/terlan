@@ -19,12 +19,12 @@ module guard_no_opt_suite_native.\n\
 identity(value: Int): Int -> value.\n\
 pub guarded_division(value: Int): Int ->\n\
     case identity(value) {\n\
-        item where item != 0 && 84 div item > 10 -> 1;\n\
+        item where item != 0 and 84 div item > 10 -> 1;\n\
         _ -> 0\n\
     }.\n\
 pub guarded_overflow(value: Int): Int ->\n\
     case identity(value) {\n\
-        item where item < 9223372036854775807 && item + 1 > item -> item + 1;\n\
+        item where item < 9223372036854775807 and item + 1 > item -> item + 1;\n\
         _ -> value\n\
     }.\n\
 pub ordered(value: Int): Int ->\n\
@@ -36,7 +36,7 @@ pub ordered(value: Int): Int ->\n\
     }.\n\
 pub negated_or(value: Int, enabled: Bool): Int ->\n\
     case identity(value) {\n\
-        item where !enabled || item > 10 -> item;\n\
+        item where !enabled or item > 10 -> item;\n\
         _ -> 0\n\
     }.\n",
     )

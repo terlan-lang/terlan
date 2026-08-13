@@ -1,0 +1,1534 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Rejects new or growing cross-file duplicate Rust helper bodies.
+ */
+import std.collections.List.{length}.
+import std.collections.{List, Map}.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.{byte_size, characters}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.{files_recursive}.
+import std.io.File.{read_text, read_text_many, write_text}.
+import std.system.{Arguments, Environment}.
+
+import type std.collections.Map.
+import type std.core.Option.
+import type std.io.File.TextFile.
+
+struct FunctionBody {
+    path: String,
+    name: String,
+    line: Int,
+    body: String,
+}.
+
+struct DuplicateGroup {
+    body_hash: String,
+    logical_lines: Int,
+    functions: List[FunctionBody],
+}.
+
+struct BaselineGroup {
+    body_hash: String,
+    logical_lines: Int,
+    occurrences: Int,
+    owner: String,
+    removal_plan: String,
+    samples: String,
+}.
+
+struct BaselineParse {
+    groups: List[BaselineGroup],
+    diagnostics: List[String],
+}.
+
+struct BaselineRowParse {
+    valid: Bool,
+    group: BaselineGroup,
+    diagnostic: String,
+}.
+
+struct BodySearch {
+    found: Bool,
+    body: String,
+}.
+
+struct IndexedRawOpen {
+    valid: Bool,
+    tail: Int,
+    hashes: Int,
+}.
+
+struct IndexedNameScan {
+    valid: Bool,
+    name: String,
+    tail: Int,
+}.
+
+struct NormalizedBody {
+    text: String,
+    logical_lines: Int,
+}.
+
+struct Options {
+    valid: Bool,
+    self_test: Bool,
+    write_baseline: Bool,
+}.
+
+struct GroupLoad {
+    valid: Bool,
+    groups: List[DuplicateGroup],
+}.
+
+struct TextLoad {
+    valid: Bool,
+    source: String,
+}.
+
+struct PathBatch {
+    paths: List[String],
+    remaining: List[String],
+}.
+
+struct GroupIndex {
+    groups: Map[String, DuplicateGroup],
+    hashes: List[String],
+}.
+
+@pure
+min_logical_lines(): Int -> 12.
+
+@pure
+implementation_path(path: String): Bool ->
+    String.ends_with(path, ".rs")
+        and not String.ends_with(path, "_test.rs")
+        and not String.contains(path, "/tests/")
+        and not String.contains(path, "_test/")
+        and not String.contains(path, "/fixtures/")
+        and not String.contains(path, "/generated/").
+
+@pure
+text_byte_at(value: String, index: Int): Int ->
+    value.utf8_byte_at(index).
+
+@pure
+text_slice(value: String, start: Int, length: Int): String ->
+    value.utf8_slice(start, length).
+
+root(): String ->
+    case Environment.get("TERLAN_SHARED_HELPER_ROOT") {
+        Some(value) -> value;
+        None -> Environment.current_directory()
+    }.
+
+@pure
+child(parent: String, relative: String): String ->
+    if {
+        parent == "." -> relative;
+        String.ends_with(parent, "/") -> String.append(parent, relative);
+        true -> String.append(parent, String.append("/", relative))
+    }.
+
+@pure
+relative_path(repository: String, path: String): String ->
+    let prefix =
+        if {
+            repository == "." -> "./";
+            String.ends_with(repository, "/") -> repository;
+            true -> String.append(repository, "/")
+        };
+    case String.split_once(path, prefix) {
+        Some({"", relative}) -> relative;
+        _ -> path
+    }.
+
+options(): Options ->
+    if {
+        Arguments.count() == 0 -> Options(valid = true, self_test = false, write_baseline = false);
+        Arguments.count() == 1 -> case Arguments.get(0) {
+            Some("--self-test") -> Options(valid = true, self_test = true, write_baseline = false);
+            Some("--write-baseline") ->
+                Options(valid = true, self_test = false, write_baseline = true);
+            _ -> Options(valid = false, self_test = false, write_baseline = false)
+        };
+        true -> Options(valid = false, self_test = false, write_baseline = false)
+    }.
+
+@pure
+reverse_strings(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings(rest, [value | reversed])
+    }.
+
+@pure
+reverse_functions(values: List[FunctionBody], reversed: List[FunctionBody]): List[FunctionBody] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_functions(rest, [value | reversed])
+    }.
+
+@pure
+reverse_groups(
+    values: List[DuplicateGroup],
+    reversed: List[DuplicateGroup],
+): List[DuplicateGroup] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_groups(rest, [value | reversed])
+    }.
+
+@pure
+identifier_character(value: Int): Bool ->
+    value >= 97 and value <= 122
+        or value >= 65 and value <= 90
+        or value >= 48 and value <= 57
+        or value == 95.
+
+@pure
+whitespace(value: Int): Bool ->
+    value == 32 or value == 9 or value == 13 or value == 10.
+
+@pure
+raw_open_at(source: String, size: Int, index: Int): IndexedRawOpen ->
+    raw_hashes_at(source, size, index + 1, 0).
+
+@pure
+raw_hashes_at(source: String, size: Int, index: Int, hashes: Int): IndexedRawOpen ->
+    if {
+        index >= size -> IndexedRawOpen(valid = false, tail = index, hashes = hashes);
+        text_byte_at(source, index) == 34 -> IndexedRawOpen(valid = true, tail = index + 1, hashes = hashes);
+        text_byte_at(source, index) == 35 -> raw_hashes_at(source, size, index + 1, hashes + 1);
+        true -> IndexedRawOpen(valid = false, tail = index, hashes = hashes)
+    }.
+
+@pure
+raw_close_at(source: String, size: Int, index: Int, hashes: Int): Bool ->
+    if {
+        index >= size or text_byte_at(source, index) != 34 -> false;
+        true -> raw_close_hashes(source, size, index + 1, hashes)
+    }.
+
+@pure
+raw_close_hashes(source: String, size: Int, index: Int, remaining: Int): Bool ->
+    if {
+        remaining == 0 -> true;
+        index >= size or text_byte_at(source, index) != 35 -> false;
+        true -> raw_close_hashes(source, size, index + 1, remaining - 1)
+    }.
+
+@pure
+scan_name_at(source: String, size: Int, index: Int): IndexedNameScan ->
+    if {
+        index >= size -> IndexedNameScan(valid = false, name = "", tail = index);
+        whitespace(text_byte_at(source, index)) -> scan_name_at(source, size, index + 1);
+        identifier_character(text_byte_at(source, index)) -> take_name_at(source, size, index, index);
+        true -> IndexedNameScan(valid = false, name = "", tail = index)
+    }.
+
+@pure
+take_name_at(source: String, size: Int, start: Int, index: Int): IndexedNameScan ->
+    if {
+        index < size and identifier_character(text_byte_at(source, index)) -> take_name_at(source, size, start, index + 1);
+        true -> IndexedNameScan(
+            valid = index > start,
+            name = text_slice(source, start, index - start),
+            tail = index,
+        )
+    }.
+
+@pure
+find_body_at(
+    source: String,
+    size: Int,
+    index: Int,
+    mode: Int,
+    comment_depth: Int,
+    raw_hashes: Int,
+): BodySearch ->
+    if {
+        index >= size -> BodySearch(found = false, body = "");
+        mode == 1 -> if {
+            text_byte_at(source, index) == 10 -> find_body_at(source, size, index + 1, 0, 0, 0);
+            true -> find_body_at(source, size, index + 1, 1, 0, 0)
+        };
+        mode == 2 -> find_body_block_at(source, size, index, comment_depth);
+        mode == 3 or mode == 4 -> find_body_quoted_at(source, size, index, mode);
+        mode == 5 -> if {
+            raw_close_at(source, size, index, raw_hashes) -> find_body_at(source, size, index + raw_hashes + 1, 0, 0, 0);
+            true -> find_body_at(source, size, index + 1, 5, 0, raw_hashes)
+        };
+        true -> find_body_code_at(source, size, index)
+    }.
+
+@pure
+find_body_code_at(source: String, size: Int, index: Int): BodySearch ->
+    let current = text_byte_at(source, index);
+    let next =
+        if {
+            index + 1 < size -> text_byte_at(source, index + 1);
+            true -> -1
+        };
+    if {
+        current == 59 -> BodySearch(found = false, body = "");
+        current == 123 -> collect_body_at(source, size, index + 1, index + 1, 1, 0, 0, 0);
+        current == 47 and next == 47 -> find_body_at(source, size, index + 2, 1, 0, 0);
+        current == 47 and next == 42 -> find_body_at(source, size, index + 2, 2, 1, 0);
+        current == 34 -> find_body_at(source, size, index + 1, 3, 0, 0);
+        current == 39 -> find_body_at(source, size, index + 1, 4, 0, 0);
+        current == 114 -> let opened = raw_open_at(source, size, index);
+        if {
+            opened.valid -> find_body_at(source, size, opened.tail, 5, 0, opened.hashes);
+            true -> find_body_at(source, size, index + 1, 0, 0, 0)
+        };
+        true -> find_body_at(source, size, index + 1, 0, 0, 0)
+    }.
+
+@pure
+find_body_block_at(source: String, size: Int, index: Int, depth: Int): BodySearch ->
+    let current = text_byte_at(source, index);
+    let next =
+        if {
+            index + 1 < size -> text_byte_at(source, index + 1);
+            true -> -1
+        };
+    if {
+        current == 47 and next == 42 -> find_body_at(source, size, index + 2, 2, depth + 1, 0);
+        current == 42 and next == 47 and depth == 1 -> find_body_at(source, size, index + 2, 0, 0, 0);
+        current == 42 and next == 47 -> find_body_at(source, size, index + 2, 2, depth - 1, 0);
+        true -> find_body_at(source, size, index + 1, 2, depth, 0)
+    }.
+
+@pure
+find_body_quoted_at(source: String, size: Int, index: Int, mode: Int): BodySearch ->
+    let current = text_byte_at(source, index);
+    let delimiter =
+        if {
+            mode == 3 -> 34;
+            true -> 39
+        };
+    if {
+        current == 92 and index + 1 < size -> find_body_at(source, size, index + 2, mode, 0, 0);
+        current == delimiter -> find_body_at(source, size, index + 1, 0, 0, 0);
+        true -> find_body_at(source, size, index + 1, mode, 0, 0)
+    }.
+
+@pure
+collect_body_at(
+    source: String,
+    size: Int,
+    start: Int,
+    index: Int,
+    brace_depth: Int,
+    mode: Int,
+    comment_depth: Int,
+    raw_hashes: Int,
+): BodySearch ->
+    if {
+        index >= size -> BodySearch(found = false, body = "");
+        mode == 1 -> collect_body_line_at(source, size, start, index, brace_depth);
+        mode == 2 -> collect_body_block_at(source, size, start, index, brace_depth, comment_depth);
+        mode == 3 or mode == 4 -> collect_body_quoted_at(source, size, start, index, brace_depth, mode);
+        mode == 5 -> if {
+            raw_close_at(source, size, index, raw_hashes) -> collect_body_at(source, size, start, index + raw_hashes + 1, brace_depth, 0, 0, 0);
+            true -> collect_body_at(source, size, start, index + 1, brace_depth, 5, 0, raw_hashes)
+        };
+        true -> collect_body_code_at(source, size, start, index, brace_depth)
+    }.
+
+@pure
+collect_body_code_at(source: String, size: Int, start: Int, index: Int, depth: Int): BodySearch ->
+    let current = text_byte_at(source, index);
+    let next =
+        if {
+            index + 1 < size -> text_byte_at(source, index + 1);
+            true -> -1
+        };
+    if {
+        current == 123 -> collect_body_at(source, size, start, index + 1, depth + 1, 0, 0, 0);
+        current == 125 and depth == 1 -> BodySearch(found = true, body = text_slice(source, start, index - start));
+        current == 125 -> collect_body_at(source, size, start, index + 1, depth - 1, 0, 0, 0);
+        current == 47 and next == 47 -> collect_body_at(source, size, start, index + 2, depth, 1, 0, 0);
+        current == 47 and next == 42 -> collect_body_at(source, size, start, index + 2, depth, 2, 1, 0);
+        current == 34 -> collect_body_at(source, size, start, index + 1, depth, 3, 0, 0);
+        current == 39 -> collect_body_at(source, size, start, index + 1, depth, 4, 0, 0);
+        current == 114 -> let opened = raw_open_at(source, size, index);
+        if {
+            opened.valid -> collect_body_at(source, size, start, opened.tail, depth, 5, 0, opened.hashes);
+            true -> collect_body_at(source, size, start, index + 1, depth, 0, 0, 0)
+        };
+        true -> collect_body_at(source, size, start, index + 1, depth, 0, 0, 0)
+    }.
+
+@pure
+collect_body_line_at(source: String, size: Int, start: Int, index: Int, depth: Int): BodySearch ->
+    if {
+        text_byte_at(source, index) == 10 -> collect_body_at(source, size, start, index + 1, depth, 0, 0, 0);
+        true -> collect_body_at(source, size, start, index + 1, depth, 1, 0, 0)
+    }.
+
+@pure
+collect_body_block_at(
+    source: String,
+    size: Int,
+    start: Int,
+    index: Int,
+    brace_depth: Int,
+    depth: Int,
+): BodySearch ->
+    let current = text_byte_at(source, index);
+    let next =
+        if {
+            index + 1 < size -> text_byte_at(source, index + 1);
+            true -> -1
+        };
+    if {
+        current == 47 and next == 42 -> collect_body_at(source, size, start, index + 2, brace_depth, 2, depth + 1, 0);
+        current == 42 and next == 47 and depth == 1 -> collect_body_at(source, size, start, index + 2, brace_depth, 0, 0, 0);
+        current == 42 and next == 47 -> collect_body_at(source, size, start, index + 2, brace_depth, 2, depth - 1, 0);
+        true -> collect_body_at(source, size, start, index + 1, brace_depth, 2, depth, 0)
+    }.
+
+@pure
+collect_body_quoted_at(
+    source: String,
+    size: Int,
+    start: Int,
+    index: Int,
+    depth: Int,
+    mode: Int,
+): BodySearch ->
+    let current = text_byte_at(source, index);
+    let delimiter =
+        if {
+            mode == 3 -> 34;
+            true -> 39
+        };
+    if {
+        current == 92 and index + 1 < size -> collect_body_at(source, size, start, index + 2, depth, mode, 0, 0);
+        current == delimiter -> collect_body_at(source, size, start, index + 1, depth, 0, 0, 0);
+        true -> collect_body_at(source, size, start, index + 1, depth, mode, 0, 0)
+    }.
+
+@pure
+walk_source_at(
+    source: String,
+    size: Int,
+    path: String,
+    index: Int,
+    line: Int,
+    prior: Int,
+    mode: Int,
+    comment_depth: Int,
+    raw_hashes: Int,
+    reversed: List[FunctionBody],
+): List[FunctionBody] ->
+    if {
+        index >= size -> reverse_functions(reversed, []);
+        mode == 1 -> let current = text_byte_at(source, index);
+        walk_source_at(
+            source,
+            size,
+            path,
+            index + 1,
+            if {
+                current == 10 -> line + 1;
+                true -> line
+            },
+            current,
+            if {
+                current == 10 -> 0;
+                true -> 1
+            },
+            0,
+            0,
+            reversed,
+        );
+        mode == 2 -> walk_source_block_at(source, size, path, index, line, prior, comment_depth, reversed);
+        mode == 3 or mode == 4 -> walk_source_quoted_at(source, size, path, index, line, prior, mode, reversed);
+        mode == 5 -> if {
+            raw_close_at(source, size, index, raw_hashes) -> walk_source_at(source, size, path, index + raw_hashes + 1, line, 34, 0, 0, 0, reversed);
+            true -> let current = text_byte_at(source, index);
+            walk_source_at(
+                source,
+                size,
+                path,
+                index + 1,
+                if {
+                    current == 10 -> line + 1;
+                    true -> line
+                },
+                current,
+                5,
+                0,
+                raw_hashes,
+                reversed,
+            )
+        };
+        true -> walk_source_code_at(source, size, path, index, line, prior, reversed)
+    }.
+
+@pure
+walk_source_code_at(
+    source: String,
+    size: Int,
+    path: String,
+    index: Int,
+    line: Int,
+    prior: Int,
+    reversed: List[FunctionBody],
+): List[FunctionBody] ->
+    let current = text_byte_at(source, index);
+    let next =
+        if {
+            index + 1 < size -> text_byte_at(source, index + 1);
+            true -> -1
+        };
+    let next_line =
+        if {
+            current == 10 -> line + 1;
+            true -> line
+        };
+    if {
+        current == 47 and next == 47 -> walk_source_at(source, size, path, index + 2, line, current, 1, 0, 0, reversed);
+        current == 47 and next == 42 -> walk_source_at(source, size, path, index + 2, line, current, 2, 1, 0, reversed);
+        current == 34 -> walk_source_at(source, size, path, index + 1, line, current, 3, 0, 0, reversed);
+        current == 39 -> walk_source_at(source, size, path, index + 1, line, current, 4, 0, 0, reversed);
+        current == 114 -> let opened = raw_open_at(source, size, index);
+        if {
+            opened.valid -> walk_source_at(
+                source,
+                size,
+                path,
+                opened.tail,
+                line,
+                current,
+                5,
+                0,
+                opened.hashes,
+                reversed,
+            );
+            true -> walk_source_at(source, size, path, index + 1, next_line, current, 0, 0, 0, reversed)
+        };
+        current == 102
+            and next == 110
+            and not identifier_character(prior)
+            and (index + 2 >= size or not identifier_character(text_byte_at(source, index + 2))) -> let named = scan_name_at(source, size, index + 2);
+        let searched =
+            if {
+                named.valid -> find_body_at(source, size, named.tail, 0, 0, 0);
+                true -> BodySearch(found = false, body = "")
+            };
+        let found =
+            if {
+                searched.found -> [FunctionBody(path = path, name = named.name, line = line, body = searched.body) | reversed];
+                true -> reversed
+            };
+        walk_source_at(source, size, path, index + 1, next_line, current, 0, 0, 0, found);
+        true -> walk_source_at(source, size, path, index + 1, next_line, current, 0, 0, 0, reversed)
+    }.
+
+@pure
+walk_source_block_at(
+    source: String,
+    size: Int,
+    path: String,
+    index: Int,
+    line: Int,
+    prior: Int,
+    depth: Int,
+    reversed: List[FunctionBody],
+): List[FunctionBody] ->
+    let current = text_byte_at(source, index);
+    let next =
+        if {
+            index + 1 < size -> text_byte_at(source, index + 1);
+            true -> -1
+        };
+    let next_line =
+        if {
+            current == 10 -> line + 1;
+            true -> line
+        };
+    if {
+        current == 47 and next == 42 -> walk_source_at(source, size, path, index + 2, line, current, 2, depth + 1, 0, reversed);
+        current == 42 and next == 47 and depth == 1 -> walk_source_at(source, size, path, index + 2, line, current, 0, 0, 0, reversed);
+        current == 42 and next == 47 -> walk_source_at(source, size, path, index + 2, line, current, 2, depth - 1, 0, reversed);
+        true -> walk_source_at(source, size, path, index + 1, next_line, current, 2, depth, 0, reversed)
+    }.
+
+@pure
+walk_source_quoted_at(
+    source: String,
+    size: Int,
+    path: String,
+    index: Int,
+    line: Int,
+    prior: Int,
+    mode: Int,
+    reversed: List[FunctionBody],
+): List[FunctionBody] ->
+    let current = text_byte_at(source, index);
+    let delimiter =
+        if {
+            mode == 3 -> 34;
+            true -> 39
+        };
+    let next_line =
+        if {
+            current == 10 -> line + 1;
+            true -> line
+        };
+    if {
+        current == 92 and index + 1 < size -> walk_source_at(source, size, path, index + 2, line, current, mode, 0, 0, reversed);
+        current == delimiter -> walk_source_at(source, size, path, index + 1, next_line, current, 0, 0, 0, reversed);
+        true -> walk_source_at(source, size, path, index + 1, next_line, current, mode, 0, 0, reversed)
+    }.
+
+@pure
+extract_bodies(path: String, source: String): List[FunctionBody] ->
+    walk_source_at(source, byte_size(source), path, 0, 1, -1, 0, 0, 0, []).
+
+@pure
+strip_comments(source: String): String ->
+    String.concat(strip_comments_at(source, byte_size(source), 0, 0, 0, 0, 0, [])).
+
+@pure
+prepend_utf8_slice(source: String, start: Int, end: Int, reversed: List[String]): List[String] ->
+    if {
+        end <= start -> reversed;
+        true -> [text_slice(source, start, end - start) | reversed]
+    }.
+
+@pure
+strip_comments_at(
+    source: String,
+    size: Int,
+    index: Int,
+    segment_start: Int,
+    mode: Int,
+    comment_depth: Int,
+    raw_hashes: Int,
+    reversed: List[String],
+): List[String] ->
+    if {
+        index >= size -> reverse_strings(prepend_utf8_slice(source, segment_start, size, reversed), []);
+        mode == 1 -> if {
+            text_byte_at(source, index) == 10 -> strip_comments_at(
+                source,
+                size,
+                index + 1,
+                index + 1,
+                0,
+                0,
+                0,
+                [text_slice(source, index, 1) | reversed],
+            );
+            true -> strip_comments_at(source, size, index + 1, segment_start, 1, 0, 0, reversed)
+        };
+        mode == 2 -> strip_comments_block_at(source, size, index, segment_start, comment_depth, reversed);
+        mode == 3 or mode == 4 -> strip_comments_quoted_at(source, size, index, segment_start, mode, reversed);
+        mode == 5 -> if {
+            raw_close_at(source, size, index, raw_hashes) -> strip_comments_at(
+                source,
+                size,
+                index + raw_hashes + 1,
+                segment_start,
+                0,
+                0,
+                0,
+                reversed,
+            );
+            true -> strip_comments_at(source, size, index + 1, segment_start, 5, 0, raw_hashes, reversed)
+        };
+        true -> strip_comments_code_at(source, size, index, segment_start, reversed)
+    }.
+
+@pure
+strip_comments_code_at(
+    source: String,
+    size: Int,
+    index: Int,
+    segment_start: Int,
+    reversed: List[String],
+): List[String] ->
+    let current = text_byte_at(source, index);
+    let next =
+        if {
+            index + 1 < size -> text_byte_at(source, index + 1);
+            true -> -1
+        };
+    if {
+        current == 47 and next == 47 -> strip_comments_at(
+            source,
+            size,
+            index + 2,
+            index + 2,
+            1,
+            0,
+            0,
+            prepend_utf8_slice(source, segment_start, index, reversed),
+        );
+        current == 47 and next == 42 -> strip_comments_at(
+            source,
+            size,
+            index + 2,
+            index + 2,
+            2,
+            1,
+            0,
+            prepend_utf8_slice(source, segment_start, index, reversed),
+        );
+        current == 34 -> strip_comments_at(source, size, index + 1, segment_start, 3, 0, 0, reversed);
+        current == 39 -> strip_comments_at(source, size, index + 1, segment_start, 4, 0, 0, reversed);
+        current == 114 -> let opened = raw_open_at(source, size, index);
+        if {
+            opened.valid -> strip_comments_at(
+                source,
+                size,
+                opened.tail,
+                segment_start,
+                5,
+                0,
+                opened.hashes,
+                reversed,
+            );
+            true -> strip_comments_at(source, size, index + 1, segment_start, 0, 0, 0, reversed)
+        };
+        true -> strip_comments_at(source, size, index + 1, segment_start, 0, 0, 0, reversed)
+    }.
+
+@pure
+strip_comments_block_at(
+    source: String,
+    size: Int,
+    index: Int,
+    segment_start: Int,
+    depth: Int,
+    reversed: List[String],
+): List[String] ->
+    let current = text_byte_at(source, index);
+    let next =
+        if {
+            index + 1 < size -> text_byte_at(source, index + 1);
+            true -> -1
+        };
+    if {
+        current == 47 and next == 42 -> strip_comments_at(source, size, index + 2, segment_start, 2, depth + 1, 0, reversed);
+        current == 42 and next == 47 and depth == 1 -> strip_comments_at(source, size, index + 2, index + 2, 0, 0, 0, reversed);
+        current == 42 and next == 47 -> strip_comments_at(source, size, index + 2, segment_start, 2, depth - 1, 0, reversed);
+        current == 10 -> strip_comments_at(
+            source,
+            size,
+            index + 1,
+            index + 1,
+            2,
+            depth,
+            0,
+            [text_slice(source, index, 1) | reversed],
+        );
+        true -> strip_comments_at(source, size, index + 1, segment_start, 2, depth, 0, reversed)
+    }.
+
+@pure
+strip_comments_quoted_at(
+    source: String,
+    size: Int,
+    index: Int,
+    segment_start: Int,
+    mode: Int,
+    reversed: List[String],
+): List[String] ->
+    let current = text_byte_at(source, index);
+    let delimiter =
+        if {
+            mode == 3 -> 34;
+            true -> 39
+        };
+    if {
+        current == 92 and index + 1 < size -> strip_comments_at(source, size, index + 2, segment_start, mode, 0, 0, reversed);
+        current == delimiter -> strip_comments_at(source, size, index + 1, segment_start, 0, 0, 0, reversed);
+        true -> strip_comments_at(source, size, index + 1, segment_start, mode, 0, 0, reversed)
+    }.
+
+@pure
+normalized_body(body: String): NormalizedBody ->
+    normalize_body_lines(String.split(strip_comments(body), "\n"), [], 0).
+
+@pure
+normalize_body_lines(lines: List[String], reversed: List[String], count: Int): NormalizedBody ->
+    case lines {
+        [] ->
+            NormalizedBody(text = join_lines(reverse_strings(reversed, [])), logical_lines = count);
+        [line | rest] ->
+            let trimmed = String.trim(line);
+            if {
+                trimmed == "" -> normalize_body_lines(rest, reversed, count);
+                true -> normalize_body_lines(rest, [trimmed | reversed], count + 1)
+            }
+    }.
+
+@pure
+join_lines(lines: List[String]): String ->
+    case lines {
+        [] -> "";
+        [line] -> line;
+        [line | rest] -> String.append(line, String.append("\n", join_lines(rest)))
+    }.
+
+@pure
+take_characters(values: List[String], count: Int, reversed: List[String]): String ->
+    if {
+        count <= 0 -> String.concat(reverse_strings(reversed, []));
+        true -> case values {
+            [] -> String.concat(reverse_strings(reversed, []));
+            [value | rest] -> take_characters(rest, count - 1, [value | reversed])
+        }
+    }.
+
+@pure
+body_hash(value: String): String ->
+    take_characters(characters(Hash.sha256(value)), 16, []).
+
+add_function_to_groups(index: GroupIndex, function: FunctionBody): GroupIndex ->
+    let normalized = normalized_body(function.body);
+    if {
+        normalized.logical_lines < min_logical_lines() -> index;
+        true -> let location =
+            FunctionBody(
+                path = function.path,
+                name = function.name,
+                line = function.line,
+                body = "",
+            );
+        add_hashed_function(index, body_hash(normalized.text), normalized.logical_lines, location)
+    }.
+
+add_hashed_function(
+    index: GroupIndex,
+    hash: String,
+    lines: Int,
+    function: FunctionBody,
+): GroupIndex ->
+    case index.groups.get(hash) {
+        None ->
+            store_new_group(
+                index.groups,
+                index.hashes,
+                hash,
+                DuplicateGroup(body_hash = hash, logical_lines = lines, functions = [function]),
+            );
+        Some(group) ->
+            store_existing_group(
+                index.groups,
+                index.hashes,
+                hash,
+                DuplicateGroup(
+                    body_hash = group.body_hash,
+                    logical_lines = group.logical_lines,
+                    functions = [function | group.functions],
+                ),
+            )
+    }.
+
+store_new_group(
+    mut groups: Map[String, DuplicateGroup],
+    hashes: List[String],
+    hash: String,
+    group: DuplicateGroup,
+): GroupIndex ->
+    let _stored = groups.put(hash, group);
+    GroupIndex(groups = groups, hashes = [hash | hashes]).
+
+store_existing_group(
+    mut groups: Map[String, DuplicateGroup],
+    hashes: List[String],
+    hash: String,
+    group: DuplicateGroup,
+): GroupIndex ->
+    let _stored = groups.put(hash, group);
+    GroupIndex(groups = groups, hashes = hashes).
+
+add_functions_to_groups(index: GroupIndex, functions: List[FunctionBody]): GroupIndex ->
+    case functions {
+        [] -> index;
+        [function | rest] -> add_functions_to_groups(add_function_to_groups(index, function), rest)
+    }.
+
+@pure
+path_seen(path: String, paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [value | rest] -> value == path or path_seen(path, rest)
+    }.
+
+@pure
+file_count(functions: List[FunctionBody], paths: List[String]): Int ->
+    case functions {
+        [] -> length(paths);
+        [function | rest] ->
+            if {
+                path_seen(function.path, paths) -> file_count(rest, paths);
+                true -> file_count(rest, [function.path | paths])
+            }
+    }.
+
+duplicate_groups(
+    hashes: List[String],
+    groups: Map[String, DuplicateGroup],
+    reversed: List[DuplicateGroup],
+): List[DuplicateGroup] ->
+    case hashes {
+        [] -> sort_duplicate_groups(reversed, []);
+        [hash | rest] ->
+            case groups.get(hash) {
+                None -> duplicate_groups(rest, groups, reversed);
+                Some(group) ->
+                    if {
+                        file_count(group.functions, []) > 1 -> duplicate_groups(rest, groups, [group | reversed]);
+                        true -> duplicate_groups(rest, groups, reversed)
+                    }
+            }
+    }.
+
+@pure
+sort_duplicate_groups(
+    groups: List[DuplicateGroup],
+    sorted: List[DuplicateGroup],
+): List[DuplicateGroup] ->
+    case groups {
+        [] -> sorted;
+        [group | rest] -> sort_duplicate_groups(rest, insert_duplicate_group(group, sorted))
+    }.
+
+@pure
+insert_duplicate_group(
+    group: DuplicateGroup,
+    sorted: List[DuplicateGroup],
+): List[DuplicateGroup] ->
+    case sorted {
+        [] -> [group | sorted];
+        [head | rest] ->
+            if {
+                String.compare(group.body_hash, head.body_hash) == Lt -> [group | sorted];
+                true -> [head | insert_duplicate_group(group, rest)]
+            }
+    }.
+
+@pure
+take_path_batch(paths: List[String], count: Int, reversed: List[String]): PathBatch ->
+    if {
+        count <= 0 -> PathBatch(paths = reverse_strings(reversed, []), remaining = paths);
+        true -> case paths {
+            [] -> PathBatch(paths = reverse_strings(reversed, []), remaining = paths);
+            [path | rest] ->
+                if {
+                    implementation_path(path) -> take_path_batch(rest, count - 1, [path | reversed]);
+                    true -> take_path_batch(rest, count, reversed)
+                }
+        }
+    }.
+
+groups_from_files(repository: String, files: List[TextFile], index: GroupIndex): GroupIndex ->
+    case files {
+        [] -> index;
+        [file | rest] ->
+            let relative = relative_path(repository, file.path);
+            let next = add_functions_to_groups(index, extract_bodies(relative, file.contents));
+            groups_from_files(repository, rest, next)
+    }.
+
+groups_from_paths(
+    repository: String,
+    paths: List[String],
+    index: GroupIndex,
+): Option[List[DuplicateGroup]] ->
+    case paths {
+        [] -> Some(duplicate_groups(index.hashes, index.groups, []));
+        _ ->
+            let batch = take_path_batch(paths, 8, []);
+            let loaded = read_text_many(batch.paths);
+            case loaded {
+                Err(_reason) -> None;
+                Ok(files) ->
+                    let next = groups_from_files(repository, files, index);
+                    groups_from_paths(repository, batch.remaining, next)
+            }
+    }.
+
+groups_from_input_values(
+    rest: List[String],
+    index: GroupIndex,
+    hash: String,
+    complexity_text: String,
+    path: String,
+    line_text: String,
+    name: String,
+): Option[List[DuplicateGroup]] ->
+    let {
+        Some(complexity_units) <- Int.from_string(complexity_text);
+        Some(source_line) <- Int.from_string(line_text)
+    } else {
+        _ -> None
+    };
+    if {
+        byte_size(hash) != 16 or complexity_units < min_logical_lines() or path == "" or name == "" -> None;
+        true -> groups_from_input_rows(
+            rest,
+            add_hashed_function(
+                index,
+                hash,
+                complexity_units,
+                FunctionBody(path = path, name = name, line = source_line, body = ""),
+            ),
+        )
+    }.
+
+groups_from_input_rows(rows: List[String], index: GroupIndex): Option[List[DuplicateGroup]] ->
+    case rows {
+        [] -> Some(duplicate_groups(index.hashes, index.groups, []));
+        [row | rest] ->
+            if {
+                row == "" -> groups_from_input_rows(rest, index);
+                true -> case String.split(row, "\t") {
+                    [hash, complexity_text, path, line_text, name] ->
+                        groups_from_input_values(
+                            rest,
+                            index,
+                            hash,
+                            complexity_text,
+                            path,
+                            line_text,
+                            name,
+                        );
+                    _ -> None
+                }
+            }
+    }.
+
+repository_input_rows(lines: List[String]): Option[List[DuplicateGroup]] ->
+    let {
+        [schema | rest] <- lines;
+        [header | rows] <- rest
+    } else {
+        _ -> None
+    };
+    if {
+        schema != "schema\tterlan.rust-shared-helper-input.v1"
+            or header != "hash\tcomplexity_units\tpath\tline\tname" -> None;
+        true -> groups_from_input_rows(
+            rows,
+            GroupIndex(groups = Map.new[String, DuplicateGroup](), hashes = List.new[String]()),
+        )
+    }.
+
+repository_groups(repository: String): Option[List[DuplicateGroup]] ->
+    case read_text(child(repository, "target/quality/rust-shared-helper-input.tsv")) {
+        Err(_reason) -> None;
+        Ok(source) -> repository_input_rows(String.split(source, "\n"))
+    }.
+
+@pure
+baseline_path(repository: String): String ->
+    child(repository, "tools/quality/rust_duplicate_helper_baseline.tsv").
+
+@pure
+contains_baseline(hash: String, groups: List[BaselineGroup]): Bool ->
+    case groups {
+        [] -> false;
+        [group | rest] -> group.body_hash == hash or contains_baseline(hash, rest)
+    }.
+
+@pure
+parse_baseline(source: String, path: String): BaselineParse ->
+    parse_baseline_lines(String.split(source, "\n"), path, 1, [], []).
+
+@pure
+parse_baseline_lines(
+    lines: List[String],
+    path: String,
+    line_number: Int,
+    groups: List[BaselineGroup],
+    diagnostics: List[String],
+): BaselineParse ->
+    case lines {
+        [] -> BaselineParse(groups = groups, diagnostics = reverse_strings(diagnostics, []));
+        [line | rest] ->
+            if {
+                line == "" or String.starts_with(line, "#") -> parse_baseline_lines(rest, path, line_number + 1, groups, diagnostics);
+                true -> let row = parse_baseline_row(String.split(line, "\t"), path, line_number, groups);
+                let next_groups =
+                    if {
+                        row.valid -> [row.group | groups];
+                        true -> groups
+                    };
+                let next_diagnostics =
+                    if {
+                        row.diagnostic == "" -> diagnostics;
+                        true -> [row.diagnostic | diagnostics]
+                    };
+                parse_baseline_lines(rest, path, line_number + 1, next_groups, next_diagnostics)
+            }
+    }.
+
+@pure
+parse_baseline_row(
+    fields: List[String],
+    path: String,
+    line_number: Int,
+    groups: List[BaselineGroup],
+): BaselineRowParse ->
+    case fields {
+        [hash, line_text, occurrence_text, owner, removal_plan, samples] ->
+            case {Int.from_string(line_text), Int.from_string(occurrence_text)} {
+                {Some(logical_lines), Some(occurrences)} ->
+                    if {
+                        String.trim(owner) == "" or String.trim(removal_plan) == "" -> rejected_baseline_row(
+                            path,
+                            line_number,
+                            "owner and removal_plan are required",
+                        );
+                        owner == "unassigned"
+                            or owner == "todo"
+                            or String.contains(String.lowercase(removal_plan), "todo") -> rejected_baseline_row(
+                            path,
+                            line_number,
+                            "duplicate-helper baseline rows require a real owner and removal plan",
+                        );
+                        contains_baseline(hash, groups) -> rejected_baseline_row(
+                            path,
+                            line_number,
+                            String.append(
+                                "duplicate baseline row for helper body `",
+                                String.append(hash, "`"),
+                            ),
+                        );
+                        true -> BaselineRowParse(
+                            valid = true,
+                            group = BaselineGroup(
+                                body_hash = hash,
+                                logical_lines = logical_lines,
+                                occurrences = occurrences,
+                                owner = owner,
+                                removal_plan = removal_plan,
+                                samples = samples,
+                            ),
+                            diagnostic = "",
+                        )
+                    };
+                _ ->
+                    rejected_baseline_row(
+                        path,
+                        line_number,
+                        "line count and occurrence count must be integers",
+                    )
+            };
+        _ ->
+            rejected_baseline_row(
+                path,
+                line_number,
+                "expected hash<TAB>lines<TAB>count<TAB>owner<TAB>removal_plan<TAB>samples",
+            )
+    }.
+
+@pure
+rejected_baseline_row(path: String, line_number: Int, message: String): BaselineRowParse ->
+    let rendered = diagnostic(path, line_number, message);
+    BaselineRowParse(
+        valid = false,
+        group = BaselineGroup(
+            body_hash = "",
+            logical_lines = 0,
+            occurrences = 0,
+            owner = "",
+            removal_plan = "",
+            samples = "",
+        ),
+        diagnostic = rendered,
+    ).
+
+@pure
+diagnostic(path: String, line: Int, message: String): String ->
+    String.append(
+        path,
+        String.append(":", String.append(Int.to_string(line), String.append(": ", message))),
+    ).
+
+@pure
+find_baseline(hash: String, groups: List[BaselineGroup]): Option[BaselineGroup] ->
+    case groups {
+        [] -> None;
+        [group | rest] ->
+            if {
+                group.body_hash == hash -> Some(group);
+                true -> find_baseline(hash, rest)
+            }
+    }.
+
+@pure
+find_duplicate(hash: String, groups: List[DuplicateGroup]): Option[DuplicateGroup] ->
+    case groups {
+        [] -> None;
+        [group | rest] ->
+            if {
+                group.body_hash == hash -> Some(group);
+                true -> find_duplicate(hash, rest)
+            }
+    }.
+
+@pure
+function_location(function: FunctionBody): String ->
+    String.append(
+        function.path,
+        String.append(
+            ":",
+            String.append(Int.to_string(function.line), String.append(":", function.name)),
+        ),
+    ).
+
+@pure
+insert_string(value: String, sorted: List[String]): List[String] ->
+    case sorted {
+        [] -> [value];
+        [head | rest] ->
+            if {
+                String.compare(value, head) == Lt -> [value | sorted];
+                true -> [head | insert_string(value, rest)]
+            }
+    }.
+
+@pure
+sorted_locations(functions: List[FunctionBody], sorted: List[String]): List[String] ->
+    case functions {
+        [] -> sorted;
+        [function | rest] ->
+            sorted_locations(rest, insert_string(function_location(function), sorted))
+    }.
+
+@pure
+join_with_semicolon(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value] -> value;
+        [value | rest] -> String.append(value, String.append(";", join_with_semicolon(rest)))
+    }.
+
+@pure
+sample_locations(group: DuplicateGroup): String ->
+    join_with_semicolon(sorted_locations(group.functions, [])).
+
+@pure
+occurrence_count(group: DuplicateGroup): Int ->
+    length(group.functions).
+
+@pure
+stale_baseline_diagnostics(
+    baselines: List[BaselineGroup],
+    groups: List[DuplicateGroup],
+    path: String,
+    diagnostics: List[String],
+): List[String] ->
+    case baselines {
+        [] -> diagnostics;
+        [baseline | rest] ->
+            case find_duplicate(baseline.body_hash, groups) {
+                Some(_group) -> stale_baseline_diagnostics(rest, groups, path, diagnostics);
+                None ->
+                    stale_baseline_diagnostics(
+                        rest,
+                        groups,
+                        path,
+                        [String.append(
+    path,
+    String.append(": stale duplicate-helper baseline row `", String.append(baseline.body_hash, "`")),
+) | diagnostics],
+                    )
+            }
+    }.
+
+@pure
+current_group_diagnostics(
+    groups: List[DuplicateGroup],
+    baselines: List[BaselineGroup],
+    diagnostics: List[String],
+): List[String] ->
+    case groups {
+        [] -> diagnostics;
+        [group | rest] ->
+            let occurrences = occurrence_count(group);
+            let samples = sample_locations(group);
+            let baseline_match = find_baseline(group.body_hash, baselines);
+            case baseline_match {
+                None ->
+                    let message =
+                        String.append(
+                            "new duplicate helper body ",
+                            String.append(
+                                group.body_hash,
+                                String.append(
+                                    " appears ",
+                                    String.append(
+                                        Int.to_string(occurrences),
+                                        String.append(" times: ", samples),
+                                    ),
+                                ),
+                            ),
+                        );
+                    current_group_diagnostics(rest, baselines, [message | diagnostics]);
+                Some(baseline) ->
+                    let with_lines =
+                        if {
+                            group.logical_lines != baseline.logical_lines -> [String.append(
+    "duplicate helper body ",
+    String.append(
+        group.body_hash,
+        String.append(
+            " changed from ",
+            String.append(
+                Int.to_string(baseline.logical_lines),
+                String.append(
+                    " to ",
+                    String.append(Int.to_string(group.logical_lines), " logical lines"),
+                ),
+            ),
+        ),
+    ),
+) | diagnostics];
+                            true -> diagnostics
+                        };
+                    let with_occurrences =
+                        if {
+                            occurrences > baseline.occurrences -> [String.append(
+    "duplicate helper body ",
+    String.append(
+        group.body_hash,
+        String.append(
+            " appears ",
+            String.append(
+                Int.to_string(occurrences),
+                String.append(
+                    " times, baseline allows ",
+                    String.append(Int.to_string(baseline.occurrences), String.append(": ", samples)),
+                ),
+            ),
+        ),
+    ),
+) | with_lines];
+                            true -> with_lines
+                        };
+                    current_group_diagnostics(rest, baselines, with_occurrences)
+            }
+    }.
+
+@pure
+compare_to_baseline(
+    groups: List[DuplicateGroup],
+    parsed: BaselineParse,
+    path: String,
+): List[String] ->
+    current_group_diagnostics(
+        groups,
+        parsed.groups,
+        stale_baseline_diagnostics(parsed.groups, groups, path, parsed.diagnostics),
+    ).
+
+@pure
+baseline_row(group: DuplicateGroup): String ->
+    String.append(
+        group.body_hash,
+        String.append(
+            "\t",
+            String.append(
+                Int.to_string(group.logical_lines),
+                String.append(
+                    "\t",
+                    String.append(
+                        Int.to_string(occurrence_count(group)),
+                        String.append(
+                            "\tunassigned\towner-required-before-commit\t",
+                            sample_locations(group),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ).
+
+@pure
+baseline_rows(groups: List[DuplicateGroup], reversed: List[String]): List[String] ->
+    case groups {
+        [] -> reverse_strings(reversed, []);
+        [group | rest] ->
+            let row = baseline_row(group);
+            baseline_rows(rest, [row | reversed])
+    }.
+
+@pure
+render_baseline(groups: List[DuplicateGroup]): String ->
+    String.append(
+        "# Reviewed cross-file duplicate Rust helper bodies.\n# Format: body_hash<TAB>logical_lines<TAB>occurrences<TAB>owner<TAB>removal_plan<TAB>sample_locations\n# Existing rows are migration debt with owners; new or grown groups must be extracted into shared modules.\n",
+        render_baseline_rows(baseline_rows(groups, [])),
+    ).
+
+@pure
+render_baseline_rows(rows: List[String]): String ->
+    case rows {
+        [] -> "";
+        _ -> String.append(join_lines(rows), "\n")
+    }.
+
+report_failure(diagnostics: List[String]): Bool ->
+    let _header = eprintln("shared-helper-check failed:");
+    print_diagnostics(reverse_strings(diagnostics, []));
+    false.
+
+report_result(diagnostics: List[String], success: String): Bool ->
+    case diagnostics {
+        [] ->
+            let _printed = println(success);
+            true;
+        _ -> report_failure(diagnostics)
+    }.
+
+report_single(error: String, success: String): Bool ->
+    if {
+        error == "" -> let _printed = println(success);
+        true;
+        true -> let _header = eprintln("shared-helper-check failed:");
+        let _message = eprintln(String.append("  - ", error));
+        false
+    }.
+
+report_comparison(error: String, diagnostics: List[String], success: String): Bool ->
+    if {
+        error == "" -> report_result(diagnostics, success);
+        true -> report_single(error, success)
+    }.
+
+print_diagnostics(diagnostics: List[String]): Unit ->
+    case diagnostics {
+        [] -> Unit;
+        [message | rest] ->
+            let _printed = eprintln(String.append("  - ", message));
+            print_diagnostics(rest)
+    }.
+
+validate_repository(repository: String, write: Bool): Bool ->
+    let grouped = repository_groups(repository);
+    let loaded =
+        case grouped {
+            None -> GroupLoad(valid = false, groups = []);
+            Some(groups) -> GroupLoad(valid = true, groups = groups)
+        };
+    if {
+        write -> validate_write_mode(repository, loaded);
+        true -> validate_check_mode(repository, loaded)
+    }.
+
+validate_write_mode(repository: String, loaded: GroupLoad): Bool ->
+    if {
+        not loaded.valid -> report_single("could not read Rust implementation sources", "");
+        true -> let destination = baseline_path(repository);
+        let contents = render_baseline(loaded.groups);
+        let success =
+            String.append(
+                "[shared-helpers] wrote baseline with ",
+                String.append(Int.to_string(length(loaded.groups)), " duplicate helper groups"),
+            );
+        write_baseline_and_report(destination, contents, success)
+    }.
+
+write_baseline_and_report(destination: String, contents: String, success: String): Bool ->
+    let written = write_text(destination, contents);
+    case written {
+        Ok(Unit) ->
+            let _printed = println(success);
+            true;
+        Err(_reason) ->
+            let _header = eprintln("shared-helper-check failed:");
+            let _message = eprintln("  - could not write duplicate-helper baseline");
+            false
+    }.
+
+validate_check_mode(repository: String, loaded: GroupLoad): Bool ->
+    let source_result = read_text(baseline_path(repository));
+    let baseline =
+        case source_result {
+            Err(_reason) -> TextLoad(valid = false, source = "");
+            Ok(source) -> TextLoad(valid = true, source = source)
+        };
+    let compared =
+        compare_to_baseline(
+            loaded.groups,
+            parse_baseline(baseline.source, "tools/quality/rust_duplicate_helper_baseline.tsv"),
+            "tools/quality/rust_duplicate_helper_baseline.tsv",
+        );
+    let error =
+        if {
+            not loaded.valid -> "could not read Rust implementation sources";
+            not baseline.valid -> "could not read duplicate-helper baseline";
+            true -> ""
+        };
+    let success =
+        String.append(
+            "[shared-helpers] baseline enforced: ",
+            String.append(Int.to_string(length(loaded.groups)), " duplicate helper groups"),
+        );
+    report_comparison(error, compared, success).
+
+@pure
+self_test_source(name: String): String ->
+    String.append(
+        "fn ",
+        String.append(
+            name,
+            "(value: i64) -> i64 {\n    let text = r##\"{ ignored }\"##;\n    let one = value + 1;\n    let two = one + 1;\n    let three = two + 1;\n    let four = three + 1;\n    let five = four + 1;\n    let six = five + 1;\n    let seven = six + 1;\n    // { ignored\n    if seven > 0 {\n        seven + 1\n    } else {\n        seven - 1\n    }\n    /* } ignored */\n}\n",
+        ),
+    ).
+
+self_test(): Bool ->
+    let first = extract_bodies("crates/a.rs", self_test_source("alpha"));
+    let second = extract_bodies("crates/b.rs", self_test_source("beta"));
+    let empty = GroupIndex(groups = Map.new[String, DuplicateGroup](), hashes = List.new[String]());
+    let indexed = add_functions_to_groups(add_functions_to_groups(empty, first), second);
+    let groups = duplicate_groups(indexed.hashes, indexed.groups, []);
+    let complete =
+        parse_baseline(
+            "aaaaaaaaaaaaaaaa\t12\t2\tquality\tExtract a reviewed shared helper.\tcrates/a.rs:1:a;crates/b.rs:2:b\n",
+            "fixture.tsv",
+        );
+    let malformed = parse_baseline("too\tfew\tfields\n", "fixture.tsv");
+    let placeholder = parse_baseline("bbbbbbbbbbbbbbbb\t12\t2\ttodo\ttodo later\tsample\n", "fixture.tsv");
+    if {
+        length(first) == 1
+            and length(second) == 1
+            and length(groups) == 1
+            and complete.diagnostics == []
+            and length(complete.groups) == 1
+            and length(malformed.diagnostics) == 1
+            and length(placeholder.diagnostics) == 1
+            and implementation_path("crates/terlan/src/runtime/value.rs")
+            and not implementation_path("crates/terlan/tests/runtime.rs")
+            and not implementation_path("crates/terlan/src/runtime/value_test.rs")
+            and not implementation_path("crates/terlan/src/generated/value.rs") -> let _printed = println("Terlan shared-helper checker self-test passed");
+        true;
+        true -> report_failure(["self-test cases did not preserve scanner and baseline behavior"])
+    }.
+
+pub run(): Bool ->
+    let selected = options();
+    let repository = root();
+    if {
+        not selected.valid -> report_failure(["usage: SharedHelperCheck.terls [--self-test|--write-baseline]"]);
+        selected.self_test -> self_test();
+        true -> let validated = validate_repository(repository, selected.write_baseline);
+        validated
+    }.
+
+assert(run());
+Unit.

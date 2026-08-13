@@ -40,7 +40,7 @@ pub active_texture_typechecks(receiver: WebGLRenderingContextBase, texture: GLen
 pub attach_shader_typechecks(
     receiver: WebGLRenderingContextBase,
     program: WebGLProgram,
-    shader: WebGLShader
+    shader: WebGLShader,
 ): Unit ->
     receiver.attach_shader(program, shader).
 
@@ -48,35 +48,35 @@ pub bind_attrib_location_typechecks(
     receiver: WebGLRenderingContextBase,
     program: WebGLProgram,
     index: GLuint,
-    name: JsString
+    name: JsString,
 ): Unit ->
     receiver.bind_attrib_location(program, index, name).
 
 pub bind_buffer_typechecks(
     receiver: WebGLRenderingContextBase,
     target_: GLenum,
-    buffer: Option[WebGLBuffer]
+    buffer: Option[WebGLBuffer],
 ): Unit ->
     receiver.bind_buffer(target_, buffer).
 
 pub bind_framebuffer_typechecks(
     receiver: WebGLRenderingContextBase,
     target_: GLenum,
-    framebuffer: Option[WebGLFramebuffer]
+    framebuffer: Option[WebGLFramebuffer],
 ): Unit ->
     receiver.bind_framebuffer(target_, framebuffer).
 
 pub bind_renderbuffer_typechecks(
     receiver: WebGLRenderingContextBase,
     target_: GLenum,
-    renderbuffer: Option[WebGLRenderbuffer]
+    renderbuffer: Option[WebGLRenderbuffer],
 ): Unit ->
     receiver.bind_renderbuffer(target_, renderbuffer).
 
 pub bind_texture_typechecks(
     receiver: WebGLRenderingContextBase,
     target_: GLenum,
-    texture: Option[WebGLTexture]
+    texture: Option[WebGLTexture],
 ): Unit ->
     receiver.bind_texture(target_, texture).
 
@@ -85,7 +85,7 @@ pub blend_color_typechecks(
     red: GLclampf,
     green: GLclampf,
     blue: GLclampf,
-    alpha: GLclampf
+    alpha: GLclampf,
 ): Unit ->
     receiver.blend_color(red, green, blue, alpha).
 
@@ -95,14 +95,14 @@ pub blend_equation_typechecks(receiver: WebGLRenderingContextBase, mode: GLenum)
 pub blend_equation_separate_typechecks(
     receiver: WebGLRenderingContextBase,
     mode_rgb: GLenum,
-    mode_alpha: GLenum
+    mode_alpha: GLenum,
 ): Unit ->
     receiver.blend_equation_separate(mode_rgb, mode_alpha).
 
 pub blend_func_typechecks(
     receiver: WebGLRenderingContextBase,
     sfactor: GLenum,
-    dfactor: GLenum
+    dfactor: GLenum,
 ): Unit ->
     receiver.blend_func(sfactor, dfactor).
 
@@ -111,13 +111,13 @@ pub blend_func_separate_typechecks(
     src_rgb: GLenum,
     dst_rgb: GLenum,
     src_alpha: GLenum,
-    dst_alpha: GLenum
+    dst_alpha: GLenum,
 ): Unit ->
     receiver.blend_func_separate(src_rgb, dst_rgb, src_alpha, dst_alpha).
 
 pub check_framebuffer_status_typechecks(
     receiver: WebGLRenderingContextBase,
-    target_: GLenum
+    target_: GLenum,
 ): GLenum ->
     receiver.check_framebuffer_status(target_).
 
@@ -129,7 +129,7 @@ pub clear_color_typechecks(
     red: GLclampf,
     green: GLclampf,
     blue: GLclampf,
-    alpha: GLclampf
+    alpha: GLclampf,
 ): Unit ->
     receiver.clear_color(red, green, blue, alpha).
 
@@ -144,7 +144,7 @@ pub color_mask_typechecks(
     red: GLboolean,
     green: GLboolean,
     blue: GLboolean,
-    alpha: GLboolean
+    alpha: GLboolean,
 ): Unit ->
     receiver.color_mask(red, green, blue, alpha).
 
@@ -160,7 +160,7 @@ pub copy_tex_image2_d_typechecks(
     y: GLint,
     width: GLsizei,
     height: GLsizei,
-    border: GLint
+    border: GLint,
 ): Unit ->
     receiver.copy_tex_image2_d(target_, level, internalformat, x, y, width, height, border).
 
@@ -173,7 +173,7 @@ pub copy_tex_sub_image2_d_typechecks(
     x: GLint,
     y: GLint,
     width: GLsizei,
-    height: GLsizei
+    height: GLsizei,
 ): Unit ->
     receiver.copy_tex_sub_image2_d(target_, level, xoffset, yoffset, x, y, width, height).
 
@@ -191,7 +191,7 @@ pub create_renderbuffer_typechecks(receiver: WebGLRenderingContextBase): WebGLRe
 
 pub create_shader_typechecks(
     receiver: WebGLRenderingContextBase,
-    type_: GLenum
+    type_: GLenum,
 ): Option[WebGLShader] ->
     receiver.create_shader(type_).
 
@@ -206,19 +206,19 @@ pub delete_buffer_typechecks(receiver: WebGLRenderingContextBase, buffer: Option
 
 pub delete_framebuffer_typechecks(
     receiver: WebGLRenderingContextBase,
-    framebuffer: Option[WebGLFramebuffer]
+    framebuffer: Option[WebGLFramebuffer],
 ): Unit ->
     receiver.delete_framebuffer(framebuffer).
 
 pub delete_program_typechecks(
     receiver: WebGLRenderingContextBase,
-    program: Option[WebGLProgram]
+    program: Option[WebGLProgram],
 ): Unit ->
     receiver.delete_program(program).
 
 pub delete_renderbuffer_typechecks(
     receiver: WebGLRenderingContextBase,
-    renderbuffer: Option[WebGLRenderbuffer]
+    renderbuffer: Option[WebGLRenderbuffer],
 ): Unit ->
     receiver.delete_renderbuffer(renderbuffer).
 
@@ -227,7 +227,7 @@ pub delete_shader_typechecks(receiver: WebGLRenderingContextBase, shader: Option
 
 pub delete_texture_typechecks(
     receiver: WebGLRenderingContextBase,
-    texture: Option[WebGLTexture]
+    texture: Option[WebGLTexture],
 ): Unit ->
     receiver.delete_texture(texture).
 
@@ -240,14 +240,14 @@ pub depth_mask_typechecks(receiver: WebGLRenderingContextBase, flag: GLboolean):
 pub depth_range_typechecks(
     receiver: WebGLRenderingContextBase,
     z_near: GLclampf,
-    z_far: GLclampf
+    z_far: GLclampf,
 ): Unit ->
     receiver.depth_range(z_near, z_far).
 
 pub detach_shader_typechecks(
     receiver: WebGLRenderingContextBase,
     program: WebGLProgram,
-    shader: WebGLShader
+    shader: WebGLShader,
 ): Unit ->
     receiver.detach_shader(program, shader).
 
@@ -261,7 +261,7 @@ pub draw_arrays_typechecks(
     receiver: WebGLRenderingContextBase,
     mode: GLenum,
     first: GLint,
-    count: GLsizei
+    count: GLsizei,
 ): Unit ->
     receiver.draw_arrays(mode, first, count).
 
@@ -270,7 +270,7 @@ pub draw_elements_typechecks(
     mode: GLenum,
     count: GLsizei,
     type_: GLenum,
-    offset: GLintptr
+    offset: GLintptr,
 ): Unit ->
     receiver.draw_elements(mode, count, type_, offset).
 
@@ -291,7 +291,7 @@ pub framebuffer_renderbuffer_typechecks(
     target_: GLenum,
     attachment: GLenum,
     renderbuffertarget: GLenum,
-    renderbuffer: Option[WebGLRenderbuffer]
+    renderbuffer: Option[WebGLRenderbuffer],
 ): Unit ->
     receiver.framebuffer_renderbuffer(target_, attachment, renderbuffertarget, renderbuffer).
 
@@ -301,7 +301,7 @@ pub framebuffer_texture2_d_typechecks(
     attachment: GLenum,
     textarget: GLenum,
     texture: Option[WebGLTexture],
-    level: GLint
+    level: GLint,
 ): Unit ->
     receiver.framebuffer_texture2_d(target_, attachment, textarget, texture, level).
 
@@ -314,32 +314,32 @@ pub generate_mipmap_typechecks(receiver: WebGLRenderingContextBase, target_: GLe
 pub get_active_attrib_typechecks(
     receiver: WebGLRenderingContextBase,
     program: WebGLProgram,
-    index: GLuint
+    index: GLuint,
 ): Option[WebGLActiveInfo] ->
     receiver.get_active_attrib(program, index).
 
 pub get_active_uniform_typechecks(
     receiver: WebGLRenderingContextBase,
     program: WebGLProgram,
-    index: GLuint
+    index: GLuint,
 ): Option[WebGLActiveInfo] ->
     receiver.get_active_uniform(program, index).
 
 pub get_attached_shaders_typechecks(
     receiver: WebGLRenderingContextBase,
-    program: WebGLProgram
+    program: WebGLProgram,
 ): Option[Array[WebGLShader]] ->
     receiver.get_attached_shaders(program).
 
 pub get_attrib_location_typechecks(
     receiver: WebGLRenderingContextBase,
     program: WebGLProgram,
-    name: JsString
+    name: JsString,
 ): GLint ->
     receiver.get_attrib_location(program, name).
 
 pub get_context_attributes_typechecks(
-    receiver: WebGLRenderingContextBase
+    receiver: WebGLRenderingContextBase,
 ): Option[WebGLContextAttributes] ->
     receiver.get_context_attributes().
 
@@ -348,45 +348,45 @@ pub get_error_typechecks(receiver: WebGLRenderingContextBase): GLenum ->
 
 pub get_program_info_log_typechecks(
     receiver: WebGLRenderingContextBase,
-    program: WebGLProgram
+    program: WebGLProgram,
 ): Option[JsString] ->
     receiver.get_program_info_log(program).
 
 pub get_shader_info_log_typechecks(
     receiver: WebGLRenderingContextBase,
-    shader: WebGLShader
+    shader: WebGLShader,
 ): Option[JsString] ->
     receiver.get_shader_info_log(shader).
 
 pub get_shader_precision_format_typechecks(
     receiver: WebGLRenderingContextBase,
     shadertype: GLenum,
-    precisiontype: GLenum
+    precisiontype: GLenum,
 ): Option[WebGLShaderPrecisionFormat] ->
     receiver.get_shader_precision_format(shadertype, precisiontype).
 
 pub get_shader_source_typechecks(
     receiver: WebGLRenderingContextBase,
-    shader: WebGLShader
+    shader: WebGLShader,
 ): Option[JsString] ->
     receiver.get_shader_source(shader).
 
 pub get_supported_extensions_typechecks(
-    receiver: WebGLRenderingContextBase
+    receiver: WebGLRenderingContextBase,
 ): Option[Array[JsString]] ->
     receiver.get_supported_extensions().
 
 pub get_uniform_location_typechecks(
     receiver: WebGLRenderingContextBase,
     program: WebGLProgram,
-    name: JsString
+    name: JsString,
 ): Option[WebGLUniformLocation] ->
     receiver.get_uniform_location(program, name).
 
 pub get_vertex_attrib_offset_typechecks(
     receiver: WebGLRenderingContextBase,
     index: GLuint,
-    pname: GLenum
+    pname: GLenum,
 ): GLintptr ->
     receiver.get_vertex_attrib_offset(index, pname).
 
@@ -395,7 +395,7 @@ pub hint_typechecks(receiver: WebGLRenderingContextBase, target_: GLenum, mode: 
 
 pub is_buffer_typechecks(
     receiver: WebGLRenderingContextBase,
-    buffer: Option[WebGLBuffer]
+    buffer: Option[WebGLBuffer],
 ): GLboolean ->
     receiver.is_buffer(buffer).
 
@@ -407,31 +407,31 @@ pub is_enabled_typechecks(receiver: WebGLRenderingContextBase, cap: GLenum): GLb
 
 pub is_framebuffer_typechecks(
     receiver: WebGLRenderingContextBase,
-    framebuffer: Option[WebGLFramebuffer]
+    framebuffer: Option[WebGLFramebuffer],
 ): GLboolean ->
     receiver.is_framebuffer(framebuffer).
 
 pub is_program_typechecks(
     receiver: WebGLRenderingContextBase,
-    program: Option[WebGLProgram]
+    program: Option[WebGLProgram],
 ): GLboolean ->
     receiver.is_program(program).
 
 pub is_renderbuffer_typechecks(
     receiver: WebGLRenderingContextBase,
-    renderbuffer: Option[WebGLRenderbuffer]
+    renderbuffer: Option[WebGLRenderbuffer],
 ): GLboolean ->
     receiver.is_renderbuffer(renderbuffer).
 
 pub is_shader_typechecks(
     receiver: WebGLRenderingContextBase,
-    shader: Option[WebGLShader]
+    shader: Option[WebGLShader],
 ): GLboolean ->
     receiver.is_shader(shader).
 
 pub is_texture_typechecks(
     receiver: WebGLRenderingContextBase,
-    texture: Option[WebGLTexture]
+    texture: Option[WebGLTexture],
 ): GLboolean ->
     receiver.is_texture(texture).
 
@@ -444,14 +444,14 @@ pub link_program_typechecks(receiver: WebGLRenderingContextBase, program: WebGLP
 pub pixel_storei_typechecks(
     receiver: WebGLRenderingContextBase,
     pname: GLenum,
-    param: GLboolean | GLint
+    param: GLboolean | GLint,
 ): Unit ->
     receiver.pixel_storei(pname, param).
 
 pub polygon_offset_typechecks(
     receiver: WebGLRenderingContextBase,
     factor: GLfloat,
-    units: GLfloat
+    units: GLfloat,
 ): Unit ->
     receiver.polygon_offset(factor, units).
 
@@ -460,14 +460,14 @@ pub renderbuffer_storage_typechecks(
     target_: GLenum,
     internalformat: GLenum,
     width: GLsizei,
-    height: GLsizei
+    height: GLsizei,
 ): Unit ->
     receiver.renderbuffer_storage(target_, internalformat, width, height).
 
 pub sample_coverage_typechecks(
     receiver: WebGLRenderingContextBase,
     value: GLclampf,
-    invert: GLboolean
+    invert: GLboolean,
 ): Unit ->
     receiver.sample_coverage(value, invert).
 
@@ -476,14 +476,14 @@ pub scissor_typechecks(
     x: GLint,
     y: GLint,
     width: GLsizei,
-    height: GLsizei
+    height: GLsizei,
 ): Unit ->
     receiver.scissor(x, y, width, height).
 
 pub shader_source_typechecks(
     receiver: WebGLRenderingContextBase,
     shader: WebGLShader,
-    source: JsString
+    source: JsString,
 ): Unit ->
     receiver.shader_source(shader, source).
 
@@ -491,7 +491,7 @@ pub stencil_func_typechecks(
     receiver: WebGLRenderingContextBase,
     func: GLenum,
     ref: GLint,
-    mask: GLuint
+    mask: GLuint,
 ): Unit ->
     receiver.stencil_func(func, ref, mask).
 
@@ -500,7 +500,7 @@ pub stencil_func_separate_typechecks(
     face: GLenum,
     func: GLenum,
     ref: GLint,
-    mask: GLuint
+    mask: GLuint,
 ): Unit ->
     receiver.stencil_func_separate(face, func, ref, mask).
 
@@ -510,7 +510,7 @@ pub stencil_mask_typechecks(receiver: WebGLRenderingContextBase, mask: GLuint): 
 pub stencil_mask_separate_typechecks(
     receiver: WebGLRenderingContextBase,
     face: GLenum,
-    mask: GLuint
+    mask: GLuint,
 ): Unit ->
     receiver.stencil_mask_separate(face, mask).
 
@@ -518,7 +518,7 @@ pub stencil_op_typechecks(
     receiver: WebGLRenderingContextBase,
     fail: GLenum,
     zfail: GLenum,
-    zpass: GLenum
+    zpass: GLenum,
 ): Unit ->
     receiver.stencil_op(fail, zfail, zpass).
 
@@ -527,7 +527,7 @@ pub stencil_op_separate_typechecks(
     face: GLenum,
     fail: GLenum,
     zfail: GLenum,
-    zpass: GLenum
+    zpass: GLenum,
 ): Unit ->
     receiver.stencil_op_separate(face, fail, zfail, zpass).
 
@@ -535,7 +535,7 @@ pub tex_parameterf_typechecks(
     receiver: WebGLRenderingContextBase,
     target_: GLenum,
     pname: GLenum,
-    param: GLfloat
+    param: GLfloat,
 ): Unit ->
     receiver.tex_parameterf(target_, pname, param).
 
@@ -543,21 +543,21 @@ pub tex_parameteri_typechecks(
     receiver: WebGLRenderingContextBase,
     target_: GLenum,
     pname: GLenum,
-    param: GLint
+    param: GLint,
 ): Unit ->
     receiver.tex_parameteri(target_, pname, param).
 
 pub uniform1f_typechecks(
     receiver: WebGLRenderingContextBase,
     location: Option[WebGLUniformLocation],
-    x: GLfloat
+    x: GLfloat,
 ): Unit ->
     receiver.uniform1f(location, x).
 
 pub uniform1i_typechecks(
     receiver: WebGLRenderingContextBase,
     location: Option[WebGLUniformLocation],
-    x: GLint
+    x: GLint,
 ): Unit ->
     receiver.uniform1i(location, x).
 
@@ -565,7 +565,7 @@ pub uniform2f_typechecks(
     receiver: WebGLRenderingContextBase,
     location: Option[WebGLUniformLocation],
     x: GLfloat,
-    y: GLfloat
+    y: GLfloat,
 ): Unit ->
     receiver.uniform2f(location, x, y).
 
@@ -573,7 +573,7 @@ pub uniform2i_typechecks(
     receiver: WebGLRenderingContextBase,
     location: Option[WebGLUniformLocation],
     x: GLint,
-    y: GLint
+    y: GLint,
 ): Unit ->
     receiver.uniform2i(location, x, y).
 
@@ -582,7 +582,7 @@ pub uniform3f_typechecks(
     location: Option[WebGLUniformLocation],
     x: GLfloat,
     y: GLfloat,
-    z: GLfloat
+    z: GLfloat,
 ): Unit ->
     receiver.uniform3f(location, x, y, z).
 
@@ -591,7 +591,7 @@ pub uniform3i_typechecks(
     location: Option[WebGLUniformLocation],
     x: GLint,
     y: GLint,
-    z: GLint
+    z: GLint,
 ): Unit ->
     receiver.uniform3i(location, x, y, z).
 
@@ -601,7 +601,7 @@ pub uniform4f_typechecks(
     x: GLfloat,
     y: GLfloat,
     z: GLfloat,
-    w: GLfloat
+    w: GLfloat,
 ): Unit ->
     receiver.uniform4f(location, x, y, z, w).
 
@@ -611,7 +611,7 @@ pub uniform4i_typechecks(
     x: GLint,
     y: GLint,
     z: GLint,
-    w: GLint
+    w: GLint,
 ): Unit ->
     receiver.uniform4i(location, x, y, z, w).
 
@@ -627,7 +627,7 @@ pub vertex_attrib1f_typechecks(receiver: WebGLRenderingContextBase, index: GLuin
 pub vertex_attrib1fv_typechecks(
     receiver: WebGLRenderingContextBase,
     index: GLuint,
-    values: Float32List
+    values: Float32List,
 ): Unit ->
     receiver.vertex_attrib1fv(index, values).
 
@@ -635,14 +635,14 @@ pub vertex_attrib2f_typechecks(
     receiver: WebGLRenderingContextBase,
     index: GLuint,
     x: GLfloat,
-    y: GLfloat
+    y: GLfloat,
 ): Unit ->
     receiver.vertex_attrib2f(index, x, y).
 
 pub vertex_attrib2fv_typechecks(
     receiver: WebGLRenderingContextBase,
     index: GLuint,
-    values: Float32List
+    values: Float32List,
 ): Unit ->
     receiver.vertex_attrib2fv(index, values).
 
@@ -651,14 +651,14 @@ pub vertex_attrib3f_typechecks(
     index: GLuint,
     x: GLfloat,
     y: GLfloat,
-    z: GLfloat
+    z: GLfloat,
 ): Unit ->
     receiver.vertex_attrib3f(index, x, y, z).
 
 pub vertex_attrib3fv_typechecks(
     receiver: WebGLRenderingContextBase,
     index: GLuint,
-    values: Float32List
+    values: Float32List,
 ): Unit ->
     receiver.vertex_attrib3fv(index, values).
 
@@ -668,14 +668,14 @@ pub vertex_attrib4f_typechecks(
     x: GLfloat,
     y: GLfloat,
     z: GLfloat,
-    w: GLfloat
+    w: GLfloat,
 ): Unit ->
     receiver.vertex_attrib4f(index, x, y, z, w).
 
 pub vertex_attrib4fv_typechecks(
     receiver: WebGLRenderingContextBase,
     index: GLuint,
-    values: Float32List
+    values: Float32List,
 ): Unit ->
     receiver.vertex_attrib4fv(index, values).
 
@@ -686,7 +686,7 @@ pub vertex_attrib_pointer_typechecks(
     type_: GLenum,
     normalized: GLboolean,
     stride: GLsizei,
-    offset: GLintptr
+    offset: GLintptr,
 ): Unit ->
     receiver.vertex_attrib_pointer(index, size, type_, normalized, stride, offset).
 
@@ -695,6 +695,6 @@ pub viewport_typechecks(
     x: GLint,
     y: GLint,
     width: GLsizei,
-    height: GLsizei
+    height: GLsizei,
 ): Unit ->
     receiver.viewport(x, y, width, height).

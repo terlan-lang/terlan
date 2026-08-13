@@ -1,44 +1,59 @@
-//! Terlan VM Task contract.
-//!
-//! `std.vm.Task` models a runtime-targeted supervised process that performs one
-//! unit of typed work. It is distinct from the portable `std.core.Task`
-//! contract: this module is explicitly tied to runtime process ownership and is
-//! resolved only by VM-capable target profiles.
+//! One-shot tasks implemented in Terlan over VM process primitives.
 
 module std.vm.Task.
 
-/// Task represents a supervised runtime work process.
-///
-/// Input: type parameter `T`.
-/// Output: an opaque runtime-owned process handle that eventually produces `T`.
-/// Transformation: keeps process identity, mailbox mechanics, and supervision
-/// target-owned while exposing a typed task handle to Terlan source.
+pub type Task[T] =
+    {Atom["task"], process: std.vm.Process.Process[TaskCommand[T]], witness: T}.
 
-pub opaque type Task[T].
+pub type TaskAwait =
+    Atom["task_await"].
 
-/// Cancels the task.
-///
-/// Input: one mutable `Task[T]` receiver.
-/// Output: `Unit`.
-/// Transformation: asks the selected VM runtime to stop the supervised work process
-/// while keeping shutdown mechanics behind the target-owned runtime surface.
+pub type TaskCancel =
+    Atom["task_cancel"].
 
-pub (mut task: Task[T]) cancel(): Unit.
+pub type TaskCommand[T] =
+    {Atom["task_command"], kind: TaskCommandKind, request_id: Int, reply_to: std.vm.Process.Process[TaskReply[T]], witness: T}.
 
-/// Reads the task result.
-///
-/// Input: one `Task[T]` receiver.
-/// Output: `Result[T, Error]`.
-/// Transformation: waits for or observes the supervised work result through a
-/// typed success-or-error value without exposing runtime monitor messages.
+pub type TaskCommandKind =
+    TaskAwait
+  | TaskCancel.
 
-pub (task: Task[T]) result(): Result[T, Error].
+pub type TaskCommandTag =
+    Atom["task_command"].
 
-/// Starts supervised runtime work immediately.
-///
-/// Input: one zero-argument function producing `T`.
-/// Output: `Result[Task[T], Error]`.
-/// Transformation: asks the selected VM runtime to spawn supervised work and
-/// normalizes startup failure into the standard typed error channel.
+pub type TaskReply[T] =
+    {Atom["task_reply"], request_id: Int, value: T}.
 
-pub start[T](work: () -> T): Result[Task[T], Error].
+pub type TaskReplyTag =
+    Atom["task_reply"].
+
+pub type TaskTag =
+    Atom["task"].
+
+pub await_reply[T](request_id: Int, witness: T): T.
+
+/// Requests cooperative task shutdown without host-runtime task machinery.
+
+pub cancel[T](task: Task[T]): Unit.
+
+pub make_task[T](process: std.vm.Process.Process[TaskCommand[T]], witness: T): Task[T].
+
+/// Thin policy wrapper for VM-owned failure monitoring.
+
+pub monitor[T](task: Task[T]): Unit.
+
+/// Thin policy wrapper for VM-owned symmetric links.
+
+pub relate_peer[T](task: Task[T]): Unit.
+
+/// Waits for a correlated task value and discards stale replies.
+
+pub result[T](task: Task[T], request_id: Int): T.
+
+/// Publishes a completed value until the owner reads or cancels the task.
+
+pub serve[T](value: T): Unit.
+
+/// Builds a typed task handle for a statically spawned task entry.
+
+pub start[T](process: std.vm.Process.Process[TaskCommand[T]], witness: T): Task[T].

@@ -208,4 +208,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "watch_mode_hot_reload_test.rs"]
+#[cfg(test)]
 mod watch_mode_hot_reload_test;

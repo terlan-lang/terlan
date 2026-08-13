@@ -13,5 +13,7 @@ fn deep_json_accepts_artifact_depth_and_rejects_hostile_depth() {
     );
     let error = deserialize_json_with_depth_limit::<serde_json::Value>(rejected.as_bytes())
         .expect_err("hostile nesting should fail");
-    assert!(error.contains("JSON nesting exceeds compiler limit"));
+    assert!(error
+        .to_string()
+        .contains("JSON nesting exceeds compiler limit"));
 }

@@ -1,12 +1,15 @@
 use std::path::Path;
 use std::process::ExitCode;
 
+use super::discovery::TestKind;
 use super::{
     collect_test_files, discover_tests, is_test_source_path, prepare_test_project_context,
     print_runtime_test_report, select_tests, test_target_profile_options, write_test_manifest,
-    write_test_result_manifest, CliState, DiscoveredTest, TargetProfile, TestArgs, TestOutputStyle,
-    TestRunReport, TestRunResult, TestRunStatus, TEST_SOURCE_PATTERN_DESCRIPTION,
+    write_test_result_manifest, DiscoveredTest, TestArgs, TestOutputStyle, TestRunReport,
+    TestRunResult, TestRunStatus, TEST_SOURCE_PATTERN_DESCRIPTION,
 };
+use crate::validation::target_profile::TargetProfile;
+use crate::CliState;
 
 /// Compiles and executes source-level tests through the Wasm CoreIR lane.
 pub(super) fn run_wasm_tests(args: &TestArgs, state: CliState) -> ExitCode {
@@ -48,7 +51,8 @@ pub(super) fn run_wasm_tests(args: &TestArgs, state: CliState) -> ExitCode {
             Err(exit_code) => return exit_code,
         };
     let tests = match discover_tests(&compiled.syntax_output).and_then(|tests| {
-        select_tests(tests, args.test_name.as_deref(), path).map_err(|error| vec![error])
+        select_tests(tests, args.test_name.as_deref(), path, TestKind::Test)
+            .map_err(|error| vec![error])
     }) {
         Ok(tests) => tests,
         Err(messages) => {
@@ -117,7 +121,9 @@ fn run_discovered_wasm_tests(artifact: &Path, tests: &[DiscoveredTest]) -> TestR
     let results = tests
         .iter()
         .map(|test| {
+            let started = std::time::Instant::now();
             let outcome = crate::commands::wasm_runtime::execute_test_export(artifact, &test.name);
+            let execution_nanoseconds = started.elapsed().as_nanos().max(1);
             let (status, message) = match outcome {
                 Ok(()) => {
                     passed += 1;
@@ -130,8 +136,13 @@ fn run_discovered_wasm_tests(artifact: &Path, tests: &[DiscoveredTest]) -> TestR
             };
             TestRunResult {
                 name: test.name.clone(),
+                kind: test.kind,
                 status,
                 message,
+                execution_nanoseconds,
+                benchmark_samples: None,
+                benchmark_min_nanoseconds: None,
+                benchmark_p95_nanoseconds: None,
                 span_start: test.span_start,
                 span_end: test.span_end,
             }

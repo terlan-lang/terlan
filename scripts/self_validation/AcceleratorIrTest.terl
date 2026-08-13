@@ -1,0 +1,222 @@
+/**
+ * Validates deterministic backend-neutral AcceleratorIR reports.
+ */
+module scripts.self_validation.AcceleratorIr.
+
+import std.core.Result.{Ok, with_default}.
+import std.core.String.
+import std.data.Json.
+import std.io.File.{read_text}.
+
+import type std.data.Json.
+
+/**
+ * Parses and validates one AcceleratorIR evidence report.
+ */
+pub validate_text(text: String): Bool ->
+    case Json.parse(text) {
+        Ok(report) -> validate_report(report);
+        _ -> false
+    }.
+
+validate_report(report: Json): Bool ->
+    string_field(report, "schema") == "terlan.accelerator-ir-report.v1"
+        and int_field(report, "interpreter_result") == 7
+        and not bool_field(report, "backend_invoked", true)
+        and is_lowercase_sha256(string_field(report, "normalized_hash"))
+        and ir_evidence_is_valid(report)
+        and rejection_inventory_is_valid(report).
+
+ir_evidence_is_valid(report: Json): Bool ->
+    case report.get("ir") {
+        Ok(ir) ->
+            string_field(ir, "schema") == "terlan.accelerator-ir.v1"
+                and kernel_inventory_is_valid(ir);
+        _ -> false
+    }.
+
+kernel_inventory_is_valid(ir: Json): Bool ->
+    case ir.get("kernels") {
+        Ok(kernels) ->
+            array_length(kernels) == 1
+                and case kernels.at(0) {
+    Ok(kernel) -> kernel_has_provenance(kernel);
+    _ -> false
+};
+        _ -> false
+    }.
+
+rejection_inventory_is_valid(report: Json): Bool ->
+    case report.get("rejected_constructs") {
+        Ok(rejections) -> rejection_evidence_is_complete(rejections);
+        _ -> false
+    }.
+
+kernel_has_provenance(kernel: Json): Bool ->
+    string_field(kernel, "core_identity") == "accelerator_report.choose/2"
+        and case kernel.get("source") {
+    Ok(source) -> int_field(source, "line") == 2;
+    _ -> false
+}.
+
+rejection_evidence_is_complete(evidence: Json): Bool ->
+    let count = array_length(evidence);
+    array_contains(evidence, 0, count, "recursion")
+        and array_contains(evidence, 0, count, "dynamic-call")
+        and array_contains(evidence, 0, count, "actor-operation")
+        and array_contains(evidence, 0, count, "runtime-intrinsic")
+        and array_contains(evidence, 0, count, "exception")
+        and array_contains(evidence, 0, count, "closure")
+        and array_contains(evidence, 0, count, "unbounded-allocation")
+        and array_contains(evidence, 0, count, "undeclared-package-operation")
+        and array_contains(evidence, 0, count, "invalid-memory-contract").
+
+array_contains(values: Json, index: Int, count: Int, expected: String): Bool ->
+    if {
+        index == count -> false;
+        true -> case values.at(index) {
+            Ok(value) ->
+                with_default(value.as_string(), "") == expected
+                    or array_contains(values, index + 1, count, expected);
+            _ -> false
+        }
+    }.
+
+string_field(value: Json, name: String): String ->
+    case value.get(name) {
+        Ok(field) -> with_default(field.as_string(), "");
+        _ -> ""
+    }.
+
+int_field(value: Json, name: String): Int ->
+    case value.get(name) {
+        Ok(field) -> with_default(field.as_int(), -1);
+        _ -> -1
+    }.
+
+bool_field(value: Json, name: String, default: Bool): Bool ->
+    case value.get(name) {
+        Ok(field) -> with_default(field.as_bool(), default);
+        _ -> default
+    }.
+
+array_length(value: Json): Int ->
+    with_default(value.length(), -1).
+
+is_lowercase_sha256(value: String): Bool ->
+    String.byte_size(value) == 64 and strip_hex_digits(value) == "".
+
+@pure
+strip_hex_digits(value: String): String ->
+    String.replace(
+        String.replace(
+            String.replace(
+                String.replace(
+                    String.replace(
+                        String.replace(
+                            String.replace(
+                                String.replace(
+                                    String.replace(
+                                        String.replace(
+                                            String.replace(
+                                                String.replace(
+                                                    String.replace(
+                                                        String.replace(
+                                                            String.replace(
+                                                                String.replace(value, "0", ""),
+                                                                "1",
+                                                                "",
+                                                            ),
+                                                            "2",
+                                                            "",
+                                                        ),
+                                                        "3",
+                                                        "",
+                                                    ),
+                                                    "4",
+                                                    "",
+                                                ),
+                                                "5",
+                                                "",
+                                            ),
+                                            "6",
+                                            "",
+                                        ),
+                                        "7",
+                                        "",
+                                    ),
+                                    "8",
+                                    "",
+                                ),
+                                "9",
+                                "",
+                            ),
+                            "a",
+                            "",
+                        ),
+                        "b",
+                        "",
+                    ),
+                    "c",
+                    "",
+                ),
+                "d",
+                "",
+            ),
+            "e",
+            "",
+        ),
+        "f",
+        "",
+    ).
+
+@pure
+accepted_fixture(): String ->
+    "{\"schema\":\"terlan.accelerator-ir-report.v1\",\"ir\":{\"schema\":\"terlan.accelerator-ir.v1\",\"kernels\":[{\"core_identity\":\"accelerator_report.choose/2\",\"source\":{\"line\":2}}]},\"normalized_hash\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\",\"interpreter_result\":7,\"backend_invoked\":false,\"rejected_constructs\":[\"recursion\",\"dynamic-call\",\"actor-operation\",\"runtime-intrinsic\",\"exception\",\"closure\",\"unbounded-allocation\",\"undeclared-package-operation\",\"invalid-memory-contract\"]}".
+
+@test
+pub generated_accelerator_ir_report_is_valid(): Bool ->
+    case read_text("target/quality/accelerator-ir-report.json") {
+        Ok(text) -> validate_text(text);
+        _ -> false
+    }.
+
+@test
+pub canonical_accelerator_ir_fixture_is_accepted(): Bool ->
+    validate_text(accepted_fixture()).
+
+@test
+pub backend_invocation_is_rejected(): Bool ->
+    validation_rejects(
+        String.replace(accepted_fixture(), "\"backend_invoked\":false", "\"backend_invoked\":true"),
+    ).
+
+@test
+pub empty_kernel_inventory_is_rejected(): Bool ->
+    validation_rejects(
+        String.replace(
+            accepted_fixture(),
+            "[{\"core_identity\":\"accelerator_report.choose/2\",\"source\":{\"line\":2}}]",
+            "[]",
+        ),
+    ).
+
+@test
+pub malformed_hash_is_rejected(): Bool ->
+    validation_rejects(
+        String.replace(
+            accepted_fixture(),
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdeg",
+        ),
+    ).
+
+@test
+pub incomplete_rejection_inventory_is_rejected(): Bool ->
+    validation_rejects(String.replace(accepted_fixture(), ",\"invalid-memory-contract\"", "")).
+
+validation_rejects(text: String): Bool ->
+    case validate_text(text) {
+        false -> true;
+        true -> false
+    }.

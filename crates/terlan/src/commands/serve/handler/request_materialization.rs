@@ -44,6 +44,23 @@ pub(in crate::commands::serve) fn vm_request_descriptor_owned(
     ])
 }
 
+/// Builds the source-visible request tuple used by pattern-head route handlers.
+pub(in crate::commands::serve) fn vm_source_request_tuple_owned(
+    request: RequestParts,
+) -> ReplValue {
+    ReplValue::Tuple(vec![
+        ReplValue::Atom("request".to_string()),
+        ReplValue::String(request.method),
+        ReplValue::String(request.path),
+        owned_string_map(request.params),
+        ReplValue::String(request.body),
+        ReplValue::String(request.query_string),
+        owned_string_map(request.query),
+        owned_string_map(request.headers),
+        owned_string_map(request.cookies),
+    ])
+}
+
 /// Replaces one fixed Request envelope while retaining its aggregate vectors.
 pub(in crate::commands::serve) fn replace_vm_request_descriptor(
     value: &mut ReplValue,
@@ -121,10 +138,11 @@ fn replace_projected_map(
 ) {
     replace_string_map(
         value,
-        projection
-            .requires(field)
-            .then_some(entries)
-            .unwrap_or_default(),
+        if projection.requires(field) {
+            entries
+        } else {
+            Default::default()
+        },
     );
 }
 
@@ -183,4 +201,5 @@ fn empty_string_map() -> ReplValue {
 
 #[cfg(test)]
 #[path = "request_projection_test.rs"]
+#[cfg(test)]
 mod request_projection_test;

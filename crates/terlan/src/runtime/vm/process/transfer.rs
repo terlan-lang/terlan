@@ -35,7 +35,7 @@ impl VmProcessTransfer {
 #[derive(Debug)]
 pub(crate) struct VmProcessImportFailure {
     reason: String,
-    transfer: VmProcessTransfer,
+    transfer: Box<VmProcessTransfer>,
 }
 
 impl VmProcessImportFailure {
@@ -46,7 +46,7 @@ impl VmProcessImportFailure {
 
     /// Returns the complete process transfer for source restoration.
     pub(crate) fn into_transfer(self) -> VmProcessTransfer {
-        self.transfer
+        *self.transfer
     }
 }
 
@@ -113,7 +113,10 @@ impl VmProcessTable {
         transfer: VmProcessTransfer,
     ) -> Result<(), VmProcessImportFailure> {
         if let Err(reason) = self.validate_process_import(&transfer) {
-            return Err(VmProcessImportFailure { reason, transfer });
+            return Err(VmProcessImportFailure {
+                reason,
+                transfer: Box::new(transfer),
+            });
         }
         let VmProcessTransfer {
             process,
@@ -125,12 +128,12 @@ impl VmProcessTable {
         if let Err((error, process)) = self.processes.import_transferred(pid, process) {
             return Err(VmProcessImportFailure {
                 reason: format!("process transfer import failed: {error:?}"),
-                transfer: VmProcessTransfer {
+                transfer: Box::new(VmProcessTransfer {
                     process,
                     names,
                     process_identity_watermark,
                     message_identity_watermark,
-                },
+                }),
             });
         }
         self.next_pid = self

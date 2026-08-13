@@ -9,6 +9,14 @@ use crate::terlan_typeck::{
 
 type Signatures = HashMap<(String, usize), (Vec<CoreType>, CoreType)>;
 
+/// Stable source owner and callable signatures used while lifting closures.
+#[derive(Clone, Copy)]
+struct ClosureLiftEnvironment<'a> {
+    signatures: &'a Signatures,
+    module: &'a str,
+    owner: &'a CoreFunction,
+}
+
 pub(super) fn lift_nested_closure_arguments(cores: &mut [CoreModule]) -> Result<(), String> {
     let signatures = cores
         .iter()
@@ -27,6 +35,23 @@ pub(super) fn lift_nested_closure_arguments(cores: &mut [CoreModule]) -> Result<
             })
         })
         .collect::<Signatures>();
+    for core in cores.iter() {
+        for function in &core.functions {
+            if function.name.starts_with("$aot_comprehension_")
+                && !signatures
+                    .contains_key(&(format!("{}.{}", core.module, function.name), function.arity))
+            {
+                return Err(format!(
+                    "error[native_ir.closure_signature]: generated helper `{}.{}/{}` lost its closed signature (parameters={}, result={})",
+                    core.module,
+                    function.name,
+                    function.arity,
+                    function.params.iter().all(|param| param.core_ty.is_some()),
+                    function.core_return_type.is_some()
+                ));
+            }
+        }
+    }
 
     for core in cores {
         let module = core.module.clone();
@@ -74,9 +99,11 @@ pub(super) fn lift_nested_closure_arguments(cores: &mut [CoreModule]) -> Result<
                             body,
                             None,
                             &lambda_variables,
-                            &signatures,
-                            &module,
-                            &owner,
+                            ClosureLiftEnvironment {
+                                signatures: &signatures,
+                                module: &module,
+                                owner: &owner,
+                            },
                             &mut generated,
                             &mut ordinal,
                         )?;
@@ -85,9 +112,11 @@ pub(super) fn lift_nested_closure_arguments(cores: &mut [CoreModule]) -> Result<
                             body,
                             owner.core_return_type.as_ref(),
                             &variables,
-                            &signatures,
-                            &module,
-                            &owner,
+                            ClosureLiftEnvironment {
+                                signatures: &signatures,
+                                module: &module,
+                                owner: &owner,
+                            },
                             &mut generated,
                             &mut ordinal,
                         )?;
@@ -100,18 +129,19 @@ pub(super) fn lift_nested_closure_arguments(cores: &mut [CoreModule]) -> Result<
     }
     Ok(())
 }
-
-#[allow(clippy::too_many_arguments)]
 fn rewrite(
     expr: &mut CoreExpr,
     expected: Option<&CoreType>,
     variables: &HashMap<String, CoreType>,
-    signatures: &Signatures,
-    module: &str,
-    owner: &CoreFunction,
+    environment: ClosureLiftEnvironment<'_>,
     generated: &mut Vec<CoreFunction>,
     ordinal: &mut u64,
 ) -> Result<(), String> {
+    let ClosureLiftEnvironment {
+        signatures,
+        module,
+        owner,
+    } = environment;
     if matches!(expr, CoreExpr::Lam { .. }) && matches!(expected, Some(CoreType::Arrow { .. })) {
         let lambda = expr.clone();
         let mut captures = super::free_variables(&lambda)
@@ -142,14 +172,34 @@ fn rewrite(
         CoreExpr::Call { function, args } => {
             let expected = signature(signatures, module, function, args.len())
                 .map(|signature| signature.0.clone());
+            if args
+                .iter()
+                .any(|argument| matches!(argument, CoreExpr::Lam { .. }))
+                && expected.is_none()
+            {
+                return Err(format!(
+                    "error[native_ir.closure_signature]: `{function}/{}` has a direct lambda argument but no concrete callable signature",
+                    args.len()
+                ));
+            }
             for (index, arg) in args.iter_mut().enumerate() {
+                if matches!(arg, CoreExpr::Lam { .. })
+                    && !matches!(
+                        expected.as_ref().and_then(|types| types.get(index)),
+                        Some(CoreType::Arrow { .. })
+                    )
+                {
+                    return Err(format!(
+                        "error[native_ir.closure_signature]: argument {} of `{function}/{}` is a lambda without an arrow contract",
+                        index + 1,
+                        args.len()
+                    ));
+                }
                 rewrite(
                     arg,
                     expected.as_ref().and_then(|types| types.get(index)),
                     variables,
-                    signatures,
-                    module,
-                    owner,
+                    environment,
                     generated,
                     ordinal,
                 )?;
@@ -162,9 +212,7 @@ fn rewrite(
                     &mut binding.value,
                     None,
                     &variables,
-                    signatures,
-                    module,
-                    owner,
+                    environment,
                     generated,
                     ordinal,
                 )?;
@@ -174,9 +222,7 @@ fn rewrite(
                     }
                 }
             }
-            rewrite(
-                body, expected, &variables, signatures, module, owner, generated, ordinal,
-            )?;
+            rewrite(body, expected, &variables, environment, generated, ordinal)?;
         }
         CoreExpr::Lam { params, body } => {
             let mut variables = variables.clone();
@@ -191,15 +237,11 @@ fn rewrite(
                     }
                 }
             }
-            rewrite(
-                body, None, &variables, signatures, module, owner, generated, ordinal,
-            )?;
+            rewrite(body, None, &variables, environment, generated, ordinal)?;
         }
         CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
             for item in items {
-                rewrite(
-                    item, None, variables, signatures, module, owner, generated, ordinal,
-                )?;
+                rewrite(item, None, variables, environment, generated, ordinal)?;
             }
         }
         CoreExpr::ListCons { head, tail }
@@ -212,45 +254,29 @@ fn rewrite(
             right: tail,
             ..
         } => {
-            rewrite(
-                head, None, variables, signatures, module, owner, generated, ordinal,
-            )?;
-            rewrite(
-                tail, None, variables, signatures, module, owner, generated, ordinal,
-            )?;
+            rewrite(head, None, variables, environment, generated, ordinal)?;
+            rewrite(tail, None, variables, environment, generated, ordinal)?;
         }
         CoreExpr::Intrinsic(call) => {
             for arg in &mut call.args {
-                rewrite(
-                    arg, None, variables, signatures, module, owner, generated, ordinal,
-                )?;
+                rewrite(arg, None, variables, environment, generated, ordinal)?;
             }
         }
         CoreExpr::RemoteCall { args, .. } | CoreExpr::ConstructorCall { args, .. } => {
             for arg in args {
-                rewrite(
-                    arg, None, variables, signatures, module, owner, generated, ordinal,
-                )?;
+                rewrite(arg, None, variables, environment, generated, ordinal)?;
             }
         }
         CoreExpr::FunctionCall { callee, args } => {
-            rewrite(
-                callee, None, variables, signatures, module, owner, generated, ordinal,
-            )?;
+            rewrite(callee, None, variables, environment, generated, ordinal)?;
             for arg in args {
-                rewrite(
-                    arg, None, variables, signatures, module, owner, generated, ordinal,
-                )?;
+                rewrite(arg, None, variables, environment, generated, ordinal)?;
             }
         }
         CoreExpr::MutableReceiverCall { receiver, args, .. } => {
-            rewrite(
-                receiver, None, variables, signatures, module, owner, generated, ordinal,
-            )?;
+            rewrite(receiver, None, variables, environment, generated, ordinal)?;
             for arg in args {
-                rewrite(
-                    arg, None, variables, signatures, module, owner, generated, ordinal,
-                )?;
+                rewrite(arg, None, variables, environment, generated, ordinal)?;
             }
         }
         CoreExpr::Map(fields) => {
@@ -259,9 +285,7 @@ fn rewrite(
                     &mut field.value,
                     None,
                     variables,
-                    signatures,
-                    module,
-                    owner,
+                    environment,
                     generated,
                     ordinal,
                 )?;
@@ -273,26 +297,20 @@ fn rewrite(
                     &mut field.value,
                     None,
                     variables,
-                    signatures,
-                    module,
-                    owner,
+                    environment,
                     generated,
                     ordinal,
                 )?;
             }
         }
         CoreExpr::RecordUpdate { base, fields, .. } => {
-            rewrite(
-                base, None, variables, signatures, module, owner, generated, ordinal,
-            )?;
+            rewrite(base, None, variables, environment, generated, ordinal)?;
             for field in fields {
                 rewrite(
                     &mut field.value,
                     None,
                     variables,
-                    signatures,
-                    module,
-                    owner,
+                    environment,
                     generated,
                     ordinal,
                 )?;
@@ -301,26 +319,32 @@ fn rewrite(
         CoreExpr::FieldAccess { base, .. }
         | CoreExpr::RecordAccess { base, .. }
         | CoreExpr::Cast { expr: base, .. }
-        | CoreExpr::UnaryOp { operand: base, .. } => rewrite(
-            base, None, variables, signatures, module, owner, generated, ordinal,
-        )?,
+        | CoreExpr::UnaryOp { operand: base, .. } => {
+            rewrite(base, None, variables, environment, generated, ordinal)?
+        }
         CoreExpr::Case { scrutinee, clauses } => {
-            rewrite(
-                scrutinee, None, variables, signatures, module, owner, generated, ordinal,
-            )?;
+            let scrutinee_type = infer(scrutinee, variables, signatures, module);
+            rewrite(scrutinee, None, variables, environment, generated, ordinal)?;
             for clause in clauses {
+                let mut clause_variables = variables.clone();
+                if let Some(scrutinee_type) = scrutinee_type.as_ref() {
+                    bind_pattern_variables(&clause.pattern, scrutinee_type, &mut clause_variables);
+                }
                 if let Some(guard) = &mut clause.guard {
                     rewrite(
-                        guard, None, variables, signatures, module, owner, generated, ordinal,
+                        guard,
+                        None,
+                        &clause_variables,
+                        environment,
+                        generated,
+                        ordinal,
                     )?;
                 }
                 rewrite(
                     &mut clause.body,
                     expected,
-                    variables,
-                    signatures,
-                    module,
-                    owner,
+                    &clause_variables,
+                    environment,
                     generated,
                     ordinal,
                 )?;
@@ -332,9 +356,7 @@ fn rewrite(
                     &mut clause.condition,
                     None,
                     variables,
-                    signatures,
-                    module,
-                    owner,
+                    environment,
                     generated,
                     ordinal,
                 )?;
@@ -342,9 +364,7 @@ fn rewrite(
                     &mut clause.body,
                     expected,
                     variables,
-                    signatures,
-                    module,
-                    owner,
+                    environment,
                     generated,
                     ordinal,
                 )?;
@@ -352,13 +372,9 @@ fn rewrite(
         }
         CoreExpr::ConstructorChain { args, record, .. } => {
             for arg in args {
-                rewrite(
-                    arg, None, variables, signatures, module, owner, generated, ordinal,
-                )?;
+                rewrite(arg, None, variables, environment, generated, ordinal)?;
             }
-            rewrite(
-                record, None, variables, signatures, module, owner, generated, ordinal,
-            )?;
+            rewrite(record, None, variables, environment, generated, ordinal)?;
         }
         CoreExpr::ListComprehension {
             expr,
@@ -366,25 +382,19 @@ fn rewrite(
             guards,
             ..
         } => {
-            rewrite(
-                expr, None, variables, signatures, module, owner, generated, ordinal,
-            )?;
+            rewrite(expr, None, variables, environment, generated, ordinal)?;
             for generator in generators {
                 rewrite(
                     &mut generator.source,
                     None,
                     variables,
-                    signatures,
-                    module,
-                    owner,
+                    environment,
                     generated,
                     ordinal,
                 )?;
             }
             for guard in guards {
-                rewrite(
-                    guard, None, variables, signatures, module, owner, generated, ordinal,
-                )?;
+                rewrite(guard, None, variables, environment, generated, ordinal)?;
             }
         }
         CoreExpr::Try { .. } | CoreExpr::SqlQuery { .. } => {}
@@ -396,6 +406,44 @@ fn rewrite(
         | CoreExpr::RemoteFunRef { .. } => {}
     }
     Ok(())
+}
+
+fn bind_pattern_variables(
+    pattern: &CorePattern,
+    ty: &CoreType,
+    variables: &mut HashMap<String, CoreType>,
+) {
+    match pattern {
+        CorePattern::Var(name) => {
+            variables.insert(name.clone(), ty.clone());
+        }
+        CorePattern::Alias { alias, pattern } => {
+            variables.insert(alias.clone(), ty.clone());
+            bind_pattern_variables(pattern, ty, variables);
+        }
+        CorePattern::Tuple(patterns) => {
+            let CoreType::Tuple(elements) = ty else {
+                return;
+            };
+            for (pattern, element) in patterns.iter().zip(elements) {
+                let element = match element {
+                    CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. } => ty,
+                };
+                bind_pattern_variables(pattern, element, variables);
+            }
+        }
+        CorePattern::Map(patterns) => {
+            let CoreType::Map(fields) = ty else {
+                return;
+            };
+            for pattern in patterns {
+                if let Some(field) = fields.iter().find(|field| field.key == pattern.key) {
+                    bind_pattern_variables(&pattern.value, &field.value, variables);
+                }
+            }
+        }
+        _ => {}
+    }
 }
 
 fn closure_factory(
@@ -457,6 +505,17 @@ fn signature<'a>(
     signatures
         .get(&(function.to_string(), arity))
         .or_else(|| signatures.get(&(format!("{module}.{function}"), arity)))
+        .or_else(|| {
+            let mut matches = signatures
+                .iter()
+                .filter_map(|((name, candidate_arity), value)| {
+                    (*candidate_arity == arity
+                        && name.rsplit('.').next() == function.rsplit('.').next())
+                    .then_some(value)
+                });
+            let first = matches.next()?;
+            matches.all(|candidate| candidate == first).then_some(first)
+        })
 }
 
 fn infer(
@@ -489,7 +548,7 @@ fn infer(
         CoreExpr::BinaryOp { operator, left, .. }
             if matches!(
                 operator.as_str(),
-                "==" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "&&" | "or" | "||"
+                "==" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "or"
             ) =>
         {
             Some(CoreType::Bool)

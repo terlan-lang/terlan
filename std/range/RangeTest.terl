@@ -71,7 +71,9 @@ pub length_counts_inclusive_and_stepped_values(): Bool ->
 pub stepped_range_overshoot_excludes_unreached_inclusive_stop(): Bool ->
     case stepped(1, 10, 4, true) {
         Ok(range) ->
-            assert_equal([1, 5, 9], to_list(range)) and assert_equal(false, contains(range, 10)) and assert_equal(3, length(range));
+            assert_equal([1, 5, 9], to_list(range))
+                and assert_equal(false, contains(range, 10))
+                and assert_equal(3, length(range));
         Err(_reason) -> false
     }.
 
@@ -131,11 +133,10 @@ pub range_sugar_works_inside_guard(): Bool ->
 @test
 pub range_sugar_supports_direct_iterator_traversal(): Bool ->
     let iterator = iterator(1 .. 2);
-    case next(iterator) {
-        Some({value: first, next: rest}) ->
-            case next(rest) {
-                Some({value: second, next: _done}) -> assert_equal(3, first + second);
-                None -> false
-            };
-        None -> false
-    }.
+    let {
+        Some({value: first, next: rest}) <- next(iterator);
+        Some({value: second, next: _done}) <- next(rest)
+    } else {
+        _ -> false
+    };
+    assert_equal(3, first + second).

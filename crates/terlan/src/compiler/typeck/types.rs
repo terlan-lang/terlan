@@ -15,6 +15,7 @@ use crate::terlan_syntax::span::Span;
 pub type TypeVarId = usize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// Variants representing fixed array size.
 pub enum FixedArraySize {
     Known(usize),
     Param(TypeVarId),

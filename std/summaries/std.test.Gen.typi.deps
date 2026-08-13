@@ -1,12 +1,14 @@
 module=std.test.Gen
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=1565203774427555532
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=13710223759632572558
 interface_hash=7400281888070802298
 interface_doc_hash=12114679822144679386
-deps=4
+deps=6
+std.collections.List=5599785960849014878
 std.core.Object=11140106213700607777
 std.core.Option=11539230284316612175
 std.core.Result=11040488711914238385
+std.range.Range=3952605428572101253
 std.test.Test=2400013923754987616

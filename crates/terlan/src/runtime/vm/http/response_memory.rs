@@ -11,7 +11,7 @@ use crate::runtime::vm::{
 
 const HTTP_RESPONSE_WRITE_REDUCTIONS: u64 = 1;
 
-pub(super) struct VmHttpResponseMemory {
+pub(in crate::runtime::vm::http) struct VmHttpResponseMemory {
     memory: VmMemoryAccountant,
     scheduler: VmScheduler,
 }
@@ -92,6 +92,7 @@ impl VmHttpResponseMemory {
 }
 
 impl VmHttpTcpServer {
+    #[cfg(test)]
     pub(crate) fn with_response_memory_limits(
         listener: VmTcpListener,
         handler_source: VmProcessSource,
@@ -102,6 +103,7 @@ impl VmHttpTcpServer {
         server
     }
 
+    #[cfg(test)]
     pub(crate) fn response_memory_metrics(
         &self,
         process: VmProcessId,
@@ -109,6 +111,7 @@ impl VmHttpTcpServer {
         self.response_memory.metrics(process)
     }
 
+    #[cfg(test)]
     pub(crate) fn response_memory_reductions(&self, process: VmProcessId) -> u64 {
         self.response_memory.reductions(process)
     }

@@ -66,6 +66,29 @@ fn json_std_source() -> &'static str {
     include_str!("../../../../../std/data/Json.terl")
 }
 
+fn hash_std_source() -> &'static str {
+    include_str!("../../../../../std/crypto/Hash.terl")
+}
+
+fn platform_std_source() -> &'static str {
+    include_str!("../../../../../std/system/Platform.terl")
+}
+
+/// Returns the Rust-backed Regex std source contract.
+///
+/// Inputs:
+/// - None.
+///
+/// Output:
+/// - Static source text for `std.regex.Regex`.
+///
+/// Transformation:
+/// - Embeds the real std module so metadata tests cover every checked regex
+///   operation, including aggregate line-match results used by validators.
+fn regex_std_source() -> &'static str {
+    include_str!("../../../../../std/regex/Regex.terl")
+}
+
 /// Returns the Rust-backed Base64 std source contract.
 ///
 /// Inputs:
@@ -193,6 +216,24 @@ fn assert_operation(metadata: &NativeMetadata, name: &str, arity: usize, operati
     }));
 }
 
+#[test]
+fn compiler_native_metadata_ignores_delimiters_inside_default_strings() {
+    let source = r#"
+module package.Options.
+
+@compiler.native {package.options.csv}
+pub csv(
+    separator: String = ",",
+    quote: String = "\"",
+    suffix: String = "a)b"
+): String -> native.
+"#;
+    let metadata = extract_native_metadata(source, NativePolicy::NativeBoundaryOptional)
+        .expect("native metadata");
+
+    assert_operation(&metadata, "csv", 3, "package.options.csv");
+}
+
 /// Verifies noncanonical native-core blocks are not artifact inputs.
 ///
 /// Inputs:
@@ -243,7 +284,7 @@ fn compiler_native_metadata_extracts_std_json_operations() {
     assert_eq!(metadata.native_module, "std_data_json_native_boundary");
     assert_eq!(metadata.scheduler, "normal");
     assert_eq!(metadata.native_policy, NativePolicy::NativeBoundaryOptional);
-    assert_eq!(metadata.functions.len(), 19);
+    assert_eq!(metadata.functions.len(), 32);
     assert!(metadata.functions.contains(&NativeFunctionSignature {
         name: "parse".to_string(),
         arity: 1,
@@ -253,6 +294,11 @@ fn compiler_native_metadata_extracts_std_json_operations() {
         name: "get".to_string(),
         arity: 2,
         operation: Some("std.data.json.get".to_string()),
+    }));
+    assert!(metadata.functions.contains(&NativeFunctionSignature {
+        name: "keys".to_string(),
+        arity: 1,
+        operation: Some("std.data.json.keys".to_string()),
     }));
     assert!(metadata.functions.contains(&NativeFunctionSignature {
         name: "length".to_string(),
@@ -322,12 +368,12 @@ pub html(value: Html, status: Int = 200): Response ->\n\
 ///   operation inventory expected by `std/RUST_BACKED_MANIFEST.tsv`.
 #[test]
 fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
-    let cases: [(&str, &str, &str, usize, &[(&str, usize, &str)]); 8] = [
+    let cases: [(&str, &str, &str, usize, &[(&str, usize, &str)]); 11] = [
         (
             "std.data.Json",
             json_std_source(),
             "std_data_json_native_boundary",
-            19,
+            32,
             &[
                 ("null", 0, "std.data.json.null"),
                 ("bool", 1, "std.data.json.bool"),
@@ -337,10 +383,39 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
                 ("array", 0, "std.data.json.array"),
                 ("object", 0, "std.data.json.object"),
                 ("push", 2, "std.data.json.array_push"),
+                ("extend", 2, "std.data.json.array_extend"),
+                ("set", 3, "std.data.json.array_set"),
                 ("put", 3, "std.data.json.object_put"),
                 ("parse", 1, "std.data.json.parse"),
                 ("stringify", 1, "std.data.json.stringify"),
+                ("stringify_pretty", 1, "std.data.json.stringify_pretty"),
                 ("get", 2, "std.data.json.get"),
+                ("keys", 1, "std.data.json.keys"),
+                ("object_length", 1, "std.data.json.object_length"),
+                ("string_fields", 2, "std.data.json.string_fields"),
+                ("required_fields", 4, "std.data.json.required_fields"),
+                (
+                    "required_field_rows",
+                    4,
+                    "std.data.json.required_field_rows",
+                ),
+                (
+                    "required_field_rows_page",
+                    6,
+                    "std.data.json.required_field_rows_page",
+                ),
+                ("string_field_rows", 2, "std.data.json.string_field_rows"),
+                (
+                    "nested_string_field_rows",
+                    4,
+                    "std.data.json.nested_string_field_rows",
+                ),
+                (
+                    "nested_string_field_rows_page",
+                    6,
+                    "std.data.json.nested_string_field_rows_page",
+                ),
+                ("string_object_rows", 2, "std.data.json.string_object_rows"),
                 ("length", 1, "std.data.json.length"),
                 ("at", 2, "std.data.json.at"),
                 ("as_string", 1, "std.data.json.as_string"),
@@ -348,6 +423,55 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
                 ("as_float", 1, "std.data.json.as_float"),
                 ("as_bool", 1, "std.data.json.as_bool"),
                 ("is_null", 1, "std.data.json.is_null"),
+            ],
+        ),
+        (
+            "std.crypto.Hash",
+            hash_std_source(),
+            "std_crypto_hash_native_boundary",
+            4,
+            &[
+                ("sha256_bytes", 1, "std.crypto.hash.sha256_bytes"),
+                ("sha256_framed", 1, "std.crypto.hash.sha256_framed"),
+                (
+                    "sha256_domain_framed",
+                    2,
+                    "std.crypto.hash.sha256_domain_framed",
+                ),
+                (
+                    "sha256_nul_separated",
+                    1,
+                    "std.crypto.hash.sha256_nul_separated",
+                ),
+            ],
+        ),
+        (
+            "std.system.Platform",
+            platform_std_source(),
+            "std_system_platform_native_boundary",
+            1,
+            &[("current", 0, "std.system.platform.current")],
+        ),
+        (
+            "std.regex.Regex",
+            regex_std_source(),
+            "std_regex_regex_native_boundary",
+            10,
+            &[
+                ("compile", 1, "std.regex.regex.compile"),
+                ("is_match", 2, "std.regex.regex.is_match"),
+                (
+                    "matching_line_numbers",
+                    2,
+                    "std.regex.regex.matching_line_numbers",
+                ),
+                ("find", 2, "std.regex.regex.find"),
+                ("find_all", 2, "std.regex.regex.find_all"),
+                ("capture", 3, "std.regex.regex.capture"),
+                ("named_capture", 3, "std.regex.regex.named_capture"),
+                ("replace", 3, "std.regex.regex.replace"),
+                ("split", 2, "std.regex.regex.split"),
+                ("escape", 1, "std.regex.regex.escape"),
             ],
         ),
         (
@@ -378,7 +502,7 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
             "std.io.Path",
             path_std_source(),
             "std_io_path_native_boundary",
-            7,
+            10,
             &[
                 ("from_string", 1, "std.io.path.from_string"),
                 ("to_string", 1, "std.io.path.to_string"),
@@ -387,6 +511,9 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
                 ("extension", 1, "std.io.path.extension"),
                 ("parent", 1, "std.io.path.parent"),
                 ("is_absolute", 1, "std.io.path.is_absolute"),
+                ("normalize", 1, "std.io.path.normalize"),
+                ("starts_with", 2, "std.io.path.starts_with"),
+                ("strip_prefix", 2, "std.io.path.strip_prefix"),
             ],
         ),
         (

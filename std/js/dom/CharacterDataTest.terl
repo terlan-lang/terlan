@@ -41,7 +41,7 @@ pub replace_data_typechecks(
     receiver: CharacterData,
     offset: JsNumber,
     count: JsNumber,
-    data: JsString
+    data: JsString,
 ): Unit ->
     receiver.replace_data(offset, count, data).
 

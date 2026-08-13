@@ -28,6 +28,32 @@ pub(crate) struct VmScheduledNativeBoundaryRequest {
     pub(crate) deadline_tick: u64,
 }
 
+/// Actor request and monotonic timeout admitted to the deadline queue.
+#[derive(Clone, Copy)]
+pub(crate) struct VmNativeBoundaryDeadlineStart {
+    pub(crate) owner: VmProcessId,
+    pub(crate) request_id: RequestId,
+    pub(crate) now_tick: u64,
+    pub(crate) timeout_ticks: u64,
+}
+
+#[cfg(test)]
+impl VmNativeBoundaryDeadlineStart {
+    pub(crate) fn new(
+        owner: VmProcessId,
+        request_id: RequestId,
+        now_tick: u64,
+        timeout_ticks: u64,
+    ) -> Self {
+        Self {
+            owner,
+            request_id,
+            now_tick,
+            timeout_ticks,
+        }
+    }
+}
+
 /// Terminal lifecycle result for a parked NativeBoundary request.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum VmNativeBoundaryDeadlineCompletion {
@@ -78,11 +104,14 @@ impl VmNativeBoundaryDeadlineQueue {
         timers: &mut VmTimerTable,
         processes: &mut VmProcessTable,
         scheduler: &mut VmScheduler,
-        owner: VmProcessId,
-        request_id: RequestId,
-        now_tick: u64,
-        timeout_ticks: u64,
+        request: VmNativeBoundaryDeadlineStart,
     ) -> Result<VmScheduledNativeBoundaryRequest, String> {
+        let VmNativeBoundaryDeadlineStart {
+            owner,
+            request_id,
+            now_tick,
+            timeout_ticks,
+        } = request;
         if timeout_ticks == 0 {
             return Err("NativeBoundary timeout must be positive".to_string());
         }
@@ -247,17 +276,20 @@ impl VmNativeBoundaryDeadlineQueue {
     }
 
     /// Returns credits reserved by currently parked worker requests.
+    #[cfg(test)]
     pub(crate) fn reserved_credits(&self) -> u64 {
         self.worker.reserved_credits()
     }
 
     vm_capability_component! {
         /// Finds the active VM deadline associated with a worker request.
+        #[cfg(test)]
         pub(crate) fn timer_for_request(&self, request_id: RequestId) -> Option<VmTimerId> {
             self.pending_by_request.get(&request_id.value).copied()
         }
 
         /// Returns the owner and request identity parked behind one deadline.
+        #[cfg(test)]
         pub(crate) fn request_for_timer(
             &self,
             timer_id: VmTimerId,
@@ -268,6 +300,7 @@ impl VmNativeBoundaryDeadlineQueue {
         }
 
         /// Returns active deadline identities in deterministic timer order.
+        #[cfg(test)]
         pub(crate) fn pending_timer_ids(&self) -> Vec<VmTimerId> {
             self.pending.keys().copied().collect()
         }
@@ -391,4 +424,5 @@ fn render_worker_rejection(reply: &NativeBoundaryReplyTerm) -> String {
 
 #[cfg(test)]
 #[path = "deadline_test.rs"]
+#[cfg(test)]
 mod deadline_test;

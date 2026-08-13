@@ -7,6 +7,8 @@ use crate::terlan_typeck::{
     ReceiverMethodDispatchSignature, ResolvedModule,
 };
 
+type StructuralImplDispatch = HashMap<(String, String, usize), String>;
+
 /// Lowers the single-candidate structural generic trait implementations that
 /// can be selected entirely at compile time.
 ///
@@ -20,7 +22,7 @@ pub(crate) fn core_syntax_structural_impl_dispatch(
     resolved: &ResolvedModule,
     receiver_methods: &HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
     template_prop_order: &HashMap<String, Vec<String>>,
-) -> (Vec<CoreFunction>, HashMap<(String, String, usize), String>) {
+) -> (Vec<CoreFunction>, StructuralImplDispatch) {
     let mut candidates: HashMap<(String, String, usize), Vec<&SyntaxImplMethodOutput>> =
         HashMap::new();
     let mut local_impl_counts = HashMap::new();

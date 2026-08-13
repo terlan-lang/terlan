@@ -21,7 +21,7 @@ pub audio_typechecks(receiver: MediaCapabilitiesKeySystemConfiguration): KeySyst
     receiver.audio().
 
 pub distinctive_identifier_typechecks(
-    receiver: MediaCapabilitiesKeySystemConfiguration
+    receiver: MediaCapabilitiesKeySystemConfiguration,
 ): MediaKeysRequirement ->
     receiver.distinctive_identifier().
 
@@ -32,12 +32,12 @@ pub key_system_typechecks(receiver: MediaCapabilitiesKeySystemConfiguration): Js
     receiver.key_system().
 
 pub persistent_state_typechecks(
-    receiver: MediaCapabilitiesKeySystemConfiguration
+    receiver: MediaCapabilitiesKeySystemConfiguration,
 ): MediaKeysRequirement ->
     receiver.persistent_state().
 
 pub session_types_typechecks(
-    receiver: MediaCapabilitiesKeySystemConfiguration
+    receiver: MediaCapabilitiesKeySystemConfiguration,
 ): std.js.Array[JsString] ->
     receiver.session_types().
 

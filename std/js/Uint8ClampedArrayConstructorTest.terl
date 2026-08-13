@@ -28,6 +28,6 @@ pub of_typechecks(receiver: Uint8ClampedArrayConstructor): Uint8ClampedArray[Arr
 
 pub from__typechecks(
     receiver: Uint8ClampedArrayConstructor,
-    array_like: ArrayLike[JsNumber]
+    array_like: ArrayLike[JsNumber],
 ): Uint8ClampedArray[ArrayBuffer] ->
     receiver.from_(array_like).

@@ -9,10 +9,16 @@ use crate::terlan_typeck::{
 
 const MAX_GENERIC_SPECIALIZATIONS: usize = 128;
 
+/// Every callable candidate grouped by its qualified name and arity.
+type CallableTemplates = BTreeMap<(String, usize), Vec<CoreFunction>>;
+
+#[path = "generic_specialization/inference.rs"]
+mod inference;
 #[path = "generic_specialization/pattern_types.rs"]
 mod pattern_types;
 #[path = "generic_specialization/type_substitution.rs"]
 mod type_substitution;
+use inference::{common_concrete_parameter_types, infer_type, needs_contextual_type};
 use pattern_types::bind_pattern_types;
 use type_substitution::substitute_function_types;
 
@@ -24,6 +30,19 @@ pub(super) fn specialize_application_generics_with_budget(
         for function in &mut core.functions {
             if function.generic_params.is_empty() {
                 function.generic_params = implicit_generic_params(function);
+            } else {
+                function.generic_params = function
+                    .generic_params
+                    .iter()
+                    .map(|parameter| {
+                        parameter
+                            .split_once("=>")
+                            .map_or(parameter.as_str(), |(name, _)| name)
+                            .trim()
+                            .trim_start_matches(['-', '+'])
+                            .to_string()
+                    })
+                    .collect();
             }
         }
     }
@@ -38,10 +57,10 @@ pub(super) fn specialize_application_generics_with_budget(
             let mut template = function.clone();
             qualify_local_calls(&mut template, &core.module, &local);
             template.name = format!("{}.{}", core.module, function.name);
-            templates.insert(
-                (format!("{}.{}", core.module, function.name), function.arity),
-                template,
-            );
+            templates
+                .entry((format!("{}.{}", core.module, function.name), function.arity))
+                .or_insert_with(Vec::new)
+                .push(template);
         }
     }
     if templates.is_empty() {
@@ -55,7 +74,7 @@ pub(super) fn specialize_application_generics_with_budget(
 
 fn specialize_core(
     core: &mut CoreModule,
-    templates: &BTreeMap<(String, usize), CoreFunction>,
+    templates: &CallableTemplates,
     budget: &mut super::specialization_budget::SpecializationBudget,
 ) -> Result<(), String> {
     let mut cache = BTreeMap::<(String, Vec<String>), String>::new();
@@ -81,7 +100,7 @@ fn specialize_core(
                 rewrite_expr(
                     body,
                     &parameter_types,
-                    &templates,
+                    templates,
                     &mut cache,
                     &mut generated,
                     &core.module,
@@ -96,19 +115,58 @@ fn specialize_core(
         .retain(|function| !function_is_generic(function));
     Ok(())
 }
-
-#[allow(clippy::too_many_arguments)]
 fn rewrite_expr(
     expr: &mut CoreExpr,
     variables: &HashMap<String, CoreType>,
-    templates: &BTreeMap<(String, usize), CoreFunction>,
+    templates: &CallableTemplates,
     cache: &mut BTreeMap<(String, Vec<String>), String>,
     generated: &mut Vec<CoreFunction>,
     module: &str,
     budget: &mut super::specialization_budget::SpecializationBudget,
 ) -> Result<(), String> {
+    if let CoreExpr::RemoteCall {
+        module: receiver_module,
+        function,
+        args,
+    } = expr
+    {
+        if receiver_module == "__receiver__" {
+            let function = function.clone();
+            let args = std::mem::take(args);
+            *expr = CoreExpr::Call { function, args };
+            return rewrite_expr(expr, variables, templates, cache, generated, module, budget);
+        }
+    }
+    if let CoreExpr::Call { function, args } = expr {
+        if matches!(variables.get(function), Some(CoreType::Arrow { .. })) {
+            let callee = function.clone();
+            for argument in args.iter_mut() {
+                rewrite_expr(
+                    argument, variables, templates, cache, generated, module, budget,
+                )?;
+            }
+            let arguments = std::mem::take(args);
+            *expr = CoreExpr::FunctionCall {
+                callee: Box::new(CoreExpr::Var(callee)),
+                args: arguments,
+            };
+            return Ok(());
+        }
+    }
     match expr {
         CoreExpr::Call { function, args } => {
+            let contextual_parameters = callable_templates(templates, module, function, args.len())
+                .and_then(common_concrete_parameter_types);
+            if let Some(parameter_types) = contextual_parameters {
+                for (argument, expected) in args.iter_mut().zip(parameter_types) {
+                    if needs_contextual_type(argument) {
+                        *argument = CoreExpr::Cast {
+                            expr: Box::new(argument.clone()),
+                            target_type: expected,
+                        };
+                    }
+                }
+            }
             let template = generic_template(templates, module, function, args.len());
             let argument_types = template
                 .map(|template| {
@@ -143,6 +201,22 @@ fn rewrite_expr(
                 template.name.clone(),
                 argument_types.iter().map(CoreType::contract_text).collect(),
             );
+            let mut substitution = HashMap::new();
+            for (parameter, argument) in template.params.iter().zip(&argument_types) {
+                unify(
+                    parameter.core_ty.as_ref().ok_or_else(|| {
+                        "error[native_ir.generic_signature]: generic parameter type is absent"
+                            .to_string()
+                    })?,
+                    argument,
+                    &template.generic_params,
+                    &mut substitution,
+                )?;
+            }
+            if let Some(inlined) = inline_record_forwarder(template, args) {
+                *expr = inlined;
+                return Ok(());
+            }
             if let Some(name) = cache.get(&key) {
                 *function = name.clone();
                 return Ok(());
@@ -157,18 +231,6 @@ fn rewrite_expr(
                 module,
                 1,
             )?;
-            let mut substitution = HashMap::new();
-            for (parameter, argument) in template.params.iter().zip(&argument_types) {
-                unify(
-                    parameter.core_ty.as_ref().ok_or_else(|| {
-                        "error[native_ir.generic_signature]: generic parameter type is absent"
-                            .to_string()
-                    })?,
-                    argument,
-                    &template.generic_params,
-                    &mut substitution,
-                )?;
-            }
             let name = format!("$aot_generic_{}_{}", template.name, cache.len());
             cache.insert(key, name.clone());
             let mut specialized = template.clone();
@@ -305,6 +367,7 @@ fn rewrite_expr(
         CoreExpr::Let { bindings, body } => {
             let mut locals = variables.clone();
             for binding in bindings {
+                let binding_type = infer_type(&binding.value, &locals, templates, module);
                 rewrite_expr(
                     &mut binding.value,
                     &locals,
@@ -314,10 +377,8 @@ fn rewrite_expr(
                     module,
                     budget,
                 )?;
-                if let CorePattern::Var(name) = &binding.pattern {
-                    if let Some(ty) = infer_type(&binding.value, &locals, templates, module) {
-                        locals.insert(name.clone(), ty);
-                    }
+                if let Some(ty) = binding_type {
+                    bind_pattern_types(&binding.pattern, &ty, &mut locals);
                 }
             }
             rewrite_expr(body, &locals, templates, cache, generated, module, budget)?;
@@ -345,10 +406,10 @@ fn rewrite_expr(
             }
         }
         CoreExpr::Case { scrutinee, clauses } => {
+            let scrutinee_type = infer_type(scrutinee, variables, templates, module);
             rewrite_expr(
                 scrutinee, variables, templates, cache, generated, module, budget,
             )?;
-            let scrutinee_type = infer_type(scrutinee, variables, templates, module);
             for clause in clauses {
                 let mut locals = variables.clone();
                 if let Some(scrutinee_type) = scrutinee_type.as_ref() {
@@ -465,7 +526,7 @@ fn infer_generic_argument_types(
     template: &CoreFunction,
     arguments: &[CoreExpr],
     variables: &HashMap<String, CoreType>,
-    templates: &BTreeMap<(String, usize), CoreFunction>,
+    templates: &CallableTemplates,
     module: &str,
 ) -> Result<Vec<CoreType>, String> {
     let mut substitution = HashMap::new();
@@ -474,11 +535,12 @@ fn infer_generic_argument_types(
         let expected = parameter.core_ty.as_ref().ok_or_else(|| {
             "error[native_ir.generic_signature]: generic parameter type is absent".to_string()
         })?;
-        let inferred = infer_type(argument, variables, templates, module)
+        let contextual_expected = substitute(expected, &template.generic_params, &substitution);
+        let inferred = contextual_literal_type(argument, &contextual_expected)
+            .or_else(|| infer_type(argument, variables, templates, module))
             .or_else(|| {
-                let expected = substitute(expected, &template.generic_params, &substitution);
-                (!contains_generic_parameter(&expected, &template.generic_params))
-                    .then_some(expected)
+                (!contains_generic_parameter(&contextual_expected, &template.generic_params))
+                    .then_some(contextual_expected)
             })
             .ok_or_else(|| {
                 format!(
@@ -509,29 +571,38 @@ fn infer_generic_argument_types(
     Ok(concrete)
 }
 
+fn contextual_literal_type(argument: &CoreExpr, expected: &CoreType) -> Option<CoreType> {
+    match (argument, expected) {
+        (CoreExpr::Binary(_), CoreType::Binary | CoreType::String) => Some(expected.clone()),
+        _ => None,
+    }
+}
+
 fn function_is_generic(function: &CoreFunction) -> bool {
     !function.generic_params.is_empty()
 }
 
 fn generic_template<'a>(
-    templates: &'a BTreeMap<(String, usize), CoreFunction>,
+    templates: &'a CallableTemplates,
     module: &str,
     function: &str,
     arity: usize,
 ) -> Option<&'a CoreFunction> {
-    callable_template(templates, module, function, arity)
-        .filter(|function| function_is_generic(function))
+    callable_templates(templates, module, function, arity)?
+        .iter()
+        .find(|function| function_is_generic(function))
 }
 
-fn callable_template<'a>(
-    templates: &'a BTreeMap<(String, usize), CoreFunction>,
+fn callable_templates<'a>(
+    templates: &'a CallableTemplates,
     module: &str,
     function: &str,
     arity: usize,
-) -> Option<&'a CoreFunction> {
-    templates
+) -> Option<&'a [CoreFunction]> {
+    let candidates = templates
         .get(&(function.to_string(), arity))
-        .or_else(|| templates.get(&(format!("{module}.{function}"), arity)))
+        .or_else(|| templates.get(&(format!("{module}.{function}"), arity)))?;
+    Some(candidates.as_slice())
 }
 
 fn implicit_generic_params(function: &CoreFunction) -> Vec<String> {
@@ -592,6 +663,58 @@ fn collect_implicit_generic_params(ty: &CoreType, names: &mut HashSet<String>) {
     }
 }
 
+fn inline_record_forwarder(template: &CoreFunction, arguments: &[CoreExpr]) -> Option<CoreExpr> {
+    let [clause] = template.clauses.as_slice() else {
+        return None;
+    };
+    if clause.guard.is_some()
+        || arguments.len() != template.params.len()
+        || !clause
+            .core_patterns
+            .iter()
+            .zip(&template.params)
+            .all(|(pattern, parameter)| {
+                matches!(pattern, Some(CorePattern::Var(name)) if name == &parameter.name)
+            })
+    {
+        return None;
+    }
+    let CoreExpr::RecordConstruct { name, fields } = clause.body.core_expr.as_ref()? else {
+        return None;
+    };
+    if fields.len() != template.params.len() {
+        return None;
+    }
+    let parameter_indices = template
+        .params
+        .iter()
+        .enumerate()
+        .map(|(index, parameter)| (parameter.name.as_str(), index))
+        .collect::<HashMap<_, _>>();
+    let mut used = HashSet::new();
+    let fields = fields
+        .iter()
+        .map(|field| {
+            let CoreExpr::Var(parameter) = &field.value else {
+                return None;
+            };
+            let index = *parameter_indices.get(parameter.as_str())?;
+            if index != used.len() || !used.insert(index) {
+                return None;
+            }
+            Some(crate::terlan_typeck::CoreRecordExprField {
+                key: field.key.clone(),
+                required: field.required,
+                value: arguments[index].clone(),
+            })
+        })
+        .collect::<Option<Vec<_>>>()?;
+    (used.len() == arguments.len()).then(|| CoreExpr::RecordConstruct {
+        name: name.clone(),
+        fields,
+    })
+}
+
 fn contains_generic_parameter(ty: &CoreType, parameters: &[String]) -> bool {
     match ty {
         CoreType::Named(name) => parameters.contains(name),
@@ -623,163 +746,9 @@ fn contains_generic_parameter(ty: &CoreType, parameters: &[String]) -> bool {
     }
 }
 
-fn qualify_local_calls(
-    function: &mut CoreFunction,
-    module: &str,
-    local: &HashSet<(String, usize)>,
-) {
-    for clause in &mut function.clauses {
-        if let Some(guard) = clause
-            .guard
-            .as_mut()
-            .and_then(|summary| summary.core_expr.as_mut())
-        {
-            qualify_expr_calls(guard, module, local);
-        }
-        if let Some(body) = clause.body.core_expr.as_mut() {
-            qualify_expr_calls(body, module, local);
-        }
-    }
-}
+mod call_qualification;
 
-fn qualify_expr_calls(expr: &mut CoreExpr, module: &str, local: &HashSet<(String, usize)>) {
-    match expr {
-        CoreExpr::Call { function, args } => {
-            for arg in args.iter_mut() {
-                qualify_expr_calls(arg, module, local);
-            }
-            if !function.contains('.') && local.contains(&(function.clone(), args.len())) {
-                *function = format!("{module}.{function}");
-            }
-        }
-        CoreExpr::RemoteCall { args, .. }
-        | CoreExpr::ConstructorCall { args, .. }
-        | CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => {
-            for arg in args {
-                qualify_expr_calls(arg, module, local);
-            }
-        }
-        CoreExpr::MutableReceiverCall { receiver, args, .. }
-        | CoreExpr::FunctionCall {
-            callee: receiver,
-            args,
-        } => {
-            qualify_expr_calls(receiver, module, local);
-            for arg in args {
-                qualify_expr_calls(arg, module, local);
-            }
-        }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
-            for item in items {
-                qualify_expr_calls(item, module, local);
-            }
-        }
-        CoreExpr::ListCons { head, tail }
-        | CoreExpr::Index {
-            base: head,
-            index: tail,
-        }
-        | CoreExpr::BinaryOp {
-            left: head,
-            right: tail,
-            ..
-        } => {
-            qualify_expr_calls(head, module, local);
-            qualify_expr_calls(tail, module, local);
-        }
-        CoreExpr::Map(fields) => {
-            for field in fields {
-                qualify_expr_calls(&mut field.value, module, local);
-            }
-        }
-        CoreExpr::RecordConstruct { fields, .. } | CoreExpr::TemplateInstantiate { fields, .. } => {
-            for field in fields {
-                qualify_expr_calls(&mut field.value, module, local);
-            }
-        }
-        CoreExpr::RecordUpdate { base, fields, .. } => {
-            qualify_expr_calls(base, module, local);
-            for field in fields {
-                qualify_expr_calls(&mut field.value, module, local);
-            }
-        }
-        CoreExpr::FieldAccess { base, .. }
-        | CoreExpr::RecordAccess { base, .. }
-        | CoreExpr::Cast { expr: base, .. }
-        | CoreExpr::UnaryOp { operand: base, .. }
-        | CoreExpr::Lam { body: base, .. } => qualify_expr_calls(base, module, local),
-        CoreExpr::Let { bindings, body } => {
-            for binding in bindings {
-                qualify_expr_calls(&mut binding.value, module, local);
-            }
-            qualify_expr_calls(body, module, local);
-        }
-        CoreExpr::If { clauses } => {
-            for clause in clauses {
-                qualify_expr_calls(&mut clause.condition, module, local);
-                qualify_expr_calls(&mut clause.body, module, local);
-            }
-        }
-        CoreExpr::Case { scrutinee, clauses } => {
-            qualify_expr_calls(scrutinee, module, local);
-            for clause in clauses {
-                if let Some(guard) = &mut clause.guard {
-                    qualify_expr_calls(guard, module, local);
-                }
-                qualify_expr_calls(&mut clause.body, module, local);
-            }
-        }
-        CoreExpr::Try {
-            body,
-            of_clauses,
-            catch_clauses,
-            after_clause,
-        } => {
-            qualify_expr_calls(body, module, local);
-            for clause in of_clauses.iter_mut().chain(catch_clauses) {
-                if let Some(guard) = &mut clause.guard {
-                    qualify_expr_calls(guard, module, local);
-                }
-                qualify_expr_calls(&mut clause.body, module, local);
-            }
-            if let Some(after) = after_clause {
-                qualify_expr_calls(&mut after.trigger, module, local);
-                qualify_expr_calls(&mut after.body, module, local);
-            }
-        }
-        CoreExpr::ListComprehension {
-            expr,
-            generators,
-            guards,
-            ..
-        } => {
-            qualify_expr_calls(expr, module, local);
-            for generator in generators {
-                qualify_expr_calls(&mut generator.source, module, local);
-            }
-            for guard in guards {
-                qualify_expr_calls(guard, module, local);
-            }
-        }
-        CoreExpr::SqlQuery { parameters, .. } => {
-            for parameter in parameters {
-                qualify_expr_calls(parameter, module, local);
-            }
-        }
-        CoreExpr::ConstructorChain { args, record, .. } => {
-            for arg in args {
-                qualify_expr_calls(arg, module, local);
-            }
-            qualify_expr_calls(record, module, local);
-        }
-        CoreExpr::Int(_)
-        | CoreExpr::Float(_)
-        | CoreExpr::Binary(_)
-        | CoreExpr::Atom(_)
-        | CoreExpr::Var(_)
-        | CoreExpr::RemoteFunRef { .. } => {}
-    }
-}
+use call_qualification::qualify_local_calls;
 
 fn unify(
     template: &CoreType,
@@ -845,6 +814,51 @@ fn unify(
                 };
                 unify(left, right, generic_params, substitution)?;
             }
+            Ok(())
+        }
+        (CoreType::Union(left), CoreType::Union(right)) if left.len() == right.len() => {
+            for (left, right) in left.iter().zip(right) {
+                unify(left, right, generic_params, substitution)?;
+            }
+            Ok(())
+        }
+        (CoreType::Map(left), CoreType::Map(right)) if left.len() == right.len() => {
+            for (left, right) in left.iter().zip(right) {
+                if left.key != right.key || left.operator != right.operator {
+                    return Err(format!(
+                        "error[native_ir.generic_unification]: map field `{}` does not match `{}`",
+                        left.key, right.key
+                    ));
+                }
+                unify(&left.value, &right.value, generic_params, substitution)?;
+            }
+            Ok(())
+        }
+        (
+            CoreType::Struct {
+                name: left_name,
+                fields: left,
+            },
+            CoreType::Struct {
+                name: right_name,
+                fields: right,
+            },
+        ) if left_name == right_name && left.len() == right.len() => {
+            for (left, right) in left.iter().zip(right) {
+                if left.name != right.name || left.is_private != right.is_private {
+                    return Err(format!(
+                        "error[native_ir.generic_unification]: struct field `{}` does not match `{}`",
+                        left.name, right.name
+                    ));
+                }
+                unify(&left.ty, &right.ty, generic_params, substitution)?;
+            }
+            Ok(())
+        }
+        (CoreType::Struct { name, .. }, CoreType::Named(concrete))
+        | (CoreType::Named(concrete), CoreType::Struct { name, .. })
+            if name == concrete =>
+        {
             Ok(())
         }
         _ if template == concrete => Ok(()),
@@ -927,57 +941,5 @@ fn substitute(
                 .collect(),
         ),
         _ => ty.clone(),
-    }
-}
-
-fn infer_type(
-    expr: &CoreExpr,
-    variables: &HashMap<String, CoreType>,
-    templates: &BTreeMap<(String, usize), CoreFunction>,
-    module: &str,
-) -> Option<CoreType> {
-    match expr {
-        CoreExpr::Int(_) => Some(CoreType::Int),
-        CoreExpr::Float(_) => Some(CoreType::Float),
-        CoreExpr::Binary(_) => Some(CoreType::String),
-        CoreExpr::Atom(value) if matches!(value.as_str(), "true" | "false") => Some(CoreType::Bool),
-        CoreExpr::Atom(value) if value == "Unit" => Some(CoreType::Named("Unit".into())),
-        CoreExpr::Var(name) => variables.get(name).cloned(),
-        CoreExpr::List(items) if !items.is_empty() => {
-            let first = infer_type(&items[0], variables, templates, module)?;
-            items[1..]
-                .iter()
-                .all(|item| infer_type(item, variables, templates, module) == Some(first.clone()))
-                .then(|| CoreType::List(Box::new(first)))
-        }
-        CoreExpr::Tuple(items) => items
-            .iter()
-            .map(|item| infer_type(item, variables, templates, module).map(CoreTupleTypeElem::Type))
-            .collect::<Option<Vec<_>>>()
-            .map(CoreType::Tuple),
-        CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
-        CoreExpr::UnaryOp { operator, operand } if operator == "-" => {
-            infer_type(operand, variables, templates, module)
-        }
-        CoreExpr::Cast { target_type, .. } => Some(target_type.clone()),
-        CoreExpr::Call { function, args } => {
-            let template = callable_template(templates, module, function, args.len())?;
-            let mut values = HashMap::new();
-            for (parameter, argument) in template.params.iter().zip(args) {
-                unify(
-                    parameter.core_ty.as_ref()?,
-                    &infer_type(argument, variables, templates, module)?,
-                    &template.generic_params,
-                    &mut values,
-                )
-                .ok()?;
-            }
-            Some(substitute(
-                template.core_return_type.as_ref()?,
-                &template.generic_params,
-                &values,
-            ))
-        }
-        _ => None,
     }
 }

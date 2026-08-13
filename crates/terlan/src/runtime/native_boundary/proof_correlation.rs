@@ -3,9 +3,9 @@
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
-const PROOF_PATH: &str = "proofs/lean/Terlan/Runtime/NativeBoundary.lean";
+const PROOF_PATH: &str = "proofs/lean/native_boundary/NativeBoundary.lean";
 const PROOF_SOURCE: &str =
-    include_str!("../../../../../proofs/lean/Terlan/Runtime/NativeBoundary.lean");
+    include_str!("../../../../../proofs/lean/native_boundary/NativeBoundary.lean");
 const REPLAY_METADATA: &str =
     include_str!("../../../../../proofs/lean/artifacts/native-boundary.json");
 
@@ -71,4 +71,5 @@ fn sha256_text(text: &str) -> String {
 
 #[cfg(test)]
 #[path = "proof_correlation_test.rs"]
+#[cfg(test)]
 mod proof_correlation_test;

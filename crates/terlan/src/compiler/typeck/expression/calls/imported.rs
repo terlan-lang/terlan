@@ -247,13 +247,16 @@ pub(super) fn infer_syntax_imported_module_member_function_call(
     module_alias: &str,
     member: &str,
     display_name: &str,
-    arg_types: &[Type],
-    type_args: &[SyntaxTypeOutput],
-    arg_names: &[Option<String>],
+    arguments: SyntaxCallArguments<'_>,
     ctx: &ExprInferContext,
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
 ) -> Option<Type> {
+    let SyntaxCallArguments {
+        types: arg_types,
+        type_args,
+        names: arg_names,
+    } = arguments;
     let resolved_module = ctx.module_aliases.get(module_alias)?;
     let Some(interface) = ctx.interface_map.get(resolved_module) else {
         errors.push(missing_imported_function_interface_message(

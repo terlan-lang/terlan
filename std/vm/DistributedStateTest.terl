@@ -24,17 +24,50 @@ pub write_outcomes_are_explicit_and_versioned(): Bool ->
 pub conflict_and_policy_mismatch_are_typed(): Bool ->
     let store = DistributedState.store();
     let scope = DistributedState.scope("settings", "theme");
-    let first = store.write(scope, "node-a", "dark", DistributedState.version(5, "node-a"), explicit_policy());
-    let stale = store.write(scope, "node-b", "light", DistributedState.version(4, "node-b"), explicit_policy());
+    let first =
+        store
+            .write(
+                scope,
+                "node-a",
+                "dark",
+                DistributedState.version(5, "node-a"),
+                explicit_policy(),
+            );
+    let stale =
+        store
+            .write(
+                scope,
+                "node-b",
+                "light",
+                DistributedState.version(4, "node-b"),
+                explicit_policy(),
+            );
     let conflict = DistributedState.conflict(stale);
-    let mismatch = store.write(scope, "node-c", "system", DistributedState.version(6, "node-c"), DistributedState.policy("merge"));
-    assert_equal("conflict", DistributedState.kind(stale)) and assert_equal("policy_mismatch", DistributedState.kind(mismatch)).
+    let mismatch =
+        store
+            .write(
+                scope,
+                "node-c",
+                "system",
+                DistributedState.version(6, "node-c"),
+                DistributedState.policy("merge"),
+            );
+    assert_equal("conflict", DistributedState.kind(stale))
+        and assert_equal("policy_mismatch", DistributedState.kind(mismatch)).
 
 @test
 pub checkpoint_restore_is_typed(): Bool ->
     let store = DistributedState.store();
     let scope = DistributedState.scope("presence", "room-1");
-    let outcome = store.write(scope, "node-a", "online", DistributedState.version(9, "node-a"), DistributedState.policy("last_writer_wins"));
+    let outcome =
+        store
+            .write(
+                scope,
+                "node-a",
+                "online",
+                DistributedState.version(9, "node-a"),
+                DistributedState.policy("last_writer_wins"),
+            );
     let snapshot = store.export_snapshot();
     let restored = DistributedState.restore(snapshot);
     let entry = restored.get(scope);

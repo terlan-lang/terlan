@@ -1,0 +1,72 @@
+/**
+ * Keeps release changelog bullets free of internal validation language.
+ */
+module scripts.self_validation.ChangelogPublicScope.
+
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.Console.{println}.
+import std.io.File.{read_text}.
+
+pub changelog_is_release_facing(path: String): Bool ->
+    case read_text(path) {
+        Ok(contents) -> lines_are_release_facing(String.split(contents, "\n"));
+        _ -> false
+    }.
+
+lines_are_release_facing(lines: List[String]): Bool ->
+    case lines {
+        [] -> true;
+        [line | rest] ->
+            if {
+                is_entry_line(line) -> not contains_internal_term(String.lowercase(line))
+                    and lines_are_release_facing(rest);
+                true -> lines_are_release_facing(rest)
+            }
+    }.
+
+is_entry_line(line: String): Bool ->
+    String.starts_with(line, "- ") or String.starts_with(line, "  ").
+
+contains_internal_term(line: String): Bool ->
+    String.contains(line, "scratch")
+        or String.contains(line, "golden")
+        or String.contains(line, "preflight")
+        or String.contains(line, "release-boundary")
+        or String.contains(line, "boundary check")
+        or String.contains(line, "drift check")
+        or String.contains(line, "drift-check")
+        or String.contains(line, "__pycache__")
+        or String.contains(line, "cache artifact")
+        or String.contains(line, "roadmap")
+        or String.contains(line, "checkpoint")
+        or String.contains(line, "proof experiment")
+        or String.contains(line, "validation artifact")
+        or String.contains(line, "internal validation")
+        or String.contains(line, "migration baseline").
+
+@test
+pub repository_changelog_is_release_facing(): Bool ->
+    changelog_is_release_facing("CHANGELOG.md").
+
+@test
+pub policy_rejects_case_insensitive_internal_bullet_terms(): Bool ->
+    not lines_are_release_facing(
+    ["# Release", "- Removed a PREflight cache artifact from an internal workflow."],
+).
+
+@test
+pub policy_ignores_non_entry_planning_prose(): Bool ->
+    lines_are_release_facing(
+        [
+            "# Roadmap checkpoint",
+            "This prose is outside a release bullet.",
+            "- Added a user-visible compiler diagnostic.",
+        ],
+    ).
+
+pub main(): Unit ->
+    if {
+        changelog_is_release_facing("CHANGELOG.md") -> println("[changelog-public-scope] changelog entries are release-facing.");
+        true -> println("changelog-public-scope-check failed")
+    }.

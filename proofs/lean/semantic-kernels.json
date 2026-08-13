@@ -1,0 +1,117 @@
+{
+  "schema": "terlan.lean-semantic-kernel-config.v1",
+  "dependencies": [
+    "proofs/lean/lake-manifest.json",
+    "proofs/lean/lakefile.lean",
+    "proofs/lean/lean-toolchain"
+  ],
+  "families": [
+    {
+      "slice": "Slice 15",
+      "family": "templates-routes",
+      "proof": "proofs/lean/templates_routes/TemplateRoutes.lean",
+      "scope": "CoreIR",
+      "manifests": ["docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"],
+      "theorems": [
+        "Terlan.TemplateRoutes.loweringPreservesRouteArity",
+        "Terlan.TemplateRoutes.loweringPreservesRouteShape",
+        "Terlan.TemplateRoutes.loweringPreservesReturnType",
+        "Terlan.TemplateRoutes.typedNestedInterpolationAccepted",
+        "Terlan.TemplateRoutes.emptyRecordSlotRejected",
+        "Terlan.TemplateRoutes.mismatchedRouteHandlerRejected"
+      ],
+      "runtime": ["target/debug/terlc", "test", "tests/template/TypedTemplateRuntimeTest.terl"]
+    },
+    {
+      "slice": "Slice 16",
+      "family": "concurrency",
+      "proof": "proofs/lean/concurrency/Concurrency.lean",
+      "scope": "lowering",
+      "manifests": ["docs/runtime/TERLAN_VM_RUNTIME_CONCEPTS.md"],
+      "theorems": [
+        "Terlan.Concurrency.sendAppendsExactlyOne",
+        "Terlan.Concurrency.sameSenderOrderIsPreserved",
+        "Terlan.Concurrency.runnableQueueMakesBoundedProgress",
+        "Terlan.Concurrency.selectiveReceiveEmptyTerminates",
+        "Terlan.Concurrency.zeroTimeoutTerminates",
+        "Terlan.Concurrency.unsupportedImplicitOtpSchedulingRejected"
+      ],
+      "runtime": ["target/debug/terlc", "test", "tests/language/VmServiceActorTest.terl"]
+    },
+    {
+      "slice": "Slice 17",
+      "family": "collections",
+      "proof": "proofs/lean/collections/Collections.lean",
+      "scope": "CoreIR",
+      "manifests": ["docs/compiler/type_spec/language_feature_coverage_matrix.json"],
+      "theorems": [
+        "Terlan.Collections.listUpdatePreservesLength",
+        "Terlan.Collections.mapPutReturnsInsertedValue",
+        "Terlan.Collections.deleteFromEmptyIsEmpty",
+        "Terlan.Collections.duplicateSetInsertIsStable",
+        "Terlan.Collections.collisionUpdateSelectsNewest",
+        "Terlan.Collections.nondeterministicIterationRejected"
+      ],
+      "runtime": [
+        "cargo", "test", "--locked", "-p", "terlan", "--lib",
+        "compiler::native_ir::map_suite_native_parity_test::map_portable_contracts_execute_through_linked_native_object",
+        "--", "--exact"
+      ]
+    },
+    {
+      "slice": "Slice 18",
+      "family": "wasm-bridge",
+      "proof": "proofs/lean/wasm_bridge/WasmBridge.lean",
+      "scope": "lowering",
+      "manifests": ["crates/terlan/src/backends/wasm/README.md"],
+      "theorems": [
+        "Terlan.WasmBridge.portableSignaturePreservesArity",
+        "Terlan.WasmBridge.dynamicSignatureRejected",
+        "Terlan.WasmBridge.resourceTransferChangesOwner",
+        "Terlan.WasmBridge.callAndAbortPathsAreDeterministic",
+        "Terlan.WasmBridge.undeclaredHostSideEffectRejected"
+      ],
+      "runtime": ["target/debug/terlc", "test", "std/wasm/AbiTest.terl"]
+    },
+    {
+      "slice": "Slice 19",
+      "family": "database-sql",
+      "proof": "proofs/lean/database_sql/DatabaseSql.lean",
+      "scope": "NativeBoundary",
+      "manifests": ["std/summaries/std.db.Postgres.native_boundary.json"],
+      "theorems": [
+        "Terlan.DatabaseSql.matchingPreparedStatementAccepted",
+        "Terlan.DatabaseSql.wrongParameterArityRejected",
+        "Terlan.DatabaseSql.wrongParameterTypeRejected",
+        "Terlan.DatabaseSql.beginThenCommitIsWellFormed",
+        "Terlan.DatabaseSql.commitWithoutBeginRejected",
+        "Terlan.DatabaseSql.databaseEffectRejectedInPureRegion"
+      ],
+      "runtime": [
+        "cargo", "test", "--locked", "-p", "terlan", "--lib",
+        "runtime::native::postgres::postgres_test::config_builders_set_pool_limits_and_timeouts",
+        "--", "--exact"
+      ]
+    },
+    {
+      "slice": "Slice 20",
+      "family": "std-packages",
+      "proof": "proofs/lean/std_packages/StdPackages.lean",
+      "scope": "CoreIR",
+      "manifests": ["std/data/Json.terl"],
+      "theorems": [
+        "Terlan.StdPackages.jsonRoundTrip",
+        "Terlan.StdPackages.invalidJsonIsTypedFailure",
+        "Terlan.StdPackages.binaryStringConversionPreservesBytes",
+        "Terlan.StdPackages.missingOptionReturnsTypedError",
+        "Terlan.StdPackages.monotonicTimerAccepted",
+        "Terlan.StdPackages.earlyTimerRejected"
+      ],
+      "runtime": [
+        "cargo", "test", "--locked", "-p", "terlan", "--lib",
+        "runtime::native::json::json_test::parse_and_stringify_round_trip_json_text",
+        "--", "--exact"
+      ]
+    }
+  ]
+}

@@ -101,4 +101,5 @@ fn write_report(
 
 #[cfg(test)]
 #[path = "package_resolver_reproducibility_test.rs"]
+#[cfg(test)]
 mod package_resolver_reproducibility_test;

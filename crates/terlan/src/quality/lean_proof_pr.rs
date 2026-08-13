@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use crate::terlan_quality::lean_proof_track::lean_proof_gap::{parse_gap_manifest, GAP_PATH};
+use crate::terlan_quality::support::parse_tsv_rows;
 use crate::terlan_quality::{render_failure, QualityResult};
 
 const INVENTORY_PATH: &str = "docs/compiler/proof_track/lean_proof_inventory.tsv";
@@ -115,7 +116,7 @@ fn read_text(root: &Path, relative: &str) -> QualityResult<String> {
 }
 
 fn parse_inventory(text: &str) -> QualityResult<Vec<InventoryRow>> {
-    Ok(parse_tsv(text, INVENTORY_HEADER, INVENTORY_PATH)?
+    Ok(parse_tsv_rows(text, INVENTORY_HEADER, INVENTORY_PATH)?
         .into_iter()
         .map(|columns| InventoryRow {
             path: columns[0].clone(),
@@ -135,7 +136,7 @@ fn parse_gaps(text: &str) -> QualityResult<Vec<GapRow>> {
 }
 
 fn parse_owners(text: &str) -> QualityResult<Vec<OwnerRow>> {
-    Ok(parse_tsv(text, OWNER_HEADER, OWNER_PATH)?
+    Ok(parse_tsv_rows(text, OWNER_HEADER, OWNER_PATH)?
         .into_iter()
         .map(|columns| OwnerRow {
             subject_type: columns[0].clone(),
@@ -148,35 +149,6 @@ fn parse_owners(text: &str) -> QualityResult<Vec<OwnerRow>> {
             exception_expiry: columns[7].clone(),
         })
         .collect())
-}
-
-fn parse_tsv(text: &str, header: &str, path: &str) -> QualityResult<Vec<Vec<String>>> {
-    let mut lines = text.lines();
-    let Some(actual_header) = lines.next() else {
-        return Err(format!("{path}: missing header"));
-    };
-    if actual_header != header {
-        return Err(format!(
-            "{path}: expected header `{header}`, found `{actual_header}`"
-        ));
-    }
-    let expected_columns = header.split('\t').count();
-    let mut rows = Vec::new();
-    for (index, line) in lines.enumerate() {
-        if line.trim().is_empty() {
-            continue;
-        }
-        let columns = line.split('\t').map(str::to_string).collect::<Vec<_>>();
-        if columns.len() != expected_columns {
-            return Err(format!(
-                "{path}: row {} has {} columns, expected {expected_columns}",
-                index + 2,
-                columns.len()
-            ));
-        }
-        rows.push(columns);
-    }
-    Ok(rows)
 }
 
 fn split_list(text: &str) -> Vec<String> {
@@ -360,4 +332,5 @@ fn write_report(root: &Path, report: &LeanProofPrReport) -> QualityResult<PathBu
 
 #[cfg(test)]
 #[path = "lean_proof_pr_test.rs"]
+#[cfg(test)]
 mod lean_proof_pr_test;

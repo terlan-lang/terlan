@@ -75,4 +75,5 @@ fn is_trusted_fragment(type_text: &str) -> bool {
 
 #[cfg(test)]
 #[path = "template_completion_test.rs"]
+#[cfg(test)]
 mod template_completion_test;

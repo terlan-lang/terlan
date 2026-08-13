@@ -1,4 +1,3 @@
 module phase_atom_literal.
 
-pub status(): Atom ->
-    Atom["ok"].
+pub status(): Atom -> Atom["ok"].

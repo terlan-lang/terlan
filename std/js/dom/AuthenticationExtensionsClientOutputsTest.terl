@@ -21,7 +21,7 @@ pub appid_typechecks(receiver: AuthenticationExtensionsClientOutputs): Bool ->
     receiver.appid().
 
 pub cred_props_typechecks(
-    receiver: AuthenticationExtensionsClientOutputs
+    receiver: AuthenticationExtensionsClientOutputs,
 ): CredentialPropertiesOutput ->
     receiver.cred_props().
 
@@ -29,11 +29,11 @@ pub hmac_create_secret_typechecks(receiver: AuthenticationExtensionsClientOutput
     receiver.hmac_create_secret().
 
 pub large_blob_typechecks(
-    receiver: AuthenticationExtensionsClientOutputs
+    receiver: AuthenticationExtensionsClientOutputs,
 ): AuthenticationExtensionsLargeBlobOutputs ->
     receiver.large_blob().
 
 pub prf_typechecks(
-    receiver: AuthenticationExtensionsClientOutputs
+    receiver: AuthenticationExtensionsClientOutputs,
 ): AuthenticationExtensionsPRFOutputs ->
     receiver.prf().

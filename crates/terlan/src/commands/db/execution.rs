@@ -305,11 +305,23 @@ fn acquire_migration_lock(
 
 fn validate_migration_lock_result(value: VmPostgresDecodedValue) -> Result<(), String> {
     match value {
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::Bool(true) => Ok(()),
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::Bool(false) => Err(
             "error[db.migration.lock_conflict]: Another migration command owns the database lock."
                 .to_string(),
         ),
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         _ => Err(
             "error[db.migration.lock_protocol]: Postgres returned an invalid migration lock result."
                 .to_string(),
@@ -477,4 +489,5 @@ fn request_postgres_error_message(
 
 #[cfg(test)]
 #[path = "execution_test.rs"]
+#[cfg(test)]
 mod execution_test;

@@ -1,0 +1,34 @@
+/**
+ * Executable direct-AOT checks for typed Git source identity.
+ */
+module std.vcs.GitTest.
+
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.system.Environment.
+import std.test.Test.{assert}.
+import std.vcs.Git.{SourceTreeIdentityFailed, clean, error_code, error_message, revision, sha256, source_tree_identity}.
+
+@test
+pub repository_identity_is_full_and_deterministic(): Bool ->
+    let root = Environment.current_directory();
+    case {source_tree_identity(root), source_tree_identity(root)} {
+        {Ok(first), Ok(second)} ->
+            assert(
+                String.length(revision(first)) == 40
+                    and String.length(sha256(first)) == 64
+                    and revision(first) == revision(second)
+                    and clean(first) == clean(second)
+                    and sha256(first) == sha256(second),
+            );
+        {Err(_error), _} -> false;
+        {_, Err(_error)} -> false
+    }.
+
+@test
+pub missing_repository_returns_typed_error(): Bool ->
+    case source_tree_identity("/__terlan_missing_git_repository_40f27f5d__") {
+        Ok(_identity) -> false;
+        Err(reason) ->
+            error_code(reason) == SourceTreeIdentityFailed and error_message(reason) != ""
+    }.

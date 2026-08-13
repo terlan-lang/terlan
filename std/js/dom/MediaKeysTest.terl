@@ -19,18 +19,18 @@ pub generated_binding_surface_contract(): Bool -> true.
 
 pub create_session_typechecks(
     receiver: MediaKeys,
-    session_type: MediaKeySessionType
+    session_type: MediaKeySessionType,
 ): MediaKeySession ->
     receiver.create_session(session_type).
 
 pub get_status_for_policy_typechecks(
     receiver: MediaKeys,
-    policy: MediaKeysPolicy
+    policy: MediaKeysPolicy,
 ): Promise[MediaKeyStatus] ->
     receiver.get_status_for_policy(policy).
 
 pub set_server_certificate_typechecks(
     receiver: MediaKeys,
-    server_certificate: BufferSource
+    server_certificate: BufferSource,
 ): Promise[std.core.Bool] ->
     receiver.set_server_certificate(server_certificate).

@@ -208,7 +208,7 @@ pub each_result_iterator(iterator: Iterator[Row[T, E]], actual: (T) -> E): Asser
 pub each_result_report_iterator(
     iterator: Iterator[Row[T, E]],
     index: Int,
-    actual: (T) -> E
+    actual: (T) -> E,
 ): TableResultReport[E] ->
     case next(iterator) {
         None -> {true, None};
@@ -235,7 +235,7 @@ pub lifecycle_result(
     before_each: (Suite) -> Fixture,
     body: (Fixture) -> Assertion,
     after_each: (Fixture) -> Assertion,
-    after_all: (Suite) -> Assertion
+    after_all: (Suite) -> Assertion,
 ): LifecycleResult ->
     let suite = before_all(seed);
     let fixture = before_each(suite);
@@ -258,18 +258,17 @@ pub lifecycle(
     before_each: (Suite) -> Fixture,
     body: (Fixture) -> Assertion,
     after_each: (Fixture) -> Assertion,
-    after_all: (Suite) -> Assertion
+    after_all: (Suite) -> Assertion,
 ): Assertion ->
     case lifecycle_result(seed, before_all, before_each, body, after_each, after_all) {
         {body_result, after_each_result, after_all_result} ->
-            case body_result {
-                true ->
-                    case after_each_result {
-                        true -> after_all_result;
-                        false -> false
-                    };
-                false -> false
-            }
+            let {
+                true <- body_result;
+                true <- after_each_result
+            } else {
+                _ -> false
+            };
+            after_all_result
     }.
 
 /**
@@ -289,7 +288,7 @@ pub table_lifecycle_result(
     before_each: (Suite, Item) -> Fixture,
     body: (Fixture) -> Assertion,
     after_each: (Fixture) -> Assertion,
-    after_all: (Suite) -> Assertion
+    after_all: (Suite) -> Assertion,
 ): LifecycleResult ->
     let suite = before_all(seed);
     let row_result = table_lifecycle_rows(rows, suite, before_each, body, after_each);
@@ -315,7 +314,7 @@ pub table_lifecycle(
     before_each: (Suite, Item) -> Fixture,
     body: (Fixture) -> Assertion,
     after_each: (Fixture) -> Assertion,
-    after_all: (Suite) -> Assertion
+    after_all: (Suite) -> Assertion,
 ): Assertion ->
     case table_lifecycle_result(seed, rows, before_all, before_each, body, after_each, after_all) {
         {body_result, after_each_result, after_all_result} ->
@@ -336,7 +335,7 @@ pub table_lifecycle_rows(
     suite: Suite,
     before_each: (Suite, Item) -> Fixture,
     body: (Fixture) -> Assertion,
-    after_each: (Fixture) -> Assertion
+    after_each: (Fixture) -> Assertion,
 ): {Assertion, Assertion} ->
     case rows {
         [] -> {true, true};
@@ -358,7 +357,7 @@ pub table_lifecycle_rows(
 pub combine_table_lifecycle_row(
     body_result: Assertion,
     after_each_result: Assertion,
-    rest: {Assertion, Assertion}
+    rest: {Assertion, Assertion},
 ): {Assertion, Assertion} ->
     case rest {
         {rest_body_result, rest_after_each_result} ->

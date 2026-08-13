@@ -40,5 +40,5 @@ pub (value: CompositionEvent) init_composition_event(
     bubbles_arg: Bool,
     cancelable_arg: Bool,
     view_arg: Option[WindowProxy],
-    data_arg: JsString
+    data_arg: JsString,
 ): std.core.Unit.

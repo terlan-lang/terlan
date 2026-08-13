@@ -16,8 +16,8 @@
     "Terlan.Type.ShapeImplication.implicationPreservesBranchResult"
   ],
   "manifest_fingerprints": {
-    "docs/compiler/TERLAN_CORE_TYPING_SPEC.md": "sha256:c2bb1bbd928950c419130bf236a3edbfe7f9ce65f2f3b79973ea40ea832a90cb",
-    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:d0b585a7b8ec8d164e578c917988c413726f4b6849b1cae3a0063a844ab520fd"
+    "docs/compiler/TERLAN_CORE_TYPING_SPEC.md": "sha256:88cab32207008497f794ea61331b54c640e7a14cbc6c87c80cd573e26c330e7a",
+    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:f15e5e3b8d546024312cb9e097495f268c179e272e341e26c04fe2811fd53405"
   },
   "dependency_files": [
     "proofs/lean/lake-manifest.json",

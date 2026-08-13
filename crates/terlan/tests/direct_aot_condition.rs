@@ -5,9 +5,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use object::{Object, ObjectSection};
 
 #[path = "support/direct_aot.rs"]
-#[allow(dead_code)]
-mod support;
+pub mod support;
 use support::*;
+#[path = "support/direct_aot_resume.rs"]
+mod resume_support;
+use resume_support::resume_transition_success;
 
 #[test]
 fn native_aot_composes_suspending_conditions_with_enclosing_control_flow() {
@@ -372,7 +374,8 @@ fn native_aot_composes_suspending_conditions_with_enclosing_control_flow() {
         descriptor_digest,
         captured_condition,
         &[1, 20, 22],
-        SuspendedAction::Resume {
+        SuspendedAction {
+            operation: 9,
             request_id: 2,
             continuation_id_xor: 0,
             values: vec![1, 20, 22],
@@ -384,7 +387,8 @@ fn native_aot_composes_suspending_conditions_with_enclosing_control_flow() {
         descriptor_digest,
         captured_condition,
         &[1, 20, 22],
-        SuspendedAction::Resume {
+        SuspendedAction {
+            operation: 9,
             request_id: 1,
             continuation_id_xor: 0,
             values: vec![1, 20],
@@ -396,7 +400,8 @@ fn native_aot_composes_suspending_conditions_with_enclosing_control_flow() {
         descriptor_digest,
         captured_condition,
         &[1, 20, 22],
-        SuspendedAction::Resume {
+        SuspendedAction {
+            operation: 9,
             request_id: 1,
             continuation_id_xor: 0,
             values: vec![2, 20, 22],
@@ -438,16 +443,5 @@ fn resume_once(
     request_id: u64,
     transition: &[u8],
 ) -> Vec<u8> {
-    let values = (0..usize::from(transition_value_count(transition)))
-        .map(|index| transition_value(transition, index))
-        .collect::<Vec<_>>();
-    let (kind, success) = exchange_worker_resume(
-        input,
-        output,
-        request_id,
-        transition_continuation(transition),
-        &values,
-    );
-    assert_eq!(kind, 4);
-    success
+    resume_transition_success(input, output, request_id, transition)
 }

@@ -14,6 +14,7 @@ pub(crate) struct VmAccountedMessageSend {
 
 impl VmAccountedMessageSend {
     /// Returns the message identity only after complete mailbox publication.
+    #[cfg(test)]
     pub(crate) fn published_message_id(&self) -> Option<u64> {
         self.publication.map(VmMailboxPublication::message_id)
     }

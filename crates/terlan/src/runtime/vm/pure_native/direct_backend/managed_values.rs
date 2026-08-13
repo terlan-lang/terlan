@@ -390,9 +390,17 @@ fn select_layout<'layout, 'value>(
     }
     match match_count {
         1 => Ok(matched.expect("one checked layout")),
-        0 => Err(format!(
-            "error[execution_shard.managed_layout]: no admitted fixed layout matches `{value:?}`"
-        )),
+        0 => {
+            let candidates = layouts
+                .layouts(semantic)
+                .iter()
+                .map(|layout| layout.canonical_type())
+                .collect::<Vec<_>>();
+            Err(format!(
+                "error[execution_shard.managed_layout]: no admitted fixed layout matches `{value:?}` for semantic {:?}; candidates {candidates:?}",
+                semantic.bytes()
+            ))
+        }
         count => Err(format!(
             "error[execution_shard.managed_layout]: public value ambiguously matches {count} admitted layouts"
         )),
@@ -464,8 +472,12 @@ fn named_fields_match(
 }
 
 /// Accepts a canonical record identity or its unqualified final segment.
-fn type_name_matches(canonical: &str, public: &str) -> bool {
-    canonical == public || canonical.rsplit('.').next() == Some(public)
+pub(super) fn type_name_matches(canonical: &str, public: &str) -> bool {
+    let nominal = canonical
+        .strip_prefix("Named(")
+        .and_then(|name| name.strip_suffix(')'))
+        .unwrap_or(canonical);
+    nominal == public || nominal.rsplit('.').next() == Some(public)
 }
 
 /// Recursively materializes one validated managed reference.
@@ -486,13 +498,11 @@ fn materialize_managed(
         );
     }
     active.push(identity);
-    let result = (|| {
-        if let Some(descriptor) = layouts.collection(semantic) {
-            materialize_collection(heap, layouts, descriptor, reference, depth, budget, active)
-        } else {
-            materialize_aggregate(heap, layouts, semantic, reference, depth, budget, active)
-        }
-    })();
+    let result = if let Some(descriptor) = layouts.collection(semantic) {
+        materialize_collection(heap, layouts, descriptor, reference, depth, budget, active)
+    } else {
+        materialize_aggregate(heap, layouts, semantic, reference, depth, budget, active)
+    };
     debug_assert_eq!(active.pop(), Some(identity));
     result
 }
@@ -509,7 +519,7 @@ fn materialize_aggregate(
 ) -> Result<ReplValue, String> {
     let descriptor = layouts.layout_for_reference(heap, semantic, reference)?;
     let view = heap
-        .read_aggregate(reference.cast::<ManagedAggregate>(), &descriptor)
+        .read_aggregate(reference.cast::<ManagedAggregate>(), descriptor)
         .map_err(|error| format!("error[execution_shard.managed_read]: {error}"))?;
     let values = descriptor
         .fields()
@@ -530,7 +540,7 @@ fn materialize_aggregate(
             )
         })
         .collect::<Result<Vec<_>, String>>()?;
-    Ok(public_aggregate(&descriptor, values))
+    Ok(public_aggregate(descriptor, values))
 }
 
 /// Materializes one List, Map, or Set through its canonical heap reader.

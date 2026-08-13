@@ -1,0 +1,25 @@
+/**
+ * Typed access to immutable host process context admitted to a Terlan VM run.
+ */
+module std.system.Environment.
+
+import type std.core.Option.
+
+/**
+ * Returns whether one environment key is present and Unicode representable.
+ */
+@compiler.intrinsic
+pub contains(key: String): Bool -> false.
+
+/**
+ * Returns one Unicode environment value or `None` when absent/non-Unicode.
+ */
+@compiler.intrinsic
+pub get(key: String): Option[String] ->
+    None.
+
+/**
+ * Returns the current working directory as target-normalized UTF-8 text.
+ */
+@compiler.intrinsic
+pub current_directory(): String -> "".

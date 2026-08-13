@@ -228,7 +228,7 @@ vm-persistent-actor-store-check: vm-model-sync-store-check
 	$(MAKE) vm-resource-ownership-check
 	$(MAKE) vm-distributed-transport-check
 	$(TERLC) check std/vm/PersistentActorTest.terl
-	bash scripts/run_exact_cargo_test.sh -p terlan formal_pipeline::formal_pipeline_test::embedded_std_interfaces_include_vm_persistent_actor_contract -- --exact
+	bash scripts/run_exact_cargo_test.sh -p terlan formal_pipeline::formal_pipeline_test::persistence_and_effect_interfaces::embedded_std_interfaces_include_vm_persistent_actor_contract -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::persistent_actor_store::persistent_actor_store_test::vm_persistent_actor_store_replays_snapshot_and_events_deterministically -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::persistent_actor_store::persistent_actor_store_test::vm_persistent_actor_declaration_binds_actor_schema_and_storage_lane -- --exact
 	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::persistent_actor_store::persistent_actor_store_test::vm_persistent_actor_declaration_rejects_invalid_storage_lanes -- --exact

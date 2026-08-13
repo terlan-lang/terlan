@@ -1326,8 +1326,10 @@ and progress evidence.
   - First executable slice completed:
     - [x] Add `make vm-multicore-release-check` as the canonical distributed
       closeout. It validates revision-matched MC-9 evidence before running the
-      remaining multicore semantic, runtime, quality, integrity, and repository
-      gates.
+      remaining multicore semantic, runtime, quality, and integrity gates. The
+      repository-wide `make check` remains a separate final MC-10 gate so
+      unfinished later 0.0.7 phases cannot block scheduler closeout outside
+      dependency order.
     - [x] Keep performance and ThreadSanitizer execution in their owning
       release jobs so hosted final validation cannot overwrite the controlled
       runner or instrumented artifacts.
@@ -1337,15 +1339,18 @@ and progress evidence.
   - Second executable slice completed:
     - [x] Add the recorder for
       `target/quality/vm-multicore-release-closeout.json` with the versioned
-      `terlan.vm-multicore-release-closeout.v2` schema only after the complete
+      `terlan.vm-multicore-release-closeout.v3` schema only after the complete
       local gate graph passes.
-    - [x] Bind joined MC-9 evidence, the six-target platform matrix, the ordered
-      local gate graph, the checked-out source revision, and a
+    - [x] Bind joined MC-9 evidence, the ordered local gate graph, the
+      checked-out source revision, and a
       domain-separated revision over the invariant inventory and concurrency
       contract.
-    - [x] Reject cross-revision, incomplete platform, stale
-      invariant, malformed MC-9, and contract-drift evidence before writing
+    - [x] Reject cross-revision, stale invariant, malformed MC-9, and
+      contract-drift evidence before writing
       closeout.
+    - [x] Keep the six-target AOT platform matrix independent from multicore
+      closeout; platform-specific evidence must not block the scheduler/runtime
+      technical milestone.
     - [x] Retain the multicore closeout report in release artifacts and require
       it through the platform release-evidence contract.
   - Third executable slice completed:

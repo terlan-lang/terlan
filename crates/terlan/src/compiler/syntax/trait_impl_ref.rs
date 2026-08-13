@@ -27,6 +27,34 @@ pub(crate) fn render_trait_impl_ref(trait_ref: &str, generic_params: &[String]) 
     format!("{}[{}]", &trait_ref[..open], args.join(", "))
 }
 
+pub(crate) fn split_trait_impl_ref(trait_ref: &str) -> (String, Vec<String>) {
+    let Some(open) = trait_ref.find('[') else {
+        return (trait_ref.to_string(), Vec::new());
+    };
+    let Some(inner) = trait_ref
+        .strip_suffix(']')
+        .map(|trait_ref| &trait_ref[open + 1..])
+    else {
+        return (trait_ref.to_string(), Vec::new());
+    };
+    let mut generic_params = Vec::new();
+    let args = split_top_level_commas(inner)
+        .into_iter()
+        .map(|argument| {
+            if let Some(subject) = implication_subject(&argument) {
+                generic_params.push(argument);
+                subject
+            } else {
+                argument
+            }
+        })
+        .collect::<Vec<_>>();
+    (
+        format!("{}[{}]", &trait_ref[..open], args.join(", ")),
+        generic_params,
+    )
+}
+
 fn implication_subject(param: &str) -> Option<String> {
     param
         .split_once("=>")

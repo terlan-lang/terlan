@@ -59,6 +59,19 @@ pub(super) fn collect_shapes(module: &Module) -> EbnfCompileResult<BTreeMap<Stri
     Ok(shapes)
 }
 
+pub(super) fn validate_expanded_shape_bindings(
+    shape_name: &str,
+    pattern: &SyntaxPatternOutput,
+) -> EbnfCompileResult<()> {
+    let mut seen = BTreeSet::new();
+    if let Some(binding) = duplicate_pattern_binding(pattern, &mut seen) {
+        return Err(EbnfCompileError::Serialize(format!(
+            "shape `{shape_name}` expansion binds `{binding}` more than once; overlapping shape arguments are ambiguous"
+        )));
+    }
+    Ok(())
+}
+
 fn validate_shape_head(shape: &ShapeDecl) -> EbnfCompileResult<()> {
     let mut params = BTreeSet::new();
     for param in &shape.params {

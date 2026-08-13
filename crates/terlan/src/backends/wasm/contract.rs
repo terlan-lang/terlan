@@ -39,4 +39,5 @@ pub(crate) fn wasm_checksum(bytes: &[u8]) -> String {
 
 #[cfg(test)]
 #[path = "contract_test.rs"]
+#[cfg(test)]
 mod contract_test;

@@ -1,7 +1,7 @@
 module=std.js.Dom.DocumentType
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 source_hash=15337641375823760647
 interface_hash=16984722121289668776
 interface_doc_hash=16984722121289668776

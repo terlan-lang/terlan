@@ -35,6 +35,6 @@ and tested in Rust.
   contract is compiler-owned and does not drift back to BEAM/Erlang defaults.
 ## Testing Notes
 
-Check logic belongs in normal Rust tests next to this crate. One-off release or
-policy probes can stay as Python scripts when they are not permanent compiler
-engineering rules.
+Compiler implementation checks belong in normal Rust tests next to this crate.
+Repository policy and release probes execute as typed Terlan AOT artifacts;
+the Rust bootstrap only builds the compiler and VM used to run them.

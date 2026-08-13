@@ -1,11 +1,10 @@
-#![allow(dead_code)]
-
 use std::collections::{BTreeMap, BTreeSet};
+#[cfg(test)]
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use super::process::{
-    VmProcessId, VmProcessLocation, VmProcessSource, VmProcessState, VmProcessTable,
-};
+use super::process::VmProcessId;
+#[cfg(test)]
+use super::process::{VmProcessLocation, VmProcessSource, VmProcessState, VmProcessTable};
 
 /// VM-owned module generation identifier.
 ///
@@ -89,16 +88,19 @@ impl VmModuleArtifact {
         self
     }
 
+    #[cfg(test)]
     fn exports_function(&self, function: &str, arity: usize) -> bool {
         self.exported_functions
             .get(function)
             .is_some_and(|arities| arities.contains(&arity))
     }
 
+    #[cfg(test)]
     fn exports(&self) -> Vec<VmModuleFunction> {
         function_rows(&self.exported_functions)
     }
 
+    #[cfg(test)]
     fn functions(&self) -> Vec<VmModuleFunction> {
         function_rows(&self.defined_functions)
     }
@@ -106,6 +108,7 @@ impl VmModuleArtifact {
 
 /// One compiler-verified function identity in module metadata.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[cfg(test)]
 pub(crate) struct VmModuleFunction {
     pub(crate) name: String,
     pub(crate) arity: usize,
@@ -113,6 +116,7 @@ pub(crate) struct VmModuleFunction {
 
 /// Typed metadata for one active module generation.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmModuleInfoSnapshot {
     pub(crate) module: String,
     pub(crate) generation: VmModuleGenerationId,
@@ -140,6 +144,7 @@ pub(crate) struct VmCodeBinding {
 
 /// Read-only code-server row for runtime inspection.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmModuleGenerationSnapshot {
     pub(crate) module: String,
     pub(crate) generation: VmModuleGenerationId,
@@ -174,6 +179,7 @@ pub(crate) enum VmCodeServerEvent {
 
 impl VmCodeServerEvent {
     /// Returns the module that owns this lifecycle event.
+    #[cfg(test)]
     fn module(&self) -> &str {
         match self {
             Self::Published { module, .. }
@@ -201,6 +207,7 @@ struct VmModuleGeneration {
 }
 
 impl VmModuleGeneration {
+    #[cfg(test)]
     fn snapshot(&self) -> VmModuleGenerationSnapshot {
         VmModuleGenerationSnapshot {
             module: self.module.clone(),
@@ -234,6 +241,7 @@ pub(crate) struct VmCodeServer {
 
 /// Result of one atomic concurrent publication request.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmConcurrentPublishOutcome {
     Published(VmCodeServerEvent),
     Reused {
@@ -242,6 +250,7 @@ pub(crate) enum VmConcurrentPublishOutcome {
     },
 }
 
+#[cfg(test)]
 impl VmConcurrentPublishOutcome {
     pub(crate) fn generation(&self) -> VmModuleGenerationId {
         match self {
@@ -268,10 +277,12 @@ impl VmConcurrentPublishOutcome {
 /// - Exposes no process binding or execution transition API; those operations
 ///   belong to each shard's lock-free `VmCodeServer`.
 #[derive(Clone, Debug, Default)]
+#[cfg(test)]
 pub(crate) struct VmConcurrentCodeServer {
     inner: Arc<Mutex<VmCodeServer>>,
 }
 
+#[cfg(test)]
 impl VmConcurrentCodeServer {
     fn lock(&self) -> Result<MutexGuard<'_, VmCodeServer>, String> {
         self.inner
@@ -299,26 +310,26 @@ impl VmConcurrentCodeServer {
         ))
     }
 
-    pub(crate) fn purge_retired_generations(
-        &self,
-        module: &str,
-    ) -> Result<Vec<VmCodeServerEvent>, String> {
-        self.lock()?.purge_retired_generations(module)
-    }
-
-    pub(crate) fn unload_active_generation(
-        &self,
-        module: &str,
-    ) -> Result<VmCodeServerEvent, String> {
-        self.lock()?.unload_active_generation(module)
-    }
-
     pub(crate) fn snapshots(&self) -> Result<Vec<VmModuleGenerationSnapshot>, String> {
         Ok(self.lock()?.snapshots())
     }
 
     pub(crate) fn event_snapshots(&self) -> Result<Vec<VmCodeServerEventSnapshot>, String> {
         Ok(self.lock()?.event_snapshots())
+    }
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy)]
+pub(crate) struct VmCodeInstructionOffsets {
+    pub(crate) entry: usize,
+    pub(crate) return_to: usize,
+}
+
+#[cfg(test)]
+impl VmCodeInstructionOffsets {
+    pub(crate) fn new(entry: usize, return_to: usize) -> Self {
+        Self { entry, return_to }
     }
 }
 
@@ -367,6 +378,7 @@ impl VmCodeServer {
     }
 
     /// Binds a live process to the current active generation for a module.
+    #[cfg(test)]
     pub(crate) fn bind_process_to_active(
         &mut self,
         processes: &VmProcessTable,
@@ -384,6 +396,7 @@ impl VmCodeServer {
     }
 
     /// Atomically moves one process from its retained generation to active code.
+    #[cfg(test)]
     pub(crate) fn switch_process_to_active(
         &mut self,
         processes: &VmProcessTable,
@@ -407,6 +420,7 @@ impl VmCodeServer {
 
     /// Enters one function while binding the process to its exact module
     /// generation.
+    #[cfg(test)]
     pub(crate) fn enter_process_function(
         &mut self,
         processes: &mut VmProcessTable,
@@ -414,9 +428,12 @@ impl VmCodeServer {
         module: &str,
         function: &str,
         arity: usize,
-        entry_instruction_offset: usize,
-        return_instruction_offset: usize,
+        offsets: VmCodeInstructionOffsets,
     ) -> Result<VmCodeBinding, String> {
+        let VmCodeInstructionOffsets {
+            entry: entry_instruction_offset,
+            return_to: return_instruction_offset,
+        } = offsets;
         ensure_live_process(processes, pid)?;
         let existing = self.process_binding(pid, module)?;
         let created_binding = existing.is_none();
@@ -452,6 +469,7 @@ impl VmCodeServer {
     }
 
     /// Returns from one function and releases a drained module dependency.
+    #[cfg(test)]
     pub(crate) fn return_process_function(
         &mut self,
         processes: &mut VmProcessTable,
@@ -524,16 +542,14 @@ impl VmCodeServer {
             .modules
             .iter()
             .flat_map(|(module, generations)| {
-                generations.iter().filter_map(|generation| {
-                    generation
-                        .active_processes
-                        .contains(&pid)
-                        .then(|| VmCodeBinding {
-                            pid,
-                            module: module.clone(),
-                            generation: generation.generation,
-                        })
-                })
+                generations
+                    .iter()
+                    .filter(|&generation| generation.active_processes.contains(&pid))
+                    .map(|generation| VmCodeBinding {
+                        pid,
+                        module: module.clone(),
+                        generation: generation.generation,
+                    })
             })
             .collect::<Vec<_>>();
         let mut events = Vec::new();
@@ -585,6 +601,7 @@ impl VmCodeServer {
     /// - Validates ownership before changing state, then moves the active
     ///   generation to `Retired` so normal purge and inspection semantics own
     ///   reclamation without BEAM delete/purge behavior.
+    #[cfg(test)]
     pub(crate) fn unload_active_generation(
         &mut self,
         module: &str,
@@ -608,6 +625,7 @@ impl VmCodeServer {
     }
 
     /// Promotes an existing generation after validating its artifact identity.
+    #[cfg(test)]
     pub(crate) fn promote_generation(
         &mut self,
         module: &str,
@@ -667,22 +685,26 @@ impl VmCodeServer {
     }
 
     /// Returns the active generation id for a module.
+    #[cfg(test)]
     pub(crate) fn active_generation(&self, module: &str) -> Result<VmModuleGenerationId, String> {
         Ok(self.active_generation_ref(module)?.generation)
     }
 
     /// Returns whether a module currently has an active generation.
+    #[cfg(test)]
     pub(crate) fn module_loaded(&self, module: &str) -> bool {
         self.active_generation_ref(module).is_ok()
     }
 
     /// Returns whether the active generation exports one function signature.
+    #[cfg(test)]
     pub(crate) fn function_exported(&self, module: &str, function: &str, arity: usize) -> bool {
         self.active_generation_ref(module)
             .is_ok_and(|generation| generation.artifact.exports_function(function, arity))
     }
 
     /// Returns compiler-derived metadata for the active module generation.
+    #[cfg(test)]
     pub(crate) fn active_module_info(&self, module: &str) -> Result<VmModuleInfoSnapshot, String> {
         let generation = self.active_generation_ref(module)?;
         Ok(VmModuleInfoSnapshot {
@@ -696,6 +718,7 @@ impl VmCodeServer {
     }
 
     /// Returns generation rows for runtime inspection.
+    #[cfg(test)]
     pub(crate) fn snapshots(&self) -> Vec<VmModuleGenerationSnapshot> {
         self.modules
             .values()
@@ -705,6 +728,7 @@ impl VmCodeServer {
     }
 
     /// Returns generation rows for one module without unrelated runtime state.
+    #[cfg(test)]
     pub(crate) fn snapshots_for_module(&self, module: &str) -> Vec<VmModuleGenerationSnapshot> {
         self.modules
             .get(module)
@@ -714,33 +738,13 @@ impl VmCodeServer {
             .collect()
     }
 
-    /// Returns the generation snapshot owned by one validated process binding.
-    ///
-    /// Transformation:
-    /// - Resolves immutable generation identity and verifies the process is
-    ///   still an owner before exposing version information to inspectors.
-    pub(crate) fn snapshot_for_binding(
-        &self,
-        binding: &VmCodeBinding,
-    ) -> Result<VmModuleGenerationSnapshot, String> {
-        let generation = self.generation_ref(&binding.module, binding.generation)?;
-        if !generation.active_processes.contains(&binding.pid) {
-            return Err(format!(
-                "process {} is not bound to generation {} for module `{}`",
-                binding.pid.as_u64(),
-                binding.generation.as_u64(),
-                binding.module
-            ));
-        }
-        Ok(generation.snapshot())
-    }
-
     /// Returns code-server event rows for runtime inspection.
     pub(crate) fn event_snapshots(&self) -> Vec<VmCodeServerEventSnapshot> {
         self.events.clone()
     }
 
     /// Returns lifecycle events for one module in their global event order.
+    #[cfg(test)]
     pub(crate) fn event_snapshots_for_module(
         &self,
         module: &str,
@@ -762,6 +766,7 @@ impl VmCodeServer {
         event
     }
 
+    #[cfg(test)]
     fn active_generation_ref(&self, module: &str) -> Result<&VmModuleGeneration, String> {
         self.modules
             .get(module)
@@ -773,6 +778,7 @@ impl VmCodeServer {
             .ok_or_else(|| format!("module `{module}` has no active generation"))
     }
 
+    #[cfg(test)]
     fn active_generation_mut(&mut self, module: &str) -> Result<&mut VmModuleGeneration, String> {
         self.modules
             .get_mut(module)
@@ -784,6 +790,7 @@ impl VmCodeServer {
             .ok_or_else(|| format!("module `{module}` has no active generation"))
     }
 
+    #[cfg(test)]
     fn generation_ref(
         &self,
         module: &str,
@@ -824,6 +831,7 @@ impl VmCodeServer {
             })
     }
 
+    #[cfg(test)]
     fn process_binding(
         &self,
         pid: VmProcessId,
@@ -850,6 +858,7 @@ impl VmCodeServer {
     }
 }
 
+#[cfg(test)]
 fn function_rows(functions: &BTreeMap<String, BTreeSet<usize>>) -> Vec<VmModuleFunction> {
     functions
         .iter()
@@ -862,6 +871,7 @@ fn function_rows(functions: &BTreeMap<String, BTreeSet<usize>>) -> Vec<VmModuleF
         .collect()
 }
 
+#[cfg(test)]
 fn ensure_live_process(processes: &VmProcessTable, pid: VmProcessId) -> Result<(), String> {
     let process = processes
         .get(pid)
@@ -874,17 +884,22 @@ fn ensure_live_process(processes: &VmProcessTable, pid: VmProcessId) -> Result<(
 
 vm_code_server_test_component! {
     #[path = "code_server_test.rs"]
-    mod code_server_test;
+    #[cfg(test)]
+mod code_server_test;
 
     #[path = "code_server_inspection_test.rs"]
-    mod code_server_inspection_test;
+    #[cfg(test)]
+mod code_server_inspection_test;
 
     #[path = "code_false_dependency_test.rs"]
-    mod code_false_dependency_test;
+    #[cfg(test)]
+mod code_false_dependency_test;
 
     #[path = "code_parallel_load_beam_suite_parity_test.rs"]
-    mod code_parallel_load_beam_suite_parity_test;
+    #[cfg(test)]
+mod code_parallel_load_beam_suite_parity_test;
 
     #[path = "multi_load_beam_suite_parity_test.rs"]
-    mod multi_load_beam_suite_parity_test;
+    #[cfg(test)]
+mod multi_load_beam_suite_parity_test;
 }

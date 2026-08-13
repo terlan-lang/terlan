@@ -19,7 +19,7 @@ pub generated_binding_surface_contract(): Bool -> true.
 
 pub bind_vertex_array_oes_typechecks(
     receiver: OES_vertex_array_object,
-    array_object: Option[WebGLVertexArrayObjectOES]
+    array_object: Option[WebGLVertexArrayObjectOES],
 ): Unit ->
     receiver.bind_vertex_array_oes(array_object).
 
@@ -28,12 +28,12 @@ pub create_vertex_array_oes_typechecks(receiver: OES_vertex_array_object): WebGL
 
 pub delete_vertex_array_oes_typechecks(
     receiver: OES_vertex_array_object,
-    array_object: Option[WebGLVertexArrayObjectOES]
+    array_object: Option[WebGLVertexArrayObjectOES],
 ): Unit ->
     receiver.delete_vertex_array_oes(array_object).
 
 pub is_vertex_array_oes_typechecks(
     receiver: OES_vertex_array_object,
-    array_object: Option[WebGLVertexArrayObjectOES]
+    array_object: Option[WebGLVertexArrayObjectOES],
 ): GLboolean ->
     receiver.is_vertex_array_oes(array_object).

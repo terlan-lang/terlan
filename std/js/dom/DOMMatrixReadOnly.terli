@@ -206,7 +206,7 @@ pub (value: DOMMatrixReadOnly) scale(
     scale_z: JsNumber,
     origin_x: JsNumber,
     origin_y: JsNumber,
-    origin_z: JsNumber
+    origin_z: JsNumber,
 ): DOMMatrix.
 
 /**

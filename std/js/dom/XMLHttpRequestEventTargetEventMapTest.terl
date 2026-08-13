@@ -17,36 +17,36 @@ import type std.js.Dom.XMLHttpRequestEventTargetEventMap.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub abort_typechecks(
-    receiver: XMLHttpRequestEventTargetEventMap
+    receiver: XMLHttpRequestEventTargetEventMap,
 ): ProgressEvent[XMLHttpRequestEventTarget] ->
     receiver.abort().
 
 pub error_typechecks(
-    receiver: XMLHttpRequestEventTargetEventMap
+    receiver: XMLHttpRequestEventTargetEventMap,
 ): ProgressEvent[XMLHttpRequestEventTarget] ->
     receiver.error().
 
 pub load_typechecks(
-    receiver: XMLHttpRequestEventTargetEventMap
+    receiver: XMLHttpRequestEventTargetEventMap,
 ): ProgressEvent[XMLHttpRequestEventTarget] ->
     receiver.load().
 
 pub loadend_typechecks(
-    receiver: XMLHttpRequestEventTargetEventMap
+    receiver: XMLHttpRequestEventTargetEventMap,
 ): ProgressEvent[XMLHttpRequestEventTarget] ->
     receiver.loadend().
 
 pub loadstart_typechecks(
-    receiver: XMLHttpRequestEventTargetEventMap
+    receiver: XMLHttpRequestEventTargetEventMap,
 ): ProgressEvent[XMLHttpRequestEventTarget] ->
     receiver.loadstart().
 
 pub progress_typechecks(
-    receiver: XMLHttpRequestEventTargetEventMap
+    receiver: XMLHttpRequestEventTargetEventMap,
 ): ProgressEvent[XMLHttpRequestEventTarget] ->
     receiver.progress().
 
 pub timeout_typechecks(
-    receiver: XMLHttpRequestEventTargetEventMap
+    receiver: XMLHttpRequestEventTargetEventMap,
 ): ProgressEvent[XMLHttpRequestEventTarget] ->
     receiver.timeout().

@@ -1,0 +1,292 @@
+/**
+ * Validates committed generated std.js bindings against pinned inputs.
+ */
+module scripts.self_validation.JsBindingsDriftTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.io.Console.{println}.
+import std.io.Directory.{create_temporary, files_recursive, remove_all}.
+import std.io.File.{path, read_text_many}.
+import std.system.{Environment, Process}.
+
+import type std.collections.List.
+import type std.core.Option.
+import type std.io.File.TextFile.
+
+struct PathPage {
+    paths: List[String],
+    remaining: List[String],
+    count: Int,
+}.
+
+@pure
+child(root: String, relative: String): String ->
+    if {
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+selected_root(): String ->
+    environment_or("TERLAN_JS_BINDINGS_ROOT", Environment.current_directory()).
+
+selected_compiler(root: String): String ->
+    case Environment.get("TERLAN_JS_BINDINGS_TERLC") {
+        Some(path) -> path;
+        None ->
+            case Environment.get("TERLC") {
+                Some(path) -> path;
+                None -> child(root, "target/debug/terlc")
+            }
+    }.
+
+/**
+ * Returns a generated path relative to its output root.
+ */
+@pure
+pub relative_generated_path(output: String, path: String): Option[String] ->
+    let prefix = String.append(output, "/");
+    case String.split_once(path, prefix) {
+        Some({before, relative}) ->
+            if {
+                before == "" and relative != "" -> Some(relative);
+                true -> None
+            };
+        None -> None
+    }.
+
+@pure
+reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_at(values, List.new[String]()).
+
+@pure
+reverse_strings_at(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings_at(rest, [value | reversed])
+    }.
+
+@pure
+path_page(paths: List[String], limit: Int): PathPage ->
+    path_page_at(paths, limit, List.new[String](), 0).
+
+@pure
+path_page_at(paths: List[String], limit: Int, selected: List[String], count: Int): PathPage ->
+    if {
+        count == limit -> PathPage(paths = reverse_strings(selected), remaining = paths, count = count);
+        true -> case paths {
+            [] ->
+                PathPage(
+                    paths = reverse_strings(selected),
+                    remaining = List.new[String](),
+                    count = count,
+                );
+            [path | rest] -> path_page_at(rest, limit, [path | selected], count + 1)
+        }
+    }.
+
+@pure
+interleaved_paths(root: String, output: String, generated: List[String]): Option[List[String]] ->
+    interleaved_paths_at(root, output, generated, List.new[String]()).
+
+@pure
+interleaved_paths_at(
+    root: String,
+    output: String,
+    generated: List[String],
+    interleaved: List[String],
+): Option[List[String]] ->
+    case generated {
+        [] -> Some(reverse_strings(interleaved));
+        [path | rest] ->
+            case relative_generated_path(output, path) {
+                Some(relative) ->
+                    interleaved_paths_at(
+                        root,
+                        output,
+                        rest,
+                        [child(root, relative) | [path | interleaved]],
+                    );
+                None -> None
+            }
+    }.
+
+@pure
+first_interleaved_mismatch(output: String, files: List[TextFile]): Option[String] ->
+    case files {
+        [] -> None;
+        [generated_file | [committed_file | rest]] ->
+            if {
+                generated_file.contents == committed_file.contents -> first_interleaved_mismatch(output, rest);
+                true -> case relative_generated_path(output, generated_file.path) {
+                    Some(relative) ->
+                        Some(String.append(relative, ": committed generated artifact is stale"));
+                    None -> Some("generated artifact escaped output root")
+                }
+            };
+        _ -> Some("generated and committed artifact counts differ")
+    }.
+
+generator_command(root: String, compiler: String, output: String): std.system.Process.Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(
+                    Process.command(compiler),
+                    [
+                        "bind",
+                        "js-dom",
+                        "--manifest",
+                        "std/js/manifests/std_js_dom_inputs.json",
+                        "--out",
+                        output,
+                    ],
+                ),
+                root,
+            ),
+            600000,
+        ),
+        16777216,
+    ).
+
+/**
+ * Runs generation and byte-equivalent UTF-8 artifact comparison.
+ */
+pub validate(root: String, compiler: String): Bool ->
+    case create_temporary("terlan-std-js-bindings") {
+        Err(_reason) -> false;
+        Ok(output) -> run_generator(root, compiler, output)
+    }.
+
+run_generator(root: String, compiler: String, output: String): Bool ->
+    let command = generator_command(root, compiler, output);
+    case Process.run(command) {
+        Err(reason) ->
+            finish(
+                output,
+                false,
+                0,
+                String.append("generation failed: ", Process.error_message(reason)),
+            );
+        Ok(result) ->
+            if {
+                Process.status(result) == 0 -> discover_generated(root, output);
+                true -> finish(
+                    output,
+                    false,
+                    0,
+                    String.append(
+                        "generation failed: ",
+                        String.append(Process.stdout(result), Process.stderr(result)),
+                    ),
+                )
+            }
+    }.
+
+discover_generated(root: String, output: String): Bool ->
+    case files_recursive(output) {
+        Err(_reason) -> finish(output, false, 0, "cannot enumerate generated artifacts");
+        Ok(paths) -> compare_pages(root, output, paths, 0)
+    }.
+
+compare_pages(root: String, output: String, paths: List[String], compared: Int): Bool ->
+    case paths {
+        [] -> finish(output, true, compared, "none");
+        _ ->
+            let page = path_page(paths, 64);
+            case interleaved_paths(root, output, page.paths) {
+                None -> finish(output, false, compared, "generated artifact escaped output root");
+                Some(paths) -> read_comparison_page(root, output, page, paths, compared)
+            }
+    }.
+
+read_comparison_page(
+    root: String,
+    output: String,
+    page: PathPage,
+    paths: List[String],
+    compared: Int,
+): Bool ->
+    case read_text_many(paths) {
+        Err(reason) ->
+            finish(
+                output,
+                false,
+                compared,
+                String.append(path(reason), ": missing committed generated artifact"),
+            );
+        Ok(files) -> compare_page_result(root, output, page, files, compared)
+    }.
+
+compare_page_result(
+    root: String,
+    output: String,
+    page: PathPage,
+    files: List[TextFile],
+    compared: Int,
+): Bool ->
+    let mismatch = first_interleaved_mismatch(output, files);
+    case mismatch {
+        Some(reason) -> finish(output, false, compared, reason);
+        None -> compare_pages(root, output, page.remaining, compared + page.count)
+    }.
+
+finish(output: String, valid: Bool, count: Int, reason: String): Bool ->
+    case remove_all(output) {
+        Err(_reason) -> false;
+        Ok(Unit) -> report(valid, count, reason)
+    }.
+
+report(valid: Bool, count: Int, reason: String): Bool ->
+    let message =
+        if {
+            valid -> String.append(
+                "[std-js-bindings-drift] generated artifacts match committed files: ",
+                Int.to_string(count),
+            );
+            true -> String.append("[std-js-bindings-drift] failure: ", reason)
+        };
+    let _printed = println(message);
+    valid.
+
+@test
+pub relative_path_requires_exact_output_prefix(): Bool ->
+    case {
+    relative_generated_path("/tmp/output", "/tmp/output/std/js/Array.terl"),
+    relative_generated_path("/tmp/output", "/tmp/output-other/file"),
+} {
+        {Some("std/js/Array.terl"), None} -> true;
+        _ -> false
+    }.
+
+@test
+pub path_pages_preserve_order_and_remainder(): Bool ->
+    let page = path_page(["a", "b", "c"], 2);
+    page.paths == ["a", "b"] and page.remaining == ["c"] and page.count == 2.
+
+@test
+pub generated_and_committed_paths_are_interleaved(): Bool ->
+    case interleaved_paths("/repository", "/output", ["/output/first", "/output/second"]) {
+        Some(paths) ->
+            paths == ["/output/first", "/repository/first", "/output/second", "/repository/second"];
+        None -> false
+    }.
+
+@test
+pub repository_js_bindings_match_generated_output(): Bool ->
+    let root = selected_root();
+    validate(root, selected_compiler(root)).
+
+pub main(): Unit ->
+    if {
+        repository_js_bindings_match_generated_output() -> Unit;
+        true -> println("[std-js-bindings-drift] validation failed")
+    }.

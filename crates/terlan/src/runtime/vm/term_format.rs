@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::ReplValue;
 
 mod decoder;
@@ -123,6 +121,7 @@ impl TetfDistributionEnvelope {
 /// Transformation:
 /// - Writes a `TETF` envelope followed by a compact recursive term. The format
 ///   is Terlan-owned and intentionally not Erlang ETF-compatible.
+#[cfg(test)]
 pub(crate) fn encode_tetf(value: &ReplValue, declared_atoms: &[String]) -> Result<Vec<u8>, String> {
     let mut bytes = Vec::new();
     bytes.extend_from_slice(MAGIC);
@@ -142,6 +141,7 @@ pub(crate) fn encode_tetf(value: &ReplValue, declared_atoms: &[String]) -> Resul
 ///
 /// Transformation:
 /// - Writes a Terlan-owned reference term. The format is not ETF-compatible.
+#[cfg(test)]
 pub(crate) fn encode_tetf_vm_ref(reference: &TetfVmRef) -> Result<Vec<u8>, String> {
     let mut bytes = Vec::new();
     bytes.extend_from_slice(MAGIC);
@@ -299,7 +299,6 @@ fn encode_value(
                 bytes.extend_from_slice(&value);
             }
         }
-        #[cfg(test)]
         ReplValue::MapIndexed(map) => {
             bytes.push(TAG_MAP);
             let mut encoded_entries = Vec::new();
@@ -333,13 +332,11 @@ fn encode_value(
                 bytes.extend_from_slice(&item);
             }
         }
-        #[cfg(test)]
         ReplValue::RandomGenerator(_) => {
             return Err(
                 "error[tetf_unsupported]: random generator state has no TETF encoding".to_string(),
             );
         }
-        #[cfg(test)]
         ReplValue::Iterator { .. } => {
             return Err("error[tetf_unsupported]: iterator state has no TETF encoding".to_string());
         }
@@ -416,4 +413,5 @@ fn reject_duplicate_map_keys(entries: &[(Vec<u8>, Vec<u8>)]) -> Result<(), Strin
 
 #[cfg(test)]
 #[path = "term_format_runtime_test.rs"]
+#[cfg(test)]
 mod term_format_runtime_test;

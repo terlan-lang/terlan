@@ -121,6 +121,7 @@ const REJECTED_ASSET_PATHS: &[&str] = &[
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing web asset pipeline summary.
 pub struct WebAssetPipelineSummary {
     pub asset_graph_entry_count: usize,
     pub content_type_check_count: usize,
@@ -129,6 +130,7 @@ pub struct WebAssetPipelineSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs web asset pipeline.
 pub fn run_web_asset_pipeline(root: &Path) -> QualityResult<WebAssetPipelineSummary> {
     let mut diagnostics = Vec::new();
     diagnostics.extend(validate_required_terms(
@@ -305,4 +307,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "web_asset_pipeline_test.rs"]
+#[cfg(test)]
 mod web_asset_pipeline_test;

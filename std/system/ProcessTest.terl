@@ -1,0 +1,178 @@
+/**
+ * Executable contracts for bounded child-process orchestration.
+ */
+module std.system.ProcessTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.system.Process.
+import std.system.Process.{InvalidFrame, InvalidRequest, OutputLimitExceeded, TimedOut}.
+
+import type std.system.Process.Command.
+
+@test
+pub runtime_resource_limits_are_typed_and_positive(): Bool ->
+    let limits = Process.limits();
+    Process.maximum_timeout_ms(limits) > 0
+        and Process.maximum_output_bytes(limits) > 0
+        and Process.maximum_stdin_bytes(limits) > 0
+        and Process.maximum_batch_commands(limits) > 0
+        and Process.maximum_batch_concurrency(limits) > 0
+        and Process.maximum_framed_exchanges(limits) > 0
+        and Process.maximum_framed_responses(limits) > 0.
+
+@test
+pub runtime_resource_limits_match_enforced_contract(): Bool ->
+    let limits = Process.limits();
+    Process.maximum_timeout_ms(limits) == 3600000
+        and Process.maximum_output_bytes(limits) == 16777216
+        and Process.maximum_stdin_bytes(limits) == 1048576
+        and Process.maximum_batch_commands(limits) == 4096
+        and Process.maximum_batch_concurrency(limits) == 64
+        and Process.maximum_framed_exchanges(limits) == 4096
+        and Process.maximum_framed_responses(limits) == 4096.
+
+@test
+pub captures_stdout_and_nonzero_status(): Bool ->
+    let request =
+        Process.with_arguments(
+            Process.command("/bin/sh"),
+            ["-c", "printf hello; printf problem >&2; exit 7"],
+        );
+    case Process.run(request) {
+        Ok(output) ->
+            Process.status(output) == 7
+                and Process.stdout(output) == "hello"
+                and Process.stderr(output) == "problem";
+        _ -> false
+    }.
+
+@test
+pub environment_overlay_reaches_child(): Bool ->
+    let request =
+        Process.with_environment(
+            Process.with_arguments(
+                Process.command("/bin/sh"),
+                ["-c", "printf %s \"$TERLAN_PROCESS_TEST\""],
+            ),
+            [Process.environment_entry("TERLAN_PROCESS_TEST", "visible")],
+        );
+    case Process.run(request) {
+        Ok(output) -> Process.status(output) == 0 and Process.stdout(output) == "visible";
+        _ -> false
+    }.
+
+@test
+pub removed_environment_is_absent_from_child(): Bool ->
+    let request = Process.without_environment(Process.command("/usr/bin/env"), ["PATH"]);
+    case Process.run(request) {
+        Ok(output) ->
+            Process.status(output) == 0
+                and not String.starts_with(Process.stdout(output), "PATH=")
+                and not String.contains(Process.stdout(output), "\nPATH=");
+        _ -> false
+    }.
+
+@test
+pub explicit_overlay_wins_over_inherited_removal(): Bool ->
+    let request =
+        Process.without_environment(
+            Process.with_environment(
+                Process.with_arguments(
+                    Process.command("/bin/sh"),
+                    ["-c", "printf %s \"$TERLAN_PROCESS_PRECEDENCE_TEST\""],
+                ),
+                [Process.environment_entry("TERLAN_PROCESS_PRECEDENCE_TEST", "overlay")],
+            ),
+            ["TERLAN_PROCESS_PRECEDENCE_TEST"],
+        );
+    case Process.run(request) {
+        Ok(output) -> Process.status(output) == 0 and Process.stdout(output) == "overlay";
+        _ -> false
+    }.
+
+@test
+pub timeout_terminates_child(): Bool ->
+    let request =
+        Process.with_timeout_ms(
+            Process.with_arguments(Process.command("/bin/sh"), ["-c", "sleep 1"]),
+            10,
+        );
+    case Process.run(request) {
+        Err(reason) -> Process.error_code(reason) == TimedOut;
+        _ -> false
+    }.
+
+@test
+pub output_limit_terminates_child(): Bool ->
+    let request =
+        Process.with_output_limit_bytes(
+            Process.with_arguments(Process.command("/bin/sh"), ["-c", "printf 123456789"]),
+            4,
+        );
+    case Process.run(request) {
+        Err(reason) -> Process.error_code(reason) == OutputLimitExceeded;
+        _ -> false
+    }.
+
+@test
+pub bounded_batch_preserves_input_order(): Bool ->
+    let slow = Process.with_arguments(Process.command("/bin/sh"), ["-c", "sleep 0.05; printf slow"]);
+    let fast = Process.with_arguments(Process.command("/bin/sh"), ["-c", "printf fast"]);
+    let {
+        Ok(batch) <- Process.run_many(Process.batch(List(slow, fast), 2));
+        [first, second] <- Process.completions(batch);
+        {Some(first_output), Some(second_output), None, None} <-
+            {
+                Process.completion_output(first),
+                Process.completion_output(second),
+                Process.completion_error(first),
+                Process.completion_error(second),
+            }
+    } else {
+        _ -> false
+    };
+    Process.stdout(first_output) == "slow" and Process.stdout(second_output) == "fast".
+
+@test
+pub bounded_batch_rejects_zero_concurrency(): Bool ->
+    case Process.run_many(Process.batch(List.new[Command](), 0)) {
+        Err(reason) -> Process.error_code(reason) == InvalidRequest;
+        _ -> false
+    }.
+
+@test
+pub length_framed_session_sequences_handshake_phases(): Bool ->
+    let script = "IFS= read -r first; printf 'Content-Length: %s\\r\\n\\r\\n%s' \"${#first}\" \"$first\"; IFS= read -r second; printf 'Content-Length: %s\\r\\n\\r\\n%s' \"${#second}\" \"$second\"; exit 7";
+    let command = Process.with_arguments(Process.command("/bin/sh"), ["-c", script]);
+    let request =
+        Process.length_framed(
+            command,
+            [Process.exchange("first\n", 1), Process.exchange("second\n", 1)],
+            "Content-Length",
+        );
+    let {
+        Ok(output) <- Process.run_length_framed(request);
+        [first, second] <- Process.frames(output)
+    } else {
+        _ -> false
+    };
+    Process.framed_status(output) == 7
+        and Process.framed_stderr(output) == ""
+        and first == "first"
+        and second == "second".
+
+@test
+pub length_framed_session_rejects_missing_length_header(): Bool ->
+    let command =
+        Process.with_arguments(
+            Process.command("/bin/sh"),
+            ["-c", "printf 'Wrong-Length: 2\\r\\n\\r\\nok'"],
+        );
+    let request = Process.length_framed(command, [Process.exchange("request\n", 1)], "Content-Length");
+    case Process.run_length_framed(request) {
+        Err(reason) -> Process.error_code(reason) == InvalidFrame;
+        _ -> false
+    }.

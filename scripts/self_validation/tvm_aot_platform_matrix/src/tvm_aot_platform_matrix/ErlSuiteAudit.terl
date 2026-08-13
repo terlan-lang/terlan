@@ -1,0 +1,907 @@
+/**
+ * Validates the closed BEAM/OTP test-suite migration evidence.
+ *
+ * The external checkout is deliberately not rediscovered: it has been retired
+ * and Git remains its history. This gate validates the checked historical
+ * inventory, the behavior-area plan, executable replacement evidence, exact
+ * zero-active-file summaries, and every referenced Make gate.
+ */
+module tvm_aot_platform_matrix.ErlSuiteAudit.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.io.Console.{eprintln, println}.
+import std.io.File.
+import tvm_aot_platform_matrix.MakeContract.
+import tvm_aot_platform_matrix.ReleasePayload.{child}.
+
+import type std.core.Option.
+import type std.io.File.TextFile.
+
+struct InventoryRow {
+    pattern: String,
+    classification: String,
+    replacement_gate: String,
+    owner: String,
+    notes: String,
+}.
+
+struct PortPlanRow {
+    priority: String,
+    area: String,
+    source_patterns: List[String],
+    classification: String,
+    replacement_gate: String,
+    first_port_action: String,
+    delete_rule: String,
+}.
+
+struct PortStatusRow {
+    area: String,
+    priority: String,
+    classification: String,
+    replacement_gate: String,
+    execution_path: String,
+    execution_gate: String,
+    port_status: String,
+    notes: String,
+}.
+
+struct FileStatusRow {
+    path: String,
+    port_status: String,
+    replacement_evidence: String,
+}.
+
+struct SummaryRow {
+    kind: String,
+    name: String,
+    count: Int,
+}.
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[terlan_vm_erl_suite_audit]: ", message));
+    false.
+
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+split_nonempty(values: List[String], result: List[String]): List[String] ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            let normalized = String.trim(value);
+            if {
+                normalized == "" -> split_nonempty(rest, result);
+                true -> let _pushed = result.push(normalized);
+                split_nonempty(rest, result)
+            }
+    }.
+
+parse_inventory_at(lines: List[String], rows: List[InventoryRow]): Option[List[InventoryRow]] ->
+    case lines {
+        [] -> Some(rows);
+        [line | rest] ->
+            if {
+                String.trim(line) == "" or String.starts_with(String.trim(line), "#") -> parse_inventory_at(rest, rows);
+                true -> case String.split(line, "\t") {
+                    [pattern, classification, gate, owner, notes] ->
+                        let _pushed =
+                            rows
+                                .push(
+                                    InventoryRow(
+                                        pattern = pattern,
+                                        classification = classification,
+                                        replacement_gate = gate,
+                                        owner = owner,
+                                        notes = notes,
+                                    ),
+                                );
+                        parse_inventory_at(rest, rows);
+                    _ -> None
+                }
+            }
+    }.
+
+parse_inventory(source: String): Option[List[InventoryRow]] ->
+    parse_inventory_at(String.split(source, "\n"), List.new[InventoryRow]()).
+
+parse_plan_at(lines: List[String], rows: List[PortPlanRow]): Option[List[PortPlanRow]] ->
+    case lines {
+        [] -> Some(rows);
+        [line | rest] ->
+            if {
+                String.trim(line) == "" or String.starts_with(String.trim(line), "#") -> parse_plan_at(rest, rows);
+                true -> case String.split(line, "\t") {
+                    [priority, area, raw_patterns, classification, gate, action, delete_rule] ->
+                        let _pushed =
+                            rows
+                                .push(
+                                    PortPlanRow(
+                                        priority = priority,
+                                        area = area,
+                                        source_patterns = split_nonempty(
+                                            String.split(raw_patterns, ","),
+                                            List.new[String](),
+                                        ),
+                                        classification = classification,
+                                        replacement_gate = gate,
+                                        first_port_action = action,
+                                        delete_rule = delete_rule,
+                                    ),
+                                );
+                        parse_plan_at(rest, rows);
+                    _ -> None
+                }
+            }
+    }.
+
+parse_plan(source: String): Option[List[PortPlanRow]] ->
+    parse_plan_at(String.split(source, "\n"), List.new[PortPlanRow]()).
+
+parse_status_at(lines: List[String], rows: List[PortStatusRow]): Option[List[PortStatusRow]] ->
+    case lines {
+        [] -> Some(rows);
+        [line | rest] ->
+            if {
+                String.trim(line) == "" or String.starts_with(String.trim(line), "#") -> parse_status_at(rest, rows);
+                true -> case String.split(line, "\t") {
+                    [area, priority, classification, gate, execution_path, execution_gate, port_status, notes] ->
+                        let _pushed =
+                            rows
+                                .push(
+                                    PortStatusRow(
+                                        area = area,
+                                        priority = priority,
+                                        classification = classification,
+                                        replacement_gate = gate,
+                                        execution_path = execution_path,
+                                        execution_gate = execution_gate,
+                                        port_status = port_status,
+                                        notes = notes,
+                                    ),
+                                );
+                        parse_status_at(rest, rows);
+                    _ -> None
+                }
+            }
+    }.
+
+parse_status(source: String): Option[List[PortStatusRow]] ->
+    parse_status_at(String.split(source, "\n"), List.new[PortStatusRow]()).
+
+parse_file_status_at(
+    lines: List[String],
+    rows: List[FileStatusRow],
+): Option[List[FileStatusRow]] ->
+    case lines {
+        [] -> Some(rows);
+        [line | rest] ->
+            if {
+                String.trim(line) == "" or String.starts_with(String.trim(line), "#") -> parse_file_status_at(rest, rows);
+                true -> case String.split(line, "\t") {
+                    [path, port_status, evidence] ->
+                        let _pushed =
+                            rows
+                                .push(
+                                    FileStatusRow(
+                                        path = path,
+                                        port_status = port_status,
+                                        replacement_evidence = evidence,
+                                    ),
+                                );
+                        parse_file_status_at(rest, rows);
+                    _ -> None
+                }
+            }
+    }.
+
+parse_file_status(source: String): Option[List[FileStatusRow]] ->
+    parse_file_status_at(String.split(source, "\n"), List.new[FileStatusRow]()).
+
+parse_summary_at(lines: List[String], rows: List[SummaryRow]): Option[List[SummaryRow]] ->
+    case lines {
+        [] -> Some(rows);
+        [line | rest] ->
+            if {
+                String.trim(line) == "" or String.starts_with(String.trim(line), "#") -> parse_summary_at(rest, rows);
+                true -> let {
+                    [kind, name, raw_count] <- String.split(line, "\t");
+                    Some(count) <- Int.from_string(raw_count)
+                } else {
+                    _ -> None
+                };
+                (let _pushed = rows.push(SummaryRow(kind = kind, name = name, count = count)); parse_summary_at(rest, rows))
+            }
+    }.
+
+parse_summary(source: String): Option[List[SummaryRow]] ->
+    parse_summary_at(String.split(source, "\n"), List.new[SummaryRow]()).
+
+classification_valid(value: String): Bool ->
+    contains(
+        [
+            "port-to-rust-vm-test",
+            "port-to-terlan-test",
+            "delete-after-vm-equivalent",
+            "remove-non-portable",
+        ],
+        value,
+    ).
+
+classification_requires_gate(value: String): Bool ->
+    value == "port-to-rust-vm-test"
+        or value == "port-to-terlan-test"
+        or value == "delete-after-vm-equivalent".
+
+inventory_rows_valid(rows: List[InventoryRow]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            classification_valid(row.classification)
+                and (not classification_requires_gate(row.classification) or row.replacement_gate != "")
+                and row.owner != ""
+                and row.notes != ""
+                and inventory_rows_valid(rest)
+    }.
+
+inventory_pattern_exists(rows: List[InventoryRow], expected: String): Bool ->
+    case rows {
+        [] -> false;
+        [row | rest] -> row.pattern == expected or inventory_pattern_exists(rest, expected)
+    }.
+
+all_patterns_exist(patterns: List[String], inventory: List[InventoryRow]): Bool ->
+    case patterns {
+        [] -> true;
+        [pattern | rest] ->
+            inventory_pattern_exists(inventory, pattern) and all_patterns_exist(rest, inventory)
+    }.
+
+unique_plan_areas(rows: List[PortPlanRow], seen: List[String]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] -> not contains(seen, row.area) and unique_plan_areas(rest, [row.area | seen])
+    }.
+
+area_present(rows: List[PortPlanRow], expected: String): Bool ->
+    case rows {
+        [] -> false;
+        [row | rest] -> row.area == expected or area_present(rest, expected)
+    }.
+
+all_required_areas(rows: List[PortPlanRow], areas: List[String]): Bool ->
+    case areas {
+        [] -> true;
+        [area | rest] -> area_present(rows, area) and all_required_areas(rows, rest)
+    }.
+
+plan_rows_valid(
+    rows: List[PortPlanRow],
+    inventory: List[InventoryRow],
+    targets: List[String],
+): Bool ->
+    unique_plan_areas(rows, List.new[String]())
+        and List.length(rows) == 11
+        and all_required_areas(
+    rows,
+    [
+        "scheduler",
+        "mailbox",
+        "timers",
+        "process-registry",
+        "links-monitors",
+        "serialization",
+        "distribution-framing",
+        "epmd-discovery",
+        "http-tcp",
+        "filesystem",
+        "std-behavior",
+    ],
+)
+        and plan_row_values_valid(rows, inventory, targets).
+
+plan_row_values_valid(
+    rows: List[PortPlanRow],
+    inventory: List[InventoryRow],
+    targets: List[String],
+): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            contains(["P0", "P1", "P2", "P3"], row.priority)
+                and classification_valid(row.classification)
+                and contains(targets, row.replacement_gate)
+                and row.source_patterns != []
+                and all_patterns_exist(row.source_patterns, inventory)
+                and row.first_port_action != ""
+                and row.delete_rule != ""
+                and plan_row_values_valid(rest, inventory, targets)
+    }.
+
+plan_for_area(rows: List[PortPlanRow], area: String): Option[PortPlanRow] ->
+    case rows {
+        [] -> None;
+        [row | rest] ->
+            if {
+                row.area == area -> Some(row);
+                true -> plan_for_area(rest, area)
+            }
+    }.
+
+unique_status_areas(rows: List[PortStatusRow], seen: List[String]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            not contains(seen, row.area) and unique_status_areas(rest, [row.area | seen])
+    }.
+
+native_aot_gate(value: String): Bool ->
+    contains(
+        [
+            "tvm-direct-aot-backend-check",
+            "tvm-native-image-loader-check",
+            "tvm-aot-consumer-check",
+            "tvm-aot-runtime-transition-check",
+            "no-tvm-json-runtime-check",
+            "no-vmir-interpreter-check",
+        ],
+        value,
+    ).
+
+execution_evidence_valid(row: PortStatusRow, targets: List[String]): Bool ->
+    if {
+        not contains(["not-proven", "rust-runtime", "native-aot"], row.execution_path) -> false;
+        row.execution_path == "not-proven" -> row.execution_gate == "-";
+        row.execution_gate == ""
+            or row.execution_gate == "-"
+            or not contains(targets, row.execution_gate) -> false;
+        row.execution_path == "native-aot" -> native_aot_gate(row.execution_gate);
+        true -> true
+    }.
+
+status_rows_valid(
+    rows: List[PortStatusRow],
+    plan: List[PortPlanRow],
+    targets: List[String],
+): Bool ->
+    List.length(rows) == List.length(plan)
+        and unique_status_areas(rows, List.new[String]())
+        and status_row_values_valid(rows, plan, targets).
+
+status_row_values_valid(
+    rows: List[PortStatusRow],
+    plan: List[PortPlanRow],
+    targets: List[String],
+): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            case plan_for_area(plan, row.area) {
+                None -> false;
+                Some(expected) ->
+                    row.priority == expected.priority
+                        and row.classification == expected.classification
+                        and row.replacement_gate == expected.replacement_gate
+                        and contains(targets, row.replacement_gate)
+                        and execution_evidence_valid(row, targets)
+                        and contains(["not-ported", "partial", "ported"], row.port_status)
+                        and row.notes != ""
+                        and (row.port_status != "ported" or row.execution_path != "not-proven")
+                        and (row.port_status != "not-ported" or row.execution_path == "not-proven")
+                        and status_row_values_valid(rest, plan, targets)
+            }
+    }.
+
+glob_matches(pattern: String, path: String): Bool ->
+    case String.split_once(pattern, "**") {
+        Some({prefix, suffix}) ->
+            String.starts_with(path, prefix) and String.ends_with(path, suffix);
+        None -> pattern == path
+    }.
+
+matching_rows(path: String, rows: List[InventoryRow]): List[InventoryRow] ->
+    let exact = exact_rows(path, rows, List.new[InventoryRow]());
+    if {
+        exact != [] -> exact;
+        true -> glob_rows(path, rows, List.new[InventoryRow]())
+    }.
+
+exact_rows(
+    path: String,
+    rows: List[InventoryRow],
+    result: List[InventoryRow],
+): List[InventoryRow] ->
+    case rows {
+        [] -> result;
+        [row | rest] ->
+            if {
+                row.pattern == path -> let _pushed = result.push(row);
+                exact_rows(path, rest, result);
+                true -> exact_rows(path, rest, result)
+            }
+    }.
+
+glob_rows(
+    path: String,
+    rows: List[InventoryRow],
+    result: List[InventoryRow],
+): List[InventoryRow] ->
+    case rows {
+        [] -> result;
+        [row | rest] ->
+            if {
+                glob_matches(row.pattern, path) -> let _pushed = result.push(row);
+                glob_rows(path, rest, result);
+                true -> glob_rows(path, rest, result)
+            }
+    }.
+
+strictly_sorted_file_rows(rows: List[FileStatusRow], previous: String): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            (previous == "" or String.compare(previous, row.path) == Lt)
+                and strictly_sorted_file_rows(rest, row.path)
+    }.
+
+file_row_for_path(rows: List[FileStatusRow], path: String): Option[FileStatusRow] ->
+    case rows {
+        [] -> None;
+        [row | rest] ->
+            if {
+                row.path == path -> Some(row);
+                true -> file_row_for_path(rest, path)
+            }
+    }.
+
+all_discovered_have_rows(discovered: List[String], rows: List[FileStatusRow]): Bool ->
+    case discovered {
+        [] -> true;
+        [path | rest] ->
+            file_row_for_path(rows, path) != None and all_discovered_have_rows(rest, rows)
+    }.
+
+file_rows_valid(
+    rows: List[FileStatusRow],
+    discovered: List[String],
+    inventory: List[InventoryRow],
+    targets: List[String],
+): Bool ->
+    List.length(rows) == List.length(discovered)
+        and strictly_sorted_file_rows(rows, "")
+        and all_discovered_have_rows(discovered, rows)
+        and file_row_values_valid(rows, discovered, inventory, targets).
+
+file_row_values_valid(
+    rows: List[FileStatusRow],
+    discovered: List[String],
+    inventory: List[InventoryRow],
+    targets: List[String],
+): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            let matches = matching_rows(row.path, inventory);
+            if {
+                not contains(discovered, row.path) or List.length(matches) != 1 -> false;
+                row.port_status == "not-ported" -> row.replacement_evidence == "-"
+                    and file_row_values_valid(rest, discovered, inventory, targets);
+                row.port_status == "ported" -> case matches {
+                    [inventory_row] ->
+                        row.replacement_evidence != ""
+                            and row.replacement_evidence != "-"
+                            and row.replacement_evidence == inventory_row.replacement_gate
+                            and contains(targets, row.replacement_evidence)
+                            and file_row_values_valid(rest, discovered, inventory, targets);
+                    _ -> false
+                };
+                true -> false
+            }
+    }.
+
+@pure
+summary_key_count(rows: List[SummaryRow], kind: String, name: String): Int ->
+    summary_key_count_at(rows, kind, name, 0).
+
+@pure
+summary_key_count_at(rows: List[SummaryRow], kind: String, name: String, count: Int): Int ->
+    case rows {
+        [] -> count;
+        [row | rest] ->
+            if {
+                row.kind == kind and row.name == name -> summary_key_count_at(rest, kind, name, count + 1);
+                true -> summary_key_count_at(rest, kind, name, count)
+            }
+    }.
+
+@pure
+count_plan_value(rows: List[PortPlanRow], kind: String, name: String): Int ->
+    count_plan_value_at(rows, kind, name, 0).
+
+@pure
+count_plan_value_at(rows: List[PortPlanRow], kind: String, name: String, count: Int): Int ->
+    case rows {
+        [] -> count;
+        [row | rest] ->
+            let matches =
+                if {
+                    kind == "priority" -> row.priority == name;
+                    kind == "classification" -> row.classification == name;
+                    kind == "replacement_gate" -> row.replacement_gate == name;
+                    true -> false
+                };
+            if {
+                matches -> count_plan_value_at(rest, kind, name, count + 1);
+                true -> count_plan_value_at(rest, kind, name, count)
+            }
+    }.
+
+@pure
+summary_plan_row_valid(row: SummaryRow, plan: List[PortPlanRow]): Bool ->
+    if {
+        row.kind == "total" and row.name == "areas" -> row.count == List.length(plan);
+        row.kind == "priority" or row.kind == "classification" or row.kind == "replacement_gate" -> let expected = count_plan_value(plan, row.kind, row.name);
+        expected > 0 and row.count == expected;
+        true -> false
+    }.
+
+@pure
+unique_plan_values(rows: List[PortPlanRow], kind: String, values: List[String]): List[String] ->
+    case rows {
+        [] -> values;
+        [row | rest] ->
+            let value =
+                if {
+                    kind == "priority" -> row.priority;
+                    kind == "classification" -> row.classification;
+                    true -> row.replacement_gate
+                };
+            if {
+                contains(values, value) -> unique_plan_values(rest, kind, values);
+                true -> unique_plan_values(rest, kind, [value | values])
+            }
+    }.
+
+@pure
+plan_summary_valid(rows: List[SummaryRow], plan: List[PortPlanRow]): Bool ->
+    List.length(rows) == 1 + List.length(unique_plan_values(plan, "priority", List.new[String]())) + List.length(unique_plan_values(plan, "classification", List.new[String]())) + List.length(unique_plan_values(plan, "replacement_gate", List.new[String]()))
+        and summary_rows_unique_and_valid(rows, rows, plan).
+
+@pure
+summary_rows_unique_and_valid(
+    rows: List[SummaryRow],
+    all_rows: List[SummaryRow],
+    plan: List[PortPlanRow],
+): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            if {
+                summary_key_count(all_rows, row.kind, row.name) != 1
+                    or not summary_plan_row_valid(row, plan) -> false;
+                true -> summary_rows_unique_and_valid(rest, all_rows, plan)
+            }
+    }.
+
+@pure
+zero_file_summary_valid(rows: List[SummaryRow]): Bool ->
+    List.length(rows) == 1
+        and summary_key_count(rows, "total", "files") == 1
+        and zero_file_summary_rows_valid(rows).
+
+@pure
+zero_file_summary_rows_valid(rows: List[SummaryRow]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            if {
+                row.kind != "total" or row.name != "files" or row.count != 0 -> false;
+                true -> zero_file_summary_rows_valid(rest)
+            }
+    }.
+
+@pure
+zero_active_summary_valid(rows: List[SummaryRow]): Bool ->
+    List.length(rows) == 3
+        and summary_key_count(rows, "total", "active-files") == 1
+        and summary_key_count(rows, "port_status", "ported") == 1
+        and summary_key_count(rows, "port_status", "not-ported") == 1
+        and zero_active_summary_rows_valid(rows).
+
+@pure
+zero_active_summary_rows_valid(rows: List[SummaryRow]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            let known =
+                row.kind == "total" and row.name == "active-files"
+                    or row.kind == "port_status" and contains(["ported", "not-ported"], row.name);
+            if {
+                row.count != 0 or not known -> false;
+                true -> zero_active_summary_rows_valid(rest)
+            }
+    }.
+
+contents_for(files: List[TextFile], expected: String): Option[String] ->
+    case files {
+        [] -> None;
+        [file | rest] ->
+            if {
+                File.text_file_path(file) == expected -> Some(File.text_file_contents(file));
+                true -> contents_for(rest, expected)
+            }
+    }.
+
+input_paths(root: String): List[String] ->
+    [
+        child(root, "docs/runtime/TERLAN_VM_BEAM_TEST_SUITE_INVENTORY.tsv"),
+        child(root, "docs/runtime/TERLAN_VM_BEAM_TEST_PORT_PLAN.tsv"),
+        child(root, "docs/runtime/TERLAN_VM_BEAM_TEST_PORT_STATUS.tsv"),
+        child(root, "docs/runtime/TERLAN_VM_BEAM_TEST_FILE_STATUS.tsv"),
+        child(root, "docs/runtime/TERLAN_VM_BEAM_TEST_FILE_STATUS_SUMMARY.tsv"),
+        child(root, "docs/runtime/TERLAN_VM_BEAM_TEST_PORT_PLAN_SUMMARY.tsv"),
+        child(root, "docs/runtime/TERLAN_VM_BEAM_TEST_SUITE_SUMMARY.tsv"),
+        child(root, "Makefile"),
+    ].
+
+validate_inputs(
+    inventory: List[InventoryRow],
+    plan: List[PortPlanRow],
+    status: List[PortStatusRow],
+    file_status: List[FileStatusRow],
+    file_summary: List[SummaryRow],
+    plan_summary: List[SummaryRow],
+    suite_summary: List[SummaryRow],
+    targets: List[String],
+): Bool ->
+    if {
+        not inventory_rows_valid(inventory) -> failure("suite inventory contains an invalid row");
+        not plan_rows_valid(plan, inventory, targets) -> failure("port plan is incomplete, inconsistent, or names a missing Make gate");
+        not status_rows_valid(status, plan, targets) -> failure("port status lacks executable replacement evidence");
+        not file_rows_valid(file_status, List.new[String](), inventory, targets) -> failure("retired corpus must have no active file-status rows");
+        not zero_active_summary_valid(file_summary) -> failure("file-status summary does not prove zero active files");
+        not plan_summary_valid(plan_summary, plan) -> failure("port-plan summary has drifted");
+        not zero_file_summary_valid(suite_summary) -> failure("suite summary does not prove zero active files");
+        true -> true
+    }.
+
+print_summary(plan: List[PortPlanRow], status: List[PortStatusRow]): Bool ->
+    let summary =
+        String.concat(
+            [
+                "terlan-vm BEAM test-suite audit: 0 files classified\n",
+                "by classification:\n",
+                "by owner:\n",
+                "port plan areas: ",
+                Int.to_string(List.length(plan)),
+                "\nby port-plan priority:\n  P0: ",
+                Int.to_string(count_plan_value(plan, "priority", "P0")),
+                "\n  P1: ",
+                Int.to_string(count_plan_value(plan, "priority", "P1")),
+                "\n  P2: ",
+                Int.to_string(count_plan_value(plan, "priority", "P2")),
+                "\nby port status:\n  ported: ",
+                Int.to_string(count_status(status, "port_status", "ported")),
+                "\nby execution path:\n  rust-runtime: ",
+                Int.to_string(count_status(status, "execution_path", "rust-runtime")),
+                "\nactive file-level migration progress:\n  ported: 0\n  not-ported: 0",
+            ],
+        );
+    let _printed = println(summary);
+    true.
+
+@pure
+count_status(rows: List[PortStatusRow], kind: String, name: String): Int ->
+    count_status_at(rows, kind, name, 0).
+
+@pure
+count_status_at(rows: List[PortStatusRow], kind: String, name: String, count: Int): Int ->
+    case rows {
+        [] -> count;
+        [row | rest] ->
+            let matches =
+                if {
+                    kind == "port_status" -> row.port_status == name;
+                    true -> row.execution_path == name
+                };
+            if {
+                matches -> count_status_at(rest, kind, name, count + 1);
+                true -> count_status_at(rest, kind, name, count)
+            }
+    }.
+
+/**
+ * Validates the repository-owned historical migration evidence.
+ */
+pub check(root: String): Bool ->
+    let paths = input_paths(root);
+    case File.read_text_many(paths) {
+        Err(_reason) -> failure("cannot read one or more BEAM migration inputs");
+        Ok(files) ->
+            let {
+                [inventory_path, plan_path, status_path, file_status_path, file_summary_path, plan_summary_path, suite_summary_path, makefile_path] <- paths;
+                Some(inventory_source) <- contents_for(files, inventory_path);
+                Some(plan_source) <- contents_for(files, plan_path);
+                Some(status_source) <- contents_for(files, status_path);
+                Some(file_status_source) <- contents_for(files, file_status_path);
+                Some(file_summary_source) <- contents_for(files, file_summary_path);
+                Some(plan_summary_source) <- contents_for(files, plan_summary_path);
+                Some(suite_summary_source) <- contents_for(files, suite_summary_path);
+                Some(makefile) <- contents_for(files, makefile_path);
+                Some(inventory) <- parse_inventory(inventory_source);
+                Some(plan) <- parse_plan(plan_source);
+                Some(status) <- parse_status(status_source);
+                Some(file_status) <- parse_file_status(file_status_source);
+                Some(file_summary) <- parse_summary(file_summary_source);
+                Some(plan_summary) <- parse_summary(plan_summary_source);
+                Some(suite_summary) <- parse_summary(suite_summary_source)
+            } else {
+                _ -> failure("one or more BEAM migration ledgers are malformed")
+            };
+            (let targets = MakeContract.targets(makefile);
+validate_inputs(
+    inventory,
+    plan,
+    status,
+    file_status,
+    file_summary,
+    plan_summary,
+    suite_summary,
+    targets,
+)
+    and print_summary(plan, status))
+    }.
+
+external_test_names(words: List[String], result: List[String]): List[String] ->
+    case words {
+        [] -> result;
+        [value | rest] ->
+            if {
+                value == "--test" -> case rest {
+                    [] -> result;
+                    [name | remaining] ->
+                        let _pushed = result.push(name);
+                        external_test_names(remaining, result)
+                };
+                true -> external_test_names(rest, result)
+            }
+    }.
+
+external_make_lines_valid(lines: List[String], discovered: List[String]): Bool ->
+    case lines {
+        [] -> true;
+        [line | rest] ->
+            if {
+                not String.contains(line, "erts/rust/terlan_vm/Cargo.toml") -> external_make_lines_valid(rest, discovered);
+                true -> let names =
+                    external_test_names(
+                        split_nonempty(String.split(String.trim(line), " "), List.new[String]()),
+                        List.new[String](),
+                    );
+                external_tests_exist(names, discovered)
+                    and external_make_lines_valid(rest, discovered)
+            }
+    }.
+
+external_tests_exist(names: List[String], discovered: List[String]): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            contains(
+    discovered,
+    String.append("terlan-vm/erts/rust/terlan_vm/tests/", String.append(name, ".rs")),
+)
+                and external_tests_exist(rest, discovered)
+    }.
+
+fixture_inventory(pattern: String, classification: String, gate: String): InventoryRow ->
+    InventoryRow(
+        pattern = pattern,
+        classification = classification,
+        replacement_gate = gate,
+        owner = "erts-rust",
+        notes = "test row",
+    ).
+
+fixture_plan(): PortPlanRow ->
+    PortPlanRow(
+        priority = "P0",
+        area = "scheduler",
+        source_patterns = ["terlan-vm/erts/**"],
+        classification = "port-to-rust-vm-test",
+        replacement_gate = "vm-check",
+        first_port_action = "port scheduler behavior",
+        delete_rule = "delete after equivalent coverage",
+    ).
+
+fixture_status(execution_path: String, execution_gate: String): PortStatusRow ->
+    PortStatusRow(
+        area = "scheduler",
+        priority = "P0",
+        classification = "port-to-rust-vm-test",
+        replacement_gate = "vm-check",
+        execution_path = execution_path,
+        execution_gate = execution_gate,
+        port_status = "partial",
+        notes = "runtime gate owns the replacement",
+    ).
+
+parse_rejection_test(): Bool ->
+    let {
+        None <- parse_inventory("only\ttwo\n");
+        None <- parse_status("scheduler\tP0\tport-to-rust-vm-test\tvm-check\tpartial\tnotes\n")
+    } else {
+        _ -> false
+    };
+    true.
+
+matching_override_test(): Bool ->
+    let broad = fixture_inventory("terlan-vm/erts/rust/**", "port-to-rust-vm-test", "vm-check");
+    let exact = fixture_inventory("terlan-vm/erts/rust/beam_only.rs", "remove-non-portable", "");
+    let inventory = [broad | [exact | List.new[InventoryRow]()]];
+    let exact_matches = matching_rows("terlan-vm/erts/rust/beam_only.rs", inventory);
+    let broad_matches = matching_rows("terlan-vm/erts/rust/runtime.rs", inventory);
+    case {exact_matches, broad_matches} {
+        {[exact_row], [broad_row]} ->
+            exact_row.pattern == "terlan-vm/erts/rust/beam_only.rs"
+                and broad_row.pattern == "terlan-vm/erts/rust/**";
+        _ -> false
+    }.
+
+execution_evidence_test(): Bool ->
+    execution_evidence_valid(fixture_status("rust-runtime", "vm-check"), ["vm-check"])
+        and not execution_evidence_valid(fixture_status("native-aot", "vm-check"), ["vm-check"]).
+
+file_status_test(): Bool ->
+    let file_inventory = [fixture_inventory("terlan-vm/a.erl", "port-to-rust-vm-test", "vm-check") | List.new[InventoryRow]()];
+    let valid =
+        FileStatusRow(
+            path = "terlan-vm/a.erl",
+            port_status = "ported",
+            replacement_evidence = "vm-check",
+        );
+    let unproven = FileStatusRow(path = "terlan-vm/a.erl", port_status = "ported", replacement_evidence = "-");
+    file_rows_valid(
+    [valid | List.new[FileStatusRow]()],
+    ["terlan-vm/a.erl"],
+    file_inventory,
+    ["vm-check"],
+)
+        and not file_rows_valid(
+    [unproven | List.new[FileStatusRow]()],
+    ["terlan-vm/a.erl"],
+    file_inventory,
+    ["vm-check"],
+).
+
+external_make_test(): Bool ->
+    external_make_lines_valid(
+    ["cargo test --manifest-path erts/rust/terlan_vm/Cargo.toml --test runtime_semantics"],
+    ["terlan-vm/erts/rust/terlan_vm/tests/runtime_semantics.rs"],
+)
+        and not external_make_lines_valid(
+    ["cargo test --manifest-path erts/rust/terlan_vm/Cargo.toml --test deleted_fixture"],
+    List.new[String](),
+).
+
+/**
+ * Runs the adversarial contracts formerly split across three Python tests.
+ */
+pub self_test(): Bool ->
+    if {
+        not MakeContract.self_test() -> failure("Make contract adversarial test failed");
+        not parse_rejection_test() -> failure("malformed TSV rejection test failed");
+        not matching_override_test() -> failure("exact inventory override test failed");
+        not execution_evidence_test() -> failure("execution evidence test failed");
+        not file_status_test() -> failure("file-status evidence test failed");
+        not external_make_test() -> failure("external Make integration-test source test failed");
+        fixture_plan().priority != "P0" -> failure("fixture plan construction failed");
+        true -> true
+    }.

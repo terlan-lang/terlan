@@ -1,10 +1,12 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
+use super::support::find_active_roadmap;
 use crate::terlan_quality::{render_failure, QualityResult};
 
-const ROADMAP_RELATIVE_PATH: &str = "docs/roadmap/ROADMAP_0_0_7.md";
 const SECTION_HEADER: &str = "### Shape Implications";
+const COMPACTED_CONTRACT_ARCHIVE: &str =
+    "archive/ROADMAP_0_0_7_ACTIVE_PRE_COMPACTION_2026_07_31.md";
 const PLACEHOLDER_CONTRACT_TERMS: &[&str] = &["placeholder", "todo", "tbd"];
 
 /// Summary produced by the shape implications roadmap contract gate.
@@ -42,18 +44,39 @@ pub struct ShapeImplicationsSummary {
 /// - Treats shape implications as a formal language feature, not an ad hoc
 ///   parser shortcut.
 pub fn run_shape_implications(root: &Path) -> QualityResult<ShapeImplicationsSummary> {
-    let roadmap_path = find_roadmap(root)?;
+    let roadmap_path = find_active_roadmap(root)?;
     let roadmap = fs::read_to_string(&roadmap_path)
         .map_err(|err| format!("{}: failed to read roadmap: {err}", roadmap_path.display()))?;
-    let section = extract_section(&roadmap, SECTION_HEADER).ok_or_else(|| {
-        format!(
-            "{}: missing `{SECTION_HEADER}` section",
-            roadmap_path.display()
-        )
-    })?;
+    let archived;
+    let (contract_path, section) = if let Some(section) = extract_section(&roadmap, SECTION_HEADER)
+    {
+        (roadmap_path.clone(), section)
+    } else {
+        let archive_path = roadmap_path
+            .parent()
+            .expect("roadmap path has a parent")
+            .join(COMPACTED_CONTRACT_ARCHIVE);
+        archived = fs::read_to_string(&archive_path).map_err(|error| {
+            format!(
+                "{}: active roadmap is compacted and the implication contract archive could not be read: {error}",
+                archive_path.display()
+            )
+        })?;
+        let section = extract_section(&archived, SECTION_HEADER).ok_or_else(|| {
+            format!(
+                "{}: missing `{SECTION_HEADER}` section",
+                archive_path.display()
+            )
+        })?;
+        (archive_path, section)
+    };
     let diagnostics = validate_shape_implications_section(section);
     if !diagnostics.is_empty() {
-        return Err(render_failure("shape-implications", &diagnostics));
+        return Err(format!(
+            "{}\ncontract: {}",
+            render_failure("shape-implications", &diagnostics),
+            contract_path.display()
+        ));
     }
     Ok(ShapeImplicationsSummary {
         required_term_count: REQUIRED_TERMS.len(),
@@ -62,28 +85,6 @@ pub fn run_shape_implications(root: &Path) -> QualityResult<ShapeImplicationsSum
 }
 
 /// Finds the active roadmap from the compiler root.
-fn find_roadmap(root: &Path) -> QualityResult<PathBuf> {
-    let root = root
-        .canonicalize()
-        .map_err(|err| format!("failed to canonicalize repository root: {err}"))?;
-    let local = root.join(ROADMAP_RELATIVE_PATH);
-    if local.exists() {
-        return Ok(local);
-    }
-    let parent = root
-        .parent()
-        .map(|parent| parent.join(ROADMAP_RELATIVE_PATH))
-        .ok_or_else(|| "repository root has no parent for roadmap lookup".to_string())?;
-    if parent.exists() {
-        return Ok(parent);
-    }
-    Err(format!(
-        "missing active roadmap at `{}` or `{}`",
-        local.display(),
-        parent.display()
-    ))
-}
-
 /// Extracts one Markdown subsection.
 fn extract_section<'a>(document: &'a str, header: &str) -> Option<&'a str> {
     let start = document.find(header)?;
@@ -374,4 +375,5 @@ const ACCEPTANCE_TERMS: &[RequiredTerm] = &[
 
 #[cfg(test)]
 #[path = "shape_implications_test.rs"]
+#[cfg(test)]
 mod shape_implications_test;

@@ -31,3 +31,8 @@ the integer values remain provenance and are never part of the public binding.
 The live gate normalizes only the producer version, which naturally varies by
 installed Clang release. All declaration, type, source, annotation, overload,
 and compile-command facts must match the committed result.
+
+Packages with same-named headers or transitive public declarations can opt into
+canonical matching with `--exact-headers`. Pair it with `--header-root PATH` to
+emit source paths relative to a stable package root. `--public-only` excludes
+private and protected declarations while retaining namespace declarations.

@@ -34,10 +34,9 @@ pub(crate) enum VmCapabilityWorkerEventPumpEvent<Payload> {
         pending: Vec<(VmCapabilityWorkerParkedRequest, Payload)>,
     },
     /// A protocol event did not own a live scheduler payload.
-    Ignored(
-        #[allow(dead_code)] // Retained for scheduler diagnostics once tracing consumes it.
-        VmCapabilityWorkerCompletion,
-    ),
+    Ignored {
+        _completion: VmCapabilityWorkerCompletion,
+    },
 }
 
 /// VM-owned worker event pump retaining fixed-owner payloads under bounded credits.
@@ -56,11 +55,13 @@ impl<Payload> VmCapabilityWorkerEventPump<Payload> {
     }
 
     /// Returns the number of owner payloads retained outside actor state.
+    #[cfg(test)]
     pub(crate) fn pending_len(&self) -> usize {
         self.pending.len()
     }
 
     /// Returns currently available pool credits.
+    #[cfg(test)]
     pub(crate) fn available_capacity(&self) -> u64 {
         self.pool.available_capacity()
     }
@@ -111,11 +112,18 @@ impl<Payload> VmCapabilityWorkerEventPump<Payload> {
                 context,
                 reply,
             } => {
-                let key = (worker.id.as_str().to_string(), worker.generation.as_u64(), request_id.value);
+                let key = (
+                    worker.id.as_str().to_string(),
+                    worker.generation.as_u64(),
+                    request_id.value,
+                );
                 let Some((assignment, payload)) = self.pending.remove(&key) else {
-                    return Ok(Some(VmCapabilityWorkerEventPumpEvent::Ignored(
-                        VmCapabilityWorkerCompletion::StaleReply { worker, request_id },
-                    )));
+                    return Ok(Some(VmCapabilityWorkerEventPumpEvent::Ignored {
+                        _completion: VmCapabilityWorkerCompletion::StaleReply {
+                            worker,
+                            request_id,
+                        },
+                    }));
                 };
                 VmCapabilityWorkerEventPumpEvent::Completed {
                     assignment,
@@ -127,13 +135,17 @@ impl<Payload> VmCapabilityWorkerEventPump<Payload> {
             VmCapabilityWorkerCompletion::TransportClosed { worker, .. } => {
                 self.worker_lost(worker, "capability worker transport closed".to_string())
             }
-            VmCapabilityWorkerCompletion::TransportFailed { worker, error, .. } => {
-                self.worker_lost(worker, format!("capability worker transport failed: {error}"))
-            }
+            VmCapabilityWorkerCompletion::TransportFailed { worker, error, .. } => self
+                .worker_lost(
+                    worker,
+                    format!("capability worker transport failed: {error}"),
+                ),
             VmCapabilityWorkerCompletion::ShutdownAcknowledged { worker } => {
                 self.worker_lost(worker, "capability worker stopped".to_string())
             }
-            completion => VmCapabilityWorkerEventPumpEvent::Ignored(completion),
+            completion => VmCapabilityWorkerEventPumpEvent::Ignored {
+                _completion: completion,
+            },
         };
         Ok(Some(event))
     }
@@ -170,9 +182,7 @@ impl<Payload> VmCapabilityWorkerEventPump<Payload> {
             }
         }
         errors.extend(self.pool.shutdown_all());
-        let pending = std::mem::take(&mut self.pending)
-            .into_values()
-            .collect();
+        let pending = std::mem::take(&mut self.pending).into_values().collect();
         (pending, errors)
     }
 

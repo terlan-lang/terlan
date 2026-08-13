@@ -28,6 +28,6 @@ pub of_typechecks(receiver: Int8ArrayConstructor): Int8Array[ArrayBuffer] ->
 
 pub from__typechecks(
     receiver: Int8ArrayConstructor,
-    array_like: ArrayLike[JsNumber]
+    array_like: ArrayLike[JsNumber],
 ): Int8Array[ArrayBuffer] ->
     receiver.from_(array_like).

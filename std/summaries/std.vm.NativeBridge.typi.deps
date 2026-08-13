@@ -1,10 +1,11 @@
 module=std.vm.NativeBridge
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=8746149952540843920
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=10955095466495233253
 interface_hash=7116748735831235235
 interface_doc_hash=8968010344741354327
-deps=2
+deps=3
+std.vm.Backpressure=17169680523632525332
 std.vm.Message=13994566272216927857
-std.vm.Supervisor=5158688963103890139
+std.vm.Supervisor=5209590166252560988

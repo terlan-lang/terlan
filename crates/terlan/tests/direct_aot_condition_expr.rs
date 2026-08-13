@@ -5,9 +5,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use object::{Object, ObjectSection};
 
 #[path = "support/direct_aot.rs"]
-#[allow(dead_code)]
-mod support;
+pub mod support;
 use support::*;
+#[path = "support/direct_aot_resume.rs"]
+mod resume_support;
+use resume_support::resume_transition_success;
 
 #[test]
 fn native_aot_composes_non_linear_scalar_conditions_in_evaluation_order() {
@@ -518,7 +520,8 @@ fn native_aot_composes_non_linear_scalar_conditions_in_evaluation_order() {
         descriptor_digest,
         rhs_export,
         &[1, 1],
-        SuspendedAction::Resume {
+        SuspendedAction {
+            operation: 9,
             request_id: 2,
             continuation_id_xor: 0,
             values: vec![1],
@@ -530,7 +533,12 @@ fn native_aot_composes_non_linear_scalar_conditions_in_evaluation_order() {
         descriptor_digest,
         rhs_export,
         &[1, 1],
-        SuspendedAction::ResumeWrongOwner { values: vec![1] },
+        SuspendedAction {
+            operation: 10,
+            request_id: 0,
+            continuation_id_xor: 0,
+            values: vec![1],
+        },
         "error[native_worker.continuation_owner]",
     );
     assert_suspended_worker_rejects(
@@ -538,7 +546,8 @@ fn native_aot_composes_non_linear_scalar_conditions_in_evaluation_order() {
         descriptor_digest,
         rhs_export,
         &[1, 1],
-        SuspendedAction::Resume {
+        SuspendedAction {
+            operation: 9,
             request_id: 1,
             continuation_id_xor: 0,
             values: vec![2],
@@ -551,7 +560,8 @@ fn native_aot_composes_non_linear_scalar_conditions_in_evaluation_order() {
         descriptor_digest,
         export_id("yield_unit_capture"),
         &[0],
-        SuspendedAction::Resume {
+        SuspendedAction {
+            operation: 9,
             request_id: 1,
             continuation_id_xor: 0,
             values: vec![1],
@@ -616,18 +626,7 @@ fn resume_success(
     request_id: u64,
     transition: &[u8],
 ) -> Vec<u8> {
-    let values = (0..usize::from(transition_value_count(transition)))
-        .map(|index| transition_value(transition, index))
-        .collect::<Vec<_>>();
-    let (kind, success) = exchange_worker_resume(
-        input,
-        output,
-        request_id,
-        transition_continuation(transition),
-        &values,
-    );
-    assert_eq!(kind, 4);
-    success
+    resume_transition_success(input, output, request_id, transition)
 }
 
 fn assert_native_error(kind: u16, frame: &[u8], expected_status: i32) {

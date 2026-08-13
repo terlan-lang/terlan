@@ -21,7 +21,7 @@ pub accepts_int_draw(value: {Generator, Int}): {Generator, Int} ->
     value.
 
 pub accepts_int_draw_result(
-    value: Result[{Generator, Int}, RandomError]
+    value: Result[{Generator, Int}, RandomError],
 ): Result[{Generator, Int}, RandomError] ->
     value.
 
@@ -32,7 +32,7 @@ pub accepts_float_draw(value: {Generator, Float}): {Generator, Float} ->
     value.
 
 pub accepts_string_choice(
-    value: Result[{Generator, String}, RandomError]
+    value: Result[{Generator, String}, RandomError],
 ): Result[{Generator, String}, RandomError] ->
     value.
 
@@ -40,7 +40,7 @@ pub accepts_int_shuffle(value: {Generator, List[Int]}): {Generator, List[Int]} -
     value.
 
 pub accepts_int_sample(
-    value: Result[{Generator, List[Int]}, RandomError]
+    value: Result[{Generator, List[Int]}, RandomError],
 ): Result[{Generator, List[Int]}, RandomError] ->
     value.
 
@@ -48,84 +48,78 @@ pub replay_bounded_sequence(left: Generator, right: Generator, remaining: Int): 
     case remaining {
         0 -> true;
         _ ->
-            case Random.bounded_int(left, 1, 8) {
-                Ok({left_next, left_value}) ->
-                    case Random.bounded_int(right, 1, 8) {
-                        Ok({right_next, right_value}) ->
-                            left_value >= 1 and left_value < 8 and left_value == right_value and replay_bounded_sequence(left_next, right_next, remaining - 1);
-                        Err(_reason) -> false
-                    };
-                Err(_reason) -> false
-            }
+            let {
+                Ok({left_next, left_value}) <- Random.bounded_int(left, 1, 8);
+                Ok({right_next, right_value}) <- Random.bounded_int(right, 1, 8)
+            } else {
+                _ -> false
+            };
+            left_value >= 1
+                and left_value < 8
+                and left_value == right_value
+                and replay_bounded_sequence(left_next, right_next, remaining - 1)
     }.
 
 @test
 pub seeded_generators_replay_first_int(): Bool ->
-    case accepts_generator_result(Random.seed(42)) {
-        Ok(left) ->
-            case Random.seed(42) {
-                Ok(right) ->
-                    case accepts_int_draw(Random.int(left)) {
-                        {_left_next, left_value} ->
-                            case Random.int(right) {
-                                {_right_next, right_value} -> assert_equal(left_value, right_value)
-                            }
-                    };
-                Err(_reason) -> false
-            };
-        Err(_reason) -> false
+    let {
+        Ok(left) <- accepts_generator_result(Random.seed(42));
+        Ok(right) <- Random.seed(42)
+    } else {
+        _ -> false
+    };
+    case accepts_int_draw(Random.int(left)) {
+        {_left_next, left_value} ->
+            case Random.int(right) {
+                {_right_next, right_value} -> assert_equal(left_value, right_value)
+            }
     }.
 
 @test
 pub seeded_generators_replay_second_int_after_state_advance(): Bool ->
-    case Random.seed(42) {
-        Ok(left) ->
-            case Random.seed(42) {
-                Ok(right) ->
-                    case Random.int(left) {
-                        {left_next, _left_first} ->
-                            case Random.int(right) {
-                                {right_next, _right_first} ->
-                                    case Random.int(left_next) {
-                                        {_left_done, left_second} ->
-                                            case Random.int(right_next) {
-                                                {_right_done, right_second} ->
-                                                    assert_equal(left_second, right_second)
-                                            }
-                                    }
+    let {
+        Ok(left) <- Random.seed(42);
+        Ok(right) <- Random.seed(42)
+    } else {
+        _ -> false
+    };
+    case Random.int(left) {
+        {left_next, _left_first} ->
+            case Random.int(right) {
+                {right_next, _right_first} ->
+                    case Random.int(left_next) {
+                        {_left_done, left_second} ->
+                            case Random.int(right_next) {
+                                {_right_done, right_second} ->
+                                    assert_equal(left_second, right_second)
                             }
-                    };
-                Err(_reason) -> false
-            };
-        Err(_reason) -> false
+                    }
+            }
     }.
 
 @test
 pub seeded_bounded_sequences_replay_ten_draws(): Bool ->
-    case Random.seed(77) {
-        Ok(left) ->
-            case Random.seed(77) {
-                Ok(right) -> replay_bounded_sequence(left, right, 10);
-                Err(_reason) -> false
-            };
-        Err(_reason) -> false
-    }.
+    let {
+        Ok(left) <- Random.seed(77);
+        Ok(right) <- Random.seed(77)
+    } else {
+        _ -> false
+    };
+    replay_bounded_sequence(left, right, 10).
 
 @test
 pub different_seeds_diverge_on_first_int(): Bool ->
-    case Random.seed(1) {
-        Ok(left) ->
-            case Random.seed(2) {
-                Ok(right) ->
-                    case Random.int(left) {
-                        {_left_next, left_value} ->
-                            case Random.int(right) {
-                                {_right_next, right_value} -> assert(left_value != right_value)
-                            }
-                    };
-                Err(_reason) -> false
-            };
-        Err(_reason) -> false
+    let {
+        Ok(left) <- Random.seed(1);
+        Ok(right) <- Random.seed(2)
+    } else {
+        _ -> false
+    };
+    case Random.int(left) {
+        {_left_next, left_value} ->
+            case Random.int(right) {
+                {_right_next, right_value} -> assert(left_value != right_value)
+            }
     }.
 
 @test
@@ -134,14 +128,13 @@ pub invalid_seed_returns_typed_error(): Bool ->
 
 @test
 pub bounded_int_respects_exclusive_upper_bound(): Bool ->
-    case Random.seed(7) {
-        Ok(generator) ->
-            case accepts_int_draw_result(Random.bounded_int(generator, 3, 9)) {
-                Ok({_next, value}) -> assert(value >= 3 and value < 9);
-                Err(_reason) -> false
-            };
-        Err(_reason) -> false
-    }.
+    let {
+        Ok(generator) <- Random.seed(7);
+        Ok({_next, value}) <- accepts_int_draw_result(Random.bounded_int(generator, 3, 9))
+    } else {
+        _ -> false
+    };
+    assert(value >= 3 and value < 9).
 
 @test
 pub invalid_bounds_return_typed_error(): Bool ->
@@ -165,14 +158,13 @@ pub bool_and_float_draws_have_expected_shape(): Bool ->
 
 @test
 pub choice_returns_one_input_value(): Bool ->
-    case Random.seed(12) {
-        Ok(generator) ->
-            case accepts_string_choice(Random.choice(generator, ["red", "green", "blue"])) {
-                Ok({_next, value}) -> assert(value == "red" or value == "green" or value == "blue");
-                Err(_reason) -> false
-            };
-        Err(_reason) -> false
-    }.
+    let {
+        Ok(generator) <- Random.seed(12);
+        Ok({_next, value}) <- accepts_string_choice(Random.choice(generator, ["red", "green", "blue"]))
+    } else {
+        _ -> false
+    };
+    assert(value == "red" or value == "green" or value == "blue").
 
 @test
 pub empty_choice_returns_typed_error(): Bool ->
@@ -193,25 +185,23 @@ pub shuffle_preserves_list_length(): Bool ->
 
 @test
 pub sample_returns_requested_count(): Bool ->
-    case Random.seed(15) {
-        Ok(generator) ->
-            case accepts_int_sample(Random.sample(generator, [1, 2, 3, 4], 2)) {
-                Ok({_next, values}) -> assert_equal(2, values.length());
-                Err(_reason) -> false
-            };
-        Err(_reason) -> false
-    }.
+    let {
+        Ok(generator) <- Random.seed(15);
+        Ok({_next, values}) <- accepts_int_sample(Random.sample(generator, [1, 2, 3, 4], 2))
+    } else {
+        _ -> false
+    };
+    assert_equal(2, values.length()).
 
 @test
 pub zero_size_sample_returns_empty_list(): Bool ->
-    case Random.seed(15) {
-        Ok(generator) ->
-            case accepts_int_sample(Random.sample(generator, [1, 2, 3, 4], 0)) {
-                Ok({_next, values}) -> assert_equal(0, values.length());
-                Err(_reason) -> false
-            };
-        Err(_reason) -> false
-    }.
+    let {
+        Ok(generator) <- Random.seed(15);
+        Ok({_next, values}) <- accepts_int_sample(Random.sample(generator, [1, 2, 3, 4], 0))
+    } else {
+        _ -> false
+    };
+    assert_equal(0, values.length()).
 
 @test
 pub oversized_sample_returns_typed_error(): Bool ->

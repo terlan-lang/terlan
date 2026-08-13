@@ -1,0 +1,35 @@
+{
+  "exports": [
+    {
+      "argument_types": [],
+      "arity": 0,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.system.Platform.current/0",
+      "name": "current",
+      "operation": "std.system.platform.current",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:b2856498482cca7f7ddd1f6919d6a6037f9bbfaa79b7001132764d7b3a0f509c"
+    }
+  ],
+  "manifest_digest": "sha256:e4c716b440ace064a6aa78c913de396f6f5a356626ceeba7b523ea912ad2bfb7",
+  "module": "std_system_platform_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "system.platform",
+    "error_policy": "typed-result",
+    "module_prefix": "std.system.Platform",
+    "notes": "Platform current reads immutable target constants; dynamic metrics use a separate VM-owned capability transition.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:7f89b4490e2199caf68cee17bc41f6c518317b18fd04fa9279cc76f722ed4c96",
+  "source_module": "std.system.Platform",
+  "source_path": "std/summaries/std.system.Platform.native_boundary.json"
+}

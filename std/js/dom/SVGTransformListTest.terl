@@ -34,7 +34,7 @@ pub consolidate_typechecks(receiver: SVGTransformList): Option[SVGTransform] ->
 
 pub create_svg_transform_from_matrix_typechecks(
     receiver: SVGTransformList,
-    matrix: DOMMatrix2DInit
+    matrix: DOMMatrix2DInit,
 ): SVGTransform ->
     receiver.create_svg_transform_from_matrix(matrix).
 
@@ -47,7 +47,7 @@ pub initialize_typechecks(receiver: SVGTransformList, new_item: SVGTransform): S
 pub insert_item_before_typechecks(
     receiver: SVGTransformList,
     new_item: SVGTransform,
-    index: JsNumber
+    index: JsNumber,
 ): SVGTransform ->
     receiver.insert_item_before(new_item, index).
 
@@ -57,6 +57,6 @@ pub remove_item_typechecks(receiver: SVGTransformList, index: JsNumber): SVGTran
 pub replace_item_typechecks(
     receiver: SVGTransformList,
     new_item: SVGTransform,
-    index: JsNumber
+    index: JsNumber,
 ): SVGTransform ->
     receiver.replace_item(new_item, index).

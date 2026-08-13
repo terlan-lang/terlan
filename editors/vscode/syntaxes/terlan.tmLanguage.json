@@ -98,7 +98,7 @@
       "patterns": [
         {
           "name": "keyword.control.terlan",
-          "match": "\\b(case|else|if|in|let|of|when|where|with)\\b"
+          "match": "\\b(case|else|if|let|of|when|where|with)\\b"
         },
         {
           "name": "keyword.declaration.terlan",
@@ -122,7 +122,7 @@
       "patterns": [
         {
           "name": "keyword.operator.terlan",
-          "match": "(<-|\\|>|->|\\.\\.|==|!=|>=|<=|[+\\-*/<>|])"
+          "match": "\\b(and|as|div|in|not|or|rem)\\b|(<-|\\|>|->|\\.\\.|==|!=|>=|<=|[+\\-*/<>|])"
         }
       ]
     },

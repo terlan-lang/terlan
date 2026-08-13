@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
+use super::editor_report_selector::EditorReportSelector as SelectorSpec;
+use super::support::{make_target_body, write_json_report};
 use crate::terlan_quality::placeholder_terms::{
     placeholder_entry_diagnostics, selector_evidence_placeholder_diagnostics,
 };
@@ -307,13 +309,6 @@ pub struct EditorDefinitionNavigationReportSummary {
     pub report_path: PathBuf,
 }
 
-#[derive(Debug, Clone, Copy)]
-struct SelectorSpec {
-    fixture: &'static str,
-    category: &'static str,
-    evidence: &'static [&'static str],
-}
-
 #[derive(Debug, Serialize)]
 struct EditorDefinitionNavigationReport {
     gate: &'static str,
@@ -512,42 +507,11 @@ fn read_text(root: &Path, relative: &str) -> QualityResult<String> {
         .map_err(|err| format!("{}: failed to read file: {err}", path.display()))
 }
 
-fn make_target_body(makefile: &str, target: &str) -> Option<String> {
-    let target_prefix = format!("{target}:");
-    let mut lines = makefile.lines();
-    for line in lines.by_ref() {
-        if line.trim_end().starts_with(&target_prefix) {
-            break;
-        }
-    }
-    let body = lines
-        .take_while(|line| {
-            line.starts_with('\t') || line.trim().is_empty() || line.starts_with('#')
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-    if body.is_empty() {
-        None
-    } else {
-        Some(body)
-    }
-}
-
 fn write_report(path: &Path, report: &EditorDefinitionNavigationReport) -> QualityResult<()> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|err| {
-            format!(
-                "{}: failed to create report directory: {err}",
-                parent.display()
-            )
-        })?;
-    }
-    let text = serde_json::to_string_pretty(report)
-        .map_err(|err| format!("{}: failed to serialize report: {err}", path.display()))?;
-    fs::write(path, format!("{text}\n"))
-        .map_err(|err| format!("{}: failed to write report: {err}", path.display()))
+    write_json_report(path, report)
 }
 
 #[cfg(test)]
 #[path = "editor_definition_navigation_report_test.rs"]
+#[cfg(test)]
 mod editor_definition_navigation_report_test;

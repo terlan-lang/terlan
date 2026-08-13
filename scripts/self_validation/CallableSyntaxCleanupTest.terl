@@ -1,0 +1,135 @@
+/**
+ * Rejects retired function-value dot-call syntax outside parser fixtures.
+ */
+module scripts.self_validation.CallableSyntaxCleanup.
+
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.Directory.{files_recursive_excluding}.
+import std.io.File.{read_text}.
+import std.regex.Regex.
+
+import type std.collections.List.
+import type std.regex.Regex.
+
+repository_contract_holds(root: String): Bool ->
+    let {
+        Ok(pattern) <- Regex.compile("([A-Za-z_][A-Za-z0-9_]*|\\))\\.\\s*\\(");
+        Ok(files) <- files_recursive_excluding(root, [".git", "target", "node_modules", "__pycache__"])
+    } else {
+        _ -> false
+    };
+    files_hold(files, pattern).
+
+files_hold(files: List[String], pattern: Regex): Bool ->
+    case files {
+        [] -> true;
+        [path | rest] ->
+            if {
+                not is_scanned_source(path) -> files_hold(rest, pattern);
+                true -> case read_text(path) {
+                    Ok(source) -> source_holds(path, source, pattern) and files_hold(rest, pattern);
+                    _ -> false
+                }
+            }
+    }.
+
+source_holds(path: String, source: String, pattern: Regex): Bool ->
+    case Regex.matching_line_numbers(pattern, source) {
+        [] -> true;
+        matches -> matched_lines_are_allowed(path, String.split(source, "\n"), matches, 1)
+    }.
+
+@pure
+matched_lines_are_allowed(
+    path: String,
+    lines: List[String],
+    matches: List[Int],
+    line_number: Int,
+): Bool ->
+    case {lines, matches} {
+        {_, []} -> true;
+        {[], _} -> false;
+        {[line | rest], [matched | remaining]} ->
+            if {
+                line_number == matched -> allowed_negative_fixture(path, line)
+                    and matched_lines_are_allowed(path, rest, remaining, line_number + 1);
+                true -> matched_lines_are_allowed(path, rest, matches, line_number + 1)
+            }
+    }.
+
+@pure
+is_scanned_source(path: String): Bool ->
+    in_scanned_root(path) and has_scanned_suffix(path).
+
+@pure
+in_scanned_root(path: String): Bool ->
+    String.starts_with(path, "std/")
+        or String.starts_with(path, "tests/")
+        or String.starts_with(path, "docs/grammar/")
+        or String.starts_with(path, "crates/terlan/src/")
+        or String.starts_with(path, "editors/").
+
+@pure
+has_scanned_suffix(path: String): Bool ->
+    String.ends_with(path, ".terl")
+        or String.ends_with(path, ".terli")
+        or String.ends_with(path, ".typi")
+        or String.ends_with(path, ".rs")
+        or String.ends_with(path, ".md")
+        or String.ends_with(path, ".js")
+        or String.ends_with(path, ".json")
+        or String.ends_with(path, ".scm").
+
+@pure
+allowed_negative_fixture(path: String, line: String): Bool ->
+    path == "crates/terlan/src/compiler/syntax/parser_expr_test/macros_and_constructors.rs"
+    and String.contains(line, removed_named_call())
+        or String.contains(line, removed_parenthesized_call()).
+
+@pure
+removed_named_call(): String ->
+    String.append("callback.", "(1)").
+
+@pure
+removed_parenthesized_call(): String ->
+    String.append("(callback).", "(1)").
+
+fixture_holds(path: String, source: String): Bool ->
+    case Regex.compile("([A-Za-z_][A-Za-z0-9_]*|\\))\\.\\s*\\(") {
+        Ok(pattern) -> source_holds(path, source, pattern);
+        _ -> false
+    }.
+
+@test
+pub repository_uses_only_canonical_callable_syntax(): Bool ->
+    repository_contract_holds(".").
+
+@test
+pub ordinary_function_value_calls_are_accepted(): Bool ->
+    fixture_holds("tests/accepted.terl", "callback(1).").
+
+@test
+pub named_dot_calls_are_rejected(): Bool ->
+    not fixture_holds("tests/rejected.terl", String.append(removed_named_call(), ".")).
+
+@test
+pub parenthesized_dot_calls_are_rejected(): Bool ->
+    not fixture_holds("tests/rejected.terl", String.append(removed_parenthesized_call(), ".")).
+
+@test
+pub exact_parser_negative_fixtures_are_accepted(): Bool ->
+    fixture_holds(
+        "crates/terlan/src/compiler/syntax/parser_expr_test/macros_and_constructors.rs",
+        String.append(
+            removed_named_call(),
+            String.append(".\n", String.append(removed_parenthesized_call(), ".")),
+        ),
+    ).
+
+@test
+pub similar_files_cannot_claim_the_fixture_exception(): Bool ->
+    not fixture_holds(
+    "crates/terlan/src/compiler/syntax/parser_expr_test/other.rs",
+    String.append(removed_named_call(), "."),
+).

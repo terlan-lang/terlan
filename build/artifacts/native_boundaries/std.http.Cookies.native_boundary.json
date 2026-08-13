@@ -1,0 +1,119 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Cookies.get/2",
+      "name": "get",
+      "operation": "std.http.cookies.get",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:a66e864aeb34c68f201432e1e7572df0d0886ab3ce123f92145a79d492ac9d47"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 6,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Cookies.set/6",
+      "name": "set",
+      "operation": "std.http.cookies.set",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:83c41a631cc4a4040fa65b86c6102bc99005fc519aefc7a0d7ffa042e431796d"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Cookies.delete/3",
+      "name": "delete",
+      "operation": "std.http.cookies.delete",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:179ff187e5209228db8392e313921862675788b896cd18ec3b4ebbeeb2a803c6"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 5,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Cookies.set_header/5",
+      "name": "set_header",
+      "operation": "std.http.cookies.set_header",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:43b2477f51cc026af9ec6fcae01161f91d10263539eed0c8e7bdc688ba79246f"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 10,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Cookies.set_header_with_options/10",
+      "name": "set_header_with_options",
+      "operation": "std.http.cookies.set_header_with_options",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:a6b8ce1c4aaef0b951cd3e1f83c5390765e4e7ed697b642c348baf9da962a119"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Cookies.delete_header/2",
+      "name": "delete_header",
+      "operation": "std.http.cookies.delete_header",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:927f0b6575b42d6f460c13b97e40613c65210cd1c0bca267b17c5553f0e75878"
+    }
+  ],
+  "manifest_digest": "sha256:3a75f4fabd90f6ea63befddd207f90044fa1dab1cd059b4610522b82de125cb0",
+  "module": "std_http_cookies_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "http.cookies",
+    "error_policy": "typed-result",
+    "module_prefix": "std.http.Cookies",
+    "notes": "Cookie APIs construct and inspect typed header values.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:28ea65dc610edbf1993ee077deb1e0fcac9285070c61b0b00934341b5f0de8f1",
+  "source_module": "std.http.Cookies",
+  "source_path": "std/summaries/std.http.Cookies.native_boundary.json"
+}

@@ -95,9 +95,8 @@ pub(super) fn validate_sql_form_row_type(
             ) else {
                 return;
             };
-            match crate::terlan_typeck::sql_forms::statement_schema_projection(
-                &statement, &snapshot,
-            ) {
+            match crate::terlan_typeck::sql_forms::statement_schema_projection(&statement, snapshot)
+            {
                 Ok(projection) => projection,
                 Err(error) => {
                     errors.push(spanned_expression_error(expr.span.into(), error.message()));
@@ -249,7 +248,7 @@ fn validate_sql_struct_row_field_types(
         return;
     };
     let mut fields = row_fields.iter().collect::<Vec<_>>();
-    fields.sort_by(|(left, _), (right, _)| left.cmp(right));
+    fields.sort_by_key(|(left, _)| *left);
     for (field, ty) in fields {
         let resolved = expand_type_aliases(ty, ctx.aliases);
         if !sql_row_decode_type_is_supported_in_context(&resolved, ctx) {

@@ -1,0 +1,89 @@
+/**
+ * Proves stdlib release tests preserve the VM-default execution contract.
+ */
+module scripts.self_validation.StdlibReleaseTestsVmDefault.
+
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.Console.{println}.
+import std.io.File.{read_text}.
+
+pub repository_contract_holds(path: String): Bool ->
+    case read_text(path) {
+        Ok(contents) -> contract_holds(contents);
+        _ -> false
+    }.
+
+pub contract_holds(runner: String): Bool ->
+    required_markers_present(runner)
+        and forbidden_runtime_fragments_absent(String.split(runner, "\n")).
+
+required_markers_present(runner: String): Bool ->
+    String.contains(runner, "`terlc test` on the default VM lane")
+        and String.contains(runner, "target_args=()")
+        and String.contains(runner, "std/js/*)")
+        and String.contains(runner, "target_args=(--target js --target-profile js.browser)")
+        and String.contains(
+    runner,
+    "kind = ($1 ~ /^std\\.js\\..*\\.generated_surface$/) ? \"contract\" : \"test\"",
+)
+        and String.contains(runner, "if [[ \"$row_kind\" == contract ]]; then")
+        and String.contains(runner, "[stdlib-release-contract]")
+        and String.contains(runner, "declare -A executed_test_files=()")
+        and String.contains(runner, "if [[ -n \"${executed_test_files[$test_file]:-}\" ]]; then")
+        and String.contains(runner, "executed_test_files[\"$test_file\"]=1")
+        and String.contains(
+    runner,
+    "timeout \"${test_timeout_seconds}s\" \"$terlc_bin\" test \"$test_file\" \"${target_args[@]}\"",
+).
+
+forbidden_runtime_fragments_absent(lines: List[String]): Bool ->
+    case lines {
+        [] -> true;
+        [line | rest] ->
+            if {
+                String.contains(line, "Removed runtime spellings remain rejection coverage") -> forbidden_runtime_fragments_absent(rest);
+                true -> not forbidden_runtime_fragment(line) and forbidden_runtime_fragments_absent(rest)
+            }
+    }.
+
+pub forbidden_runtime_fragment(line: String): Bool ->
+    let compact = String.replace(String.replace(line, " ", ""), "\t", "");
+    let spaced = String.append(" ", String.append(String.replace(line, "\t", " "), " "));
+    String.contains(compact, "--targetterlan-vm")
+        or String.contains(compact, "--targeterlang")
+        or String.contains(compact, "--runtimebeam")
+        or String.contains(spaced, " erlc ")
+        or String.contains(spaced, " erl ").
+
+complete_fixture(): String ->
+    "# `terlc test` on the default VM lane\ntarget_args=()\nstd/js/*)\ntarget_args=(--target js --target-profile js.browser)\nkind = ($1 ~ /^std\\.js\\..*\\.generated_surface$/) ? \"contract\" : \"test\"\nif [[ \"$row_kind\" == contract ]]; then\n[stdlib-release-contract]\ndeclare -A executed_test_files=()\nif [[ -n \"${executed_test_files[$test_file]:-}\" ]]; then\nexecuted_test_files[\"$test_file\"]=1\ntimeout \"${test_timeout_seconds}s\" \"$terlc_bin\" test \"$test_file\" \"${target_args[@]}\"".
+
+@test
+pub repository_stdlib_release_runner_uses_vm_default(): Bool ->
+    repository_contract_holds("std/scripts/run_release_tests.sh").
+
+@test
+pub policy_accepts_complete_vm_default_contract(): Bool ->
+    contract_holds(complete_fixture()).
+
+@test
+pub policy_rejects_explicit_vm_target(): Bool ->
+    not contract_holds(String.append(complete_fixture(), "\nterlc test --target terlan-vm"))
+        and forbidden_runtime_fragment("terlc test --target\t erlang").
+
+@test
+pub policy_keeps_documented_rejection_spellings_exempt(): Bool ->
+    forbidden_runtime_fragments_absent(
+        ["# Removed runtime spellings remain rejection coverage: erl erlc --runtime beam"],
+    ).
+
+@test
+pub policy_rejects_missing_deduplication_marker(): Bool ->
+    not contract_holds(String.replace(complete_fixture(), "declare -A executed_test_files=()", "")).
+
+pub main(): Unit ->
+    if {
+        repository_contract_holds("std/scripts/run_release_tests.sh") -> println("stdlib release tests use bare terlc test for VM-default lane.");
+        true -> println("stdlib release VM-default contract failed")
+    }.

@@ -1,0 +1,21 @@
+{
+  "diff_digest": "sha256:30088f0216895451656588fa290c778f94bbdb1af00cfa19fc7dab387bc0ed83",
+  "impact_digest": "sha256:73bf984c6046201846eaa8710b991d091de390cd52e47260f1586a132030c56f",
+  "mode": "warning",
+  "reviewed_at": "2026-08-04",
+  "reviewed_slice_ids": [
+    "Slice 11",
+    "Slice 12",
+    "Slice 13",
+    "Slice 14",
+    "Slice 15",
+    "Slice 16",
+    "Slice 17",
+    "Slice 18",
+    "Slice 19",
+    "Slice 20"
+  ],
+  "schema": "terlan.lean-proof-binding-review.v1",
+  "signed_exception_digest": "none",
+  "signed_exceptions": []
+}

@@ -79,7 +79,7 @@ pub (value: IDBIndex) count(query: IDBKeyRange | IDBValidKey): IDBRequest[JsNumb
  */
 pub (value: IDBIndex) get_all_keys(
     query: Option[IDBKeyRange | IDBValidKey],
-    count: JsNumber
+    count: JsNumber,
 ): IDBRequest[Array[IDBValidKey]] ->
     native.
 
@@ -98,7 +98,7 @@ pub (value: IDBIndex) get_key(query: IDBKeyRange | IDBValidKey): IDBRequest[Opti
  */
 pub (value: IDBIndex) open_cursor(
     query: Option[IDBKeyRange | IDBValidKey],
-    direction: IDBCursorDirection
+    direction: IDBCursorDirection,
 ): IDBRequest[Option[IDBCursorWithValue]] ->
     native.
 
@@ -109,6 +109,6 @@ pub (value: IDBIndex) open_cursor(
  */
 pub (value: IDBIndex) open_key_cursor(
     query: Option[IDBKeyRange | IDBValidKey],
-    direction: IDBCursorDirection
+    direction: IDBCursorDirection,
 ): IDBRequest[Option[IDBCursor]] ->
     native.

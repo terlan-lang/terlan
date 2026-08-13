@@ -6,7 +6,8 @@
 # - Public zero-argument test functions annotated with @test.
 #
 # Output:
-# - A tab-separated manifest consumed by std/scripts/check_release_api_tests.sh.
+# - A tab-separated manifest consumed by std/scripts/check_release_api_tests.sh
+#   and std/scripts/ReleaseManifestTest.terl.
 #
 # Transformation:
 # - Maps each release-matrix API obligation to the exact Terlan @test function
@@ -109,10 +110,13 @@ std.binary.Binary.encode_exact	std/binary/BinaryTest.terl	encode_exact_roundtrip
 std.binary.Binary.encode_prefix	std/binary/BinaryTest.terl	encode_prefix_omits_terminal_body
 std.test.Test.Assertion	std/test/AssertionsTest.terl	assert_accepts_computed_true
 std.test.Test.assert	std/test/AssertionsTest.terl	assert_accepts_computed_true
+std.test.Test.assert.condition_bool	std/test/AssertionsTest.terl	assert_accepts_computed_true
 std.test.Test.assert_true	std/test/AssertionsTest.terl	assert_true_accepts_true
 std.test.Test.assert_false	std/test/AssertionsTest.terl	assert_false_accepts_false
+std.test.Test.assert_false.condition_bool	std/test/AssertionsTest.terl	assert_false_accepts_false
 std.test.Test.assert_equal	std/test/AssertionsTest.terl	assert_equal_accepts_equal_values
 std.test.Test.assert_not_equal	std/test/AssertionsTest.terl	assert_not_equal_accepts_different_values
+std.test.Test.assert_not_equal.same_type	std/test/AssertionsTest.terl	assert_not_equal_accepts_different_values
 std.test.Test.fail	std/test/AssertionsTest.terl	fail_returns_false
 std.test.Test.Row	std/test/TableTest.terl	named_rows_compare_expected_results
 std.test.Test.row	std/test/TableTest.terl	named_rows_compare_expected_results
@@ -349,6 +353,7 @@ std.vm.Cluster.join	std/vm/ClusterTest.terl	membership_join_records_peer_as_acti
 std.vm.Cluster.state	std/vm/ClusterTest.terl	membership_join_records_peer_as_active
 std.vm.Cluster.open	std/vm/ClusterTest.terl	two_node_message_exchange_preserves_order_and_duplicate_history
 std.vm.Cluster.send	std/vm/ClusterTest.terl	two_node_message_exchange_preserves_order_and_duplicate_history
+std.vm.Cluster.send.node_payload	std/vm/ClusterTest.terl	two_node_message_exchange_preserves_order_and_duplicate_history
 std.vm.Cluster.accept	std/vm/ClusterTest.terl	two_node_message_exchange_preserves_order_and_duplicate_history
 std.vm.DistributedState.scope	std/vm/DistributedStateTest.terl	write_outcomes_are_explicit_and_versioned
 std.vm.DistributedState.version	std/vm/DistributedStateTest.terl	write_outcomes_are_explicit_and_versioned
@@ -419,9 +424,9 @@ std.vm.Scheduler.update_load	std/vm/SchedulerTest.terl	least_connections_uses_lo
 std.vm.Scheduler.request_migration	std/vm/SchedulerTest.terl	controlled_migration_executes_in_order
 std.vm.Scheduler.advance_migration	std/vm/SchedulerTest.terl	controlled_migration_executes_in_order
 std.vm.Scheduler.events_after	std/vm/SchedulerTest.terl	controlled_migration_executes_in_order
-std.vm.Task.start	std/vm/TaskTest.terl	start_runs_work_and_result_returns_value
-std.vm.Task.result	std/vm/TaskTest.terl	start_runs_work_and_result_returns_value
-std.vm.Task.cancel	std/vm/TaskTest.terl	cancel_returns_unit_after_result_is_available
+std.vm.Task.start	std/vm/TaskTest.terl	result_returns_the_completed_value
+std.vm.Task.result	std/vm/TaskTest.terl	result_returns_the_completed_value
+std.vm.Task.cancel	std/vm/TaskTest.terl	repeated_results_are_correlated_before_cancel
 std.core.Ordering.Comparison.lt	std/core/OrderingTest.terl	less_is_lt
 std.core.Ordering.Comparison.eq	std/core/OrderingTest.terl	equal_is_eq
 std.core.Ordering.Comparison.gt	std/core/OrderingTest.terl	greater_is_gt
@@ -473,6 +478,9 @@ std.core.String.replace.nomatch	std/core/StringTest.terl	replace_keeps_text_with
 std.core.String.split	std/core/StringTest.terl	split_returns_all_segments
 std.core.String.split_once.true	std/core/StringTest.terl	split_once_returns_first_split
 std.core.String.split_once.false	std/core/StringTest.terl	split_once_rejects_missing_separator
+std.crypto.Hash.sha256.empty	std/crypto/HashTest.terl	sha256_matches_empty_vector
+std.crypto.Hash.sha256.ascii	std/crypto/HashTest.terl	sha256_matches_ascii_vector
+std.crypto.Hash.sha256_domain_framed	std/crypto/HashTest.terl	domain_framed_hash_preserves_the_unframed_domain
 std.data.Json.Json	std/data/JsonTest.terl	parse_object_get_reads_member_values
 std.data.Json.JsonError	std/data/JsonTest.terl	parse_object_get_reads_member_values
 std.data.Json.null	std/data/JsonTest.terl	parse_object_get_reads_member_values
@@ -494,25 +502,61 @@ std.data.Json.as_int	std/data/JsonTest.terl	parse_object_get_reads_member_values
 std.data.Json.as_float	std/data/JsonTest.terl	parse_object_get_reads_member_values
 std.data.Json.as_bool	std/data/JsonTest.terl	parse_object_get_reads_member_values
 std.data.Json.is_null	std/data/JsonTest.terl	parse_object_get_reads_member_values
+std.data.Toml.TomlError	std/data/TomlTest.terl	parse_rejects_malformed_documents_with_typed_error
+std.data.Toml.error_code	std/data/TomlTest.terl	parse_rejects_malformed_documents_with_typed_error
+std.data.Toml.error_message	std/data/TomlTest.terl	parse_rejects_malformed_documents_with_typed_error
+std.data.Toml.error_offset	std/data/TomlTest.terl	parse_rejects_malformed_documents_with_typed_error
+std.data.Toml.parse	std/data/TomlTest.terl	parse_projects_nested_tables_and_arrays
 std.encoding.Base64.Base64Error	std/encoding/Base64Test.terl	decode_rows_report_invalid_base64_text
 std.encoding.Base64.encode	std/encoding/Base64Test.terl	encode_uses_standard_base64_alphabet
 std.encoding.Base64.decode	std/encoding/Base64Test.terl	decode_reads_standard_base64_text
 std.encoding.Base64.encode_url	std/encoding/Base64Test.terl	encode_url_round_trips_with_url_safe_decoder
 std.encoding.Base64.decode_url	std/encoding/Base64Test.terl	encode_url_round_trips_with_url_safe_decoder
 std.encoding.Md5.digest	std/encoding/Md5Test.terl	digest_matches_rfc_vectors
+std.io.Archive.create	std/io/ArchiveTest.terl	deterministic_archive_creation_roundtrips_contents_and_mode
+std.io.Archive.extract	std/io/ArchiveTest.terl	deterministic_archive_creation_roundtrips_contents_and_mode
+std.io.Archive.extract.unsupported_format	std/io/ArchiveTest.terl	unsupported_archive_format_is_a_typed_error
 std.io.Console.println	std/io/ConsoleTest.terl	println_returns_unit
+std.io.Console.println.no_device_argument	std/io/ConsoleTest.terl	println_returns_unit
+std.io.Console.println.value_string	std/io/ConsoleTest.terl	println_returns_unit
+std.io.Directory.entries	std/io/DirectoryTest.terl	entries_returns_sorted_children
+std.io.Directory.entries.not_found	std/io/DirectoryTest.terl	missing_directory_is_typed_error
+std.io.Directory.files_recursive.sorted	std/io/DirectoryTest.terl	traversal_is_sorted_and_recursive
+std.io.Directory.files_recursive_excluding	std/io/DirectoryTest.terl	traversal_prunes_exact_directory_names
+std.io.Directory.TreeUsage	std/io/DirectoryTest.terl	tree_usage_reports_logical_bytes_and_entry_counts
+std.io.Directory.tree_usage	std/io/DirectoryTest.terl	tree_usage_reports_logical_bytes_and_entry_counts
+std.io.Directory.remove_all	std/io/DirectoryTest.terl	remove_all_removes_tree
 std.log.Log.debug	std/log/LogTest.terl	debug_returns_unit
 std.log.Log.info	std/log/LogTest.terl	info_returns_unit
 std.log.Log.warn	std/log/LogTest.terl	warn_returns_unit
 std.log.Log.error	std/log/LogTest.terl	error_returns_unit
 std.io.File.exists.missing	std/io/FileTest.terl	exists_rejects_missing_file
+std.io.File.exists.path_string	std/io/FileTest.terl	exists_rejects_missing_file
 std.io.File.read_text.not_found.code	std/io/FileTest.terl	read_text_reports_missing_file
 std.io.File.read_text.not_found.message	std/io/FileTest.terl	read_text_reports_missing_file_message
 std.io.File.read_text.not_found.path	std/io/FileTest.terl	read_text_reports_missing_file_path
+std.io.File.read_bytes	std/io/FileTest.terl	read_bytes_preserves_non_utf8_octets
+std.io.File.size	std/io/FileTest.terl	size_reads_metadata_without_materializing_contents
+std.io.File.timestamps	std/io/FileTest.terl	timestamps_restore_metadata_after_a_temporary_rewrite
+std.io.File.set_timestamps	std/io/FileTest.terl	timestamps_restore_metadata_after_a_temporary_rewrite
+std.io.File.is_executable	std/io/FileTest.terl	executable_marker_roundtrips_through_the_typed_file_api
+std.io.File.set_executable	std/io/FileTest.terl	executable_marker_roundtrips_through_the_typed_file_api
+std.io.File.read_text_many.order	std/io/FileTest.terl	read_text_many_preserves_requested_order
+std.io.File.read_text_many.not_found.path	std/io/FileTest.terl	read_text_many_reports_exact_failing_path
+std.io.File.read_text_many.empty	std/io/FileTest.terl	read_text_many_accepts_empty_input
+std.io.File.read_text_directory.sorted_immediate	std/io/FileTest.terl	read_text_directory_returns_sorted_immediate_files
+std.io.File.read_text_tree_excluding.prune	std/io/FileTest.terl	read_text_tree_prunes_exact_directory_names
+std.io.File.read_text_tree_matching.suffix	std/io/FileTest.terl	read_text_tree_matching_filters_before_utf8_reads
+std.io.File.read_text_tree_matching.page	std/io/FileTest.terl	read_text_tree_matching_returns_a_sorted_bounded_page
+std.io.File.read_text_tree_matching.limit	std/io/FileTest.terl	read_text_tree_matching_rejects_a_zero_page_limit
 std.io.File.write_text.read_text.roundtrip	std/io/FileTest.terl	write_text_and_read_text_roundtrip
+std.io.File.write_text.content_string	std/io/FileTest.terl	write_text_and_read_text_roundtrip
+std.io.File.write_text.success	std/io/FileTest.terl	write_text_reports_success
 std.io.File.append_text.read_text.roundtrip	std/io/FileTest.terl	append_text_extends_existing_file
+std.io.File.append_text.content_string	std/io/FileTest.terl	append_text_extends_existing_file
 std.io.File.delete.exists.roundtrip	std/io/FileTest.terl	delete_removes_existing_file
 std.io.File.delete.not_found.code	std/io/FileTest.terl	delete_reports_missing_file
+std.io.File.delete.path_string	std/io/FileTest.terl	delete_reports_missing_file
 std.io.Path.Path	std/io/PathTest.terl	parse_and_to_string_roundtrip_relative_path
 std.io.Path.PathError	std/io/PathTest.terl	parse_and_to_string_roundtrip_relative_path
 std.io.Path.from_string	std/io/PathTest.terl	parse_and_to_string_roundtrip_relative_path
@@ -522,6 +566,20 @@ std.io.Path.file_name	std/io/PathTest.terl	join_and_components_are_lexical
 std.io.Path.extension	std/io/PathTest.terl	join_and_components_are_lexical
 std.io.Path.parent	std/io/PathTest.terl	join_and_components_are_lexical
 std.io.Path.is_absolute	std/io/PathTest.terl	absolute_paths_are_classified_without_io
+std.system.Arguments.count	std/system/ArgumentsTest.terl	empty_test_run_has_no_application_arguments
+std.system.Arguments.get	std/system/ArgumentsTest.terl	out_of_range_argument_is_none
+std.system.Environment.contains	std/system/EnvironmentTest.terl	impossible_key_is_absent
+std.system.Environment.get	std/system/EnvironmentTest.terl	impossible_key_is_absent
+std.system.Environment.current_directory	std/system/EnvironmentTest.terl	current_directory_is_not_empty
+std.vcs.Git.SourceTreeIdentity	std/vcs/GitTest.terl	repository_identity_is_full_and_deterministic
+std.vcs.Git.GitError	std/vcs/GitTest.terl	missing_repository_returns_typed_error
+std.vcs.Git.SourceTreeIdentityFailed	std/vcs/GitTest.terl	missing_repository_returns_typed_error
+std.vcs.Git.source_tree_identity	std/vcs/GitTest.terl	repository_identity_is_full_and_deterministic
+std.vcs.Git.revision	std/vcs/GitTest.terl	repository_identity_is_full_and_deterministic
+std.vcs.Git.clean	std/vcs/GitTest.terl	repository_identity_is_full_and_deterministic
+std.vcs.Git.sha256	std/vcs/GitTest.terl	repository_identity_is_full_and_deterministic
+std.vcs.Git.error_code	std/vcs/GitTest.terl	missing_repository_returns_typed_error
+std.vcs.Git.error_message	std/vcs/GitTest.terl	missing_repository_returns_typed_error
 std.net.Uri.Uri	std/net/UriTest.terl	parse_and_to_string_roundtrip_normalized_uri
 std.net.Uri.UriError	std/net/UriTest.terl	parse_reports_invalid_uri_text
 std.net.Uri.parse	std/net/UriTest.terl	parse_and_to_string_roundtrip_normalized_uri
@@ -743,3 +801,7 @@ std.js.WeakMap.generated_surface	std/js/WeakMapTest.terl	generated_binding_surfa
 std.js.WeakMapConstructor.generated_surface	std/js/WeakMapConstructorTest.terl	generated_binding_surface_contract
 std.js.WeakSet.generated_surface	std/js/WeakSetTest.terl	generated_binding_surface_contract
 std.js.WeakSetConstructor.generated_surface	std/js/WeakSetConstructorTest.terl	generated_binding_surface_contract
+std.core.Secret.denies_show	std/core/SecretTest.terl	secret_to_string_redacts_value
+std.core.Secret.denies_equal	std/core/SecretTest.terl	secret_redaction_marker_is_stable
+std.core.Secret.denies_ordering	std/core/SecretTest.terl	secret_redaction_marker_is_stable
+std.vm.Process.send.actor_message	std/vm/ProcessTest.terl	process_actor_message_trait_is_available_by_default

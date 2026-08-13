@@ -288,6 +288,10 @@ pub(crate) fn hover_local_docs(
     source: &str,
     offset: usize,
 ) -> Option<String> {
+    if !module.docs.is_empty() && module_name_contains_offset(module, source, offset) {
+        return Some(module.docs.join("\n"));
+    }
+
     if let Some((struct_name, field_name)) = record_access_at(source, offset) {
         if let Some(docs) = module.declarations.iter().find_map(|decl| {
             let SyntaxDeclarationPayload::Struct { name, fields, .. } = &decl.payload else {
@@ -334,6 +338,11 @@ pub(crate) fn hover_local_docs(
             {
                 Some(decl.docs.join("\n"))
             }
+            SyntaxDeclarationPayload::Method { name, .. }
+                if name == &ident && !decl.docs.is_empty() =>
+            {
+                Some(decl.docs.join("\n"))
+            }
             SyntaxDeclarationPayload::Constant { name, .. }
             | SyntaxDeclarationPayload::ConstFunction { name, .. }
                 if name == &ident && !decl.docs.is_empty() =>
@@ -354,6 +363,17 @@ pub(crate) fn hover_local_docs(
             }
             _ => None,
         })
+}
+
+/// Returns whether a hover offset falls on the parsed module declaration name.
+fn module_name_contains_offset(module: &SyntaxModuleOutput, source: &str, offset: usize) -> bool {
+    let declaration = format!("module {}", module.module_name);
+    let Some(declaration_start) = source.find(&declaration) else {
+        return false;
+    };
+    let name_start = declaration_start + "module ".len();
+    let name_end = name_start + module.module_name.len();
+    (name_start..=name_end).contains(&offset)
 }
 
 /// Builds a compact trait summary for hover output.
@@ -426,9 +446,7 @@ pub(crate) fn hover_imported_docs(
         }
     }
 
-    let Some((module_name, member_name)) = qualified_import_member(source, offset) else {
-        return None;
-    };
+    let (module_name, member_name) = qualified_import_member(source, offset)?;
     for decl in &module.declarations {
         let SyntaxDeclarationPayload::Import {
             module_name: import_module_name,
@@ -608,4 +626,5 @@ fn qualified_module_prefix_before(source: &str, offset: usize) -> Option<String>
 
 #[cfg(test)]
 #[path = "hover_test.rs"]
+#[cfg(test)]
 mod hover_test;

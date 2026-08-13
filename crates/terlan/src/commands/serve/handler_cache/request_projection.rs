@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::compiler::native_ir::NativeRequestProjection;
 use crate::compiler::router::AotRouterPlan;
 use crate::runtime::native::http::RequestFieldProjection;
-use crate::runtime::vm::http_session::{VmHttpSessionRuntime, VmHttpSessionService};
+use crate::runtime::vm::http_session::VmHttpSessionService;
 
 use super::{
     materialize_router, AdmittedRequestProjection, AotHandlerGeneration, AotHandlerRuntime,
@@ -19,8 +19,8 @@ impl AotHandlerRuntime {
         image: &Path,
         router: Option<AotRouterPlan>,
         projections: Vec<NativeRequestProjection>,
+        sessions: VmHttpSessionService,
     ) -> Result<Self, String> {
-        let sessions = VmHttpSessionService::new(VmHttpSessionRuntime::new("terlc-serve", 86_400)?);
         let mut primary_request_projection = None;
         let mut request_projections = HashMap::<String, HashMap<usize, _>>::new();
         for projection in projections

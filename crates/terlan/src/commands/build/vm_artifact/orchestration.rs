@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::PathBuf;
 
@@ -10,7 +11,7 @@ use super::super::{BuildOneError, BuildTimings};
 use super::compile::{compile_vm_module, CompiledVmModule};
 use super::native_debug::NativeDebugInput;
 use super::parallel_compile::compile_vm_modules;
-use super::{native_image, native_reuse};
+use super::{native_image, native_reuse, std_source};
 
 /// Builds one Terlan VM artifact from one source file.
 /// Inputs:
@@ -40,13 +41,25 @@ pub(in crate::commands::build) fn build_one_vm_artifact(
     if state.no_emit {
         return Ok(());
     }
-    let result = write_vm_artifact(
-        &module.source_path,
-        &module.source_text,
-        &module.compiled,
+    let imported = std_source::compile_imported_std_source_modules(
+        &[&module.compiled.core],
+        PathBuf::from(path).as_path(),
         state,
-        policy,
-    );
+    )?;
+    let result = if imported.is_empty() {
+        write_vm_artifact(
+            &module.source_path,
+            &module.source_text,
+            &module.compiled,
+            state,
+            policy,
+        )
+    } else {
+        let mut modules = Vec::with_capacity(imported.len() + 1);
+        modules.push(module);
+        modules.extend(imported);
+        write_vm_application_artifacts(&modules, state, policy, None)
+    };
     timings.mark("vm.aot-and-artifact");
     result
 }
@@ -56,13 +69,56 @@ pub(in crate::commands::build) fn build_vm_application_artifacts(
     state: &CliState,
     policy: NativeCodegenPolicy,
 ) -> Result<(), BuildOneError> {
+    build_vm_application_artifacts_with_optional_entry(paths, state, policy, None)
+}
+
+/// Builds a native application rooted at one exact compiler module identity.
+///
+/// Script builds use this entry-aware form so an owning project module ending
+/// in `.Main` can never displace the selected `.terls` synthetic `main/0`.
+pub(in crate::commands::build) fn build_vm_application_artifacts_with_entry(
+    paths: &[PathBuf],
+    state: &CliState,
+    policy: NativeCodegenPolicy,
+    entry_module: &str,
+) -> Result<(), BuildOneError> {
+    build_vm_application_artifacts_with_optional_entry(paths, state, policy, Some(entry_module))
+}
+
+fn build_vm_application_artifacts_with_optional_entry(
+    paths: &[PathBuf],
+    state: &CliState,
+    policy: NativeCodegenPolicy,
+    entry_module: Option<&str>,
+) -> Result<(), BuildOneError> {
     let mut timings = BuildTimings::new(state.timings);
-    let modules = compile_vm_modules(paths, state)?;
+    let mut modules = compile_vm_modules(paths, state)?;
     timings.mark("vm.application-compile");
     if state.no_emit {
         return Ok(());
     }
-    let result = write_vm_application_artifacts(&modules, state, policy);
+    if let Some(active_path) = modules
+        .first()
+        .map(|module| PathBuf::from(&module.source_path))
+    {
+        let roots = modules
+            .iter()
+            .map(|module| &module.compiled.core)
+            .collect::<Vec<_>>();
+        let imported =
+            std_source::compile_imported_std_source_modules(&roots, active_path.as_path(), state)?;
+        let mut present = modules
+            .iter()
+            .map(|module| module.compiled.core.module.clone())
+            .collect::<BTreeSet<_>>();
+        modules.extend(
+            imported
+                .into_iter()
+                .filter(|module| present.insert(module.compiled.core.module.clone())),
+        );
+    }
+    timings.mark("vm.application-std-closure");
+    let result = write_vm_application_artifacts(&modules, state, policy, entry_module);
     timings.mark("vm.application-aot-and-artifact");
     result
 }
@@ -115,17 +171,29 @@ fn write_vm_application_artifacts(
     modules: &[CompiledVmModule],
     state: &CliState,
     policy: NativeCodegenPolicy,
+    entry_module: Option<&str>,
 ) -> Result<(), BuildOneError> {
     let vm_dir = state.out_dir.join("vm");
     fs::create_dir_all(&vm_dir).map_err(|error| {
         BuildOneError::Message(format!("cannot create VM artifact directory: {error}"))
     })?;
-    let image_stem = modules
-        .iter()
-        .find(|module| module.compiled.core.module.ends_with(".Main"))
-        .or_else(|| modules.first())
-        .map(|module| module_file_stem(&module.compiled.core))
-        .ok_or_else(|| BuildOneError::Message("VM application has no modules".to_string()))?;
+    let entry = if let Some(entry_module) = entry_module {
+        modules
+            .iter()
+            .find(|module| module.compiled.core.module == entry_module)
+            .ok_or_else(|| {
+                BuildOneError::Message(format!(
+                    "VM application is missing selected entry module `{entry_module}`"
+                ))
+            })?
+    } else {
+        modules
+            .iter()
+            .find(|module| module.compiled.core.module.ends_with(".Main"))
+            .or_else(|| modules.first())
+            .ok_or_else(|| BuildOneError::Message("VM application has no modules".to_string()))?
+    };
+    let image_stem = module_file_stem(&entry.compiled.core);
     let native_cache_root = state
         .cache_dir
         .clone()
@@ -144,14 +212,41 @@ fn write_vm_application_artifacts(
             syntax: &module.compiled.syntax_output,
         })
         .collect::<Vec<_>>();
-    native_image::compile_native_application_image(
+    let roots = if entry
+        .compiled
+        .core
+        .functions
+        .iter()
+        .any(|function| function.name == "main" && function.arity == 0)
+    {
+        vec![(entry.compiled.core.module.clone(), "main".to_string(), 0)]
+    } else {
+        entry
+            .compiled
+            .core
+            .exports
+            .iter()
+            .filter_map(|export| match export.kind {
+                crate::terlan_typeck::CoreExportKind::Function { arity } => Some((
+                    entry.compiled.core.module.clone(),
+                    export.name.clone(),
+                    arity,
+                )),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+    };
+    native_image::compile_rooted_native_application_image(
         &vm_dir,
         &native_cache_root,
         &image_stem,
         &cores,
-        &debug_inputs,
-        policy,
-        state.incremental,
+        native_image::RootedNativeApplicationInput {
+            roots: &roots,
+            debug_inputs: &debug_inputs,
+            policy,
+            incremental: state.incremental,
+        },
     )?;
     Ok(())
 }

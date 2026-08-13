@@ -1,0 +1,852 @@
+/**
+ * Validates installer mapping, local installation, rollback, and Windows surface.
+ */
+module installer_contract.Main.
+
+import installer_contract.ReleaseArtifact.
+import std.collections.List.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.io.Archive.
+import std.io.Console.{println}.
+import std.io.Directory.{create_all, create_temporary, remove_all}.
+import std.io.File.{delete, exists, is_executable, read_text, set_executable, write_text}.
+import std.system.{Environment, Process}.
+
+import type std.collections.List.
+import type std.system.Process.{Command, EnvironmentEntry, Output}.
+
+struct InstallerCase {
+    raw_os: String,
+    raw_arch: String,
+    os: String,
+    arch: String,
+    artifact: String,
+}.
+
+struct FixtureFile {
+    relative: String,
+    contents: String,
+    executable: Bool,
+}.
+
+@pure
+child(parent: String, name: String): String ->
+    if {
+        String.ends_with(parent, "/") -> String.append(parent, name);
+        true -> String.append(parent, String.append("/", name))
+    }.
+
+@pure
+cases(): List[InstallerCase] ->
+    [
+        InstallerCase(
+            raw_os = "Linux",
+            raw_arch = "x86_64",
+            os = "linux",
+            arch = "x86_64",
+            artifact = "terlc-linux-x86_64.tar.gz",
+        ),
+        InstallerCase(
+            raw_os = "Linux",
+            raw_arch = "aarch64",
+            os = "linux",
+            arch = "aarch64",
+            artifact = "terlc-linux-aarch64.tar.gz",
+        ),
+        InstallerCase(
+            raw_os = "Darwin",
+            raw_arch = "x86_64",
+            os = "macos",
+            arch = "x86_64",
+            artifact = "terlc-macos-x86_64.tar.gz",
+        ),
+        InstallerCase(
+            raw_os = "Darwin",
+            raw_arch = "arm64",
+            os = "macos",
+            arch = "aarch64",
+            artifact = "terlc-macos-aarch64.tar.gz",
+        ),
+    ].
+
+@pure
+fixture_files(compiler_exit: Int): List[FixtureFile] ->
+    [
+        FixtureFile(
+            relative = "terlc",
+            contents = String.append(
+                "#!/usr/bin/env sh\nprintf 'terlc fake 9.9.9\\n'\nexit ",
+                String.append(Int.to_string(compiler_exit), "\n"),
+            ),
+            executable = true,
+        ),
+        FixtureFile(
+            relative = "terlan-vm",
+            contents = "#!/usr/bin/env sh\nprintf 'terlan-vm fake 9.9.9\\n'\n",
+            executable = true,
+        ),
+        FixtureFile(
+            relative = "terlan-native-worker",
+            contents = "#!/usr/bin/env sh\nprintf 'terlan-native-worker fake 9.9.9\\n'\n",
+            executable = true,
+        ),
+        FixtureFile(
+            relative = "terlan-lsp",
+            contents = "#!/usr/bin/env sh\nprintf 'terlan-lsp --stdio\\n'\n",
+            executable = true,
+        ),
+        FixtureFile(
+            relative = "share/terlan/std/core/Unit.terl",
+            contents = "module std.core.Unit.\n",
+            executable = false,
+        ),
+        FixtureFile(
+            relative = "share/terlan/editors/vscode/package.json",
+            contents = "{}\n",
+            executable = false,
+        ),
+        FixtureFile(
+            relative = "share/terlan/tree-sitter-terlan/grammar.js",
+            contents = "module.exports = {};\n",
+            executable = false,
+        ),
+        FixtureFile(
+            relative = "share/terlan/runtime/release-self-test.tvm",
+            contents = "fake native image\n",
+            executable = false,
+        ),
+        FixtureFile(relative = "terlan-release.json", contents = "{}\n", executable = false),
+        FixtureFile(relative = "SHA256SUMS", contents = "\n", executable = false),
+        FixtureFile(
+            relative = "terlan-install-manifest.json",
+            contents = "{}\n",
+            executable = false,
+        ),
+    ].
+
+installer_environment(
+    item: InstallerCase,
+    install_dir: String,
+    release_base: String,
+    dry_run: Bool,
+): List[EnvironmentEntry] ->
+    [
+        Process.environment_entry("TERLAN_INSTALL_OS", item.raw_os),
+        Process.environment_entry("TERLAN_INSTALL_ARCH", item.raw_arch),
+        Process.environment_entry("TERLAN_VERSION", "v9.9.9"),
+        Process.environment_entry("TERLAN_INSTALL_DIR", install_dir),
+        Process.environment_entry("TERLAN_RELEASE_BASE_URL", release_base),
+        Process.environment_entry(
+            "TERLAN_INSTALL_DRY_RUN",
+            if {
+                dry_run -> "1";
+                true -> "0"
+            },
+        ),
+    ].
+
+installer_command(root: String, environment: List[EnvironmentEntry]): Command ->
+    Process.command("sh")
+        .with_arguments(["install.sh"])
+        .with_working_directory(root)
+        .with_environment(environment)
+        .with_timeout_ms(60000)
+        .with_output_limit_bytes(1048576).
+
+fail(message: String): Bool ->
+    let _printed = println(String.append("installer contract: ", message));
+    false.
+
+@pure
+output_has(output: String, key: String, value: String): Bool ->
+    String.contains(output, String.append(key, String.append("=", String.append(value, "\n")))).
+
+@pure
+dry_run_output_holds(item: InstallerCase, output: String): Bool ->
+    output_has(output, "version", "v9.9.9")
+        and output_has(output, "os", item.os)
+        and output_has(output, "arch", item.arch)
+        and output_has(output, "artifact", item.artifact)
+        and output_has(output, "url", String.append("https://example.invalid/releases/v9.9.9/", item.artifact))
+        and output_has(output, "install_dir", "/tmp/terlan-bin").
+
+pub release_artifact_mapping_covers_every_public_platform(): Bool ->
+    mapping_holds(
+        [
+            InstallerCase(
+                raw_os = "Linux",
+                raw_arch = "x86_64",
+                os = "linux",
+                arch = "x86_64",
+                artifact = "terlc-linux-x86_64.tar.gz",
+            ),
+            InstallerCase(
+                raw_os = "Linux",
+                raw_arch = "aarch64",
+                os = "linux",
+                arch = "aarch64",
+                artifact = "terlc-linux-aarch64.tar.gz",
+            ),
+            InstallerCase(
+                raw_os = "Darwin",
+                raw_arch = "x86_64",
+                os = "macos",
+                arch = "x86_64",
+                artifact = "terlc-macos-x86_64.tar.gz",
+            ),
+            InstallerCase(
+                raw_os = "Darwin",
+                raw_arch = "arm64",
+                os = "macos",
+                arch = "aarch64",
+                artifact = "terlc-macos-aarch64.tar.gz",
+            ),
+            InstallerCase(
+                raw_os = "Windows",
+                raw_arch = "AMD64",
+                os = "windows",
+                arch = "x86_64",
+                artifact = "terlc-windows-x86_64.zip",
+            ),
+            InstallerCase(
+                raw_os = "Windows",
+                raw_arch = "ARM64",
+                os = "windows",
+                arch = "aarch64",
+                artifact = "terlc-windows-aarch64.zip",
+            ),
+        ],
+    ).
+
+@pure
+mapping_holds(items: List[InstallerCase]): Bool ->
+    case items {
+        [] -> true;
+        [item | rest] ->
+            case ReleaseArtifact.resolve(item.raw_os, item.raw_arch) {
+                Some(platform) ->
+                    ReleaseArtifact.operating_system(platform) == item.os
+                        and ReleaseArtifact.architecture(platform) == item.arch
+                        and ReleaseArtifact.artifact(platform) == item.artifact
+                        and mapping_holds(rest);
+                _ -> false
+            }
+    }.
+
+pub install_sh_dry_runs_every_supported_unix_mapping(): Bool ->
+    dry_run_cases(Environment.current_directory(), cases()).
+
+dry_run_cases(root: String, items: List[InstallerCase]): Bool ->
+    case items {
+        [] -> true;
+        [item | rest] ->
+            case Process.run(
+    installer_command(
+        root,
+        installer_environment(item, "/tmp/terlan-bin", "https://example.invalid/releases", true),
+    ),
+) {
+                Ok(output) ->
+                    if {
+                        Process.status(output) != 0 -> fail(String.append(item.artifact, " dry run failed"));
+                        not dry_run_output_holds(item, Process.stdout(output)) -> fail(String.append(item.artifact, " dry run output drifted"));
+                        true -> dry_run_cases(root, rest)
+                    };
+                Err(reason) -> fail(Process.error_message(reason))
+            }
+    }.
+
+pub install_sh_installs_local_artifacts_and_preserves_executability(): Bool ->
+    install_smoke_cases(Environment.current_directory(), cases()).
+
+install_smoke_cases(root: String, items: List[InstallerCase]): Bool ->
+    case items {
+        [] -> true;
+        [item | rest] ->
+            case create_temporary("terlan-installer-smoke.") {
+                Ok(workspace) -> prepare_artifact(root, workspace, item, 0, rest, false);
+                Err(_reason) -> fail("could not create installer smoke workspace")
+            }
+    }.
+
+prepare_artifact(
+    root: String,
+    workspace: String,
+    item: InstallerCase,
+    compiler_exit: Int,
+    remaining: List[InstallerCase],
+    rollback: Bool,
+): Bool ->
+    let stage = child(workspace, "stage");
+    let release = child(workspace, "releases/v9.9.9");
+    case create_all(stage) {
+        Ok(Unit) ->
+            prepare_release_directory(
+                root,
+                workspace,
+                stage,
+                release,
+                item,
+                compiler_exit,
+                remaining,
+                rollback,
+            );
+        Err(_reason) -> cleanup(workspace, fail("could not create artifact stage"))
+    }.
+
+prepare_release_directory(
+    root: String,
+    workspace: String,
+    stage: String,
+    release: String,
+    item: InstallerCase,
+    compiler_exit: Int,
+    remaining: List[InstallerCase],
+    rollback: Bool,
+): Bool ->
+    case create_all(release) {
+        Ok(Unit) ->
+            prepare_fixture_directories(
+                root,
+                workspace,
+                stage,
+                release,
+                item,
+                compiler_exit,
+                fixture_directories(stage),
+                remaining,
+                rollback,
+            );
+        Err(_reason) -> cleanup(workspace, fail("could not create release directory"))
+    }.
+
+@pure
+fixture_directories(stage: String): List[String] ->
+    [
+        child(stage, "share/terlan/std/core"),
+        child(stage, "share/terlan/editors/vscode"),
+        child(stage, "share/terlan/tree-sitter-terlan"),
+        child(stage, "share/terlan/runtime"),
+    ].
+
+prepare_fixture_directories(
+    root: String,
+    workspace: String,
+    stage: String,
+    release: String,
+    item: InstallerCase,
+    compiler_exit: Int,
+    directories: List[String],
+    remaining: List[InstallerCase],
+    rollback: Bool,
+): Bool ->
+    case directories {
+        [] ->
+            write_fixture_files(
+                root,
+                workspace,
+                stage,
+                release,
+                item,
+                compiler_exit,
+                fixture_files(compiler_exit),
+                remaining,
+                rollback,
+            );
+        [directory | rest] ->
+            case create_all(directory) {
+                Ok(Unit) ->
+                    prepare_fixture_directories(
+                        root,
+                        workspace,
+                        stage,
+                        release,
+                        item,
+                        compiler_exit,
+                        rest,
+                        remaining,
+                        rollback,
+                    );
+                Err(_reason) ->
+                    cleanup(
+                        workspace,
+                        fail(String.append("could not create fixture directory ", directory)),
+                    )
+            }
+    }.
+
+write_fixture_files(
+    root: String,
+    workspace: String,
+    stage: String,
+    release: String,
+    item: InstallerCase,
+    compiler_exit: Int,
+    files: List[FixtureFile],
+    remaining: List[InstallerCase],
+    rollback: Bool,
+): Bool ->
+    case files {
+        [] -> create_fixture_archive(root, workspace, stage, release, item, remaining, rollback);
+        [file | rest] ->
+            let path = child(stage, file.relative);
+            case write_text(path, file.contents) {
+                Ok(Unit) ->
+                    if {
+                        file.executable -> case set_executable(path, true) {
+                            Ok(Unit) ->
+                                write_fixture_files(
+                                    root,
+                                    workspace,
+                                    stage,
+                                    release,
+                                    item,
+                                    compiler_exit,
+                                    rest,
+                                    remaining,
+                                    rollback,
+                                );
+                            Err(_reason) ->
+                                cleanup(
+                                    workspace,
+                                    fail(String.append("could not mark executable ", file.relative)),
+                                )
+                        };
+                        true -> write_fixture_files(
+                            root,
+                            workspace,
+                            stage,
+                            release,
+                            item,
+                            compiler_exit,
+                            rest,
+                            remaining,
+                            rollback,
+                        )
+                    };
+                Err(_reason) ->
+                    cleanup(workspace, fail(String.append("could not write ", file.relative)))
+            }
+    }.
+
+create_fixture_archive(
+    root: String,
+    workspace: String,
+    stage: String,
+    release: String,
+    item: InstallerCase,
+    remaining: List[InstallerCase],
+    rollback: Bool,
+): Bool ->
+    let archive = child(release, item.artifact);
+    case Archive.create(stage, archive) {
+        Ok(Unit) ->
+            hash_fixture_archive(root, workspace, release, item, archive, remaining, rollback);
+        Err(_reason) -> cleanup(workspace, fail(String.append("could not create ", item.artifact)))
+    }.
+
+hash_fixture_archive(
+    root: String,
+    workspace: String,
+    release: String,
+    item: InstallerCase,
+    archive: String,
+    remaining: List[InstallerCase],
+    rollback: Bool,
+): Bool ->
+    case Hash.sha256_file(archive) {
+        Ok(digest) ->
+            write_fixture_checksum(
+                root,
+                workspace,
+                release,
+                item,
+                archive,
+                digest,
+                remaining,
+                rollback,
+            );
+        Err(_reason) -> cleanup(workspace, fail(String.append("could not hash ", item.artifact)))
+    }.
+
+write_fixture_checksum(
+    root: String,
+    workspace: String,
+    release: String,
+    item: InstallerCase,
+    archive: String,
+    digest: String,
+    remaining: List[InstallerCase],
+    rollback: Bool,
+): Bool ->
+    case write_text(
+    String.append(archive, ".sha256"),
+    String.append(digest, String.append("  ", String.append(item.artifact, "\n"))),
+) {
+        Ok(Unit) ->
+            if {
+                rollback -> run_initial_rollback_install(root, workspace, release, item);
+                true -> run_local_install(root, workspace, release, item, remaining)
+            };
+        Err(_reason) -> cleanup(workspace, fail("could not write archive checksum"))
+    }.
+
+run_local_install(
+    root: String,
+    workspace: String,
+    release: String,
+    item: InstallerCase,
+    remaining: List[InstallerCase],
+): Bool ->
+    let install = child(workspace, "install/bin");
+    let base = String.append("file://", child(workspace, "releases"));
+    case Process.run(installer_command(root, installer_environment(item, install, base, false))) {
+        Ok(output) -> inspect_local_install(root, workspace, item, install, remaining, output);
+        Err(reason) -> cleanup(workspace, fail(Process.error_message(reason)))
+    }.
+
+inspect_local_install(
+    root: String,
+    workspace: String,
+    item: InstallerCase,
+    install: String,
+    remaining: List[InstallerCase],
+    output: Output,
+): Bool ->
+    if {
+        Process.status(output) != 0 -> cleanup(workspace, fail(String.append(item.artifact, " local install failed")));
+        not installed_layout_holds(workspace, install) -> cleanup(workspace, fail(String.append(item.artifact, " installed layout is incomplete")));
+        true -> cleanup_and_continue(root, workspace, remaining)
+    }.
+
+cleanup_and_continue(root: String, workspace: String, remaining: List[InstallerCase]): Bool ->
+    case remove_all(workspace) {
+        Ok(Unit) -> install_smoke_cases(root, remaining);
+        Err(_reason) -> false
+    }.
+
+installed_layout_holds(workspace: String, install: String): Bool ->
+    executables_hold(
+    [
+        child(install, "terlc"),
+        child(install, "terlan-vm"),
+        child(install, "terlan-native-worker"),
+        child(install, "terlan-lsp"),
+    ],
+)
+        and exists(child(workspace, "install/share/terlan/std/core/Unit.terl")).
+
+executables_hold(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            if {
+                not exists(path) -> false;
+                true -> case is_executable(path) {
+                    Ok(true) -> executables_hold(rest);
+                    _ -> false
+                }
+            }
+    }.
+
+pub failed_upgrade_restores_the_previous_installation(): Bool ->
+    case create_temporary("terlan-installer-rollback.") {
+        Ok(workspace) ->
+            case cases() {
+                [item | _rest] ->
+                    prepare_artifact(
+                        Environment.current_directory(),
+                        workspace,
+                        item,
+                        0,
+                        List.new[InstallerCase](),
+                        true,
+                    );
+                _ -> cleanup(workspace, false)
+            };
+        Err(_reason) -> fail("could not create rollback workspace")
+    }.
+
+run_initial_rollback_install(
+    root: String,
+    workspace: String,
+    release: String,
+    item: InstallerCase,
+): Bool ->
+    let install = child(workspace, "install/bin");
+    let base = String.append("file://", child(workspace, "releases"));
+    case Process.run(installer_command(root, installer_environment(item, install, base, false))) {
+        Ok(output) ->
+            if {
+                Process.status(output) != 0 -> cleanup(workspace, fail("initial rollback fixture install failed"));
+                true -> snapshot_rollback_compiler(root, workspace, release, item, install)
+            };
+        Err(reason) -> cleanup(workspace, fail(Process.error_message(reason)))
+    }.
+
+snapshot_rollback_compiler(
+    root: String,
+    workspace: String,
+    release: String,
+    item: InstallerCase,
+    install: String,
+): Bool ->
+    case read_text(child(install, "terlc")) {
+        Ok(baseline) -> remove_rollback_archive(root, workspace, release, item, install, baseline);
+        Err(_reason) -> cleanup(workspace, fail("could not snapshot installed compiler"))
+    }.
+
+remove_rollback_archive(
+    root: String,
+    workspace: String,
+    release: String,
+    item: InstallerCase,
+    install: String,
+    baseline: String,
+): Bool ->
+    let archive = child(release, item.artifact);
+    case delete(archive) {
+        Ok(Unit) ->
+            remove_rollback_checksum(root, workspace, release, item, install, baseline, archive);
+        Err(_reason) -> cleanup(workspace, fail("could not replace rollback archive"))
+    }.
+
+remove_rollback_checksum(
+    root: String,
+    workspace: String,
+    release: String,
+    item: InstallerCase,
+    install: String,
+    baseline: String,
+    archive: String,
+): Bool ->
+    case delete(String.append(archive, ".sha256")) {
+        Ok(Unit) -> reset_rollback_stage(root, workspace, release, item, install, baseline);
+        Err(_reason) -> cleanup(workspace, fail("could not replace rollback checksum"))
+    }.
+
+reset_rollback_stage(
+    root: String,
+    workspace: String,
+    release: String,
+    item: InstallerCase,
+    install: String,
+    baseline: String,
+): Bool ->
+    case remove_all(child(workspace, "stage")) {
+        Ok(Unit) ->
+            prepare_bad_rollback_artifact(root, workspace, release, item, install, baseline);
+        Err(_reason) -> cleanup(workspace, fail("could not reset rollback stage"))
+    }.
+
+prepare_bad_rollback_artifact(
+    root: String,
+    workspace: String,
+    release: String,
+    item: InstallerCase,
+    install: String,
+    baseline: String,
+): Bool ->
+    let stage = child(workspace, "stage");
+    case create_all(stage) {
+        Ok(Unit) ->
+            prepare_bad_fixture_directories(
+                root,
+                workspace,
+                stage,
+                release,
+                item,
+                install,
+                baseline,
+                fixture_directories(stage),
+            );
+        Err(_reason) -> cleanup(workspace, fail("could not create bad rollback stage"))
+    }.
+
+prepare_bad_fixture_directories(
+    root: String,
+    workspace: String,
+    stage: String,
+    release: String,
+    item: InstallerCase,
+    install: String,
+    baseline: String,
+    directories: List[String],
+): Bool ->
+    case directories {
+        [] ->
+            write_bad_fixture_files(
+                root,
+                workspace,
+                stage,
+                release,
+                item,
+                install,
+                baseline,
+                fixture_files(9),
+            );
+        [directory | rest] ->
+            case create_all(directory) {
+                Ok(Unit) ->
+                    prepare_bad_fixture_directories(
+                        root,
+                        workspace,
+                        stage,
+                        release,
+                        item,
+                        install,
+                        baseline,
+                        rest,
+                    );
+                Err(_reason) -> cleanup(workspace, false)
+            }
+    }.
+
+write_bad_fixture_files(
+    root: String,
+    workspace: String,
+    stage: String,
+    release: String,
+    item: InstallerCase,
+    install: String,
+    baseline: String,
+    files: List[FixtureFile],
+): Bool ->
+    case files {
+        [] -> create_bad_rollback_archive(root, workspace, stage, release, item, install, baseline);
+        [file | rest] ->
+            let path = child(stage, file.relative);
+            case write_text(path, file.contents) {
+                Ok(Unit) ->
+                    if {
+                        file.executable -> case set_executable(path, true) {
+                            Ok(Unit) ->
+                                write_bad_fixture_files(
+                                    root,
+                                    workspace,
+                                    stage,
+                                    release,
+                                    item,
+                                    install,
+                                    baseline,
+                                    rest,
+                                );
+                            _ -> cleanup(workspace, false)
+                        };
+                        true -> write_bad_fixture_files(
+                            root,
+                            workspace,
+                            stage,
+                            release,
+                            item,
+                            install,
+                            baseline,
+                            rest,
+                        )
+                    };
+                _ -> cleanup(workspace, false)
+            }
+    }.
+
+create_bad_rollback_archive(
+    root: String,
+    workspace: String,
+    stage: String,
+    release: String,
+    item: InstallerCase,
+    install: String,
+    baseline: String,
+): Bool ->
+    let archive = child(release, item.artifact);
+    case Archive.create(stage, archive) {
+        Ok(Unit) ->
+            hash_bad_rollback_archive(root, workspace, release, item, install, baseline, archive);
+        _ -> cleanup(workspace, false)
+    }.
+
+hash_bad_rollback_archive(
+    root: String,
+    workspace: String,
+    release: String,
+    item: InstallerCase,
+    install: String,
+    baseline: String,
+    archive: String,
+): Bool ->
+    let {
+        Ok(digest) <- Hash.sha256_file(archive);
+        Ok(Unit) <-
+            write_text(
+                String.append(archive, ".sha256"),
+                String.append(digest, String.append("  ", String.append(item.artifact, "\n"))),
+            )
+    } else {
+        _ -> cleanup(workspace, false)
+    };
+    run_bad_rollback_install(root, workspace, item, install, baseline).
+
+run_bad_rollback_install(
+    root: String,
+    workspace: String,
+    item: InstallerCase,
+    install: String,
+    baseline: String,
+): Bool ->
+    let base = String.append("file://", child(workspace, "releases"));
+    case Process.run(installer_command(root, installer_environment(item, install, base, false))) {
+        Ok(output) -> inspect_rollback(workspace, install, baseline, output);
+        Err(_reason) -> cleanup(workspace, false)
+    }.
+
+inspect_rollback(workspace: String, install: String, baseline: String, output: Output): Bool ->
+    if {
+        Process.status(output) == 0 -> cleanup(workspace, fail("failing upgrade unexpectedly succeeded"));
+        true -> case read_text(child(install, "terlc")) {
+            Ok(restored) ->
+                cleanup(
+                    workspace,
+                    restored == baseline and installed_layout_holds(workspace, install),
+                );
+            _ -> cleanup(workspace, false)
+        }
+    }.
+
+cleanup(workspace: String, result: Bool): Bool ->
+    case remove_all(workspace) {
+        Ok(Unit) -> result;
+        Err(_reason) -> false
+    }.
+
+pub windows_installer_retains_the_required_static_contract(): Bool ->
+    case read_text("install.ps1") {
+        Ok(source) ->
+            contains_all(
+                source,
+                [
+                    "Version = \"v0.0.7\"",
+                    "terlc-windows-$terlanArch.zip",
+                    "Invoke-WebRequest",
+                    "Expand-Archive",
+                    "TERLAN_INSTALL_DRY_RUN",
+                    "Get-FileHash",
+                    "\"Arm64\"",
+                    "shareSource",
+                    "terlc.exe",
+                    "terlan-vm.exe",
+                    "terlan-native-worker.exe",
+                    "terlan-lsp.exe",
+                    "--version",
+                ],
+            );
+        Err(_reason) -> false
+    }.
+
+@pure
+contains_all(source: String, needles: List[String]): Bool ->
+    case needles {
+        [] -> true;
+        [needle | rest] -> String.contains(source, needle) and contains_all(source, rest)
+    }.

@@ -1,0 +1,149 @@
+/**
+ * Keeps generated HTML mutation and escaping behind the shared HTML feature.
+ */
+module scripts.self_validation.HtmlBoundary.
+
+import std.collections.List.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.File.{read_text_directory, read_text_many, text_file_contents, text_file_path}.
+import std.regex.Regex.
+
+import type std.io.File.TextFile.
+
+/**
+ * Returns whether repository HTML generation respects the shared boundary.
+ */
+pub repository_boundary_holds(root: String): Bool ->
+    case read_text_many(marker_paths(root)) {
+        Ok(marker_files) ->
+            marker_files_hold(marker_files, required_markers()) and renderer_sources_hold(root);
+        _ -> false
+    }.
+
+renderer_sources_hold(root: String): Bool ->
+    let static_root = String.append(root, "/crates/terlan/src/commands/static_site");
+    case read_text_directory(static_root) {
+        Ok(static_files) ->
+            renderer_files_reject_patterns(static_files, forbidden_html_patterns(), true)
+                and case read_text_many(renderer_paths(root)) {
+    Ok(renderer_files) ->
+        renderer_files_reject_patterns(renderer_files, forbidden_html_patterns(), false);
+    _ -> false
+};
+        _ -> false
+    }.
+
+marker_files_hold(files: List[TextFile], markers: List[String]): Bool ->
+    case files {
+        [] -> markers == List.new[String]();
+        [file | file_rest] ->
+            case markers {
+                [] -> false;
+                [marker | marker_rest] ->
+                    source_contains_marker(text_file_contents(file), marker)
+                        and marker_files_hold(file_rest, marker_rest)
+            }
+    }.
+
+@pure
+source_contains_marker(source: String, marker: String): Bool ->
+    String.contains(source, marker).
+
+renderer_files_reject_patterns(
+    files: List[TextFile],
+    patterns: List[String],
+    filter_static_files: Bool,
+): Bool ->
+    case files {
+        [] -> true;
+        [file | rest] ->
+            let path = text_file_path(file);
+            if {
+                filter_static_files and not String.ends_with(path, ".rs")
+                    or String.ends_with(path, "_test.rs") -> renderer_files_reject_patterns(rest, patterns, true);
+                true -> source_rejects_no_patterns(text_file_contents(file), patterns)
+                    and renderer_files_reject_patterns(rest, patterns, filter_static_files)
+            }
+    }.
+
+source_rejects_no_patterns(source: String, patterns: List[String]): Bool ->
+    case patterns {
+        [] -> true;
+        [pattern | rest] ->
+            not regex_matches(pattern, source) and source_rejects_no_patterns(source, rest)
+    }.
+
+regex_matches(pattern: String, source: String): Bool ->
+    case Regex.compile(pattern) {
+        Ok(regex) -> Regex.is_match(regex, source);
+        _ -> true
+    }.
+
+@pure
+marker_paths(root: String): List[String] ->
+    [
+        String.append(root, "/crates/terlan/src/html/README.md"),
+        String.append(root, "/crates/terlan/src/html/README.md"),
+        String.append(root, "/crates/terlan/src/html/escaping.rs"),
+        String.append(root, "/crates/terlan/src/commands/static_site/mod.rs"),
+        String.append(root, "/crates/terlan/src/commands/static_site/render.rs"),
+        String.append(root, "/crates/terlan/src/commands/doc/mod.rs"),
+        String.append(root, "/crates/terlan/src/commands/doc/render/support.rs"),
+    ].
+
+@pure
+required_markers(): List[String] ->
+    [
+        "Inject static-site `<base href>` metadata through the shared HTML boundary.",
+        "Escape generated HTML text nodes and attribute values through the shared HTML",
+        "ammonia::clean_text(text)",
+        "crate::terlan_html::inject_html_base_path",
+        "use crate::terlan_html::{escape_html_attr, escape_html_text};",
+        "use crate::terlan_html::escape_html_text;",
+        "use crate::terlan_html::escape_html_text;",
+    ].
+
+@pure
+renderer_paths(root: String): List[String] ->
+    [
+        String.append(root, "/crates/terlan/src/commands/doc/mod.rs"),
+        String.append(root, "/crates/terlan/src/commands/doc/render.rs"),
+        String.append(root, "/crates/terlan/src/commands/doc/render/support.rs"),
+    ].
+
+@pure
+forbidden_html_patterns(): List[String] ->
+    [
+        "format!\\s*\\(\\s*r?#?[\"']<base\\s+href=",
+        "\\.replace\\s*\\(\\s*['\"]&['\"]\\s*,\\s*['\"]&amp;['\"]\\s*\\)",
+        "\\.replace\\s*\\(\\s*['\"]<['\"]\\s*,\\s*['\"]&lt;['\"]\\s*\\)",
+        "\\.replace\\s*\\(\\s*['\"]>['\"]\\s*,\\s*['\"]&gt;['\"]\\s*\\)",
+    ].
+
+@test
+pub repository_html_boundary_holds(): Bool ->
+    repository_boundary_holds(".").
+
+@test
+pub required_markers_accept_exact_ownership(): Bool ->
+    source_contains_marker("shared marker", "shared marker").
+
+@test
+pub required_markers_reject_missing_ownership(): Bool ->
+    not source_contains_marker("local helper", "shared marker").
+
+@test
+pub inline_base_tag_construction_is_rejected(): Bool ->
+    not source_rejects_no_patterns("format!(r#\"<base href=\"{}\">\"#, path)", forbidden_html_patterns()).
+
+@test
+pub local_entity_replacement_is_rejected(): Bool ->
+    not source_rejects_no_patterns("value.replace(\"&\", \"&amp;\")", forbidden_html_patterns()).
+
+@test
+pub shared_html_helper_call_is_accepted(): Bool ->
+    source_rejects_no_patterns(
+        "crate::terlan_html::escape_html_text(value)",
+        forbidden_html_patterns(),
+    ).

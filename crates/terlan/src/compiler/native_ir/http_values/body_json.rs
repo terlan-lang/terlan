@@ -216,24 +216,38 @@ fn guarded_condition(
 
 /// Maps one supported result pattern to its predicate and optional payload binding.
 fn result_pattern(pattern: &CorePattern) -> Result<(CoreExpr, Option<PayloadBinding>), String> {
-    match pattern {
+    let variant_and_payload = match pattern {
         CorePattern::Constructor { name, args, .. }
             if matches!(name.rsplit('.').next(), Some("Ok" | "Err")) && args.len() == 1 =>
         {
-            let variant = name.rsplit('.').next().expect("matched result variant");
-            let is_ok = managed_call(
-                "body_json_is_ok",
-                vec![CoreExpr::Var(BODY_JSON_TEMPORARY.to_string())],
-            );
-            let condition = if variant == "Ok" {
-                is_ok
-            } else {
-                CoreExpr::UnaryOp {
-                    operator: "not".to_string(),
-                    operand: Box::new(is_ok),
-                }
+            Some((
+                name.rsplit('.').next().expect("matched result variant"),
+                &args[0],
+            ))
+        }
+        CorePattern::Tuple(items) if matches!(items.as_slice(), [CorePattern::Atom(tag), _] if matches!(tag.as_str(), "ok" | "error")) =>
+        {
+            let [CorePattern::Atom(tag), payload] = items.as_slice() else {
+                unreachable!("matched structural result pattern")
             };
-            let payload = match &args[0] {
+            Some((if tag == "ok" { "Ok" } else { "Err" }, payload))
+        }
+        _ => None,
+    };
+    if let Some((variant, payload_pattern)) = variant_and_payload {
+        let is_ok = managed_call(
+            "body_json_is_ok",
+            vec![CoreExpr::Var(BODY_JSON_TEMPORARY.to_string())],
+        );
+        let condition = if variant == "Ok" {
+            is_ok
+        } else {
+            CoreExpr::UnaryOp {
+                operator: "not".to_string(),
+                operand: Box::new(is_ok),
+            }
+        };
+        let payload = match payload_pattern {
                 CorePattern::Wildcard => None,
                 CorePattern::Var(name) => Some(PayloadBinding {
                     name: name.clone(),
@@ -250,8 +264,9 @@ fn result_pattern(pattern: &CorePattern) -> Result<(CoreExpr, Option<PayloadBind
                     )
                 }
             };
-            Ok((condition, payload))
-        }
+        return Ok((condition, payload));
+    }
+    match pattern {
         CorePattern::Wildcard => Ok((CoreExpr::Atom("true".to_string()), None)),
         CorePattern::Var(name) => Ok((
             CoreExpr::Atom("true".to_string()),

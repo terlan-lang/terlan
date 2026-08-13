@@ -23,7 +23,7 @@ pub disconnect_typechecks(receiver: MutationObserver): Unit ->
 pub observe_typechecks(
     receiver: MutationObserver,
     target_: Node,
-    options: MutationObserverInit
+    options: MutationObserverInit,
 ): Unit ->
     receiver.observe(target_, options).
 

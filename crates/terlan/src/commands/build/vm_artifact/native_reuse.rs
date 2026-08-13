@@ -12,6 +12,7 @@ use crate::CliState;
 use super::super::{write_build_file, BuildOneError};
 use super::native_cache::{is_sha256, load_verified_entry, sha256_hex};
 use super::native_image::{CompiledNativeApplicationImage, DIRECT_AOT_BACKEND};
+use super::output_cleanup;
 
 const REUSE_SCHEMA: &str = "terlan-native-reuse-v2";
 
@@ -40,7 +41,8 @@ pub(super) fn reuse_dependency_free_native_image(
     let Ok(canonical_source) = fs::canonicalize(path) else {
         return Ok(false);
     };
-    let Ok(syntax) = crate::terlan_syntax::parse_module_as_syntax_output(&source_text) else {
+    let Ok(syntax) = crate::formal_pipeline::parse_source_as_syntax_output(path, &source_text)
+    else {
         return Ok(false);
     };
     if syntax
@@ -60,10 +62,10 @@ pub(super) fn reuse_dependency_free_native_image(
     let Some(stamp) = parse_stamp(&stamp_text) else {
         return Ok(false);
     };
-    let target = host_tvm_target().map_err(BuildOneError::Message)?;
+    let target = host_tvm_target().map_err(|error| BuildOneError::Message(error.into()))?;
     let adapter_abi = NativeAdapterAbiContract::current()
         .cache_identity(&target.triple, &target.calling_convention)
-        .map_err(BuildOneError::Message)?;
+        .map_err(|error| BuildOneError::Message(error.into()))?;
     if stamp.source_sha256 != source_identity(&canonical_source, &source_text, policy)
         || stamp.image_name != format!("{module_stem}.tvm")
         || stamp.policy != policy.cache_identity()
@@ -97,10 +99,20 @@ pub(super) fn reuse_dependency_free_native_image(
     if inspection.descriptor.identity.build != format!("sha256:{}", stamp.input_sha256) {
         return Ok(false);
     }
-    let Ok(published_image) = fs::read(vm_dir.join(&stamp.image_name)) else {
-        return Ok(false);
-    };
-    Ok(published_image == cached_image)
+    fs::create_dir_all(&vm_dir).map_err(|error| {
+        BuildOneError::Message(format!(
+            "cannot create VM artifact directory `{}`: {error}",
+            vm_dir.display()
+        ))
+    })?;
+    write_build_file(
+        &vm_dir.join(&stamp.image_name),
+        &cached_image,
+        state.incremental,
+    )
+    .map_err(BuildOneError::Message)?;
+    output_cleanup::remove_stale_tvm_images(&vm_dir, Some(&stamp.image_name))?;
+    Ok(true)
 }
 
 /// Publishes the source-to-native-cache identity used by warm incremental builds.
@@ -122,10 +134,10 @@ pub(super) fn write_native_reuse_stamp(
             image.image_name
         ))
     })?;
-    let target = host_tvm_target().map_err(BuildOneError::Message)?;
+    let target = host_tvm_target().map_err(|error| BuildOneError::Message(error.into()))?;
     let adapter_abi = NativeAdapterAbiContract::current()
         .cache_identity(&target.triple, &target.calling_convention)
-        .map_err(BuildOneError::Message)?;
+        .map_err(|error| BuildOneError::Message(error.into()))?;
     let stamp = render_stamp(&NativeReuseStamp {
         source_sha256: source_identity(&canonical_source, source_text, policy),
         image_name: image.image_name.clone(),
@@ -291,4 +303,5 @@ fn descriptor_object_name(stem: &str) -> String {
 
 #[cfg(test)]
 #[path = "native_reuse_test.rs"]
+#[cfg(test)]
 mod native_reuse_test;

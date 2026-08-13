@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::persistent_actor_telemetry::{
@@ -202,4 +200,5 @@ fn checked_add(
 
 #[cfg(test)]
 #[path = "persistent_actor_telemetry_aggregation_test.rs"]
+#[cfg(test)]
 mod persistent_actor_telemetry_aggregation_test;

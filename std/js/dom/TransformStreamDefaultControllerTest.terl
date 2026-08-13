@@ -18,7 +18,7 @@ import type std.js.Dom.TransformStreamDefaultController.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub desired_size_typechecks(
-    receiver: TransformStreamDefaultController[O]
+    receiver: TransformStreamDefaultController[O],
 ): Option[std.js.Number.JsNumber] ->
     receiver.desired_size().
 

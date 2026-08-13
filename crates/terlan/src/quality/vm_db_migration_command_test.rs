@@ -6,8 +6,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde_json::json;
 
 use super::{
-    parse_migration_filename, run_vm_db_migration_command, validate_report, MIGRATION_FIXTURES,
-    SOURCE_CONTRACTS,
+    parse_migration_filename, run_vm_db_migration_command, validate_report, LIVE_EVIDENCE_PATH,
+    MIGRATION_FIXTURES, SOURCE_CONTRACTS,
 };
 
 struct TestRepo {
@@ -51,8 +51,22 @@ impl TestRepo {
             )?;
         }
         self.write(
+            LIVE_EVIDENCE_PATH,
+            &serde_json::to_string_pretty(&json!({
+                "schema": "terlan.vm-db-migration-live-evidence.v1",
+                "migration_snapshot_id": format!("sha256:{}", "1".repeat(64)),
+                "schema_fingerprint": format!("sha256:{}", "2".repeat(64)),
+                "replay_migration_snapshot_id": format!("sha256:{}", "1".repeat(64)),
+                "replay_schema_fingerprint": format!("sha256:{}", "2".repeat(64)),
+                "lock_conflict_observed": true,
+                "failed_migration_rolled_back": true,
+                "schema_drift_rejected": true,
+            }))
+            .expect("serialize live evidence fixture"),
+        )?;
+        self.write(
             "Makefile",
-            "vm-db-migration-command-check: vm-dev-dependency-orchestration-check db-command-check\n\tcargo run -p terlan --bin terlan-quality --quiet -- vm-db-migration-command\n\ttest -s target/quality/vm-db-migration-report.json\nvm-sql-macro-validation-check: vm-db-migration-command-check\n",
+            "vm-db-migration-command-check: vm-dev-dependency-orchestration-check db-command-check\n\tcargo test -p terlan --lib commands::db::live_test::run_db_migration_and_snapshot_lifecycle_against_docker_postgres -- --ignored --exact\n\tcargo run -p terlan --bin terlan-quality --features quality-tools --quiet -- vm-db-migration-command\n\ttest -s target/quality/vm-db-migration-report.json\nvm-sql-macro-validation-check: vm-db-migration-command-check\n",
         )
     }
 }
@@ -93,8 +107,46 @@ fn gate_writes_deterministic_redacted_migration_evidence() {
     assert!(first_text.contains("name-mismatch"));
     assert!(first_text.contains("applied_at_metadata"));
     assert!(first_text.contains("rfc3339-utc-microseconds"));
+    assert!(first_text.contains("live-replay-matched"));
+    assert!(first_text.contains(&format!("sha256:{}", "2".repeat(64))));
     assert!(first_text.contains("\"wall_clock_values_reported\": false"));
     assert!(!first_text.contains("SELECT 1"));
+}
+
+#[test]
+fn gate_rejects_live_schema_replay_mismatch() {
+    let repo = TestRepo::new("live-replay-mismatch").expect("fixture");
+    repo.write_complete_fixture().expect("write fixture");
+    let text = fs::read_to_string(repo.root().join(LIVE_EVIDENCE_PATH)).expect("live evidence");
+    repo.write(
+        LIVE_EVIDENCE_PATH,
+        &text
+            .replace(
+                &format!("sha256:{}", "2".repeat(64)),
+                &format!("sha256:{}", "3".repeat(64)),
+            )
+            .replacen(
+                &format!("sha256:{}", "3".repeat(64)),
+                &format!("sha256:{}", "2".repeat(64)),
+                1,
+            ),
+    )
+    .expect("rewrite live evidence");
+
+    let error = run_vm_db_migration_command(repo.root()).expect_err("gate must fail");
+
+    assert!(error.contains("schema replay did not reproduce its fingerprint"));
+}
+
+#[test]
+fn gate_rejects_missing_live_database_evidence() {
+    let repo = TestRepo::new("missing-live-evidence").expect("fixture");
+    repo.write_complete_fixture().expect("write fixture");
+    fs::remove_file(repo.root().join(LIVE_EVIDENCE_PATH)).expect("remove live evidence fixture");
+
+    let error = run_vm_db_migration_command(repo.root()).expect_err("gate must fail");
+
+    assert!(error.contains(LIVE_EVIDENCE_PATH));
 }
 
 #[test]
@@ -115,7 +167,7 @@ fn gate_rejects_missing_applied_at_utc_normalization_anchor() {
 fn gate_rejects_missing_destructive_confirmation_anchor() {
     let repo = TestRepo::new("missing-confirmation").expect("fixture");
     repo.write_complete_fixture().expect("write fixture");
-    let command_path = "crates/terlan/src/commands/db/mod.rs";
+    let command_path = "crates/terlan/src/commands/db/database_config.rs";
     let source = fs::read_to_string(repo.root().join(command_path)).expect("command fixture");
     repo.write(command_path, &source.replace("requires --confirm", ""))
         .expect("rewrite command fixture");
@@ -264,7 +316,7 @@ fn gate_rejects_make_order_drift() {
     repo.write_complete_fixture().expect("write fixture");
     repo.write(
         "Makefile",
-        "vm-db-migration-command-check: vm-dev-dependency-orchestration-check db-command-check\n\tcargo run -p terlan --bin terlan-quality --quiet -- vm-db-migration-command\n\ttest -s target/quality/vm-db-migration-report.json\nvm-sql-macro-validation-check:\n",
+        "vm-db-migration-command-check: vm-dev-dependency-orchestration-check db-command-check\n\tcargo test -p terlan --lib commands::db::live_test::run_db_migration_and_snapshot_lifecycle_against_docker_postgres -- --ignored --exact\n\tcargo run -p terlan --bin terlan-quality --features quality-tools --quiet -- vm-db-migration-command\n\ttest -s target/quality/vm-db-migration-report.json\nvm-sql-macro-validation-check:\n",
     )
     .expect("rewrite Makefile");
 

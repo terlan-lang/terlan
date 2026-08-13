@@ -180,7 +180,7 @@ pub set_range_text_typechecks(
     replacement: JsString,
     start: JsNumber,
     end: JsNumber,
-    selection_mode: SelectionMode
+    selection_mode: SelectionMode,
 ): Unit ->
     receiver.set_range_text(replacement, start, end, selection_mode).
 
@@ -197,7 +197,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLInputElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -205,6 +205,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLInputElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

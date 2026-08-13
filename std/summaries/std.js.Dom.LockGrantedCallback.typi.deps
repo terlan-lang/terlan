@@ -1,7 +1,7 @@
 module=std.js.Dom.LockGrantedCallback
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 source_hash=2056183807166822905
 interface_hash=10512790989544030629
 interface_doc_hash=10512790989544030629

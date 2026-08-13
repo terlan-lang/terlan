@@ -1,0 +1,47 @@
+module memory_aot.
+
+import std.core.Memory.
+
+import type std.core.Memory.{Storage}.
+
+pub int_layout_size(): Int ->
+    Memory.size(Memory.layout_of[Int]()).
+
+pub bool_layout_alignment(): Int ->
+    Memory.alignment(Memory.layout_of[Bool]()).
+
+pub string_layout_size(): Int ->
+    Memory.size(Memory.layout_of[String]()).
+
+pub int_shallow_size(): Int ->
+    Memory.shallow_size[Int](42).
+
+pub int_retained_size(): Int ->
+    Memory.retained_size[Int](42).
+
+pub string_shallow_size(): Int ->
+    Memory.shallow_size[String]("hello").
+
+pub string_retained_size(): Int ->
+    Memory.retained_size[String]("hello").
+
+pub int_storage(): Storage ->
+    Memory.storage(Memory.layout_of[Int]()).
+
+pub string_storage(): Storage ->
+    Memory.storage(Memory.layout_of[String]()).
+
+pub dynamic_layout_size(): Int ->
+    Memory.size(Memory.layout_of[Dynamic]()).
+
+pub memory_contract(): Bool ->
+    Memory.size(Memory.layout_of[Int]()) == 8
+        and Memory.alignment(Memory.layout_of[Int]()) == 8
+        and Memory.alignment(Memory.layout_of[Bool]()) == 1
+        and Memory.size(Memory.layout_of[String]()) == 8
+        and Memory.size(Memory.layout_of[Dynamic]()) == 0
+        and Memory.alignment(Memory.layout_of[Dynamic]()) == 1
+        and Memory.shallow_size[Int](42) == 8
+        and Memory.retained_size[Int](42) == 8
+        and Memory.shallow_size[String]("hello") == 13
+        and Memory.retained_size[String]("hello") == 13.

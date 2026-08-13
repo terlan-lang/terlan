@@ -19,6 +19,7 @@ impl VmProcessAliasTransfer {
     }
 
     /// Returns the number of exact aliases retained by this transfer.
+    #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
         self.aliases.len()
     }

@@ -85,6 +85,7 @@ impl Drop for PureNativeActorGenerationLease {
 
 impl PureNativeExecutionShard {
     /// Pins one runtime reference that cannot be inferred from actor tables.
+    #[cfg(test)]
     pub(crate) fn pin_generation_reference(
         &mut self,
         class: VmNativeGenerationReferenceClass,
@@ -100,6 +101,7 @@ impl PureNativeExecutionShard {
     }
 
     /// Releases one externally tracked generation reference exactly once.
+    #[cfg(test)]
     pub(crate) fn release_generation_reference(
         &mut self,
         class: VmNativeGenerationReferenceClass,

@@ -1,14 +1,74 @@
 use std::collections::HashMap;
 
 use crate::runtime::native_image::managed::ManagedFieldType;
-use crate::terlan_hir::resolve_syntax_module_output;
+use crate::terlan_hir::{
+    checked_in_std_interfaces_for_module, resolve_syntax_module_output,
+    resolve_syntax_module_output_with_interfaces,
+};
 use crate::terlan_syntax::parse_module_as_syntax_output;
-use crate::terlan_typeck::{CoreConstructorDecl, CoreExpr, CoreParam, CoreType};
+use crate::terlan_typeck::{
+    lower_syntax_module_output_to_core, type_check_syntax_module_output, CoreConstructorDecl,
+    CoreExpr, CoreParam, CoreType,
+};
 
 use super::constructor_chain::lower_constructor_chains;
 use super::constructors::native_constructor_layouts;
 use super::expression::lower_expr_with_constructors;
-use super::{NativeExpr, NativeType};
+use super::native_object_test_support::{
+    assert_managed_native_object_invocations, NativeObjectInvocation,
+};
+use super::{emit_native_application_object, status, NativeExpr, NativeModule, NativeType};
+
+#[test]
+fn transparent_generic_variant_return_keeps_the_declared_union_layout() {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module native_constructor_return.
+
+import std.core.Option.{None, Some}.
+import type std.core.Option.Option.
+
+pub classify(value: String): Option[String] ->
+    if {
+        value == "present" -> Some("selected");
+        true -> Some("fallback")
+    }.
+
+pub selected(): Bool ->
+    case classify("present") {
+        Some(value) -> value == "selected";
+        None -> false
+    }.
+"#,
+    )
+    .expect("parse transparent constructor return fixture");
+    let interfaces = checked_in_std_interfaces_for_module(&syntax);
+    let resolved = resolve_syntax_module_output_with_interfaces(&syntax, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = NativeModule::lower_application(&[&core]).expect("lower constructor return");
+    let export_id = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "selected")
+        .expect("selected export")
+        .export_id;
+    let object = emit_native_application_object("native_constructor_return", &modules)
+        .expect("emit constructor return object");
+
+    assert_managed_native_object_invocations(
+        "native-constructor-return",
+        &modules,
+        &object,
+        &[NativeObjectInvocation {
+            export_id,
+            arguments: Vec::new(),
+            expected_status: status::OK,
+            expected_result: Some(1),
+        }],
+    );
+}
 
 /// Builds one fixed constructor declaration for a shared `Result[Int, Int]` union.
 fn declaration(name: &str, parameter: &str) -> CoreConstructorDecl {
@@ -90,6 +150,84 @@ fn constructor_layouts_are_stable_across_declaration_order() {
     assert!(first.contains_key(&("result.Ok".to_owned(), 1)));
 }
 
+/// Verifies explicit transparent-record constructors retain nominal identity.
+///
+/// Imported signatures carry a record's module-qualified name while its
+/// visible body carries the full structural shape. Both forms must lower to
+/// one semantic ID so record values survive native suspension boundaries.
+#[test]
+fn transparent_record_constructor_uses_qualified_nominal_semantic_identity() {
+    let canonical = "std.range.Range.Range";
+    let declaration = CoreConstructorDecl {
+        name: "Range".to_owned(),
+        public: true,
+        min_arity: 4,
+        params: vec![
+            CoreParam {
+                name: "start".to_owned(),
+                ty: "Int".to_owned(),
+                core_ty: Some(CoreType::Int),
+            },
+            CoreParam {
+                name: "stop".to_owned(),
+                ty: "Int".to_owned(),
+                core_ty: Some(CoreType::Int),
+            },
+            CoreParam {
+                name: "step".to_owned(),
+                ty: "Int".to_owned(),
+                core_ty: Some(CoreType::Int),
+            },
+            CoreParam {
+                name: "inclusive".to_owned(),
+                ty: "Bool".to_owned(),
+                core_ty: Some(CoreType::Bool),
+            },
+        ],
+        vararg: None,
+        return_type: "Range".to_owned(),
+        core_return_type: Some(CoreType::Struct {
+            name: canonical.to_owned(),
+            fields: vec![
+                crate::terlan_typeck::CoreStructTypeField {
+                    name: "start".to_owned(),
+                    ty: CoreType::Int,
+                    is_private: false,
+                },
+                crate::terlan_typeck::CoreStructTypeField {
+                    name: "stop".to_owned(),
+                    ty: CoreType::Int,
+                    is_private: false,
+                },
+                crate::terlan_typeck::CoreStructTypeField {
+                    name: "step".to_owned(),
+                    ty: CoreType::Int,
+                    is_private: false,
+                },
+                crate::terlan_typeck::CoreStructTypeField {
+                    name: "inclusive".to_owned(),
+                    ty: CoreType::Bool,
+                    is_private: false,
+                },
+            ],
+        }),
+    };
+
+    let layouts = native_constructor_layouts(
+        &[("std.range.Range", std::slice::from_ref(&declaration))],
+        "consumer",
+    )
+    .expect("transparent record constructor layout");
+    let layout = &layouts[&("std.range.Range.Range".to_owned(), 4)];
+    let expected = crate::runtime::native_image::managed::SemanticTypeId::from_canonical(canonical)
+        .expect("nominal semantic");
+
+    assert_eq!(layout.descriptor.canonical_type(), canonical);
+    assert_eq!(layout.descriptor.discriminant(), None);
+    assert_eq!(layout.result, NativeType::ManagedRef(expected));
+    assert_eq!(layout.descriptor.managed().semantic_id(), expected);
+}
+
 #[test]
 fn unresolved_and_vararg_constructors_are_rejected_without_partial_lowering() {
     let mut vararg = declaration("Many", "first");
@@ -142,7 +280,12 @@ fn constructor_lowering_rejects_a_field_that_disagrees_with_checked_layout() {
     )
     .expect_err("field type mismatch must fail");
 
-    assert!(error.contains("requires Int, found Bool"));
+    assert!(
+        error.starts_with("error[native_ir.collection_value]"),
+        "{error}"
+    );
+    assert!(error.contains("expected Int"), "{error}");
+    assert!(error.contains("found Bool"), "{error}");
 }
 
 #[test]

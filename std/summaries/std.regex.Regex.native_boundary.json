@@ -12,6 +12,11 @@
     },
     {
       "arity": 2,
+      "name": "matching_line_numbers",
+      "operation": "std.regex.regex.matching_line_numbers"
+    },
+    {
+      "arity": 2,
       "name": "find",
       "operation": "std.regex.regex.find"
     },

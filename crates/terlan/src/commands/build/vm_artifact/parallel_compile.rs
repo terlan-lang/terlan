@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 use std::thread;
+use std::time::Instant;
 
 use crate::CliState;
 
@@ -40,7 +41,19 @@ pub(super) fn compile_vm_modules(
 ) -> Result<Vec<CompiledVmModule>, BuildOneError> {
     let worker_limit = bounded_worker_limit();
     match run_indexed_bounded(paths, worker_limit, |path| {
-        compile_vm_module(&path.to_string_lossy(), state)
+        let started = Instant::now();
+        if state.timings {
+            eprintln!("terlc timing: vm.frontend.start: {}", path.display());
+        }
+        let result = compile_vm_module(&path.to_string_lossy(), state);
+        if state.timings {
+            eprintln!(
+                "terlc timing: vm.frontend.finish: {}: {}ms",
+                path.display(),
+                started.elapsed().as_millis()
+            );
+        }
+        result
     }) {
         Ok(modules) => Ok(modules),
         Err(ParallelTaskError::Task(error)) => Err(error),

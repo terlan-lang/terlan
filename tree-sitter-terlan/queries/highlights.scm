@@ -14,14 +14,19 @@
   "<"
   "<="
   ".."
+  "and"
+  "as"
+  "div"
+  "in"
+  "not"
+  "or"
+  "rem"
 ] @operator
 
 [
   "case"
   "if"
-  "in"
   "let"
-  "when"
   "where"
 ] @keyword.control
 

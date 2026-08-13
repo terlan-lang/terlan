@@ -1,8 +1,10 @@
 module=std.vm.Task
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=3432023397806958572
-interface_hash=1703500156388681057
-interface_doc_hash=12240860361995211238
-deps=0
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=16030382593392280628
+interface_hash=14491319302391032112
+interface_doc_hash=1080294163491611336
+deps=2
+std.core.Unit=13611133214341763160
+std.vm.Process=4559445320576606900

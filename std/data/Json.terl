@@ -7,7 +7,9 @@
  */
 module std.data.Json.
 
-import type std.core.{Error, Result}.
+import std.core.String.
+
+import type std.core.{Error, Option, Result}.
 
 /**
  * Json represents a parsed JSON value.
@@ -32,8 +34,147 @@ pub opaque type Json.
  * data shape without exposing target-specific exception values.
  */
 pub struct JsonError includes Error {
-    offset: Int
+    offset: Int,
 }.
+
+/**
+ * Returns a JSON error's stable machine-readable code.
+ */
+pub error_code(error: JsonError): Atom ->
+    error.code.
+
+/**
+ * Returns a JSON error's human-readable message.
+ */
+pub error_message(error: JsonError): String ->
+    error.message.
+
+/**
+ * Returns a JSON error's byte offset, or zero when unavailable.
+ */
+pub error_offset(error: JsonError): Int ->
+    error.offset.
+
+/**
+ * One row projected from a JSON array by `string_field_rows`.
+ *
+ * Input: whether the source element was an object and one optional string for
+ * each requested field in caller order.
+ * Output: a typed, recursively owned projection with no backend JSON values.
+ * Transformation: distinguishes a non-object row from an object whose fields
+ * are absent or non-string, while preserving exact array and field order.
+ */
+pub struct StringFieldRow {
+    object: Bool,
+    values: List[Option[String]],
+}.
+
+/**
+ * One parent row and its nested object-array string projection.
+ */
+pub struct NestedStringFieldRow {
+    object: Bool,
+    values: List[Option[String]],
+    child_array: Bool,
+    children: List[StringFieldRow],
+}.
+
+/**
+ * Strict owned projection of required scalar and array fields from one object.
+ * Values preserve the caller's requested order and contain no opaque JSON
+ * handles, so validation code can safely retain them across continuations.
+ */
+pub struct RequiredFieldProjection {
+    strings: List[String],
+    ints: List[Int],
+    array_lengths: List[Int],
+}.
+
+/**
+ * Strict owned scalar projection for one element of a JSON object array.
+ *
+ * Input: required field names supplied to `required_field_rows`.
+ * Output: string, integer, and boolean values in the caller's field order.
+ * Transformation: contains no opaque JSON handles, allowing report rows to
+ * cross the native boundary in bounded batches instead of once per field.
+ */
+pub struct RequiredFieldRow {
+    strings: List[String],
+    ints: List[Int],
+    bools: List[Bool],
+}.
+
+/**
+ * Returns whether a projected JSON array element was an object.
+ */
+pub string_field_row_is_object(row: StringFieldRow): Bool ->
+    row.object.
+
+/**
+ * Returns projected optional strings in requested field order.
+ */
+pub string_field_row_values(row: StringFieldRow): List[Option[String]] ->
+    row.values.
+
+/**
+ * Returns whether the projected parent row was an object.
+ */
+pub nested_string_field_row_is_object(row: NestedStringFieldRow): Bool ->
+    row.object.
+
+/**
+ * Returns projected parent string fields in requested order.
+ */
+pub nested_string_field_row_values(row: NestedStringFieldRow): List[Option[String]] ->
+    row.values.
+
+/**
+ * Returns whether the requested child member was a JSON array.
+ */
+pub nested_string_field_row_has_child_array(row: NestedStringFieldRow): Bool ->
+    row.child_array.
+
+/**
+ * Returns the child object-array projection in source order.
+ */
+pub nested_string_field_row_children(row: NestedStringFieldRow): List[StringFieldRow] ->
+    row.children.
+
+/**
+ * Returns required string values in requested order.
+ */
+pub required_field_strings(projection: RequiredFieldProjection): List[String] ->
+    projection.strings.
+
+/**
+ * Returns required integer values in requested order.
+ */
+pub required_field_ints(projection: RequiredFieldProjection): List[Int] ->
+    projection.ints.
+
+/**
+ * Returns required array lengths in requested order.
+ */
+pub required_field_array_lengths(projection: RequiredFieldProjection): List[Int] ->
+    projection.array_lengths.
+
+/**
+ * Returns required string values projected from one object-array row.
+ */
+pub required_field_row_strings(row: RequiredFieldRow): List[String] ->
+    row.strings.
+
+/**
+ * Returns required integer values projected from one object-array row.
+ */
+pub required_field_row_ints(row: RequiredFieldRow): List[Int] ->
+    row.ints.
+
+/**
+ * Returns required boolean values projected from one object-array row.
+ */
+pub required_field_row_bools(row: RequiredFieldRow): List[Bool] ->
+    row.bools.
 
 /**
  * Creates a JSON null value.
@@ -124,24 +265,44 @@ pub object(): Json ->
  * Appends a value to a JSON array.
  *
  * Input: one mutable JSON array receiver and one JSON value.
- * Output: `Unit`.
+ * Output: the same JSON array for fluent construction.
  * Transformation: updates the mutable receiver through the native JSON
  * builder capability without exposing the backend array representation.
  */
 @compiler.native {std.data.json.array_push}
-pub (mut json: Json) push(value: Json): Unit ->
+pub (mut json: Json) push(value: Json): Json ->
+    native.
+
+/**
+ * Appends another array and returns the same array for fluent construction.
+ */
+@compiler.native {std.data.json.array_extend}
+pub (mut json: Json) extend(values: Json): Json ->
+    native.
+
+/**
+ * Replaces one existing JSON array element.
+ *
+ * Input: a mutable JSON array receiver, a zero-based index, and a JSON value.
+ * Output: the same JSON array when the index exists; invalid receivers and indices fail at
+ * the native boundary with the same stable errors as `at`.
+ * Transformation: replaces exactly one owned array element without exposing
+ * or aliasing the backend JSON representation.
+ */
+@compiler.native {std.data.json.array_set}
+pub (mut json: Json) set(index: Int, value: Json): Json ->
     native.
 
 /**
  * Inserts or replaces a member on a JSON object.
  *
  * Input: one mutable JSON object receiver, one UTF-8 key, and one JSON value.
- * Output: `Unit`.
+ * Output: the same JSON object for fluent construction.
  * Transformation: updates the mutable receiver through the native JSON
  * builder capability without exposing the backend object representation.
  */
 @compiler.native {std.data.json.object_put}
-pub (mut json: Json) put(key: String, value: Json): Unit ->
+pub (mut json: Json) put(key: String, value: Json): Json ->
     native.
 
 /**
@@ -169,6 +330,19 @@ pub stringify(json: Json): Result[String, JsonError] ->
     native.
 
 /**
+ * Renders a JSON value with canonical two-space indentation.
+ *
+ * Input: one `Json` value.
+ * Output: `Ok(text)` containing stable multiline JSON when rendering succeeds,
+ * otherwise `Err(JsonError)`.
+ * Transformation: delegates pretty serialization to the selected target JSON
+ * capability while retaining deterministic object-key order.
+ */
+@compiler.native {std.data.json.stringify_pretty}
+pub stringify_pretty(json: Json): Result[String, JsonError] ->
+    native.
+
+/**
  * Reads an object member by key.
  *
  * Input: one `Json` receiver and one UTF-8 object key.
@@ -179,6 +353,140 @@ pub stringify(json: Json): Result[String, JsonError] ->
  */
 @compiler.native {std.data.json.get}
 pub (json: Json) get(key: String): Result[Json, JsonError] ->
+    native.
+
+/**
+ * Returns the sorted member names of a JSON object.
+ *
+ * Input: one `Json` receiver.
+ * Output: `Ok(keys)` when the receiver is an object, otherwise
+ * `Err(JsonError)`.
+ * Transformation: copies object member names into a portable `List[String]`
+ * in bytewise sorted order without exposing the backend map representation.
+ */
+@compiler.native {std.data.json.keys}
+pub (json: Json) keys(): Result[List[String], JsonError] ->
+    native.
+
+/**
+ * Returns the number of members in a JSON object without allocating a key list.
+ */
+@compiler.native {std.data.json.object_length}
+pub (json: Json) object_length(): Result[Int, JsonError] ->
+    native.
+
+/**
+ * Projects optional string fields from one JSON object.
+ *
+ * Input: a JSON object and ordered field names.
+ * Output: one optional string per requested field. Missing and non-string
+ * members become `None` without exposing backend JSON values.
+ * Transformation: performs one typed native traversal and preserves requested
+ * field order for efficient manifest metadata decoding.
+ */
+@compiler.native {std.data.json.string_fields}
+pub (json: Json) string_fields(fields: List[String]): Result[List[Option[String]], JsonError] ->
+    native.
+
+/**
+ * Projects required string, integer, and array-length fields in one native
+ * operation. Missing fields and type mismatches are typed `JsonError` values;
+ * the returned projection is ordinary owned Terlan data.
+ */
+@compiler.native {std.data.json.required_fields}
+pub (json: Json) required_fields(
+    string_fields: List[String],
+    int_fields: List[String],
+    array_fields: List[String],
+): Result[RequiredFieldProjection, JsonError] ->
+    native.
+
+/**
+ * Projects required scalar fields from every element of a JSON object array.
+ *
+ * Input: a JSON array plus ordered required string, integer, and boolean field
+ * names. Output: one fully owned `RequiredFieldRow` per source element.
+ * Transformation: validates and projects the complete array in one native
+ * traversal. A non-object row, missing field, or type mismatch returns a typed
+ * `JsonError` whose offset identifies the failing row.
+ */
+@compiler.native {std.data.json.required_field_rows}
+pub (json: Json) required_field_rows(
+    string_fields: List[String],
+    int_fields: List[String],
+    bool_fields: List[String],
+): Result[List[RequiredFieldRow], JsonError] ->
+    native.
+
+/**
+ * Projects one bounded page of required scalar object-array fields.
+ *
+ * At most 256 rows are returned. `start` is zero-based and `maximum` must be
+ * between 1 and 256, keeping native-to-managed conversion within the VM's
+ * public-value budget while preserving stable source order.
+ */
+@compiler.native {std.data.json.required_field_rows_page}
+pub (json: Json) required_field_rows_page(
+    start: Int,
+    maximum: Int,
+    string_fields: List[String],
+    int_fields: List[String],
+    bool_fields: List[String],
+): Result[List[RequiredFieldRow], JsonError] ->
+    native.
+
+/**
+ * Projects optional string fields from every element of a JSON object array.
+ *
+ * Input: a JSON array and an ordered list of object field names.
+ * Output: one `StringFieldRow` per array element. Object rows contain
+ * `Some(text)` only for string-valued requested fields; absent and non-string
+ * fields become `None`. Non-object elements set `object` to `false`.
+ * Transformation: performs one typed native traversal and returns only owned
+ * Terlan values, avoiding per-field opaque-handle calls for large manifests.
+ */
+@compiler.native {std.data.json.string_field_rows}
+pub (json: Json) string_field_rows(fields: List[String]): Result[List[StringFieldRow], JsonError] ->
+    native.
+
+/**
+ * Projects one object array and one nested object-array member in a single
+ * native traversal.
+ *
+ * Missing or non-array child members set `child_array` to `false` and return
+ * no child rows. Non-object parent and child elements remain represented by
+ * rows whose `object` flag is `false`.
+ */
+@compiler.native {std.data.json.nested_string_field_rows}
+pub (json: Json) nested_string_field_rows(
+    parent_fields: List[String],
+    child_array_field: String,
+    child_fields: List[String],
+): Result[List[NestedStringFieldRow], JsonError] ->
+    native.
+
+/**
+ * Projects at most 256 nested rows beginning at a zero-based array index.
+ */
+@compiler.native {std.data.json.nested_string_field_rows_page}
+pub (json: Json) nested_string_field_rows_page(
+    start: Int,
+    maximum: Int,
+    parent_fields: List[String],
+    child_array_field: String,
+    child_fields: List[String],
+): Result[List[NestedStringFieldRow], JsonError] ->
+    native.
+
+/**
+ * Builds a JSON array of string-valued objects from exact-width typed rows.
+ *
+ * Field names must be unique and every row must contain exactly one value per
+ * field. Invalid shapes return a stable `JsonError` instead of silently
+ * dropping or overwriting data.
+ */
+@compiler.native {std.data.json.string_object_rows}
+pub string_object_rows(fields: List[String], rows: List[List[String]]): Result[Json, JsonError] ->
     native.
 
 /**
@@ -269,3 +577,55 @@ pub (json: Json) as_bool(): Result[Bool, JsonError] ->
 @compiler.native {std.data.json.is_null}
 pub (json: Json) is_null(): Bool ->
     native.
+
+@pure
+json_hex_digit(value: Int): String ->
+    "0123456789abcdef".utf8_slice(value, 1).
+
+@pure
+json_control_escape(value: Int): String ->
+    String.append(
+        "\\u00",
+        String.append(json_hex_digit(value / 16), json_hex_digit(value - value / 16 * 16)),
+    ).
+
+@pure
+json_escape_at(value: String, index: Int, start: Int, output: String): String ->
+    if {
+        index == value.byte_size() -> String.append(
+            "\"",
+            String.append(
+                output,
+                String.append(value.utf8_slice(start, value.byte_size() - start), "\""),
+            ),
+        );
+        true -> let byte = value.utf8_byte_at(index);
+        if {
+            byte != 34 and byte != 92 and byte >= 32 -> json_escape_at(value, index + 1, start, output);
+            true -> let prefix = value.utf8_slice(start, index - start);
+            let escaped =
+                if {
+                    byte == 34 -> "\\\"";
+                    byte == 92 -> "\\\\";
+                    true -> json_control_escape(byte)
+                };
+            json_escape_at(
+                value,
+                index + 1,
+                index + 1,
+                String.append(output, String.append(prefix, escaped)),
+            )
+        }
+    }.
+
+/**
+ * Renders one UTF-8 string as a complete canonical JSON string literal.
+ *
+ * This pure helper lets deterministic report generators construct JSON text
+ * without allocating one opaque native JSON handle per scalar field. Quotes,
+ * reverse solidus, and ASCII control bytes are escaped; all other UTF-8 text
+ * is preserved exactly.
+ */
+@pure
+pub quote_string(value: String): String ->
+    json_escape_at(value, 0, 0, "").

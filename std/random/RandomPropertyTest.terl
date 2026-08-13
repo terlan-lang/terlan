@@ -21,14 +21,17 @@ import std.test.Test.{assert}.
  */
 @test
 pub generated_bounds_keep_bounded_int_inside_range(): Bool ->
-    for_all(int_range(0, 5), (offset) -> case Random.seed(offset) {
-        Ok(generator) ->
-            case Random.bounded_int(generator, offset, offset + 10) {
-                Ok({_next, value}) -> assert(value >= offset and value < offset + 10);
+    for_all(
+        int_range(0, 5),
+        (offset) ->
+            let {
+                Ok(generator) <- Random.seed(offset);
+                Ok({_next, value}) <- Random.bounded_int(generator, offset, offset + 10)
+            } else {
                 _ -> false
             };
-        _ -> false
-    }).
+            assert(value >= offset and value < offset + 10),
+    ).
 
 /**
  * Verifies generated invalid bounds return typed errors.
@@ -40,7 +43,11 @@ pub generated_bounds_keep_bounded_int_inside_range(): Bool ->
  */
 @test
 pub generated_equal_bounds_return_typed_errors(): Bool ->
-    for_all(int_range(0, 5), (value) -> case Random.seed(value) {
-        Ok(generator) -> assert(is_err(Random.bounded_int(generator, value, value)));
-        _ -> false
-    }).
+    for_all(
+        int_range(0, 5),
+        (value) ->
+            case Random.seed(value) {
+                Ok(generator) -> assert(is_err(Random.bounded_int(generator, value, value)));
+                _ -> false
+            },
+    ).

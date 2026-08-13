@@ -1,0 +1,20 @@
+# kind	name	count
+behavior_area	binary-serialization	5
+behavior_area	collections-list	3
+behavior_area	collections-map	1
+behavior_area	collections-set	6
+behavior_area	distribution-lifecycle	2
+behavior_area	filesystem-path	2
+behavior_area	otp-only-or-unsupported	108
+behavior_area	process-service-reliability	27
+behavior_area	random	1
+behavior_area	regex	5
+behavior_area	runtime-diagnostics	3
+behavior_area	serialization-json	2
+behavior_area	string-unicode	4
+behavior_area	timers	1
+behavior_area	uri	2
+disposition	ported-rust-vm	45
+disposition	ported-terlan	19
+disposition	retired-non-product	108
+total	files	172

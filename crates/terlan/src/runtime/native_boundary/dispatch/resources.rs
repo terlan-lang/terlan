@@ -145,7 +145,8 @@ fn dispatch_with_resources_authorized(
     validate_bridge_resource_owners(store, caller_process_id, args)?;
     reject_cancelled(cancellation)?;
     catch_native_boundary_panic(operation, || {
-        let result = execute_resource_dispatch(store, caller_process_id, operation, args)?;
+        let result =
+            execute_resource_dispatch(store, caller_process_id, operation, args, cancellation)?;
         reject_cancelled(cancellation)?;
         Ok(result)
     })
@@ -169,7 +170,20 @@ fn execute_resource_dispatch(
     caller_process_id: u64,
     operation: &str,
     args: &[NativeBoundaryBridgeValue],
+    cancellation: Option<&NativeBoundaryCancellationToken>,
 ) -> Result<NativeBoundaryBridgeValue, DispatchError> {
+    if operation == "std.data.json.array_extend" {
+        return dispatch_json_array_extend_with_resources(store, operation, args);
+    }
+    if operation == "std.data.json.array_push" {
+        return dispatch_json_array_push_with_resources(store, operation, args);
+    }
+    if operation == "std.data.json.array_set" {
+        return dispatch_json_array_set_with_resources(store, operation, args);
+    }
+    if operation == "std.data.json.object_put" {
+        return dispatch_json_object_put_with_resources(store, operation, args);
+    }
     if operation == "std.http.cookies.set" {
         return dispatch_cookie_set_with_resources(store, operation, args);
     }
@@ -180,8 +194,107 @@ fn execute_resource_dispatch(
         return dispatch_native_vector_with_resources(store, caller_process_id, operation, args);
     }
     let decoded = decode_bridge_args(store, operation, args)?;
+    if matches!(
+        operation,
+        "std.system.process.run"
+            | "std.system.process.run_many"
+            | "std.system.process.run_length_framed"
+    ) {
+        let result = match operation {
+            "std.system.process.run" => super::process::run_process(&decoded, cancellation)?,
+            "std.system.process.run_many" => {
+                super::process::run_process_many(&decoded, cancellation)?
+            }
+            _ => super::process::run_process_length_framed(&decoded, cancellation)?,
+        };
+        return encode_bridge_result(store, caller_process_id, result);
+    }
     let result = dispatch(operation, &decoded)?;
     encode_bridge_result(store, caller_process_id, result)
+}
+
+/// Extends one JSON array while both resources remain VM-owned.
+fn dispatch_json_array_extend_with_resources(
+    store: &mut ResourceStore,
+    operation: &str,
+    args: &[NativeBoundaryBridgeValue],
+) -> Result<NativeBoundaryBridgeValue, DispatchError> {
+    let receiver = expect_bridge_handle(operation, args, 0)?;
+    let value = expect_bridge_handle(operation, args, 1)?;
+    let value = store
+        .json(value)
+        .cloned()
+        .map_err(dispatch_resource_error)?;
+    crate::terlan_native::json::extend(
+        store.json_mut(receiver).map_err(dispatch_resource_error)?,
+        value,
+    )
+    .map_err(super::args::dispatch_json_error)?;
+    Ok(NativeBoundaryBridgeValue::Handle(receiver))
+}
+
+/// Appends one JSON value while both resources remain VM-owned.
+fn dispatch_json_array_push_with_resources(
+    store: &mut ResourceStore,
+    operation: &str,
+    args: &[NativeBoundaryBridgeValue],
+) -> Result<NativeBoundaryBridgeValue, DispatchError> {
+    let receiver = expect_bridge_handle(operation, args, 0)?;
+    let value = expect_bridge_handle(operation, args, 1)?;
+    let value = store
+        .json(value)
+        .cloned()
+        .map_err(dispatch_resource_error)?;
+    crate::terlan_native::json::push(
+        store.json_mut(receiver).map_err(dispatch_resource_error)?,
+        value,
+    )
+    .map_err(super::args::dispatch_json_error)?;
+    Ok(NativeBoundaryBridgeValue::Handle(receiver))
+}
+
+/// Replaces one JSON array element while both resources remain VM-owned.
+fn dispatch_json_array_set_with_resources(
+    store: &mut ResourceStore,
+    operation: &str,
+    args: &[NativeBoundaryBridgeValue],
+) -> Result<NativeBoundaryBridgeValue, DispatchError> {
+    let receiver = expect_bridge_handle(operation, args, 0)?;
+    let index = expect_bridge_int(operation, args, 1)?;
+    let value = expect_bridge_handle(operation, args, 2)?;
+    let value = store
+        .json(value)
+        .cloned()
+        .map_err(dispatch_resource_error)?;
+    crate::terlan_native::json::set(
+        store.json_mut(receiver).map_err(dispatch_resource_error)?,
+        index,
+        value,
+    )
+    .map_err(super::args::dispatch_json_error)?;
+    Ok(NativeBoundaryBridgeValue::Handle(receiver))
+}
+
+/// Inserts one JSON object member while both resources remain VM-owned.
+fn dispatch_json_object_put_with_resources(
+    store: &mut ResourceStore,
+    operation: &str,
+    args: &[NativeBoundaryBridgeValue],
+) -> Result<NativeBoundaryBridgeValue, DispatchError> {
+    let receiver = expect_bridge_handle(operation, args, 0)?;
+    let key = expect_bridge_text(operation, args, 1)?;
+    let value = expect_bridge_handle(operation, args, 2)?;
+    let value = store
+        .json(value)
+        .cloned()
+        .map_err(dispatch_resource_error)?;
+    crate::terlan_native::json::put(
+        store.json_mut(receiver).map_err(dispatch_resource_error)?,
+        key,
+        value,
+    )
+    .map_err(super::args::dispatch_json_error)?;
+    Ok(NativeBoundaryBridgeValue::Handle(receiver))
 }
 
 fn validate_bridge_resource_owners(
@@ -492,6 +605,13 @@ fn decode_bridge_arg(
                 .map(NativeBoundaryValue::Json)
                 .map_err(dispatch_resource_error)
         }
+        NativeBoundaryBridgeValue::Handle(handle) if operation.starts_with("std.regex.regex.") => {
+            store
+                .regex(*handle)
+                .cloned()
+                .map(NativeBoundaryValue::Regex)
+                .map_err(dispatch_resource_error)
+        }
         NativeBoundaryBridgeValue::Handle(handle) if operation.starts_with("std.http.request.") => {
             store
                 .http_request(*handle)
@@ -562,6 +682,78 @@ fn decode_bridge_arg(
         | NativeBoundaryBridgeValue::OptionalHandle(_) => {
             Err(type_error(operation, index, "non-optional argument"))
         }
+        NativeBoundaryBridgeValue::Atom(value) => Ok(NativeBoundaryValue::Atom(value.clone())),
+        NativeBoundaryBridgeValue::Record { name, fields } => Ok(NativeBoundaryValue::Record {
+            name: name.clone(),
+            fields: fields
+                .iter()
+                .enumerate()
+                .map(|(field_index, (name, value))| {
+                    decode_bridge_arg(store, operation, field_index, value)
+                        .map(|value| (name.clone(), value))
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        }),
+        NativeBoundaryBridgeValue::List(values)
+            if ((matches!(
+                operation,
+                "std.data.json.string_field_rows"
+                    | "std.data.json.string_fields"
+                    | "std.data.json.required_fields"
+                    | "std.data.json.required_field_rows"
+            ) && index == 1)
+                || (operation == "std.data.json.required_fields" && matches!(index, 2 | 3))
+                || (operation == "std.data.json.required_field_rows"
+                    && matches!(index, 2 | 3))
+                || (operation == "std.data.json.required_field_rows_page"
+                    && matches!(index, 3..=5))
+                || (operation == "std.data.json.nested_string_field_rows"
+                    && matches!(index, 1 | 3))
+                || (operation == "std.data.json.nested_string_field_rows_page"
+                    && matches!(index, 3 | 5))
+                || (operation == "std.data.json.string_object_rows" && index == 0))
+                || (operation == "std.crypto.hash.sha256_framed" && index == 0)
+                || (operation == "std.crypto.hash.sha256_nul_separated" && index == 0)
+                || (operation == "std.crypto.hash.sha256_domain_framed" && index == 1) =>
+        {
+            Ok(NativeBoundaryValue::List(
+                values
+                    .iter()
+                    .enumerate()
+                    .map(|(list_index, value)| match value {
+                        NativeBoundaryBridgeValue::Text(value) => {
+                            Ok(NativeBoundaryValue::Text(value.clone()))
+                        }
+                        _ => Err(type_error(operation, list_index, "String")),
+                    })
+                    .collect::<Result<Vec<_>, _>>()?,
+            ))
+        }
+        NativeBoundaryBridgeValue::List(rows)
+            if operation == "std.data.json.string_object_rows" && index == 1 =>
+        {
+            Ok(NativeBoundaryValue::List(
+                rows.iter()
+                    .enumerate()
+                    .map(|(row_index, row)| {
+                        let NativeBoundaryBridgeValue::List(values) = row else {
+                            return Err(type_error(operation, row_index, "List[String]"));
+                        };
+                        values
+                            .iter()
+                            .enumerate()
+                            .map(|(value_index, value)| match value {
+                                NativeBoundaryBridgeValue::Text(value) => {
+                                    Ok(NativeBoundaryValue::Text(value.clone()))
+                                }
+                                _ => Err(type_error(operation, value_index, "String")),
+                            })
+                            .collect::<Result<Vec<_>, _>>()
+                            .map(NativeBoundaryValue::List)
+                    })
+                    .collect::<Result<Vec<_>, _>>()?,
+            ))
+        }
         NativeBoundaryBridgeValue::List(values) => Ok(NativeBoundaryValue::JsonList(
             values
                 .iter()
@@ -603,8 +795,28 @@ fn encode_bridge_result(
         NativeBoundaryValue::Int(value) => Ok(NativeBoundaryBridgeValue::Int(value)),
         NativeBoundaryValue::Float(value) => Ok(NativeBoundaryBridgeValue::Float(value)),
         NativeBoundaryValue::Bool(value) => Ok(NativeBoundaryBridgeValue::Bool(value)),
+        NativeBoundaryValue::Atom(value) => Ok(NativeBoundaryBridgeValue::Atom(value)),
+        NativeBoundaryValue::Record { name, fields } => Ok(NativeBoundaryBridgeValue::Record {
+            name,
+            fields: fields
+                .into_iter()
+                .map(|(name, value)| {
+                    encode_bridge_result(store, caller_process_id, value).map(|value| (name, value))
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        }),
+        NativeBoundaryValue::List(values) => Ok(NativeBoundaryBridgeValue::List(
+            values
+                .into_iter()
+                .map(|value| encode_bridge_result(store, caller_process_id, value))
+                .collect::<Result<Vec<_>, _>>()?,
+        )),
         NativeBoundaryValue::Json(value) => store
             .insert_for_owner(caller_process_id, ResourceValue::Json(value))
+            .map(NativeBoundaryBridgeValue::Handle)
+            .map_err(dispatch_resource_error),
+        NativeBoundaryValue::Regex(value) => store
+            .insert_for_owner(caller_process_id, ResourceValue::Regex(value))
             .map(NativeBoundaryBridgeValue::Handle)
             .map_err(dispatch_resource_error),
         NativeBoundaryValue::HttpRequest(value) => store

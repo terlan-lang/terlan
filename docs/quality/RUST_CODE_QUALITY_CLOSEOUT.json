@@ -1,0 +1,196 @@
+{
+  "canonical_types": {
+    "equal_shape_invariants": 7,
+    "exact_normalized_duplicates": 0,
+    "implementation_files_parsed": 719,
+    "parse_failures": 0,
+    "same_name_invariants": 23,
+    "type_declarations": 2643
+  },
+  "completed_slices": [
+    "CQ-0",
+    "CQ-1",
+    "CQ-2",
+    "CQ-3",
+    "CQ-4",
+    "CQ-5"
+  ],
+  "continuous_ratchets": {
+    "file_headroom": {
+      "entries": 72,
+      "inventory": "docs/quality/RUST_FILE_HEADROOM.tsv",
+      "warning_limits": {
+        "implementation": 900,
+        "test": 1800
+      }
+    },
+    "typed_error_reduction": {
+      "inventory": "docs/quality/RUST_STRING_ERROR_BUDGETS.tsv",
+      "owners": 7,
+      "scheduled_row_target": 359,
+      "scheduled_site_target": 2404
+    }
+  },
+  "decision": "pass",
+  "gates": [
+    "rust-code-quality-preflight-check",
+    "rust-structure-census-check",
+    "rust-module-structure-check",
+    "rust-file-headroom-check",
+    "rust-build-graph-boundary-check",
+    "rust-dependency-impact-check",
+    "rust-api-boundary-quality-check",
+    "rust-canonical-type-ownership-check",
+    "test-hierarchy-check",
+    "shared-helper-check",
+    "dormant-runtime-code-check",
+    "safe-rust-runtime-check",
+    "roadmap-gate-integrity-check",
+    "release-code-hygiene-check",
+    "code-quality-0-0-7-feedback-loop-check",
+    "rust-structure-closeout-timings-check",
+    "code-quality-0-0-7-closeout-check"
+  ],
+  "metric_baseline_source": "docs/roadmap/ROADMAP_0_0_7_CODE_QUALITY.md CQ-0 completion evidence",
+  "metrics": {
+    "crate_root_allowances": {
+      "baseline": 71,
+      "closeout": 0,
+      "delta": -71
+    },
+    "crate_targets": {
+      "baseline": 31,
+      "closeout": 33,
+      "delta": 2
+    },
+    "cross_tree_paths": {
+      "baseline": 83,
+      "closeout": 0,
+      "delta": -83
+    },
+    "duplicate_type_candidates": {
+      "baseline": 115,
+      "closeout": 104,
+      "delta": -11
+    },
+    "handwritten_includes": {
+      "baseline": 225,
+      "closeout": 0,
+      "delta": -225
+    },
+    "logical_lines": {
+      "baseline": 446941,
+      "closeout": 452148,
+      "delta": 5207
+    },
+    "numbered_fragments": {
+      "baseline": 208,
+      "closeout": 0,
+      "delta": -208
+    },
+    "physical_lines": {
+      "baseline": 668847,
+      "closeout": 685536,
+      "delta": 16689
+    },
+    "result_string_boundaries": {
+      "baseline": 3248,
+      "closeout": 3171,
+      "delta": -77
+    },
+    "rust_files": {
+      "baseline": 2068,
+      "closeout": 2153,
+      "delta": 85
+    },
+    "type_declarations": {
+      "baseline": 2452,
+      "closeout": 2519,
+      "delta": 67
+    }
+  },
+  "remaining_exceptions": [
+    {
+      "budget": "docs/quality/RUST_STRING_ERROR_BUDGETS.tsv",
+      "entries": 450,
+      "expires": "0.0.8",
+      "kind": "internal-string-errors",
+      "owners": [
+        "benchmark-errors",
+        "command-errors",
+        "compiler-errors",
+        "native-boundary-errors",
+        "quality-errors",
+        "runtime-errors",
+        "support-errors"
+      ],
+      "sites": 2997
+    }
+  ],
+  "schema_version": 1,
+  "timings": {
+    "baseline_report": "docs/quality/RUST_STRUCTURE_TIMINGS.json",
+    "scenarios": [
+      {
+        "baseline_ms": 71723,
+        "closeout_ms": 36780,
+        "delta_ms": -34943,
+        "name": "clean",
+        "ratio": 0.5128
+      },
+      {
+        "baseline_ms": 10604,
+        "closeout_ms": 4071,
+        "delta_ms": -6533,
+        "name": "parser-edit",
+        "ratio": 0.3839
+      },
+      {
+        "baseline_ms": 9377,
+        "closeout_ms": 4121,
+        "delta_ms": -5256,
+        "name": "type-model-edit",
+        "ratio": 0.4395
+      },
+      {
+        "baseline_ms": 9340,
+        "closeout_ms": 4220,
+        "delta_ms": -5120,
+        "name": "runtime-leaf-edit",
+        "ratio": 0.4518
+      },
+      {
+        "baseline_ms": 6074,
+        "closeout_ms": 4234,
+        "delta_ms": -1840,
+        "name": "lsp-edit",
+        "ratio": 0.6971
+      },
+      {
+        "baseline_ms": 140370,
+        "closeout_ms": 68702,
+        "delta_ms": -71668,
+        "name": "focused-test",
+        "ratio": 0.4894
+      },
+      {
+        "baseline_ms": 95254,
+        "closeout_ms": 82780,
+        "delta_ms": -12474,
+        "name": "full-test",
+        "ratio": 0.869
+      }
+    ]
+  },
+  "zero_debt": {
+    "cross_tree_paths": 0,
+    "file_size_baseline_rows": 0,
+    "handwritten_includes": 0,
+    "inline_test_baseline_rows": 0,
+    "lint_allowances": 0,
+    "numbered_fragments": 0,
+    "oversized_files": 0,
+    "rustdoc_baseline_rows": 0,
+    "unsafe_without_safety_comment": 0
+  }
+}

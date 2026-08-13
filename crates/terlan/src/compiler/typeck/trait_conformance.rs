@@ -388,13 +388,16 @@ pub(super) fn check_syntax_declared_implements(
 
             for (method_name, expected_method) in methods {
                 check_declared_implements_method(
-                    type_name,
-                    &implemented_trait,
-                    signature,
-                    &method_name,
-                    &expected_method,
-                    receiver_methods.get(&(type_name.to_string(), method_name.clone())),
-                    trait_ref.span.into(),
+                    DeclaredMethodConformance {
+                        type_name,
+                        implemented_trait: &implemented_trait,
+                        trait_signature: signature,
+                        method_name: &method_name,
+                        expected_method: &expected_method,
+                        receiver_method: receiver_methods
+                            .get(&(type_name.to_string(), method_name.clone())),
+                        fallback_span: trait_ref.span.into(),
+                    },
                     &mut diagnostics,
                 );
             }
@@ -704,8 +707,8 @@ pub(super) fn check_syntax_receiver_methods(
             continue;
         };
 
-        if !local_type_names.contains(&receiver_head)
-            && !(module.module_name == "std.core.String" && receiver_head == "String")
+        if !(local_type_names.contains(&receiver_head)
+            || module.module_name == "std.core.String" && receiver_head == "String")
         {
             diagnostics.push(Diagnostic {
                 span: declaration.span.into(),
@@ -778,16 +781,29 @@ fn receiver_owner_type_name_from_text(text: &str) -> Option<String> {
 ///   compares the resulting method signature with the receiver-method shape:
 ///   the first trait method parameter maps to the receiver, and remaining
 ///   parameters map to ordinary method arguments.
-fn check_declared_implements_method(
-    type_name: &str,
-    implemented_trait: &ParsedTraitInstance,
-    trait_signature: &ParsedTraitSignature,
-    method_name: &str,
-    expected_method: &TraitMethodSignature,
-    receiver_method: Option<&ReceiverMethodSignature>,
+struct DeclaredMethodConformance<'a> {
+    type_name: &'a str,
+    implemented_trait: &'a ParsedTraitInstance,
+    trait_signature: &'a ParsedTraitSignature,
+    method_name: &'a str,
+    expected_method: &'a TraitMethodSignature,
+    receiver_method: Option<&'a ReceiverMethodSignature>,
     fallback_span: Span,
+}
+
+fn check_declared_implements_method(
+    conformance: DeclaredMethodConformance<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    let DeclaredMethodConformance {
+        type_name,
+        implemented_trait,
+        trait_signature,
+        method_name,
+        expected_method,
+        receiver_method,
+        fallback_span,
+    } = conformance;
     let specialized_params = expected_method
         .params
         .iter()

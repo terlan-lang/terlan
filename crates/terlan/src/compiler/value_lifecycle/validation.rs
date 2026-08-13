@@ -1,4 +1,6 @@
-fn validate_valued_union_case_exhaustiveness(
+use super::*;
+
+pub(super) fn validate_valued_union_case_exhaustiveness(
     module: &SyntaxModuleOutput,
 ) -> Vec<ValueLifecycleDiagnostic> {
     let unions = module
@@ -70,7 +72,7 @@ fn validate_valued_union_case_exhaustiveness(
     diagnostics
 }
 
-fn for_each_runtime_expr(
+pub(super) fn for_each_runtime_expr(
     declaration: &crate::terlan_syntax::SyntaxDeclarationOutput,
     mut visit: impl FnMut(&SyntaxExprOutput),
 ) {
@@ -107,7 +109,7 @@ fn for_each_runtime_expr(
     }
 }
 
-fn validate_runtime_constant_reflection(
+pub(super) fn validate_runtime_constant_reflection(
     module: &SyntaxModuleOutput,
 ) -> Vec<ValueLifecycleDiagnostic> {
     let mut diagnostics = Vec::new();
@@ -232,7 +234,7 @@ pub(crate) fn module_requires_value_lifecycle_pass(
     })
 }
 
-fn validate_nominal_valued_union_uses(
+pub(super) fn validate_nominal_valued_union_uses(
     module: &SyntaxModuleOutput,
 ) -> Vec<ValueLifecycleDiagnostic> {
     let unions = module
@@ -328,7 +330,7 @@ fn validate_nominal_valued_union_uses(
     diagnostics
 }
 
-fn validate_union_expected_expr(
+pub(super) fn validate_union_expected_expr(
     expr: &SyntaxExprOutput,
     expected: &str,
     unions: &HashSet<String>,
@@ -350,7 +352,7 @@ fn validate_union_expected_expr(
     ));
 }
 
-fn expr_produces_union(
+pub(super) fn expr_produces_union(
     expr: &SyntaxExprOutput,
     union: &str,
     constant_types: &HashMap<String, String>,
@@ -407,7 +409,7 @@ fn expr_produces_union(
     false
 }
 
-fn validate_union_call_arguments(
+pub(super) fn validate_union_call_arguments(
     expr: &SyntaxExprOutput,
     unions: &HashSet<String>,
     constant_types: &HashMap<String, String>,
@@ -444,7 +446,9 @@ fn validate_union_call_arguments(
     }
 }
 
-fn validate_constant_namespaces(module: &SyntaxModuleOutput) -> Vec<ValueLifecycleDiagnostic> {
+pub(super) fn validate_constant_namespaces(
+    module: &SyntaxModuleOutput,
+) -> Vec<ValueLifecycleDiagnostic> {
     let mut diagnostics = Vec::new();
     let mut values = HashMap::<String, (&'static str, EbnfSourceSpan)>::new();
     let mut ordinary_functions = HashSet::new();
@@ -489,7 +493,7 @@ fn validate_constant_namespaces(module: &SyntaxModuleOutput) -> Vec<ValueLifecyc
     diagnostics
 }
 
-fn validate_forbidden_constant_contexts(
+pub(super) fn validate_forbidden_constant_contexts(
     module: &SyntaxModuleOutput,
     evaluator: &Evaluator,
 ) -> Vec<ValueLifecycleDiagnostic> {
@@ -589,7 +593,10 @@ fn validate_forbidden_constant_contexts(
     diagnostics
 }
 
-fn referenced_constant_name<'a>(text: &str, names: &'a HashSet<String>) -> Option<&'a str> {
+pub(super) fn referenced_constant_name<'a>(
+    text: &str,
+    names: &'a HashSet<String>,
+) -> Option<&'a str> {
     names.iter().find_map(|name| {
         text.split(|ch: char| !(ch.is_ascii_alphanumeric() || ch == '_' || ch == '.'))
             .any(|word| word == name)
@@ -597,7 +604,7 @@ fn referenced_constant_name<'a>(text: &str, names: &'a HashSet<String>) -> Optio
     })
 }
 
-fn annotation_value_references_constant(
+pub(super) fn annotation_value_references_constant(
     value: &SyntaxAnnotationValueOutput,
     names: &HashSet<String>,
 ) -> bool {
@@ -616,7 +623,7 @@ fn annotation_value_references_constant(
     }
 }
 
-fn config_value_references_constant(
+pub(super) fn config_value_references_constant(
     value: &SyntaxConfigValueOutput,
     names: &HashSet<String>,
 ) -> bool {
@@ -634,7 +641,7 @@ fn config_value_references_constant(
     }
 }
 
-fn forbidden_constant_context(
+pub(super) fn forbidden_constant_context(
     name: impl std::fmt::Display,
     context: &str,
     span: EbnfSourceSpan,
@@ -656,6 +663,8 @@ pub(crate) fn expression_is_const_safe(expr: &SyntaxExprOutput) -> bool {
     let mut evaluator = Evaluator {
         definitions: HashMap::new(),
         functions: HashMap::new(),
+        local_functions: HashSet::new(),
+        termination: crate::terlan_typeck::CoreTerminationEvidence::default(),
         values: HashMap::new(),
         active: Vec::new(),
         steps: 0,
@@ -663,7 +672,7 @@ pub(crate) fn expression_is_const_safe(expr: &SyntaxExprOutput) -> bool {
     evaluator.evaluate_expr(expr, &HashMap::new()).is_ok()
 }
 
-fn validate_valued_unions(
+pub(super) fn validate_valued_unions(
     module: &SyntaxModuleOutput,
     values: &HashMap<String, ConstValue>,
 ) -> Vec<ValueLifecycleDiagnostic> {
@@ -709,7 +718,7 @@ fn validate_valued_unions(
     diagnostics
 }
 
-fn validate_trait_constants(
+pub(super) fn validate_trait_constants(
     module: &SyntaxModuleOutput,
     evaluator: &mut Evaluator,
 ) -> Vec<ValueLifecycleDiagnostic> {
@@ -791,7 +800,7 @@ fn validate_trait_constants(
     diagnostics
 }
 
-fn associated_constant_owner(trait_ref: &str, for_type: &str) -> String {
+pub(super) fn associated_constant_owner(trait_ref: &str, for_type: &str) -> String {
     if trait_ref.contains('[') {
         trait_ref.to_string()
     } else {

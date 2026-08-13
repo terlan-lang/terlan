@@ -14,6 +14,10 @@ fn record(source_file: String) -> TvmNativeDebugRecord {
         arity: 0,
         span_start: 17,
         span_end: 43,
+        source_sha256: "00".repeat(32),
+        source_origin: "source".to_string(),
+        continuation_ids: vec![101],
+        continuation_spans: Vec::new(),
         core_schema: "terlan-core-v1".to_string(),
         proof_readiness: "Ready".to_string(),
     }

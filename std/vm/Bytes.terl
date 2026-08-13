@@ -68,6 +68,27 @@ pub (bytes: Bytes) length(): Int ->
     native.
 
 /**
+ * Returns whether this buffer begins with the complete prefix buffer.
+ */
+@target.vm {process_mailbox: true}
+pub (bytes: Bytes) starts_with(prefix: Bytes): Bool ->
+    native.
+
+/**
+ * Returns whether this buffer contains the complete needle buffer.
+ */
+@target.vm {process_mailbox: true}
+pub (bytes: Bytes) contains(needle: Bytes): Bool ->
+    native.
+
+/**
+ * Returns the first non-ASCII-whitespace byte index, or `-1` when absent.
+ */
+@target.vm {process_mailbox: true}
+pub (bytes: Bytes) first_non_ascii_whitespace(): Int ->
+    native.
+
+/**
  * Concatenates two byte buffers.
  *
  * Input: two `Bytes` values.

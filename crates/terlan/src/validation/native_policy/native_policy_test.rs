@@ -108,3 +108,37 @@ fn pure_policy_error_names_native_boundary_values() {
 fn legacy_safe_native_target_marker_is_still_detected() {
     assert!(source_uses_native("target vm with safe_native."));
 }
+
+/// Verifies unsafe-native rejection is scoped to declarations.
+///
+/// Inputs:
+/// - Three supported leading declaration spellings.
+/// - An identifier, comment, and string containing the same words.
+///
+/// Output:
+/// - Declaration spellings are detected and ordinary source text is ignored.
+///
+/// Transformation:
+/// - Exercises the lightweight pre-parser scan without allowing substring
+///   false positives to reject valid Terlan validation programs.
+#[test]
+fn unsafe_native_detection_is_declaration_anchored() {
+    for declaration in [
+        "unsafe_native module Adapter {",
+        "  unsafe native module Adapter {",
+        "\tnative unsafe module Adapter {",
+    ] {
+        assert!(source_contains_unsafe_native(declaration), "{declaration}");
+    }
+
+    for ordinary_source in [
+        "pub unsafe_native_identity_is_rejected(): Bool -> true.",
+        "// unsafe native module Adapter {",
+        "let message = \"native unsafe module Adapter\";",
+    ] {
+        assert!(
+            !source_contains_unsafe_native(ordinary_source),
+            "{ordinary_source}"
+        );
+    }
+}

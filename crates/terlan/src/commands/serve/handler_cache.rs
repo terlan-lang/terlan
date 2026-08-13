@@ -9,11 +9,10 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
 
-use crate::commands::artifacts::fingerprint;
 use crate::compiler::router::AotRouterPlan;
 use crate::runtime::vm::fixed_scheduler_control::VmFixedSchedulerControl;
 use crate::runtime::vm::http_router::{VmHttpCompiledCallableRef, VmHttpRouter};
-use crate::runtime::vm::http_session::{VmHttpSessionRuntime, VmHttpSessionService};
+use crate::runtime::vm::http_session::VmHttpSessionService;
 use crate::runtime::vm::protocol_task_executor::{
     retire_protocol_resource, with_current_protocol_resource,
 };
@@ -26,17 +25,20 @@ use crate::runtime::vm::work_stealing::{
     VmWorkDirective, VmWorkStealingConfig, VmWorkStealingPolicy,
 };
 use crate::runtime::vm::ReplValue;
-#[cfg(not(feature = "serve-runtime-bin"))]
+use crate::support::fingerprint;
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 use crate::validation::native_policy::NativePolicy;
-#[cfg(not(feature = "serve-runtime-bin"))]
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 use crate::validation::target_profile::TargetProfile;
-#[cfg(not(feature = "serve-runtime-bin"))]
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 use crate::{ColorChoice, DiagnosticFormat};
 
 use super::handler::WebPackageHandler;
 use super::source_path_from_manifest;
 
 mod cache_epoch;
+#[path = "handler_cache/cache_storage.rs"]
+mod cache_storage;
 mod http_response;
 mod immediate;
 pub(super) mod invocation;
@@ -44,13 +46,18 @@ mod protocol_capability;
 mod replay_evidence;
 mod request_projection;
 mod router_materialization;
+mod session_service;
 mod shard_owner;
 mod source_generation;
 pub(super) use cache_epoch::current as handler_cache_epoch;
 use cache_epoch::{advance as advance_cache_epoch, current as current_cache_epoch};
+use cache_storage::cache;
+#[cfg(test)]
+pub(super) use cache_storage::invalidate_vm_handler_cache;
 use immediate::{finish_immediate_step, LocalImmediateShard};
 use router_materialization::materialize_router;
-#[cfg(not(feature = "serve-runtime-bin"))]
+use session_service::http_session_service_for;
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 pub(super) use source_generation::run_compiler_daemon;
 pub(super) use source_generation::stage_source_generation;
 const CACHE_ERROR: &str = "error[serve.aot.cache]: native handler cache lock poisoned";
@@ -78,11 +85,15 @@ struct LocalHandlerRuntime {
 
 #[cfg(test)]
 #[path = "handler_cache_generation_test.rs"]
+#[cfg(test)]
 mod handler_cache_generation_test;
+#[cfg(test)]
 #[path = "handler_cache_test_support.rs"]
+#[cfg(test)]
 pub(super) mod handler_cache_test_support;
 #[cfg(test)]
 #[path = "handler_cache/multicore_performance_test.rs"]
+#[cfg(test)]
 mod multicore_performance_test;
 
 /// One admitted native handler image. It never owns or retains compiler IR.
@@ -237,7 +248,7 @@ impl AotHandlerGeneration {
         image: &Path,
         sessions: VmHttpSessionService,
         shard_count: usize,
-        #[cfg_attr(not(test), allow(unused_variables))] fail_at: Option<usize>,
+        _fail_at: Option<usize>,
     ) -> Result<Self, String> {
         if shard_count == 0 {
             return Err(
@@ -280,7 +291,7 @@ impl AotHandlerGeneration {
             )?),
             work_metrics: AotGeneratedWorkMetrics::default(),
         };
-        if let Some(fail_at) = fail_at {
+        if let Some(fail_at) = _fail_at {
             for scheduler in topology.schedulers().take(fail_at) {
                 generation.shard(scheduler.index())?;
             }
@@ -356,6 +367,7 @@ impl AotHandlerGeneration {
     }
 
     /// Moves one parked actor through the generation-qualified owner protocol.
+    #[cfg(test)]
     fn migrate_actor(
         &self,
         source: VmFixedActorRoute,
@@ -592,13 +604,13 @@ impl Drop for AotHandlerGeneration {
 }
 
 impl AotHandlerRuntime {
-    #[allow(dead_code)] // Retained for direct runtime admission outside the cache.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn load(
         module: String,
         image: &Path,
         router: Option<AotRouterPlan>,
     ) -> Result<Self, String> {
-        let sessions = VmHttpSessionService::new(VmHttpSessionRuntime::new("terlc-serve", 86_400)?);
+        let sessions = session_service::test_session_service()?;
         Ok(Self {
             module,
             generation: Arc::new(AotHandlerGeneration::load(image, sessions)?),
@@ -615,7 +627,7 @@ impl AotHandlerRuntime {
         router: Option<AotRouterPlan>,
         shard_count: usize,
     ) -> Result<Self, String> {
-        let sessions = VmHttpSessionService::new(VmHttpSessionRuntime::new("terlc-serve", 86_400)?);
+        let sessions = session_service::test_session_service()?;
         Ok(Self {
             module,
             generation: Arc::new(AotHandlerGeneration::load_with_shard_count(
@@ -679,52 +691,6 @@ impl AotHandlerRuntime {
         finish_immediate_step(self.begin_request_invocation(module, function, args)?)
     }
 
-    /// Executes the common one-argument handler shape through owner-local
-    /// argument and export storage.
-    #[allow(dead_code)] // Retained for single-argument generated call sites.
-    pub(super) fn execute_immediate_native_one(
-        &self,
-        module: &str,
-        function: &str,
-        argument: ReplValue,
-        _output: &mut dyn FnMut(&str),
-    ) -> Result<ReplValue, String> {
-        if module != self.module {
-            return Err(format!(
-                "error[serve.aot.module_missing]: native handler image `{}` does not own module `{module}`",
-                self.module
-            ));
-        }
-        let mut argument = Some(argument);
-        if let Some(value) = with_current_protocol_resource(
-            self.generation.identity,
-            |scheduler| {
-                LocalImmediateShard::new(
-                    self.generation.image.spawn_shard_on_scheduler(scheduler)?,
-                    module,
-                    function,
-                    1,
-                )
-            },
-            |local: &mut LocalImmediateShard| {
-                local.call_one(
-                    module,
-                    function,
-                    argument
-                        .take()
-                        .expect("one immediate argument is consumed exactly once"),
-                )
-            },
-        )? {
-            return Ok(value);
-        }
-        finish_immediate_step(self.begin_request_invocation(
-            module,
-            function,
-            vec![argument.expect("ambient fallback retains its immediate argument")],
-        )?)
-    }
-
     pub(super) fn execute_callable(
         &self,
         module: &str,
@@ -783,6 +749,9 @@ impl AotHandlerRuntime {
 struct HandlerCacheEntry {
     checksum: String,
     runtime: Arc<AotHandlerRuntime>,
+    compatibility: source_generation::ServeGenerationCompatibility,
+    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    persisted: source_generation::PersistedServeGeneration,
 }
 
 /// Request lease over one immutable native handler generation.
@@ -821,7 +790,7 @@ pub(super) fn cached_vm_handler_runtime_for_request(
 ) -> Result<VmHandlerRuntimeLease, String> {
     let source = handler.source.as_ref().ok_or_else(|| {
         format!(
-            "error[serve.aot.source_missing]: dynamic handler `{}.{}/{}` has no source metadata",
+            "error[serve_runtime]: dynamic handler `{}.{}/{}` is missing source metadata",
             handler.module, handler.function, handler.arity
         )
     })?;
@@ -847,7 +816,7 @@ pub(super) fn with_cached_vm_handler_runtime_for_request<R>(
 ) -> Result<R, String> {
     let source = handler.source.as_ref().ok_or_else(|| {
         format!(
-            "error[serve.aot.source_missing]: dynamic handler `{}.{}/{}` has no source metadata",
+            "error[serve_runtime]: dynamic handler `{}.{}/{}` is missing source metadata",
             handler.module, handler.function, handler.arity
         )
     })?;
@@ -889,7 +858,7 @@ fn cached_runtime_for_manifest(
 ) -> Result<Arc<AotHandlerRuntime>, String> {
     let source = handler.source.as_ref().ok_or_else(|| {
         format!(
-            "error[serve.aot.source_missing]: dynamic handler `{}.{}/{}` has no source metadata",
+            "error[serve_runtime]: dynamic handler `{}.{}/{}` is missing source metadata",
             handler.module, handler.function, handler.arity
         )
     })?;
@@ -982,19 +951,9 @@ fn cached_source_entry(
     source_path: &Path,
     expected_module: &str,
 ) -> Result<HandlerCacheEntry, String> {
-    source_generation::cached_source_entry(web_root, source_path, expected_module)
-}
-
-/// Invalidates admitted source generations after the watcher observes change.
-pub(super) fn invalidate_vm_handler_cache() {
-    if let Some(cache) = HANDLER_CACHE.get() {
-        if let Ok(mut cache) = cache.write() {
-            cache.clear();
-        }
-    }
-    advance_cache_epoch();
-}
-
-fn cache() -> Result<&'static RwLock<HashMap<PathBuf, HandlerCacheEntry>>, String> {
-    Ok(HANDLER_CACHE.get_or_init(|| RwLock::new(HashMap::new())))
+    Ok(source_generation::cached_source_entry(
+        web_root,
+        source_path,
+        expected_module,
+    )?)
 }

@@ -2,12 +2,75 @@
 
 use std::collections::BTreeSet;
 
-use crate::terlan_typeck::{CoreExpr, CoreModule, CorePattern, CoreTupleTypeElem, CoreType};
+use crate::terlan_typeck::{
+    CoreExpr, CoreIntrinsicId, CoreModule, CorePattern, CoreTupleTypeElem, CoreType,
+};
+
+/// Closed error-code atoms emitted by the Rust-backed JSON adapter.
+pub(super) const RUNTIME_JSON_ERROR_ATOMS: &[&str] = &[
+    "json.duplicate_field",
+    "json.index_out_of_bounds",
+    "json.invalid_float",
+    "json.invalid_page",
+    "json.key_not_found",
+    "json.length_overflow",
+    "json.not_array",
+    "json.not_bool",
+    "json.not_float",
+    "json.not_int",
+    "json.not_object",
+    "json.not_string",
+    "json.parse",
+    "json.row_width_mismatch",
+    "json.stringify",
+];
+
+/// Closed error-code atoms emitted by the Rust-backed regex adapter.
+pub(super) const RUNTIME_REGEX_ERROR_ATOMS: &[&str] = &["regex.compile"];
+
+/// Closed error-code atoms emitted by the Rust-backed TOML adapter.
+pub(super) const RUNTIME_TOML_ERROR_ATOMS: &[&str] = &["toml.parse"];
 
 /// Collects every non-scalar atom identity visible in checked application CoreIR.
 pub(super) fn application_atom_identities(cores: &[&CoreModule]) -> Vec<String> {
     let mut atoms = BTreeSet::new();
     for core in cores {
+        if core.module == "std.data.Json"
+            || core
+                .imports
+                .iter()
+                .any(|import| import.module == "std.data.Json")
+        {
+            atoms.extend(
+                RUNTIME_JSON_ERROR_ATOMS
+                    .iter()
+                    .map(|atom| (*atom).to_string()),
+            );
+        }
+        if core.module == "std.regex.Regex"
+            || core
+                .imports
+                .iter()
+                .any(|import| import.module == "std.regex.Regex")
+        {
+            atoms.extend(
+                RUNTIME_REGEX_ERROR_ATOMS
+                    .iter()
+                    .map(|atom| (*atom).to_string()),
+            );
+        }
+        if core.module == "std.data.Toml"
+            || core
+                .imports
+                .iter()
+                .any(|import| import.module == "std.data.Toml")
+        {
+            atoms.extend(
+                RUNTIME_TOML_ERROR_ATOMS
+                    .iter()
+                    .map(|atom| (*atom).to_string()),
+            );
+        }
         if core
             .imports
             .iter()
@@ -22,6 +85,20 @@ pub(super) fn application_atom_identities(cores: &[&CoreModule]) -> Vec<String> 
             )
         }) {
             atoms.insert("json.parse".to_string());
+        }
+        if core.functions.iter().any(|function| {
+            function.params.first().is_some_and(|parameter| {
+                matches!(
+                    parameter.core_ty.as_ref(),
+                    Some(CoreType::Tuple(elements))
+                        if matches!(
+                            elements.first(),
+                            Some(CoreTupleTypeElem::Type(CoreType::AtomLiteral(_)))
+                        )
+                )
+            })
+        }) {
+            atoms.insert("request".to_string());
         }
         for declaration in &core.types {
             if let Some(body) = &declaration.core_body {
@@ -134,9 +211,18 @@ pub(super) fn collect_pattern(pattern: &CorePattern, atoms: &mut BTreeSet<String
         CorePattern::Record { fields, .. } => fields
             .iter()
             .for_each(|field| collect_pattern(&field.value, atoms)),
-        CorePattern::Constructor { args, .. } => args
-            .iter()
-            .for_each(|pattern| collect_pattern(pattern, atoms)),
+        CorePattern::Constructor { name, args, .. } => {
+            // Structured Option matching accepts the compact singleton atom
+            // representation of `None` as well as the managed union variant.
+            // The case planner therefore emits a finite `none` atom literal
+            // even when the checked source contains only `None()`. Inventory
+            // that compiler-synthesized value before object emission.
+            if name == "None" {
+                collect_atom("none", atoms);
+            }
+            args.iter()
+                .for_each(|pattern| collect_pattern(pattern, atoms));
+        }
         CorePattern::Wildcard
         | CorePattern::Var(_)
         | CorePattern::Int(_)
@@ -221,6 +307,11 @@ pub(super) fn collect_expr(expr: &CoreExpr, atoms: &mut BTreeSet<String>) {
             collect_type(target_type, atoms);
         }
         CoreExpr::Intrinsic(intrinsic) => {
+            if matches!(intrinsic.id, CoreIntrinsicId::MemoryLayoutOf(_)) {
+                ["Inline", "Managed", "Opaque"]
+                    .into_iter()
+                    .for_each(|identity| collect_atom(identity, atoms));
+            }
             intrinsic
                 .args
                 .iter()

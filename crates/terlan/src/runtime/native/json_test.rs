@@ -100,6 +100,18 @@ fn mutable_object_builder_puts_values() {
     );
 }
 
+#[test]
+fn pretty_stringify_uses_stable_two_space_indentation() {
+    let value = parsed_fixture(r#"{"z":[1,2],"a":true}"#);
+
+    assert_eq!(
+        stringify_pretty(&value),
+        Ok(String::from(
+            "{\n  \"a\": true,\n  \"z\": [\n    1,\n    2\n  ]\n}"
+        ))
+    );
+}
+
 /// Validates object keys stay plain JSON strings even when they look like
 /// runtime atom-construction names.
 ///
@@ -154,6 +166,21 @@ fn mutable_builders_reject_wrong_receiver_kind() {
     assert_eq!(object_error.code(), "json.not_object");
 }
 
+#[test]
+fn array_set_replaces_one_existing_element_and_rejects_missing_indices() {
+    let mut values = parsed_fixture(r#"["Ada","Grace"]"#);
+    set(&mut values, 0, string("Margaret")).expect("replace array element");
+    assert_eq!(
+        stringify(&values).expect("serialize replaced array"),
+        r#"["Margaret","Grace"]"#
+    );
+
+    let missing = set(&mut values, 2, null())
+        .err()
+        .unwrap_or_else(|| JsonError::new("missing", "", 0));
+    assert_eq!(missing.code(), "json.index_out_of_bounds");
+}
+
 /// Validates stable parse error conversion.
 ///
 /// Inputs:
@@ -201,6 +228,25 @@ fn object_lookup_supports_typed_accessors() {
     assert!(is_null(&none));
 }
 
+/// Validates object-key enumeration is deterministic and kind checked.
+#[test]
+fn object_keys_are_sorted_and_reject_non_objects() {
+    let json = parsed_fixture(r#"{"z":1,"a":2}"#);
+    assert_eq!(keys(&json), Ok(vec![String::from("a"), String::from("z")]));
+    assert_eq!(object_length(&json), Ok(2));
+
+    let error = keys(&parsed_fixture("[]"))
+        .err()
+        .unwrap_or_else(|| JsonError::new("missing", "", 0));
+    assert_eq!(error.code(), "json.not_object");
+    assert_eq!(
+        object_length(&parsed_fixture("[]"))
+            .expect_err("array is not an object")
+            .code(),
+        "json.not_object"
+    );
+}
+
 /// Validates array length and indexed lookup.
 ///
 /// Inputs:
@@ -224,6 +270,216 @@ fn array_lookup_supports_length_and_indexed_access() {
     assert_eq!(as_string(&name), Ok(String::from("Ada")));
     assert_eq!(as_int(&count), Ok(3));
     assert_eq!(as_bool(&active), Ok(true));
+}
+
+/// Validates one-pass typed string projection across mixed JSON array rows.
+#[test]
+fn string_field_rows_preserve_order_and_malformed_rows() {
+    let json = parsed_fixture(r#"[{"name":"Ada","count":3},null,{"name":"Grace"}]"#);
+    let rows = string_field_rows(&json, &["name", "count"]).expect("array projection");
+
+    assert_eq!(
+        rows,
+        vec![
+            StringFieldRow {
+                object: true,
+                values: vec![Some("Ada".to_string()), None],
+            },
+            StringFieldRow {
+                object: false,
+                values: vec![None, None],
+            },
+            StringFieldRow {
+                object: true,
+                values: vec![Some("Grace".to_string()), None],
+            },
+        ]
+    );
+    let error =
+        string_field_rows(&parsed_fixture("{}"), &["name"]).expect_err("object must be rejected");
+    assert_eq!(error.code(), "json.not_array");
+}
+
+#[test]
+fn nested_string_field_rows_project_parent_and_child_arrays_once() {
+    let json = parse(
+        r#"[
+            {"module":"alpha","declarations":[{"kind":"function","name":"run"},null]},
+            {"module":"empty","declarations":[]},
+            {"module":"missing"},
+            null
+        ]"#,
+    )
+    .expect("parse nested projection fixture");
+    let rows = nested_string_field_rows(&json, &["module"], "declarations", &["kind", "name"])
+        .expect("nested projection");
+
+    assert_eq!(rows.len(), 4);
+    assert_eq!(rows[0].values, vec![Some("alpha".to_string())]);
+    assert!(rows[0].child_array);
+    assert_eq!(
+        rows[0].children[0].values,
+        vec![Some("function".to_string()), Some("run".to_string())]
+    );
+    assert!(!rows[0].children[1].object);
+    assert!(rows[1].child_array);
+    assert!(rows[1].children.is_empty());
+    assert!(!rows[2].child_array);
+    assert!(!rows[3].object);
+}
+
+#[test]
+fn nested_string_field_rows_page_bounds_conversion_work() {
+    let json = parse(
+        r#"[
+            {"module":"zero","declarations":[]},
+            {"module":"one","declarations":[]},
+            {"module":"two","declarations":[]}
+        ]"#,
+    )
+    .expect("parse paged projection fixture");
+    let rows =
+        nested_string_field_rows_page(&json, 1, 1, &["module"], "declarations", &["kind", "name"])
+            .expect("bounded nested projection");
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].values, vec![Some("one".to_string())]);
+    assert!(nested_string_field_rows_page(
+        &json,
+        0,
+        257,
+        &["module"],
+        "declarations",
+        &["kind", "name"]
+    )
+    .is_err());
+}
+
+#[test]
+fn array_extend_appends_exact_source_order_and_is_atomic_on_type_error() {
+    let mut target = parsed_fixture("[1]");
+    extend(&mut target, parsed_fixture("[2,3]")).expect("extend arrays");
+    assert_eq!(target.as_serde(), &serde_json::json!([1, 2, 3]));
+    let before = target.clone();
+    assert_eq!(
+        extend(&mut target, parsed_fixture("{}"))
+            .expect_err("reject object extension")
+            .code(),
+        "json.not_array"
+    );
+    assert_eq!(target, before);
+}
+
+#[test]
+fn string_object_rows_build_exact_objects_and_reject_bad_shapes() {
+    let json = string_object_rows(
+        &["kind", "name"],
+        &[
+            vec!["module".to_string(), "alpha".to_string()],
+            vec!["function".to_string(), "run".to_string()],
+        ],
+    )
+    .expect("string object rows");
+    assert_eq!(
+        json.as_serde(),
+        &serde_json::json!([
+            {"kind": "module", "name": "alpha"},
+            {"kind": "function", "name": "run"}
+        ])
+    );
+    assert_eq!(
+        string_object_rows(&["name", "name"], &[])
+            .expect_err("duplicate fields")
+            .code(),
+        "json.duplicate_field"
+    );
+    assert_eq!(
+        string_object_rows(&["name"], &[vec![]])
+            .expect_err("row width")
+            .code(),
+        "json.row_width_mismatch"
+    );
+}
+
+/// Validates one-pass optional string projection from an object.
+#[test]
+fn string_fields_preserve_requested_order_and_missing_values() {
+    let json = parsed_fixture(r#"{"name":"Ada","count":3}"#);
+    assert_eq!(
+        string_fields(&json, &["missing", "name", "count"]),
+        Ok(vec![None, Some("Ada".to_string()), None])
+    );
+    assert_eq!(
+        string_fields(&parsed_fixture("[]"), &["name"])
+            .expect_err("array must be rejected")
+            .code(),
+        "json.not_object"
+    );
+}
+
+/// Validates strict heterogeneous projection without returning JSON handles.
+#[test]
+fn required_fields_project_owned_values_and_reject_type_drift() {
+    let json = parsed_fixture(r#"{"name":"Ada","count":3,"items":[1,2]}"#);
+    assert_eq!(
+        required_fields(&json, &["name"], &["count"], &["items"]),
+        Ok(RequiredFieldProjection {
+            strings: vec!["Ada".to_string()],
+            ints: vec![3],
+            array_lengths: vec![2],
+        })
+    );
+    assert_eq!(
+        required_fields(&json, &["count"], &[], &[])
+            .expect_err("integer is not a required string")
+            .code(),
+        "json.not_string"
+    );
+}
+
+/// Validates one-pass heterogeneous projection for large object arrays.
+#[test]
+fn required_field_rows_project_owned_scalars_and_report_the_bad_row() {
+    let json = parsed_fixture(
+        r#"[{"name":"Ada","count":3,"enabled":true},{"name":"Lin","count":4,"enabled":false}]"#,
+    );
+    assert_eq!(
+        required_field_rows(&json, &["name"], &["count"], &["enabled"]),
+        Ok(vec![
+            RequiredFieldRow {
+                strings: vec!["Ada".to_string()],
+                ints: vec![3],
+                bools: vec![true],
+            },
+            RequiredFieldRow {
+                strings: vec!["Lin".to_string()],
+                ints: vec![4],
+                bools: vec![false],
+            },
+        ])
+    );
+    let error = required_field_rows(
+        &parsed_fixture(r#"[{"name":"Ada"},{"name":2}]"#),
+        &["name"],
+        &[],
+        &[],
+    )
+    .expect_err("second row must fail");
+    assert_eq!(error.code(), "json.not_string");
+    assert_eq!(error.offset(), 1);
+    assert_eq!(
+        required_field_rows_page(&json, 1, 1, &["name"], &["count"], &["enabled"]),
+        Ok(vec![RequiredFieldRow {
+            strings: vec!["Lin".to_string()],
+            ints: vec![4],
+            bools: vec![false],
+        }])
+    );
+    assert_eq!(
+        required_field_rows_page(&json, 0, 257, &[], &[], &[])
+            .expect_err("oversized page")
+            .code(),
+        "json.invalid_page"
+    );
 }
 
 /// Validates object lookup failure conversion.

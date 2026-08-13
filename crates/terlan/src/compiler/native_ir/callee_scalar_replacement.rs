@@ -21,7 +21,7 @@ pub(super) fn specialize_projection_callees_with_budget(
             let candidates = core
                 .functions
                 .iter()
-                .filter_map(projection_callee)
+                .filter_map(|function| projection_callee(function, &core.module))
                 .collect::<Vec<_>>();
             if candidates.is_empty() {
                 break;
@@ -74,6 +74,8 @@ pub(super) fn specialize_projection_callees_with_budget(
 struct ProjectionCallee {
     /// Source function name used by local CoreIR calls.
     function: String,
+    /// Closed-application identity used after call normalization.
+    qualified_function: String,
     /// Original function arity, currently fixed to one managed parameter.
     arity: usize,
     /// Managed parameter name projected by the helper body.
@@ -82,8 +84,13 @@ struct ProjectionCallee {
     body: CoreExpr,
 }
 
+/// Accepts both source-local and closed-application call identities.
+fn addresses_candidate(function: &str, candidate: &ProjectionCallee) -> bool {
+    function == candidate.function || function == candidate.qualified_function
+}
+
 /// Recognizes one single-clause private helper that only projects its argument.
-fn projection_callee(function: &CoreFunction) -> Option<ProjectionCallee> {
+fn projection_callee(function: &CoreFunction, module: &str) -> Option<ProjectionCallee> {
     if function.public
         || function.native_operation.is_some()
         || function.arity != 1
@@ -114,6 +121,7 @@ fn projection_callee(function: &CoreFunction) -> Option<ProjectionCallee> {
     )?;
     (projections > 0).then(|| ProjectionCallee {
         function: function.name.clone(),
+        qualified_function: format!("{module}.{}", function.name),
         arity: function.arity,
         parameter: function.params[0].name.clone(),
         body: body.clone(),
@@ -129,12 +137,12 @@ fn rewrite_calls(
 ) -> bool {
     match expr {
         CoreExpr::Call { function, args }
-            if function == &candidate.function && args.len() == candidate.arity =>
+            if addresses_candidate(function, candidate) && args.len() == candidate.arity =>
         {
             let argument = args[0].clone();
             let replacement = match &argument {
                 CoreExpr::Var(name) => CoreExpr::Var(name.clone()),
-                CoreExpr::ConstructorCall { .. } | CoreExpr::Tuple(_) | CoreExpr::FixedArray(_) => {
+                argument if is_fixed_aggregate_argument(argument) => {
                     let name = format!("$native_callee_sroa_{}", *ordinal);
                     *ordinal = ordinal.saturating_add(1);
                     CoreExpr::Var(name)
@@ -255,9 +263,11 @@ fn rewrite_calls(
         CoreExpr::Case { scrutinee, clauses } => {
             rewrite_calls(scrutinee, candidate, ordinal, call_count)
                 && clauses.iter_mut().all(|clause| {
-                    clause.guard.as_mut().map_or(true, |guard| {
-                        rewrite_calls(guard, candidate, ordinal, call_count)
-                    }) && rewrite_calls(&mut clause.body, candidate, ordinal, call_count)
+                    clause
+                        .guard
+                        .as_mut()
+                        .is_none_or(|guard| rewrite_calls(guard, candidate, ordinal, call_count))
+                        && rewrite_calls(&mut clause.body, candidate, ordinal, call_count)
                 })
         }
         CoreExpr::Try {
@@ -271,11 +281,11 @@ fn rewrite_calls(
                     .iter_mut()
                     .chain(catch_clauses.iter_mut())
                     .all(|clause| {
-                        clause.guard.as_mut().map_or(true, |guard| {
+                        clause.guard.as_mut().is_none_or(|guard| {
                             rewrite_calls(guard, candidate, ordinal, call_count)
                         }) && rewrite_calls(&mut clause.body, candidate, ordinal, call_count)
                     })
-                && after_clause.as_mut().map_or(true, |after| {
+                && after_clause.as_mut().is_none_or(|after| {
                     rewrite_calls(&mut after.trigger, candidate, ordinal, call_count)
                         && rewrite_calls(&mut after.body, candidate, ordinal, call_count)
                 })
@@ -286,13 +296,25 @@ fn rewrite_calls(
         }),
         CoreExpr::RemoteFunRef {
             function, arity, ..
-        } if function == &candidate.function && *arity == candidate.arity => false,
+        } if addresses_candidate(function, candidate) && *arity == candidate.arity => false,
         CoreExpr::Int(_)
         | CoreExpr::Float(_)
         | CoreExpr::Binary(_)
         | CoreExpr::Atom(_)
         | CoreExpr::Var(_)
         | CoreExpr::RemoteFunRef { .. } => true,
+    }
+}
+
+/// Accepts fixed aggregate values through type-only CoreIR casts.
+fn is_fixed_aggregate_argument(expr: &CoreExpr) -> bool {
+    match expr {
+        CoreExpr::ConstructorCall { .. }
+        | CoreExpr::RecordConstruct { .. }
+        | CoreExpr::Tuple(_)
+        | CoreExpr::FixedArray(_) => true,
+        CoreExpr::Cast { expr, .. } => is_fixed_aggregate_argument(expr),
+        _ => false,
     }
 }
 
@@ -318,12 +340,12 @@ fn module_uses_callee(module: &CoreModule, candidate: &ProjectionCallee) -> bool
 fn expr_uses_callee(expr: &CoreExpr, candidate: &ProjectionCallee) -> bool {
     match expr {
         CoreExpr::Call { function, args } => {
-            (function == &candidate.function && args.len() == candidate.arity)
+            (addresses_candidate(function, candidate) && args.len() == candidate.arity)
                 || args.iter().any(|arg| expr_uses_callee(arg, candidate))
         }
         CoreExpr::RemoteFunRef {
             function, arity, ..
-        } => function == &candidate.function && *arity == candidate.arity,
+        } => addresses_candidate(function, candidate) && *arity == candidate.arity,
         CoreExpr::RemoteCall { args, .. } | CoreExpr::ConstructorCall { args, .. } => {
             args.iter().any(|arg| expr_uses_callee(arg, candidate))
         }

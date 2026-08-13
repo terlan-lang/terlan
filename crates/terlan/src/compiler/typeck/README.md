@@ -9,8 +9,6 @@ compiler-path artifacts.
 
 - Validate expression, pattern, declaration, trait, constructor, and receiver
   method semantics.
-- Validate typed mobile bridge declarations before bridge metadata can be
-  emitted.
 - Load imported signatures and type aliases from module interfaces.
 - Enforce primitive surface and target-neutral type rules.
 - Lower checked modules toward CoreIR and proof-track artifacts.
@@ -18,8 +16,6 @@ compiler-path artifacts.
 ## Public Surface
 
 - `type_check_syntax_module_output`: type-checks a syntax module.
-- `mobile_bridge_validation`: adapts typed mobile bridge declarations into
-  typechecker diagnostics and validated bridge metadata.
 - CoreIR exports from `core_ir`.
 - Diagnostic, type, and pretty-printing exports from `types`.
 - Raw macro and unsupported raw declaration diagnostics.

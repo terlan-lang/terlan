@@ -1,6 +1,6 @@
-use super::{
-    VmWebSocketEndpointPlan, VmWebSocketFrame, VmWebSocketInboundQueue, VmWebSocketInboundQueueInfo,
-};
+#[cfg(test)]
+use super::VmWebSocketFrame;
+use super::{VmWebSocketEndpointPlan, VmWebSocketInboundQueue, VmWebSocketInboundQueueInfo};
 
 /// Live WebSocket state admitted from one materialized router endpoint plan.
 ///
@@ -35,11 +35,13 @@ impl VmWebSocketLiveSession {
     }
 
     /// Queues one decoded frame under the endpoint's bounded pressure policy.
+    #[cfg(test)]
     pub(crate) fn enqueue_inbound(&mut self, frame: VmWebSocketFrame) -> Result<(), String> {
         self.inbound.push(frame)
     }
 
     /// Removes the oldest admitted frame for generated callback dispatch.
+    #[cfg(test)]
     pub(crate) fn next_inbound(&mut self) -> Option<VmWebSocketFrame> {
         self.inbound.pop()
     }
@@ -50,6 +52,7 @@ impl VmWebSocketLiveSession {
     }
 
     /// Ends the live-session lease after transport cleanup.
+    #[cfg(test)]
     pub(crate) fn close(&mut self) {
         self.open = false;
     }

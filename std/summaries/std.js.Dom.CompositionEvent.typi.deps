@@ -1,8 +1,8 @@
 module=std.js.Dom.CompositionEvent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
-source_hash=8874723266977533608
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=1989937306386880203
 interface_hash=11446772916547008350
 interface_doc_hash=11446772916547008350
 deps=0

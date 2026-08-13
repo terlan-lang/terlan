@@ -11,8 +11,8 @@ use super::DebugCliError;
 /// - `Err(DebugCliError)` for empty, malformed, or zero-line specs.
 ///
 /// Transformation:
-/// - Keeps the public debugger command contract precise before the VM debugger
-///   runtime exists, so editor integrations can rely on stable diagnostics.
+/// - Keeps the public debugger command contract precise before resolving the
+///   spec against compiler-owned native source records.
 pub(super) fn validate_breakpoint_spec(value: &str) -> Result<(), DebugCliError> {
     if value.trim().is_empty() {
         return Err(invalid_breakpoint_spec(value));
@@ -42,8 +42,8 @@ pub(super) fn validate_breakpoint_spec(value: &str) -> Result<(), DebugCliError>
 /// - Plain base breakpoint or conditional breakpoint with non-empty condition.
 ///
 /// Transformation:
-/// - Keeps conditional breakpoint grammar explicit without parsing the future
-///   debugger expression language at this layer.
+/// - Keeps conditional breakpoint grammar explicit; expression compilation is
+///   deferred to the live debugger's normal Terlan evaluation path.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum BreakpointShape<'a> {
     Plain(&'a str),
@@ -59,8 +59,8 @@ enum BreakpointShape<'a> {
 /// - Plain breakpoint base or base plus condition.
 ///
 /// Transformation:
-/// - Recognizes ` where ` as the debugger guard boundary. Actual expression
-///   parsing belongs to the future live debugger expression engine.
+/// - Recognizes ` where ` as the debugger guard boundary. The live debugger
+///   later compiles the condition with the ordinary Terlan frontend.
 fn split_conditional_breakpoint(value: &str) -> Result<BreakpointShape<'_>, DebugCliError> {
     let Some((base, condition)) = value.split_once(" where ") else {
         return Ok(BreakpointShape::Plain(value));
@@ -91,7 +91,7 @@ fn split_conditional_breakpoint(value: &str) -> Result<BreakpointShape<'_>, Debu
 ///
 /// Transformation:
 /// - Parses the line number as a stable CLI boundary check without touching the
-///   file system; source existence belongs to the future live debugger.
+///   file system; admission resolves it against checksum-bound source records.
 fn validate_file_line_breakpoint(value: &str, path: &str, line: &str) -> Result<(), DebugCliError> {
     if path.trim().is_empty() {
         return Err(invalid_breakpoint_spec(value));

@@ -89,7 +89,7 @@ pub query(target: Pool | Connection, sql: String, params: List[Json]): Result[Li
 pub query_one(
     target: Pool | Connection,
     sql: String,
-    params: List[Json]
+    params: List[Json],
 ): Result[Option[Row], Error] ->
     native.
 

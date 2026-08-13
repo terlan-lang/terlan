@@ -401,4 +401,5 @@ fn is_vm_runtime_path(path: &Path) -> bool {
 
 #[cfg(test)]
 #[path = "vm_deterministic_hashmap_test.rs"]
+#[cfg(test)]
 mod vm_deterministic_hashmap_test;

@@ -1,20 +1,22 @@
-#![allow(dead_code)]
-
-//! VM-owned Adler-32 and CRC-32 helpers for copied byte slices.
-
+#[cfg(test)]
 use std::cmp::min;
 
+#[cfg(test)]
 const ADLER_BASE: u32 = 65_521;
+#[cfg(test)]
 const ADLER_NMAX: usize = 5_552;
 const CRC32_POLY: u32 = 0xedb8_8320;
+#[cfg(test)]
 const GF2_DIM: usize = 32;
 
 /// Returns the initial Adler-32 checksum value.
+#[cfg(test)]
 pub(crate) const fn adler32_init() -> u32 {
     1
 }
 
 /// Updates an Adler-32 checksum with a byte slice.
+#[cfg(test)]
 pub(crate) fn adler32_update(sum: u32, bytes: &[u8]) -> u32 {
     let mut s1 = sum & 0xffff;
     let mut s2 = (sum >> 16) & 0xffff;
@@ -38,6 +40,7 @@ pub(crate) fn adler32_update(sum: u32, bytes: &[u8]) -> u32 {
 }
 
 /// Combines two Adler-32 sums as if their inputs were concatenated.
+#[cfg(test)]
 pub(crate) fn adler32_combine(sum1: u32, sum2: u32, len2: u32) -> u32 {
     if len2 == 0 {
         return sum1;
@@ -79,6 +82,7 @@ pub(crate) fn crc32_update(sum: u32, bytes: &[u8]) -> u32 {
 }
 
 /// Combines two CRC-32 sums as if their inputs were concatenated.
+#[cfg(test)]
 pub(crate) fn crc32_combine(mut sum1: u32, sum2: u32, len2: u32) -> u32 {
     if len2 == 0 {
         return sum1;
@@ -121,6 +125,7 @@ pub(crate) fn crc32_combine(mut sum1: u32, sum2: u32, len2: u32) -> u32 {
     sum1 ^ sum2
 }
 
+#[cfg(test)]
 fn gf2_matrix_times(matrix: &[u32; GF2_DIM], mut vector: u32) -> u32 {
     let mut sum = 0;
     let mut index = 0;
@@ -136,6 +141,7 @@ fn gf2_matrix_times(matrix: &[u32; GF2_DIM], mut vector: u32) -> u32 {
     sum
 }
 
+#[cfg(test)]
 fn gf2_matrix_square(square: &mut [u32; GF2_DIM], matrix: &[u32; GF2_DIM]) {
     for index in 0..GF2_DIM {
         square[index] = gf2_matrix_times(matrix, matrix[index]);
@@ -144,4 +150,5 @@ fn gf2_matrix_square(square: &mut [u32; GF2_DIM], matrix: &[u32; GF2_DIM]) {
 
 #[cfg(test)]
 #[path = "checksum_test.rs"]
+#[cfg(test)]
 mod checksum_test;

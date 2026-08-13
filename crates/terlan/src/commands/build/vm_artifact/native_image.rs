@@ -1,7 +1,5 @@
 //! Compiler-owned native image construction independent from JSON artifacts.
 
-#![cfg_attr(feature = "serve-runtime-bin", allow(dead_code))]
-
 use std::collections::HashSet;
 use std::ffi::OsString;
 use std::fs;
@@ -11,9 +9,10 @@ use std::process::Command;
 use crate::compiler::native_ir::{
     emit_native_application_dispatch_object_with_policy,
     emit_native_application_object_with_policy, install_native_request_projection_exports,
-    native_request_projections, NativeCodegenPolicy, NativeModule, NativeRequestProjection,
-    DISPATCH_SYMBOL, IMAGE_ENTRY_SYMBOL,
+    NativeCodegenPolicy, NativeModule, DISPATCH_SYMBOL, IMAGE_ENTRY_SYMBOL,
 };
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+use crate::compiler::native_ir::{native_request_projections, NativeRequestProjection};
 use crate::runtime::native_boundary::adapter_abi::NativeAdapterAbiContract;
 use crate::runtime::native_image::{
     descriptor_object_for_native_with_debug, host_tvm_target, inspect_tvm_image, seal_tvm_image,
@@ -27,7 +26,8 @@ use super::native_units::prepare_native_object_units;
 use super::{native_cache, output_cleanup};
 
 pub(super) const DIRECT_AOT_BACKEND: &str = "cranelift-0.133.1";
-pub(super) const DIRECT_AOT_CACHE_SCHEMA: &str = "terlan-native-codegen-v3";
+pub(super) const DIRECT_AOT_CACHE_SCHEMA: &str = "terlan-native-codegen-v4";
+pub(super) const DIRECT_AOT_CODEGEN_REVISION: &str = env!("TERLAN_NATIVE_CODEGEN_REVISION_SHA256");
 
 /// One compiler-owned native application image independent from transitional
 /// per-module artifact envelopes.
@@ -36,11 +36,13 @@ pub(super) struct CompiledNativeApplicationImage {
     pub(super) image_name: String,
     pub(super) cache_input_sha256: String,
     pub(super) cached_image_path: PathBuf,
+    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
     pub(super) request_projections: Vec<NativeRequestProjection>,
 }
 
 /// Live-serve image plus compiler proof metadata that is deliberately not part
 /// of the frozen TVM image descriptor format.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 pub(crate) struct CompiledServeNativeImage {
     pub(crate) path: PathBuf,
     pub(crate) request_projections: Vec<NativeRequestProjection>,
@@ -65,6 +67,24 @@ struct NativeImageBuildInput<'a> {
     policy: NativeCodegenPolicy,
 }
 
+struct NativeApplicationCompileRequest<'a> {
+    vm_dir: &'a Path,
+    native_cache_root: &'a Path,
+    image_stem: &'a str,
+    cores: &'a [&'a CoreModule],
+    debug_inputs: &'a [NativeDebugInput<'a>],
+    policy: NativeCodegenPolicy,
+    incremental: bool,
+    application_identity: Option<&'a str>,
+}
+
+pub(super) struct RootedNativeApplicationInput<'a> {
+    pub(super) roots: &'a [(String, String, usize)],
+    pub(super) debug_inputs: &'a [NativeDebugInput<'a>],
+    pub(super) policy: NativeCodegenPolicy,
+    pub(super) incremental: bool,
+}
+
 /// Compiles all supported CoreIR modules into one cached application image.
 pub(super) fn compile_native_application_image(
     vm_dir: &Path,
@@ -75,6 +95,31 @@ pub(super) fn compile_native_application_image(
     policy: NativeCodegenPolicy,
     incremental: bool,
 ) -> Result<Option<CompiledNativeApplicationImage>, BuildOneError> {
+    compile_native_application_image_with_identity(NativeApplicationCompileRequest {
+        vm_dir,
+        native_cache_root,
+        image_stem,
+        cores,
+        debug_inputs,
+        policy,
+        incremental,
+        application_identity: None,
+    })
+}
+
+fn compile_native_application_image_with_identity(
+    request: NativeApplicationCompileRequest<'_>,
+) -> Result<Option<CompiledNativeApplicationImage>, BuildOneError> {
+    let NativeApplicationCompileRequest {
+        vm_dir,
+        native_cache_root,
+        image_stem,
+        cores,
+        debug_inputs,
+        policy,
+        incremental,
+        application_identity,
+    } = request;
     let mut natives = NativeModule::lower_application(cores).map_err(BuildOneError::Message)?;
     if natives.is_empty() {
         output_cleanup::remove_stale_tvm_images(vm_dir, None)?;
@@ -84,11 +129,16 @@ pub(super) fn compile_native_application_image(
     // order, including synthetic closure and continuation modules. Reordering
     // modules here would invalidate every application-wide direct-call index.
     validate_export_id_uniqueness(&natives)?;
+    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
     let request_projections = if policy == NativeCodegenPolicy::Serve {
         install_native_request_projection_exports(&mut natives)
     } else {
         native_request_projections(&natives)
     };
+    #[cfg(feature = "serve-runtime-bin")]
+    if policy == NativeCodegenPolicy::Serve {
+        install_native_request_projection_exports(&mut natives);
+    }
     validate_export_id_uniqueness(&natives)?;
     let debug_metadata = if debug_inputs.is_empty() {
         Vec::new()
@@ -102,11 +152,16 @@ pub(super) fn compile_native_application_image(
         .next()
         .unwrap_or(&natives[0].name)
         .to_string();
-    let application_identity = if natives.len() == 1 {
-        natives[0].name.clone()
-    } else {
-        format!("{package}.application")
-    };
+    let application_identity = application_identity.map_or_else(
+        || {
+            if natives.len() == 1 {
+                natives[0].name.clone()
+            } else {
+                format!("{package}.application")
+            }
+        },
+        str::to_string,
+    );
     let object_name = if cfg!(target_os = "windows") {
         format!("{image_stem}.native.obj")
     } else {
@@ -119,18 +174,19 @@ pub(super) fn compile_native_application_image(
     };
     let image_name = format!("{image_stem}.tvm");
     let image_path = vm_dir.join(&image_name);
-    let target = host_tvm_target().map_err(BuildOneError::Message)?;
+    let target = host_tvm_target().map_err(|error| BuildOneError::Message(error.into()))?;
     let adapter_cache_identity = NativeAdapterAbiContract::current()
         .cache_identity(&target.triple, &target.calling_convention)
-        .map_err(BuildOneError::Message)?;
+        .map_err(|error| BuildOneError::Message(error.into()))?;
     let fingerprint = natives
         .iter()
         .map(NativeModule::fingerprint_sha256)
         .collect::<Vec<_>>()
         .join("\0");
     let cache_input = format!(
-        "{}\0{DIRECT_AOT_BACKEND}\0{DIRECT_AOT_CACHE_SCHEMA}\0tvm-image-format-1\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}",
+        "{}\0{DIRECT_AOT_BACKEND}\0{DIRECT_AOT_CACHE_SCHEMA}\0{DIRECT_AOT_CODEGEN_REVISION}\0tvm-image-format-1\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}",
         env!("CARGO_PKG_VERSION"),
+        application_identity,
         policy.cache_identity(),
         target.triple,
         target.architecture,
@@ -202,7 +258,8 @@ pub(super) fn compile_native_application_image(
             })?
         }
     };
-    let inspection = inspect_tvm_image(&image, &target.triple).map_err(BuildOneError::Message)?;
+    let inspection = inspect_tvm_image(&image, &target.triple)
+        .map_err(|error| BuildOneError::Message(error.into()))?;
     if inspection.descriptor.identity.build != expected_build_identity {
         return Err(BuildOneError::Message(format!(
             "error[tvm.cache.identity]: cached image build identity `{}` does not match `{expected_build_identity}`",
@@ -216,26 +273,81 @@ pub(super) fn compile_native_application_image(
         image_name,
         cache_input_sha256: input_sha256,
         cached_image_path,
+        #[cfg(any(test, not(feature = "serve-runtime-bin")))]
         request_projections,
     }))
+}
+
+/// Compiles one application image from explicit executable roots.
+///
+/// Source/type checking still covers every supplied module. Only the native
+/// link closure is pruned, matching ordinary AOT executable semantics and
+/// preventing dead library helpers from becoming accidental image ABI roots.
+pub(super) fn compile_rooted_native_application_image(
+    vm_dir: &Path,
+    native_cache_root: &Path,
+    image_stem: &str,
+    cores: &[&CoreModule],
+    input: RootedNativeApplicationInput<'_>,
+) -> Result<Option<CompiledNativeApplicationImage>, BuildOneError> {
+    let RootedNativeApplicationInput {
+        roots,
+        debug_inputs,
+        policy,
+        incremental,
+    } = input;
+    let mut rooted = cores.iter().map(|core| (*core).clone()).collect::<Vec<_>>();
+    crate::compiler::native_ir::resolve_typed_mutable_receiver_calls(&mut rooted)
+        .map_err(|error| BuildOneError::Message(error.to_string()))?;
+    crate::compiler::native_ir::prune_application_to_function_roots(&mut rooted, roots)
+        .map_err(|error| BuildOneError::Message(error.to_string()))?;
+    let rooted = rooted.iter().collect::<Vec<_>>();
+    let application_identity = roots
+        .first()
+        .map(|(module, _, _)| module.as_str())
+        .ok_or_else(|| {
+            BuildOneError::Message(
+                "error[native_ir.root]: rooted native application requires an executable root"
+                    .to_string(),
+            )
+        })?;
+    compile_native_application_image_with_identity(NativeApplicationCompileRequest {
+        vm_dir,
+        native_cache_root,
+        image_stem,
+        cores: &rooted,
+        debug_inputs,
+        policy,
+        incremental,
+        application_identity: Some(application_identity),
+    })
 }
 
 /// Compiles one REPL generation into the shared content-addressed AOT cache.
 pub(crate) fn compile_repl_native_image(
     workspace: &Path,
     module_stem: &str,
+    source_path: &str,
+    source_text: &str,
+    syntax: &crate::terlan_syntax::SyntaxModuleOutput,
     core: &CoreModule,
 ) -> Result<Option<PathBuf>, String> {
     let vm_dir = workspace.join("vm");
     fs::create_dir_all(&vm_dir)
         .map_err(|error| format!("cannot create REPL AOT output directory: {error}"))?;
     let native_cache_root = workspace.join(".terlan").join("native-aot");
+    let debug_inputs = [NativeDebugInput {
+        source_path,
+        source_text,
+        core,
+        syntax,
+    }];
     compile_native_application_image(
         &vm_dir,
         &native_cache_root,
         module_stem,
         &[core],
-        &[],
+        &debug_inputs,
         NativeCodegenPolicy::Development,
         true,
     )
@@ -244,7 +356,7 @@ pub(crate) fn compile_repl_native_image(
 }
 
 /// Compiles one live serve generation into its package-local native cache.
-#[allow(dead_code)] // Retained for focused serve-image compilation and tests.
+#[cfg(test)]
 pub(crate) fn compile_serve_native_image(
     web_root: &Path,
     module_stem: &str,
@@ -270,6 +382,7 @@ pub(crate) fn compile_serve_native_image(
 
 /// Compiles one live serve generation and retains export-specific Request
 /// projection proofs for admission into the matching runtime generation.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 pub(crate) fn compile_serve_native_image_with_metadata(
     web_root: &Path,
     module_stem: &str,
@@ -393,7 +506,7 @@ fn compile_and_publish_image(input: NativeImageBuildInput<'_>) -> Result<Vec<u8>
             input.policy,
         )
     }
-    .map_err(BuildOneError::Message)?;
+    .map_err(|error| BuildOneError::Message(error.into()))?;
     native_cache::publish_file(input.object_path, &object)?;
     let descriptor = native_application_image_descriptor(
         input.application_identity,
@@ -403,7 +516,7 @@ fn compile_and_publish_image(input: NativeImageBuildInput<'_>) -> Result<Vec<u8>
     )?;
     let descriptor_object =
         descriptor_object_for_native_with_debug(&object, &descriptor, input.debug_metadata)
-            .map_err(BuildOneError::Message)?;
+            .map_err(|error| BuildOneError::Message(error.into()))?;
     native_cache::publish_file(input.descriptor_object_path, &descriptor_object)?;
     let linked_image = native_cache::TemporaryCacheFile::beside(input.cached_image_path)?;
     let unit_paths = module_units
@@ -423,8 +536,10 @@ fn compile_and_publish_image(input: NativeImageBuildInput<'_>) -> Result<Vec<u8>
             linked_image.path().display()
         ))
     })?;
-    let sealed = seal_tvm_image(&mut image, &descriptor).map_err(BuildOneError::Message)?;
-    inspect_tvm_image(&image, &sealed.target.triple).map_err(BuildOneError::Message)?;
+    let sealed = seal_tvm_image(&mut image, &descriptor)
+        .map_err(|error| BuildOneError::Message(error.into()))?;
+    inspect_tvm_image(&image, &sealed.target.triple)
+        .map_err(|error| BuildOneError::Message(error.into()))?;
     native_cache::publish_file(input.cached_image_path, &image)?;
     let manifest = native_cache::cache_manifest_bytes(
         input.input_sha256,

@@ -3,6 +3,35 @@ use crate::commands::serve::manifest::invalidate_web_manifest_cache;
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[test]
+fn positional_route_arguments_follow_declared_scalar_types() {
+    assert_eq!(
+        route_param_argument("/api/{id:Int}/{enabled:Bool}/:name", "id", "42")
+            .expect("integer capture"),
+        ReplValue::Int(42)
+    );
+    assert_eq!(
+        route_param_argument("/api/{id:Int}/{enabled:Bool}/:name", "enabled", "true")
+            .expect("boolean capture"),
+        ReplValue::Bool(true)
+    );
+    assert_eq!(
+        route_param_argument("/api/{id:Int}/{enabled:Bool}/:name", "name", "terlan")
+            .expect("string capture"),
+        ReplValue::String("terlan".to_string())
+    );
+}
+
+#[test]
+fn positional_route_arguments_reject_invalid_typed_values() {
+    let error = route_param_argument("/api/{id:Int}", "id", "not-an-int")
+        .expect_err("invalid integer capture");
+    assert!(
+        error.to_string().contains("error[serve.route_param]"),
+        "{error}"
+    );
+}
+
 fn route_fixture() -> PathBuf {
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)

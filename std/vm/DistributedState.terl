@@ -157,7 +157,7 @@ pub (store: Store) write(
     owner_node_id: String,
     value: Dynamic,
     version: Version,
-    policy: Policy
+    policy: Policy,
 ): Outcome ->
     native.
 

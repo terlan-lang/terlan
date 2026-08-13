@@ -1,0 +1,43 @@
+{
+  "dependency_files": [
+    "proofs/lean/lake-manifest.json",
+    "proofs/lean/lakefile.lean",
+    "proofs/lean/lean-toolchain"
+  ],
+  "deterministic_timestamp_strategy": "none-content-addressed",
+  "execution_command": [
+    "lake",
+    "env",
+    "lean",
+    "collections/Collections.lean"
+  ],
+  "family": "collections",
+  "manifest_fingerprints": {
+    "docs/compiler/type_spec/language_feature_coverage_matrix.json": "sha256:57479360847ffcfbf3c792eef9eb4098b378c03636b92e6083a50c8a0054dd2d"
+  },
+  "output_signature": {
+    "exit_class": "success",
+    "stderr_class": "empty",
+    "stdout_class": "empty"
+  },
+  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+  "schema": "terlan.lean-proof-replay.v1",
+  "source_digest": "sha256:cd429b6b7d63643333cad8beb99049905e7e994848b42c2ec85a1180f4595065",
+  "theorem_names": [
+    "Terlan.Collections.listUpdatePreservesLength",
+    "Terlan.Collections.mapPutReturnsInsertedValue",
+    "Terlan.Collections.deleteFromEmptyIsEmpty",
+    "Terlan.Collections.duplicateSetInsertIsStable",
+    "Terlan.Collections.collisionUpdateSelectsNewest",
+    "Terlan.Collections.nondeterministicIterationRejected"
+  ],
+  "toolchain": {
+    "elan_channel": "leanprover/lean4:v4.31.0",
+    "lake_flags": [
+      "env",
+      "lean"
+    ],
+    "lean_version": "4.31.0"
+  },
+  "working_directory": "proofs/lean"
+}

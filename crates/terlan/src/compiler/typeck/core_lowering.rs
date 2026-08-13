@@ -1,6 +1,9 @@
 use super::*;
 use crate::terlan_syntax::syntax_output::SyntaxAnnotationValueOutput;
 
+#[path = "core_lowering/default_arguments.rs"]
+mod default_arguments;
+
 /// Lowers resolved formal compiler state to the current core boundary.
 ///
 /// Inputs:
@@ -22,7 +25,7 @@ pub fn lower_resolved_module_to_core(resolved: &ResolvedModule) -> CoreModule {
     let constructors = lower_core_constructors(&resolved.interface);
     let metadata = core_module_metadata(&functions, &types, &constructors);
 
-    CoreModule {
+    let mut core = CoreModule {
         schema: CORE_IR_SCHEMA.to_string(),
         module: resolved.name.clone(),
         source: CoreSourceIdentity {
@@ -37,9 +40,13 @@ pub fn lower_resolved_module_to_core(resolved: &ResolvedModule) -> CoreModule {
         constructors,
         templates: Vec::new(),
         trait_conformances: Vec::new(),
+        binding_identities: CoreBindingIdentityEvidence::default(),
+        termination: CoreTerminationEvidence::default(),
         metadata,
         interface: resolved.interface.clone(),
-    }
+    };
+    core.termination = analyze_core_termination(&core);
+    core
 }
 
 /// Lowers syntax-output plus resolved formal compiler state to CoreIR.
@@ -72,6 +79,7 @@ pub fn lower_syntax_module_output_to_core(
         &mut prepared_module,
         &import_maps.function_imports,
     );
+    default_arguments::materialize_default_call_arguments(&mut prepared_module, resolved);
     annotate_syntax_comprehension_lifts(&mut prepared_module, resolved);
     let module = &prepared_module;
     let mut core = lower_resolved_module_to_core(resolved);
@@ -104,19 +112,30 @@ pub fn lower_syntax_module_output_to_core(
         syntax_contract_fingerprint: Some(module.syntax_contract.fingerprint.clone()),
     };
     core.imports = core_syntax_imports(module);
+    merge_core_imports(
+        &mut core.imports,
+        core_resolved_executable_modules(module, resolved),
+    );
     merge_core_imports(&mut core.imports, core_resolved_imported_modules(resolved));
     core.trait_conformances = core_syntax_trait_conformances(module);
     let syntax_struct_bodies = core_syntax_struct_type_bodies(module);
+    let syntax_opaque_bodies = core_syntax_opaque_type_bodies(module);
     for type_decl in &mut core.types {
         if let Some(core_body) = syntax_struct_bodies.get(&type_decl.name) {
+            type_decl.core_body = Some(core_body.clone());
+        } else if let Some(core_body) = syntax_opaque_bodies.get(&type_decl.name) {
             type_decl.core_body = Some(core_body.clone());
         }
     }
 
     let receiver_methods = core_receiver_method_dispatch_signatures(module, resolved);
     let template_prop_order = core_syntax_template_prop_order(module);
-    let mut function_clauses =
-        core_syntax_function_clauses(module, &receiver_methods, &template_prop_order);
+    let mut function_clauses = core_syntax_function_clauses(
+        module,
+        &core.functions,
+        &receiver_methods,
+        &template_prop_order,
+    );
     let (mut structural_impl_functions, structural_impl_dispatch) =
         core_syntax_structural_impl_dispatch(
             module,
@@ -153,6 +172,8 @@ pub fn lower_syntax_module_output_to_core(
             .then_with(|| left.arity.cmp(&right.arity))
     });
     core.metadata = core_module_metadata(&core.functions, &core.types, &core.constructors);
+    core.binding_identities = analyze_syntax_bindings(module).evidence;
+    core.termination = analyze_core_termination(&core);
     core
 }
 
@@ -217,10 +238,8 @@ fn annotate_comprehension_lifts_in_expr(
     for child in &mut expr.children {
         annotate_comprehension_lifts_in_expr(child, resolved, lifts);
     }
-    for guard in &mut expr.let_guards {
-        if let Some(guard) = guard {
-            annotate_comprehension_lifts_in_expr(guard, resolved, lifts);
-        }
+    for guard in expr.let_guards.iter_mut().flatten() {
+        annotate_comprehension_lifts_in_expr(guard, resolved, lifts);
     }
     for field in &mut expr.fields {
         annotate_comprehension_lifts_in_expr(&mut field.value, resolved, lifts);
@@ -340,10 +359,8 @@ fn canonicalize_core_expr_module_aliases(
     for child in &mut expr.children {
         canonicalize_core_expr_module_aliases(child, aliases);
     }
-    for guard in &mut expr.let_guards {
-        if let Some(guard) = guard {
-            canonicalize_core_expr_module_aliases(guard, aliases);
-        }
+    for guard in expr.let_guards.iter_mut().flatten() {
+        canonicalize_core_expr_module_aliases(guard, aliases);
     }
     for field in &mut expr.fields {
         canonicalize_core_expr_module_aliases(&mut field.value, aliases);
@@ -420,10 +437,8 @@ fn canonicalize_core_expr_selected_function_imports(
     for child in &mut expr.children {
         canonicalize_core_expr_selected_function_imports(child, imports);
     }
-    for guard in &mut expr.let_guards {
-        if let Some(guard) = guard {
-            canonicalize_core_expr_selected_function_imports(guard, imports);
-        }
+    for guard in expr.let_guards.iter_mut().flatten() {
+        canonicalize_core_expr_selected_function_imports(guard, imports);
     }
     for field in &mut expr.fields {
         canonicalize_core_expr_selected_function_imports(&mut field.value, imports);

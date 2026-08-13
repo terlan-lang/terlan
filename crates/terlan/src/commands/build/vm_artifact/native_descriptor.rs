@@ -7,7 +7,7 @@ use crate::runtime::native_image::{
 };
 
 use super::super::BuildOneError;
-use super::native_image::DIRECT_AOT_BACKEND;
+use super::native_image::{DIRECT_AOT_BACKEND, DIRECT_AOT_CODEGEN_REVISION};
 use crate::runtime::native_boundary::adapter_abi::PUBLIC_ADAPTER_ABI_VERSION;
 
 /// Builds the canonical descriptor embedded into one native application image.
@@ -63,6 +63,9 @@ pub(super) fn native_application_image_descriptor(
             native
                 .functions
                 .iter()
+                .filter(|_| {
+                    !crate::compiler::native_ir::is_materialized_continuation_module(native)
+                })
                 .map(|function| TvmCallableDescriptor {
                     id: function.export_id,
                     parameters: function
@@ -126,13 +129,16 @@ pub(super) fn native_application_image_descriptor(
     });
     managed_collections.dedup();
     Ok(TvmExecutableDescriptor {
-        runtime_abi_min: 2,
-        runtime_abi_max: 2,
+        runtime_abi_min: 3,
+        runtime_abi_max: 3,
         native_boundary_min: PUBLIC_ADAPTER_ABI_VERSION,
         native_boundary_max: PUBLIC_ADAPTER_ABI_VERSION,
-        target: host_tvm_target().map_err(BuildOneError::Message)?,
+        target: host_tvm_target().map_err(|error| BuildOneError::Message(error.into()))?,
         identity: TvmImageIdentity {
-            compiler: format!("terlc-{}-{DIRECT_AOT_BACKEND}", env!("CARGO_PKG_VERSION")),
+            compiler: format!(
+                "terlc-{}-{DIRECT_AOT_BACKEND}-codegen-{DIRECT_AOT_CODEGEN_REVISION}",
+                env!("CARGO_PKG_VERSION")
+            ),
             build: format!("sha256:{input_sha256}"),
             package: package.to_string(),
             module: application_identity.to_string(),

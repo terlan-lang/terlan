@@ -207,4 +207,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "package_api_compatibility_test.rs"]
+#[cfg(test)]
 mod package_api_compatibility_test;

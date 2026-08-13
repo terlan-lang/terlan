@@ -1,13 +1,13 @@
 {
   "format_version": 1,
   "entry_rule": "SyntaxSpec",
-  "rule_count": 227,
+  "rule_count": 232,
   "key_rules": [
     {
       "name": "SyntaxSpec",
       "id": "rule:SyntaxSpec",
       "expr_id": "rule:SyntaxSpec/expr",
-      "kind": "nonterminal"
+      "kind": "alternation"
     },
     {
       "name": "Declaration",
@@ -56,6 +56,18 @@
       "id": "rule:AnnotationSchemaDecl",
       "expr_id": "rule:AnnotationSchemaDecl/expr",
       "kind": "sequence"
+    },
+    {
+      "name": "ShapeDecl",
+      "id": "rule:ShapeDecl",
+      "expr_id": "rule:ShapeDecl/expr",
+      "kind": "sequence"
+    },
+    {
+      "name": "StructuralParameterPattern",
+      "id": "rule:StructuralParameterPattern",
+      "expr_id": "rule:StructuralParameterPattern/expr",
+      "kind": "alternation"
     },
     {
       "name": "Expr",

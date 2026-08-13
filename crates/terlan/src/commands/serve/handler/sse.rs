@@ -9,13 +9,14 @@ use super::sse_invocation::AotSseCallbackSession;
 
 use super::{
     finish_router_response, validate_handler_module, validate_handler_route, validate_source_span,
-    vm_request_descriptor, HandlerResponse, WebPackageHandler, WebPackageSse,
+    vm_request_descriptor, HandlerResponse, RouterResponseRuntime, WebPackageHandler,
+    WebPackageSse,
 };
 
 /// Result of source-router admission for one SSE request.
 #[derive(Debug)]
 pub(in crate::commands::serve) enum VmSseRouterAdmission {
-    Stream(AotSseCallbackSession),
+    Stream(Box<AotSseCallbackSession>),
     Respond(HandlerResponse),
 }
 
@@ -43,10 +44,7 @@ pub(in crate::commands::serve) fn execute_vm_router_sse_admission_with_package_r
     )?;
     match outcome {
         VmHttpRouterOutcome::ShortCircuited(short) => finish_router_response(
-            &vm,
-            &endpoint.module,
-            request,
-            package_root,
+            RouterResponseRuntime::new(&vm, &endpoint.module, request, package_root),
             output,
             short.response,
             short.route_params,
@@ -77,7 +75,7 @@ pub(in crate::commands::serve) fn execute_vm_router_sse_admission_with_package_r
                     )
                 })?;
             AotSseCallbackSession::open(vm, endpoint.module.clone(), session)
-                .map(VmSseRouterAdmission::Stream)
+                .map(|session| VmSseRouterAdmission::Stream(Box::new(session)))
         }
         VmHttpRouterOutcome::NotFound => Err(format!(
             "error[serve_router]: materialized router did not match SSE GET {}",

@@ -6,6 +6,16 @@ use super::model::{
 };
 use super::strings::parse_string;
 
+pub(super) struct ParsedWasmTarget {
+    pub(super) seen: bool,
+    pub(super) profile: Option<ProjectWasmProfile>,
+    pub(super) exports: Option<Vec<String>>,
+    pub(super) bridge: Option<String>,
+    pub(super) capabilities: Option<Vec<String>>,
+    pub(super) world: Option<String>,
+    pub(super) validation_engine: Option<String>,
+}
+
 /// Finalizes optional `[target.wasm]` metadata.
 ///
 /// Inputs:
@@ -20,18 +30,20 @@ use super::strings::parse_string;
 ///
 /// Transformation:
 /// - Validates the manifest reservation without enabling Wasm byte emission.
-#[allow(clippy::too_many_arguments)]
 pub(super) fn finish_wasm_target(
     path: &Path,
     artifact: ProjectArtifactKind,
-    seen: bool,
-    profile: Option<ProjectWasmProfile>,
-    exports: Option<Vec<String>>,
-    bridge: Option<String>,
-    capabilities: Option<Vec<String>>,
-    world: Option<String>,
-    validation_engine: Option<String>,
+    target: ParsedWasmTarget,
 ) -> Result<Option<ProjectWasmTarget>, String> {
+    let ParsedWasmTarget {
+        seen,
+        profile,
+        exports,
+        bridge,
+        capabilities,
+        world,
+        validation_engine,
+    } = target;
     if !seen {
         if is_wasm_artifact(artifact) {
             return Err(format!(

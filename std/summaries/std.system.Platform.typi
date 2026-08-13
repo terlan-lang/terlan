@@ -1,0 +1,45 @@
+//! Stable host platform identity for portable tooling decisions.
+
+module std.system.Platform.
+
+/// Normalized host properties owned by the active Terlan runtime.
+
+pub struct Host {
+    operating_system: String,
+    architecture: String,
+    path_separator: String,
+    executable_suffix: String
+}.
+
+/// Dynamic host measurements used to qualify reproducible performance runs.
+///
+/// `available` is false when the active runtime cannot provide a complete
+/// snapshot on the current operating system. Callers must reject that state
+/// instead of fabricating performance provenance.
+
+pub struct HostMetrics {
+    available: Bool,
+    message: String,
+    kernel: String,
+    operating_system: String,
+    cpu_model: String,
+    memory_bytes: Int,
+    available_memory_bytes: Int,
+    cpu_affinity: List[Int],
+    cpu_governor: String,
+    load_1m: Float,
+    load_5m: Float,
+    load_15m: Float
+}.
+
+/// Returns the active runtime's host platform without invoking an external tool.
+
+pub current(): Host.
+
+/// Captures scheduler-affinity, load, memory, and host identity in one typed
+/// runtime operation.
+///
+/// Platform-specific files and APIs are runtime implementation details; Terlan
+/// applications never parse `/proc`, sysfs, or operating-system command output.
+
+pub current_metrics(): HostMetrics.

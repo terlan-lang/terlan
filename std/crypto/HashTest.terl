@@ -1,0 +1,179 @@
+module std.crypto.HashTest.
+
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.{labeled_file, sha256, sha256_bytes, sha256_domain_framed, sha256_file, sha256_framed, sha256_labeled_file_digests, sha256_nul_separated, sha256_selected_files, sha256_tree, verify_sha256_manifest}.
+import std.io.Directory.{create_temporary, remove_all}.
+import std.io.File.{write_text}.
+import std.test.Test.{assert_equal}.
+import std.vm.Bytes.{from_list}.
+
+@test
+pub sha256_matches_empty_vector(): Bool ->
+    assert_equal("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", sha256("")).
+
+@test
+pub sha256_matches_ascii_vector(): Bool ->
+    assert_equal("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", sha256("abc")).
+
+@test
+pub domain_framed_hash_preserves_the_unframed_domain(): Bool ->
+    assert_equal(
+        "dc1114cd074914bd872cc1f9a23ec910ea2203bc79779ab2e17da25782a624fc",
+        sha256_domain_framed("abc", []),
+    ).
+
+@test
+pub sha256_bytes_matches_binary_ascii_vector(): Bool ->
+    assert_equal(
+        "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        sha256_bytes(from_list([97, 98, 99])),
+    ).
+
+@test
+pub framed_sha256_distinguishes_field_boundaries(): Bool ->
+    sha256_framed(["a", "bc"]) != sha256_framed(["ab", "c"])
+        and sha256_framed(["a", "bc"]) == sha256_framed(["a", "bc"]).
+
+@test
+pub nul_separated_sha256_preserves_release_identity_bytes(): Bool ->
+    assert_equal(
+        "40bb547d936bbd31318ee37ac8799e7ecbb22eda2651f65e3214bffb8ce97bb4",
+        sha256_nul_separated(["a", "bc"]),
+    ).
+
+@test
+pub sha256_file_streams_the_complete_file(): Bool ->
+    case create_temporary("terlan-hash-test.") {
+        Ok(root) ->
+            let path = String.append(root, "/value.txt");
+            let result =
+                (let {
+    Ok(_) <- write_text(path, "abc");
+    Ok(digest) <- sha256_file(path)
+} else {
+    _ -> false
+};
+digest == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+            let _removed = remove_all(root);
+            result;
+        Err(_reason) -> false
+    }.
+
+@test
+pub labeled_file_hash_preserves_ordered_path_digest_rows(): Bool ->
+    case create_temporary("terlan-hash-labeled-test.") {
+        Err(_reason) -> false;
+        Ok(root) ->
+            let first = String.append(root, "/a.txt");
+            let second = String.append(root, "/b.txt");
+            let result =
+                (let {
+    Ok(_first) <- write_text(first, "a");
+    Ok(_second) <- write_text(second, "b");
+    Ok(actual) <-
+        sha256_labeled_file_digests(
+            List(labeled_file(first, "a.txt"), labeled_file(second, "b.txt")),
+        )
+} else {
+    _ -> false
+};
+actual == "25f42a976af2372b237c417343731a9a04f125da611549f68bede2e210482d1d");
+            let _removed = remove_all(root);
+            result
+    }.
+
+@test
+pub labeled_file_hash_rejects_parent_traversal_labels(): Bool ->
+    case create_temporary("terlan-hash-labeled-path-test.") {
+        Err(_reason) -> false;
+        Ok(root) ->
+            let path = String.append(root, "/value.txt");
+            let result =
+                (let {
+    Ok(_written) <- write_text(path, "value");
+    Err(_reason) <- sha256_labeled_file_digests(List(labeled_file(path, "../value.txt")))
+} else {
+    _ -> false
+};
+true);
+            let _removed = remove_all(root);
+            result
+    }.
+
+@test
+pub sha256_manifest_verification_is_bulk_and_path_contained(): Bool ->
+    case create_temporary("terlan-hash-manifest-test.") {
+        Ok(root) ->
+            let payload = String.append(root, "/value.txt");
+            let manifest = String.append(root, "/SHA256SUMS");
+            let digest = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+            let valid =
+                (let {
+    Ok(_) <- write_text(payload, "abc");
+    Ok(_) <- write_text(manifest, String.append(digest, "  value.txt\n"));
+    Ok(verified) <- verify_sha256_manifest(root, manifest)
+} else {
+    _ -> false
+};
+verified);
+            let mismatch =
+                (let {
+    Ok(_) <- write_text(manifest, String.append(digest, "  ../value.txt\n"));
+    Ok(verified) <- verify_sha256_manifest(root, manifest)
+} else {
+    _ -> false
+};
+not verified);
+            let _removed = remove_all(root);
+            valid and mismatch;
+        Err(_reason) -> false
+    }.
+
+@test
+pub sha256_tree_matches_ordered_relative_path_framing(): Bool ->
+    case create_temporary("terlan-hash-tree-test.") {
+        Ok(root) ->
+            let first = String.append(root, "/a.txt");
+            let second = String.append(root, "/b.txt");
+            let {
+                Ok(_) <- write_text(first, "a");
+                Ok(_) <- write_text(second, "b");
+                Ok(actual) <- sha256_tree(root)
+            } else {
+                _ ->
+                    case remove_all(root) {
+                        Ok(_) -> false;
+                        Err(_cleanup) -> false
+                    }
+            };
+            if {
+                actual == sha256_framed(["a.txt", sha256("a"), "b.txt", sha256("b")]) -> case remove_all(root) {
+                    Ok(_) -> true;
+                    Err(_reason) -> false
+                };
+                true -> case remove_all(root) {
+                    Ok(_) -> false;
+                    Err(_reason) -> false
+                }
+            };
+        Err(_reason) -> false
+    }.
+
+@test
+pub selected_file_hash_streams_path_nul_content_newline_frames(): Bool ->
+    case create_temporary("terlan-hash-selected-test.") {
+        Ok(root) ->
+            let first = String.append(root, "/a.txt");
+            let second = String.append(root, "/b.txt");
+            let {
+                Ok(_first) <- write_text(first, "a");
+                Ok(_second) <- write_text(second, "b");
+                Ok(actual) <- sha256_selected_files(root, ["a.txt", "b.txt"])
+            } else {
+                _ -> false
+            };
+            (let _removed = remove_all(root); actual == "71d40351bccb0eba3ca4fdbb0dfdf03b024d221805e140c74c5c7395fdf7c33b");
+        Err(_reason) -> false
+    }.

@@ -1,4 +1,6 @@
+use std::collections::hash_map::DefaultHasher;
 use std::fs;
+use std::hash::{Hash, Hasher};
 #[cfg(not(coverage))]
 use std::io::IsTerminal;
 use std::path::Path;
@@ -6,26 +8,49 @@ use std::process::Command;
 
 use serde::de::DeserializeOwned;
 
+use boundary_error::{BoundaryError, ErrorDomain};
+
+pub mod boundary_error;
+
 #[cfg(test)]
 #[path = "bad_encoding_parity_test.rs"]
+#[cfg(test)]
 mod bad_encoding_parity_test;
 #[cfg(test)]
 #[path = "col_utf8_parity_test.rs"]
+#[cfg(test)]
 mod col_utf8_parity_test;
 #[cfg(test)]
 #[path = "deep_json_test.rs"]
+#[cfg(test)]
 mod deep_json_test;
 #[cfg(test)]
+#[path = "json_string_test.rs"]
+mod json_string_test;
+#[cfg(test)]
 #[path = "latin1_source_policy_test.rs"]
+#[cfg(test)]
 mod latin1_source_policy_test;
 #[cfg(test)]
 #[path = "line_pt_parity_test.rs"]
+#[cfg(test)]
 mod line_pt_parity_test;
 #[cfg(test)]
 pub(crate) mod test_fs;
 
-use crate::commands::json::json_string;
 use crate::{ColorChoice, DiagnosticFormat};
+
+/// Encodes a string as a complete JSON string literal.
+pub(crate) fn json_string(value: &str) -> String {
+    serde_json::to_string(value).expect("JSON string serialization should not fail")
+}
+
+/// Computes a deterministic process-independent content fingerprint.
+pub(crate) fn fingerprint(bytes: &[u8]) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    bytes.hash(&mut hasher);
+    hasher.finish()
+}
 
 /// Maximum JSON container nesting accepted by compiler-owned artifacts.
 pub(crate) const MAX_JSON_NESTING_DEPTH: usize = 256;
@@ -43,12 +68,28 @@ pub(crate) const MAX_JSON_NESTING_DEPTH: usize = 256;
 ///   recursion limit, then requires the typed value to consume all input.
 pub(crate) fn deserialize_json_with_depth_limit<T: DeserializeOwned>(
     bytes: &[u8],
-) -> Result<T, String> {
+) -> Result<T, BoundaryError> {
     validate_json_nesting_depth(bytes)?;
     let mut deserializer = serde_json::Deserializer::from_slice(bytes);
     deserializer.disable_recursion_limit();
-    let value = T::deserialize(&mut deserializer).map_err(|error| error.to_string())?;
-    deserializer.end().map_err(|error| error.to_string())?;
+    let value = T::deserialize(&mut deserializer).map_err(|error| {
+        BoundaryError::sourced(
+            ErrorDomain::CompilerPhase,
+            "compiler.json.deserialize",
+            "deserialize_json_with_depth_limit",
+            format!("malformed JSON artifact: {error}"),
+            error,
+        )
+    })?;
+    deserializer.end().map_err(|error| {
+        BoundaryError::sourced(
+            ErrorDomain::CompilerPhase,
+            "compiler.json.trailing_input",
+            "deserialize_json_with_depth_limit",
+            format!("JSON artifact has trailing input: {error}"),
+            error,
+        )
+    })?;
     Ok(value)
 }
 
@@ -64,7 +105,7 @@ pub(crate) fn deserialize_json_with_depth_limit<T: DeserializeOwned>(
 /// - Counts object and array delimiters outside escaped JSON strings without
 ///   interpreting payload values; the JSON parser remains responsible for
 ///   syntax and delimiter-balance validation.
-fn validate_json_nesting_depth(bytes: &[u8]) -> Result<(), String> {
+fn validate_json_nesting_depth(bytes: &[u8]) -> Result<(), BoundaryError> {
     let mut depth = 0usize;
     let mut in_string = false;
     let mut escaped = false;
@@ -84,8 +125,12 @@ fn validate_json_nesting_depth(bytes: &[u8]) -> Result<(), String> {
             b'{' | b'[' => {
                 depth += 1;
                 if depth > MAX_JSON_NESTING_DEPTH {
-                    return Err(format!(
-                        "JSON nesting exceeds compiler limit of {MAX_JSON_NESTING_DEPTH}"
+                    return Err(BoundaryError::message(
+                        ErrorDomain::CompilerPhase,
+                        "validate_json_nesting_depth",
+                        format!(
+                            "error[compiler.json.nesting]: JSON nesting exceeds compiler limit of {MAX_JSON_NESTING_DEPTH}"
+                        ),
                     ));
                 }
             }
@@ -656,13 +701,27 @@ fn caret_underline(
 /// Transformation:
 /// - Reads bytes once, validates UTF-8 explicitly, and normalizes IO and
 ///   encoding failures into stable CLI diagnostics.
-pub(crate) fn read_file(path: &str) -> Result<String, String> {
-    let bytes = fs::read(Path::new(path)).map_err(|err| format!("failed to read {path}: {err}"))?;
+pub(crate) fn read_file(path: &str) -> Result<String, BoundaryError> {
+    let bytes = fs::read(Path::new(path)).map_err(|error| {
+        BoundaryError::sourced(
+            ErrorDomain::CommandExecution,
+            "command.source.read",
+            "read_file",
+            format!("failed to read {path}: {error}"),
+            error,
+        )
+    })?;
     String::from_utf8(bytes).map_err(|err| {
         let valid_up_to = err.utf8_error().valid_up_to();
         let (line, column) = invalid_utf8_location(err.as_bytes(), valid_up_to);
-        format!(
-            "failed to read {path}: Terlan source files must be UTF-8; invalid byte sequence starts at byte {valid_up_to} (line {line}, column {column})"
+        BoundaryError::sourced(
+            ErrorDomain::CommandExecution,
+            "command.source.utf8",
+            "read_file",
+            format!(
+                "failed to read {path}: Terlan source files must be UTF-8; invalid byte sequence starts at byte {valid_up_to} (line {line}, column {column})"
+            ),
+            err,
         )
     })
 }
@@ -741,21 +800,51 @@ pub(crate) fn is_valid_sha256_hex(value: &str) -> bool {
 /// Transformation:
 /// - Invokes `sha256sum`, reads the first whitespace-delimited field, and
 ///   validates it as lowercase SHA-256 hex before returning it.
-pub(crate) fn sha256sum_file(path: &Path) -> Result<String, String> {
+pub(crate) fn sha256sum_file(path: &Path) -> Result<String, BoundaryError> {
     let output = Command::new("sha256sum")
         .arg(path)
         .output()
-        .map_err(|error| format!("cannot run sha256sum for `{}`: {error}", path.display()))?;
+        .map_err(|error| {
+            BoundaryError::sourced(
+                ErrorDomain::CommandExecution,
+                "command.sha256.spawn",
+                "sha256sum_file",
+                format!("cannot run sha256sum for `{}`: {error}", path.display()),
+                error,
+            )
+        })?;
     if !output.status.success() {
-        return Err(format!("sha256sum failed for `{}`", path.display()));
+        return Err(BoundaryError::message(
+            ErrorDomain::CommandExecution,
+            "sha256sum_file",
+            format!(
+                "error[command.sha256.exit]: sha256sum failed for `{}`",
+                path.display()
+            ),
+        ));
     }
-    let stdout = String::from_utf8(output.stdout)
-        .map_err(|error| format!("sha256sum output was not UTF-8: {error}"))?;
+    let stdout = String::from_utf8(output.stdout).map_err(|error| {
+        BoundaryError::sourced(
+            ErrorDomain::CommandExecution,
+            "command.sha256.utf8",
+            "sha256sum_file",
+            format!("sha256sum output was not UTF-8: {error}"),
+            error,
+        )
+    })?;
     let Some(hash) = stdout.split_whitespace().next() else {
-        return Err("sha256sum output was empty".to_string());
+        return Err(BoundaryError::message(
+            ErrorDomain::CommandExecution,
+            "sha256sum_file",
+            "error[command.sha256.empty]: sha256sum output was empty",
+        ));
     };
     if !is_valid_sha256_hex(hash) {
-        return Err(format!("sha256sum output was not SHA-256 hex: `{hash}`"));
+        return Err(BoundaryError::message(
+            ErrorDomain::CommandExecution,
+            "sha256sum_file",
+            format!("error[command.sha256.format]: sha256sum output was not SHA-256 hex: `{hash}`"),
+        ));
     }
     Ok(hash.to_string())
 }

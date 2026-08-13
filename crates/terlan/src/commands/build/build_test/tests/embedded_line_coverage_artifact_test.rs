@@ -30,7 +30,7 @@ fn embedded_line_coverage_parity_emits_checksum_covered_function_spans() {
         .expect("read executable native image");
     let image = object::File::parse(&*bytes).expect("parse executable native image");
     let section_name = if cfg!(target_os = "windows") {
-        ".debug$T"
+        ".tdbg"
     } else if cfg!(target_os = "macos") {
         "__terlan"
     } else {

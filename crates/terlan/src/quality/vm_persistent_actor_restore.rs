@@ -294,6 +294,7 @@ const CROSS_ADAPTER_RESTORE_RESULTS: &[&str] = &[
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm persistent actor restore summary.
 pub struct VmPersistentActorRestoreSummary {
     pub export_manifest_count: usize,
     pub redaction_decision_count: usize,
@@ -303,6 +304,7 @@ pub struct VmPersistentActorRestoreSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm persistent actor restore.
 pub fn run_vm_persistent_actor_restore(
     root: &Path,
 ) -> QualityResult<VmPersistentActorRestoreSummary> {
@@ -445,4 +447,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_persistent_actor_restore_test.rs"]
+#[cfg(test)]
 mod vm_persistent_actor_restore_test;

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use super::breakpoint::validate_breakpoint_spec;
 use super::DebugCliError;
 
-/// Reserved debugger script commands accepted before runtime execution exists.
+/// Debugger script commands accepted by the VM-owned runtime.
 ///
 /// Inputs:
 /// - None; this is the parser-owned command vocabulary.
@@ -13,9 +13,9 @@ use super::DebugCliError;
 /// - Ordered command names that may appear in `.terldbg` scripts.
 ///
 /// Transformation:
-/// - Keeps the reserved debugger command surface auditable while individual
+/// - Keeps the debugger command surface auditable while individual
 ///   command argument validation remains command-specific.
-pub(super) const RESERVED_SCRIPT_COMMANDS: &[&str] = &[
+pub(super) const DEBUG_SCRIPT_COMMANDS: &[&str] = &[
     "help",
     "run",
     "list",
@@ -65,6 +65,16 @@ pub(super) struct DebugScriptCommand {
     pub(super) argument: Option<String>,
 }
 
+pub(super) fn required_argument(command: &DebugScriptCommand) -> Result<&str, DebugCliError> {
+    command.argument.as_deref().ok_or_else(|| {
+        format!(
+            "error[vm.debugger.command_argument]: `{}` requires an argument",
+            command.name
+        )
+        .into()
+    })
+}
+
 /// Reads and validates one debugger script file.
 ///
 /// Inputs:
@@ -74,7 +84,7 @@ pub(super) struct DebugScriptCommand {
 /// - Parsed script commands, or a stable CLI diagnostic.
 ///
 /// Transformation:
-/// - Validates script files before the reserved runtime report so malformed CI
+/// - Validates script files before VM execution so malformed CI
 ///   and editor scripts fail deterministically even before stepping exists.
 pub(super) fn validate_debug_script_file(
     path: &PathBuf,
@@ -97,7 +107,7 @@ pub(super) fn validate_debug_script_file(
 ///
 /// Transformation:
 /// - Supports comments and blank lines, then validates each command against
-///   the reserved debugger command vocabulary.
+///   the debugger command vocabulary.
 pub(super) fn parse_debug_script(contents: &str) -> Result<Vec<DebugScriptCommand>, DebugCliError> {
     let mut commands = Vec::new();
     for (index, raw_line) in contents.lines().enumerate() {
@@ -131,7 +141,7 @@ pub(super) fn parse_debug_script(contents: &str) -> Result<Vec<DebugScriptComman
 /// Transformation:
 /// - Splits only the first whitespace boundary so expression-like arguments
 ///   remain intact for future debugger evaluation.
-fn parse_debug_script_line(
+pub(super) fn parse_debug_script_line(
     line_number: usize,
     line: &str,
 ) -> Result<DebugScriptCommand, DebugCliError> {
@@ -151,7 +161,7 @@ fn parse_debug_script_line(
     })
 }
 
-/// Validates one reserved debugger script command.
+/// Validates one debugger script command.
 ///
 /// Inputs:
 /// - `line_number`: one-based source line number.
@@ -160,7 +170,7 @@ fn parse_debug_script_line(
 /// - `argument`: optional argument text.
 ///
 /// Output:
-/// - `Ok(())` for a supported reserved command shape.
+/// - `Ok(())` for a supported command shape.
 /// - `Err(DebugCliError)` for unknown commands or invalid arguments.
 ///
 /// Transformation:
@@ -172,7 +182,7 @@ fn validate_debug_script_command(
     name: &str,
     argument: Option<&str>,
 ) -> Result<(), DebugCliError> {
-    if !RESERVED_SCRIPT_COMMANDS.contains(&name) {
+    if !DEBUG_SCRIPT_COMMANDS.contains(&name) {
         return Err(DebugCliError {
             code: "debug_script_unknown_command",
             message: format!("unknown debugger script command on line {line_number}: `{name}`"),
@@ -201,7 +211,7 @@ fn validate_debug_script_command(
         "print" | "eval" | "trace" | "untrace" | "use" | "restart" => {
             require_debug_script_argument(line_number, name, argument)
         }
-        _ => unreachable!("reserved debugger script command must have validation"),
+        _ => unreachable!("debugger script command must have validation"),
     }
 }
 

@@ -3,10 +3,12 @@
 use std::collections::HashMap;
 
 use crate::runtime::native_image::managed::{
-    encode_bytes_concat_operation, encode_bytes_from_list_operation, encode_bytes_length_operation,
-    encode_bytes_read_int_be_operation, encode_bytes_read_int_le_operation,
-    encode_bytes_read_uint_be_operation, encode_bytes_read_uint_le_operation,
-    encode_bytes_slice_operation, encode_bytes_to_list_operation, SemanticTypeId,
+    encode_bytes_concat_operation, encode_bytes_contains_operation,
+    encode_bytes_first_non_ascii_whitespace_operation, encode_bytes_from_list_operation,
+    encode_bytes_length_operation, encode_bytes_read_int_be_operation,
+    encode_bytes_read_int_le_operation, encode_bytes_read_uint_be_operation,
+    encode_bytes_read_uint_le_operation, encode_bytes_slice_operation,
+    encode_bytes_starts_with_operation, encode_bytes_to_list_operation, SemanticTypeId,
 };
 use crate::terlan_typeck::{CoreIntrinsicCall, CoreIntrinsicId, CorePrimitiveIntrinsic, CoreType};
 
@@ -68,6 +70,13 @@ pub(super) fn lower_bytes_intrinsic(
         CorePrimitiveIntrinsic::VmBytesFromList => encode_bytes_from_list_operation(list_semantic),
         CorePrimitiveIntrinsic::VmBytesToList => encode_bytes_to_list_operation(list_semantic),
         CorePrimitiveIntrinsic::VmBytesLength => encode_bytes_length_operation(list_semantic),
+        CorePrimitiveIntrinsic::VmBytesStartsWith => {
+            encode_bytes_starts_with_operation(list_semantic)
+        }
+        CorePrimitiveIntrinsic::VmBytesContains => encode_bytes_contains_operation(list_semantic),
+        CorePrimitiveIntrinsic::VmBytesFirstNonAsciiWhitespace => {
+            encode_bytes_first_non_ascii_whitespace_operation(list_semantic)
+        }
         CorePrimitiveIntrinsic::VmBytesConcat => encode_bytes_concat_operation(list_semantic),
         CorePrimitiveIntrinsic::VmBytesSlice => encode_bytes_slice_operation(list_semantic),
         CorePrimitiveIntrinsic::VmBytesReadUintBe => {
@@ -98,6 +107,9 @@ pub(super) fn infer_bytes_intrinsic_type(call: &CoreIntrinsicCall) -> Option<Nat
             CorePrimitiveIntrinsic::VmBytesFromList
             | CorePrimitiveIntrinsic::VmBytesToList
             | CorePrimitiveIntrinsic::VmBytesLength
+            | CorePrimitiveIntrinsic::VmBytesStartsWith
+            | CorePrimitiveIntrinsic::VmBytesContains
+            | CorePrimitiveIntrinsic::VmBytesFirstNonAsciiWhitespace
             | CorePrimitiveIntrinsic::VmBytesConcat
             | CorePrimitiveIntrinsic::VmBytesSlice
             | CorePrimitiveIntrinsic::VmBytesReadUintBe

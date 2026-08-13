@@ -1,0 +1,9 @@
+{
+  "added_slices": [],
+  "baseline_candidate_id": "sha256:cdce9f362f8866b47bc9ee265368425c21d00e22a318a9682c704c1c82dccf10",
+  "changed_slices": [],
+  "current_candidate_id": "sha256:cdce9f362f8866b47bc9ee265368425c21d00e22a318a9682c704c1c82dccf10",
+  "normalized_match": true,
+  "removed_slices": [],
+  "schema": "terlan.proof-release-evidence-diff.v1"
+}

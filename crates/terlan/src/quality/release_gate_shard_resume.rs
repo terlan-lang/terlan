@@ -99,6 +99,9 @@ const REQUIRED_TERMS: &[&str] = &[
     "exact resume command",
     "next unchecked gate",
     "without re-running completed gates",
+    "candidate-bound composition",
+    "evidence refresh and preflight are separate commands",
+    "preflight never executes completed gates",
     "gate caching",
     "content-addressed",
     "source files",
@@ -248,16 +251,43 @@ fn validate_release_makefile(makefile: &str) -> Vec<String> {
         diagnostics.push(format!("{MAKEFILE}: missing target `check`"));
         return diagnostics;
     };
-    let check_gates = parse_make_list_variable_values(makefile, "CHECK_GATES");
+    for prerequisite in ["rust-test-suite", "terlan-self-validation-bootstrap"] {
+        if !check.prerequisites.contains(&prerequisite) {
+            diagnostics.push(format!(
+                "{MAKEFILE}: `check` must build `{prerequisite}` exactly once before its validation cycle"
+            ));
+        }
+    }
+    for required_fragment in [
+        "TERLAN_RUST_SUITE_ALREADY_RUN=1",
+        "TERLAN_VALIDATION_BOOTSTRAPPED=1",
+        "$(MAKE) --no-print-directory check-gates",
+    ] {
+        if !check
+            .recipe
+            .iter()
+            .any(|line| line.contains(required_fragment))
+        {
+            diagnostics.push(format!(
+                "{MAKEFILE}: `check` must propagate `{required_fragment}` to the owned validation cycle"
+            ));
+        }
+    }
     let final_gate = "release-failure-reproduction-check";
-    if check_gates
-        .iter()
-        .filter(|gate| *gate == final_gate)
-        .count()
-        != 1
-    {
+    let refresh_name = "release-0-0-7-evidence-refresh";
+    match make_target(makefile, refresh_name) {
+        None => diagnostics.push(format!("{MAKEFILE}: missing target `{refresh_name}`")),
+        Some(refresh) if !refresh.prerequisites.contains(&final_gate) => {
+            diagnostics.push(format!(
+                "{MAKEFILE}: `{refresh_name}` must own the release-only `{final_gate}` chain"
+            ));
+        }
+        Some(_) => {}
+    }
+    let check_gates = parse_make_list_variable_values(makefile, "CHECK_GATES");
+    if check_gates.iter().any(|gate| gate == final_gate) {
         diagnostics.push(format!(
-            "{MAKEFILE}: `CHECK_GATES` must own `{final_gate}` exactly once"
+            "{MAKEFILE}: ordinary `CHECK_GATES` must not own release-only `{final_gate}`"
         ));
     }
     for &(target_name, _) in RELEASE_GATE_CHAIN {
@@ -270,6 +300,44 @@ fn validate_release_makefile(makefile: &str) -> Vec<String> {
             diagnostics.push(format!(
                 "{MAKEFILE}: `check` redundantly invokes prerequisite `{target_name}`"
             ));
+        }
+    }
+
+    let closeout_name = "lean-proof-track-release-closeout-check";
+    match make_target(makefile, closeout_name) {
+        None => diagnostics.push(format!("{MAKEFILE}: missing target `{closeout_name}`")),
+        Some(closeout) => {
+            if !closeout.prerequisites.contains(&"rust-test-suite") {
+                diagnostics.push(format!(
+                    "{MAKEFILE}: `{closeout_name}` must consume the canonical `rust-test-suite` owner"
+                ));
+            }
+            if closeout.recipe.iter().any(|line| {
+                line.contains("$(RUST_TEST) --locked -p terlan --lib --features quality-tools")
+            }) {
+                diagnostics.push(format!(
+                    "{MAKEFILE}: `{closeout_name}` must not rerun the complete Rust library suite"
+                ));
+            }
+        }
+    }
+
+    let preflight_name = "release-0-0-7-preflight";
+    match make_target(makefile, preflight_name) {
+        None => diagnostics.push(format!("{MAKEFILE}: missing target `{preflight_name}`")),
+        Some(preflight) => {
+            if !preflight.prerequisites.is_empty() {
+                diagnostics.push(format!(
+                    "{MAKEFILE}: `{preflight_name}` must compose existing evidence without prerequisite gates"
+                ));
+            }
+            for forbidden in ["$(MAKE)", "$(CARGO)", "$(RUST_TEST)", "terlc build"] {
+                if preflight.recipe.iter().any(|line| line.contains(forbidden)) {
+                    diagnostics.push(format!(
+                        "{MAKEFILE}: `{preflight_name}` must not execute `{forbidden}`"
+                    ));
+                }
+            }
         }
     }
 
@@ -344,7 +412,11 @@ fn write_report(report_path: &Path) -> QualityResult<()> {
         ],
         "collect_all_decision": [
             "collect-all mode"
-        ]
+        ],
+        "evidence_composition": "candidate-bound composition",
+        "evidence_refresh_command": "make release-0-0-7-evidence-refresh",
+        "preflight_command": "make release-0-0-7-preflight",
+        "preflight_replays_completed_gates": false
     });
     let text = serde_json::to_string_pretty(&report)
         .map_err(|err| format!("failed to serialize release gate shard/resume report: {err}"))?;
@@ -367,4 +439,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "release_gate_shard_resume_test.rs"]
+#[cfg(test)]
 mod release_gate_shard_resume_test;

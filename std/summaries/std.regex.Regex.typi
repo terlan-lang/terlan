@@ -83,6 +83,15 @@ pub find_all(regex: Regex, text: String): List[String].
 
 pub is_match(regex: Regex, text: String): Bool.
 
+/// Returns the one-based numbers of every matching text line.
+///
+/// Input: one compiled regex and UTF-8 text containing zero or more lines.
+/// Output: line numbers in ascending source order for lines matching anywhere.
+/// Transformation: performs line iteration inside the selected regex adapter,
+/// avoiding one runtime transition and one actor-heap allocation per line.
+
+pub matching_line_numbers(regex: Regex, text: String): List[Int].
+
 /// Returns one named capture group when present.
 ///
 /// Input: one compiled regex, one UTF-8 text value, and one capture name.

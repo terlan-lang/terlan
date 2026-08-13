@@ -23,6 +23,7 @@ const MAX_NESTING_DEPTH: usize = 128;
 /// Transformation:
 /// - Validates the runtime profile, recursively decodes one canonical value,
 ///   and rejects undeclared atoms, malformed lengths, or trailing data.
+#[cfg(test)]
 pub(crate) fn decode_tetf(bytes: &[u8], declared_atoms: &[String]) -> Result<ReplValue, String> {
     let mut decoder = Decoder::new(bytes, declared_atoms);
     decoder.read_header(PROFILE_RUNTIME_TERM)?;

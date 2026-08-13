@@ -1,0 +1,154 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Validates browser and web-profile manifests without delegating JSON work to
+ * an untyped host-language snippet.
+ */
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.data.Json.
+import std.io.Console.{eprintln}.
+import std.io.File.
+import std.system.Arguments.
+
+import type std.core.Option.
+import type std.data.Json.{RequiredFieldRow}.
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[web.manifest.preflight]: ", message));
+    false.
+
+join(parent: String, child: String): String ->
+    if {
+        String.ends_with(parent, "/") -> String.append(parent, child);
+        true -> String.append(parent, String.append("/", child))
+    }.
+
+all_assets_exist(root: String, rows: List[RequiredFieldRow]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            case Json.required_field_row_strings(row) {
+                [_kind, path] ->
+                    if {
+                        File.exists(join(root, path)) -> all_assets_exist(root, rest);
+                        true -> failure(String.append("manifest asset is missing: ", path))
+                    };
+                _ -> failure("asset projection returned an invalid row")
+            }
+    }.
+
+has_kind(rows: List[RequiredFieldRow], expected: String): Bool ->
+    let {
+        [row | rest] <- rows;
+        [kind, _path] <- Json.required_field_row_strings(row)
+    } else {
+        _ -> false
+    };
+    kind == expected or has_kind(rest, expected).
+
+required_asset_kinds(rows: List[RequiredFieldRow]): Bool ->
+    if {
+        not has_kind(rows, "javascript-module") -> failure("javascript-module asset is missing");
+        not has_kind(rows, "asset-css") -> failure("asset-css asset is missing");
+        not has_kind(rows, "asset-file") -> failure("asset-file asset is missing");
+        true -> true
+    }.
+
+validate_browser_document(root: String, document: Json): Bool ->
+    let {
+        Ok(header) <-
+            document
+                .required_fields(
+                    ["schema", "target_profile", "source_js_manifest", "index"],
+                    [],
+                    [],
+                );
+        [schema, profile, source_manifest, index] <- Json.required_field_strings(header);
+        Ok(assets) <- document.get("assets");
+        Ok(rows) <- assets.required_field_rows(["kind", "web_relative_path"], [], [])
+    } else {
+        _ -> failure("browser manifest has an invalid typed shape")
+    };
+    if {
+        schema != "terlan-web-build-v1" -> failure("browser manifest schema is not terlan-web-build-v1");
+        profile != "js.browser" -> failure("browser manifest target_profile is not js.browser");
+        source_manifest != "../js/manifest.json" -> failure("browser manifest source_js_manifest is not ../js/manifest.json");
+        not File.exists(join(root, index)) -> failure(String.append("browser index is missing: ", index));
+        rows == [] -> failure("browser manifest assets are empty");
+        not all_assets_exist(root, rows) -> false;
+        true -> required_asset_kinds(rows)
+    }.
+
+has_route(rows: List[RequiredFieldRow], method: String, route: String): Bool ->
+    let {
+        [row | rest] <- rows;
+        [actual_method, actual_route] <- Json.required_field_row_strings(row)
+    } else {
+        _ -> false
+    };
+    actual_method == method and actual_route == route or has_route(rest, method, route).
+
+required_static_routes(rows: List[RequiredFieldRow]): Bool ->
+    if {
+        not has_route(rows, "GET", "/users/:id") -> failure("static GET /users/:id route is missing");
+        not has_route(rows, "GET", "*") -> failure("static GET * route is missing");
+        not has_route(rows, "HEAD", "*") -> failure("static HEAD * route is missing");
+        not has_route(rows, "OPTIONS", "*") -> failure("static OPTIONS * route is missing");
+        true -> true
+    }.
+
+validate_web_document(document: Json): Bool ->
+    let {
+        Ok(responses) <- document.get("static_responses");
+        Ok(handlers) <- document.get("handlers");
+        Ok(response_rows) <- responses.required_field_rows(["method", "route"], [], []);
+        Ok(handler_rows) <- handlers.required_field_rows(["method", "route"], [], [])
+    } else {
+        _ -> failure("web manifest has an invalid typed route shape")
+    };
+    required_static_routes(response_rows)
+        and if {
+    has_route(handler_rows, "GET", "/") -> true;
+    true -> failure("handler GET / route is missing")
+}.
+
+parse_document(text: String): Option[Json] ->
+    case Json.parse(text) {
+        Ok(document) -> Some(document);
+        Err(_reason) -> None
+    }.
+
+read_document(path: String): Option[Json] ->
+    case File.read_text(path) {
+        Ok(text) -> parse_document(text);
+        Err(_reason) -> None
+    }.
+
+browser(root: String): Bool ->
+    case read_document(join(root, "manifest.json")) {
+        Some(document) -> validate_browser_document(root, document);
+        None ->
+            failure(
+                String.append(
+                    "could not read and parse JSON manifest: ",
+                    join(root, "manifest.json"),
+                ),
+            )
+    }.
+
+web(path: String): Bool ->
+    case read_document(path) {
+        Some(document) -> validate_web_document(document);
+        None -> failure(String.append("could not read and parse JSON manifest: ", path))
+    }.
+
+entry(): Bool ->
+    case {Arguments.get(0), Arguments.get(1), Arguments.count()} {
+        {Some("browser"), Some(root), 2} -> browser(root);
+        {Some("web"), Some(path), 2} -> web(path);
+        _ -> failure("expected `browser <web-root>` or `web <manifest-path>`")
+    }.
+
+assert(entry());
+Unit.

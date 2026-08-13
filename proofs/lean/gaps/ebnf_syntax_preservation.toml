@@ -1,0 +1,12 @@
+schema = "terlan.lean-proof-gap.v1"
+feature = "EBNF syntax preservation"
+lifecycle_status = "closed"
+proof_gap_category = "model_gap"
+gap_reason = "Executable parser-shape theorems now bind the canonical EBNF identity, syntax classifications, precedence, SyntaxOutput well-formedness, and checked CoreIR shape preservation."
+remediation_owner = "compiler"
+planned_gate = "lean-proof-parser-shape-check"
+deadline_or_exception = "exception:parser@2026-08-31"
+exception_approved_by = "compiler"
+blocker_updated_at = "2026-07-31"
+blocker_hash = "sha256:3cfcd040311d3d844e88ab954d9fe8b629807b2e475f016099a662099f4c978f"
+covered_manifests = ["docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"]

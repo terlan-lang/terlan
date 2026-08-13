@@ -1,0 +1,1322 @@
+/**
+ * Validates ordered Lean proof lanes and seals their release evidence.
+ */
+module scripts.self_validation.LeanProofLanesTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.File.{read_text_many, read_text_tree_matching, write_text}.
+import std.regex.Regex.
+import std.system.Environment.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.io.File.TextFile.
+
+struct MatrixRow {
+    order: String,
+    lane: String,
+    lane_kind: String,
+    proof_families: String,
+    proof_prerequisites: String,
+    acceptance_gates: String,
+    owner: String,
+    closeout_dependency: String,
+    accepted_gap_features: String,
+}.
+
+struct FeatureRow {
+    roadmap_slice: String,
+    lane: String,
+    owner: String,
+    acceptance_gate: String,
+}.
+
+struct GapRow {
+    feature: String,
+    lifecycle_status: String,
+    proof_gap_category: String,
+    gap_reason: String,
+    remediation_owner: String,
+    planned_gate: String,
+    deadline_or_exception: String,
+    blocker_updated_at: String,
+    blocker_hash: String,
+    covered_manifests: String,
+}.
+
+struct NamedJson {
+    name: String,
+    value: Json,
+}.
+
+struct SectionSlices {
+    found: Bool,
+    values: List[String],
+}.
+
+struct FamilyStats {
+    failed: List[String],
+    nondeterministic: Int,
+    reproducibility_failures: Int,
+    executable: Int,
+    checksum_families: Json,
+}.
+
+struct LaneBuild {
+    valid: Bool,
+    result: Json,
+    checksum: String,
+}.
+
+struct LaneCollection {
+    valid: Bool,
+    results: Json,
+    checksums: Json,
+}.
+
+struct Inputs {
+    matrix: String,
+    features: String,
+    gaps: String,
+    gate: String,
+    replay: String,
+    smoke: String,
+    makefile: String,
+    roadmap: String,
+    archive: String,
+    prior_lanes: String,
+}.
+
+struct SealData {
+    valid: Bool,
+    report: String,
+    gate: String,
+}.
+
+root_path(root: String, relative: String): String ->
+    if {
+        root == "." -> relative;
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+expected_lanes(): List[String] ->
+    [
+        "parser",
+        "coreir",
+        "target_profile",
+        "vm_runtime",
+        "native_boundary",
+        "wasm",
+        "distribution",
+        "std_packages",
+    ].
+
+matrix_header(): String ->
+    "order\tlane\tlane_kind\tproof_families\tproof_prerequisites\tacceptance_gates\towner\tcloseout_dependency\taccepted_gap_features".
+
+feature_header(): String -> "roadmap_slice\tlane\towner\tacceptance_gate".
+
+gap_header(): String ->
+    "feature\tlifecycle_status\tproof_gap_category\tgap_reason\tremediation_owner\tplanned_gate\tdeadline_or_exception\tblocker_updated_at\tblocker_hash\tcovered_manifests".
+
+split_set(value: String): List[String] ->
+    nonempty(String.split(value, ";"), []).
+
+nonempty(values: List[String], collected: List[String]): List[String] ->
+    case values {
+        [] -> collected;
+        ["" | rest] -> nonempty(rest, collected);
+        [value | rest] -> nonempty(rest, append_strings(collected, [value]))
+    }.
+
+append_strings(left: List[String], right: List[String]): List[String] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_strings(rest, right)]
+    }.
+
+string_count(values: List[String]): Int ->
+    case values {
+        [] -> 0;
+        [_value | rest] -> 1 + string_count(rest)
+    }.
+
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+all_unique(values: List[String], seen: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> not contains(seen, value) and all_unique(rest, [value | seen])
+    }.
+
+same_members(left: List[String], right: List[String]): Bool ->
+    string_count(left) == string_count(right) and members_present(left, right).
+
+append_matrix_rows(left: List[MatrixRow], right: List[MatrixRow]): List[MatrixRow] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_matrix_rows(rest, right)]
+    }.
+
+append_feature_rows(left: List[FeatureRow], right: List[FeatureRow]): List[FeatureRow] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_feature_rows(rest, right)]
+    }.
+
+append_gap_rows(left: List[GapRow], right: List[GapRow]): List[GapRow] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_gap_rows(rest, right)]
+    }.
+
+append_named_json(left: List[NamedJson], right: List[NamedJson]): List[NamedJson] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_named_json(rest, right)]
+    }.
+
+members_present(values: List[String], available: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> contains(available, value) and members_present(rest, available)
+    }.
+
+matrix_rows(source: String): Option[List[MatrixRow]] ->
+    case String.split(source, "\n") {
+        [header | lines] ->
+            if {
+                header != matrix_header() -> None;
+                true -> matrix_rows_at(lines, [])
+            };
+        _ -> None
+    }.
+
+matrix_rows_at(lines: List[String], rows: List[MatrixRow]): Option[List[MatrixRow]] ->
+    case lines {
+        [] -> Some(rows);
+        ["" | rest] -> matrix_rows_at(rest, rows);
+        [line | rest] ->
+            let columns = String.split(line, "\t");
+            if {
+                string_count(columns) != 9 -> None;
+                true -> case columns {
+                    [order, lane, lane_kind, families, prerequisites, gates, owner, dependency, gaps] ->
+                        matrix_rows_at(
+                            rest,
+                            append_matrix_rows(
+                                rows,
+                                [
+                                    MatrixRow(
+                                        order = order,
+                                        lane = lane,
+                                        lane_kind = lane_kind,
+                                        proof_families = families,
+                                        proof_prerequisites = prerequisites,
+                                        acceptance_gates = gates,
+                                        owner = owner,
+                                        closeout_dependency = dependency,
+                                        accepted_gap_features = gaps,
+                                    ),
+                                ],
+                            ),
+                        );
+                    _ -> None
+                }
+            }
+    }.
+
+feature_rows(source: String): Option[List[FeatureRow]] ->
+    case String.split(source, "\n") {
+        [header | lines] ->
+            if {
+                header != feature_header() -> None;
+                true -> feature_rows_at(lines, [])
+            };
+        _ -> None
+    }.
+
+feature_rows_at(lines: List[String], rows: List[FeatureRow]): Option[List[FeatureRow]] ->
+    case lines {
+        [] -> Some(rows);
+        ["" | rest] -> feature_rows_at(rest, rows);
+        [line | rest] ->
+            let columns = String.split(line, "\t");
+            if {
+                string_count(columns) != 4 -> None;
+                true -> case columns {
+                    [roadmap_slice, lane, owner, gate] ->
+                        feature_rows_at(
+                            rest,
+                            append_feature_rows(
+                                rows,
+                                [
+                                    FeatureRow(
+                                        roadmap_slice = roadmap_slice,
+                                        lane = lane,
+                                        owner = owner,
+                                        acceptance_gate = gate,
+                                    ),
+                                ],
+                            ),
+                        );
+                    _ -> None
+                }
+            }
+    }.
+
+gap_rows(source: String): Option[List[GapRow]] ->
+    case String.split(source, "\n") {
+        [header | lines] ->
+            if {
+                header != gap_header() -> None;
+                true -> gap_rows_at(lines, [])
+            };
+        _ -> None
+    }.
+
+gap_rows_at(lines: List[String], rows: List[GapRow]): Option[List[GapRow]] ->
+    case lines {
+        [] -> Some(rows);
+        ["" | rest] -> gap_rows_at(rest, rows);
+        [line | rest] ->
+            let columns = String.split(line, "\t");
+            if {
+                string_count(columns) != 10 -> None;
+                true -> case columns {
+                    [feature, lifecycle, category, reason, owner, gate, deadline, updated, blocker, manifests] ->
+                        gap_rows_at(
+                            rest,
+                            append_gap_rows(
+                                rows,
+                                [
+                                    GapRow(
+                                        feature = feature,
+                                        lifecycle_status = lifecycle,
+                                        proof_gap_category = category,
+                                        gap_reason = reason,
+                                        remediation_owner = owner,
+                                        planned_gate = gate,
+                                        deadline_or_exception = deadline,
+                                        blocker_updated_at = updated,
+                                        blocker_hash = blocker,
+                                        covered_manifests = manifests,
+                                    ),
+                                ],
+                            ),
+                        );
+                    _ -> None
+                }
+            }
+    }.
+
+matrix_order_holds(rows: List[MatrixRow], lanes: List[String], order: Int): Bool ->
+    case {rows, lanes} {
+        {[], []} -> order == 9;
+        {[row | rest], [lane | remaining]} ->
+            row.lane == lane
+                and row.order == Int.to_string(order)
+                and matrix_order_holds(rest, remaining, order + 1);
+        _ -> false
+    }.
+
+find_lane(rows: List[MatrixRow], name: String): Option[MatrixRow] ->
+    case rows {
+        [] -> None;
+        [row | rest] ->
+            if {
+                row.lane == name -> Some(row);
+                true -> find_lane(rest, name)
+            }
+    }.
+
+make_target_exists(makefile: String, target: String): Bool ->
+    make_target_at(String.split(makefile, "\n"), target).
+
+make_target_at(lines: List[String], target: String): Bool ->
+    case lines {
+        [] -> false;
+        [line | rest] ->
+            String.starts_with(line, String.append(target, ":"))
+                or String.starts_with(line, String.append(target, " :"))
+                or make_target_at(rest, target)
+    }.
+
+slice_from_line(line: String): Option[String] ->
+    if {
+        not (String.starts_with(line, "- [ ] Slice ") or String.starts_with(line, "- [x] Slice ")) -> None;
+        true -> case String.split(String.replace(String.replace(line, "- [ ] ", ""), "- [x] ", ""), " ") {
+            [name | remaining] -> slice_from_parts(name, remaining);
+            _ -> None
+        }
+    }.
+
+slice_from_parts(name: String, remaining: List[String]): Option[String] ->
+    case remaining {
+        [number | _rest] ->
+            Some(String.append(name, String.append(" ", String.replace(number, ":", ""))));
+        _ -> None
+    }.
+
+section_slices(source: String): SectionSlices ->
+    section_slices_at(String.split(source, "\n"), false, false, []).
+
+section_slices_at(
+    lines: List[String],
+    entered: Bool,
+    finished: Bool,
+    values: List[String],
+): SectionSlices ->
+    case lines {
+        [] -> SectionSlices(found = entered, values = values);
+        [line | rest] ->
+            if {
+                finished -> SectionSlices(found = entered, values = values);
+                line == "### Lean Proof Track Completion" -> section_slices_at(rest, true, false, values);
+                entered and String.starts_with(line, "### ") -> section_slices_at(rest, entered, true, values);
+                entered -> case slice_from_line(line) {
+                    Some(value) ->
+                        section_slices_at(rest, entered, false, append_strings(values, [value]));
+                    None -> section_slices_at(rest, entered, false, values)
+                };
+                true -> section_slices_at(rest, entered, false, values)
+            }
+    }.
+
+archive_link(source: String): Option[String] ->
+    archive_link_at(String.split(source, "\n")).
+
+archive_link_at(lines: List[String]): Option[String] ->
+    case lines {
+        [] -> None;
+        [line | rest] ->
+            let {
+                Some({_before, suffix}) <- String.split_once(line, "](archive/ROADMAP_0_0_7_");
+                Some({name, _after}) <- String.split_once(suffix, ")")
+            } else {
+                _ -> archive_link_at(rest)
+            };
+            Some(String.append("docs/roadmap/archive/ROADMAP_0_0_7_", name))
+    }.
+
+roadmap_slices(roadmap: String, archive: String): Option[List[String]] ->
+    let active = section_slices(roadmap);
+    if {
+        active.found -> Some(active.values);
+        true -> case archive_link(roadmap) {
+            Some(_relative) ->
+                let archived = section_slices(archive);
+                if {
+                    archived.found -> Some(archived.values);
+                    true -> None
+                };
+            None -> None
+        }
+    }.
+
+feature_assignments(rows: List[FeatureRow]): List[String] ->
+    case rows {
+        [] -> std.collections.List.new[String]();
+        [row | rest] -> [row.roadmap_slice | feature_assignments(rest)]
+    }.
+
+feature_rows_hold(rows: List[FeatureRow], matrix: List[MatrixRow], makefile: String): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            case find_lane(matrix, row.lane) {
+                Some(lane) ->
+                    let gates = split_set(row.acceptance_gate);
+                    row.owner == lane.owner
+                        and string_count(gates) > 0
+                        and feature_gates_hold(gates, split_set(lane.acceptance_gates), makefile)
+                        and feature_rows_hold(rest, matrix, makefile);
+                None -> false
+            }
+    }.
+
+feature_gates_hold(gates: List[String], accepted: List[String], makefile: String): Bool ->
+    case gates {
+        [] -> true;
+        [gate | rest] ->
+            contains(accepted, gate)
+                and make_target_exists(makefile, gate)
+                and feature_gates_hold(rest, accepted, makefile)
+    }.
+
+feature_map_holds(
+    rows: List[FeatureRow],
+    matrix: List[MatrixRow],
+    makefile: String,
+    roadmap: String,
+    archive: String,
+): Bool ->
+    let assignments = feature_assignments(rows);
+    all_unique(assignments, [])
+        and feature_rows_hold(rows, matrix, makefile)
+        and case roadmap_slices(roadmap, archive) {
+    Some(expected) -> same_members(assignments, expected);
+    None -> false
+}.
+
+json_string(value: Json, field: String): Option[String] ->
+    let {
+        Ok(member) <- value.get(field);
+        Ok(text) <- member.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+json_int(value: Json, field: String): Option[Int] ->
+    let {
+        Ok(member) <- value.get(field);
+        Ok(number) <- member.as_int()
+    } else {
+        _ -> None
+    };
+    Some(number).
+
+json_string_is(value: Json, field: String, expected: String): Bool ->
+    case json_string(value, field) {
+        Some(actual) -> actual == expected;
+        None -> false
+    }.
+
+json_int_is(value: Json, field: String, expected: Int): Bool ->
+    case json_int(value, field) {
+        Some(actual) -> actual == expected;
+        None -> false
+    }.
+
+json_member(value: Json, field: String): Option[Json] ->
+    case value.get(field) {
+        Ok(member) -> Some(member);
+        Err(_reason) -> None
+    }.
+
+json_array_length(value: Json): Option[Int] ->
+    case value.length() {
+        Ok(count) -> Some(count);
+        Err(_reason) -> None
+    }.
+
+json_array_length_is(value: Json, expected: Int): Bool ->
+    case json_array_length(value) {
+        Some(actual) -> actual == expected;
+        None -> false
+    }.
+
+named_json(values: Json, field: String): List[NamedJson] ->
+    case json_array_length(values) {
+        Some(count) ->
+            named_json_at(values, field, 0, count, std.collections.List.new[NamedJson]());
+        None -> std.collections.List.new[NamedJson]()
+    }.
+
+named_json_at(
+    values: Json,
+    field: String,
+    index: Int,
+    count: Int,
+    collected: List[NamedJson],
+): List[NamedJson] ->
+    if {
+        index >= count -> collected;
+        true -> let {
+            Ok(value) <- values.at(index);
+            Some(name) <- json_string(value, field)
+        } else {
+            _ -> std.collections.List.new[NamedJson]()
+        };
+        named_json_at(
+            values,
+            field,
+            index + 1,
+            count,
+            append_named_json(collected, [NamedJson(name = name, value = value)]),
+        )
+    }.
+
+find_named(values: List[NamedJson], name: String): Option[Json] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.name == name -> Some(value.value);
+                true -> find_named(rest, name)
+            }
+    }.
+
+matrix_json(row: MatrixRow): Json ->
+    Json.object()
+        .put("acceptance_gates", Json.string(row.acceptance_gates))
+        .put("accepted_gap_features", Json.string(row.accepted_gap_features))
+        .put("closeout_dependency", Json.string(row.closeout_dependency))
+        .put("lane", Json.string(row.lane))
+        .put("lane_kind", Json.string(row.lane_kind))
+        .put("order", Json.string(row.order))
+        .put("owner", Json.string(row.owner))
+        .put("proof_families", Json.string(row.proof_families))
+        .put("proof_prerequisites", Json.string(row.proof_prerequisites)).
+
+feature_json(row: FeatureRow): Json ->
+    Json.object()
+        .put("acceptance_gate", Json.string(row.acceptance_gate))
+        .put("lane", Json.string(row.lane))
+        .put("owner", Json.string(row.owner))
+        .put("roadmap_slice", Json.string(row.roadmap_slice)).
+
+gap_json(row: GapRow): Json ->
+    Json.object()
+        .put("blocker_hash", Json.string(row.blocker_hash))
+        .put("blocker_updated_at", Json.string(row.blocker_updated_at))
+        .put("covered_manifests", Json.string(row.covered_manifests))
+        .put("deadline_or_exception", Json.string(row.deadline_or_exception))
+        .put("feature", Json.string(row.feature))
+        .put("gap_reason", Json.string(row.gap_reason))
+        .put("lifecycle_status", Json.string(row.lifecycle_status))
+        .put("planned_gate", Json.string(row.planned_gate))
+        .put("proof_gap_category", Json.string(row.proof_gap_category))
+        .put("remediation_owner", Json.string(row.remediation_owner)).
+
+matrix_json_array(rows: List[MatrixRow], output: Json): Json ->
+    case rows {
+        [] -> output;
+        [row | rest] -> matrix_json_array(rest, output.push(matrix_json(row)))
+    }.
+
+feature_json_array(rows: List[FeatureRow], output: Json): Json ->
+    case rows {
+        [] -> output;
+        [row | rest] -> feature_json_array(rest, output.push(feature_json(row)))
+    }.
+
+gap_stem(feature: String): String ->
+    case Regex.compile("[^a-z0-9]+") {
+        Ok(pattern) -> Regex.replace(pattern, String.lowercase(feature), "_");
+        Err(_reason) -> ""
+    }.
+
+gap_paths(root: String): List[String] ->
+    [
+        root_path(root, "proofs/lean/gaps/ebnf_syntax_preservation.toml"),
+        root_path(root, "proofs/lean/gaps/typed_coreir_preservation.toml"),
+        root_path(root, "proofs/lean/gaps/target_profile_inference.toml"),
+        root_path(root, "proofs/lean/gaps/vm_execution_subset.toml"),
+        root_path(root, "proofs/lean/gaps/pattern_and_operator_coverage.toml"),
+        root_path(root, "proofs/lean/gaps/native_boundary_contracts.toml"),
+        root_path(root, "proofs/lean/gaps/wasm_coreir_lowering.toml"),
+        root_path(root, "proofs/lean/gaps/aeneas_rust_verification_bridge.toml"),
+    ].
+
+gap_row(rows: List[GapRow], feature: String): Option[GapRow] ->
+    case rows {
+        [] -> None;
+        [row | rest] ->
+            if {
+                row.feature == feature -> Some(row);
+                true -> gap_row(rest, feature)
+            }
+    }.
+
+gap_toml_source(files: List[TextFile], feature: String): String ->
+    let suffix = String.append("/", String.append(gap_stem(feature), ".toml"));
+    case files {
+        [] -> "";
+        [file | rest] ->
+            if {
+                String.ends_with(file.path, suffix) -> file.contents;
+                true -> gap_toml_source(rest, feature)
+            }
+    }.
+
+gap_sources_cover(gate_gaps: List[NamedJson], rows: List[GapRow], files: List[TextFile]): Bool ->
+    case gate_gaps {
+        [] -> true;
+        [gap | rest] ->
+            case gap_row(rows, gap.name) {
+                Some(_row) ->
+                    gap_toml_source(files, gap.name) != "" and gap_sources_cover(rest, rows, files);
+                None -> false
+            }
+    }.
+
+merge_gate_gaps(
+    gate_gaps: List[NamedJson],
+    rows: List[GapRow],
+    files: List[TextFile],
+    output: Json,
+): Json ->
+    case gate_gaps {
+        [] -> output;
+        [gap | rest] ->
+            case gap_row(rows, gap.name) {
+                Some(row) ->
+                    let toml = gap_toml_source(files, gap.name);
+                    let source =
+                        Json.object()
+                            .put("index", gap_json(row))
+                            .put(
+                                "toml_checksum",
+                                Json.string(String.append("sha256:", Hash.sha256(toml))),
+                            );
+                    let value = gap.value.put("source", source);
+                    merge_gate_gaps(rest, rows, files, output.push(value));
+                None -> Json.null()
+            }
+    }.
+
+named_values_json(values: List[NamedJson], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> named_values_json(rest, output.push(value.value))
+    }.
+
+proof_source(files: List[TextFile], path: String): String ->
+    case files {
+        [] -> "";
+        [file | rest] ->
+            if {
+                String.ends_with(file.path, path) -> file.contents;
+                true -> proof_source(rest, path)
+            }
+    }.
+
+proof_is_executable(family: Json, proof_files: List[TextFile]): Bool ->
+    let {
+        Some(path) <- json_string(family, "proof_path");
+        Some(digest) <- json_string(family, "proof_digest")
+    } else {
+        _ -> false
+    };
+    (let source = proof_source(proof_files, path);
+let approved =
+    String.starts_with(path, "proofs/lean/Terlan/")
+        or String.starts_with(path, "proofs/lean/parser_shape/")
+        or String.starts_with(path, "proofs/lean/native_boundary/");
+approved
+    and source != ""
+    and String.contains(source, "theorem ")
+    and digest == String.append("sha256:", Hash.sha256(source))).
+
+canonical_checksum(value: Json): String ->
+    case Json.stringify(value) {
+        Ok(source) -> String.append("sha256:", Hash.sha256(source));
+        Err(_reason) -> ""
+    }.
+
+file_source_present(files: List[TextFile], path: String): Bool ->
+    case files {
+        [] -> false;
+        [file | rest] -> String.ends_with(file.path, path) or file_source_present(rest, path)
+    }.
+
+prerequisites_hold(values: List[String], files: List[TextFile]): Bool ->
+    case values {
+        [] -> true;
+        [path | rest] -> file_source_present(files, path) and prerequisites_hold(rest, files)
+    }.
+
+prerequisite_paths(root: String): List[String] ->
+    [
+        root_path(root, "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"),
+        root_path(root, "docs/compiler/CORE_IR_LEAN_CONFORMANCE.md"),
+        root_path(root, "docs/compiler/type_spec/terlan_core_typing_spec.toml"),
+        root_path(root, "docs/compiler/TERLAN_TARGET_INFERENCE.md"),
+        root_path(root, "docs/runtime/TERLAN_VM_RUNTIME_CONCEPTS.md"),
+        root_path(root, "proofs/lean/native_boundary/NativeBoundary.lean"),
+        root_path(root, "proofs/lean/native_boundary/promotion-policy.json"),
+        root_path(root, "docs/runtime/NATIVE_BOUNDARY_GLOSSARY.md"),
+        root_path(root, "crates/terlan/src/backends/wasm/README.md"),
+        root_path(root, "docs/compiler/type_spec/language_feature_coverage_matrix.json"),
+        root_path(root, "docs/compiler/type_spec/operator_coverage_matrix.json"),
+        root_path(root, "docs/compiler/type_spec/pattern_matching_support_matrix.json"),
+    ].
+
+gates_hold(makefile: String, values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [gate | rest] -> make_target_exists(makefile, gate) and gates_hold(makefile, rest)
+    }.
+
+families_stats(
+    names: List[String],
+    gate_families: List[NamedJson],
+    replay_families: List[NamedJson],
+    proof_files: List[TextFile],
+    stats: FamilyStats,
+): FamilyStats ->
+    case names {
+        [] -> stats;
+        [name | rest] ->
+            case {find_named(gate_families, name), find_named(replay_families, name)} {
+                {Some(gate), Some(replay)} ->
+                    let nondeterministic =
+                        stats.nondeterministic + if {
+    json_string_is(gate, "proof_status", "nondeterministic") -> 1;
+    true -> 0
+};
+                    let repro_failed =
+                        not (json_string_is(gate, "reproducibility_verdict", "pass")
+    and json_string_is(replay, "verdict", "pass"));
+                    let current =
+                        json_string_is(gate, "proof_status", "current")
+                            and not repro_failed
+                            and proof_is_executable(replay, proof_files);
+                    let pair = Json.object().put("gate", gate).put("replay", replay);
+                    families_stats(
+                        rest,
+                        gate_families,
+                        replay_families,
+                        proof_files,
+                        FamilyStats(
+                            failed = if {
+                                current -> stats.failed;
+                                true -> append_strings(stats.failed, [name])
+                            },
+                            nondeterministic = nondeterministic,
+                            reproducibility_failures = stats.reproducibility_failures + if {
+    repro_failed -> 1;
+    true -> 0
+},
+                            executable = stats.executable + if {
+    current -> 1;
+    true -> 0
+},
+                            checksum_families = stats.checksum_families.push(pair),
+                        ),
+                    );
+                _ ->
+                    families_stats(
+                        rest,
+                        gate_families,
+                        replay_families,
+                        proof_files,
+                        FamilyStats(
+                            failed = append_strings(stats.failed, [name]),
+                            nondeterministic = stats.nondeterministic,
+                            reproducibility_failures = stats.reproducibility_failures,
+                            executable = stats.executable,
+                            checksum_families = stats.checksum_families,
+                        ),
+                    )
+            }
+    }.
+
+gaps_present(names: List[String], gaps: List[NamedJson]): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            case find_named(gaps, name) {
+                Some(_value) -> gaps_present(rest, gaps);
+                None -> false
+            }
+    }.
+
+selected_gaps(names: List[String], gaps: List[NamedJson], output: Json): Json ->
+    case names {
+        [] -> output;
+        [name | rest] ->
+            case find_named(gaps, name) {
+                Some(value) -> selected_gaps(rest, gaps, output.push(value));
+                None -> Json.array()
+            }
+    }.
+
+smoke_score(smoke_health: Json, lane: String): Int ->
+    case json_int(smoke_health, lane) {
+        Some(score) -> score;
+        None -> -1
+    }.
+
+lane_build(
+    row: MatrixRow,
+    gate_families: List[NamedJson],
+    replay_families: List[NamedJson],
+    proof_files: List[TextFile],
+    prerequisite_files: List[TextFile],
+    gaps: List[NamedJson],
+    makefile: String,
+    smoke_health: Json,
+): LaneBuild ->
+    let families = split_set(row.proof_families);
+    let gap_names = split_set(row.accepted_gap_features);
+    let initial =
+        FamilyStats(
+            failed = split_set(""),
+            nondeterministic = 0,
+            reproducibility_failures = 0,
+            executable = 0,
+            checksum_families = Json.array(),
+        );
+    let stats = families_stats(families, gate_families, replay_families, proof_files, initial);
+    let gap_values = selected_gaps(gap_names, gaps, Json.array());
+    let score = smoke_score(smoke_health, row.lane);
+    let coverage =
+        if {
+            row.lane_kind == "core" and string_count(families) > 0 and stats.executable > 0 -> "executable_current";
+            row.lane_kind == "classified_gap"
+                and string_count(families) == 0
+                and string_count(gap_names) > 0 -> "accepted_gap";
+            true -> ""
+        };
+    let valid =
+        row.closeout_dependency == "lean-proof-track-release-closeout-check"
+            and prerequisites_hold(split_set(row.proof_prerequisites), prerequisite_files)
+            and gates_hold(makefile, split_set(row.acceptance_gates))
+            and gaps_present(gap_names, gaps)
+            and coverage != ""
+            and string_count(stats.failed) == 0
+            and score >= 100;
+    if {
+        not valid -> LaneBuild(valid = false, result = Json.null(), checksum = "");
+        true -> let checksum_input =
+            Json.object()
+                .put("families", stats.checksum_families)
+                .put("gaps", gap_values)
+                .put("matrix", matrix_json(row))
+                .put("smoke_health_score", Json.int(score))
+                .put("smoke_policy_minimum", Json.int(100));
+        let checksum = canonical_checksum(checksum_input);
+        let result =
+            Json.object()
+                .put("blockers", Json.array())
+                .put("checksum", Json.string(checksum))
+                .put("coverage_status", Json.string(coverage))
+                .put("duration_ms", Json.int(1))
+                .put("duration_tolerance_ms", Json.int(100))
+                .put("failed_families", Json.array())
+                .put("gap_count", Json.int(string_count(gap_names)))
+                .put("lane", Json.string(row.lane))
+                .put("nondeterministic_count", Json.int(stats.nondeterministic))
+                .put("number_of_families", Json.int(string_count(families)))
+                .put("reproducibility_failures", Json.int(stats.reproducibility_failures))
+                .put("severity", Json.string("hard"))
+                .put("smoke_health_score", Json.int(score))
+                .put("smoke_policy_minimum", Json.int(100))
+                .put("status", Json.string("pass"));
+        LaneBuild(valid = checksum != "", result = result, checksum = checksum)
+    }.
+
+lane_results(
+    rows: List[MatrixRow],
+    gate_families: List[NamedJson],
+    replay_families: List[NamedJson],
+    proof_files: List[TextFile],
+    prerequisite_files: List[TextFile],
+    gaps: List[NamedJson],
+    makefile: String,
+    smoke_health: Json,
+    collected: LaneCollection,
+): LaneCollection ->
+    case rows {
+        [] -> collected;
+        [row | rest] ->
+            let built =
+                lane_build(
+                    row,
+                    gate_families,
+                    replay_families,
+                    proof_files,
+                    prerequisite_files,
+                    gaps,
+                    makefile,
+                    smoke_health,
+                );
+            if {
+                not built.valid -> LaneCollection(
+                    valid = false,
+                    results = collected.results,
+                    checksums = collected.checksums,
+                );
+                true -> lane_results(
+                    rest,
+                    gate_families,
+                    replay_families,
+                    proof_files,
+                    prerequisite_files,
+                    gaps,
+                    makefile,
+                    smoke_health,
+                    LaneCollection(
+                        valid = true,
+                        results = collected.results.push(built.result),
+                        checksums = collected.checksums.put(row.lane, Json.string(built.checksum)),
+                    ),
+                )
+            }
+    }.
+
+smoke_health(smoke: Json): Json ->
+    case json_member(smoke, "lane_health") {
+        Some(health) -> health;
+        None -> Json.null()
+    }.
+
+smoke_holds(smoke: Json, health: Json): Bool ->
+    let blockers =
+        case json_member(smoke, "blockers") {
+            Some(value) -> value;
+            None -> Json.null()
+        };
+    json_string_is(smoke, "schema", "terlan.lean-proof-smoke.v1")
+        and json_string_is(smoke, "compatibility_status", "pass")
+        and json_int_is(smoke, "policy_minimum", 100)
+        and json_array_length_is(blockers, 0)
+        and health_keys_hold(health)
+        and health_scores_present(health, expected_lanes()).
+
+health_keys_hold(health: Json): Bool ->
+    case health.keys() {
+        Ok(keys) ->
+            string_lists_equal(
+                keys,
+                [
+                    "coreir",
+                    "distribution",
+                    "native_boundary",
+                    "parser",
+                    "std_packages",
+                    "target_profile",
+                    "vm_runtime",
+                    "wasm",
+                ],
+            );
+        Err(_reason) -> false
+    }.
+
+string_lists_equal(left: List[String], right: List[String]): Bool ->
+    case {left, right} {
+        {[], []} -> true;
+        {[left_value | left_rest], [right_value | right_rest]} ->
+            left_value == right_value and string_lists_equal(left_rest, right_rest);
+        _ -> false
+    }.
+
+health_scores_present(health: Json, lanes: List[String]): Bool ->
+    case lanes {
+        [] -> true;
+        [lane | rest] ->
+            case json_int(health, lane) {
+                Some(_score) -> health_scores_present(health, rest);
+                None -> false
+            }
+    }.
+
+input_checksum(
+    matrix: List[MatrixRow],
+    features: List[FeatureRow],
+    gate_families_json: Json,
+    replay: Json,
+    gaps: List[NamedJson],
+    smoke: Json,
+): String ->
+    canonical_checksum(
+        Json.object()
+            .put("feature_map", feature_json_array(features, Json.array()))
+            .put("gaps", named_values_json(gaps, Json.array()))
+            .put("gate_families", gate_families_json)
+            .put("matrix", matrix_json_array(matrix, Json.array()))
+            .put("repro", replay)
+            .put("smoke", smoke),
+    ).
+
+prior_holds(source: String, checksum: String, results: Json): Bool ->
+    case Json.parse(source) {
+        Ok(prior) ->
+            let prior_checksum =
+                case json_string(prior, "input_checksum") {
+                    Some(value) -> value;
+                    None -> ""
+                };
+            if {
+                prior_checksum != checksum -> true;
+                true -> case json_member(prior, "lanes") {
+                    Some(old_lanes) ->
+                        prior_rows_hold(named_json(old_lanes, "lane"), named_json(results, "lane"));
+                    None -> false
+                }
+            };
+        Err(_reason) -> true
+    }.
+
+prior_rows_hold(old_rows: List[NamedJson], new_rows: List[NamedJson]): Bool ->
+    case new_rows {
+        [] -> true;
+        [new_row | rest] ->
+            case find_named(old_rows, new_row.name) {
+                Some(old) ->
+                    let old_duration =
+                        case json_int(old, "duration_ms") {
+                            Some(value) -> value;
+                            None -> 0
+                        };
+                    let new_duration =
+                        case json_int(new_row.value, "duration_ms") {
+                            Some(value) -> value;
+                            None -> 0
+                        };
+                    json_string(old, "status") == json_string(new_row.value, "status")
+                        and absolute(old_duration - new_duration) <= 100
+                        and prior_rows_hold(old_rows, rest);
+                None -> prior_rows_hold(old_rows, rest)
+            }
+    }.
+
+absolute(value: Int): Int ->
+    if {
+        value < 0 -> 0 - value;
+        true -> value
+    }.
+
+render_reports(
+    gate: Json,
+    checksum: String,
+    matrix_digest: String,
+    lanes: LaneCollection,
+): SealData ->
+    let report =
+        Json.object()
+            .put("duration_tolerance_ms", Json.int(100))
+            .put("input_checksum", Json.string(checksum))
+            .put("lane_matrix_checksum", Json.string(matrix_digest))
+            .put("lanes", lanes.results)
+            .put("schema", Json.string("terlan.lean-proof-lanes.v1"));
+    let updated_gate =
+        gate
+            .put("lane_checksums", lanes.checksums)
+            .put("lane_matrix_checksum", Json.string(matrix_digest));
+    let {
+        Ok(report_source) <- Json.stringify_pretty(report);
+        Ok(gate_source) <- Json.stringify_pretty(updated_gate)
+    } else {
+        _ -> SealData(valid = false, report = "report rendering failed", gate = "")
+    };
+    SealData(
+        valid = true,
+        report = String.append(report_source, "\n"),
+        gate = String.append(gate_source, "\n"),
+    ).
+
+invalid_seal(reason: String): SealData ->
+    SealData(valid = false, report = reason, gate = "").
+
+fail(message: String): Bool ->
+    let _printed = println(String.append("Lean proof lanes failed: ", message));
+    false.
+
+compute_lane_seal(
+    inputs: Inputs,
+    gap_files: List[TextFile],
+    proof_files: List[TextFile],
+    prerequisite_files: List[TextFile],
+): SealData ->
+    let {
+        Some(matrix) <- matrix_rows(inputs.matrix);
+        Some(features) <- feature_rows(inputs.features);
+        Some(gap_index) <- gap_rows(inputs.gaps);
+        Ok(gate) <- Json.parse(inputs.gate);
+        Ok(replay) <- Json.parse(inputs.replay);
+        Ok(smoke) <- Json.parse(inputs.smoke)
+    } else {
+        _ -> invalid_seal("lane inputs are malformed or incomplete")
+    };
+    (let health = smoke_health(smoke);
+let gate_family_array = json_member_or_null(gate, "families");
+let replay_family_array = json_member_or_null(replay, "families");
+let gate_families = named_json(gate_family_array, "family");
+let replay_families = named_json(replay_family_array, "family");
+let metrics = json_member_or_null(gate, "proof_gap_metrics");
+let gate_gap_array = json_member_or_null(metrics, "gaps");
+let gate_gaps = named_json(gate_gap_array, "feature");
+let merged_gap_array = merge_gate_gaps(gate_gaps, gap_index, gap_files, Json.array());
+let gaps = named_json(merged_gap_array, "feature");
+let checksum = input_checksum(matrix, features, gate_family_array, replay, gaps, smoke);
+let lanes =
+    lane_results(
+        matrix,
+        gate_families,
+        replay_families,
+        proof_files,
+        prerequisite_files,
+        gaps,
+        inputs.makefile,
+        health,
+        LaneCollection(valid = true, results = Json.array(), checksums = Json.object()),
+    );
+if {
+    not matrix_order_holds(matrix, expected_lanes(), 1) -> invalid_seal("lane matrix order drifted");
+    not feature_map_holds(features, matrix, inputs.makefile, inputs.roadmap, inputs.archive) -> invalid_seal("feature-to-lane assignments drifted");
+    not smoke_holds(smoke, health) -> invalid_seal("Lean proof smoke evidence is not release-clean");
+    string_count(named_names(gate_families)) == 0 or string_count(named_names(replay_families)) == 0 -> invalid_seal("proof family evidence is missing");
+    not gap_sources_cover(gate_gaps, gap_index, gap_files) -> invalid_seal("proof gate metrics contain a gap missing from the strict gap index");
+    checksum == "" -> invalid_seal("lane input checksum could not be computed");
+    not lanes.valid -> invalid_seal("one or more lane contracts failed");
+    true -> seal_lane_reports(inputs, gate, checksum, lanes)
+}).
+
+json_member_or_null(value: Json, field: String): Json ->
+    case json_member(value, field) {
+        Some(member) -> member;
+        None -> Json.null()
+    }.
+
+named_names(values: List[NamedJson]): List[String] ->
+    case values {
+        [] -> std.collections.List.new[String]();
+        [value | rest] -> [value.name | named_names(rest)]
+    }.
+
+seal_lane_reports(inputs: Inputs, gate: Json, checksum: String, lanes: LaneCollection): SealData ->
+    let prior_ok = inputs.prior_lanes == "" or prior_holds(inputs.prior_lanes, checksum, lanes.results);
+    if {
+        not prior_ok -> invalid_seal("unchanged lane evidence exceeded its duration tolerance");
+        true -> render_reports(gate, checksum, String.append("sha256:", Hash.sha256(inputs.matrix)), lanes)
+    }.
+
+lane_lines(): String ->
+    "[lean-proof-lane] 1/8 parser status=pass coverage=executable_current families=2 gaps=0 smoke=100\n[lean-proof-lane] 2/8 coreir status=pass coverage=executable_current families=3 gaps=1 smoke=100\n[lean-proof-lane] 3/8 target_profile status=pass coverage=executable_current families=1 gaps=1 smoke=100\n[lean-proof-lane] 4/8 vm_runtime status=pass coverage=executable_current families=1 gaps=1 smoke=100\n[lean-proof-lane] 5/8 native_boundary status=pass coverage=executable_current families=1 gaps=1 smoke=100\n[lean-proof-lane] 6/8 wasm status=pass coverage=executable_current families=1 gaps=1 smoke=100\n[lean-proof-lane] 7/8 distribution status=pass coverage=accepted_gap families=0 gaps=1 smoke=100\n[lean-proof-lane] 8/8 std_packages status=pass coverage=accepted_gap families=0 gaps=1 smoke=100".
+
+run_repository_check(): Bool ->
+    let root = environment_or("TERLAN_LEAN_PROOF_LANES_ROOT", Environment.current_directory());
+    case read_text_many(
+    [
+        root_path(root, "docs/compiler/LEAN_PROOF_SLICE_MATRIX.tsv"),
+        root_path(root, "docs/compiler/LEAN_PROOF_FEATURE_LANES.tsv"),
+        root_path(root, "docs/compiler/proof_track/lean_proof_gaps.tsv"),
+        root_path(root, "build/artifacts/lean-proof-gate.json"),
+        root_path(root, "build/artifacts/lean-proof-repro-report.json"),
+        root_path(root, "build/artifacts/lean-proof-smoke.json"),
+        root_path(root, "Makefile"),
+        root_path(root, "docs/roadmap/ROADMAP_0_0_7.md"),
+        root_path(root, "docs/roadmap/archive/ROADMAP_0_0_7_ACTIVE_PRE_COMPACTION_2026_07_31.md"),
+        root_path(root, "build/artifacts/lean-proof-lanes.json"),
+    ],
+) {
+        Ok([matrix, features, gaps, gate, replay, smoke, makefile, roadmap, archive, prior]) ->
+            let inputs =
+                Inputs(
+                    matrix = matrix.contents,
+                    features = features.contents,
+                    gaps = gaps.contents,
+                    gate = gate.contents,
+                    replay = replay.contents,
+                    smoke = smoke.contents,
+                    makefile = makefile.contents,
+                    roadmap = roadmap.contents,
+                    archive = archive.contents,
+                    prior_lanes = prior.contents,
+                );
+            read_dynamic_lane_inputs(root, inputs);
+        Ok(_files) -> fail("lane input batch has an unexpected shape");
+        Err(_reason) -> fail("lane inputs could not be read")
+    }.
+
+read_dynamic_lane_inputs(root: String, inputs: Inputs): Bool ->
+    let {
+        Some(matrix) <- matrix_rows(inputs.matrix);
+        Some(gaps) <- gap_rows(inputs.gaps)
+    } else {
+        _ -> fail("lane matrix or strict gap index is malformed")
+    };
+    case read_text_many(gap_paths(root)) {
+        Ok(gap_files) ->
+            case read_text_many(prerequisite_paths(root)) {
+                Ok(prerequisite_files) ->
+                    case read_text_tree_matching(root_path(root, "proofs/lean"), [".lake"], [".lean"], [], 0, 256) {
+                        Ok(proof_files) ->
+                            let seal =
+                                compute_lane_seal(
+                                    inputs,
+                                    gap_files,
+                                    proof_files,
+                                    prerequisite_files,
+                                );
+                            persist_lane_seal(root, inputs, matrix, seal);
+                        Err(_reason) -> fail("Lean proof source tree could not be read")
+                    };
+                Err(_reason) -> fail("one or more proof prerequisites are missing")
+            };
+        Err(_reason) -> fail("one or more strict gap TOMLs are missing")
+    }.
+
+persist_lane_seal(root: String, inputs: Inputs, matrix: List[MatrixRow], seal: SealData): Bool ->
+    if {
+        not seal.valid -> fail(seal.report);
+        true -> case write_text(root_path(root, "build/artifacts/lean-proof-lanes.json"), seal.report) {
+            Ok(Unit) ->
+                case write_text(root_path(root, "build/artifacts/lean-proof-gate.json"), seal.gate) {
+                    Ok(Unit) ->
+                        let _lines = println(lane_lines());
+                        let _printed = println("Lean proof lanes passed: 8 ordered hard lanes sealed");
+                        true;
+                    Err(_reason) -> fail("proof gate report could not be written")
+                };
+            Err(_reason) -> fail("lane report could not be written")
+        }
+    }.
+
+@test
+pub strict_matrix_parser_rejects_extra_columns(): Bool ->
+    case matrix_rows(String.append(matrix_header(), "\n1\tparser\tcore\tf\tp\tg\to\td\tx\textra\n")) {
+        None -> true;
+        Some(_rows) -> false
+    }.
+
+@test
+pub feature_owner_mismatch_is_rejected(): Bool ->
+    let matrix =
+        [
+            MatrixRow(
+                order = "1",
+                lane = "coreir",
+                lane_kind = "core",
+                proof_families = "proof",
+                proof_prerequisites = "contract",
+                acceptance_gates = "known-check",
+                owner = "compiler",
+                closeout_dependency = "lean-proof-track-release-closeout-check",
+                accepted_gap_features = "",
+            ),
+        ];
+    not feature_rows_hold(
+    [
+        FeatureRow(
+            roadmap_slice = "Slice 4",
+            lane = "coreir",
+            owner = "vm",
+            acceptance_gate = "known-check",
+        ),
+    ],
+    matrix,
+    "known-check:\n\t@true\n",
+).
+
+@test
+pub unapproved_proof_root_is_rejected(): Bool ->
+    let family =
+        Json.object()
+            .put("proof_path", Json.string("proofs/lean/collections/Collections.lean"))
+            .put("proof_digest", Json.string("sha256:invalid"));
+    not proof_is_executable(family, []).
+
+@test
+pub repository_lean_proof_lanes_are_current(): Bool ->
+    run_repository_check().

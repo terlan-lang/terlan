@@ -1,8 +1,8 @@
 module=std.vm.Supervisor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=2412941989188885084
-interface_hash=5158688963103890139
-interface_doc_hash=4582251260129970499
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=6044337207303603847
+interface_hash=5209590166252560988
+interface_doc_hash=15054284328530844868
 deps=0

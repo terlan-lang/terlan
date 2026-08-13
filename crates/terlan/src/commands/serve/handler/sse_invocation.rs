@@ -1,15 +1,17 @@
-#![cfg_attr(not(test), allow(dead_code))]
-
 //! Native invocation ownership for one admitted SSE stream.
 
 use std::sync::Arc;
 
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
+#[cfg(test)]
 use crate::runtime::native_image::TvmBoundaryType;
 use crate::runtime::vm::native_callable::VmNativeCallableRef;
+#[cfg(test)]
 use crate::runtime::vm::pure_native::PureNativeIoWake;
+#[cfg(test)]
+use crate::runtime::vm::sse::VmSseEvent;
 use crate::runtime::vm::sse::{
-    VmSseCallbackPlan, VmSseEndpointPlan, VmSseEvent, VmSseLiveSession, VmSseStreamInfo,
+    VmSseCallbackPlan, VmSseEndpointPlan, VmSseLiveSession, VmSseStreamInfo,
 };
 use crate::runtime::vm::ReplValue;
 
@@ -21,12 +23,16 @@ pub(in crate::commands::serve) enum AotSseCallbackEvent {
     /// Stream admission completed.
     Open,
     /// One application event became ready for the stream.
+    #[cfg(test)]
     EventReady,
     /// The VM emitted a keep-alive comment.
+    #[cfg(test)]
     KeepAlive,
     /// The stream began graceful drain and close.
+    #[cfg(test)]
     Drain,
     /// The scheduler or transport cancelled the stream.
+    #[cfg(test)]
     Cancellation,
 }
 
@@ -75,16 +81,19 @@ impl AotSseCallbackSession {
     }
 
     /// Returns callback events that completed for runtime instrumentation.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn completed_events(&self) -> &[AotSseCallbackEvent] {
         self.invocation.completed_events()
     }
 
     /// Returns whether generated callback work is parked on typed VM I/O.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn is_waiting(&self) -> bool {
         self.invocation.is_waiting()
     }
 
     /// Queues one data event and dispatches or wakes its generated callback.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn enqueue_event(
         &mut self,
         data: String,
@@ -106,6 +115,7 @@ impl AotSseCallbackSession {
     }
 
     /// Encodes and removes the oldest event ready for HTTP stream transport.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn flush_next_event(
         &mut self,
     ) -> Result<Option<Vec<u8>>, String> {
@@ -115,6 +125,7 @@ impl AotSseCallbackSession {
     }
 
     /// Dispatches one ready application event through generated code.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn event_ready(
         &mut self,
         data: String,
@@ -126,11 +137,13 @@ impl AotSseCallbackSession {
     }
 
     /// Dispatches one VM keep-alive notification through generated code.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn keep_alive(&mut self) -> Result<AotSseCallbackState, String> {
         self.invoke(AotSseCallbackEvent::KeepAlive, Vec::new())
     }
 
     /// Dispatches graceful drain and ends the live-session lease.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn drain(&mut self) -> Result<AotSseCallbackState, String> {
         self.invocation
             .cancel_pending("SSE transport began graceful drain".to_string())?;
@@ -141,6 +154,7 @@ impl AotSseCallbackSession {
     }
 
     /// Cancels parked work, dispatches cancellation, and ends the live lease.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn cancel(
         &mut self,
         reason: String,
@@ -156,6 +170,7 @@ impl AotSseCallbackSession {
     }
 
     /// Resumes the exact parked callback from one typed VM I/O wake.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn resume(
         &mut self,
         wake: PureNativeIoWake,
@@ -178,9 +193,13 @@ impl AotSseCallbackSession {
         let callbacks = self.callbacks.as_ref()?;
         Some(match event {
             AotSseCallbackEvent::Open => &callbacks.open,
+            #[cfg(test)]
             AotSseCallbackEvent::EventReady => &callbacks.event_ready,
+            #[cfg(test)]
             AotSseCallbackEvent::KeepAlive => &callbacks.keep_alive,
+            #[cfg(test)]
             AotSseCallbackEvent::Drain => &callbacks.drain,
+            #[cfg(test)]
             AotSseCallbackEvent::Cancellation => &callbacks.cancellation,
         })
     }
@@ -188,4 +207,5 @@ impl AotSseCallbackSession {
 
 #[cfg(test)]
 #[path = "sse_invocation_test.rs"]
+#[cfg(test)]
 mod sse_invocation_test;

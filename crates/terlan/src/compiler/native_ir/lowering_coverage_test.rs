@@ -14,7 +14,7 @@ use super::lowering_coverage::{
 /// Verifies the matrix has an explicit, nonzero schema version.
 #[test]
 fn lowering_coverage_matrix_is_versioned() {
-    assert_eq!(LOWERING_COVERAGE_VERSION, 6);
+    assert_eq!(LOWERING_COVERAGE_VERSION, 7);
 }
 
 /// Verifies direct calls and named values are native while remote calls and

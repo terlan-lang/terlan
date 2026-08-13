@@ -227,40 +227,7 @@ const REQUIRED_NO_EXTERNAL_RUNTIME_TERMS: &[&str] = &[
     "unexpected direct Tokio dependency",
 ];
 
-const REQUIRED_EXACT_SELECTORS: &[&str] = &[
-    "runtime::vm::tcp::tcp_test::tcp_runtime_parks_accept_and_reports_wakeup_when_connection_arrives",
-    "runtime::vm::tcp::tcp_test::tcp_runtime_parks_receive_and_reports_wakeup_when_bytes_arrive",
-    "runtime::vm::tcp::tcp_test::tcp_runtime_parks_send_and_reports_wakeup_when_peer_drains_capacity",
-    "runtime::vm::udp::udp_test::udp_runtime_delivers_packet_bursts_and_wakes_receiver",
-    "runtime::vm::udp::udp_test::udp_runtime_enforces_backpressure_and_cancels_owner_sockets",
-    "runtime::vm::package_transport::package_transport_test::package_download_transport_parks_and_wakes_when_chunk_arrives",
-    "runtime::vm::package_transport::package_transport_test::package_download_transport_enforces_backpressure_and_cancels_owner",
-    "runtime::vm::support_bundle::support_bundle_test::support_bundle_replay_metadata_records_ordered_io_steps",
-    "runtime::vm::support_bundle::support_bundle_test::support_bundle_replay_metadata_rejects_mismatched_replay_identity",
-    "runtime::vm::io_diagnostics::io_diagnostics_test::io_diagnostics_render_source_map_aware_runtime_failures",
-    "runtime::vm::io_diagnostics::io_diagnostics_test::io_diagnostics_reject_malformed_source_map_context",
-    "runtime::vm::debugger_transport::debugger_transport_test::debugger_transport_parks_and_wakes_command_and_event_receivers",
-    "runtime::vm::debugger_transport::debugger_transport_test::debugger_transport_enforces_backpressure_and_closes_owner_sessions",
-    "runtime::vm::tcp_scheduler::tcp_scheduler_test::tcp_scheduler_adapter_wakes_blocked_accept_process",
-    "runtime::vm::io_reactor::io_reactor_test::vm_io_reactor_loop_drains_mixed_wakeups_in_deterministic_order",
-    "runtime::vm::io_reactor::io_reactor_test::vm_io_reactor_loop_reports_stale_processes_without_stopping_later_wakeups",
-    "runtime::vm::io_runtime_boundary::io_runtime_boundary_test::external_io_runtime_boundary_accepts_vm_wakeup_only_byte_producer",
-    "runtime::vm::io_runtime_boundary::io_runtime_boundary_test::external_io_runtime_boundary_rejects_scheduling_and_hidden_continuations",
-    "runtime::vm::io_runtime_boundary::io_runtime_boundary_test::external_io_runtime_boundary_rejects_unreplayable_or_unbounded_helpers",
-    "runtime::vm::timer::timer_test::timer_table_receive_timeout_wakes_blocked_process",
-    "runtime::vm::framing::framing_test::vm_framing_fixture_reports_timeout_for_pending_exact_read",
-    "runtime::vm::framing::framing_test::vm_framing_fixture_reports_cancelled_streams",
-    "runtime::vm::framing::framing_test::vm_framing_fixture_reports_backpressure_from_peer_inbox",
-    "runtime::vm::http::http_test::vm_http_tcp_actor_poll_parks_then_wakes_through_tcp_scheduler_adapter",
-    "runtime::vm::http::http_test::vm_http_tcp_server_cancels_parked_handler_and_closes_stream",
-    "runtime::vm::sse::sse_test::vm_sse_stream_enforces_backpressure_and_event_size",
-    "runtime::vm::websocket::websocket_test::vm_websocket_runtime_cancelled_termination_cancels_stream_without_close_frame",
-    "runtime::vm::tls::tls_test::vm_tls_runtime_starts_manual_server_connection_with_readiness_state",
-    "runtime::vm::tls::tls_test::vm_tls_tcp_server_stream_roundtrips_over_vm_tcp_runtime",
-    "runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_uses_one_contract_for_fixture_and_live_lanes",
-    "runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_routes_challenge_after_due_renewal_begins",
-    "runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_captures_deterministic_renewal_cache_tls_handoff_replay",
-];
+const REQUIRED_EXACT_SELECTORS: &[&str] = &[];
 
 const REACTOR_FIXTURES: &[&str] = &[
     "TCP listener/stream readiness",
@@ -454,18 +421,11 @@ fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
                 .to_string(),
         );
     }
-    if !makefile.contains("terlan-quality --quiet -- vm-io-reactor-runtime") {
+    if !makefile.contains("-- vm-io-reactor-runtime") {
         diagnostics.push(
-            "Makefile: missing `terlan-quality --quiet -- vm-io-reactor-runtime` invocation"
+            "Makefile: missing `terlan-quality ... -- vm-io-reactor-runtime` invocation"
                 .to_string(),
         );
-    }
-    for selector in REQUIRED_EXACT_SELECTORS {
-        if !makefile.contains(selector) {
-            diagnostics.push(format!(
-                "Makefile: missing VM I/O reactor exact selector `{selector}`"
-            ));
-        }
     }
     Ok(diagnostics)
 }
@@ -684,4 +644,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_io_reactor_runtime_test.rs"]
+#[cfg(test)]
 mod vm_io_reactor_runtime_test;

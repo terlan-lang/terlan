@@ -1,8 +1,10 @@
+#[cfg(test)]
 use super::super::local_trace::{VmLocalTraceConfig, VmLocalTraceCursor, VmLocalTraceSnapshot};
 use super::super::process::{VmProcessId, VmProcessLocation, VmProcessSource};
 use super::VmActorRuntime;
 
 impl VmActorRuntime {
+    #[cfg(test)]
     pub(crate) fn enable_local_trace(
         &mut self,
         source: VmProcessSource,
@@ -11,18 +13,22 @@ impl VmActorRuntime {
         self.local_trace.enable(source, config)
     }
 
+    #[cfg(test)]
     pub(crate) fn disable_local_trace(&mut self, source: &VmProcessSource) -> bool {
         self.local_trace.disable(source)
     }
 
+    #[cfg(test)]
     pub(crate) fn local_trace_enabled(&self, source: &VmProcessSource) -> bool {
         self.local_trace.is_enabled(source)
     }
 
+    #[cfg(test)]
     pub(crate) fn local_trace_cursor(&self) -> VmLocalTraceCursor {
         self.local_trace.cursor()
     }
 
+    #[cfg(test)]
     pub(crate) fn local_trace_since(
         &self,
         cursor: VmLocalTraceCursor,

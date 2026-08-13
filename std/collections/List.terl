@@ -87,7 +87,8 @@ pub (list: List[T]) first(): Option[T] ->
  *
  * Input: one `List[T]`.
  * Output: `Some(rest)` for a non-empty list, including `Some([])` for a
- * singleton list; otherwise `None`.
+ * singleton list;
+ * otherwise `None`.
  * Transformation: lowers through the compiler-owned `core.list.rest`
  * intrinsic without changing the receiver.
  */

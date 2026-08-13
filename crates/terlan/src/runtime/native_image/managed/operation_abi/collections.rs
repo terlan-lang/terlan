@@ -2,7 +2,7 @@
 
 use super::super::{
     ActorHeap, ManagedFieldType, ManagedFieldValue, ManagedMap, ManagedMemoryError,
-    ManagedScalarKeySemantics, ManagedStringKeySemantics, SemanticTypeId, TvmRef,
+    ManagedScalarKeySemantics, ManagedSet, ManagedStringKeySemantics, SemanticTypeId, TvmRef,
 };
 use super::{field_value, reference_word};
 use crate::runtime::native_image::managed::ManagedLayoutRegistry;
@@ -34,50 +34,91 @@ const MAP_FROM_ENTRY_LIST: u8 = 21;
 const ITERATOR_NEXT: u8 = 22;
 const LIST_GET: u8 = 23;
 const LIST_APPEND: u8 = 24;
+const LIST_CONCAT: u8 = 25;
+const LIST_SUBTRACT: u8 = 26;
+const LIST_CLEAR: u8 = 27;
+const SET_FROM_LIST: u8 = 28;
+const SET_CONTAINS: u8 = 29;
+const SET_EMPTY: u8 = 30;
+const SET_IS_EMPTY: u8 = 31;
+const SET_LENGTH: u8 = 32;
+const SET_ADD: u8 = 33;
+const SET_REMOVE: u8 = 34;
+const SET_CLEAR: u8 = 35;
+const SET_ITERATOR: u8 = 36;
 const OPERATION_BYTES: usize = HEADER_BYTES + 16;
 const OPTION_OPERATION_BYTES: usize = HEADER_BYTES + 32;
 const TRIPLE_OPERATION_BYTES: usize = HEADER_BYTES + 48;
+
+#[path = "collections/codec.rs"]
+mod codec;
+use codec::{decode, multi_semantic_operation, operation, operation_with_result, option_operation};
 
 pub(super) fn is_collection_operation(encoded: &[u8]) -> bool {
     encoded.starts_with(MAGIC)
 }
 
+/// Encodes construction of the identified list from ABI element words.
 pub fn encode_list_from_elements_operation(semantic: SemanticTypeId) -> Vec<u8> {
     operation(LIST_FROM_ELEMENTS, semantic)
 }
 
+/// Encodes persistent insertion at the front of the identified list.
 pub fn encode_list_prepend_operation(semantic: SemanticTypeId) -> Vec<u8> {
     operation(LIST_PREPEND, semantic)
 }
 
+/// Encodes persistent insertion at the back of the identified list.
 pub fn encode_list_append_operation(semantic: SemanticTypeId) -> Vec<u8> {
     operation(LIST_APPEND, semantic)
 }
 
+/// Encodes persistent concatenation of two lists with the same schema.
+pub fn encode_list_concat_operation(semantic: SemanticTypeId) -> Vec<u8> {
+    operation(LIST_CONCAT, semantic)
+}
+
+/// Encodes structural subtraction of one list from another.
+pub fn encode_list_subtract_operation(semantic: SemanticTypeId) -> Vec<u8> {
+    operation(LIST_SUBTRACT, semantic)
+}
+
+/// Encodes replacement of a checked list by an empty list of the same schema.
+pub fn encode_list_clear_operation(semantic: SemanticTypeId) -> Vec<u8> {
+    operation(LIST_CLEAR, semantic)
+}
+
+/// Encodes construction of the identified map from alternating key/value words.
 pub fn encode_map_from_entries_operation(semantic: SemanticTypeId) -> Vec<u8> {
     operation(MAP_FROM_ENTRIES, semantic)
 }
 
+/// Encodes an emptiness predicate for the identified list.
 pub fn encode_list_is_empty_operation(semantic: SemanticTypeId) -> Vec<u8> {
     operation_with_result(LIST_IS_EMPTY, semantic, false)
 }
 
+/// Encodes strict first-element lookup and its scalar/reference result shape.
 pub fn encode_list_first_operation(semantic: SemanticTypeId, reference: bool) -> Vec<u8> {
     operation_with_result(LIST_FIRST, semantic, reference)
 }
 
+/// Encodes strict lookup of the list tail.
 pub fn encode_list_rest_operation(semantic: SemanticTypeId) -> Vec<u8> {
     operation_with_result(LIST_REST, semantic, true)
 }
 
+/// Encodes a scalar length query for the identified list.
 pub fn encode_list_length_operation(semantic: SemanticTypeId) -> Vec<u8> {
     operation_with_result(LIST_LENGTH, semantic, false)
 }
 
+/// Encodes bounds-checked indexed lookup and its scalar/reference result shape.
 pub fn encode_list_get_operation(semantic: SemanticTypeId, reference: bool) -> Vec<u8> {
     operation_with_result(LIST_GET, semantic, reference)
 }
 
+/// Encodes optional first-element lookup using the identified option layout.
 pub fn encode_list_first_option_operation(
     list_semantic: SemanticTypeId,
     option_semantic: SemanticTypeId,
@@ -85,6 +126,7 @@ pub fn encode_list_first_option_operation(
     option_operation(LIST_FIRST_OPTION, list_semantic, option_semantic)
 }
 
+/// Encodes optional tail lookup using the identified option layout.
 pub fn encode_list_rest_option_operation(
     list_semantic: SemanticTypeId,
     option_semantic: SemanticTypeId,
@@ -92,26 +134,32 @@ pub fn encode_list_rest_option_operation(
     option_operation(LIST_REST_OPTION, list_semantic, option_semantic)
 }
 
+/// Encodes a key-membership predicate for the identified map.
 pub fn encode_map_contains_operation(semantic: SemanticTypeId) -> Vec<u8> {
     operation_with_result(MAP_CONTAINS, semantic, false)
 }
 
+/// Encodes strict map lookup and its scalar/reference result shape.
 pub fn encode_map_get_operation(semantic: SemanticTypeId, reference: bool) -> Vec<u8> {
     operation_with_result(MAP_GET, semantic, reference)
 }
 
+/// Encodes allocation of an empty map with the identified layout.
 pub fn encode_map_empty_operation(semantic: SemanticTypeId) -> Vec<u8> {
     operation(MAP_EMPTY, semantic)
 }
 
+/// Encodes an emptiness predicate for the identified map.
 pub fn encode_map_is_empty_operation(semantic: SemanticTypeId) -> Vec<u8> {
     operation_with_result(MAP_IS_EMPTY, semantic, false)
 }
 
+/// Encodes a scalar entry-count query for the identified map.
 pub fn encode_map_length_operation(semantic: SemanticTypeId) -> Vec<u8> {
     operation_with_result(MAP_LENGTH, semantic, false)
 }
 
+/// Encodes optional map lookup using the identified option layout.
 pub fn encode_map_get_option_operation(
     map_semantic: SemanticTypeId,
     option_semantic: SemanticTypeId,
@@ -119,18 +167,22 @@ pub fn encode_map_get_option_operation(
     multi_semantic_operation(MAP_GET_OPTION, &[map_semantic, option_semantic])
 }
 
+/// Encodes persistent key/value insertion into the identified map.
 pub fn encode_map_put_operation(semantic: SemanticTypeId) -> Vec<u8> {
     operation(MAP_PUT, semantic)
 }
 
+/// Encodes persistent key removal from the identified map.
 pub fn encode_map_remove_operation(semantic: SemanticTypeId) -> Vec<u8> {
     operation(MAP_REMOVE, semantic)
 }
 
+/// Encodes removal of every entry from the identified map.
 pub fn encode_map_clear_operation(semantic: SemanticTypeId) -> Vec<u8> {
     operation(MAP_CLEAR, semantic)
 }
 
+/// Encodes atomic lookup-and-removal with explicit option and result layouts.
 pub fn encode_map_take_operation(
     map_semantic: SemanticTypeId,
     option_semantic: SemanticTypeId,
@@ -139,6 +191,7 @@ pub fn encode_map_take_operation(
     multi_semantic_operation(MAP_TAKE, &[map_semantic, option_semantic, result_semantic])
 }
 
+/// Encodes deterministic map iteration into the identified list/pair layouts.
 pub fn encode_map_iterator_operation(
     map_semantic: SemanticTypeId,
     list_semantic: SemanticTypeId,
@@ -147,6 +200,7 @@ pub fn encode_map_iterator_operation(
     multi_semantic_operation(MAP_ITERATOR, &[map_semantic, list_semantic, pair_semantic])
 }
 
+/// Encodes map construction from a managed list of managed pairs.
 pub fn encode_map_from_entry_list_operation(
     map_semantic: SemanticTypeId,
     list_semantic: SemanticTypeId,
@@ -158,6 +212,7 @@ pub fn encode_map_from_entry_list_operation(
     )
 }
 
+/// Encodes one iterator step with explicit option and step layouts.
 pub fn encode_iterator_next_operation(
     list_semantic: SemanticTypeId,
     option_semantic: SemanticTypeId,
@@ -169,6 +224,57 @@ pub fn encode_iterator_next_operation(
     )
 }
 
+/// Encodes set construction from a managed list with the same element type.
+pub fn encode_set_from_list_operation(
+    set_semantic: SemanticTypeId,
+    list_semantic: SemanticTypeId,
+) -> Vec<u8> {
+    multi_semantic_operation(SET_FROM_LIST, &[set_semantic, list_semantic])
+}
+
+/// Encodes a structural element-membership predicate for one set schema.
+pub fn encode_set_contains_operation(semantic: SemanticTypeId) -> Vec<u8> {
+    operation_with_result(SET_CONTAINS, semantic, false)
+}
+
+/// Encodes allocation of an empty set with the identified layout.
+pub fn encode_set_empty_operation(semantic: SemanticTypeId) -> Vec<u8> {
+    operation(SET_EMPTY, semantic)
+}
+
+/// Encodes an emptiness predicate for the identified set.
+pub fn encode_set_is_empty_operation(semantic: SemanticTypeId) -> Vec<u8> {
+    operation_with_result(SET_IS_EMPTY, semantic, false)
+}
+
+/// Encodes a scalar unique-element count for the identified set.
+pub fn encode_set_length_operation(semantic: SemanticTypeId) -> Vec<u8> {
+    operation_with_result(SET_LENGTH, semantic, false)
+}
+
+/// Encodes persistent insertion into the identified set.
+pub fn encode_set_add_operation(semantic: SemanticTypeId) -> Vec<u8> {
+    operation(SET_ADD, semantic)
+}
+
+/// Encodes persistent removal from the identified set.
+pub fn encode_set_remove_operation(semantic: SemanticTypeId) -> Vec<u8> {
+    operation(SET_REMOVE, semantic)
+}
+
+/// Encodes replacement of a checked set by an empty set of the same schema.
+pub fn encode_set_clear_operation(semantic: SemanticTypeId) -> Vec<u8> {
+    operation(SET_CLEAR, semantic)
+}
+
+/// Encodes deterministic set iteration into a managed list.
+pub fn encode_set_iterator_operation(
+    set_semantic: SemanticTypeId,
+    list_semantic: SemanticTypeId,
+) -> Vec<u8> {
+    multi_semantic_operation(SET_ITERATOR, &[set_semantic, list_semantic])
+}
+
 pub(super) fn collection_operation_result_is_reference(encoded: &[u8]) -> bool {
     encoded.get(7) == Some(&1)
         || matches!(
@@ -177,6 +283,9 @@ pub(super) fn collection_operation_result_is_reference(encoded: &[u8]) -> bool {
                 LIST_FROM_ELEMENTS
                     | LIST_PREPEND
                     | LIST_APPEND
+                    | LIST_CONCAT
+                    | LIST_SUBTRACT
+                    | LIST_CLEAR
                     | MAP_FROM_ENTRIES
                     | MAP_EMPTY
                     | MAP_GET_OPTION
@@ -187,6 +296,12 @@ pub(super) fn collection_operation_result_is_reference(encoded: &[u8]) -> bool {
                     | MAP_ITERATOR
                     | MAP_FROM_ENTRY_LIST
                     | ITERATOR_NEXT
+                    | SET_FROM_LIST
+                    | SET_EMPTY
+                    | SET_ADD
+                    | SET_REMOVE
+                    | SET_CLEAR
+                    | SET_ITERATOR
             )
         )
 }
@@ -222,10 +337,12 @@ pub(super) fn execute_collection_operation(
                 .list_descriptor()
                 .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
             let tail = reference_word(*tail)?.cast();
-            let mut elements = heap.list_elements(descriptor, tail)?;
-            elements.insert(0, field_value(*head, descriptor.element_type())?);
-            heap.list_from_elements(descriptor, &elements)
-                .map(TvmRef::encoded_abi_word)
+            heap.list_prepend(
+                descriptor,
+                tail,
+                field_value(*head, descriptor.element_type())?,
+            )
+            .map(TvmRef::encoded_abi_word)
         }
         LIST_APPEND => {
             let [list, value] = words else {
@@ -235,13 +352,63 @@ pub(super) fn execute_collection_operation(
                 .list_descriptor()
                 .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
             let list = reference_word(*list)?.cast();
-            let mut elements = heap.list_elements(descriptor, list)?;
-            elements.push(field_value(*value, descriptor.element_type())?);
-            heap.list_from_elements(descriptor, &elements)
+            heap.list_append(
+                descriptor,
+                list,
+                field_value(*value, descriptor.element_type())?,
+            )
+            .map(TvmRef::encoded_abi_word)
+        }
+        LIST_CONCAT => {
+            let [left, right] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let descriptor = collection
+                .list_descriptor()
+                .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
+            heap.list_concat(
+                descriptor,
+                reference_word(*left)?.cast(),
+                reference_word(*right)?.cast(),
+            )
+            .map(TvmRef::encoded_abi_word)
+        }
+        LIST_SUBTRACT => {
+            let [left, right] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let descriptor = collection
+                .list_descriptor()
+                .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
+            heap.list_subtract(
+                descriptor,
+                reference_word(*left)?.cast(),
+                reference_word(*right)?.cast(),
+                |heap, left, right| {
+                    super::equality::managed_field_values_equal(
+                        heap,
+                        layouts,
+                        descriptor.element_type(),
+                        left,
+                        right,
+                    )
+                },
+            )
+            .map(TvmRef::encoded_abi_word)
+        }
+        LIST_CLEAR => {
+            let [list] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let descriptor = collection
+                .list_descriptor()
+                .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
+            heap.list_length(descriptor, reference_word(*list)?.cast())?;
+            heap.list_from_elements(descriptor, &[])
                 .map(TvmRef::encoded_abi_word)
         }
         MAP_FROM_ENTRIES => {
-            if words.len() % 2 != 0 {
+            if !words.len().is_multiple_of(2) {
                 return Err(ManagedMemoryError::InvalidAggregateArity);
             }
             let descriptor = collection
@@ -537,66 +704,100 @@ pub(super) fn execute_collection_operation(
             };
             allocate_option(heap, layouts, semantics[1], value)
         }
+        SET_FROM_LIST => {
+            let [elements] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let descriptor = collection
+                .set_descriptor()
+                .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
+            let list = layouts
+                .collection(semantics[1])
+                .and_then(|collection| collection.list_descriptor())
+                .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
+            let elements = heap.list_elements(list, reference_word(*elements)?.cast())?;
+            set_from_elements(heap, descriptor, &elements).map(TvmRef::encoded_abi_word)
+        }
+        SET_CONTAINS => {
+            let [set, element] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let descriptor = collection
+                .set_descriptor()
+                .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
+            let set = reference_word(*set)?.cast::<ManagedSet>();
+            let element = field_value(*element, descriptor.element_type())?;
+            set_contains(heap, descriptor, set, element).map(u64::from)
+        }
+        SET_EMPTY => {
+            let [] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let descriptor = collection
+                .set_descriptor()
+                .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
+            heap.set_empty(descriptor).map(TvmRef::encoded_abi_word)
+        }
+        SET_IS_EMPTY | SET_LENGTH => {
+            let [set] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let descriptor = collection
+                .set_descriptor()
+                .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
+            let set = reference_word(*set)?.cast::<ManagedSet>();
+            if operation == SET_IS_EMPTY {
+                heap.set_is_empty(descriptor, set).map(u64::from)
+            } else {
+                let length = heap.set_length(descriptor, set)?;
+                i64::try_from(length)
+                    .map(|length| u64::from_ne_bytes(length.to_ne_bytes()))
+                    .map_err(|_| ManagedMemoryError::InvalidSequenceLength)
+            }
+        }
+        SET_ADD | SET_REMOVE => {
+            let [set, element] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let descriptor = collection
+                .set_descriptor()
+                .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
+            let set = reference_word(*set)?.cast::<ManagedSet>();
+            let element = field_value(*element, descriptor.element_type())?;
+            let updated = if operation == SET_ADD {
+                set_add(heap, descriptor, set, element)?
+            } else {
+                set_remove(heap, descriptor, set, element)?
+            };
+            Ok(updated.encoded_abi_word())
+        }
+        SET_CLEAR => {
+            let [set] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let descriptor = collection
+                .set_descriptor()
+                .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
+            heap.set_clear(descriptor, reference_word(*set)?.cast())
+                .map(TvmRef::encoded_abi_word)
+        }
+        SET_ITERATOR => {
+            let [set] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let descriptor = collection
+                .set_descriptor()
+                .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
+            let elements = heap.set_elements(descriptor, reference_word(*set)?.cast())?;
+            let list = layouts
+                .collection(semantics[1])
+                .and_then(|collection| collection.list_descriptor())
+                .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
+            heap.list_from_elements(list, &elements)
+                .map(TvmRef::encoded_abi_word)
+        }
         _ => Err(ManagedMemoryError::InvalidAggregateAbi),
     }
-}
-
-fn operation(tag: u8, semantic: SemanticTypeId) -> Vec<u8> {
-    operation_with_result(tag, semantic, true)
-}
-
-fn operation_with_result(tag: u8, semantic: SemanticTypeId, reference: bool) -> Vec<u8> {
-    let mut encoded = Vec::with_capacity(OPERATION_BYTES);
-    encoded.extend_from_slice(MAGIC);
-    encoded.extend_from_slice(&VERSION.to_le_bytes());
-    encoded.push(tag);
-    encoded.push(u8::from(reference));
-    encoded.extend_from_slice(&semantic.bytes());
-    encoded
-}
-
-fn option_operation(tag: u8, semantic: SemanticTypeId, option_semantic: SemanticTypeId) -> Vec<u8> {
-    multi_semantic_operation(tag, &[semantic, option_semantic])
-}
-
-fn multi_semantic_operation(tag: u8, semantics: &[SemanticTypeId]) -> Vec<u8> {
-    let mut encoded = operation_with_result(tag, semantics[0], true);
-    for semantic in &semantics[1..] {
-        encoded.extend_from_slice(&semantic.bytes());
-    }
-    encoded
-}
-
-fn decode(encoded: &[u8]) -> Result<(u8, Vec<SemanticTypeId>, bool), ManagedMemoryError> {
-    let semantic_count = match encoded.get(6).copied() {
-        Some(LIST_FIRST_OPTION | LIST_REST_OPTION | MAP_GET_OPTION) => 2,
-        Some(MAP_TAKE | MAP_ITERATOR | MAP_FROM_ENTRY_LIST | ITERATOR_NEXT) => 3,
-        Some(_) => 1,
-        None => return Err(ManagedMemoryError::InvalidAggregateAbi),
-    };
-    let expected_bytes = match semantic_count {
-        1 => OPERATION_BYTES,
-        2 => OPTION_OPERATION_BYTES,
-        3 => TRIPLE_OPERATION_BYTES,
-        _ => unreachable!("closed collection semantic count"),
-    };
-    if encoded.len() != expected_bytes
-        || encoded.get(..4) != Some(MAGIC)
-        || encoded.get(4..6) != Some(&VERSION.to_le_bytes())
-        || encoded[7] > 1
-    {
-        return Err(ManagedMemoryError::InvalidAggregateAbi);
-    }
-    let semantics = encoded[HEADER_BYTES..]
-        .chunks_exact(16)
-        .map(|bytes| {
-            bytes
-                .try_into()
-                .map(SemanticTypeId::from_bytes)
-                .map_err(|_| ManagedMemoryError::InvalidAggregateAbi)
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok((encoded[6], semantics, encoded[7] == 1))
 }
 
 fn allocate_option(
@@ -688,5 +889,61 @@ fn string_keys(
     descriptor: &super::super::ManagedMapDescriptor,
 ) -> Result<bool, ManagedMemoryError> {
     Ok(descriptor.key_type()
+        == ManagedFieldType::Reference(SemanticTypeId::from_canonical("std.core.String")?))
+}
+
+fn set_from_elements(
+    heap: &mut ActorHeap,
+    descriptor: &super::super::ManagedSetDescriptor,
+    elements: &[ManagedFieldValue],
+) -> Result<TvmRef<ManagedSet>, ManagedMemoryError> {
+    if string_set(descriptor)? {
+        heap.set_from_elements(descriptor, elements, &mut ManagedStringKeySemantics)
+    } else {
+        heap.set_from_elements(descriptor, elements, &mut ManagedScalarKeySemantics)
+    }
+}
+
+fn set_contains(
+    heap: &ActorHeap,
+    descriptor: &super::super::ManagedSetDescriptor,
+    set: TvmRef<ManagedSet>,
+    element: ManagedFieldValue,
+) -> Result<bool, ManagedMemoryError> {
+    if string_set(descriptor)? {
+        heap.set_contains(descriptor, set, element, &mut ManagedStringKeySemantics)
+    } else {
+        heap.set_contains(descriptor, set, element, &mut ManagedScalarKeySemantics)
+    }
+}
+
+fn set_add(
+    heap: &mut ActorHeap,
+    descriptor: &super::super::ManagedSetDescriptor,
+    set: TvmRef<ManagedSet>,
+    element: ManagedFieldValue,
+) -> Result<TvmRef<ManagedSet>, ManagedMemoryError> {
+    if string_set(descriptor)? {
+        heap.set_add(descriptor, set, element, &mut ManagedStringKeySemantics)
+    } else {
+        heap.set_add(descriptor, set, element, &mut ManagedScalarKeySemantics)
+    }
+}
+
+fn set_remove(
+    heap: &mut ActorHeap,
+    descriptor: &super::super::ManagedSetDescriptor,
+    set: TvmRef<ManagedSet>,
+    element: ManagedFieldValue,
+) -> Result<TvmRef<ManagedSet>, ManagedMemoryError> {
+    if string_set(descriptor)? {
+        heap.set_remove(descriptor, set, element, &mut ManagedStringKeySemantics)
+    } else {
+        heap.set_remove(descriptor, set, element, &mut ManagedScalarKeySemantics)
+    }
+}
+
+fn string_set(descriptor: &super::super::ManagedSetDescriptor) -> Result<bool, ManagedMemoryError> {
+    Ok(descriptor.element_type()
         == ManagedFieldType::Reference(SemanticTypeId::from_canonical("std.core.String")?))
 }

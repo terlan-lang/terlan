@@ -17,7 +17,8 @@ fn std_interface_fixture_scope_includes_only_direct_and_transitive_dependencies(
         vec![
             "std.collections.Enumerable",
             "std.core.Option",
-            "std.core.Ordering"
+            "std.core.Ordering",
+            "std.core.Unit"
         ]
     );
 }

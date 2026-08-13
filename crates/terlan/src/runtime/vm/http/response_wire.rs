@@ -18,34 +18,11 @@ pub(crate) enum VmHttpResponseWriteFailureKind {
     InvalidMetadata,
 }
 
-impl VmHttpResponseWriteFailureKind {
-    /// Returns the machine-readable runtime reason.
-    pub(crate) fn code(self) -> &'static str {
-        match self {
-            Self::ClientClosed => "client_closed_during_response_write",
-            Self::Timeout => "response_write_timeout",
-            Self::Io => "response_write_io_error",
-            Self::InvalidMetadata => "invalid_response_metadata",
-        }
-    }
-}
-
 /// Typed VM-owned buffered response-write failure.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct VmHttpResponseWriteFailure {
     pub(crate) kind: VmHttpResponseWriteFailureKind,
     pub(crate) message: String,
-}
-
-impl VmHttpResponseWriteFailure {
-    /// Renders a stable diagnostic while preserving the writer detail.
-    pub(crate) fn render(&self) -> String {
-        format!(
-            "error[vm_http_response_write]: {}: {}",
-            self.kind.code(),
-            self.message
-        )
-    }
 }
 
 /// Writes one HTTP/1 response from validated metadata and a UTF-8 body.
@@ -74,6 +51,7 @@ pub(crate) fn write_http1_response_typed<B: AsRef<[u8]>>(
 }
 
 /// Writes one HTTP/1 response while preserving exact binary body bytes.
+#[cfg(test)]
 pub(crate) fn write_http1_bytes_response(
     writer: &mut dyn Write,
     response: &::http::Response<Vec<u8>>,

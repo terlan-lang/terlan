@@ -1,7 +1,5 @@
 //! Deterministic per-scheduler event capture and controlled replay.
 
-#![allow(dead_code)] // MC-8 activates replay event consumers in ordered slices.
-
 use std::collections::VecDeque;
 use std::fmt;
 
@@ -22,13 +20,11 @@ pub(crate) enum VmMulticoreEventKind {
     Entry,
     /// A scheduler was selected for actor work.
     SchedulerSelected,
-    /// An actor changed queue or ownership lifecycle.
-    QueueTransition,
-    /// A complete actor message was published.
-    MessagePublished,
     /// A protocol reactor or capability worker published typed completion data.
+    #[cfg(test)]
     IoCompletionPublished,
     /// A typed I/O completion resumed generated code on its actor owner.
+    #[cfg(test)]
     IoCompletionDispatched,
     /// A capability worker published a typed generated completion.
     CapabilityCompletionPublished,
@@ -61,12 +57,15 @@ pub(crate) enum VmMulticoreEventKind {
     /// A work-stealing decision selected or rejected a victim.
     StealOutcome,
     /// A wake source made one parked actor runnable.
+    #[cfg(test)]
     Wake,
     /// A native image generation became visible to this scheduler.
     ImageGeneration,
     /// A debugger paused runnable service on one scheduler owner.
+    #[cfg(test)]
     DebuggerPaused,
     /// A debugger restored normal runnable service on one scheduler owner.
+    #[cfg(test)]
     DebuggerContinued,
     /// A debugger-authorized actor slice executed under its current owner.
     DebuggerStepped,
@@ -74,8 +73,6 @@ pub(crate) enum VmMulticoreEventKind {
     ExecutionStarted,
     /// Actor work left one measured execution interval.
     ExecutionFinished,
-    /// Pending actor work was cancelled.
-    Cancelled,
     /// Generated code completed and released its actor route.
     Completed,
     /// A supervised execution shard failed under its admitted image generation.
@@ -83,6 +80,7 @@ pub(crate) enum VmMulticoreEventKind {
     /// A supervised execution shard scheduled a bounded restart attempt.
     SupervisionRestartScheduled,
     /// A supervised execution shard published a recovered image generation.
+    #[cfg(test)]
     SupervisionRestarted,
     /// An execution shard started orderly shutdown under its admitted generation.
     ShutdownStarted,
@@ -340,6 +338,7 @@ impl VmMulticoreReplayEvidence {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum VmMulticoreReplayMode {
     Record,
+    #[cfg(test)]
     Replay,
 }
 
@@ -361,6 +360,7 @@ pub(crate) struct VmMulticoreReplayRecorder {
     next_sequence: u64,
     dropped_events: u64,
     recorded: VecDeque<VmMulticoreReplayEvent>,
+    #[cfg(test)]
     expected: VecDeque<VmMulticoreReplayEvent>,
 }
 
@@ -380,11 +380,13 @@ impl VmMulticoreReplayRecorder {
             next_sequence: 1,
             dropped_events: 0,
             recorded: VecDeque::with_capacity(capacity),
+            #[cfg(test)]
             expected: VecDeque::new(),
         })
     }
 
     /// Creates controlled replay from one complete, contiguous capture.
+    #[cfg(test)]
     pub(crate) fn replaying(
         capture: VmMulticoreReplayCapture,
     ) -> Result<Self, VmMulticoreReplayError> {
@@ -429,6 +431,7 @@ impl VmMulticoreReplayRecorder {
                 self.recorded.push_back(event);
                 Ok(VmMulticoreRecordOutcome { event, evicted })
             }
+            #[cfg(test)]
             VmMulticoreReplayMode::Replay => {
                 let expected = self
                     .expected
@@ -472,6 +475,7 @@ impl VmMulticoreReplayRecorder {
     }
 
     /// Requires controlled replay to have consumed every captured event.
+    #[cfg(test)]
     pub(crate) fn finish_replay(&self) -> Result<(), VmMulticoreReplayError> {
         if self.mode != VmMulticoreReplayMode::Replay {
             return Err(VmMulticoreReplayError::FinishOutsideReplay);
@@ -539,6 +543,7 @@ pub(crate) enum VmMulticoreReplayError {
     /// Capture schema is not supported.
     UnsupportedSchema,
     /// A capture with dropped prefix events cannot drive controlled replay.
+    #[cfg(test)]
     IncompleteCapture,
     /// A capture contains a scheduler identity from another stream.
     ForeignSchedulerEvent,
@@ -549,6 +554,7 @@ pub(crate) enum VmMulticoreReplayError {
     /// Capture next-sequence metadata does not follow the retained events.
     CorruptNextSequence,
     /// The next observation did not match the captured event.
+    #[cfg(test)]
     ReplayMismatch {
         /// Complete captured event identity.
         expected: VmMulticoreReplayEvent,
@@ -556,11 +562,13 @@ pub(crate) enum VmMulticoreReplayError {
         actual: VmMulticoreReplayEvent,
     },
     /// Replay observed an event after the capture ended.
+    #[cfg(test)]
     ReplayExhausted {
         /// Unexpected observed kind.
         actual: VmMulticoreEventKind,
     },
     /// Replay ended with unconsumed expected events.
+    #[cfg(test)]
     ReplayIncomplete {
         /// Number of events still expected.
         remaining: usize,
@@ -568,6 +576,7 @@ pub(crate) enum VmMulticoreReplayError {
     /// Record capture was requested from a replay cursor.
     CaptureDuringReplay,
     /// Replay completion was requested from a recording stream.
+    #[cfg(test)]
     FinishOutsideReplay,
 }
 
@@ -588,6 +597,7 @@ fn next_sequence(sequence: u64) -> Result<u64, VmMulticoreReplayError> {
 }
 
 /// Validates a capture before any controlled replay state is created.
+#[cfg(test)]
 fn validate_capture(capture: &VmMulticoreReplayCapture) -> Result<(), VmMulticoreReplayError> {
     validate_capture_structure(capture)?;
     if !capture.is_complete() {
@@ -634,4 +644,5 @@ fn validate_capture_structure(
 
 #[cfg(test)]
 #[path = "multicore_replay_test.rs"]
+#[cfg(test)]
 mod multicore_replay_test;

@@ -12,6 +12,7 @@ use crate::terlan_typeck::{
 use super::constructors::{native_constructor_layouts, NativeConstructorLayouts};
 use super::escape::retained_managed_bindings;
 use super::expression::lower_expr_with_constructors;
+use super::native_object_test_support::with_dispatch_lookup_harness;
 use super::{
     call_composition::rebase_callee_locals, emit_native_application_object,
     expr_calls_are_supported, lower_native_function, NativeExpr, NativeModule, NativeType,
@@ -296,11 +297,7 @@ fn production_function_lowering_eliminates_allocator_reachability() {
     let (native, continuations) = lower_native_function(
         "escape",
         &function(body, "Int", CoreType::Int),
-        &HashMap::new(),
-        &HashMap::new(),
         &layouts(),
-        &std::collections::HashSet::new(),
-        &HashMap::new(),
         &mut stable_ids,
     )
     .expect("production native function lowering");
@@ -342,11 +339,7 @@ fn production_suspension_lowering_uses_the_same_constructor_layouts() {
     let (native, continuations) = lower_native_function(
         "escape",
         &function(body, "Result[Int, Int]", result_type),
-        &HashMap::new(),
-        &HashMap::new(),
         &layouts(),
-        &std::collections::HashSet::new(),
-        &HashMap::new(),
         &mut stable_ids,
     )
     .expect("suspending constructor lowering");
@@ -426,11 +419,7 @@ fn generated_dead_constructor_path_has_no_allocator_reachability() {
     let (native, continuations) = lower_native_function(
         "escape",
         &function(body, "Int", CoreType::Int),
-        &HashMap::new(),
-        &HashMap::new(),
         &layouts(),
-        &std::collections::HashSet::new(),
-        &HashMap::new(),
         &mut stable_ids,
     )
     .expect("optimized function");
@@ -462,7 +451,8 @@ fn generated_dead_constructor_path_has_no_allocator_reachability() {
     fs::write(&object_path, object).expect("optimized object");
     fs::write(
         &harness_path,
-        ALLOCATION_FREE_HARNESS.replace("$EXPORT_ID", &export_id.to_string()),
+        with_dispatch_lookup_harness(ALLOCATION_FREE_HARNESS)
+            .replace("$EXPORT_ID", &export_id.to_string()),
     )
     .expect("allocation-free harness");
 
@@ -496,10 +486,11 @@ const ALLOCATION_FREE_HARNESS: &str = r#"
 use std::ffi::c_void;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v2(
+    fn terlan_native_dispatch_v3(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
+        dispatch_lookup: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -515,10 +506,11 @@ fn main() {
     let mut transitions = [0_i64; 1];
     let mut transition_len = 99_u64;
     let status = unsafe {
-        terlan_native_dispatch_v2(
+        terlan_native_dispatch_v3(
             std::ptr::null_mut(),
             std::ptr::null(),
             std::ptr::null(),
+            dispatch_lookup as *const c_void,
             $EXPORT_ID,
             std::ptr::null(),
             0,

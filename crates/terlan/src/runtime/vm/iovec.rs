@@ -1,23 +1,30 @@
 //! Bounded scatter/gather normalization for VM-owned byte values.
 
+#[cfg(test)]
 use std::fmt;
 #[cfg(test)]
 use std::io::IoSlice;
+#[cfg(test)]
 use std::sync::Arc;
 
+#[cfg(test)]
 use super::ReplValue;
 
+#[cfg(test)]
 const DEFAULT_MAX_SEGMENTS: usize = 1_024;
+#[cfg(test)]
 const DEFAULT_MAX_NODES: usize = 65_536;
 
 /// Resource limits applied before a normalized vector can reach a driver.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmIoVectorLimits {
     pub(crate) max_bytes: usize,
     pub(crate) max_segments: usize,
     pub(crate) max_nodes: usize,
 }
 
+#[cfg(test)]
 impl VmIoVectorLimits {
     pub(crate) const fn for_byte_limit(max_bytes: usize) -> Self {
         Self {
@@ -27,7 +34,6 @@ impl VmIoVectorLimits {
         }
     }
 
-    #[cfg(test)]
     pub(crate) const fn new(max_bytes: usize, max_segments: usize, max_nodes: usize) -> Self {
         Self {
             max_bytes,
@@ -39,6 +45,7 @@ impl VmIoVectorLimits {
 
 /// Stable rejection reasons for malformed or over-budget VM iodata.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmIoVectorError {
     InvalidByte(i64),
     NonByteAlignedBitString { bit_len: usize },
@@ -49,6 +56,7 @@ pub(crate) enum VmIoVectorError {
     NodeLimitExceeded { nodes: usize, limit: usize },
 }
 
+#[cfg(test)]
 impl fmt::Display for VmIoVectorError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -83,11 +91,13 @@ impl fmt::Display for VmIoVectorError {
 
 /// Immutable, validated scatter/gather bytes ready for a VM-owned transport.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmIoVector {
     segments: Vec<Arc<[u8]>>,
     total_len: usize,
 }
 
+#[cfg(test)]
 impl VmIoVector {
     /// Normalizes VM iodata iteratively, publishing no partial result on error.
     pub(crate) fn from_value(
@@ -185,6 +195,7 @@ impl VmIoVector {
     }
 }
 
+#[cfg(test)]
 fn add_bytes(total: &mut usize, added: usize, limit: usize) -> Result<(), VmIoVectorError> {
     let projected = total
         .checked_add(added)
@@ -199,6 +210,7 @@ fn add_bytes(total: &mut usize, added: usize, limit: usize) -> Result<(), VmIoVe
     Ok(())
 }
 
+#[cfg(test)]
 fn flush_scalar_run(
     segments: &mut Vec<Arc<[u8]>>,
     scalar_run: &mut Vec<u8>,
@@ -211,6 +223,7 @@ fn flush_scalar_run(
     push_segment(segments, run, limit)
 }
 
+#[cfg(test)]
 fn push_segment(
     segments: &mut Vec<Arc<[u8]>>,
     segment: Arc<[u8]>,
@@ -235,4 +248,5 @@ fn push_segment(
 
 #[cfg(test)]
 #[path = "iovec_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod iovec_beam_suite_parity_test;

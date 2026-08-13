@@ -140,6 +140,7 @@ function testTreeSitterFileTypes() {
   const fileTypes = new Set(grammar["file-types"]);
   const expected = [
     "terl",
+    "terls",
     "terli",
     "terl.html",
     "terl.md",
@@ -418,6 +419,24 @@ function testShapeSynonymCorpusCoverage() {
 }
 
 /**
+ * Verifies editor expressions expose only canonical Boolean operator words.
+ *
+ * @returns {void}
+ */
+function testCanonicalBooleanOperatorSpelling() {
+  const grammar = readText("grammar.js");
+  const binaryExpression = grammar.match(
+    /\n\s{4}binary_expression:[\s\S]*?\n\s{4}raw_macro_expression:/
+  );
+
+  assert.ok(binaryExpression, "grammar should expose the binary expression production");
+  assert.ok(binaryExpression[0].includes('"and"'), "binary expressions must support and");
+  assert.ok(binaryExpression[0].includes('"or"'), "binary expressions must support or");
+  assert.ok(!binaryExpression[0].includes('"&&"'), "binary expressions must reject &&");
+  assert.ok(!binaryExpression[0].includes('"||"'), "binary expressions must reject ||");
+}
+
+/**
  * Verifies binary constructors and every shared pattern position are owned by
  * the editor grammar and highlight query.
  *
@@ -462,6 +481,7 @@ testCanonicalPipeOperatorSpelling();
 testCorpusCoverage();
 testStringPatternLongTailCorpusCoverage();
 testShapeSynonymCorpusCoverage();
+testCanonicalBooleanOperatorSpelling();
 testBinaryLayoutToolingCoverage();
 
 console.log("terlan tree-sitter package smoke tests passed");

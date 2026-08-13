@@ -6,7 +6,7 @@ startup for the compiler-owned language server.
 
 ## Responsibilities
 
-- Register `.terl`, `.terli`, and `.terl.*` template filetypes.
+- Register `.terl`, `.terls`, `.terli`, and `.terl.*` template filetypes.
 - Register those filetypes with the shared `terlan` Tree-sitter parser when
   Neovim exposes `vim.treesitter.language.register`.
 - Start Terlan's language server through `terlc lsp --stdio`.

@@ -27,7 +27,7 @@ pub width_typechecks(receiver: HTMLCanvasElement): JsNumber ->
 
 pub capture_stream_typechecks(
     receiver: HTMLCanvasElement,
-    frame_request_rate: JsNumber
+    frame_request_rate: JsNumber,
 ): MediaStream ->
     receiver.capture_stream(frame_request_rate).
 
@@ -35,14 +35,14 @@ pub to_blob_typechecks(
     receiver: HTMLCanvasElement,
     callback: BlobCallback,
     type_: JsString,
-    quality: JsNumber
+    quality: JsNumber,
 ): Unit ->
     receiver.to_blob(callback, type_, quality).
 
 pub to_data_url_typechecks(
     receiver: HTMLCanvasElement,
     type_: JsString,
-    quality: JsNumber
+    quality: JsNumber,
 ): JsString ->
     receiver.to_data_url(type_, quality).
 
@@ -53,7 +53,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLCanvasElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -61,6 +61,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLCanvasElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

@@ -489,4 +489,5 @@ fn core_expr_kind(expr: &CoreExpr) -> &'static str {
 
 #[cfg(test)]
 #[path = "lower_test.rs"]
+#[cfg(test)]
 mod lower_test;

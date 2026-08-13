@@ -41,26 +41,26 @@ pub count_typechecks(receiver: IDBIndex, query: IDBKeyRange | IDBValidKey): IDBR
 pub get_all_keys_typechecks(
     receiver: IDBIndex,
     query: Option[IDBKeyRange | IDBValidKey],
-    count: JsNumber
+    count: JsNumber,
 ): IDBRequest[Array[IDBValidKey]] ->
     receiver.get_all_keys(query, count).
 
 pub get_key_typechecks(
     receiver: IDBIndex,
-    query: IDBKeyRange | IDBValidKey
+    query: IDBKeyRange | IDBValidKey,
 ): IDBRequest[Option[IDBValidKey]] ->
     receiver.get_key(query).
 
 pub open_cursor_typechecks(
     receiver: IDBIndex,
     query: Option[IDBKeyRange | IDBValidKey],
-    direction: IDBCursorDirection
+    direction: IDBCursorDirection,
 ): IDBRequest[Option[IDBCursorWithValue]] ->
     receiver.open_cursor(query, direction).
 
 pub open_key_cursor_typechecks(
     receiver: IDBIndex,
     query: Option[IDBKeyRange | IDBValidKey],
-    direction: IDBCursorDirection
+    direction: IDBCursorDirection,
 ): IDBRequest[Option[IDBCursor]] ->
     receiver.open_key_cursor(query, direction).

@@ -4,17 +4,19 @@ use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::{Command, Output, Stdio};
 use std::thread;
-use std::time::Duration;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
 #[path = "http_benchmark_support/metadata.rs"]
 mod metadata;
+#[path = "http_benchmark_support/probes.rs"]
+mod probes;
 
 use metadata::{command_line, cpu_governor, digest, rustflag_value};
+pub(crate) use probes::run_hardware_counter_probe;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub(crate) struct BenchmarkExecutionMetadata {
@@ -447,16 +449,18 @@ pub(crate) fn run_wrk_probe(
         ),
     )
     .map_err(|error| format!("cannot write wrk script: {error}"))?;
-    let output = Command::new("wrk")
-        .arg(format!("-t{}", concurrency.clamp(1, 8)))
-        .arg(format!("-c{}", concurrency.max(1)))
-        .arg(format!("-d{duration_seconds}s"))
-        .arg("--latency")
-        .arg("-s")
-        .arg(&script)
-        .arg(format!("http://127.0.0.1:{port}/api/bench"))
-        .output()
-        .map_err(|error| format!("cannot run maintained wrk load generator: {error}"));
+    let output = run_command_with_timeout(
+        Command::new("wrk")
+            .arg(format!("-t{}", concurrency.clamp(1, 8)))
+            .arg(format!("-c{}", concurrency.max(1)))
+            .arg(format!("-d{duration_seconds}s"))
+            .arg("--latency")
+            .arg("-s")
+            .arg(&script)
+            .arg(format!("http://127.0.0.1:{port}/api/bench")),
+        "maintained wrk load generator",
+        Duration::from_secs(duration_seconds.saturating_add(30)),
+    );
     let _ = fs::remove_file(&script);
     let output = output?;
     if !output.status.success() {
@@ -517,6 +521,20 @@ pub(crate) fn run_maintained_workload_matrix(
         echo_spec(
             "maintained-pressure",
             concurrency,
+            payload.clone(),
+            generation,
+            false,
+        ),
+        echo_spec(
+            "maintained-concurrency-100",
+            100,
+            payload.clone(),
+            generation,
+            false,
+        ),
+        echo_spec(
+            "maintained-concurrency-1000",
+            1_000,
             payload.clone(),
             generation,
             false,
@@ -613,6 +631,61 @@ pub(crate) fn run_maintained_workload_matrix(
             concurrency,
             expected_status: 404,
             expected_body: None,
+            body: String::new(),
+            close: false,
+            headers: Vec::new(),
+        },
+        MaintainedWorkloadSpec {
+            name: "maintained-add",
+            method: "GET",
+            path: "/api/add/20/22",
+            concurrency,
+            expected_status: 200,
+            expected_body: Some("42".to_string()),
+            body: String::new(),
+            close: false,
+            headers: Vec::new(),
+        },
+        MaintainedWorkloadSpec {
+            name: "maintained-crud-create",
+            method: "POST",
+            path: "/api/items",
+            concurrency,
+            expected_status: 201,
+            expected_body: Some("created-item".to_string()),
+            body: "created-item".to_string(),
+            close: false,
+            headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
+        },
+        MaintainedWorkloadSpec {
+            name: "maintained-crud-read",
+            method: "GET",
+            path: "/api/items/7",
+            concurrency,
+            expected_status: 200,
+            expected_body: Some("item-7".to_string()),
+            body: String::new(),
+            close: false,
+            headers: Vec::new(),
+        },
+        MaintainedWorkloadSpec {
+            name: "maintained-crud-update",
+            method: "PUT",
+            path: "/api/items/7",
+            concurrency,
+            expected_status: 200,
+            expected_body: Some("7:updated-item".to_string()),
+            body: "updated-item".to_string(),
+            close: false,
+            headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
+        },
+        MaintainedWorkloadSpec {
+            name: "maintained-crud-delete",
+            method: "DELETE",
+            path: "/api/items/7",
+            concurrency,
+            expected_status: 204,
+            expected_body: Some(String::new()),
             body: String::new(),
             close: false,
             headers: Vec::new(),
@@ -746,16 +819,18 @@ fn run_wrk_workload(
     spec: MaintainedWorkloadSpec,
 ) -> Result<MaintainedWorkloadEvidence, String> {
     let script = write_validating_wrk_script(&spec)?;
-    let output = Command::new("wrk")
-        .arg(format!("-t{}", spec.concurrency.clamp(1, 8)))
-        .arg(format!("-c{}", spec.concurrency.max(1)))
-        .arg(format!("-d{duration_seconds}s"))
-        .arg("--latency")
-        .arg("-s")
-        .arg(&script)
-        .arg(format!("http://127.0.0.1:{port}{}", spec.path))
-        .output()
-        .map_err(|error| format!("cannot run wrk workload `{}`: {error}", spec.name));
+    let output = run_command_with_timeout(
+        Command::new("wrk")
+            .arg(format!("-t{}", spec.concurrency.clamp(1, 8)))
+            .arg(format!("-c{}", spec.concurrency.max(1)))
+            .arg(format!("-d{duration_seconds}s"))
+            .arg("--latency")
+            .arg("-s")
+            .arg(&script)
+            .arg(format!("http://127.0.0.1:{port}{}", spec.path)),
+        &format!("wrk workload `{}`", spec.name),
+        Duration::from_secs(duration_seconds.saturating_add(30)),
+    );
     let _ = fs::remove_file(&script);
     let output = output?;
     if !output.status.success() {
@@ -866,127 +941,33 @@ fn parse_wrk_transport_errors(summary: &str) -> u64 {
         .unwrap_or(0)
 }
 
-pub(crate) fn run_hardware_counter_probe(
-    pid: u32,
-    port: u16,
-    concurrency: usize,
-    payload_bytes: usize,
-) -> Result<HardwareCounterEvidence, String> {
-    let duration_seconds = env::var("TERLAN_BENCH_HTTP_PERF_SECONDS")
-        .ok()
-        .and_then(|value| value.parse::<u64>().ok())
-        .unwrap_or(0);
-    if duration_seconds == 0 {
-        return Ok(HardwareCounterEvidence {
-            status: "disabled".to_string(),
-            duration_seconds,
-            counters: BTreeMap::new(),
-            syscall_counter_status: "disabled".to_string(),
-            diagnostic: "set TERLAN_BENCH_HTTP_PERF_SECONDS to enable".to_string(),
-        });
-    }
-    let perf = match Command::new("perf")
-        .args([
-            "stat",
-            "-x,",
-            "-e",
-            "cycles,instructions,cache-misses,context-switches",
-            "-p",
-            &pid.to_string(),
-            "--",
-            "sleep",
-            &duration_seconds.to_string(),
-        ])
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
+pub(super) fn run_command_with_timeout(
+    command: &mut Command,
+    label: &str,
+    timeout: Duration,
+) -> Result<Output, String> {
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut child = command
         .spawn()
-    {
-        Ok(child) => child,
-        Err(error) => {
-            return Ok(HardwareCounterEvidence {
-                status: "unavailable".to_string(),
-                duration_seconds,
-                counters: BTreeMap::new(),
-                syscall_counter_status: "unavailable-without-intrusive-ptrace".to_string(),
-                diagnostic: error.to_string(),
-            });
+        .map_err(|error| format!("cannot run {label}: {error}"))?;
+    let started_at = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => {
+                return child
+                    .wait_with_output()
+                    .map_err(|error| format!("cannot collect {label} output: {error}"));
+            }
+            Ok(None) if started_at.elapsed() >= timeout => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!(
+                    "{label} timed out after {} seconds",
+                    timeout.as_secs()
+                ));
+            }
+            Ok(None) => thread::sleep(Duration::from_millis(10)),
+            Err(error) => return Err(format!("cannot wait for {label}: {error}")),
         }
-    };
-    thread::sleep(Duration::from_millis(100));
-    run_wrk_for_duration(port, concurrency, payload_bytes, duration_seconds)?;
-    let output = perf
-        .wait_with_output()
-        .map_err(|error| format!("cannot collect perf counters: {error}"))?;
-    let diagnostic = String::from_utf8_lossy(&output.stderr).to_string();
-    let counters = diagnostic
-        .lines()
-        .filter_map(|line| {
-            let mut fields = line.split(',');
-            let value = fields.next()?.trim().replace(',', "");
-            let event = fields.nth(1)?.trim();
-            value
-                .parse::<f64>()
-                .ok()
-                .map(|value| (event.to_string(), value))
-        })
-        .collect::<BTreeMap<_, _>>();
-    Ok(HardwareCounterEvidence {
-        status: if output.status.success() && !counters.is_empty() {
-            "measured".to_string()
-        } else {
-            "unavailable".to_string()
-        },
-        duration_seconds,
-        counters,
-        syscall_counter_status: "unavailable-without-intrusive-ptrace".to_string(),
-        diagnostic,
-    })
-}
-
-fn run_wrk_for_duration(
-    port: u16,
-    concurrency: usize,
-    payload_bytes: usize,
-    duration_seconds: u64,
-) -> Result<(), String> {
-    let script = write_wrk_script(payload_bytes)?;
-    let output = Command::new("wrk")
-        .arg(format!("-t{}", concurrency.clamp(1, 8)))
-        .arg(format!("-c{}", concurrency.max(1)))
-        .arg(format!("-d{duration_seconds}s"))
-        .arg("-s")
-        .arg(&script)
-        .arg(format!("http://127.0.0.1:{port}/api/bench"))
-        .output()
-        .map_err(|error| format!("cannot run wrk for perf probe: {error}"));
-    let _ = fs::remove_file(&script);
-    let output = output?;
-    if !output.status.success() {
-        return Err(format!(
-            "wrk perf probe failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ));
     }
-    Ok(())
-}
-
-fn write_wrk_script(payload_bytes: usize) -> Result<std::path::PathBuf, String> {
-    let script = env::temp_dir().join(format!(
-        "terlan-http-wrk-{}-{}.lua",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos()
-    ));
-    let body = "x".repeat(payload_bytes);
-    fs::write(
-        &script,
-        format!(
-            "wrk.method = \"POST\"\nwrk.body = {:?}\nwrk.headers[\"Content-Type\"] = \"text/plain\"\n",
-            body
-        ),
-    )
-    .map_err(|error| format!("cannot write wrk script: {error}"))?;
-    Ok(script)
 }

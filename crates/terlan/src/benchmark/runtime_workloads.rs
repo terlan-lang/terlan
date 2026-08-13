@@ -9,14 +9,14 @@ use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 
-use crate::managed_heap::{
+use super::managed_heap::{
     ActorHeap, ActorId, AllocationClass, HeapLimits, ManagedRoot, ManagedTypeDescriptor,
     RootLocation, SemanticTypeId,
 };
-use crate::vm_runtime::actor::{VmActorReceive, VmActorRuntime};
-use crate::vm_runtime::process::{VmExitReason, VmProcessSource};
-use crate::vm_runtime::scheduler::{VmSchedulerDecision, VmSchedulerOutcome};
-use crate::ReplValue;
+use super::vm_runtime::actor::{VmActorReceive, VmActorRuntime};
+use super::vm_runtime::process::{VmExitReason, VmProcessSource};
+use super::vm_runtime::scheduler::{VmSchedulerDecision, VmSchedulerOutcome};
+use super::ReplValue;
 
 use super::{rustc_version, unix_timestamp_seconds, write_report, BenchmarkStatus, Measurement};
 

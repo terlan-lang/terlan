@@ -20,6 +20,6 @@ pub get_frequency_response_typechecks(
     receiver: IIRFilterNode,
     frequency_hz: Float32Array[ArrayBuffer],
     mag_response: Float32Array[ArrayBuffer],
-    phase_response: Float32Array[ArrayBuffer]
+    phase_response: Float32Array[ArrayBuffer],
 ): std.core.Unit ->
     receiver.get_frequency_response(frequency_hz, mag_response, phase_response).

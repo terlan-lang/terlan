@@ -1,6 +1,6 @@
-//! Framework-neutral HTTP client benchmark for the Axum/Tokio control lane.
-
 #![forbid(unsafe_code)]
+
+//! Framework-neutral HTTP client benchmark for the Axum/Tokio control lane.
 
 use std::env;
 use std::fs;
@@ -597,9 +597,8 @@ fn measure_soak(port: u16, pid: u32, workload: &Workload) -> Result<Option<SoakE
         .and_then(|before| before.rss_bytes)
         .zip(memory_after.as_ref().and_then(|after| after.rss_bytes))
         .map(|(before, after)| after as i64 - before as i64);
-    let stable = resident_growth_bytes.map_or(true, |growth| {
-        growth <= i64::try_from(maximum_growth_bytes).unwrap_or(i64::MAX)
-    });
+    let stable = resident_growth_bytes
+        .is_none_or(|growth| growth <= i64::try_from(maximum_growth_bytes).unwrap_or(i64::MAX));
     if !stable {
         return Err(format!(
             "HTTP soak RSS growth {:?} exceeds {} bytes",

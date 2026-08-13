@@ -519,4 +519,5 @@ pub(crate) fn run_doctest(cmd: CliCommand, state: CliState) -> ExitCode {
 
 #[cfg(test)]
 #[path = "doc_test.rs"]
+#[cfg(test)]
 mod doc_test;

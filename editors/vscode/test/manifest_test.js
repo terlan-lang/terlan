@@ -80,8 +80,9 @@ function testEntrypointAndDependencies() {
   assertPackagePathExists(manifest.main);
   assert.strictEqual(
     manifest.dependencies["vscode-languageclient"],
-    "^9.0.1"
+    "^10.1.0"
   );
+  assert.strictEqual(manifest.engines.vscode, "^1.91.0");
 }
 
 /**
@@ -354,6 +355,7 @@ function testIconThemeContributions() {
   const theme = JSON.parse(fs.readFileSync(themePath, "utf8"));
   const suffixes = [
     "terl",
+    "terls",
     "terli",
     "terl.html",
     "terl.md",

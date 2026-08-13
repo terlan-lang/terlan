@@ -12,6 +12,12 @@ Release runs must stop at first failure by default, support an explicit
 collect-all mode, and print the exact resume command for the next unchecked gate
 without re-running completed gates.
 
+`make release-0-0-7-evidence-refresh` owns expensive evidence production.
+Evidence refresh and preflight are separate commands:
+`make release-0-0-7-preflight` performs candidate-bound composition and final
+integration validation, and preflight never executes completed gates. A late
+failure therefore cannot replay the entire successful prefix.
+
 ## Cache Semantics
 
 Gate caching must be content-addressed by:
@@ -24,6 +30,11 @@ Gate caching must be content-addressed by:
 - declared external dependencies
 
 Cache hits must be invalidated when any declared input changes.
+
+The candidate-bound composition records whether evidence was refreshed or
+reused. Reuse is permitted across process and session boundaries only when the
+input, gate-definition, toolchain, environment, output, and candidate
+fingerprints still match.
 
 ## Shard Semantics
 

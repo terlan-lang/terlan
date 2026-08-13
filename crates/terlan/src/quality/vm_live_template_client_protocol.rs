@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::json;
 
+use crate::terlan_quality::support::validate_required_terms;
 use crate::terlan_quality::QualityResult;
 
 const REPORT_PATH: &str = "target/quality/vm-live-template-client-protocol-report.json";
@@ -46,11 +47,11 @@ const REQUIRED_LIVE_CHANNEL_ANCHORS: &[&str] = &[
 ];
 
 const REQUIRED_ANGULAR_CHECK_ANCHORS: &[&str] = &[
-    "validate_external_sse_runtime_contract",
-    "validate_external_sse_declaration_contract",
+    "external_sse_runtime_holds",
+    "external_declarations_holds",
     "RealtimeProtocolEventDetail",
     "RealtimeProtocolMessage",
-    "angular-ts namespace generation boundary passed",
+    "selected_angular_ts_integration_holds",
 ];
 
 const REQUIRED_PROTOCOL_MANIFEST_ANCHORS: &[&str] = &[
@@ -110,16 +111,10 @@ const REQUIRED_DOM_PATCH_REPLAY_TEST_ANCHORS: &[&str] = &[
 ];
 
 const REQUIRED_GATE_TERMS: &[&str] = &[
-    "vm-live-template-client-protocol-check: vm-live-template-stream-check",
-    "$(MAKE) angular-ts-terlan-integration-check",
-    "$(MAKE) angular-ts-namespace-generation-check",
-    "vm_live_template_protocol_manifest_lists_required_events_and_schema_hash",
-    "vm_live_template_protocol_generates_angular_ts_browser_runtime_module",
-    "vm_live_template_protocol_validates_generated_js_protocol_binding",
-    "vm_live_template_protocol_validates_generated_wasm_protocol_binding",
-    "vm_live_template_protocol_accepts_mixed_version_rolling_deploy_compatibility",
-    "vm_model_sync_replays_dom_patches_against_typed_template_bindings",
-    "vm_live_template_client_protocol_test",
+    "vm-live-template-client-protocol-check: \\",
+    "vm-live-template-stream-check \\",
+    "angular-ts-terlan-integration-check \\",
+    "angular-ts-namespace-generation-check",
     "vm-live-template-client-protocol",
 ];
 
@@ -160,6 +155,7 @@ const COMPATIBILITY_CASES: &[&str] = &[
 const REJECTED_PROTOCOL_PATHS: &[&str] = &[];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm live template client protocol summary.
 pub struct VmLiveTemplateClientProtocolSummary {
     pub protocol_event_count: usize,
     pub payload_validation_case_count: usize,
@@ -168,6 +164,7 @@ pub struct VmLiveTemplateClientProtocolSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm live template client protocol.
 pub fn run_vm_live_template_client_protocol(
     root: &Path,
 ) -> QualityResult<VmLiveTemplateClientProtocolSummary> {
@@ -198,7 +195,7 @@ pub fn run_vm_live_template_client_protocol(
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "tools/check_angular_ts_terlan_integration.py",
+        "scripts/self_validation/AngularTsIntegrationTest.terl",
         REQUIRED_ANGULAR_CHECK_ANCHORS,
         "Angular.ts browser protocol boundary",
     )?);
@@ -414,21 +411,6 @@ pub fn run_vm_live_template_client_protocol(
     })
 }
 
-fn validate_required_terms(
-    root: &Path,
-    relative: &str,
-    terms: &[&str],
-    label: &str,
-) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join(relative))
-        .map_err(|err| format!("{relative}: failed to read {label}: {err}"))?;
-    Ok(terms
-        .iter()
-        .filter(|term| !text.contains(**term))
-        .map(|term| format!("{relative}: missing {label} anchor `{term}`"))
-        .collect())
-}
-
 fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
     let text = fs::read_to_string(root.join("Makefile")).map_err(|err| {
         format!("Makefile: failed to read VM live template client protocol gate: {err}")
@@ -442,6 +424,7 @@ fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
         .collect())
 }
 
+/// Validates no placeholder report entries.
 pub fn validate_no_placeholder_report_entries(label: &str, entries: &[&str]) -> Vec<String> {
     entries
         .iter()
@@ -470,4 +453,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_live_template_client_protocol_test.rs"]
+#[cfg(test)]
 mod vm_live_template_client_protocol_test;

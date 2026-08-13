@@ -42,7 +42,7 @@ pub (endpoint: Endpoint) callbacks(
     inbound: (String) -> Unit,
     writable: () -> Unit,
     close: () -> Unit,
-    cancellation: (String) -> Unit
+    cancellation: (String) -> Unit,
 ): Endpoint ->
     endpoint.
 

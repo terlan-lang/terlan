@@ -1,0 +1,177 @@
+/**
+ * Proves `terlc serve` keeps protocol parsing in Hyper on VM task owners.
+ */
+module scripts.self_validation.HttpRuntimeStack.
+
+import std.collections.List.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.File.{read_text, read_text_many, read_text_tree_matching, text_file_contents}.
+import std.regex.Regex.
+
+import type std.io.File.TextFile.
+
+/**
+ * Returns whether the repository uses the approved VM-owned HTTP stack.
+ */
+pub repository_boundary_holds(root: String): Bool ->
+    case read_text(String.append(root, "/crates/terlan/Cargo.toml")) {
+        Ok(manifest) ->
+            dependencies_hold(manifest)
+                and marker_files_hold(root)
+                and serve_sources_hold(root)
+                and make_contract_holds(root);
+        _ -> false
+    }.
+
+dependencies_hold(manifest: String): Bool ->
+    regex_matches("(?m)^\\s*http\\s*=", manifest) and regex_matches("(?m)^\\s*hyper\\s*=", manifest).
+
+marker_files_hold(root: String): Bool ->
+    case read_text_many(marker_paths(root)) {
+        Ok(files) -> files_contain_markers(files, required_markers());
+        _ -> false
+    }.
+
+files_contain_markers(files: List[TextFile], markers: List[String]): Bool ->
+    case files {
+        [] -> markers == List.new[String]();
+        [file | file_rest] ->
+            case markers {
+                [] -> false;
+                [marker | marker_rest] ->
+                    String.contains(text_file_contents(file), marker)
+                        and files_contain_markers(file_rest, marker_rest)
+            }
+    }.
+
+serve_sources_hold(root: String): Bool ->
+    case read_text_tree_matching(
+    String.append(root, "/crates/terlan/src/commands/serve"),
+    List.new[String](),
+    [".rs"],
+    ["_test.rs"],
+    0,
+    2048,
+) {
+        Ok(files) -> files_reject_patterns(files, forbidden_patterns());
+        _ -> false
+    }.
+
+files_reject_patterns(files: List[TextFile], patterns: List[String]): Bool ->
+    case files {
+        [] -> true;
+        [file | rest] ->
+            source_rejects_no_patterns(text_file_contents(file), patterns)
+                and files_reject_patterns(rest, patterns)
+    }.
+
+source_rejects_no_patterns(source: String, patterns: List[String]): Bool ->
+    case patterns {
+        [] -> true;
+        [pattern | rest] ->
+            not regex_matches(pattern, source) and source_rejects_no_patterns(source, rest)
+    }.
+
+regex_matches(pattern: String, source: String): Bool ->
+    case Regex.compile(pattern) {
+        Ok(regex) -> Regex.is_match(regex, source);
+        _ -> true
+    }.
+
+make_contract_holds(root: String): Bool ->
+    case read_text(String.append(root, "/Makefile")) {
+        Ok(makefile) -> makefile_contains_gate_contract(makefile);
+        _ -> false
+    }.
+
+@pure
+makefile_contains_gate_contract(makefile: String): Bool ->
+    String.contains(
+    makefile,
+    "vm-http-stream-serve-check:\n\t$(RUST_TEST) -p terlan --lib vm_stream_ -- --quiet",
+)
+        and String.contains(makefile, "terlan-vm-http-lane-check:")
+        and String.contains(makefile, "\tvm-http-stream-serve-check").
+
+@pure
+marker_paths(root: String): List[String] ->
+    [
+        String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/server_lifecycle.rs"),
+        String.append(root, "/crates/terlan/src/runtime/native/http.rs"),
+        String.append(root, "/crates/terlan/src/runtime/native/http.rs"),
+        String.append(root, "/crates/terlan/src/runtime/native/http/cookies.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/watch.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/watch.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/watch.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/watch.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/watch.rs"),
+    ].
+
+@pure
+required_markers(): List[String] ->
+    [
+        "hyper::server::conn::http1",
+        "serve_protocol_tasks",
+        "VmReadyTcpStream",
+        "http1::Builder::new().serve_connection",
+        "struct HyperVmIo",
+        "hyper_server::serve(listener, web_root)",
+        "pub fn content_type_for_path",
+        "mime_guess::from_path(path)",
+        "Cookie::split_parse(cookie_header.to_string())",
+        "pub(super) enum ReloadWatchBackend",
+        "RecommendedWatcher::new",
+        "RecursiveMode::Recursive",
+        "fn watch_web_package_for_reload",
+        "fn should_reload_for_event",
+    ].
+
+@pure
+forbidden_patterns(): List[String] ->
+    [
+        "\\bparse_http_request\\b",
+        "\\bmatch\\b.*\\.extension\\(\\)",
+        "\\.split\\(['\"];\\s*['\"]\\)",
+        "\\btokio::time::interval\\s*\\(",
+        "\\bDefaultHasher::new\\s*\\(",
+        "\\bweb_package_snapshot\\s*\\(",
+    ].
+
+@test
+pub repository_http_runtime_stack_holds(): Bool ->
+    repository_boundary_holds(".").
+
+@test
+pub dependencies_require_hyper_and_http(): Bool ->
+    dependencies_hold("http = \"1\"\nhyper = { version = \"1\" }")
+        and not dependencies_hold("http = \"1\"").
+
+@test
+pub manual_request_parsing_is_rejected(): Bool ->
+    not source_rejects_no_patterns("let request = parse_http_request(bytes);", forbidden_patterns()).
+
+@test
+pub polling_reload_backend_is_rejected(): Bool ->
+    not source_rejects_no_patterns("let ticks = tokio::time::interval(period);", forbidden_patterns()).
+
+@test
+pub maintained_hyper_connection_is_accepted(): Bool ->
+    source_rejects_no_patterns(
+        "http1::Builder::new().serve_connection(io, service)",
+        forbidden_patterns(),
+    ).
+
+@test
+pub make_target_block_requires_owned_command(): Bool ->
+    makefile_contains_gate_contract(
+    "terlan-vm-http-lane-check:\n\tvm-http-stream-serve-check\nvm-http-stream-serve-check:\n\t$(RUST_TEST) -p terlan --lib vm_stream_ -- --quiet",
+)
+        and not makefile_contains_gate_contract(
+    "terlan-vm-http-lane-check:\n\tvm-tcp-framing-check\nvm-http-stream-serve-check:\n\ttrue",
+).

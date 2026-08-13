@@ -1,0 +1,42 @@
+{
+  "dependency_files": [
+    "proofs/lean/lake-manifest.json",
+    "proofs/lean/lakefile.lean",
+    "proofs/lean/lean-toolchain"
+  ],
+  "deterministic_timestamp_strategy": "none-content-addressed",
+  "execution_command": [
+    "lake",
+    "env",
+    "lean",
+    "wasm_bridge/WasmBridge.lean"
+  ],
+  "family": "wasm-bridge",
+  "manifest_fingerprints": {
+    "crates/terlan/src/backends/wasm/README.md": "sha256:fbbeee23e8588b95f75c897f610c3c261d07d1937948bb7c580b7e163fb71a5a"
+  },
+  "output_signature": {
+    "exit_class": "success",
+    "stderr_class": "empty",
+    "stdout_class": "empty"
+  },
+  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+  "schema": "terlan.lean-proof-replay.v1",
+  "source_digest": "sha256:8801c7dccbcd7dbdb2c3fd61c751add78e18198194fb82dda221322d8b4aba62",
+  "theorem_names": [
+    "Terlan.WasmBridge.portableSignaturePreservesArity",
+    "Terlan.WasmBridge.dynamicSignatureRejected",
+    "Terlan.WasmBridge.resourceTransferChangesOwner",
+    "Terlan.WasmBridge.callAndAbortPathsAreDeterministic",
+    "Terlan.WasmBridge.undeclaredHostSideEffectRejected"
+  ],
+  "toolchain": {
+    "elan_channel": "leanprover/lean4:v4.31.0",
+    "lake_flags": [
+      "env",
+      "lean"
+    ],
+    "lean_version": "4.31.0"
+  },
+  "working_directory": "proofs/lean"
+}

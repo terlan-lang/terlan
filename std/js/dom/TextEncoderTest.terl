@@ -23,6 +23,6 @@ pub encode_typechecks(receiver: TextEncoder, input: JsString): Uint8Array[ArrayB
 pub encode_into_typechecks(
     receiver: TextEncoder,
     source: JsString,
-    destination: Uint8Array[ArrayBufferLike]
+    destination: Uint8Array[ArrayBufferLike],
 ): TextEncoderEncodeIntoResult ->
     receiver.encode_into(source, destination).

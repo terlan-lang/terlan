@@ -15,6 +15,7 @@ vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
   group = group,
   pattern = {
     "*.terl",
+    "*.terls",
     "*.terli",
     "*.terl.html",
     "*.terl.md",
@@ -38,6 +39,8 @@ vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
       vim.bo[event.buf].filetype = "terlan-template-yaml"
     elseif name:match("%.terl%.txt$") then
       vim.bo[event.buf].filetype = "terlan-template-text"
+    elseif name:match("%.terls$") then
+      vim.bo[event.buf].filetype = "terlan-script"
     elseif name:match("%.terli$") then
       vim.bo[event.buf].filetype = "terlan-interface"
     else

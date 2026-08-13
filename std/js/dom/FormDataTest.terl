@@ -28,7 +28,7 @@ pub append_typechecks(
     receiver: FormData,
     name: JsString,
     blob_value: Blob,
-    filename: JsString
+    filename: JsString,
 ): Unit ->
     receiver.append(name, blob_value, filename).
 

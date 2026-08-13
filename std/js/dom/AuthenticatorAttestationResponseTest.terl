@@ -26,11 +26,11 @@ pub get_public_key_typechecks(receiver: AuthenticatorAttestationResponse): Optio
     receiver.get_public_key().
 
 pub get_public_key_algorithm_typechecks(
-    receiver: AuthenticatorAttestationResponse
+    receiver: AuthenticatorAttestationResponse,
 ): COSEAlgorithmIdentifier ->
     receiver.get_public_key_algorithm().
 
 pub get_transports_typechecks(
-    receiver: AuthenticatorAttestationResponse
+    receiver: AuthenticatorAttestationResponse,
 ): std.js.Array[std.js.String.JsString] ->
     receiver.get_transports().

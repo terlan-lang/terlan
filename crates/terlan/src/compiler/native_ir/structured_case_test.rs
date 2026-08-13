@@ -41,6 +41,18 @@ fn contains_managed_operation(expr: &NativeExpr, magic: &[u8; 4], tag: u8) -> bo
                     .iter()
                     .any(|argument| contains_managed_operation(argument, magic, tag))
         }
+        NativeExpr::InvokeClosureThen {
+            callee,
+            args,
+            values,
+            ..
+        } => {
+            contains_managed_operation(callee, magic, tag)
+                || args
+                    .iter()
+                    .chain(values)
+                    .any(|argument| contains_managed_operation(argument, magic, tag))
+        }
         NativeExpr::CallThen { args, values, .. } => args
             .iter()
             .chain(values)
@@ -148,6 +160,24 @@ fn none_pattern_accepts_immediate_and_managed_zero_field_option_variants() {
 }
 
 #[test]
+fn option_pattern_recovers_the_checked_type_of_a_record_field() {
+    let modules = lower(
+        "module structured_record_option_source.\n\n\
+         import std.core.Option.{None, Option, Some}.\n\n\
+         pub struct Request { selected: Option[String] }.\n\n\
+         pub selected(request: Request): Bool ->\n\
+             case request.selected { Some(_value) -> true; None -> false }.\n",
+    );
+    let function = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "selected")
+        .expect("missing record-field option matcher");
+
+    assert!(contains_managed_operation(&function.body, b"TVMP", 2));
+}
+
+#[test]
 fn binary_layout_patterns_lower_to_one_checked_plan_and_field_extractors() {
     let modules = lower(
         "module native_binary_pattern.\n\n\
@@ -235,6 +265,7 @@ fn structured_pattern_depth_budget_has_stable_prelink_rejection() {
 
     assert_eq!(
         error,
-        "error[native_ir.structured_pattern_depth]: pattern exceeds 64 layers"
+        "error[native_ir.structured_pattern_depth]: pattern exceeds 64 layers; while lowering \
+         `structured_depth.run/1`"
     );
 }

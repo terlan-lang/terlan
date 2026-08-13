@@ -194,6 +194,30 @@ format_user(user: User): String ->
 }
 
 #[test]
+fn hover_local_docs_resolves_module_and_receiver_method_declarations() {
+    let source = r#"//! Application module docs.
+module app.Main.
+
+pub struct User { name: String }.
+
+/// Displays one user.
+pub (user: User) display(): String -> user.name.
+"#;
+    let module = parse(source);
+    let module_offset = source.find("app.Main").expect("module name") + 2;
+    let method_offset = source.find("display").expect("method name") + 2;
+
+    assert_eq!(
+        hover_local_docs(&module, source, module_offset),
+        Some("Application module docs.".to_string())
+    );
+    assert_eq!(
+        hover_local_docs(&module, source, method_offset),
+        Some("Displays one user.".to_string())
+    );
+}
+
+#[test]
 fn interface_item_docs_prefers_type_docs_then_public_function_docs() {
     let mut interface = empty_interface("std.core.Sample");
     interface
@@ -208,6 +232,7 @@ fn interface_item_docs_prefers_type_docs_then_public_function_docs() {
                 name: "value".to_string(),
                 annotation: "String".to_string(),
                 is_mutable: false,
+                default: None,
                 default_text: None,
             }],
             return_type: "String".to_string(),

@@ -8,6 +8,9 @@ use super::{scalar_types, NativeType};
 pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeType> {
     match core {
         Some(CoreType::Named(name)) if name == "Unit" => Some(NativeType::Unit),
+        Some(CoreType::AtomLiteral(name)) if matches!(name.as_str(), "Unit" | "unit") => {
+            Some(NativeType::Unit)
+        }
         Some(CoreType::Int) => Some(NativeType::Int),
         Some(CoreType::Float) => Some(NativeType::Float),
         Some(CoreType::Bool) => Some(NativeType::Bool),
@@ -24,6 +27,9 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
             if super::super::template_values::is_template_html_type(name) =>
         {
             Some(NativeType::StringRef)
+        }
+        Some(CoreType::Named(name)) if is_http_response_type(name) => {
+            managed_reference_type(&CoreType::Named("Response".to_string()))
         }
         Some(CoreType::Binary) => Some(NativeType::BinaryRef),
         Some(CoreType::Arrow {
@@ -114,6 +120,12 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
     }
 }
 
+/// Reports whether a checked nominal type is the HTTP response facade whose
+/// physical managed tuple is owned by direct AOT HTTP lowering.
+fn is_http_response_type(name: &str) -> bool {
+    matches!(name, "Response" | "std.http.Response.Response")
+}
+
 pub(super) fn core_string_runtime_value(value: &str) -> Result<String, String> {
     if value.starts_with('"') && value.ends_with('"') {
         serde_json::from_str(value)
@@ -159,6 +171,12 @@ fn literal_value_type(expr: &CoreExpr) -> Option<CoreType> {
             }
         }
         CoreExpr::List(_) => literal_collection_type(expr),
+        CoreExpr::Tuple(items) => items
+            .iter()
+            .map(literal_value_type)
+            .map(|item| item.map(crate::terlan_typeck::CoreTupleTypeElem::Type))
+            .collect::<Option<Vec<_>>>()
+            .map(CoreType::Tuple),
         _ => None,
     }
 }

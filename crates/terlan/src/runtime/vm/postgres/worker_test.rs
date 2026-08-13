@@ -528,5 +528,7 @@ fn failed_commit_retains_transaction_for_explicit_rollback() {
     assert!(worker.transactions.is_empty());
 }
 
+#[cfg(test)]
 #[path = "worker_cleanup_isolation_test.rs"]
+#[cfg(test)]
 mod worker_cleanup_isolation_test;

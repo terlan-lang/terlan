@@ -22,9 +22,15 @@ pub(crate) fn core_syntax_imports(module: &SyntaxModuleOutput) -> Vec<CoreImport
                 items,
                 source_path,
                 is_type,
-                ..
+                is_selected,
             } => Some(CoreImport {
-                module: core_import_identity(import_kind, module_name, items, source_path),
+                module: core_import_identity(
+                    import_kind,
+                    module_name,
+                    items,
+                    source_path,
+                    *is_selected,
+                ),
                 kind: core_import_kind(*import_kind, *is_type),
             }),
             _ => None,
@@ -61,6 +67,54 @@ pub(crate) fn core_resolved_imported_modules(resolved: &ResolvedModule) -> Vec<C
         .map(|imported| CoreImport {
             module: imported.source_module.clone(),
             kind: CoreImportKind::TypeModule,
+        })
+        .collect::<Vec<_>>();
+    imports.sort_by(|left, right| left.module.cmp(&right.module));
+    imports.dedup_by(|left, right| left.module == right.module && left.kind == right.kind);
+    imports
+}
+
+/// Collects exact executable providers represented by grouped module imports.
+///
+/// A formatter-canonical import such as `import std.vm.{Process, Task}.`
+/// names two executable modules even though its syntax prefix is `std.vm`.
+/// Resolution already knows which nested names are real modules, so CoreIR
+/// records those concrete providers for dependency-closure loading and native
+/// call admission.
+pub(crate) fn core_resolved_executable_modules(
+    module: &SyntaxModuleOutput,
+    resolved: &ResolvedModule,
+) -> Vec<CoreImport> {
+    let mut imports = module
+        .declarations
+        .iter()
+        .filter_map(|declaration| match &declaration.payload {
+            SyntaxDeclarationPayload::Import {
+                import_kind: SyntaxImportKind::Module,
+                module_name,
+                items,
+                is_type: false,
+                ..
+            } => Some((module_name, items)),
+            _ => None,
+        })
+        .flat_map(|(module_name, items)| {
+            let mut providers = Vec::new();
+            if resolved.interface_map.contains_key(module_name) {
+                providers.push(module_name.clone());
+            }
+            providers.extend(items.iter().filter_map(|item| {
+                let nested = format!("{module_name}.{}", item.name);
+                resolved
+                    .interface_map
+                    .contains_key(&nested)
+                    .then_some(nested)
+            }));
+            providers
+        })
+        .map(|module| CoreImport {
+            module,
+            kind: CoreImportKind::Module,
         })
         .collect::<Vec<_>>();
     imports.sort_by(|left, right| left.module.cmp(&right.module));
@@ -202,10 +256,11 @@ fn core_import_identity(
     module_name: &str,
     items: &[crate::terlan_syntax::SyntaxImportItem],
     source_path: &Option<String>,
+    is_selected: bool,
 ) -> String {
     match kind {
         SyntaxImportKind::Module => {
-            crate::terlan_syntax::syntax_module_import_identity(module_name, items)
+            crate::terlan_syntax::syntax_module_import_identity(module_name, items, is_selected)
         }
         SyntaxImportKind::File | SyntaxImportKind::Css | SyntaxImportKind::Markdown => {
             let alias = items

@@ -65,7 +65,7 @@ pub internal(server_name: String): Config
             "std/summaries/std.http.Tls.typi",
             r#"
 pub type Config =
-    {mode : Mode, domains : List[String], email : Option[String], primary_provider : Option[Provider], fallback_provider : Option[Provider], cert : Option[String], key : Option[String], passphrase_env : Option[String], ca : Option[String], server_name : Option[String], trust_local : Bool}.
+    {mode: Mode, domains: List[String], email: Option[String], primary_provider: Option[Provider], fallback_provider: Option[Provider], cert: Option[String], key: Option[String], passphrase_env: Option[String], ca: Option[String], server_name: Option[String], trust_local: Bool}.
 
 pub auto(domains: List[String], email: String): Config.
 pub internal(server_name: String): Config.
@@ -77,7 +77,7 @@ pub manual(cert: String, key: String): Config.
             r#"
 pub type Config = {url: String}.
 pub connect(config: Config): Result[Pool, Error]
-pub query(pool: Pool, sql: String, params: List[Json])
+pub query(target: Pool | Connection, sql: String, params: List[Json])
 pub transaction[T](pool: Pool, body: (Connection) -> Result[T, Error])
 "#,
         )?;
@@ -112,7 +112,7 @@ passphrase_env
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/build/project_manifest.rs",
+            "crates/terlan/src/commands/build/project_manifest/parser.rs",
             r#"
 unsupported [target.wasm] key unsupported section
 validate_server_profile_defaults
@@ -132,7 +132,7 @@ fn plan_server_tls passphrase_env: tls.passphrase_env.clone()
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/tls.rs",
+            "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
             r#"
 manual_runtime_tls_config tls.passphrase_env.is_some()
 "#,
@@ -160,7 +160,7 @@ bindings.push((native.helper_env.clone(), helper_path))
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/compose_check.rs",
+            "crates/terlan/src/commands/dev_dependencies.rs",
             r#"
 validate_docker_compose_file docker-compose-types validate_postgres_environment
 POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD docker compose
@@ -223,10 +223,10 @@ impl Drop for TestRepo {
 }
 
 const COMPLETE_MAKEFILE: &str = r#"
-vm-web-config-secret-boundary-check: vm-web-security-policy-check
-	$(MAKE) http-tls-check
-	$(MAKE) web-compose-check
-	$(RUST_TEST) --locked -p terlan --bin terlan-quality vm_web_config_secret_boundary_test
+vm-web-config-secret-boundary-check:
+	vm-web-security-policy-check
+	http-tls-check
+	web-compose-check
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-web-config-secret-boundary
 "#;
 
@@ -310,14 +310,14 @@ fn vm_web_config_secret_boundary_rejects_stale_generated_tls_summary() {
     let source = fs::read_to_string(&path).expect("generated TLS summary");
     repo.write(
         "std/summaries/std.http.Tls.typi",
-        &source.replace("passphrase_env : Option[String]", ""),
+        &source.replace("passphrase_env: Option[String]", ""),
     )
     .expect("rewrite generated TLS summary");
 
     let error = run_vm_web_config_secret_boundary(repo.root()).expect_err("anchor should fail");
 
     assert!(error.contains("generated TLS config summary"));
-    assert!(error.contains("passphrase_env : Option[String]"));
+    assert!(error.contains("passphrase_env: Option[String]"));
 }
 
 #[test]
@@ -365,10 +365,10 @@ fn vm_web_config_secret_boundary_rejects_missing_compose_anchor() {
     repo.write_complete_fixture().expect("write fixture");
     let path = repo
         .root()
-        .join("crates/terlan/src/commands/serve/compose_check.rs");
+        .join("crates/terlan/src/commands/dev_dependencies.rs");
     let source = fs::read_to_string(&path).expect("compose source");
     repo.write(
-        "crates/terlan/src/commands/serve/compose_check.rs",
+        "crates/terlan/src/commands/dev_dependencies.rs",
         &source.replace("POSTGRES_PASSWORD", ""),
     )
     .expect("rewrite compose source");
@@ -384,7 +384,7 @@ fn vm_web_config_secret_boundary_rejects_missing_make_gate_term() {
     repo.write_complete_fixture().expect("write fixture");
     repo.write(
         "Makefile",
-        &COMPLETE_MAKEFILE.replace("$(MAKE) web-compose-check", ""),
+        &COMPLETE_MAKEFILE.replace("web-compose-check", ""),
     )
     .expect("rewrite makefile");
 

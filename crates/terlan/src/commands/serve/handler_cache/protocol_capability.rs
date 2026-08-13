@@ -140,7 +140,7 @@ impl ProtocolCapabilityDispatcher {
                         );
                     }
                 }
-                VmCapabilityWorkerEventPumpEvent::Ignored(_) => {}
+                VmCapabilityWorkerEventPumpEvent::Ignored { .. } => {}
             }
         }
         Ok(self.completed.remove(&route.actor_id()))

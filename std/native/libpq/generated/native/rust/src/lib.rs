@@ -134,7 +134,7 @@ impl Connection {
         let mut raw: *mut ffi::TerlanLibpqConnection = std::ptr::null_mut();
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status = unsafe { ffi::terlan_libpq_connection_start(url_c.as_ptr(), &mut raw) };
-        check_status("postgres.libpq.connection.start", status as i32, 0)?;
+        check_status("postgres.libpq.connection.start", status, 0)?;
         let raw = NonNull::new(raw).ok_or(CAbiError {
             operation: "postgres.libpq.connection.start",
             status: -1,
@@ -147,8 +147,8 @@ impl Connection {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status =
             unsafe { ffi::terlan_libpq_connection_socket(self.raw.as_ptr(), &mut out_out_socket) };
-        check_status("postgres.libpq.connection.socket", status as i32, 0)?;
-        Ok(out_out_socket as i64)
+        check_status("postgres.libpq.connection.socket", status, 0)?;
+        Ok(out_out_socket)
     }
 
     pub fn poll_connect(&mut self) -> Result<i64, CAbiError> {
@@ -156,8 +156,8 @@ impl Connection {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status =
             unsafe { ffi::terlan_libpq_connection_poll(self.raw.as_ptr(), &mut out_out_state) };
-        check_status("postgres.libpq.connection.poll_connect", status as i32, 0)?;
-        Ok(out_out_state as i64)
+        check_status("postgres.libpq.connection.poll_connect", status, 0)?;
+        Ok(out_out_state)
     }
 
     pub fn error_length(&mut self) -> Result<i64, CAbiError> {
@@ -166,8 +166,8 @@ impl Connection {
         let status = unsafe {
             ffi::terlan_libpq_connection_error_length(self.raw.as_ptr(), &mut out_out_length)
         };
-        check_status("postgres.libpq.connection.error_length", status as i32, 0)?;
-        Ok(out_out_length as i64)
+        check_status("postgres.libpq.connection.error_length", status, 0)?;
+        Ok(out_out_length)
     }
 
     pub fn error_bytes(&mut self) -> Result<Vec<i64>, CAbiError> {
@@ -177,7 +177,7 @@ impl Connection {
         let status = unsafe {
             ffi::terlan_libpq_connection_error_bytes(self.raw.as_ptr(), &mut out_out_bytes)
         };
-        check_status("postgres.libpq.connection.error_bytes", status as i32, 0)?;
+        check_status("postgres.libpq.connection.error_bytes", status, 0)?;
         let length = usize::try_from(out_bytes_length).map_err(|_| CAbiError {
             operation: "postgres.libpq.connection.error_bytes",
             status: -2,
@@ -198,18 +198,14 @@ impl Connection {
     pub fn clear_parameters(&mut self) -> Result<(), CAbiError> {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status = unsafe { ffi::terlan_libpq_connection_clear_parameters(self.raw.as_ptr()) };
-        check_status(
-            "postgres.libpq.connection.clear_parameters",
-            status as i32,
-            0,
-        )?;
+        check_status("postgres.libpq.connection.clear_parameters", status, 0)?;
         Ok(())
     }
 
     pub fn push_null(&mut self) -> Result<(), CAbiError> {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status = unsafe { ffi::terlan_libpq_connection_push_null(self.raw.as_ptr()) };
-        check_status("postgres.libpq.connection.push_null", status as i32, 0)?;
+        check_status("postgres.libpq.connection.push_null", status, 0)?;
         Ok(())
     }
 
@@ -221,7 +217,7 @@ impl Connection {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status =
             unsafe { ffi::terlan_libpq_connection_push_text(self.raw.as_ptr(), value_c.as_ptr()) };
-        check_status("postgres.libpq.connection.push_text", status as i32, 0)?;
+        check_status("postgres.libpq.connection.push_text", status, 0)?;
         Ok(())
     }
 
@@ -233,7 +229,7 @@ impl Connection {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status =
             unsafe { ffi::terlan_libpq_connection_send_query(self.raw.as_ptr(), sql_c.as_ptr()) };
-        check_status("postgres.libpq.connection.send_query", status as i32, 0)?;
+        check_status("postgres.libpq.connection.send_query", status, 0)?;
         Ok(())
     }
 
@@ -245,14 +241,14 @@ impl Connection {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status =
             unsafe { ffi::terlan_libpq_connection_send_batch(self.raw.as_ptr(), sql_c.as_ptr()) };
-        check_status("postgres.libpq.connection.send_batch", status as i32, 0)?;
+        check_status("postgres.libpq.connection.send_batch", status, 0)?;
         Ok(())
     }
 
     pub fn consume_input(&mut self) -> Result<(), CAbiError> {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status = unsafe { ffi::terlan_libpq_connection_consume_input(self.raw.as_ptr()) };
-        check_status("postgres.libpq.connection.consume_input", status as i32, 0)?;
+        check_status("postgres.libpq.connection.consume_input", status, 0)?;
         Ok(())
     }
 
@@ -261,7 +257,7 @@ impl Connection {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status =
             unsafe { ffi::terlan_libpq_connection_is_busy(self.raw.as_ptr(), &mut out_out_busy) };
-        check_status("postgres.libpq.connection.is_busy", status as i32, 0)?;
+        check_status("postgres.libpq.connection.is_busy", status, 0)?;
         Ok(out_out_busy)
     }
 
@@ -270,7 +266,7 @@ impl Connection {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status =
             unsafe { ffi::terlan_libpq_connection_next_result(self.raw.as_ptr(), &mut raw) };
-        check_status("postgres.libpq.connection.next_result", status as i32, 0)?;
+        check_status("postgres.libpq.connection.next_result", status, 0)?;
         let raw = NonNull::new(raw).ok_or(CAbiError {
             operation: "postgres.libpq.connection.next_result",
             status: -1,
@@ -281,7 +277,7 @@ impl Connection {
     pub fn abort(&mut self) -> Result<(), CAbiError> {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status = unsafe { ffi::terlan_libpq_connection_abort(self.raw.as_ptr()) };
-        check_status("postgres.libpq.connection.abort", status as i32, 0)?;
+        check_status("postgres.libpq.connection.abort", status, 0)?;
         Ok(())
     }
 }
@@ -300,8 +296,8 @@ impl QueryResult {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status =
             unsafe { ffi::terlan_libpq_result_status(self.raw.as_ptr(), &mut out_out_status) };
-        check_status("postgres.libpq.result.status", status as i32, 0)?;
-        Ok(out_out_status as i64)
+        check_status("postgres.libpq.result.status", status, 0)?;
+        Ok(out_out_status)
     }
 
     pub fn row_count(&self) -> Result<i64, CAbiError> {
@@ -309,8 +305,8 @@ impl QueryResult {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status =
             unsafe { ffi::terlan_libpq_result_row_count(self.raw.as_ptr(), &mut out_out_count) };
-        check_status("postgres.libpq.result.row_count", status as i32, 0)?;
-        Ok(out_out_count as i64)
+        check_status("postgres.libpq.result.row_count", status, 0)?;
+        Ok(out_out_count)
     }
 
     pub fn column_count(&self) -> Result<i64, CAbiError> {
@@ -318,16 +314,15 @@ impl QueryResult {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status =
             unsafe { ffi::terlan_libpq_result_column_count(self.raw.as_ptr(), &mut out_out_count) };
-        check_status("postgres.libpq.result.column_count", status as i32, 0)?;
-        Ok(out_out_count as i64)
+        check_status("postgres.libpq.result.column_count", status, 0)?;
+        Ok(out_out_count)
     }
 
     pub fn select_column_name(&mut self, column: i64) -> Result<(), CAbiError> {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
-        let status = unsafe {
-            ffi::terlan_libpq_result_select_column_name(self.raw.as_ptr(), column as i64)
-        };
-        check_status("postgres.libpq.result.select_column_name", status as i32, 0)?;
+        let status =
+            unsafe { ffi::terlan_libpq_result_select_column_name(self.raw.as_ptr(), column) };
+        check_status("postgres.libpq.result.select_column_name", status, 0)?;
         Ok(())
     }
 
@@ -335,18 +330,17 @@ impl QueryResult {
         let mut out_out_oid: i64 = Default::default();
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status = unsafe {
-            ffi::terlan_libpq_result_column_oid(self.raw.as_ptr(), column as i64, &mut out_out_oid)
+            ffi::terlan_libpq_result_column_oid(self.raw.as_ptr(), column, &mut out_out_oid)
         };
-        check_status("postgres.libpq.result.column_oid", status as i32, 0)?;
-        Ok(out_out_oid as i64)
+        check_status("postgres.libpq.result.column_oid", status, 0)?;
+        Ok(out_out_oid)
     }
 
     pub fn select_value(&mut self, row: i64, column: i64) -> Result<(), CAbiError> {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
-        let status = unsafe {
-            ffi::terlan_libpq_result_select_value(self.raw.as_ptr(), row as i64, column as i64)
-        };
-        check_status("postgres.libpq.result.select_value", status as i32, 0)?;
+        let status =
+            unsafe { ffi::terlan_libpq_result_select_value(self.raw.as_ptr(), row, column) };
+        check_status("postgres.libpq.result.select_value", status, 0)?;
         Ok(())
     }
 
@@ -356,8 +350,8 @@ impl QueryResult {
         let status = unsafe {
             ffi::terlan_libpq_result_value_length(self.raw.as_ptr(), &mut out_out_length)
         };
-        check_status("postgres.libpq.result.value_length", status as i32, 0)?;
-        Ok(out_out_length as i64)
+        check_status("postgres.libpq.result.value_length", status, 0)?;
+        Ok(out_out_length)
     }
 
     pub fn value_bytes(&self) -> Result<Vec<i64>, CAbiError> {
@@ -366,7 +360,7 @@ impl QueryResult {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status =
             unsafe { ffi::terlan_libpq_result_value_bytes(self.raw.as_ptr(), &mut out_out_bytes) };
-        check_status("postgres.libpq.result.value_bytes", status as i32, 0)?;
+        check_status("postgres.libpq.result.value_bytes", status, 0)?;
         let length = usize::try_from(out_bytes_length).map_err(|_| CAbiError {
             operation: "postgres.libpq.result.value_bytes",
             status: -2,
@@ -389,7 +383,7 @@ impl QueryResult {
         // SAFETY: generated arguments follow the reviewed ownership metadata.
         let status =
             unsafe { ffi::terlan_libpq_result_value_is_null(self.raw.as_ptr(), &mut out_out_null) };
-        check_status("postgres.libpq.result.value_is_null", status as i32, 0)?;
+        check_status("postgres.libpq.result.value_is_null", status, 0)?;
         Ok(out_out_null)
     }
 
@@ -399,8 +393,8 @@ impl QueryResult {
         let status = unsafe {
             ffi::terlan_libpq_result_affected_rows(self.raw.as_ptr(), &mut out_out_count)
         };
-        check_status("postgres.libpq.result.affected_rows", status as i32, 0)?;
-        Ok(out_out_count as i64)
+        check_status("postgres.libpq.result.affected_rows", status, 0)?;
+        Ok(out_out_count)
     }
 }
 
@@ -412,7 +406,14 @@ impl Drop for QueryResult {
     }
 }
 
-fn check_status(operation: &'static str, status: i32, success: i32) -> Result<(), CAbiError> {
+fn check_status<T>(operation: &'static str, status: T, success: i32) -> Result<(), CAbiError>
+where
+    T: TryInto<i32>,
+{
+    let status = status.try_into().map_err(|_| CAbiError {
+        operation,
+        status: -2,
+    })?;
     if status == success {
         Ok(())
     } else {

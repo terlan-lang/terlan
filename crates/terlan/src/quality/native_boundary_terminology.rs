@@ -324,4 +324,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "native_boundary_terminology_test.rs"]
+#[cfg(test)]
 mod native_boundary_terminology_test;

@@ -2,11 +2,12 @@ module compiler_big_e_parity.
 
 import std.core.Option.{None, Option, Some}.
 import std.vm.Message.
-import type std.vm.Message.{Message}.
+
+import type std.vm.Message.
 
 pub struct R {
     a: Int,
-    b: Int
+    b: Int,
 }.
 
 pub f(record: R): Option[Int] ->

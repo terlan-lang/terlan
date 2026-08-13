@@ -1,6 +1,12 @@
 mod breakpoint;
+mod evaluation;
+mod execution;
+mod input;
+mod interactive_session;
+mod presentation;
 mod script;
 mod session;
+mod tracing;
 
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -9,14 +15,77 @@ use serde_json::json;
 
 use crate::{CliCommand, DiagnosticFormat};
 
+use crate::runtime::native_image::debug::TvmNativeDebugRecord;
+use crate::runtime::vm::pure_native::PureNativeExecutionShard;
 use breakpoint::validate_breakpoint_spec;
 #[cfg(test)]
 use script::parse_debug_script;
 use script::validate_debug_script_file;
-use session::{open_native_debug_session, NativeDebugSessionReport};
+use session::{
+    open_interactive_native_debug_session, open_native_debug_session, NativeDebugSessionReport,
+};
 
-pub(crate) const RESERVED_CODE: &str = "debugger_unimplemented";
-pub(crate) const RESERVED_MESSAGE: &str = "terlc debug is reserved for VM-owned debugger execution";
+/// Executes one REPL generation through the same VM-owned debugger runtime.
+pub(crate) fn execute_repl_debug_entry(
+    shard: &mut PureNativeExecutionShard,
+    source_records: &[TvmNativeDebugRecord],
+    module: &str,
+    function: &str,
+) -> Result<(Option<String>, Vec<String>), DebugCliError> {
+    let entry = format!("{module}.{function}");
+    let record = source_records
+        .iter()
+        .find(|record| record.module == module && record.function == function && record.arity == 0)
+        .ok_or_else(|| {
+            format!("error[vm.debugger.entry]: REPL debug source map does not contain `{entry}/0`")
+        })?;
+    let breakpoints = vec![session::DebugBreakpointResolution {
+        spec: entry.clone(),
+        functions: vec![session::function_identity(record)],
+    }];
+    let commands =
+        script::parse_debug_script("run\nbt\nargs\nlocals\nprocesses\nresources\ncontinue\n")
+            .map_err(|error| format!("error[{}]: {}", error.code, error.message))?;
+    let report = execution::execute_debug_script(
+        shard,
+        source_records,
+        &breakpoints,
+        Some(&commands),
+        Some(&entry),
+    )
+    .map_err(|error| format!("error[{}]: {}", error.code, error.message))?;
+    Ok((report.result, report.events))
+}
+
+/// Opens the command-line debugger loop on an active REPL generation.
+pub(crate) fn execute_repl_interactive_debug(
+    shard: &mut PureNativeExecutionShard,
+    source_records: &[TvmNativeDebugRecord],
+    module: &str,
+    function: &str,
+    json_events: bool,
+) -> Result<Option<String>, DebugCliError> {
+    let entry = format!("{module}.{function}");
+    let record = source_records
+        .iter()
+        .find(|record| record.module == module && record.function == function && record.arity == 0)
+        .ok_or_else(|| {
+            format!("error[vm.debugger.entry]: REPL debug source map does not contain `{entry}/0`")
+        })?;
+    let breakpoints = vec![session::DebugBreakpointResolution {
+        spec: entry.clone(),
+        functions: vec![session::function_identity(record)],
+    }];
+    Ok(interactive_session::execute_interactive_debug_session(
+        shard,
+        source_records,
+        &breakpoints,
+        json_events,
+        Some(&entry),
+    )
+    .map(|report| report.result)
+    .map_err(|error| format!("error[{}]: {}", error.code, error.message))?)
+}
 
 /// Parsed command-local arguments for `terlc debug`.
 ///
@@ -52,9 +121,44 @@ struct DebugArgs {
 /// - Separates error identity from presentation so global diagnostic format can
 ///   switch rendering without changing parser behavior.
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct DebugCliError {
+pub(crate) struct DebugCliError {
     pub(super) code: &'static str,
     pub(super) message: String,
+}
+
+impl std::fmt::Display for DebugCliError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for DebugCliError {}
+
+impl From<String> for DebugCliError {
+    fn from(message: String) -> Self {
+        Self {
+            code: "debug_native_runtime_failed",
+            message,
+        }
+    }
+}
+
+impl From<&str> for DebugCliError {
+    fn from(message: &str) -> Self {
+        message.to_string().into()
+    }
+}
+
+impl From<DebugCliError> for String {
+    fn from(error: DebugCliError) -> Self {
+        error.message
+    }
+}
+
+impl From<terlan_runtime_abi::BoundaryError> for DebugCliError {
+    fn from(error: terlan_runtime_abi::BoundaryError) -> Self {
+        error.to_string().into()
+    }
 }
 
 /// Executes the `debug` CLI command.
@@ -87,7 +191,7 @@ pub(crate) fn run(cmd: CliCommand, diagnostic_format: DiagnosticFormat) -> ExitC
     };
     let script_commands = match args.script.as_ref() {
         Some(script) => match validate_debug_script_file(script) {
-            Ok(commands) => Some(commands.len()),
+            Ok(commands) => Some(commands),
             Err(err) => {
                 print_debug_error(&err, diagnostic_format);
                 return ExitCode::from(2);
@@ -96,7 +200,11 @@ pub(crate) fn run(cmd: CliCommand, diagnostic_format: DiagnosticFormat) -> ExitC
         None => None,
     };
 
-    let report = match open_native_debug_session(&args, script_commands) {
+    let report = match if script_commands.is_some() {
+        open_native_debug_session(&args, script_commands.as_deref())
+    } else {
+        open_interactive_native_debug_session(&args)
+    } {
         Ok(report) => report,
         Err(err) => {
             print_debug_error(&err, diagnostic_format);
@@ -323,6 +431,14 @@ fn render_native_debug_report_text(report: &NativeDebugSessionReport) -> String 
             "  source_records: {}\n",
             "  breakpoints: {}\n",
             "  script_commands: {}\n",
+            "  execution_state: {}\n",
+            "  control_events: {}\n",
+            "  live_execution: {}\n",
+            "  result: {}\n",
+            "  process_snapshots: {}\n",
+            "  resource_snapshots: {}\n",
+            "  timer_snapshots: {}\n",
+            "  mailbox_snapshots: {}\n",
             "  json_events: {}\n",
             "  runtime_generation: {}\n",
             "  schedulers: {}\n",
@@ -344,6 +460,14 @@ fn render_native_debug_report_text(report: &NativeDebugSessionReport) -> String 
         report.source_record_count,
         breakpoints,
         script_commands,
+        report.execution_state,
+        report.control_events.len(),
+        report.live_execution,
+        report.result.as_deref().unwrap_or("<none>"),
+        report.process_snapshots.len(),
+        report.resource_snapshots.len(),
+        report.timer_snapshots.len(),
+        report.mailbox_snapshots.len(),
         report.json_events,
         report.multicore_replay.runtime_generation,
         report.multicore_replay.schedulers.len(),
@@ -392,13 +516,21 @@ fn render_native_debug_report_json(report: &NativeDebugSessionReport) -> String 
         "source_record_count": report.source_record_count,
         "breakpoints": breakpoints,
         "script_commands": report.script_commands,
+        "execution_state": report.execution_state,
+        "control_events": report.control_events,
+        "result": report.result,
+        "process_snapshots": report.process_snapshots,
+        "resource_snapshots": report.resource_snapshots,
+        "timer_snapshots": report.timer_snapshots,
+        "mailbox_snapshots": report.mailbox_snapshots,
         "json_events": report.json_events,
         "multicore_replay": report.multicore_replay,
-        "live_execution": false,
+        "live_execution": report.live_execution,
     })
     .to_string()
 }
 
 #[cfg(test)]
 #[path = "debug_test.rs"]
+#[cfg(test)]
 mod debug_test;

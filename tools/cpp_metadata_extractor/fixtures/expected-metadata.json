@@ -172,6 +172,13 @@
       "parameters": [{"name": "output", "ty": {"spelling": "std::int64_t *", "canonical": "long *", "is_const": false, "pointer_depth": 1, "reference": "none", "function_pointer": false, "template_dependent": false}, "direction": "output"}],
       "noexcept": true,
       "template_parameters": [],
+      "direct_calls": [
+        {
+          "id": "method:extractor_fixture::Counter::value()",
+          "kind": "method",
+          "overload_set": "extractor_fixture::Counter::value"
+        }
+      ],
       "overload_candidates": 1,
       "variadic": false
     },

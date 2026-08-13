@@ -1,0 +1,563 @@
+/**
+ * Validates the deterministic Clang LibTooling metadata boundary.
+ */
+module scripts.self_validation.CppMetadataExtractorTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.Directory.
+import std.io.File.{exists, read_text, write_text}.
+import std.system.{Environment, Process}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.system.Process.EnvironmentEntry.
+
+struct IncludeEnvironment {
+    valid: Bool,
+    entries: List[EnvironmentEntry],
+}.
+
+root(): String ->
+    case Environment.get("TERLAN_REPOSITORY_ROOT") {
+        Some(path) -> path;
+        None -> Environment.current_directory()
+    }.
+
+child(parent: String, name: String): String ->
+    String.append(parent, String.append("/", name)).
+
+tool_root(repository: String): String ->
+    child(repository, "tools/cpp_metadata_extractor").
+
+fixture_root(repository: String): String ->
+    child(tool_root(repository), "fixtures").
+
+read_json(path: String): Option[Json] ->
+    let {
+        Ok(source) <- read_text(path);
+        Ok(value) <- Json.parse(source)
+    } else {
+        _ -> None
+    };
+    Some(value).
+
+string_field_is(value: Json, name: String, expected: String): Bool ->
+    let {
+        Ok(field) <- value.get(name);
+        Ok(text) <- field.as_string()
+    } else {
+        _ -> false
+    };
+    text == expected.
+
+json_equal(left: Json, right: Json): Bool ->
+    case {Json.stringify(left), Json.stringify(right)} {
+        {Ok(left_text), Ok(right_text)} -> left_text == right_text;
+        _ -> false
+    }.
+
+member_absent(value: Json, name: String): Bool ->
+    case value.get(name) {
+        Err(_reason) -> true;
+        Ok(_present) -> false
+    }.
+
+compile_provenance_holds(metadata: Json, commands: Json): Bool ->
+    let {
+        {Ok(compile), Ok(1), Ok(command)} <- {metadata.get("compile"), commands.length(), commands.at(0)};
+        {Ok(actual), Ok(expected)} <- {compile.get("arguments"), command.get("arguments")}
+    } else {
+        _ -> false
+    };
+    json_equal(actual, expected).
+
+ids_are_sorted_unique(symbols: Json, index: Int, count: Int, previous: String): Bool ->
+    if {
+        index >= count -> true;
+        true -> let {
+            Ok(symbol) <- symbols.at(index);
+            Ok(id_value) <- symbol.get("id");
+            Ok(id) <- id_value.as_string()
+        } else {
+            _ -> false
+        };
+        previous == ""
+            or String.compare(previous, id) == Lt and ids_are_sorted_unique(symbols, index + 1, count, id)
+    }.
+
+array_nonempty(value: Json, name: String): Bool ->
+    let {
+        Ok(items) <- value.get(name);
+        Ok(count) <- items.length()
+    } else {
+        _ -> false
+    };
+    count > 0.
+
+int_field_above(value: Json, name: String, minimum: Int): Bool ->
+    let {
+        Ok(field) <- value.get(name);
+        Ok(number) <- field.as_int()
+    } else {
+        _ -> false
+    };
+    number > minimum.
+
+bool_field_is(value: Json, name: String, expected: Bool): Bool ->
+    let {
+        Ok(field) <- value.get(name);
+        Ok(actual) <- field.as_bool()
+    } else {
+        _ -> false
+    };
+    actual == expected.
+
+parameters_have_pointer(symbol: Json): Bool ->
+    let {
+        Ok(parameters) <- symbol.get("parameters");
+        Ok(count) <- parameters.length()
+    } else {
+        _ -> false
+    };
+    parameter_pointer_at(parameters, 0, count).
+
+parameter_pointer_at(parameters: Json, index: Int, count: Int): Bool ->
+    if {
+        index >= count -> false;
+        true -> case parameters.at(index) {
+            Ok(parameter) ->
+                case parameter.get("ty") {
+                    Ok(ty) ->
+                        int_field_above(ty, "pointer_depth", 0)
+                            or parameter_pointer_at(parameters, index + 1, count);
+                    Err(_reason) -> parameter_pointer_at(parameters, index + 1, count)
+                };
+            Err(_reason) -> false
+        }
+    }.
+
+returns_reference(symbol: Json): Bool ->
+    let {
+        Ok(returns) <- symbol.get("returns");
+        Ok(reference) <- returns.get("reference")
+    } else {
+        _ -> false
+    };
+    case reference.as_string() {
+        Ok("lvalue") -> true;
+        Ok("rvalue") -> true;
+        _ -> false
+    }.
+
+symbol_has_fact(symbol: Json, fact: Int): Bool ->
+    if {
+        fact == 0 -> parameters_have_pointer(symbol);
+        fact == 1 -> returns_reference(symbol);
+        fact == 2 -> array_nonempty(symbol, "template_parameters");
+        fact == 3 -> string_field_is(symbol, "kind", "record") and array_nonempty(symbol, "fields");
+        fact == 4 -> string_field_is(symbol, "kind", "enum") and array_nonempty(symbol, "enum_values");
+        fact == 5 -> int_field_above(symbol, "overload_candidates", 1);
+        fact == 6 -> not string_field_is(symbol, "kind", "record") and bool_field_is(symbol, "noexcept", false);
+        fact == 7 -> array_nonempty(symbol, "direct_calls");
+        true -> false
+    }.
+
+symbols_have_fact(symbols: Json, index: Int, count: Int, fact: Int): Bool ->
+    if {
+        index >= count -> false;
+        true -> case symbols.at(index) {
+            Ok(symbol) ->
+                symbol_has_fact(symbol, fact) or symbols_have_fact(symbols, index + 1, count, fact);
+            Err(_reason) -> false
+        }
+    }.
+
+all_required_facts(symbols: Json, count: Int, fact: Int): Bool ->
+    if {
+        fact > 7 -> true;
+        true -> symbols_have_fact(symbols, 0, count, fact) and all_required_facts(symbols, count, fact + 1)
+    }.
+
+symbols_hold(metadata: Json): Bool ->
+    let {
+        Ok(symbols) <- metadata.get("symbols");
+        Ok(count) <- symbols.length()
+    } else {
+        _ -> false
+    };
+    count > 0
+        and ids_are_sorted_unique(symbols, 0, count, "")
+        and all_required_facts(symbols, count, 0).
+
+source_holds(repository: String): Bool ->
+    case read_text(child(tool_root(repository), "src/main.cpp")) {
+        Ok(source) ->
+            String.contains(source, "clang/Tooling/CommonOptionsParser.h")
+                and String.contains(source, "clang/ASTMatchers/ASTMatchFinder.h")
+                and String.contains(source, "ClangTool")
+                and String.contains(source, "MatchFinder")
+                and String.contains(source, "llvm/Support/JSON.h")
+                and not String.contains(source, "ast-dump");
+        Err(_reason) -> false
+    }.
+
+offline_contract_holds(repository: String): Bool ->
+    let {
+        Some(metadata) <- read_json(child(fixture_root(repository), "expected-metadata.json"));
+        Some(commands) <- read_json(child(fixture_root(repository), "compile_commands.json"))
+    } else {
+        _ -> false
+    };
+    offline_metadata_holds(repository, metadata, commands).
+
+offline_metadata_holds(repository: String, metadata: Json, commands: Json): Bool ->
+    string_field_is(metadata, "schema", "terlan.cpp.metadata.v1")
+        and producer_holds(metadata)
+        and member_absent(metadata, "mapping")
+        and compile_provenance_holds(metadata, commands)
+        and symbols_hold(metadata)
+        and source_holds(repository).
+
+producer_holds(metadata: Json): Bool ->
+    case metadata.get("producer") {
+        Ok(producer) -> string_field_is(producer, "name", "clang-libtooling");
+        Err(_reason) -> false
+    }.
+
+command_succeeds(program: String, arguments: List[String], directory: String): Bool ->
+    command_succeeds_with_environment(program, arguments, directory, List.new[EnvironmentEntry]()).
+
+command_succeeds_with_environment(
+    program: String,
+    arguments: List[String],
+    directory: String,
+    environment: List[EnvironmentEntry],
+): Bool ->
+    case Process.run(
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_environment(
+                Process.with_working_directory(
+                    Process.with_arguments(Process.command(program), arguments),
+                    directory,
+                ),
+                environment,
+            ),
+            120000,
+        ),
+        4194304,
+    ),
+) {
+        Ok(output) -> Process.status(output) == 0;
+        Err(_reason) -> false
+    }.
+
+reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_at(values, List.new[String]()).
+
+reverse_strings_at(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings_at(rest, [value | reversed])
+    }.
+
+include_paths(lines: List[String], collecting: Bool, paths: List[String]): List[String] ->
+    case lines {
+        [] -> reverse_strings(paths);
+        [line | rest] ->
+            let candidate = String.trim(line);
+            if {
+                candidate == "#include <...> search starts here:" -> include_paths(rest, true, paths);
+                candidate == "End of search list." -> reverse_strings(paths);
+                collecting and String.contains(candidate, "c++") -> case Directory.entries(candidate) {
+                    Ok(_entries) -> include_paths(rest, true, [candidate | paths]);
+                    Err(_reason) -> include_paths(rest, true, paths)
+                };
+                true -> include_paths(rest, collecting, paths)
+            }
+    }.
+
+join_paths(paths: List[String]): String ->
+    case paths {
+        [] -> "";
+        [path] -> path;
+        [path | rest] -> String.append(path, String.append(":", join_paths(rest)))
+    }.
+
+cpp_include_environment(repository: String): IncludeEnvironment ->
+    case Environment.get("CPLUS_INCLUDE_PATH") {
+        Some(value) ->
+            IncludeEnvironment(valid = value != "", entries = List.new[EnvironmentEntry]());
+        None ->
+            let request =
+                Process.with_output_limit_bytes(
+                    Process.with_timeout_ms(
+                        Process.with_stdin(
+                            Process.with_working_directory(
+                                Process.with_arguments(
+                                    Process.command("g++"),
+                                    ["-E", "-x", "c++", "-v", "-"],
+                                ),
+                                repository,
+                            ),
+                            "",
+                        ),
+                        30000,
+                    ),
+                    1048576,
+                );
+            case Process.run(request) {
+                Ok(output) ->
+                    let paths =
+                        include_paths(
+                            String.split(Process.stderr(output), "\n"),
+                            false,
+                            List.new[String](),
+                        );
+                    IncludeEnvironment(
+                        valid = Process.status(output) == 0 and paths != List.new[String](),
+                        entries = [Process.environment_entry("CPLUS_INCLUDE_PATH", join_paths(paths))],
+                    );
+                Err(_reason) ->
+                    IncludeEnvironment(valid = false, entries = List.new[EnvironmentEntry]())
+            }
+    }.
+
+normalize_live(mut value: Json): Bool ->
+    case value.get("producer") {
+        Ok(producer) ->
+            let normalized = normalize_producer(producer);
+            let _producer = value.put("producer", normalized);
+            true;
+        Err(_reason) -> false
+    }.
+
+normalize_producer(mut producer: Json): Json ->
+    let _version = producer.put("version", Json.string("<clang-version>"));
+    producer.
+
+normalized_metadata_matches(actual_path: String, expected_path: String): Bool ->
+    case {read_json(actual_path), read_json(expected_path)} {
+        {Some(actual), Some(expected)} -> normalize_live(actual) and json_equal(actual, expected);
+        _ -> false
+    }.
+
+write_live_database(repository: String, database: String): Bool ->
+    let {
+        Some(commands) <- read_json(child(fixture_root(repository), "compile_commands.json"));
+        Ok(command) <- commands.at(0)
+    } else {
+        _ -> false
+    };
+    (let _directory = command.put("directory", Json.string(fixture_root(repository)));
+let _command = commands.set(0, command);
+(let {
+    Ok(source) <- Json.stringify_pretty(commands);
+    Ok(_unit) <- write_text(child(database, "compile_commands.json"), String.append(source, "\n"))
+} else {
+    _ -> false
+};
+true)).
+
+run_extractor(
+    repository: String,
+    executable: String,
+    database: String,
+    output: String,
+    exact: Bool,
+    environment: List[EnvironmentEntry],
+): Bool ->
+    let fixture = fixture_root(repository);
+    let selected =
+        if {
+            exact -> [
+                "-p",
+                database,
+                "--namespace",
+                "extractor_fixture",
+                "--public-only",
+                "--exact-headers",
+                "--header-root",
+                fixture,
+                "--output",
+                output,
+                "--header",
+                child(fixture, "extractor_fixture.hpp"),
+                child(fixture, "extractor_fixture.cpp"),
+            ];
+            true -> [
+                "-p",
+                database,
+                "--namespace",
+                "extractor_fixture",
+                "--output",
+                output,
+                "--header",
+                "extractor_fixture.hpp",
+                child(fixture, "extractor_fixture.cpp"),
+            ]
+        };
+    command_succeeds_with_environment(executable, selected, fixture, environment).
+
+live_contract_holds(repository: String): Bool ->
+    case Environment.get("TERLAN_CPP_METADATA_LIVE") {
+        Some("1") ->
+            let build = child(repository, "target/cpp-metadata-extractor");
+            let database = child(build, "live-compile-database");
+            let executable = child(build, "terlan-cpp-metadata-extractor");
+            let output = child(build, "live-metadata.json");
+            let exact_output = child(build, "live-exact-metadata.json");
+            live_prepare(repository, build, database, executable, output, exact_output);
+        _ ->
+            let _skipped =
+                println(
+                    "cpp-binding-metadata-extractor-live-check: skipped; set TERLAN_CPP_METADATA_LIVE=1",
+                );
+            true
+    }.
+
+live_prepare(
+    repository: String,
+    build: String,
+    database: String,
+    executable: String,
+    output: String,
+    exact_output: String,
+): Bool ->
+    case Directory.create_all(database) {
+        Ok(_unit) -> live_configure(repository, build, database, executable, output, exact_output);
+        Err(_reason) -> false
+    }.
+
+live_configure(
+    repository: String,
+    build: String,
+    database: String,
+    executable: String,
+    output: String,
+    exact_output: String,
+): Bool ->
+    if {
+        command_succeeds(
+            "cmake",
+            ["-S", tool_root(repository), "-B", build, "-DCMAKE_BUILD_TYPE=Release"],
+            repository,
+        ) -> live_build(repository, build, database, executable, output, exact_output);
+        true -> false
+    }.
+
+live_build(
+    repository: String,
+    build: String,
+    database: String,
+    executable: String,
+    output: String,
+    exact_output: String,
+): Bool ->
+    if {
+        command_succeeds("cmake", ["--build", build, "--config", "Release"], repository) -> live_write_database(repository, database, executable, output, exact_output);
+        true -> false
+    }.
+
+live_write_database(
+    repository: String,
+    database: String,
+    executable: String,
+    output: String,
+    exact_output: String,
+): Bool ->
+    if {
+        exists(executable) and write_live_database(repository, database) -> let environment = cpp_include_environment(repository);
+        if {
+            environment.valid -> live_extract(
+                repository,
+                database,
+                executable,
+                output,
+                exact_output,
+                environment.entries,
+            );
+            true -> false
+        };
+        true -> false
+    }.
+
+live_extract(
+    repository: String,
+    database: String,
+    executable: String,
+    output: String,
+    exact_output: String,
+    environment: List[EnvironmentEntry],
+): Bool ->
+    if {
+        run_extractor(repository, executable, database, output, false, environment) -> live_compare(repository, database, executable, output, exact_output, environment);
+        true -> false
+    }.
+
+live_compare(
+    repository: String,
+    database: String,
+    executable: String,
+    output: String,
+    exact_output: String,
+    environment: List[EnvironmentEntry],
+): Bool ->
+    if {
+        normalized_metadata_matches(
+            output,
+            child(fixture_root(repository), "expected-metadata.json"),
+        ) -> live_extract_exact(repository, database, executable, exact_output, environment);
+        true -> false
+    }.
+
+live_extract_exact(
+    repository: String,
+    database: String,
+    executable: String,
+    exact_output: String,
+    environment: List[EnvironmentEntry],
+): Bool ->
+    if {
+        run_extractor(repository, executable, database, exact_output, true, environment) -> normalized_metadata_matches(
+            exact_output,
+            child(fixture_root(repository), "expected-metadata.json"),
+        );
+        true -> false
+    }.
+
+@test
+pub committed_cpp_metadata_contract_is_valid(): Bool ->
+    offline_contract_holds(root()).
+
+@test
+pub live_producer_version_is_the_only_normalized_field(): Bool ->
+    case Json.parse(
+    "{\"producer\":{\"name\":\"clang-libtooling\",\"version\":\"host\"},\"schema\":\"terlan.cpp.metadata.v1\"}",
+) {
+        Ok(metadata) ->
+            if {
+                normalize_live(metadata) -> normalized_fixture_fields_hold(metadata);
+                true -> false
+            };
+        Err(_reason) -> false
+    }.
+
+normalized_fixture_fields_hold(metadata: Json): Bool ->
+    case metadata.get("producer") {
+        Ok(producer) ->
+            string_field_is(producer, "name", "clang-libtooling")
+                and string_field_is(producer, "version", "<clang-version>")
+                and string_field_is(metadata, "schema", "terlan.cpp.metadata.v1");
+        Err(_reason) -> false
+    }.
+
+@test
+pub opt_in_live_cpp_metadata_matches_fixture(): Bool ->
+    live_contract_holds(root()).

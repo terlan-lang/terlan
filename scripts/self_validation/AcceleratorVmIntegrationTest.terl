@@ -1,0 +1,67 @@
+/**
+ * Validates VM-owned asynchronous accelerator integration evidence.
+ */
+module scripts.self_validation.AcceleratorVmIntegrationTest.
+
+import std.core.Result.{Ok, with_default}.
+import std.core.String.
+import std.data.Json.
+import std.io.File.{read_text}.
+
+import type std.data.Json.
+
+string_field(value: Json, field: String): String ->
+    case value.get(field) {
+        Ok(found) -> with_default(found.as_string(), "");
+        _ -> ""
+    }.
+
+bool_field(value: Json, field: String): Bool ->
+    case value.get(field) {
+        Ok(found) -> with_default(found.as_bool(), false);
+        _ -> false
+    }.
+
+array_length(value: Json, field: String): Int ->
+    case value.get(field) {
+        Ok(found) -> with_default(found.length(), -1);
+        _ -> -1
+    }.
+
+validate_evidence(report: Json): Bool ->
+    case report.get("evidence") {
+        Ok(evidence) ->
+            bool_field(evidence, "generation_fenced_continuations")
+                and bool_field(evidence, "actor_owned_resource_cleanup")
+                and bool_field(evidence, "independent_streams")
+                and bool_field(evidence, "stream_device_budgets")
+                and bool_field(evidence, "worker_failure_isolation")
+                and bool_field(evidence, "exact_terminal_delivery")
+                and bool_field(evidence, "late_result_resource_cleanup")
+                and bool_field(evidence, "pointer_free_inspection")
+                and bool_field(evidence, "backend_neutral_scheduler");
+        _ -> false
+    }.
+
+validate_text(text: String): Bool ->
+    case Json.parse(text) {
+        Ok(report) ->
+            string_field(report, "schema") == "terlan.accelerator-vm-integration.v1"
+                and string_field(report, "asynchronous_model") == "vm-capability-worker-event-pump"
+                and not bool_field(report, "scheduler_thread_blocking")
+                and array_length(report, "budget_scopes") == 6
+                and array_length(report, "terminal_paths") == 6
+                and validate_evidence(report);
+        _ -> false
+    }.
+
+@test
+pub report_is_complete(): Bool ->
+    case read_text("target/quality/accelerator-vm-integration.json") {
+        Ok(text) -> validate_text(text);
+        _ -> false
+    }.
+
+@test
+pub malformed_report_is_rejected(): Bool ->
+    not validate_text("{\"schema\":\"wrong\"}").

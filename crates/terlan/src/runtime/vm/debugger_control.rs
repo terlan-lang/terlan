@@ -15,7 +15,6 @@ pub(crate) enum VmDebuggerExecutionState {
 }
 
 /// One command sent to the scheduler that exclusively owns runnable mutation.
-#[allow(dead_code)] // Consumed by the hidden live-debugger owner API before CLI activation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmDebuggerControlCommand {
     /// Stops future runnable slices after the current owner command completes.
@@ -141,4 +140,5 @@ impl VmDebuggerScheduleControl {
 
 #[cfg(test)]
 #[path = "debugger_control_test.rs"]
+#[cfg(test)]
 mod debugger_control_test;

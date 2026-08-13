@@ -342,9 +342,7 @@ fn consume_template_header_annotation(
     };
     let name = validate_template_header_annotation_name(first.trim(), path)?;
     let mut balance = template_header_brace_delta(first);
-    let consumed = if !first.contains('{') {
-        1
-    } else if balance <= 0 {
+    let consumed = if !first.contains('{') || balance <= 0 {
         1
     } else {
         let mut consumed = None;

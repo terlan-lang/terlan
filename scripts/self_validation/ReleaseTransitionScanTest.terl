@@ -1,0 +1,333 @@
+/**
+ * Rejects retired runtime payloads from repository and release trees.
+ */
+module scripts.self_validation.ReleaseTransitionScan.
+
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.io.Console.{eprintln}.
+import std.io.Directory.{create_temporary, files_recursive, remove_all}.
+import std.io.File.{read_bytes, read_text, read_text_many, read_text_tree_matching, write_text}.
+import std.vm.Bytes.{from_list}.
+
+import type std.io.File.TextFile.
+
+pub roots_hold(roots: List[String]): Bool ->
+    case roots {
+        [] -> true;
+        [root | rest] -> root_holds(root) and roots_hold(rest)
+    }.
+
+diagnostic_roots_hold(roots: List[String]): Bool ->
+    case roots {
+        [] -> true;
+        [root | rest] -> diagnostic_root_holds(root) and diagnostic_roots_hold(rest)
+    }.
+
+diagnostic_root_holds(root: String): Bool ->
+    case files_recursive(root) {
+        Ok(files) -> diagnostic_files_hold(files);
+        Err(_reason) ->
+            let _reported = eprintln(String.append("release transition scan could not traverse ", root));
+            false
+    }.
+
+diagnostic_files_hold(files: List[String]): Bool ->
+    case files {
+        [] -> true;
+        [path | rest] ->
+            if {
+                file_holds(path) -> diagnostic_files_hold(rest);
+                true -> let _reported = eprintln(String.append("release transition scan rejected ", path));
+                false
+            }
+    }.
+
+@pure
+contains_any(source: String, patterns: List[String]): Bool ->
+    case patterns {
+        [] -> false;
+        [pattern | rest] -> String.contains(source, pattern) or contains_any(source, rest)
+    }.
+
+@pure
+source_page_holds(files: List[TextFile]): Bool ->
+    case files {
+        [] -> true;
+        [file | rest] ->
+            if {
+                String.contains(file.path, "test") -> source_page_holds(rest);
+                contains_any(
+                    file.contents,
+                    [
+                        "struct TerlanVm {",
+                        "impl TerlanVm {",
+                        "runtime::vm::TerlanVm",
+                        "fn evaluate_repl_function",
+                        "fn apply_closure",
+                    ],
+                ) -> false;
+                true -> source_page_holds(rest)
+            }
+    }.
+
+runtime_source_contract(offset: Int): Bool ->
+    case read_text_tree_matching(
+    "crates/terlan/src",
+    List.new[String](),
+    [".rs"],
+    List.new[String](),
+    offset,
+    128,
+) {
+        Err(_reason) -> false;
+        Ok([]) -> http_source_contract();
+        Ok(files) ->
+            if {
+                source_page_holds(files) -> runtime_source_contract(offset + files.length());
+                true -> false
+            }
+    }.
+
+http_source_contract(): Bool ->
+    case read_text_many(
+    [
+        "crates/terlan/src/commands/serve/handler.rs",
+        "crates/terlan/src/commands/serve/handler_cache.rs",
+        "crates/terlan/src/commands/serve/handler_cache/invocation.rs",
+    ],
+) {
+        Err(_reason) -> false;
+        Ok(files) ->
+            if {
+                text_files_contain_any(
+                    files,
+                    [
+                        "execute_request_invocation_with",
+                        "beam_eval",
+                        "Command::new",
+                        "TerlanVm",
+                        "evaluate_",
+                        "apply_closure",
+                    ],
+                ) -> false;
+                true -> inventory_contract()
+            }
+    }.
+
+@pure
+text_files_contain_any(files: List[TextFile], patterns: List[String]): Bool ->
+    case files {
+        [] -> false;
+        [file | rest] ->
+            contains_any(file.contents, patterns) or text_files_contain_any(rest, patterns)
+    }.
+
+inventory_contract(): Bool ->
+    case read_text("docs/runtime/TVM_AOT_PIVOT_INVENTORY.md") {
+        Err(_reason) -> false;
+        Ok(inventory) ->
+            not contains_any(
+    inventory,
+    [
+        "| temporary-migration-support |",
+        "| deletion-debt |",
+        "run-fallback",
+        "worker directly",
+        "eventual adapter",
+        "replacing compiled payload publication",
+    ],
+)
+                and contains_all(
+    inventory,
+    [
+        "crates/terlan/src/commands/build/args.rs",
+        "crates/terlan/src/commands/run/mod.rs",
+        "crates/terlan/src/commands/test/vm_runner.rs",
+        "crates/terlan/src/commands/repl/mod.rs",
+        "crates/terlan/src/commands/serve/handler_cache.rs",
+        "crates/terlan/src/commands/debug/session.rs",
+        "crates/terlan/src/commands/vm/native_reload.rs",
+    ],
+)
+                and line_contains_all(
+    inventory,
+    ["commands/run/mod.rs", "native-image-consumer", "reusable-runtime-semantics"],
+)
+                and line_contains_all(
+    inventory,
+    ["commands/test/vm_runner.rs", "native-image-consumer", "reusable-runtime-semantics"],
+)
+                and line_contains_all(
+    inventory,
+    ["commands/repl/mod.rs", "native-image-consumer", "reusable-runtime-semantics"],
+)
+                and line_contains_all(
+    inventory,
+    ["commands/serve/handler_cache.rs", "http-handler-path", "reusable-runtime-semantics"],
+)
+                and line_contains_all(
+    inventory,
+    ["commands/debug/session.rs", "debugger-path", "reusable-runtime-semantics"],
+)
+                and line_contains_all(
+    inventory,
+    ["commands/vm/native_reload.rs", "hot-reload-path", "reusable-runtime-semantics"],
+)
+                and runtime_marker_contract()
+    }.
+
+@pure
+contains_all(source: String, patterns: List[String]): Bool ->
+    case patterns {
+        [] -> true;
+        [pattern | rest] -> String.contains(source, pattern) and contains_all(source, rest)
+    }.
+
+@pure
+line_contains_all(source: String, patterns: List[String]): Bool ->
+    lines_contain_all(String.split(source, "\n"), patterns).
+
+@pure
+lines_contain_all(lines: List[String], patterns: List[String]): Bool ->
+    case lines {
+        [] -> false;
+        [line | rest] -> contains_all(line, patterns) or lines_contain_all(rest, patterns)
+    }.
+
+runtime_marker_contract(): Bool ->
+    case read_text_many(
+    [
+        "crates/terlan/src/commands/serve/handler_cache.rs",
+        "crates/terlan/src/commands/serve/handler_cache/invocation.rs",
+        "crates/terlan/src/vm/execution.rs",
+        "crates/terlan/src/commands/vm.rs",
+    ],
+) {
+        Err(_reason) -> false;
+        Ok([cache, invocation, execution, vm]) ->
+            String.contains(cache.contents, "image: Arc<PureNativeExecutionImage>")
+    and String.contains(cache.contents, "execute_immediate_native")
+    and String.contains(invocation.contents, "begin_request_invocation")
+    and String.contains(execution.contents, "error[vm.aot_required]")
+                or String.contains(vm.contents, "error[vm.aot_required]");
+        _ -> false
+    }.
+
+root_holds(root: String): Bool ->
+    case files_recursive(root) {
+        Ok(files) -> files_hold(files);
+        _ -> false
+    }.
+
+files_hold(files: List[String]): Bool ->
+    case files {
+        [] -> true;
+        [path | rest] -> file_holds(path) and files_hold(rest)
+    }.
+
+file_holds(path: String): Bool ->
+    let lowered = String.lowercase(path);
+    if {
+        has_forbidden_ending(lowered) -> false;
+        not String.ends_with(lowered, ".json") and not String.ends_with(lowered, ".tvm") -> true;
+        true -> payload_holds(path, lowered)
+    }.
+
+payload_holds(path: String, lowered_path: String): Bool ->
+    case read_bytes(path) {
+        Ok(payload) ->
+            let first_index = payload.first_non_ascii_whitespace();
+            let first =
+                if {
+                    first_index < 0 -> -1;
+                    true -> payload.read_uint_be(first_index * 8, 8)
+                };
+            let renamed_json = String.ends_with(lowered_path, ".tvm") and (first == 123 or first == 91);
+            let serialized_vmir =
+                payload.contains(from_list(vm_ir_marker()))
+                    and payload.contains(from_list(instructions_marker()));
+            not renamed_json and not serialized_vmir;
+        _ -> false
+    }.
+
+@pure
+has_forbidden_ending(path: String): Bool ->
+    String.ends_with(path, ".tvm.json")
+        or String.ends_with(path, ".tvm.reuse")
+        or String.ends_with(path, ".vmir")
+        or String.ends_with(path, ".coreir").
+
+@pure
+vm_ir_marker(): List[Int] -> [34, 118, 109, 95, 105, 114, 34].
+
+@pure
+instructions_marker(): List[Int] ->
+    [34, 105, 110, 115, 116, 114, 117, 99, 116, 105, 111, 110, 115, 34].
+
+fixture_rejected(name: String, contents: String): Bool ->
+    case create_temporary("terlan-transition-scan") {
+        Ok(root) ->
+            let written = write_text(child(root, name), contents);
+            let rejected =
+                case written {
+                    Ok(Unit) -> not root_holds(root);
+                    _ -> false
+                };
+            let cleaned = remove_succeeds(root);
+            rejected and cleaned;
+        _ -> false
+    }.
+
+fixture_accepted(name: String, contents: String): Bool ->
+    case create_temporary("terlan-transition-scan") {
+        Ok(root) ->
+            let written = write_text(child(root, name), contents);
+            let accepted =
+                case written {
+                    Ok(Unit) -> root_holds(root);
+                    _ -> false
+                };
+            let cleaned = remove_succeeds(root);
+            accepted and cleaned;
+        _ -> false
+    }.
+
+remove_succeeds(path: String): Bool ->
+    case remove_all(path) {
+        Ok(Unit) -> true;
+        _ -> false
+    }.
+
+@pure
+child(root: String, name: String): String ->
+    String.append(root, String.append("/", name)).
+
+@test
+pub repository_has_no_retired_runtime_payloads(): Bool ->
+    diagnostic_roots_hold(["crates", "tools", "tests", "std", "docs"]).
+
+@test
+pub repository_runtime_sources_and_inventory_are_aot_only(): Bool ->
+    runtime_source_contract(0).
+
+@test
+pub clean_binary_candidate_is_accepted(): Bool ->
+    fixture_accepted("clean.json", "{\"safe\":true}").
+
+@test
+pub clean_array_json_candidate_is_accepted(): Bool ->
+    fixture_accepted("compile_commands.json", "[{\"safe\":true}]").
+
+@test
+pub retired_filename_is_rejected(): Bool ->
+    fixture_rejected("legacy.vmir", "opaque").
+
+@test
+pub json_renamed_as_native_image_is_rejected(): Bool ->
+    fixture_rejected("renamed.tvm", " \n {\"safe\":true}").
+
+@test
+pub serialized_vmir_markers_are_rejected(): Bool ->
+    fixture_rejected("legacy.json", "{\"vm_ir\":{},\"instructions\":[]}").

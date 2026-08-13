@@ -1,10 +1,17 @@
-#![allow(dead_code)]
-
 #[path = "distributed_storage/deadline.rs"]
 pub(crate) mod deadline;
 
 #[cfg(test)]
 #[path = "distributed_storage_test.rs"]
+#[cfg(test)]
 mod distributed_storage_test;
-include!("distributed_storage_part_001.rs");
-include!("distributed_storage_part_002.rs");
+
+#[path = "distributed_storage/adapter.rs"]
+mod adapter;
+#[path = "distributed_storage/model.rs"]
+mod model;
+
+#[cfg(test)]
+pub(crate) use adapter::*;
+#[cfg(test)]
+pub(crate) use model::*;

@@ -1,0 +1,175 @@
+/**
+ * Nontrivial multi-module installed-candidate reference application suite.
+ */
+module release_closeout.ReferenceApps.
+
+import release_closeout.Support.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok}.
+import std.core.{String, Unit}.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.{Directory, File}.
+
+import type release_closeout.Support.{Candidate, CommandResult}.
+
+write_app(candidate: Candidate, name: String, feature: String): String ->
+    let project = Support.child(candidate.workspace, name);
+    let module_name = String.replace(name, "-", "_");
+    let {
+        Ok(Unit) <- Directory.create_all(Support.child(project, String.concat(["src/", module_name])));
+        Ok(Unit) <- Directory.create_all(Support.child(project, String.concat(["tests/", module_name])));
+        Ok(Unit) <-
+            File.write_text(
+                Support.child(project, "terlan.toml"),
+                String.concat(
+                    [
+                        "[package]\nname = \"",
+                        name,
+                        "\"\nversion = \"0.0.7\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n",
+                    ],
+                ),
+            );
+        Ok(Unit) <-
+            File.write_text(
+                Support.child(project, String.concat(["src/", module_name, "/Model.terl"])),
+                String.concat(
+                    [
+                        "module ",
+                        module_name,
+                        ".Model.\n\n/**\n * Provides a deterministic installed-app value.\n */\npub answer(): Int ->\n    40 + 2.\n",
+                    ],
+                ),
+            );
+        Ok(Unit) <-
+            File.write_text(
+                Support.child(project, String.concat(["src/", module_name, "/Main.terl"])),
+                String.concat(
+                    [
+                        "module ",
+                        module_name,
+                        ".Main.\n\nimport ",
+                        module_name,
+                        ".Model.{answer}.\n\n/**\n * Runs the installed reference application.\n */\npub main(): Bool ->\n    answer() == 42.\n",
+                    ],
+                ),
+            );
+        Ok(Unit) <-
+            File.write_text(
+                Support.child(project, String.concat(["tests/", module_name, "/MainTest.terl"])),
+                String.concat(
+                    [
+                        "module ",
+                        module_name,
+                        ".MainTest.\n\nimport ",
+                        module_name,
+                        ".Model.{answer}.\n\n/**\n * Verifies the installed reference application.\n */\n@test\npub reference_app_works(): Bool ->\n    answer() == 42.\n",
+                    ],
+                ),
+            );
+        Ok(Unit) <- File.write_text(Support.child(project, "FEATURE"), String.append(feature, "\n"))
+    } else {
+        _ -> ""
+    };
+    project.
+
+app_commands(candidate: Candidate, name: String, feature: String): List[CommandResult] ->
+    let project = write_app(candidate, name, feature);
+    [
+        Support.run(candidate, String.append(name, "-build"), "terlc", ["build"], project),
+        Support.run(candidate, String.append(name, "-test"), "terlc", ["test"], project),
+        Support.run(
+            candidate,
+            String.append(name, "-fmt"),
+            "terlc",
+            ["fmt", "--check", project],
+            project,
+        ),
+        Support.run(candidate, String.append(name, "-lint"), "terlc", ["lint", project], project),
+        Support.run(
+            candidate,
+            String.append(name, "-package"),
+            "terlc",
+            ["package", "fetch", project],
+            project,
+        ),
+        Support.run(candidate, String.append(name, "-run"), "terlc", ["run", project], project),
+    ].
+
+apps(candidate: Candidate): List[CommandResult] ->
+    let command_line = app_commands(candidate, "multi-module-cli", "cli");
+    let http = app_commands(candidate, "vm-http-app", "http");
+    let template_app = app_commands(candidate, "typed-template-app", "template");
+    let package_app = app_commands(candidate, "package-import-app", "package");
+    let collections = app_commands(candidate, "collections-app", "collections-map");
+    let native_boundary = app_commands(candidate, "data-style-app", "native-boundary");
+    List.concat(
+        command_line,
+        List.concat(
+            http,
+            List.concat(
+                template_app,
+                List.concat(package_app, List.concat(collections, native_boundary)),
+            ),
+        ),
+    ).
+
+adversarial(candidate: Candidate): CommandResult ->
+    let project = write_app(candidate, "broken-reference", "bad-import");
+    let _broken =
+        File.write_text(
+            Support.child(project, "src/broken_reference/Main.terl"),
+            "module wrong.Path.\n\nimport missing.Package.\n\npub main(): Bool -> true.\n",
+        );
+    Support.run(candidate, "broken-reference-diagnostic", "terlc", ["check", project], project).
+
+pub check(root: String): Bool ->
+    case Support.prepare(root, "reference-apps") {
+        None -> false;
+        Some(candidate) ->
+            let commands = apps(candidate);
+            let rejected = adversarial(candidate);
+            let diagnostic = String.concat([rejected.stdout, rejected.stderr]);
+            let identity = Support.candidate_identity_holds(candidate);
+            let applications_passed = Support.all_succeeded(commands);
+            let rejected_cleanly =
+                rejected.status != 0
+                    and String.contains(diagnostic, "error[")
+                    and not String.contains(diagnostic, "internal compiler error");
+            let validated = identity and applications_passed and rejected_cleanly;
+            let cleaned = Support.cleanup(candidate, true);
+            let passed = validated and cleaned;
+            let report =
+                Json.object()
+                    .put("schema", Json.string("terlan.release-reference-app-suite-report.v1"))
+                    .put(
+                        "decision",
+                        Json.string(
+                            if {
+                                passed -> "pass";
+                                true -> "fail"
+                            },
+                        ),
+                    )
+                    .put("installed_compiler", Json.string("<installed>/terlc"))
+                    .put("runtime", Json.string("terlan-vm"))
+                    .put("applications", Support.commands_json(commands, root, candidate.temporary))
+                    .put("adversarial", Support.command_json(rejected, root, candidate.temporary))
+                    .put("support_bundle_policy", Json.string("generated-on-failure"))
+                    .put(
+                        "cleanup_status",
+                        Json.string(
+                            if {
+                                cleaned -> "pass";
+                                true -> "fail"
+                            },
+                        ),
+                    );
+            let written = Support.write_report(root, "release-reference-app-suite-report.json", report);
+            if {
+                passed and written -> let _printed = println("installed reference application suite passed");
+                true;
+                true -> false
+            }
+    }.

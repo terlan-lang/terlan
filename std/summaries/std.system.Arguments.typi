@@ -1,0 +1,15 @@
+//! Immutable command-line arguments for one Terlan VM application run.
+//!
+//! `terlc run ... -- value` and packaged launchers place values after `--` in
+//! this application-owned argument vector. Compiler and VM options are never
+//! visible through this module.
+
+module std.system.Arguments.
+
+/// Returns the number of application arguments.
+
+pub count(): Int.
+
+/// Returns one argument or `None` when the index is outside the run vector.
+
+pub get(index: Int): Option[String].

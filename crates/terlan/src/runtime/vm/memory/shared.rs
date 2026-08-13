@@ -7,6 +7,7 @@ use super::{
 use crate::runtime::vm::process::{VmProcessId, VmProcessTable};
 
 impl VmMemoryAccountant {
+    #[cfg(test)]
     pub(crate) fn register_shared_allocation(
         &mut self,
         processes: &mut VmProcessTable,
@@ -42,6 +43,7 @@ impl VmMemoryAccountant {
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn retain_shared_allocation(
         &mut self,
         processes: &mut VmProcessTable,
@@ -85,6 +87,7 @@ impl VmMemoryAccountant {
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn release_shared_allocation(
         &mut self,
         processes: &mut VmProcessTable,
@@ -117,6 +120,7 @@ impl VmMemoryAccountant {
         Ok(deallocated)
     }
 
+    #[cfg(test)]
     pub(crate) fn release_shared_allocations(
         &mut self,
         processes: &mut VmProcessTable,
@@ -176,6 +180,7 @@ impl VmMemoryAccountant {
         Ok(deallocated)
     }
 
+    #[cfg(test)]
     pub(crate) fn reclassify_shared_allocation(
         &mut self,
         allocation: VmSharedAllocationId,
@@ -206,6 +211,7 @@ impl VmMemoryAccountant {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(crate) fn shared_allocation_kind(
         &self,
         allocation: VmSharedAllocationId,
@@ -213,6 +219,7 @@ impl VmMemoryAccountant {
         self.shared_allocation(allocation).map(|record| record.kind)
     }
 
+    #[cfg(test)]
     pub(super) fn shared_allocation(
         &self,
         allocation: VmSharedAllocationId,

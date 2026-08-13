@@ -41,7 +41,7 @@ pub ready_state_typechecks(receiver: MediaStreamTrack): MediaStreamTrackState ->
 
 pub apply_constraints_typechecks(
     receiver: MediaStreamTrack,
-    constraints: MediaTrackConstraints
+    constraints: MediaTrackConstraints,
 ): std.js.Promise[Unit] ->
     receiver.apply_constraints(constraints).
 
@@ -64,7 +64,7 @@ pub add_event_listener_typechecks(
     receiver: MediaStreamTrack,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -72,6 +72,6 @@ pub remove_event_listener_typechecks(
     receiver: MediaStreamTrack,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

@@ -561,12 +561,11 @@ pub(crate) fn bind_sql_parameters(
             continue;
         }
 
-        if current == '$' {
-            if next.is_some_and(|character| character.is_ascii_digit())
-                && has_sql_parameter_boundary(&chars, index)
-            {
-                return Err(SqlParameterBindingError::ExplicitPlaceholder);
-            }
+        if current == '$'
+            && next.is_some_and(|character| character.is_ascii_digit())
+            && has_sql_parameter_boundary(&chars, index)
+        {
+            return Err(SqlParameterBindingError::ExplicitPlaceholder);
         }
 
         if current == '$' && next == Some('{') {

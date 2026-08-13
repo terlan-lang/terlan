@@ -1,0 +1,26 @@
+/**
+ * Executable tests for the installer contract application module.
+ */
+module installer_contract.InstallerContractTest.
+
+import installer_contract.Main.
+
+@test
+pub release_artifact_mapping_covers_every_public_platform(): Bool ->
+    Main.release_artifact_mapping_covers_every_public_platform().
+
+@test
+pub install_sh_dry_runs_every_supported_unix_mapping(): Bool ->
+    Main.install_sh_dry_runs_every_supported_unix_mapping().
+
+@test
+pub install_sh_installs_local_artifacts_and_preserves_executability(): Bool ->
+    Main.install_sh_installs_local_artifacts_and_preserves_executability().
+
+@test
+pub failed_upgrade_restores_the_previous_installation(): Bool ->
+    Main.failed_upgrade_restores_the_previous_installation().
+
+@test
+pub windows_installer_retains_the_required_static_contract(): Bool ->
+    Main.windows_installer_retains_the_required_static_contract().

@@ -1,0 +1,262 @@
+/**
+ * Validates deterministic VM coordination scenarios and optional Docker readiness.
+ */
+module scripts.self_validation.VmCoordinationDocker.
+
+import std.core.Option.{Some}.
+import std.core.Result.{Ok}.
+import std.system.{Environment, Process}.
+
+pub struct NetworkScenario {
+    name: String,
+    latency_ms: Int,
+    jitter_ms: Int,
+    drop_every: Int,
+    disconnect_first: Bool,
+    reconnect_after_drop: Bool,
+    asymmetric_partition: Bool,
+    stale_epoch_delta: Int,
+}.
+
+pub struct SimulationState {
+    delivered: Int,
+    dropped: Int,
+    rejected_stale_epoch: Int,
+    reconnected: Bool,
+    connected: Bool,
+    max_latency_ms: Int,
+}.
+
+pub struct SimulationResult {
+    scenario: String,
+    delivered: Int,
+    dropped: Int,
+    rejected_stale_epoch: Int,
+    reconnected: Bool,
+    max_latency_ms: Int,
+}.
+
+pub coordination_contract_holds(): Bool ->
+    let scenarios = scenarios();
+    scenario_names_are_complete(scenarios)
+        and simulations_hold(scenarios)
+        and docker_contract_holds().
+
+scenarios(): List[NetworkScenario] ->
+    [
+        scenario("latency", 50, 0, 0, false, false, false, 0),
+        scenario("jitter", 20, 15, 0, false, false, false, 0),
+        scenario("packet_loss", 0, 0, 2, false, false, false, 0),
+        scenario("disconnect", 0, 0, 0, true, false, false, 0),
+        scenario("reconnect", 0, 0, 0, true, true, false, 0),
+        scenario("asymmetric_partition", 0, 0, 0, false, false, true, 0),
+        scenario("stale_epoch", 0, 0, 0, false, false, false, -1),
+    ].
+
+scenario(
+    name: String,
+    latency: Int,
+    jitter: Int,
+    drop_every: Int,
+    disconnect_first: Bool,
+    reconnect_after_drop: Bool,
+    asymmetric_partition: Bool,
+    stale_epoch_delta: Int,
+): NetworkScenario ->
+    NetworkScenario(
+        name = name,
+        latency_ms = latency,
+        jitter_ms = jitter,
+        drop_every = drop_every,
+        disconnect_first = disconnect_first,
+        reconnect_after_drop = reconnect_after_drop,
+        asymmetric_partition = asymmetric_partition,
+        stale_epoch_delta = stale_epoch_delta,
+    ).
+
+scenario_names_are_complete(scenarios: List[NetworkScenario]): Bool ->
+    unique_names(scenarios, [])
+        and has_scenario(scenarios, "latency")
+        and has_scenario(scenarios, "jitter")
+        and has_scenario(scenarios, "packet_loss")
+        and has_scenario(scenarios, "disconnect")
+        and has_scenario(scenarios, "reconnect")
+        and has_scenario(scenarios, "asymmetric_partition")
+        and has_scenario(scenarios, "stale_epoch").
+
+unique_names(scenarios: List[NetworkScenario], seen: List[String]): Bool ->
+    case scenarios {
+        [] -> true;
+        [scenario | rest] ->
+            not string_member(seen, scenario.name) and unique_names(rest, [scenario.name | seen])
+    }.
+
+has_scenario(scenarios: List[NetworkScenario], name: String): Bool ->
+    case scenarios {
+        [] -> false;
+        [scenario | rest] -> scenario.name == name or has_scenario(rest, name)
+    }.
+
+string_member(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or string_member(rest, expected)
+    }.
+
+simulations_hold(scenarios: List[NetworkScenario]): Bool ->
+    case scenarios {
+        [] -> true;
+        [scenario | rest] -> result_holds(simulate(scenario)) and simulations_hold(rest)
+    }.
+
+simulate(scenario: NetworkScenario): SimulationResult ->
+    let state =
+        SimulationState(
+            delivered = 0,
+            dropped = 0,
+            rejected_stale_epoch = 0,
+            reconnected = false,
+            connected = not scenario.disconnect_first,
+            max_latency_ms = 0,
+        );
+    finish_simulation(scenario, simulate_step(scenario, 1, state)).
+
+simulate_step(scenario: NetworkScenario, index: Int, state: SimulationState): SimulationState ->
+    if {
+        index > 4 -> state;
+        true -> let current = reconnect_if_needed(scenario, index, state);
+        let next = deliver_step(scenario, index, current);
+        simulate_step(scenario, index + 1, next)
+    }.
+
+reconnect_if_needed(
+    scenario: NetworkScenario,
+    index: Int,
+    state: SimulationState,
+): SimulationState ->
+    if {
+        scenario.reconnect_after_drop and index == 2 -> state_with_connection(state, true, true);
+        true -> state
+    }.
+
+deliver_step(scenario: NetworkScenario, index: Int, state: SimulationState): SimulationState ->
+    if {
+        not state.connected -> state_with_drop(state);
+        scenario.asymmetric_partition and index rem 2 == 0 -> state_with_drop(state);
+        scenario.drop_every > 0 and index rem scenario.drop_every == 0 -> state_with_drop(state);
+        scenario.stale_epoch_delta < 0 -> state_with_stale_rejection(state);
+        true -> state_with_delivery(state, observed_latency(scenario, index))
+    }.
+
+observed_latency(scenario: NetworkScenario, index: Int): Int ->
+    if {
+        scenario.jitter_ms > 0 -> scenario.latency_ms + index * 7 rem scenario.jitter_ms;
+        true -> scenario.latency_ms
+    }.
+
+state_with_connection(
+    state: SimulationState,
+    connected: Bool,
+    reconnected: Bool,
+): SimulationState ->
+    SimulationState(
+        delivered = state.delivered,
+        dropped = state.dropped,
+        rejected_stale_epoch = state.rejected_stale_epoch,
+        reconnected = reconnected,
+        connected = connected,
+        max_latency_ms = state.max_latency_ms,
+    ).
+
+state_with_drop(state: SimulationState): SimulationState ->
+    SimulationState(
+        delivered = state.delivered,
+        dropped = state.dropped + 1,
+        rejected_stale_epoch = state.rejected_stale_epoch,
+        reconnected = state.reconnected,
+        connected = state.connected,
+        max_latency_ms = state.max_latency_ms,
+    ).
+
+state_with_stale_rejection(state: SimulationState): SimulationState ->
+    SimulationState(
+        delivered = state.delivered,
+        dropped = state.dropped,
+        rejected_stale_epoch = state.rejected_stale_epoch + 1,
+        reconnected = state.reconnected,
+        connected = state.connected,
+        max_latency_ms = state.max_latency_ms,
+    ).
+
+state_with_delivery(state: SimulationState, latency: Int): SimulationState ->
+    SimulationState(
+        delivered = state.delivered + 1,
+        dropped = state.dropped,
+        rejected_stale_epoch = state.rejected_stale_epoch,
+        reconnected = state.reconnected,
+        connected = state.connected,
+        max_latency_ms = maximum(state.max_latency_ms, latency),
+    ).
+
+@pure
+maximum(left: Int, right: Int): Int ->
+    if {
+        left >= right -> left;
+        true -> right
+    }.
+
+finish_simulation(scenario: NetworkScenario, state: SimulationState): SimulationResult ->
+    SimulationResult(
+        scenario = scenario.name,
+        delivered = state.delivered,
+        dropped = state.dropped,
+        rejected_stale_epoch = state.rejected_stale_epoch,
+        reconnected = state.reconnected,
+        max_latency_ms = state.max_latency_ms,
+    ).
+
+result_holds(result: SimulationResult): Bool ->
+    if {
+        result.scenario == "latency" -> result.delivered > 0 and result.max_latency_ms >= 50;
+        result.scenario == "jitter" -> result.delivered > 0 and result.max_latency_ms > 20;
+        result.scenario == "packet_loss" -> result.delivered > 0 and result.dropped > 0;
+        result.scenario == "disconnect" -> result.delivered == 0 and result.dropped > 0;
+        result.scenario == "reconnect" -> result.delivered > 0 and result.reconnected;
+        result.scenario == "asymmetric_partition" -> result.delivered > 0 and result.dropped > 0;
+        result.scenario == "stale_epoch" -> result.rejected_stale_epoch > 0;
+        true -> false
+    }.
+
+docker_contract_holds(): Bool ->
+    let {
+        true <- docker_compose_available();
+        Some("1") <- Environment.get("TERLAN_VM_COORDINATION_DOCKER")
+    } else {
+        _ -> true
+    };
+    docker_daemon_available().
+
+docker_compose_available(): Bool ->
+    if {
+        command_succeeds("docker", ["compose", "version"]) -> true;
+        true -> command_succeeds("docker-compose", ["version"])
+    }.
+
+docker_daemon_available(): Bool ->
+    command_succeeds("docker", ["info", "--format", "{{.ServerVersion}}"]).
+
+command_succeeds(program: String, arguments: List[String]): Bool ->
+    case Process.run(
+    Process.with_timeout_ms(Process.with_arguments(Process.command(program), arguments), 30000),
+) {
+        Ok(output) -> Process.status(output) == 0;
+        _ -> false
+    }.
+
+@test
+pub required_coordination_scenarios_are_deterministic(): Bool ->
+    scenario_names_are_complete(scenarios()) and simulations_hold(scenarios()).
+
+@test
+pub docker_readiness_is_optional_unless_explicitly_enabled(): Bool ->
+    docker_contract_holds().

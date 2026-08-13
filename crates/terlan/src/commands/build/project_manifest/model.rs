@@ -21,7 +21,16 @@ pub(crate) struct ProjectManifest {
     pub(crate) server_profile: Option<ProjectServerProfile>,
     pub(crate) server_tls: Option<ProjectServerTls>,
     pub(crate) native_rust: Option<ProjectNativeRust>,
+    pub(crate) accelerator: Option<ProjectAccelerator>,
     pub(crate) dependencies: Vec<ProjectDependency>,
+}
+
+/// Versioned package-relative accelerator descriptor reference.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ProjectAccelerator {
+    pub(crate) schema: u64,
+    pub(crate) descriptor: String,
+    pub(crate) contract: Option<crate::compiler::accelerator::AcceleratorDescriptor>,
 }
 
 /// Parsed package metadata from `[package]`.
@@ -50,7 +59,7 @@ pub(crate) struct ProjectPackage {
 /// Parsed project-local runnable script alias.
 ///
 /// Inputs:
-/// - Produced from `[scripts] alias = "scripts/Name.terl"` entries.
+/// - Produced from `[scripts] alias = "scripts/Name.terls"` entries.
 ///
 /// Output:
 /// - Stable alias and package-relative source path used by script discovery

@@ -1,0 +1,741 @@
+/**
+ * Inventories every Rust lint allowance and requires an exact, reviewed policy
+ * row with a concrete rationale.
+ */
+module rust_quality.LintAllowances.
+
+import rust_quality.{RustAllowances, SourceInventory}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.io.Console.{eprintln, println}.
+import std.io.File.
+
+import type rust_quality.RustAllowances.Allowance.
+import type rust_quality.SourceInventory.{RustSource, SourceDiscovery}.
+
+struct RegistryRow {
+    valid: Bool,
+    path: String,
+    line: Int,
+    lints: String,
+    classification: String,
+    status: String,
+    owner: String,
+    expires: String,
+    rationale: String,
+}.
+
+struct Registry {
+    valid_header: Bool,
+    rows: List[RegistryRow],
+    diagnostics: List[String],
+}.
+
+struct Policy {
+    known: Bool,
+    status: String,
+    owner: String,
+    expires: String,
+}.
+
+struct AllowanceLoad {
+    valid: Bool,
+    allowances: List[Allowance],
+    message: String,
+}.
+
+struct InlineRationale {
+    present: Bool,
+    value: String,
+}.
+
+@pure
+header(): String -> "path\tline\tlints\tclassification\tstatus\towner\texpires\trationale".
+
+@pure
+registry_path(root: String): String ->
+    SourceInventory.child(root, "docs/quality/RUST_LINT_ALLOWANCES.tsv").
+
+@pure
+key(path: String, line: Int, lints: String): String ->
+    String.concat([path, "\t", Int.to_string(line), "\t", lints]).
+
+@pure
+allowance_key(value: Allowance): String ->
+    key(value.path, value.line, value.lints).
+
+@pure
+row_key(value: RegistryRow): String ->
+    key(value.path, value.line, value.lints).
+
+@pure
+allowance_before(left: Allowance, right: Allowance): Bool ->
+    if {
+        String.compare(left.path, right.path) == Lt -> true;
+        left.path != right.path -> false;
+        left.line < right.line -> true;
+        left.line != right.line -> false;
+        true -> String.compare(left.lints, right.lints) == Lt
+    }.
+
+@pure
+insert_allowance(value: Allowance, values: List[Allowance]): List[Allowance] ->
+    case values {
+        [] -> List[Allowance](value);
+        [head | rest] ->
+            if {
+                allowance_before(value, head) -> [value | values];
+                true -> [head | insert_allowance(value, rest)]
+            }
+    }.
+
+@pure
+insert_allowances(values: List[Allowance], output: List[Allowance]): List[Allowance] ->
+    case values {
+        [] -> output;
+        [value | rest] -> insert_allowances(rest, insert_allowance(value, output))
+    }.
+
+@pure
+scan_sources(sources: List[RustSource], output: List[Allowance]): List[Allowance] ->
+    case sources {
+        [] -> output;
+        [source | rest] ->
+            let scanned = RustAllowances.scan_source(source.path, source.contents);
+            let combined = insert_allowances(scanned, output);
+            scan_sources(rest, combined)
+    }.
+
+load_allowances_at(root: String, paths: List[String], output: List[Allowance]): AllowanceLoad ->
+    case paths {
+        [] -> AllowanceLoad(valid = true, allowances = output, message = "");
+        _ ->
+            let batch = SourceInventory.load_next(root, paths);
+            if {
+                not batch.valid -> AllowanceLoad(
+                    valid = false,
+                    allowances = List.new[Allowance](),
+                    message = batch.message,
+                );
+                true -> load_allowances_at(root, batch.remaining, scan_sources(batch.sources, output))
+            }
+    }.
+
+all_allowances(root: String, discovery: SourceDiscovery): AllowanceLoad ->
+    load_allowances_at(root, discovery.paths, List.new[Allowance]()).
+
+@pure
+policy(classification: String): Policy ->
+    case classification {
+        "benchmark-surface" ->
+            Policy(known = true, status = "structural-debt", owner = "CQ-3", expires = "CQ-3");
+        "compatibility" ->
+            Policy(known = true, status = "required-boundary", owner = "CQ-4", expires = "CQ-4");
+        "facade-reachability" ->
+            Policy(known = true, status = "structural-debt", owner = "CQ-4", expires = "CQ-4");
+        "generated-abi" ->
+            Policy(known = true, status = "required-boundary", owner = "CQ-4", expires = "CQ-4");
+        "generated-code" ->
+            Policy(known = true, status = "structural-debt", owner = "CQ-4", expires = "CQ-4");
+        "grammar-contract" ->
+            Policy(known = true, status = "required-boundary", owner = "CQ-4", expires = "CQ-4");
+        "source-reuse" ->
+            Policy(known = true, status = "structural-debt", owner = "CQ-3", expires = "CQ-3");
+        "staged-feature" ->
+            Policy(known = true, status = "structural-debt", owner = "CQ-3", expires = "CQ-3");
+        "target-conditional" ->
+            Policy(known = true, status = "structural-debt", owner = "CQ-3", expires = "CQ-3");
+        "test-scaffold" ->
+            Policy(known = true, status = "structural-debt", owner = "CQ-5", expires = "CQ-5");
+        "unsafe-boundary" ->
+            Policy(known = true, status = "required-boundary", owner = "CQ-3", expires = "CQ-4");
+        _ -> Policy(known = false, status = "", owner = "", expires = "")
+    }.
+
+@pure
+path_is_test(path: String): Bool ->
+    String.contains(path, "/tests/")
+        or String.contains(path, "_test")
+        or String.contains(path, "test_support").
+
+@pure
+contains_any(value: String, words: List[String]): Bool ->
+    case words {
+        [] -> false;
+        [word | rest] -> String.contains(value, word) or contains_any(value, rest)
+    }.
+
+@pure
+contains_exact(value: String, values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [candidate | rest] -> value == candidate or contains_exact(value, rest)
+    }.
+
+@pure
+classification(value: Allowance): String ->
+    let path = String.lowercase(value.path);
+    let source = String.lowercase(value.source_line);
+    if {
+        String.contains(path, "/generated/") -> if {
+            String.contains(value.lints, "unnecessary_cast") -> "generated-abi";
+            true -> "generated-code"
+        };
+        String.contains(value.lints, "unsafe_code") -> "unsafe-boundary";
+        String.contains(value.lints, "deprecated") -> "compatibility";
+        String.contains(value.lints, "enum_variant_names") -> "grammar-contract";
+        path_is_test(path) -> "test-scaffold";
+        String.contains(path, "benchmark") or String.contains(source, "benchmark") -> "benchmark-surface";
+        path == "crates/terlan/src/lib.rs" -> "facade-reachability";
+        path == "crates/terlan/src/main.rs"
+            or path == "crates/terlan/src/native_worker/main.rs"
+            or path == "crates/terlan/src/vm/main.rs" -> "facade-reachability";
+        contains_any(source, ["legacy", "compatibility"]) -> "compatibility";
+        contains_any(source, ["hidden", "staged", "before", "once tracing"]) -> "staged-feature";
+        contains_any(source, ["test", "seam", "fixture"]) -> "test-scaffold";
+        contains_any(
+            source,
+            ["shared", "standalone", "not every binary", "embedding", "source-reuse"],
+        ) -> "facade-reachability";
+        String.starts_with(value.source_line, "#![allow") -> "facade-reachability";
+        true -> "target-conditional"
+    }.
+
+@pure
+default_rationale(category: String): String ->
+    case category {
+        "benchmark-surface" ->
+            "The benchmark binary selects this measurement surface independently from ordinary product binaries.";
+        "compatibility" ->
+            "This compatibility path remains reachable by a maintained external or migration contract.";
+        "facade-reachability" ->
+            "The canonical library facade spans feature-selected product commands; CQ-4 will narrow the remaining item reachability instead of copying source.";
+        "generated-abi" ->
+            "Target-dependent C integer aliases require explicit casts at this generated resource ABI boundary.";
+        "generated-code" ->
+            "The generator emits both protocol variants although this generated package selects only one variant.";
+        "grammar-contract" ->
+            "The Rust names intentionally mirror stable grammar production names used by parser diagnostics.";
+        "source-reuse" ->
+            "Transitional source reuse compiles this module into binaries with different reachable command surfaces.";
+        "staged-feature" ->
+            "The checked implementation precedes activation of its hidden or release-gated consumer.";
+        "target-conditional" ->
+            "This item is selected only by a maintained target or feature configuration not active in every workspace binary.";
+        "test-scaffold" ->
+            "Focused tests require this seam to construct or observe behavior that is not called by the production target.";
+        "unsafe-boundary" ->
+            "This reviewed native or FFI boundary must contain the unsafe operation while its parent module denies unsafe code.";
+        _ -> ""
+    }.
+
+@pure
+long_rationale(value: String): InlineRationale ->
+    if {
+        value.byte_size() >= 20 -> InlineRationale(present = true, value = value);
+        true -> InlineRationale(present = false, value = "")
+    }.
+
+@pure
+inline_rationale(source_line: String): InlineRationale ->
+    case source_line.split_once("//") {
+        Some({_prefix, comment}) -> long_rationale(String.trim(comment));
+        None -> InlineRationale(present = false, value = "")
+    }.
+
+@pure
+fallback_rationale(value: Allowance, category: String): String ->
+    if {
+        category == "unsafe-boundary" and path_is_test(value.path) -> "The test invokes emitted AOT entry points through raw function pointers to verify the production ABI contract.";
+        category == "unsafe-boundary"
+            and String.ends_with(value.path, "commands/serve/hyper_server.rs") -> "Hyper exposes uninitialized read capacity; SockRef initializes the returned byte range before the VM advances it.";
+        category == "unsafe-boundary"
+            and String.ends_with(value.path, "managed/execution/callbacks.rs") -> "Generated AOT code enters these extern callbacks with raw runtime-owned buffers that are validated before use.";
+        category == "unsafe-boundary" and String.ends_with(value.path, "managed/execution.rs") -> "This managed-allocation boundary validates raw AOT layout and field buffers before creating Rust slices.";
+        category == "unsafe-boundary"
+            and String.ends_with(value.path, "pure_native/direct_backend.rs") -> "The admitted native image exposes symbol addresses that this backend validates before invoking as typed entry points.";
+        category == "compatibility" and String.contains(value.path, "/lsp/") -> "Pinned lsp-types 0.94 still requires the deprecated DocumentSymbol field while callers use its replacement tags field.";
+        true -> default_rationale(category)
+    }.
+
+@pure
+rationale(value: Allowance, category: String): String ->
+    let inline = inline_rationale(value.source_line);
+    if {
+        inline.present -> inline.value;
+        true -> fallback_rationale(value, category)
+    }.
+
+@pure
+parse_row(fields: List[String], number: Int): RegistryRow ->
+    case fields {
+        [path, source_line, lints, category, status, owner, expires, reason] ->
+            case Int.from_string(source_line) {
+                Some(line) ->
+                    RegistryRow(
+                        valid = true,
+                        path = path,
+                        line = line,
+                        lints = lints,
+                        classification = category,
+                        status = status,
+                        owner = owner,
+                        expires = expires,
+                        rationale = reason,
+                    );
+                None ->
+                    RegistryRow(
+                        valid = false,
+                        path = String.concat(["line:", Int.to_string(number)]),
+                        line = 0,
+                        lints = "integer",
+                        classification = "",
+                        status = "",
+                        owner = "",
+                        expires = "",
+                        rationale = "source line must be an integer",
+                    )
+            };
+        _ ->
+            RegistryRow(
+                valid = false,
+                path = String.concat(["line:", Int.to_string(number)]),
+                line = 0,
+                lints = "fields",
+                classification = "",
+                status = "",
+                owner = "",
+                expires = "",
+                rationale = "expected 8 tab-separated fields",
+            )
+    }.
+
+@pure
+parse_rows(
+    lines: List[String],
+    number: Int,
+    rows: List[RegistryRow],
+    diagnostics: List[String],
+): Registry ->
+    case lines {
+        [] ->
+            Registry(
+                valid_header = true,
+                rows = SourceInventory.reverse(rows),
+                diagnostics = SourceInventory.reverse(diagnostics),
+            );
+        [""] ->
+            Registry(
+                valid_header = true,
+                rows = SourceInventory.reverse(rows),
+                diagnostics = SourceInventory.reverse(diagnostics),
+            );
+        [line | rest] ->
+            let row = parse_row(String.split(line, "\t"), number);
+            if {
+                row.valid -> parse_rows(rest, number + 1, [row | rows], diagnostics);
+                true -> parse_rows(
+                    rest,
+                    number + 1,
+                    rows,
+                    [String.concat([row.path, ": ", row.rationale]) | diagnostics],
+                )
+            }
+    }.
+
+@pure
+parse_registry(source: String): Registry ->
+    case String.split(source, "\n") {
+        [first | rest] ->
+            if {
+                first == header() -> parse_rows(rest, 2, List.new[RegistryRow](), List.new[String]());
+                true -> Registry(
+                    valid_header = false,
+                    rows = List.new[RegistryRow](),
+                    diagnostics = List.new[String](),
+                )
+            };
+        [] ->
+            Registry(
+                valid_header = false,
+                rows = List.new[RegistryRow](),
+                diagnostics = List.new[String](),
+            )
+    }.
+
+@pure
+contains_key(rows: List[RegistryRow], expected: String): Bool ->
+    case rows {
+        [] -> false;
+        [row | rest] -> row_key(row) == expected or contains_key(rest, expected)
+    }.
+
+@pure
+contains_allowance(values: List[Allowance], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> allowance_key(value) == expected or contains_allowance(rest, expected)
+    }.
+
+@pure
+placeholder(value: String): Bool ->
+    let lowered = String.lowercase(value);
+    contains_any(lowered, ["todo", "tbd", "unknown", "placeholder", "existing code"]).
+
+@pure
+validate_rows(
+    rows: List[RegistryRow],
+    seen: List[String],
+    diagnostics: List[String],
+): List[String] ->
+    case rows {
+        [] -> diagnostics;
+        [row | rest] ->
+            let selected = policy(row.classification);
+            let current_key = row_key(row);
+            let d1 =
+                if {
+                    contains_exact(current_key, seen) -> [String.concat(["duplicate allowance row ", row.path, ":", Int.to_string(row.line), ":", row.lints]) | diagnostics];
+                    true -> diagnostics
+                };
+            let d2 =
+                if {
+                    not selected.known -> [String.concat(
+    [row.path, ":", Int.to_string(row.line), ": unknown classification `", row.classification, "`"],
+) | d1];
+                    row.status != selected.status
+                        or row.owner != selected.owner
+                        or row.expires != selected.expires -> [String.concat(
+    [
+        row.path,
+        ":",
+        Int.to_string(row.line),
+        ": `",
+        row.classification,
+        "` must be `",
+        selected.status,
+        "`, owned by ",
+        selected.owner,
+        ", and expire at ",
+        selected.expires,
+    ],
+) | d1];
+                    true -> d1
+                };
+            let d3 =
+                if {
+                    String.trim(row.rationale).byte_size() < 20 or placeholder(row.rationale) -> [String.concat(
+    [
+        row.path,
+        ":",
+        Int.to_string(row.line),
+        ": allowance needs a concrete non-placeholder rationale",
+    ],
+) | d2];
+                    true -> d2
+                };
+            validate_rows(rest, [current_key | seen], d3)
+    }.
+
+@pure
+unclassified(
+    values: List[Allowance],
+    rows: List[RegistryRow],
+    diagnostics: List[String],
+): List[String] ->
+    case values {
+        [] -> diagnostics;
+        [value | rest] ->
+            let next =
+                if {
+                    contains_key(rows, allowance_key(value)) -> diagnostics;
+                    true -> [String.concat(
+    [value.path, ":", Int.to_string(value.line), ": unclassified allowance `", value.lints, "`"],
+) | diagnostics]
+                };
+            unclassified(rest, rows, next)
+    }.
+
+@pure
+stale(rows: List[RegistryRow], values: List[Allowance], diagnostics: List[String]): List[String] ->
+    case rows {
+        [] -> diagnostics;
+        [row | rest] ->
+            let next =
+                if {
+                    contains_allowance(values, row_key(row)) -> diagnostics;
+                    true -> [String.concat(
+    [row.path, ":", Int.to_string(row.line), ": stale allowance registry row `", row.lints, "`"],
+) | diagnostics]
+                };
+            stale(rest, values, next)
+    }.
+
+@pure
+validate(values: List[Allowance], registry: Registry): List[String] ->
+    let rows_checked =
+        validate_rows(
+            registry.rows,
+            List.new[String](),
+            SourceInventory.reverse(registry.diagnostics),
+        );
+    let actual_checked = unclassified(values, registry.rows, rows_checked);
+    SourceInventory.reverse(stale(registry.rows, values, actual_checked)).
+
+@pure
+render_row(value: Allowance): String ->
+    let category = classification(value);
+    let selected = policy(category);
+    String.concat(
+        [
+            value.path,
+            "\t",
+            Int.to_string(value.line),
+            "\t",
+            value.lints,
+            "\t",
+            category,
+            "\t",
+            selected.status,
+            "\t",
+            selected.owner,
+            "\t",
+            selected.expires,
+            "\t",
+            rationale(value, category),
+            "\n",
+        ],
+    ).
+
+@pure
+render_rows(values: List[Allowance], output: List[String]): String ->
+    case values {
+        [] -> String.concat(SourceInventory.reverse(output));
+        [value | rest] ->
+            let rendered = render_row(value);
+            render_rows(rest, [rendered | output])
+    }.
+
+@pure
+render_registry(values: List[Allowance]): String ->
+    String.concat([header(), "\n", render_rows(values, List.new[String]())]).
+
+print_diagnostics(values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            let _printed = eprintln(String.concat(["  - ", value]));
+            print_diagnostics(rest)
+    }.
+
+pub check(root: String): Bool ->
+    let discovery = SourceInventory.discover(root);
+    if {
+        not discovery.valid -> let _printed = eprintln(String.concat(["[rust-lint-allowances] failure: ", discovery.message]));
+        false;
+        true -> let loaded = all_allowances(root, discovery);
+        if {
+            not loaded.valid -> let _printed = eprintln(String.concat(["[rust-lint-allowances] failure: ", loaded.message]));
+            false;
+            true -> case File.read_text(registry_path(root)) {
+                Err(_reason) ->
+                    let _printed = eprintln("[rust-lint-allowances] failure: missing lint allowance registry");
+                    false;
+                Ok(source) ->
+                    let registry = parse_registry(source);
+                    if {
+                        not registry.valid_header -> let _printed =
+                            eprintln(
+                                String.concat(
+                                    [
+                                        "[rust-lint-allowances] failure: expected header `",
+                                        header(),
+                                        "`",
+                                    ],
+                                ),
+                            );
+                        false;
+                        true -> let diagnostics = validate(loaded.allowances, registry);
+                        if {
+                            List.length(diagnostics) == 0 -> let _printed =
+                                println(
+                                    String.concat(
+                                        [
+                                            "[rust-lint-allowances] ",
+                                            Int.to_string(List.length(loaded.allowances)),
+                                            " justified allowances",
+                                        ],
+                                    ),
+                                );
+                            true;
+                            true -> let _printed = eprintln("[rust-lint-allowances] failures:");
+                            print_diagnostics(diagnostics)
+                        }
+                    }
+            }
+        }
+    }.
+
+write_registry(path: String, rendered: String, count: Int): Bool ->
+    case File.write_text(path, rendered) {
+        Ok(_written) ->
+            let _printed =
+                println(
+                    String.concat(
+                        ["wrote ", path, " with ", Int.to_string(count), " classified allowances"],
+                    ),
+                );
+            true;
+        Err(reason) ->
+            let _printed = eprintln(File.message(reason));
+            false
+    }.
+
+record_loaded(root: String): Bool ->
+    let discovery = SourceInventory.discover(root);
+    if {
+        not discovery.valid -> let _printed = eprintln(String.concat(["[rust-lint-allowances] failure: ", discovery.message]));
+        false;
+        true -> let loaded = all_allowances(root, discovery);
+        if {
+            not loaded.valid -> let _printed = eprintln(String.concat(["[rust-lint-allowances] failure: ", loaded.message]));
+            false;
+            true -> let path = registry_path(root);
+            let rendered = render_registry(loaded.allowances);
+            let count = List.length(loaded.allowances);
+            write_registry(path, rendered, count)
+        }
+    }.
+
+pub record_new(root: String): Bool ->
+    let path = registry_path(root);
+    if {
+        File.exists(path) -> let _printed =
+            eprintln(
+                String.concat(
+                    [
+                        "refusing to replace reviewed registry ",
+                        path,
+                        "; use the explicit replacement command only after reviewing every changed row",
+                    ],
+                ),
+            );
+        false;
+        true -> record_loaded(root)
+    }.
+
+pub replace_reviewed(root: String): Bool ->
+    record_loaded(root).
+
+@pure
+contains_diagnostic(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> String.contains(value, expected) or contains_diagnostic(rest, expected)
+    }.
+
+@pure
+inline_rationale_matches(values: List[Allowance], expected: String): Bool ->
+    case values {
+        [value] -> rationale(value, classification(value)) == expected;
+        _ -> false
+    }.
+
+pub self_test(): Bool ->
+    let source = "#[allow(dead_code)]\nfn staged() {}\n";
+    let values = RustAllowances.scan_source("src/lib.rs", source);
+    let rendered = render_registry(values);
+    let complete = validate(values, parse_registry(rendered));
+    let empty = parse_registry(String.concat([header(), "\n"]));
+    let stale_registry = validate(List.new[Allowance](), parse_registry(rendered));
+    let placeholder_registry =
+        parse_registry(
+            String.replace(
+                rendered,
+                default_rationale("target-conditional"),
+                "TODO placeholder reason",
+            ),
+        );
+    let unknown_registry = parse_registry(String.replace(rendered, "\ttarget-conditional\t", "\tnecessary\t"));
+    let wrong_policy_registry =
+        parse_registry(
+            String.replace(rendered, "\tstructural-debt\tCQ-3\tCQ-3\t", "\tnobody\tnever\tnever\t"),
+        );
+    let duplicate_registry =
+        case String.split(rendered, "\n") {
+            [first, row, ""] -> parse_registry(String.concat([first, "\n", row, "\n", row, "\n"]));
+            _ -> empty
+        };
+    let comments =
+        RustAllowances.scan_source(
+            "src/lib.rs",
+            "// #[allow(dead_code)]\nconst TEXT: &str = \"#[allow(dead_code)]\";\n",
+        );
+    let multiline =
+        RustAllowances.scan_source(
+            "src/lib.rs",
+            "#[allow(\n clippy::too_many_arguments,\n dead_code, reason = \"fixture\"\n)]\nfn value() {}\n",
+        );
+    let inline =
+        RustAllowances.scan_source(
+            "src/lib.rs",
+            "#[allow(dead_code)] // This rationale is intentionally maintained inline.\nfn value() {}\n",
+        );
+    let inline_matches = inline_rationale_matches(inline, "This rationale is intentionally maintained inline.");
+    if {
+        List.length(complete) != 0 -> let _printed =
+            eprintln(
+                "error[rust_quality.lint_allowances.self_test.complete]: complete registry rejected",
+            );
+        false;
+        not contains_diagnostic(validate(values, empty), "unclassified allowance") -> let _printed =
+            eprintln(
+                "error[rust_quality.lint_allowances.self_test.unclassified]: missing registry row accepted",
+            );
+        false;
+        not contains_diagnostic(stale_registry, "stale allowance registry row") -> let _printed =
+            eprintln(
+                "error[rust_quality.lint_allowances.self_test.stale]: stale registry row accepted",
+            );
+        false;
+        not contains_diagnostic(validate(values, placeholder_registry), "concrete non-placeholder") -> let _printed =
+            eprintln(
+                "error[rust_quality.lint_allowances.self_test.placeholder]: placeholder rationale accepted",
+            );
+        false;
+        not contains_diagnostic(validate(values, unknown_registry), "unknown classification") -> let _printed =
+            eprintln(
+                "error[rust_quality.lint_allowances.self_test.classification]: unknown classification accepted",
+            );
+        false;
+        not contains_diagnostic(validate(values, duplicate_registry), "duplicate allowance row") -> let _printed =
+            eprintln(
+                "error[rust_quality.lint_allowances.self_test.duplicate]: duplicate row accepted",
+            );
+        false;
+        not contains_diagnostic(validate(values, wrong_policy_registry), "must be `") -> let _printed =
+            eprintln(
+                "error[rust_quality.lint_allowances.self_test.policy]: wrong owner or expiry accepted",
+            );
+        false;
+        List.length(comments) != 0 -> let _printed =
+            eprintln(
+                "error[rust_quality.lint_allowances.self_test.masking]: comment or literal produced allowance",
+            );
+        false;
+        List.length(multiline) != 1 -> let _printed =
+            eprintln(
+                "error[rust_quality.lint_allowances.self_test.multiline]: multiline allowance not recognized",
+            );
+        false;
+        not inline_matches -> let _printed =
+            eprintln(
+                "error[rust_quality.lint_allowances.self_test.inline_rationale]: reviewed inline rationale was not preserved",
+            );
+        false;
+        true -> let _printed = println("Rust lint-allowance self-test passed");
+        true
+    }.

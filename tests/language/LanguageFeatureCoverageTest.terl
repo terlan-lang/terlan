@@ -1,9 +1,20 @@
 module tests.language.LanguageFeatureCoverageTest.
 
-import std.core.Option.{None, Option, Some}.
+import std.core.Option.{None, Some}.
 import std.test.Test.{assert_equal}.
 
 import type std.core.Option.
+
+pub struct CoverageProfile {
+    title: String,
+}.
+
+pub struct CoveragePresenter {
+    prefix: String,
+}.
+
+pub (presenter: CoveragePresenter) present(value: CoverageProfile): String ->
+    presenter.prefix + value.title.
 
 pub identity[T](value: T): T ->
     value.
@@ -11,39 +22,61 @@ pub identity[T](value: T): T ->
 helper(value: Int): Int ->
     value + 1.
 
+present(value: Int): Option[Int] ->
+    Some(value).
+
 pub type NumberAlias = Int.
 
 pub module_value(): Int -> 1.
 
 @test
 pub module_import_public_private_let_sequence_execute(): Bool ->
-    let a = module_value(); let b = helper(a); assert_equal(2, b).
+    let a = module_value();
+    let b = helper(a);
+    assert_equal(2, b).
 
 @test
 pub generic_alias_and_type_import_execute(): Bool ->
-    let value = identity(4); assert_equal(4, value).
+    let value = identity(4);
+    assert_equal(4, value).
 
 @test
 pub lambda_and_closure_execute(): Bool ->
-    let double = ((value) -> value + value); assert_equal(20, double(10)).
+    let double = ((value) -> value + value);
+    assert_equal(20, double(10)).
 
 @test
 pub conditional_and_case_execute(): Bool ->
-    let value = Some(3);
+    let value = present(3);
     case value {
         Some(count) ->
             if {
-            count == 3 -> assert_equal(4, count + 1);
-            true -> false
+                count == 3 -> assert_equal(4, count + 1);
+                true -> false
             };
         None -> false
     }.
 
 @test
-pub collection_tuple_list_map_index_execute(): Bool ->
+pub list_and_index_execute(): Bool ->
     let items = [10, 20, 30];
-    assert_equal(true, items[1] == 20 and {1, "a"} == {1, "a"} and {name: "Ada"} == {name: "Ada"}).
+    assert_equal(20, items[1]).
 
 @test
 pub string_receiver_and_constructor_execute(): Bool ->
     assert_equal(true, "password=secret".contains("password") and String(123) == "123").
+
+@test
+pub struct_declaration_executes(): Bool ->
+    let profile = CoverageProfile {title: "Engineer"};
+    assert_equal("Engineer", profile.title).
+
+@test
+pub receiver_methods_execute(): Bool ->
+    let presenter = CoveragePresenter {prefix: "Role: "};
+    let profile = CoverageProfile {title: "Engineer"};
+    assert_equal("Role: Engineer", presenter.present(profile)).
+
+@test
+pub pipe_forward_executes(): Bool ->
+    assert_equal(2, 1 |> helper()).

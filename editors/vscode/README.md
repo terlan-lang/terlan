@@ -6,7 +6,7 @@ language configuration, and `terlc lsp --stdio` startup.
 
 ## Responsibilities
 
-- Associate `.terl`, `.terli`, and `.terl.*` template files with Terlan
+- Associate `.terl`, `.terls`, `.terli`, and `.terl.*` template files with Terlan
   language ids.
 - Treat `.terl.html` templates as HTML-backed editor documents while keeping
   Terlan `${...}` expression highlighting and component links back to Terlan
@@ -51,6 +51,8 @@ language configuration, and `terlc lsp --stdio` startup.
 
 - `terlc lsp --stdio`: compiler-owned language-server command.
 - `vscode-languageclient`: VS Code LSP client package used at extension runtime.
+- Format Document delegates to the compiler's canonical formatter over
+  `textDocument/formatting`; the extension does not maintain formatting rules.
 
 ## Language Server Deployment
 

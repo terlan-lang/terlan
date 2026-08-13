@@ -135,10 +135,10 @@ fn worker_denies_missing_capability_before_adapter_dispatch() {
     let output = run_frames(
         Vec::new(),
         concat!(
-            "{\"type\":\"call\",\"version\":2,\"request_id\":1,\"owner_id\":7,",
+            "{\"type\":\"call\",\"version\":3,\"request_id\":1,\"owner_id\":7,",
             "\"capability\":\"postgres\",",
             "\"operation\":\"std.db.postgres.string\",\"arguments\":[]}\n",
-            "{\"type\":\"shutdown\",\"version\":2}\n"
+            "{\"type\":\"shutdown\",\"version\":3}\n"
         ),
     );
     let reply = first_reply(&output);
@@ -155,10 +155,10 @@ fn worker_rejects_capability_operation_identity_mismatch() {
     let output = run_frames(
         vec!["--allow", "postgres", "--worker-class", "fast"],
         concat!(
-            "{\"type\":\"call\",\"version\":2,\"request_id\":1,\"owner_id\":7,",
+            "{\"type\":\"call\",\"version\":3,\"request_id\":1,\"owner_id\":7,",
             "\"capability\":\"filesystem\",",
             "\"operation\":\"std.db.postgres.string\",\"arguments\":[]}\n",
-            "{\"type\":\"shutdown\",\"version\":2}\n"
+            "{\"type\":\"shutdown\",\"version\":3}\n"
         ),
     );
     let reply = first_reply(&output);
@@ -175,10 +175,10 @@ fn worker_denies_missing_scheduler_class_before_adapter_dispatch() {
     let output = run_frames(
         vec!["--allow", "postgres"],
         concat!(
-            "{\"type\":\"call\",\"version\":2,\"request_id\":1,\"owner_id\":7,",
+            "{\"type\":\"call\",\"version\":3,\"request_id\":1,\"owner_id\":7,",
             "\"capability\":\"postgres\",",
             "\"operation\":\"std.db.postgres.string\",\"arguments\":[]}\n",
-            "{\"type\":\"shutdown\",\"version\":2}\n"
+            "{\"type\":\"shutdown\",\"version\":3}\n"
         ),
     );
     let reply = first_reply(&output);
@@ -192,12 +192,12 @@ fn worker_dispatches_only_after_capability_and_class_admission() {
     let output = run_frames(
         vec!["--allow", "postgres", "--worker-class", "fast"],
         concat!(
-            "{\"type\":\"call\",\"version\":2,\"request_id\":1,\"owner_id\":7,",
+            "{\"type\":\"call\",\"version\":3,\"request_id\":1,\"owner_id\":7,",
             "\"capability\":\"postgres\",",
             "\"operation\":\"std.db.postgres.string\",\"arguments\":[",
             "{\"type\":\"handle\",\"value\":{\"id\":1,\"generation\":1}},",
             "{\"type\":\"text\",\"value\":\"name\"}]}\n",
-            "{\"type\":\"shutdown\",\"version\":2}\n"
+            "{\"type\":\"shutdown\",\"version\":3}\n"
         ),
     );
     let reply = first_reply(&output);
@@ -212,10 +212,10 @@ fn worker_rejects_undeclared_operations() {
     let output = run_frames(
         Vec::new(),
         concat!(
-            "{\"type\":\"call\",\"version\":2,\"request_id\":1,\"owner_id\":7,",
+            "{\"type\":\"call\",\"version\":3,\"request_id\":1,\"owner_id\":7,",
             "\"capability\":\"encoding\",",
             "\"operation\":\"std.encoding.base64.encode\",\"arguments\":[]}\n",
-            "{\"type\":\"shutdown\",\"version\":2}\n"
+            "{\"type\":\"shutdown\",\"version\":3}\n"
         ),
     );
     let reply = first_reply(&output);
@@ -251,7 +251,7 @@ fn framing_rejects_oversized_input_and_output() {
 fn worker_rejects_invalid_protocol_lifecycle() {
     let wrong_version = run_capability_worker(
         test_config(&[]),
-        Cursor::new(b"{\"type\":\"shutdown\",\"version\":3}\n"),
+        Cursor::new(b"{\"type\":\"shutdown\",\"version\":4}\n"),
         Vec::new(),
     )
     .expect_err("wrong version");
@@ -260,7 +260,7 @@ fn worker_rejects_invalid_protocol_lifecycle() {
     let zero_identity = run_capability_worker(
         test_config(&[]),
         Cursor::new(concat!(
-            "{\"type\":\"call\",\"version\":2,\"request_id\":0,\"owner_id\":7,",
+            "{\"type\":\"call\",\"version\":3,\"request_id\":0,\"owner_id\":7,",
             "\"capability\":\"postgres\",",
             "\"operation\":\"std.db.postgres.string\",\"arguments\":[]}\n"
         )),
@@ -272,10 +272,10 @@ fn worker_rejects_invalid_protocol_lifecycle() {
     let request_limit = run_capability_worker(
         test_config(&["--max-requests", "1"]),
         Cursor::new(concat!(
-            "{\"type\":\"call\",\"version\":2,\"request_id\":1,\"owner_id\":7,",
+            "{\"type\":\"call\",\"version\":3,\"request_id\":1,\"owner_id\":7,",
             "\"capability\":\"postgres\",",
             "\"operation\":\"denied\",\"arguments\":[]}\n",
-            "{\"type\":\"call\",\"version\":2,\"request_id\":2,\"owner_id\":7,",
+            "{\"type\":\"call\",\"version\":3,\"request_id\":2,\"owner_id\":7,",
             "\"capability\":\"postgres\",",
             "\"operation\":\"denied\",\"arguments\":[]}\n"
         )),
@@ -291,8 +291,8 @@ fn worker_rejects_stale_cancellation_without_failing_the_transport() {
     let output = run_frames(
         Vec::new(),
         concat!(
-            "{\"type\":\"cancel\",\"version\":2,\"request_id\":9,\"owner_id\":7}\n",
-            "{\"type\":\"shutdown\",\"version\":2}\n"
+            "{\"type\":\"cancel\",\"version\":3,\"request_id\":9,\"owner_id\":7}\n",
+            "{\"type\":\"shutdown\",\"version\":3}\n"
         ),
     );
     let acknowledgement = first_reply(&output);
@@ -412,7 +412,9 @@ fn worker_protocol_failure_cancels_active_adapter_before_returning() {
             operation: "std.db.postgres.connect".to_string(),
             arguments: Vec::new(),
         },
-        CapabilityRequest::Shutdown { version: 3 },
+        CapabilityRequest::Shutdown {
+            version: CAPABILITY_PROTOCOL_VERSION + 1,
+        },
     ];
     let mut input = Vec::new();
     for request in requests {

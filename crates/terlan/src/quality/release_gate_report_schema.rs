@@ -401,4 +401,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "release_gate_report_schema_test.rs"]
+#[cfg(test)]
 mod release_gate_report_schema_test;

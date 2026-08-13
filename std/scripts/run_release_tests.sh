@@ -29,31 +29,6 @@ release_cache_home=""
 declare -A executed_test_files=()
 
 # Inputs:
-# - Cargo workspace metadata from the current checkout.
-#
-# Output:
-# - Cargo package name that owns the `terlc` binary.
-#
-# Transformation:
-# - Verifies that the consolidated `terlan` crate is present before building
-#   the `terlc` binary used by release tests.
-terlc_cargo_package() {
-  cargo metadata --no-deps --format-version 1 |
-    python3 -c '
-import json
-import sys
-
-metadata = json.load(sys.stdin)
-names = {package["name"] for package in metadata.get("packages", [])}
-if "terlan" in names:
-    print("terlan")
-    raise SystemExit(0)
-print("cannot find Cargo package that provides terlc; expected terlan", file=sys.stderr)
-raise SystemExit(1)
-'
-}
-
-# Inputs:
 # - $1: stdlib release-test file path.
 #
 # Output:
@@ -79,8 +54,7 @@ fi
 
 if [[ -z "${TERLC_BIN:-}" ]]; then
   printf 'building terlc for stdlib release tests: %s\n' "$terlc_bin"
-  terlc_package="$(terlc_cargo_package)"
-  cargo build -q -p "$terlc_package" --bin terlc
+  cargo build -q -p terlan --bin terlc
 fi
 
 if [[ ! -x "$terlc_bin" ]]; then

@@ -87,46 +87,6 @@ impl AotHandlerRuntime {
             .map(VmHttpCallResult::Generic)
     }
 
-    #[allow(dead_code)] // Retained for single-argument HTTP response call sites.
-    pub(in crate::commands::serve) fn execute_immediate_http_response_one(
-        &self,
-        module: &str,
-        function: &str,
-        argument: ReplValue,
-        _output: &mut dyn FnMut(&str),
-    ) -> Result<VmHttpCallResult, String> {
-        self.require_module(module)?;
-        let mut argument = Some(argument);
-        if let Some(value) = with_current_protocol_resource(
-            self.generation.identity,
-            |scheduler| {
-                LocalImmediateShard::new(
-                    self.generation.image.spawn_shard_on_scheduler(scheduler)?,
-                    module,
-                    function,
-                    1,
-                )
-            },
-            |local: &mut LocalImmediateShard| {
-                local.call_one_http_response(
-                    module,
-                    function,
-                    argument
-                        .take()
-                        .expect("one HTTP argument is consumed exactly once"),
-                )
-            },
-        )? {
-            return Ok(value);
-        }
-        finish_immediate_step(self.begin_request_invocation(
-            module,
-            function,
-            vec![argument.expect("ambient fallback retains its HTTP argument")],
-        )?)
-        .map(VmHttpCallResult::Generic)
-    }
-
     pub(in crate::commands::serve) fn execute_projected_http_request(
         &self,
         module: &str,

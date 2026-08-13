@@ -310,6 +310,7 @@ impl VmFixedSchedulerTelemetry {
     fn count(&self, kind: VmFixedSchedulerEventKind) {
         self.events.fetch_add(1, Ordering::Relaxed);
         match kind {
+            #[cfg(test)]
             VmFixedSchedulerEventKind::IoCompletionPublished => {
                 self.io_completions.fetch_add(1, Ordering::Relaxed);
             }
@@ -408,4 +409,5 @@ impl VmFixedSchedulerTelemetry {
 
 #[cfg(test)]
 #[path = "fixed_scheduler_telemetry_test.rs"]
+#[cfg(test)]
 mod fixed_scheduler_telemetry_test;

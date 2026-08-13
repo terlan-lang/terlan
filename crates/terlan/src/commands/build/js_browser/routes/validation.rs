@@ -398,7 +398,7 @@ pub(super) fn validate_discovered_web_routes(rows: &WebRouteManifestRows) -> Res
 ///
 /// Transformation:
 /// - Wraps the dynamic rows in the newer route-manifest row container.
-#[allow(dead_code)]
+#[cfg(test)]
 pub(super) fn validate_discovered_web_handler_routes(
     handlers: &[WebHandlerArtifact],
 ) -> Result<(), String> {

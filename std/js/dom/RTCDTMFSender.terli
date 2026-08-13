@@ -47,11 +47,11 @@ pub (value: RTCDTMFSender) insert_dtmf(tones: JsString, duration: JsNumber, inte
 pub (value: RTCDTMFSender) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit.
 
 pub (value: RTCDTMFSender) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit.

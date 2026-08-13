@@ -548,8 +548,8 @@ fn syntax_binary_op(operator: Option<&str>) -> SyntaxBinaryOp {
         "div" | "rem" => SyntaxBinaryOp::DivRem,
         ".." => SyntaxBinaryOp::Range,
         "in" => SyntaxBinaryOp::In,
-        "and" | "&&" => SyntaxBinaryOp::And,
-        "or" | "||" => SyntaxBinaryOp::Or,
+        "and" => SyntaxBinaryOp::And,
+        "or" => SyntaxBinaryOp::Or,
         "|>" => SyntaxBinaryOp::PipeForward,
         _ => SyntaxBinaryOp::Eq,
     }

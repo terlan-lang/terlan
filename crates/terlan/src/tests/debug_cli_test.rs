@@ -1,6 +1,6 @@
 use super::*;
 
-const RESERVED_DEBUG_SCRIPT_COMMANDS: &[&str] = &[
+const DEBUG_SCRIPT_COMMANDS: &[&str] = &[
     "help",
     "run",
     "list",
@@ -32,7 +32,7 @@ const RESERVED_DEBUG_SCRIPT_COMMANDS: &[&str] = &[
     "quit",
 ];
 
-/// Verifies debugger help documents the reserved command vocabulary.
+/// Verifies debugger help documents the command vocabulary.
 ///
 /// Inputs:
 /// - Static debugger usage lines.
@@ -44,7 +44,7 @@ const RESERVED_DEBUG_SCRIPT_COMMANDS: &[&str] = &[
 /// - Locks command-local help to the same reserved debugger script vocabulary
 ///   enforced by the parser.
 #[test]
-fn debug_usage_documents_reserved_script_commands() {
+fn debug_usage_documents_script_commands() {
     let usage = debug_usage_lines().join("\n");
     let script_line = debug_usage_lines()
         .iter()
@@ -58,7 +58,7 @@ fn debug_usage_documents_reserved_script_commands() {
         .collect::<Vec<_>>();
 
     assert!(usage.contains("`where <condition>`"));
-    assert_eq!(documented_commands, RESERVED_DEBUG_SCRIPT_COMMANDS);
+    assert_eq!(documented_commands, DEBUG_SCRIPT_COMMANDS);
 }
 
 /// Verifies `terlc help debug` routes to debugger command-local help.
@@ -112,7 +112,7 @@ fn run_cli_routes_debug_help_to_debug_usage() {
 /// - Runs the public dispatcher instead of helper parsers so the gate proves
 ///   the user-facing command verb remains wired to the debugger module.
 #[test]
-fn run_cli_routes_debug_command_to_reserved_surface() {
+fn run_cli_routes_debug_command_to_native_admission() {
     assert_eq!(
         run_cli(vec![
             "debug".to_string(),
@@ -155,22 +155,22 @@ fn run_cli_routes_debug_command_after_json_diagnostic_flag() {
     );
 }
 
-/// Verifies REPL debugger mode routes through the top-level CLI.
+/// Verifies REPL debugger mode enters the interactive VM debugger surface.
 ///
 /// Inputs:
 /// - Synthetic `terlc repl --debug` arguments.
 ///
 /// Output:
-/// - Reserved-debugger exit code.
+/// - Successful EOF exit after debugger mode is enabled.
 ///
 /// Transformation:
 /// - Runs the public dispatcher so the gate proves REPL debugger mode fails
 ///   fast before entering the interactive prompt.
 #[test]
-fn run_cli_routes_repl_debug_to_reserved_surface() {
+fn run_cli_routes_repl_debug_to_vm_surface() {
     assert_eq!(
         run_cli(vec!["repl".to_string(), "--debug".to_string()]),
-        ExitCode::from(1)
+        ExitCode::SUCCESS
     );
 }
 
@@ -180,7 +180,7 @@ fn run_cli_routes_repl_debug_to_reserved_surface() {
 /// - Synthetic global JSON diagnostic flag plus `repl --debug`.
 ///
 /// Output:
-/// - Reserved-debugger exit code.
+/// - Successful EOF exit after debugger mode is enabled.
 ///
 /// Transformation:
 /// - Routes through global option parsing before REPL dispatch so editor
@@ -194,7 +194,7 @@ fn run_cli_routes_repl_debug_after_json_diagnostic_flag() {
             "repl".to_string(),
             "--debug".to_string(),
         ]),
-        ExitCode::from(1)
+        ExitCode::SUCCESS
     );
 }
 
@@ -285,7 +285,7 @@ fn run_cli_rejects_debug_command_missing_script_file() {
 /// - Runs through the public CLI so script command validation is proven at
 ///   the boundary editor tooling invokes.
 #[test]
-fn run_cli_routes_debug_breakpoint_management_script_to_reserved_surface() {
+fn run_cli_routes_debug_breakpoint_management_script_to_native_admission() {
     let root = make_temp_dir("debug_breakpoint_management_script");
     let script = root.join("session.terldbg");
     let contents = concat!(

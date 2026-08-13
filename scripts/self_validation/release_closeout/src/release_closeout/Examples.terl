@@ -1,0 +1,342 @@
+/**
+ * Installed-candidate example, template, and diagnostic validation.
+ */
+module release_closeout.Examples.
+
+import release_closeout.Support.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok}.
+import std.core.{String, Unit}.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.{Directory, File}.
+
+import type release_closeout.Support.{Candidate, CommandResult}.
+
+source(module_name: String, body: String): String ->
+    String.concat(["module ", module_name, ".\n\n", body, "\n"]).
+
+test_source(module_name: String, body: String): String ->
+    source(
+        module_name,
+        String.concat(["@test\npub installed_example_works(): Bool ->\n    ", body, "."]),
+    ).
+
+write_example(candidate: Candidate, name: String, contents: String): String ->
+    let directory = Support.child(candidate.workspace, name);
+    let path = Support.child(directory, "ExampleTest.terl");
+    let {
+        Ok(Unit) <- Directory.create_all(directory);
+        Ok(Unit) <- File.write_text(path, contents)
+    } else {
+        _ -> ""
+    };
+    path.
+
+run_test(candidate: Candidate, name: String, contents: String): CommandResult ->
+    let path = write_example(candidate, name, contents);
+    Support.run(candidate, name, "terlc", ["test", path], Support.child(candidate.workspace, name)).
+
+run_template_test(candidate: Candidate): CommandResult ->
+    let name = "typed-template";
+    let directory = Support.child(candidate.workspace, name);
+    let path =
+        write_example(
+            candidate,
+            name,
+            source(
+                "examples.Template",
+                "template Card from \"card.terl.html\" { name: String }.\n\nrender(name: String): Html ->\n    Card(name = name).\n\n@test\npub installed_example_works(): Bool ->\n    render(\"Terlan\") == render(\"Terlan\").",
+            ),
+        );
+    let _template = File.write_text(Support.child(directory, "card.terl.html"), "<main>Hello {name}</main>\n");
+    Support.run(candidate, name, "terlc", ["test", path], directory).
+
+positive_examples(candidate: Candidate): List[CommandResult] ->
+    let hello = run_test(candidate, "hello-world", test_source("examples.Hello", "1 + 1 == 2"));
+    let collections_result =
+        run_test(
+            candidate,
+            "collections-map",
+            source(
+                "examples.Collections",
+                "import std.collections.Map.\nimport std.core.Option.{None, Some}.\n\nvalues(): Map[String, Int] ->\n    Map({\"answer\", 42}).\n\n@test\npub installed_example_works(): Bool ->\n    case Map.get(values(), \"answer\") {\n        Some(value) -> value == 42;\n        None -> false\n    }.",
+            ),
+        );
+    let constructor_result =
+        run_test(
+            candidate,
+            "constructor-pattern",
+            source(
+                "examples.Pattern",
+                "type Yes.\ntype No.\ntype Choice = Yes | No.\n\nvalue(choice: Choice): Int ->\n    case choice {\n        Yes -> 42;\n        No -> 0\n    }.\n\n@test\npub installed_example_works(): Bool ->\n    value(Yes) == 42.",
+            ),
+        );
+    let property_result =
+        run_test(
+            candidate,
+            "table-property",
+            source(
+                "examples.Property",
+                "import type std.collections.List.\n\nrows(): List[{String, Int, Int}] ->\n    [{\"one\", 1, 2}, {\"two\", 2, 3}].\n\n@test\npub installed_example_works(): Bool ->\n    case rows() {\n        [{_name, input, expected} | _rest] -> input + 1 == expected;\n        [] -> false\n    }.",
+            ),
+        );
+    let template_result = run_template_test(candidate);
+    [hello, collections_result, constructor_result, property_result, template_result].
+
+init_commands(candidate: Candidate, name: String): {String, List[CommandResult]} ->
+    let project = Support.child(candidate.workspace, name);
+    let initialized =
+        Support.run(
+            candidate,
+            String.append(name, "-init"),
+            "terlc",
+            ["init", project],
+            candidate.workspace,
+        );
+    let initialized_hash = Support.tree_hash(project);
+    let built = Support.run(candidate, String.append(name, "-build"), "terlc", ["build"], project);
+    let tested = Support.run(candidate, String.append(name, "-test"), "terlc", ["test"], project);
+    let formatted =
+        Support.run(
+            candidate,
+            String.append(name, "-fmt"),
+            "terlc",
+            ["fmt", "--check", project],
+            project,
+        );
+    let linted = Support.run(candidate, String.append(name, "-lint"), "terlc", ["lint", project], project);
+    let ran = Support.run(candidate, String.append(name, "-run"), "terlc", ["run", project], project);
+    {initialized_hash, [initialized, built, tested, formatted, linted, ran]}.
+
+reproducible_init(candidate: Candidate): {Bool, List[CommandResult]} ->
+    let first_parent = Support.child(candidate.workspace, "init-first");
+    let second_parent = Support.child(candidate.workspace, "init-second");
+    let _first_parent = Directory.create_all(first_parent);
+    let _second_parent = Directory.create_all(second_parent);
+    let {first_hash, first} = init_commands(candidate, "init-first/project");
+    let {second_hash, second} = init_commands(candidate, "init-second/project");
+    let first_root = Support.child(first_parent, "project");
+    let second_root = Support.child(second_parent, "project");
+    let required =
+        File.exists(Support.child(first_root, ".gitignore"))
+            and File.exists(Support.child(first_root, "terlan.toml"))
+            and File.exists(Support.child(first_root, "Makefile"))
+            and File.exists(Support.child(first_root, "src/project/Main.terl"))
+            and File.exists(Support.child(first_root, "tests/project/MainTest.terl"));
+    {
+        required and Support.all_succeeded(List.concat(first, second)) and first_hash == second_hash,
+        List.concat(first, second),
+    }.
+
+specialized_commands(candidate: Candidate): List[CommandResult] ->
+    let wasm =
+        write_example(
+            candidate,
+            "wasm-export",
+            source("examples.Wasm", "pub add(left: Int, right: Int): Int -> left + right."),
+        );
+    let debug = write_example(candidate, "debugger", source("examples.Debugger", "pub main(): Int -> 42."));
+    let script = Support.child(candidate.workspace, "debugger/session.terldbg");
+    let _script = File.write_text(script, "run\nbt\nquit\n");
+    let angular =
+        write_example(
+            candidate,
+            "angular-facade",
+            source("examples.AngularFacade", "pub add(left: Int, right: Int): Int -> left + right."),
+        );
+    let http =
+        write_example(
+            candidate,
+            "vm-http-handler",
+            source("examples.HttpHandler", "pub main(): Bool -> true."),
+        );
+    [
+        Support.run(
+            candidate,
+            "wasm-export",
+            "terlc",
+            ["build", wasm, "--target", "wasm.core"],
+            Support.child(candidate.workspace, "wasm-export"),
+        ),
+        Support.run(
+            candidate,
+            "debugger",
+            "terlc",
+            [
+                "debug",
+                debug,
+                "--break",
+                "examples.Debugger.main",
+                "--script",
+                script,
+                "--json-events",
+            ],
+            Support.child(candidate.workspace, "debugger"),
+        ),
+        Support.run(
+            candidate,
+            "angular-facade",
+            "terlc",
+            ["build", angular, "--target", "js.browser"],
+            Support.child(candidate.workspace, "angular-facade"),
+        ),
+        Support.run(
+            candidate,
+            "vm-http-handler",
+            "terlc",
+            ["build", http, "--target", "terlan-vm"],
+            Support.child(candidate.workspace, "vm-http-handler"),
+        ),
+        run_test(
+            candidate,
+            "package-import",
+            test_source(
+                "examples.PackageImport",
+                "std.crypto.Hash.sha256(\"abc\") == \"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\"",
+            ),
+        ),
+    ].
+
+negative(candidate: Candidate, name: String, source_text: String): CommandResult ->
+    let path = write_example(candidate, name, source_text);
+    Support.run(
+        candidate,
+        name,
+        "terlc",
+        ["build", path, "--target", "terlan-vm"],
+        Support.child(candidate.workspace, name),
+    ).
+
+wrong_module_path(candidate: Candidate): CommandResult ->
+    let project = Support.child(candidate.workspace, "wrong-module-path");
+    let source_root = Support.child(project, "src/expected");
+    let _created = Directory.create_all(source_root);
+    let _manifest =
+        File.write_text(
+            Support.child(project, "terlan.toml"),
+            "[package]\nname = \"wrong-module-path\"\nversion = \"0.0.7\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n",
+        );
+    let _source =
+        File.write_text(
+            Support.child(source_root, "Main.terl"),
+            source("wrong.Module", "pub main(): Int -> 1."),
+        );
+    Support.run(candidate, "wrong-module-path", "terlc", ["build"], project).
+
+negative_examples(candidate: Candidate): List[CommandResult] ->
+    let missing_import =
+        negative(
+            candidate,
+            "missing-import",
+            source(
+                "negative.MissingImport",
+                "import missing.package.Value.\n\npub main(): Int -> Value.answer().",
+            ),
+        );
+    let wrong_path = wrong_module_path(candidate);
+    let syntax_result =
+        negative(
+            candidate,
+            "unsupported-syntax",
+            "module negative.Syntax.\n\npub main(): Int -> if .\n",
+        );
+    let stale_std =
+        negative(
+            candidate,
+            "stale-std-symbol",
+            source(
+                "negative.StaleStd",
+                "pub main(): Int -> std.collections.List.removed_symbol([]).",
+            ),
+        );
+    let capability_result =
+        negative(
+            candidate,
+            "runtime-capability",
+            source(
+                "negative.Capability",
+                "pub main(): Int -> std.system.Process.missing_capability().",
+            ),
+        );
+    [missing_import, wrong_path, syntax_result, stale_std, capability_result].
+
+all_failed_with_diagnostics(values: List[CommandResult]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let diagnostic = String.concat([value.stdout, value.stderr]);
+            let actionable =
+                String.contains(diagnostic, "error[")
+                    or String.contains(diagnostic, "outside package namespace")
+                    or String.contains(diagnostic, "failed to parse");
+            value.status != 0
+                and actionable
+                and not String.contains(diagnostic, "internal compiler error")
+                and all_failed_with_diagnostics(rest)
+    }.
+
+report(
+    root: String,
+    candidate: Candidate,
+    commands: List[CommandResult],
+    negatives: List[CommandResult],
+    reproducible: Bool,
+    cleaned: Bool,
+    passed: Bool,
+): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.release-example-projects-report.v1"))
+        .put(
+            "decision",
+            Json.string(
+                if {
+                    passed -> "pass";
+                    true -> "fail"
+                },
+            ),
+        )
+        .put("installed_compiler", Json.string("<installed>/terlc"))
+        .put("runtime", Json.string("terlan-vm"))
+        .put("reproducible_clean_workspaces", Json.bool(reproducible))
+        .put("examples", Support.commands_json(commands, root, candidate.temporary))
+        .put("negative_examples", Support.commands_json(negatives, root, candidate.temporary))
+        .put(
+            "cleanup_status",
+            Json.string(
+                if {
+                    cleaned -> "pass";
+                    true -> "fail"
+                },
+            ),
+        ).
+
+pub check(root: String): Bool ->
+    case Support.prepare(root, "examples") {
+        None -> false;
+        Some(candidate) ->
+            let positive = positive_examples(candidate);
+            let specialized = specialized_commands(candidate);
+            let {reproducible, initialized} = reproducible_init(candidate);
+            let commands = List.concat(positive, List.concat(specialized, initialized));
+            let negatives = negative_examples(candidate);
+            let validated =
+                Support.candidate_identity_holds(candidate)
+                    and reproducible
+                    and Support.all_succeeded(commands)
+                    and all_failed_with_diagnostics(negatives);
+            let cleaned = Support.cleanup(candidate, true);
+            let passed = validated and cleaned;
+            let written =
+                Support.write_report(
+                    root,
+                    "release-example-projects-report.json",
+                    report(root, candidate, commands, negatives, reproducible, cleaned, passed),
+                );
+            if {
+                passed and written -> let _printed = println("installed release example projects passed");
+                true;
+                true -> false
+            }
+    }.

@@ -232,4 +232,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "package_build_artifact_isolation_test.rs"]
+#[cfg(test)]
 mod package_build_artifact_isolation_test;

@@ -92,7 +92,7 @@ pub (value: ElementInternals) report_validity(): Bool.
  */
 pub (value: ElementInternals) set_form_value(
     value: Option[File | FormData | JsString],
-    state: Option[File | FormData | JsString]
+    state: Option[File | FormData | JsString],
 ): Unit.
 
 /**

@@ -370,7 +370,7 @@ pub (value: Document) capture_events(): Unit.
 pub (value: Document) caret_position_from_point(
     x: JsNumber,
     y: JsNumber,
-    options: CaretPositionFromPointOptions
+    options: CaretPositionFromPointOptions,
 ): Option[CaretPosition].
 
 /**
@@ -433,13 +433,13 @@ pub (value: Document) create_element(tag_name: JsString, options: ElementCreatio
 pub (value: Document) create_element_ns(
     namespace_uri: Option[JsString],
     qualified_name: JsString,
-    options: ElementCreationOptions
+    options: ElementCreationOptions,
 ): Element.
 
 pub (value: Document) create_element_ns(
     namespace: Option[JsString],
     qualified_name: JsString,
-    options: ElementCreationOptions | JsString
+    options: ElementCreationOptions | JsString,
 ): Element.
 
 pub (value: Document) create_event(event_interface: JsString): Event.
@@ -452,7 +452,7 @@ pub (value: Document) create_event(event_interface: JsString): Event.
 pub (value: Document) create_node_iterator(
     root: Node,
     what_to_show: JsNumber,
-    filter: Option[NodeFilter]
+    filter: Option[NodeFilter],
 ): NodeIterator.
 
 /**
@@ -532,7 +532,7 @@ pub (value: Document) get_elements_by_tag_name(qualified_name: JsString): HTMLCo
 
 pub (value: Document) get_elements_by_tag_name_ns(
     namespace: Option[JsString],
-    local_name: JsString
+    local_name: JsString,
 ): HTMLCollectionOf[Element].
 
 /**
@@ -624,7 +624,7 @@ pub (value: Document) request_storage_access(): Promise[Unit].
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/startViewTransition)
  */
 pub (value: Document) start_view_transition(
-    callback_options: StartViewTransitionOptions | ViewTransitionUpdateCallback
+    callback_options: StartViewTransitionOptions | ViewTransitionUpdateCallback,
 ): ViewTransition.
 
 /**
@@ -645,11 +645,11 @@ pub (value: Document) writeln(): Unit.
 pub (value: Document) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit.
 
 pub (value: Document) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit.

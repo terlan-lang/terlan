@@ -5,7 +5,8 @@ use crate::terlan_typeck::{
 };
 
 /// Current version of the executable lowering coverage contract.
-pub(super) const LOWERING_COVERAGE_VERSION: u32 = 6;
+#[cfg(test)]
+pub(super) const LOWERING_COVERAGE_VERSION: u32 = 7;
 
 /// One backend disposition for a CoreIR node family.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -97,7 +98,7 @@ pub(super) fn expression_coverage(expr: &CoreExpr) -> LoweringCoverage {
             .map(|effect| effect_coverage(effect))
             .find(|coverage| coverage.disposition == LoweringDisposition::Rejected)
             .unwrap_or_else(|| intrinsic_coverage(&call.id)),
-        CoreExpr::SqlQuery { .. } => LoweringCoverage::rejected("SqlQuery", "native_ir.sql_query"),
+        CoreExpr::SqlQuery { .. } => LoweringCoverage::native("SqlQuery"),
         CoreExpr::Case { .. } => LoweringCoverage::native("Case"),
         CoreExpr::Try { .. } => LoweringCoverage::native("Try"),
         CoreExpr::If { .. } => LoweringCoverage::native("If"),
@@ -143,11 +144,56 @@ pub(super) fn intrinsic_coverage(intrinsic: &CoreIntrinsicId) -> LoweringCoverag
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::ConsolePrintln) => {
             LoweringCoverage::native("Intrinsic.runtime.console.println")
         }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::ConsoleEprintln) => {
+            LoweringCoverage::native("Intrinsic.runtime.console.eprintln")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::ClockUnixTimeNs) => {
+            LoweringCoverage::native("Intrinsic.runtime.clock.unix_time_ns")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::ClockMonotonicTimeNs) => {
+            LoweringCoverage::native("Intrinsic.runtime.clock.monotonic_time_ns")
+        }
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileExists) => {
             LoweringCoverage::native("Intrinsic.runtime.file.exists")
         }
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileReadText) => {
             LoweringCoverage::native("Intrinsic.runtime.file.read_text")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileReadBytes) => {
+            LoweringCoverage::native("Intrinsic.runtime.file.read_bytes")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileSize) => {
+            LoweringCoverage::native("Intrinsic.runtime.file.size")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileTimestamps) => {
+            LoweringCoverage::native("Intrinsic.runtime.file.timestamps")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileSetTimestamps) => {
+            LoweringCoverage::native("Intrinsic.runtime.file.set_timestamps")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileIsExecutable) => {
+            LoweringCoverage::native("Intrinsic.runtime.file.is_executable")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileSetExecutable) => {
+            LoweringCoverage::native("Intrinsic.runtime.file.set_executable")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileCopy) => {
+            LoweringCoverage::native("Intrinsic.runtime.file.copy")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileCopyMany) => {
+            LoweringCoverage::native("Intrinsic.runtime.file.copy_many")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileReadTextMany) => {
+            LoweringCoverage::native("Intrinsic.runtime.file.read_text_many")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileReadTextDirectory) => {
+            LoweringCoverage::native("Intrinsic.runtime.file.read_text_directory")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileReadTextTreeExcluding) => {
+            LoweringCoverage::native("Intrinsic.runtime.file.read_text_tree_excluding")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileReadTextTreeMatching) => {
+            LoweringCoverage::native("Intrinsic.runtime.file.read_text_tree_matching")
         }
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileWriteText) => {
             LoweringCoverage::native("Intrinsic.runtime.file.write_text")
@@ -157,6 +203,108 @@ pub(super) fn intrinsic_coverage(intrinsic: &CoreIntrinsicId) -> LoweringCoverag
         }
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileDelete) => {
             LoweringCoverage::native("Intrinsic.runtime.file.delete")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::SystemArgumentsCount) => {
+            LoweringCoverage::native("Intrinsic.runtime.system.arguments.count")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::SystemArgumentsGet) => {
+            LoweringCoverage::native("Intrinsic.runtime.system.arguments.get")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::SystemEnvironmentContains) => {
+            LoweringCoverage::native("Intrinsic.runtime.system.environment.contains")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::SystemEnvironmentGet) => {
+            LoweringCoverage::native("Intrinsic.runtime.system.environment.get")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::SystemEnvironmentCurrentDirectory) => {
+            LoweringCoverage::native("Intrinsic.runtime.system.environment.current_directory")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::SystemPlatformCurrentMetrics) => {
+            LoweringCoverage::native("Intrinsic.runtime.system.platform.current_metrics")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::SystemProcessLimits) => {
+            LoweringCoverage::native("Intrinsic.runtime.system.process.limits")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::SystemProcessRun) => {
+            LoweringCoverage::native("Intrinsic.runtime.system.process.run")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::SystemProcessRunMany) => {
+            LoweringCoverage::native("Intrinsic.runtime.system.process.run_many")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::SystemProcessRunLengthFramed) => {
+            LoweringCoverage::native("Intrinsic.runtime.system.process.run_length_framed")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::DirectoryEntries) => {
+            LoweringCoverage::native("Intrinsic.runtime.directory.entries")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::DirectoryFilesRecursive) => {
+            LoweringCoverage::native("Intrinsic.runtime.directory.files_recursive")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::DirectoryFilesRecursiveExcluding) => {
+            LoweringCoverage::native("Intrinsic.runtime.directory.files_recursive_excluding")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::DirectoryFindNamedRecursiveExcluding) => {
+            LoweringCoverage::native("Intrinsic.runtime.directory.find_named_recursive_excluding")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::DirectoryTreeUsage) => {
+            LoweringCoverage::native("Intrinsic.runtime.directory.tree_usage")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::DirectoryCopyTreeExcluding) => {
+            LoweringCoverage::native("Intrinsic.runtime.directory.copy_tree_excluding")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::DirectoryCreateSymbolicLink) => {
+            LoweringCoverage::native("Intrinsic.runtime.directory.create_symbolic_link")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::DirectoryCreateAll) => {
+            LoweringCoverage::native("Intrinsic.runtime.directory.create_all")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::DirectoryCreateTemporary) => {
+            LoweringCoverage::native("Intrinsic.runtime.directory.create_temporary")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::DirectoryRemoveAll) => {
+            LoweringCoverage::native("Intrinsic.runtime.directory.remove_all")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::ArchiveCreate) => {
+            LoweringCoverage::native("Intrinsic.runtime.archive.create")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::ArchiveExtract) => {
+            LoweringCoverage::native("Intrinsic.runtime.archive.extract")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::HashSha256File) => {
+            LoweringCoverage::native("Intrinsic.runtime.hash.sha256_file")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::HashVerifySha256Manifest) => {
+            LoweringCoverage::native("Intrinsic.runtime.hash.verify_sha256_manifest")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::HashSha256Tree) => {
+            LoweringCoverage::native("Intrinsic.runtime.hash.sha256_tree")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::HashSha256SelectedFiles) => {
+            LoweringCoverage::native("Intrinsic.runtime.hash.sha256_selected_files")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::HashSha256LabeledFileDigests) => {
+            LoweringCoverage::native("Intrinsic.runtime.hash.sha256_labeled_file_digests")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::HashSha256LabeledFileContents) => {
+            LoweringCoverage::native("Intrinsic.runtime.hash.sha256_labeled_file_contents")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::HashAuditLabeledFiles) => {
+            LoweringCoverage::native("Intrinsic.runtime.hash.audit_labeled_files")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::HashAuditLabeledFilePatterns) => {
+            LoweringCoverage::native("Intrinsic.runtime.hash.audit_labeled_file_patterns")
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::GitSourceTreeIdentity) => {
+            LoweringCoverage::native("Intrinsic.runtime.git.source_tree_identity")
+        }
+        CoreIntrinsicId::MemoryLayoutOf(_) => {
+            LoweringCoverage::native("Intrinsic.memory.layout_of")
+        }
+        CoreIntrinsicId::MemoryShallowSize(_) => {
+            LoweringCoverage::native("Intrinsic.memory.shallow_size")
+        }
+        CoreIntrinsicId::MemoryRetainedSize(_) => {
+            LoweringCoverage::native("Intrinsic.memory.retained_size")
         }
         CoreIntrinsicId::NativeOperation { .. } => {
             LoweringCoverage::native("Intrinsic.runtime.native_package")
@@ -169,6 +317,12 @@ pub(super) fn intrinsic_coverage(intrinsic: &CoreIntrinsicId) -> LoweringCoverag
         }
         CoreIntrinsicId::VmProcessSpawn(_) => {
             LoweringCoverage::native("Intrinsic.vm.process.spawn")
+        }
+        CoreIntrinsicId::VmProcessEntry(_) => {
+            LoweringCoverage::native("Intrinsic.vm.process.entry")
+        }
+        CoreIntrinsicId::VmProcessCurrent(_) => {
+            LoweringCoverage::native("Intrinsic.vm.process.current")
         }
         CoreIntrinsicId::VmProcessLink(_) => LoweringCoverage::native("Intrinsic.vm.process.link"),
         CoreIntrinsicId::VmProcessMonitor(_) => {
@@ -188,6 +342,10 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
     use CorePrimitiveIntrinsic as P;
 
     match intrinsic {
+        P::MemoryLayoutSize => LoweringCoverage::native("Intrinsic.memory.layout.size"),
+        P::MemoryLayoutAlignment => LoweringCoverage::native("Intrinsic.memory.layout.alignment"),
+        P::MemoryLayoutStorage => LoweringCoverage::native("Intrinsic.memory.layout.storage"),
+        P::VmDebuggerBreak => LoweringCoverage::native("Intrinsic.vm.debugger.break"),
         P::VmProcessYield => LoweringCoverage::native("Intrinsic.vm.process.yield_now"),
         P::VmProcessSendInt => LoweringCoverage::native("Intrinsic.vm.process.send_int"),
         P::VmProcessReceiveInt => LoweringCoverage::native("Intrinsic.vm.process.receive_int"),
@@ -213,6 +371,8 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         P::FloatLog => LoweringCoverage::native("Intrinsic.core.float.log"),
         P::FloatPi => LoweringCoverage::native("Intrinsic.core.float.pi"),
         P::FloatTau => LoweringCoverage::native("Intrinsic.core.float.tau"),
+        P::BoolToString => LoweringCoverage::native("Intrinsic.core.bool.to_string"),
+        P::ValueToString => LoweringCoverage::native("Intrinsic.core.value.to_string"),
         P::IntToString => LoweringCoverage::native("Intrinsic.core.int.to_string"),
         P::IntFromString => LoweringCoverage::native("Intrinsic.core.int.from_string"),
         P::IntToStringBase => LoweringCoverage::native("Intrinsic.core.int.to_string_base"),
@@ -224,9 +384,23 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         P::ListFirst => LoweringCoverage::native("Intrinsic.collections.list.first"),
         P::ListRest => LoweringCoverage::native("Intrinsic.collections.list.rest"),
         P::ListIterator => LoweringCoverage::native("Intrinsic.collections.list.iterator"),
+        P::SetFromList => LoweringCoverage::native("Intrinsic.collections.set.from_list"),
+        P::SetContains => LoweringCoverage::native("Intrinsic.collections.set.contains"),
+        P::SetNew => LoweringCoverage::native("Intrinsic.collections.set.new"),
+        P::SetIsEmpty => LoweringCoverage::native("Intrinsic.collections.set.is_empty"),
+        P::SetSize => LoweringCoverage::native("Intrinsic.collections.set.size"),
+        P::SetIterator => LoweringCoverage::native("Intrinsic.collections.set.iterator"),
+        P::SetAdd => LoweringCoverage::native("Intrinsic.collections.set.add"),
+        P::SetRemove => LoweringCoverage::native("Intrinsic.collections.set.remove"),
+        P::SetClear => LoweringCoverage::native("Intrinsic.collections.set.clear"),
         P::VmBytesFromList => LoweringCoverage::native("Intrinsic.vm.bytes.from_list"),
         P::VmBytesToList => LoweringCoverage::native("Intrinsic.vm.bytes.to_list"),
         P::VmBytesLength => LoweringCoverage::native("Intrinsic.vm.bytes.length"),
+        P::VmBytesStartsWith => LoweringCoverage::native("Intrinsic.vm.bytes.starts_with"),
+        P::VmBytesContains => LoweringCoverage::native("Intrinsic.vm.bytes.contains"),
+        P::VmBytesFirstNonAsciiWhitespace => {
+            LoweringCoverage::native("Intrinsic.vm.bytes.first_non_ascii_whitespace")
+        }
         P::VmBytesConcat => LoweringCoverage::native("Intrinsic.vm.bytes.concat"),
         P::VmBytesSlice => LoweringCoverage::native("Intrinsic.vm.bytes.slice"),
         P::VmBytesReadUintBe => LoweringCoverage::native("Intrinsic.vm.bytes.read_uint_be"),
@@ -265,10 +439,8 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         | P::IsType
         | P::BoolEqual
         | P::BoolCompare
-        | P::BoolToString
         | P::BoolFromString
         | P::AtomToString
-        | P::ValueToString
         | P::StringEqual
         | P::StringCompare
         | P::StringToString
@@ -284,12 +456,18 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         | P::StringLowercase
         | P::StringUppercase
         | P::StringReverse
+        | P::StringCharacters
+        | P::StringCodepoints
+        | P::StringUtf8ByteAt
+        | P::StringUtf8FindAnyByte
+        | P::StringUtf8Slice
         | P::StringTrim
         | P::StringTrimStart
         | P::StringTrimEnd
         | P::StringReplace
         | P::StringSplit
         | P::StringSplitOnce
+        | P::CryptoSha256
         | P::ListConcat
         | P::ListSubtract
         | P::ListPush
@@ -306,29 +484,10 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         | P::MapPut
         | P::MapRemove
         | P::MapClear
-        | P::SetNew
-        | P::SetFromList
-        | P::SetIsEmpty
-        | P::SetSize
-        | P::SetContains
-        | P::SetIterator
-        | P::SetAdd
-        | P::SetRemove
-        | P::SetClear
         | P::TaskDone
         | P::TaskFailed
         | P::TaskResult
         | P::VmEffectRun
-        | P::VmAgentStart
-        | P::VmAgentGet
-        | P::VmAgentGetAndUpdate
-        | P::VmAgentUpdate
-        | P::VmAgentCast
-        | P::VmAgentStop
-        | P::VmGenServerStart
-        | P::VmGenServerCall
-        | P::VmGenServerCast
-        | P::VmGenServerStop
         | P::VmNativeBridgeStart
         | P::VmNativeBridgeCall
         | P::VmNativeBridgeDispose
@@ -346,14 +505,7 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         | P::VmPortOpen
         | P::VmPortWrite
         | P::VmPortRead
-        | P::VmPortClose
-        | P::VmSupervisorStartRoot
-        | P::VmSupervisorChildSpec
-        | P::VmSupervisorStart
-        | P::VmSupervisorStop
-        | P::VmTaskStart
-        | P::VmTaskResult
-        | P::VmTaskCancel => {
+        | P::VmPortClose => {
             LoweringCoverage::rejected("Intrinsic.primitive", "native_ir.unsupported_intrinsic")
         }
     }

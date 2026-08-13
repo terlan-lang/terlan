@@ -1,0 +1,68 @@
+{
+  "blockers": [],
+  "compatibility_mode": "0.0.7-strict",
+  "compatibility_status": "pass",
+  "lane_health": {
+    "coreir": 100,
+    "distribution": 100,
+    "native_boundary": 100,
+    "parser": 100,
+    "std_packages": 100,
+    "target_profile": 100,
+    "vm_runtime": 100,
+    "wasm": 100
+  },
+  "manifest_checksum": "sha256:356840be700a6aee9cc9ed65e97a209746e2bf2f3a74674082e7bc35d548c42c",
+  "policy_minimum": 100,
+  "report_signature": "sha256:0706041f9d1991cce4267a268a82176345006bef57dd67df2b863a71bc634461",
+  "results": [
+    {
+      "compatibility_status": "stable",
+      "exception": null,
+      "health_score": 100,
+      "lanes": [
+        "parser",
+        "coreir",
+        "vm_runtime",
+        "std_packages"
+      ],
+      "proof_family": "semantic-smoke-chain",
+      "proof_status": "pass",
+      "roadmap_slice": "Slice 9",
+      "runtime_status": "pass",
+      "signature": "sha256:5d3e455b407a5074219aeea8001d0061d48eef5bbbf89e5848f5a0719340500f",
+      "smoke_id": "semantic-chain"
+    },
+    {
+      "compatibility_status": "stable",
+      "exception": null,
+      "health_score": 100,
+      "lanes": [
+        "native_boundary"
+      ],
+      "proof_family": "native-boundary",
+      "proof_status": "pass",
+      "roadmap_slice": "Slice 14",
+      "runtime_status": "pass",
+      "signature": "sha256:232c4a10429f045c955ef3443fa15337164950f7320a88cf4bf199758d2ef305",
+      "smoke_id": "native-dispatch"
+    },
+    {
+      "compatibility_status": "stable",
+      "exception": null,
+      "health_score": 100,
+      "lanes": [
+        "target_profile",
+        "wasm"
+      ],
+      "proof_family": "semantic-smoke-chain",
+      "proof_status": "pass",
+      "roadmap_slice": "Slice 9",
+      "runtime_status": "pass",
+      "signature": "sha256:d098e5eb0497631c3b5e661953f5dd226a2a3aadefce4d9bb9c797641cd65fbb",
+      "smoke_id": "unsupported-fallback"
+    }
+  ],
+  "schema": "terlan.lean-proof-smoke.v1",
+  "signature_strategy": "content-addressed-normalized-v1"
+}

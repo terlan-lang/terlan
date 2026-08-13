@@ -1,22 +1,17 @@
-use std::collections::hash_map::DefaultHasher;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, HashMap};
 use std::fs;
-use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 
 use crate::terlan_hir::parse_interface_dependency_entries;
 use crate::terlan_hir::ModuleInterface;
 use crate::terlan_syntax::{
-    syntax_contract_identity_from_fingerprint, SyntaxContractIdentity, SyntaxDeclarationPayload,
-    SyntaxImportKind, SyntaxModuleOutput,
+    syntax_contract_identity_from_fingerprint, syntax_module_import_identities,
+    SyntaxContractIdentity, SyntaxDeclarationPayload, SyntaxImportKind, SyntaxModuleOutput,
 };
 
-#[path = "artifacts/templates.rs"]
-mod templates;
-
-pub(crate) use templates::{
+pub(crate) use crate::support::fingerprint;
+pub(crate) use crate::template_inputs::{
     collect_syntax_template_frontend_inputs, collect_syntax_template_inputs,
-    SyntaxTemplateFrontendInput,
 };
 
 /// Validated source asset import ready for command-owned packaging.
@@ -233,23 +228,8 @@ pub(crate) fn collect_syntax_dependency_hashes(
     source_path: Option<&Path>,
     file_imports: Option<&BTreeMap<String, Vec<u8>>>,
 ) -> Vec<(String, u64)> {
-    let mut import_modules = BTreeSet::new();
-    for declaration in &module.declarations {
-        let SyntaxDeclarationPayload::Import {
-            import_kind,
-            module_name,
-            ..
-        } = &declaration.payload
-        else {
-            continue;
-        };
-        if *import_kind == SyntaxImportKind::Module {
-            import_modules.insert(module_name.clone());
-        }
-    }
-
     let mut out = Vec::new();
-    for module_name in import_modules {
+    for module_name in syntax_module_import_identities(module) {
         if let Some(interface) = interfaces.get(&module_name) {
             let interface_text = interface.to_terlan_interface_type_text();
             out.push((module_name, fingerprint(interface_text.as_bytes())));
@@ -706,22 +686,7 @@ pub(crate) fn resolve_import_path(base_dir: &Path, source: &str) -> PathBuf {
     }
 }
 
-/// Computes a local deterministic hash for CLI artifact invalidation.
-///
-/// Inputs:
-/// - `bytes`: content bytes to fingerprint.
-///
-/// Output:
-/// - A `u64` hash value used inside CLI cache artifacts.
-///
-/// Transformation:
-/// - Feeds bytes into Rust's default hasher for compact cache comparisons.
-pub(crate) fn fingerprint(bytes: &[u8]) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    bytes.hash(&mut hasher);
-    hasher.finish()
-}
-
 #[cfg(test)]
 #[path = "artifacts_test.rs"]
+#[cfg(test)]
 mod artifacts_test;

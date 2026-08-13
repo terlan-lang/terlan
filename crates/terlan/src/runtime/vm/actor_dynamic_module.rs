@@ -1,11 +1,8 @@
-use super::super::dynamic_module::{
-    VmDynamicModuleDescriptor, VmDynamicModuleLeaseId, VmDynamicModuleLoadOutcome,
-    VmDynamicModuleReloadOutcome, VmDynamicModuleSnapshot, VmDynamicModuleUnloadOutcome,
-};
-use super::{VmActorRuntime, VmProcessId};
+use super::*;
 
 impl VmActorRuntime {
     /// Loads or references a validated dynamic module for one live actor.
+    #[cfg(test)]
     pub(crate) fn load_dynamic_module(
         &mut self,
         owner: VmProcessId,
@@ -16,6 +13,7 @@ impl VmActorRuntime {
     }
 
     /// Opens a live actor-owned lease on a loaded dynamic module.
+    #[cfg(test)]
     pub(crate) fn open_dynamic_module_lease(
         &mut self,
         owner: VmProcessId,
@@ -25,15 +23,8 @@ impl VmActorRuntime {
             .open_lease(&self.processes, owner, module_name)
     }
 
-    /// Closes one dynamic-module lease and completes any drained transition.
-    pub(crate) fn close_dynamic_module_lease(
-        &mut self,
-        lease: VmDynamicModuleLeaseId,
-    ) -> Result<(), String> {
-        self.dynamic_modules.close_lease(lease)
-    }
-
     /// Releases an actor's module reference, optionally forcing lease drain.
+    #[cfg(test)]
     pub(crate) fn unload_dynamic_module(
         &mut self,
         owner: VmProcessId,
@@ -44,17 +35,8 @@ impl VmActorRuntime {
             .request_unload(&self.processes, owner, module_name, force)
     }
 
-    /// Requests an atomic module generation replacement for one owner.
-    pub(crate) fn reload_dynamic_module(
-        &mut self,
-        owner: VmProcessId,
-        replacement: VmDynamicModuleDescriptor,
-    ) -> Result<VmDynamicModuleReloadOutcome, String> {
-        self.dynamic_modules
-            .request_reload(&self.processes, owner, replacement)
-    }
-
     /// Returns deterministic live dynamic-module lifecycle rows.
+    #[cfg(test)]
     pub(crate) fn dynamic_module_snapshots(&self) -> Vec<VmDynamicModuleSnapshot> {
         self.dynamic_modules.snapshots()
     }
@@ -62,4 +44,5 @@ impl VmActorRuntime {
 
 #[cfg(test)]
 #[path = "actor_dynamic_module_test.rs"]
+#[cfg(test)]
 mod actor_dynamic_module_test;

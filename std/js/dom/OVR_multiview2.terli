@@ -30,5 +30,5 @@ pub (value: OVR_multiview2) framebuffer_texture_multiview_ovr(
     texture: Option[WebGLTexture],
     level: GLint,
     base_view_index: GLint,
-    num_views: GLsizei
+    num_views: GLsizei,
 ): std.core.Unit.

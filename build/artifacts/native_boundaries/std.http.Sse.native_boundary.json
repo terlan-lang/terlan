@@ -1,0 +1,116 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Sse.data/1",
+      "name": "data",
+      "operation": "std.http.sse.data",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:7de801ba19db85363025d8a54cd05314b1960a42de901422e1f6d4262de22dfd"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Sse.with_id/2",
+      "name": "with_id",
+      "operation": "std.http.sse.with_id",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:fff3b3cb34be1b9513b784f87c5c1c2d6a3a676a329b6ef85df829311b521c44"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Sse.with_name/2",
+      "name": "with_name",
+      "operation": "std.http.sse.with_name",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:624f4d980ef6e2fa032414f2c987ce654514507ad1c67dc41db8939f7d00900c"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Sse.with_retry_ms/2",
+      "name": "with_retry_ms",
+      "operation": "std.http.sse.with_retry_ms",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:1e95f390e2ce994003d3d3a6ff9625bcf64b8b54d2fabd1dd84903564ad5a103"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Sse.response/2",
+      "name": "response",
+      "operation": "std.http.sse.response",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:1f5b8d21528146c6078b432cebe97f82d680756ae5e7bd01f243b492f8800cad"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Sse.endpoint/2",
+      "name": "endpoint",
+      "operation": "std.http.sse.endpoint",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:51d7f330574eb7fb598dc8db7fad6e8c0aa1c16a4fd127dfe6ee97368d6bc8a5"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Sse.endpoint_with_keep_alive/3",
+      "name": "endpoint_with_keep_alive",
+      "operation": "std.http.sse.endpoint_with_keep_alive",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:39f0f66989a06057f4f8db9e288be4efc8bcb61c9ca7ab5e9f5ee8d36ff63138"
+    }
+  ],
+  "manifest_digest": "sha256:e125745a7c9c301d550729517efaff5f1c209ac5eccdcd835ff7331568b8df7d",
+  "module": "std_http_sse_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "http.sse",
+    "error_policy": "typed-result",
+    "module_prefix": "std.http.Sse",
+    "notes": "SSE APIs construct typed VM HTTP event and endpoint descriptors.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:0699971ab06b59f1d1727fa87cd6f3822976e7842b610873373b3aa255745ab5",
+  "source_module": "std.http.Sse",
+  "source_path": "std/summaries/std.http.Sse.native_boundary.json"
+}

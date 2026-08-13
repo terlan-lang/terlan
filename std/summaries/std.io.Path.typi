@@ -77,6 +77,11 @@ pub (path: Path) is_absolute(): Bool.
 
 pub (path: Path) join(child: String): Result[Path, PathError].
 
+/// Removes lexical `.` segments and resolves lexical `..` segments without
+/// accessing the filesystem.
+
+pub (path: Path) normalize(): Path.
+
 /// Returns the parent path when present.
 ///
 /// Input: one `Path`.
@@ -86,6 +91,14 @@ pub (path: Path) join(child: String): Result[Path, PathError].
 /// filesystem.
 
 pub (path: Path) parent(): Option[Path].
+
+/// Returns whether this normalized path begins with every component of `base`.
+
+pub (path: Path) starts_with(base: Path): Bool.
+
+/// Removes a normalized component prefix when present.
+
+pub (path: Path) strip_prefix(base: Path): Option[Path].
 
 /// Renders a path as text.
 ///

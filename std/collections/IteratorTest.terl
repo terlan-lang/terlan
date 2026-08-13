@@ -17,12 +17,20 @@ sum_values(iterator: std.collections.Iterator.Iterator[Int], sum: Int): Int ->
 pub next_yields_value_and_next_iterator(): Bool ->
     let values = [10, 20];
     case values |> iterator() |> next() {
-        Some({value: first, next: rest}) ->
-            case next(rest) {
-                Some({value: second, next: _done}) -> assert_equal(30, first + second);
-                None -> false
-            };
+        Some({value: first, next: rest}) -> second_value_is_expected(rest, first);
         None -> false
+    }.
+
+second_value_is_expected(iterator: Iterator[Int], first: Int): Bool ->
+    case next(iterator) {
+        Some({value: second, next: done}) -> iterator_is_done_with_total(done, first + second);
+        None -> false
+    }.
+
+iterator_is_done_with_total(iterator: Iterator[Int], total: Int): Bool ->
+    case next(iterator) {
+        None -> assert_equal(30, total);
+        Some(_) -> false
     }.
 
 @test

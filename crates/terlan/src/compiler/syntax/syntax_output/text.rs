@@ -61,7 +61,7 @@ pub(super) fn expr_to_output_text(expr: &Expr) -> String {
                     })
                     .collect::<Vec<_>>()
             } else {
-                let bindings = bindings
+                let rendered_bindings = bindings
                     .iter()
                     .map(|binding| {
                         format!(
@@ -77,7 +77,13 @@ pub(super) fn expr_to_output_text(expr: &Expr) -> String {
                     .map(case_clause_to_output_text)
                     .collect::<Vec<_>>()
                     .join("; ");
-                vec![format!("let {{ {bindings} }} else {{ {clauses} }}")]
+                if bindings.len() == 1 {
+                    vec![format!("let {rendered_bindings} else {{ {clauses} }}")]
+                } else {
+                    vec![format!(
+                        "let {{ {rendered_bindings} }} else {{ {clauses} }}"
+                    )]
+                }
             };
             if let Some(body) = body {
                 parts.push(expr_to_output_text(body));
@@ -222,7 +228,7 @@ fn pattern_to_output_text(pattern: &Pattern) -> String {
         Pattern::Int(value) => value.to_string(),
         Pattern::Float(value) => value.to_string(),
         Pattern::String(value) => quoted_string_literal(value),
-        Pattern::StringPattern(segments) => {
+        Pattern::StringSegments(segments) => {
             let mut payload = String::new();
             for segment in segments {
                 match segment {
@@ -244,6 +250,7 @@ fn pattern_to_output_text(pattern: &Pattern) -> String {
         }
         Pattern::Atom(value) => value.clone(),
         Pattern::AtomLiteral(value) => format!("Atom[{}]", quoted_string_literal(value)),
+        Pattern::NullaryConstructorCall(value) => format!("{value}()"),
         Pattern::Tuple(items) => {
             let parts = items
                 .iter()

@@ -56,6 +56,6 @@ pub (value: CanvasFillStrokeStyles) create_radial_gradient(
     r0: JsNumber,
     x1: JsNumber,
     y1: JsNumber,
-    r1: JsNumber
+    r1: JsNumber,
 ): CanvasGradient ->
     native.

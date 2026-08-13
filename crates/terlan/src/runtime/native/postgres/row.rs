@@ -5,6 +5,10 @@
 
 use std::collections::BTreeMap;
 
+#[cfg(any(
+    test,
+    all(not(feature = "serve-runtime-bin"), feature = "postgres-libpq")
+))]
 use crate::database_schema::DatabaseColumnCodec;
 use crate::terlan_native::json as json_adapter;
 
@@ -100,6 +104,10 @@ impl Row {
     }
 
     /// Copies one text-format libpq value into backend-neutral row storage.
+    #[cfg(any(
+        test,
+        all(not(feature = "serve-runtime-bin"), feature = "postgres-libpq")
+    ))]
     pub(crate) fn put_libpq_text(
         &mut self,
         name: impl Into<String>,
@@ -157,6 +165,10 @@ impl Default for Row {
 /// Driver-decoded Postgres column value.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum DecodedValue {
+    #[cfg(any(
+        test,
+        all(not(feature = "serve-runtime-bin"), feature = "postgres-libpq")
+    ))]
     Null,
     String(String),
     Int(i64),
@@ -169,6 +181,10 @@ pub(crate) enum DecodedValue {
 /// This is reserved for runtime boundaries that carry a row descriptor
 /// separately. Source-visible typed row access continues to use `string`,
 /// `int`, `bool`, and `json` so callers cannot silently accept type drift.
+#[cfg(any(
+    test,
+    all(not(feature = "serve-runtime-bin"), feature = "postgres-libpq")
+))]
 pub(crate) fn value(row: &Row, name: &str) -> Result<DecodedValue, PostgresError> {
     row.values
         .get(name)
@@ -274,6 +290,10 @@ impl DecodedValue {
     ///   row storage.
     fn kind(&self) -> &'static str {
         match self {
+            #[cfg(any(
+                test,
+                all(not(feature = "serve-runtime-bin"), feature = "postgres-libpq")
+            ))]
             Self::Null => "Null",
             Self::String(_) => "String",
             Self::Int(_) => "Int",

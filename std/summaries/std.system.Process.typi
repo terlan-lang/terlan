@@ -1,0 +1,297 @@
+//! Bounded external-process orchestration for trusted Terlan tooling.
+
+module std.system.Process.
+
+/// One ordered batch completion; exactly one optional field is populated.
+
+pub struct BatchCompletion {
+    output: Option[Output],
+    error: Option[ProcessError]
+}.
+
+/// Ordered child completions returned by `run_many`.
+
+pub struct BatchOutput {
+    completions: List[BatchCompletion]
+}.
+
+/// Nominal request envelope used by the fixed VM capability protocol.
+
+pub struct BatchRequest {
+    commands: List[Command],
+    max_concurrency: Int
+}.
+
+pub type Cancelled =
+    Atom["cancelled"].
+
+/// A fully bounded child-process request.
+
+pub struct Command {
+    program: String,
+    arguments: List[String],
+    working_directory: Option[String],
+    environment: List[EnvironmentEntry],
+    removed_environment: List[String],
+    stdin: String,
+    timeout_ms: Int,
+    output_limit_bytes: Int
+}.
+
+/// One environment variable overlaid on the child process environment.
+
+pub struct EnvironmentEntry {
+    key: String,
+    value: String
+}.
+
+/// One write/read phase in a length-framed child protocol.
+
+pub struct FramedExchange {
+    input: String,
+    expected_frames: Int
+}.
+
+/// Ordered frame bodies and child completion from a framed session.
+
+pub struct FramedOutput {
+    status: Int,
+    frames: List[String],
+    stderr: String
+}.
+
+/// A bounded, phased child protocol using a named byte-length header.
+
+pub struct FramedRequest {
+    command: Command,
+    exchanges: List[FramedExchange],
+    length_header: String
+}.
+
+pub type InvalidFrame =
+    Atom["invalid_frame"].
+
+pub type InvalidRequest =
+    Atom["invalid_request"].
+
+/// Runtime-owned resource ceilings for bounded process orchestration.
+
+pub struct Limits {
+    maximum_timeout_ms: Int,
+    maximum_output_bytes: Int,
+    maximum_stdin_bytes: Int,
+    maximum_batch_commands: Int,
+    maximum_batch_concurrency: Int,
+    maximum_framed_exchanges: Int,
+    maximum_framed_responses: Int
+}.
+
+/// Captured child completion. A nonzero status is still a successful launch.
+
+pub struct Output {
+    status: Int,
+    stdout: String,
+    stderr: String
+}.
+
+pub type OutputLimitExceeded =
+    Atom["output_limit_exceeded"].
+
+/// Portable process failure with the attempted program attached.
+
+pub struct ProcessError {
+    code: ProcessErrorCode,
+    message: String,
+    program: String
+}.
+
+/// Stable failures before a bounded child completion can be returned.
+
+pub type ProcessErrorCode =
+    InvalidRequest
+  | SpawnFailed
+  | TimedOut
+  | Cancelled
+  | OutputLimitExceeded
+  | InvalidFrame.
+
+pub type SpawnFailed =
+    Atom["spawn_failed"].
+
+pub type TimedOut =
+    Atom["timed_out"].
+
+/// Executes commands concurrently with a caller-selected positive bound.
+///
+/// Results retain input order even when children complete out of order. Each
+/// command keeps its own timeout and output bound; an invalid command therefore
+/// produces an inner `Err` without cancelling unrelated commands. An invalid
+/// batch bound produces the outer `Err` before any child is started.
+
+pub batch(commands: List[Command], max_concurrency: Int): BatchRequest.
+
+/// Constructs a command with conservative validator defaults.
+
+pub command(program: String): Command.
+
+/// Returns the typed process error for a batch entry when present.
+
+@pure
+pub completion_error(completion: BatchCompletion): Option[ProcessError].
+
+/// Returns the successful output for a batch entry when present.
+
+@pure
+pub completion_output(completion: BatchCompletion): Option[Output].
+
+/// Returns ordered completions from a bounded batch.
+
+@pure
+pub completions(output: BatchOutput): List[BatchCompletion].
+
+/// Constructs one typed child environment overlay entry.
+
+pub environment_entry(key: String, value: String): EnvironmentEntry.
+
+/// Returns the stable process error category.
+
+@pure
+pub error_code(error: ProcessError): ProcessErrorCode.
+
+/// Returns the process error diagnostic.
+
+@pure
+pub error_message(error: ProcessError): String.
+
+/// Returns the attempted program.
+
+@pure
+pub error_program(error: ProcessError): String.
+
+/// Constructs one phased write followed by an exact response-frame count.
+
+pub exchange(input: String, expected_frames: Int): FramedExchange.
+
+/// Returns the child status code from a framed session.
+
+@pure
+pub framed_status(output: FramedOutput): Int.
+
+/// Returns captured standard error from a framed session.
+
+@pure
+pub framed_stderr(output: FramedOutput): String.
+
+/// Returns ordered response frame bodies from a framed session.
+
+@pure
+pub frames(output: FramedOutput): List[String].
+
+/// Constructs a bounded length-framed protocol request.
+///
+/// The VM writes and flushes each exchange input, waits for that exchange's
+/// response count, then advances to the next exchange. Standard input closes
+/// after the last exchange. `length_header` names the case-insensitive decimal
+/// byte-length header; header blocks use CRLF and terminate with an empty line.
+
+pub length_framed(command: Command, exchanges: List[FramedExchange], length_header: String): FramedRequest.
+
+/// Reads the authoritative process resource ceilings from the active runtime.
+///
+/// Tooling should use this value rather than embedding VM implementation
+/// limits. The returned values are positive and apply to `run`, `run_many`, and
+/// `run_length_framed`.
+
+pub limits(): Limits.
+
+/// Returns the maximum number of commands accepted by one batch.
+
+@pure
+pub maximum_batch_commands(limits: Limits): Int.
+
+/// Returns the maximum worker concurrency accepted by one batch.
+
+@pure
+pub maximum_batch_concurrency(limits: Limits): Int.
+
+/// Returns the maximum number of write/read phases in one framed session.
+
+@pure
+pub maximum_framed_exchanges(limits: Limits): Int.
+
+/// Returns the maximum total response frames in one framed session.
+
+@pure
+pub maximum_framed_responses(limits: Limits): Int.
+
+/// Returns the maximum accepted combined stdout/stderr capture bound.
+
+@pure
+pub maximum_output_bytes(limits: Limits): Int.
+
+/// Returns the maximum accepted UTF-8 standard-input size.
+
+@pure
+pub maximum_stdin_bytes(limits: Limits): Int.
+
+/// Returns the maximum accepted wall-clock timeout in milliseconds.
+
+@pure
+pub maximum_timeout_ms(limits: Limits): Int.
+
+/// Executes one bounded command through the VM-owned process capability.
+
+pub run(command: Command): Result[Output, ProcessError].
+
+/// Executes one VM-owned phased length-framed child session.
+
+pub run_length_framed(request: FramedRequest): Result[FramedOutput, ProcessError].
+
+/// Executes one nominal bounded batch request through the VM capability.
+
+pub run_many(request: BatchRequest): Result[BatchOutput, ProcessError].
+
+/// Returns the child status code, or `-1` for signal termination.
+
+@pure
+pub status(output: Output): Int.
+
+/// Returns captured standard error.
+
+@pure
+pub stderr(output: Output): String.
+
+/// Returns captured standard output.
+
+@pure
+pub stdout(output: Output): String.
+
+/// Replaces the ordered child argument vector.
+
+pub with_arguments(command: Command, arguments: List[String]): Command.
+
+/// Replaces the environment overlay without clearing inherited variables.
+
+pub with_environment(command: Command, environment: List[EnvironmentEntry]): Command.
+
+/// Selects a capture bound from 1 through `maximum_output_bytes(limits())`.
+
+pub with_output_limit_bytes(command: Command, limit: Int): Command.
+
+/// Supplies bounded UTF-8 standard input.
+
+pub with_stdin(command: Command, stdin: String): Command.
+
+/// Selects a wall-clock timeout from 1 through `maximum_timeout_ms(limits())`.
+
+pub with_timeout_ms(command: Command, timeout_ms: Int): Command.
+
+/// Selects the child working directory.
+
+pub with_working_directory(command: Command, path: String): Command.
+
+/// Replaces the environment keys removed from the inherited child context.
+/// Entries supplied by `with_environment` are applied afterward and therefore
+/// remain authoritative when the same key appears in both lists.
+
+pub without_environment(command: Command, keys: List[String]): Command.

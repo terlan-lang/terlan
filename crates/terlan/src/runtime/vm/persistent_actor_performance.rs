@@ -1,6 +1,5 @@
-#![allow(dead_code)]
-
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorPerformanceFixture {
     pub(crate) name: String,
     pub(crate) event_count: u64,
@@ -12,6 +11,7 @@ pub(crate) struct VmPersistentActorPerformanceFixture {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) struct VmPersistentActorPerformanceBudget {
     pub(crate) fixture_name: String,
     pub(crate) p50_ticks: u64,
@@ -26,6 +26,7 @@ pub(crate) struct VmPersistentActorPerformanceBudget {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(test)]
 pub(crate) enum VmPersistentActorPerformanceError {
     EmptyFixtureName,
     EmptyWorkload,
@@ -35,6 +36,7 @@ pub(crate) enum VmPersistentActorPerformanceError {
     },
 }
 
+#[cfg(test)]
 pub(crate) fn estimate_persistent_actor_performance_budget(
     fixture: &VmPersistentActorPerformanceFixture,
 ) -> Result<VmPersistentActorPerformanceBudget, VmPersistentActorPerformanceError> {
@@ -94,6 +96,7 @@ pub(crate) fn estimate_persistent_actor_performance_budget(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn small_actor_fixture() -> VmPersistentActorPerformanceFixture {
     VmPersistentActorPerformanceFixture {
         name: "small actor append".to_string(),
@@ -106,6 +109,7 @@ pub(crate) fn small_actor_fixture() -> VmPersistentActorPerformanceFixture {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn event_storm_fixture() -> VmPersistentActorPerformanceFixture {
     VmPersistentActorPerformanceFixture {
         name: "event storm".to_string(),
@@ -120,4 +124,5 @@ pub(crate) fn event_storm_fixture() -> VmPersistentActorPerformanceFixture {
 
 #[cfg(test)]
 #[path = "persistent_actor_performance_test.rs"]
+#[cfg(test)]
 mod persistent_actor_performance_test;

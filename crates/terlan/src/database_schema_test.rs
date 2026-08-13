@@ -70,6 +70,56 @@ fn discovery_loads_the_nearest_verified_project_snapshot() {
 }
 
 #[test]
+fn sql_schema_discovery_reloads_changed_snapshot_instead_of_using_stale_cache() {
+    let root = temp_directory("sql-stale-cache");
+    let source = root.join("src/query.terl");
+    let snapshot_path = root.join("db/schema.snapshot.json");
+    fs::create_dir_all(source.parent().expect("source parent")).expect("create source directory");
+    fs::create_dir_all(snapshot_path.parent().expect("snapshot parent"))
+        .expect("create snapshot directory");
+
+    let initial = fixture_snapshot();
+    fs::write(
+        &snapshot_path,
+        serde_json::to_string_pretty(&initial).expect("serialize initial snapshot"),
+    )
+    .expect("write initial snapshot");
+    let first = DatabaseSchemaSnapshot::discover_for_source(&source)
+        .expect("discover initial snapshot")
+        .expect("initial snapshot");
+
+    let mut changed = initial;
+    changed.relations[0].columns.push(SchemaColumn {
+        name: "email".to_string(),
+        ordinal: 2,
+        data_type: "text".to_string(),
+        user_type_schema: "pg_catalog".to_string(),
+        user_type_name: "text".to_string(),
+        nullable: true,
+        default: None,
+        identity: false,
+        identity_generation: None,
+        generated: false,
+        generation_expression: None,
+    });
+    changed.schema_fingerprint =
+        schema_fingerprint(&changed.relations, &changed.enums).expect("changed fingerprint");
+    fs::write(
+        &snapshot_path,
+        serde_json::to_string_pretty(&changed).expect("serialize changed snapshot"),
+    )
+    .expect("write changed snapshot");
+
+    let second = DatabaseSchemaSnapshot::discover_for_source(&source)
+        .expect("discover changed snapshot")
+        .expect("changed snapshot");
+    assert_ne!(first.schema_fingerprint, second.schema_fingerprint);
+    assert_eq!(second.relations[0].columns[1].name, "email");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn discovery_rejects_ambiguous_and_forged_snapshots() {
     let root = temp_directory("adversarial");
     let source = root.join("src/page.terl");
@@ -80,7 +130,7 @@ fn discovery_rejects_ambiguous_and_forged_snapshots() {
     fs::write(root.join("schema.snapshot.json"), &valid).expect("write root snapshot");
     let error = DatabaseSchemaSnapshot::discover_for_source(&source)
         .expect_err("ambiguous snapshots must fail");
-    assert!(error.contains("error[db.snapshot.ambiguous]"));
+    assert!(error.to_string().contains("error[db.snapshot.ambiguous]"));
 
     fs::remove_file(root.join("schema.snapshot.json")).expect("remove duplicate snapshot");
     let mut forged = fixture_snapshot();
@@ -92,7 +142,7 @@ fn discovery_rejects_ambiguous_and_forged_snapshots() {
     .expect("write forged snapshot");
     let error = DatabaseSchemaSnapshot::discover_for_source(&source)
         .expect_err("forged snapshot must fail");
-    assert!(error.contains("error[db.snapshot.corrupt]"));
+    assert!(error.to_string().contains("error[db.snapshot.corrupt]"));
 
     let _ = fs::remove_dir_all(root);
 }

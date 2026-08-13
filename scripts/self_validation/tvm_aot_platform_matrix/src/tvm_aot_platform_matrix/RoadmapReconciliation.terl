@@ -1,0 +1,270 @@
+/**
+ * Validates the retired AOT mini-roadmap's main-roadmap closeout record.
+ */
+module tvm_aot_platform_matrix.RoadmapReconciliation.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.File.{read_text}.
+import std.system.{Environment, Process}.
+import tvm_aot_platform_matrix.Core.{child, is_sha256, json_bool, json_equals, json_int, json_string, json_value, load_json, string_array, targets}.
+import tvm_aot_platform_matrix.ReleaseCloseout.{local_gates, schema as closeout_schema}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type tvm_aot_platform_matrix.Core.Target.
+
+struct ChecklistRow {
+    identity: String,
+    checked: Bool,
+}.
+
+struct SliceState {
+    slice_100: Int,
+    slice_101a: Int,
+    slice_101b: Int,
+    slice_101c: Int,
+    slice_101d: Int,
+    slice_101e: Int,
+    slice_101f: Int,
+    valid: Bool,
+}.
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[tvm_aot_roadmap_reconciliation]: ", message));
+    false.
+
+empty_state(): SliceState ->
+    SliceState(
+        slice_100 = -1,
+        slice_101a = -1,
+        slice_101b = -1,
+        slice_101c = -1,
+        slice_101d = -1,
+        slice_101e = -1,
+        slice_101f = -1,
+        valid = true,
+    ).
+
+next_status(current: Int, checked: Bool): Int ->
+    if {
+        current != -1 -> -2;
+        checked -> 1;
+        true -> 0
+    }.
+
+with_slice(state: SliceState, identity: String, checked: Bool): SliceState ->
+    let status =
+        case identity {
+            "Slice 100" -> next_status(state.slice_100, checked);
+            "Slice 101A" -> next_status(state.slice_101a, checked);
+            "Slice 101B" -> next_status(state.slice_101b, checked);
+            "Slice 101C" -> next_status(state.slice_101c, checked);
+            "Slice 101D" -> next_status(state.slice_101d, checked);
+            "Slice 101E" -> next_status(state.slice_101e, checked);
+            "Slice 101F" -> next_status(state.slice_101f, checked);
+            _ -> -2
+        };
+    SliceState(
+        slice_100 = if {
+            identity == "Slice 100" -> status;
+            true -> state.slice_100
+        },
+        slice_101a = if {
+            identity == "Slice 101A" -> status;
+            true -> state.slice_101a
+        },
+        slice_101b = if {
+            identity == "Slice 101B" -> status;
+            true -> state.slice_101b
+        },
+        slice_101c = if {
+            identity == "Slice 101C" -> status;
+            true -> state.slice_101c
+        },
+        slice_101d = if {
+            identity == "Slice 101D" -> status;
+            true -> state.slice_101d
+        },
+        slice_101e = if {
+            identity == "Slice 101E" -> status;
+            true -> state.slice_101e
+        },
+        slice_101f = if {
+            identity == "Slice 101F" -> status;
+            true -> state.slice_101f
+        },
+        valid = state.valid and status != -2,
+    ).
+
+identity_from_text(value: String): Option[String] ->
+    if {
+        String.starts_with(value, "Slice 100:") or String.starts_with(value, "Slice 100 ") -> Some("Slice 100");
+        String.starts_with(value, "Slice 101A:") or String.starts_with(value, "Slice 101A ") -> Some("Slice 101A");
+        String.starts_with(value, "Slice 101B:") or String.starts_with(value, "Slice 101B ") -> Some("Slice 101B");
+        String.starts_with(value, "Slice 101C:") or String.starts_with(value, "Slice 101C ") -> Some("Slice 101C");
+        String.starts_with(value, "Slice 101D:") or String.starts_with(value, "Slice 101D ") -> Some("Slice 101D");
+        String.starts_with(value, "Slice 101E:") or String.starts_with(value, "Slice 101E ") -> Some("Slice 101E");
+        String.starts_with(value, "Slice 101F:") or String.starts_with(value, "Slice 101F ") -> Some("Slice 101F");
+        true -> None
+    }.
+
+row_after_prefix(line: String, checked: Bool): Option[ChecklistRow] ->
+    let remainder = String.utf8_slice(line, 6, String.byte_size(line) - 6);
+    case identity_from_text(remainder) {
+        Some(identity) -> Some(ChecklistRow(identity = identity, checked = checked));
+        None -> None
+    }.
+
+checklist_row(line: String): Option[ChecklistRow] ->
+    if {
+        String.starts_with(line, "- [x] ") or String.starts_with(line, "- [X] ") -> row_after_prefix(line, true);
+        String.starts_with(line, "- [ ] ") -> row_after_prefix(line, false);
+        true -> None
+    }.
+
+scan_lines(lines: List[String], state: SliceState): SliceState ->
+    case lines {
+        [] -> state;
+        [line | rest] ->
+            case checklist_row(line) {
+                Some(row) -> scan_lines(rest, with_slice(state, row.identity, row.checked));
+                None -> scan_lines(rest, state)
+            }
+    }.
+
+checklist(markdown: String): Option[SliceState] ->
+    let state = scan_lines(String.split(markdown, "\n"), empty_state());
+    if {
+        not state.valid -> None;
+        state.slice_100 == -1 or state.slice_101a == -1 or state.slice_101b == -1 -> None;
+        state.slice_101c == -1 or state.slice_101d == -1 or state.slice_101e == -1 -> None;
+        state.slice_101f == -1 -> None;
+        true -> Some(state)
+    }.
+
+all_checked(state: SliceState): Bool ->
+    state.slice_100 == 1
+        and state.slice_101a == 1
+        and state.slice_101b == 1
+        and state.slice_101c == 1
+        and state.slice_101d == 1
+        and state.slice_101e == 1
+        and state.slice_101f == 1.
+
+target_ids(values: List[Target], result: Json): Json ->
+    case values {
+        [] -> result;
+        [target | rest] -> target_ids(rest, result.push(Json.string(target.id)))
+    }.
+
+zero_field(value: Json, field: String): Bool ->
+    case json_int(value, field) {
+        Some(number) -> number == 0;
+        None -> false
+    }.
+
+validate_report(report: Json, revision: String): Bool ->
+    let {
+        Some(schema) <- json_string(report, "schema");
+        Some(decision) <- json_string(report, "decision");
+        Some(source_revision) <- json_string(report, "source_revision");
+        Some(gates) <- json_value(report, "local_gates");
+        Some(publishing_required) <- json_bool(report, "publishing_required");
+        Some(semantic) <- json_value(report, "semantic_preservation");
+        Some(contract) <- json_value(report, "platform_contract");
+        Some(supported) <- json_value(contract, "supported_targets");
+        Some(host) <- json_value(contract, "host_report");
+        Some(host_digest) <- json_string(host, "sha256")
+    } else {
+        _ -> false
+    };
+    if {
+        schema != closeout_schema() or decision != "pass" -> false;
+        source_revision != revision -> false;
+        not json_equals(gates, string_array(local_gates())) -> false;
+        publishing_required -> false;
+        not zero_field(semantic, "runtime_fallbacks") -> false;
+        not zero_field(semantic, "temporary_migration_support") -> false;
+        not zero_field(semantic, "deletion_debt") -> false;
+        not json_equals(supported, target_ids(targets(), Json.array())) -> false;
+        true -> is_sha256(host_digest)
+    }.
+
+command_output(root: String): Option[String] ->
+    let command =
+        Process.with_working_directory(
+            Process.with_arguments(Process.command("git"), ["rev-parse", "HEAD"]),
+            root,
+        );
+    case Process.run(command) {
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> Some(String.trim(Process.stdout(output)));
+                true -> None
+            };
+        Err(_error) -> None
+    }.
+
+/**
+ * Requires all main AOT slices and one matching local closeout report.
+ */
+pub check(): Bool ->
+    let root = Environment.current_directory();
+    let {
+        Ok(markdown) <- read_text(child(root, "docs/roadmap/ROADMAP_0_0_7.md"));
+        Some(state) <- checklist(markdown);
+        Some(report) <- load_json(child(root, "target/quality/tvm-aot-release-closeout-report.json"));
+        Some(revision) <- command_output(root)
+    } else {
+        _ -> failure("cannot load roadmap reconciliation inputs")
+    };
+    if {
+        not all_checked(state) -> failure("main AOT reconciliation is incomplete");
+        not validate_report(report, revision) -> failure("local AOT closeout report is invalid");
+        true -> let _printed = println("TVM AOT roadmap reconciliation passed; mini-roadmap retired");
+        true
+    }.
+
+valid_fixture(): String ->
+    String.concat(
+        [
+            "- [x] Slice 100: evidence\n",
+            "- [x] Slice 101A: evidence\n",
+            "- [x] Slice 101B: evidence\n",
+            "- [x] Slice 101C: evidence\n",
+            "- [x] Slice 101D: evidence\n",
+            "- [x] Slice 101E: evidence\n",
+            "- [x] Slice 101F: evidence",
+        ],
+    ).
+
+checklist_rejects(markdown: String): Bool ->
+    case checklist(markdown) {
+        None -> true;
+        Some(_state) -> false
+    }.
+
+/**
+ * Proves missing, duplicate, and unchecked ownership fails closed.
+ */
+pub self_test(): Bool ->
+    let valid = valid_fixture();
+    let unchecked = String.replace(valid, "- [x] Slice 101F", "- [ ] Slice 101F");
+    let missing = String.replace(valid, "- [x] Slice 101F: evidence", "");
+    let duplicate = String.append(valid, "\n- [x] Slice 100: duplicate");
+    case {checklist(valid), checklist(unchecked)} {
+        {Some(valid_state), Some(unchecked_state)} ->
+            if {
+                not all_checked(valid_state) -> failure("valid ownership was rejected");
+                all_checked(unchecked_state) -> failure("unchecked ownership was accepted");
+                not checklist_rejects(missing) -> failure("missing ownership was accepted");
+                not checklist_rejects(duplicate) -> failure("duplicate ownership was accepted");
+                true -> let _printed = println("TVM AOT roadmap reconciliation self-test passed");
+                true
+            };
+        _ -> failure("valid roadmap fixture was rejected")
+    }.

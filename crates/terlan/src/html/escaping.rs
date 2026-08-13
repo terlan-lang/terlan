@@ -40,4 +40,5 @@ pub fn escape_html_text(text: &str) -> String {
 
 #[cfg(test)]
 #[path = "escaping_test.rs"]
+#[cfg(test)]
 mod escaping_test;

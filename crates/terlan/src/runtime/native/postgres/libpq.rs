@@ -334,4 +334,5 @@ fn map_error(code: &'static str, error: CAbiError) -> PostgresError {
 
 #[cfg(test)]
 #[path = "libpq_test.rs"]
+#[cfg(test)]
 mod libpq_test;

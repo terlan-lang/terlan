@@ -39,7 +39,7 @@ pub can_make_payment_typechecks(receiver: PaymentRequest): Promise[Bool] ->
 
 pub show_typechecks(
     receiver: PaymentRequest,
-    details_promise: PaymentDetailsUpdate | PromiseLike[PaymentDetailsUpdate]
+    details_promise: PaymentDetailsUpdate | PromiseLike[PaymentDetailsUpdate],
 ): Promise[PaymentResponse] ->
     receiver.show(details_promise).
 
@@ -47,7 +47,7 @@ pub add_event_listener_typechecks(
     receiver: PaymentRequest,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -55,6 +55,6 @@ pub remove_event_listener_typechecks(
     receiver: PaymentRequest,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

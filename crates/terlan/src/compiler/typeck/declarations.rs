@@ -21,38 +21,33 @@ mod exhaustiveness;
 use crate::terlan_syntax::SyntaxConstructorClauseOutput;
 use exhaustiveness::check_syntax_function_clause_exhaustiveness;
 
-/// Checks function-like declarations in a syntax-output module.
-///
-/// Inputs:
-/// - `module`: syntax-output module containing functions, receiver methods,
-///   and explicit trait implementation methods.
-/// - `function_signatures`: local function signature candidates keyed by name
-///   and arity.
-/// - `constructor_signatures`: explicit constructor schemes keyed by target
-///   type name.
-/// - `alias_names`, `aliases`, and imported/local alias maps: visible type
-///   information used to parse method signatures and check patterns.
-/// - `expr_ctx`: shared expression-inference context for callable bodies.
-///
-/// Output:
-/// - One diagnostic per invalid callable declaration body, missing signature,
-///   pattern error, trait-bound failure, or return-type mismatch.
-///
-/// Transformation:
-/// - Dispatches each function-like declaration to the common clause checker,
-///   adapting receiver methods into receiver-first callable clauses without
-///   changing the syntax output model.
+/// Module-wide signatures, aliases, and expression context for declarations.
+pub(super) struct SyntaxDeclarationCheckEnvironment<'a> {
+    pub(super) function_signatures: &'a HashMap<(String, usize), Vec<FunctionScheme>>,
+    pub(super) constructor_signatures: &'a HashMap<String, Vec<ConstructorScheme>>,
+    pub(super) alias_names: &'a HashSet<String>,
+    pub(super) aliases: &'a HashMap<String, TypeAlias>,
+    pub(super) imported_type_names: &'a HashMap<String, QualifiedTypeName>,
+    pub(super) imported_type_aliases: &'a HashMap<String, TypeAlias>,
+    pub(super) local_aliases: &'a HashMap<String, TypeAlias>,
+    pub(super) expr_ctx: &'a ExprInferContext<'a>,
+}
+
+/// Checks every function-like declaration against the shared module environment.
 pub(super) fn check_syntax_module_functions(
     module: &SyntaxModuleOutput,
-    function_signatures: &HashMap<(String, usize), Vec<FunctionScheme>>,
-    constructor_signatures: &HashMap<String, Vec<ConstructorScheme>>,
-    alias_names: &HashSet<String>,
-    aliases: &HashMap<String, TypeAlias>,
-    imported_type_names: &HashMap<String, QualifiedTypeName>,
-    imported_type_aliases: &HashMap<String, TypeAlias>,
-    local_aliases: &HashMap<String, TypeAlias>,
-    expr_ctx: &ExprInferContext,
+    environment: SyntaxDeclarationCheckEnvironment<'_>,
 ) -> Vec<Diagnostic> {
+    let SyntaxDeclarationCheckEnvironment {
+        function_signatures,
+        constructor_signatures,
+        alias_names,
+        aliases,
+        imported_type_names,
+        imported_type_aliases,
+        local_aliases,
+        expr_ctx,
+    } = environment;
     let mut diagnostics = Vec::new();
     let effectful_imported_calls = collect_effectful_imported_calls(expr_ctx);
     let effectful_local_calls = collect_effectful_local_calls(
@@ -104,10 +99,12 @@ pub(super) fn check_syntax_module_functions(
                     &return_type.text,
                     generic_params,
                     generic_bounds,
-                    alias_names,
-                    imported_type_names,
-                    imported_type_aliases,
-                    local_aliases,
+                    TypeResolutionEnvironment {
+                        alias_names,
+                        imported_type_names,
+                        imported_type_aliases,
+                        local_aliases,
+                    },
                 );
                 let scheme = schemes
                     .iter()
@@ -137,20 +134,27 @@ pub(super) fn check_syntax_module_functions(
                     &mut diagnostics,
                 );
                 check_syntax_callable_clauses(
-                    &format!("function {}", name),
-                    name,
-                    params,
-                    clauses,
-                    &scheme,
-                    declaration.span.into(),
-                    alias_names,
-                    aliases,
-                    expr_ctx,
+                    CallableDeclaration {
+                        label: &format!("function {}", name),
+                        name,
+                        params,
+                        clauses,
+                        scheme: &scheme,
+                        fallback_span: declaration.span.into(),
+                        requires_pure_body: declaration_has_marker_annotation(
+                            declaration,
+                            &["pure"],
+                        ),
+                        requires_trait_purity: false,
+                    },
+                    CallableCheckEnvironment {
+                        alias_names,
+                        aliases,
+                        expr_ctx,
+                        effectful_local_calls: &effectful_local_calls,
+                        imported_effects: &effectful_imported_calls,
+                    },
                     &mut diagnostics,
-                    declaration_has_marker_annotation(declaration, &["pure"]),
-                    false,
-                    &effectful_local_calls,
-                    &effectful_imported_calls,
                 );
             }
             SyntaxDeclarationPayload::TraitImpl {
@@ -195,7 +199,7 @@ pub(super) fn check_syntax_module_functions(
                     &mut trait_inheritance_cache,
                 );
                 let mut receiver_first_params = Vec::with_capacity(params.len() + 1);
-                receiver_first_params.push(receiver.clone());
+                receiver_first_params.push(receiver.as_ref().clone());
                 receiver_first_params.extend(params.iter().cloned());
                 let scheme = function_decl_to_scheme(
                     &receiver_first_params
@@ -205,10 +209,12 @@ pub(super) fn check_syntax_module_functions(
                     mutable_receiver_internal_return_type(receiver, return_type),
                     generic_params,
                     generic_bounds,
-                    alias_names,
-                    imported_type_names,
-                    imported_type_aliases,
-                    local_aliases,
+                    TypeResolutionEnvironment {
+                        alias_names,
+                        imported_type_names,
+                        imported_type_aliases,
+                        local_aliases,
+                    },
                 );
 
                 check_callable_alias_implications(
@@ -229,21 +235,27 @@ pub(super) fn check_syntax_module_functions(
                     &mut diagnostics,
                 );
                 check_syntax_callable_clauses(
-                    &format!("receiver method {}", name),
-                    name,
-                    &receiver_first_params,
-                    &receiver_method_clauses_with_bindings(receiver, params, clauses),
-                    &scheme,
-                    declaration.span.into(),
-                    alias_names,
-                    aliases,
-                    expr_ctx,
+                    CallableDeclaration {
+                        label: &format!("receiver method {}", name),
+                        name,
+                        params: &receiver_first_params,
+                        clauses: &receiver_method_clauses_with_bindings(receiver, params, clauses),
+                        scheme: &scheme,
+                        fallback_span: declaration.span.into(),
+                        requires_pure_body: declaration_has_marker_annotation(
+                            declaration,
+                            &["pure"],
+                        ) || requires_trait_purity,
+                        requires_trait_purity,
+                    },
+                    CallableCheckEnvironment {
+                        alias_names,
+                        aliases,
+                        expr_ctx,
+                        effectful_local_calls: &effectful_local_calls,
+                        imported_effects: &effectful_imported_calls,
+                    },
                     &mut diagnostics,
-                    declaration_has_marker_annotation(declaration, &["pure"])
-                        || requires_trait_purity,
-                    requires_trait_purity,
-                    &effectful_local_calls,
-                    &effectful_imported_calls,
                 );
             }
             SyntaxDeclarationPayload::Trait { methods, .. } => {
@@ -257,10 +269,12 @@ pub(super) fn check_syntax_module_functions(
                         &method.return_type.text,
                         &Vec::new(),
                         &method.generic_bounds,
-                        alias_names,
-                        imported_type_names,
-                        imported_type_aliases,
-                        local_aliases,
+                        TypeResolutionEnvironment {
+                            alias_names,
+                            imported_type_names,
+                            imported_type_aliases,
+                            local_aliases,
+                        },
                     );
                     check_syntax_param_defaults(
                         &method.params,
@@ -317,22 +331,7 @@ pub(super) fn check_syntax_module_functions(
     diagnostics
 }
 
-/// Checks default parameter expressions for callable declarations.
-///
-/// Inputs:
-/// - `params`: syntax-output parameters carrying optional defaults.
-/// - `expected_types`: parsed parameter types in declaration order.
-/// - `aliases`: visible type aliases used when comparing inferred defaults.
-/// - `expr_ctx`: expression inference context for primitive and literal rules.
-/// - `diagnostics`: output diagnostic sink.
-///
-/// Output:
-/// - No direct return value.
-///
-/// Transformation:
-/// - Rejects non-constant defaults for the 0.0.5 language slice, infers each
-///   constant default expression with an empty local scope, and unifies the
-///   inferred type with the declared parameter type.
+/// Rejects non-constant defaults and checks each constant against its parameter type.
 fn check_syntax_param_defaults(
     params: &[SyntaxParamOutput],
     expected_types: &[Type],
@@ -767,22 +766,47 @@ pub(super) fn is_unit_type_text(text: &str) -> bool {
 ///   against parameter types, infers the clause body, and unifies it with the
 ///   declared return type. The same path is used for normal functions and
 ///   explicit trait impl methods so adapter bodies cannot bypass typechecking.
-fn check_syntax_callable_clauses(
-    callable_label: &str,
-    callable_name: &str,
-    params: &[SyntaxParamOutput],
-    clauses: &[SyntaxFunctionClauseOutput],
-    scheme: &FunctionScheme,
+struct CallableDeclaration<'a> {
+    label: &'a str,
+    name: &'a str,
+    params: &'a [SyntaxParamOutput],
+    clauses: &'a [SyntaxFunctionClauseOutput],
+    scheme: &'a FunctionScheme,
     fallback_span: Span,
-    alias_names: &HashSet<String>,
-    aliases: &HashMap<String, TypeAlias>,
-    expr_ctx: &ExprInferContext,
-    diagnostics: &mut Vec<Diagnostic>,
     requires_pure_body: bool,
     requires_trait_purity: bool,
-    effectful_local_calls: &HashSet<(String, usize)>,
-    imported_effects: &ImportedEffectFacts,
+}
+
+struct CallableCheckEnvironment<'a> {
+    alias_names: &'a HashSet<String>,
+    aliases: &'a HashMap<String, TypeAlias>,
+    expr_ctx: &'a ExprInferContext<'a>,
+    effectful_local_calls: &'a HashSet<(String, usize)>,
+    imported_effects: &'a ImportedEffectFacts,
+}
+
+fn check_syntax_callable_clauses(
+    declaration: CallableDeclaration<'_>,
+    environment: CallableCheckEnvironment<'_>,
+    diagnostics: &mut Vec<Diagnostic>,
 ) {
+    let CallableDeclaration {
+        label: callable_label,
+        name: callable_name,
+        params,
+        clauses,
+        scheme,
+        fallback_span,
+        requires_pure_body,
+        requires_trait_purity,
+    } = declaration;
+    let CallableCheckEnvironment {
+        alias_names,
+        aliases,
+        expr_ctx,
+        effectful_local_calls,
+        imported_effects,
+    } = environment;
     let mut clause_patterns: Vec<(Vec<SyntaxPatternOutput>, Span)> = Vec::new();
 
     if clauses.is_empty() {

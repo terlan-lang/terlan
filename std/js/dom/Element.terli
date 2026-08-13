@@ -263,7 +263,7 @@ pub (value: Element) get_elements_by_tag_name(qualified_name: JsString): HTMLCol
 
 pub (value: Element) get_elements_by_tag_name_ns(
     namespace: Option[JsString],
-    local_name: JsString
+    local_name: JsString,
 ): HTMLCollectionOf[Element].
 
 /**
@@ -469,11 +469,11 @@ pub (value: Element) text_content(): JsString.
 pub (value: Element) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit.
 
 pub (value: Element) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit.

@@ -71,5 +71,5 @@ pub (value: StorageEvent) init_storage_event(
     old_value: Option[JsString],
     new_value: Option[JsString],
     url: URL | JsString,
-    storage_area: Option[Storage]
+    storage_area: Option[Storage],
 ): std.core.Unit.

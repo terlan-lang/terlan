@@ -21,7 +21,7 @@ pub buffer_data_typechecks(
     receiver: WebGLRenderingContextOverloads,
     target_: GLenum,
     size: GLsizeiptr,
-    usage: GLenum
+    usage: GLenum,
 ): Unit ->
     receiver.buffer_data(target_, size, usage).
 
@@ -29,7 +29,7 @@ pub buffer_data_typechecks(
     receiver: WebGLRenderingContextOverloads,
     target_: GLenum,
     data: Option[AllowSharedBufferSource],
-    usage: GLenum
+    usage: GLenum,
 ): Unit ->
     receiver.buffer_data(target_, data, usage).
 
@@ -37,7 +37,7 @@ pub buffer_sub_data_typechecks(
     receiver: WebGLRenderingContextOverloads,
     target_: GLenum,
     offset: GLintptr,
-    data: AllowSharedBufferSource
+    data: AllowSharedBufferSource,
 ): Unit ->
     receiver.buffer_sub_data(target_, offset, data).
 
@@ -49,7 +49,7 @@ pub compressed_tex_image2_d_typechecks(
     width: GLsizei,
     height: GLsizei,
     border: GLint,
-    data: ArrayBufferView[ArrayBufferLike]
+    data: ArrayBufferView[ArrayBufferLike],
 ): Unit ->
     receiver.compressed_tex_image2_d(target_, level, internalformat, width, height, border, data).
 
@@ -62,9 +62,10 @@ pub compressed_tex_sub_image2_d_typechecks(
     width: GLsizei,
     height: GLsizei,
     format: GLenum,
-    data: ArrayBufferView[ArrayBufferLike]
+    data: ArrayBufferView[ArrayBufferLike],
 ): Unit ->
-    receiver.compressed_tex_sub_image2_d(target_, level, xoffset, yoffset, width, height, format, data).
+    receiver
+        .compressed_tex_sub_image2_d(target_, level, xoffset, yoffset, width, height, format, data).
 
 pub read_pixels_typechecks(
     receiver: WebGLRenderingContextOverloads,
@@ -74,7 +75,7 @@ pub read_pixels_typechecks(
     height: GLsizei,
     format: GLenum,
     type_: GLenum,
-    pixels: Option[ArrayBufferView[ArrayBufferLike]]
+    pixels: Option[ArrayBufferView[ArrayBufferLike]],
 ): Unit ->
     receiver.read_pixels(x, y, width, height, format, type_, pixels).
 
@@ -88,9 +89,10 @@ pub tex_image2_d_typechecks(
     border: GLint,
     format: GLenum,
     type_: GLenum,
-    pixels: Option[ArrayBufferView[ArrayBufferLike]]
+    pixels: Option[ArrayBufferView[ArrayBufferLike]],
 ): Unit ->
-    receiver.tex_image2_d(target_, level, internalformat, width, height, border, format, type_, pixels).
+    receiver
+        .tex_image2_d(target_, level, internalformat, width, height, border, format, type_, pixels).
 
 pub tex_image2_d_typechecks(
     receiver: WebGLRenderingContextOverloads,
@@ -99,7 +101,7 @@ pub tex_image2_d_typechecks(
     internalformat: GLint,
     format: GLenum,
     type_: GLenum,
-    source: TexImageSource
+    source: TexImageSource,
 ): Unit ->
     receiver.tex_image2_d(target_, level, internalformat, format, type_, source).
 
@@ -113,9 +115,10 @@ pub tex_sub_image2_d_typechecks(
     height: GLsizei,
     format: GLenum,
     type_: GLenum,
-    pixels: Option[ArrayBufferView[ArrayBufferLike]]
+    pixels: Option[ArrayBufferView[ArrayBufferLike]],
 ): Unit ->
-    receiver.tex_sub_image2_d(target_, level, xoffset, yoffset, width, height, format, type_, pixels).
+    receiver
+        .tex_sub_image2_d(target_, level, xoffset, yoffset, width, height, format, type_, pixels).
 
 pub tex_sub_image2_d_typechecks(
     receiver: WebGLRenderingContextOverloads,
@@ -125,63 +128,63 @@ pub tex_sub_image2_d_typechecks(
     yoffset: GLint,
     format: GLenum,
     type_: GLenum,
-    source: TexImageSource
+    source: TexImageSource,
 ): Unit ->
     receiver.tex_sub_image2_d(target_, level, xoffset, yoffset, format, type_, source).
 
 pub uniform1fv_typechecks(
     receiver: WebGLRenderingContextOverloads,
     location: Option[WebGLUniformLocation],
-    v: Float32List
+    v: Float32List,
 ): Unit ->
     receiver.uniform1fv(location, v).
 
 pub uniform1iv_typechecks(
     receiver: WebGLRenderingContextOverloads,
     location: Option[WebGLUniformLocation],
-    v: Int32List
+    v: Int32List,
 ): Unit ->
     receiver.uniform1iv(location, v).
 
 pub uniform2fv_typechecks(
     receiver: WebGLRenderingContextOverloads,
     location: Option[WebGLUniformLocation],
-    v: Float32List
+    v: Float32List,
 ): Unit ->
     receiver.uniform2fv(location, v).
 
 pub uniform2iv_typechecks(
     receiver: WebGLRenderingContextOverloads,
     location: Option[WebGLUniformLocation],
-    v: Int32List
+    v: Int32List,
 ): Unit ->
     receiver.uniform2iv(location, v).
 
 pub uniform3fv_typechecks(
     receiver: WebGLRenderingContextOverloads,
     location: Option[WebGLUniformLocation],
-    v: Float32List
+    v: Float32List,
 ): Unit ->
     receiver.uniform3fv(location, v).
 
 pub uniform3iv_typechecks(
     receiver: WebGLRenderingContextOverloads,
     location: Option[WebGLUniformLocation],
-    v: Int32List
+    v: Int32List,
 ): Unit ->
     receiver.uniform3iv(location, v).
 
 pub uniform4fv_typechecks(
     receiver: WebGLRenderingContextOverloads,
     location: Option[WebGLUniformLocation],
-    v: Float32List
+    v: Float32List,
 ): Unit ->
     receiver.uniform4fv(location, v).
 
 pub uniform4iv_typechecks(
     receiver: WebGLRenderingContextOverloads,
     location: Option[WebGLUniformLocation],
-    v: Int32List
+    v: Int32List,
 ): Unit ->
     receiver.uniform4iv(location, v).
 
@@ -189,7 +192,7 @@ pub uniform_matrix2fv_typechecks(
     receiver: WebGLRenderingContextOverloads,
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
-    value: Float32List
+    value: Float32List,
 ): Unit ->
     receiver.uniform_matrix2fv(location, transpose, value).
 
@@ -197,7 +200,7 @@ pub uniform_matrix3fv_typechecks(
     receiver: WebGLRenderingContextOverloads,
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
-    value: Float32List
+    value: Float32List,
 ): Unit ->
     receiver.uniform_matrix3fv(location, transpose, value).
 
@@ -205,6 +208,6 @@ pub uniform_matrix4fv_typechecks(
     receiver: WebGLRenderingContextOverloads,
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
-    value: Float32List
+    value: Float32List,
 ): Unit ->
     receiver.uniform_matrix4fv(location, transpose, value).

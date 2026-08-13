@@ -1,0 +1,859 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Records and validates the release external-package execution matrix.
+ */
+import std.collections.List.{length}.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.{create_all, create_temporary, remove_all}.
+import std.io.File.{exists, read_text, write_text}.
+import std.system.{Arguments, Environment}.
+
+import type std.core.Option.
+import type std.data.Json.
+
+struct Options {
+    valid: Bool,
+    command: String,
+    gate: String,
+    state: String,
+    reason_code: String,
+    profile: String,
+    allow_missing: Bool,
+}.
+
+struct Context {
+    root: String,
+    artifact_dir: String,
+    matrix_path: String,
+}.
+
+struct PolicyRow {
+    default_expectation: String,
+    experimental_expectation: String,
+    fixture_id: String,
+    gate: String,
+    import_proof: String,
+    manifest: String,
+    namespace: String,
+    native_mode: Bool,
+    provenance_key: String,
+    vm_mode: Bool,
+}.
+
+struct Policy {
+    allowed_reason_codes: List[String],
+    explicit_opt_in_gates: List[String],
+    rows: List[PolicyRow],
+}.
+
+struct Status {
+    fixture_id: String,
+    gate: String,
+    reason_code: String,
+    state: String,
+}.
+
+@pure
+child(parent: String, relative: String): String ->
+    if {
+        parent == "." -> relative;
+        String.ends_with(parent, "/") -> String.append(parent, relative);
+        true -> String.append(parent, String.append("/", relative))
+    }.
+
+root(): String ->
+    case Environment.get("TERLAN_EXTERNAL_PACKAGE_MATRIX_ROOT") {
+        Some(value) -> value;
+        None -> Environment.current_directory()
+    }.
+
+context(): Context ->
+    let repository = root();
+    Context(
+        root = repository,
+        artifact_dir = child(repository, "target/quality/external-packages"),
+        matrix_path = child(repository, "target/quality/external-package-execution.matrix.json"),
+    ).
+
+temporary_context(path: String): Context ->
+    Context(
+        root = root(),
+        artifact_dir = child(path, "rows"),
+        matrix_path = child(path, "matrix.json"),
+    ).
+
+@pure
+empty_options(command: String): Options ->
+    Options(
+        valid = command != "",
+        command = command,
+        gate = "",
+        state = "",
+        reason_code = "",
+        profile = "",
+        allow_missing = false,
+    ).
+
+@pure
+invalid_options(options: Options): Options ->
+    Options(
+        valid = false,
+        command = options.command,
+        gate = options.gate,
+        state = options.state,
+        reason_code = options.reason_code,
+        profile = options.profile,
+        allow_missing = options.allow_missing,
+    ).
+
+@pure
+with_value(options: Options, flag: String, value: String): Options ->
+    if {
+        flag == "--gate" -> Options(
+            valid = options.valid,
+            command = options.command,
+            gate = value,
+            state = options.state,
+            reason_code = options.reason_code,
+            profile = options.profile,
+            allow_missing = options.allow_missing,
+        );
+        flag == "--state" -> Options(
+            valid = options.valid,
+            command = options.command,
+            gate = options.gate,
+            state = value,
+            reason_code = options.reason_code,
+            profile = options.profile,
+            allow_missing = options.allow_missing,
+        );
+        flag == "--reason-code" -> Options(
+            valid = options.valid,
+            command = options.command,
+            gate = options.gate,
+            state = options.state,
+            reason_code = value,
+            profile = options.profile,
+            allow_missing = options.allow_missing,
+        );
+        flag == "--profile" -> Options(
+            valid = options.valid,
+            command = options.command,
+            gate = options.gate,
+            state = options.state,
+            reason_code = options.reason_code,
+            profile = value,
+            allow_missing = options.allow_missing,
+        );
+        true -> invalid_options(options)
+    }.
+
+@pure
+with_allow_missing(options: Options): Options ->
+    Options(
+        valid = options.valid,
+        command = options.command,
+        gate = options.gate,
+        state = options.state,
+        reason_code = options.reason_code,
+        profile = options.profile,
+        allow_missing = true,
+    ).
+
+parse_options(index: Int, options: Options): Options ->
+    if {
+        index >= Arguments.count() -> options;
+        true -> case Arguments.get(index) {
+            Some("--allow-missing") -> parse_options(index + 1, with_allow_missing(options));
+            Some(flag) ->
+                case Arguments.get(index + 1) {
+                    Some(value) -> parse_options(index + 2, with_value(options, flag, value));
+                    None -> invalid_options(options)
+                };
+            None -> invalid_options(options)
+        }
+    }.
+
+options(): Options ->
+    case Arguments.get(0) {
+        Some(command) -> parse_options(1, empty_options(command));
+        None -> empty_options("")
+    }.
+
+failure(code: String, message: String): Bool ->
+    let _printed = eprintln(String.append("error[", String.append(code, String.append("]: ", message))));
+    false.
+
+policy_failure(code: String, message: String): Option[Policy] ->
+    let _failed = failure(code, message);
+    None.
+
+@pure
+reverse_strings(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings(rest, [value | reversed])
+    }.
+
+@pure
+reverse_rows(values: List[PolicyRow], reversed: List[PolicyRow]): List[PolicyRow] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_rows(rest, [value | reversed])
+    }.
+
+@pure
+contains_string(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains_string(rest, expected)
+    }.
+
+@pure
+sorted_unique(values: List[String], previous: String): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            value != ""
+                and (previous == "" or String.compare(previous, value) == Lt)
+                and sorted_unique(rest, value)
+    }.
+
+@pure
+code_character(value: String): Bool ->
+    value == "a"
+        or value == "b"
+        or value == "c"
+        or value == "d"
+        or value == "e"
+        or value == "f"
+        or value == "g"
+        or value == "h"
+        or value == "i"
+        or value == "j"
+        or value == "k"
+        or value == "l"
+        or value == "m"
+        or value == "n"
+        or value == "o"
+        or value == "p"
+        or value == "q"
+        or value == "r"
+        or value == "s"
+        or value == "t"
+        or value == "u"
+        or value == "v"
+        or value == "w"
+        or value == "x"
+        or value == "y"
+        or value == "z"
+        or value == "0"
+        or value == "1"
+        or value == "2"
+        or value == "3"
+        or value == "4"
+        or value == "5"
+        or value == "6"
+        or value == "7"
+        or value == "8"
+        or value == "9".
+
+@pure
+reason_code_characters(values: List[String], first: Bool, prior_hyphen: Bool): Bool ->
+    case values {
+        [] -> not first and not prior_hyphen;
+        [value | rest] ->
+            if {
+                value == "-" -> not first and not prior_hyphen and reason_code_characters(rest, false, true);
+                code_character(value) -> reason_code_characters(rest, false, false);
+                true -> false
+            }
+    }.
+
+@pure
+valid_reason_code(value: String): Bool ->
+    reason_code_characters(String.characters(value), true, false).
+
+json_string(value: Json, key: String): Option[String] ->
+    let {
+        Ok(member) <- Json.get(value, key);
+        Ok(text) <- Json.as_string(member)
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+json_bool(value: Json, key: String): Option[Bool] ->
+    let {
+        Ok(member) <- Json.get(value, key);
+        Ok(boolean) <- Json.as_bool(member)
+    } else {
+        _ -> None
+    };
+    Some(boolean).
+
+json_strings_at(
+    array: Json,
+    index: Int,
+    total: Int,
+    reversed: List[String],
+): Option[List[String]] ->
+    if {
+        index >= total -> Some(reverse_strings(reversed, []));
+        true -> let {
+            Ok(value) <- Json.at(array, index);
+            Ok(text) <- Json.as_string(value)
+        } else {
+            _ -> None
+        };
+        json_strings_at(array, index + 1, total, [text | reversed])
+    }.
+
+json_strings(value: Json): Option[List[String]] ->
+    case Json.length(value) {
+        Ok(total) -> json_strings_at(value, 0, total, []);
+        Err(_reason) -> None
+    }.
+
+policy_row(value: Json): Option[PolicyRow] ->
+    let {
+        Some(default_expectation) <- json_string(value, "default");
+        Some(experimental_expectation) <- json_string(value, "experimental");
+        Some(fixture_id) <- json_string(value, "fixture_id");
+        Some(gate) <- json_string(value, "gate");
+        Some(import_proof) <- json_string(value, "import_proof");
+        Some(manifest) <- json_string(value, "manifest");
+        Some(namespace) <- json_string(value, "namespace");
+        Some(native_mode) <- json_bool(value, "native_mode");
+        Some(provenance_key) <- json_string(value, "provenance_key");
+        Some(vm_mode) <- json_bool(value, "vm_mode")
+    } else {
+        _ -> None
+    };
+    Some(
+        PolicyRow(
+            default_expectation = default_expectation,
+            experimental_expectation = experimental_expectation,
+            fixture_id = fixture_id,
+            gate = gate,
+            import_proof = import_proof,
+            manifest = manifest,
+            namespace = namespace,
+            native_mode = native_mode,
+            provenance_key = provenance_key,
+            vm_mode = vm_mode,
+        ),
+    ).
+
+policy_rows_at(
+    array: Json,
+    index: Int,
+    total: Int,
+    reversed: List[PolicyRow],
+): Option[List[PolicyRow]] ->
+    if {
+        index >= total -> Some(reverse_rows(reversed, []));
+        true -> let {
+            Ok(value) <- Json.at(array, index);
+            Some(row) <- policy_row(value)
+        } else {
+            _ -> None
+        };
+        policy_rows_at(array, index + 1, total, [row | reversed])
+    }.
+
+policy_rows(value: Json): Option[List[PolicyRow]] ->
+    case Json.length(value) {
+        Ok(total) -> policy_rows_at(value, 0, total, []);
+        Err(_reason) -> None
+    }.
+
+@pure
+row_gates(rows: List[PolicyRow], reversed: List[String]): List[String] ->
+    case rows {
+        [] -> reverse_strings(reversed, []);
+        [row | rest] -> row_gates(rest, [row.gate | reversed])
+    }.
+
+@pure
+expectation(value: String): Bool ->
+    value == "required" or value == "optional".
+
+@pure
+rows_valid(rows: List[PolicyRow]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            expectation(row.default_expectation)
+                and expectation(row.experimental_expectation)
+                and String.starts_with(row.import_proof, "import ")
+                and row.manifest != ""
+                and row.namespace != ""
+                and rows_valid(rest)
+    }.
+
+load_policy(repository: String): Option[Policy] ->
+    let policy_path = child(repository, "docs/roadmap/ROADMAP_0_0_7_EXTERNAL_PACKAGE_EXECUTION_MATRIX.json");
+    let {
+        Ok(source) <- read_text(policy_path);
+        Ok(value) <- Json.parse(source);
+        Some(schema) <- json_string(value, "schema")
+    } else {
+        _ -> policy_failure("external_package_matrix_policy_schema", "policy schema drifted")
+    };
+    if {
+        schema != "terlan.external-package-execution-policy.v1" -> policy_failure("external_package_matrix_policy_schema", "policy schema drifted");
+        true -> let {
+            Ok(allowed_value) <- Json.get(value, "allowed_reason_codes");
+            Some(allowed) <- json_strings(allowed_value);
+            Ok(explicit_value) <- Json.get(value, "explicit_opt_in_gates");
+            Some(explicit) <- json_strings(explicit_value);
+            Ok(rows_value) <- Json.get(value, "rows");
+            Some(rows) <- policy_rows(rows_value)
+        } else {
+            _ -> policy_failure("external_package_matrix_policy_rows", "policy rows are missing")
+        };
+        if {
+            length(rows) == 0 -> policy_failure("external_package_matrix_policy_rows", "policy rows are missing");
+            not sorted_unique(row_gates(rows, []), "") -> policy_failure(
+                "external_package_matrix_policy_order",
+                "policy gates must be unique and lexically sorted",
+            );
+            not sorted_unique(allowed, "") -> policy_failure(
+                "external_package_matrix_reason_codes",
+                "reason-code allowlist must be unique and sorted",
+            );
+            not sorted_unique(explicit, "") -> policy_failure(
+                "external_package_matrix_explicit_opt_in",
+                "explicit opt-in gates must be unique and sorted",
+            );
+            explicit != ["cuda-package-check"] -> policy_failure(
+                "external_package_matrix_explicit_opt_in",
+                "CUDA execution must remain an explicit opt-in gate",
+            );
+            not rows_valid(rows) -> policy_failure("external_package_matrix_policy_default", "invalid package policy row");
+            true -> Some(
+                Policy(
+                    allowed_reason_codes = allowed,
+                    explicit_opt_in_gates = explicit,
+                    rows = rows,
+                ),
+            )
+        }
+    }.
+
+@pure
+find_row(rows: List[PolicyRow], gate: String): Option[PolicyRow] ->
+    case rows {
+        [] -> None;
+        [row | rest] ->
+            if {
+                row.gate == gate -> Some(row);
+                true -> find_row(rest, gate)
+            }
+    }.
+
+@pure
+valid_state(value: String): Bool ->
+    value == "passed" or value == "skipped" or value == "failed".
+
+status_json(status: Status): Json ->
+    Json.object()
+        .put("fixture_id", Json.string(status.fixture_id))
+        .put("gate", Json.string(status.gate))
+        .put("reason_code", Json.string(status.reason_code))
+        .put("schema", Json.string("terlan.external-package-status.v1"))
+        .put("state", Json.string(status.state)).
+
+canonical(value: Json): Option[String] ->
+    case Json.stringify_pretty(value) {
+        Ok(rendered) -> Some(String.append(rendered, "\n"));
+        Err(_reason) -> None
+    }.
+
+write_canonical(path: String, value: Json): Bool ->
+    let Some(encoded) <- canonical(value) else {
+        _ -> failure("external_package_matrix_json", "cannot encode canonical JSON")
+    };
+    (let {
+    Ok(_unit) <- write_text(path, encoded);
+    Ok(read_back) <- read_text(path)
+} else {
+    _ -> failure("external_package_matrix_write", path)
+};
+read_back == encoded or failure("external_package_matrix_nondeterministic", "matrix bytes changed")).
+
+record_with_policy(
+    context: Context,
+    policy: Policy,
+    gate: String,
+    state: String,
+    reason_code: String,
+): Bool ->
+    case find_row(policy.rows, gate) {
+        None -> failure("external_package_matrix_unknown_gate", gate);
+        Some(row) ->
+            if {
+                not valid_state(state) -> failure("external_package_matrix_state", state);
+                not valid_reason_code(reason_code)
+                    or not contains_string(policy.allowed_reason_codes, reason_code) -> failure("external_package_matrix_reason_code", reason_code);
+                state == "passed" != (reason_code == "none") -> failure(
+                    "external_package_matrix_state_reason",
+                    "passed requires none and non-passed requires a typed reason",
+                );
+                true -> case create_all(context.artifact_dir) {
+                    Err(_reason) -> failure("external_package_matrix_write", context.artifact_dir);
+                    Ok(_unit) ->
+                        write_canonical(
+                            child(context.artifact_dir, String.append(gate, ".status.json")),
+                            status_json(
+                                Status(
+                                    fixture_id = row.fixture_id,
+                                    gate = gate,
+                                    reason_code = reason_code,
+                                    state = state,
+                                ),
+                            ),
+                        )
+                }
+            }
+    }.
+
+status_from_json(
+    value: Json,
+    row: PolicyRow,
+    policy: Policy,
+    allow_missing: Bool,
+): Option[Status] ->
+    let {
+        Ok(keys) <- Json.keys(value);
+        Some(fixture_id) <- json_string(value, "fixture_id");
+        Some(gate) <- json_string(value, "gate");
+        Some(reason_code) <- json_string(value, "reason_code");
+        Some(schema) <- json_string(value, "schema");
+        Some(state) <- json_string(value, "state")
+    } else {
+        _ ->
+            let _failed = failure("external_package_matrix_status_shape", row.gate);
+            None
+    };
+    if {
+        keys != ["fixture_id", "gate", "reason_code", "schema", "state"] -> let _failed = failure("external_package_matrix_status_shape", row.gate);
+        None;
+        schema != "terlan.external-package-status.v1" -> let _failed = failure("external_package_matrix_status_schema", row.gate);
+        None;
+        (gate != row.gate or fixture_id != row.fixture_id) and allow_missing -> Some(synthetic_status(row, "failed", "status-artifact-missing"));
+        gate != row.gate or fixture_id != row.fixture_id -> let _failed = failure("external_package_matrix_status_identity", row.gate);
+        None;
+        not valid_state(state) -> let _failed = failure("external_package_matrix_status_state", row.gate);
+        None;
+        not contains_string(policy.allowed_reason_codes, reason_code) -> let _failed = failure("external_package_matrix_status_reason", row.gate);
+        None;
+        true -> Some(Status(fixture_id = fixture_id, gate = gate, reason_code = reason_code, state = state))
+    }.
+
+synthetic_status(row: PolicyRow, state: String, reason_code: String): Status ->
+    Status(fixture_id = row.fixture_id, gate = row.gate, reason_code = reason_code, state = state).
+
+read_status(
+    context: Context,
+    policy: Policy,
+    row: PolicyRow,
+    profile: String,
+    allow_missing: Bool,
+): Option[Status] ->
+    if {
+        row.gate == "cuda-package-check" and profile == "baseline" -> Some(synthetic_status(row, "skipped", "cuda-not-requested"));
+        true -> let path = child(context.artifact_dir, String.append(row.gate, ".status.json"));
+        if {
+            not exists(path) and allow_missing -> Some(synthetic_status(row, "failed", "status-artifact-missing"));
+            not exists(path) -> let _failed = failure("external_package_matrix_status_missing", row.gate);
+            None;
+            true -> let {
+                Ok(source) <- read_text(path);
+                Ok(value) <- Json.parse(source)
+            } else {
+                _ ->
+                    let _failed = failure("external_package_matrix_status_shape", row.gate);
+                    None
+            };
+            status_from_json(value, row, policy, allow_missing)
+        }
+    }.
+
+matrix_row_json(row: PolicyRow, status: Status, profile: String): Json ->
+    Json.object()
+        .put(
+            "expectation",
+            Json.string(
+                if {
+                    profile == "baseline" -> row.default_expectation;
+                    true -> row.experimental_expectation
+                },
+            ),
+        )
+        .put("fixture_id", Json.string(row.fixture_id))
+        .put("gate", Json.string(row.gate))
+        .put("import_proof", Json.string(row.import_proof))
+        .put("manifest", Json.string(row.manifest))
+        .put("namespace", Json.string(row.namespace))
+        .put("native_mode", Json.bool(row.native_mode))
+        .put("provenance_key", Json.string(row.provenance_key))
+        .put("reason_code", Json.string(status.reason_code))
+        .put("state", Json.string(status.state))
+        .put("vm_mode", Json.bool(row.vm_mode)).
+
+generate_rows(
+    context: Context,
+    policy: Policy,
+    rows: List[PolicyRow],
+    profile: String,
+    allow_missing: Bool,
+    output: Json,
+): Option[Json] ->
+    case rows {
+        [] -> Some(output);
+        [row | rest] ->
+            let Some(status) <- read_status(context, policy, row, profile, allow_missing) else {
+                _ -> None
+            };
+            (let matrix_row = matrix_row_json(row, status, profile);
+let per_gate =
+    Json.object()
+        .put("profile", Json.string(profile))
+        .put("row", matrix_row)
+        .put("schema", Json.string("terlan.external-package-matrix-row.v1"));
+let path = child(context.artifact_dir, String.append(row.gate, ".matrix.json"));
+if {
+    not write_canonical(path, per_gate) -> None;
+    true -> generate_rows(context, policy, rest, profile, allow_missing, output.push(matrix_row))
+})
+    }.
+
+generate(context: Context, policy: Policy, profile: String, allow_missing: Bool): Option[Json] ->
+    if {
+        profile != "baseline" and profile != "experimental" -> let _failed = failure("external_package_matrix_profile", profile);
+        None;
+        true -> case create_all(context.artifact_dir) {
+            Err(_reason) ->
+                let _failed = failure("external_package_matrix_write", context.artifact_dir);
+                None;
+            Ok(_unit) ->
+                let Some(rows) <-
+                    generate_rows(
+                        context,
+                        policy,
+                        policy.rows,
+                        profile,
+                        allow_missing,
+                        Json.array(),
+                    ) else {
+                    _ -> None
+                };
+                (let matrix =
+    Json.object()
+        .put("profile", Json.string(profile))
+        .put("rows", rows)
+        .put("schema", Json.string("terlan.external-package-execution-matrix.v1"));
+if {
+    write_canonical(context.matrix_path, matrix) -> Some(matrix);
+    true -> None
+})
+        }
+    }.
+
+validate_matrix_rows(rows: Json, index: Int, total: Int): Bool ->
+    if {
+        index >= total -> true;
+        true -> let {
+            Ok(row) <- Json.at(rows, index);
+            Some(expectation) <- json_string(row, "expectation");
+            Some(gate) <- json_string(row, "gate");
+            Some(reason_code) <- json_string(row, "reason_code");
+            Some(state) <- json_string(row, "state")
+        } else {
+            _ -> failure("external_package_matrix_status_shape", "generated row")
+        };
+        if {
+            expectation == "required" and state != "passed" -> failure(
+                "external_package_matrix_required_gate",
+                String.append(
+                    gate,
+                    String.append(" is ", String.append(state, String.append(":", reason_code))),
+                ),
+            );
+            state == "failed" -> failure(
+                "external_package_matrix_failed_gate",
+                String.append(gate, String.append(":", reason_code)),
+            );
+            true -> validate_matrix_rows(rows, index + 1, total)
+        }
+    }.
+
+validate_matrix(matrix: Json): Bool ->
+    let {
+        Ok(rows) <- Json.get(matrix, "rows");
+        Ok(total) <- Json.length(rows)
+    } else {
+        _ -> failure("external_package_matrix_status_shape", "generated matrix")
+    };
+    validate_matrix_rows(rows, 0, total).
+
+cuda_baseline_is_skipped(matrix: Json): Bool ->
+    let {
+        Ok(rows) <- Json.get(matrix, "rows");
+        Ok(total) <- Json.length(rows)
+    } else {
+        _ -> false
+    };
+    cuda_baseline_is_skipped_at(rows, 0, total).
+
+cuda_baseline_is_skipped_at(rows: Json, index: Int, total: Int): Bool ->
+    if {
+        index >= total -> false;
+        true -> let {
+            Ok(row) <- Json.at(rows, index);
+            Some(gate) <- json_string(row, "gate")
+        } else {
+            _ -> false
+        };
+        if {
+            gate != "cuda-package-check" -> cuda_baseline_is_skipped_at(rows, index + 1, total);
+            true -> let {
+                Some(state) <- json_string(row, "state");
+                Some(reason_code) <- json_string(row, "reason_code")
+            } else {
+                _ -> false
+            };
+            state == "skipped" and reason_code == "cuda-not-requested"
+        }
+    }.
+
+record_all(context: Context, policy: Policy, rows: List[PolicyRow]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            record_with_policy(context, policy, row.gate, "passed", "none")
+                and record_all(context, policy, rest)
+    }.
+
+self_test_with_context(context: Context, policy: Policy): Bool ->
+    if {
+        not record_all(context, policy, policy.rows) -> false;
+        true -> let {
+            Some(first) <- generate(context, policy, "experimental", false);
+            Some(first_encoded) <- canonical(first);
+            Some(second) <- generate(context, policy, "experimental", false);
+            Some(second_encoded) <- canonical(second);
+            Some(baseline) <- generate(context, policy, "baseline", false)
+        } else {
+            _ -> false
+        };
+        if {
+            first_encoded != second_encoded -> failure("external_package_matrix_self_test", "generation is unstable");
+            valid_reason_code("free form") -> failure("external_package_matrix_self_test", "free-form reason accepted");
+            not cuda_baseline_is_skipped(baseline) -> failure(
+                "external_package_matrix_self_test",
+                "baseline CUDA policy stopped being opt-in",
+            );
+            true -> true
+        }
+    }.
+
+self_test(policy: Policy): Bool ->
+    case create_temporary("external-package-matrix.") {
+        Err(_reason) -> failure("external_package_matrix_self_test", "temporary directory failed");
+        Ok(temporary) ->
+            let valid = self_test_with_context(temporary_context(temporary), policy);
+            let removed =
+                case remove_all(temporary) {
+                    Ok(_unit) -> true;
+                    Err(_reason) -> false
+                };
+            if {
+                not removed -> failure("external_package_matrix_self_test", "temporary cleanup failed");
+                not valid -> false;
+                true -> let _printed = println("[external-package-execution-matrix] self-test passed");
+                true
+            }
+    }.
+
+record_command(options: Options, context: Context, policy: Policy): Bool ->
+    if {
+        options.gate == ""
+            or options.state == ""
+            or options.reason_code == ""
+            or options.profile != ""
+            or options.allow_missing -> failure(
+            "external_package_matrix_arguments",
+            "record requires --gate, --state, and --reason-code",
+        );
+        true -> record_with_policy(context, policy, options.gate, options.state, options.reason_code)
+    }.
+
+generate_command(options: Options, context: Context, policy: Policy): Bool ->
+    if {
+        options.profile == ""
+            or options.gate != ""
+            or options.state != ""
+            or options.reason_code != "" -> failure(
+            "external_package_matrix_arguments",
+            "generate requires --profile and optionally --allow-missing",
+        );
+        true -> case generate(context, policy, options.profile, options.allow_missing) {
+            None -> false;
+            Some(matrix) ->
+                if {
+                    not options.allow_missing and not validate_matrix(matrix) -> false;
+                    true -> let {
+                        Ok(rows) <- Json.get(matrix, "rows");
+                        Ok(total) <- Json.length(rows)
+                    } else {
+                        _ -> false
+                    };
+                    (let _printed =
+    println(
+        String.append(
+            "[external-package-execution-matrix] profile=",
+            String.append(
+                options.profile,
+                String.append(
+                    " rows=",
+                    String.append(
+                        Int.to_string(total),
+                        String.append(" output=", context.matrix_path),
+                    ),
+                ),
+            ),
+        ),
+    );
+true)
+                }
+        }
+    }.
+
+run(options: Options, context: Context, policy: Policy): Bool ->
+    if {
+        not options.valid -> failure("external_package_matrix_arguments", "invalid arguments");
+        options.command == "record" -> record_command(options, context, policy);
+        options.command == "generate" -> generate_command(options, context, policy);
+        options.command == "self-test" -> if {
+            Arguments.count() == 1 -> self_test(policy);
+            true -> failure("external_package_matrix_arguments", "self-test accepts no options")
+        };
+        true -> failure("external_package_matrix_arguments", "unknown command")
+    }.
+
+entry(): Bool ->
+    let repository = context();
+    case load_policy(repository.root) {
+        Some(policy) -> run(options(), repository, policy);
+        None -> false
+    }.
+
+assert(entry()).

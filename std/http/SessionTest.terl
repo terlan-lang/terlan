@@ -34,7 +34,17 @@ pub sample_with_response(response: Response, session: Session): Response ->
     with_response(response, session).
 
 pub sample_request(): Dynamic ->
-    {Atom["request"], "GET", "/account", Map(), "", "", Map(), Map(), Map({"terlan_session", "abc"})}.
+    {
+        Atom["request"],
+        "GET",
+        "/account",
+        Map(),
+        "",
+        "",
+        Map(),
+        Map(),
+        Map({"terlan_session", "abc"}),
+    }.
 
 pub session_descriptor_has_cookie_id(value: Dynamic): Bool ->
     case value {
@@ -52,7 +62,11 @@ pub missing_session_value_is_none(session: Session): Bool ->
 pub response_has_session_cookie_metadata(value: Dynamic): Bool ->
     case value {
         {response_tag, kind, body, {metadata, header}} ->
-            response_tag == Atom["response"] and kind == Atom["text"] and body == "ok" and metadata == Atom["set_cookie"] and header == "terlan_session=abc; Path=/; HttpOnly; SameSite=Lax";
+            response_tag == Atom["response"]
+                and kind == Atom["text"]
+                and body == "ok"
+                and metadata == Atom["set_cookie"]
+                and header == "terlan_session=abc; Path=/; HttpOnly; SameSite=Lax";
         _ -> false
     }.
 
@@ -63,4 +77,5 @@ pub session_current_reads_request_cookie(): Bool ->
 @test
 pub session_get_and_response_threading_execute(): Bool ->
     let session = current(sample_request());
-    assert(missing_session_value_is_none(session)) and assert(response_has_session_cookie_metadata(with_response(Response.text("ok"), session))).
+    assert(missing_session_value_is_none(session))
+        and assert(response_has_session_cookie_metadata(with_response(Response.text("ok"), session))).

@@ -6,7 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use object::{Object, ObjectSection, ObjectSymbol};
 
 #[path = "support/direct_aot.rs"]
-mod support;
+pub mod support;
 use support::*;
 #[path = "support/direct_aot_managed.rs"]
 mod managed_suite;
@@ -909,7 +909,8 @@ fn terlan_consumer_executes_descriptor_bearing_tvm_image() {
         descriptor_digest,
         yielded_export_id,
         &[],
-        SuspendedAction::Resume {
+        SuspendedAction {
+            operation: 9,
             request_id: 2,
             continuation_id_xor: 0,
             values: vec![],
@@ -921,7 +922,8 @@ fn terlan_consumer_executes_descriptor_bearing_tvm_image() {
         descriptor_digest,
         yielded_add_export_id,
         &[41],
-        SuspendedAction::Resume {
+        SuspendedAction {
+            operation: 9,
             request_id: 1,
             continuation_id_xor: 0,
             values: vec![],
@@ -933,7 +935,12 @@ fn terlan_consumer_executes_descriptor_bearing_tvm_image() {
         descriptor_digest,
         yielded_export_id,
         &[],
-        SuspendedAction::Call,
+        SuspendedAction {
+            operation: 3,
+            request_id: 0,
+            continuation_id_xor: 0,
+            values: Vec::new(),
+        },
         "error[native_worker.continuation_pending]",
     );
     assert_suspended_worker_rejects(
@@ -941,7 +948,12 @@ fn terlan_consumer_executes_descriptor_bearing_tvm_image() {
         descriptor_digest,
         yielded_export_id,
         &[],
-        SuspendedAction::Shutdown,
+        SuspendedAction {
+            operation: 6,
+            request_id: 0,
+            continuation_id_xor: 0,
+            values: Vec::new(),
+        },
         "error[native_worker.continuation_pending]",
     );
     assert_duplicate_resume_rejected(&image_path, descriptor_digest, yielded_add_export_id, &[41]);
@@ -965,4 +977,52 @@ fn terlan_consumer_executes_descriptor_bearing_tvm_image() {
     assert!(String::from_utf8_lossy(&repl_output.stdout).contains("repl> 3\n"));
 
     fs::remove_dir_all(&root).expect("remove direct-AOT fixture root");
+}
+
+/// Proves memory introspection survives source checking, AOT lowering, and VM execution.
+#[test]
+fn terlan_memory_intrinsics_execute_in_a_native_image() {
+    let root = std::env::temp_dir().join(format!(
+        "terlan-direct-aot-memory-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time")
+            .as_nanos()
+    ));
+    fs::create_dir_all(&root).expect("create memory fixture root");
+    let source = root.join("memory_aot.terl");
+    let output = root.join("build");
+    fs::write(&source, include_str!("fixtures/memory_aot.terl")).expect("write memory fixture");
+
+    let build = Command::new(env!("CARGO_BIN_EXE_terlc"))
+        .arg("build")
+        .arg(&source)
+        .arg("--target")
+        .arg("terlan-vm")
+        .arg("--out-dir")
+        .arg(&output)
+        .output()
+        .expect("start terlc");
+    assert!(
+        build.status.success(),
+        "terlc failed:\n{}",
+        String::from_utf8_lossy(&build.stderr)
+    );
+
+    let execution = Command::new(env!("CARGO_BIN_EXE_terlan-vm"))
+        .arg("run")
+        .arg(output.join("vm/memory_aot.tvm"))
+        .arg("--entry")
+        .arg("memory_aot.memory_contract")
+        .arg("--test-eval")
+        .output()
+        .expect("start terlan-vm");
+    assert!(
+        execution.status.success(),
+        "memory contract failed:\n{}",
+        String::from_utf8_lossy(&execution.stderr)
+    );
+
+    fs::remove_dir_all(&root).expect("remove direct-AOT memory fixture root");
 }

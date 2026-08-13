@@ -257,5 +257,7 @@ fn require_regular_file(path: &Path, label: &str) -> Result<(), String> {
 }
 
 #[cfg(all(test, target_os = "linux"))]
+#[cfg(test)]
 #[path = "sandbox_test.rs"]
+#[cfg(test)]
 mod sandbox_test;

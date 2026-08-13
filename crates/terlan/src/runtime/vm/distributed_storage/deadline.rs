@@ -3,12 +3,11 @@ use std::collections::BTreeMap;
 use super::{
     VmDistributedStorageAdapter, VmDistributedStorageOperation, VmDistributedStorageOutcome,
 };
-use crate::runtime::vm::{
-    process::{VmProcessId, VmProcessTable},
-    timer::{VmTimerEvent, VmTimerId, VmTimerKind, VmTimerTable},
-};
+use crate::runtime::vm::process::{VmProcessId, VmProcessTable};
+use crate::runtime::vm::timer::{VmTimerEvent, VmTimerId, VmTimerKind, VmTimerTable};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 struct VmPendingCheckpointFlush {
     owner: VmProcessId,
     sequence: u64,
@@ -16,6 +15,7 @@ struct VmPendingCheckpointFlush {
 
 /// A checkpoint flush protected by one VM-owned deadline.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmScheduledCheckpointFlush {
     pub(crate) timer_id: VmTimerId,
     pub(crate) owner: VmProcessId,
@@ -25,6 +25,7 @@ pub(crate) struct VmScheduledCheckpointFlush {
 
 /// Terminal result of resolving a checkpoint flush deadline.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmCheckpointFlushCompletion {
     Completed {
         timer_id: VmTimerId,
@@ -50,11 +51,13 @@ pub(crate) enum VmCheckpointFlushCompletion {
 /// cancelling the active timer, then flushes the adapter. A fired deadline
 /// removes the intent and leaves the adapter's durable sequence unchanged.
 #[derive(Debug, Default)]
+#[cfg(test)]
 pub(crate) struct VmCheckpointFlushDeadlineQueue {
     pending: BTreeMap<VmTimerId, VmPendingCheckpointFlush>,
     pending_by_owner: BTreeMap<VmProcessId, VmTimerId>,
 }
 
+#[cfg(test)]
 impl VmCheckpointFlushDeadlineQueue {
     /// Starts one checkpoint flush deadline for a live process and open adapter.
     pub(crate) fn start(
@@ -203,14 +206,17 @@ impl VmCheckpointFlushDeadlineQueue {
     }
 }
 
+#[cfg(test)]
 fn timer_event_owner(event: &VmTimerEvent) -> VmProcessId {
     event.owner()
 }
 
+#[cfg(test)]
 fn timer_event_kind(event: &VmTimerEvent) -> VmTimerKind {
     event.kind()
 }
 
 #[cfg(test)]
 #[path = "deadline_test.rs"]
+#[cfg(test)]
 mod deadline_test;

@@ -37,4 +37,5 @@ fn digest_bytes(bytes: &[u8]) -> String {
 
 #[cfg(test)]
 #[path = "md5_test.rs"]
+#[cfg(test)]
 mod md5_test;

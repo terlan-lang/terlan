@@ -30,7 +30,7 @@ pub literal_true(): Bool ->
 
 @test
 pub trivial_conjunction(): Bool ->
-    true && true.
+    true and true.
 
 @test
 pub trivial_and_conjunction(): Bool ->

@@ -17,6 +17,6 @@ import type std.js.Dom.WEBGL_compressed_texture_astc.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub get_supported_profiles_typechecks(
-    receiver: WEBGL_compressed_texture_astc
+    receiver: WEBGL_compressed_texture_astc,
 ): std.js.Array[std.js.String.JsString] ->
     receiver.get_supported_profiles().

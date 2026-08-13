@@ -36,6 +36,28 @@ pub(crate) struct ServeArgs {
     pub(crate) poll_ms: u64,
     pub(crate) handler_runtime: ServeHandlerRuntime,
     pub(crate) check_only: bool,
+    pub(crate) overrides: ServeCliOverrides,
+}
+
+/// Explicit command-line overrides retained for deterministic config merging.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub(crate) struct ServeCliOverrides {
+    pub(crate) host: bool,
+    pub(crate) port: bool,
+    pub(crate) poll_ms: bool,
+    pub(crate) protocol: Option<String>,
+    pub(crate) allow_public: bool,
+    pub(crate) max_connections: Option<u64>,
+    pub(crate) max_request_bytes: Option<u64>,
+    pub(crate) max_body_bytes: Option<u64>,
+    pub(crate) max_header_bytes: Option<u64>,
+    pub(crate) request_timeout_ms: Option<u64>,
+    pub(crate) idle_timeout_ms: Option<u64>,
+    pub(crate) queue_capacity: Option<u64>,
+    pub(crate) handler_pool_size: Option<u64>,
+    pub(crate) shutdown_grace_ms: Option<u64>,
+    pub(crate) telemetry: Option<String>,
+    pub(crate) log_format: Option<String>,
 }
 
 /// Parses command-local `terlc serve` arguments.
@@ -58,6 +80,7 @@ pub(crate) fn parse_serve_args(args: &[String], state: &CliState) -> Result<Serv
     let mut poll_ms = DEFAULT_POLL_MS;
     let mut handler_runtime = ServeHandlerRuntime::Static;
     let mut check_only = false;
+    let mut overrides = ServeCliOverrides::default();
     let mut index = 0;
 
     while index < args.len() {
@@ -68,6 +91,7 @@ pub(crate) fn parse_serve_args(args: &[String], state: &CliState) -> Result<Serv
                     return Err("terlc serve --host requires a value".to_string());
                 };
                 host = value.clone();
+                overrides.host = true;
             }
             "--port" => {
                 index += 1;
@@ -77,6 +101,7 @@ pub(crate) fn parse_serve_args(args: &[String], state: &CliState) -> Result<Serv
                 port = value.parse::<u16>().map_err(|_| {
                     format!("terlc serve --port expects a u16 value, got `{value}`")
                 })?;
+                overrides.port = true;
             }
             "--poll-ms" => {
                 index += 1;
@@ -89,6 +114,53 @@ pub(crate) fn parse_serve_args(args: &[String], state: &CliState) -> Result<Serv
                 if poll_ms == 0 {
                     return Err("terlc serve --poll-ms must be greater than 0".to_string());
                 }
+                overrides.poll_ms = true;
+            }
+            "--protocol" => {
+                overrides.protocol = Some(parse_text_value(args, &mut index, "--protocol")?)
+            }
+            "--allow-public" => overrides.allow_public = true,
+            "--max-connections" => {
+                overrides.max_connections =
+                    Some(parse_u64_value(args, &mut index, "--max-connections")?)
+            }
+            "--max-request-bytes" => {
+                overrides.max_request_bytes =
+                    Some(parse_u64_value(args, &mut index, "--max-request-bytes")?)
+            }
+            "--max-body-bytes" => {
+                overrides.max_body_bytes =
+                    Some(parse_u64_value(args, &mut index, "--max-body-bytes")?)
+            }
+            "--max-header-bytes" => {
+                overrides.max_header_bytes =
+                    Some(parse_u64_value(args, &mut index, "--max-header-bytes")?)
+            }
+            "--request-timeout-ms" => {
+                overrides.request_timeout_ms =
+                    Some(parse_u64_value(args, &mut index, "--request-timeout-ms")?)
+            }
+            "--idle-timeout-ms" => {
+                overrides.idle_timeout_ms =
+                    Some(parse_u64_value(args, &mut index, "--idle-timeout-ms")?)
+            }
+            "--queue-capacity" => {
+                overrides.queue_capacity =
+                    Some(parse_u64_value(args, &mut index, "--queue-capacity")?)
+            }
+            "--handler-pool-size" => {
+                overrides.handler_pool_size =
+                    Some(parse_u64_value(args, &mut index, "--handler-pool-size")?)
+            }
+            "--shutdown-grace-ms" => {
+                overrides.shutdown_grace_ms =
+                    Some(parse_u64_value(args, &mut index, "--shutdown-grace-ms")?)
+            }
+            "--telemetry" => {
+                overrides.telemetry = Some(parse_text_value(args, &mut index, "--telemetry")?)
+            }
+            "--log-format" => {
+                overrides.log_format = Some(parse_text_value(args, &mut index, "--log-format")?)
             }
             "--handler-runtime" => {
                 index += 1;
@@ -133,5 +205,20 @@ pub(crate) fn parse_serve_args(args: &[String], state: &CliState) -> Result<Serv
         poll_ms,
         handler_runtime,
         check_only,
+        overrides,
     })
+}
+
+fn parse_text_value(args: &[String], index: &mut usize, option: &str) -> Result<String, String> {
+    *index += 1;
+    args.get(*index)
+        .cloned()
+        .ok_or_else(|| format!("terlc serve {option} requires a value"))
+}
+
+fn parse_u64_value(args: &[String], index: &mut usize, option: &str) -> Result<u64, String> {
+    let value = parse_text_value(args, index, option)?;
+    value
+        .parse::<u64>()
+        .map_err(|_| format!("terlc serve {option} expects a u64 value, got `{value}`"))
 }

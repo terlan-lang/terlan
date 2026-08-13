@@ -4,6 +4,7 @@ use super::VmHttpQueueMetrics;
 
 /// Measured HTTP work attributed to one VM socket benchmark worker.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[cfg(test)]
 pub(super) struct BenchmarkHttpHandlerMetrics {
     pub(super) handler_reductions: usize,
     pub(super) accept_wait_ns: u128,
@@ -29,6 +30,7 @@ pub(super) struct BenchmarkHttpHandlerMetrics {
     pub(super) stateful_counter_handler_count: usize,
 }
 
+#[cfg(test)]
 impl BenchmarkHttpHandlerMetrics {
     /// Merges one connection or worker sample into this aggregate.
     pub(super) fn add(&mut self, other: Self) {
@@ -275,4 +277,5 @@ impl BenchmarkHttpHandlerMetrics {
 
 #[cfg(test)]
 #[path = "http_attribution_test.rs"]
+#[cfg(test)]
 mod http_attribution_test;

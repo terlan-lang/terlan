@@ -1,0 +1,433 @@
+{
+  "exports": [
+    {
+      "argument_types": [],
+      "arity": 0,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.null/0",
+      "name": "null",
+      "operation": "std.data.json.null",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:80e0330e211e329acd740773eb504c2cdba7e428af72ec54c038c6f37a5e5b9a"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.bool/1",
+      "name": "bool",
+      "operation": "std.data.json.bool",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:e1ce2ce2b2f9f3497655824c63504cea606e435fb735ad8bd0425a2307a7ac01"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.int/1",
+      "name": "int",
+      "operation": "std.data.json.int",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:df6234d826d746e3070a8d478b28760dbc1f01fc6caddbf6b4233d8865e0e36d"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.float/1",
+      "name": "float",
+      "operation": "std.data.json.float",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:5efa191b1410d219ccd1c629e2c95e29ac24cf38a0590bbb756270b515f6e398"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.string/1",
+      "name": "string",
+      "operation": "std.data.json.string",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:227e1670c425ea3383cd3b023ebce646961e24acbf881c221986770366898750"
+    },
+    {
+      "argument_types": [],
+      "arity": 0,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.array/0",
+      "name": "array",
+      "operation": "std.data.json.array",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:70fb93c660bc29315b43d1731271ba99c09165bd867b1aed420b098c813198be"
+    },
+    {
+      "argument_types": [],
+      "arity": 0,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.object/0",
+      "name": "object",
+      "operation": "std.data.json.object",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:83293a04c405bd4b3e8e5576c71f883721ab23f191fcccfb62f68491cc16c6bf"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.push/2",
+      "name": "push",
+      "operation": "std.data.json.array_push",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:84ffc7925a8cd134600cf841afbd32e6d8fd09d2c84d033087d23522e915a78c"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.extend/2",
+      "name": "extend",
+      "operation": "std.data.json.array_extend",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:e3a9d9b7690c29b2090d12f76bd868aae907c03698b898d9486c82dc622fd6cd"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.set/3",
+      "name": "set",
+      "operation": "std.data.json.array_set",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:25818ad5d5bca138db2dbd1a1f544ea724af8e46beecb5b9c98ac5e06a2a5939"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.put/3",
+      "name": "put",
+      "operation": "std.data.json.object_put",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:7b81584f1443458f67d9d8c16f2015da6409f558a09d446e20a65384872037b9"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.parse/1",
+      "name": "parse",
+      "operation": "std.data.json.parse",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:330ae79b6b846620d6a8aa667013fd677ba966e459c318a3d582206240592dba"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.stringify/1",
+      "name": "stringify",
+      "operation": "std.data.json.stringify",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:152441a10141021b931a9c41efc7b3d2b218d8396143298e3d6af61459110777"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.stringify_pretty/1",
+      "name": "stringify_pretty",
+      "operation": "std.data.json.stringify_pretty",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:812bb0f81ee91b8a75ea9e852f37e8c8b0724996ff47b5dbb337ccd5318b1ee2"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.get/2",
+      "name": "get",
+      "operation": "std.data.json.get",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:888b677236f43fb8449a20dadacb6416154053134c80d738c42735a5758cac42"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.keys/1",
+      "name": "keys",
+      "operation": "std.data.json.keys",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:7eec7e4381a56edfb0ec891b2f1ecda93c733a4a06b2655b921392c9f8bd8284"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.object_length/1",
+      "name": "object_length",
+      "operation": "std.data.json.object_length",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:b9c66be2c73d12e2483a5594e8be64f01dbcaba8e3912a3ab8afa4421cdfd490"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.string_fields/2",
+      "name": "string_fields",
+      "operation": "std.data.json.string_fields",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:bdfde719b929ea0c96a6e0ca10e1fe518eef0f0bd114903e4c0504444af9fc4c"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 4,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.required_fields/4",
+      "name": "required_fields",
+      "operation": "std.data.json.required_fields",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:e879889559a9d75835e4b2671ae2c61cc62fcdb36fa532025de5acb3492ebc67"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 4,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.required_field_rows/4",
+      "name": "required_field_rows",
+      "operation": "std.data.json.required_field_rows",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:4a05f169052c33365edfa5a5e886fd205601e36094abc819c2a6786754f26aed"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 6,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.required_field_rows_page/6",
+      "name": "required_field_rows_page",
+      "operation": "std.data.json.required_field_rows_page",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:8a42f4205802c3d152d0cf721f9883edef0465f8553b286627dfaf3891f56ad0"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.string_field_rows/2",
+      "name": "string_field_rows",
+      "operation": "std.data.json.string_field_rows",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:b208852fa47f18149de0213b572d4ab41430468c774104e5e8452319c8744df9"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 4,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.nested_string_field_rows/4",
+      "name": "nested_string_field_rows",
+      "operation": "std.data.json.nested_string_field_rows",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:7eedeabcaf87f86785653d01738b238b8cc5a90f65aaf195256312f9a56c73b6"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 6,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.nested_string_field_rows_page/6",
+      "name": "nested_string_field_rows_page",
+      "operation": "std.data.json.nested_string_field_rows_page",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:da973107c850a8a6737e8d400b976454f00ab0bc8fa8315f1e348b64b7828bbe"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.string_object_rows/2",
+      "name": "string_object_rows",
+      "operation": "std.data.json.string_object_rows",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:ac61559cb8aeb4a014ab474ea2f0552075d927126bbc3b38a92ae96c62308bbb"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.length/1",
+      "name": "length",
+      "operation": "std.data.json.length",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:9f214ece630eea46f1f7f9a6b2b4091a5cc4c9042f28589fdd8a34d429432472"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.at/2",
+      "name": "at",
+      "operation": "std.data.json.at",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:ce193e50946b37ac23f559671b4d95419bd14da08cc3597caa6bc487e589ac99"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.as_string/1",
+      "name": "as_string",
+      "operation": "std.data.json.as_string",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:9100d30b5bfafa8e5faafae8a5b593d0c05dcc30dd40c28b8398c67a91ddca83"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.as_int/1",
+      "name": "as_int",
+      "operation": "std.data.json.as_int",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:663aef3075c3f2160b3b2b82974e892324c1fcae4576f8fe3ccbbb008a140560"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.as_float/1",
+      "name": "as_float",
+      "operation": "std.data.json.as_float",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:24c052d2a0a9330fd857bee5d2742955d95675bdb4d2ed8c53ee6ee2878d4a05"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.as_bool/1",
+      "name": "as_bool",
+      "operation": "std.data.json.as_bool",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:a6ea2ffda14051cb8a3d6d87cd7881b8e42199ac178e6876f53b2388a04072d3"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.is_null/1",
+      "name": "is_null",
+      "operation": "std.data.json.is_null",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:55068f1c4042aba9cf7c50e04c65e4ef529da49b082739df33d185cc7777b4fc"
+    }
+  ],
+  "manifest_digest": "sha256:23f308206403c0cffcac60d6a13d9f4935788928039999d650ebe494a3b2d643",
+  "module": "std_data_json_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "json",
+    "error_policy": "typed-result",
+    "module_prefix": "std.data.Json",
+    "notes": "Serde JSON value operations do not carry native resources.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:c9109fd15f986b80735e5308a14720013f867143a111479cca66a7e363b82a1f",
+  "source_module": "std.data.Json",
+  "source_path": "std/summaries/std.data.Json.native_boundary.json"
+}

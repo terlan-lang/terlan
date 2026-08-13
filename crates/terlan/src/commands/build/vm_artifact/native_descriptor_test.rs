@@ -59,3 +59,38 @@ fn lifted_callable_descriptor_separates_captures_from_call_arguments() {
     assert_eq!(descriptor.callables[0].parameters, [TvmBoundaryType::Bool]);
     assert_eq!(descriptor.callables[0].results, [TvmBoundaryType::Int]);
 }
+
+#[test]
+fn materialized_continuation_functions_are_not_admitted_as_closures() {
+    let module = NativeModule {
+        name: "$terlan.continuations".to_owned(),
+        functions: vec![NativeFunction {
+            export_id: 401,
+            name: "$continuation_7".to_owned(),
+            public: false,
+            arity: 0,
+            source_module: "app.Main".to_owned(),
+            source_function: "main".to_owned(),
+            source_arity: 0,
+            callable_captures: Vec::new(),
+            params: Vec::new(),
+            return_type: NativeType::Int,
+            body: NativeExpr::Int(42),
+        }],
+        continuations: Vec::new(),
+        managed_layouts: Vec::new(),
+        managed_collections: Vec::new(),
+        atoms: Vec::new(),
+    };
+
+    let descriptor = native_application_image_descriptor(
+        "descriptor-continuation-body",
+        "descriptor-continuation-body",
+        &[module],
+        "22",
+    )
+    .expect("native descriptor");
+
+    assert!(descriptor.exports.is_empty());
+    assert!(descriptor.callables.is_empty());
+}

@@ -438,7 +438,7 @@ fn build_one_js_source_artifact(
     contract: JsTargetContract,
     emit_declarations: bool,
 ) -> Result<Option<JsModuleArtifact>, BuildOneError> {
-    let source = read_file(path).map_err(BuildOneError::Message)?;
+    let source = read_file(path).map_err(|error| BuildOneError::Message(error.to_string()))?;
     let target_profile_options = js_target_profile_check_options(state.target_profile);
     if let Err(message) = reject_unsupported_target_std_source(
         path,

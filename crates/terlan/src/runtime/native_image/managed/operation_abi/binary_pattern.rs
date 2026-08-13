@@ -36,6 +36,7 @@ pub(super) fn is_binary_pattern_operation(encoded: &[u8]) -> bool {
     encoded.starts_with(MAGIC)
 }
 
+/// Encodes a whole-binary match against the bounded field layout.
 pub fn encode_binary_pattern_matches_operation(
     endian: ManagedBinaryPatternEndian,
     fields: &[ManagedBinaryPatternField],
@@ -43,6 +44,7 @@ pub fn encode_binary_pattern_matches_operation(
     encode(MATCHES, false, endian, fields, 0)
 }
 
+/// Encodes extraction of one selected field after whole-layout validation.
 pub fn encode_binary_pattern_extract_operation(
     endian: ManagedBinaryPatternEndian,
     fields: &[ManagedBinaryPatternField],

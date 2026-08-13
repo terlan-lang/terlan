@@ -9,9 +9,11 @@ use crate::{
 };
 
 use super::{
+    application::normalize_application_remote_calls,
     application_admission::validate_continuation_graph, NativeContinuation, NativeExpr,
     NativeFunction, NativeModule, NativeTransitionOperation, NativeType,
 };
+use crate::runtime::native_image::managed::SemanticTypeId;
 
 /// Lowers one canonical source module into checked CoreIR.
 fn core(source: &str) -> CoreModule {
@@ -49,6 +51,8 @@ fn continuation(id: u64) -> NativeContinuation {
         source_module: "app.Test".to_string(),
         source_function: "main".to_string(),
         source_arity: 0,
+        source_span: None,
+        capture_names: Vec::new(),
         params: Vec::new(),
         return_type: NativeType::Unit,
         body: NativeExpr::Unit,
@@ -67,6 +71,44 @@ fn unresolved_application_call_has_stable_prelink_diagnostic() {
     assert_eq!(
         NativeModule::lower_application(&[&caller]).unwrap_err(),
         "error[native_ir.unresolved_call]: `app.Caller.missing/0` has no function in the native application closure"
+    );
+}
+
+/// Verifies concrete trait dispatch cannot fall back to runtime interpretation.
+#[test]
+fn unresolved_trait_impl_dispatch_has_stable_prelink_diagnostic() {
+    let module = core(
+        "module app.TraitDispatch.\n\n\
+         pub struct Profile { title: String }.\n\n\
+         pub trait Render[T] { render(value: T): String. }.\n\n\
+         pub impl Render[Profile] for Profile {\n\
+             render(value: Profile): String -> value.title.\n\
+         }.\n\n\
+         pub run(): String -> Render.render(Profile {title: \"Engineer\"}).\n",
+    );
+
+    assert_eq!(
+        NativeModule::lower_application(&[&module]).unwrap_err(),
+        "error[native_ir.unresolved_call]: `app.TraitDispatch.Render.render/1` has no function in the native application closure"
+    );
+}
+
+/// Verifies indexed assignment cannot fall back to runtime interpretation.
+#[test]
+fn unresolved_index_assignment_has_stable_prelink_diagnostic() {
+    let mut module = core("module app.IndexAssignment.\n\npub run(): Unit -> Unit.\n");
+    *body_mut(&mut module, "run") = CoreExpr::Call {
+        function: "IndexSet.set_at".to_string(),
+        args: vec![
+            CoreExpr::List(vec![CoreExpr::Int(1)]),
+            CoreExpr::Int(0),
+            CoreExpr::Int(2),
+        ],
+    };
+
+    assert_eq!(
+        NativeModule::lower_application(&[&module]).unwrap_err(),
+        "error[native_ir.unresolved_call]: `app.IndexAssignment.IndexSet.set_at/3` has no function in the native application closure"
     );
 }
 
@@ -214,7 +256,7 @@ fn dangling_continuation_reference_is_rejected() {
 
     assert_eq!(
         validate_continuation_graph(&[module]).unwrap_err(),
-        "error[native_ir.continuation_graph]: module `app.Dangling` references missing continuation 9"
+        "error[native_ir.continuation_graph]: module `app.Dangling` references missing continuation 9; referenced by `app.Dangling.main/0`"
     );
 }
 
@@ -233,6 +275,159 @@ fn closed_application_passes_admission_and_graph_validation() {
         .any(|function| function.name == "main"));
 }
 
+/// A short-circuited suspending binding keeps its Boolean continuation type
+/// instead of inheriting the enclosing Unit-returning function type.
+#[test]
+fn suspending_boolean_binding_does_not_inherit_enclosing_unit_type() {
+    let module = core(
+        "module app.NativeBoolean.\n\n\
+         @compiler.native {fixture.scalar}\n\
+         scalar(): Float -> native.\n\n\
+         sink(_valid: Bool): Unit -> Unit.\n\n\
+         pub main(): Unit ->\n\
+             let valid = scalar() == 0.0 and scalar() == 0.0;\n\
+             sink(valid).\n",
+    );
+
+    let native = NativeModule::lower_application(&[&module])
+        .expect("lower short-circuited native Boolean binding");
+
+    assert!(native[0]
+        .functions
+        .iter()
+        .any(|function| function.name == "main" && function.return_type == NativeType::Unit));
+}
+
+#[test]
+fn suspending_left_operand_short_circuits_a_later_suspending_call() {
+    let module = core(
+        "module app.SuspendingAnd.\n\n\
+         @compiler.native {fixture.left}\n\
+         left(): Bool -> native.\n\n\
+         @compiler.native {fixture.right}\n\
+         right(): Bool -> native.\n\n\
+         wrapped_left(): Bool -> left().\n\n\
+         pub validate(require_right: Bool): Bool ->\n\
+             wrapped_left() and if {\n\
+                 require_right -> right();\n\
+                 true -> true\n\
+             }.\n",
+    );
+
+    let native = NativeModule::lower_application(&[&module])
+        .expect("lower suspending left-hand short circuit");
+    let continuation = native
+        .iter()
+        .find(|module| module.name == "$terlan.continuations")
+        .and_then(|module| {
+            module.functions.iter().find(|function| {
+                function.source_function == "validate" && function.params.len() == 2
+            })
+        })
+        .expect("validate completion continuation");
+    let NativeExpr::If { clauses } = &continuation.body else {
+        panic!("expected outer short-circuit gate: {continuation:#?}");
+    };
+    assert_eq!(clauses.len(), 2);
+    assert_eq!(clauses[0].0, NativeExpr::Param(1));
+    assert_eq!(
+        clauses[1],
+        (NativeExpr::Bool(true), NativeExpr::Bool(false))
+    );
+}
+
+/// Verifies receiver calls resolve through the caller's explicit module import
+/// when multiple application modules export the same name and arity.
+#[test]
+fn receiver_call_prefers_explicitly_imported_provider() {
+    let json =
+        core("module app.Json.\n\npub put(value: Int, key: String, item: Int): Int -> item.\n");
+    let map =
+        core("module app.Map.\n\npub put(value: Int, key: String, item: Int): Int -> item.\n");
+    let mut caller = core("module app.Consumer.\n\npub run(value: Int): Int -> value.\n");
+    caller.imports.push(CoreImport {
+        module: "app.Json".to_string(),
+        kind: CoreImportKind::Module,
+    });
+    *body_mut(&mut caller, "run") = CoreExpr::RemoteCall {
+        module: "__receiver__".to_string(),
+        function: "put".to_string(),
+        args: vec![
+            CoreExpr::Var("value".to_string()),
+            CoreExpr::Binary("\"key\"".to_string()),
+            CoreExpr::Int(1),
+        ],
+    };
+    let mut modules = vec![caller, json, map];
+
+    normalize_application_remote_calls(&mut modules, false);
+
+    assert!(matches!(
+        body_mut(&mut modules[0], "run"),
+        CoreExpr::Call { function, .. } if function == "app.Json.put"
+    ));
+}
+
+/// Verifies mutable opaque receiver calls use the same import-directed
+/// resolution while retaining the receiver as the first call argument.
+#[test]
+fn mutable_receiver_call_prefers_explicitly_imported_provider() {
+    let json =
+        core("module app.Json.\n\npub put(value: Int, key: String, item: Int): Int -> item.\n");
+    let map =
+        core("module app.Map.\n\npub put(value: Int, key: String, item: Int): Int -> item.\n");
+    let mut caller = core("module app.Consumer.\n\npub run(value: Int): Int -> value.\n");
+    caller.imports.push(CoreImport {
+        module: "app.Json".to_string(),
+        kind: CoreImportKind::Module,
+    });
+    *body_mut(&mut caller, "run") = CoreExpr::MutableReceiverCall {
+        receiver: Box::new(CoreExpr::Var("value".to_string())),
+        method: "put".to_string(),
+        args: vec![CoreExpr::Binary("\"key\"".to_string()), CoreExpr::Int(1)],
+        effects: crate::terlan_typeck::CoreEffectSet {
+            effects: vec!["receiver_mutation".to_string()],
+        },
+    };
+    let mut modules = vec![caller, json, map];
+
+    normalize_application_remote_calls(&mut modules, false);
+
+    assert!(matches!(
+        body_mut(&mut modules[0], "run"),
+        CoreExpr::Call { function, args }
+            if function == "app.Json.put"
+                && matches!(args.first(), Some(CoreExpr::Var(name)) if name == "value")
+    ));
+}
+
+/// Verifies an imported opaque package type has one application-wide managed
+/// identity before any suspending continuation can capture it.
+#[test]
+fn imported_opaque_package_type_uses_qualified_capture_identity() {
+    let resource = core("module app.Resource.\n\npub opaque type Resource.\n");
+    let consumer = core(
+        "module app.Consumer.\n\n\
+         import app.Resource.{Resource}.\n\n\
+         pub keep(value: Resource): Resource -> value.\n",
+    );
+
+    let modules =
+        NativeModule::lower_application(&[&consumer, &resource]).expect("lower opaque package");
+    let keep = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "keep")
+        .expect("consumer keep function");
+    let expected = NativeType::ManagedRef(
+        SemanticTypeId::from_canonical("app.Resource.Resource")
+            .expect("canonical opaque package identity"),
+    );
+
+    assert_eq!(keep.params, vec![expected]);
+    assert_eq!(keep.return_type, expected);
+}
+
 /// Verifies an unsupported reachable function keeps its stable prelink error.
 #[test]
 fn unsupported_reachable_function_is_rejected_before_linking() {
@@ -241,6 +436,6 @@ fn unsupported_reachable_function_is_rejected_before_linking() {
 
     assert_eq!(
         NativeModule::lower_application(&[&module]).unwrap_err(),
-        "error[native_ir.unsupported_application_function]: `app.Unsupported.value/0` cannot be lowered into the native application image (native-operation=true, parameters=true, result=true, clause=true, body=false, missing-core=none); runtime CoreIR interpretation has been removed"
+        "error[native_ir.unsupported_application_function]: `app.Unsupported.value/0` cannot be lowered into the native application image (native-operation=true, parameters=true, result=true, clause=true, body=false, body-gap=FixedArray(Int(1)), missing-core=none); runtime CoreIR interpretation has been removed"
     );
 }

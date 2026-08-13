@@ -1,0 +1,84 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.WebSocket.text/1",
+      "name": "text",
+      "operation": "std.http.websocket.text",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:7d07e14f4dd8e6c89caf83b35fe2dc1c24a1be55410522051e10bc415fa44c4b"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.WebSocket.ping/1",
+      "name": "ping",
+      "operation": "std.http.websocket.ping",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:6370475a0e57f8f0c419c6864a7f44a702a75c7eb807d5384e563191c0a182c2"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.WebSocket.pong/1",
+      "name": "pong",
+      "operation": "std.http.websocket.pong",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:690672c7ac1c0b4f4f9c0f27f543bae8af02a8b5d2615c83f22068cf658a20d4"
+    },
+    {
+      "argument_types": [],
+      "arity": 0,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.WebSocket.close/0",
+      "name": "close",
+      "operation": "std.http.websocket.close",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:b21ebcbf479a9896c976183e3f192010ab88c6e858914dfe785c39667da3e54e"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.WebSocket.endpoint/2",
+      "name": "endpoint",
+      "operation": "std.http.websocket.endpoint",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:4858b0ab20e060b9fd2ec29f4758434afb9d5f3874b4641b30017a139ef97013"
+    }
+  ],
+  "manifest_digest": "sha256:84927633db2beaacfa79163bf554d6076884307ddbd8204c8923ef4eb70b4b4c",
+  "module": "std_http_web_socket_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "http.websocket",
+    "error_policy": "typed-result",
+    "module_prefix": "std.http.WebSocket",
+    "notes": "WebSocket APIs construct typed VM HTTP frame and endpoint descriptors.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:f43e0d5b4dabf84f57e09f4218f2f294b3b0cf932a5cf8aaac4b696578a56c96",
+  "source_module": "std.http.WebSocket",
+  "source_path": "std/summaries/std.http.WebSocket.native_boundary.json"
+}

@@ -1,6 +1,10 @@
 use super::{
     VmResourceDescriptor, VmResourceEvent, VmResourceId, VmResourceTable, VmResourceTransferPolicy,
 };
+use crate::compiler::accelerator::{
+    AcceleratorAddressSpace, AcceleratorResourceClass, AcceleratorResourceHandle,
+    AcceleratorResourceId, AcceleratorResourcePrincipal, AcceleratorResourceRole,
+};
 use crate::runtime::vm::process::{VmExitReason, VmProcessId, VmProcessSource, VmProcessTable};
 
 fn source(name: &str) -> VmProcessSource {
@@ -57,6 +61,68 @@ fn resource_table_registers_resource_and_exposes_inspection_snapshot() {
         snapshots[0].transfer_policy,
         VmResourceTransferPolicy::OwnerOnly
     );
+}
+
+#[test]
+fn resource_table_owns_canonical_accelerator_handles_until_actor_exit() {
+    let mut processes = VmProcessTable::default();
+    let owner = processes.spawn_root(source("accelerator_owner"));
+    let mut resources = VmResourceTable::default();
+    let handle = AcceleratorResourceHandle {
+        id: AcceleratorResourceId {
+            slot: 4,
+            generation: 2,
+        },
+        class: AcceleratorResourceClass::Stream,
+        address_space: AcceleratorAddressSpace::External {
+            provider: "cuda".to_string(),
+            space: "stream".to_string(),
+        },
+        role: AcceleratorResourceRole::Owned {
+            principal: AcceleratorResourcePrincipal::new("actor.owner").expect("principal"),
+        },
+    };
+
+    resources
+        .register_accelerator(&mut processes, owner, handle.clone())
+        .expect("accelerator registration");
+    let snapshot = resources
+        .snapshots()
+        .into_iter()
+        .next()
+        .expect("resource snapshot");
+    assert_eq!(snapshot.kind, "accelerator");
+    assert_eq!(snapshot.label, "stream:4:2");
+    assert_eq!(snapshot.accelerator_handle, Some(handle));
+    assert_eq!(
+        resources.cleanup_owner_handles(&mut processes, owner).len(),
+        1
+    );
+    assert!(resources.snapshots().is_empty());
+}
+
+#[test]
+fn resource_table_rejects_borrowed_accelerator_handles_at_actor_boundary() {
+    let mut processes = VmProcessTable::default();
+    let owner = processes.spawn_root(source("accelerator_owner"));
+    let mut resources = VmResourceTable::default();
+    let borrowed = AcceleratorResourceHandle {
+        id: AcceleratorResourceId {
+            slot: 1,
+            generation: 1,
+        },
+        class: AcceleratorResourceClass::Allocation,
+        address_space: AcceleratorAddressSpace::Host,
+        role: AcceleratorResourceRole::Borrowed {
+            principal: AcceleratorResourcePrincipal::new("actor.borrower").expect("principal"),
+            scope: 9,
+        },
+    };
+    assert!(resources
+        .register_accelerator(&mut processes, owner, borrowed)
+        .expect_err("borrow escape")
+        .contains("borrowed handle escaped"));
+    assert!(resources.snapshots().is_empty());
 }
 
 #[test]

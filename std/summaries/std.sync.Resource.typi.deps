@@ -1,7 +1,7 @@
 module=std.sync.Resource
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 source_hash=5661581663178621499
 interface_hash=8075283164642368866
 interface_doc_hash=9271924744855425089

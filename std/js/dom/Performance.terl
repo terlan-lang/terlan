@@ -120,7 +120,7 @@ pub (value: Performance) mark(mark_name: JsString, mark_options: PerformanceMark
 pub (value: Performance) measure(
     measure_name: JsString,
     start_or_measure_options: PerformanceMeasureOptions | JsString,
-    end_mark: JsString
+    end_mark: JsString,
 ): PerformanceMeasure ->
     native.
 
@@ -143,13 +143,13 @@ pub (value: Performance) set_resource_timing_buffer_size(max_size: std.js.Number
 pub (value: Performance) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     native.
 
 pub (value: Performance) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     native.

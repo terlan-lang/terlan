@@ -48,10 +48,9 @@ impl<T> VmLazyBoundedQueue<T> {
         self.queue
             .pop()
             .map_err(|_| VmLazyQueuePopError)
-            .map(|value| {
+            .inspect(|_value| {
                 let previous = self.length.fetch_sub(1, Ordering::AcqRel);
                 debug_assert!(previous > 0, "lazy bounded queue length underflow");
-                value
             })
     }
 

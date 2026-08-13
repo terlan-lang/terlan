@@ -21,7 +21,7 @@ pub create_document_typechecks(
     receiver: DOMImplementation,
     namespace: Option[JsString],
     qualified_name: Option[JsString],
-    doctype: Option[DocumentType]
+    doctype: Option[DocumentType],
 ): XMLDocument ->
     receiver.create_document(namespace, qualified_name, doctype).
 
@@ -29,7 +29,7 @@ pub create_document_type_typechecks(
     receiver: DOMImplementation,
     name: JsString,
     public_id: JsString,
-    system_id: JsString
+    system_id: JsString,
 ): DocumentType ->
     receiver.create_document_type(name, public_id, system_id).
 

@@ -205,4 +205,5 @@ fn emit_instruction(body: &mut Function, instruction: WasmInstruction) {
 
 #[cfg(test)]
 #[path = "emit_test.rs"]
+#[cfg(test)]
 mod emit_test;

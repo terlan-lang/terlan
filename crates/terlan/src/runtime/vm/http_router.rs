@@ -1,13 +1,14 @@
-#![allow(dead_code)]
-
+#[cfg(test)]
 use super::http::VmHttpOverloadConfig;
-use super::http_static::{VmHttpResponseBody, VmHttpStaticAsset};
 pub(crate) use super::native_callable::VmNativeCallableRef as VmHttpCompiledCallableRef;
 use super::sse::VmSseEndpointPlan;
 use super::websocket::VmWebSocketEndpointPlan;
 use super::ReplValue;
 
-mod response;
+#[cfg(test)]
+#[path = "http_router/route_concurrency_test.rs"]
+#[cfg(test)]
+mod route_concurrency_test;
 
 /// HTTP method accepted by the VM router.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -31,20 +32,10 @@ pub(crate) struct VmHttpRoute {
     pub(crate) response_middleware: Vec<ReplValue>,
 }
 
-/// Compiled VM handler selected by router dispatch.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct VmHttpCompiledHandlerRef {
-    pub(crate) module: String,
-    pub(crate) function: String,
-}
-
 /// Target selected by VM HTTP route dispatch.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum VmHttpRouteTarget {
     Handler(ReplValue),
-    CompiledHandler(VmHttpCompiledHandlerRef),
-    StaticAsset(VmHttpStaticAsset),
-    ResponseBody(VmHttpResponseBody),
     SseEndpoint(VmSseEndpointPlan),
     WebSocketEndpoint(VmWebSocketEndpointPlan),
 }
@@ -52,7 +43,7 @@ pub(crate) enum VmHttpRouteTarget {
 /// Result of VM router dispatch.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum VmHttpRouterOutcome {
-    Matched(VmHttpRouteDispatch),
+    Matched(Box<VmHttpRouteDispatch>),
     ShortCircuited(VmHttpRouteShortCircuit),
     NotFound,
 }
@@ -67,16 +58,6 @@ pub(crate) struct VmHttpRouteDispatch {
     pub(crate) target: VmHttpRouteTarget,
     pub(crate) middleware: Vec<ReplValue>,
     pub(crate) response_middleware: Vec<ReplValue>,
-}
-
-/// Completed direct dispatch into a compiled VM handler.
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) struct VmHttpCompiledHandlerDispatch {
-    pub(crate) method: VmHttpRouteMethod,
-    pub(crate) path: String,
-    pub(crate) route_params: Vec<(String, String)>,
-    pub(crate) handler: VmHttpCompiledHandlerRef,
-    pub(crate) result: ReplValue,
 }
 
 /// Middleware-produced response that terminates dispatch before the handler.
@@ -149,17 +130,6 @@ impl VmHttpMiddlewareContinuation {
         }
     }
 
-    pub(crate) fn next_index(&self) -> usize {
-        self.next_index
-    }
-
-    pub(crate) fn remaining_count(&self) -> usize {
-        self.dispatch
-            .middleware
-            .len()
-            .saturating_sub(self.next_index)
-    }
-
     pub(crate) fn step(&self) -> VmHttpMiddlewareStep {
         let Some(middleware) = self.dispatch.middleware.get(self.next_index) else {
             return VmHttpMiddlewareStep::Handler(self.dispatch.clone());
@@ -171,24 +141,6 @@ impl VmHttpMiddlewareContinuation {
                 next_index: self.next_index + 1,
             },
         }
-    }
-}
-
-impl VmHttpCompiledHandlerRef {
-    /// Creates a validated compiled VM handler reference.
-    pub(crate) fn new(
-        module: impl Into<String>,
-        function: impl Into<String>,
-    ) -> Result<Self, String> {
-        let module = module.into();
-        if module.trim().is_empty() {
-            return Err("VM HTTP compiled handler module must not be empty".to_string());
-        }
-        let function = function.into();
-        if function.trim().is_empty() {
-            return Err("VM HTTP compiled handler function must not be empty".to_string());
-        }
-        Ok(Self { module, function })
     }
 }
 
@@ -240,6 +192,7 @@ pub(crate) struct VmHttpRouter {
     response_middleware: Vec<ReplValue>,
     fallback: Option<ReplValue>,
     error: Option<ReplValue>,
+    #[cfg(test)]
     overload: Option<VmHttpOverloadConfig>,
     lifecycle: Option<ReplValue>,
 }
@@ -263,16 +216,13 @@ impl VmHttpRouter {
     }
 
     /// Adds an exact GET route.
+    #[cfg(test)]
     pub(crate) fn get(self, path: impl Into<String>, handler: ReplValue) -> Result<Self, String> {
         self.route(VmHttpRouteMethod::Get, path, handler)
     }
 
-    /// Adds an exact POST route.
-    pub(crate) fn post(self, path: impl Into<String>, handler: ReplValue) -> Result<Self, String> {
-        self.route(VmHttpRouteMethod::Post, path, handler)
-    }
-
     /// Adds an exact route for the selected method.
+    #[cfg(test)]
     pub(crate) fn route(
         self,
         method: VmHttpRouteMethod,
@@ -280,24 +230,6 @@ impl VmHttpRouter {
         handler: ReplValue,
     ) -> Result<Self, String> {
         self.route_target(method, path, VmHttpRouteTarget::Handler(handler))
-    }
-
-    /// Adds one route with compiler-flattened group middleware.
-    pub(crate) fn scoped_route(
-        self,
-        method: VmHttpRouteMethod,
-        path: impl Into<String>,
-        handler: ReplValue,
-        middleware: Vec<ReplValue>,
-        response_middleware: Vec<ReplValue>,
-    ) -> Result<Self, String> {
-        self.scoped_target(
-            method,
-            path,
-            VmHttpRouteTarget::Handler(handler),
-            middleware,
-            response_middleware,
-        )
     }
 
     /// Adds one canonical route target with compiler-flattened scope metadata.
@@ -324,70 +256,7 @@ impl VmHttpRouter {
         Ok(self)
     }
 
-    /// Adds an exact route backed by a compiled VM function.
-    pub(crate) fn compiled_handler(
-        self,
-        method: VmHttpRouteMethod,
-        path: impl Into<String>,
-        module: impl Into<String>,
-        function: impl Into<String>,
-    ) -> Result<Self, String> {
-        self.route_target(
-            method,
-            path,
-            VmHttpRouteTarget::CompiledHandler(VmHttpCompiledHandlerRef::new(module, function)?),
-        )
-    }
-
-    /// Adds a static GET route backed by a VM static asset.
-    pub(crate) fn static_asset(
-        self,
-        path: impl Into<String>,
-        asset: VmHttpStaticAsset,
-    ) -> Result<Self, String> {
-        self.route_target(
-            VmHttpRouteMethod::Get,
-            path,
-            VmHttpRouteTarget::StaticAsset(asset),
-        )
-    }
-
-    /// Adds an exact route for a prebuilt response body mode.
-    pub(crate) fn response_body(
-        self,
-        method: VmHttpRouteMethod,
-        path: impl Into<String>,
-        body: VmHttpResponseBody,
-    ) -> Result<Self, String> {
-        self.route_target(method, path, VmHttpRouteTarget::ResponseBody(body))
-    }
-
-    /// Adds a GET route backed by a VM SSE endpoint plan.
-    pub(crate) fn sse(
-        self,
-        path: impl Into<String>,
-        plan: VmSseEndpointPlan,
-    ) -> Result<Self, String> {
-        self.route_target(
-            VmHttpRouteMethod::Get,
-            path,
-            VmHttpRouteTarget::SseEndpoint(plan),
-        )
-    }
-
-    /// Adds a GET route backed by a VM WebSocket endpoint plan.
-    pub(crate) fn websocket(
-        self,
-        path: impl Into<String>,
-        plan: VmWebSocketEndpointPlan,
-    ) -> Result<Self, String> {
-        self.route_target(
-            VmHttpRouteMethod::Get,
-            path,
-            VmHttpRouteTarget::WebSocketEndpoint(plan),
-        )
-    }
-
+    #[cfg(test)]
     fn route_target(
         mut self,
         method: VmHttpRouteMethod,
@@ -422,6 +291,7 @@ impl VmHttpRouter {
     }
 
     /// Configures bounded pending HTTP work for this router.
+    #[cfg(test)]
     pub(crate) fn overload(mut self, config: VmHttpOverloadConfig) -> Result<Self, String> {
         if self.overload.is_some() {
             return Err("router overload policy is already configured".to_string());
@@ -431,50 +301,9 @@ impl VmHttpRouter {
     }
 
     /// Returns the validated source-level overload configuration.
+    #[cfg(test)]
     pub(crate) fn overload_config(&self) -> Option<VmHttpOverloadConfig> {
         self.overload
-    }
-
-    /// Installs one source lifecycle callback on the root router.
-    pub(crate) fn lifecycle(mut self, middleware: ReplValue) -> Result<Self, String> {
-        if self.lifecycle.is_some() {
-            return Err("router lifecycle middleware is already configured".to_string());
-        }
-        self.lifecycle = Some(middleware);
-        Ok(self)
-    }
-
-    /// Returns the source lifecycle callback retained by this router.
-    pub(crate) fn lifecycle_middleware(&self) -> Option<&ReplValue> {
-        self.lifecycle.as_ref()
-    }
-
-    /// Mounts a child router under a path prefix.
-    pub(crate) fn group(mut self, prefix: impl Into<String>, child: Self) -> Result<Self, String> {
-        if child.overload.is_some() {
-            return Err("nested router group cannot configure HTTP overload policy".to_string());
-        }
-        if child.lifecycle.is_some() {
-            return Err("nested router group cannot configure lifecycle middleware".to_string());
-        }
-        let prefix = normalize_group_prefix(prefix.into())?;
-        for mut route in child.routes {
-            route.path = join_route_paths(&prefix, &route.path);
-            if let Some(diagnostic) = self.route_ambiguity_diagnostic(route.method, &route.path)? {
-                return Err(diagnostic.render_text());
-            }
-            route.middleware = [child.middleware.clone(), route.middleware].concat();
-            route.response_middleware =
-                [child.response_middleware.clone(), route.response_middleware].concat();
-            self.routes.push(route);
-        }
-        if self.fallback.is_none() {
-            self.fallback = child.fallback;
-        }
-        if self.error.is_none() {
-            self.error = child.error;
-        }
-        Ok(self)
     }
 
     /// Dispatches one request without executing middleware.
@@ -489,19 +318,21 @@ impl VmHttpRouter {
             .iter()
             .find(|route| route.method == method && route.path == path)
         {
-            return Ok(VmHttpRouterOutcome::Matched(VmHttpRouteDispatch {
-                method,
-                path,
-                route_pattern: route.path.clone(),
-                route_params: Vec::new(),
-                target: route.target.clone(),
-                middleware: [self.middleware.clone(), route.middleware.clone()].concat(),
-                response_middleware: [
-                    self.response_middleware.clone(),
-                    route.response_middleware.clone(),
-                ]
-                .concat(),
-            }));
+            return Ok(VmHttpRouterOutcome::Matched(Box::new(
+                VmHttpRouteDispatch {
+                    method,
+                    path,
+                    route_pattern: route.path.clone(),
+                    route_params: Vec::new(),
+                    target: route.target.clone(),
+                    middleware: [self.middleware.clone(), route.middleware.clone()].concat(),
+                    response_middleware: [
+                        self.response_middleware.clone(),
+                        route.response_middleware.clone(),
+                    ]
+                    .concat(),
+                },
+            )));
         }
         if let Some((route, route_params)) = self
             .routes
@@ -509,22 +340,24 @@ impl VmHttpRouter {
             .filter(|route| route.method == method)
             .find_map(|route| match_route_params(&route.path, &path).map(|params| (route, params)))
         {
-            return Ok(VmHttpRouterOutcome::Matched(VmHttpRouteDispatch {
-                method,
-                path,
-                route_pattern: route.path.clone(),
-                route_params,
-                target: route.target.clone(),
-                middleware: [self.middleware.clone(), route.middleware.clone()].concat(),
-                response_middleware: [
-                    self.response_middleware.clone(),
-                    route.response_middleware.clone(),
-                ]
-                .concat(),
-            }));
+            return Ok(VmHttpRouterOutcome::Matched(Box::new(
+                VmHttpRouteDispatch {
+                    method,
+                    path,
+                    route_pattern: route.path.clone(),
+                    route_params,
+                    target: route.target.clone(),
+                    middleware: [self.middleware.clone(), route.middleware.clone()].concat(),
+                    response_middleware: [
+                        self.response_middleware.clone(),
+                        route.response_middleware.clone(),
+                    ]
+                    .concat(),
+                },
+            )));
         }
         Ok(match &self.fallback {
-            Some(handler) => VmHttpRouterOutcome::Matched(VmHttpRouteDispatch {
+            Some(handler) => VmHttpRouterOutcome::Matched(Box::new(VmHttpRouteDispatch {
                 method,
                 path,
                 route_pattern: "*".to_string(),
@@ -532,72 +365,9 @@ impl VmHttpRouter {
                 target: VmHttpRouteTarget::Handler(handler.clone()),
                 middleware: self.middleware.clone(),
                 response_middleware: self.response_middleware.clone(),
-            }),
+            })),
             None => VmHttpRouterOutcome::NotFound,
         })
-    }
-
-    /// Dispatches one request and lets middleware terminate before the handler.
-    pub(crate) fn dispatch_with_middleware_policy(
-        &self,
-        method: VmHttpRouteMethod,
-        path: &str,
-        mut policy: impl FnMut(&ReplValue) -> Option<ReplValue>,
-    ) -> Result<VmHttpRouterOutcome, String> {
-        let outcome = self.dispatch(method, path)?;
-        let VmHttpRouterOutcome::Matched(dispatch) = outcome else {
-            return Ok(outcome);
-        };
-        for middleware in &dispatch.middleware {
-            if let Some(response) = policy(middleware) {
-                return Ok(VmHttpRouterOutcome::ShortCircuited(
-                    VmHttpRouteShortCircuit {
-                        middleware: middleware.clone(),
-                        response,
-                        route_params: dispatch.route_params.clone(),
-                        response_middleware: dispatch.response_middleware.clone(),
-                    },
-                ));
-            }
-        }
-        Ok(VmHttpRouterOutcome::Matched(dispatch))
-    }
-
-    /// Dispatches one request through a VM-owned middleware continuation.
-    pub(crate) fn dispatch_with_middleware_continuation(
-        &self,
-        method: VmHttpRouteMethod,
-        path: &str,
-        mut policy: impl FnMut(&ReplValue, &VmHttpMiddlewareContinuation) -> Option<ReplValue>,
-    ) -> Result<VmHttpRouterOutcome, String> {
-        let outcome = self.dispatch(method, path)?;
-        let VmHttpRouterOutcome::Matched(dispatch) = outcome else {
-            return Ok(outcome);
-        };
-        let mut continuation = VmHttpMiddlewareContinuation::new(dispatch);
-        loop {
-            match continuation.step() {
-                VmHttpMiddlewareStep::Middleware {
-                    middleware,
-                    continuation: next,
-                } => {
-                    if let Some(response) = policy(&middleware, &next) {
-                        return Ok(VmHttpRouterOutcome::ShortCircuited(
-                            VmHttpRouteShortCircuit {
-                                middleware,
-                                response,
-                                route_params: next.dispatch.route_params.clone(),
-                                response_middleware: next.dispatch.response_middleware.clone(),
-                            },
-                        ));
-                    }
-                    continuation = next;
-                }
-                VmHttpMiddlewareStep::Handler(dispatch) => {
-                    return Ok(VmHttpRouterOutcome::Matched(dispatch));
-                }
-            }
-        }
     }
 
     /// Dispatches middleware using the source-level typed result contract.
@@ -611,7 +381,7 @@ impl VmHttpRouter {
         let VmHttpRouterOutcome::Matched(dispatch) = outcome else {
             return Ok(outcome);
         };
-        let mut continuation = VmHttpMiddlewareContinuation::new(dispatch);
+        let mut continuation = VmHttpMiddlewareContinuation::new(*dispatch);
         loop {
             match continuation.step() {
                 VmHttpMiddlewareStep::Middleware {
@@ -631,7 +401,7 @@ impl VmHttpRouter {
                     }
                 },
                 VmHttpMiddlewareStep::Handler(dispatch) => {
-                    return Ok(VmHttpRouterOutcome::Matched(dispatch));
+                    return Ok(VmHttpRouterOutcome::Matched(Box::new(dispatch)));
                 }
             }
         }
@@ -740,24 +510,6 @@ fn normalize_router_path(path: impl AsRef<str>) -> Result<String, String> {
         return Err(format!("VM HTTP route path `{path}` is not safe"));
     }
     Ok(path.trim_end_matches('/').to_string())
-}
-
-fn normalize_group_prefix(prefix: impl AsRef<str>) -> Result<String, String> {
-    let prefix = normalize_router_path(prefix)?;
-    if prefix == "/" {
-        return Ok(String::new());
-    }
-    Ok(prefix)
-}
-
-fn join_route_paths(prefix: &str, path: &str) -> String {
-    if prefix.is_empty() {
-        return path.to_string();
-    }
-    if path == "/" {
-        return prefix.to_string();
-    }
-    format!("{prefix}{path}")
 }
 
 fn validate_route_pattern(path: &str) -> Result<(), String> {

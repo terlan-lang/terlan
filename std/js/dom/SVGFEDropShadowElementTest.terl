@@ -37,7 +37,7 @@ pub std_deviation_y_typechecks(receiver: SVGFEDropShadowElement): SVGAnimatedNum
 pub set_std_deviation_typechecks(
     receiver: SVGFEDropShadowElement,
     std_deviation_x: JsNumber,
-    std_deviation_y: JsNumber
+    std_deviation_y: JsNumber,
 ): Unit ->
     receiver.set_std_deviation(std_deviation_x, std_deviation_y).
 
@@ -45,7 +45,7 @@ pub add_event_listener_typechecks(
     receiver: SVGFEDropShadowElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -53,6 +53,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGFEDropShadowElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

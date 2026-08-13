@@ -2,9 +2,44 @@
 resolver = "2"
 members = [
   "crates/terlan",
+  "crates/terlan-archive",
+  "crates/terlan-runtime-abi",
+  "crates/terlan-test-orchestrator",
   "std/native/libpq/generated/native/rust",
+  "tools/rust_boundary_audit",
 ]
 
 [workspace.package]
 version = "0.0.7"
 edition = "2021"
+rust-version = "1.96"
+license = "Apache-2.0"
+authors = ["Terlan contributors"]
+repository = "https://github.com/terlan-lang/terlan"
+
+[workspace.dependencies]
+base64 = "0.22.1"
+cc = "=1.2.67"
+getrandom = "=0.3.4"
+pkg-config = "=0.3.33"
+polling = "3.11.0"
+proc-macro2 = { version = "1", features = ["span-locations"] }
+quote = "1"
+serde_json = "1"
+sha2 = "0.11.0"
+syn = { version = "2", features = ["full", "visit"] }
+tar = "0.4.44"
+tokio = "1"
+terlan-archive = { path = "crates/terlan-archive" }
+terlan-runtime-abi = { path = "crates/terlan-runtime-abi" }
+zstd = "0.13.3"
+
+[workspace.lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(coverage)'] }
+warnings = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.test]
+debug = "line-tables-only"

@@ -1,0 +1,23 @@
+/**
+ * VM-owned portable clock sources for tooling, tests, and benchmarks.
+ */
+module std.time.Clock.
+
+/**
+ * Returns nanoseconds since the Unix epoch.
+ *
+ * The value is suitable for evidence timestamps, not elapsed-time measurement;
+ * wall-clock adjustments may move it forwards or backwards.
+ */
+@compiler.intrinsic
+pub unix_time_ns(): Int -> 0.
+
+/**
+ * Returns nanoseconds from a process-local monotonic origin.
+ *
+ * Only differences between values returned by the same VM process are
+ * meaningful. The clock never moves backwards and is suitable for benchmark
+ * and timeout accounting.
+ */
+@compiler.intrinsic
+pub monotonic_time_ns(): Int -> 0.

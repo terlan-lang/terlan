@@ -17,7 +17,7 @@ import type std.js.Dom.MediaDecodingConfiguration.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub key_system_configuration_typechecks(
-    receiver: MediaDecodingConfiguration
+    receiver: MediaDecodingConfiguration,
 ): MediaCapabilitiesKeySystemConfiguration ->
     receiver.key_system_configuration().
 

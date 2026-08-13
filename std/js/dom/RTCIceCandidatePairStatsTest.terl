@@ -40,7 +40,7 @@ pub current_round_trip_time_typechecks(receiver: RTCIceCandidatePairStats): JsNu
     receiver.current_round_trip_time().
 
 pub last_packet_received_timestamp_typechecks(
-    receiver: RTCIceCandidatePairStats
+    receiver: RTCIceCandidatePairStats,
 ): DOMHighResTimeStamp ->
     receiver.last_packet_received_timestamp().
 

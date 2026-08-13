@@ -20,7 +20,10 @@ mod render;
 
 /// Reports whether a checked named type is the public template HTML facade.
 pub(super) fn is_template_html_type(name: &str) -> bool {
-    matches!(name, "Template.Html" | "std.template.Template.Html")
+    matches!(
+        name,
+        "Html" | "Template.Html" | "std.template.Template.Html"
+    )
 }
 
 /// Reports whether a remote-call owner names compiler-private template operations.
@@ -159,21 +162,24 @@ fn rewrite(
     if let CoreExpr::TemplateInstantiate { name, fields } = &rewritten {
         return render::render_template_instantiation(name, fields, templates, types);
     }
-    let CoreExpr::RemoteCall {
-        module,
-        function,
-        args,
-    } = rewritten
-    else {
-        return Ok(rewritten);
-    };
-    if !matches!(module.as_str(), TEMPLATE_MODULE | "Template") {
-        return Ok(CoreExpr::RemoteCall {
+    let (function, args) = match rewritten {
+        CoreExpr::Call { function, args } => {
+            let Some(function) = function
+                .strip_prefix(TEMPLATE_MODULE)
+                .and_then(|function| function.strip_prefix('.'))
+                .map(str::to_owned)
+            else {
+                return Ok(CoreExpr::Call { function, args });
+            };
+            (function, args)
+        }
+        CoreExpr::RemoteCall {
             module,
             function,
             args,
-        });
-    }
+        } if matches!(module.as_str(), TEMPLATE_MODULE | "Template") => (function, args),
+        rewritten => return Ok(rewritten),
+    };
     match (function.as_str(), args.as_slice()) {
         ("trusted", [value]) => Ok(value.clone()),
         ("empty", []) => Ok(CoreExpr::Binary("\"\"".to_string())),

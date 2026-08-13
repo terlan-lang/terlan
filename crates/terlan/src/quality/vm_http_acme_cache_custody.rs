@@ -9,7 +9,7 @@ const REPORT_PATH: &str = "target/quality/vm-http-acme-cache-custody-report.json
 
 const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
     (
-        "crates/terlan/src/commands/serve/tls/cache.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime/cache.rs",
         &[
             "AcmeCertificateCacheMetadata",
             "schema_version",
@@ -43,7 +43,7 @@ const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
         ],
     ),
     (
-        "crates/terlan/src/commands/serve/tls.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
         &[
             "load_acme_runtime_tls_cache",
             "validate_acme_certificate_cache_age",
@@ -72,7 +72,7 @@ const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
 
 const REQUIRED_TEST_ANCHORS: &[(&str, &[&str])] = &[
     (
-        "crates/terlan/src/commands/serve/tls_test.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime/tls_test.rs",
         &[
             "acme_certificate_cache_write_feeds_runtime_tls_config",
             "runtime_tls_config_accepts_auto_tls_certificate_cache",
@@ -106,16 +106,6 @@ const REQUIRED_TEST_ANCHORS: &[(&str, &[&str])] = &[
 
 const REQUIRED_GATE_TERMS: &[&str] = &[
     "vm-http-acme-cache-custody-check: vm-http-acme-worker-migration-check",
-    "commands::serve::tls::tls_test::acme_certificate_cache_metadata_records_typed_provenance_schema",
-    "commands::serve::tls::tls_test::runtime_tls_config_rejects_world_readable_auto_tls_private_key_cache",
-    "commands::serve::tls::tls_test::runtime_tls_config_rejects_staging_mode_auto_tls_certificate_cache",
-    "commands::serve::tls::tls_test::acme_cache_support_bundle_redaction_removes_sensitive_material",
-    "commands::serve::tls::tls_test::acme_key_custody_policy_rejects_cache_path_escape",
-    "commands::serve::tls::tls_test::runtime_tls_config_rejects_mismatched_auto_tls_certificate_key_pair",
-    "commands::serve::tls::tls_test::runtime_tls_config_rejects_wrong_domain_auto_tls_certificate_cache",
-    "commands::serve::tls::tls_test::runtime_tls_config_rejects_expired_auto_tls_certificate_cache",
-    "commands::serve::tls::tls_test::runtime_tls_config_rejects_tampered_auto_tls_certificate_cache_provenance_hash",
-    "vm_http_acme_cache_custody_test",
     "vm-http-acme-cache-custody",
 ];
 
@@ -196,6 +186,7 @@ const REDACTION_OUTCOMES: &[&str] = &[
 const REJECTED_CUSTODY_PATHS: &[&str] = &[];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm http acme cache custody summary.
 pub struct VmHttpAcmeCacheCustodySummary {
     pub cache_manifest_field_count: usize,
     pub key_custody_decision_count: usize,
@@ -204,6 +195,7 @@ pub struct VmHttpAcmeCacheCustodySummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm http acme cache custody.
 pub fn run_vm_http_acme_cache_custody(root: &Path) -> QualityResult<VmHttpAcmeCacheCustodySummary> {
     let mut diagnostics = Vec::new();
     for (relative, anchors) in REQUIRED_FOUNDATION_ANCHORS {
@@ -289,7 +281,7 @@ fn validate_required_terms(
     terms: &[&str],
     label: &str,
 ) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join(relative))
+    let text = super::vm_http_acme_worker::read_split_source(root, relative)
         .map_err(|err| format!("{relative}: failed to read {label}: {err}"))?;
     Ok(terms
         .iter()
@@ -319,4 +311,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_http_acme_cache_custody_test.rs"]
+#[cfg(test)]
 mod vm_http_acme_cache_custody_test;

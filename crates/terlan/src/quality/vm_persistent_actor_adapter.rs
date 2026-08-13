@@ -303,6 +303,7 @@ const FIXTURE_REPLAY_RESULTS: &[&str] = &[
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm persistent actor adapter summary.
 pub struct VmPersistentActorAdapterSummary {
     pub adapter_capability_manifest_count: usize,
     pub conformance_matrix_count: usize,
@@ -311,6 +312,7 @@ pub struct VmPersistentActorAdapterSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm persistent actor adapter.
 pub fn run_vm_persistent_actor_adapter(
     root: &Path,
 ) -> QualityResult<VmPersistentActorAdapterSummary> {
@@ -435,4 +437,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_persistent_actor_adapter_test.rs"]
+#[cfg(test)]
 mod vm_persistent_actor_adapter_test;

@@ -10,6 +10,8 @@ use crate::terlan_typeck::{
     lower_syntax_module_output_to_core, CoreExpr, CoreTupleTypeElem, CoreType,
 };
 
+use super::super::expression::lower_expr_with_constructors;
+use super::super::native_object_test_support::with_dispatch_lookup_harness;
 use super::super::{
     NativeExpr, NativeFunction, NativeModule, NativeTransitionOperation, NativeType,
 };
@@ -21,6 +23,16 @@ fn managed_core_types_map_to_closed_pointer_width_native_kinds() {
         (CoreType::String, "String", NativeType::StringRef),
         (CoreType::Binary, "Binary", NativeType::BinaryRef),
         (CoreType::Atom, "Atom", NativeType::Atom),
+        (
+            CoreType::AtomLiteral("Unit".to_owned()),
+            "Atom[Unit]",
+            NativeType::Unit,
+        ),
+        (
+            CoreType::AtomLiteral("unit".to_owned()),
+            "Atom[unit]",
+            NativeType::Unit,
+        ),
         (
             CoreType::AtomLiteral("ready".to_owned()),
             "Atom[ready]",
@@ -145,6 +157,14 @@ fn managed_core_types_map_to_closed_pointer_width_native_kinds() {
         super::super::native_type(Some(&structure), "projection.Pair"),
         Some(NativeType::ManagedRef(struct_expected))
     );
+
+    let response = CoreType::Named("std.http.Response.Response".to_string());
+    let response_expected =
+        SemanticTypeId::from_canonical("Named(Response)").expect("HTTP response semantic type");
+    assert_eq!(
+        super::super::native_type(Some(&response), "std.http.Response.Response"),
+        Some(NativeType::ManagedRef(response_expected))
+    );
 }
 
 #[test]
@@ -255,7 +275,34 @@ fn managed_content_equality_is_not_lowered_as_pointer_identity() {
 
     assert_eq!(
         super::super::infer_native_type(&equality, &variables, &HashMap::new()),
-        None
+        Some(NativeType::Bool)
+    );
+    let params = HashMap::from([("left".to_owned(), 0), ("right".to_owned(), 1)]);
+    let lowered = lower_expr_with_constructors(
+        &equality,
+        &params,
+        &variables,
+        &HashMap::new(),
+        &HashMap::new(),
+        &HashMap::new(),
+    )
+    .expect("managed equality lowering");
+    assert!(matches!(lowered, NativeExpr::ManagedOperation { .. }));
+}
+
+#[test]
+fn polymorphic_with_default_infers_the_checked_default_native_type() {
+    let call = CoreExpr::Call {
+        function: "std.core.Option.with_default".to_owned(),
+        args: vec![
+            CoreExpr::Var("value".to_owned()),
+            CoreExpr::Binary("\"missing\"".to_owned()),
+        ],
+    };
+
+    assert_eq!(
+        super::super::infer_native_type(&call, &HashMap::new(), &HashMap::new()),
+        Some(NativeType::StringRef)
     );
 }
 
@@ -373,12 +420,17 @@ fn typed_public_mailbox_operations_lower_to_fixed_native_transition_frames() {
         .export_id;
     let object = emit_native_application_object("typed_mailbox", &modules)
         .expect("composed typed receive must emit native code");
-    assert_typed_receive_frame(&object, composed_export, [5, 0, 0]);
-    assert_typed_receive_frame(&object, pair_receive_export, pair_transition_words);
+    assert_typed_receive_frame(&object, composed_export, [5, 0, 0], true);
+    assert_typed_receive_frame(&object, pair_receive_export, pair_transition_words, false);
 }
 
 /// Links and invokes one generated composed Receive entry.
-fn assert_typed_receive_frame(object: &[u8], export_id: u64, type_words: [i64; 3]) {
+fn assert_typed_receive_frame(
+    object: &[u8],
+    export_id: u64,
+    type_words: [i64; 3],
+    completion_frame: bool,
+) {
     let root = std::env::temp_dir().join(format!(
         "terlan-typed-mailbox-{}-{}",
         std::process::id(),
@@ -395,9 +447,18 @@ fn assert_typed_receive_frame(object: &[u8], export_id: u64, type_words: [i64; 3
     let type_words = type_words.map(|word| word.to_string()).join(", ");
     fs::write(
         &harness_path,
-        TYPED_RECEIVE_HARNESS
+        with_dispatch_lookup_harness(TYPED_RECEIVE_HARNESS)
             .replace("$EXPORT_ID", &export_id.to_string())
-            .replace("$TYPE_WORDS", &type_words),
+            .replace("$TYPE_WORDS", &type_words)
+            .replace("$EXPECTED_LEN", if completion_frame { "5" } else { "3" })
+            .replace(
+                "$COMPLETION_ASSERTIONS",
+                if completion_frame {
+                    "assert_ne!(transitions[3], 0);\n    assert_eq!(transitions[4], 0);"
+                } else {
+                    ""
+                },
+            ),
     )
     .expect("typed mailbox harness");
     let compile = Command::new("rustc")
@@ -430,10 +491,11 @@ const TYPED_RECEIVE_HARNESS: &str = r#"
 use std::ffi::c_void;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v2(
+    fn terlan_native_dispatch_v3(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
+        dispatch_lookup: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -449,10 +511,11 @@ fn main() {
     let mut transitions = [0_i64; 8];
     let mut transition_len = 0_u64;
     let status = unsafe {
-        terlan_native_dispatch_v2(
+        terlan_native_dispatch_v3(
             std::ptr::null_mut(),
             std::ptr::null(),
             std::ptr::null(),
+            dispatch_lookup as *const c_void,
             $EXPORT_ID,
             std::ptr::null(),
             0,
@@ -464,7 +527,8 @@ fn main() {
     };
     assert_eq!(status, 23);
     assert_ne!(result, 0);
-    assert_eq!(transition_len, 3);
+    assert_eq!(transition_len, $EXPECTED_LEN);
     assert_eq!(&transitions[..3], &[$TYPE_WORDS]);
+    $COMPLETION_ASSERTIONS
 }
 "#;

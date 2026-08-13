@@ -1,0 +1,43 @@
+{
+  "dependency_files": [
+    "proofs/lean/lake-manifest.json",
+    "proofs/lean/lakefile.lean",
+    "proofs/lean/lean-toolchain"
+  ],
+  "deterministic_timestamp_strategy": "none-content-addressed",
+  "execution_command": [
+    "lake",
+    "env",
+    "lean",
+    "concurrency/Concurrency.lean"
+  ],
+  "family": "concurrency",
+  "manifest_fingerprints": {
+    "docs/runtime/TERLAN_VM_RUNTIME_CONCEPTS.md": "sha256:0c0a56bdc73b1d40b315d03f47153e0e6e739d4430c9575c092cc5e82a17d5d3"
+  },
+  "output_signature": {
+    "exit_class": "success",
+    "stderr_class": "empty",
+    "stdout_class": "empty"
+  },
+  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+  "schema": "terlan.lean-proof-replay.v1",
+  "source_digest": "sha256:5e0c61d3a415d71089334d3e9f133b99958a151bc83081b7191613d15d846f33",
+  "theorem_names": [
+    "Terlan.Concurrency.sendAppendsExactlyOne",
+    "Terlan.Concurrency.sameSenderOrderIsPreserved",
+    "Terlan.Concurrency.runnableQueueMakesBoundedProgress",
+    "Terlan.Concurrency.selectiveReceiveEmptyTerminates",
+    "Terlan.Concurrency.zeroTimeoutTerminates",
+    "Terlan.Concurrency.unsupportedImplicitOtpSchedulingRejected"
+  ],
+  "toolchain": {
+    "elan_channel": "leanprover/lean4:v4.31.0",
+    "lake_flags": [
+      "env",
+      "lean"
+    ],
+    "lean_version": "4.31.0"
+  },
+  "working_directory": "proofs/lean"
+}

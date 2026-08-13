@@ -119,7 +119,7 @@ pub set_hours_typechecks(
     hours: JsNumber,
     min: JsNumber,
     sec: JsNumber,
-    ms: JsNumber
+    ms: JsNumber,
 ): JsNumber ->
     receiver.set_hours(hours, min, sec, ms).
 
@@ -128,7 +128,7 @@ pub set_utc_hours_typechecks(
     hours: JsNumber,
     min: JsNumber,
     sec: JsNumber,
-    ms: JsNumber
+    ms: JsNumber,
 ): JsNumber ->
     receiver.set_utc_hours(hours, min, sec, ms).
 
@@ -148,7 +148,7 @@ pub set_full_year_typechecks(
     receiver: Date,
     year: JsNumber,
     month: JsNumber,
-    date: JsNumber
+    date: JsNumber,
 ): JsNumber ->
     receiver.set_full_year(year, month, date).
 
@@ -156,7 +156,7 @@ pub set_utc_full_year_typechecks(
     receiver: Date,
     year: JsNumber,
     month: JsNumber,
-    date: JsNumber
+    date: JsNumber,
 ): JsNumber ->
     receiver.set_utc_full_year(year, month, date).
 
@@ -169,20 +169,20 @@ pub to_iso_string_typechecks(receiver: Date): JsString ->
 pub to_locale_string_typechecks(
     receiver: Date,
     locales: Array[JsString] | JsString,
-    options: Intl.DateTimeFormatOptions
+    options: Intl.DateTimeFormatOptions,
 ): JsString ->
     receiver.to_locale_string(locales, options).
 
 pub to_locale_date_string_typechecks(
     receiver: Date,
     locales: Array[JsString] | JsString,
-    options: Intl.DateTimeFormatOptions
+    options: Intl.DateTimeFormatOptions,
 ): JsString ->
     receiver.to_locale_date_string(locales, options).
 
 pub to_locale_time_string_typechecks(
     receiver: Date,
     locales: Array[JsString] | JsString,
-    options: Intl.DateTimeFormatOptions
+    options: Intl.DateTimeFormatOptions,
 ): JsString ->
     receiver.to_locale_time_string(locales, options).

@@ -234,6 +234,11 @@ impl ActorHeap {
         if header.length == 1 {
             return allocate_empty_root(self, descriptor).map(Some);
         }
+        let remaining = header.length - 1;
+        if remaining <= INLINE_LIMIT {
+            let elements = self.list_elements_from(descriptor, list, 1)?;
+            return self.list_from_elements(descriptor, &elements).map(Some);
+        }
         if header.form == FORM_TREE && (header.start + 1) % BRANCH_FACTOR != 0 {
             let tree = self.reference_field(list, TREE_REFERENCE_OFFSET)?;
             return allocate_tree_root(
@@ -246,12 +251,26 @@ impl ActorHeap {
                     relaxed: false,
                 },
                 header.start + 1,
-                header.length - 1,
+                remaining,
             )
             .map(Some);
         }
-        let elements = self.list_elements_from(descriptor, list, 1)?;
-        self.list_from_elements(descriptor, &elements).map(Some)
+        if header.form == FORM_TREE {
+            let trimmed = persistent::trim_prefix(self, descriptor, list, header.start + 1)?
+                .ok_or(ManagedMemoryError::CorruptedCollection)?;
+            return allocate_tree_root(self, descriptor, trimmed, 0, remaining).map(Some);
+        }
+        Err(ManagedMemoryError::CorruptedCollection)
+    }
+
+    /// Returns a persistent list with one element prepended.
+    pub fn list_prepend(
+        &mut self,
+        descriptor: &ManagedListDescriptor,
+        list: TvmRef<ManagedList>,
+        value: ManagedFieldValue,
+    ) -> Result<TvmRef<ManagedList>, ManagedMemoryError> {
+        persistent::prepend(self, descriptor, list, value)
     }
 
     /// Returns a persistent list with one element appended.
@@ -451,13 +470,15 @@ fn allocate_leaf(
         .collect::<SmallVec<[usize; BRANCH_FACTOR]>>();
     let managed = node_descriptor(
         heap,
-        descriptor.leaf_semantic_id,
-        NODE_LEAF,
-        0,
-        elements.len(),
-        size,
-        &[],
-        &reference_offsets,
+        ManagedListNodeShape {
+            semantic_id: descriptor.leaf_semantic_id,
+            kind: NODE_LEAF,
+            height: 0,
+            count: elements.len(),
+            size,
+            sizes: &[],
+            reference_offsets: &reference_offsets,
+        },
     )?;
     let reference = heap.allocate(managed, &payload, &references)?;
     Ok(NodeSummary {
@@ -524,13 +545,15 @@ fn allocate_internal(
         .collect::<SmallVec<[usize; BRANCH_FACTOR]>>();
     let managed = node_descriptor(
         heap,
-        descriptor.node_semantic_id,
-        kind,
-        child_height + 1,
-        children.len(),
-        size,
-        if regular { &[] } else { children },
-        &reference_offsets,
+        ManagedListNodeShape {
+            semantic_id: descriptor.node_semantic_id,
+            kind,
+            height: child_height + 1,
+            count: children.len(),
+            size,
+            sizes: if regular { &[] } else { children },
+            reference_offsets: &reference_offsets,
+        },
     )?;
     let reference = heap.allocate(managed, &payload, &references)?;
     Ok(NodeSummary {
@@ -694,16 +717,29 @@ fn root_descriptor(
 }
 
 /// Builds a shape-specific private leaf or internal-node descriptor.
-fn node_descriptor(
-    heap: &mut ActorHeap,
+struct ManagedListNodeShape<'a> {
     semantic_id: SemanticTypeId,
     kind: u8,
     height: u8,
     count: usize,
     size: usize,
-    sizes: &[NodeSummary],
-    reference_offsets: &[usize],
+    sizes: &'a [NodeSummary],
+    reference_offsets: &'a [usize],
+}
+
+fn node_descriptor(
+    heap: &mut ActorHeap,
+    shape: ManagedListNodeShape<'_>,
 ) -> Result<Arc<ManagedTypeDescriptor>, ManagedMemoryError> {
+    let ManagedListNodeShape {
+        semantic_id,
+        kind,
+        height,
+        count,
+        size,
+        sizes,
+        reference_offsets,
+    } = shape;
     let mut representation = SmallVec::<[u8; 288]>::from_slice(&[b'N', kind, height]);
     representation.extend_from_slice(&(count as u64).to_le_bytes());
     for child in sizes {
@@ -796,8 +832,10 @@ fn validate_element_count(count: usize) -> Result<(), ManagedMemoryError> {
 
 #[cfg(test)]
 #[path = "managed_list_test.rs"]
+#[cfg(test)]
 mod managed_list_test;
 
 #[cfg(test)]
 #[path = "managed_list_profile_benchmark_test.rs"]
+#[cfg(test)]
 mod managed_list_profile_benchmark_test;

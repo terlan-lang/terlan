@@ -110,6 +110,7 @@ function activate(context) {
     vscode.languages.registerCodeLensProvider(
       [
         { language: "terlan", scheme: "file" },
+        { language: "terlan-script", scheme: "file" },
         { language: "terlan-test", scheme: "file" },
         { pattern: "**/*.terl", scheme: "file" }
       ],
@@ -120,6 +121,7 @@ function activate(context) {
     vscode.languages.registerCodeActionsProvider(
       [
         { language: "terlan", scheme: "file" },
+        { language: "terlan-script", scheme: "file" },
         { language: "terlan-test", scheme: "file" },
         { pattern: "**/*.terl", scheme: "file" }
       ],
@@ -133,6 +135,7 @@ function activate(context) {
     vscode.languages.registerCompletionItemProvider(
       [
         { language: "terlan", scheme: "file" },
+        { language: "terlan-script", scheme: "file" },
         { language: "terlan-test", scheme: "file" },
         { pattern: "**/*.terl", scheme: "file" }
       ],

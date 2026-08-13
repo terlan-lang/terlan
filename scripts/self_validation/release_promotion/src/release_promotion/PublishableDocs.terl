@@ -1,0 +1,89 @@
+/**
+ * Loads the exact public documentation set bound into a release candidate.
+ */
+module release_promotion.PublishableDocs.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.Lt.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.File.
+
+import type std.core.Option.
+
+pub struct Manifest {
+    accepted: Bool,
+    files: List[String],
+    failure: String,
+}.
+
+@pure
+child(parent: String, relative: String): String ->
+    if {
+        parent == "" or parent == "." -> relative;
+        String.ends_with(parent, "/") -> String.append(parent, relative);
+        true -> String.concat([parent, "/", relative])
+    }.
+
+@pure
+reverse(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse(rest, [value | output])
+    }.
+
+failure(message: String): Manifest ->
+    Manifest(accepted = false, files = [], failure = message).
+
+load_rows(
+    root: String,
+    rows: List[String],
+    previous: Option[String],
+    output: List[String],
+): Manifest ->
+    case rows {
+        [] -> Manifest(accepted = true, files = reverse(output, []), failure = "");
+        ["" | rest] -> load_rows(root, rest, previous, output);
+        ["path" | rest] ->
+            case previous {
+                None -> load_rows(root, rest, Some(""), output);
+                Some(_value) ->
+                    failure("publishable documentation manifest has a misplaced header")
+            };
+        [path | rest] ->
+            case previous {
+                None -> failure("publishable documentation manifest has no header");
+                Some(prior) ->
+                    if {
+                        not String.starts_with(path, "docs/") or String.contains(path, "..") -> failure(String.append("publishable documentation path is invalid: ", path));
+                        prior != "" and String.compare(prior, path) != Lt -> failure("publishable documentation paths must be unique and sorted");
+                        not File.exists(child(root, path)) -> failure(String.append("publishable documentation file is missing: ", path));
+                        true -> load_rows(root, rest, Some(path), [path | output])
+                    }
+            }
+    }.
+
+pub load(root: String): Manifest ->
+    case File.read_text(child(root, "docs/release/PUBLISHABLE_DOCUMENTATION.tsv")) {
+        Err(reason) -> failure(File.message(reason));
+        Ok(source) ->
+            let manifest = load_rows(root, String.split(source, "\n"), None, []);
+            if {
+                not manifest.accepted -> manifest;
+                List.length(manifest.files) == 0 -> failure("publishable documentation manifest is empty");
+                true -> manifest
+            }
+    }.
+
+@pure
+pub valid(manifest: Manifest): Bool ->
+    manifest.accepted.
+
+@pure
+pub paths(manifest: Manifest): List[String] ->
+    manifest.files.
+
+@pure
+pub message(manifest: Manifest): String ->
+    manifest.failure.

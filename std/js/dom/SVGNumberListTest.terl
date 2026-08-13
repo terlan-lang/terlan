@@ -38,7 +38,7 @@ pub initialize_typechecks(receiver: SVGNumberList, new_item: SVGNumber): SVGNumb
 pub insert_item_before_typechecks(
     receiver: SVGNumberList,
     new_item: SVGNumber,
-    index: JsNumber
+    index: JsNumber,
 ): SVGNumber ->
     receiver.insert_item_before(new_item, index).
 
@@ -48,6 +48,6 @@ pub remove_item_typechecks(receiver: SVGNumberList, index: JsNumber): SVGNumber 
 pub replace_item_typechecks(
     receiver: SVGNumberList,
     new_item: SVGNumber,
-    index: JsNumber
+    index: JsNumber,
 ): SVGNumber ->
     receiver.replace_item(new_item, index).

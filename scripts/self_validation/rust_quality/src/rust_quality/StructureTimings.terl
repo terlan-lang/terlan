@@ -1,0 +1,1034 @@
+/**
+ * Validates the reproducible CQ-0 Rust structure timing evidence.
+ */
+module rust_quality.StructureTimings.
+
+import rust_quality.SourceInventory.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.{Directory, File}.
+import std.system.Process.
+import std.time.Clock.
+
+import type std.core.{Option, Result}.
+import type std.data.Json.
+import type std.data.Json.RequiredFieldRow.
+
+pub struct TimingRow {
+    name: String,
+    command: String,
+    wall_time_ms: Int,
+    artifact: String,
+    digest: String,
+}.
+
+struct Policy {
+    target_directory: String,
+    cargo: String,
+    rustc: String,
+    host: String,
+    logical_cpus: Int,
+    procedure: String,
+}.
+
+struct Report {
+    valid: Bool,
+    schema: Int,
+    policy: Policy,
+    rows: List[TimingRow],
+    diagnostics: List[String],
+    message: String,
+    document: Json,
+}.
+
+struct Scenario {
+    name: String,
+    arguments: List[String],
+    edited_file: String,
+}.
+
+struct Measurement {
+    valid: Bool,
+    row: TimingRow,
+    message: String,
+}.
+
+pub struct Measurements {
+    valid: Bool,
+    rows: List[TimingRow],
+    message: String,
+}.
+
+@pure
+empty_policy(): Policy ->
+    Policy(
+        target_directory = "",
+        cargo = "",
+        rustc = "",
+        host = "",
+        logical_cpus = 0,
+        procedure = "",
+    ).
+
+failure(message: String): Report ->
+    Report(
+        valid = false,
+        schema = 0,
+        policy = empty_policy(),
+        rows = List.new[TimingRow](),
+        diagnostics = List.new[String](),
+        message = message,
+        document = Json.null(),
+    ).
+
+@pure
+scenario_names(): List[String] ->
+    [
+        "clean",
+        "parser-edit",
+        "type-model-edit",
+        "runtime-leaf-edit",
+        "lsp-edit",
+        "focused-test",
+        "full-test",
+    ].
+
+@pure
+common_check_command(): String ->
+    "cargo check --locked -p terlan --bins --target-dir ./target/cq0-timings --timings".
+
+@pure
+expected_command(name: String): String ->
+    case name {
+        "clean" -> common_check_command();
+        "parser-edit" -> common_check_command();
+        "type-model-edit" -> common_check_command();
+        "runtime-leaf-edit" -> common_check_command();
+        "lsp-edit" ->
+            "cargo check --locked -p terlan --bin terlan-lsp --features editor-lsp --target-dir ./target/cq0-timings --timings";
+        "focused-test" ->
+            "cargo test --locked -p terlan --test direct_aot_memory --no-run --target-dir ./target/cq0-timings --timings";
+        "full-test" ->
+            "cargo test --locked -p terlan --all-targets --no-run --target-dir ./target/cq0-timings --timings";
+        _ -> ""
+    }.
+
+@pure
+hex_digit(byte: Int): Bool ->
+    byte >= 48 and byte <= 57 or byte >= 97 and byte <= 102.
+
+@pure
+hex_at(value: String, index: Int): Bool ->
+    if {
+        index == value.byte_size() -> true;
+        not hex_digit(value.utf8_byte_at(index)) -> false;
+        true -> hex_at(value, index + 1)
+    }.
+
+@pure
+valid_sha256(value: String): Bool ->
+    value.byte_size() == 64 and hex_at(value, 0).
+
+policy_from(document: Json): Option[Policy] ->
+    let {
+        Ok(value) <- document.get("policy");
+        Ok(fields) <-
+            value
+                .required_fields(
+                    ["target_directory", "cargo", "rustc", "host", "procedure"],
+                    ["logical_cpus"],
+                    [],
+                )
+    } else {
+        _ -> None
+    };
+    case {Json.required_field_strings(fields), Json.required_field_ints(fields)} {
+        {[target, cargo, rustc, host, procedure], [logical_cpus]} ->
+            Some(
+                Policy(
+                    target_directory = target,
+                    cargo = cargo,
+                    rustc = rustc,
+                    host = host,
+                    logical_cpus = logical_cpus,
+                    procedure = procedure,
+                ),
+            );
+        _ -> None
+    }.
+
+@pure
+rows_from(values: List[RequiredFieldRow], output: List[TimingRow]): Option[List[TimingRow]] ->
+    case values {
+        [] -> Some(SourceInventory.reverse(output));
+        [value | rest] ->
+            case {Json.required_field_row_strings(value), Json.required_field_row_ints(value)} {
+                {[name, command, artifact, digest], [wall_time_ms]} ->
+                    rows_from(
+                        rest,
+                        [TimingRow(
+    name = name,
+    command = command,
+    wall_time_ms = wall_time_ms,
+    artifact = artifact,
+    digest = digest,
+) | output],
+                    );
+                _ -> None
+            }
+    }.
+
+scenario_rows(document: Json): Option[List[TimingRow]] ->
+    let {
+        Ok(values) <- document.get("scenarios");
+        Ok(rows) <-
+            Json.required_field_rows(
+                values,
+                ["name", "command", "cargo_timing_artifact", "cargo_timing_sha256"],
+                ["wall_time_ms"],
+                [],
+            );
+        Some(parsed) <- rows_from(rows, [])
+    } else {
+        _ -> None
+    };
+    Some(parsed).
+
+@pure
+row_names(rows: List[TimingRow], output: List[String]): List[String] ->
+    case rows {
+        [] -> SourceInventory.reverse(output);
+        [row | rest] -> row_names(rest, [row.name | output])
+    }.
+
+@pure
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+@pure
+schema_diagnostics(schema: Int, diagnostics: List[String]): List[String] ->
+    if {
+        schema == 1 or schema == 2 or schema == 3 -> diagnostics;
+        true -> ["timing schema version must be 1, 2, or 3" | diagnostics]
+    }.
+
+@pure
+policy_diagnostics(policy: Policy, diagnostics: List[String]): List[String] ->
+    let required =
+        if {
+            policy.cargo != ""
+                and policy.rustc != ""
+                and policy.host != ""
+                and policy.procedure != "" -> diagnostics;
+            true -> ["timing policy is missing a required identity or procedure field" | diagnostics]
+        };
+    if {
+        policy.target_directory == "target/cq0-timings" -> required;
+        true -> ["timing target directory must remain isolated" | required]
+    }.
+
+@pure
+structural_row_diagnostics(rows: List[TimingRow], diagnostics: List[String]): List[String] ->
+    case rows {
+        [] -> diagnostics;
+        [row | rest] ->
+            let positive =
+                if {
+                    row.wall_time_ms > 0 -> diagnostics;
+                    true -> [String.concat([row.name, ": wall_time_ms must be a positive integer"]) | diagnostics]
+                };
+            let digest =
+                if {
+                    valid_sha256(row.digest) -> positive;
+                    true -> [String.concat([row.name, ": invalid Cargo timing SHA-256"]) | positive]
+                };
+            let command =
+                if {
+                    row.command == expected_command(row.name) -> digest;
+                    true -> [String.concat([row.name, ": timing command drifted"]) | digest]
+                };
+            structural_row_diagnostics(rest, command)
+    }.
+
+artifact_diagnostics(
+    root: String,
+    rows: List[TimingRow],
+    diagnostics: List[String],
+): List[String] ->
+    case rows {
+        [] -> diagnostics;
+        [row | rest] ->
+            if {
+                row.artifact == "" -> artifact_diagnostics(root, rest, diagnostics);
+                true -> let path = SourceInventory.child(root, row.artifact);
+                if {
+                    not File.exists(path) -> artifact_diagnostics(root, rest, diagnostics);
+                    true -> case Hash.sha256_file(path) {
+                        Err(reason) ->
+                            artifact_diagnostics(
+                                root,
+                                rest,
+                                [String.concat([row.name, ": ", File.message(reason)]) | diagnostics],
+                            );
+                        Ok(actual) ->
+                            artifact_diagnostics(
+                                root,
+                                rest,
+                                if {
+                                    actual == row.digest -> diagnostics;
+                                    true -> [String.concat([row.name, ": Cargo timing artifact hash drifted"]) | diagnostics]
+                                },
+                            )
+                    }
+                }
+            }
+    }.
+
+provenance_diagnostics(document: Json, schema: Int, diagnostics: List[String]): List[String] ->
+    if {
+        schema == 1 -> diagnostics;
+        true -> let {
+            Ok(provenance) <- document.get("provenance");
+            Ok(fields) <-
+                provenance
+                    .required_fields(
+                        ["compilation_input_sha256", "kernel", "operating_system", "cpu_model"],
+                        ["memory_bytes"],
+                        [],
+                    )
+        } else {
+            _ -> ["timing provenance is missing required host or source fields" | diagnostics]
+        };
+        case {Json.required_field_strings(fields), Json.required_field_ints(fields)} {
+            {[digest, kernel, operating_system, cpu_model], [memory_bytes]} ->
+                if {
+                    valid_sha256(digest)
+                        and kernel != ""
+                        and operating_system != ""
+                        and cpu_model != ""
+                        and memory_bytes > 0 -> diagnostics;
+                    true -> ["timing provenance has invalid host or compilation-input evidence" | diagnostics]
+                };
+            _ -> ["timing provenance has an unsupported shape" | diagnostics]
+        }
+    }.
+
+parse(source: String): Report ->
+    let {
+        Ok(document) <- Json.parse(source);
+        Ok(schema_value) <- document.get("schema_version");
+        Ok(schema) <- schema_value.as_int();
+        Some(policy) <- policy_from(document);
+        Some(rows) <- scenario_rows(document)
+    } else {
+        _ -> failure("timing evidence has an unsupported JSON shape")
+    };
+    (let diagnostics = schema_diagnostics(schema, []);
+let policy_checked = policy_diagnostics(policy, diagnostics);
+let names_checked =
+    if {
+        row_names(rows, []) == scenario_names() -> policy_checked;
+        true -> ["timing scenarios must be ordered as clean, parser-edit, type-model-edit, runtime-leaf-edit, lsp-edit, focused-test, full-test" | policy_checked]
+    };
+Report(
+    valid = true,
+    schema = schema,
+    policy = policy,
+    rows = rows,
+    diagnostics = provenance_diagnostics(document, schema, structural_row_diagnostics(rows, names_checked)),
+    message = "",
+    document = document,
+)).
+
+read_report(root: String, relative: String): Report ->
+    case File.read_text(SourceInventory.child(root, relative)) {
+        Err(reason) -> failure(File.message(reason));
+        Ok(source) -> parse(source)
+    }.
+
+@pure
+same_policy(left: Policy, right: Policy): Bool ->
+    left.target_directory == right.target_directory
+        and left.cargo == right.cargo
+        and left.rustc == right.rustc
+        and left.host == right.host
+        and left.logical_cpus == right.logical_cpus
+        and left.procedure == right.procedure.
+
+@pure
+find_row(rows: List[TimingRow], name: String): Option[TimingRow] ->
+    case rows {
+        [] -> None;
+        [row | rest] ->
+            if {
+                row.name == name -> Some(row);
+                true -> find_row(rest, name)
+            }
+    }.
+
+@pure
+pad_four(value: Int): String ->
+    if {
+        value < 10 -> String.concat(["000", Int.to_string(value)]);
+        value < 100 -> String.concat(["00", Int.to_string(value)]);
+        value < 1000 -> String.concat(["0", Int.to_string(value)]);
+        true -> Int.to_string(value)
+    }.
+
+@pure
+trim_fraction(value: String): String ->
+    if {
+        value.byte_size() == 0 -> value;
+        String.ends_with(value, "0") -> trim_fraction(value.utf8_slice(0, value.byte_size() - 1));
+        true -> value
+    }.
+
+@pure
+ratio_text(numerator: Int, denominator: Int): String ->
+    let scaled = (numerator * 10000 + denominator / 2) / denominator;
+    let whole = scaled / 10000;
+    let fraction = trim_fraction(pad_four(scaled - whole * 10000));
+    if {
+        fraction == "" -> Int.to_string(whole);
+        true -> String.concat([Int.to_string(whole), ".", fraction])
+    }.
+
+comparison_rows(
+    values: Json,
+    index: Int,
+    count: Int,
+    baseline: List[TimingRow],
+    closeout: List[TimingRow],
+    diagnostics: List[String],
+): List[String] ->
+    if {
+        index == count -> diagnostics;
+        true -> let {
+            Ok(value) <- values.at(index);
+            Ok(fields) <- value.required_fields(["name"], ["baseline_ms", "closeout_ms", "delta_ms"], []);
+            Ok(ratio_value) <- value.get("ratio");
+            Ok(ratio) <- Json.stringify(ratio_value)
+        } else {
+            _ -> ["closeout timing comparison has an unsupported shape" | diagnostics]
+        };
+        case {Json.required_field_strings(fields), Json.required_field_ints(fields)} {
+            {[name], [baseline_ms, closeout_ms, delta_ms]} ->
+                let {
+                    Some(baseline_row) <- find_row(baseline, name);
+                    Some(closeout_row) <- find_row(closeout, name)
+                } else {
+                    _ ->
+                        comparison_rows(
+                            values,
+                            index + 1,
+                            count,
+                            baseline,
+                            closeout,
+                            [String.concat([name, ": closeout timing comparison refers to an unknown scenario"]) | diagnostics],
+                        )
+                };
+                (let exact =
+    baseline_ms == baseline_row.wall_time_ms
+        and closeout_ms == closeout_row.wall_time_ms
+        and delta_ms == closeout_ms - baseline_ms
+        and ratio == ratio_text(closeout_ms, baseline_ms);
+comparison_rows(
+    values,
+    index + 1,
+    count,
+    baseline,
+    closeout,
+    if {
+        exact -> diagnostics;
+        true -> [String.concat([name, ": closeout timing comparison is stale"]) | diagnostics]
+    },
+));
+            _ -> ["closeout timing comparison has an unsupported scalar shape" | diagnostics]
+        }
+    }.
+
+closeout_diagnostics(baseline: Report, closeout: Report): List[String] ->
+    let initial = List.concat(baseline.diagnostics, closeout.diagnostics);
+    let policy =
+        if {
+            same_policy(baseline.policy, closeout.policy) -> initial;
+            true -> ["closeout timing policy changed" | initial]
+        };
+    let {
+        Ok(comparison) <- closeout.document.get("comparison");
+        Ok(report_value) <- comparison.get("baseline_report");
+        Ok(report) <- report_value.as_string();
+        Ok(values) <- comparison.get("scenarios");
+        Ok(count) <- values.length()
+    } else {
+        _ -> ["closeout timing comparison is missing" | policy]
+    };
+    (let report_checked =
+    if {
+        report == "docs/quality/RUST_STRUCTURE_TIMINGS.json" -> policy;
+        true -> ["closeout timing baseline report changed" | policy]
+    };
+let count_checked =
+    if {
+        count == List.length(scenario_names()) -> report_checked;
+        true -> ["closeout timing comparison scenario count changed" | report_checked]
+    };
+comparison_rows(values, 0, count, baseline.rows, closeout.rows, count_checked)).
+
+print_diagnostics(values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let _printed = eprintln(String.append("  - ", value));
+            print_diagnostics(rest)
+    }.
+
+finish(label: String, report: Report, diagnostics: List[String]): Bool ->
+    if {
+        not report.valid -> let _printed = eprintln(String.concat(["Rust structure ", label, " failed: ", report.message]));
+        false;
+        List.length(diagnostics) > 0 -> let _heading = eprintln(String.concat(["Rust structure ", label, " failed:"]));
+        let _printed = print_diagnostics(diagnostics);
+        false;
+        true -> let _printed = println(String.concat(["Rust structure timings: 7-scenario ", label, " validated"]));
+        true
+    }.
+
+pub check(root: String): Bool ->
+    let report = read_report(root, "docs/quality/RUST_STRUCTURE_TIMINGS.json");
+    let diagnostics =
+        if {
+            report.valid -> artifact_diagnostics(root, report.rows, report.diagnostics);
+            true -> []
+        };
+    finish("timing matrix", report, diagnostics).
+
+pub check_closeout(root: String): Bool ->
+    let baseline = read_report(root, "docs/quality/RUST_STRUCTURE_TIMINGS.json");
+    let closeout = read_report(root, "docs/quality/RUST_STRUCTURE_TIMINGS_CLOSEOUT.json");
+    if {
+        not baseline.valid -> finish("closeout timing matrix", baseline, []);
+        not closeout.valid -> finish("closeout timing matrix", closeout, []);
+        true -> finish("closeout timing matrix", closeout, closeout_diagnostics(baseline, closeout))
+    }.
+
+@pure
+empty_row(): TimingRow ->
+    TimingRow(name = "", command = "", wall_time_ms = 0, artifact = "", digest = "").
+
+@pure
+measurement_failure(message: String): Measurement ->
+    Measurement(valid = false, row = empty_row(), message = message).
+
+@pure
+target_arguments(root: String, arguments: List[String]): List[String] ->
+    List.concat(
+        arguments,
+        ["--target-dir", SourceInventory.child(root, "target/cq0-timings"), "--timings"],
+    ).
+
+@pure
+record_scenarios(root: String): List[Scenario] ->
+    let check = target_arguments(root, ["check", "--locked", "-p", "terlan", "--bins"]);
+    [
+        Scenario(name = "clean", arguments = check, edited_file = ""),
+        Scenario(
+            name = "parser-edit",
+            arguments = check,
+            edited_file = "crates/terlan/src/compiler/syntax/parser.rs",
+        ),
+        Scenario(
+            name = "type-model-edit",
+            arguments = check,
+            edited_file = "crates/terlan/src/compiler/typeck/trait_model.rs",
+        ),
+        Scenario(
+            name = "runtime-leaf-edit",
+            arguments = check,
+            edited_file = "crates/terlan/src/runtime/vm/actor_timer.rs",
+        ),
+        Scenario(
+            name = "lsp-edit",
+            arguments = target_arguments(
+                root,
+                [
+                    "check",
+                    "--locked",
+                    "-p",
+                    "terlan",
+                    "--bin",
+                    "terlan-lsp",
+                    "--features",
+                    "editor-lsp",
+                ],
+            ),
+            edited_file = "crates/terlan/src/lsp/document.rs",
+        ),
+        Scenario(
+            name = "focused-test",
+            arguments = target_arguments(
+                root,
+                ["test", "--locked", "-p", "terlan", "--test", "direct_aot_memory", "--no-run"],
+            ),
+            edited_file = "",
+        ),
+        Scenario(
+            name = "full-test",
+            arguments = target_arguments(
+                root,
+                ["test", "--locked", "-p", "terlan", "--all-targets", "--no-run"],
+            ),
+            edited_file = "",
+        ),
+    ].
+
+process_command(root: String, scenario: Scenario): std.system.Process.Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(Process.command("cargo"), scenario.arguments),
+                root,
+            ),
+            900000,
+        ),
+        8388608,
+    ).
+
+copy_artifact(
+    root: String,
+    artifact_directory: String,
+    scenario: Scenario,
+    elapsed: Int,
+): Measurement ->
+    let source = SourceInventory.child(root, "target/cq0-timings/cargo-timings/cargo-timing.html");
+    let relative = String.concat([artifact_directory, "/", scenario.name, ".html"]);
+    let destination = SourceInventory.child(root, relative);
+    let {
+        Ok(_created) <- Directory.create_all(SourceInventory.child(root, artifact_directory));
+        Ok(_copied) <- File.copy(source, destination);
+        Ok(digest) <- Hash.sha256_file(destination)
+    } else {
+        _ ->
+            measurement_failure(
+                String.concat([scenario.name, ": cannot retain Cargo timing artifact"]),
+            )
+    };
+    Measurement(
+        valid = true,
+        row = TimingRow(
+            name = scenario.name,
+            command = expected_command(scenario.name),
+            wall_time_ms = elapsed,
+            artifact = relative,
+            digest = digest,
+        ),
+        message = "",
+    ).
+
+complete_process(
+    root: String,
+    artifact_directory: String,
+    scenario: Scenario,
+    started: Int,
+    completed: Result[std.system.Process.Output, std.system.Process.ProcessError],
+): Measurement ->
+    case completed {
+        Err(reason) ->
+            measurement_failure(String.concat([scenario.name, ": ", Process.error_message(reason)]));
+        Ok(output) ->
+            if {
+                Process.status(output) != 0 -> measurement_failure(
+                    String.concat(
+                        [
+                            scenario.name,
+                            ": cargo exited with status ",
+                            Int.to_string(Process.status(output)),
+                            ": ",
+                            Process.stderr(output),
+                        ],
+                    ),
+                );
+                true -> copy_artifact(
+                    root,
+                    artifact_directory,
+                    scenario,
+                    (Clock.monotonic_time_ns() - started) / 1000000,
+                )
+            }
+    }.
+
+run_untouched(root: String, artifact_directory: String, scenario: Scenario): Measurement ->
+    let started = Clock.monotonic_time_ns();
+    let completed = Process.run(process_command(root, scenario));
+    complete_process(root, artifact_directory, scenario, started, completed).
+
+run_touched(root: String, artifact_directory: String, scenario: Scenario): Measurement ->
+    let path = SourceInventory.child(root, scenario.edited_file);
+    case File.timestamps(path) {
+        Err(reason) -> measurement_failure(File.message(reason));
+        Ok(original) ->
+            case File.set_timestamps(path, original.accessed_unix_ns, original.modified_unix_ns + 1000000000) {
+                Err(reason) -> measurement_failure(File.message(reason));
+                Ok(_touched) ->
+                    let started = Clock.monotonic_time_ns();
+                    let completed = Process.run(process_command(root, scenario));
+                    case File.set_timestamps(path, original.accessed_unix_ns, original.modified_unix_ns) {
+                        Err(reason) ->
+                            measurement_failure(
+                                String.concat(
+                                    [
+                                        scenario.name,
+                                        ": cannot restore source timestamps: ",
+                                        File.message(reason),
+                                    ],
+                                ),
+                            );
+                        Ok(_restored) ->
+                            complete_process(root, artifact_directory, scenario, started, completed)
+                    }
+            }
+    }.
+
+run_scenario(root: String, artifact_directory: String, scenario: Scenario): Measurement ->
+    if {
+        scenario.edited_file == "" -> run_untouched(root, artifact_directory, scenario);
+        true -> run_touched(root, artifact_directory, scenario)
+    }.
+
+run_rows(
+    root: String,
+    artifact_directory: String,
+    scenarios: List[Scenario],
+    rows: List[TimingRow],
+): Measurements ->
+    case scenarios {
+        [] -> Measurements(valid = true, rows = SourceInventory.reverse(rows), message = "");
+        [scenario | rest] ->
+            let measurement = run_scenario(root, artifact_directory, scenario);
+            if {
+                not measurement.valid -> Measurements(
+                    valid = false,
+                    rows = List.new[TimingRow](),
+                    message = measurement.message,
+                );
+                true -> run_rows(root, artifact_directory, rest, [measurement.row | rows])
+            }
+    }.
+
+run_prewarm(root: String, scenario: Scenario): String ->
+    case Process.run(process_command(root, scenario)) {
+        Err(reason) -> Process.error_message(reason);
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> "";
+                true -> String.concat(["editor-feature prewarm failed: ", Process.stderr(output)])
+            }
+    }.
+
+run_matrix(root: String, artifact_directory: String): Measurements ->
+    let scenarios = record_scenarios(root);
+    case scenarios {
+        [clean | rest] ->
+            let clean_result = run_scenario(root, artifact_directory, clean);
+            if {
+                not clean_result.valid -> Measurements(
+                    valid = false,
+                    rows = List.new[TimingRow](),
+                    message = clean_result.message,
+                );
+                true -> let prewarm =
+                    run_prewarm(
+                        root,
+                        Scenario(
+                            name = "lsp-edit",
+                            arguments = target_arguments(
+                                root,
+                                [
+                                    "check",
+                                    "--locked",
+                                    "-p",
+                                    "terlan",
+                                    "--bin",
+                                    "terlan-lsp",
+                                    "--features",
+                                    "editor-lsp",
+                                ],
+                            ),
+                            edited_file = "crates/terlan/src/lsp/document.rs",
+                        ),
+                    );
+                if {
+                    prewarm != "" -> Measurements(valid = false, rows = List.new[TimingRow](), message = prewarm);
+                    true -> run_rows(root, artifact_directory, rest, [clean_result.row])
+                }
+            };
+        _ ->
+            Measurements(
+                valid = false,
+                rows = List.new[TimingRow](),
+                message = "internal scenario matrix is incomplete",
+            )
+    }.
+
+remove_timing_target(root: String): Bool ->
+    let target = SourceInventory.child(root, "target/cq0-timings");
+    if {
+        not File.exists(target) -> true;
+        true -> case Directory.remove_all(target) {
+            Err(reason) ->
+                let _printed = eprintln(Directory.message(reason));
+                false;
+            Ok(_removed) -> true
+        }
+    }.
+
+edited_json(name: String): Json ->
+    case name {
+        "parser-edit" -> Json.string("crates/terlan/src/compiler/syntax/parser.rs");
+        "type-model-edit" -> Json.string("crates/terlan/src/compiler/typeck/trait_model.rs");
+        "runtime-leaf-edit" -> Json.string("crates/terlan/src/runtime/vm/actor_timer.rs");
+        "lsp-edit" -> Json.string("crates/terlan/src/lsp/document.rs");
+        _ -> Json.null()
+    }.
+
+timing_row_json(row: TimingRow): Json ->
+    Json.object()
+        .put("cargo_timing_artifact", Json.string(row.artifact))
+        .put("cargo_timing_sha256", Json.string(row.digest))
+        .put("command", Json.string(row.command))
+        .put("edited_file", edited_json(row.name))
+        .put("name", Json.string(row.name))
+        .put("wall_time_ms", Json.int(row.wall_time_ms)).
+
+timing_rows_json(rows: List[TimingRow], output: Json): Json ->
+    case rows {
+        [] -> output;
+        [row | rest] -> timing_rows_json(rest, output.push(timing_row_json(row)))
+    }.
+
+process_text(root: String, program: String, arguments: List[String]): String ->
+    case Process.run(
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(Process.command(program), arguments),
+                root,
+            ),
+            30000,
+        ),
+        1048576,
+    ),
+) {
+        Err(_reason) -> "";
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> String.trim(Process.stdout(output));
+                true -> ""
+            }
+    }.
+
+policy_json(root: String): Json ->
+    let cargo = process_text(root, "cargo", ["-V"]);
+    let rustc_verbose = process_text(root, "rustc", ["-vV"]);
+    let host = process_text(root, "rustc", ["--print", "host-tuple"]);
+    let rustc_lines = String.split(rustc_verbose, "\n");
+    let rustc =
+        case rustc_lines {
+            [first | _rest] -> first;
+            _ -> ""
+        };
+    let logical_cpus =
+        case Int.from_string(process_text(root, "nproc", [])) {
+            Some(value) -> value;
+            None -> 0
+        };
+    Json.object()
+        .put("cargo", Json.string(cargo))
+        .put("host", Json.string(host))
+        .put("logical_cpus", Json.int(logical_cpus))
+        .put(
+            "procedure",
+            Json.string(
+                "Clean the isolated target once; prewarm the editor feature; restore source mtimes after each representative edit; retain Cargo HTML artifacts under target/quality.",
+            ),
+        )
+        .put("rustc", Json.string(rustc))
+        .put("target_directory", Json.string("target/cq0-timings"))
+        .put("workspace", Json.string(".")).
+
+ratio_json(numerator: Int, denominator: Int): Json ->
+    case Json.parse(ratio_text(numerator, denominator)) {
+        Ok(value) -> value;
+        Err(_reason) -> Json.null()
+    }.
+
+comparison_json(baseline: List[TimingRow], closeout: List[TimingRow]): Json ->
+    let rows = comparison_json_rows(closeout, baseline, Json.array());
+    Json.object()
+        .put("baseline_report", Json.string("docs/quality/RUST_STRUCTURE_TIMINGS.json"))
+        .put("scenarios", rows).
+
+comparison_json_rows(closeout: List[TimingRow], baseline: List[TimingRow], output: Json): Json ->
+    case closeout {
+        [] -> output;
+        [row | rest] ->
+            case find_row(baseline, row.name) {
+                None -> comparison_json_rows(rest, baseline, output);
+                Some(reference) ->
+                    comparison_json_rows(
+                        rest,
+                        baseline,
+                        output
+                            .push(
+                                Json.object()
+                                    .put("baseline_ms", Json.int(reference.wall_time_ms))
+                                    .put("closeout_ms", Json.int(row.wall_time_ms))
+                                    .put(
+                                        "delta_ms",
+                                        Json.int(row.wall_time_ms - reference.wall_time_ms),
+                                    )
+                                    .put("name", Json.string(row.name))
+                                    .put(
+                                        "ratio",
+                                        ratio_json(row.wall_time_ms, reference.wall_time_ms),
+                                    ),
+                            ),
+                    )
+            }
+    }.
+
+write_record(root: String, relative: String, document: Json): Bool ->
+    case Json.stringify_pretty(document) {
+        Err(reason) ->
+            let _printed = eprintln(Json.error_message(reason));
+            false;
+        Ok(rendered) ->
+            case File.write_text(SourceInventory.child(root, relative), String.append(rendered, "\n")) {
+                Err(reason) ->
+                    let _printed = eprintln(File.message(reason));
+                    false;
+                Ok(_written) ->
+                    let _printed = println(String.append("wrote ", relative));
+                    true
+            }
+    }.
+
+pub measure(root: String, artifact_directory: String): Measurements ->
+    if {
+        not remove_timing_target(root) -> Measurements(
+            valid = false,
+            rows = List.new[TimingRow](),
+            message = "cannot clean isolated timing target",
+        );
+        true -> let measured = run_matrix(root, artifact_directory);
+        let _cleaned = remove_timing_target(root);
+        measured
+    }.
+
+pub record(root: String, closeout: Bool): Bool ->
+    let artifact_directory =
+        if {
+            closeout -> "target/quality/rust-structure-timings-closeout";
+            true -> "target/quality/rust-structure-timings"
+        };
+    let measured = measure(root, artifact_directory);
+    if {
+        not measured.valid -> let _printed = eprintln(String.append("Rust structure timing recording failed: ", measured.message));
+        false;
+        true -> let document =
+            Json.object()
+                .put("policy", policy_json(root))
+                .put("scenarios", timing_rows_json(measured.rows, Json.array()))
+                .put("schema_version", Json.int(1));
+        if {
+            not closeout -> write_record(root, "docs/quality/RUST_STRUCTURE_TIMINGS.json", document);
+            true -> let baseline = read_report(root, "docs/quality/RUST_STRUCTURE_TIMINGS.json");
+            if {
+                not baseline.valid -> let _printed =
+                    eprintln(
+                        String.append("Rust structure timing recording failed: ", baseline.message),
+                    );
+                false;
+                true -> write_record(
+                    root,
+                    "docs/quality/RUST_STRUCTURE_TIMINGS_CLOSEOUT.json",
+                    document.put("comparison", comparison_json(baseline.rows, measured.rows)),
+                )
+            }
+        }
+    }.
+
+@pure
+fixture_rows(command: String, milliseconds: Int, digest: String): String ->
+    String.concat(
+        [
+            "{\"name\":\"clean\",\"command\":",
+            Json.quote_string(command),
+            ",\"wall_time_ms\":",
+            Int.to_string(milliseconds),
+            ",\"cargo_timing_artifact\":\"\",\"cargo_timing_sha256\":",
+            Json.quote_string(digest),
+            "},",
+            "{\"name\":\"parser-edit\",\"command\":",
+            Json.quote_string(common_check_command()),
+            ",\"wall_time_ms\":100,\"cargo_timing_artifact\":\"\",\"cargo_timing_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},",
+            "{\"name\":\"type-model-edit\",\"command\":",
+            Json.quote_string(common_check_command()),
+            ",\"wall_time_ms\":100,\"cargo_timing_artifact\":\"\",\"cargo_timing_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},",
+            "{\"name\":\"runtime-leaf-edit\",\"command\":",
+            Json.quote_string(common_check_command()),
+            ",\"wall_time_ms\":100,\"cargo_timing_artifact\":\"\",\"cargo_timing_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},",
+            "{\"name\":\"lsp-edit\",\"command\":",
+            Json.quote_string(expected_command("lsp-edit")),
+            ",\"wall_time_ms\":100,\"cargo_timing_artifact\":\"\",\"cargo_timing_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},",
+            "{\"name\":\"focused-test\",\"command\":",
+            Json.quote_string(expected_command("focused-test")),
+            ",\"wall_time_ms\":100,\"cargo_timing_artifact\":\"\",\"cargo_timing_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},",
+            "{\"name\":\"full-test\",\"command\":",
+            Json.quote_string(expected_command("full-test")),
+            ",\"wall_time_ms\":100,\"cargo_timing_artifact\":\"\",\"cargo_timing_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+        ],
+    ).
+
+@pure
+fixture(command: String, milliseconds: Int, digest: String): String ->
+    String.concat(
+        [
+            "{\"schema_version\":1,\"policy\":{\"target_directory\":\"target/cq0-timings\",\"cargo\":\"cargo 1\",\"rustc\":\"rustc 1\",\"host\":\"host\",\"logical_cpus\":1,\"procedure\":\"fixed\"},\"scenarios\":[",
+            fixture_rows(command, milliseconds, digest),
+            "]}",
+        ],
+    ).
+
+@pure
+diagnostic_contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> String.contains(value, expected) or diagnostic_contains(rest, expected)
+    }.
+
+pub self_test(): Bool ->
+    let valid =
+        parse(
+            fixture(
+                common_check_command(),
+                100,
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            ),
+        );
+    let invalid = parse(fixture("wrong", 0, "not-a-hash"));
+    valid.valid
+        and List.length(valid.diagnostics) == 0
+        and invalid.valid
+        and diagnostic_contains(invalid.diagnostics, "positive integer")
+        and diagnostic_contains(invalid.diagnostics, "invalid Cargo timing SHA-256")
+        and diagnostic_contains(invalid.diagnostics, "timing command drifted")
+        and not contains(row_names(invalid.rows, []), "missing").

@@ -26,36 +26,42 @@ const MAX_ESCAPING_CLOSURE_DEPTH: usize = 64;
 /// Maximum lifted targets emitted by one closure-valued source function.
 const MAX_ESCAPING_CLOSURE_TARGETS: usize = 64;
 
+pub(super) struct ClosureLoweringEnvironment<'a> {
+    pub(super) identities: &'a HashMap<(String, usize), usize>,
+    pub(super) function_types: &'a HashMap<(String, usize), NativeType>,
+    pub(super) constructors: &'a NativeConstructorLayouts,
+    pub(super) suspending: &'a HashSet<(String, usize)>,
+    pub(super) callable_shapes: &'a HashMap<(String, usize), NativeCallableShape>,
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct ClosureLexicalScope<'a> {
+    pub(super) available: &'a HashMap<String, usize>,
+    pub(super) available_types: &'a HashMap<String, NativeType>,
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct ClosureOwner<'a> {
+    pub(super) module: &'a str,
+    pub(super) name: &'a str,
+    pub(super) arity: usize,
+}
+
 /// Lowers an escaping lambda after evaluating its scalar lexical prefix.
-#[allow(clippy::too_many_arguments)]
 pub(super) fn lower_escaping_closure(
     body: &CoreExpr,
     expected: Option<&CoreType>,
-    available: &HashMap<String, usize>,
-    available_types: &HashMap<String, NativeType>,
-    identities: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    constructors: &NativeConstructorLayouts,
-    suspending: &HashSet<(String, usize)>,
-    callable_shapes: &HashMap<(String, usize), NativeCallableShape>,
-    module: &str,
-    owner_name: &str,
-    owner_arity: usize,
+    scope: ClosureLexicalScope<'_>,
+    environment: &ClosureLoweringEnvironment<'_>,
+    owner: ClosureOwner<'_>,
 ) -> Result<Option<(NativeExpr, Vec<NativeFunction>)>, String> {
     let mut lifted_ordinal = 0;
     lower_escaping_closure_at(
         body,
         expected,
-        available,
-        available_types,
-        identities,
-        function_types,
-        constructors,
-        suspending,
-        callable_shapes,
-        module,
-        owner_name,
-        owner_arity,
+        scope,
+        environment,
+        owner,
         &mut lifted_ordinal,
         0,
     )
@@ -63,23 +69,31 @@ pub(super) fn lower_escaping_closure(
 
 /// Recursively lowers one closure-valued result while assigning deterministic
 /// identities to every branch-local lifted target.
-#[allow(clippy::too_many_arguments)]
 fn lower_escaping_closure_at(
     body: &CoreExpr,
     expected: Option<&CoreType>,
-    available: &HashMap<String, usize>,
-    available_types: &HashMap<String, NativeType>,
-    identities: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    constructors: &NativeConstructorLayouts,
-    suspending: &HashSet<(String, usize)>,
-    callable_shapes: &HashMap<(String, usize), NativeCallableShape>,
-    module: &str,
-    owner_name: &str,
-    owner_arity: usize,
+    scope: ClosureLexicalScope<'_>,
+    environment: &ClosureLoweringEnvironment<'_>,
+    owner: ClosureOwner<'_>,
     lifted_ordinal: &mut usize,
     depth: usize,
 ) -> Result<Option<(NativeExpr, Vec<NativeFunction>)>, String> {
+    let ClosureLexicalScope {
+        available,
+        available_types,
+    } = scope;
+    let ClosureLoweringEnvironment {
+        identities,
+        function_types,
+        constructors,
+        suspending,
+        callable_shapes,
+    } = environment;
+    let ClosureOwner {
+        module,
+        name: owner_name,
+        arity: owner_arity,
+    } = owner;
     if depth > MAX_ESCAPING_CLOSURE_DEPTH {
         return Err(format!(
             "error[native_ir.closure_depth_limit]: escaping closure nesting exceeds {MAX_ESCAPING_CLOSURE_DEPTH} layers"
@@ -156,16 +170,16 @@ fn lower_escaping_closure_at(
                 let Some((branch, mut branch_lifted)) = lower_escaping_closure_at(
                     &clause.body,
                     expected,
-                    available,
-                    available_types,
-                    identities,
-                    function_types,
-                    constructors,
-                    suspending,
-                    callable_shapes,
-                    module,
-                    owner_name,
-                    owner_arity,
+                    ClosureLexicalScope {
+                        available,
+                        available_types,
+                    },
+                    environment,
+                    ClosureOwner {
+                        module,
+                        name: owner_name,
+                        arity: owner_arity,
+                    },
                     lifted_ordinal,
                     depth.saturating_add(1),
                 )?
@@ -188,15 +202,16 @@ fn lower_escaping_closure_at(
         return lower_escaping_lambda_at(
             body,
             expected,
-            available,
-            available_types,
-            identities,
-            function_types,
-            constructors,
-            suspending,
-            module,
-            owner_name,
-            owner_arity,
+            ClosureLexicalScope {
+                available,
+                available_types,
+            },
+            environment,
+            ClosureOwner {
+                module,
+                name: owner_name,
+                arity: owner_arity,
+            },
             lifted_ordinal,
         )
         .map(|lowered| lowered.map(|(maker, lifted)| (maker, vec![lifted])));
@@ -241,16 +256,16 @@ fn lower_escaping_closure_at(
     let Some((maker, lifted)) = lower_escaping_closure_at(
         nested,
         expected,
-        &slots,
-        &types,
-        identities,
-        function_types,
-        constructors,
-        suspending,
-        callable_shapes,
-        module,
-        owner_name,
-        owner_arity,
+        ClosureLexicalScope {
+            available: &slots,
+            available_types: &types,
+        },
+        environment,
+        ClosureOwner {
+            module,
+            name: owner_name,
+            arity: owner_arity,
+        },
         lifted_ordinal,
         depth.saturating_add(1),
     )?
@@ -336,54 +351,50 @@ pub(super) fn lower_escaping_function_reference(
 
 /// Closure-converts one lambda by lifting its body and snapshotting the typed
 /// lexical values that it references.
-#[allow(clippy::too_many_arguments)]
 #[cfg(test)]
 pub(super) fn lower_escaping_lambda(
     body: &CoreExpr,
     expected: Option<&CoreType>,
-    available: &HashMap<String, usize>,
-    available_types: &HashMap<String, NativeType>,
-    identities: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    constructors: &NativeConstructorLayouts,
-    suspending: &HashSet<(String, usize)>,
-    module: &str,
-    owner_name: &str,
-    owner_arity: usize,
+    scope: ClosureLexicalScope<'_>,
+    environment: &ClosureLoweringEnvironment<'_>,
+    owner: ClosureOwner<'_>,
 ) -> Result<Option<(NativeExpr, NativeFunction)>, String> {
     let mut lifted_ordinal = 0;
     lower_escaping_lambda_at(
         body,
         expected,
-        available,
-        available_types,
-        identities,
-        function_types,
-        constructors,
-        suspending,
-        module,
-        owner_name,
-        owner_arity,
+        scope,
+        environment,
+        owner,
         &mut lifted_ordinal,
     )
 }
 
 /// Lifts one lambda at the next deterministic identity within its owner.
-#[allow(clippy::too_many_arguments)]
 fn lower_escaping_lambda_at(
     body: &CoreExpr,
     expected: Option<&CoreType>,
-    available: &HashMap<String, usize>,
-    available_types: &HashMap<String, NativeType>,
-    identities: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    constructors: &NativeConstructorLayouts,
-    suspending: &HashSet<(String, usize)>,
-    module: &str,
-    owner_name: &str,
-    owner_arity: usize,
+    scope: ClosureLexicalScope<'_>,
+    environment: &ClosureLoweringEnvironment<'_>,
+    owner: ClosureOwner<'_>,
     lifted_ordinal: &mut usize,
 ) -> Result<Option<(NativeExpr, NativeFunction)>, String> {
+    let ClosureLexicalScope {
+        available,
+        available_types,
+    } = scope;
+    let ClosureLoweringEnvironment {
+        identities,
+        function_types,
+        constructors,
+        suspending,
+        ..
+    } = environment;
+    let ClosureOwner {
+        module,
+        name: owner_name,
+        arity: owner_arity,
+    } = owner;
     let (
         CoreExpr::Lam {
             params: lambda_patterns,
@@ -432,11 +443,8 @@ fn lower_escaping_lambda_at(
             "error[native_ir.closure_signature]: escaping lambda has an unsupported result"
                 .to_string()
         })?;
-    let suspending_tail = matches!(
-        lambda_body.as_ref(),
-        CoreExpr::Call { function, args }
-            if suspending.contains(&(function.clone(), args.len()))
-    );
+    let suspending_tail = closure_tail_call(lambda_body)
+        .is_some_and(|(function, args)| suspending.contains(&(function.clone(), args.len())));
     if contains_process_yield(lambda_body)
         || (expr_calls_suspending(lambda_body, suspending) && !suspending_tail)
     {
@@ -535,50 +543,44 @@ fn lower_escaping_lambda_at(
         &closure_contract,
         &lifted_params,
         &lifted_param_types,
-        identities,
-        function_types,
-        &HashMap::new(),
-        constructors,
+        super::structured_case::StructuredCaseEnvironment {
+            functions: identities,
+            function_types,
+            function_core_types: &HashMap::new(),
+            constructors,
+        },
     )?;
-    let lifted_body = if let Some(body) = structured {
-        body
-    } else if let CoreExpr::Call { function, args } = lambda_body.as_ref() {
-        if suspending_tail {
-            let target = identities
-                .get(&(function.clone(), args.len()))
-                .copied()
-                .ok_or_else(|| {
-                    format!(
-                        "error[native_ir.closure_tail_target]: `{function}/{}` is absent",
-                        args.len()
+    let lifted_body = if suspending_tail {
+        let (function, args) =
+            closure_tail_call(lambda_body).expect("suspending tail call was established");
+        let target = identities
+            .get(&(function.clone(), args.len()))
+            .copied()
+            .ok_or_else(|| {
+                format!(
+                    "error[native_ir.closure_tail_target]: `{function}/{}` is absent",
+                    args.len()
+                )
+            })?;
+        NativeExpr::TailCall {
+            function: target,
+            args: args
+                .iter()
+                .map(|argument| {
+                    lower_expr_with_constructors(
+                        argument,
+                        &lifted_params,
+                        &lifted_param_types,
+                        identities,
+                        function_types,
+                        constructors,
                     )
-                })?;
-            NativeExpr::TailCall {
-                function: target,
-                args: args
-                    .iter()
-                    .map(|argument| {
-                        lower_expr_with_constructors(
-                            argument,
-                            &lifted_params,
-                            &lifted_param_types,
-                            identities,
-                            function_types,
-                            constructors,
-                        )
-                    })
-                    .collect::<Result<Vec<_>, _>>()?,
-            }
-        } else {
-            lower_expr_with_constructors(
-                lambda_body,
-                &lifted_params,
-                &lifted_param_types,
-                identities,
-                function_types,
-                constructors,
-            )?
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+            yield_continuation_id: None,
         }
+    } else if let Some(body) = structured {
+        body
     } else {
         lower_expr_with_constructors(
             lambda_body,
@@ -614,4 +616,12 @@ fn lower_escaping_lambda_at(
             body: lifted_body,
         },
     )))
+}
+
+fn closure_tail_call(expr: &CoreExpr) -> Option<(&String, &Vec<CoreExpr>)> {
+    match expr {
+        CoreExpr::Call { function, args } => Some((function, args)),
+        CoreExpr::Cast { expr, .. } => closure_tail_call(expr),
+        _ => None,
+    }
 }

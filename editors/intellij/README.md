@@ -10,7 +10,7 @@ does not embed a second parser, typechecker, compiler, or daemon.
 - Register Terlan source, interface, and template suffixes.
 - Start Terlan's language server through `terlc lsp --stdio`.
 - Prefer `terlan.toml` as the project root marker, with `.git` fallback.
-- Reuse the canonical shared Terlan SVG file icon and fixed-size PNG variants.
+- Reuse the canonical shared Terlan SVG file icon.
 
 ## Public Surface
 
@@ -20,6 +20,8 @@ does not embed a second parser, typechecker, compiler, or daemon.
 - `src/main/kotlin/org/terlan/intellij/TerlanFileTypes.kt`: File type contract.
 - `src/main/kotlin/org/terlan/intellij/TerlanLspServerDescriptor.kt`: LSP
   startup contract.
+- `gradlew`: pinned Gradle 9 build entry point required by the current
+  IntelliJ Platform Gradle plugin.
 - `test/package_smoke_test.js`: Dependency-free package contract checks.
 
 ## Core Model
@@ -31,26 +33,26 @@ The main flow is:
 
 1. IntelliJ recognizes a Terlan file suffix.
 2. The plugin associates the file with the Terlan file type and icon.
-3. The plugin starts `terlc lsp --stdio` for language diagnostics and symbols.
+3. The registered JetBrains LSP provider starts `terlc lsp --stdio` once per
+   project for diagnostics, navigation, completion, semantic tokens, and
+   compiler-backed formatting.
 
 Important invariants:
 
 - `terlc lsp --stdio` is the only default language-server command.
 - The plugin never shells out to a separate `terlan-lsp` binary by default.
 - File icon metadata points at the shared canonical Terlan editor icon.
-- Packaged PNG icon variants remain byte-equivalent to the shared variants.
+- The package contains no unused raster icon copies or generated build output.
 
 ## Integration Points
 
 - `terlc lsp --stdio`: Compiler-owned LSP process.
-- JetBrains LSP API: Preferred plugin API where available.
-- LSP4IJ: Possible fallback adapter if the official API is unavailable for a
-  target IDE.
+- JetBrains LSP API: The supported plugin API and runtime integration.
 
 ## Edge Cases
 
-- Some IntelliJ-family IDEs may not expose the official LSP API. In that case,
-  the plugin should either use a thin LSP4IJ adapter or document local setup.
+- The 2024.3 baseline requires a commercial IntelliJ-platform IDE because its
+  LSP API is supplied by the Ultimate platform module.
 - Marketplace publishing is not required for 0.0.5; local package validation is
   sufficient.
 - Generated plugin archives must not be committed.
@@ -65,6 +67,7 @@ Important invariants:
 
 ## Testing Notes
 
-- `make intellij-editor-check` runs dependency-free package smoke checks.
-- Smoke tests validate file suffixes, LSP command, root markers, shared icon
-  metadata, packaged PNG variants, and absence of generated plugin artifacts.
+- `make intellij-editor-check` runs package smoke checks and builds the plugin
+  against the pinned IntelliJ Ultimate 2024.3 platform.
+- Smoke tests validate file suffixes, real LSP registration, command/root
+  contracts, shared icon metadata, and package/build-input inventory.

@@ -1,0 +1,150 @@
+{
+  "exports": [
+    {
+      "argument_types": [],
+      "arity": 0,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.native.collections.Vector.new/0",
+      "name": "new",
+      "operation": "std.native.collections.vector.new",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:a4326d4edcd521e828d3c30573071f3855d88dd17ec85fa3f3aa8a03c04cebfe"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.native.collections.Vector.from_list/1",
+      "name": "from_list",
+      "operation": "std.native.collections.vector.from_list",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:f39461536b8c4d14b3fa7eabe5bc5b8c14cc6ea873bb6c22282c9f036426cc51"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.native.collections.Vector.length/1",
+      "name": "length",
+      "operation": "std.native.collections.vector.length",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:eb426e768366d9acad01d3a20d9b53b20d32a74f59fccf7674c357b7bb66e4b6"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.native.collections.Vector.len/1",
+      "name": "len",
+      "operation": "std.native.collections.vector.length",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:2218d71612bee9c47b2f96043b343cda773bafe5f20a5ac7e997d62c9d55fbe6"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.native.collections.Vector.get_at/2",
+      "name": "get_at",
+      "operation": "std.native.collections.vector.get_at",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:d65824585401df7dbd69f7a3d611f79b8e633d0f31c2a69c0545849f6ca31527"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.native.collections.Vector.get_optional_values/2",
+      "name": "get_optional_values",
+      "operation": "std.native.collections.vector.get",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:f8812d08d7a0dd226c03de5f431a4a8c997ca4cdbcf473538d5247522dd24ee1"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.native.collections.Vector.set_at/3",
+      "name": "set_at",
+      "operation": "std.native.collections.vector.set_at",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:44b1a981854861ec32d1b387f74dff95e94ede85531b6ef65338474611a51fda"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.native.collections.Vector.swap/3",
+      "name": "swap",
+      "operation": "std.native.collections.vector.swap",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:49daf6efc4cd8dbdaf431967ebe0e53ba06fc7de43fc9295c5e8779bbbd6bd99"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.native.collections.Vector.push/2",
+      "name": "push",
+      "operation": "std.native.collections.vector.push",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:2073bca7ee15f6af8af17c7f1be0aefdcc9673496bf08485af851b3bc4251f3f"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.native.collections.Vector.to_list/1",
+      "name": "to_list",
+      "operation": "std.native.collections.vector.to_list",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:5bb1be87c2ee62df23df470589fe29c554736386b5acfa06ce19f08302cb943f"
+    }
+  ],
+  "manifest_digest": "sha256:ba1e34b0711e88625fb8b7661c117a456c9a5fe89f478b7834d8309671bd010b",
+  "module": "std_native_collections_vector_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "ignore-stale-reply",
+    "capability": "native.collections.vector",
+    "error_policy": "typed-result",
+    "module_prefix": "std.native.collections.Vector",
+    "notes": "Vector handles are VM-tracked native resources with stale-handle checks.",
+    "resource_policy": "owned-resource-handle",
+    "timeout_policy": "caller-provided",
+    "worker_placement": "native-worker"
+  },
+  "source_digest": "sha256:7c33a2873d888ca1e4882bdea084faf2bf74dd9f5cfb447d96c5e733efcd8dd5",
+  "source_module": "std.native.collections.Vector",
+  "source_path": "std/summaries/std.native.collections.Vector.native_boundary.json"
+}

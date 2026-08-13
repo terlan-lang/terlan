@@ -1,0 +1,306 @@
+/**
+ * Canonical host and release identity used by artifact construction and smoke gates.
+ */
+module tvm_aot_platform_matrix.ReleasePlatform.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String}.
+import std.data.Json.
+import std.io.File.{read_text}.
+import std.system.{Environment, Platform}.
+import std.vcs.Git.
+
+import type std.core.Option.
+import type std.data.Json.
+
+/**
+ * Normalized release platform and every public executable/artifact name.
+ */
+pub struct ReleasePlatform {
+    operating_system: String,
+    architecture: String,
+    artifact: String,
+    compiler: String,
+    vm: String,
+    native_worker: String,
+    lsp: String,
+}.
+
+@pure
+pub operating_system(platform: ReleasePlatform): String ->
+    platform.operating_system.
+
+@pure
+pub architecture(platform: ReleasePlatform): String ->
+    platform.architecture.
+
+@pure
+pub artifact(platform: ReleasePlatform): String ->
+    platform.artifact.
+
+@pure
+pub compiler(platform: ReleasePlatform): String ->
+    platform.compiler.
+
+@pure
+pub vm(platform: ReleasePlatform): String ->
+    platform.vm.
+
+@pure
+pub native_worker(platform: ReleasePlatform): String ->
+    platform.native_worker.
+
+@pure
+pub lsp(platform: ReleasePlatform): String ->
+    platform.lsp.
+
+@pure
+pub normalize_os(raw: String): Option[String] ->
+    let value = String.lowercase(String.trim(raw));
+    if {
+        value == "linux" -> Some("linux");
+        value == "darwin" or value == "macos" or value == "mac" -> Some("macos");
+        value == "windows" or value == "win32" or value == "mingw" or value == "msys" -> Some("windows");
+        true -> None
+    }.
+
+@pure
+pub normalize_arch(raw: String): Option[String] ->
+    let value = String.lowercase(String.trim(raw));
+    if {
+        value == "x86_64" or value == "amd64" -> Some("x86_64");
+        value == "aarch64" or value == "arm64" -> Some("aarch64");
+        true -> None
+    }.
+
+@pure
+executable(name: String, windows: Bool): String ->
+    if {
+        windows -> String.append(name, ".exe");
+        true -> name
+    }.
+
+@pure
+pub resolve(raw_os: String, raw_arch: String): Option[ReleasePlatform] ->
+    case {normalize_os(raw_os), normalize_arch(raw_arch)} {
+        {Some(os), Some(arch)} ->
+            let windows = os == "windows";
+            let suffix =
+                if {
+                    windows -> ".zip";
+                    true -> ".tar.gz"
+                };
+            let prefix =
+                if {
+                    windows -> "terlc-windows-";
+                    true -> String.append("terlc-", String.append(os, "-"))
+                };
+            Some(
+                ReleasePlatform(
+                    operating_system = os,
+                    architecture = arch,
+                    artifact = String.append(prefix, String.append(arch, suffix)),
+                    compiler = executable("terlc", windows),
+                    vm = executable("terlan-vm", windows),
+                    native_worker = executable("terlan-native-worker", windows),
+                    lsp = executable("terlan-lsp", windows),
+                ),
+            );
+        _ -> None
+    }.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+/**
+ * Resolves explicit release overrides before falling back to normalized host identity.
+ */
+pub detect(): Option[ReleasePlatform] ->
+    let host = Platform.current();
+    resolve(
+        environment_or("TERLAN_RELEASE_OS", host.operating_system),
+        environment_or("TERLAN_RELEASE_ARCH", host.architecture),
+    ).
+
+@pure
+default_triple(platform: ReleasePlatform): String ->
+    let key = String.append(platform.operating_system, String.append("-", platform.architecture));
+    if {
+        key == "linux-x86_64" -> "x86_64-unknown-linux-gnu";
+        key == "linux-aarch64" -> "aarch64-unknown-linux-gnu";
+        key == "macos-x86_64" -> "x86_64-apple-darwin";
+        key == "macos-aarch64" -> "aarch64-apple-darwin";
+        key == "windows-x86_64" -> "x86_64-pc-windows-msvc";
+        true -> "aarch64-pc-windows-msvc"
+    }.
+
+/**
+ * Resolves the release triple with the same override precedence as Cargo tooling.
+ */
+pub target_triple(platform: ReleasePlatform): String ->
+    case Environment.get("TERLAN_RELEASE_TARGET_TRIPLE") {
+        Some(value) -> value;
+        None ->
+            case Environment.get("CARGO_BUILD_TARGET") {
+                Some(value) -> value;
+                None ->
+                    case Environment.get("TARGET") {
+                        Some(value) -> value;
+                        None -> default_triple(platform)
+                    }
+            }
+    }.
+
+version_from_lines(lines: List[String]): Option[String] ->
+    case lines {
+        [] -> None;
+        [line | rest] ->
+            let stripped = String.trim(line);
+            if {
+                String.starts_with(stripped, "version = \"") -> case String.split(stripped, "\"") {
+                    [_prefix, version, _suffix] -> Some(version);
+                    _ -> None
+                };
+                true -> version_from_lines(rest)
+            }
+    }.
+
+/**
+ * Reads the canonical workspace version rather than duplicating it in a tool.
+ */
+pub cargo_version(root: String): Option[String] ->
+    case read_text(String.append(root, "/Cargo.toml")) {
+        Ok(source) -> version_from_lines(String.split(source, "\n"));
+        Err(_reason) -> None
+    }.
+
+short_revision(revision: String): String ->
+    if {
+        String.length(revision) <= 12 -> revision;
+        true -> String.utf8_slice(revision, 0, 12)
+    }.
+
+/**
+ * Resolves an explicit source revision or the checked-out Git revision.
+ */
+pub source_revision(root: String): String ->
+    case Environment.get("TERLAN_SOURCE_REVISION") {
+        Some(value) -> value;
+        None ->
+            case Git.source_tree_identity(root) {
+                Ok(identity) -> short_revision(Git.revision(identity));
+                Err(_reason) -> "unknown"
+            }
+    }.
+
+json_string_array(
+    value: Json,
+    index: Int,
+    count: Int,
+    reversed: List[String],
+): Option[List[String]] ->
+    if {
+        index >= count -> Some(reverse(reversed, []));
+        true -> let {
+            Ok(member) <- value.at(index);
+            Ok(text) <- member.as_string()
+        } else {
+            _ -> None
+        };
+        json_string_array(value, index + 1, count, [text | reversed])
+    }.
+
+reverse(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse(rest, [value | reversed])
+    }.
+
+release_features_at(profiles: Json, index: Int, count: Int): Option[List[String]] ->
+    if {
+        index >= count -> None;
+        true -> case profiles.at(index) {
+            Err(_reason) -> None;
+            Ok(profile) ->
+                let {
+                    Ok(name_value) <- profile.get("name");
+                    Ok(name) <- name_value.as_string()
+                } else {
+                    _ -> release_features_at(profiles, index + 1, count)
+                };
+                if {
+                    name != "release" -> release_features_at(profiles, index + 1, count);
+                    true -> let {
+                        Ok(features) <- profile.get("feature_set");
+                        Ok(feature_count) <- features.length()
+                    } else {
+                        _ -> None
+                    };
+                    json_string_array(features, 0, feature_count, [])
+                }
+        }
+    }.
+
+/**
+ * Reads the release feature set from its canonical JSON manifest.
+ */
+pub release_features(root: String): Option[List[String]] ->
+    let path = String.append(root, "/docs/package/RUST_BUILD_FEATURES.json");
+    let {
+        Ok(source) <- read_text(path);
+        Ok(manifest) <- Json.parse(source);
+        Ok(profiles) <- manifest.get("release_profiles");
+        Ok(count) <- profiles.length()
+    } else {
+        _ -> None
+    };
+    release_features_at(profiles, 0, count).
+
+/**
+ * Emits the stable line protocol consumed by artifact-matrix checks.
+ */
+pub description(platform: ReleasePlatform): String ->
+    String.concat(
+        [
+            "os=",
+            platform.operating_system,
+            "\narch=",
+            platform.architecture,
+            "\nartifact=",
+            platform.artifact,
+            "\nbinary=",
+            platform.compiler,
+            "\nvm_binary=",
+            platform.vm,
+            "\nnative_worker_binary=",
+            platform.native_worker,
+            "\nlsp_binary=",
+            platform.lsp,
+            "\n",
+        ],
+    ).
+
+/**
+ * Pure contract probe covering every supported alias and artifact shape.
+ */
+pub self_test(): Bool ->
+    case {
+    resolve("Linux", "AMD64"),
+    resolve("Darwin", "arm64"),
+    resolve("Windows", "ARM64"),
+    resolve("plan9", "x86_64"),
+} {
+        {Some(linux), Some(macos), Some(windows), None} ->
+            artifact(linux) == "terlc-linux-x86_64.tar.gz"
+                and artifact(macos) == "terlc-macos-aarch64.tar.gz"
+                and artifact(windows) == "terlc-windows-aarch64.zip"
+                and compiler(windows) == "terlc.exe"
+                and vm(windows) == "terlan-vm.exe"
+                and native_worker(windows) == "terlan-native-worker.exe"
+                and lsp(windows) == "terlan-lsp.exe";
+        _ -> false
+    }.

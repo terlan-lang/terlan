@@ -5,7 +5,6 @@ use super::{
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmPacketMode {
-    Raw,
     Length1,
     Length2,
     Length4,
@@ -26,6 +25,7 @@ pub(crate) struct VmPacketOptions {
     pub(crate) line_length: u32,
 }
 
+#[cfg(test)]
 impl VmPacketOptions {
     pub(crate) fn new(packet_size: u32, line_length: u32) -> Self {
         Self {
@@ -103,22 +103,11 @@ pub(crate) fn decode_packet(
     options: VmPacketOptions,
 ) -> VmPacketDecodeOutcome {
     match mode {
-        VmPacketMode::Raw => decode_raw(bytes, options),
         VmPacketMode::Line => decode_line(bytes, options),
         VmPacketMode::Http => decode_http_start(bytes, options),
         VmPacketMode::HttpHeader => decode_http_header(bytes, options),
         _ => decode_fixed(mode, bytes, options),
     }
-}
-
-fn decode_raw(bytes: &[u8], options: VmPacketOptions) -> VmPacketDecodeOutcome {
-    if bytes.is_empty() {
-        return VmPacketDecodeOutcome::More { total: None };
-    }
-    if exceeds_limit(bytes.len(), options.packet_size) {
-        return VmPacketDecodeOutcome::Invalid;
-    }
-    complete_bytes(bytes.to_vec(), bytes.len())
 }
 
 fn decode_fixed(

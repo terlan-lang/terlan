@@ -17,9 +17,11 @@ use super::handler::VmHttpChannelTransport;
 use super::VmStreamHttp1Exchange;
 
 /// Fallback heartbeat used when an SSE endpoint does not declare an interval.
+#[cfg(test)]
 const DEFAULT_SSE_KEEP_ALIVE_MS: u64 = 15_000;
 
 /// Writes a finite response or transfers the socket to an admitted channel pump.
+#[cfg(test)]
 pub(super) fn serve_vm_stream_http1_exchange<S>(
     stream: &mut S,
     exchange: VmStreamHttp1Exchange,
@@ -38,6 +40,7 @@ where
 }
 
 /// Writes and flushes one finite HTTP response before connection completion.
+#[cfg(test)]
 fn write_buffered_response(writer: &mut dyn Write, response: &[u8]) -> Result<(), String> {
     writer
         .write_all(response)
@@ -48,6 +51,7 @@ fn write_buffered_response(writer: &mut dyn Write, response: &[u8]) -> Result<()
 }
 
 /// Pumps maintained WebSocket messages into one bounded generated callback session.
+#[cfg(test)]
 fn pump_websocket<S>(
     stream: &mut S,
     mut session: super::handler::AotWebSocketCallbackSession,
@@ -103,6 +107,7 @@ where
 }
 
 /// Drains every admitted text frame through callback entry or typed wake delivery.
+#[cfg(test)]
 fn drain_websocket_inbound(
     session: &mut super::handler::AotWebSocketCallbackSession,
 ) -> Result<(), String> {
@@ -111,6 +116,7 @@ fn drain_websocket_inbound(
 }
 
 /// Notifies generated code when transport write capacity is available and idle.
+#[cfg(test)]
 fn notify_websocket_writable(
     session: &mut super::handler::AotWebSocketCallbackSession,
 ) -> Result<(), String> {
@@ -121,6 +127,7 @@ fn notify_websocket_writable(
 }
 
 /// Cancels generated work and asks tungstenite to emit a policy close frame.
+#[cfg(test)]
 fn close_websocket_after_error<S>(
     socket: &mut WebSocket<S>,
     session: &mut super::handler::AotWebSocketCallbackSession,
@@ -137,11 +144,13 @@ fn close_websocket_after_error<S>(
 }
 
 /// Renders one stable production WebSocket transport diagnostic.
+#[cfg(test)]
 fn render_websocket_transport_error(error: WebSocketError) -> String {
     format!("error[serve.websocket.transport]: {error}")
 }
 
 /// Flushes a close reply while accepting tungstenite's terminal closed state.
+#[cfg(test)]
 fn flush_websocket_close<S>(socket: &mut WebSocket<S>) -> Result<(), String>
 where
     S: Read + Write,
@@ -153,6 +162,7 @@ where
 }
 
 /// Pumps chunked SSE frames and heartbeats until disconnect or graceful drain.
+#[cfg(test)]
 fn pump_sse<S>(
     stream: &mut S,
     mut session: super::handler::AotSseCallbackSession,
@@ -206,6 +216,7 @@ where
 }
 
 /// Flushes all queued SSE application events through VM chunk framing.
+#[cfg(test)]
 fn flush_sse_events(
     writer: &mut dyn Write,
     session: &mut super::handler::AotSseCallbackSession,
@@ -224,6 +235,7 @@ fn flush_sse_events(
 }
 
 /// Converts a terminal SSE write failure into generated cancellation cleanup.
+#[cfg(test)]
 fn cancel_sse_disconnect(
     session: &mut super::handler::AotSseCallbackSession,
     reason: String,
@@ -233,4 +245,5 @@ fn cancel_sse_disconnect(
 
 #[cfg(test)]
 #[path = "channel_transport_test.rs"]
+#[cfg(test)]
 mod channel_transport_test;

@@ -1,0 +1,383 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Validates proof-visible semantic kernels against their typed runtime oracles.
+ */
+import proof_release_evidence.{SemanticKernelRecord, Support}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.File.{read_text}.
+import std.system.{Arguments, Environment, Process}.
+
+import type std.core.Option.
+import type std.data.Json.
+
+struct KernelResult {
+    valid: Bool,
+    message: String,
+    evidence: Json,
+}.
+
+pass(evidence: Json): KernelResult ->
+    KernelResult(valid = true, message = "", evidence = evidence).
+
+reject(message: String): KernelResult ->
+    KernelResult(valid = false, message = message, evidence = Json.null()).
+
+root(): String ->
+    case Environment.get("TERLAN_SEMANTIC_KERNEL_ROOT") {
+        Some(value) -> value;
+        None -> Environment.current_directory()
+    }.
+
+text(root_path: String, relative: String): Option[String] ->
+    case read_text(Support.root_path(root_path, relative)) {
+        Ok(source) -> Some(source);
+        Err(_reason) -> None
+    }.
+
+nth(values: List[String], index: Int): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                index == 0 -> Some(value);
+                true -> nth(rest, index - 1)
+            }
+    }.
+
+tsv_field_at(lines: List[String], path: String, index: Int): Option[String] ->
+    case lines {
+        [] -> None;
+        [line | rest] ->
+            case String.split(line, "\t") {
+                [first | _remaining] ->
+                    if {
+                        first == path -> nth(String.split(line, "\t"), index);
+                        true -> tsv_field_at(rest, path, index)
+                    };
+                _ -> tsv_field_at(rest, path, index)
+            }
+    }.
+
+tsv_field(
+    root_path: String,
+    relative: String,
+    header: String,
+    path: String,
+    index: Int,
+): Option[String] ->
+    let {
+        Some(source) <- text(root_path, relative);
+        [actual | rows] <- String.split(source, "\n")
+    } else {
+        _ -> None
+    };
+    if {
+        actual != header -> None;
+        true -> tsv_field_at(rows, path, index)
+    }.
+
+last(values: List[String]): Option[String] ->
+    case values {
+        [] -> None;
+        [value] -> Some(value);
+        [_value | rest] -> last(rest)
+    }.
+
+theorems_present(source: String, theorems: List[String]): Option[String] ->
+    case theorems {
+        [] -> None;
+        [theorem | rest] ->
+            case last(String.split(theorem, ".")) {
+                Some(short) ->
+                    if {
+                        String.contains(source, String.append("theorem ", short)) -> theorems_present(source, rest);
+                        true -> Some(theorem)
+                    };
+                None -> Some(theorem)
+            }
+    }.
+
+find_binding(records: Json, slice: String, index: Int, count: Int): Option[Json] ->
+    if {
+        index >= count -> None;
+        true -> let {
+            Ok(record) <- records.at(index);
+            Some(candidate) <- Support.json_string(record, "slice_id")
+        } else {
+            _ -> None
+        };
+        if {
+            candidate == slice -> Some(record);
+            true -> find_binding(records, slice, index + 1, count)
+        }
+    }.
+
+binding_is_current(index: Json, slice: String, family: String): Bool ->
+    let {
+        Some(records) <- Support.json_member(index, "records");
+        Ok(count) <- records.length();
+        Some(binding) <- find_binding(records, slice, 0, count);
+        Some(status) <- Support.json_string(binding, "coverage_status");
+        Some(proof_ids_value) <- Support.json_member(binding, "proof_family_ids");
+        Some(proof_ids) <- Support.json_array_strings(proof_ids_value)
+    } else {
+        _ -> false
+    };
+    status == "proof_current" and Support.same_strings(proof_ids, [family]).
+
+run_command(root_path: String, working: String, values: List[String]): KernelResult ->
+    case values {
+        [] -> reject("runtime command is empty");
+        [program | arguments] ->
+            let base = Process.with_arguments(Process.command(program), arguments);
+            let located = Process.with_working_directory(base, Support.root_path(root_path, working));
+            let configured =
+                Process.with_environment(
+                    Process.without_environment(located, ["LEAN_PATH"]),
+                    [Process.environment_entry("ELAN_NO_UPDATE_CHECK", "1")],
+                );
+            case Process.run(configured) {
+                Ok(output) ->
+                    if {
+                        Process.status(output) == 0 -> pass(Json.null());
+                        true -> reject(
+                            String.append(
+                                "command failed: ",
+                                String.append(
+                                    program,
+                                    String.append(
+                                        "\n",
+                                        String.append(
+                                            Process.stdout(output),
+                                            Process.stderr(output),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        )
+                    };
+                Err(reason) -> reject(Process.error_message(reason))
+            }
+    }.
+
+proof_command(root_path: String, proof: String): KernelResult ->
+    case String.split_once(proof, "proofs/lean/") {
+        Some({_prefix, relative}) ->
+            run_command(root_path, "proofs/lean", ["lake", "env", "lean", relative]);
+        None -> reject(String.append("invalid proof path: ", proof))
+    }.
+
+family_evidence(root_path: String, family: Json, index: Json): KernelResult ->
+    let {
+        Some(slice) <- Support.json_string(family, "slice");
+        Some(family_id) <- Support.json_string(family, "family");
+        Some(proof) <- Support.json_string(family, "proof");
+        Some(theorem_values) <- Support.json_member(family, "theorems");
+        Some(theorems) <- Support.json_array_strings(theorem_values);
+        Some(runtime_value) <- Support.json_member(family, "runtime");
+        Some(runtime) <- Support.json_array_strings(runtime_value);
+        Some(source) <- text(root_path, proof);
+        Some(actual_digest) <- Support.file_digest(root_path, proof);
+        Some(inventory_status) <-
+            tsv_field(
+                root_path,
+                "docs/compiler/proof_track/lean_proof_inventory.tsv",
+                "path\tstatus\tsource_contract\tterlan_version\tgate\tnotes",
+                proof,
+                1,
+            );
+        Some(recorded_digest) <-
+            tsv_field(
+                root_path,
+                "proofs/lean/ci/lean-proof-artifacts.tsv",
+                "path\tstatus\ttheorem_scope\ttargeted_manifests\texpected_exit\tstderr_class\tproof_digest\treplay_metadata\tremediation_plan",
+                proof,
+                6,
+            )
+    } else {
+        _ -> reject("semantic kernel input is missing or malformed")
+    };
+    case theorems_present(source, theorems) {
+        Some(missing) ->
+            reject(
+                String.append(
+                    proof,
+                    String.append(": missing theorem `", String.append(missing, "`")),
+                ),
+            );
+        None ->
+            if {
+                inventory_status != "current" -> reject(String.append(proof, ": current inventory row missing"));
+                recorded_digest != actual_digest -> reject(String.append(proof, ": artifact digest is stale"));
+                not binding_is_current(index, slice, family_id) -> reject(String.append(slice, ": feature binding is not proof-current"));
+                true -> let proof_result = proof_command(root_path, proof);
+                let runtime_result = run_command(root_path, ".", runtime);
+                if {
+                    not proof_result.valid -> proof_result;
+                    not runtime_result.valid -> runtime_result;
+                    true -> pass(
+                        Json.object()
+                            .put("slice", Json.string(slice))
+                            .put("family", Json.string(family_id))
+                            .put("proof", Json.string(proof))
+                            .put("proof_digest", Json.string(actual_digest))
+                            .put("theorems", theorem_values)
+                            .put("runtime_oracle", runtime_value)
+                            .put("positive_and_rejection_witnesses", Json.bool(true)),
+                    )
+                }
+            }
+    }.
+
+check_families(
+    root_path: String,
+    families: Json,
+    index_document: Json,
+    selected: String,
+    position: Int,
+    count: Int,
+    evidence: Json,
+): KernelResult ->
+    if {
+        position >= count -> pass(evidence);
+        true -> case families.at(position) {
+            Ok(family) ->
+                case Support.json_string(family, "family") {
+                    Some(family_id) ->
+                        if {
+                            selected != "" and selected != family_id -> check_families(
+                                root_path,
+                                families,
+                                index_document,
+                                selected,
+                                position + 1,
+                                count,
+                                evidence,
+                            );
+                            true -> let checked = family_evidence(root_path, family, index_document);
+                            if {
+                                not checked.valid -> checked;
+                                true -> let _pushed = evidence.push(checked.evidence);
+                                check_families(
+                                    root_path,
+                                    families,
+                                    index_document,
+                                    selected,
+                                    position + 1,
+                                    count,
+                                    evidence,
+                                )
+                            }
+                        };
+                    None -> reject("semantic kernel family has no ID")
+                };
+            Err(_reason) -> reject("semantic kernel family is unreadable")
+        }
+    }.
+
+family_exists(families: Json, expected: String, position: Int, count: Int): Bool ->
+    if {
+        position >= count -> false;
+        true -> let {
+            Ok(family) <- families.at(position);
+            Some(value) <- Support.json_string(family, "family")
+        } else {
+            _ -> false
+        };
+        value == expected or family_exists(families, expected, position + 1, count)
+    }.
+
+run_check(root_path: String, selected: String): Bool ->
+    let {
+        Some(config) <- Support.load_json(root_path, "proofs/lean/semantic-kernels.json");
+        Some(schema) <- Support.json_string(config, "schema");
+        Some(families) <- Support.json_member(config, "families");
+        Ok(count) <- families.length();
+        Some(index_document) <-
+            Support.load_json(
+                root_path,
+                "proofs/lean/feature_binding/lean_feature_slice_index.json",
+            )
+    } else {
+        _ -> failure("semantic kernel configuration is malformed")
+    };
+    if {
+        schema != "terlan.lean-semantic-kernel-config.v1" -> failure("semantic kernel configuration has the wrong schema");
+        selected != "" and not family_exists(families, selected, 0, count) -> failure(String.append("unknown semantic kernel family `", String.append(selected, "`")));
+        true -> let result = check_families(root_path, families, index_document, selected, 0, count, Json.array());
+        if {
+            not result.valid -> failure(result.message);
+            true -> let report =
+                Json.object()
+                    .put("schema", Json.string("terlan.lean-semantic-kernels.v1"))
+                    .put("families", result.evidence)
+                    .put("external_protocol_or_database_isolation_claims", Json.bool(false))
+                    .put("placeholder_theorems", Json.bool(false));
+            if {
+                not Support.write_json(root_path, "build/artifacts/lean-semantic-kernels.json", report) -> failure("semantic kernel report could not be written");
+                true -> case result.evidence.length() {
+                    Ok(checked_count) ->
+                        let message =
+                            String.append(
+                                "Lean semantic kernels passed: ",
+                                String.append(Int.to_string(checked_count), " families"),
+                            );
+                        let _printed = println(message);
+                        true;
+                    Err(_reason) -> failure("semantic kernel report is unreadable")
+                }
+            }
+        }
+    }.
+
+self_test(root_path: String): Bool ->
+    let {
+        Some(config) <- Support.load_json(root_path, "proofs/lean/semantic-kernels.json");
+        Some(families) <- Support.json_member(config, "families");
+        Ok(count) <- families.length()
+    } else {
+        _ -> failure("self-test: semantic kernel configuration is malformed")
+    };
+    if {
+        count != 6 -> failure("self-test: exactly six semantic kernel families are required");
+        true -> let _printed = println("Lean semantic kernel self-test passed");
+        true
+    }.
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("Lean semantic kernel failure: ", message));
+    false.
+
+run(root_path: String, command: String, selected: String): Bool ->
+    if {
+        command == "record" -> let result = SemanticKernelRecord.record(root_path);
+        if {
+            result.valid -> true;
+            true -> failure(result.message)
+        };
+        command == "self-test" -> self_test(root_path);
+        command == "check" -> run_check(root_path, "");
+        command == "check-family" -> run_check(root_path, selected);
+        true -> failure("usage: SemanticKernels.terls <record|self-test|check|check-family FAMILY>")
+    }.
+
+entry(): Bool ->
+    let repository = root();
+    let command =
+        case Arguments.get(0) {
+            Some(value) -> value;
+            None -> ""
+        };
+    let selected =
+        case Arguments.get(1) {
+            Some(value) -> value;
+            None -> ""
+        };
+    run(repository, command, selected).
+
+assert(entry());
+Unit.

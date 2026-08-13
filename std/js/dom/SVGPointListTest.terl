@@ -38,7 +38,7 @@ pub initialize_typechecks(receiver: SVGPointList, new_item: DOMPoint): DOMPoint 
 pub insert_item_before_typechecks(
     receiver: SVGPointList,
     new_item: DOMPoint,
-    index: JsNumber
+    index: JsNumber,
 ): DOMPoint ->
     receiver.insert_item_before(new_item, index).
 

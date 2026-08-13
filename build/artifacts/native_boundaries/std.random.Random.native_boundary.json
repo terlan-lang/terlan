@@ -1,0 +1,137 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.random.Random.seed/1",
+      "name": "seed",
+      "operation": "std.random.random.seed",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:ee3e636e2c3e4e64d8256ab03bfd2e9732e2ade1961c9cba5208fb62a589a7dc"
+    },
+    {
+      "argument_types": [],
+      "arity": 0,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.random.Random.entropy/0",
+      "name": "entropy",
+      "operation": "std.random.random.entropy",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:67d271141d45d34da3c122589f8b603ac20c7c114d4187095d454d84aa624d75"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.random.Random.int/1",
+      "name": "int",
+      "operation": "std.random.random.int",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:a0e6239cb12f7d21b2b1a52c7ab0fc9ffe23ecea51000bc81dd8b8e58570b1df"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.random.Random.bounded_int/3",
+      "name": "bounded_int",
+      "operation": "std.random.random.bounded_int",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:6f11ce5451a8780172a42f774a4ac92c3cf8193f8c2f0c6024cc5a7464c01a0a"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.random.Random.float/1",
+      "name": "float",
+      "operation": "std.random.random.float",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:b2892ca0c245eadb58805f7227b662496393aec8292522097b826d17da7218aa"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.random.Random.bool/1",
+      "name": "bool",
+      "operation": "std.random.random.bool",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:17897fdc10e11b5adf600a3b01a96b12e823e064586f48e27dbed621f472ace0"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.random.Random.choice/2",
+      "name": "choice",
+      "operation": "std.random.random.choice",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:f5a2f218a7e215823c54ddc28d8aa466dd86cc8e3ed6532cad7d9010b7648aff"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.random.Random.shuffle/2",
+      "name": "shuffle",
+      "operation": "std.random.random.shuffle",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:60ed534686f9a7d72d49cc16b75e1e48d0ab62fb6c0f9ae81f106fc29d6387f8"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.random.Random.sample/3",
+      "name": "sample",
+      "operation": "std.random.random.sample",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:aab4c73d5ef1bed8a48acc2220bab1a7f586115133f20e69ee7d565e55325361"
+    }
+  ],
+  "manifest_digest": "sha256:2b873a2f2d0738422afb7c7c0fd3e092eb426c5de18ff706a72ad6114989655a",
+  "module": "std_random_random_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "random",
+    "error_policy": "typed-result",
+    "module_prefix": "std.random.Random",
+    "notes": "Random APIs use maintained Rust RNG crates and return explicit VM-owned generator state.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:9451fb64ab3406594238513d8386a91c6af850883c590fc90c77c961803b0043",
+  "source_module": "std.random.Random",
+  "source_path": "std/summaries/std.random.Random.native_boundary.json"
+}

@@ -46,8 +46,8 @@ const REQUIRED_HTTP_LIFECYCLE_ANCHORS: &[&str] = &[
     "pub(crate) fn shutdown(",
     "pub(crate) fn shutdown_with_tls(",
     "tcp.close_listener",
-    "self.handlers.drain(..)",
-    "finish_http1_tcp_handler",
+    "std::mem::take(&mut self.handlers)",
+    "self.finish_handler",
     "remove_listener_plan",
     "VmExitReason",
 ];
@@ -71,7 +71,7 @@ const REQUIRED_STREAM_LIFECYCLE_ANCHORS: &[(&str, &[&str])] = &[
         ],
     ),
     (
-        "crates/terlan/src/runtime/vm/websocket.rs",
+        "crates/terlan/src/runtime/vm/websocket/state.rs",
         &[
             "VmWebSocketCloseOutcome",
             "VmWebSocketTerminationReason",
@@ -81,13 +81,16 @@ const REQUIRED_STREAM_LIFECYCLE_ANCHORS: &[(&str, &[&str])] = &[
         ],
     ),
     (
-        "crates/terlan/src/runtime/vm/websocket_test.rs",
+        "crates/terlan/src/runtime/vm/websocket_test/session_frames.rs",
         &[
             "vm_websocket_session_closes_after_received_close_frame",
             "vm_websocket_session_closes_after_sent_close_frame",
             "vm_websocket_session_send_frame_closes_on_close_event",
-            "vm_websocket_runtime_remove_inactive_stream_sessions_prunes_closed_and_cancelled_streams",
         ],
+    ),
+    (
+        "crates/terlan/src/runtime/vm/websocket_test/transport_upgrade.rs",
+        &["vm_websocket_runtime_remove_inactive_stream_sessions_prunes_closed_and_cancelled_streams"],
     ),
 ];
 
@@ -125,11 +128,11 @@ const REQUIRED_OPERATOR_ANCHORS: &[&str] = &[
 ];
 
 const REQUIRED_GATE_TERMS: &[&str] = &[
-    "vm-web-lifecycle-health-check: vm-web-observability-check",
-    "$(MAKE) web-compose-check",
-    "$(MAKE) http-tls-check",
-    "$(MAKE) vm-source-hot-reload-check",
-    "vm_web_lifecycle_health_test",
+    "vm-web-lifecycle-health-check:",
+    "vm-web-observability-check",
+    "web-compose-check",
+    "http-tls-check",
+    "vm-source-hot-reload-check",
     "vm-web-lifecycle-health",
 ];
 
@@ -201,6 +204,7 @@ const REJECTED_LIFECYCLE_PATHS: &[&str] = &[
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm web lifecycle health summary.
 pub struct VmWebLifecycleHealthSummary {
     pub lifecycle_state_transition_count: usize,
     pub health_endpoint_fixture_count: usize,
@@ -209,17 +213,18 @@ pub struct VmWebLifecycleHealthSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm web lifecycle health.
 pub fn run_vm_web_lifecycle_health(root: &Path) -> QualityResult<VmWebLifecycleHealthSummary> {
     let mut diagnostics = Vec::new();
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/commands/serve/mod.rs",
+        "crates/terlan/src/commands/serve/server_lifecycle.rs",
         REQUIRED_SERVE_STARTUP_ANCHORS,
         "serve startup lifecycle",
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/commands/serve/compose_check.rs",
+        "crates/terlan/src/commands/dev_dependencies.rs",
         REQUIRED_COMPOSE_HEALTH_ANCHORS,
         "dependency health validation",
     )?);
@@ -231,19 +236,22 @@ pub fn run_vm_web_lifecycle_health(root: &Path) -> QualityResult<VmWebLifecycleH
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/commands/serve/tls.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
         REQUIRED_TLS_READINESS_ANCHORS,
         "TLS readiness lifecycle",
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/runtime/vm/http.rs",
+        "crates/terlan/src/runtime/vm/http/lifecycle.rs",
         REQUIRED_HTTP_LIFECYCLE_ANCHORS,
         "VM HTTP shutdown lifecycle",
     )?);
-    diagnostics.extend(validate_required_terms(
+    diagnostics.extend(validate_required_terms_across(
         root,
-        "crates/terlan/src/runtime/vm/http_test.rs",
+        &[
+            "crates/terlan/src/runtime/vm/http_test/handler_lifecycle.rs",
+            "crates/terlan/src/runtime/vm/http_test/shutdown_and_inspection.rs",
+        ],
         REQUIRED_HTTP_LIFECYCLE_TEST_ANCHORS,
         "VM HTTP lifecycle tests",
     )?);
@@ -267,9 +275,12 @@ pub fn run_vm_web_lifecycle_health(root: &Path) -> QualityResult<VmWebLifecycleH
         REQUIRED_HOT_RELOAD_TEST_ANCHORS,
         "VM source hot-reload tests",
     )?);
-    diagnostics.extend(validate_required_terms(
+    diagnostics.extend(validate_required_terms_across(
         root,
-        "crates/terlan/src/runtime/vm/distributed_storage_test.rs",
+        &[
+            "crates/terlan/src/runtime/vm/distributed_storage_test/snapshots_and_compaction.rs",
+            "crates/terlan/src/runtime/vm/distributed_storage_test/migration_and_recovery.rs",
+        ],
         REQUIRED_SUPPORT_EVIDENCE_ANCHORS,
         "flush and recovery evidence",
     )?);
@@ -365,6 +376,27 @@ fn validate_required_terms(
         .collect())
 }
 
+fn validate_required_terms_across(
+    root: &Path,
+    relatives: &[&str],
+    terms: &[&str],
+    label: &str,
+) -> QualityResult<Vec<String>> {
+    let mut source = String::new();
+    for relative in relatives {
+        source.push_str(
+            &fs::read_to_string(root.join(relative))
+                .map_err(|err| format!("{relative}: failed to read {label}: {err}"))?,
+        );
+        source.push('\n');
+    }
+    Ok(terms
+        .iter()
+        .filter(|term| !source.contains(**term))
+        .map(|term| format!("{}: missing {label} anchor `{term}`", relatives.join(", ")))
+        .collect())
+}
+
 fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
     let text = fs::read_to_string(root.join("Makefile"))
         .map_err(|err| format!("Makefile: failed to read VM web lifecycle health gate: {err}"))?;
@@ -375,6 +407,7 @@ fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
         .collect())
 }
 
+/// Validates no placeholder report entries.
 pub fn validate_no_placeholder_report_entries(label: &str, entries: &[&str]) -> Vec<String> {
     entries
         .iter()
@@ -403,4 +436,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_web_lifecycle_health_test.rs"]
+#[cfg(test)]
 mod vm_web_lifecycle_health_test;

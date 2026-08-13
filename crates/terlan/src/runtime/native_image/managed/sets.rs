@@ -153,4 +153,5 @@ impl ActorHeap {
 
 #[cfg(test)]
 #[path = "managed_set_test.rs"]
+#[cfg(test)]
 mod managed_set_test;

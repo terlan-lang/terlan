@@ -25,7 +25,7 @@ pub length_typechecks(receiver: DataTransferItemList): JsNumber ->
 pub add_typechecks(
     receiver: DataTransferItemList,
     data: JsString,
-    type_: JsString
+    type_: JsString,
 ): Option[DataTransferItem] ->
     receiver.add(data, type_).
 

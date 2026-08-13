@@ -23,7 +23,12 @@ use crate::runtime::vm::protocol_task_executor::{
 };
 
 use super::handler::VmHttpChannelTransport;
+#[cfg(test)]
+use super::{channel_transport, handle_vm_stream_http1_exchange};
 use super::{handle_suspendable_vm_stream_request, handle_vm_stream_request};
+
+mod http2;
+mod tls_io;
 
 thread_local! {
     /// Immutable route root copied once onto each permanent protocol owner.
@@ -55,6 +60,51 @@ pub(super) fn serve(listener: std_net::TcpListener, web_root: PathBuf) -> Result
     serve_protocol_tasks(listener, factory)
 }
 
+/// Runs rustls and ALPN-selected Hyper protocol futures on VM protocol owners.
+pub(super) fn serve_tls(
+    listener: std_net::TcpListener,
+    web_root: PathBuf,
+    server_config: Arc<rustls::ServerConfig>,
+) -> Result<(), String> {
+    serve_protocol_tasks(listener, tls_factory(web_root, server_config))
+}
+
+fn tls_factory(
+    web_root: PathBuf,
+    server_config: Arc<rustls::ServerConfig>,
+) -> VmProtocolTaskFactory {
+    let web_root = Arc::new(web_root);
+    Arc::new(move |stream, route| {
+        let web_root = owner_local_web_root(&web_root);
+        let server_config = Arc::clone(&server_config);
+        Box::pin(async move {
+            let io = tls_io::VmTlsHyperIo::handshake(stream, server_config)
+                .await
+                .map_err(|error| {
+                    format!(
+                        "process {} scheduler {}: rustls handshake failed: {error}",
+                        route.process.as_u64(),
+                        route.scheduler.index()
+                    )
+                })?;
+            let protocol = io.negotiated_protocol()?;
+            let service = service_fn(move |request| {
+                let web_root = Rc::clone(&web_root);
+                async move {
+                    Ok::<_, Infallible>(handle_request(request, web_root.as_ref().as_path()).await)
+                }
+            });
+            match protocol {
+                tls_io::VmTlsHttpProtocol::Http1 => http1::Builder::new()
+                    .serve_connection(io, service)
+                    .await
+                    .map_err(|error| format!("Hyper HTTP/1.1 TLS connection failed: {error}")),
+                tls_io::VmTlsHttpProtocol::Http2 => http2::serve_connection(io, service).await,
+            }
+        })
+    })
+}
+
 fn owner_local_web_root(shared: &Arc<PathBuf>) -> Rc<PathBuf> {
     LOCAL_WEB_ROOT.with(|local| {
         let mut local = local.borrow_mut();
@@ -84,7 +134,6 @@ impl HyperVmIo {
 }
 
 impl Read for HyperVmIo {
-    #[allow(unsafe_code)]
     fn poll_read(
         self: Pin<&mut Self>,
         _context: &mut Context<'_>,
@@ -222,4 +271,122 @@ fn error_response(status: u16, message: String) -> Response<Full<Bytes>> {
 
 #[cfg(test)]
 #[path = "hyper_server_test.rs"]
+#[cfg(test)]
 mod hyper_server_test;
+
+/// Serves one blocking stream through the VM HTTP/1 adapter.
+///
+/// Inputs:
+/// - `stream`: readable and writable byte stream.
+/// - `web_root`: generated browser package root.
+///
+/// Output:
+/// - Success after one HTTP response is written.
+///
+/// Transformation:
+/// - Reads exactly one HTTP/1 request with `httparse` header validation, routes
+///   it through the VM stream adapter, and writes the serialized response.
+#[cfg(test)]
+pub(in crate::commands::serve) fn serve_vm_plain_http1_connection<S>(
+    stream: &mut S,
+    web_root: &Path,
+) -> Result<(), String>
+where
+    S: std::io::Read + std::io::Write,
+{
+    let request = read_vm_plain_http1_request(stream)?;
+    let exchange = handle_vm_stream_http1_exchange(web_root, &request)?;
+    channel_transport::serve_vm_stream_http1_exchange(stream, exchange)
+}
+
+/// Reads one complete HTTP/1 request from a blocking stream.
+///
+/// Inputs:
+/// - `stream`: readable byte stream.
+///
+/// Output:
+/// - Raw request bytes containing headers and the declared body.
+///
+/// Transformation:
+/// - Uses `httparse` to detect header completion and content-length, keeping
+///   protocol parsing in a maintained crate before VM HTTP validation runs.
+#[cfg(test)]
+pub(in crate::commands::serve) fn read_vm_plain_http1_request<S>(
+    stream: &mut S,
+) -> Result<Vec<u8>, String>
+where
+    S: std::io::Read,
+{
+    let mut request = Vec::new();
+    let mut chunk = [0_u8; 8192];
+    loop {
+        let read = std::io::Read::read(stream, &mut chunk)
+            .map_err(|err| format!("failed to read VM plain HTTP request: {err}"))?;
+        if read == 0 {
+            if request.is_empty() {
+                return Err("empty VM plain HTTP request".to_string());
+            }
+            return Ok(request);
+        }
+        request.extend_from_slice(&chunk[..read]);
+        if request.len() > 1024 * 1024 {
+            return Err("VM plain HTTP request exceeds 1 MiB".to_string());
+        }
+        if vm_plain_http1_request_complete(&request).map_err(|error| error.to_string())? {
+            return Ok(request);
+        }
+    }
+}
+
+#[cfg(test)]
+#[derive(Debug, Eq, PartialEq)]
+pub(in crate::commands::serve) enum PlainHttp1CompletenessError {
+    Parse(httparse::Error),
+    InvalidContentLengthEncoding,
+    InvalidContentLengthValue,
+}
+
+#[cfg(test)]
+impl std::fmt::Display for PlainHttp1CompletenessError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Parse(error) => write!(formatter, "invalid VM plain HTTP request: {error}"),
+            Self::InvalidContentLengthEncoding => {
+                formatter.write_str("invalid VM plain HTTP content-length header")
+            }
+            Self::InvalidContentLengthValue => {
+                formatter.write_str("invalid VM plain HTTP content-length value")
+            }
+        }
+    }
+}
+
+/// Returns whether buffered bytes contain one complete HTTP/1 request.
+#[cfg(test)]
+pub(in crate::commands::serve) fn vm_plain_http1_request_complete(
+    bytes: &[u8],
+) -> Result<bool, PlainHttp1CompletenessError> {
+    let mut headers = [httparse::EMPTY_HEADER; 64];
+    let mut request = httparse::Request::new(&mut headers);
+    let header_length = match request
+        .parse(bytes)
+        .map_err(PlainHttp1CompletenessError::Parse)?
+    {
+        httparse::Status::Complete(length) => length,
+        httparse::Status::Partial => return Ok(false),
+    };
+    let content_length = request
+        .headers
+        .iter()
+        .find(|header| header.name.eq_ignore_ascii_case("content-length"))
+        .map(|header| {
+            std::str::from_utf8(header.value)
+                .map_err(|_| PlainHttp1CompletenessError::InvalidContentLengthEncoding)?
+                .trim()
+                .parse::<usize>()
+                .map_err(|_| PlainHttp1CompletenessError::InvalidContentLengthValue)
+        })
+        .transpose()?
+        .unwrap_or(0);
+    Ok(bytes.len() >= header_length.saturating_add(content_length))
+}

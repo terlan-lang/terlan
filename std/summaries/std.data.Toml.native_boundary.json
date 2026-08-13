@@ -1,0 +1,13 @@
+{
+  "functions": [
+    {
+      "arity": 1,
+      "name": "parse",
+      "operation": "std.data.toml.parse"
+    }
+  ],
+  "module": "std_data_toml_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.data.Toml"
+}

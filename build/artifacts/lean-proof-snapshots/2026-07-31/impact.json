@@ -1,0 +1,42 @@
+{
+  "diff_digest": "sha256:1e207320f2f4ebc317a705225b78c7123cb3aff69700de9236471c83f43fb67c",
+  "impacts": [
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "compiler",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-11",
+      "slice_id": "Slice 11"
+    },
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "compiler",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-12",
+      "slice_id": "Slice 12"
+    },
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "compiler",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-13",
+      "slice_id": "Slice 13"
+    },
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "runtime",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-14",
+      "slice_id": "Slice 14"
+    }
+  ],
+  "schema": "terlan.lean-proof-change-impact.v1"
+}

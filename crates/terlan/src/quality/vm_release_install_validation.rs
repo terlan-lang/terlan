@@ -30,20 +30,49 @@ const REQUIRED_INSTALL_PS1_TERMS: &[&str] = &[
     "runtime\\release-self-test.tvm",
 ];
 
-const REQUIRED_PACKAGE_HELPER_TERMS: &[&str] = &[
-    "compiler_binary_name",
-    "vm_binary_name",
-    "artifact did not contain",
-    "terlan-vm",
-    "subprocess.check_output([str(vm_binary), \"--version\"]",
-    "glob(\"*.tvm\")",
-    "vm_release.Main.main",
-    "installer did not install",
-    "actual_vm = subprocess.check_output([str(vm), \"--version\"]",
+const RELEASE_PACKAGE_SOURCE: &str =
+    "scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleasePackage.terl";
+const RELEASE_SMOKE_SOURCE: &str =
+    "scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseSmoke.terl";
+const RELEASE_INSTALLER_SMOKE_SOURCE: &str = "scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseInstallerSmoke.terl";
+const RELEASE_COMMAND_SOURCE: &str =
+    "scripts/self_validation/tvm_aot_platform_matrix/scripts/TvmAotPlatformMatrix.terls";
+
+const REQUIRED_RELEASE_PACKAGE_TERMS: &[&str] = &[
+    "ReleaseMetadata.value_with_native",
+    "ReleaseMetadata.write",
+    "ReleasePayload.write_install_metadata",
+    "Archive.create",
     "package-image-metadata",
-    "validate-package",
-    "native_self_test",
+    "build_self_test",
     "release-self-test.tvm",
+];
+
+const REQUIRED_RELEASE_SMOKE_TERMS: &[&str] = &[
+    "Hash.verify_sha256_manifest",
+    "validate-package",
+    "--target",
+    "terlan-vm",
+    "--entry",
+    "vm_release.Main.main",
+    "--test-eval",
+];
+
+const REQUIRED_RELEASE_INSTALLER_SMOKE_TERMS: &[&str] = &[
+    "install.sh",
+    "install.ps1",
+    "validate-package",
+    "terlan-native-worker",
+    "ReleasePlatform.lsp",
+    "lsp_help_matches",
+];
+
+const REQUIRED_RELEASE_COMMAND_TERMS: &[&str] = &[
+    "release-artifact-package",
+    "release-artifact-smoke",
+    "release-artifact-installer-smoke",
+    "release-artifact-matrix",
+    "release-artifact-adversarial",
 ];
 
 const REQUIRED_CLI_MK_TERMS: &[&str] = &[
@@ -76,7 +105,7 @@ const REQUIRED_LOCAL_UPGRADE_TERMS: &[&str] = &[
 ///
 /// Inputs:
 /// - `root`: repository root containing installers, editor package metadata,
-///   release packaging helper, and Makefile.
+///   typed release tooling, and Makefile.
 ///
 /// Output:
 /// - Success summary when release/install metadata is synchronized for the
@@ -105,8 +134,23 @@ pub fn run_vm_release_install_validation(
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "tools/package_release_artifact.py",
-        REQUIRED_PACKAGE_HELPER_TERMS,
+        RELEASE_PACKAGE_SOURCE,
+        REQUIRED_RELEASE_PACKAGE_TERMS,
+    )?);
+    diagnostics.extend(validate_required_terms(
+        root,
+        RELEASE_SMOKE_SOURCE,
+        REQUIRED_RELEASE_SMOKE_TERMS,
+    )?);
+    diagnostics.extend(validate_required_terms(
+        root,
+        RELEASE_INSTALLER_SMOKE_SOURCE,
+        REQUIRED_RELEASE_INSTALLER_SMOKE_TERMS,
+    )?);
+    diagnostics.extend(validate_required_terms(
+        root,
+        RELEASE_COMMAND_SOURCE,
+        REQUIRED_RELEASE_COMMAND_TERMS,
     )?);
     diagnostics.extend(validate_required_terms(
         root,
@@ -126,17 +170,20 @@ pub fn run_vm_release_install_validation(
     diagnostics.extend(validate_installer_versions(root, &workspace_version)?);
     diagnostics.extend(validate_editor_package_versions(root, &workspace_version)?);
     diagnostics.extend(validate_vsix_artifacts(root, &workspace_version)?);
-    diagnostics.extend(validate_release_smoke_does_not_use_erlang(root)?);
+    diagnostics.extend(validate_release_smoke_uses_native_image(root)?);
 
     if !diagnostics.is_empty() {
         return Err(render_failure(&diagnostics));
     }
 
     Ok(VmReleaseInstallValidationSummary {
-        checked_file_count: 7,
+        checked_file_count: 10,
         required_rule_count: REQUIRED_INSTALL_SH_TERMS.len()
             + REQUIRED_INSTALL_PS1_TERMS.len()
-            + REQUIRED_PACKAGE_HELPER_TERMS.len()
+            + REQUIRED_RELEASE_PACKAGE_TERMS.len()
+            + REQUIRED_RELEASE_SMOKE_TERMS.len()
+            + REQUIRED_RELEASE_INSTALLER_SMOKE_TERMS.len()
+            + REQUIRED_RELEASE_COMMAND_TERMS.len()
             + REQUIRED_CLI_MK_TERMS.len()
             + REQUIRED_MAKEFILE_TERMS.len()
             + REQUIRED_LOCAL_UPGRADE_TERMS.len()
@@ -274,39 +321,40 @@ fn validate_vsix_artifacts(root: &Path, workspace_version: &str) -> QualityResul
     Ok(diagnostics)
 }
 
-/// Validates release artifact smoke uses VM/browser paths rather than Erlang.
-fn validate_release_smoke_does_not_use_erlang(root: &Path) -> QualityResult<Vec<String>> {
-    let text = read_repo_text(root, "tools/package_release_artifact.py")?;
+/// Validates typed release artifact smoke executes the emitted native image.
+fn validate_release_smoke_uses_native_image(root: &Path) -> QualityResult<Vec<String>> {
+    let text = read_repo_text(root, RELEASE_SMOKE_SOURCE)?;
+    Ok(validate_release_smoke_text(RELEASE_SMOKE_SOURCE, &text))
+}
+
+/// Validates one release-smoke source without filesystem access.
+fn validate_release_smoke_text(relative: &str, text: &str) -> Vec<String> {
     let mut diagnostics = Vec::new();
     if text.contains("\"erlang\"") || text.contains("'erlang'") {
-        diagnostics.push(
-            "tools/package_release_artifact.py: release smoke must not build Erlang artifacts"
-                .to_string(),
-        );
+        diagnostics.push(format!(
+            "{relative}: release smoke must not build Erlang artifacts"
+        ));
     }
     if !text.contains("--target") || !text.contains("terlan-vm") {
-        diagnostics.push(
-            "tools/package_release_artifact.py: release smoke must exercise VM artifacts"
-                .to_string(),
-        );
+        diagnostics.push(format!(
+            "{relative}: release smoke must exercise VM artifacts"
+        ));
     }
     let transitional_artifact_glob = ["*.tvm", ".json"].concat();
     if text.contains(&transitional_artifact_glob) {
-        diagnostics.push(
-            "tools/package_release_artifact.py: release smoke must not accept transitional JSON artifacts"
-                .to_string(),
-        );
+        diagnostics.push(format!(
+            "{relative}: release smoke must not accept transitional JSON artifacts"
+        ));
     }
-    if !text.contains("glob(\"*.tvm\")")
-        || !text.contains("\"--entry\"")
+    if !text.contains("\"--entry\"")
         || !text.contains("\"--test-eval\"")
+        || !text.contains("vm_release.Main.main")
     {
-        diagnostics.push(
-            "tools/package_release_artifact.py: release smoke must execute the emitted native TVM image"
-                .to_string(),
-        );
+        diagnostics.push(format!(
+            "{relative}: release smoke must execute the emitted native TVM image"
+        ));
     }
-    Ok(diagnostics)
+    diagnostics
 }
 
 /// Reads one repository text file.
@@ -327,4 +375,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_release_install_validation_test.rs"]
+#[cfg(test)]
 mod vm_release_install_validation_test;

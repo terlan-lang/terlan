@@ -1,0 +1,110 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Dispatches repository Rust structural-quality validation through one sealed
+ * Terlan AOT image.
+ */
+import rust_quality.SourceInventory.{repository_root, self_test as inventory_self_test}.
+import rust_quality.{ApiBoundary, BuildGraphBoundary, BuildGraphPolicy, BuildGraphTimings, CanonicalTypes, CargoMetadata, CodeQualityCloseout, CompilationInputs, DependencyClassifications, DependencyImpact, DependencyImpactCargo, DependencyImpactGraph, DependencyImpactSource, DocsLight, FileHeadroom, LintAllowances, ModuleStructure, StructureTimingRegression, StructureTimings, WorkspacePolicy}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.{Int, String, Unit}.
+import std.io.Console.{eprintln, println}.
+import std.system.Arguments.{get}.
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[rust_quality.arguments]: ", message));
+    false.
+
+entry(): Bool ->
+    case get(0) {
+        Some("source-inventory-self-test") -> inventory_self_test();
+        Some("module-structure-self-test") -> ModuleStructure.self_test();
+        Some("module-structure-check") -> ModuleStructure.check(repository_root());
+        Some("file-headroom-self-test") -> FileHeadroom.self_test();
+        Some("file-headroom-check") -> FileHeadroom.check(repository_root(), false);
+        Some("file-headroom-record") -> FileHeadroom.record(repository_root());
+        Some("file-headroom-milestone-0.0.8") -> FileHeadroom.check(repository_root(), true);
+        Some("lint-allowance-self-test") -> LintAllowances.self_test();
+        Some("lint-allowance-check") -> LintAllowances.check(repository_root());
+        Some("lint-allowance-record") -> LintAllowances.record_new(repository_root());
+        Some("lint-allowance-replace-reviewed-registry") ->
+            LintAllowances.replace_reviewed(repository_root());
+        Some("workspace-policy-self-test") -> WorkspacePolicy.self_test();
+        Some("workspace-policy-manifest-self-test") -> WorkspacePolicy.manifest_self_test();
+        Some("workspace-policy-member-self-test") -> WorkspacePolicy.member_adversarial_self_test();
+        Some("workspace-policy-check") -> WorkspacePolicy.check(repository_root());
+        Some("build-graph-timings-self-test") -> BuildGraphTimings.self_test();
+        Some("build-graph-timings-record") -> BuildGraphTimings.record(repository_root());
+        Some("structure-timings-self-test") -> StructureTimings.self_test();
+        Some("structure-timings-check") -> StructureTimings.check(repository_root());
+        Some("structure-timings-closeout-check") ->
+            StructureTimings.check_closeout(repository_root());
+        Some("structure-timings-record") -> StructureTimings.record(repository_root(), false);
+        Some("structure-timings-record-closeout") ->
+            StructureTimings.record(repository_root(), true);
+        Some("structure-timing-regression-self-test") -> StructureTimingRegression.self_test();
+        Some("structure-timing-regression-measure") ->
+            let root = repository_root();
+            StructureTimingRegression.measure(root);
+        Some("code-quality-closeout-self-test") -> CodeQualityCloseout.self_test();
+        Some("code-quality-closeout-check") -> CodeQualityCloseout.check(repository_root());
+        Some("docs-light-self-test") -> DocsLight.self_test();
+        Some("docs-light-check") -> DocsLight.check(repository_root());
+        Some("build-graph-boundary-self-test") -> BuildGraphBoundary.self_test();
+        Some("build-graph-boundary-check") ->
+            let root = repository_root();
+            BuildGraphBoundary.check(root);
+        Some("canonical-types-self-test") -> CanonicalTypes.self_test();
+        Some("canonical-types-check") ->
+            let root = repository_root();
+            let result = CanonicalTypes.check(root);
+            result.valid and List.length(result.diagnostics) == 0;
+        Some("build-graph-policy-self-test") -> BuildGraphPolicy.self_test();
+        Some("compilation-inputs-self-test") -> CompilationInputs.self_test();
+        Some("compilation-inputs-report") ->
+            let result = CompilationInputs.digest(repository_root());
+            let _printed =
+                println(
+                    String.concat(
+                        [
+                            Int.to_string(CompilationInputs.result_file_count(result)),
+                            " ",
+                            CompilationInputs.result_digest(result),
+                        ],
+                    ),
+                );
+            CompilationInputs.result_valid(result);
+        Some("dependency-classifications-self-test") -> DependencyClassifications.self_test();
+        Some("dependency-impact-cargo-self-test") -> DependencyImpactCargo.self_test();
+        Some("dependency-impact-graph-self-test") -> DependencyImpactGraph.self_test();
+        Some("dependency-impact-source-self-test") -> DependencyImpactSource.self_test();
+        Some("dependency-impact-self-test") -> DependencyImpact.self_test();
+        Some("dependency-impact-check") ->
+            let root = repository_root();
+            DependencyImpact.check(root, false);
+        Some("dependency-impact-record") ->
+            let root = repository_root();
+            DependencyImpact.record(root);
+        Some("dependency-impact-milestone-0.0.8") ->
+            let root = repository_root();
+            DependencyImpact.check(root, true);
+        Some("cargo-metadata-self-test") -> CargoMetadata.self_test();
+        Some("api-boundary-self-test") -> ApiBoundary.self_test();
+        Some("api-boundary-check") ->
+            let root = repository_root();
+            ApiBoundary.check(root, false);
+        Some("api-boundary-record") ->
+            let root = repository_root();
+            ApiBoundary.record(root);
+        Some("api-boundary-record-budgets") ->
+            let root = repository_root();
+            ApiBoundary.record_budgets(root);
+        Some("api-boundary-milestone-0.0.8") ->
+            let root = repository_root();
+            ApiBoundary.check(root, true);
+        Some(value) -> failure(String.append("unknown command `", String.append(value, "`")));
+        None -> failure("expected a Rust quality command")
+    }.
+
+assert(entry());
+Unit.

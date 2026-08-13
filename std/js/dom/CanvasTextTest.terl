@@ -24,7 +24,7 @@ pub fill_text_typechecks(
     text: JsString,
     x: JsNumber,
     y: JsNumber,
-    max_width: JsNumber
+    max_width: JsNumber,
 ): Unit ->
     receiver.fill_text(text, x, y, max_width).
 
@@ -36,6 +36,6 @@ pub stroke_text_typechecks(
     text: JsString,
     x: JsNumber,
     y: JsNumber,
-    max_width: JsNumber
+    max_width: JsNumber,
 ): Unit ->
     receiver.stroke_text(text, x, y, max_width).

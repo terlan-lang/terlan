@@ -26,7 +26,18 @@ pub sample_set_cookie_header_options(options: Options): String ->
     set_header_options("session", "abc123", options).
 
 pub sample_full_set_cookie_header(): String ->
-    set_header_with_options("session", "abc123", "/account", "example.com", 3600, true, "Wed, 21 Oct 2026 07:28:00 GMT", true, true, "strict").
+    set_header_with_options(
+        "session",
+        "abc123",
+        "/account",
+        "example.com",
+        3600,
+        true,
+        "Wed, 21 Oct 2026 07:28:00 GMT",
+        true,
+        true,
+        "strict",
+    ).
 
 pub sample_jar(): Dynamic ->
     {Atom["cookies"], Map({"session", "abc123"})}.
@@ -43,13 +54,21 @@ pub same_site_strict_marker_round_trips(): Bool ->
 
 @test
 pub cookie_header_builders_serialize_defaults(): Bool ->
-    assert_equal("session=abc123; HttpOnly; Path=/", sample_set_cookie_header()) and assert_equal("session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT", sample_delete_cookie_header()).
+    assert_equal("session=abc123; HttpOnly; Path=/", sample_set_cookie_header())
+        and assert_equal(
+    "session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+    sample_delete_cookie_header(),
+).
 
 @test
 pub cookie_full_options_header_serializes_attributes(): Bool ->
-    assert_equal("session=abc123; HttpOnly; SameSite=Strict; Secure; Path=/account; Domain=example.com; Max-Age=3600; Expires=Wed, 21 Oct 2026 07:28:00 GMT", sample_full_set_cookie_header()).
+    assert_equal(
+        "session=abc123; HttpOnly; SameSite=Strict; Secure; Path=/account; Domain=example.com; Max-Age=3600; Expires=Wed, 21 Oct 2026 07:28:00 GMT",
+        sample_full_set_cookie_header(),
+    ).
 
 @test
 pub cookie_jar_get_reads_present_and_missing_values(): Bool ->
     let jar = sample_jar();
-    assert_equal("abc123", option_string_or_empty(jar.get("session"))) and assert_equal("", option_string_or_empty(jar.get("missing"))).
+    assert_equal("abc123", option_string_or_empty(jar.get("session")))
+        and assert_equal("", option_string_or_empty(jar.get("missing"))).

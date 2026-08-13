@@ -351,4 +351,5 @@ impl<'a> AggregateAbiInput<'a> {
 
 #[cfg(test)]
 #[path = "aggregate_abi_test.rs"]
+#[cfg(test)]
 mod aggregate_abi_test;

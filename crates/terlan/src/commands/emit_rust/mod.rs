@@ -226,6 +226,56 @@ fn core_intrinsic_call_expr_to_rust(call: &CoreIntrinsicCall) -> Option<String> 
                 core_expr_to_rust(value)?
             ))
         }
+        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringCharacters) => {
+            let [value] = call.args.as_slice() else {
+                return None;
+            };
+            Some(format!(
+                "{}.chars().map(|value| value.to_string()).collect::<Vec<String>>()",
+                core_expr_to_rust(value)?
+            ))
+        }
+        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringCodepoints) => {
+            let [value] = call.args.as_slice() else {
+                return None;
+            };
+            Some(format!(
+                "{}.chars().map(|value| i64::from(u32::from(value))).collect::<Vec<i64>>()",
+                core_expr_to_rust(value)?
+            ))
+        }
+        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringUtf8ByteAt) => {
+            let [value, index] = call.args.as_slice() else {
+                return None;
+            };
+            Some(format!(
+                "(i64::from({}.as_bytes()[usize::try_from({}).expect(\"UTF-8 byte index\")]))",
+                core_expr_to_rust(value)?,
+                core_expr_to_rust(index)?
+            ))
+        }
+        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringUtf8FindAnyByte) => {
+            let [value, start, candidates] = call.args.as_slice() else {
+                return None;
+            };
+            let value = core_expr_to_rust(value)?;
+            let start = core_expr_to_rust(start)?;
+            let candidates = core_expr_to_rust(candidates)?;
+            Some(format!(
+                "{{ let value = {value}; let start = usize::try_from({start}).expect(\"UTF-8 search start\"); let candidates = {candidates}; assert!(start <= value.len() && candidates.is_ascii(), \"invalid UTF-8 byte search\"); value.as_bytes()[start..].iter().position(|byte| candidates.as_bytes().contains(byte)).map_or(-1_i64, |index| i64::try_from(start + index).expect(\"UTF-8 search index\")) }}"
+            ))
+        }
+        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringUtf8Slice) => {
+            let [value, start, length] = call.args.as_slice() else {
+                return None;
+            };
+            let value = core_expr_to_rust(value)?;
+            let start = core_expr_to_rust(start)?;
+            let length = core_expr_to_rust(length)?;
+            Some(format!(
+                "{{ let value = {value}; let start = usize::try_from({start}).expect(\"UTF-8 slice start\"); let length = usize::try_from({length}).expect(\"UTF-8 slice length\"); std::str::from_utf8(&value.as_bytes()[start..start + length]).expect(\"UTF-8 slice boundaries\").to_string() }}"
+            ))
+        }
         _ => None,
     }
 }
@@ -390,8 +440,8 @@ fn rust_binary_operator(operator: &str) -> Option<&'static str> {
         ">=" => Some(">="),
         "<" => Some("<"),
         "<=" => Some("<="),
-        "and" | "&&" => Some("&&"),
-        "or" | "||" => Some("||"),
+        "and" => Some("&&"),
+        "or" => Some("||"),
         _ => None,
     }
 }
@@ -538,4 +588,5 @@ fn is_rust_keyword(name: &str) -> bool {
 
 #[cfg(test)]
 #[path = "emit_rust_test.rs"]
+#[cfg(test)]
 mod emit_rust_test;

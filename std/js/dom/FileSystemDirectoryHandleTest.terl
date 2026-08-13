@@ -21,26 +21,26 @@ pub generated_binding_surface_contract(): Bool -> true.
 pub get_directory_handle_typechecks(
     receiver: FileSystemDirectoryHandle,
     name: JsString,
-    options: FileSystemGetDirectoryOptions
+    options: FileSystemGetDirectoryOptions,
 ): Promise[FileSystemDirectoryHandle] ->
     receiver.get_directory_handle(name, options).
 
 pub get_file_handle_typechecks(
     receiver: FileSystemDirectoryHandle,
     name: JsString,
-    options: FileSystemGetFileOptions
+    options: FileSystemGetFileOptions,
 ): Promise[FileSystemFileHandle] ->
     receiver.get_file_handle(name, options).
 
 pub remove_entry_typechecks(
     receiver: FileSystemDirectoryHandle,
     name: JsString,
-    options: FileSystemRemoveOptions
+    options: FileSystemRemoveOptions,
 ): Promise[std.core.Unit] ->
     receiver.remove_entry(name, options).
 
 pub resolve_typechecks(
     receiver: FileSystemDirectoryHandle,
-    possible_descendant: FileSystemHandle
+    possible_descendant: FileSystemHandle,
 ): Promise[Option[std.js.Array[JsString]]] ->
     receiver.resolve(possible_descendant).

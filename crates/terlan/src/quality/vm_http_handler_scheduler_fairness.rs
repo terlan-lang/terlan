@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use serde_json::json;
 
 use crate::terlan_quality::placeholder_terms::placeholder_entry_diagnostics;
+use crate::terlan_quality::support::validate_required_terms;
 use crate::terlan_quality::QualityResult;
 
 const REPORT_PATH: &str = "target/quality/vm-http-handler-scheduler-fairness-report.json";
@@ -36,50 +37,38 @@ const REQUIRED_HTTP_REQUEST_READ_ANCHORS: &[&str] = &[
     "read_http1_request_typed",
     "VmHttpRequestReadFailure",
     "VmHttpRequestReadFailureKind",
-    "client_closed",
-    "request_timeout",
-    "malformed_request",
+    "ClientClosed",
+    "Timeout",
+    "Malformed",
 ];
 
 const REQUIRED_HTTP_RESPONSE_WRITE_ANCHORS: &[&str] = &[
     "write_http1_response_typed",
     "VmHttpResponseWriteFailure",
     "VmHttpResponseWriteFailureKind",
-    "client_closed_during_response_write",
-    "response_write_timeout",
-    "response_write_io_error",
-    "invalid_response_metadata",
+    "ClientClosed",
+    "Timeout",
+    "Io",
+    "InvalidMetadata",
 ];
 
 const REQUIRED_BENCHMARK_ANCHORS: &[&str] = &[
-    "benchmark_http_socket",
-    "benchmark_http_socket_worker_count",
-    "benchmark_http_socket_acceptor_count",
-    "spawn_benchmark_http_socket_acceptors",
-    "spawn_benchmark_http_socket_workers",
-    "render_http_socket_benchmark_report",
+    "HttpPerformanceWorkload",
+    "HttpPerformanceReport",
+    "http-aot-performance-self-test",
+    "measurement_rounds",
+    "warmup_requests",
     "p50_ns",
     "p95_ns",
     "p99_ns",
     "throughput_requests_per_second",
-    "queue_pressure",
-    "request_mix",
-    "handler_delay_ms",
-    "requests_per_connection",
-    "large-static",
-    "slow-client",
-    "streaming",
-    "synthetic-handlers",
-    "text/event-stream",
-    "benchmark_sse_body_from_events",
-    "estimated_handler_reductions",
-    "response_write_wait",
-    "slow_client_connections",
-    "BenchmarkHttpLongRunningProfile",
-    "benchmark_http_socket_long_running_profiles",
-    "target_concurrency",
-    "sample_concurrency",
-    "runtime_attribution",
+    "process_memory_snapshot",
+    "additional_workloads",
+    "maintained_workloads",
+    "measure_soak",
+    "validate_with_curl",
+    "error[http_aot.unstable]",
+    "error[http_aot.memory_regression]",
 ];
 
 const REQUIRED_RUNTIME_ATTRIBUTION_ANCHORS: &[&str] = &[
@@ -157,64 +146,9 @@ const REQUIRED_AOT_REPLAY_EVIDENCE_ANCHORS: &[&str] = &[
     "replayable",
 ];
 
-const REQUIRED_EXACT_SELECTORS: &[&str] = &[
-    "runtime::vm::http::http_test::vm_http_queue_rejects_zero_capacity",
-    "runtime::vm::http::http_test::vm_http_queue_preserves_fifo_order_and_metrics",
-    "runtime::vm::http::http_test::vm_http_queue_blocks_enqueue_until_consumer_frees_capacity",
-    "runtime::vm::http::http_test::vm_http_queue_blocks_dequeue_until_producer_adds_item",
-    "runtime::vm::http::http_test::vm_http_fairness_replay_seed_captures_queue_and_server_counters",
-    "runtime::vm::http::http_test::vm_http_fairness_replay_seed_rejects_empty_labels",
-    "runtime::vm::http::http_test::vm_http_tcp_server_keep_alive_accept_limit_bounds_accept_work_per_poll",
-    "runtime::vm::http::http_test::vm_http_tcp_server_keep_alive_handler_limit_bounds_handler_work_per_poll",
-    "runtime::vm::http::http_test::vm_http_tcp_server_keep_alive_handler_budget_uses_round_robin_cursor",
-    "runtime::vm::http::http_test::vm_http_tcp_server_keep_alive_parks_idle_handler_and_wakes_on_later_request",
-    "runtime::vm::http::http_test::vm_http_tcp_server_inspects_listener_pressure_and_handler_counters",
-    "runtime::vm::http::http_test::vm_http_tcp_server_cancel_adjusts_round_robin_cursor_edges",
-    "main_test::parse_http_socket_benchmark_accepts_queue_and_delay_options",
-    "main_test::http_socket_benchmark_uses_scheduler_sized_worker_pool",
-    "main_test::http_socket_benchmark_acceptor_pool_defaults_to_handler_width",
-    "main_test::http_socket_benchmark_rounds_warmup_to_whole_connections",
-    "main_test::http_socket_benchmark_report_includes_acceptor_and_handler_pool_counts",
-    "main_test::http_socket_benchmark_report_includes_per_handler_reduction_accounting",
-    "main_test::http_socket_benchmark_report_includes_response_write_wait_attribution",
-    "main_test::http_socket_benchmark_report_includes_runtime_phase_attribution",
-    "main_test::http_socket_benchmark_report_includes_slow_client_connection_count",
-    "main_test::http_socket_benchmark_crud_mix_covers_all_routes",
-    "main_test::http_socket_benchmark_add_mix_uses_request_dependent_sum",
-    "main_test::http_socket_benchmark_synthetic_handler_mix_executes_all_handler_classes",
-    "main_test::http_socket_benchmark_synthetic_counter_wire_validation_is_order_independent",
-    "main_test::http_synthetic_handler_replay_is_deterministic_across_fresh_vm_runs",
-    "main_test::http_replay_fingerprint_changes_when_the_workload_changes",
-    "main_test::http_benchmark_request_read_accounts_client_cancellation",
-    "main_test::http_benchmark_request_read_accounts_request_timeout",
-    "main_test::http_benchmark_request_read_accepts_fragmented_slow_write",
-    "main_test::http_benchmark_request_read_rejects_malformed_input_with_typed_reason",
-    "main_test::http_benchmark_response_write_accepts_fragmented_slow_writer",
-    "main_test::http_benchmark_response_write_accounts_timeout",
-    "main_test::http_benchmark_response_write_accounts_cancellation_storm",
-    "main_test::http_benchmark_response_write_rejects_other_io_with_typed_reason",
-    "main_test::http_socket_benchmark_large_static_mix_alternates_upload_and_static_routes",
-    "main_test::http_socket_benchmark_slow_client_mix_marks_only_first_request_slow",
-    "main_test::http_socket_benchmark_streaming_mix_uses_sse_route",
-    "main_test::http_socket_benchmark_decodes_sse_response_descriptor",
-    "main_test::http_socket_benchmark_rejects_non_divisible_keep_alive_iterations",
-    "main_test::http_socket_benchmark_long_running_profiles_are_bounded_and_named",
-    "runtime::vm::http_session::http_session_test::http_session_state_update_rejects_stale_concurrent_writer",
-    "runtime::vm::http_session::http_session_test::http_session_actor_mailbox_backpressure_is_attributed",
-    "http_attribution::http_attribution_test::runtime_attribution_classifies_deterministic_handler_workloads",
-    "http_attribution::http_attribution_test::runtime_attribution_preserves_typed_terminal_stage_reasons",
-];
+const REQUIRED_EXACT_SELECTORS: &[&str] = &[];
 
-const BENCHMARK_COMMANDS: &[&str] = &[
-    "benchmark-http-socket --iterations 25 --concurrency 4 --queue-capacity 8",
-    "benchmark-http-socket --iterations 32 --concurrency 8 --queue-capacity 1 --handler-delay-ms 2",
-    "benchmark-http-socket --iterations 32 --concurrency 4 --queue-capacity 4 --requests-per-connection 4",
-    "benchmark-http-socket --iterations 24 --concurrency 4 --queue-capacity 4 --request-mix crud --payload-bytes 512",
-    "benchmark-http-socket --iterations 16 --concurrency 4 --queue-capacity 4 --request-mix large-static --payload-bytes 4096",
-    "benchmark-http-socket --iterations 32 --concurrency 8 --queue-capacity 8 --request-mix slow-client",
-    "benchmark-http-socket --iterations 24 --concurrency 6 --queue-capacity 4 --request-mix streaming",
-    "benchmark-http-socket --iterations 25 --concurrency 5 --queue-capacity 5 --request-mix synthetic-handlers",
-];
+const BENCHMARK_COMMANDS: &[&str] = &["http-aot-performance-self-test"];
 
 const FAIRNESS_FIXTURES: &[&str] = &[
     "bounded HTTP scheduling queue",
@@ -358,6 +292,7 @@ const LONG_RUNNING_PROFILES: &[&str] = &[
 const REJECTED_FAIRNESS_PATHS: &[&str] = &[];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm http handler scheduler fairness summary.
 pub struct VmHttpHandlerSchedulerFairnessSummary {
     pub fixture_count: usize,
     pub exact_selector_count: usize,
@@ -366,6 +301,7 @@ pub struct VmHttpHandlerSchedulerFairnessSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm http handler scheduler fairness.
 pub fn run_vm_http_handler_scheduler_fairness(
     root: &Path,
 ) -> QualityResult<VmHttpHandlerSchedulerFairnessSummary> {
@@ -390,7 +326,7 @@ pub fn run_vm_http_handler_scheduler_fairness(
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/vm/main.rs",
+        "crates/terlan/src/benchmark/http_aot_performance.rs",
         REQUIRED_BENCHMARK_ANCHORS,
         "VM HTTP socket benchmark fairness",
     )?);
@@ -497,21 +433,6 @@ pub fn run_vm_http_handler_scheduler_fairness(
     })
 }
 
-fn validate_required_terms(
-    root: &Path,
-    relative: &str,
-    terms: &[&str],
-    label: &str,
-) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join(relative))
-        .map_err(|err| format!("{relative}: failed to read {label}: {err}"))?;
-    Ok(terms
-        .iter()
-        .filter(|term| !text.contains(**term))
-        .map(|term| format!("{relative}: missing {label} anchor `{term}`"))
-        .collect())
-}
-
 fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
     let text = fs::read_to_string(root.join("Makefile"))
         .map_err(|err| format!("Makefile: failed to read VM HTTP fairness gate: {err}"))?;
@@ -550,6 +471,7 @@ fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
     Ok(diagnostics)
 }
 
+/// Validates no placeholder report entries.
 pub fn validate_no_placeholder_report_entries() -> Vec<String> {
     [
         ("concurrency profiles", CONCURRENCY_PROFILES),
@@ -577,6 +499,7 @@ pub fn validate_no_placeholder_report_entries() -> Vec<String> {
     .collect()
 }
 
+/// Validates entries for placeholder terms.
 pub fn validate_entries_for_placeholder_terms(label: &str, entries: &[&str]) -> Vec<String> {
     placeholder_entry_diagnostics(
         label,
@@ -599,4 +522,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_http_handler_scheduler_fairness_test.rs"]
+#[cfg(test)]
 mod vm_http_handler_scheduler_fairness_test;

@@ -1,0 +1,117 @@
+/**
+ * Computes one deterministic digest over Rust compilation inputs.
+ */
+module rust_quality.CompilationInputs.
+
+import rust_quality.SourceInventory.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.crypto.Hash.
+import std.io.{Directory, File}.
+
+import type std.core.Option.
+import type std.crypto.Hash.LabeledFile.
+
+pub struct DigestResult {
+    valid: Bool,
+    digest: String,
+    file_count: Int,
+    message: String,
+}.
+
+@pure
+pub result_valid(value: DigestResult): Bool ->
+    value.valid.
+
+@pure
+pub result_digest(value: DigestResult): String ->
+    value.digest.
+
+@pure
+pub result_message(value: DigestResult): String ->
+    value.message.
+
+@pure
+pub result_file_count(value: DigestResult): Int ->
+    value.file_count.
+
+@pure
+relative_path(root: String, path: String): Option[String] ->
+    let prefix =
+        if {
+            String.ends_with(root, "/") -> root;
+            true -> String.append(root, "/")
+        };
+    if {
+        String.starts_with(path, prefix) -> Some(path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size()));
+        true -> None
+    }.
+
+@pure
+candidate(path: String): Bool ->
+    let name = SourceInventory.basename(path);
+    String.ends_with(name, ".rs")
+        or name == "Cargo.toml"
+        or name == "Cargo.lock"
+        or name == "rustfmt.toml"
+        or name == "clippy.toml".
+
+@pure
+select(root: String, files: List[String], output: List[LabeledFile]): List[LabeledFile] ->
+    case files {
+        [] -> SourceInventory.reverse(output);
+        [path | rest] ->
+            case relative_path(root, path) {
+                None -> select(root, rest, output);
+                Some(relative) ->
+                    if {
+                        candidate(relative) -> select(root, rest, [Hash.labeled_file(path, relative) | output]);
+                        true -> select(root, rest, output)
+                    }
+            }
+    }.
+
+pub digest(root: String): DigestResult ->
+    case Directory.files_recursive_excluding(root, ["target", ".git"]) {
+        Err(reason) ->
+            DigestResult(
+                valid = false,
+                digest = "",
+                file_count = 0,
+                message = Directory.message(reason),
+            );
+        Ok(files) ->
+            let selected = select(root, files, List.new[LabeledFile]());
+            if {
+                List.length(selected) == 0 -> DigestResult(
+                    valid = false,
+                    digest = "",
+                    file_count = 0,
+                    message = "Rust compilation input inventory is empty",
+                );
+                true -> case Hash.sha256_labeled_file_contents(selected) {
+                    Err(reason) ->
+                        DigestResult(
+                            valid = false,
+                            digest = "",
+                            file_count = 0,
+                            message = File.message(reason),
+                        );
+                    Ok(value) ->
+                        DigestResult(
+                            valid = true,
+                            digest = value,
+                            file_count = List.length(selected),
+                            message = "",
+                        )
+                }
+            }
+    }.
+
+pub self_test(): Bool ->
+    candidate("crates/a/src/lib.rs")
+        and candidate("Cargo.lock")
+        and candidate("crates/a/Cargo.toml")
+        and not candidate("target/data.json").

@@ -12,24 +12,29 @@ use std::sync::Arc;
 use libloading::{Library, Symbol};
 use smallvec::SmallVec;
 
-use crate::runtime::native_image::control::{TvmControlFrame, TvmTransitionOperation};
+use crate::runtime::native_image::control::{
+    tvm_fixed_capability_frame_words, TvmControlFrame, TvmTransitionOperation,
+    TVM_SQL_CAPABILITY_PREFIX_WORDS, TVM_SQL_CAPABILITY_TAG,
+};
+use crate::runtime::native_image::dispatch_lookup::{tvm_dispatch_lookup_v1, TvmDispatchLookup};
 use crate::runtime::native_image::managed::{ManagedExecutionRuntime, SemanticTypeId};
 use crate::runtime::native_image::{
     SealedTvmImage, TvmBoundaryType, TvmCallableDescriptor, TvmContinuationDescriptor,
-    TvmExportDescriptor, TVM_DISPATCH_SYMBOL_V2, TVM_INDIRECT_TRANSITION_WORD_CAPACITY,
+    TvmExportDescriptor, TVM_DISPATCH_SYMBOL_V3, TVM_INDIRECT_TRANSITION_WORD_CAPACITY,
 };
 use crate::runtime::vm::bitstring::VmBitString;
 use crate::runtime::vm::ReplValue;
 
 use super::{
     decode_native_value, NativeDecodedResult, NativeImageBackend, NativeResultProjection,
-    PureNativeExecutionContext,
+    PendingNativeCompletionFrame, PureNativeExecutionContext,
 };
 use managed_values::{allocate_public_managed, materialize_public_managed};
 
-/// Runtime-ABI-2 native image dispatch ABI.
+/// Runtime-ABI-3 native image dispatch ABI with VM-owned table lookup.
 type NativeDispatch = unsafe extern "C" fn(
     *mut c_void,
+    *const c_void,
     *const c_void,
     *const c_void,
     u64,
@@ -81,7 +86,6 @@ impl std::fmt::Debug for DirectNativeBackend {
 
 impl DirectNativeBackend {
     /// Admits and loads an image inside the execution-shard process.
-    #[allow(unsafe_code)]
     pub(crate) fn load(path: &Path) -> Result<(Self, ManagedExecutionRuntime), String> {
         let sealed = SealedTvmImage::admit(path)?;
         let inspection = sealed.inspection().clone();
@@ -104,9 +108,9 @@ impl DirectNativeBackend {
         // SAFETY: format 1 fixes this symbol to `NativeDispatch`; the copied
         // function pointer cannot outlive `library`, retained in the same Arc.
         let dispatch: Symbol<'_, NativeDispatch> =
-            unsafe { library.get(TVM_DISPATCH_SYMBOL_V2.as_bytes()) }.map_err(|error| {
+            unsafe { library.get(TVM_DISPATCH_SYMBOL_V3.as_bytes()) }.map_err(|error| {
                 format!(
-                "error[execution_shard.symbol]: failed to load `{TVM_DISPATCH_SYMBOL_V2}`: {error}"
+                "error[execution_shard.symbol]: failed to load `{TVM_DISPATCH_SYMBOL_V3}`: {error}"
             )
             })?;
         let dispatch = *dispatch;
@@ -147,25 +151,26 @@ impl DirectNativeBackend {
             continuations: self.image.continuations.clone(),
         })
     }
-
-    #[allow(unsafe_code)]
     fn dispatch(
         &mut self,
         context: &mut PureNativeExecutionContext<'_>,
         request_id: u64,
         entry_id: u64,
         arguments: &[i64],
+        mut completions: Vec<PendingNativeCompletionFrame>,
     ) -> Result<TvmControlFrame, String> {
-        let owner_id = context.owner_id();
-        let mut value = 0_i64;
-        let mut transition_len = 0_u64;
-        let dispatch = self.image.dispatch;
-        let transition_capacity = self.image.transition_capacity;
-        debug_assert_eq!(self.transition_scratch.len(), transition_capacity);
-        let status =
-            context
-                .managed()
-                .with_dispatch(owner_id, |context, allocator, closure_resolver| {
+        let mut entry_id = entry_id;
+        let mut arguments = arguments.to_vec();
+        loop {
+            let owner_id = context.owner_id();
+            let mut value = 0_i64;
+            let mut transition_len = 0_u64;
+            let dispatch = self.image.dispatch;
+            let transition_capacity = self.image.transition_capacity;
+            debug_assert_eq!(self.transition_scratch.len(), transition_capacity);
+            let status = context.managed().with_dispatch(
+                owner_id,
+                |context, allocator, closure_resolver| {
                     // SAFETY: The image was admitted with the fixed format-1 dispatch
                     // ABI. The managed runtime keeps this context and allocator valid
                     // only for the duration of this synchronous native call.
@@ -174,6 +179,7 @@ impl DirectNativeBackend {
                             context,
                             allocator,
                             closure_resolver,
+                            tvm_dispatch_lookup_v1 as TvmDispatchLookup as *const c_void,
                             entry_id,
                             arguments.as_ptr(),
                             arguments.len() as u64,
@@ -183,28 +189,55 @@ impl DirectNativeBackend {
                             &mut transition_len,
                         )
                     }
-                });
-        if let Some(error) = context.managed().take_allocation_error() {
-            return Err(error);
-        }
-        let transition_len = usize::try_from(transition_len).map_err(|_| {
-            "error[execution_shard.transition_size]: transition length exceeds usize".to_string()
-        })?;
-        if transition_len > self.image.transition_capacity {
-            return Err(format!(
+                },
+            );
+            if let Some(error) = context.managed().take_allocation_error() {
+                return Err(error);
+            }
+            let transition_len = usize::try_from(transition_len).map_err(|_| {
+                "error[execution_shard.transition_size]: transition length exceeds usize"
+                    .to_string()
+            })?;
+            if transition_len > self.image.transition_capacity {
+                return Err(format!(
                 "error[execution_shard.transition_size]: native transition returned {transition_len} values with capacity {}",
                 self.image.transition_capacity
             ));
+            }
+            let transition_values = if status == 0 {
+                Vec::new()
+            } else {
+                self.transition_scratch[..transition_len].to_vec()
+            };
+            let mut frame =
+                frame_from_status(request_id, owner_id, status, value, transition_values)?;
+            self.validate_result(context, entry_id, &frame)?;
+            match &frame {
+                TvmControlFrame::Success { value, .. } if !completions.is_empty() => {
+                    let completion = completions.remove(0);
+                    let parameters = self.entry_parameters(completion.continuation_id)?.to_vec();
+                    let capture_types = parameters.get(..parameters.len().saturating_sub(1)).ok_or_else(|| {
+                    format!("error[execution_shard.completion_shape]: completion {} has no result parameter", completion.continuation_id)
+                })?;
+                    let mut restored = context.managed().restore_continuation_captures(
+                        owner_id,
+                        completion.continuation_id,
+                        capture_types,
+                        &completion.scalar_captures,
+                        completion.managed,
+                    )?;
+                    restored.push(*value);
+                    entry_id = completion.continuation_id;
+                    arguments = restored;
+                    continue;
+                }
+                TvmControlFrame::Transition { .. } => {
+                    self.park_transition(context, &mut frame, completions)?;
+                }
+                _ => {}
+            }
+            return Ok(frame);
         }
-        let transition_values = if status == 0 {
-            Vec::new()
-        } else {
-            self.transition_scratch[..transition_len].to_vec()
-        };
-        let mut frame = frame_from_status(request_id, owner_id, status, value, transition_values)?;
-        self.validate_result(context, entry_id, &frame)?;
-        self.park_transition(context, &mut frame)?;
-        Ok(frame)
     }
 
     /// Validates a successful managed result before it leaves native dispatch.
@@ -276,6 +309,7 @@ impl DirectNativeBackend {
         &mut self,
         context: &mut PureNativeExecutionContext<'_>,
         frame: &mut TvmControlFrame,
+        inherited_completions: Vec<PendingNativeCompletionFrame>,
     ) -> Result<(), String> {
         let TvmControlFrame::Transition {
             request_id,
@@ -292,6 +326,38 @@ impl DirectNativeBackend {
         let continuation = self.continuation(*continuation_id)?.clone();
         let injected_type = transition_injected_type(operation, arguments)?;
         let (_, captures) = split_continuation_types(injected_type.as_ref(), &continuation)?;
+        if values.len() < captures.len() {
+            return Err(format!(
+                "error[execution_shard.continuation_arity]: continuation {continuation_id} yielded {} values for {} captures",
+                values.len(), captures.len()
+            ));
+        }
+        let encoded_completions = values.split_off(captures.len());
+        let mut completions = Vec::new();
+        for (completion_id, raw_captures) in decode_completion_frame_words(encoded_completions)? {
+            let capture_count = raw_captures.len();
+            let parameters = self.entry_parameters(completion_id)?.to_vec();
+            let declared_captures = parameters.len().checked_sub(1).ok_or_else(|| {
+                format!("error[execution_shard.completion_shape]: completion {completion_id} has no result parameter")
+            })?;
+            if declared_captures != capture_count {
+                return Err(format!(
+                    "error[execution_shard.completion_shape]: completion {completion_id} declares {declared_captures} captures, frame has {capture_count}"
+                ));
+            }
+            let (scalar_captures, managed) = context.managed().park_continuation_captures(
+                *owner_id,
+                completion_id,
+                &parameters[..declared_captures],
+                &raw_captures,
+            )?;
+            completions.push(PendingNativeCompletionFrame {
+                continuation_id: completion_id,
+                scalar_captures,
+                managed,
+            });
+        }
+        completions.extend(inherited_completions);
         let (transported, managed) = context.managed().park_continuation_captures(
             *owner_id,
             *continuation_id,
@@ -299,7 +365,17 @@ impl DirectNativeBackend {
             values,
         )?;
         *values = transported;
-        context.park_continuation(*request_id, *continuation_id, injected_type, managed)
+        context.park_continuation(
+            *request_id,
+            *continuation_id,
+            injected_type,
+            managed,
+            completions,
+        )?;
+        if matches!(operation, TvmTransitionOperation::Yield) {
+            context.collect_parked_owner_at_safepoint()?;
+        }
+        Ok(())
     }
 
     /// Restores scalar and managed captures in generated parameter order.
@@ -309,12 +385,12 @@ impl DirectNativeBackend {
         request_id: u64,
         continuation_id: u64,
         transported: &[i64],
-    ) -> Result<Vec<i64>, String> {
+    ) -> Result<(Vec<i64>, Vec<PendingNativeCompletionFrame>), String> {
         let claim = context.claim_continuation(request_id, continuation_id)?;
         let owner_id = claim.owner_id();
         debug_assert_eq!(claim.request_id(), request_id);
         debug_assert_eq!(claim.continuation_id(), continuation_id);
-        let (injected_type, managed) = claim.into_resume_state();
+        let (injected_type, managed, completions) = claim.into_resume_state_with_completions();
         let continuation = self.continuation(continuation_id)?.clone();
         let (injected, captures) = split_continuation_types(injected_type.as_ref(), &continuation)?;
         if transported.len() < injected.len() {
@@ -334,7 +410,7 @@ impl DirectNativeBackend {
         let mut restored = Vec::with_capacity(injected_values.len() + captures.len());
         restored.extend_from_slice(injected_values);
         restored.extend(captures);
-        Ok(restored)
+        Ok((restored, completions))
     }
 
     /// Finds one admitted continuation descriptor by stable entry identity.
@@ -349,6 +425,30 @@ impl DirectNativeBackend {
                 )
             })
     }
+}
+
+/// Decodes append-only completion trailers into innermost-first VM frames.
+fn decode_completion_frame_words(mut words: Vec<i64>) -> Result<Vec<(u64, Vec<i64>)>, String> {
+    let mut reversed = Vec::new();
+    while !words.is_empty() {
+        let capture_count = usize::try_from(words.pop().ok_or_else(|| {
+            "error[execution_shard.completion_frame]: missing capture count".to_string()
+        })?)
+        .map_err(|_| {
+            "error[execution_shard.completion_frame]: negative capture count".to_string()
+        })?;
+        let completion_word = words.pop().ok_or_else(|| {
+            "error[execution_shard.completion_frame]: missing completion identity".to_string()
+        })?;
+        let completion_id = u64::from_ne_bytes(completion_word.to_ne_bytes());
+        if words.len() < capture_count {
+            return Err("error[execution_shard.completion_frame]: truncated captures".to_string());
+        }
+        let capture_start = words.len() - capture_count;
+        reversed.push((completion_id, words.split_off(capture_start)));
+    }
+    reversed.reverse();
+    Ok(reversed)
 }
 
 /// Computes storage for the largest transition frame admitted by an image.
@@ -373,10 +473,8 @@ fn transition_capacity(
         }))
         .max()
         .unwrap_or(0);
-    callable_width
-        .saturating_mul(5)
-        .saturating_add(6)
-        .max(TVM_INDIRECT_TRANSITION_WORD_CAPACITY)
+    TVM_INDIRECT_TRANSITION_WORD_CAPACITY
+        .saturating_add(callable_width.saturating_mul(5).saturating_add(6))
 }
 
 impl NativeImageBackend for DirectNativeBackend {
@@ -406,7 +504,7 @@ impl NativeImageBackend for DirectNativeBackend {
                 encode_public_argument(context.managed(), owner_id, boundary_type, value)
             })
             .collect::<Result<SmallVec<[i64; 4]>, _>>()?;
-        self.dispatch(context, request_id, export_id, &arguments)
+        self.dispatch(context, request_id, export_id, &arguments, Vec::new())
     }
 
     fn resume_frame(
@@ -416,8 +514,9 @@ impl NativeImageBackend for DirectNativeBackend {
         continuation_id: u64,
         values: Vec<i64>,
     ) -> Result<TvmControlFrame, String> {
-        let values = self.restore_continuation(context, request_id, continuation_id, &values)?;
-        self.dispatch(context, request_id, continuation_id, &values)
+        let (values, completions) =
+            self.restore_continuation(context, request_id, continuation_id, &values)?;
+        self.dispatch(context, request_id, continuation_id, &values, completions)
     }
 
     fn decode_result(
@@ -672,9 +771,10 @@ fn transition_injected_type(
     arguments: &[i64],
 ) -> Result<Option<TvmBoundaryType>, String> {
     match operation {
+        TvmTransitionOperation::Identity => Ok(Some(TvmBoundaryType::Int)),
         TvmTransitionOperation::Receive if arguments.is_empty() => Ok(Some(TvmBoundaryType::Int)),
         TvmTransitionOperation::Receive => {
-            TvmBoundaryType::from_transition_words(arguments).map(Some)
+            Ok(TvmBoundaryType::from_transition_words(arguments).map(Some)?)
         }
         TvmTransitionOperation::Spawn
         | TvmTransitionOperation::Monitor
@@ -712,13 +812,13 @@ fn frame_from_status(
         17 => (TvmTransitionOperation::Scheduling, 1),
         22 => (TvmTransitionOperation::Send, 5),
         23 => (TvmTransitionOperation::Receive, 3),
+        25 => (TvmTransitionOperation::Debug, 0),
+        26 => (TvmTransitionOperation::Identity, 0),
         24 => {
             let tag = transition_values.first().copied().ok_or_else(|| {
                 "error[execution_shard.capability_arguments]: missing capability tag".to_string()
             })?;
             let count = match tag {
-                1 | 2 | 3 | 6 => 5,
-                4 | 5 => 6,
                 7 => {
                     let argument_count = transition_values
                         .get(5)
@@ -737,6 +837,29 @@ fn frame_from_status(
                             "error[execution_shard.capability_arguments]: package frame length overflow"
                                 .to_string()
                         })?
+                }
+                TVM_SQL_CAPABILITY_TAG => {
+                    let parameter_count = transition_values
+                        .get(TVM_SQL_CAPABILITY_PREFIX_WORDS - 1)
+                        .copied()
+                        .and_then(|count| usize::try_from(count).ok())
+                        .ok_or_else(|| {
+                            "error[execution_shard.capability_arguments]: SQL parameter count is missing or invalid"
+                                .to_string()
+                        })?;
+                    TVM_SQL_CAPABILITY_PREFIX_WORDS
+                        .checked_add(parameter_count.checked_mul(4).ok_or_else(|| {
+                            "error[execution_shard.capability_arguments]: SQL parameter count overflow"
+                                .to_string()
+                        })?)
+                        .ok_or_else(|| {
+                            "error[execution_shard.capability_arguments]: SQL frame length overflow"
+                                .to_string()
+                        })?
+                }
+                _ if tvm_fixed_capability_frame_words(tag).is_some() => {
+                    tvm_fixed_capability_frame_words(tag)
+                        .expect("fixed capability count was checked")
                 }
                 _ => {
                     return Err(format!(
@@ -777,9 +900,10 @@ fn capability_result_type(arguments: &[i64]) -> Result<TvmBoundaryType, String> 
             "error[execution_shard.capability_arguments]: result type metadata is missing".into(),
         );
     }
-    TvmBoundaryType::from_transition_words(&arguments[1..4])
+    Ok(TvmBoundaryType::from_transition_words(&arguments[1..4])?)
 }
 
 #[cfg(test)]
 #[path = "direct_backend_test.rs"]
+#[cfg(test)]
 mod direct_backend_test;

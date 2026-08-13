@@ -9,26 +9,13 @@ use super::{
     VmPostgresDecodeType, VmPostgresDecodedValue, VmPostgresDriverCompletion,
     VmPostgresDriverConnection, VmPostgresDriverControl, VmPostgresDriverOperation,
     VmPostgresDriverPool, VmPostgresDriverPreparedStatement, VmPostgresDriverQueryTarget,
-    VmPostgresDriverRequest, VmPostgresDriverRow, VmPostgresDriverTransaction, VmPostgresFailure,
+    VmPostgresDriverRequest, VmPostgresDriverRow, VmPostgresDriverTransaction,
+    VmPostgresDriverWait, VmPostgresFailure, VmPostgresIoInterest,
 };
 use crate::terlan_native::postgres::libpq::{ConnectPoll, DriverConnection, DriverResult};
 
 const COMMAND_OK: i64 = 1;
 const TUPLES_OK: i64 = 2;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum VmPostgresIoInterest {
-    Drive,
-    Read,
-    Write,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct VmPostgresDriverWait {
-    pub(crate) request_id: RequestId,
-    pub(crate) socket: i64,
-    pub(crate) interest: VmPostgresIoInterest,
-}
 
 #[derive(Debug)]
 struct PoolEntry {
@@ -55,12 +42,18 @@ enum ReturnConnection {
 #[derive(Debug)]
 enum PendingTask {
     Acquire,
-    Query { one: bool },
+    Query {
+        one: bool,
+    },
     Execute,
     BatchExecute,
     Begin,
     FinishTransaction,
-    Prepare { sql: String, parameter_count: usize },
+    #[cfg(test)]
+    Prepare {
+        sql: String,
+        parameter_count: usize,
+    },
 }
 
 #[derive(Debug)]
@@ -90,8 +83,9 @@ impl PendingIo {
         match operation {
             VmPostgresDriverOperation::Begin {
                 driver_connection, ..
-            }
-            | VmPostgresDriverOperation::Prepare {
+            } => self.owns_connection(*driver_connection),
+            #[cfg(test)]
+            VmPostgresDriverOperation::Prepare {
                 driver_connection, ..
             } => self.owns_connection(*driver_connection),
             VmPostgresDriverOperation::Query {
@@ -191,14 +185,17 @@ impl VmPostgresLibpqWorker {
         self.queued.push_back(request);
     }
 
+    #[cfg(test)]
     pub(crate) fn wait(&self) -> Option<VmPostgresDriverWait> {
         self.waits.values().next().copied()
     }
 
+    #[cfg(test)]
     pub(crate) fn waits(&self) -> Vec<VmPostgresDriverWait> {
         self.waits.values().copied().collect()
     }
 
+    #[cfg(test)]
     pub(crate) fn drive_once(&mut self) -> Option<(RequestId, VmPostgresDriverCompletion)> {
         self.drive_ready(None)
     }
@@ -225,6 +222,7 @@ impl VmPostgresLibpqWorker {
                 continue;
             }
             let request_id = request.request_id;
+            let owner = request.owner;
             if self.cancelled.remove(&request_id.value) {
                 self.completions.push_back((request_id, cancelled()));
                 continue;
@@ -232,7 +230,9 @@ impl VmPostgresLibpqWorker {
             match self.start(request) {
                 Ok(Some(completion)) => self.completions.push_back((request_id, completion)),
                 Ok(None) => {}
-                Err(error) => self.completions.push_back((request_id, failure(error))),
+                Err(error) => self
+                    .completions
+                    .push_back((request_id, failure_for_owner(error, owner))),
             }
         }
 
@@ -472,6 +472,7 @@ impl VmPostgresLibpqWorker {
             VmPostgresDriverOperation::Rollback {
                 driver_transaction, ..
             } => self.start_finish(request_id, driver_transaction, false),
+            #[cfg(test)]
             VmPostgresDriverOperation::Prepare {
                 driver_connection,
                 sql,
@@ -647,7 +648,9 @@ impl VmPostgresLibpqWorker {
                     let transaction = VmPostgresDriverTransaction(self.allocate_resource_id()?);
                     self.transactions.insert(transaction, handle);
                     completion = VmPostgresDriverCompletion::TransactionStarted(transaction);
-                } else if let PendingTask::Prepare {
+                }
+                #[cfg(test)]
+                if let PendingTask::Prepare {
                     ref sql,
                     parameter_count,
                 } = pending.task
@@ -697,9 +700,11 @@ impl VmPostgresLibpqWorker {
             PendingTask::BatchExecute if status == COMMAND_OK => {
                 Ok(VmPostgresDriverCompletion::Unit)
             }
-            PendingTask::Begin | PendingTask::FinishTransaction | PendingTask::Prepare { .. }
-                if status == COMMAND_OK =>
-            {
+            PendingTask::Begin | PendingTask::FinishTransaction if status == COMMAND_OK => {
+                Ok(VmPostgresDriverCompletion::Unit)
+            }
+            #[cfg(test)]
+            PendingTask::Prepare { .. } if status == COMMAND_OK => {
                 Ok(VmPostgresDriverCompletion::Unit)
             }
             _ => Err(connection.result_error()),
@@ -748,12 +753,15 @@ impl VmPostgresLibpqWorker {
             VmPostgresDecodeType::String => {
                 postgres::string(row, column).map(VmPostgresDecodedValue::String)
             }
+            #[cfg(test)]
             VmPostgresDecodeType::Int => {
                 postgres::int(row, column).map(VmPostgresDecodedValue::Int)
             }
+            #[cfg(test)]
             VmPostgresDecodeType::Bool => {
                 postgres::r#bool(row, column).map(VmPostgresDecodedValue::Bool)
             }
+            #[cfg(test)]
             VmPostgresDecodeType::Json => postgres::json(row, column).and_then(|value| {
                 serde_json::to_string(value.as_serde())
                     .map(VmPostgresDecodedValue::Json)
@@ -928,53 +936,9 @@ impl VmPostgresLibpqWorker {
     }
 }
 
-fn sql_pending(
-    request_id: RequestId,
-    connection: DriverConnection,
-    return_connection: ReturnConnection,
-    task: PendingTask,
-    sql: String,
-) -> PendingIo {
-    PendingIo {
-        request_id,
-        connection: Some(connection),
-        return_connection,
-        task,
-        phase: PendingPhase::Sending {
-            sql,
-            parameters: Vec::new(),
-        },
-    }
-}
-
-fn stale(kind: &str) -> postgres::PostgresError {
-    postgres::PostgresError::new(
-        "postgres.driver.stale_resource",
-        format!("Postgres driver {kind} resource is not live."),
-    )
-}
-
-fn stale_failure(kind: &str) -> VmPostgresFailure {
-    VmPostgresFailure::new(
-        "postgres.driver.stale_resource",
-        format!("Postgres driver {kind} resource is not live."),
-    )
-}
-
-fn cancelled() -> VmPostgresDriverCompletion {
-    VmPostgresDriverCompletion::Failed(VmPostgresFailure::new(
-        "postgres.cancelled",
-        "Postgres request was cancelled.",
-    ))
-}
-
-fn failure(error: postgres::PostgresError) -> VmPostgresDriverCompletion {
-    VmPostgresDriverCompletion::Failed(adapter_failure(error))
-}
-
-fn adapter_failure(error: postgres::PostgresError) -> VmPostgresFailure {
-    VmPostgresFailure::new(error.code(), error.message())
-}
+#[path = "libpq_worker/helpers.rs"]
+mod helpers;
+use helpers::*;
 
 #[path = "libpq_worker/readiness.rs"]
 mod readiness;
@@ -985,8 +949,10 @@ mod test_support;
 
 #[cfg(test)]
 #[path = "libpq_worker_test.rs"]
+#[cfg(test)]
 mod libpq_worker_test;
 
 #[cfg(test)]
 #[path = "libpq_docker_gate_test.rs"]
+#[cfg(test)]
 pub(crate) mod libpq_docker_gate_test;

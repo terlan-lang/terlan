@@ -21,7 +21,7 @@ pub generated_binding_surface_contract(): Bool -> true.
 pub supported_locales_of_typechecks(
     receiver: DateTimeFormatConstructor,
     locales: Array[JsString] | JsString,
-    options: DateTimeFormatOptions
+    options: DateTimeFormatOptions,
 ): Array[JsString] ->
     receiver.supported_locales_of(locales, options).
 

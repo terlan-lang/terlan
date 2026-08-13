@@ -58,6 +58,19 @@ pub total(price: Int, tax: Int): Int ->
 }
 
 #[test]
+fn accepts_commas_and_equality_inside_let_bound_comprehensions() {
+    let source = r#"
+module comprehension_let_binding.
+
+pub pairs(left: List[Int], right: List[Int]): List[{Int, Int}] ->
+    let selected = [{x, y} | x <- left, y <- right, x == y];
+    selected.
+"#;
+
+    parse_module(source).expect("comprehension punctuation belongs to the binding value");
+}
+
+#[test]
 fn parses_grouped_refutable_bindings_with_shared_else() {
     let source = r#"
 module grouped_let_else.
@@ -88,6 +101,56 @@ pub resolve(first: Result[Int, String], second: Result[Int, String]): Result[Int
     assert_eq!(bindings.len(), 2);
     assert_eq!(else_clauses.len(), 1);
     assert!(matches!(body.as_deref(), Some(Expr::Call { .. })));
+}
+
+#[test]
+fn parses_grouped_refutable_bindings_with_multi_argument_calls() {
+    let source = r#"
+module grouped_let_call_values.
+
+pub resolve(value: Dynamic): Option[Int] ->
+    let {
+        Some(left) <- read_int(value, "left");
+        Some(right) <- read_int(value, "right")
+    } else {
+        _ -> None
+    };
+    Some(left + right).
+"#;
+
+    let generated = super::super::lalrpop_boundary::parse_lalrpop_module_syntax(source);
+    assert!(
+        generated.is_ok(),
+        "generated boundary rejected grouped calls: {generated:?}"
+    );
+    let module = parse_module(source).expect("call-valued grouped let else should parse");
+    let Decl::Function(function) = &module.declarations[0] else {
+        panic!("expected function declaration");
+    };
+    let Expr::Let { bindings, .. } = &function.clauses[0].body else {
+        panic!("expected grouped let expression");
+    };
+    assert_eq!(bindings.len(), 2);
+}
+
+#[test]
+fn parses_grouped_refutable_bindings_inside_lambda_body() {
+    let source = r#"
+module lambda_grouped_let_else.
+
+pub resolve(values: List[Dynamic]): List[Option[Int]] ->
+    values.map((value) ->
+        let {
+            Some(left) <- read_int(value, "left");
+            Some(right) <- read_int(value, "right")
+        } else {
+            _ -> None
+        };
+        Some(left + right)
+    ).
+"#;
+
+    parse_module(source).expect("grouped let else should parse inside lambda body");
 }
 
 #[test]
@@ -302,7 +365,7 @@ pub add(pair: {Int, Int}): Int ->
 }
 
 #[test]
-fn rejects_retired_unbraced_refutable_let_form() {
+fn parses_single_unbraced_refutable_let_form() {
     let source = r#"
 module unbraced_let_else.
 
@@ -313,5 +376,19 @@ pub resolve(value: Dynamic): Dynamic ->
     result.
 "#;
 
-    parse_module(source).expect_err("unbraced refutable let should fail");
+    let module = parse_module(source).expect("single unbraced refutable let should parse");
+    let Decl::Function(function) = &module.declarations[0] else {
+        panic!("expected function declaration");
+    };
+    let Expr::Let {
+        bindings,
+        else_clauses,
+        body,
+    } = &function.clauses[0].body
+    else {
+        panic!("expected refutable let expression");
+    };
+    assert_eq!(bindings.len(), 1);
+    assert_eq!(else_clauses.len(), 1);
+    assert!(matches!(body.as_deref(), Some(Expr::Var(name)) if name == "result"));
 }

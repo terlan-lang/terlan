@@ -10,15 +10,27 @@ use crate::compiler::native_ir::{
 
 use super::super::BuildOneError;
 use super::native_cache;
-use super::native_image::{DIRECT_AOT_BACKEND, DIRECT_AOT_CACHE_SCHEMA};
+use super::native_image::{
+    DIRECT_AOT_BACKEND, DIRECT_AOT_CACHE_SCHEMA, DIRECT_AOT_CODEGEN_REVISION,
+};
 use super::parallel_compile::{bounded_worker_limit, run_indexed_bounded, ParallelTaskError};
 
-const NATIVE_UNIT_SCHEMA: &str = "terlan-native-unit-v1";
+const NATIVE_UNIT_SCHEMA: &str = "terlan-native-unit-v6";
 
 /// One verified object path for each NativeIR module in canonical order.
 pub(super) struct NativeObjectUnits {
     /// Content-addressed relocatable object paths consumed by the final link.
     pub(super) paths: Vec<PathBuf>,
+}
+
+struct NativeObjectUnitContext<'a> {
+    units_root: &'a Path,
+    application: &'a str,
+    natives: &'a [NativeModule],
+    target: &'a str,
+    abi: &'a str,
+    implementation: &'a str,
+    policy: NativeCodegenPolicy,
 }
 
 /// Loads or builds independently reusable module objects with bounded workers.
@@ -43,7 +55,13 @@ pub(super) fn prepare_native_object_units(
     target: &str,
     policy: NativeCodegenPolicy,
 ) -> Result<NativeObjectUnits, BuildOneError> {
-    let abi = native_application_abi_fingerprint(natives).map_err(BuildOneError::Message)?;
+    let abi = native_application_abi_fingerprint(natives)
+        .map_err(|error| BuildOneError::Message(error.into()))?;
+    // Unit emission can inline bodies from application-wide mutual-tail
+    // components and embeds the closed atom/layout inventory. Every unit is
+    // therefore dependent on the complete NativeIR implementation closure,
+    // even though only the selected module's symbols are exported.
+    let implementation = application_implementation_fingerprint(natives);
     let units_root = cache_root.join("units");
     fs::create_dir_all(&units_root).map_err(|error| {
         BuildOneError::Message(format!(
@@ -52,16 +70,17 @@ pub(super) fn prepare_native_object_units(
         ))
     })?;
     let indexes = (0..natives.len()).collect::<Vec<_>>();
+    let context = NativeObjectUnitContext {
+        units_root: &units_root,
+        application,
+        natives,
+        target,
+        abi: &abi,
+        implementation: &implementation,
+        policy,
+    };
     let result = run_indexed_bounded(&indexes, bounded_worker_limit(), |index| {
-        prepare_native_object_unit(
-            &units_root,
-            application,
-            natives,
-            *index,
-            target,
-            &abi,
-            policy,
-        )
+        prepare_native_object_unit(&context, *index)
     });
     match result {
         Ok(paths) => Ok(NativeObjectUnits { paths }),
@@ -73,17 +92,21 @@ pub(super) fn prepare_native_object_units(
 }
 
 fn prepare_native_object_unit(
-    units_root: &Path,
-    application: &str,
-    natives: &[NativeModule],
+    context: &NativeObjectUnitContext<'_>,
     module_index: usize,
-    target: &str,
-    abi: &str,
-    policy: NativeCodegenPolicy,
 ) -> Result<PathBuf, BuildOneError> {
+    let NativeObjectUnitContext {
+        units_root,
+        application,
+        natives,
+        target,
+        abi,
+        implementation,
+        policy,
+    } = context;
     let native = &natives[module_index];
     let input = format!(
-        "{}\0{DIRECT_AOT_BACKEND}\0{DIRECT_AOT_CACHE_SCHEMA}\0{NATIVE_UNIT_SCHEMA}\0{}\0{target}\0{abi}\0{}",
+        "{}\0{DIRECT_AOT_BACKEND}\0{DIRECT_AOT_CACHE_SCHEMA}\0{DIRECT_AOT_CODEGEN_REVISION}\0{NATIVE_UNIT_SCHEMA}\0{}\0{target}\0{abi}\0{implementation}\0{}",
         env!("CARGO_PKG_VERSION"),
         policy.cache_identity(),
         native.fingerprint_sha256()
@@ -119,8 +142,8 @@ fn prepare_native_object_unit(
     if load().is_some() {
         return Ok(object_path);
     }
-    let object = emit_native_module_object_with_policy(application, natives, module_index, policy)
-        .map_err(BuildOneError::Message)?;
+    let object = emit_native_module_object_with_policy(application, natives, module_index, *policy)
+        .map_err(|error| BuildOneError::Message(error.into()))?;
     native_cache::publish_file(&object_path, &object)?;
     let manifest = native_cache::cache_manifest_bytes(
         &identity,
@@ -134,3 +157,17 @@ fn prepare_native_object_unit(
     )?;
     Ok(object_path)
 }
+
+/// Hashes the complete implementation closure consumed by every object unit.
+fn application_implementation_fingerprint(natives: &[NativeModule]) -> String {
+    let fingerprints = natives
+        .iter()
+        .map(NativeModule::fingerprint_sha256)
+        .collect::<Vec<_>>()
+        .join("\0");
+    native_cache::sha256_hex(fingerprints.as_bytes())
+}
+
+#[cfg(test)]
+#[path = "native_units_test.rs"]
+mod test;

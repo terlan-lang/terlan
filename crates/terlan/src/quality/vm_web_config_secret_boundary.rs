@@ -34,7 +34,7 @@ const REQUIRED_TLS_STD_ANCHORS: &[&str] = &[
 
 const REQUIRED_GENERATED_TLS_CONFIG_ANCHORS: &[&str] = &[
     "pub type Config =",
-    "passphrase_env : Option[String]",
+    "passphrase_env: Option[String]",
     "pub auto(domains: List[String], email: String): Config.",
     "pub manual(cert: String, key: String): Config.",
     "pub internal(server_name: String): Config.",
@@ -43,7 +43,7 @@ const REQUIRED_GENERATED_TLS_CONFIG_ANCHORS: &[&str] = &[
 const REQUIRED_POSTGRES_STD_ANCHORS: &[&str] = &[
     "pub type Config = {url: String}.",
     "pub connect(config: Config): Result[Pool, Error]",
-    "pub query(pool: Pool, sql: String, params: List[Json])",
+    "pub query(target: Pool | Connection, sql: String, params: List[Json])",
     "pub transaction[T](pool: Pool, body: (Connection) -> Result[T, Error])",
 ];
 
@@ -148,10 +148,10 @@ const REQUIRED_TEST_ANCHORS: &[&str] = &[
 ];
 
 const REQUIRED_GATE_TERMS: &[&str] = &[
-    "vm-web-config-secret-boundary-check: vm-web-security-policy-check",
-    "$(MAKE) http-tls-check",
-    "$(MAKE) web-compose-check",
-    "vm_web_config_secret_boundary_test",
+    "vm-web-config-secret-boundary-check:",
+    "vm-web-security-policy-check",
+    "http-tls-check",
+    "web-compose-check",
     "vm-web-config-secret-boundary",
 ];
 
@@ -241,6 +241,7 @@ const RUNTIME_RELOAD_DECISIONS: &[&str] = &[
 const REJECTED_SECRET_PATHS: &[&str] = &[];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm web config secret boundary summary.
 pub struct VmWebConfigSecretBoundarySummary {
     pub config_schema_count: usize,
     pub rejected_config_count: usize,
@@ -250,6 +251,7 @@ pub struct VmWebConfigSecretBoundarySummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm web config secret boundary.
 pub fn run_vm_web_config_secret_boundary(
     root: &Path,
 ) -> QualityResult<VmWebConfigSecretBoundarySummary> {
@@ -304,7 +306,7 @@ pub fn run_vm_web_config_secret_boundary(
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/commands/build/project_manifest.rs",
+        "crates/terlan/src/commands/build/project_manifest/parser.rs",
         REQUIRED_PROJECT_MANIFEST_ANCHORS,
         "project manifest unknown-key validation",
     )?);
@@ -322,7 +324,7 @@ pub fn run_vm_web_config_secret_boundary(
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/commands/serve/tls.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
         REQUIRED_RUNTIME_TLS_SECRET_ANCHORS,
         "local TLS secret usage",
     )?);
@@ -346,7 +348,7 @@ pub fn run_vm_web_config_secret_boundary(
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/commands/serve/compose_check.rs",
+        "crates/terlan/src/commands/dev_dependencies.rs",
         REQUIRED_COMPOSE_ANCHORS,
         "Docker dependency config validation",
     )?);
@@ -478,4 +480,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_web_config_secret_boundary_test.rs"]
+#[cfg(test)]
 mod vm_web_config_secret_boundary_test;

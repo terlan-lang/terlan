@@ -36,6 +36,6 @@ pub (value: TextEncoder) encode(input: JsString): Uint8Array[ArrayBuffer] ->
  */
 pub (value: TextEncoder) encode_into(
     source: JsString,
-    destination: Uint8Array[ArrayBufferLike]
+    destination: Uint8Array[ArrayBufferLike],
 ): TextEncoderEncodeIntoResult ->
     native.

@@ -132,6 +132,7 @@ pub fn value() -> i32 { 1 }
 
 #[cfg(test)]
 #[path = "value_test.rs"]
+#[cfg(test)]
 mod value_test;
 "#;
 
@@ -144,6 +145,7 @@ fn inline_test_marker_allows_adjacent_test_support_module() {
     let source = r#"
 #[cfg(test)]
 #[path = "value_test_support.rs"]
+#[cfg(test)]
 mod value_test_support;
 "#;
 
@@ -202,19 +204,19 @@ fn inline_test_marker_allows_conditional_support_items() {
     let source = r#"
 enum Value {
     Ready,
-    #[cfg(test)]
+#[cfg(test)]
     Fixture,
 }
 
 impl Value {
-    #[cfg(test)]
+#[cfg(test)]
     fn fixture() -> Self { Self::Fixture }
 }
 
 fn label(value: Value) -> &'static str {
     match value {
         Value::Ready => "ready",
-        #[cfg(test)]
+#[cfg(test)]
         Value::Fixture => "fixture",
     }
 }
@@ -269,6 +271,7 @@ pub fn value() -> i32 { 1 }
 
 #[cfg(test)]
 mod tests {
+#[cfg(test)]
     #[test]
     fn value_is_one() {}
 }
@@ -281,7 +284,6 @@ mod tests {
 #[test]
 fn inline_test_marker_rejects_inline_test_function() {
     let source = r#"
-#[cfg(test)]
 #[test]
 fn value_is_one() {}
 "#;
@@ -348,6 +350,27 @@ fn rust_quality_passes_clean_fixture() -> io::Result<()> {
     Ok(())
 }
 
+/// Verifies CQ-2 behavior modules retain test classification after becoming
+/// ordinary Rust modules below a named adjacent-test directory.
+#[test]
+fn rust_quality_classifies_named_behavior_modules_as_tests() -> io::Result<()> {
+    let repo = TestRepo::new("named-behavior-module")?;
+    let mut source = String::from("#[cfg(test)]\nmod fixtures {}\n");
+    for index in 0..1_100 {
+        source.push_str(&format!("fn case_{index}() {{}}\n"));
+    }
+    repo.write_source(
+        "crates/test/src/parser_test/declaration_contracts.rs",
+        &source,
+    )?;
+
+    let summary = run_rust_quality(repo.root()).expect("named behavior module quality");
+
+    assert_eq!(summary.oversized_count, 0);
+    assert_eq!(summary.inline_test_count, 0);
+    Ok(())
+}
+
 /// Verifies oversized files require an explicit reviewed baseline.
 ///
 /// Inputs:
@@ -370,7 +393,7 @@ fn rust_quality_rejects_unbaselined_oversized_file() -> io::Result<()> {
 
     let error = run_rust_quality(repo.root()).expect_err("oversized failure");
 
-    assert!(error.contains("crates/test/src/lib.rs: 1001 lines exceeds 1000"));
+    assert!(error.contains("crates/test/src/lib.rs: 1001 lines exceeds 999"));
     Ok(())
 }
 
@@ -446,7 +469,7 @@ fn rust_quality_rejects_obsolete_size_baseline_row() -> io::Result<()> {
     let error = run_rust_quality(repo.root()).expect_err("obsolete baseline must fail");
 
     assert!(error.contains(
-        "crates/test/src/lib.rs: obsolete file-size baseline row; 1 lines is within limit 1000"
+        "crates/test/src/lib.rs: obsolete file-size baseline row; 1 lines is within limit 999"
     ));
     Ok(())
 }
@@ -570,7 +593,7 @@ pub fn value() -> i32 {
     Ok(())
 }
 
-/// Verifies undocumented implementation items fail the Rustdoc gate.
+/// Verifies undocumented public APIs fail the Rustdoc gate.
 ///
 /// Inputs:
 /// - Repository fixture with an undocumented Rust function.
@@ -579,8 +602,8 @@ pub fn value() -> i32 {
 /// - Test passes when the Rustdoc checker reports the item and line.
 ///
 /// Transformation:
-/// - Locks the permanent rule that implementation functions and types need
-///   adjacent Rustdoc.
+/// - Locks the permanent rule that public functions and types need adjacent
+///   Rustdoc.
 #[test]
 fn rustdoc_rejects_undocumented_function() -> io::Result<()> {
     let repo = TestRepo::new("rustdoc-missing")?;
@@ -596,6 +619,80 @@ pub fn value() -> i32 {
     let error = run_rustdoc(repo.root()).expect_err("rustdoc failure");
 
     assert!(error.contains("crates/test/src/lib.rs:2: undocumented fn `value`"));
+    Ok(())
+}
+
+/// Verifies self-explanatory private helpers do not require formulaic prose.
+#[test]
+fn rustdoc_ignores_private_helpers() -> io::Result<()> {
+    let repo = TestRepo::new("rustdoc-private-helper")?;
+    repo.write_source(
+        "crates/test/src/lib.rs",
+        r#"
+fn add_one(value: i32) -> i32 {
+    value + 1
+}
+"#,
+    )?;
+
+    let summary = run_rustdoc(repo.root()).expect("private helper ignored");
+
+    assert_eq!(summary.undocumented_count, 0);
+    Ok(())
+}
+
+/// Verifies test bodies do not require API-shaped Rustdoc.
+#[test]
+fn rustdoc_ignores_test_sources() -> io::Result<()> {
+    let repo = TestRepo::new("rustdoc-test-source")?;
+    repo.write_source(
+        "crates/test/tests/public_surface.rs",
+        r#"
+pub fn fixture_helper() {}
+
+#[test]
+fn public_surface_works() {}
+"#,
+    )?;
+
+    let summary = run_rustdoc(repo.root()).expect("test source ignored");
+
+    assert_eq!(summary.undocumented_count, 0);
+    Ok(())
+}
+
+/// Verifies unsafe implementation boundaries always require safety docs.
+#[test]
+fn rustdoc_rejects_undocumented_unsafe_function() -> io::Result<()> {
+    let repo = TestRepo::new("rustdoc-unsafe")?;
+    repo.write_source(
+        "crates/test/src/lib.rs",
+        r#"
+unsafe fn cross_abi_boundary() {}
+"#,
+    )?;
+
+    let error = run_rustdoc(repo.root()).expect_err("unsafe function rejected");
+
+    assert!(error.contains("undocumented fn `cross_abi_boundary`"));
+    Ok(())
+}
+
+/// Verifies internal subsystem contracts can opt into the high-signal policy.
+#[test]
+fn rustdoc_rejects_undocumented_marked_contract() -> io::Result<()> {
+    let repo = TestRepo::new("rustdoc-contract")?;
+    repo.write_source(
+        "crates/test/src/lib.rs",
+        r#"
+// rustdoc-contract: preserves scheduler ownership across handoff.
+fn transfer_owner() {}
+"#,
+    )?;
+
+    let error = run_rustdoc(repo.root()).expect_err("marked contract rejected");
+
+    assert!(error.contains("undocumented fn `transfer_owner`"));
     Ok(())
 }
 

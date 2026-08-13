@@ -1,95 +1,182 @@
 /**
- * Terlan VM Agent contract.
- *
- * `std.vm.Agent` models a supervised process that owns one typed state value.
- * It is a runtime process wrapper built on the same ordinary type and method
- * rules as the rest of Terlan; it is not a portable mutable reference.
+ * Typed state cells implemented in Terlan over VM process primitives.
  */
 module std.vm.Agent.
 
-import std.core.{Error, Result, Unit}.
+import std.core.Unit.
+import std.vm.Process.{ActorMessage}.
+import std.vm.{Message, Process}.
 
-/**
- * Agent represents a supervised typed state process.
- *
- * Input: type parameter `T`.
- * Output: an opaque runtime-owned process handle.
- * Transformation: hides process identity, mailbox mechanics, and supervision
- * details behind a typed receiver-method surface.
- */
-@target.vm {process_mailbox: true}
-pub opaque type Agent[T].
+import type std.vm.Message.
 
-/**
- * Starts an agent with an initial value.
- *
- * Input: one initial state value of type `T`.
- * Output: `Result[Agent[T], Error]`.
- * Transformation: asks the selected VM runtime to start a supervised state
- * process and normalizes startup failure into the standard typed error channel.
- */
-@target.vm {process_mailbox: true}
-pub start[T](initial: T): Result[Agent[T], Error] ->
-    native.
+pub type AgentInit.
 
-/**
- * Reads the current state.
- *
- * Input: one `Agent[T]` receiver.
- * Output: the current state value.
- * Transformation: performs a typed synchronous state read without exposing a
- * process message or reply tuple in Terlan source.
- */
-@target.vm {process_mailbox: true}
-pub (agent: Agent[T]) get(): T ->
-    native.
+pub type AgentGet.
 
-/**
- * Replaces state by applying a writer function.
- *
- * Input: one mutable `Agent[T]` receiver and one writer from `T` to `T`.
- * Output: `Unit`.
- * Transformation: updates the agent state through receiver mutability while
- * preserving process ownership behind the target runtime.
- */
-@target.vm {process_mailbox: true}
-pub (mut agent: Agent[T]) update(writer: (T) -> T): Unit ->
-    native.
+pub type AgentUpdate.
 
-/**
- * Updates state and returns a derived value.
- *
- * Input: one `Agent[T]` receiver and one writer from `T` to a named
- * `{state, value}` pair.
- * Output: the derived value.
- * Transformation: performs a single state transition and read through the
- * runtime-owned process. The receiver handle remains stable; the target runtime
- * owns the state transition.
- */
-@target.vm {process_mailbox: true}
-pub (agent: Agent[T]) get_and_update[U](writer: (T) -> {state: T, value: U}): U ->
-    native.
+pub type AgentGetAndUpdate.
 
-/**
- * Queues an asynchronous state update.
- *
- * Input: one mutable `Agent[T]` receiver and one writer from `T` to `T`.
- * Output: `Unit`.
- * Transformation: records an effectful state update request without exposing
- * runtime cast messages in Terlan source.
- */
-@target.vm {process_mailbox: true}
-pub (mut agent: Agent[T]) cast(writer: (T) -> T): Unit ->
-    native.
+pub type AgentStop.
 
-/**
- * Stops the agent.
- *
- * Input: one mutable `Agent[T]` receiver.
- * Output: `Unit`.
- * Transformation: asks the selected VM runtime to terminate the supervised state
- * process and release the target-owned handle.
- */
+pub type AgentTag = Atom["agent"].
+
+pub type AgentCommandTag = Atom["agent_command"].
+
+pub type AgentCommandKind = AgentInit | AgentGet | AgentUpdate | AgentGetAndUpdate | AgentStop.
+
+pub type AgentReply[T] = {Atom["agent_reply"], request_id: Int, value: T}.
+
+pub type AgentCommand[T] =
+      {
+          Atom["agent_command"],
+          kind: AgentCommandKind,
+          request_id: Int,
+          reply_to: std.vm.Process.Process[AgentReply[T]],
+          value: T
+      }.
+
+pub type Agent[T] = {Atom["agent"], process: std.vm.Process.Process[AgentCommand[T]], placeholder: T}.
+
 @target.vm {process_mailbox: true}
-pub (mut agent: Agent[T]) stop(): Unit ->
-    native.
+pub start[T](process: std.vm.Process.Process[AgentCommand[T]], initial: T): Agent[T] ->
+    let agent = make_agent[T](process, initial);
+    let reply_to = Process.current[AgentReply[T]]();
+    Process.send[AgentCommand[T]](
+        process,
+        Message.wrap[AgentCommand[T]](AgentCommand(AgentInit, 0, reply_to, initial)),
+    );
+    agent.
+
+pub make_agent[T](process: std.vm.Process.Process[AgentCommand[T]], initial: T): Agent[T] ->
+    Agent(process, initial).
+
+@target.vm {process_mailbox: true}
+pub serve[T](witness: T): Unit ->
+    let message = Process.receive[AgentCommand[T]]();
+    let command = Message.unwrap[AgentCommand[T]](message);
+    case command {
+        {AgentCommandTag, kind, _request_id, _reply_to, value} ->
+            if {
+                kind == AgentInit -> serve_state[T](value);
+                true -> serve[T](witness)
+            }
+    }.
+
+@target.vm {process_mailbox: true}
+pub get[T](agent: Agent[T], request_id: Int): T ->
+    let reply_to = Process.current[AgentReply[T]]();
+    case agent {
+        {AgentTag, process, placeholder} ->
+            let _sent =
+                Process.send[AgentCommand[T]](
+                    process,
+                    Message.wrap[AgentCommand[T]](
+                        AgentCommand(AgentGet, request_id, reply_to, placeholder),
+                    ),
+                );
+            await_reply[T](request_id, placeholder)
+    }.
+
+@target.vm {process_mailbox: true}
+pub request_get[T](
+    agent: Agent[T],
+    request_id: Int,
+    reply_to: std.vm.Process.Process[AgentReply[T]],
+): Unit ->
+    case agent {
+        {AgentTag, process, placeholder} ->
+            Process.send[AgentCommand[T]](
+                process,
+                Message.wrap[AgentCommand[T]](
+                    AgentCommand(AgentGet, request_id, reply_to, placeholder),
+                ),
+            )
+    }.
+
+@target.vm {process_mailbox: true}
+pub update[T](agent: Agent[T], value: T): Unit ->
+    let reply_to = Process.current[AgentReply[T]]();
+    case agent {
+        {AgentTag, process, _placeholder} ->
+            Process.send[AgentCommand[T]](
+                process,
+                Message.wrap[AgentCommand[T]](AgentCommand(AgentUpdate, 0, reply_to, value)),
+            )
+    }.
+
+@target.vm {process_mailbox: true}
+pub cast[T](agent: Agent[T], value: T): Unit ->
+    let reply_to = Process.current[AgentReply[T]]();
+    case agent {
+        {AgentTag, process, _placeholder} ->
+            Process.send[AgentCommand[T]](
+                process,
+                Message.wrap[AgentCommand[T]](AgentCommand(AgentUpdate, 0, reply_to, value)),
+            )
+    }.
+
+@target.vm {process_mailbox: true}
+pub get_and_update[T](agent: Agent[T], request_id: Int, value: T): T ->
+    let reply_to = Process.current[AgentReply[T]]();
+    case agent {
+        {AgentTag, process, _placeholder} ->
+            let _sent =
+                Process.send[AgentCommand[T]](
+                    process,
+                    Message.wrap[AgentCommand[T]](
+                        AgentCommand(AgentGetAndUpdate, request_id, reply_to, value),
+                    ),
+                );
+            await_reply[T](request_id, value)
+    }.
+
+@target.vm {process_mailbox: true}
+pub stop[T](agent: Agent[T], request_id: Int): Unit ->
+    let reply_to = Process.current[AgentReply[T]]();
+    case agent {
+        {AgentTag, process, placeholder} ->
+            let _sent =
+                Process.send[AgentCommand[T]](
+                    process,
+                    Message.wrap[AgentCommand[T]](
+                        AgentCommand(AgentStop, request_id, reply_to, placeholder),
+                    ),
+                );
+            let _final_state = await_reply[T](request_id, placeholder);
+            Unit
+    }.
+
+pub serve_state[T](state: T): Unit ->
+    let message = Process.receive[AgentCommand[T]]();
+    let command = Message.unwrap[AgentCommand[T]](message);
+    case command {
+        {AgentCommandTag, kind, request_id, reply_to, value} ->
+            if {
+                kind == AgentInit -> serve_state[T](state);
+                kind == AgentGet -> (Process.send[AgentReply[T]](reply_to, Message.wrap[AgentReply[T]](AgentReply(request_id, state))); serve_state[T](state));
+                kind == AgentUpdate -> serve_state[T](value);
+                kind == AgentGetAndUpdate -> (Process.send[AgentReply[T]](reply_to, Message.wrap[AgentReply[T]](AgentReply(request_id, state))); serve_state[T](value));
+                true -> Process.send[AgentReply[T]](
+                    reply_to,
+                    Message.wrap[AgentReply[T]](AgentReply(request_id, state)),
+                )
+            }
+    }.
+
+pub send_reply[T](reply_to: std.vm.Process.Process[AgentReply[T]], request_id: Int, value: T): Unit ->
+    Process.send[AgentReply[T]](
+        reply_to,
+        Message.wrap[AgentReply[T]](AgentReply(request_id, value)),
+    ).
+
+pub await_reply[T](request_id: Int, witness: T): T ->
+    let message = Process.receive[AgentReply[T]]();
+    case Message.unwrap[AgentReply[T]](message) {
+        AgentReply(received_id, value) ->
+            if {
+                received_id == request_id -> value;
+                true -> await_reply[T](request_id, witness)
+            };
+        _unexpected -> await_reply[T](request_id, witness)
+    }.

@@ -123,10 +123,12 @@ pub(super) fn dispatch_http_handler(
 
 impl VmHttpTcpServer {
     /// Installs one lifecycle hook for subsequent server transitions.
+    #[cfg(test)]
     pub(crate) fn install_lifecycle_hook(&mut self, hook: impl VmHttpLifecycleHook + 'static) {
         self.lifecycle_hook = Some(Box::new(hook));
     }
 
+    #[cfg(test)]
     pub(super) fn authorize_lifecycle(
         &mut self,
         event: &VmHttpLifecycleEvent,
@@ -137,6 +139,7 @@ impl VmHttpTcpServer {
         }
     }
 
+    #[cfg(test)]
     pub(super) fn observe_lifecycle(&mut self, event: &VmHttpLifecycleEvent) -> Result<(), String> {
         match self.lifecycle_hook.as_mut() {
             Some(hook) => hook.observe(event),
@@ -145,6 +148,7 @@ impl VmHttpTcpServer {
     }
 
     /// Retains an admitted handler after lifecycle authorization.
+    #[cfg(test)]
     pub(super) fn retain_handler(
         &mut self,
         processes: &mut VmProcessTable,
@@ -191,6 +195,7 @@ impl VmHttpTcpServer {
     }
 
     /// Finishes a retained handler and publishes its non-vetoable unbind event.
+    #[cfg(test)]
     pub(super) fn finish_handler(
         &mut self,
         processes: &mut VmProcessTable,
@@ -208,3 +213,6 @@ impl VmHttpTcpServer {
         Ok(cleanup)
     }
 }
+
+#[cfg(test)]
+mod lifecycle_hooks_test;

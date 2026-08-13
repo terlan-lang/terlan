@@ -203,6 +203,7 @@ const RESOURCE_CLEANUP_DECISIONS: &[&str] = &[
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm persistent actor compaction summary.
 pub struct VmPersistentActorCompactionSummary {
     pub before_after_store_size_count: usize,
     pub replay_equivalence_trace_count: usize,
@@ -213,6 +214,7 @@ pub struct VmPersistentActorCompactionSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm persistent actor compaction.
 pub fn run_vm_persistent_actor_compaction(
     root: &Path,
 ) -> QualityResult<VmPersistentActorCompactionSummary> {
@@ -356,4 +358,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_persistent_actor_compaction_test.rs"]
+#[cfg(test)]
 mod vm_persistent_actor_compaction_test;

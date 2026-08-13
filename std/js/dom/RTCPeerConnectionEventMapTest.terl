@@ -26,7 +26,7 @@ pub icecandidate_typechecks(receiver: RTCPeerConnectionEventMap): RTCPeerConnect
     receiver.icecandidate().
 
 pub icecandidateerror_typechecks(
-    receiver: RTCPeerConnectionEventMap
+    receiver: RTCPeerConnectionEventMap,
 ): RTCPeerConnectionIceErrorEvent ->
     receiver.icecandidateerror().
 

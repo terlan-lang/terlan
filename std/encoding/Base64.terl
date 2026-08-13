@@ -23,7 +23,7 @@ import type std.vm.Bytes.
  * without exposing target-specific exception values.
  */
 pub struct Base64Error includes Error {
-    offset: Int
+    offset: Int,
 }.
 
 /**

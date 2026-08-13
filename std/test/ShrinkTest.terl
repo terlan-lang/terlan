@@ -132,7 +132,7 @@ pub shrink_option_stops_at_none(): Bool ->
  */
 @test
 pub shrink_result_simplifies_ok_payload(): Bool ->
-    assert_equal([ok_zero_result()], shrink_result(Ok(42), (value) -> shrink_int(value), (reason) -> shrink_string(reason))).
+    assert_equal([ok_zero_result()], shrink_result(Ok(42), shrink_int, shrink_string)).
 
 /**
  * Verifies `Err` results shrink through the error-payload shrinker.
@@ -143,7 +143,7 @@ pub shrink_result_simplifies_ok_payload(): Bool ->
  */
 @test
 pub shrink_result_simplifies_err_payload(): Bool ->
-    assert_equal([err_empty_result()], shrink_result(Err("bad"), (value) -> shrink_int(value), (reason) -> shrink_string(reason))).
+    assert_equal([err_empty_result()], shrink_result(Err("bad"), shrink_int, shrink_string)).
 
 /**
  * Verifies non-empty lists shrink to an empty list.
@@ -178,7 +178,7 @@ pub shrink_list_stops_at_empty(): Bool ->
  */
 @test
 pub shrink_pair_simplifies_left_then_right_payloads(): Bool ->
-    assert_equal([{0, "abc"}, {42, ""}], shrink_pair({42, "abc"}, (value) -> shrink_int(value), (text) -> shrink_string(text))).
+    assert_equal([{0, "abc"}, {42, ""}], shrink_pair({42, "abc"}, shrink_int, shrink_string)).
 
 /**
  * Verifies pairs stop when both payload shrinkers stop.
@@ -189,7 +189,7 @@ pub shrink_pair_simplifies_left_then_right_payloads(): Bool ->
  */
 @test
 pub shrink_pair_stops_when_payloads_stop(): Bool ->
-    assert_equal(List.new[{Int, String}](), shrink_pair({0, ""}, (value) -> shrink_int(value), (text) -> shrink_string(text))).
+    assert_equal(List.new[{Int, String}](), shrink_pair({0, ""}, shrink_int, shrink_string)).
 
 /**
  * Verifies non-empty maps shrink to an empty map.
@@ -215,7 +215,10 @@ pub shrink_map_simplifies_nonempty_to_empty(): Bool ->
  */
 @test
 pub shrink_map_stops_at_empty(): Bool ->
-    assert_equal(List.new[std.collections.Map.Map[String, Int]](), shrink_map(Map.new[String, Int](), Map.new[String, Int]())).
+    assert_equal(
+        List.new[std.collections.Map.Map[String, Int]](),
+        shrink_map(Map.new[String, Int](), Map.new[String, Int]()),
+    ).
 
 /**
  * Verifies non-empty objects shrink to an empty object.
@@ -241,7 +244,10 @@ pub shrink_object_simplifies_nonempty_to_empty(): Bool ->
  */
 @test
 pub shrink_object_stops_at_empty(): Bool ->
-    assert_equal(List.new[Object[String]](), shrink_object(std.core.Object.new[String](), std.core.Object.new[String]())).
+    assert_equal(
+        List.new[Object[String]](),
+        shrink_object(std.core.Object.new[String](), std.core.Object.new[String]()),
+    ).
 
 /**
  * Verifies custom shrinkers can remove self candidates.
@@ -265,7 +271,8 @@ pub guard_self_removes_original_candidate(): Bool ->
  */
 @test
 pub limit_bounds_candidate_count(): Bool ->
-    assert_equal([1, 2], limit(2, [1, 2, 3, 4])) and assert_equal(List.new[Int](), limit(0, [1, 2, 3])).
+    assert_equal([1, 2], limit(2, [1, 2, 3, 4]))
+        and assert_equal(List.new[Int](), limit(0, [1, 2, 3])).
 
 none_int_option(): Option[Int] ->
     None.

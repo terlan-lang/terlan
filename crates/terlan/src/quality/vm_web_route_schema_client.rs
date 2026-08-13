@@ -165,6 +165,7 @@ const REJECTED_SCHEMA_CLIENT_PATHS: &[&str] = &[
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm web route schema client summary.
 pub struct VmWebRouteSchemaClientSummary {
     pub route_manifest_hash_case_count: usize,
     pub schema_output_case_count: usize,
@@ -173,6 +174,7 @@ pub struct VmWebRouteSchemaClientSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm web route schema client.
 pub fn run_vm_web_route_schema_client(root: &Path) -> QualityResult<VmWebRouteSchemaClientSummary> {
     let mut diagnostics = Vec::new();
     diagnostics.extend(validate_required_terms(
@@ -315,6 +317,7 @@ fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
         .collect())
 }
 
+/// Validates no placeholder report entries.
 pub fn validate_no_placeholder_report_entries(label: &str, entries: &[&str]) -> Vec<String> {
     entries
         .iter()
@@ -343,4 +346,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_web_route_schema_client_test.rs"]
+#[cfg(test)]
 mod vm_web_route_schema_client_test;

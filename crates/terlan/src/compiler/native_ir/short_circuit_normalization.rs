@@ -143,7 +143,7 @@ pub(super) fn normalize(expr: &mut CoreExpr) {
     else {
         return;
     };
-    if !matches!(operator.as_str(), "and" | "&&" | "or" | "||") {
+    if !matches!(operator.as_str(), "and" | "or") {
         return;
     }
     let operator = operator.clone();

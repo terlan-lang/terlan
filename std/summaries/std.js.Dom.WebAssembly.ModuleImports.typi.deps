@@ -1,7 +1,7 @@
 module=std.js.Dom.WebAssembly.ModuleImports
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 source_hash=4356183871232940482
 interface_hash=9874467114918004039
 interface_doc_hash=9874467114918004039

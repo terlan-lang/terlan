@@ -106,14 +106,6 @@ impl PureNativeBoundary {
             .backend
             .as_deref()
             .expect("prepared native backend remains available");
-        handle_reply(
-            backend,
-            actors,
-            context,
-            prepared,
-            HashSet::new(),
-            trace_call,
-            reply,
-        )
+        handle_reply(backend, actors, context, prepared, 0, trace_call, reply)
     }
 }

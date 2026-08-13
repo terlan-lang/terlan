@@ -287,6 +287,7 @@ const DETERMINISTIC_TRACE_VALIDATION_CASES: &[&str] = &[
 const REJECTED_TELEMETRY_PATHS: &[&str] = &[];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm persistent actor telemetry summary.
 pub struct VmPersistentActorTelemetrySummary {
     pub trace_fixture_count: usize,
     pub span_schema_field_count: usize,
@@ -296,6 +297,7 @@ pub struct VmPersistentActorTelemetrySummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm persistent actor telemetry.
 pub fn run_vm_persistent_actor_telemetry(
     root: &Path,
 ) -> QualityResult<VmPersistentActorTelemetrySummary> {
@@ -437,4 +439,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_persistent_actor_telemetry_test.rs"]
+#[cfg(test)]
 mod vm_persistent_actor_telemetry_test;

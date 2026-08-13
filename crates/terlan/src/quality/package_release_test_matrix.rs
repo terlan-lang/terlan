@@ -212,4 +212,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "package_release_test_matrix_test.rs"]
+#[cfg(test)]
 mod package_release_test_matrix_test;

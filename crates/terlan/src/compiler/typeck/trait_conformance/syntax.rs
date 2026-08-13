@@ -1,4 +1,14 @@
 use super::*;
+
+/// Global and lexical constructor knowledge for kind diagnostics.
+#[derive(Clone, Copy)]
+struct KindDiagnosticEnvironment<'a> {
+    trait_signatures: &'a HashMap<String, ParsedTraitSignature>,
+    type_constructor_arities: &'a HashMap<String, usize>,
+    type_constructor_variances: &'a HashMap<String, Vec<Variance>>,
+    local_kinds: &'a HashMap<String, usize>,
+    local_variances: &'a HashMap<String, Vec<Option<Variance>>>,
+}
 use crate::terlan_syntax::TokenKind;
 
 #[path = "syntax/macro_decls.rs"]
@@ -129,11 +139,13 @@ pub(crate) fn collect_syntax_kind_diagnostics(
                     collect_kind_diagnostics_for_trait_text(
                         super_trait,
                         declaration.span.into(),
-                        trait_signatures,
-                        &type_constructor_arities,
-                        &type_constructor_variances,
-                        &local_kinds,
-                        &local_variances,
+                        KindDiagnosticEnvironment {
+                            trait_signatures,
+                            type_constructor_arities: &type_constructor_arities,
+                            type_constructor_variances: &type_constructor_variances,
+                            local_kinds: &local_kinds,
+                            local_variances: &local_variances,
+                        },
                         &mut diagnostics,
                     );
                 }
@@ -246,11 +258,13 @@ fn collect_kind_diagnostic_for_syntax_type(
     collect_kind_diagnostics_for_trait_text(
         &ty.text,
         ty.span.into(),
-        trait_signatures,
-        type_constructor_arities,
-        type_constructor_variances,
-        local_kinds,
-        local_variances,
+        KindDiagnosticEnvironment {
+            trait_signatures,
+            type_constructor_arities,
+            type_constructor_variances,
+            local_kinds,
+            local_variances,
+        },
         diagnostics,
     );
 }
@@ -277,13 +291,16 @@ fn collect_kind_diagnostic_for_syntax_type(
 fn collect_kind_diagnostics_for_trait_text(
     text: &str,
     span: Span,
-    trait_signatures: &HashMap<String, ParsedTraitSignature>,
-    type_constructor_arities: &HashMap<String, usize>,
-    type_constructor_variances: &HashMap<String, Vec<Variance>>,
-    local_kinds: &HashMap<String, usize>,
-    local_variances: &HashMap<String, Vec<Option<Variance>>>,
+    environment: KindDiagnosticEnvironment<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    let KindDiagnosticEnvironment {
+        trait_signatures,
+        type_constructor_arities,
+        type_constructor_variances,
+        local_kinds,
+        local_variances,
+    } = environment;
     for application in type_applications_in_text(text) {
         collect_type_application_arity_diagnostic(
             &application,
@@ -318,11 +335,13 @@ fn collect_kind_diagnostics_for_trait_text(
                     });
                 }
                 collect_type_application_variance_diagnostic(
-                    &application.name,
-                    index,
-                    param,
-                    arg,
-                    span,
+                    TraitArgumentVariance {
+                        trait_name: &application.name,
+                        param_index: index,
+                        parameter: param,
+                        argument: arg,
+                        span,
+                    },
                     type_constructor_variances,
                     local_variances,
                     diagnostics,
@@ -331,16 +350,7 @@ fn collect_kind_diagnostics_for_trait_text(
         }
 
         for arg in application.type_args {
-            collect_kind_diagnostics_for_trait_text(
-                &arg,
-                span,
-                trait_signatures,
-                type_constructor_arities,
-                type_constructor_variances,
-                local_kinds,
-                local_variances,
-                diagnostics,
-            );
+            collect_kind_diagnostics_for_trait_text(&arg, span, environment, diagnostics);
         }
     }
 }
@@ -364,16 +374,27 @@ fn collect_kind_diagnostics_for_trait_text(
 /// - Reads variance requirements from HKT slot markers, resolves the supplied
 ///   bare constructor's declared variance, and emits a stable diagnostic when
 ///   a required covariant or contravariant slot is not satisfied.
-fn collect_type_application_variance_diagnostic(
-    trait_name: &str,
+struct TraitArgumentVariance<'a> {
+    trait_name: &'a str,
     param_index: usize,
-    param: &str,
-    arg: &str,
+    parameter: &'a str,
+    argument: &'a str,
     span: Span,
+}
+
+fn collect_type_application_variance_diagnostic(
+    argument: TraitArgumentVariance<'_>,
     type_constructor_variances: &HashMap<String, Vec<Variance>>,
     local_variances: &HashMap<String, Vec<Option<Variance>>>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    let TraitArgumentVariance {
+        trait_name,
+        param_index,
+        parameter: param,
+        argument: arg,
+        span,
+    } = argument;
     let requirements = type_param_kind_variance_requirements(param);
     if requirements.iter().all(Option::is_none) {
         return;
@@ -756,8 +777,7 @@ fn kind_arity_display(arity: usize) -> String {
     if arity == 0 {
         return "Type".to_string();
     }
-    std::iter::repeat("Type")
-        .take(arity + 1)
+    std::iter::repeat_n("Type", arity + 1)
         .collect::<Vec<_>>()
         .join(" -> ")
 }

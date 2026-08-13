@@ -1,8 +1,9 @@
 module=std.vm.BitString
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 source_hash=16376228720073418931
 interface_hash=4842818028179746838
 interface_doc_hash=9805979434405196535
-deps=0
+deps=1
+std.vm.Bytes=17172708358078158316

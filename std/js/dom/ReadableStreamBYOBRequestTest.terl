@@ -22,12 +22,12 @@ pub view_typechecks(receiver: ReadableStreamBYOBRequest): Option[ArrayBufferView
 
 pub respond_typechecks(
     receiver: ReadableStreamBYOBRequest,
-    bytes_written: std.js.Number.JsNumber
+    bytes_written: std.js.Number.JsNumber,
 ): Unit ->
     receiver.respond(bytes_written).
 
 pub respond_with_new_view_typechecks(
     receiver: ReadableStreamBYOBRequest,
-    view: ArrayBufferView[ArrayBuffer]
+    view: ArrayBufferView[ArrayBuffer],
 ): Unit ->
     receiver.respond_with_new_view(view).

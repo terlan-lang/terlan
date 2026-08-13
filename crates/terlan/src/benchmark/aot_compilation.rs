@@ -886,7 +886,7 @@ fn ratio_matches(actual: f64, expected: f64) -> bool {
 /// Validates one sorted non-zero timing summary and its percentile fields.
 fn validate_timing(timing: &CompilationTiming, sample_count: usize) -> Result<(), String> {
     if timing.samples_ns.len() != sample_count
-        || timing.samples_ns.iter().any(|sample| *sample == 0)
+        || timing.samples_ns.contains(&0)
         || !timing.samples_ns.windows(2).all(|pair| pair[0] <= pair[1])
         || timing.min_ns != timing.samples_ns[0]
         || timing.max_ns != timing.samples_ns[timing.samples_ns.len() - 1]
@@ -959,5 +959,4 @@ fn executable_name(stem: &str) -> String {
         stem.to_string()
     }
 }
-
 mod self_test;

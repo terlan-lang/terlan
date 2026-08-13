@@ -19,7 +19,7 @@ import type std.js.{Array}.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub composite_typechecks(
-    receiver: PropertyIndexedKeyframes
+    receiver: PropertyIndexedKeyframes,
 ): CompositeOperationOrAuto | Array[CompositeOperationOrAuto] ->
     receiver.composite().
 

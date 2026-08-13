@@ -61,3 +61,4 @@ fn typescript_declaration_type_text_escapes_lowercase_atom_literals() {
 
     assert_eq!(mapped, r#""it\"s\\ready""#);
 }
+use super::*;

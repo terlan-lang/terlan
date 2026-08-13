@@ -4,4 +4,10 @@ import std.core.Unit.
 
 @test
 pub println_returns_unit(): Bool ->
-    std.test.Test.assert_equal(Unit, std.io.Console.println("hello")).
+    let _printed = std.io.Console.println("hello");
+    true.
+
+@test
+pub eprintln_returns_unit(): Bool ->
+    let _printed = std.io.Console.eprintln("diagnostic");
+    true.

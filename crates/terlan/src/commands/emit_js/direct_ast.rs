@@ -436,7 +436,7 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
             operator,
             left,
             right,
-        } if matches!(operator.as_str(), "and" | "&&" | "or" | "||") => {
+        } if matches!(operator.as_str(), "and" | "or") => {
             core_logical_expr_to_oxc_expression(ast, operator, left, right)
         }
         crate::terlan_typeck::CoreExpr::BinaryOp {
@@ -478,8 +478,8 @@ fn core_logical_expr_to_oxc_expression<'a>(
     use oxc_syntax::operator::LogicalOperator;
 
     let operator = match operator {
-        "and" | "&&" => LogicalOperator::And,
-        "or" | "||" => LogicalOperator::Or,
+        "and" => LogicalOperator::And,
+        "or" => LogicalOperator::Or,
         _ => return None,
     };
     Some(ast.expression_logical(
@@ -768,7 +768,7 @@ fn core_lam_expr_to_oxc_expression<'a>(
 /// - Reuses the direct Oxc backend's conservative JavaScript identifier policy
 ///   and lowers Terlan tuple/list patterns to JavaScript array destructuring
 ///   because this backend represents tuple and list values as arrays.
-fn core_lam_param_to_oxc_formal_parameter<'a>(
+pub(super) fn core_lam_param_to_oxc_formal_parameter<'a>(
     ast: oxc_ast::AstBuilder<'a>,
     param: &crate::terlan_typeck::CorePattern,
 ) -> Option<oxc_ast::ast::FormalParameter<'a>> {

@@ -21,6 +21,13 @@ pub(super) fn validate_builtin_annotation_schemas(
         for annotation in &declaration.annotations {
             if annotation_path_matches(annotation, &["test"]) {
                 validate_marker_annotation(annotation, declaration, &["FunctionDecl"], "@test")?;
+            } else if annotation_path_matches(annotation, &["benchmark"]) {
+                validate_marker_annotation(
+                    annotation,
+                    declaration,
+                    &["FunctionDecl"],
+                    "@benchmark",
+                )?;
             } else if annotation_path_matches(annotation, &["pure"]) {
                 validate_marker_annotation(
                     annotation,
@@ -623,10 +630,7 @@ fn validate_annotation_target(
     targets: &[&str],
     label: &str,
 ) -> EbnfCompileResult<()> {
-    if targets
-        .iter()
-        .any(|target| *target == declaration.class.as_str())
-    {
+    if targets.contains(&declaration.class.as_str()) {
         return Ok(());
     }
     annotation_error(

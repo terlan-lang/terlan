@@ -21,8 +21,6 @@ pub(super) fn managed_equality_semantic(ty: NativeType) -> Option<SemanticTypeId
         _ => None,
     }
 }
-
-#[allow(clippy::too_many_arguments)]
 pub(super) fn lower_equality_operand(
     expr: &CoreExpr,
     expected: NativeType,

@@ -23,6 +23,15 @@ pub enum NativeBoundaryTerm {
     Float(f64),
     /// Terlan `Bool`.
     Bool(bool),
+    /// Terlan atom identity.
+    Atom(String),
+    /// Descriptor-checked Terlan record or constructor.
+    Record {
+        /// Constructor or record name.
+        name: String,
+        /// Ordered named fields.
+        fields: Vec<(String, NativeBoundaryTerm)>,
+    },
     /// Opaque resource handle encoded as id and generation.
     Handle {
         /// Stable resource slot id.
@@ -189,6 +198,14 @@ pub fn encode_bridge_value(value: NativeBoundaryBridgeValue) -> NativeBoundaryTe
         NativeBoundaryBridgeValue::Int(value) => NativeBoundaryTerm::Int(value),
         NativeBoundaryBridgeValue::Float(value) => NativeBoundaryTerm::Float(value),
         NativeBoundaryBridgeValue::Bool(value) => NativeBoundaryTerm::Bool(value),
+        NativeBoundaryBridgeValue::Atom(value) => NativeBoundaryTerm::Atom(value),
+        NativeBoundaryBridgeValue::Record { name, fields } => NativeBoundaryTerm::Record {
+            name,
+            fields: fields
+                .into_iter()
+                .map(|(name, value)| (name, encode_bridge_value(value)))
+                .collect(),
+        },
         NativeBoundaryBridgeValue::Handle(handle) => NativeBoundaryTerm::Handle {
             id: handle.id,
             generation: handle.generation,
@@ -228,6 +245,14 @@ pub fn decode_bridge_value(term: &NativeBoundaryTerm) -> NativeBoundaryBridgeVal
         NativeBoundaryTerm::Int(value) => NativeBoundaryBridgeValue::Int(*value),
         NativeBoundaryTerm::Float(value) => NativeBoundaryBridgeValue::Float(*value),
         NativeBoundaryTerm::Bool(value) => NativeBoundaryBridgeValue::Bool(*value),
+        NativeBoundaryTerm::Atom(value) => NativeBoundaryBridgeValue::Atom(value.clone()),
+        NativeBoundaryTerm::Record { name, fields } => NativeBoundaryBridgeValue::Record {
+            name: name.clone(),
+            fields: fields
+                .iter()
+                .map(|(name, value)| (name.clone(), decode_bridge_value(value)))
+                .collect(),
+        },
         NativeBoundaryTerm::Handle { id, generation } => {
             NativeBoundaryBridgeValue::Handle(NativeBoundaryHandle {
                 id: *id,
@@ -331,4 +356,5 @@ pub fn decode_success_reply(
 
 #[cfg(test)]
 #[path = "term_test.rs"]
+#[cfg(test)]
 mod term_test;

@@ -1,58 +1,129 @@
 /**
- * Terlan VM Task contract.
- *
- * `std.vm.Task` models a runtime-targeted supervised process that performs one
- * unit of typed work. It is distinct from the portable `std.core.Task`
- * contract: this module is explicitly tied to runtime process ownership and is
- * resolved only by VM-capable target profiles.
+ * One-shot tasks implemented in Terlan over VM process primitives.
  */
 module std.vm.Task.
 
-import std.core.{Error, Result, Unit}.
+import std.core.Unit.
+import std.vm.Process.{ActorMessage}.
+import std.vm.{Message, Process}.
+
+import type std.core.Unit.
+
+pub type TaskAwait.
+
+pub type TaskCancel.
+
+pub type TaskTag = Atom["task"].
+
+pub type TaskCommandTag = Atom["task_command"].
+
+pub type TaskReplyTag = Atom["task_reply"].
+
+pub type TaskCommandKind = TaskAwait | TaskCancel.
+
+pub type TaskReply[T] = {Atom["task_reply"], request_id: Int, value: T}.
+
+pub type TaskCommand[T] =
+      {
+          Atom["task_command"],
+          kind: TaskCommandKind,
+          request_id: Int,
+          reply_to: std.vm.Process.Process[TaskReply[T]],
+          witness: T
+      }.
+
+pub type Task[T] = {Atom["task"], process: std.vm.Process.Process[TaskCommand[T]], witness: T}.
 
 /**
- * Task represents a supervised runtime work process.
- *
- * Input: type parameter `T`.
- * Output: an opaque runtime-owned process handle that eventually produces `T`.
- * Transformation: keeps process identity, mailbox mechanics, and supervision
- * target-owned while exposing a typed task handle to Terlan source.
+ * Builds a typed task handle for a statically spawned task entry.
  */
 @target.vm {process_mailbox: true}
-pub opaque type Task[T].
+pub start[T](process: std.vm.Process.Process[TaskCommand[T]], witness: T): Task[T] ->
+    make_task[T](process, witness).
+
+pub make_task[T](process: std.vm.Process.Process[TaskCommand[T]], witness: T): Task[T] ->
+    Task(process, witness).
 
 /**
- * Starts supervised runtime work immediately.
- *
- * Input: one zero-argument function producing `T`.
- * Output: `Result[Task[T], Error]`.
- * Transformation: asks the selected VM runtime to spawn supervised work and
- * normalizes startup failure into the standard typed error channel.
+ * Publishes a completed value until the owner reads or cancels the task.
  */
 @target.vm {process_mailbox: true}
-pub start[T](work: () -> T): Result[Task[T], Error] ->
-    native.
+pub serve[T](value: T): Unit ->
+    let message = Process.receive[TaskCommand[T]]();
+    case Message.unwrap[TaskCommand[T]](message) {
+        {TaskCommandTag, kind, request_id, reply_to, _witness} ->
+            if {
+                kind == TaskAwait -> let _sent =
+                    Process.send[TaskReply[T]](
+                        reply_to,
+                        Message.wrap[TaskReply[T]](TaskReply(request_id, value)),
+                    );
+                serve[T](value);
+                true -> Unit
+            }
+    }.
 
 /**
- * Reads the task result.
- *
- * Input: one `Task[T]` receiver.
- * Output: `Result[T, Error]`.
- * Transformation: waits for or observes the supervised work result through a
- * typed success-or-error value without exposing runtime monitor messages.
+ * Waits for a correlated task value and discards stale replies.
  */
 @target.vm {process_mailbox: true}
-pub (task: Task[T]) result(): Result[T, Error] ->
-    native.
+pub result[T](task: Task[T], request_id: Int): T ->
+    let reply_to = Process.current[TaskReply[T]]();
+    case task {
+        {TaskTag, process, witness} ->
+            let _sent =
+                Process.send[TaskCommand[T]](
+                    process,
+                    Message.wrap[TaskCommand[T]](
+                        TaskCommand(TaskAwait, request_id, reply_to, witness),
+                    ),
+                );
+            await_reply[T](request_id, witness)
+    }.
 
 /**
- * Cancels the task.
- *
- * Input: one mutable `Task[T]` receiver.
- * Output: `Unit`.
- * Transformation: asks the selected VM runtime to stop the supervised work process
- * while keeping shutdown mechanics behind the target-owned runtime surface.
+ * Requests cooperative task shutdown without host-runtime task machinery.
  */
 @target.vm {process_mailbox: true}
-pub (mut task: Task[T]) cancel(): Unit ->
-    native.
+pub cancel[T](task: Task[T]): Unit ->
+    let reply_to = Process.current[TaskReply[T]]();
+    case task {
+        {TaskTag, process, witness} ->
+            let _sent =
+                Process.send[TaskCommand[T]](
+                    process,
+                    Message.wrap[TaskCommand[T]](TaskCommand(TaskCancel, 0, reply_to, witness)),
+                );
+            Unit
+    }.
+
+/**
+ * Thin policy wrapper for VM-owned failure monitoring.
+ */
+@target.vm {process_mailbox: true}
+pub monitor[T](task: Task[T]): Unit ->
+    case task {
+        {TaskTag, process, _witness} ->
+            let _monitor = Process.monitor[TaskCommand[T]](process);
+            Unit
+    }.
+
+/**
+ * Thin policy wrapper for VM-owned symmetric links.
+ */
+@target.vm {process_mailbox: true}
+pub relate_peer[T](task: Task[T]): Unit ->
+    case task {
+        {TaskTag, process, _witness} -> Process.link[TaskCommand[T]](process)
+    }.
+
+pub await_reply[T](request_id: Int, witness: T): T ->
+    let message = Process.receive[TaskReply[T]]();
+    case Message.unwrap[TaskReply[T]](message) {
+        {TaskReplyTag, received_id, value} ->
+            if {
+                received_id == request_id -> value;
+                true -> await_reply[T](request_id, witness)
+            };
+        _unexpected -> await_reply[T](request_id, witness)
+    }.

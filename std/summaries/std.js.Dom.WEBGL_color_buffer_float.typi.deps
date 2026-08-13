@@ -1,7 +1,7 @@
 module=std.js.Dom.WEBGL_color_buffer_float
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 source_hash=6216666005232257589
 interface_hash=17941162994927982268
 interface_doc_hash=17941162994927982268

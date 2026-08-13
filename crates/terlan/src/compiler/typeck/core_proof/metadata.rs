@@ -758,22 +758,20 @@ fn count_core_pattern_checked_preservation(
     pattern_checked_preservation_evidence: &[Option<CoreCheckedPreservationEvidence>],
     counts: &mut CoreCheckedPreservationCounts,
 ) {
-    for evidence in pattern_checked_preservation_evidence {
-        if let Some(evidence) = evidence {
-            counts.pattern += 1;
-            if matches!(
-                evidence.kind,
-                CoreCheckedPreservationEvidenceKind::StructuralCorePattern
-            ) {
-                counts.pattern_structural += 1;
+    for evidence in pattern_checked_preservation_evidence.iter().flatten() {
+        counts.pattern += 1;
+        if matches!(
+            evidence.kind,
+            CoreCheckedPreservationEvidenceKind::StructuralCorePattern
+        ) {
+            counts.pattern_structural += 1;
+        }
+        match evidence.freshness {
+            CoreSubstitutionFreshnessEvidence::NoRuntimeBindings => {
+                counts.pattern_no_runtime_bindings += 1;
             }
-            match evidence.freshness {
-                CoreSubstitutionFreshnessEvidence::NoRuntimeBindings => {
-                    counts.pattern_no_runtime_bindings += 1;
-                }
-                CoreSubstitutionFreshnessEvidence::RuntimeBindingsRequired => {
-                    counts.pattern_runtime_bindings_required += 1;
-                }
+            CoreSubstitutionFreshnessEvidence::RuntimeBindingsRequired => {
+                counts.pattern_runtime_bindings_required += 1;
             }
         }
     }

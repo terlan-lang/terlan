@@ -160,4 +160,5 @@ fn semantic_at(encoded: &[u8], offset: usize) -> Result<SemanticTypeId, ManagedM
 
 #[cfg(test)]
 #[path = "json_test.rs"]
+#[cfg(test)]
 mod json_test;

@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use serde::Deserialize;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 
@@ -8,10 +9,21 @@ use crate::terlan_quality::QualityResult;
 
 const CARGO_MANIFEST: &str = "crates/terlan/Cargo.toml";
 const REPORT_PATH: &str = "target/quality/vm-sql-macro-validation-report.json";
+const LIVE_EVIDENCE_PATH: &str = "target/quality/vm-db-migration-live-evidence.json";
 const STATIC_VALIDATION_MODE: &str = "compiler-static";
 const LIVE_VALIDATION_MODE: &str = "postgres-live";
 
 const SOURCE_CONTRACTS: &[(&str, &[&str])] = &[
+    (
+        "crates/terlan/src/commands/db/live_test.rs",
+        &[
+            "prove_live_sql_contracts",
+            "type_check_live_sql_contract",
+            "type_check_syntax_module_output_with_database_schema",
+            "bind_sql_parameters",
+            "live_sql_typed_row_decode",
+        ],
+    ),
     (
         "crates/terlan/src/compiler/typeck/sql_forms/validation.rs",
         &["sqlparser", "PostgreSqlDialect", "Parser::parse_sql"],
@@ -74,6 +86,10 @@ const SOURCE_CONTRACTS: &[(&str, &[&str])] = &[
         ],
     ),
     (
+        "crates/terlan/src/compiler/typeck/mod.rs",
+        &["type_check_syntax_module_output_with_database_schema"],
+    ),
+    (
         "crates/terlan/src/compiler/typeck/core_sql_lowering.rs",
         &["CoreExpr::SqlQuery", "parameters"],
     ),
@@ -91,6 +107,7 @@ const DIAGNOSTIC_COVERAGE: &[&str] = &[
     "unknown-schema-qualifier",
     "ambiguous-schema-snapshot",
     "corrupt-schema-snapshot",
+    "stale-schema-cache",
     "non-bindable-parameter-types",
     "row-projection-arity-mismatch",
     "non-decodable-row-fields",
@@ -109,7 +126,7 @@ const INFERRED_ROW_SHAPES: &[&str] = &[
     "nullable-scalar-field",
 ];
 
-/// Summary produced by the static SQL macro validation evidence gate.
+/// Summary produced by the SQL macro validation evidence gate.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VmSqlMacroValidationSummary {
     pub parser_version: String,
@@ -118,10 +135,20 @@ pub struct VmSqlMacroValidationSummary {
     pub report_path: PathBuf,
 }
 
-/// Validates maintained-parser ownership and writes deterministic SQL evidence.
-///
-/// The static report deliberately leaves database schema identities absent.
-/// They become mandatory only when the validation mode is `postgres-live`.
+#[derive(Debug, Deserialize)]
+struct LiveSqlEvidence {
+    schema: String,
+    migration_snapshot_id: String,
+    schema_fingerprint: String,
+    replay_migration_snapshot_id: String,
+    replay_schema_fingerprint: String,
+    schema_drift_rejected: bool,
+    live_sql_compiler_contract: bool,
+    live_sql_parameter_order: bool,
+    live_sql_typed_row_decode: bool,
+}
+
+/// Validates maintained-parser ownership and writes deterministic live SQL evidence.
 pub fn run_vm_sql_macro_validation(root: &Path) -> QualityResult<VmSqlMacroValidationSummary> {
     let manifest = read(root, CARGO_MANIFEST)?;
     let parser_version = dependency_version(&manifest, "sqlparser")?;
@@ -146,11 +173,8 @@ pub fn run_vm_sql_macro_validation(root: &Path) -> QualityResult<VmSqlMacroValid
         }
     }
     diagnostics.extend(validate_make_ownership(root)?);
-    diagnostics.extend(validate_database_evidence(
-        STATIC_VALIDATION_MODE,
-        None,
-        None,
-    ));
+    let live = load_live_sql_evidence(root)?;
+    diagnostics.extend(validate_live_sql_evidence(&live));
     if !diagnostics.is_empty() {
         return Err(render_failure(&diagnostics));
     }
@@ -163,21 +187,25 @@ pub fn run_vm_sql_macro_validation(root: &Path) -> QualityResult<VmSqlMacroValid
             "version": parser_version,
             "dialect": "PostgreSQL"
         },
-        "validationMode": STATIC_VALIDATION_MODE,
+        "validationMode": LIVE_VALIDATION_MODE,
         "validationContractFingerprintSha256": validation_contract_fingerprint,
-        "schemaFingerprint": null,
-        "migrationSnapshotId": null,
+        "schemaFingerprint": live.schema_fingerprint,
+        "migrationSnapshotId": live.migration_snapshot_id,
         "inferredCardinality": INFERRED_CARDINALITY,
         "inferredRowShape": INFERRED_ROW_SHAPES,
         "diagnosticCoverage": DIAGNOSTIC_COVERAGE,
         "databaseAuthoritativeValidation": {
-            "complete": false,
+            "complete": true,
             "requiredMode": LIVE_VALIDATION_MODE,
             "snapshotBackedSelectValidation": true,
             "snapshotBackedColumnCodecs": ["binary", "bool", "int", "json"],
             "snapshotBackedExactNullability": true,
             "snapshotIntegrityRequired": true,
-            "supportedScope": "single-physical-relation-select"
+            "supportedScope": "single-physical-relation-select",
+            "liveCompilerContract": live.live_sql_compiler_contract,
+            "liveParameterOrder": live.live_sql_parameter_order,
+            "liveTypedRowDecode": live.live_sql_typed_row_decode,
+            "schemaDriftRejected": live.schema_drift_rejected
         }
     });
     let report_path = write_report(root, &report)?;
@@ -188,6 +216,52 @@ pub fn run_vm_sql_macro_validation(root: &Path) -> QualityResult<VmSqlMacroValid
         diagnostic_count: DIAGNOSTIC_COVERAGE.len(),
         report_path,
     })
+}
+
+fn load_live_sql_evidence(root: &Path) -> QualityResult<LiveSqlEvidence> {
+    let text = read(root, LIVE_EVIDENCE_PATH)?;
+    serde_json::from_str(&text)
+        .map_err(|error| format!("{LIVE_EVIDENCE_PATH}: invalid live SQL evidence: {error}"))
+}
+
+fn validate_live_sql_evidence(evidence: &LiveSqlEvidence) -> Vec<String> {
+    let mut diagnostics = validate_database_evidence(
+        LIVE_VALIDATION_MODE,
+        Some(&evidence.schema_fingerprint),
+        Some(&evidence.migration_snapshot_id),
+    );
+    if evidence.schema != "terlan.vm-db-migration-live-evidence.v1" {
+        diagnostics.push(format!(
+            "{LIVE_EVIDENCE_PATH}: unsupported evidence schema `{}`",
+            evidence.schema
+        ));
+    }
+    if evidence.schema_fingerprint != evidence.replay_schema_fingerprint {
+        diagnostics.push(format!(
+            "{LIVE_EVIDENCE_PATH}: replay schema fingerprint does not match live schema"
+        ));
+    }
+    if evidence.migration_snapshot_id != evidence.replay_migration_snapshot_id {
+        diagnostics.push(format!(
+            "{LIVE_EVIDENCE_PATH}: replay migration identity does not match live migrations"
+        ));
+    }
+    for (label, passed) in [
+        ("schema drift rejection", evidence.schema_drift_rejected),
+        (
+            "compiler schema contract",
+            evidence.live_sql_compiler_contract,
+        ),
+        ("parameter ordering", evidence.live_sql_parameter_order),
+        ("typed row decoding", evidence.live_sql_typed_row_decode),
+    ] {
+        if !passed {
+            diagnostics.push(format!(
+                "{LIVE_EVIDENCE_PATH}: live SQL {label} was not proven"
+            ));
+        }
+    }
+    diagnostics
 }
 
 fn dependency_version(manifest: &str, dependency: &str) -> QualityResult<String> {
@@ -254,9 +328,10 @@ fn validate_make_ownership(root: &Path) -> QualityResult<Vec<String>> {
     let makefile = read(root, "Makefile")?;
     let required = [
         "vm-sql-macro-validation-check:",
-        "--bin terlc --bin terlan-quality sql",
+        "--lib --features quality-tools sql",
+        "run_db_migration_and_snapshot_lifecycle_against_docker_postgres",
         "vm-postgres-runtime-check: vm-sql-macro-validation-check",
-        "terlan-quality --quiet -- vm-sql-macro-validation",
+        "--features quality-tools --quiet -- vm-sql-macro-validation",
     ];
     Ok(required
         .iter()
@@ -300,4 +375,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_sql_macro_validation_test.rs"]
+#[cfg(test)]
 mod vm_sql_macro_validation_test;

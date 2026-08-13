@@ -1,0 +1,43 @@
+{
+  "dependency_files": [
+    "proofs/lean/lake-manifest.json",
+    "proofs/lean/lakefile.lean",
+    "proofs/lean/lean-toolchain"
+  ],
+  "deterministic_timestamp_strategy": "none-content-addressed",
+  "execution_command": [
+    "lake",
+    "env",
+    "lean",
+    "std_packages/StdPackages.lean"
+  ],
+  "family": "std-packages",
+  "manifest_fingerprints": {
+    "std/data/Json.terl": "sha256:74f2f288ffbb57ad9e5de296dcb39192139338227cdb028f960c68dcb0e2d179"
+  },
+  "output_signature": {
+    "exit_class": "success",
+    "stderr_class": "empty",
+    "stdout_class": "empty"
+  },
+  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+  "schema": "terlan.lean-proof-replay.v1",
+  "source_digest": "sha256:1c2ea16fd3a3ce051d1e1bb355564b0df399e739ce051c0b656c824ddf8322d2",
+  "theorem_names": [
+    "Terlan.StdPackages.jsonRoundTrip",
+    "Terlan.StdPackages.invalidJsonIsTypedFailure",
+    "Terlan.StdPackages.binaryStringConversionPreservesBytes",
+    "Terlan.StdPackages.missingOptionReturnsTypedError",
+    "Terlan.StdPackages.monotonicTimerAccepted",
+    "Terlan.StdPackages.earlyTimerRejected"
+  ],
+  "toolchain": {
+    "elan_channel": "leanprover/lean4:v4.31.0",
+    "lake_flags": [
+      "env",
+      "lean"
+    ],
+    "lean_version": "4.31.0"
+  },
+  "working_directory": "proofs/lean"
+}

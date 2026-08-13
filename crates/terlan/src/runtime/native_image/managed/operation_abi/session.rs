@@ -249,11 +249,13 @@ pub(super) fn execute_session_operation(
                 super::http::append_headers(
                     heap,
                     layouts,
-                    semantic_at(encoded, HEADER_BYTES + SEMANTIC_BYTES)?,
-                    semantic_at(encoded, HEADER_BYTES + SEMANTIC_BYTES * 2)?,
-                    semantic_at(encoded, HEADER_BYTES + SEMANTIC_BYTES * 3)?,
-                    field_at(encoded, HEADER_BYTES + SEMANTIC_BYTES * 4)?,
-                    *response,
+                    super::AggregateListTarget {
+                        aggregate_semantic: semantic_at(encoded, HEADER_BYTES + SEMANTIC_BYTES)?,
+                        list_semantic: semantic_at(encoded, HEADER_BYTES + SEMANTIC_BYTES * 2)?,
+                        pair_semantic: semantic_at(encoded, HEADER_BYTES + SEMANTIC_BYTES * 3)?,
+                        field: field_at(encoded, HEADER_BYTES + SEMANTIC_BYTES * 4)?,
+                        aggregate: *response,
+                    },
                     [("Set-Cookie".to_string(), cookie)],
                 )
                 .map(TvmRef::encoded_abi_word)
@@ -317,7 +319,7 @@ fn read_session(
     let layout = layouts
         .layout_for_reference(heap, semantic, reference)
         .map_err(|_| ManagedMemoryError::ManagedTypeMismatch)?;
-    let fields = super::aggregate_fields(heap, &layout, reference)?;
+    let fields = super::aggregate_fields(heap, layout, reference)?;
     let [ManagedFieldValue::Reference(id), ManagedFieldValue::Reference(pending)] =
         fields.as_slice()
     else {
@@ -340,7 +342,7 @@ fn request_cookie(
     let layout = layouts
         .layout_for_reference(heap, semantic_at(encoded, HEADER_BYTES)?, request)
         .map_err(|_| ManagedMemoryError::ManagedTypeMismatch)?;
-    let fields = super::aggregate_fields(heap, &layout, request)?;
+    let fields = super::aggregate_fields(heap, layout, request)?;
     let map = match fields.get(field_at(encoded, HEADER_BYTES + SEMANTIC_BYTES * 3)?) {
         Some(ManagedFieldValue::Reference(map)) => map.cast::<ManagedMap>(),
         _ => return Err(ManagedMemoryError::InvalidAggregateField),

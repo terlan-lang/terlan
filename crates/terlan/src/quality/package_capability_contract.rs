@@ -209,4 +209,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "package_capability_contract_test.rs"]
+#[cfg(test)]
 mod package_capability_contract_test;

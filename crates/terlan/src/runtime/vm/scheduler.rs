@@ -1,18 +1,19 @@
-#![allow(dead_code)]
-
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::num::NonZeroU64;
 
 use serde::Serialize;
 
+#[cfg(any(test, feature = "benchmark-tools"))]
 use super::actor_directory::VmActorLifecycle;
-use super::process::{
-    VmExitReason, VmProcess, VmProcessId, VmProcessResumeState, VmProcessState, VmProcessTable,
-};
+#[cfg(any(test, feature = "benchmark-tools"))]
+use super::process::{VmExitReason, VmProcess};
+use super::process::{VmProcessId, VmProcessResumeState, VmProcessState, VmProcessTable};
+#[cfg(any(test, feature = "benchmark-tools"))]
 use contention::VmContentionTelemetry;
 pub(crate) use telemetry::{VmSchedulerMetrics, VmSchedulerQueueTransition};
 
 #[path = "scheduler/contention.rs"]
+#[cfg(any(test, feature = "benchmark-tools"))]
 pub(crate) mod contention;
 #[path = "scheduler/telemetry.rs"]
 mod telemetry;
@@ -71,6 +72,7 @@ impl VmSchedulerClass {
     }
 }
 
+#[cfg(any(test, feature = "benchmark-tools"))]
 const VM_SCHEDULER_CLASS_CYCLE: [VmSchedulerClass; 6] = [
     VmSchedulerClass::Priority,
     VmSchedulerClass::Priority,
@@ -94,6 +96,7 @@ const VM_SCHEDULER_OPERATION_REDUCTIONS: u64 = 1;
 /// - Keeps the process runner independent from queue internals while still
 ///   making reductions and ticks visible to tests and future diagnostics.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(any(test, feature = "benchmark-tools"))]
 pub(crate) struct VmSchedulerSlice {
     pub(crate) pid: VmProcessId,
     pub(crate) tick: u64,
@@ -102,6 +105,7 @@ pub(crate) struct VmSchedulerSlice {
 
 /// Decision returned by one process-slice execution.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(any(test, feature = "benchmark-tools"))]
 pub(crate) enum VmSchedulerDecision {
     Yield {
         reductions: u64,
@@ -115,6 +119,7 @@ pub(crate) enum VmSchedulerDecision {
     },
 }
 
+#[cfg(any(test, feature = "benchmark-tools"))]
 impl VmSchedulerDecision {
     /// Returns reductions charged by the slice decision.
     fn reductions(&self) -> u64 {
@@ -128,6 +133,7 @@ impl VmSchedulerDecision {
 
 /// Outcome of one scheduler poll.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(any(test, feature = "benchmark-tools"))]
 pub(crate) enum VmSchedulerOutcome {
     Ran,
     Blocked,
@@ -138,6 +144,7 @@ pub(crate) enum VmSchedulerOutcome {
 
 /// Stable result of one scheduler poll.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(any(test, feature = "benchmark-tools"))]
 pub(crate) struct VmSchedulerRun {
     pub(crate) pid: Option<VmProcessId>,
     pub(crate) tick: u64,
@@ -158,25 +165,31 @@ pub(crate) struct VmSchedulerRun {
 ///   scheduling behavior.
 #[derive(Debug)]
 pub(crate) struct VmScheduler {
+    #[cfg(any(test, feature = "benchmark-tools"))]
     config: VmSchedulerConfig,
+    #[cfg(any(test, feature = "benchmark-tools"))]
     owner: NonZeroU64,
     queues: [VecDeque<VmProcessId>; 3],
     queued: BTreeSet<VmProcessId>,
     classes: BTreeMap<VmProcessId, VmSchedulerClass>,
     enqueued_at: BTreeMap<VmProcessId, u64>,
+    #[cfg(any(test, feature = "benchmark-tools"))]
     class_cycle_cursor: usize,
     tick: u64,
     metrics: VmSchedulerMetrics,
+    #[cfg(any(test, feature = "benchmark-tools"))]
     contention: VmContentionTelemetry,
 }
 
 impl VmScheduler {
     /// Creates a scheduler from explicit configuration.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn new(config: VmSchedulerConfig) -> Self {
         Self::with_owner(config, NonZeroU64::MIN)
     }
 
     /// Creates a scheduler with an explicit nonzero actor-mutator owner.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn with_owner(config: VmSchedulerConfig, owner: NonZeroU64) -> Self {
         Self {
             config,
@@ -190,6 +203,28 @@ impl VmScheduler {
             metrics: VmSchedulerMetrics::default(),
             contention: VmContentionTelemetry::default(),
         }
+    }
+
+    /// Creates the queue/accounting scheduler used outside benchmark and test
+    /// builds, where fixed-owner execution does not use the compatibility
+    /// slice runner.
+    #[cfg(not(any(test, feature = "benchmark-tools")))]
+    pub(crate) fn new(_config: VmSchedulerConfig) -> Self {
+        Self {
+            queues: std::array::from_fn(|_| VecDeque::new()),
+            queued: BTreeSet::new(),
+            classes: BTreeMap::new(),
+            enqueued_at: BTreeMap::new(),
+            tick: 0,
+            metrics: VmSchedulerMetrics::default(),
+        }
+    }
+
+    /// Preserves explicit fixed-owner construction while the compatibility
+    /// slice runner is absent from production-only builds.
+    #[cfg(not(any(test, feature = "benchmark-tools")))]
+    pub(crate) fn with_owner(config: VmSchedulerConfig, _owner: NonZeroU64) -> Self {
+        Self::new(config)
     }
 
     /// Returns the number of queued process ids.
@@ -238,15 +273,18 @@ impl VmScheduler {
     }
 
     /// Returns owner-local contention telemetry without exposing host locks.
+    #[cfg(test)]
     pub(crate) fn contention_telemetry(&self) -> &VmContentionTelemetry {
         &self.contention
     }
 
     /// Configures owner-local contention telemetry at an explicit control boundary.
+    #[cfg(test)]
     pub(crate) fn contention_telemetry_mut(&mut self) -> &mut VmContentionTelemetry {
         &mut self.contention
     }
 
+    #[cfg(test)]
     pub(crate) fn memory_reductions(&self, pid: VmProcessId) -> u64 {
         self.metrics
             .processes
@@ -254,6 +292,7 @@ impl VmScheduler {
             .map_or(0, |metrics| metrics.memory_reductions)
     }
 
+    #[cfg(test)]
     pub(crate) fn total_memory_reductions(&self) -> u64 {
         self.metrics.total_memory_reductions
     }
@@ -479,6 +518,7 @@ impl VmScheduler {
     }
 
     /// Hibernates a live process and removes any runnable queue entry.
+    #[cfg(test)]
     pub(crate) fn hibernate_process(
         &mut self,
         processes: &mut VmProcessTable,
@@ -539,6 +579,7 @@ impl VmScheduler {
     }
 
     /// Runs the next runnable process slice.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn run_next(
         &mut self,
         processes: &mut VmProcessTable,
@@ -688,6 +729,7 @@ impl VmScheduler {
             });
     }
 
+    #[cfg(any(test, feature = "benchmark-tools"))]
     fn dequeue(&mut self) -> Option<(VmProcessId, u64)> {
         for _ in 0..VM_SCHEDULER_CLASS_CYCLE.len() {
             let class = VM_SCHEDULER_CLASS_CYCLE[self.class_cycle_cursor];
@@ -712,6 +754,7 @@ impl VmScheduler {
         None
     }
 
+    #[cfg(any(test, feature = "benchmark-tools"))]
     fn record_run(
         &mut self,
         pid: VmProcessId,
@@ -740,6 +783,7 @@ impl VmScheduler {
             .observe_scheduler_wait(pid.as_u64(), wait_ticks);
     }
 
+    #[cfg(any(test, feature = "benchmark-tools"))]
     fn idle_run(&self) -> VmSchedulerRun {
         VmSchedulerRun {
             pid: None,
@@ -749,6 +793,7 @@ impl VmScheduler {
         }
     }
 
+    #[cfg(any(test, feature = "benchmark-tools"))]
     fn cancel_process(
         &mut self,
         processes: &mut VmProcessTable,
@@ -767,6 +812,7 @@ impl VmScheduler {
         })
     }
 
+    #[cfg(any(test, feature = "benchmark-tools"))]
     fn apply_decision(
         &mut self,
         processes: &mut VmProcessTable,
@@ -819,32 +865,40 @@ impl Default for VmScheduler {
 
 #[cfg(test)]
 #[path = "scheduler_test.rs"]
+#[cfg(test)]
 mod scheduler_test;
 
 #[cfg(test)]
 #[path = "scheduler_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod scheduler_beam_suite_parity_test;
 
 #[cfg(test)]
 #[path = "yielding_c_fun_beam_parity_test.rs"]
+#[cfg(test)]
 mod yielding_c_fun_beam_parity_test;
 
 #[cfg(test)]
 #[path = "scheduler_result_test.rs"]
+#[cfg(test)]
 mod scheduler_result_test;
 
 #[cfg(test)]
 #[path = "scheduler_terminal_accounting_test.rs"]
+#[cfg(test)]
 mod scheduler_terminal_accounting_test;
 
 #[cfg(test)]
 #[path = "scheduler_reclassification_accounting_test.rs"]
+#[cfg(test)]
 mod scheduler_reclassification_accounting_test;
 
 #[cfg(test)]
 #[path = "scheduler_cancellation_accounting_test.rs"]
+#[cfg(test)]
 mod scheduler_cancellation_accounting_test;
 
 #[cfg(test)]
 #[path = "scheduler_transfer_test.rs"]
+#[cfg(test)]
 mod scheduler_transfer_test;

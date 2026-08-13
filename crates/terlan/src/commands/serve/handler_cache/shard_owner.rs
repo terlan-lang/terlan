@@ -12,8 +12,11 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::Barrier;
 
 use crate::runtime::vm::actor_directory::VmMailboxWake;
+#[cfg(test)]
 use crate::runtime::vm::debugger_control::{VmDebuggerControlCommand, VmDebuggerControlSnapshot};
+#[cfg(test)]
 use crate::runtime::vm::execution_shard_protocol::VmExecutionShardId;
+#[cfg(test)]
 use crate::runtime::vm::execution_shard_protocol::VmShardEpoch;
 use crate::runtime::vm::fixed_scheduler_control::VmFixedSchedulerControl;
 use crate::runtime::vm::fixed_scheduler_telemetry::{
@@ -21,10 +24,11 @@ use crate::runtime::vm::fixed_scheduler_telemetry::{
 };
 use crate::runtime::vm::multicore_replay::VmMulticoreEventContext;
 use crate::runtime::vm::process::VmProcessId;
+#[cfg(test)]
+use crate::runtime::vm::pure_native::{PureNativeActorImportFailure, PureNativeIoWake};
 use crate::runtime::vm::pure_native::{
-    PureNativeActorImportFailure, PureNativeActorTransfer, PureNativeCapabilityWait,
-    PureNativeExecutionShard, PureNativeIoWait, PureNativeIoWake, PureNativeSuspension,
-    PureNativeTimerWait,
+    PureNativeActorTransfer, PureNativeCapabilityWait, PureNativeExecutionShard, PureNativeIoWait,
+    PureNativeSuspension, PureNativeTimerWait,
 };
 use crate::runtime::vm::scheduler::VmSchedulerClass;
 use crate::runtime::vm::scheduler_topology::{VmFixedActorRoute, VmSchedulerId};
@@ -100,7 +104,7 @@ impl OwnedRunnableTransfer {
 /// Destination rejection retaining every runnable actor component.
 pub(super) struct OwnedRunnableImportFailure {
     reason: String,
-    transfer: Option<OwnedRunnableTransfer>,
+    transfer: Option<Box<OwnedRunnableTransfer>>,
 }
 
 impl OwnedRunnableImportFailure {
@@ -111,16 +115,18 @@ impl OwnedRunnableImportFailure {
 
     /// Returns transfer ownership unless a failed owner consumed it.
     pub(super) fn into_transfer(self) -> Option<OwnedRunnableTransfer> {
-        self.transfer
+        self.transfer.map(|transfer| *transfer)
     }
 }
 
 /// Destination rejection retaining transfer ownership when rollback is possible.
+#[cfg(test)]
 pub(super) struct OwnedMigrationImportFailure {
     reason: String,
-    transfer: Option<PureNativeActorTransfer>,
+    transfer: Option<Box<PureNativeActorTransfer>>,
 }
 
+#[cfg(test)]
 impl OwnedMigrationImportFailure {
     /// Returns the stable destination or channel rejection.
     pub(super) fn reason(&self) -> &str {
@@ -129,7 +135,7 @@ impl OwnedMigrationImportFailure {
 
     /// Returns actor ownership unless a failed owner thread consumed it.
     pub(super) fn into_transfer(self) -> Option<PureNativeActorTransfer> {
-        self.transfer
+        self.transfer.map(|transfer| *transfer)
     }
 
     /// Records an owner-thread failure after transfer ownership became unknowable.
@@ -152,11 +158,13 @@ enum ShardCommand {
     Drain {
         route: VmFixedActorRoute,
     },
+    #[cfg(test)]
     DetachMigration {
         route: VmFixedActorRoute,
         owner: VmProcessId,
         reply: SyncSender<Result<PureNativeActorTransfer, String>>,
     },
+    #[cfg(test)]
     ImportMigration {
         route: VmFixedActorRoute,
         transfer: PureNativeActorTransfer,
@@ -169,13 +177,13 @@ enum ShardCommand {
     },
     ImportRunnable {
         route: VmFixedActorRoute,
-        transfer: OwnedRunnableTransfer,
+        transfer: Box<OwnedRunnableTransfer>,
         reply: SyncSender<Result<(), OwnedRunnableImportFailure>>,
     },
     RunnableSnapshot {
         reply: SyncSender<VmSchedulerWorkSnapshot>,
     },
-    #[allow(dead_code)] // Entered by the hidden live-debugger owner API.
+    #[cfg(test)]
     DebuggerControl {
         command: VmDebuggerControlCommand,
         reply: SyncSender<Result<VmDebuggerControlSnapshot, String>>,
@@ -210,6 +218,7 @@ enum ShardCommand {
 
 /// Complete remote events published before their scheduler wake command.
 pub(super) enum AotSchedulerPublication {
+    #[cfg(test)]
     IoCompletion {
         owner: VmProcessId,
         suspension: PureNativeSuspension,
@@ -240,6 +249,7 @@ impl AotSchedulerPublication {
     /// Classifies one complete publication before its scheduler is woken.
     fn published_kind(&self) -> VmFixedSchedulerEventKind {
         match self {
+            #[cfg(test)]
             Self::IoCompletion { .. } => VmFixedSchedulerEventKind::IoCompletionPublished,
             Self::Timer { .. } => VmFixedSchedulerEventKind::TimerPublished,
             Self::CapabilityCompletion { .. } => {
@@ -252,6 +262,7 @@ impl AotSchedulerPublication {
     /// Classifies one publication as it enters generated actor execution.
     fn dispatched_kind(&self) -> VmFixedSchedulerEventKind {
         match self {
+            #[cfg(test)]
             Self::IoCompletion { .. } => VmFixedSchedulerEventKind::IoCompletionDispatched,
             Self::Timer { .. } => VmFixedSchedulerEventKind::TimerDispatched,
             Self::CapabilityCompletion { .. } => {
@@ -265,7 +276,9 @@ impl AotSchedulerPublication {
 /// One immutable address for a mutable shard owned by exactly one thread.
 pub(super) struct AotHandlerShardOwner {
     scheduler: VmSchedulerId,
+    #[cfg(test)]
     shard_identity: VmExecutionShardId,
+    #[cfg(test)]
     shard_epoch: VmShardEpoch,
     control: Arc<VmFixedSchedulerControl<AotSchedulerPublication>>,
     telemetry: Arc<VmFixedSchedulerTelemetry>,
@@ -300,6 +313,7 @@ impl AotHandlerShardOwner {
         control: Arc<VmFixedSchedulerControl<AotSchedulerPublication>>,
         failure: Arc<Mutex<Option<String>>>,
     ) -> Result<Self, String> {
+        #[cfg(test)]
         let shard_identity = shard.shard_id().clone();
         let shard_epoch = shard.generation()?;
         let (inbox, commands) = mpsc::sync_channel(SHARD_INBOX_CAPACITY);
@@ -332,7 +346,9 @@ impl AotHandlerShardOwner {
             .map_err(|error| format!("error[serve.aot.shard_owner]: {error}"))?;
         Ok(Self {
             scheduler,
+            #[cfg(test)]
             shard_identity,
+            #[cfg(test)]
             shard_epoch,
             control,
             telemetry,
@@ -381,6 +397,7 @@ impl AotHandlerShardOwner {
         }
     }
 
+    #[cfg(test)]
     pub(super) fn resume(
         &self,
         route: VmFixedActorRoute,
@@ -402,7 +419,6 @@ impl AotHandlerShardOwner {
     }
 
     /// Publishes one external capability result before its actor owner resumes code.
-    #[allow(dead_code)] // Retained as a deterministic manual completion test seam.
     pub(super) fn resume_capability(
         &self,
         route: VmFixedActorRoute,
@@ -479,6 +495,7 @@ impl AotHandlerShardOwner {
     }
 
     /// Detaches one parked generated actor on its current scheduler owner.
+    #[cfg(test)]
     pub(super) fn detach_migration(
         &self,
         route: VmFixedActorRoute,
@@ -494,6 +511,7 @@ impl AotHandlerShardOwner {
     }
 
     /// Imports one actor on this owner or returns its complete transfer.
+    #[cfg(test)]
     pub(super) fn import_migration(
         &self,
         route: VmFixedActorRoute,
@@ -514,14 +532,14 @@ impl AotHandlerShardOwner {
                     "scheduler {} owner thread stopped before migration import",
                     self.scheduler.index()
                 )),
-                transfer: Some(transfer),
+                transfer: Some(Box::new(transfer)),
             });
         }
         match receive(response, "import migration") {
             Ok(Ok(())) => Ok(()),
             Ok(Err(failure)) => Err(OwnedMigrationImportFailure {
                 reason: failure.reason().to_string(),
-                transfer: Some(failure.into_transfer()),
+                transfer: Some(Box::new(failure.into_transfer())),
             }),
             Err(reason) => Err(OwnedMigrationImportFailure::lost(reason)),
         }
@@ -551,7 +569,7 @@ impl AotHandlerShardOwner {
         let (reply, response) = mpsc::sync_channel(1);
         let command = ShardCommand::ImportRunnable {
             route,
-            transfer,
+            transfer: Box::new(transfer),
             reply,
         };
         if let Err(error) = self.inbox.send(command) {
@@ -563,7 +581,7 @@ impl AotHandlerShardOwner {
                     "scheduler {} stopped before runnable import",
                     self.scheduler.index()
                 )),
-                transfer: Some(transfer),
+                transfer: Some(Box::new(*transfer)),
             });
         }
         match receive(response, "import runnable") {
@@ -583,7 +601,7 @@ impl AotHandlerShardOwner {
     }
 
     /// Applies one live debugger command on the thread owning runnable mutation.
-    #[allow(dead_code)] // Activated by the hidden live-debugger command surface.
+    #[cfg(test)]
     pub(super) fn debugger_control(
         &self,
         command: VmDebuggerControlCommand,
@@ -594,11 +612,13 @@ impl AotHandlerShardOwner {
     }
 
     /// Returns the exact destination identity used to rebind typed I/O waits.
+    #[cfg(test)]
     pub(super) fn shard_identity(&self) -> &VmExecutionShardId {
         &self.shard_identity
     }
 
     /// Returns the exact destination generation used to rebind typed I/O waits.
+    #[cfg(test)]
     pub(super) const fn shard_epoch(&self) -> VmShardEpoch {
         self.shard_epoch
     }
@@ -889,4 +909,5 @@ fn receive<T>(response: Receiver<T>, operation: &str) -> Result<T, String> {
 
 #[cfg(test)]
 #[path = "shard_owner_test.rs"]
+#[cfg(test)]
 mod shard_owner_test;

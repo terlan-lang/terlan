@@ -1,7 +1,6 @@
-use super::*;
-
 #[cfg(test)]
-mod tests {
-    include!("syntax_output_expr_test_part_001.rs");
-    include!("syntax_output_expr_test_part_002.rs");
-}
+#[path = "syntax_output_expr_test/expression_trees.rs"]
+mod expression_trees;
+#[cfg(test)]
+#[path = "syntax_output_expr_test/literals_and_control_flow.rs"]
+mod literals_and_control_flow;

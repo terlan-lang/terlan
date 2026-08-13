@@ -1,0 +1,322 @@
+/**
+ * Typed Cargo metadata loading and workspace-graph projection.
+ *
+ * Cargo remains the authority for dependency resolution. Terlan owns process
+ * limits, JSON validation, deterministic ordering, and graph algorithms.
+ */
+module rust_quality.CargoMetadata.
+
+import rust_quality.SourceInventory.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+import std.io.File.
+import std.system.Process.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.data.Json.RequiredFieldRow.
+
+pub struct Metadata {
+    valid: Bool,
+    document: Json,
+    message: String,
+}.
+
+pub struct GraphNode {
+    name: String,
+    dependencies: List[String],
+}.
+
+pub struct Graph {
+    valid: Bool,
+    nodes: List[GraphNode],
+    message: String,
+}.
+
+@pure
+pub graph_node(name: String, dependencies: List[String]): GraphNode ->
+    GraphNode(name = name, dependencies = dependencies).
+
+struct PackageName {
+    id: String,
+    name: String,
+}.
+
+metadata_failure(message: String): Metadata ->
+    Metadata(valid = false, document = Json.null(), message = message).
+
+@pure
+graph_failure(message: String): Graph ->
+    Graph(valid = false, nodes = List.new[GraphNode](), message = message).
+
+metadata_command(root: String, include_dependencies: Bool): std.system.Process.Command ->
+    let arguments =
+        if {
+            include_dependencies -> ["metadata", "--locked", "--format-version", "1"];
+            true -> ["metadata", "--locked", "--no-deps", "--format-version", "1"]
+        };
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(Process.command("cargo"), arguments),
+                root,
+            ),
+            120000,
+        ),
+        16777216,
+    ).
+
+pub load(root: String, include_dependencies: Bool): Metadata ->
+    case Process.run(metadata_command(root, include_dependencies)) {
+        Err(reason) -> metadata_failure(Process.error_message(reason));
+        Ok(output) ->
+            if {
+                Process.status(output) != 0 -> metadata_failure(
+                    String.concat(
+                        [
+                            "cargo metadata exited with status ",
+                            Int.to_string(Process.status(output)),
+                            ": ",
+                            Process.stderr(output),
+                        ],
+                    ),
+                );
+                true -> case Json.parse(Process.stdout(output)) {
+                    Err(reason) -> metadata_failure(Json.error_message(reason));
+                    Ok(document) -> Metadata(valid = true, document = document, message = "")
+                }
+            }
+    }.
+
+pub load_precomputed(root: String): Metadata ->
+    case File.read_text(SourceInventory.child(root, "target/quality/rust-cargo-metadata.json")) {
+        Err(reason) -> metadata_failure(File.message(reason));
+        Ok(source) ->
+            case Json.parse(source) {
+                Err(reason) -> metadata_failure(Json.error_message(reason));
+                Ok(document) -> Metadata(valid = true, document = document, message = "")
+            }
+    }.
+
+@pure
+pub contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+@pure
+pub insert_sorted_unique(value: String, values: List[String]): List[String] ->
+    case values {
+        [] -> [value];
+        [current | rest] ->
+            if {
+                value == current -> values;
+                String.compare(value, current) == Lt -> [value | values];
+                true -> [current | insert_sorted_unique(value, rest)]
+            }
+    }.
+
+@pure
+pub sort_unique(values: List[String]): List[String] ->
+    sort_unique_at(values, List.new[String]()).
+
+@pure
+sort_unique_at(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> sort_unique_at(rest, insert_sorted_unique(value, output))
+    }.
+
+string_array_at(value: Json, index: Int, count: Int, output: List[String]): Option[List[String]] ->
+    if {
+        index == count -> Some(SourceInventory.reverse(output));
+        true -> let {
+            Ok(item) <- Json.at(value, index);
+            Ok(text) <- Json.as_string(item)
+        } else {
+            _ -> None
+        };
+        string_array_at(value, index + 1, count, [text | output])
+    }.
+
+pub string_array(value: Json): Option[List[String]] ->
+    case Json.length(value) {
+        Err(_reason) -> None;
+        Ok(count) -> string_array_at(value, 0, count, List.new[String]())
+    }.
+
+pub object_string_array(value: Json, field: String): Option[List[String]] ->
+    case Json.get(value, field) {
+        Err(_reason) -> None;
+        Ok(array) -> string_array(array)
+    }.
+
+@pure
+package_name(id: String, packages: List[PackageName]): Option[String] ->
+    case packages {
+        [] -> None;
+        [package | rest] ->
+            if {
+                package.id == id -> Some(package.name);
+                true -> package_name(id, rest)
+            }
+    }.
+
+@pure
+insert_package(package: PackageName, values: List[PackageName]): List[PackageName] ->
+    case values {
+        [] -> List[PackageName](package);
+        [current | rest] ->
+            if {
+                String.compare(package.name, current.name) == Lt -> [package | values];
+                true -> [current | insert_package(package, rest)]
+            }
+    }.
+
+package_page(
+    packages: Json,
+    members: List[String],
+    offset: Int,
+    output: List[PackageName],
+): Option[List[PackageName]] ->
+    case Json.required_field_rows_page(packages, offset, 256, ["id", "name"], [], []) {
+        Err(_reason) -> None;
+        Ok(rows) ->
+            if {
+                List.length(rows) == 0 -> Some(output);
+                true -> package_rows(packages, members, rows, offset, output)
+            }
+    }.
+
+package_rows(
+    packages: Json,
+    members: List[String],
+    rows: List[RequiredFieldRow],
+    offset: Int,
+    output: List[PackageName],
+): Option[List[PackageName]] ->
+    case rows {
+        [] -> package_page(packages, members, offset, output);
+        [row | rest] ->
+            case Json.required_field_row_strings(row) {
+                [id, name] ->
+                    let next =
+                        if {
+                            contains(members, id) -> insert_package(PackageName(id = id, name = name), output);
+                            true -> output
+                        };
+                    package_rows(packages, members, rest, offset + 1, next);
+                _ -> None
+            }
+    }.
+
+node_dependencies(nodes: Json, index: Int, packages: List[PackageName]): Option[List[String]] ->
+    let {
+        Ok(node) <- Json.at(nodes, index);
+        Some(ids) <- object_string_array(node, "dependencies")
+    } else {
+        _ -> None
+    };
+    dependency_names(ids, packages, List.new[String]()).
+
+@pure
+dependency_names(
+    ids: List[String],
+    packages: List[PackageName],
+    output: List[String],
+): Option[List[String]] ->
+    case ids {
+        [] -> Some(output);
+        [id | rest] ->
+            case package_name(id, packages) {
+                None -> dependency_names(rest, packages, output);
+                Some(name) -> dependency_names(rest, packages, insert_sorted_unique(name, output))
+            }
+    }.
+
+@pure
+insert_node(node: GraphNode, values: List[GraphNode]): List[GraphNode] ->
+    case values {
+        [] -> List[GraphNode](node);
+        [current | rest] ->
+            if {
+                String.compare(node.name, current.name) == Lt -> [node | values];
+                true -> [current | insert_node(node, rest)]
+            }
+    }.
+
+nodes_at(
+    nodes: Json,
+    index: Int,
+    count: Int,
+    packages: List[PackageName],
+    output: List[GraphNode],
+): Option[List[GraphNode]] ->
+    if {
+        index == count -> Some(output);
+        true -> let {
+            Ok(node) <- Json.at(nodes, index);
+            Ok(id_value) <- Json.get(node, "id");
+            Ok(id) <- Json.as_string(id_value)
+        } else {
+            _ -> None
+        };
+        case package_name(id, packages) {
+            None -> nodes_at(nodes, index + 1, count, packages, output);
+            Some(name) ->
+                case node_dependencies(nodes, index, packages) {
+                    None -> None;
+                    Some(dependencies) ->
+                        nodes_at(
+                            nodes,
+                            index + 1,
+                            count,
+                            packages,
+                            insert_node(GraphNode(name = name, dependencies = dependencies), output),
+                        )
+                }
+        }
+    }.
+
+pub workspace_graph(metadata: Json): Graph ->
+    let {
+        Ok(members_value) <- Json.get(metadata, "workspace_members");
+        Some(members) <- string_array(members_value);
+        Ok(packages_value) <- Json.get(metadata, "packages");
+        Some(packages) <- package_page(packages_value, members, 0, List.new[PackageName]());
+        Ok(resolve) <- Json.get(metadata, "resolve");
+        Ok(nodes) <- Json.get(resolve, "nodes");
+        Ok(node_count) <- Json.length(nodes);
+        Some(graph_nodes) <- nodes_at(nodes, 0, node_count, packages, List.new[GraphNode]())
+    } else {
+        _ -> graph_failure("cargo metadata does not match the supported format-version 1 shape")
+    };
+    Graph(valid = true, nodes = graph_nodes, message = "").
+
+@pure
+pub node_names(nodes: List[GraphNode]): List[String] ->
+    case nodes {
+        [] -> List.new[String]();
+        [node | rest] -> [node.name | node_names(rest)]
+    }.
+
+@pure
+pub find_node(name: String, nodes: List[GraphNode]): Option[GraphNode] ->
+    case nodes {
+        [] -> None;
+        [node | rest] ->
+            if {
+                node.name == name -> Some(node);
+                true -> find_node(name, rest)
+            }
+    }.
+
+pub self_test(): Bool ->
+    sort_unique(["b", "a", "b"]) == ["a", "b"]
+        and contains(["a", "b"], "b")
+        and not contains(["a", "b"], "c").

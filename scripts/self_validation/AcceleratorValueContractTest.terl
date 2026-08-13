@@ -1,0 +1,240 @@
+/**
+ * Validates compiler-generated accelerator value contract artifacts.
+ */
+module scripts.self_validation.AcceleratorValueContract.
+
+import std.core.Result.{Ok, with_default}.
+import std.core.String.
+import std.data.Json.
+import std.io.File.{read_text}.
+
+import type std.data.Json.
+
+/**
+ * Parses and validates one value report with its generated declarations.
+ */
+pub validate_text(report_text: String, declarations: String): Bool ->
+    case Json.parse(report_text) {
+        Ok(report) ->
+            validate_report(report, report_text) and declarations_are_complete(declarations);
+        _ -> false
+    }.
+
+validate_report(report: Json, report_text: String): Bool ->
+    string_field(report, "schema") == "terlan.accelerator-value-contract.v1"
+        and int_field(report, "tensor_packet_schema") == 1
+        and scalar_inventory_is_valid(report)
+        and transition_inventory_is_complete(report)
+        and adapter_inventory_is_canonical(report)
+        and rejection_inventory_is_complete(report)
+        and native_identity_is_hidden(report_text).
+
+scalar_inventory_is_valid(report: Json): Bool ->
+    case report.get("scalar_types") {
+        Ok(scalars) -> scalars_are_valid(scalars, 0, array_length(scalars));
+        _ -> false
+    }.
+
+scalars_are_valid(scalars: Json, index: Int, count: Int): Bool ->
+    if {
+        index == count -> true;
+        true -> case scalars.at(index) {
+            Ok(scalar) ->
+                let identifier = string_field(scalar, "id");
+                let width = int_field(scalar, "byte_width");
+                let alignment = int_field(scalar, "alignment");
+                identifier != ""
+                    and width_is_valid(width)
+                    and alignment >= width
+                    and not scalar_id_exists_after(scalars, index + 1, count, identifier)
+                    and scalars_are_valid(scalars, index + 1, count);
+            _ -> false
+        }
+    }.
+
+scalar_id_exists_after(scalars: Json, index: Int, count: Int, identifier: String): Bool ->
+    if {
+        index == count -> false;
+        true -> case scalars.at(index) {
+            Ok(scalar) ->
+                string_field(scalar, "id") == identifier
+                    or scalar_id_exists_after(scalars, index + 1, count, identifier);
+            _ -> false
+        }
+    }.
+
+@pure
+width_is_valid(width: Int): Bool ->
+    width == 1 or width == 2 or width == 4 or width == 8.
+
+transition_inventory_is_complete(report: Json): Bool ->
+    case report.get("ownership_transitions") {
+        Ok(transitions) ->
+            let count = array_length(transitions);
+            object_array_contains_field(transitions, 0, count, "operation", "borrow")
+                and object_array_contains_field(transitions, 0, count, "operation", "release-borrow")
+                and object_array_contains_field(transitions, 0, count, "operation", "transfer")
+                and object_array_contains_field(transitions, 0, count, "operation", "dispose");
+        _ -> false
+    }.
+
+adapter_inventory_is_canonical(report: Json): Bool ->
+    case report.get("generated_adapters") {
+        Ok(adapters) ->
+            let count = array_length(adapters);
+            object_array_contains_field(adapters, 0, count, "id", "rust-serde-codec-v1")
+                and object_array_contains_field(adapters, 0, count, "id", "terlan-package-declarations-v1")
+                and adapter_ids_are_canonical(adapters, 0, count);
+        _ -> false
+    }.
+
+adapter_ids_are_canonical(adapters: Json, index: Int, count: Int): Bool ->
+    if {
+        index == count -> true;
+        true -> case adapters.at(index) {
+            Ok(adapter) ->
+                let identifier = string_field(adapter, "id");
+                identifier == ""
+                    or identifier == "rust-serde-codec-v1"
+                    or identifier == "terlan-package-declarations-v1"
+    and adapter_ids_are_canonical(adapters, index + 1, count);
+            _ -> adapter_ids_are_canonical(adapters, index + 1, count)
+        }
+    }.
+
+rejection_inventory_is_complete(report: Json): Bool ->
+    case report.get("rejection_evidence") {
+        Ok(evidence) ->
+            let count = array_length(evidence);
+            string_array_contains(evidence, 0, count, "unsupported-scalar-type")
+                and string_array_contains(evidence, 0, count, "negative-dimension")
+                and string_array_contains(evidence, 0, count, "invalid-rank")
+                and string_array_contains(evidence, 0, count, "integer-overflow")
+                and string_array_contains(evidence, 0, count, "invalid-stride")
+                and string_array_contains(evidence, 0, count, "incompatible-layout")
+                and string_array_contains(evidence, 0, count, "stale-handle")
+                and string_array_contains(evidence, 0, count, "escaped-borrow")
+                and string_array_contains(evidence, 0, count, "double-transfer")
+                and string_array_contains(evidence, 0, count, "double-disposal")
+                and string_array_contains(evidence, 0, count, "cross-device-alias")
+                and string_array_contains(evidence, 0, count, "byte-count-mismatch");
+        _ -> false
+    }.
+
+object_array_contains_field(
+    values: Json,
+    index: Int,
+    count: Int,
+    field: String,
+    expected: String,
+): Bool ->
+    if {
+        index == count -> false;
+        true -> case values.at(index) {
+            Ok(value) ->
+                string_field(value, field) == expected
+                    or object_array_contains_field(values, index + 1, count, field, expected);
+            _ -> false
+        }
+    }.
+
+string_array_contains(values: Json, index: Int, count: Int, expected: String): Bool ->
+    if {
+        index == count -> false;
+        true -> case values.at(index) {
+            Ok(value) ->
+                with_default(value.as_string(), "") == expected
+                    or string_array_contains(values, index + 1, count, expected);
+            _ -> false
+        }
+    }.
+
+native_identity_is_hidden(report_text: String): Bool ->
+    let normalized = String.lowercase(report_text);
+    not String.contains(normalized, "pointer")
+        and not String.contains(normalized, "raw-address")
+        and not String.contains(normalized, "raw-handle").
+
+@pure
+declarations_are_complete(declarations: String): Bool ->
+    String.contains(declarations, "module generated.AcceleratorValue.")
+        and String.contains(declarations, "pub type DType")
+        and String.contains(declarations, "pub struct TensorLayout")
+        and String.contains(declarations, "pub opaque type ResourceHandle")
+        and String.contains(declarations, "pub struct TensorPacket").
+
+string_field(value: Json, name: String): String ->
+    case value.get(name) {
+        Ok(field) -> with_default(field.as_string(), "");
+        _ -> ""
+    }.
+
+int_field(value: Json, name: String): Int ->
+    case value.get(name) {
+        Ok(field) -> with_default(field.as_int(), -1);
+        _ -> -1
+    }.
+
+array_length(value: Json): Int ->
+    with_default(value.length(), -1).
+
+@pure
+accepted_declarations(): String ->
+    "module generated.AcceleratorValue.\npub type DType.\npub struct TensorLayout.\npub opaque type ResourceHandle.\npub struct TensorPacket.".
+
+@pure
+accepted_fixture(): String ->
+    "{\"schema\":\"terlan.accelerator-value-contract.v1\",\"tensor_packet_schema\":1,\"scalar_types\":[{\"id\":\"i64\",\"byte_width\":8,\"alignment\":8}],\"ownership_transitions\":[{\"operation\":\"borrow\"},{\"operation\":\"release-borrow\"},{\"operation\":\"transfer\"},{\"operation\":\"dispose\"}],\"generated_adapters\":[{\"id\":\"rust-serde-codec-v1\"},{\"id\":\"terlan-package-declarations-v1\"}],\"rejection_evidence\":[\"unsupported-scalar-type\",\"negative-dimension\",\"invalid-rank\",\"integer-overflow\",\"invalid-stride\",\"incompatible-layout\",\"stale-handle\",\"escaped-borrow\",\"double-transfer\",\"double-disposal\",\"cross-device-alias\",\"byte-count-mismatch\"]}".
+
+validation_rejects(report: String, declarations: String): Bool ->
+    case validate_text(report, declarations) {
+        false -> true;
+        true -> false
+    }.
+
+@test
+pub generated_value_contract_is_valid(): Bool ->
+    let {
+        Ok(report) <- read_text("target/quality/accelerator-value-contract.json");
+        Ok(declarations) <- read_text("target/quality/generated/AcceleratorValue.terl")
+    } else {
+        _ -> false
+    };
+    validate_text(report, declarations).
+
+@test
+pub canonical_value_fixture_is_accepted(): Bool ->
+    validate_text(accepted_fixture(), accepted_declarations()).
+
+@test
+pub unknown_packet_schema_is_rejected(): Bool ->
+    validation_rejects(
+        String.replace(
+            accepted_fixture(),
+            "\"tensor_packet_schema\":1",
+            "\"tensor_packet_schema\":99",
+        ),
+        accepted_declarations(),
+    ).
+
+@test
+pub duplicate_scalar_identity_is_rejected(): Bool ->
+    validation_rejects(
+        String.replace(
+            accepted_fixture(),
+            "[{\"id\":\"i64\",\"byte_width\":8,\"alignment\":8}]",
+            "[{\"id\":\"i64\",\"byte_width\":8,\"alignment\":8},{\"id\":\"i64\",\"byte_width\":8,\"alignment\":8}]",
+        ),
+        accepted_declarations(),
+    ).
+
+@test
+pub forbidden_native_identity_is_rejected(): Bool ->
+    validation_rejects(
+        String.replace(accepted_fixture(), "\"id\":\"i64\"", "\"id\":\"raw-handle\""),
+        accepted_declarations(),
+    ).
+
+@test
+pub incomplete_declarations_are_rejected(): Bool ->
+    validation_rejects(accepted_fixture(), "module generated.AcceleratorValue.").

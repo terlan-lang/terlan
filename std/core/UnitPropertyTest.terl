@@ -47,7 +47,11 @@ pub generated_units_compare_self_as_equal(): Bool ->
  */
 @test
 pub generated_units_string_round_trip(): Bool ->
-    for_all(constant(Unit), (value) -> case from_string(to_string(value)) {
-        Some(parsed) -> parsed == value;
-        None -> false
-    }).
+    for_all(
+        constant(Unit),
+        (value) ->
+            case from_string(to_string(value)) {
+                Some(parsed) -> parsed == value;
+                None -> false
+            },
+    ).

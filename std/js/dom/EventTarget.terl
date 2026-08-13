@@ -30,7 +30,7 @@ pub opaque type EventTarget.
 pub (value: EventTarget) add_event_listener(
     type_: JsString,
     callback: Option[EventListenerOrEventListenerObject],
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     native.
 
@@ -50,6 +50,6 @@ pub (value: EventTarget) dispatch_event(event: Event): Bool ->
 pub (value: EventTarget) remove_event_listener(
     type_: JsString,
     callback: Option[EventListenerOrEventListenerObject],
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     native.

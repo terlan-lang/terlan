@@ -115,7 +115,7 @@ pub(super) fn declaration_payload(declaration: &Decl) -> SyntaxDeclarationPayloa
             clauses: decl.clauses.iter().map(function_clause_output).collect(),
         },
         Decl::Method(decl) => SyntaxDeclarationPayload::Method {
-            receiver: param_output(&decl.receiver),
+            receiver: Box::new(param_output(&decl.receiver)),
             name: decl.name.clone(),
             generic_params: decl.generic_params.clone(),
             params: decl.params.iter().map(param_output).collect(),

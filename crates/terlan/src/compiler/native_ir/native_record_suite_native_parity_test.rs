@@ -140,7 +140,7 @@ fn native_record_suite_layouts_keep_nominal_identity_and_source_field_order() {
             .map(|layout| layout.managed().semantic_id())
             .collect::<HashSet<_>>()
             .len(),
-        layouts.len()
+        canonical.len()
     );
 }
 
@@ -179,7 +179,12 @@ pub make(): Pair -> Pair { left: 3, right: 4 }.\n",
         .iter()
         .flat_map(|module| &module.managed_layouts)
         .map(|layout| decode_aggregate_layout(layout).expect("record layout"))
-        .filter(|layout| layout.variant_name() == Some("Pair"))
+        .filter(|layout| {
+            matches!(
+                layout.canonical_type(),
+                "Named(native_record_alpha.Pair)" | "Named(native_record_beta.Pair)"
+            )
+        })
         .map(|layout| {
             (
                 layout.canonical_type().to_string(),

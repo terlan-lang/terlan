@@ -1,5 +1,7 @@
 mod achamp_adversarial_coverage;
+mod aot_developer_hot_reload;
 mod binary_descriptor_contract;
+mod cli;
 mod cli_exact_selectors;
 mod compiler_incremental_cache;
 mod core_typing_spec;
@@ -10,6 +12,7 @@ mod dormant_runtime_code;
 mod editor_code_action_auto_import_report;
 mod editor_completion_signature_report;
 mod editor_definition_navigation_report;
+mod editor_report_selector;
 mod erlang_backend_classification;
 mod executable_docs_vm;
 mod function_head_migration_diagnostic_policy;
@@ -22,22 +25,23 @@ mod hex_target_metadata;
 mod inline_tests;
 mod internal_docs;
 mod js_type_emission_contract;
-mod language_feature_coverage_100;
+mod language_feature_full_coverage;
+mod lean_proof_closeout;
 mod lean_proof_feature_cull;
 mod lean_proof_pr;
 mod lean_proof_regression;
 mod lean_proof_runtime;
 pub(crate) mod lean_proof_track;
-mod mobile_boundary;
 mod module_readmes;
 mod multicore_invariant_inventory;
 mod native_binding_generator_contract;
 mod native_boundary_security;
 mod native_boundary_terminology;
+mod native_no_std_target_feasibility;
 mod no_default_tokio_runtime;
 mod no_implicit_otp_runtime;
 mod no_terlan_vm_erts_rust_dependency;
-mod operator_coverage_100;
+mod operator_full_coverage;
 mod otp_reference_inventory;
 mod otp_runtime_exit;
 mod otp_test_pipeline_inventory;
@@ -64,16 +68,16 @@ mod release_gate_report_schema;
 mod release_gate_shard_resume;
 mod roadmap_gate_integrity;
 mod rust_build_feature_shipping;
+mod rust_quality;
+mod rustdoc_analysis;
 mod shape_implications;
 mod source_map_debug_info;
 mod std_generated_metadata;
-mod std_package_coverage_100;
+mod std_package_full_coverage;
 mod std_source_naming;
 mod std_test_honesty;
+mod support;
 mod terlan_lint_style_profile;
-mod terlan_polars_execution;
-mod terlan_polars_package;
-mod terlan_polars_source;
 mod terlan_vm_external_repo_boundary;
 mod terlan_vm_internal_crate;
 mod test_hierarchy;
@@ -116,5 +120,56 @@ mod vm_web_route_schema_client;
 mod vm_web_security_policy;
 mod watch_mode_hot_reload;
 mod web_asset_pipeline;
-include!("mod_part_001.rs");
-include!("mod_part_002.rs");
+
+pub use cli::run_from_env;
+pub use rust_quality::*;
+pub(crate) use rustdoc_analysis::render_failure;
+
+/// Runs the native-target feasibility command from the workspace root.
+pub fn run_native_target_feasibility_from_workspace() -> std::process::ExitCode {
+    match native_no_std_target_feasibility::run_native_no_std_target_feasibility(
+        std::path::Path::new("."),
+    ) {
+        Ok(summary) => {
+            println!(
+                "[native-no-std-target-feasibility] {} targets, {} features, {} rejected features, and {} adversarial cases checked; report written to {}.",
+                summary.target_count,
+                summary.feature_count,
+                summary.rejected_feature_count,
+                summary.adversarial_case_count,
+                summary.report_path.display()
+            );
+            std::process::ExitCode::SUCCESS
+        }
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::ExitCode::from(1)
+        }
+    }
+}
+
+/// Runs the Lean proof closeout command from the workspace root.
+pub fn run_lean_proof_closeout_from_workspace() -> std::process::ExitCode {
+    match lean_proof_closeout::run_lean_proof_closeout(std::path::Path::new(".")) {
+        Ok(summary) => {
+            println!(
+                "[lean-proof-closeout] {} families, {} hard lanes, and {} baseline classes verified; baseline {}; gate report {}.",
+                summary.family_count,
+                summary.lane_count,
+                summary.baseline_count,
+                summary.baseline_hash,
+                summary.gate_report.display()
+            );
+            std::process::ExitCode::SUCCESS
+        }
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::ExitCode::from(1)
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "lib_test.rs"]
+#[cfg(test)]
+mod lib_test;

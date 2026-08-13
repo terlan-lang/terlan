@@ -30,6 +30,13 @@ const FORM_EMPTY: u8 = 0;
 const FORM_FLAT: u8 = 1;
 const FORM_INDEXED: u8 = 2;
 
+struct IndexedMapRoot<'a> {
+    descriptor: &'a ManagedMapDescriptor,
+    length: usize,
+    trie: TvmRef<achamp::AChampNode>,
+    order: TvmRef<ManagedList>,
+}
+
 /// Supplies the canonical equality and stable hash operations for one checked map key type.
 pub trait ManagedKeySemantics {
     /// Compares two checked keys by Terlan value semantics rather than managed-reference identity.
@@ -114,10 +121,7 @@ impl ManagedKeySemantics for ManagedStringKeySemantics {
 }
 
 /// Opens one managed string key after validating its physical value category.
-fn read_string_key<'a>(
-    heap: &'a ActorHeap,
-    value: ManagedFieldValue,
-) -> Result<&'a str, ManagedMemoryError> {
+fn read_string_key(heap: &ActorHeap, value: ManagedFieldValue) -> Result<&str, ManagedMemoryError> {
     let ManagedFieldValue::Reference(reference) = value else {
         return Err(ManagedMemoryError::InvalidAggregateField);
     };
@@ -394,9 +398,17 @@ impl ActorHeap {
                 }
                 allocate_map(self, descriptor, &entries, semantics)
             }
-            RootStorage::Indexed { trie, order } => {
-                self.map_put_indexed(descriptor, root.length, trie, order, key, value, semantics)
-            }
+            RootStorage::Indexed { trie, order } => self.map_put_indexed(
+                IndexedMapRoot {
+                    descriptor,
+                    length: root.length,
+                    trie,
+                    order,
+                },
+                key,
+                value,
+                semantics,
+            ),
         }
     }
 
@@ -479,14 +491,17 @@ impl ActorHeap {
     /// Applies one path-copy update to an indexed root and its insertion-order list.
     fn map_put_indexed<S: ManagedKeySemantics>(
         &mut self,
-        descriptor: &ManagedMapDescriptor,
-        length: usize,
-        trie: TvmRef<achamp::AChampNode>,
-        order: TvmRef<ManagedList>,
+        root: IndexedMapRoot<'_>,
         key: ManagedFieldValue,
         value: ManagedFieldValue,
         semantics: &mut S,
     ) -> Result<TvmRef<ManagedMap>, ManagedMemoryError> {
+        let IndexedMapRoot {
+            descriptor,
+            length,
+            trie,
+            order,
+        } = root;
         let hash = semantics.hash(self, key)?;
         if let Some(previous) = achamp::lookup(self, descriptor, trie, hash, key, semantics)? {
             let (canonical_key, _) = decode_entry(self, descriptor, previous)?;
@@ -974,4 +989,5 @@ fn read_u64(payload: &[u8], offset: usize) -> Result<usize, ManagedMemoryError> 
 
 #[cfg(test)]
 #[path = "managed_map_test.rs"]
+#[cfg(test)]
 mod managed_map_test;

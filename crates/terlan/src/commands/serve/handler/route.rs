@@ -5,8 +5,10 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use percent_encoding::percent_decode_str;
+use terlan_runtime_abi::{BoundaryError, ErrorDomain};
 
 use crate::commands::web_route::{route_ambiguity_key, route_segments, typed_route_param_segment};
+use crate::runtime::vm::ReplValue;
 
 use super::{
     WebPackageFileResponse, WebPackageHandler, WebPackageSse, WebPackageStaticResponse,
@@ -33,6 +35,56 @@ use crate::commands::serve::package_relative_path;
 pub(crate) struct MatchedWebPackageHandler {
     pub(in crate::commands::serve) handler: WebPackageHandler,
     pub(in crate::commands::serve) params: Vec<(String, String)>,
+}
+
+/// Materializes one positional route capture according to its manifest type.
+///
+/// Untyped `:name` captures and wildcard captures remain strings. Typed
+/// captures are converted only after route matching has validated their text,
+/// so generated handler ABI validation sees the declared scalar type.
+pub(super) fn route_param_argument(
+    pattern: &str,
+    name: &str,
+    value: &str,
+) -> Result<ReplValue, BoundaryError> {
+    let declared_type = route_segments(pattern)
+        .into_iter()
+        .find_map(|segment| {
+            typed_route_param_segment(segment)
+                .filter(|(declared_name, _)| *declared_name == name)
+                .map(|(_, type_name)| type_name)
+        })
+        .unwrap_or("String");
+    match declared_type {
+        "String" => Ok(ReplValue::String(value.to_string())),
+        "Int" => value.parse::<i64>().map(ReplValue::Int).map_err(|error| {
+            BoundaryError::message(
+                ErrorDomain::CommandExecution,
+                "materialize HTTP route parameter",
+                format!(
+                    "error[serve.route_param]: typed route capture `{name}:Int` could not materialize `{value}`: {error}"
+                ),
+            )
+        }),
+        "Bool" => match value {
+            "true" => Ok(ReplValue::Bool(true)),
+            "false" => Ok(ReplValue::Bool(false)),
+            _ => Err(BoundaryError::message(
+                ErrorDomain::CommandExecution,
+                "materialize HTTP route parameter",
+                format!(
+                    "error[serve.route_param]: typed route capture `{name}:Bool` could not materialize `{value}`"
+                ),
+            )),
+        },
+        other => Err(BoundaryError::message(
+            ErrorDomain::CommandExecution,
+            "materialize HTTP route parameter",
+            format!(
+                "error[serve.route_param]: unsupported typed route capture `{name}:{other}`"
+            ),
+        )),
+    }
 }
 
 /// One best route selected across all executable manifest response kinds.
@@ -469,4 +521,5 @@ fn decode_wildcard_route_param(segments: &[&str]) -> Option<String> {
 
 #[cfg(test)]
 #[path = "route_test.rs"]
+#[cfg(test)]
 mod route_test;

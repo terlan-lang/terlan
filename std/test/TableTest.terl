@@ -64,7 +64,8 @@ pub cross_cases_generate_left_major_pairs(): Bool ->
  */
 @test
 pub cross_cases_returns_empty_when_either_side_is_empty(): Bool ->
-    assert_equal(empty_pair_rows(), cross_cases(empty_int_values(), List("a"))) and assert_equal(empty_pair_rows(), cross_cases(List(1), empty_binary_values())).
+    assert_equal(empty_pair_rows(), cross_cases(empty_int_values(), List("a")))
+        and assert_equal(empty_pair_rows(), cross_cases(List(1), empty_binary_values())).
 
 /**
  * Verifies anonymous row values can use callback assertions directly.
@@ -89,7 +90,8 @@ pub anonymous_rows_use_callback_assertions(): Bool ->
 pub iterator_helpers_match_table_helpers(): Bool ->
     let values = List(1, 2, 3);
     let rows = List(row("one", 1, 2), row("two", 2, 4));
-    each_iterator(values.iterator(), (value) -> value > 0) and each_result_iterator(rows.iterator(), (value) -> value + value).
+    each_iterator(values.iterator(), (value) -> value > 0)
+        and each_result_iterator(rows.iterator(), (value) -> value + value).
 
 /**
  * Verifies generated boundary rows can feed table assertions.
@@ -100,7 +102,7 @@ pub iterator_helpers_match_table_helpers(): Bool ->
  */
 @test
 pub generated_boundary_rows_compare_expected_results(): Bool ->
-    each_result(boundary_rows(), (value) -> classify(value)).
+    each_result(boundary_rows(), classify).
 
 /**
  * Verifies typed expected-error rows compare `Result` values.
@@ -113,7 +115,7 @@ pub generated_boundary_rows_compare_expected_results(): Bool ->
 @test
 pub typed_expected_error_rows_compare_results(): Bool ->
     let rows = List(row("negative one", -1, Err("negative")), row("negative two", -2, Err("negative")));
-    each_result(rows, (value) -> classify_result(value)).
+    each_result(rows, classify_result).
 
 /**
  * Verifies row reports capture the first expected-value mismatch.
@@ -126,7 +128,10 @@ pub typed_expected_error_rows_compare_results(): Bool ->
 @test
 pub each_result_report_records_first_failed_row(): Bool ->
     let rows = List(row("ok", 1, 2), row("bad", 2, 5), row("later", 3, 6));
-    assert_equal({false, Some({1, "bad", 5, 4})}, each_result_report(rows, (value) -> value + value)).
+    assert_equal(
+        {false, Some({1, "bad", 5, 4})},
+        each_result_report(rows, (value) -> value + value),
+    ).
 
 /**
  * Verifies an empty expected-result table reports success without failures.
@@ -166,13 +171,13 @@ boundary_rows(): List[Row[Int, Binary]] ->
 
 classify(value: Int): Binary ->
     if {
-    value < 0 -> "negative";
-    value == 0 -> "zero";
-    true -> "positive"
+        value < 0 -> "negative";
+        value == 0 -> "zero";
+        true -> "positive"
     }.
 
 classify_result(value: Int): Result[Int, Binary] ->
     if {
-    value < 0 -> Err("negative");
-    true -> Err("unexpected")
+        value < 0 -> Err("negative");
+        true -> Err("unexpected")
     }.

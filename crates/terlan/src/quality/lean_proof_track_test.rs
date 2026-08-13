@@ -257,6 +257,20 @@ fn lean_proof_artifacts_accept_native_boundary_scope() {
 }
 
 #[test]
+fn lean_proof_artifacts_require_preservation_lowering_and_rejection_scopes() {
+    let diagnostics = validate_artifacts(Path::new("."), &[], &[]);
+
+    for required_scope in REQUIRED_CURRENT_THEOREM_SCOPES {
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.contains(required_scope)),
+            "expected missing `{required_scope}` scope diagnostic, got {diagnostics:?}"
+        );
+    }
+}
+
+#[test]
 fn lean_proof_artifacts_reject_stale_digest() {
     let root =
         std::env::temp_dir().join(format!("terlan_lean_stale_digest_{}", std::process::id()));

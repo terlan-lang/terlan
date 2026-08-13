@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+mod backend;
+mod binding_navigation;
 mod document;
 mod hover;
 mod import_actions;
@@ -14,7 +16,10 @@ use crate::terlan_syntax::{
     SyntaxDeclarationOutput, SyntaxDeclarationPayload, SyntaxImplMethodOutput, SyntaxModuleOutput,
     SyntaxParamOutput, SyntaxStructFieldOutput, SyntaxTraitMethodOutput,
 };
-use crate::terlan_typeck::DiagSeverity;
+use crate::terlan_typeck::{
+    analyze_syntax_bindings, expand_syntax_raw_macros, BindingAnalysis, DiagSeverity,
+};
+use binding_navigation::{duplicate_binding_replacement, BindingNavigationIndex};
 use document::{OpenDocument, OpenDocuments};
 use hover::hover_for_position;
 use import_actions::import_code_actions_for_diagnostic;
@@ -51,12 +56,6 @@ pub struct Backend {
     open_documents: OpenDocuments,
 }
 
-include!("backend_impl_part_001.rs");
-include!("backend_impl_part_002.rs");
-include!("backend_impl_part_003.rs");
-include!("backend_impl_part_004.rs");
-include!("backend_impl_part_005.rs");
-
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
     /// Handles LSP initialize requests.
@@ -84,6 +83,7 @@ impl LanguageServer for Backend {
                 declaration_provider: Some(DeclarationCapability::Simple(true)),
                 implementation_provider: Some(ImplementationProviderCapability::Simple(true)),
                 references_provider: Some(OneOf::Left(true)),
+                rename_provider: Some(OneOf::Left(true)),
                 type_definition_provider: Some(TypeDefinitionProviderCapability::Simple(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 completion_provider: Some(CompletionOptions::default()),
@@ -110,6 +110,7 @@ impl LanguageServer for Backend {
                     ),
                 ),
                 code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
+                document_formatting_provider: Some(OneOf::Left(true)),
                 ..Default::default()
             },
             server_info: Some(ServerInfo {
@@ -216,6 +217,33 @@ impl LanguageServer for Backend {
         }
     }
 
+    /// Formats an open source, interface, or script document.
+    ///
+    /// The LSP owns no formatting policy: it delegates to the same canonical
+    /// compiler formatter used by `terlc fmt`, then returns one whole-document
+    /// edit. Template containers remain owned by their host-language formatter.
+    async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
+        let Some(document) = self.open_documents.snapshot(&params.text_document.uri) else {
+            return Ok(None);
+        };
+        let Some(formatted) = document.formatted_text().map_err(|error| {
+            tower_lsp::jsonrpc::Error::invalid_params(format!(
+                "cannot format Terlan document: {}",
+                error.message
+            ))
+        })?
+        else {
+            return Ok(None);
+        };
+        if formatted == document.text {
+            return Ok(Some(Vec::new()));
+        }
+        Ok(Some(vec![TextEdit {
+            range: document.full_range(),
+            new_text: formatted,
+        }]))
+    }
+
     /// Handles LSP document-symbol requests.
     ///
     /// Inputs:
@@ -236,7 +264,7 @@ impl LanguageServer for Backend {
             .open_documents
             .snapshot(&params.text_document.uri)
             .filter(OpenDocument::is_source_like)
-            .map(|document| Self::document_symbols_for_text(&document.text))
+            .map(|document| Self::document_symbols_for_document(&document))
             .unwrap_or_default();
         Ok(Some(DocumentSymbolResponse::Nested(symbols)))
     }
@@ -387,6 +415,57 @@ impl LanguageServer for Backend {
         Ok(Some(locations))
     }
 
+    /// Renames only the exact immutable binding selected by the cursor.
+    async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
+        let uri = params.text_document_position.text_document.uri;
+        let position = params.text_document_position.position;
+        let Some(document) = self
+            .open_documents
+            .snapshot(&uri)
+            .filter(OpenDocument::is_source_like)
+        else {
+            return Ok(None);
+        };
+        let Some(byte_offset) = document.byte_offset_from_position(position) else {
+            return Ok(None);
+        };
+        let Some((analysis, index)) = Self::binding_navigation(&document) else {
+            return Ok(None);
+        };
+        let Some(selected) = index.occurrence_at(byte_offset) else {
+            return Ok(None);
+        };
+        if !Self::valid_rename_identifier(&params.new_name) {
+            return Err(tower_lsp::jsonrpc::Error::invalid_params(
+                "binding rename requires one Terlan identifier",
+            ));
+        }
+        if analysis.evidence.bindings.iter().any(|binding| {
+            binding.region == selected.region
+                && binding.id != selected.binding
+                && binding.name == params.new_name
+        }) {
+            return Err(tower_lsp::jsonrpc::Error::invalid_params(format!(
+                "binding rename would collide with `{}` in the same lexical region",
+                params.new_name
+            )));
+        }
+        let edits = index
+            .occurrences_for(selected.binding)
+            .into_iter()
+            .map(|occurrence| TextEdit {
+                range: OpenDocument::range_from_span(&document.text, &occurrence.span),
+                new_text: params.new_name.clone(),
+            })
+            .collect::<Vec<_>>();
+        let mut changes = std::collections::HashMap::new();
+        changes.insert(uri, edits);
+        Ok(Some(WorkspaceEdit {
+            changes: Some(changes),
+            ..Default::default()
+        }))
+    }
+
     /// Handles LSP hover requests.
     ///
     /// Inputs:
@@ -517,7 +596,7 @@ impl LanguageServer for Backend {
             return Ok(Some(Vec::new()));
         };
 
-        let actions = params
+        let mut actions = params
             .context
             .diagnostics
             .iter()
@@ -526,6 +605,44 @@ impl LanguageServer for Backend {
             })
             .map(CodeActionOrCommand::CodeAction)
             .collect::<Vec<_>>();
+        if let Some((analysis, _)) = Self::binding_navigation(&document) {
+            for diagnostic in &params.context.diagnostics {
+                let Some(start) = document.byte_offset_from_position(diagnostic.range.start) else {
+                    continue;
+                };
+                let Some(end) = document.byte_offset_from_position(diagnostic.range.end) else {
+                    continue;
+                };
+                let Some((span, replacement)) = duplicate_binding_replacement(
+                    &document.text,
+                    &analysis,
+                    start,
+                    end,
+                    &diagnostic.message,
+                ) else {
+                    continue;
+                };
+                let mut changes = std::collections::HashMap::new();
+                changes.insert(
+                    uri.clone(),
+                    vec![TextEdit {
+                        range: OpenDocument::range_from_span(&document.text, &span),
+                        new_text: replacement.clone(),
+                    }],
+                );
+                actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                    title: format!("Rename duplicate binding to `{replacement}`"),
+                    kind: Some(CodeActionKind::QUICKFIX),
+                    diagnostics: Some(vec![diagnostic.clone()]),
+                    edit: Some(WorkspaceEdit {
+                        changes: Some(changes),
+                        ..Default::default()
+                    }),
+                    is_preferred: Some(true),
+                    ..Default::default()
+                }));
+            }
+        }
         Ok(Some(actions))
     }
 
@@ -546,8 +663,10 @@ impl LanguageServer for Backend {
 
 #[cfg(test)]
 #[path = "lib_test.rs"]
+#[cfg(test)]
 mod lib_test;
 
 #[cfg(test)]
 #[path = "trait_negative_test.rs"]
+#[cfg(test)]
 mod trait_negative_test;

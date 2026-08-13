@@ -134,21 +134,33 @@ pub(crate) struct SchemaEnum {
 
 impl DatabaseSchemaSnapshot {
     /// Loads and verifies one persisted schema snapshot.
-    pub(crate) fn load(path: &Path) -> Result<Self, String> {
+    pub(crate) fn load(path: &Path) -> Result<Self, terlan_runtime_abi::BoundaryError> {
         let text = fs::read_to_string(path).map_err(|error| {
-            format!(
-                "error[db.snapshot.read]: Cannot read schema snapshot `{}`: {error}.",
-                path.display()
+            terlan_runtime_abi::BoundaryError::sourced(
+                terlan_runtime_abi::ErrorDomain::CompilerPhase,
+                "db.snapshot.read",
+                "DatabaseSchemaSnapshot::load",
+                format!(
+                    "error[db.snapshot.read]: Cannot read schema snapshot `{}`: {error}.",
+                    path.display()
+                ),
+                error,
             )
         })?;
-        let snapshot = serde_json::from_str::<Self>(&text)
-            .map_err(|error| snapshot_corrupt_message(path, &format!("malformed JSON: {error}")))?;
+        let snapshot = serde_json::from_str::<Self>(&text).map_err(|error| {
+            database_schema_error(
+                "DatabaseSchemaSnapshot::load",
+                snapshot_corrupt_message(path, &format!("malformed JSON: {error}")),
+            )
+        })?;
         snapshot.validate_integrity(path)?;
         Ok(snapshot)
     }
 
     /// Finds and loads the nearest project schema snapshot for a source file.
-    pub(crate) fn discover_for_source(source_path: &Path) -> Result<Option<Self>, String> {
+    pub(crate) fn discover_for_source(
+        source_path: &Path,
+    ) -> Result<Option<Self>, terlan_runtime_abi::BoundaryError> {
         let start = if source_path.is_dir() {
             source_path
         } else {
@@ -167,11 +179,14 @@ impl DatabaseSchemaSnapshot {
                 [] => {}
                 [path] => return Self::load(path).map(Some),
                 _ => {
-                    return Err(format!(
-                        "error[db.snapshot.ambiguous]: Multiple schema snapshots are visible from `{}`: `{}` and `{}`.",
-                        source_path.display(),
-                        candidates[0].display(),
-                        candidates[1].display()
+                    return Err(database_schema_error(
+                        "DatabaseSchemaSnapshot::discover_for_source",
+                        format!(
+                            "error[db.snapshot.ambiguous]: Multiple schema snapshots are visible from `{}`: `{}` and `{}`.",
+                            source_path.display(),
+                            candidates[0].display(),
+                            candidates[1].display()
+                        ),
                     ));
                 }
             }
@@ -186,24 +201,30 @@ impl DatabaseSchemaSnapshot {
             .find(|relation| relation.schema == schema && relation.name == name)
     }
 
-    pub(crate) fn validate_integrity(&self, path: &Path) -> Result<(), String> {
+    pub(crate) fn validate_integrity(
+        &self,
+        path: &Path,
+    ) -> Result<(), terlan_runtime_abi::BoundaryError> {
         if self.schema != DATABASE_SCHEMA_SNAPSHOT_SCHEMA {
-            return Err(unsupported_snapshot_contract_message(
-                path,
-                "schema version",
+            return Err(database_schema_error(
+                "DatabaseSchemaSnapshot::validate_integrity",
+                unsupported_snapshot_contract_message(path, "schema version"),
             ));
         }
         if self.database_product != "PostgreSQL" {
-            return Err(unsupported_snapshot_contract_message(
-                path,
-                "database product",
+            return Err(database_schema_error(
+                "DatabaseSchemaSnapshot::validate_integrity",
+                unsupported_snapshot_contract_message(path, "database product"),
             ));
         }
         let actual = schema_fingerprint(&self.relations, &self.enums)?;
         if self.schema_fingerprint != actual {
-            return Err(snapshot_corrupt_message(
-                path,
-                "stored schema fingerprint does not match snapshot contents",
+            return Err(database_schema_error(
+                "DatabaseSchemaSnapshot::validate_integrity",
+                snapshot_corrupt_message(
+                    path,
+                    "stored schema fingerprint does not match snapshot contents",
+                ),
             ));
         }
         Ok(())
@@ -213,11 +234,29 @@ impl DatabaseSchemaSnapshot {
 pub(crate) fn schema_fingerprint(
     relations: &[SchemaRelation],
     enums: &[SchemaEnum],
-) -> Result<String, String> {
-    let canonical = serde_json::to_vec(&(relations, enums))
-        .map_err(|error| format!("cannot canonicalize database schema: {error}"))?;
+) -> Result<String, terlan_runtime_abi::BoundaryError> {
+    let canonical = serde_json::to_vec(&(relations, enums)).map_err(|error| {
+        terlan_runtime_abi::BoundaryError::sourced(
+            terlan_runtime_abi::ErrorDomain::CompilerPhase,
+            "db.snapshot.canonicalize",
+            "schema_fingerprint",
+            format!("cannot canonicalize database schema: {error}"),
+            error,
+        )
+    })?;
     let digest = Sha256::digest(canonical);
     Ok(prefixed_digest(&digest))
+}
+
+fn database_schema_error(
+    operation: &'static str,
+    rendered: String,
+) -> terlan_runtime_abi::BoundaryError {
+    terlan_runtime_abi::BoundaryError::message(
+        terlan_runtime_abi::ErrorDomain::CompilerPhase,
+        operation,
+        rendered,
+    )
 }
 
 pub(crate) fn prefixed_digest(bytes: &[u8]) -> String {
@@ -244,4 +283,5 @@ fn snapshot_corrupt_message(path: &Path, reason: &str) -> String {
 
 #[cfg(test)]
 #[path = "database_schema_test.rs"]
+#[cfg(test)]
 mod database_schema_test;

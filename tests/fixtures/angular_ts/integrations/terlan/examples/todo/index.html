@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en" ng-app="terlanTodo">
+  <head>
+    <meta charset="utf-8">
+    <title>Terlan Angular Todo</title>
+    <style>
+      .ng-hide:not(.ng-hide-animate) {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body ng-controller="TodoController as todo">
+    <main>
+      <h1 terlan-callback>{{ todo.title }}</h1>
+      <form ng-submit="todo.add(todo.model.draft)">
+        <label for="terlan-todo-draft">New todo</label>
+        <input id="terlan-todo-draft" name="draft" ng-model="todo.model.draft">
+        <button type="submit">Add</button>
+      </form>
+      <button type="button" ng-click="todo.setFilter('all')">All</button>
+      <button type="button" ng-click="todo.setFilter('active')">Active</button>
+      <button type="button" ng-click="todo.setFilter('completed')">Completed</button>
+      <p ng-if="todo.model.state === 'empty'">No todos</p>
+      <ul ng-if="todo.model.state === 'list'">
+        <li ng-repeat="item in todo.model.items" ng-show="item.visible">
+          <button type="button" ng-click="todo.toggle(item)">Toggle</button>
+          <span>{{ item.label }}</span>
+          <button type="button" ng-click="todo.edit(item)">Edit</button>
+          <button type="button" ng-click="todo.remove(item)">Delete</button>
+        </li>
+      </ul>
+    </main>
+    <script type="module" src="./todo.js"></script>
+  </body>
+</html>

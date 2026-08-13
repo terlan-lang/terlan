@@ -20,6 +20,6 @@ pub generated_binding_surface_contract(): Bool -> true.
 pub register_protocol_handler_typechecks(
     receiver: NavigatorContentUtils,
     scheme: JsString,
-    url: URL | JsString
+    url: URL | JsString,
 ): std.core.Unit ->
     receiver.register_protocol_handler(scheme, url).

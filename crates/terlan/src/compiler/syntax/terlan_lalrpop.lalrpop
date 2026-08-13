@@ -1,0 +1,2816 @@
+// canonical-ebnf-sha256: f15e5e3b8d546024312cb9e097495f268c179e272e341e26c04fe2811fd53405
+//
+// This fingerprint is checked by `make lalrpop-parser-parity-check`. Any
+// canonical EBNF edit therefore requires an explicit generated-grammar audit.
+use crate::compiler::syntax::lalrpop_boundary::{
+    LalrpopLexicalError,
+    LalrpopModuleHeaderOutput,
+    LalrpopSyntaxOutput,
+    LalrpopSyntaxTokenOutput,
+    LalrpopToken,
+};
+use super::LalrpopContextualKeyword;
+use crate::compiler::syntax::lalrpop_syntax::{
+    LalrpopExpressionOutput,
+    LalrpopFragmentOutput,
+    LalrpopModuleSyntaxOutput,
+    LalrpopPostfixSyntax,
+    LalrpopSourceIndex,
+    LalrpopSyntaxNode,
+    LalrpopSyntaxNodeKind,
+    LALRPOP_PATTERN_OUTPUT_SCHEMA,
+    LALRPOP_TYPE_OUTPUT_SCHEMA,
+};
+use crate::compiler::syntax::span::Span;
+use super::TokenKind;
+
+grammar(source: &str, source_index: &LalrpopSourceIndex, grammar_identity: &str);
+
+pub TokenSyntaxOutput: LalrpopSyntaxOutput = {
+    <tokens:SpannedToken*> => LalrpopSyntaxOutput::new(grammar_identity, tokens),
+};
+
+pub ModuleHeaderOutput: LalrpopModuleHeaderOutput = {
+    Trivia*
+    <start:@L> "module"
+    <path_start:@L> ModulePathRoot
+    <(path_end, end):ModulePathTail>
+    SpannedToken*
+    => LalrpopModuleHeaderOutput {
+        module_name: source_index.text(source, path_start, path_end).to_string(),
+        span: Span::new(start, end),
+    },
+};
+
+pub ExpressionOutput: LalrpopExpressionOutput = {
+    <root:Expression> => LalrpopExpressionOutput::new(grammar_identity, root),
+};
+
+pub TypeOutput: LalrpopFragmentOutput = {
+    <root:TypeExpression>
+        => LalrpopFragmentOutput::new(LALRPOP_TYPE_OUTPUT_SCHEMA, grammar_identity, root),
+};
+
+pub PatternOutput: LalrpopFragmentOutput = {
+    <root:Pattern>
+        => LalrpopFragmentOutput::new(LALRPOP_PATTERN_OUTPUT_SCHEMA, grammar_identity, root),
+};
+
+pub ModuleSyntaxOutput: LalrpopModuleSyntaxOutput = {
+    <header:GeneratedModuleDeclaration> <declarations:GeneratedDeclaration*>
+        => LalrpopModuleSyntaxOutput::new(
+            grammar_identity,
+            header.0,
+            header.1,
+            declarations,
+        ),
+};
+
+GeneratedModuleDeclaration: (String, LalrpopSyntaxNode) = {
+    <start:@L> "module" <name_start:@L> ModulePathRoot
+        ("tight-dot" ModulePathSegment)* <name_end:@R> "." <end:@R>
+        => {
+            let name = source_index.text(source, name_start, name_end).to_string();
+            let node = LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::ModuleDeclaration,
+                start,
+                end,
+                Some(name.clone()),
+                Vec::new(),
+            );
+            (name, node)
+        },
+};
+
+GeneratedDeclaration: LalrpopSyntaxNode = {
+    <annotations:GeneratedAnnotation*> <mut declaration:GeneratedDeclarationCore> => {
+        if let Some(first) = annotations.first() {
+            declaration.span.start = first.span.start;
+            let mut children = Vec::with_capacity(annotations.len() + declaration.children.len());
+            children.extend(annotations);
+            children.append(&mut declaration.children);
+            declaration.children = children;
+        }
+        declaration
+    },
+};
+
+GeneratedDeclarationCore: LalrpopSyntaxNode = {
+    GeneratedExportDeclaration,
+    GeneratedNativeRawDeclaration,
+    GeneratedImportDeclaration,
+    GeneratedConfigDeclaration,
+    GeneratedAnnotationSchemaDeclaration,
+    GeneratedConstantFunctionDeclaration,
+    GeneratedConstantDeclaration,
+    GeneratedValuedUnionDeclaration,
+    GeneratedTypeDeclaration,
+    GeneratedOpaqueTypeDeclaration,
+    GeneratedStructDeclaration,
+    GeneratedConstructorDeclaration,
+    GeneratedTraitDeclaration,
+    GeneratedTraitImplementationDeclaration,
+    GeneratedTemplateDeclaration,
+    GeneratedStaticDeclaration,
+    GeneratedShapeDeclaration,
+    GeneratedMethodDeclaration,
+    GeneratedClauseFunctionDeclaration,
+    GeneratedFunctionDeclaration,
+};
+
+GeneratedExportDeclaration: LalrpopSyntaxNode = {
+    <start:@L> "export" "type" "(" NonEmptyComma<TypeName> ")" "." <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::ExportDeclaration,
+            start,
+            end,
+            Some("type".to_string()),
+            Vec::new(),
+        ),
+    <start:@L> "export" "type" NonEmptyComma<TypeName> "." <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::ExportDeclaration,
+            start,
+            end,
+            Some("type".to_string()),
+            Vec::new(),
+        ),
+    <start:@L> "export" <items:NonEmptyComma<GeneratedExportItem>> "." <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::ExportDeclaration,
+            start,
+            end,
+            None,
+            items,
+        ),
+};
+
+GeneratedExportItem: LalrpopSyntaxNode = {
+    <start:@L> <name_start:@L> NameToken <name_end:@R> "/"
+        <arity_start:@L> "int" <arity_end:@R> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::ExportItem,
+            start,
+            end,
+            Some(format!(
+                "{}/{}",
+                source_index.text(source, name_start, name_end),
+                source_index.text(source, arity_start, arity_end),
+            )),
+            Vec::new(),
+        ),
+};
+
+GeneratedStaticDeclaration: LalrpopSyntaxNode = {
+    <start:@L> "static" NameToken "string" "->" <body:AssignmentExpression> "." <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::RawMacro,
+            start,
+            end,
+            Some("static".to_string()),
+            vec![body],
+        ),
+    <start:@L> "static" NameToken ":" <annotation:TypeExpression>
+        "=" <body:AssignmentExpression> "." <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::RawMacro,
+            start,
+            end,
+            Some("static".to_string()),
+            vec![annotation, body],
+        ),
+};
+
+GeneratedNativeRawDeclaration: LalrpopSyntaxNode = {
+    <start:@L> "native-raw-declaration" "."? <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::RawMacro,
+            start,
+            end,
+            Some("native".to_string()),
+            Vec::new(),
+        ),
+};
+
+GeneratedConfigDeclaration: LalrpopSyntaxNode = {
+    <start:@L> "config-raw-declaration" "." <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::ConfigDeclaration,
+            start,
+            end,
+            Some(source_index.text(source, start, end).to_string()),
+            Vec::new(),
+        ),
+    <start:@L> "target" <target_start:@L> NameToken <target_end:@R>
+        "with" <adapter_start:@L> AnnotationPath <adapter_end:@R> "." <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::ConfigDeclaration,
+            start,
+            end,
+            Some(format!(
+                "{} with {}",
+                source_index.text(source, target_start, target_end),
+                source_index.text(source, adapter_start, adapter_end),
+            )),
+            Vec::new(),
+        ),
+    <start:@L> <kind_start:@L> "target" <kind_end:@R> NameToken "." <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::ConfigDeclaration,
+            start,
+            end,
+            Some(source_index.text(source, kind_start, kind_end).to_string()),
+            Vec::new(),
+        ),
+    <start:@L> <kind_start:@L> "machine" <kind_end:@R> NameToken "." <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::ConfigDeclaration,
+            start,
+            end,
+            Some(source_index.text(source, kind_start, kind_end).to_string()),
+            Vec::new(),
+        ),
+    <start:@L> <kind_start:@L> "static" <kind_end:@R> NameToken "." <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::ConfigDeclaration,
+            start,
+            end,
+            Some(source_index.text(source, kind_start, kind_end).to_string()),
+            Vec::new(),
+        ),
+};
+
+GeneratedAnnotationSchemaDeclaration: LalrpopSyntaxNode = {
+    <start:@L> <public:"pub"?> "annotation"
+        <path_start:@L> AnnotationPath <path_end:@R>
+        "{" <entries:Semicolon<GeneratedAnnotationSchemaEntry>> "}" "." <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Annotation,
+            start,
+            end,
+            Some(format!(
+                "{}schema {}",
+                if public.is_some() { "pub " } else { "" },
+                source_index.text(source, path_start, path_end),
+            )),
+            entries,
+        ),
+};
+
+GeneratedAnnotationSchemaEntry: LalrpopSyntaxNode = {
+    <start:@L> <key_start:@L> AnnotationPath <key_end:@R> ":"
+        <value:GeneratedAnnotationValue>
+        <options:GeneratedAnnotationSchemaOptions?> <end:@R>
+        => {
+            let mut children = vec![value];
+            children.extend(options.unwrap_or_default());
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::AnnotationValue,
+                start,
+                end,
+                Some(source_index.text(source, key_start, key_end).to_string()),
+                children,
+            )
+        },
+};
+
+GeneratedAnnotationSchemaOptions: Vec<LalrpopSyntaxNode> = {
+    "{" <entries:Semicolon<GeneratedAnnotationItem>> "}" => entries,
+    "nominal-keyed-{" <entries:Semicolon<GeneratedAnnotationItem>> "}" => entries,
+};
+
+GeneratedAnnotation: LalrpopSyntaxNode = {
+    <start:@L> "@" <path_start:@L> AnnotationPath <path_end:@R>
+        <values:GeneratedAnnotationBlock?> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Annotation,
+            start,
+            end,
+            Some(source_index.text(source, path_start, path_end).to_string()),
+            values.unwrap_or_default(),
+        ),
+};
+
+AnnotationPath: () = {
+    AnnotationName ("tight-dot" AnnotationName)*,
+};
+
+AnnotationName: () = {
+    NameToken,
+    "module",
+    "import",
+    "type",
+    "struct",
+    "constructor",
+    "trait",
+    "impl",
+    "template",
+};
+
+GeneratedAnnotationBlock: Vec<LalrpopSyntaxNode> = {
+    "{" <items:Semicolon<GeneratedAnnotationItem>> "}" => items,
+};
+
+GeneratedAnnotationItem: LalrpopSyntaxNode = {
+    <start:@L> <left:GeneratedAnnotationValue>
+        <right:(":" <GeneratedAnnotationValue>)?> <end:@R>
+        => {
+            let mut children = vec![left];
+            children.extend(right);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::AnnotationValue,
+                start,
+                end,
+                Some(if children.len() == 2 { "entry" } else { "value" }.to_string()),
+                children,
+            )
+        },
+};
+
+GeneratedAnnotationValue: LalrpopSyntaxNode = {
+    <start:@L> AnnotationPath <end:@R>
+        => LalrpopSyntaxNode::leaf(
+            LalrpopSyntaxNodeKind::AnnotationValue,
+            source,
+            source_index,
+            start,
+            end,
+        ),
+    <start:@L> "int" <end:@R>
+        => LalrpopSyntaxNode::leaf(
+            LalrpopSyntaxNodeKind::AnnotationValue,
+            source,
+            source_index,
+            start,
+            end,
+        ),
+    <start:@L> "float" <end:@R>
+        => LalrpopSyntaxNode::leaf(
+            LalrpopSyntaxNodeKind::AnnotationValue,
+            source,
+            source_index,
+            start,
+            end,
+        ),
+    <start:@L> "string" <end:@R>
+        => LalrpopSyntaxNode::leaf(
+            LalrpopSyntaxNodeKind::AnnotationValue,
+            source,
+            source_index,
+            start,
+            end,
+        ),
+    <start:@L> "[" <items:Comma<GeneratedAnnotationValue>> "]" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::AnnotationValue,
+            start,
+            end,
+            Some("list".to_string()),
+            items,
+        ),
+    <start:@L> "{" <items:Semicolon<GeneratedAnnotationItem>> "}" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::AnnotationValue,
+            start,
+            end,
+            Some("object".to_string()),
+            items,
+        ),
+};
+
+GeneratedImportDeclaration: LalrpopSyntaxNode = {
+    <start:@L> "import" <body_start:@L> GeneratedImportBody <body_end:@R> "." <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::ImportDeclaration,
+            start,
+            end,
+            Some(source_index.text(source, body_start, body_end).to_string()),
+            Vec::new(),
+        ),
+};
+
+GeneratedImportBody: () = {
+    "type" GeneratedModuleSelector <("as" NameToken)?>,
+    GeneratedModuleSelector <("as" NameToken)?>,
+    <GeneratedAssetKind> "string" "as" NameToken,
+};
+
+GeneratedModuleSelector: () = {
+    ModulePathRoot GeneratedModuleSelectorTail,
+};
+
+GeneratedModuleSelectorTail: () = {
+    "tight-dot" ModulePathSegment GeneratedModuleSelectorTail,
+    "selector-dot" "{" GeneratedImportSelections "}",
+    => (),
+};
+
+GeneratedImportSelections: () = {
+    "*",
+    NonEmptyComma<GeneratedImportSelection>,
+};
+
+GeneratedImportSelection: () = {
+    NameToken <("as" NameToken)?>,
+};
+
+GeneratedAssetKind: () = {
+    "asset-file",
+    "asset-css",
+    "asset-markdown",
+};
+
+GeneratedConstantDeclaration: LalrpopSyntaxNode = {
+    <start:@L> <public:"pub"?> "const" <name_start:@L> "upper-ident" <name_end:@R>
+        ":" <annotation:TypeExpression> "=" <value:AssignmentExpression> "." <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::ConstantDeclaration,
+            start,
+            end,
+            Some(format!(
+                "{}{}",
+                if public.is_some() { "pub " } else { "" },
+                source_index.text(source, name_start, name_end),
+            )),
+            vec![annotation, value],
+        ),
+};
+
+GeneratedConstantFunctionDeclaration: LalrpopSyntaxNode = {
+    <start:@L> <public:"pub"?> "const" <name_start:@L> NameToken <name_end:@R>
+        "(" <parameters:Comma<GeneratedParameter>> ")" ":"
+        <return_type:TypeExpression> BodyArrow <body:AssignmentExpression> "." <end:@R>
+        => {
+            let mut children = parameters;
+            children.push(return_type);
+            children.push(body);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::FunctionDeclaration,
+                start,
+                end,
+                Some(format!(
+                    "{}const {};params:{}",
+                    if public.is_some() { "pub " } else { "" },
+                    source_index.text(source, name_start, name_end),
+                    children.len().saturating_sub(2),
+                )),
+                children,
+            )
+        },
+};
+
+GeneratedTypeDeclaration: LalrpopSyntaxNode = {
+    <start:@L> <public:"pub"?> "type" <name_start:@L> TypeName <name_end:@R>
+        <parameters:GeneratedTypeParameters?>
+        <implements:("implements" <NonEmptyComma<TypeExpression>>)? >
+        <representation:("=" <TypeExpression>)?> "." <end:@R>
+        => {
+            let parameter_count = parameters.as_ref().map_or(0, Vec::len);
+            let implement_count = implements.as_ref().map_or(0, Vec::len);
+            let has_representation = representation.is_some();
+            LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::TypeDeclaration,
+            start,
+            end,
+            Some(format!(
+                "{}{};params:{parameter_count};implements:{implement_count};representation:{has_representation}",
+                if public.is_some() { "pub " } else { "" },
+                source_index.text(source, name_start, name_end),
+            )),
+            {
+                let mut children = parameters.unwrap_or_default();
+                children.extend(implements.unwrap_or_default());
+                children.extend(representation);
+                children
+            },
+            )
+        },
+};
+
+GeneratedValuedUnionDeclaration: LalrpopSyntaxNode = {
+    <start:@L> <public:"pub"?> "type"
+        <name_start:@L> TypeName <name_end:@R>
+        <parameters:GeneratedTypeParameters?> ":"
+        <base:TypeExpression> "=" <first:GeneratedValuedUnionArm>
+        <rest:("|" <GeneratedValuedUnionArm>)*> "." <end:@R>
+        => {
+            let parameter_count = parameters.as_ref().map_or(0, Vec::len);
+            let mut children = parameters.unwrap_or_default();
+            children.push(base);
+            children.push(first);
+            children.extend(rest);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::TypeDeclaration,
+                start,
+                end,
+                Some(format!(
+                    "{}valued {};params:{parameter_count};arms:{}",
+                    if public.is_some() { "pub " } else { "" },
+                    source_index.text(source, name_start, name_end),
+                    children.len().saturating_sub(parameter_count + 1),
+                )),
+                children,
+            )
+        },
+};
+
+GeneratedValuedUnionArm: LalrpopSyntaxNode = {
+    <start:@L> <name_start:@L> "upper-ident" <name_end:@R>
+        "=" <value:AssignmentExpression> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::ValuedUnionArm,
+            start,
+            end,
+            Some(source_index.text(source, name_start, name_end).to_string()),
+            vec![value],
+        ),
+};
+
+GeneratedOpaqueTypeDeclaration: LalrpopSyntaxNode = {
+    <start:@L> <public:"pub"?> "opaque" "type"
+        <name_start:@L> TypeName <name_end:@R>
+        <parameters:GeneratedTypeParameters?>
+        <representation:("=" <TypeExpression>)?> "." <end:@R>
+        => {
+            let has_representation = representation.is_some();
+            let parameter_count = parameters.as_ref().map_or(0, Vec::len);
+            let mut children = parameters.unwrap_or_default();
+            children.extend(representation);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::TypeDeclaration,
+                start,
+                end,
+                Some(format!(
+                    "{}opaque {};params:{};representation:{}",
+                    if public.is_some() { "pub " } else { "" },
+                    source_index.text(source, name_start, name_end),
+                    parameter_count,
+                    has_representation,
+                )),
+                children,
+            )
+        },
+};
+
+GeneratedTypeParameters: Vec<LalrpopSyntaxNode> = {
+    "[" <parameters:NonEmptyComma<GeneratedTypeParameter>> "]" => parameters,
+};
+
+GeneratedTypeParameter: LalrpopSyntaxNode = {
+    <start:@L> <variance:GeneratedVariance?> TypeName
+        <higher_kind:("[" <NonEmptyComma<GeneratedHigherKindSlot>> "]")?>
+        <implication:("=>" <GeneratedStructuralEvidenceShape>)?> <end:@R>
+        => {
+            let mut children = higher_kind.unwrap_or_default();
+            children.extend(implication);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Type,
+                start,
+                end,
+                variance,
+                children,
+            )
+        },
+    <start:@L> "const" "upper-ident" ":" TypeName <end:@R>
+        => LalrpopSyntaxNode::leaf(
+            LalrpopSyntaxNodeKind::Type,
+            source,
+            source_index,
+            start,
+            end,
+        ),
+};
+
+GeneratedHigherKindSlot: LalrpopSyntaxNode = {
+    <start:@L> <variance:GeneratedVariance?> "placeholder" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Type,
+            start,
+            end,
+            variance,
+            Vec::new(),
+        ),
+};
+
+GeneratedVariance: String = {
+    "+" => "+".to_string(),
+    "-" => "-".to_string(),
+};
+
+GeneratedStructuralEvidenceShape: LalrpopSyntaxNode = {
+    <start:@L> "{" <fields:NonEmptyComma<TypeField>> "}" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::TypeMap,
+            start,
+            end,
+            Some("structural_evidence".to_string()),
+            fields,
+        ),
+};
+
+GeneratedStructDeclaration: LalrpopSyntaxNode = {
+    <start:@L> <public:"pub"?> "struct" <name_start:@L> TypeName <name_end:@R>
+        <parameters:GeneratedTypeParameters?>
+        <includes:("includes" <NonEmptyComma<TypeExpression>>)? >
+        <implements:("implements" <NonEmptyComma<TypeExpression>>)? >
+        "{" <fields:Comma<GeneratedStructField>> "}" "." <end:@R>
+        => {
+            let parameter_count = parameters.as_ref().map_or(0, Vec::len);
+            let include_count = includes.as_ref().map_or(0, Vec::len);
+            let implement_count = implements.as_ref().map_or(0, Vec::len);
+            LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::StructDeclaration,
+            start,
+            end,
+            Some(format!(
+                "{}{};params:{parameter_count};includes:{include_count};implements:{implement_count};fields:{}",
+                if public.is_some() { "pub " } else { "" },
+                source_index.text(source, name_start, name_end),
+                fields.len(),
+            )),
+            {
+                let mut children = parameters.unwrap_or_default();
+                children.extend(includes.unwrap_or_default());
+                children.extend(implements.unwrap_or_default());
+                children.extend(fields);
+                children
+            },
+            )
+        },
+};
+
+GeneratedConstructorDeclaration: LalrpopSyntaxNode = {
+    <start:@L> <public:"pub"?> "constructor"
+        <name_start:@L> TypeName <name_end:@R>
+        <parameters:GeneratedTypeParameters?>
+        "{" <clauses:Semicolon<GeneratedConstructorClause>> "}" "." <end:@R>
+        => {
+            let parameter_count = parameters.as_ref().map_or(0, Vec::len);
+            let clause_count = clauses.len();
+            let mut children = parameters.unwrap_or_default();
+            children.extend(clauses);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::ConstructorDeclaration,
+                start,
+                end,
+                Some(format!(
+                    "{}{};params:{parameter_count};clauses:{clause_count}",
+                    if public.is_some() { "pub " } else { "" },
+                    source_index.text(source, name_start, name_end),
+                )),
+                children,
+            )
+        },
+};
+
+GeneratedConstructorClause: LalrpopSyntaxNode = {
+    <start:@L> "(" <parameters:Comma<GeneratedParameter>> ")" ":"
+        <return_type:TypeExpression> BodyArrow <body:AssignmentExpression> <end:@R>
+        => {
+            let parameter_count = parameters.len();
+            let mut children = parameters;
+            children.push(return_type);
+            children.push(body);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::ConstructorClause,
+                start,
+                end,
+                Some(format!("params:{parameter_count}")),
+                children,
+            )
+        },
+};
+
+GeneratedTraitDeclaration: LalrpopSyntaxNode = {
+    <start:@L> <public:"pub"?> "trait"
+        <name_start:@L> TypeName <name_end:@R>
+        <parameters:GeneratedTypeParameters?>
+        <super_traits:("extends" <NonEmptyComma<TypeExpression>>)? >
+        "{" <members:GeneratedTraitMember*> "}" "." <end:@R>
+        => {
+            let parameter_count = parameters.as_ref().map_or(0, Vec::len);
+            let super_count = super_traits.as_ref().map_or(0, Vec::len);
+            let mut children = parameters.unwrap_or_default();
+            children.extend(super_traits.unwrap_or_default());
+            children.extend(members);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::TraitDeclaration,
+                start,
+                end,
+                Some(format!(
+                    "{}{};params:{parameter_count};supers:{super_count}",
+                    if public.is_some() { "pub " } else { "" },
+                    source_index.text(source, name_start, name_end),
+                )),
+                children,
+            )
+        },
+};
+
+GeneratedTraitMember: LalrpopSyntaxNode = {
+    GeneratedTraitConstant,
+    GeneratedTraitMethod,
+};
+
+GeneratedTraitConstant: LalrpopSyntaxNode = {
+    <start:@L> "const" <name_start:@L> "upper-ident" <name_end:@R> ":"
+        <annotation:TypeExpression> <default:("="<AssignmentExpression>)?> "." <end:@R>
+        => {
+            let mut children = vec![annotation];
+            children.extend(default);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::ConstantDeclaration,
+                start,
+                end,
+                Some(source_index.text(source, name_start, name_end).to_string()),
+                children,
+            )
+        },
+};
+
+GeneratedTraitMethod: LalrpopSyntaxNode = {
+    <annotations:GeneratedAnnotation*>
+        <start:@L> <name_start:@L> NameToken <name_end:@R>
+        <type_parameters:GeneratedCallableTypeParameters?>
+        <head_constraints:GeneratedHeadConstraintList?>
+        "(" <parameters:Comma<GeneratedParameter>> ")"
+        <constraints:GeneratedConstraintList?> ":"
+        <return_type:TypeExpression>
+        <body:(BodyArrow <Expression>)?> "." <end:@R>
+        => {
+            let annotation_count = annotations.len();
+            let generic_count = type_parameters.as_ref().map_or(0, Vec::len);
+            let head_constraint_count = head_constraints.as_ref().map_or(0, Vec::len);
+            let parameter_count = parameters.len();
+            let constraint_count = constraints.as_ref().map_or(0, Vec::len);
+            let has_body = body.is_some();
+            let mut children = annotations;
+            children.extend(type_parameters.unwrap_or_default());
+            children.extend(head_constraints.unwrap_or_default());
+            children.extend(parameters);
+            children.extend(constraints.unwrap_or_default());
+            children.push(return_type);
+            children.extend(body);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::FunctionDeclaration,
+                start,
+                end,
+                Some(format!(
+                    "{};annotations:{annotation_count};generics:{generic_count};head_constraints:{head_constraint_count};params:{parameter_count};constraints:{constraint_count};body:{has_body}",
+                    source_index.text(source, name_start, name_end),
+                )),
+                children,
+            )
+        },
+};
+
+GeneratedTraitImplementationDeclaration: LalrpopSyntaxNode = {
+    <start:@L> <public:"pub"?> "impl" <negative:"negative-impl-not"?>
+        <trait_ref:TypeExpression>
+        <body:GeneratedTraitImplementationBody> <end:@R>
+        => {
+            let has_body = !body.is_empty();
+            let mut children = vec![trait_ref];
+            children.extend(body);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::TraitImplementationDeclaration,
+                start,
+                end,
+                Some(format!(
+                    "{}{}impl;body:{}",
+                    if public.is_some() { "pub " } else { "" },
+                    if negative.is_some() { "not " } else { "" },
+                    has_body,
+                )),
+                children,
+            )
+        },
+};
+
+GeneratedTraitImplementationBody: Vec<LalrpopSyntaxNode> = {
+    "." => Vec::new(),
+    "for" <for_type:TypeExpression>
+        "{" <members:GeneratedTraitImplementationMember*> "}" "."
+        => {
+            let mut children = vec![for_type];
+            children.extend(members);
+            children
+        },
+};
+
+GeneratedTraitImplementationMember: LalrpopSyntaxNode = {
+    GeneratedImplementationConstant,
+    GeneratedFunctionDeclaration,
+};
+
+GeneratedImplementationConstant: LalrpopSyntaxNode = {
+    <start:@L> "const" <name_start:@L> "upper-ident" <name_end:@R>
+        <annotation:(":" <TypeExpression>)?> "=" <value:AssignmentExpression> "." <end:@R>
+        => {
+            let mut children = annotation.into_iter().collect::<Vec<_>>();
+            children.push(value);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::ConstantDeclaration,
+                start,
+                end,
+                Some(source_index.text(source, name_start, name_end).to_string()),
+                children,
+            )
+        },
+};
+
+GeneratedTemplateDeclaration: LalrpopSyntaxNode = {
+    <start:@L> "template" <name_start:@L> TypeName <name_end:@R>
+        "from" <path_start:@L> "string" <path_end:@R>
+        "{" <properties:Comma<GeneratedStructField>> "}" "." <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::TemplateDeclaration,
+            start,
+            end,
+            Some(format!(
+                "{} from {}",
+                source_index.text(source, name_start, name_end),
+                source_index.text(source, path_start, path_end),
+            )),
+            properties,
+        ),
+};
+
+GeneratedShapeDeclaration: LalrpopSyntaxNode = {
+    <start:@L> <public:"pub"?> "shape"
+        <name_start:@L> TypeName <name_end:@R>
+        "(" <parameters:Comma<Pattern>> ")" "="
+        <body:Pattern> <guard:("where" <AssignmentExpression>)?> "." <end:@R>
+        => {
+            let parameter_count = parameters.len();
+            let has_guard = guard.is_some();
+            let mut children = parameters;
+            children.push(body);
+            children.extend(guard);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::ShapeDeclaration,
+                start,
+                end,
+                Some(format!(
+                    "{}{};params:{parameter_count};guard:{has_guard}",
+                    if public.is_some() { "pub " } else { "" },
+                    source_index.text(source, name_start, name_end),
+                )),
+                children,
+            )
+        },
+};
+
+GeneratedStructField: LalrpopSyntaxNode = {
+    <start:@L> <private:"#"? > <name_start:@L> NameToken <name_end:@R> ":"
+        <annotation:TypeExpression> <default:("=" <AssignmentExpression>)?> <end:@R>
+        => {
+            let mut children = vec![annotation];
+            children.extend(default);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::StructField,
+                start,
+                end,
+                Some(format!(
+                    "{}{}",
+                    if private.is_some() { "#" } else { "" },
+                    source_index.text(source, name_start, name_end),
+                )),
+                children,
+            )
+        },
+};
+
+GeneratedFunctionDeclaration: LalrpopSyntaxNode = {
+    <start:@L> <public:"pub"?> <macro_token:"macro"?>
+        <name_start:@L> NameToken <name_end:@R>
+        <type_parameters:GeneratedCallableTypeParameters?>
+        <head_constraints:GeneratedHeadConstraintList?>
+        "(" <parameters:Comma<GeneratedParameter>> ")"
+        <constraints:GeneratedConstraintList?> ":"
+        <return_type:TypeExpression>
+        <body:(BodyArrow <Expression>)?> "." <end:@R>
+        => {
+            let generic_count = type_parameters.as_ref().map_or(0, Vec::len);
+            let head_constraint_count = head_constraints.as_ref().map_or(0, Vec::len);
+            let parameter_count = parameters.len();
+            let constraint_count = constraints.as_ref().map_or(0, Vec::len);
+            let has_body = body.is_some();
+            let mut children = type_parameters.unwrap_or_default();
+            children.extend(head_constraints.unwrap_or_default());
+            children.extend(parameters);
+            children.extend(constraints.unwrap_or_default());
+            children.push(return_type);
+            children.extend(body);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::FunctionDeclaration,
+                start,
+                end,
+                Some(format!(
+                    "{}{}{};generics:{generic_count};head_constraints:{head_constraint_count};params:{parameter_count};constraints:{constraint_count};body:{has_body}",
+                    if public.is_some() { "pub " } else { "" },
+                    if macro_token.is_some() { "macro " } else { "" },
+                    source_index.text(source, name_start, name_end),
+                )),
+                children,
+            )
+        },
+};
+
+GeneratedClauseFunctionDeclaration: LalrpopSyntaxNode = {
+    <start:@L> <public:"pub"?> <first:GeneratedFunctionClause>
+        <rest:(";" <GeneratedFunctionClause>)*> "." <end:@R>
+        => {
+            let mut clauses = Vec::with_capacity(rest.len() + 1);
+            clauses.push(first);
+            clauses.extend(rest);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::FunctionDeclaration,
+                start,
+                end,
+                Some(format!(
+                    "{}clauses",
+                    if public.is_some() { "pub " } else { "" },
+                )),
+                clauses,
+            )
+        },
+};
+
+GeneratedFunctionClause: LalrpopSyntaxNode = {
+    <start:@L> <name_start:@L> NameToken <name_end:@R>
+        "function-clause-(" <patterns:Comma<Pattern>> ")"
+        <guard:("where" <AssignmentExpression>)?>
+        "->" <body:AssignmentExpression> <end:@R>
+        => {
+            let pattern_count = patterns.len();
+            let has_guard = guard.is_some();
+            let mut children = patterns;
+            children.extend(guard);
+            children.push(body);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Clause,
+                start,
+                end,
+                Some(format!(
+                    "{};patterns:{pattern_count};guard:{has_guard}",
+                    source_index.text(source, name_start, name_end),
+                )),
+                children,
+            )
+        },
+};
+
+GeneratedMethodDeclaration: LalrpopSyntaxNode = {
+    <start:@L> <public:"pub"?> "(" <mutable:"mut"?>
+        <receiver_start:@L> NameToken <receiver_name_end:@R> ":"
+        <receiver_type:TypeExpression> ")"
+        <name_start:@L> NameToken <name_end:@R>
+        <type_parameters:GeneratedCallableTypeParameters?>
+        <head_constraints:GeneratedHeadConstraintList?>
+        "(" <parameters:Comma<GeneratedParameter>> ")"
+        <constraints:GeneratedConstraintList?> ":"
+        <return_type:TypeExpression> <body:(BodyArrow <Expression>)?> "." <end:@R>
+        => {
+            let generic_count = type_parameters.as_ref().map_or(0, Vec::len);
+            let head_constraint_count = head_constraints.as_ref().map_or(0, Vec::len);
+            let parameter_count = parameters.len();
+            let constraint_count = constraints.as_ref().map_or(0, Vec::len);
+            let has_body = body.is_some();
+            let receiver_end = receiver_type.span.end;
+            let receiver = LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Receiver,
+                receiver_start,
+                receiver_end,
+                Some(format!(
+                    "{}{}",
+                    if mutable.is_some() { "mut " } else { "" },
+                    source_index.text(source, receiver_start, receiver_name_end),
+                )),
+                vec![receiver_type],
+            );
+            let mut children = vec![receiver];
+            children.extend(type_parameters.unwrap_or_default());
+            children.extend(head_constraints.unwrap_or_default());
+            children.extend(parameters);
+            children.extend(constraints.unwrap_or_default());
+            children.push(return_type);
+            children.extend(body);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::MethodDeclaration,
+                start,
+                end,
+                Some(format!(
+                    "{}{};generics:{generic_count};head_constraints:{head_constraint_count};params:{parameter_count};constraints:{constraint_count};body:{has_body}",
+                    if public.is_some() { "pub " } else { "" },
+                    source_index.text(source, name_start, name_end),
+                )),
+                children,
+            )
+        },
+};
+
+GeneratedConstraintList: Vec<LalrpopSyntaxNode> = {
+    "[" <constraints:NonEmptyComma<TypeExpression>> "]" => constraints,
+};
+
+GeneratedHeadConstraintList: Vec<LalrpopSyntaxNode> = {
+    <start:@L> "head-constraints" <end:@R> => vec![
+        LalrpopSyntaxNode::leaf(
+            LalrpopSyntaxNodeKind::Type,
+            source,
+            source_index,
+            start,
+            end,
+        )
+    ],
+};
+
+GeneratedCallableTypeParameters: Vec<LalrpopSyntaxNode> = {
+    GeneratedTypeParameters,
+    "<" <parameters:NonEmptyComma<GeneratedAngleTypeParameter>> ">" => parameters,
+};
+
+GeneratedAngleTypeParameter: LalrpopSyntaxNode = {
+    <start:@L> TypeName <bounds:(":" <GeneratedAngleTypeBounds>)?> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Type,
+            start,
+            end,
+            Some(source_index.text(source, start, end).to_string()),
+            bounds.unwrap_or_default(),
+        ),
+};
+
+GeneratedAngleTypeBounds: Vec<LalrpopSyntaxNode> = {
+    <first:TypeExpression> <rest:("+" <TypeExpression>)*> => {
+        let mut bounds = Vec::with_capacity(rest.len() + 1);
+        bounds.push(first);
+        bounds.extend(rest);
+        bounds
+    },
+};
+
+GeneratedParameter: LalrpopSyntaxNode = {
+    <start:@L> <varargs:"..."?> <mutable:"mut"?> <name_start:@L> NameToken <name_end:@R> ":"
+        <annotation:TypeExpression> <default:("=" <AssignmentExpression>)?> <end:@R>
+        => {
+            let mut children = vec![annotation];
+            children.extend(default);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Parameter,
+                start,
+                end,
+                Some(format!(
+                    "{}{}{}",
+                    if varargs.is_some() { "..." } else { "" },
+                    if mutable.is_some() { "mut " } else { "" },
+                    source_index.text(source, name_start, name_end),
+                )),
+                children,
+            )
+        },
+    <start:@L> <pattern:StructuralParameterPattern> "="
+        <name_start:@L> NameToken <name_end:@R> ":"
+        <annotation:TypeExpression> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Parameter,
+            start,
+            end,
+            Some(source_index.text(source, name_start, name_end).to_string()),
+            vec![pattern, annotation],
+        ),
+    <start:@L> <pattern:StructuralParameterPattern>
+        <annotation:(":" <TypeExpression>)?>
+        <default:("=" <AssignmentExpression>)?> <end:@R>
+        => {
+            let pattern_text = source_index
+                .text(source, pattern.span.start, pattern.span.end)
+                .to_string();
+            let mut children = vec![pattern];
+            children.extend(annotation);
+            children.extend(default);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Parameter,
+                start,
+                end,
+                Some(pattern_text),
+                children,
+            )
+        },
+};
+
+StructuralParameterPattern: LalrpopSyntaxNode = {
+    <start:@L> "placeholder" <end:@R>
+        => LalrpopSyntaxNode::leaf(
+            LalrpopSyntaxNodeKind::Pattern,
+            source,
+            source_index,
+            start,
+            end,
+        ),
+    ParameterTuplePattern,
+    BinaryLayoutSyntax,
+    NominalKeyedSyntax,
+    <start:@L> "{" <fields:Comma<PatternField>> "}" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::PatternMap,
+            start,
+            end,
+            None,
+            fields,
+        ),
+    <start:@L> <name_start:@L> NameToken <name_end:@R>
+        "(" <arguments:Comma<Pattern>> ")" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::PatternConstructor,
+            start,
+            end,
+            Some(source_index.text(source, name_start, name_end).to_string()),
+            arguments,
+        ),
+    <start:@L> "[" <items:PatternListBody> "]" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            items.0,
+            start,
+            end,
+            None,
+            items.1,
+        ),
+    <start:@L> "string" <end:@R>
+        => LalrpopSyntaxNode::leaf(
+            LalrpopSyntaxNodeKind::String,
+            source,
+            source_index,
+            start,
+            end,
+        ),
+};
+
+ParameterTuplePattern: LalrpopSyntaxNode = {
+    <start:@L> "{" <first:Pattern> "," <second:Pattern>
+        <rest:("," <Pattern>)*> "}" <end:@R> => {
+            let mut children = Vec::with_capacity(rest.len() + 2);
+            children.push(first);
+            children.push(second);
+            children.extend(rest);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::PatternTuple,
+                start,
+                end,
+                None,
+                children,
+            )
+        },
+};
+
+Expression: LalrpopSyntaxNode = {
+    <first:AssignmentExpression>
+    <rest:(";" <AssignmentExpression>)*>
+    => {
+        if rest.is_empty() {
+            first
+        } else {
+            let start = first.span.start;
+            let end = rest.last().map_or(first.span.end, |node| node.span.end);
+            let mut children = Vec::with_capacity(rest.len() + 1);
+            children.push(first);
+            children.extend(rest);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Sequence,
+                start,
+                end,
+                None,
+                children,
+            )
+        }
+    },
+};
+
+AssignmentExpression: LalrpopSyntaxNode = {
+    LambdaExpression,
+    LetExpression,
+    NonLetAssignmentExpression,
+};
+
+LambdaExpression: LalrpopSyntaxNode = {
+    <start:@L> "lambda-(" <patterns:Comma<LambdaPattern>> ")" "->"
+        <body:LambdaBody> <end:@R>
+        => {
+            let mut children = patterns;
+            children.push(body);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Lambda,
+                start,
+                end,
+                None,
+                children,
+            )
+        },
+};
+
+LambdaPattern: LalrpopSyntaxNode = {
+    <start:@L> "typed-lambda-pattern" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Pattern,
+            start,
+            end,
+            Some(
+                source_index
+                    .text(source, start, end)
+                    .split(':')
+                    .next()
+                    .unwrap_or_default()
+                    .trim()
+                    .to_string(),
+            ),
+            Vec::new(),
+        ),
+    Pattern,
+};
+
+LetExpression: LalrpopSyntaxNode = {
+    <start:@L> "let" <binding:RefutableLetBinding>
+        "else" "{" <first_fallback:CaseClause>
+        <fallbacks:(";" <CaseClause>)*> "closing-semicolon"? "}" ";"
+        <body:AssignmentExpression> <end:@R>
+        => {
+            let mut children = Vec::with_capacity(3 + fallbacks.len());
+            children.push(binding);
+            children.push(first_fallback);
+            children.extend(fallbacks);
+            children.push(body);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Let,
+                start,
+                end,
+                Some("refutable_group".to_string()),
+                children,
+            )
+        },
+    <start:@L> "let" "{"
+        <first:RefutableLetBinding>
+        <rest:(";" <RefutableLetBinding>)*> "closing-semicolon"?
+        "}" "else" "{" <first_fallback:CaseClause>
+        <fallbacks:(";" <CaseClause>)*> "closing-semicolon"? "}" ";"
+        <body:AssignmentExpression> <end:@R>
+        => {
+            let mut children =
+                Vec::with_capacity(3 + rest.len() + fallbacks.len());
+            children.push(first);
+            children.extend(rest);
+            children.push(first_fallback);
+            children.extend(fallbacks);
+            children.push(body);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Let,
+                start,
+                end,
+                Some("refutable_group".to_string()),
+                children,
+            )
+        },
+    <start:@L> "let" <pattern:Pattern> "=" <value:AssignmentExpression>
+        ";" <body:AssignmentExpression> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Let,
+            start,
+            end,
+            None,
+            vec![pattern, value, body],
+        ),
+};
+
+NonLetAssignmentExpression: LalrpopSyntaxNode = {
+    QuoteExpression,
+    <left:ConstructorChainExpression> "=" <right:AssignmentExpression>
+        => {
+            let start = left.span.start;
+            let end = right.span.end;
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::IndexAssign,
+                start,
+                end,
+                Some("=".to_string()),
+                vec![left, right],
+            )
+        },
+    ConstructorChainExpression,
+};
+
+QuoteExpression: LalrpopSyntaxNode = {
+    <start:@L> "quote" <value:AssignmentExpression>
+        => {
+            let end = value.span.end;
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Quote,
+                start,
+                end,
+                None,
+                vec![value],
+            )
+        },
+};
+
+LambdaBody: LalrpopSyntaxNode = {
+    LambdaRefutableLetExpression,
+    LambdaLeadingLetExpression,
+    LambdaExpression,
+    QuoteExpression,
+    LambdaIndexAssignment,
+    LambdaConstructorBody,
+};
+
+LambdaRefutableLetExpression: LalrpopSyntaxNode = {
+    <start:@L> "let" <binding:RefutableLetBinding>
+        "else" "{" <first_fallback:CaseClause>
+        <fallbacks:(";" <CaseClause>)*> "closing-semicolon"? "}" ";"
+        <body:LambdaLeadingLetBody> <end:@R>
+        => {
+            let mut children = Vec::with_capacity(3 + fallbacks.len());
+            children.push(binding);
+            children.push(first_fallback);
+            children.extend(fallbacks);
+            children.push(body);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Let,
+                start,
+                end,
+                Some("refutable_group".to_string()),
+                children,
+            )
+        },
+    <start:@L> "let" "{"
+        <first:RefutableLetBinding>
+        <rest:(";" <RefutableLetBinding>)*> "closing-semicolon"?
+        "}" "else" "{" <first_fallback:CaseClause>
+        <fallbacks:(";" <CaseClause>)*> "closing-semicolon"? "}" ";"
+        <body:LambdaLeadingLetBody> <end:@R>
+        => {
+            let mut children =
+                Vec::with_capacity(3 + rest.len() + fallbacks.len());
+            children.push(first);
+            children.extend(rest);
+            children.push(first_fallback);
+            children.extend(fallbacks);
+            children.push(body);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Let,
+                start,
+                end,
+                Some("refutable_group".to_string()),
+                children,
+            )
+        },
+};
+
+LambdaIndexAssignment: LalrpopSyntaxNode = {
+    <left:ConstructorChainExpression> "=" <right:AssignmentExpression>
+        => {
+            let start = left.span.start;
+            let end = right.span.end;
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::IndexAssign,
+                start,
+                end,
+                Some("=".to_string()),
+                vec![left, right],
+            )
+        },
+};
+
+LambdaLeadingLetExpression: LalrpopSyntaxNode = {
+    <start:@L> "let" <pattern:Pattern> "=" <value:AssignmentExpression>
+        ";" <body:LambdaLeadingLetBody> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Let,
+            start,
+            end,
+            None,
+            vec![pattern, value, body],
+        ),
+};
+
+LambdaLeadingLetBody: LalrpopSyntaxNode = {
+    LambdaRefutableLetExpression,
+    LambdaLeadingLetExpression,
+    LambdaConstructorBody,
+};
+
+LambdaConstructorBody: LalrpopSyntaxNode = {
+    <first:ConstructorChainExpression>
+        <rest:("lambda-sequence-semicolon" <LambdaSequenceElement>)*>
+        => {
+            if rest.is_empty() {
+                first
+            } else {
+                let start = first.span.start;
+                let end = rest.last().map_or(first.span.end, |node| node.span.end);
+                let mut children = Vec::with_capacity(rest.len() + 1);
+                children.push(first);
+                children.extend(rest);
+                LalrpopSyntaxNode::branch(
+                    LalrpopSyntaxNodeKind::Sequence,
+                    start,
+                    end,
+                    None,
+                    children,
+                )
+            }
+        },
+};
+
+LambdaSequenceElement: LalrpopSyntaxNode = {
+    ConstructorChainExpression,
+};
+
+RefutableLetBinding: LalrpopSyntaxNode = {
+    <start:@L> <pattern:Pattern> "<-" <value:AssignmentExpression> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Let,
+            start,
+            end,
+            Some("refutable_binding".to_string()),
+            vec![pattern, value],
+        ),
+};
+
+ConstructorChainExpression: LalrpopSyntaxNode = {
+    <base:PipeExpression> <extensions:("with" <PipeExpression>)*> => {
+        if extensions.is_empty() {
+            base
+        } else {
+            let start = base.span.start;
+            let end = extensions.last().map_or(base.span.end, |node| node.span.end);
+            let mut children = Vec::with_capacity(extensions.len() + 1);
+            children.push(base);
+            children.extend(extensions);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::ConstructorChain,
+                start,
+                end,
+                Some("with".to_string()),
+                children,
+            )
+        }
+    },
+};
+
+PipeExpression: LalrpopSyntaxNode = {
+    <left:OrExpression> <tail:("|>" <OrExpression>)*>
+        => LalrpopSyntaxNode::fold_binary(
+            left,
+            tail.into_iter().map(|right| ("|>".to_string(), right)).collect(),
+        ),
+};
+
+OrExpression: LalrpopSyntaxNode = {
+    <left:AndExpression> <tail:("or" <AndExpression>)*>
+        => LalrpopSyntaxNode::fold_binary(
+            left,
+            tail.into_iter().map(|right| ("or".to_string(), right)).collect(),
+        ),
+};
+
+AndExpression: LalrpopSyntaxNode = {
+    <left:CompareExpression> <tail:("and" <CompareExpression>)*>
+        => LalrpopSyntaxNode::fold_binary(
+            left,
+            tail.into_iter().map(|right| ("and".to_string(), right)).collect(),
+        ),
+};
+
+CompareExpression: LalrpopSyntaxNode = {
+    <left:AddExpression> <tail:(<CompareOperator> <AddExpression>)*>
+        => LalrpopSyntaxNode::fold_binary(left, tail),
+};
+
+CompareOperator: String = {
+    "==" => "==".to_string(),
+    "!=" => "!=".to_string(),
+    ">=" => ">=".to_string(),
+    ">" => ">".to_string(),
+    "<=" => "<=".to_string(),
+    "<" => "<".to_string(),
+    "in" => "in".to_string(),
+};
+
+AddExpression: LalrpopSyntaxNode = {
+    <left:MultiplyExpression> <tail:(<AddOperator> <MultiplyExpression>)*>
+        => LalrpopSyntaxNode::fold_binary(left, tail),
+};
+
+AddOperator: String = {
+    "+" => "+".to_string(),
+    "-" => "-".to_string(),
+    ".." => "..".to_string(),
+};
+
+MultiplyExpression: LalrpopSyntaxNode = {
+    <left:CastExpression> <tail:(<MultiplyOperator> <CastExpression>)*>
+        => LalrpopSyntaxNode::fold_binary(left, tail),
+};
+
+MultiplyOperator: String = {
+    "*" => "*".to_string(),
+    "/" => "/".to_string(),
+    "div" => "div".to_string(),
+    "rem" => "rem".to_string(),
+};
+
+CastExpression: LalrpopSyntaxNode = {
+    <value:UnaryExpression> <casts:("as" <CastTypePrimary>)*> => {
+        let mut value = value;
+        for target in casts {
+            let start = value.span.start;
+            let end = target.span.end;
+            value = LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Cast,
+                start,
+                end,
+                Some("as".to_string()),
+                vec![value, target],
+            );
+        }
+        value
+    },
+};
+
+CastTypePrimary: LalrpopSyntaxNode = {
+    <start:@L> TypeReferencePath "cast-type-["
+        <arguments:NonEmptyComma<TypeExpression>> "]" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Type,
+            start,
+            end,
+            Some(source_index.text(source, start, end).to_string()),
+            arguments,
+        ),
+    <start:@L> TypeReferencePath <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Type,
+            start,
+            end,
+            Some(source_index.text(source, start, end).to_string()),
+            Vec::new(),
+        ),
+    <start:@L> "[" <item:CastTypePrimary> "]" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::TypeList,
+            start,
+            end,
+            Some("list".to_string()),
+            vec![item],
+        ),
+};
+
+TypeExpression: LalrpopSyntaxNode = {
+    <start:@L> "exists" <variables:NonEmptyComma<TypeNameNode>>
+        "." <body:TypeExpression> <end:@R> => {
+        let mut children = variables;
+        children.push(body);
+        LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::TypeExistential,
+            start,
+            end,
+            Some("exists".to_string()),
+            children,
+        )
+    },
+    TypeArrow,
+};
+
+TypeArrow: LalrpopSyntaxNode = {
+    <start:@L> "lambda-(" <arguments:Comma<TypeExpression>> ")" "->"
+        <return_type:TypeArrow> <end:@R> => {
+        let mut children = arguments;
+        children.push(return_type);
+        LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::TypeArrow,
+            start,
+            end,
+            Some("->".to_string()),
+            children,
+        )
+    },
+    TypeImplication,
+};
+
+TypeImplication: LalrpopSyntaxNode = {
+    <left:TypeUnion> <evidence:("=>" <GeneratedStructuralEvidenceShape>)?> => {
+        if let Some(evidence) = evidence {
+            let start = left.span.start;
+            let end = evidence.span.end;
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Type,
+                start,
+                end,
+                Some("=>".to_string()),
+                vec![left, evidence],
+            )
+        } else {
+            left
+        }
+    },
+};
+
+TypeUnion: LalrpopSyntaxNode = {
+    <left:TypePrimary> <rest:("|" <TypePrimary>)*> => {
+        if rest.is_empty() {
+            left
+        } else {
+            let start = left.span.start;
+            let end = rest.last().map_or(left.span.end, |node| node.span.end);
+            let mut children = Vec::with_capacity(rest.len() + 1);
+            children.push(left);
+            children.extend(rest);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::TypeUnion,
+                start,
+                end,
+                Some("|".to_string()),
+                children,
+            )
+        }
+    },
+};
+
+TypePrimary: LalrpopSyntaxNode = {
+    <start:@L> "atom" "(" <fields:NonEmptyComma<TypeField>> ")" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::TypeTuple,
+            start,
+            end,
+            Some("named".to_string()),
+            fields,
+        ),
+    <start:@L> "atom" "(" <arguments:NonEmptyComma<TypeExpression>> ")" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Type,
+            start,
+            end,
+            Some(source_index.text(source, start, end).to_string()),
+            arguments,
+        ),
+    <start:@L> TypeName "(" <fields:Comma<TypeField>> ")" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::TypeTuple,
+            start,
+            end,
+            Some("named".to_string()),
+            fields,
+        ),
+    <start:@L> TypeReferencePath <args:TypeArguments?> <end:@R> => {
+        LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Type,
+            start,
+            end,
+            Some(source_index.text(source, start, end).to_string()),
+            args.unwrap_or_default(),
+        )
+    },
+    <start:@L> "[" <item:TypeExpression> "]" <end:@R> => {
+        LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::TypeList,
+            start,
+            end,
+            Some("list".to_string()),
+            vec![item],
+        )
+    },
+    <start:@L> "{" <first:TypeExpression> <rest:TypeTupleTail> "}" <end:@R> => {
+        let mut children = Vec::with_capacity(rest.len() + 1);
+        children.push(first);
+        children.extend(rest);
+        LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::TypeTuple,
+            start,
+            end,
+            None,
+            children,
+        )
+    },
+    <start:@L> "{" <fields:Comma<TypeField>> "}" <end:@R> => {
+        LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::TypeMap,
+            start,
+            end,
+            None,
+            fields,
+        )
+    },
+    <start:@L> "(" <value:TypeExpression> ")" <end:@R> => {
+        LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Type,
+            start,
+            end,
+            Some("group".to_string()),
+            vec![value],
+        )
+    },
+    <start:@L> "int" <end:@R>
+        => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Type, source, source_index, start, end),
+    <start:@L> "float" <end:@R>
+        => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Type, source, source_index, start, end),
+    <start:@L> "string" <end:@R>
+        => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Type, source, source_index, start, end),
+    <start:@L> "legacy-atom" <end:@R>
+        => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Type, source, source_index, start, end),
+    <start:@L> "placeholder" <end:@R>
+        => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Type, source, source_index, start, end),
+};
+
+TypeTupleTail: Vec<LalrpopSyntaxNode> = {
+    => Vec::new(),
+    "," <first:TypeField> <rest:("," <TypeField>)*> => {
+        let mut fields = Vec::with_capacity(rest.len() + 1);
+        fields.push(first);
+        fields.extend(rest);
+        fields
+    },
+    "," <second:TypeExpression> <rest:("," <TypeExpression>)*> => {
+        let mut items = Vec::with_capacity(rest.len() + 1);
+        items.push(second);
+        items.extend(rest);
+        items
+    },
+};
+
+TypeArguments: Vec<LalrpopSyntaxNode> = {
+    "[" <items:NonEmptyComma<TypeArgument>> "]" => items,
+    "<" <items:NonEmptyComma<TypeArgument>> ">" => items,
+};
+
+TypeArgument: LalrpopSyntaxNode = {
+    <start:@L> <left:TypeExpression> "+" <right:TypeExpression> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Type,
+            start,
+            end,
+            Some(source_index.text(source, start, end).to_string()),
+            vec![left, right],
+        ),
+    TypeExpression,
+};
+
+TypeReferencePath: () = {
+    TypeReferenceRoot ("tight-dot" TypeReferenceSegment)*,
+};
+
+TypeReferenceRoot: () = {
+    ModulePathRoot,
+    TypeName,
+};
+
+TypeReferenceSegment: () = {
+    ModulePathSegment,
+};
+
+TypeNameNode: LalrpopSyntaxNode = {
+    <start:@L> TypeName <end:@R>
+        => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Type, source, source_index, start, end),
+};
+
+TypeField: LalrpopSyntaxNode = {
+    <start:@L> <key:MapKey> ":" <value:TypeExpression> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::TypeField,
+            start,
+            end,
+            Some(key),
+            vec![value],
+        ),
+};
+
+TypeName: () = {
+    "upper-ident",
+    "Bool",
+    "Float",
+    "Int",
+    "Name",
+    "String",
+    "Type",
+};
+
+BodyArrow: () = {
+    "->",
+    "function-body-arrow",
+};
+
+UnaryExpression: LalrpopSyntaxNode = {
+    <start:@L> <operator:UnaryOperator> <operator_end:@R> <operand:UnaryExpression>
+        => LalrpopSyntaxNode::unary(source, source_index, start, operator_end, operand),
+    PostfixExpression,
+};
+
+UnaryOperator: () = {
+    "-",
+    "!",
+    "not",
+};
+
+PostfixExpression: LalrpopSyntaxNode = {
+    <primary:PrimaryExpression> <suffixes:PostfixSuffix*>
+        => LalrpopSyntaxNode::apply_postfix(primary, suffixes),
+};
+
+PostfixSuffix: LalrpopPostfixSyntax = {
+    "(" <args:Comma<AssignmentExpression>> ")" <end:@R>
+        => LalrpopPostfixSyntax::Call { args, end },
+    "generic-call-[" <type_args:NonEmptyComma<TypeExpression>> "]"
+        "(" <args:Comma<AssignmentExpression>> ")" <end:@R>
+        => LalrpopPostfixSyntax::GenericCall { type_args, args, end },
+    "[" <index:Expression> "]" <end:@R>
+        => LalrpopPostfixSyntax::Index { index, end },
+    "tight-dot" <start:@L> NameToken <end:@R>
+        => LalrpopPostfixSyntax::Field {
+            field: source_index.text(source, start, end).to_string(),
+            end,
+        },
+    "tight-dot" "#" <start:@L> NameToken <end:@R>
+        => LalrpopPostfixSyntax::Field {
+            field: format!("#{}", source_index.text(source, start, end)),
+            end,
+        },
+    "#" <record_start:@L> NameToken <record_end:@R> RecordAccessDot
+        <field_start:@L> NameToken <field_end:@R>
+        => LalrpopPostfixSyntax::RecordAccess {
+            record: source_index.text(source, record_start, record_end).to_string(),
+            field: source_index.text(source, field_start, field_end).to_string(),
+            end: field_end,
+        },
+    "#" <record_start:@L> NameToken <record_end:@R>
+        RecordUpdateOpen <fields:Comma<RecordUpdateField>> "}" <end:@R>
+        => LalrpopPostfixSyntax::RecordUpdate {
+            record: source_index.text(source, record_start, record_end).to_string(),
+            fields,
+            end,
+        },
+};
+
+RecordAccessDot: () = {
+    ".",
+    "tight-dot",
+};
+
+RecordUpdateOpen: () = {
+    "{",
+    "nominal-keyed-{",
+};
+
+RecordUpdateField: LalrpopSyntaxNode = {
+    <start:@L> <private:"#"? > <key:MapKey> RecordUpdateSeparator
+        <value:AssignmentExpression> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::MapField,
+            start,
+            end,
+            Some(format!("{}{}", if private.is_some() { "#" } else { "" }, key)),
+            vec![value],
+        ),
+};
+
+RecordUpdateSeparator: () = {
+    ":",
+    "=",
+};
+
+PrimaryExpression: LalrpopSyntaxNode = {
+    <start:@L> <remote_start:@L> NameToken <remote_end:@R> "remote-call-colon"
+        <function_start:@L> NameToken <function_end:@R>
+        <type_args:CallTypeArguments?>
+        "(" <args:Comma<AssignmentExpression>> ")" <end:@R> => {
+            let type_args = type_args.unwrap_or_default();
+            let type_arg_count = type_args.len();
+            let callee = LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Binding,
+                function_start,
+                function_end,
+                Some(source_index.text(source, function_start, function_end).to_string()),
+                Vec::new(),
+            );
+            let mut children = Vec::with_capacity(1 + type_arg_count + args.len());
+            children.push(callee);
+            children.extend(type_args);
+            children.extend(args);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Call,
+                start,
+                end,
+                Some(format!(
+                    "remote:{};generic:{}",
+                    source_index.text(source, remote_start, remote_end),
+                    type_arg_count,
+                )),
+                children,
+            )
+        },
+    <start:@L> "case" <value:AssignmentExpression>
+        "{" <clauses:Semicolon<CaseClause>> "}" <end:@R>
+        => {
+            let mut children = Vec::with_capacity(clauses.len() + 1);
+            children.push(value);
+            children.extend(clauses);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Case,
+                start,
+                end,
+                None,
+                children,
+            )
+        },
+    <start:@L> "try" <body:AssignmentExpression>
+        "{" <of_clauses:Semicolon<CaseClause>>
+        <catch_clauses:("catch" <Semicolon<CaseClause>>)? >
+        <after_clause:(
+            "after" <AssignmentExpression> "->" <AssignmentExpression>
+        )? >
+        "}" <end:@R>
+        => {
+            let of_count = of_clauses.len();
+            let catch_count = catch_clauses.as_ref().map_or(0, Vec::len);
+            let has_after = after_clause.is_some();
+            let after_count = usize::from(has_after) * 2;
+            let mut children =
+                Vec::with_capacity(1 + of_clauses.len() + catch_count + after_count);
+            children.push(body);
+            children.extend(of_clauses);
+            if let Some(catch_clauses) = catch_clauses {
+                children.extend(catch_clauses);
+            }
+            if let Some((trigger, after_body)) = after_clause {
+                children.push(trigger);
+                children.push(after_body);
+            }
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Try,
+                start,
+                end,
+                Some(format!(
+                    "of:{};catch:{};after:{}",
+                    of_count,
+                    catch_count,
+                    has_after,
+                )),
+                children,
+            )
+        },
+    <start:@L> "if" "{" <clauses:IfClauses> "}" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::If,
+            start,
+            end,
+            None,
+            clauses,
+        ),
+    <start:@L> "?" <name_start:@L> NameToken <name_end:@R>
+        <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::MacroCall,
+            start,
+            end,
+            Some(source_index.text(source, name_start, name_end).to_string()),
+            Vec::new(),
+        ),
+    <start:@L> "unquote" "(" <value:Expression> ")" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Unquote,
+            start,
+            end,
+            None,
+            vec![value],
+        ),
+    <start:@L> "expression-raw-macro" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::RawMacro,
+            start,
+            end,
+            Some(source_index.text(source, start, end).to_string()),
+            Vec::new(),
+        ),
+    <start:@L> "legacy-atom" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::AtomLiteral,
+            start,
+            end,
+            Some(source_index.text(source, start + 1, end).to_string()),
+            Vec::new(),
+        ),
+    <start:@L> "int" <end:@R>
+        => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Int, source, source_index, start, end),
+    <start:@L> "float" <end:@R>
+        => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Float, source, source_index, start, end),
+    <start:@L> "string" <end:@R>
+        => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::String, source, source_index, start, end),
+    <start:@L> "binary" <end:@R>
+        => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::BinaryLiteral, source, source_index, start, end),
+    <start:@L> "html" "html-raw-block" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::RawMacro,
+            start,
+            end,
+            Some("html".to_string()),
+            Vec::new(),
+        ),
+    BinaryLayoutSyntax,
+    NominalKeyedSyntax,
+    <start:@L> NameToken <end:@R>
+        => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Binding, source, source_index, start, end),
+    <start:@L> "(" <value:Expression> ")" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Group,
+            start,
+            end,
+            None,
+            vec![value],
+        ),
+    <start:@L> "{" <first:AssignmentExpression> ","
+        <second:AssignmentExpression> <rest:("," <AssignmentExpression>)*> ","? "}" <end:@R>
+        => {
+            let mut children = Vec::with_capacity(rest.len() + 2);
+            children.push(first);
+            children.push(second);
+            children.extend(rest);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Tuple,
+                start,
+                end,
+                None,
+                children,
+            )
+        },
+    <start:@L> "{" <fields:Comma<MapField>> "}" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Map,
+            start,
+            end,
+            None,
+            fields,
+        ),
+    <start:@L> "[" <items:ExpressionListBody> "]" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            items.0,
+            start,
+            end,
+            None,
+            items.1,
+        ),
+    <start:@L> "#" "[" <items:Comma<AssignmentExpression>> "]" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::FixedArray,
+            start,
+            end,
+            None,
+            items,
+        ),
+};
+
+LegacyAtomValue: () = {
+    NameToken,
+    "string",
+};
+
+CallTypeArguments: Vec<LalrpopSyntaxNode> = {
+    "generic-call-[" <items:NonEmptyComma<TypeExpression>> "]" => items,
+};
+
+ExpressionListBody: (LalrpopSyntaxNodeKind, Vec<LalrpopSyntaxNode>) = {
+    => (LalrpopSyntaxNodeKind::List, Vec::new()),
+    <first:AssignmentExpression> <tail:ExpressionListTail> => {
+        let mut children = Vec::with_capacity(tail.1.len() + 1);
+        children.push(first);
+        children.extend(tail.1);
+        (tail.0, children)
+    },
+};
+
+ExpressionListTail: (LalrpopSyntaxNodeKind, Vec<LalrpopSyntaxNode>) = {
+    => (LalrpopSyntaxNodeKind::List, Vec::new()),
+    "," <rest:Comma<AssignmentExpression>>
+        => (LalrpopSyntaxNodeKind::List, rest),
+    "|" <first:ComprehensionGenerator>
+        <rest:("," <ComprehensionQualifier>)*>
+        => {
+            let mut qualifiers = Vec::with_capacity(rest.len() + 1);
+            qualifiers.push(first);
+            qualifiers.extend(rest);
+            (LalrpopSyntaxNodeKind::ListComprehension, qualifiers)
+        },
+    "|" <tail:AssignmentExpression>
+        => (LalrpopSyntaxNodeKind::ListCons, vec![tail]),
+};
+
+ComprehensionQualifier: LalrpopSyntaxNode = {
+    ComprehensionGenerator,
+    AssignmentExpression,
+};
+
+ComprehensionGenerator: LalrpopSyntaxNode = {
+    <start:@L> <pattern:AssignmentExpression> "<-"
+        <source_expression:AssignmentExpression> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Generator,
+            start,
+            end,
+            None,
+            vec![pattern, source_expression],
+        ),
+};
+
+CaseClause: LalrpopSyntaxNode = {
+    <start:@L> <patterns:NonEmptyComma<Pattern>>
+        <guard:(GuardKeyword <AssignmentExpression>)?>
+        "->" <body:AssignmentExpression> <end:@R> => {
+            let pattern_count = patterns.len();
+            let has_guard = guard.is_some();
+            let mut children = patterns;
+            if let Some(guard) = guard {
+                children.push(guard);
+            }
+            children.push(body);
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Clause,
+                start,
+                end,
+                Some(format!("patterns:{pattern_count};guard:{has_guard}")),
+                children,
+            )
+        },
+};
+
+GuardKeyword: () = {
+    "where",
+    "when",
+};
+
+IfClause: LalrpopSyntaxNode = {
+    <start:@L> <guard:IfGuard> "->" <body:Expression> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Clause,
+            start,
+            end,
+            Some("if".to_string()),
+            vec![guard, body],
+        ),
+};
+
+IfGuard: LalrpopSyntaxNode = {
+    AssignmentExpression,
+    <start:@L> "placeholder" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Binding,
+            start,
+            end,
+            Some("_".to_string()),
+            Vec::new(),
+        ),
+};
+
+IfClauses: Vec<LalrpopSyntaxNode> = {
+    <first:IfClause> <rest:("if-clause-semicolon" <IfClause>)*>
+        "closing-semicolon"? => {
+            let mut clauses = Vec::with_capacity(rest.len() + 1);
+            clauses.push(first);
+            clauses.extend(rest);
+            clauses
+        },
+};
+
+MapField: LalrpopSyntaxNode = {
+    <start:@L> <private:"#"? > <key:MapKey> ":"
+        <value:MapFieldValue> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::MapField,
+            start,
+            end,
+            Some(format!("{}{}", if private.is_some() { "#" } else { "" }, key)),
+            vec![value],
+        ),
+};
+
+MapFieldValue: LalrpopSyntaxNode = {
+    AssignmentExpression,
+    <start:@L> "placeholder" <end:@R>
+        => LalrpopSyntaxNode::leaf(
+            LalrpopSyntaxNodeKind::Pattern,
+            source,
+            source_index,
+            start,
+            end,
+        ),
+};
+
+BinaryLayoutSyntax: LalrpopSyntaxNode = {
+    <start:@L> <name_start:@L> NameToken <name_end:@R>
+        "binary-layout-[" <endian_start:@L> NameToken <endian_end:@R> "]"
+        "{" <fields:Comma<BinaryLayoutField>> "}" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::BinaryLayout,
+            start,
+            end,
+            Some(format!(
+                "{}[{}]",
+                source_index.text(source, name_start, name_end),
+                source_index.text(source, endian_start, endian_end),
+            )),
+            fields,
+        ),
+};
+
+BinaryLayoutField: LalrpopSyntaxNode = {
+    <start:@L> <key:MapKey> ":" <descriptor:TypeExpression> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::BinaryLayoutField,
+            start,
+            end,
+            Some(key),
+            vec![descriptor],
+        ),
+};
+
+NominalKeyedSyntax: LalrpopSyntaxNode = {
+    <start:@L> <name_start:@L> NameToken <name_end:@R>
+        "nominal-keyed-{" <fields:Comma<MapField>> "}" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::PatternConstructor,
+            start,
+            end,
+            Some(source_index.text(source, name_start, name_end).to_string()),
+            fields,
+        ),
+};
+
+MapKey: String = {
+    <start:@L> NameToken <end:@R> => source_index.text(source, start, end).to_string(),
+    <start:@L> "template" <end:@R> => source_index.text(source, start, end).to_string(),
+    <start:@L> "string" <end:@R> => source_index.text(source, start, end).to_string(),
+    <start:@L> "placeholder" <end:@R> => source_index.text(source, start, end).to_string(),
+};
+
+Pattern: LalrpopSyntaxNode = {
+    <start:@L> "placeholder" <end:@R>
+        => LalrpopSyntaxNode::leaf(
+            LalrpopSyntaxNodeKind::Pattern,
+            source,
+            source_index,
+            start,
+            end,
+        ),
+    BinaryLayoutSyntax,
+    NominalKeyedSyntax,
+    <start:@L> NameToken ("tight-dot" NameToken)+ <end:@R>
+        => LalrpopSyntaxNode::leaf(
+            LalrpopSyntaxNodeKind::Pattern,
+            source,
+            source_index,
+            start,
+            end,
+        ),
+    <start:@L> TypeName "[" <value_start:@L> "string" <value_end:@R> "]" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Pattern,
+            start,
+            end,
+            Some(source_index.text(source, value_start, value_end).to_string()),
+            Vec::new(),
+        ),
+    <start:@L> <name:PatternName> <args:PatternArguments?> <end:@R> => {
+        if let Some(args) = args {
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::PatternConstructor,
+                start,
+                end,
+                Some(name),
+                args,
+            )
+        } else {
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Pattern,
+                start,
+                end,
+                Some(name),
+                Vec::new(),
+            )
+        }
+    },
+    <start:@L> "int" <end:@R>
+        => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Pattern, source, source_index, start, end),
+    <start:@L> "float" <end:@R>
+        => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Pattern, source, source_index, start, end),
+    <start:@L> "string" <end:@R>
+        => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Pattern, source, source_index, start, end),
+    <start:@L> "{" <first:Pattern> "," <second:Pattern>
+        <rest:("," <Pattern>)*> ","? "}" <end:@R> => {
+        let mut children = Vec::with_capacity(rest.len() + 2);
+        children.push(first);
+        children.push(second);
+        children.extend(rest);
+        LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::PatternTuple,
+            start,
+            end,
+            None,
+            children,
+        )
+    },
+    <start:@L> "{" <fields:Comma<MapField>> "}" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::PatternMap,
+            start,
+            end,
+            None,
+            fields,
+        ),
+    <start:@L> "[" <items:PatternListBody> "]" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            items.0,
+            start,
+            end,
+            None,
+            items.1,
+        ),
+    <start:@L> "(" <value:Pattern> ")" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Pattern,
+            start,
+            end,
+            Some("group".to_string()),
+            vec![value],
+        ),
+};
+
+PatternListBody: (LalrpopSyntaxNodeKind, Vec<LalrpopSyntaxNode>) = {
+    => (LalrpopSyntaxNodeKind::PatternList, Vec::new()),
+    <first:Pattern> <tail:PatternListTail> => {
+        let mut children = Vec::with_capacity(tail.1.len() + 1);
+        children.push(first);
+        children.extend(tail.1);
+        (tail.0, children)
+    },
+};
+
+PatternListTail: (LalrpopSyntaxNodeKind, Vec<LalrpopSyntaxNode>) = {
+    => (LalrpopSyntaxNodeKind::PatternList, Vec::new()),
+    "," <rest:NonEmptyComma<Pattern>>
+        => (LalrpopSyntaxNodeKind::PatternList, rest),
+    "|" <tail:Pattern>
+        => (LalrpopSyntaxNodeKind::PatternListCons, vec![tail]),
+};
+
+PatternArguments: Vec<LalrpopSyntaxNode> = {
+    "(" <args:Comma<Pattern>> ")" => args,
+};
+
+PatternField: LalrpopSyntaxNode = {
+    <start:@L> <private:"#"? > <key:MapKey> ":" <value:Pattern> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::PatternField,
+            start,
+            end,
+            Some(format!("{}{}", if private.is_some() { "#" } else { "" }, key)),
+            vec![value],
+        ),
+};
+
+PatternName: String = {
+    <start:@L> NameToken <end:@R> => source_index.text(source, start, end).to_string(),
+};
+
+// Canonical comma lists accept the trailing separator emitted by `terlc fmt`.
+Comma<T>: Vec<T> = {
+    <mut items:(<T> ",")*> <last:T?> => {
+        if let Some(last) = last {
+            items.push(last);
+        }
+        items
+    },
+};
+
+NonEmptyComma<T>: Vec<T> = {
+    <first:T> <rest:("," <T>)*> => {
+        let mut items = Vec::with_capacity(rest.len() + 1);
+        items.push(first);
+        items.extend(rest);
+        items
+    },
+};
+
+Semicolon<T>: Vec<T> = {
+    => Vec::new(),
+    <first:T> <rest:(";" <T>)*> "closing-semicolon"? => {
+        let mut items = Vec::with_capacity(rest.len() + 1);
+        items.push(first);
+        items.extend(rest);
+        items
+    },
+};
+
+NameToken: () = {
+    "atom",
+    "upper-ident",
+    "annotation",
+    "applies_to",
+    "as",
+    "Bool",
+    "config",
+    "css",
+    "default",
+    "exists",
+    "false",
+    "file",
+    "Float",
+    "from",
+    "function",
+    "html",
+    "Int",
+    "machine",
+    "markdown",
+    "method",
+    "mut",
+    "Name",
+    "opaque_type",
+    "repeatable",
+    "required",
+    "shape",
+    "static",
+    "String",
+    "target",
+    "true",
+    "Type",
+};
+
+ModulePathTail: (usize, usize) = {
+    <dot_start:@L> "." <dot_end:@R> => (dot_start, dot_end),
+    "tight-dot" ModulePathSegment <tail:ModulePathTail> => tail,
+};
+
+ModulePathSegment: () = {
+    "atom",
+    "upper-ident",
+    "template",
+    ContextualNameSegment,
+};
+
+ModulePathRoot: () = {
+    "atom",
+    "annotation",
+    "applies_to",
+    "as",
+    "config",
+    "css",
+    "default",
+    "exists",
+    "false",
+    "file",
+    "from",
+    "function",
+    "html",
+    "machine",
+    "markdown",
+    "method",
+    "mut",
+    "not",
+    "opaque_type",
+    "quote",
+    "repeatable",
+    "required",
+    "shape",
+    "static",
+    "target",
+    "true",
+    "unquote",
+};
+
+ContextualNameSegment: () = {
+    "annotation",
+    "applies_to",
+    "as",
+    "Bool",
+    "config",
+    "css",
+    "default",
+    "exists",
+    "false",
+    "file",
+    "Float",
+    "from",
+    "function",
+    "html",
+    "Int",
+    "machine",
+    "markdown",
+    "method",
+    "mut",
+    "Name",
+    "not",
+    "opaque_type",
+    "quote",
+    "repeatable",
+    "required",
+    "shape",
+    "static",
+    "String",
+    "target",
+    "true",
+    "Type",
+    "unquote",
+};
+
+Trivia: () = {
+    "comment",
+    "doc-block",
+    "doc",
+    "module-doc",
+};
+
+SpannedToken: LalrpopSyntaxTokenOutput = {
+    <start:@L> <terminal:Terminal> <end:@R> => LalrpopSyntaxTokenOutput {
+        terminal,
+        span: Span::new(start, end),
+    },
+};
+
+Terminal: &'static str = {
+    "module" => "module",
+    "pub" => "pub",
+    "const" => "const",
+    "macro" => "macro",
+    "constructor" => "constructor",
+    "export" => "export",
+    "import" => "import",
+    "type" => "type",
+    "nominal" => "nominal",
+    "opaque" => "opaque",
+    "trait" => "trait",
+    "impl" => "impl",
+    "implements" => "implements",
+    "includes" => "includes",
+    "for" => "for",
+    "template" => "template",
+    "where" => "where",
+    "extends" => "extends",
+    "struct" => "struct",
+    "case" => "case",
+    "of" => "of",
+    "end" => "end",
+    "try" => "try",
+    "catch" => "catch",
+    "after" => "after",
+    "fun" => "fun",
+    "let" => "let",
+    "if" => "if",
+    "when" => "when",
+    "with" => "with",
+    "and" => "and",
+    "in" => "in",
+    "or" => "or",
+    "atom" => "atom",
+    "lower-ident" => "lower-ident",
+    "upper-ident" => "upper-ident",
+    "int" => "int",
+    "float" => "float",
+    "string" => "string",
+    "binary" => "binary",
+    "(" => "(",
+    ")" => ")",
+    "[" => "[",
+    "]" => "]",
+    "{" => "{",
+    "}" => "}",
+    "#" => "#",
+    "," => ",",
+    "." => ".",
+    "tight-dot" => ".",
+    "lambda-(" => "(",
+    "typed-lambda-pattern" => "pattern: Type",
+    "head-constraints" => "<Constraint[T]>",
+    "lambda-sequence-semicolon" => ";",
+    "if-clause-semicolon" => ";",
+    ".." => "..",
+    "..." => "...",
+    ":" => ":",
+    ";" => ";",
+    "closing-semicolon" => ";",
+    "selector-dot" => ".",
+    "asset-file" => "file",
+    "asset-css" => "css",
+    "asset-markdown" => "markdown",
+    "negative-impl-not" => "not",
+    "placeholder" => "_",
+    "nominal-keyed-{" => "{",
+    "binary-layout-[" => "[",
+    "html-raw-block" => "{",
+    "generic-call-[" => "[",
+    "cast-type-[" => "[",
+    "function-clause-(" => "(",
+    "native-raw-declaration" => "native core module",
+    "legacy-atom" => ":atom",
+    "|" => "|",
+    "|>" => "|>",
+    "->" => "->",
+    "=>" => "=>",
+    "=" => "=",
+    "==" => "==",
+    "===" => "===",
+    "!=" => "!=",
+    "!==" => "!==",
+    "+" => "+",
+    "-" => "-",
+    "*" => "*",
+    "/" => "/",
+    "div" => "div",
+    "rem" => "rem",
+    "!" => "!",
+    "?" => "?",
+    "$" => "$",
+    "@" => "@",
+    "<" => "<",
+    ">" => ">",
+    "<=" => "<=",
+    ">=" => ">=",
+    "<-" => "<-",
+    "comment" => "comment",
+    "doc-block" => "doc-block",
+    "doc" => "doc",
+    "module-doc" => "module-doc",
+    "annotation" => "annotation",
+    "applies_to" => "applies_to",
+    "as" => "as",
+    "Bool" => "Bool",
+    "config" => "config",
+    "css" => "css",
+    "default" => "default",
+    "else" => "else",
+    "exists" => "exists",
+    "false" => "false",
+    "file" => "file",
+    "Float" => "Float",
+    "from" => "from",
+    "function" => "function",
+    "html" => "html",
+    "Int" => "Int",
+    "machine" => "machine",
+    "markdown" => "markdown",
+    "method" => "method",
+    "mut" => "mut",
+    "Name" => "Name",
+    "not" => "not",
+    "opaque_type" => "opaque_type",
+    "quote" => "quote",
+    "repeatable" => "repeatable",
+    "required" => "required",
+    "shape" => "shape",
+    "static" => "static",
+    "String" => "String",
+    "target" => "target",
+    "true" => "true",
+    "Type" => "Type",
+    "unquote" => "unquote",
+};
+
+extern {
+    type Location = usize;
+    type Error = LalrpopLexicalError;
+
+    enum LalrpopToken {
+        "tight-dot" => LalrpopToken::TightDot,
+        "remote-call-colon" => LalrpopToken::RemoteCallColon,
+        "function-body-arrow" => LalrpopToken::FunctionBodyArrow,
+        "lambda-(" => LalrpopToken::LambdaLParen,
+        "typed-lambda-pattern" => LalrpopToken::TypedLambdaPattern,
+        "head-constraints" => LalrpopToken::HeadConstraintList,
+        "lambda-sequence-semicolon" => LalrpopToken::LambdaSequenceSemicolon,
+        "if-clause-semicolon" => LalrpopToken::IfClauseSemicolon,
+        "closing-semicolon" => LalrpopToken::ClosingSemicolon,
+        "selector-dot" => LalrpopToken::SelectorDot,
+        "asset-file" => LalrpopToken::AssetFile,
+        "asset-css" => LalrpopToken::AssetCss,
+        "asset-markdown" => LalrpopToken::AssetMarkdown,
+        "negative-impl-not" => LalrpopToken::NegativeImplNot,
+        "placeholder" => LalrpopToken::Placeholder,
+        "nominal-keyed-{" => LalrpopToken::NominalKeyedLBrace,
+        "binary-layout-[" => LalrpopToken::BinaryLayoutLBracket,
+        "html-raw-block" => LalrpopToken::HtmlRawBlock,
+        "expression-raw-macro" => LalrpopToken::ExpressionRawMacro,
+        "generic-call-[" => LalrpopToken::GenericCallLBracket,
+        "cast-type-[" => LalrpopToken::CastTypeLBracket,
+        "function-clause-(" => LalrpopToken::FunctionClauseLParen,
+        "native-raw-declaration" => LalrpopToken::NativeRawDeclaration,
+        "config-raw-declaration" => LalrpopToken::ConfigRawDeclaration,
+        "legacy-atom" => LalrpopToken::LegacyAtom,
+        "annotation" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Annotation),
+        "applies_to" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::AppliesTo),
+        "as" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::As),
+        "Bool" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Bool),
+        "config" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Config),
+        "css" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Css),
+        "default" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Default),
+        "else" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Else),
+        "exists" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Exists),
+        "false" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::False),
+        "file" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::File),
+        "Float" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Float),
+        "from" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::From),
+        "function" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Function),
+        "html" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Html),
+        "Int" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Int),
+        "machine" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Machine),
+        "markdown" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Markdown),
+        "method" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Method),
+        "mut" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Mut),
+        "Name" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Name),
+        "not" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Not),
+        "opaque_type" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::OpaqueType),
+        "quote" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Quote),
+        "repeatable" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Repeatable),
+        "required" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Required),
+        "shape" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Shape),
+        "static" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Static),
+        "String" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::String),
+        "target" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Target),
+        "true" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::True),
+        "Type" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Type),
+        "unquote" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Unquote),
+        "module" => LalrpopToken::Canonical(super::TokenKind::Module),
+        "pub" => LalrpopToken::Canonical(super::TokenKind::Pub),
+        "const" => LalrpopToken::Canonical(super::TokenKind::Const),
+        "macro" => LalrpopToken::Canonical(super::TokenKind::Macro),
+        "constructor" => LalrpopToken::Canonical(super::TokenKind::Constructor),
+        "export" => LalrpopToken::Canonical(super::TokenKind::Export),
+        "import" => LalrpopToken::Canonical(super::TokenKind::Import),
+        "type" => LalrpopToken::Canonical(super::TokenKind::Type),
+        "nominal" => LalrpopToken::Canonical(super::TokenKind::Nominal),
+        "opaque" => LalrpopToken::Canonical(super::TokenKind::Opaque),
+        "trait" => LalrpopToken::Canonical(super::TokenKind::Trait),
+        "impl" => LalrpopToken::Canonical(super::TokenKind::Impl),
+        "implements" => LalrpopToken::Canonical(super::TokenKind::Implements),
+        "includes" => LalrpopToken::Canonical(super::TokenKind::Includes),
+        "for" => LalrpopToken::Canonical(super::TokenKind::For),
+        "template" => LalrpopToken::Canonical(super::TokenKind::Template),
+        "where" => LalrpopToken::Canonical(super::TokenKind::Where),
+        "extends" => LalrpopToken::Canonical(super::TokenKind::Extends),
+        "struct" => LalrpopToken::Canonical(super::TokenKind::Struct),
+        "case" => LalrpopToken::Canonical(super::TokenKind::Case),
+        "of" => LalrpopToken::Canonical(super::TokenKind::Of),
+        "end" => LalrpopToken::Canonical(super::TokenKind::End),
+        "try" => LalrpopToken::Canonical(super::TokenKind::Try),
+        "catch" => LalrpopToken::Canonical(super::TokenKind::Catch),
+        "after" => LalrpopToken::Canonical(super::TokenKind::After),
+        "fun" => LalrpopToken::Canonical(super::TokenKind::Fun),
+        "let" => LalrpopToken::Canonical(super::TokenKind::Let),
+        "if" => LalrpopToken::Canonical(super::TokenKind::If),
+        "when" => LalrpopToken::Canonical(super::TokenKind::When),
+        "with" => LalrpopToken::Canonical(super::TokenKind::With),
+        "and" => LalrpopToken::Canonical(super::TokenKind::And),
+        "in" => LalrpopToken::Canonical(super::TokenKind::In),
+        "or" => LalrpopToken::Canonical(super::TokenKind::Or),
+        "atom" => LalrpopToken::Canonical(super::TokenKind::Atom),
+        "lower-ident" => LalrpopToken::Canonical(super::TokenKind::Ident),
+        "upper-ident" => LalrpopToken::Canonical(super::TokenKind::Var),
+        "int" => LalrpopToken::Canonical(super::TokenKind::Int),
+        "float" => LalrpopToken::Canonical(super::TokenKind::Float),
+        "string" => LalrpopToken::Canonical(super::TokenKind::String),
+        "binary" => LalrpopToken::Canonical(super::TokenKind::Binary),
+        "(" => LalrpopToken::Canonical(super::TokenKind::LParen),
+        ")" => LalrpopToken::Canonical(super::TokenKind::RParen),
+        "[" => LalrpopToken::Canonical(super::TokenKind::LBracket),
+        "]" => LalrpopToken::Canonical(super::TokenKind::RBracket),
+        "{" => LalrpopToken::Canonical(super::TokenKind::LBrace),
+        "}" => LalrpopToken::Canonical(super::TokenKind::RBrace),
+        "#" => LalrpopToken::Canonical(super::TokenKind::Hash),
+        "," => LalrpopToken::Canonical(super::TokenKind::Comma),
+        "." => LalrpopToken::Canonical(super::TokenKind::Dot),
+        ".." => LalrpopToken::Canonical(super::TokenKind::DotDot),
+        "..." => LalrpopToken::Canonical(super::TokenKind::Ellipsis),
+        ":" => LalrpopToken::Canonical(super::TokenKind::Colon),
+        ";" => LalrpopToken::Canonical(super::TokenKind::Semicolon),
+        "|" => LalrpopToken::Canonical(super::TokenKind::Pipe),
+        "|>" => LalrpopToken::Canonical(super::TokenKind::PipeForward),
+        "->" => LalrpopToken::Canonical(super::TokenKind::Arrow),
+        "=>" => LalrpopToken::Canonical(super::TokenKind::FatArrow),
+        "=" => LalrpopToken::Canonical(super::TokenKind::Equals),
+        "==" => LalrpopToken::Canonical(super::TokenKind::EqEq),
+        "===" => LalrpopToken::Canonical(super::TokenKind::EqEqEq),
+        "!=" => LalrpopToken::Canonical(super::TokenKind::NotEq),
+        "!==" => LalrpopToken::Canonical(super::TokenKind::NotEqEq),
+        "+" => LalrpopToken::Canonical(super::TokenKind::Plus),
+        "-" => LalrpopToken::Canonical(super::TokenKind::Minus),
+        "*" => LalrpopToken::Canonical(super::TokenKind::Star),
+        "/" => LalrpopToken::Canonical(super::TokenKind::Slash),
+        "div" => LalrpopToken::Canonical(super::TokenKind::DivRem),
+        "rem" => LalrpopToken::Canonical(super::TokenKind::Rem),
+        "!" => LalrpopToken::Canonical(super::TokenKind::Bang),
+        "?" => LalrpopToken::Canonical(super::TokenKind::Question),
+        "$" => LalrpopToken::Canonical(super::TokenKind::Dollar),
+        "@" => LalrpopToken::Canonical(super::TokenKind::At),
+        "<" => LalrpopToken::Canonical(super::TokenKind::Lt),
+        ">" => LalrpopToken::Canonical(super::TokenKind::Gt),
+        "<=" => LalrpopToken::Canonical(super::TokenKind::LtEq),
+        ">=" => LalrpopToken::Canonical(super::TokenKind::GtEq),
+        "<-" => LalrpopToken::Canonical(super::TokenKind::LtMinus),
+        "comment" => LalrpopToken::Canonical(super::TokenKind::Comment),
+        "doc-block" => LalrpopToken::Canonical(super::TokenKind::DocBlockComment),
+        "doc" => LalrpopToken::Canonical(super::TokenKind::DocComment),
+        "module-doc" => LalrpopToken::Canonical(super::TokenKind::ModuleDocComment),
+    }
+}

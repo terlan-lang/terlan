@@ -13,36 +13,11 @@ pub(crate) enum VmHttpRequestReadFailureKind {
     Malformed,
 }
 
-impl VmHttpRequestReadFailureKind {
-    /// Returns the machine-readable runtime reason.
-    pub(crate) fn code(self) -> &'static str {
-        match self {
-            Self::ClientClosed => "client_closed",
-            Self::Timeout => "request_timeout",
-            Self::Io => "request_io_error",
-            Self::HeaderLimit => "header_limit_exceeded",
-            Self::BodyLimit => "body_limit_exceeded",
-            Self::Malformed => "malformed_request",
-        }
-    }
-}
-
 /// Typed VM-owned HTTP/1 request-read failure.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct VmHttpRequestReadFailure {
     pub(crate) kind: VmHttpRequestReadFailureKind,
     pub(crate) message: String,
-}
-
-impl VmHttpRequestReadFailure {
-    /// Renders a stable diagnostic while preserving the underlying detail.
-    pub(crate) fn render(&self) -> String {
-        format!(
-            "error[vm_http_request_read]: {}: {}",
-            self.kind.code(),
-            self.message
-        )
-    }
 }
 
 /// Reads one HTTP/1 request while retaining the legacy text error contract.

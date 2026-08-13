@@ -1,7 +1,7 @@
 module=std.js.Dom.NavigatorConcurrentHardware
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 source_hash=5695346365052850399
 interface_hash=12669754582359372377
 interface_doc_hash=12669754582359372377

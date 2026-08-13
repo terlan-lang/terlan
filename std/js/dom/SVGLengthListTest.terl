@@ -38,7 +38,7 @@ pub initialize_typechecks(receiver: SVGLengthList, new_item: SVGLength): SVGLeng
 pub insert_item_before_typechecks(
     receiver: SVGLengthList,
     new_item: SVGLength,
-    index: JsNumber
+    index: JsNumber,
 ): SVGLength ->
     receiver.insert_item_before(new_item, index).
 
@@ -48,6 +48,6 @@ pub remove_item_typechecks(receiver: SVGLengthList, index: JsNumber): SVGLength 
 pub replace_item_typechecks(
     receiver: SVGLengthList,
     new_item: SVGLength,
-    index: JsNumber
+    index: JsNumber,
 ): SVGLength ->
     receiver.replace_item(new_item, index).

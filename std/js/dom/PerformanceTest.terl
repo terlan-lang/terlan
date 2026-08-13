@@ -45,7 +45,7 @@ pub get_entries_typechecks(receiver: Performance): PerformanceEntryList ->
 pub get_entries_by_name_typechecks(
     receiver: Performance,
     name: JsString,
-    type_: JsString
+    type_: JsString,
 ): PerformanceEntryList ->
     receiver.get_entries_by_name(name, type_).
 
@@ -55,7 +55,7 @@ pub get_entries_by_type_typechecks(receiver: Performance, type_: JsString): Perf
 pub mark_typechecks(
     receiver: Performance,
     mark_name: JsString,
-    mark_options: PerformanceMarkOptions
+    mark_options: PerformanceMarkOptions,
 ): PerformanceMark ->
     receiver.mark(mark_name, mark_options).
 
@@ -63,7 +63,7 @@ pub measure_typechecks(
     receiver: Performance,
     measure_name: JsString,
     start_or_measure_options: PerformanceMeasureOptions | JsString,
-    end_mark: JsString
+    end_mark: JsString,
 ): PerformanceMeasure ->
     receiver.measure(measure_name, start_or_measure_options, end_mark).
 
@@ -72,7 +72,7 @@ pub now_typechecks(receiver: Performance): DOMHighResTimeStamp ->
 
 pub set_resource_timing_buffer_size_typechecks(
     receiver: Performance,
-    max_size: std.js.Number.JsNumber
+    max_size: std.js.Number.JsNumber,
 ): Unit ->
     receiver.set_resource_timing_buffer_size(max_size).
 
@@ -80,7 +80,7 @@ pub add_event_listener_typechecks(
     receiver: Performance,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -88,6 +88,6 @@ pub remove_event_listener_typechecks(
     receiver: Performance,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

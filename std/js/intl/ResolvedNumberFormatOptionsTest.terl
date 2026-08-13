@@ -31,7 +31,7 @@ pub currency_typechecks(receiver: ResolvedNumberFormatOptions): JsString ->
     receiver.currency().
 
 pub currency_display_typechecks(
-    receiver: ResolvedNumberFormatOptions
+    receiver: ResolvedNumberFormatOptions,
 ): NumberFormatOptionsCurrencyDisplay ->
     receiver.currency_display().
 
@@ -51,6 +51,6 @@ pub maximum_significant_digits_typechecks(receiver: ResolvedNumberFormatOptions)
     receiver.maximum_significant_digits().
 
 pub use_grouping_typechecks(
-    receiver: ResolvedNumberFormatOptions
+    receiver: ResolvedNumberFormatOptions,
 ): ResolvedNumberFormatOptionsUseGrouping ->
     receiver.use_grouping().

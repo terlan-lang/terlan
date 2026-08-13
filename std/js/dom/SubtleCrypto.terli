@@ -31,7 +31,7 @@ pub opaque type SubtleCrypto.
 pub (value: SubtleCrypto) decrypt(
     algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams,
     key: CryptoKey,
-    data: BufferSource
+    data: BufferSource,
 ): Promise[ArrayBuffer].
 
 /**
@@ -42,7 +42,7 @@ pub (value: SubtleCrypto) decrypt(
 pub (value: SubtleCrypto) derive_bits(
     algorithm: AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params,
     base_key: CryptoKey,
-    length: Option[std.js.Number.JsNumber]
+    length: Option[std.js.Number.JsNumber],
 ): Promise[ArrayBuffer].
 
 /**
@@ -55,7 +55,7 @@ pub (value: SubtleCrypto) derive_key(
     base_key: CryptoKey,
     derived_key_type: AesDerivedKeyParams | AlgorithmIdentifier | HkdfParams | HmacImportParams | Pbkdf2Params,
     extractable: Bool,
-    key_usages: Array[KeyUsage]
+    key_usages: Array[KeyUsage],
 ): Promise[CryptoKey].
 
 /**
@@ -73,7 +73,7 @@ pub (value: SubtleCrypto) digest(algorithm: AlgorithmIdentifier, data: BufferSou
 pub (value: SubtleCrypto) encrypt(
     algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams,
     key: CryptoKey,
-    data: BufferSource
+    data: BufferSource,
 ): Promise[ArrayBuffer].
 
 pub (value: SubtleCrypto) export_key(format: KeyFormat, key: CryptoKey): Promise[ArrayBuffer | JsonWebKey].
@@ -81,19 +81,19 @@ pub (value: SubtleCrypto) export_key(format: KeyFormat, key: CryptoKey): Promise
 pub (value: SubtleCrypto) generate_key(
     algorithm: EcKeyGenParams | RsaHashedKeyGenParams,
     extractable: Bool,
-    key_usages: Array[KeyUsage]
+    key_usages: Array[KeyUsage],
 ): Promise[CryptoKeyPair].
 
 pub (value: SubtleCrypto) generate_key(
     algorithm: AesKeyGenParams | HmacKeyGenParams | Pbkdf2Params,
     extractable: Bool,
-    key_usages: Array[KeyUsage]
+    key_usages: Array[KeyUsage],
 ): Promise[CryptoKey].
 
 pub (value: SubtleCrypto) generate_key(
     algorithm: AlgorithmIdentifier,
     extractable: Bool,
-    key_usages: Array[KeyUsage]
+    key_usages: Array[KeyUsage],
 ): Promise[CryptoKey | CryptoKeyPair].
 
 /**
@@ -104,7 +104,7 @@ pub (value: SubtleCrypto) generate_key(
 pub (value: SubtleCrypto) sign(
     algorithm: AlgorithmIdentifier | EcdsaParams | RsaPssParams,
     key: CryptoKey,
-    data: BufferSource
+    data: BufferSource,
 ): Promise[ArrayBuffer].
 
 /**
@@ -119,7 +119,7 @@ pub (value: SubtleCrypto) unwrap_key(
     unwrap_algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams,
     unwrapped_key_algorithm: AesKeyAlgorithm | AlgorithmIdentifier | EcKeyImportParams | HmacImportParams | RsaHashedImportParams,
     extractable: Bool,
-    key_usages: Array[KeyUsage]
+    key_usages: Array[KeyUsage],
 ): Promise[CryptoKey].
 
 /**
@@ -131,7 +131,7 @@ pub (value: SubtleCrypto) verify(
     algorithm: AlgorithmIdentifier | EcdsaParams | RsaPssParams,
     key: CryptoKey,
     signature: BufferSource,
-    data: BufferSource
+    data: BufferSource,
 ): Promise[Bool].
 
 /**
@@ -143,5 +143,5 @@ pub (value: SubtleCrypto) wrap_key(
     format: KeyFormat,
     key: CryptoKey,
     wrapping_key: CryptoKey,
-    wrap_algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams
+    wrap_algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams,
 ): Promise[ArrayBuffer].

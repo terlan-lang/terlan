@@ -1,0 +1,12 @@
+schema = "terlan.lean-proof-gap.v1"
+feature = "Wasm CoreIR lowering"
+lifecycle_status = "blocked"
+proof_gap_category = "not_started"
+gap_reason = "First Wasm lowering slice is not implemented as Lean-backed proof artifacts yet."
+remediation_owner = "compiler"
+planned_gate = "wasm-coreir-lowering-check"
+deadline_or_exception = "exception:wasm@2026-08-31"
+exception_approved_by = "compiler"
+blocker_updated_at = "2026-07-16"
+blocker_hash = "sha256:23ade72fb112c88fa06225a712fc4dac3f6cf5fff322d7ea65ff41339c03d335"
+covered_manifests = ["crates/terlan/src/backends/wasm/README.md"]

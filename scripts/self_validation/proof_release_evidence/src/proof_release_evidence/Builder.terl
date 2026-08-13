@@ -1,0 +1,858 @@
+/**
+ * Deterministically constructs the Terlan 0.0.7 proof release evidence graph.
+ */
+module proof_release_evidence.Builder.
+
+import proof_release_evidence.{Model, RuntimeEvidence, Support}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+import std.io.File.{read_text}.
+
+import type proof_release_evidence.Model.{Artifact, Binding, Lane, Material, Record, Repro, Semantic}.
+import type std.core.Option.
+import type std.data.Json.
+
+pub struct EvidenceBuild {
+    valid: Bool,
+    code: String,
+    message: String,
+    evidence: Json,
+}.
+
+struct ProofCollection {
+    valid: Bool,
+    code: String,
+    message: String,
+    proofs: Json,
+    inputs: List[Material],
+}.
+
+invalid(code: String, message: String): EvidenceBuild ->
+    EvidenceBuild(valid = false, code = code, message = message, evidence = Json.null()).
+
+valid(evidence: Json): EvidenceBuild ->
+    EvidenceBuild(valid = true, code = "pass", message = "", evidence = evidence).
+
+empty_proofs(): ProofCollection ->
+    ProofCollection(valid = true, code = "pass", message = "", proofs = Json.array(), inputs = []).
+
+invalid_proofs(code: String, message: String): ProofCollection ->
+    ProofCollection(
+        valid = false,
+        code = code,
+        message = message,
+        proofs = Json.array(),
+        inputs = [],
+    ).
+
+append_artifacts(left: List[Artifact], right: List[Artifact]): List[Artifact] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_artifacts(rest, right)]
+    }.
+
+append_repros(left: List[Repro], right: List[Repro]): List[Repro] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_repros(rest, right)]
+    }.
+
+append_lanes(left: List[Lane], right: List[Lane]): List[Lane] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_lanes(rest, right)]
+    }.
+
+append_semantics(left: List[Semantic], right: List[Semantic]): List[Semantic] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_semantics(rest, right)]
+    }.
+
+append_bindings(left: List[Binding], right: List[Binding]): List[Binding] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_bindings(rest, right)]
+    }.
+
+append_materials(left: List[Material], right: List[Material]): List[Material] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_materials(rest, right)]
+    }.
+
+append_records(left: List[Record], right: List[Record]): List[Record] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_records(rest, right)]
+    }.
+
+find_artifact(values: List[Artifact], family: String): Option[Artifact] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.family == family -> Some(value);
+                true -> find_artifact(rest, family)
+            }
+    }.
+
+artifact_exists(values: List[Artifact], family: String): Bool ->
+    case find_artifact(values, family) {
+        Some(_value) -> true;
+        None -> false
+    }.
+
+find_repro(values: List[Repro], family: String): Option[Repro] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.family == family -> Some(value);
+                true -> find_repro(rest, family)
+            }
+    }.
+
+repro_exists(values: List[Repro], family: String): Bool ->
+    case find_repro(values, family) {
+        Some(_value) -> true;
+        None -> false
+    }.
+
+find_lane(values: List[Lane], lane: String): Option[Lane] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.lane == lane -> Some(value);
+                true -> find_lane(rest, lane)
+            }
+    }.
+
+lane_exists(values: List[Lane], lane: String): Bool ->
+    case find_lane(values, lane) {
+        Some(_value) -> true;
+        None -> false
+    }.
+
+material_member(values: List[Material], path: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.path == path or material_member(rest, path)
+    }.
+
+merge_materials(left: List[Material], right: List[Material]): List[Material] ->
+    merge_materials_at(right, left).
+
+merge_materials_at(values: List[Material], collected: List[Material]): List[Material] ->
+    case values {
+        [] -> collected;
+        [value | rest] ->
+            merge_materials_at(
+                rest,
+                if {
+                    material_member(collected, value.path) -> collected;
+                    true -> append_materials(collected, [value])
+                },
+            )
+    }.
+
+read_artifacts(root: String): Option[List[Artifact]] ->
+    let {
+        Ok(source) <- read_text(Support.root_path(root, "proofs/lean/ci/lean-proof-artifacts.tsv"));
+        [header | rows] <- String.split(source, "\n")
+    } else {
+        _ -> None
+    };
+    if {
+        header != "path\tstatus\ttheorem_scope\ttargeted_manifests\texpected_exit\tstderr_class\tproof_digest\treplay_metadata\tremediation_plan" -> None;
+        true -> artifact_rows(root, rows, [])
+    }.
+
+artifact_rows(
+    root: String,
+    rows: List[String],
+    collected: List[Artifact],
+): Option[List[Artifact]] ->
+    case rows {
+        [] -> Some(collected);
+        ["" | rest] -> artifact_rows(root, rest, collected);
+        [row | rest] ->
+            let {
+                [path, _status, _scope, _manifests, _exit, _stderr, digest, metadata_path, _plan] <- String.split(row, "\t");
+                Some(metadata) <- Support.load_json(root, metadata_path)
+            } else {
+                _ -> None
+            };
+            (let {
+    Some(family) <- Support.json_string(metadata, "family");
+    Some(theorem_values) <- Support.json_member(metadata, "theorem_names");
+    Some(theorem_ids) <- Support.json_array_strings(theorem_values);
+    Some(inputs) <- Support.json_member(metadata, "manifest_fingerprints")
+} else {
+    _ -> None
+};
+case inputs.keys() {
+    Ok(input_paths) ->
+        if {
+            artifact_exists(collected, family) -> None;
+            true -> case input_digests(inputs, input_paths, []) {
+                Some(digests) ->
+                    artifact_rows(
+                        root,
+                        rest,
+                        append_artifacts(
+                            collected,
+                            [
+                                Model.artifact(
+                                    family = family,
+                                    path = path,
+                                    proof_digest = digest,
+                                    theorem_ids = theorem_ids,
+                                    input_paths = input_paths,
+                                    input_digests = digests,
+                                ),
+                            ],
+                        ),
+                    );
+                None -> None
+            }
+        };
+    Err(_reason) -> None
+})
+    }.
+
+input_digests(inputs: Json, paths: List[String], collected: List[String]): Option[List[String]] ->
+    case paths {
+        [] -> Some(Support.reverse_strings(collected));
+        [path | rest] ->
+            case Support.json_string(inputs, path) {
+                Some(digest) -> input_digests(inputs, rest, [digest | collected]);
+                None -> None
+            }
+    }.
+
+json_array(root: String, relative: String, field: String): Option[Json] ->
+    case Support.load_json(root, relative) {
+        Some(evidence) -> Support.json_member(evidence, field);
+        None -> None
+    }.
+
+read_repros(root: String): Option[List[Repro]] ->
+    let {
+        Some(values) <- json_array(root, "build/artifacts/lean-proof-repro-report.json", "families");
+        Ok(count) <- values.length()
+    } else {
+        _ -> None
+    };
+    repro_rows(values, 0, count, []).
+
+repro_rows(values: Json, index: Int, count: Int, collected: List[Repro]): Option[List[Repro]] ->
+    if {
+        index >= count -> Some(collected);
+        true -> case values.at(index) {
+            Ok(value) ->
+                let {
+                    Some(family) <- Support.json_string(value, "family");
+                    Some(digest) <- Support.json_string(value, "proof_digest");
+                    Some(verdict) <- Support.json_string(value, "verdict")
+                } else {
+                    _ -> None
+                };
+                if {
+                    repro_exists(collected, family) -> None;
+                    true -> repro_rows(
+                        values,
+                        index + 1,
+                        count,
+                        append_repros(
+                            collected,
+                            [Model.repro(family = family, proof_digest = digest, verdict = verdict)],
+                        ),
+                    )
+                };
+            Err(_reason) -> None
+        }
+    }.
+
+read_lanes(root: String): Option[List[Lane]] ->
+    let {
+        Some(values) <- json_array(root, "build/artifacts/lean-proof-lanes.json", "lanes");
+        Ok(count) <- values.length()
+    } else {
+        _ -> None
+    };
+    lane_rows(values, 0, count, []).
+
+lane_rows(values: Json, index: Int, count: Int, collected: List[Lane]): Option[List[Lane]] ->
+    if {
+        index >= count -> Some(collected);
+        true -> case values.at(index) {
+            Ok(value) ->
+                let {
+                    Some(lane) <- Support.json_string(value, "lane");
+                    Some(status) <- Support.json_string(value, "status");
+                    Some(coverage) <- Support.json_string(value, "coverage_status");
+                    Some(checksum) <- Support.json_string(value, "checksum")
+                } else {
+                    _ -> None
+                };
+                if {
+                    lane_exists(collected, lane) -> None;
+                    true -> lane_rows(
+                        values,
+                        index + 1,
+                        count,
+                        append_lanes(
+                            collected,
+                            [
+                                Model.lane(
+                                    lane = lane,
+                                    status = status,
+                                    coverage_status = coverage,
+                                    checksum = checksum,
+                                ),
+                            ],
+                        ),
+                    )
+                };
+            Err(_reason) -> None
+        }
+    }.
+
+read_semantics(root: String): Option[List[Semantic]] ->
+    let {
+        Some(values) <- json_array(root, "build/artifacts/lean-semantic-kernels.json", "families");
+        Ok(count) <- values.length()
+    } else {
+        _ -> None
+    };
+    semantic_rows(values, 0, count, []).
+
+semantic_rows(
+    values: Json,
+    index: Int,
+    count: Int,
+    collected: List[Semantic],
+): Option[List[Semantic]] ->
+    if {
+        index >= count -> Some(collected);
+        true -> case values.at(index) {
+            Ok(value) ->
+                let {
+                    Some(family) <- Support.json_string(value, "family");
+                    Some(digest) <- Support.json_string(value, "proof_digest");
+                    Some(oracle) <- Support.json_member(value, "runtime_oracle")
+                } else {
+                    _ -> None
+                };
+                semantic_rows(
+                    values,
+                    index + 1,
+                    count,
+                    append_semantics(
+                        collected,
+                        [
+                            Model.semantic(
+                                family = family,
+                                proof_digest = digest,
+                                runtime_oracle = oracle,
+                            ),
+                        ],
+                    ),
+                );
+            Err(_reason) -> None
+        }
+    }.
+
+read_bindings(root: String): Option[List[Binding]] ->
+    let {
+        Some(values) <- json_array(root, "proofs/lean/feature_binding/lean_feature_slice_index.json", "records");
+        Ok(count) <- values.length()
+    } else {
+        _ -> None
+    };
+    binding_rows(values, 0, count, []).
+
+binding_rows(
+    values: Json,
+    index: Int,
+    count: Int,
+    collected: List[Binding],
+): Option[List[Binding]] ->
+    if {
+        index >= count -> Some(collected);
+        true -> case values.at(index) {
+            Ok(value) ->
+                let Some(coverage) <- Support.json_string(value, "coverage_status") else {
+                    _ -> None
+                };
+                if {
+                    coverage != "proof_current" -> binding_rows(values, index + 1, count, collected);
+                    true -> let {
+                        Some(slice_id) <- Support.json_string(value, "slice_id");
+                        Some(feature_class) <- Support.json_string(value, "feature_class");
+                        Some(owner) <- Support.json_string(value, "owner");
+                        Some(lane_id) <- Support.json_string(value, "lane_id");
+                        Some(proof_values) <- Support.json_member(value, "proof_family_ids");
+                        Some(proof_ids) <- Support.json_array_strings(proof_values)
+                    } else {
+                        _ -> None
+                    };
+                    binding_rows(
+                        values,
+                        index + 1,
+                        count,
+                        append_bindings(
+                            collected,
+                            [
+                                Model.binding(
+                                    slice_id = slice_id,
+                                    feature_class = feature_class,
+                                    owner = owner,
+                                    lane_id = lane_id,
+                                    coverage_status = coverage,
+                                    proof_ids = proof_ids,
+                                ),
+                            ],
+                        ),
+                    )
+                };
+            Err(_reason) -> None
+        }
+    }.
+
+mapping(config: Json, field: String, lane: String): Option[String] ->
+    case Support.json_member(config, field) {
+        Some(values) -> Support.json_string(values, lane);
+        None -> None
+    }.
+
+artifact_inputs(
+    root: String,
+    paths: List[String],
+    digests: List[String],
+    collected: List[Material],
+): Option[List[Material]] ->
+    case {paths, digests} {
+        {[], []} -> Some(collected);
+        {[path | path_rest], [digest | digest_rest]} ->
+            case Support.file_digest(root, path) {
+                Some(actual) ->
+                    if {
+                        actual != digest -> None;
+                        true -> artifact_inputs(
+                            root,
+                            path_rest,
+                            digest_rest,
+                            merge_materials(
+                                collected,
+                                [Model.material(path = path, digest = digest)],
+                            ),
+                        )
+                    };
+                None -> None
+            };
+        _ -> None
+    }.
+
+collect_proofs(
+    root: String,
+    proof_ids: List[String],
+    artifacts: List[Artifact],
+    repros: List[Repro],
+    result: ProofCollection,
+): ProofCollection ->
+    case proof_ids {
+        [] -> result;
+        [family | rest] ->
+            case {find_artifact(artifacts, family), find_repro(repros, family)} {
+                {Some(artifact), Some(repro)} ->
+                    if {
+                        repro.verdict != "pass" or repro.proof_digest != artifact.proof_digest -> invalid_proofs(
+                            "missing_proof",
+                            String.append("proof family did not pass: ", family),
+                        );
+                        true -> case Support.file_digest(root, artifact.path) {
+                            Some(actual_proof) ->
+                                if {
+                                    actual_proof != artifact.proof_digest -> invalid_proofs(
+                                        "stale_input",
+                                        String.append("proof source is stale: ", artifact.path),
+                                    );
+                                    true -> case artifact_inputs(root, artifact.input_paths, artifact.input_digests, result.inputs) {
+                                        Some(inputs) ->
+                                            let proof =
+                                                Json.object()
+                                                    .put("family", Json.string(family))
+                                                    .put("proof_path", Json.string(artifact.path))
+                                                    .put(
+                                                        "proof_digest",
+                                                        Json.string(artifact.proof_digest),
+                                                    )
+                                                    .put(
+                                                        "theorem_ids",
+                                                        Support.json_string_array(
+                                                            artifact.theorem_ids,
+                                                        ),
+                                                    );
+                                            let _pushed = result.proofs.push(proof);
+                                            collect_proofs(
+                                                root,
+                                                rest,
+                                                artifacts,
+                                                repros,
+                                                ProofCollection(
+                                                    valid = true,
+                                                    code = "pass",
+                                                    message = "",
+                                                    proofs = result.proofs,
+                                                    inputs = inputs,
+                                                ),
+                                            );
+                                        None ->
+                                            invalid_proofs(
+                                                "stale_input",
+                                                String.append(
+                                                    "proof compiler input is stale for family: ",
+                                                    family,
+                                                ),
+                                            )
+                                    }
+                                };
+                            None ->
+                                invalid_proofs(
+                                    "missing_input",
+                                    String.append("proof source is missing: ", artifact.path),
+                                )
+                        }
+                    };
+                _ ->
+                    invalid_proofs(
+                        "missing_proof",
+                        String.append("proof family has no current artifact: ", family),
+                    )
+            }
+    }.
+
+material_json(values: List[Material]): Json ->
+    material_json_at(Support.sort_strings(material_paths(values, [])), values, Json.array()).
+
+material_paths(values: List[Material], collected: List[String]): List[String] ->
+    case values {
+        [] -> Support.reverse_strings(collected);
+        [value | rest] -> material_paths(rest, [value.path | collected])
+    }.
+
+find_material(values: List[Material], path: String): Option[Material] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.path == path -> Some(value);
+                true -> find_material(rest, path)
+            }
+    }.
+
+material_json_at(paths: List[String], values: List[Material], result: Json): Json ->
+    let {
+        [path | rest] <- paths;
+        Some(value) <- find_material(values, path)
+    } else {
+        _ -> result
+    };
+    (let _pushed =
+    result
+        .push(
+            Json.object()
+                .put("path", Json.string(value.path))
+                .put("sha256", Json.string(value.digest)),
+        );
+material_json_at(rest, values, result)).
+
+compiler_inputs_json(values: List[Material]): Json ->
+    material_json(values).
+
+slice_number(slice_id: String): Option[Int] ->
+    case String.split_once(slice_id, "Slice ") {
+        Some({_prefix, number}) -> Int.from_string(number);
+        None -> None
+    }.
+
+build_records(
+    root: String,
+    bindings: List[Binding],
+    artifacts: List[Artifact],
+    repros: List[Repro],
+    lanes: List[Lane],
+    config: Json,
+    records: List[Record],
+    materials: List[Material],
+): EvidenceBuild ->
+    case bindings {
+        [] -> finish_document(root, records, materials, repros, lanes, config);
+        [binding | rest] ->
+            case {
+    find_lane(lanes, binding.lane_id),
+    mapping(config, "runtime_lane_map", binding.lane_id),
+    mapping(config, "std_lane_map", binding.lane_id),
+    slice_number(binding.slice_id),
+} {
+                {Some(lane), Some(runtime_lane), Some(std_lane), Some(number)} ->
+                    if {
+                        lane.status != "pass" -> invalid(
+                            "mismatched_runtime_lane",
+                            String.append("release lane did not pass: ", binding.lane_id),
+                        );
+                        true -> let proof_collection =
+                            collect_proofs(
+                                root,
+                                binding.proof_ids,
+                                artifacts,
+                                repros,
+                                empty_proofs(),
+                            );
+                        if {
+                            not proof_collection.valid -> invalid(
+                                proof_collection.code,
+                                String.append(
+                                    String.append(binding.slice_id, ": "),
+                                    proof_collection.message,
+                                ),
+                            );
+                            true -> let record =
+                                Json.object()
+                                    .put("slice_id", Json.string(binding.slice_id))
+                                    .put("feature_class", Json.string(binding.feature_class))
+                                    .put("owner", Json.string(binding.owner))
+                                    .put("lane_id", Json.string(binding.lane_id))
+                                    .put("coverage_status", Json.string(binding.coverage_status))
+                                    .put("proof_ids", Support.json_string_array(binding.proof_ids))
+                                    .put("proofs", proof_collection.proofs)
+                                    .put(
+                                        "compiler_inputs",
+                                        compiler_inputs_json(proof_collection.inputs),
+                                    )
+                                    .put("runtime_lane", Json.string(runtime_lane))
+                                    .put("std_lane", Json.string(std_lane));
+                            case Support.json_digest(record) {
+                                Some(trace) ->
+                                    let _trace = record.put("trace_id", Json.string(trace));
+                                    build_records(
+                                        root,
+                                        rest,
+                                        artifacts,
+                                        repros,
+                                        lanes,
+                                        config,
+                                        append_records(
+                                            records,
+                                            [
+                                                Model.record(
+                                                    number = number,
+                                                    slice_id = binding.slice_id,
+                                                    value = record,
+                                                ),
+                                            ],
+                                        ),
+                                        merge_materials(
+                                            materials,
+                                            merge_materials(
+                                                proof_collection.inputs,
+                                                proof_materials(binding.proof_ids, artifacts, []),
+                                            ),
+                                        ),
+                                    );
+                                None ->
+                                    invalid(
+                                        "corrupt_artifact",
+                                        "slice record could not be serialized",
+                                    )
+                            }
+                        }
+                    };
+                _ ->
+                    invalid(
+                        "mismatched_runtime_lane",
+                        String.append("slice has no release mapping: ", binding.slice_id),
+                    )
+            }
+    }.
+
+proof_materials(
+    proof_ids: List[String],
+    artifacts: List[Artifact],
+    collected: List[Material],
+): List[Material] ->
+    let {
+        [family | rest] <- proof_ids;
+        Some(artifact) <- find_artifact(artifacts, family)
+    } else {
+        _ -> collected
+    };
+    proof_materials(
+        rest,
+        artifacts,
+        merge_materials(
+            collected,
+            [Model.material(path = artifact.path, digest = artifact.proof_digest)],
+        ),
+    ).
+
+sort_records(values: List[Record], sorted: List[Record]): List[Record] ->
+    case values {
+        [] -> sorted;
+        [value | rest] -> sort_records(rest, insert_record(value, sorted, []))
+    }.
+
+insert_record(value: Record, values: List[Record], prefix: List[Record]): List[Record] ->
+    case values {
+        [] -> append_records(reverse_records(prefix, []), [value]);
+        [head | rest] ->
+            if {
+                value.number < head.number -> append_records(reverse_records(prefix, []), [value | values]);
+                true -> insert_record(value, rest, [head | prefix])
+            }
+    }.
+
+reverse_records(values: List[Record], result: List[Record]): List[Record] ->
+    case values {
+        [] -> result;
+        [value | rest] -> reverse_records(rest, [value | result])
+    }.
+
+record_json(values: List[Record]): Json ->
+    record_json_at(sort_records(values, []), Json.array()).
+
+record_json_at(values: List[Record], result: Json): Json ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            let _pushed = result.push(value.value);
+            record_json_at(rest, result)
+    }.
+
+base_material_paths(): List[String] ->
+    [
+        "Cargo.lock",
+        "Cargo.toml",
+        "proofs/lean/release_evidence/release-mode.json",
+        "proofs/lean/semantic-kernels.json",
+        "proofs/lean/feature_binding/lean_feature_slice_index.json",
+        "proofs/lean/ci/lean-proof-artifacts.tsv",
+        "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Support.terl",
+        "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Model.terl",
+        "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Builder.terl",
+        "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/RuntimeEvidence.terl",
+        "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/SemanticKernelRecord.terl",
+        "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Validator.terl",
+        "scripts/self_validation/proof_release_evidence/scripts/ProofReleaseEvidence.terls",
+        "scripts/self_validation/proof_release_evidence/scripts/SemanticKernels.terls",
+    ].
+
+base_materials(
+    root: String,
+    paths: List[String],
+    collected: List[Material],
+): Option[List[Material]] ->
+    case paths {
+        [] -> Some(collected);
+        [path | rest] ->
+            case Support.file_digest(root, path) {
+                Some(digest) ->
+                    base_materials(
+                        root,
+                        rest,
+                        append_materials(collected, [Model.material(path = path, digest = digest)]),
+                    );
+                None -> None
+            }
+    }.
+
+finish_document(
+    root: String,
+    records: List[Record],
+    materials: List[Material],
+    repros: List[Repro],
+    lanes: List[Lane],
+    config: Json,
+): EvidenceBuild ->
+    case {
+    base_materials(root, base_material_paths(), []),
+    Support.release_version(root),
+    Support.json_string(config, "target_profile"),
+    Support.json_member(config, "feature_set"),
+    RuntimeEvidence.replay_json(config, repros),
+    read_semantics(root),
+} {
+        {Some(base), Some(release), Some(profile), Some(features), Some(replay), Some(semantics)} ->
+            let rust = Support.rust_identity(root);
+            if {
+                not rust.valid -> invalid("toolchain_unavailable", "rustc identity failed");
+                true -> let all_materials = merge_materials(base, materials);
+                let materials_json = material_json(all_materials);
+                let candidate_payload =
+                    Json.object()
+                        .put("release", Json.string(release))
+                        .put("rustc_version", Json.string(rust.version))
+                        .put("compiler_target", Json.string(rust.target))
+                        .put("target_profile", Json.string(profile))
+                        .put("feature_set", features)
+                        .put("materials", materials_json);
+                case Support.json_digest(candidate_payload) {
+                    Some(candidate_id) ->
+                        let candidate =
+                            Json.object()
+                                .put("candidate_id", Json.string(candidate_id))
+                                .put("release", Json.string(release))
+                                .put("rustc_version", Json.string(rust.version))
+                                .put("compiler_target", Json.string(rust.target))
+                                .put("target_profile", Json.string(profile))
+                                .put("feature_set", features)
+                                .put("source_revision", Json.string(Support.source_revision(root)));
+                        valid(
+                            Json.object()
+                                .put("schema", Json.string("terlan.proof-release-evidence.v1"))
+                                .put("format_version", Json.int(1))
+                                .put("candidate", candidate)
+                                .put("candidate_materials", materials_json)
+                                .put("records", record_json(records))
+                                .put("replay_corpus", replay)
+                                .put(
+                                    "runtime_evidence",
+                                    Json.object()
+                                        .put("lane_statuses", RuntimeEvidence.lane_json(lanes))
+                                        .put(
+                                            "semantic_families",
+                                            RuntimeEvidence.semantic_json(semantics),
+                                        ),
+                                ),
+                        );
+                    None ->
+                        invalid("corrupt_artifact", "candidate payload could not be serialized")
+                }
+            };
+        _ -> invalid("corrupt_artifact", "proof release inputs are missing or malformed")
+    }.
+
+pub build(root: String): EvidenceBuild ->
+    case {
+    Support.load_json(root, "proofs/lean/release_evidence/release-mode.json"),
+    read_artifacts(root),
+    read_repros(root),
+    read_lanes(root),
+    read_bindings(root),
+} {
+        {Some(config), Some(artifacts), Some(repros), Some(lanes), Some(bindings)} ->
+            case Support.json_string(config, "schema") {
+                Some(schema) ->
+                    if {
+                        schema != "terlan.proof-release-mode.v1" -> invalid("corrupt_schema", "release-mode configuration has the wrong schema");
+                        true -> build_records(root, bindings, artifacts, repros, lanes, config, [], [])
+                    };
+                None -> invalid("corrupt_schema", "release-mode configuration has no schema")
+            };
+        _ -> invalid("corrupt_artifact", "proof release inputs are missing or malformed")
+    }.

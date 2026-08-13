@@ -4,6 +4,7 @@ use std::path::Path;
 
 use serde_json::Value;
 
+use super::support::annotated_public_test_names;
 use crate::terlan_quality::{render_failure, QualityResult};
 
 const PATTERN_MATRIX: &str = "docs/compiler/type_spec/pattern_matching_support_matrix.json";
@@ -516,7 +517,7 @@ fn positive_test_names(
 ) -> BTreeSet<String> {
     let mut names = BTreeSet::new();
     for positive_test_file in positive_test_files {
-        names.extend(positive_test_names_from_file(
+        names.extend(annotated_public_test_names(
             root,
             positive_test_file,
             diagnostics,
@@ -526,54 +527,6 @@ fn positive_test_names(
 }
 
 /// Returns annotated test function names from one positive Terlan anchor.
-fn positive_test_names_from_file(
-    root: &Path,
-    positive_test_file: &str,
-    diagnostics: &mut Vec<String>,
-) -> BTreeSet<String> {
-    let path = root.join(positive_test_file);
-    let text = match fs::read_to_string(&path) {
-        Ok(text) => text,
-        Err(err) => {
-            diagnostics.push(format!(
-                "{positive_test_file}: failed to read positive test file: {err}"
-            ));
-            return BTreeSet::new();
-        }
-    };
-
-    let mut names = BTreeSet::new();
-    let mut previous_was_test = false;
-    for line in text.lines() {
-        let trimmed = line.trim();
-        if trimmed == "@test" {
-            previous_was_test = true;
-            continue;
-        }
-        if previous_was_test && trimmed.starts_with("pub ") {
-            if let Some(name) = function_name(trimmed) {
-                names.insert(name.to_string());
-            } else {
-                diagnostics.push(format!(
-                    "{positive_test_file}: failed to read @test function name from `{trimmed}`"
-                ));
-            }
-            previous_was_test = false;
-        } else if !trimmed.is_empty() && !trimmed.starts_with('@') {
-            previous_was_test = false;
-        }
-    }
-    names
-}
-
-/// Extracts a function name from a `pub name(...` declaration line.
-fn function_name(line: &str) -> Option<&str> {
-    let after_pub = line.strip_prefix("pub ")?;
-    let name_end = after_pub.find('(')?;
-    let name = &after_pub[..name_end];
-    (!name.is_empty()).then_some(name)
-}
-
 /// Validates positive test anchors for one matrix row.
 fn validate_positive_tests(
     root: &Path,
@@ -732,4 +685,5 @@ fn string_array(
 
 #[cfg(test)]
 #[path = "pattern_matching_support_test.rs"]
+#[cfg(test)]
 mod pattern_matching_support_test;

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fs;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -12,6 +11,7 @@ use crate::terlan_typeck::{
 };
 
 use super::constructors::{native_constructor_layouts, NativeConstructorLayouts};
+use super::native_object_test_support::with_dispatch_lookup_harness;
 use super::scalar_replacement::scalar_replace_fixed_aggregates;
 use super::{
     emit_native_application_object, is_scalar_candidate, lower_native_function,
@@ -556,11 +556,7 @@ fn production_lowering_emits_only_scalar_field_locals() {
     let (native, continuations) = lower_native_function(
         "projection",
         &function(projected_sum()),
-        &HashMap::new(),
-        &HashMap::new(),
         &layouts(),
-        &std::collections::HashSet::new(),
-        &HashMap::new(),
         &mut stable_ids,
     )
     .expect("projection lowering");
@@ -719,11 +715,7 @@ fn generated_tuple_pattern_path_has_no_allocator_reachability() {
     let (native, continuations) = lower_native_function(
         "tuple_pattern",
         &function(tuple_pattern_sum()),
-        &HashMap::new(),
-        &HashMap::new(),
         &layouts(),
-        &std::collections::HashSet::new(),
-        &HashMap::new(),
         &mut stable_ids,
     )
     .expect("tuple-pattern function");
@@ -755,7 +747,8 @@ fn generated_tuple_pattern_path_has_no_allocator_reachability() {
     fs::write(&object_path, object).expect("tuple-pattern object bytes");
     fs::write(
         &harness_path,
-        NULL_ALLOCATOR_HARNESS.replace("$EXPORT_ID", &export_id.to_string()),
+        with_dispatch_lookup_harness(NULL_ALLOCATOR_HARNESS)
+            .replace("$EXPORT_ID", &export_id.to_string()),
     )
     .expect("tuple-pattern harness");
 
@@ -791,11 +784,7 @@ fn generated_projection_path_has_no_allocator_reachability() {
     let (native, continuations) = lower_native_function(
         "projection",
         &function(projected_sum()),
-        &HashMap::new(),
-        &HashMap::new(),
         &layouts(),
-        &std::collections::HashSet::new(),
-        &HashMap::new(),
         &mut stable_ids,
     )
     .expect("projection function");
@@ -827,7 +816,8 @@ fn generated_projection_path_has_no_allocator_reachability() {
     fs::write(&object_path, object).expect("projection object bytes");
     fs::write(
         &harness_path,
-        NULL_ALLOCATOR_HARNESS.replace("$EXPORT_ID", &export_id.to_string()),
+        with_dispatch_lookup_harness(NULL_ALLOCATOR_HARNESS)
+            .replace("$EXPORT_ID", &export_id.to_string()),
     )
     .expect("projection harness");
 
@@ -861,10 +851,11 @@ const NULL_ALLOCATOR_HARNESS: &str = r#"
 use std::ffi::c_void;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v2(
+    fn terlan_native_dispatch_v3(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
+        dispatch_lookup: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -880,10 +871,11 @@ fn main() {
     let mut transitions = [0_i64; 1];
     let mut transition_len = 99_u64;
     let status = unsafe {
-        terlan_native_dispatch_v2(
+        terlan_native_dispatch_v3(
             std::ptr::null_mut(),
             std::ptr::null(),
             std::ptr::null(),
+            dispatch_lookup as *const c_void,
             $EXPORT_ID,
             std::ptr::null(),
             0,

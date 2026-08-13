@@ -1,0 +1,42 @@
+{
+  "accepted_digest": "sha256:d706463751fb7f3f0e2057ba2b4d3086ee4b4488c8d5a8501f08a19821b3751c",
+  "accepted_snapshot": "proofs/lean/feature_binding/lean-proof-accepted-snapshot.tsv",
+  "added_rows": [],
+  "coverage_status_delta": [
+    {
+      "current": "proof_current",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "previous": "slice_blocked",
+      "slice_id": "Slice 11"
+    },
+    {
+      "current": "proof_current",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "previous": "slice_blocked",
+      "slice_id": "Slice 12"
+    }
+  ],
+  "current_digest": "sha256:46d64b419a71464d0bf81357fa469f427bdad6eba57426ef57c553b6f10a7d7f",
+  "new_blockers": [],
+  "owner_delta": [],
+  "removed_rows": [],
+  "resolved_blockers": [
+    {
+      "current": "none",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "previous": "sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad",
+      "slice_id": "Slice 11"
+    },
+    {
+      "current": "none",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "previous": "sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad",
+      "slice_id": "Slice 12"
+    }
+  ],
+  "schema": "terlan.lean-proof-binding-diff.v1"
+}

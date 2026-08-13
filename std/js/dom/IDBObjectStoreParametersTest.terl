@@ -21,6 +21,6 @@ pub auto_increment_typechecks(receiver: IDBObjectStoreParameters): std.core.Bool
     receiver.auto_increment().
 
 pub key_path_typechecks(
-    receiver: IDBObjectStoreParameters
+    receiver: IDBObjectStoreParameters,
 ): Option[std.js.Array[JsString] | JsString] ->
     receiver.key_path().

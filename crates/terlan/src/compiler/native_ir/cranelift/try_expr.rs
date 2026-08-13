@@ -9,20 +9,30 @@ use super::super::NativeExpr;
 use super::emit_expr;
 use super::managed::ManagedLayouts;
 
+/// The protected, selected, and cleanup expressions of one NativeIR `try`.
+pub(super) struct TryExpressions<'a> {
+    pub(super) protected: &'a NativeExpr,
+    pub(super) success: &'a NativeExpr,
+    pub(super) failure: &'a NativeExpr,
+    pub(super) cleanup: &'a [NativeExpr],
+}
+
 /// Emits one protected expression, local failure handler, and exactly-once cleanup.
-#[allow(clippy::too_many_arguments)]
 pub(super) fn emit_try(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
-    protected: &NativeExpr,
-    success: &NativeExpr,
-    failure: &NativeExpr,
-    cleanup: &[NativeExpr],
+    expressions: TryExpressions<'_>,
     params: &[Value],
     function_ids: &[FuncId],
     managed_layouts: &ManagedLayouts,
     outer_error: Block,
 ) -> Result<Value, String> {
+    let TryExpressions {
+        protected,
+        success,
+        failure,
+        cleanup,
+    } = expressions;
     let caught = builder.create_block();
     let selected = builder.create_block();
     let cleanup_error = builder.create_block();
@@ -102,8 +112,6 @@ pub(super) fn emit_try(
     builder.switch_to_block(completed);
     Ok(builder.block_params(completed)[0])
 }
-
-#[allow(clippy::too_many_arguments)]
 fn emit_cleanup(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,

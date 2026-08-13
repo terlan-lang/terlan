@@ -34,7 +34,7 @@ pub collapse_typechecks(receiver: Range, to_start: Bool): Unit ->
 pub compare_boundary_points_typechecks(
     receiver: Range,
     how: JsNumber,
-    source_range: Range
+    source_range: Range,
 ): JsNumber ->
     receiver.compare_boundary_points(how, source_range).
 

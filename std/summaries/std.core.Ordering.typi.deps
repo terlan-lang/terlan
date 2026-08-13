@@ -1,7 +1,7 @@
 module=std.core.Ordering
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 source_hash=1045202191548179866
 interface_hash=17520538994048696212
 interface_doc_hash=4113947392680292176

@@ -1,0 +1,114 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Session.current/1",
+      "name": "current",
+      "operation": "std.http.session.current",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:c1d2e9b1e897a4493a0b1490765ef4efa06fa91d71d628a5986131ad359fa0e3"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Session.get/2",
+      "name": "get",
+      "operation": "std.http.session.get",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:fa4d9a09631054f62da71fc74120d2ad801313711b66281e5b93847cfb666b93"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Session.set/3",
+      "name": "set",
+      "operation": "std.http.session.set",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:55c32f16b06698e0b21570e58ab22db6caeb80090bd46ac6514f3074a5846885"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Session.delete/2",
+      "name": "delete",
+      "operation": "std.http.session.delete",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:14b831c16c69b39ad5bea55518c965612aa3f6ebfc9efb8b7914ed22f93918f9"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Session.rotate/1",
+      "name": "rotate",
+      "operation": "std.http.session.rotate",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:b835bdae8bbd88bf3bdf2d924bdb7a7c981e6911556cf1b5a50ced4291180026"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Session.expire/1",
+      "name": "expire",
+      "operation": "std.http.session.expire",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:c7b4e5235b3c277c695df95bc984978835b8a12864a059833feafc4e37e48fc3"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Session.with_response/2",
+      "name": "with_response",
+      "operation": "std.http.session.with_response",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:4d73562081676d729fde250d5dc8f55616e17a0bd706cf6fbba5b7af976ae60d"
+    }
+  ],
+  "manifest_digest": "sha256:ebeb31ab207cd27eacc4ad91d751046125054022b58efafa8c090f2ad462fad2",
+  "module": "std_http_session_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "http.session",
+    "error_policy": "typed-result",
+    "module_prefix": "std.http.Session",
+    "notes": "Session APIs operate on VM-owned session handles and typed cookie metadata.",
+    "resource_policy": "owned-resource-handle",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:6ba2788a80a0d1adebde72967a7e946de9cf1b607205e1511ce202c60af3d3c4",
+  "source_module": "std.http.Session",
+  "source_path": "std/summaries/std.http.Session.native_boundary.json"
+}

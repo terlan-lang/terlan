@@ -502,4 +502,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "release_failure_reproduction_test.rs"]
+#[cfg(test)]
 mod release_failure_reproduction_test;

@@ -99,7 +99,7 @@ fn parallel_frontend_compilation_preserves_one_application_link() {
         first_image
     );
     let changed_units = native_unit_snapshots(&units_dir);
-    assert_eq!(changed_units.len(), 4);
+    assert_eq!(changed_units.len(), 6);
     for (identity, object) in first_units {
         assert_eq!(changed_units.get(&identity), Some(&object));
     }

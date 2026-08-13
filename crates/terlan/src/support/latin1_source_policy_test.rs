@@ -15,6 +15,7 @@ fn latin1_source_read_rejects_non_utf8_bytes_with_stable_offset() {
 
     let error = read_file(path.to_str().expect("UTF-8 fixture path"))
         .expect_err("Latin-1 source must be rejected");
+    let error = error.to_string();
 
     assert_eq!(
         error,

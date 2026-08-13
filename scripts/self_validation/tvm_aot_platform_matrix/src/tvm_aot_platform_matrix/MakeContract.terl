@@ -1,0 +1,199 @@
+/**
+ * Pure parsing helpers for repository Make contracts.
+ *
+ * The parser deliberately recognizes only concrete, single-name targets. It
+ * does not interpret Make variables, pattern rules, generated declarations,
+ * or recipes. Validation callers therefore cannot accidentally treat a
+ * textual fragment as an executable gate.
+ */
+module tvm_aot_platform_matrix.MakeContract.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.String.
+import std.io.Console.{eprintln}.
+
+import type std.core.Option.
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[make_contract]: ", message));
+    false.
+
+@pure
+allowed_target_characters(values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            String.contains("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-", value)
+                and allowed_target_characters(rest)
+    }.
+
+/**
+ * Returns a concrete target name declared by one Make source line.
+ */
+@pure
+pub target_name(line: String): Option[String] ->
+    if {
+        line == ""
+            or String.starts_with(line, "\t")
+            or String.starts_with(line, " ")
+            or String.starts_with(line, "#") -> None;
+        true -> case String.split_once(line, ":") {
+            Some({raw_name, _declaration}) ->
+                let name = String.trim(raw_name);
+                if {
+                    name == "" or not allowed_target_characters(String.characters(name)) -> None;
+                    true -> Some(name)
+                };
+            None -> None
+        }
+    }.
+
+@pure
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+targets_at(lines: List[String], targets: List[String]): List[String] ->
+    case lines {
+        [] -> targets;
+        [line | rest] ->
+            case target_name(line) {
+                Some(name) ->
+                    if {
+                        contains(targets, name) -> targets_at(rest, targets);
+                        true -> let _pushed = targets.push(name);
+                        targets_at(rest, targets)
+                    };
+                None -> targets_at(rest, targets)
+            }
+    }.
+
+/**
+ * Returns unique concrete target names in declaration order.
+ */
+pub targets(source: String): List[String] ->
+    targets_at(String.split(source, "\n"), List.new[String]()).
+
+/**
+ * Returns whether one concrete target is declared.
+ */
+pub target_exists(source: String, expected: String): Bool ->
+    contains(targets(source), expected).
+
+nonempty_words(values: List[String], result: List[String]): List[String] ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            if {
+                value == "" -> nonempty_words(rest, result);
+                true -> let _pushed = result.push(value);
+                nonempty_words(rest, result)
+            }
+    }.
+
+@pure
+without_continuation(value: String): String ->
+    let trimmed = String.trim(value);
+    if {
+        String.ends_with(trimmed, "\\") -> String.utf8_slice(trimmed, 0, String.byte_size(trimmed) - 1);
+        true -> trimmed
+    }.
+
+collect_prerequisites(
+    lines: List[String],
+    declaration: String,
+    result: List[String],
+): List[String] ->
+    let trimmed = String.trim(declaration);
+    let continued = String.ends_with(trimmed, "\\");
+    let words = nonempty_words(String.split(without_continuation(trimmed), " "), List.new[String]());
+    let next = List.concat(result, words);
+    if {
+        not continued -> next;
+        true -> case lines {
+            [] -> next;
+            [line | rest] -> collect_prerequisites(rest, line, next)
+        }
+    }.
+
+prerequisites_at(lines: List[String], expected: String): Option[List[String]] ->
+    case lines {
+        [] -> None;
+        [line | rest] ->
+            case target_name(line) {
+                Some(name) ->
+                    if {
+                        name != expected -> prerequisites_at(rest, expected);
+                        true -> case String.split_once(line, ":") {
+                            Some({_target, declaration}) ->
+                                Some(collect_prerequisites(rest, declaration, List.new[String]()));
+                            None -> Some(List.new[String]())
+                        }
+                    };
+                None -> prerequisites_at(rest, expected)
+            }
+    }.
+
+/**
+ * Returns the declared prerequisites for one concrete target.
+ */
+pub target_prerequisites(source: String, expected: String): Option[List[String]] ->
+    prerequisites_at(String.split(source, "\n"), expected).
+
+@pure
+strings_equal(left: List[String], right: List[String]): Bool ->
+    case {left, right} {
+        {[], []} -> true;
+        {[left_value | left_rest], [right_value | right_rest]} ->
+            left_value == right_value and strings_equal(left_rest, right_rest);
+        _ -> false
+    }.
+
+/**
+ * Runs hostile parser probes for the shared Make contract.
+ */
+@test
+pub single_line_prerequisites_test(): Bool ->
+    case target_prerequisites("check: rust-test-suite check-gates\n", "check") {
+        Some(values) -> strings_equal(values, ["rust-test-suite", "check-gates"]);
+        None -> false
+    }.
+
+@test
+pub continued_prerequisites_test(): Bool ->
+    case target_prerequisites(
+    "http-check: \\\n\tvm-stream-check \\\n\tvm-router-check\n\tcargo test http\n",
+    "http-check",
+) {
+        Some(values) -> strings_equal(values, ["vm-stream-check", "vm-router-check"]);
+        None -> false
+    }.
+
+@test
+pub missing_target_test(): Bool ->
+    case target_prerequisites("check:\n", "missing") {
+        None -> true;
+        Some(_values) -> false
+    }.
+
+@test
+pub concrete_targets_test(): Bool ->
+    let parsed_targets =
+        targets(
+            "check: dependency\n\tcommand\ninvalid target: ignored\npattern-%: ignored\nother:\n",
+        );
+    strings_equal(parsed_targets, ["check", "other"])
+        and target_exists("vm-check:\n\ttrue\n", "vm-check")
+        and not target_exists("prefix-vm-check:\n\ttrue\n", "vm-check").
+
+pub self_test(): Bool ->
+    if {
+        not single_line_prerequisites_test() -> failure("single-line prerequisite parsing failed");
+        not continued_prerequisites_test() -> failure("continued prerequisite parsing failed");
+        not missing_target_test() -> failure("missing-target rejection failed");
+        not concrete_targets_test() -> failure("concrete target parsing failed");
+        true -> true
+    }.

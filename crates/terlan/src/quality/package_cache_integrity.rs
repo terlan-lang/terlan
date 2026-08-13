@@ -216,4 +216,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "package_cache_integrity_test.rs"]
+#[cfg(test)]
 mod package_cache_integrity_test;

@@ -203,4 +203,5 @@ where
 
 #[cfg(test)]
 #[path = "base64_test.rs"]
+#[cfg(test)]
 mod base64_test;

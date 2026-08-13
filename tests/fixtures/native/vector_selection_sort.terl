@@ -19,7 +19,8 @@ import std.native.collections.Vector.
  * into the current position.
  */
 pub selection_sort(values: Vector[Int]): Vector[Int] ->
-    let n = values.length(); selection_pass(values, 0, n).
+    let n = values.length();
+    selection_pass(values, 0, n).
 
 /**
  * Runs one recursive selection-sort pass.
@@ -31,8 +32,13 @@ pub selection_sort(values: Vector[Int]): Vector[Int] ->
  */
 pub selection_pass(values: Vector[Int], i: Int, n: Int): Vector[Int] ->
     if {
-    i >= n - 1 -> values;
-    true -> let min_index = find_min_index(values, i, i + 1, n); let min_value = values[min_index]; let current_value = values[i]; values[i] = min_value; values[min_index] = current_value; selection_pass(values, i + 1, n)
+        i >= n - 1 -> values;
+        true -> let min_index = find_min_index(values, i, i + 1, n);
+        let min_value = values[min_index];
+        let current_value = values[i];
+        values[i] = min_value;
+        values[min_index] = current_value;
+        selection_pass(values, i + 1, n)
     }.
 
 /**
@@ -46,7 +52,7 @@ pub selection_pass(values: Vector[Int], i: Int, n: Int): Vector[Int] ->
  */
 pub find_min_index(values: Vector[Int], min_index: Int, j: Int, n: Int): Int ->
     if {
-    j >= n -> min_index;
-    values[j] < values[min_index] -> find_min_index(values, j, j + 1, n);
-    true -> find_min_index(values, min_index, j + 1, n)
+        j >= n -> min_index;
+        values[j] < values[min_index] -> find_min_index(values, j, j + 1, n);
+        true -> find_min_index(values, min_index, j + 1, n)
     }.

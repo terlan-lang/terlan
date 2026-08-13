@@ -8,6 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use libloading::{Library, Symbol};
 
+use crate::runtime::native_image::dispatch_lookup::{tvm_dispatch_lookup_v1, TvmDispatchLookup};
 use crate::runtime::native_image::managed::{
     encode_aggregate_layout, encode_closure_allocation, ManagedAggregateDescriptor, ManagedClosure,
     ManagedExecutionRuntime, ManagedFieldType, SemanticTypeId,
@@ -25,6 +26,7 @@ use super::emit_native_application_object;
 
 type NativeDispatch = unsafe extern "C" fn(
     *mut c_void,
+    *const c_void,
     *const c_void,
     *const c_void,
     u64,
@@ -159,7 +161,6 @@ fn generated_constructor_reference_crosses_native_arguments_and_returns() {
 }
 
 #[test]
-#[allow(unsafe_code)]
 fn generated_closure_owns_captures_and_dispatches_lifted_target() {
     let callable = TvmCallableDescriptor {
         id: 201,
@@ -236,7 +237,7 @@ fn generated_closure_owns_captures_and_dispatches_lifted_target() {
     // SAFETY: The freshly linked test image exports the frozen format-1 dispatch ABI.
     let dispatch: Symbol<'_, NativeDispatch> = unsafe {
         library
-            .get(b"terlan_native_dispatch_v2")
+            .get(b"terlan_native_dispatch_v3")
             .expect("native dispatch symbol")
     };
     let dispatch = *dispatch;
@@ -286,7 +287,6 @@ fn generated_closure_owns_captures_and_dispatches_lifted_target() {
 }
 
 #[test]
-#[allow(unsafe_code)]
 fn owned_closure_forwards_a_suspending_target_transition() {
     let callable = TvmCallableDescriptor {
         id: 301,
@@ -377,7 +377,7 @@ fn owned_closure_forwards_a_suspending_target_transition() {
     let (library, root) = link_test_library("suspending-closure", &object);
     let dispatch: Symbol<'_, NativeDispatch> = unsafe {
         library
-            .get(b"terlan_native_dispatch_v2")
+            .get(b"terlan_native_dispatch_v3")
             .expect("native dispatch symbol")
     };
     let dispatch = *dispatch;
@@ -396,6 +396,7 @@ fn owned_closure_forwards_a_suspending_target_transition() {
             context,
             allocator,
             resolver,
+            tvm_dispatch_lookup_v1 as TvmDispatchLookup as *const c_void,
             303,
             [closure].as_ptr(),
             1,
@@ -413,7 +414,6 @@ fn owned_closure_forwards_a_suspending_target_transition() {
 }
 
 #[test]
-#[allow(unsafe_code)]
 fn source_named_suspending_closure_forwards_its_transition() {
     let syntax = parse_module_as_syntax_output(
         "module suspending_named.\n\n\
@@ -472,7 +472,7 @@ fn source_named_suspending_closure_forwards_its_transition() {
     let (library, root) = link_test_library("source-suspending-closure", &object);
     let dispatch: Symbol<'_, NativeDispatch> = unsafe {
         library
-            .get(b"terlan_native_dispatch_v2")
+            .get(b"terlan_native_dispatch_v3")
             .expect("native dispatch symbol")
     };
     let dispatch = *dispatch;
@@ -491,6 +491,7 @@ fn source_named_suspending_closure_forwards_its_transition() {
             context,
             allocator,
             resolver,
+            tvm_dispatch_lookup_v1 as TvmDispatchLookup as *const c_void,
             apply.export_id,
             [closure].as_ptr(),
             1,
@@ -508,7 +509,6 @@ fn source_named_suspending_closure_forwards_its_transition() {
 }
 
 #[test]
-#[allow(unsafe_code)]
 fn source_named_function_value_becomes_executable_owned_closure() {
     let syntax = parse_module_as_syntax_output(
         "module escaping_named.\n\n\
@@ -609,7 +609,7 @@ fn source_named_function_value_becomes_executable_owned_closure() {
     // SAFETY: The freshly linked test image exports the frozen format-1 dispatch ABI.
     let dispatch: Symbol<'_, NativeDispatch> = unsafe {
         library
-            .get(b"terlan_native_dispatch_v2")
+            .get(b"terlan_native_dispatch_v3")
             .expect("source native dispatch symbol")
     };
     let dispatch = *dispatch;
@@ -715,7 +715,6 @@ fn source_named_function_value_becomes_executable_owned_closure() {
 }
 
 #[test]
-#[allow(unsafe_code)]
 fn source_let_local_captured_lambda_becomes_executable_owned_closure() {
     let syntax = parse_module_as_syntax_output(
         "module escaping_lambda.\n\n\
@@ -801,7 +800,7 @@ fn source_let_local_captured_lambda_becomes_executable_owned_closure() {
     // SAFETY: The freshly linked test image exports the frozen format-1 dispatch ABI.
     let dispatch: Symbol<'_, NativeDispatch> = unsafe {
         library
-            .get(b"terlan_native_dispatch_v2")
+            .get(b"terlan_native_dispatch_v3")
             .expect("source native dispatch symbol")
     };
     let dispatch = *dispatch;
@@ -859,7 +858,6 @@ fn source_let_local_captured_lambda_becomes_executable_owned_closure() {
 }
 
 #[test]
-#[allow(unsafe_code)]
 fn source_if_selects_distinct_executable_captured_closures() {
     let syntax = parse_module_as_syntax_output(
         "module branch_closure.\n\n\
@@ -955,7 +953,7 @@ fn source_if_selects_distinct_executable_captured_closures() {
     // SAFETY: The freshly linked test image exports the frozen format-1 dispatch ABI.
     let dispatch: Symbol<'_, NativeDispatch> = unsafe {
         library
-            .get(b"terlan_native_dispatch_v2")
+            .get(b"terlan_native_dispatch_v3")
             .expect("source branch dispatch symbol")
     };
     let dispatch = *dispatch;
@@ -1052,8 +1050,6 @@ fn public_function_value_result_uses_owned_closure_boundary() {
     assert!(matches!(maker.return_type, NativeType::ManagedRef(_)));
     assert!(matches!(maker.body, NativeExpr::MakeClosure { .. }));
 }
-
-#[allow(unsafe_code)]
 fn invoke_dispatch(
     dispatch: NativeDispatch,
     context: *mut c_void,
@@ -1077,6 +1073,7 @@ fn invoke_dispatch(
             context,
             allocator,
             closure_resolver,
+            tvm_dispatch_lookup_v1 as TvmDispatchLookup as *const c_void,
             export_id,
             arguments_pointer,
             arguments.len() as u64,
@@ -1092,8 +1089,6 @@ fn invoke_dispatch(
         Err(status)
     }
 }
-
-#[allow(unsafe_code)]
 fn link_test_library(label: &str, object: &[u8]) -> (Library, std::path::PathBuf) {
     let root = std::env::temp_dir().join(format!(
         "terlan-{label}-{}-{}",
@@ -1145,11 +1140,33 @@ type Allocator = unsafe extern "C" fn(
     *mut u64,
 ) -> i32;
 
+unsafe extern "C" fn dispatch_lookup(
+    index: *const u32,
+    records: *const u8,
+    mask: u64,
+    export_id: u64,
+) -> *const c_void {
+    let mut slot = export_id & mask;
+    for _ in 0..=mask {
+        let tag = unsafe { index.add(slot as usize).read() };
+        if tag == 0 {
+            return std::ptr::null();
+        }
+        let record = unsafe { records.add((tag as usize - 1) * 24) };
+        if unsafe { record.cast::<u64>().read() } == export_id {
+            return record.cast();
+        }
+        slot = slot.wrapping_add(1) & mask;
+    }
+    std::ptr::null()
+}
+
 unsafe extern "C" {
-    fn terlan_native_dispatch_v2(
+    fn terlan_native_dispatch_v3(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
+        dispatch_lookup: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -1191,10 +1208,11 @@ fn main() {
     let mut transitions = [0_i64; 1];
     let mut transition_len = 99_u64;
     let missing = unsafe {
-        terlan_native_dispatch_v2(
+        terlan_native_dispatch_v3(
             std::ptr::null_mut(),
             std::ptr::null(),
             std::ptr::null(),
+            dispatch_lookup as *const c_void,
             91,
             arguments.as_ptr(),
             arguments.len() as u64,
@@ -1209,10 +1227,11 @@ fn main() {
 
     let mut capture = Capture::default();
     let callback_failure = unsafe {
-        terlan_native_dispatch_v2(
+        terlan_native_dispatch_v3(
             (&mut capture as *mut Capture).cast(),
             fail as Allocator as *const c_void,
             std::ptr::null(),
+            dispatch_lookup as *const c_void,
             91,
             arguments.as_ptr(),
             arguments.len() as u64,
@@ -1225,10 +1244,11 @@ fn main() {
     assert_eq!(callback_failure, 77);
 
     let invalid = unsafe {
-        terlan_native_dispatch_v2(
+        terlan_native_dispatch_v3(
             (&mut capture as *mut Capture).cast(),
             zero_reference as Allocator as *const c_void,
             std::ptr::null(),
+            dispatch_lookup as *const c_void,
             91,
             arguments.as_ptr(),
             arguments.len() as u64,
@@ -1241,10 +1261,11 @@ fn main() {
     assert_eq!(invalid, 21);
 
     let status = unsafe {
-        terlan_native_dispatch_v2(
+        terlan_native_dispatch_v3(
             (&mut capture as *mut Capture).cast(),
             allocate as Allocator as *const c_void,
             std::ptr::null(),
+            dispatch_lookup as *const c_void,
             91,
             arguments.as_ptr(),
             arguments.len() as u64,

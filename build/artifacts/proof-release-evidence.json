@@ -1,0 +1,1152 @@
+{
+  "candidate": {
+    "candidate_id": "sha256:cdce9f362f8866b47bc9ee265368425c21d00e22a318a9682c704c1c82dccf10",
+    "compiler_target": "x86_64-unknown-linux-gnu",
+    "feature_set": [
+      "quality-tools"
+    ],
+    "release": "0.0.7",
+    "rustc_version": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+    "source_revision": "69bb9cf8b76e20e3f80c8354880f2d94e05af0c6",
+    "target_profile": "native"
+  },
+  "candidate_materials": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "sha256:409dd8c2b68ba5f9b1d0f7b6bbf855deb85d89dc89db3beac5a3a80e03e6d3d9"
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "sha256:3d09ea42cd25c4f0d5367e53b9821aa48c21f65c50e0a39bc743493d1edd1f8d"
+    },
+    {
+      "path": "crates/terlan/src/backends/wasm/README.md",
+      "sha256": "sha256:fbbeee23e8588b95f75c897f610c3c261d07d1937948bb7c580b7e163fb71a5a"
+    },
+    {
+      "path": "crates/terlan/src/compiler/syntax/syntax_output.rs",
+      "sha256": "sha256:5651f5c025b4d0e0830d5d144f1c8f354ff425dcd339d9b66bddc58daeca88b1"
+    },
+    {
+      "path": "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop",
+      "sha256": "sha256:d58f8b067419b4378a435f7c8e0a4f98a6fade708097388008caf94e5e47f81f"
+    },
+    {
+      "path": "crates/terlan/src/runtime/native_boundary/dispatch.rs",
+      "sha256": "sha256:b111c69e230e5b21a9385fd5fea5918cb14c6b1c269d956bbba2280a4764b6d5"
+    },
+    {
+      "path": "crates/terlan/src/runtime/native_boundary/metadata.rs",
+      "sha256": "sha256:845d662acd46e2783d4c6e10b621626aff0453a8c973b20a83f3532afb040242"
+    },
+    {
+      "path": "crates/terlan/src/runtime/native_boundary/runtime.rs",
+      "sha256": "sha256:ac5fc268b61a60dc09990e5951ac45b04c7d2e9600086a1cffa22850a9114c17"
+    },
+    {
+      "path": "crates/terlan/src/runtime/native_boundary/worker.rs",
+      "sha256": "sha256:861eb2c6f71d7eb8eb36cfb3132469e1aad2d4b7600e7cd8f7f903f07e65245d"
+    },
+    {
+      "path": "docs/compiler/CORE_IR_LEAN_CONFORMANCE.md",
+      "sha256": "sha256:1e9e52dcd1b10f2a63583853df5701009cc084233363e840c493abc45eab02a0"
+    },
+    {
+      "path": "docs/compiler/TERLAN_CORE_TYPING_SPEC.md",
+      "sha256": "sha256:88cab32207008497f794ea61331b54c640e7a14cbc6c87c80cd573e26c330e7a"
+    },
+    {
+      "path": "docs/compiler/TERLAN_TARGET_INFERENCE.md",
+      "sha256": "sha256:121e8f01df61d9a60694ef71d89244b8186fc6620290db3a4c5f82466ccf077f"
+    },
+    {
+      "path": "docs/compiler/type_spec/language_feature_coverage_matrix.json",
+      "sha256": "sha256:57479360847ffcfbf3c792eef9eb4098b378c03636b92e6083a50c8a0054dd2d"
+    },
+    {
+      "path": "docs/compiler/type_spec/terlan_core_typing_spec.toml",
+      "sha256": "sha256:ad3030afeacca68027a719071a87526c0e8902067d639475cdd350539a6fefd3"
+    },
+    {
+      "path": "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf",
+      "sha256": "sha256:f15e5e3b8d546024312cb9e097495f268c179e272e341e26c04fe2811fd53405"
+    },
+    {
+      "path": "docs/runtime/TERLAN_VM_RUNTIME_CONCEPTS.md",
+      "sha256": "sha256:0c0a56bdc73b1d40b315d03f47153e0e6e739d4430c9575c092cc5e82a17d5d3"
+    },
+    {
+      "path": "proofs/lean/Terlan/Core/Arithmetic.lean",
+      "sha256": "sha256:bd3f2ea4e54f8943028b2f26bc06b10b5af8287678a3ec87b345118824c37815"
+    },
+    {
+      "path": "proofs/lean/Terlan/Core/CheckedLowering.lean",
+      "sha256": "sha256:46422c5fd264e49c147c5f08a436b3a92d647550be498d0db140d1966c082974"
+    },
+    {
+      "path": "proofs/lean/Terlan/Smoke/SemanticChain.lean",
+      "sha256": "sha256:35e967e46a00e564f0e56ea95afc63b6d032496f435cf2bb87a095e9e6ea2014"
+    },
+    {
+      "path": "proofs/lean/Terlan/Type/ShapeImplication.lean",
+      "sha256": "sha256:2480453ade68213c794440f302323797f850b8c92d76e3886ffe66446355a36b"
+    },
+    {
+      "path": "proofs/lean/ci/lean-proof-artifacts.tsv",
+      "sha256": "sha256:62afe69638b411750403ed39eb5af023297cdb7f05ad8f4433e98000ad862a18"
+    },
+    {
+      "path": "proofs/lean/collections/Collections.lean",
+      "sha256": "sha256:cd429b6b7d63643333cad8beb99049905e7e994848b42c2ec85a1180f4595065"
+    },
+    {
+      "path": "proofs/lean/concurrency/Concurrency.lean",
+      "sha256": "sha256:5e0c61d3a415d71089334d3e9f133b99958a151bc83081b7191613d15d846f33"
+    },
+    {
+      "path": "proofs/lean/database_sql/DatabaseSql.lean",
+      "sha256": "sha256:0f746de88857fdacc2fc85f6a1f255b3150e0dca758bdac8fcd3aa753a4fdfdf"
+    },
+    {
+      "path": "proofs/lean/feature_binding/lean_feature_slice_index.json",
+      "sha256": "sha256:bfd30f623ab420d144458d05cca1b4c6ce8010ca43084d9a1210597057c2461a"
+    },
+    {
+      "path": "proofs/lean/native_boundary/NativeBoundary.lean",
+      "sha256": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2"
+    },
+    {
+      "path": "proofs/lean/native_boundary/promotion-policy.json",
+      "sha256": "sha256:475f6bbafe0c5749b919cfb196b6d0ba05026429cf58374adb67c5aacdfb45f8"
+    },
+    {
+      "path": "proofs/lean/parser_shape/ParserShape.lean",
+      "sha256": "sha256:b1af86ef1a14129efe0e7497472d71ee23fb68fb356539de82cfb2c4335e2789"
+    },
+    {
+      "path": "proofs/lean/release_evidence/release-mode.json",
+      "sha256": "sha256:980dbcdb59625f628d9a0ecbd436cb573549481aad8bc34b7e2127596465499d"
+    },
+    {
+      "path": "proofs/lean/semantic-kernels.json",
+      "sha256": "sha256:ac0369d2acf9da34715736e53dad62dc5b69b4cd25bfcbb2f3747fcd5811d802"
+    },
+    {
+      "path": "proofs/lean/smoke/SemanticSmokeTest.terl",
+      "sha256": "sha256:61ece286c59dbe360eda67ab96fbde0591a387a98dd34ad8ec1783ba0d5a2cdf"
+    },
+    {
+      "path": "proofs/lean/smoke/UnsupportedNativeBridge.terl",
+      "sha256": "sha256:68881809a18a4e17e87634767fd963ccc3df1388bed6fd4d4267ddf6bfe02d3a"
+    },
+    {
+      "path": "proofs/lean/smoke/smoke-manifest.tsv",
+      "sha256": "sha256:356840be700a6aee9cc9ed65e97a209746e2bf2f3a74674082e7bc35d548c42c"
+    },
+    {
+      "path": "proofs/lean/std_packages/StdPackages.lean",
+      "sha256": "sha256:1c2ea16fd3a3ce051d1e1bb355564b0df399e739ce051c0b656c824ddf8322d2"
+    },
+    {
+      "path": "proofs/lean/templates_routes/TemplateRoutes.lean",
+      "sha256": "sha256:e90cd3d15c814c74b2b4529ef350dcc34cf1ddc6f3379e15c50f14570326f8cf"
+    },
+    {
+      "path": "proofs/lean/wasm_bridge/WasmBridge.lean",
+      "sha256": "sha256:8801c7dccbcd7dbdb2c3fd61c751add78e18198194fb82dda221322d8b4aba62"
+    },
+    {
+      "path": "scripts/self_validation/LeanProofNativeBoundaryTest.terl",
+      "sha256": "sha256:fd09044914da2881d06ab431a10a321967a3c2abd12022a0cdfa6c8e0cbfbbd7"
+    },
+    {
+      "path": "scripts/self_validation/proof_release_evidence/scripts/ProofReleaseEvidence.terls",
+      "sha256": "sha256:b8ba87d9f5cd4687e54c5e1556f7fee85d85fc28f35d0537c0c10ba8cc580c2a"
+    },
+    {
+      "path": "scripts/self_validation/proof_release_evidence/scripts/SemanticKernels.terls",
+      "sha256": "sha256:c0357faeef58395287e1451ee35b6f4a7cdbd93a3a25d76a34143731ff57a5fc"
+    },
+    {
+      "path": "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Builder.terl",
+      "sha256": "sha256:99eaee2b7ece83c96d32c3fb1331ef0737252cd6f76876a06422f902e338d87d"
+    },
+    {
+      "path": "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Model.terl",
+      "sha256": "sha256:3ec6bbbc37c481dae5fafbd8f2624449d611c50dfe11a9b35c8c38d63213c1c7"
+    },
+    {
+      "path": "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/RuntimeEvidence.terl",
+      "sha256": "sha256:5c7838d122e3bce41ae2108ce0212de5a5190a664a12d9d0c8fbb26d694aadd6"
+    },
+    {
+      "path": "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/SemanticKernelRecord.terl",
+      "sha256": "sha256:991b3c023a97c4c4781d8aaa5f9ab3b958adaa60e8a131efc1202cdfb3b20fb5"
+    },
+    {
+      "path": "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Support.terl",
+      "sha256": "sha256:40a87acc17fa4ba145c8ceb794d99115b276d313c55def86dab14821b9f9da56"
+    },
+    {
+      "path": "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Validator.terl",
+      "sha256": "sha256:db4c7991c884d61ade20ae34f91f786ecb42af105843e2ce1261e5661668071a"
+    },
+    {
+      "path": "std/NATIVE_BOUNDARY_SECURITY.tsv",
+      "sha256": "sha256:15d2e7bd0d1382d7a472a48f368c70e0f0a5d17364b8bc94b4ffcd2fc8b8f288"
+    },
+    {
+      "path": "std/data/Json.terl",
+      "sha256": "sha256:74f2f288ffbb57ad9e5de296dcb39192139338227cdb028f960c68dcb0e2d179"
+    },
+    {
+      "path": "std/summaries/std.data.Json.native_boundary.json",
+      "sha256": "sha256:c9109fd15f986b80735e5308a14720013f867143a111479cca66a7e363b82a1f"
+    },
+    {
+      "path": "std/summaries/std.db.Postgres.native_boundary.json",
+      "sha256": "sha256:0684e2277c917c92903dfd4c5f47459a369d627f5ef5ca99fe04b39568aa9ac2"
+    },
+    {
+      "path": "std/summaries/std.encoding.Base64.native_boundary.json",
+      "sha256": "sha256:cc71e8329d46a3bd23329f29cab20bc33a6f6f2eef1406d7bee710caf2db1941"
+    },
+    {
+      "path": "std/summaries/std.encoding.Md5.native_boundary.json",
+      "sha256": "sha256:7dda0c121fab95fffe3ca9e58a37c91e97046f58bc0d907861edef968552baab"
+    },
+    {
+      "path": "std/summaries/std.http.Cookies.native_boundary.json",
+      "sha256": "sha256:28ea65dc610edbf1993ee077deb1e0fcac9285070c61b0b00934341b5f0de8f1"
+    },
+    {
+      "path": "std/summaries/std.http.Request.native_boundary.json",
+      "sha256": "sha256:323c26d9787f5c7770c0d45d5d1993f9436b0c8f0bf3a1b1e32e4480efd6942a"
+    },
+    {
+      "path": "std/summaries/std.http.Response.native_boundary.json",
+      "sha256": "sha256:8b4a41b012494d8b2442f8da20a64c2c0156b4bccdc6a7d00bc8c73f24f8a767"
+    },
+    {
+      "path": "std/summaries/std.http.Session.native_boundary.json",
+      "sha256": "sha256:6ba2788a80a0d1adebde72967a7e946de9cf1b607205e1511ce202c60af3d3c4"
+    },
+    {
+      "path": "std/summaries/std.http.Sse.native_boundary.json",
+      "sha256": "sha256:0699971ab06b59f1d1727fa87cd6f3822976e7842b610873373b3aa255745ab5"
+    },
+    {
+      "path": "std/summaries/std.http.Tls.native_boundary.json",
+      "sha256": "sha256:870c62d576053f7bf51276019620b32521cf28f3baecdabe59546633065a6ab6"
+    },
+    {
+      "path": "std/summaries/std.http.WebSocket.native_boundary.json",
+      "sha256": "sha256:f43e0d5b4dabf84f57e09f4218f2f294b3b0cf932a5cf8aaac4b696578a56c96"
+    },
+    {
+      "path": "std/summaries/std.io.Path.native_boundary.json",
+      "sha256": "sha256:e41eb60713e6a7992c480c67450b134e46343df86a87a26b733074d6362194be"
+    },
+    {
+      "path": "std/summaries/std.native.collections.Vector.native_boundary.json",
+      "sha256": "sha256:7c33a2873d888ca1e4882bdea084faf2bf74dd9f5cfb447d96c5e733efcd8dd5"
+    },
+    {
+      "path": "std/summaries/std.net.Uri.native_boundary.json",
+      "sha256": "sha256:6d941c8ea6b8560c8be1cff7c88060480406123ecda02dc8d14ee80d0b34f28c"
+    },
+    {
+      "path": "std/summaries/std.random.Random.native_boundary.json",
+      "sha256": "sha256:9451fb64ab3406594238513d8386a91c6af850883c590fc90c77c961803b0043"
+    },
+    {
+      "path": "std/summaries/std.regex.Regex.native_boundary.json",
+      "sha256": "sha256:950a432165be5a17eb1445d0929b0d2377c20d6b29e189bf90466d7e01850eda"
+    },
+    {
+      "path": "std/summaries/terlan_libpq.Driver.native_boundary.json",
+      "sha256": "sha256:dfac5564c98683a9e3e4d1d7f8c4930d1760530358b00391217e92e59e7edcc7"
+    }
+  ],
+  "format_version": 1,
+  "records": [
+    {
+      "compiler_inputs": [
+        {
+          "path": "docs/compiler/CORE_IR_LEAN_CONFORMANCE.md",
+          "sha256": "sha256:1e9e52dcd1b10f2a63583853df5701009cc084233363e840c493abc45eab02a0"
+        },
+        {
+          "path": "docs/compiler/TERLAN_CORE_TYPING_SPEC.md",
+          "sha256": "sha256:88cab32207008497f794ea61331b54c640e7a14cbc6c87c80cd573e26c330e7a"
+        },
+        {
+          "path": "docs/compiler/TERLAN_TARGET_INFERENCE.md",
+          "sha256": "sha256:121e8f01df61d9a60694ef71d89244b8186fc6620290db3a4c5f82466ccf077f"
+        },
+        {
+          "path": "docs/compiler/type_spec/terlan_core_typing_spec.toml",
+          "sha256": "sha256:ad3030afeacca68027a719071a87526c0e8902067d639475cdd350539a6fefd3"
+        },
+        {
+          "path": "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf",
+          "sha256": "sha256:f15e5e3b8d546024312cb9e097495f268c179e272e341e26c04fe2811fd53405"
+        }
+      ],
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "proof_ids": [
+        "coreir-arithmetic",
+        "coreir-checked-lowering",
+        "shape-implication"
+      ],
+      "proofs": [
+        {
+          "family": "coreir-arithmetic",
+          "proof_digest": "sha256:bd3f2ea4e54f8943028b2f26bc06b10b5af8287678a3ec87b345118824c37815",
+          "proof_path": "proofs/lean/Terlan/Core/Arithmetic.lean",
+          "theorem_ids": [
+            "Terlan.Core.addEvaluationPreservesInteger",
+            "Terlan.Core.typedIntegerExpressionEvaluates"
+          ]
+        },
+        {
+          "family": "coreir-checked-lowering",
+          "proof_digest": "sha256:46422c5fd264e49c147c5f08a436b3a92d647550be498d0db140d1966c082974",
+          "proof_path": "proofs/lean/Terlan/Core/CheckedLowering.lean",
+          "theorem_ids": [
+            "Terlan.Core.CheckedLowering.loweringIsDeterministic",
+            "Terlan.Core.CheckedLowering.loweringPreservesTyping",
+            "Terlan.Core.CheckedLowering.loweringPreservesEvaluation",
+            "Terlan.Core.CheckedLowering.vmAcceptsTypedProcessForm",
+            "Terlan.Core.CheckedLowering.jsRejectsProcessForm",
+            "Terlan.Core.CheckedLowering.wasmRejectsProcessForm"
+          ]
+        },
+        {
+          "family": "shape-implication",
+          "proof_digest": "sha256:2480453ade68213c794440f302323797f850b8c92d76e3886ffe66446355a36b",
+          "proof_path": "proofs/lean/Terlan/Type/ShapeImplication.lean",
+          "theorem_ids": [
+            "Terlan.Type.ShapeImplication.acceptedEvidenceIsWellFormed",
+            "Terlan.Type.ShapeImplication.requiredFieldProjectionIsSound",
+            "Terlan.Type.ShapeImplication.provenImplicationIsAccepted",
+            "Terlan.Type.ShapeImplication.unprovenImplicationIsRejected",
+            "Terlan.Type.ShapeImplication.privateFieldCannotProvePublic",
+            "Terlan.Type.ShapeImplication.evidenceProvenanceIsPreserved",
+            "Terlan.Type.ShapeImplication.scopedEvidenceCannotEscape",
+            "Terlan.Type.ShapeImplication.scopedRequiredFieldProjectionIsSound",
+            "Terlan.Type.ShapeImplication.implicationEvidenceDoesNotConvert",
+            "Terlan.Type.ShapeImplication.scopedEvidenceDoesNotConvert",
+            "Terlan.Type.ShapeImplication.implicationPreservesFunctionResult",
+            "Terlan.Type.ShapeImplication.implicationPreservesBranchResult"
+          ]
+        }
+      ],
+      "runtime_lane": "vm-core",
+      "slice_id": "Slice 4",
+      "std_lane": "unit",
+      "trace_id": "sha256:9907ee530d970b2b7c8d68da2dfedfb8bbc34ac8194752837b616c453da1cbb5"
+    },
+    {
+      "compiler_inputs": [
+        {
+          "path": "docs/compiler/CORE_IR_LEAN_CONFORMANCE.md",
+          "sha256": "sha256:1e9e52dcd1b10f2a63583853df5701009cc084233363e840c493abc45eab02a0"
+        },
+        {
+          "path": "docs/compiler/TERLAN_TARGET_INFERENCE.md",
+          "sha256": "sha256:121e8f01df61d9a60694ef71d89244b8186fc6620290db3a4c5f82466ccf077f"
+        },
+        {
+          "path": "docs/compiler/type_spec/terlan_core_typing_spec.toml",
+          "sha256": "sha256:ad3030afeacca68027a719071a87526c0e8902067d639475cdd350539a6fefd3"
+        }
+      ],
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "proof_ids": [
+        "coreir-arithmetic",
+        "coreir-checked-lowering"
+      ],
+      "proofs": [
+        {
+          "family": "coreir-arithmetic",
+          "proof_digest": "sha256:bd3f2ea4e54f8943028b2f26bc06b10b5af8287678a3ec87b345118824c37815",
+          "proof_path": "proofs/lean/Terlan/Core/Arithmetic.lean",
+          "theorem_ids": [
+            "Terlan.Core.addEvaluationPreservesInteger",
+            "Terlan.Core.typedIntegerExpressionEvaluates"
+          ]
+        },
+        {
+          "family": "coreir-checked-lowering",
+          "proof_digest": "sha256:46422c5fd264e49c147c5f08a436b3a92d647550be498d0db140d1966c082974",
+          "proof_path": "proofs/lean/Terlan/Core/CheckedLowering.lean",
+          "theorem_ids": [
+            "Terlan.Core.CheckedLowering.loweringIsDeterministic",
+            "Terlan.Core.CheckedLowering.loweringPreservesTyping",
+            "Terlan.Core.CheckedLowering.loweringPreservesEvaluation",
+            "Terlan.Core.CheckedLowering.vmAcceptsTypedProcessForm",
+            "Terlan.Core.CheckedLowering.jsRejectsProcessForm",
+            "Terlan.Core.CheckedLowering.wasmRejectsProcessForm"
+          ]
+        }
+      ],
+      "runtime_lane": "vm-core",
+      "slice_id": "Slice 5",
+      "std_lane": "unit",
+      "trace_id": "sha256:fedb7b7fed22ca804a50c72da45f494e9cfebf5d8da823db6b811225941b1a3e"
+    },
+    {
+      "compiler_inputs": [
+        {
+          "path": "proofs/lean/smoke/SemanticSmokeTest.terl",
+          "sha256": "sha256:61ece286c59dbe360eda67ab96fbde0591a387a98dd34ad8ec1783ba0d5a2cdf"
+        },
+        {
+          "path": "proofs/lean/smoke/UnsupportedNativeBridge.terl",
+          "sha256": "sha256:68881809a18a4e17e87634767fd963ccc3df1388bed6fd4d4267ddf6bfe02d3a"
+        },
+        {
+          "path": "proofs/lean/smoke/smoke-manifest.tsv",
+          "sha256": "sha256:356840be700a6aee9cc9ed65e97a209746e2bf2f3a74674082e7bc35d548c42c"
+        }
+      ],
+      "coverage_status": "proof_current",
+      "feature_class": "vm_runtime",
+      "lane_id": "vm_runtime",
+      "owner": "vm",
+      "proof_ids": [
+        "semantic-smoke-chain"
+      ],
+      "proofs": [
+        {
+          "family": "semantic-smoke-chain",
+          "proof_digest": "sha256:35e967e46a00e564f0e56ea95afc63b6d032496f435cf2bb87a095e9e6ea2014",
+          "proof_path": "proofs/lean/Terlan/Smoke/SemanticChain.lean",
+          "theorem_ids": [
+            "Terlan.Smoke.SemanticChain.parserToCoreTyping",
+            "Terlan.Smoke.SemanticChain.coreToVmEvaluation",
+            "Terlan.Smoke.SemanticChain.vmOwnsProcessExecution",
+            "Terlan.Smoke.SemanticChain.unsupportedTargetsRejectProcessExecution",
+            "Terlan.Smoke.SemanticChain.nativeBoundaryDispatchAdmitted",
+            "Terlan.Smoke.SemanticChain.nativeBoundaryRejectsForeignOwner",
+            "Terlan.Smoke.SemanticChain.semanticChain"
+          ]
+        }
+      ],
+      "runtime_lane": "vm",
+      "slice_id": "Slice 9",
+      "std_lane": "integration",
+      "trace_id": "sha256:b4c8c0d52e6a74c873ae6bfa14a489f0fabc082d57c4b8cc3685481f4faa16bb"
+    },
+    {
+      "compiler_inputs": [
+        {
+          "path": "docs/compiler/CORE_IR_LEAN_CONFORMANCE.md",
+          "sha256": "sha256:1e9e52dcd1b10f2a63583853df5701009cc084233363e840c493abc45eab02a0"
+        },
+        {
+          "path": "docs/compiler/TERLAN_TARGET_INFERENCE.md",
+          "sha256": "sha256:121e8f01df61d9a60694ef71d89244b8186fc6620290db3a4c5f82466ccf077f"
+        },
+        {
+          "path": "docs/compiler/type_spec/terlan_core_typing_spec.toml",
+          "sha256": "sha256:ad3030afeacca68027a719071a87526c0e8902067d639475cdd350539a6fefd3"
+        }
+      ],
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "proof_ids": [
+        "coreir-checked-lowering"
+      ],
+      "proofs": [
+        {
+          "family": "coreir-checked-lowering",
+          "proof_digest": "sha256:46422c5fd264e49c147c5f08a436b3a92d647550be498d0db140d1966c082974",
+          "proof_path": "proofs/lean/Terlan/Core/CheckedLowering.lean",
+          "theorem_ids": [
+            "Terlan.Core.CheckedLowering.loweringIsDeterministic",
+            "Terlan.Core.CheckedLowering.loweringPreservesTyping",
+            "Terlan.Core.CheckedLowering.loweringPreservesEvaluation",
+            "Terlan.Core.CheckedLowering.vmAcceptsTypedProcessForm",
+            "Terlan.Core.CheckedLowering.jsRejectsProcessForm",
+            "Terlan.Core.CheckedLowering.wasmRejectsProcessForm"
+          ]
+        }
+      ],
+      "runtime_lane": "vm-core",
+      "slice_id": "Slice 10",
+      "std_lane": "unit",
+      "trace_id": "sha256:c2c9d469822baef2eb9ebf7951cabdc3f052e5197670f28bcce7dae3bd354e23"
+    },
+    {
+      "compiler_inputs": [
+        {
+          "path": "docs/compiler/CORE_IR_LEAN_CONFORMANCE.md",
+          "sha256": "sha256:1e9e52dcd1b10f2a63583853df5701009cc084233363e840c493abc45eab02a0"
+        },
+        {
+          "path": "docs/compiler/TERLAN_TARGET_INFERENCE.md",
+          "sha256": "sha256:121e8f01df61d9a60694ef71d89244b8186fc6620290db3a4c5f82466ccf077f"
+        },
+        {
+          "path": "docs/compiler/type_spec/terlan_core_typing_spec.toml",
+          "sha256": "sha256:ad3030afeacca68027a719071a87526c0e8902067d639475cdd350539a6fefd3"
+        }
+      ],
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "proof_ids": [
+        "coreir-checked-lowering"
+      ],
+      "proofs": [
+        {
+          "family": "coreir-checked-lowering",
+          "proof_digest": "sha256:46422c5fd264e49c147c5f08a436b3a92d647550be498d0db140d1966c082974",
+          "proof_path": "proofs/lean/Terlan/Core/CheckedLowering.lean",
+          "theorem_ids": [
+            "Terlan.Core.CheckedLowering.loweringIsDeterministic",
+            "Terlan.Core.CheckedLowering.loweringPreservesTyping",
+            "Terlan.Core.CheckedLowering.loweringPreservesEvaluation",
+            "Terlan.Core.CheckedLowering.vmAcceptsTypedProcessForm",
+            "Terlan.Core.CheckedLowering.jsRejectsProcessForm",
+            "Terlan.Core.CheckedLowering.wasmRejectsProcessForm"
+          ]
+        }
+      ],
+      "runtime_lane": "vm-core",
+      "slice_id": "Slice 11",
+      "std_lane": "unit",
+      "trace_id": "sha256:bc8a2fec7b61327af269b2bf4c07769b558966b22d6334692c51c57aa0e1ccad"
+    },
+    {
+      "compiler_inputs": [
+        {
+          "path": "docs/compiler/CORE_IR_LEAN_CONFORMANCE.md",
+          "sha256": "sha256:1e9e52dcd1b10f2a63583853df5701009cc084233363e840c493abc45eab02a0"
+        },
+        {
+          "path": "docs/compiler/TERLAN_TARGET_INFERENCE.md",
+          "sha256": "sha256:121e8f01df61d9a60694ef71d89244b8186fc6620290db3a4c5f82466ccf077f"
+        },
+        {
+          "path": "docs/compiler/type_spec/terlan_core_typing_spec.toml",
+          "sha256": "sha256:ad3030afeacca68027a719071a87526c0e8902067d639475cdd350539a6fefd3"
+        }
+      ],
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "proof_ids": [
+        "coreir-checked-lowering"
+      ],
+      "proofs": [
+        {
+          "family": "coreir-checked-lowering",
+          "proof_digest": "sha256:46422c5fd264e49c147c5f08a436b3a92d647550be498d0db140d1966c082974",
+          "proof_path": "proofs/lean/Terlan/Core/CheckedLowering.lean",
+          "theorem_ids": [
+            "Terlan.Core.CheckedLowering.loweringIsDeterministic",
+            "Terlan.Core.CheckedLowering.loweringPreservesTyping",
+            "Terlan.Core.CheckedLowering.loweringPreservesEvaluation",
+            "Terlan.Core.CheckedLowering.vmAcceptsTypedProcessForm",
+            "Terlan.Core.CheckedLowering.jsRejectsProcessForm",
+            "Terlan.Core.CheckedLowering.wasmRejectsProcessForm"
+          ]
+        }
+      ],
+      "runtime_lane": "vm-core",
+      "slice_id": "Slice 12",
+      "std_lane": "unit",
+      "trace_id": "sha256:cdbb247438327e4098f23bbaa16d8cc578aee5ad3faa6aa57d75e113641b7928"
+    },
+    {
+      "compiler_inputs": [
+        {
+          "path": "crates/terlan/src/compiler/syntax/syntax_output.rs",
+          "sha256": "sha256:5651f5c025b4d0e0830d5d144f1c8f354ff425dcd339d9b66bddc58daeca88b1"
+        },
+        {
+          "path": "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop",
+          "sha256": "sha256:d58f8b067419b4378a435f7c8e0a4f98a6fade708097388008caf94e5e47f81f"
+        },
+        {
+          "path": "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf",
+          "sha256": "sha256:f15e5e3b8d546024312cb9e097495f268c179e272e341e26c04fe2811fd53405"
+        }
+      ],
+      "coverage_status": "proof_current",
+      "feature_class": "parser",
+      "lane_id": "parser",
+      "owner": "compiler",
+      "proof_ids": [
+        "parser-shape"
+      ],
+      "proofs": [
+        {
+          "family": "parser-shape",
+          "proof_digest": "sha256:b1af86ef1a14129efe0e7497472d71ee23fb68fb356539de82cfb2c4335e2789",
+          "proof_path": "proofs/lean/parser_shape/ParserShape.lean",
+          "theorem_ids": [
+            "Terlan.ParserShape.canonicalGrammarIdentityIsStable",
+            "Terlan.ParserShape.canonicalModuleClassificationAccepted",
+            "Terlan.ParserShape.plainAssignmentClassificationRejected",
+            "Terlan.ParserShape.multiplicationBindsAboveAddition",
+            "Terlan.ParserShape.generatedFoldIsLeftAssociative",
+            "Terlan.ParserShape.tupleOutputWellFormed",
+            "Terlan.ParserShape.recordOutputWellFormed",
+            "Terlan.ParserShape.listOutputWellFormed",
+            "Terlan.ParserShape.mapOutputWellFormed",
+            "Terlan.ParserShape.bitstringOutputWellFormed",
+            "Terlan.ParserShape.implContractOutputWellFormed",
+            "Terlan.ParserShape.capabilityDenyOutputWellFormed",
+            "Terlan.ParserShape.loweringPreservesShapeKind",
+            "Terlan.ParserShape.loweringPreservesShapeArity",
+            "Terlan.ParserShape.loweringPreservesShapeFields",
+            "Terlan.ParserShape.checkedCapabilityDenyListHasNoDuplicates",
+            "Terlan.ParserShape.acceptedBoundaryCanEnterCheckedLowering"
+          ]
+        }
+      ],
+      "runtime_lane": "vm-core",
+      "slice_id": "Slice 13",
+      "std_lane": "unit",
+      "trace_id": "sha256:599f6122b20d0fb164ae4f7d4f25133013af9874fad95ac4303bc8580ecca9a7"
+    },
+    {
+      "compiler_inputs": [
+        {
+          "path": "crates/terlan/src/runtime/native_boundary/dispatch.rs",
+          "sha256": "sha256:b111c69e230e5b21a9385fd5fea5918cb14c6b1c269d956bbba2280a4764b6d5"
+        },
+        {
+          "path": "crates/terlan/src/runtime/native_boundary/metadata.rs",
+          "sha256": "sha256:845d662acd46e2783d4c6e10b621626aff0453a8c973b20a83f3532afb040242"
+        },
+        {
+          "path": "crates/terlan/src/runtime/native_boundary/runtime.rs",
+          "sha256": "sha256:ac5fc268b61a60dc09990e5951ac45b04c7d2e9600086a1cffa22850a9114c17"
+        },
+        {
+          "path": "crates/terlan/src/runtime/native_boundary/worker.rs",
+          "sha256": "sha256:861eb2c6f71d7eb8eb36cfb3132469e1aad2d4b7600e7cd8f7f903f07e65245d"
+        },
+        {
+          "path": "proofs/lean/native_boundary/promotion-policy.json",
+          "sha256": "sha256:475f6bbafe0c5749b919cfb196b6d0ba05026429cf58374adb67c5aacdfb45f8"
+        },
+        {
+          "path": "scripts/self_validation/LeanProofNativeBoundaryTest.terl",
+          "sha256": "sha256:fd09044914da2881d06ab431a10a321967a3c2abd12022a0cdfa6c8e0cbfbbd7"
+        },
+        {
+          "path": "std/NATIVE_BOUNDARY_SECURITY.tsv",
+          "sha256": "sha256:15d2e7bd0d1382d7a472a48f368c70e0f0a5d17364b8bc94b4ffcd2fc8b8f288"
+        },
+        {
+          "path": "std/summaries/std.data.Json.native_boundary.json",
+          "sha256": "sha256:c9109fd15f986b80735e5308a14720013f867143a111479cca66a7e363b82a1f"
+        },
+        {
+          "path": "std/summaries/std.db.Postgres.native_boundary.json",
+          "sha256": "sha256:0684e2277c917c92903dfd4c5f47459a369d627f5ef5ca99fe04b39568aa9ac2"
+        },
+        {
+          "path": "std/summaries/std.encoding.Base64.native_boundary.json",
+          "sha256": "sha256:cc71e8329d46a3bd23329f29cab20bc33a6f6f2eef1406d7bee710caf2db1941"
+        },
+        {
+          "path": "std/summaries/std.encoding.Md5.native_boundary.json",
+          "sha256": "sha256:7dda0c121fab95fffe3ca9e58a37c91e97046f58bc0d907861edef968552baab"
+        },
+        {
+          "path": "std/summaries/std.http.Cookies.native_boundary.json",
+          "sha256": "sha256:28ea65dc610edbf1993ee077deb1e0fcac9285070c61b0b00934341b5f0de8f1"
+        },
+        {
+          "path": "std/summaries/std.http.Request.native_boundary.json",
+          "sha256": "sha256:323c26d9787f5c7770c0d45d5d1993f9436b0c8f0bf3a1b1e32e4480efd6942a"
+        },
+        {
+          "path": "std/summaries/std.http.Response.native_boundary.json",
+          "sha256": "sha256:8b4a41b012494d8b2442f8da20a64c2c0156b4bccdc6a7d00bc8c73f24f8a767"
+        },
+        {
+          "path": "std/summaries/std.http.Session.native_boundary.json",
+          "sha256": "sha256:6ba2788a80a0d1adebde72967a7e946de9cf1b607205e1511ce202c60af3d3c4"
+        },
+        {
+          "path": "std/summaries/std.http.Sse.native_boundary.json",
+          "sha256": "sha256:0699971ab06b59f1d1727fa87cd6f3822976e7842b610873373b3aa255745ab5"
+        },
+        {
+          "path": "std/summaries/std.http.Tls.native_boundary.json",
+          "sha256": "sha256:870c62d576053f7bf51276019620b32521cf28f3baecdabe59546633065a6ab6"
+        },
+        {
+          "path": "std/summaries/std.http.WebSocket.native_boundary.json",
+          "sha256": "sha256:f43e0d5b4dabf84f57e09f4218f2f294b3b0cf932a5cf8aaac4b696578a56c96"
+        },
+        {
+          "path": "std/summaries/std.io.Path.native_boundary.json",
+          "sha256": "sha256:e41eb60713e6a7992c480c67450b134e46343df86a87a26b733074d6362194be"
+        },
+        {
+          "path": "std/summaries/std.native.collections.Vector.native_boundary.json",
+          "sha256": "sha256:7c33a2873d888ca1e4882bdea084faf2bf74dd9f5cfb447d96c5e733efcd8dd5"
+        },
+        {
+          "path": "std/summaries/std.net.Uri.native_boundary.json",
+          "sha256": "sha256:6d941c8ea6b8560c8be1cff7c88060480406123ecda02dc8d14ee80d0b34f28c"
+        },
+        {
+          "path": "std/summaries/std.random.Random.native_boundary.json",
+          "sha256": "sha256:9451fb64ab3406594238513d8386a91c6af850883c590fc90c77c961803b0043"
+        },
+        {
+          "path": "std/summaries/std.regex.Regex.native_boundary.json",
+          "sha256": "sha256:950a432165be5a17eb1445d0929b0d2377c20d6b29e189bf90466d7e01850eda"
+        },
+        {
+          "path": "std/summaries/terlan_libpq.Driver.native_boundary.json",
+          "sha256": "sha256:dfac5564c98683a9e3e4d1d7f8c4930d1760530358b00391217e92e59e7edcc7"
+        }
+      ],
+      "coverage_status": "proof_current",
+      "feature_class": "native_boundary",
+      "lane_id": "native_boundary",
+      "owner": "runtime",
+      "proof_ids": [
+        "native-boundary"
+      ],
+      "proofs": [
+        {
+          "family": "native-boundary",
+          "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+          "proof_path": "proofs/lean/native_boundary/NativeBoundary.lean",
+          "theorem_ids": [
+            "Terlan.NativeBoundary.distinctGenerationDoesNotAlias",
+            "Terlan.NativeBoundary.foreignOwnerRejected",
+            "Terlan.NativeBoundary.owningProcessAccepted",
+            "Terlan.NativeBoundary.liveHandleIsConsumedExactlyOnce",
+            "Terlan.NativeBoundary.consumedHandleCannotBeConsumedAgain",
+            "Terlan.NativeBoundary.admittedCallPreservesArity",
+            "Terlan.NativeBoundary.admittedCallPreservesArgumentTypes",
+            "Terlan.NativeBoundary.admittedCallPreservesReturnType",
+            "Terlan.NativeBoundary.sideEffectRequiresAsyncCapabilityRpc",
+            "Terlan.NativeBoundary.compliantExportNeverBlocksShardOwner",
+            "Terlan.NativeBoundary.fileEffectIsDenyListed",
+            "Terlan.NativeBoundary.socketEffectIsDenyListed",
+            "Terlan.NativeBoundary.timerEffectIsDenyListed",
+            "Terlan.NativeBoundary.processSpawnEffectIsDenyListed",
+            "Terlan.NativeBoundary.processRegistryEffectIsDenyListed",
+            "Terlan.NativeBoundary.acmeTlsEffectIsDenyListed",
+            "Terlan.NativeBoundary.deniedSideEffectCannotBeAdmitted",
+            "Terlan.NativeBoundary.beamNifAssumptionRejected",
+            "Terlan.NativeBoundary.untypedHandleRejected",
+            "Terlan.NativeBoundary.boundManifestRowHasTypedArity",
+            "Terlan.NativeBoundary.boundManifestRowHasContentAddresses",
+            "Terlan.NativeBoundary.typedVmDispatchAdmitted"
+          ]
+        }
+      ],
+      "runtime_lane": "vm",
+      "slice_id": "Slice 14",
+      "std_lane": "integration",
+      "trace_id": "sha256:49b84bbd807c09264f8a285fbfadf431736f012e4a1765c28eb897b88370887d"
+    },
+    {
+      "compiler_inputs": [
+        {
+          "path": "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf",
+          "sha256": "sha256:f15e5e3b8d546024312cb9e097495f268c179e272e341e26c04fe2811fd53405"
+        }
+      ],
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "proof_ids": [
+        "templates-routes"
+      ],
+      "proofs": [
+        {
+          "family": "templates-routes",
+          "proof_digest": "sha256:e90cd3d15c814c74b2b4529ef350dcc34cf1ddc6f3379e15c50f14570326f8cf",
+          "proof_path": "proofs/lean/templates_routes/TemplateRoutes.lean",
+          "theorem_ids": [
+            "Terlan.TemplateRoutes.loweringPreservesRouteArity",
+            "Terlan.TemplateRoutes.loweringPreservesRouteShape",
+            "Terlan.TemplateRoutes.loweringPreservesReturnType",
+            "Terlan.TemplateRoutes.typedNestedInterpolationAccepted",
+            "Terlan.TemplateRoutes.emptyRecordSlotRejected",
+            "Terlan.TemplateRoutes.mismatchedRouteHandlerRejected"
+          ]
+        }
+      ],
+      "runtime_lane": "vm-core",
+      "slice_id": "Slice 15",
+      "std_lane": "unit",
+      "trace_id": "sha256:1f8b0c89beb55bc9128b6d0328db60ca4b46a7a2f496173bcf460c70603cccce"
+    },
+    {
+      "compiler_inputs": [
+        {
+          "path": "docs/runtime/TERLAN_VM_RUNTIME_CONCEPTS.md",
+          "sha256": "sha256:0c0a56bdc73b1d40b315d03f47153e0e6e739d4430c9575c092cc5e82a17d5d3"
+        }
+      ],
+      "coverage_status": "proof_current",
+      "feature_class": "vm_runtime",
+      "lane_id": "vm_runtime",
+      "owner": "vm",
+      "proof_ids": [
+        "concurrency"
+      ],
+      "proofs": [
+        {
+          "family": "concurrency",
+          "proof_digest": "sha256:5e0c61d3a415d71089334d3e9f133b99958a151bc83081b7191613d15d846f33",
+          "proof_path": "proofs/lean/concurrency/Concurrency.lean",
+          "theorem_ids": [
+            "Terlan.Concurrency.sendAppendsExactlyOne",
+            "Terlan.Concurrency.sameSenderOrderIsPreserved",
+            "Terlan.Concurrency.runnableQueueMakesBoundedProgress",
+            "Terlan.Concurrency.selectiveReceiveEmptyTerminates",
+            "Terlan.Concurrency.zeroTimeoutTerminates",
+            "Terlan.Concurrency.unsupportedImplicitOtpSchedulingRejected"
+          ]
+        }
+      ],
+      "runtime_lane": "vm",
+      "slice_id": "Slice 16",
+      "std_lane": "integration",
+      "trace_id": "sha256:6d8c93b0cb7166ad9ee9762b23522c04e8a65377019248bea72a588e5014a554"
+    },
+    {
+      "compiler_inputs": [
+        {
+          "path": "docs/compiler/type_spec/language_feature_coverage_matrix.json",
+          "sha256": "sha256:57479360847ffcfbf3c792eef9eb4098b378c03636b92e6083a50c8a0054dd2d"
+        }
+      ],
+      "coverage_status": "proof_current",
+      "feature_class": "std_packages",
+      "lane_id": "std_packages",
+      "owner": "compiler",
+      "proof_ids": [
+        "collections"
+      ],
+      "proofs": [
+        {
+          "family": "collections",
+          "proof_digest": "sha256:cd429b6b7d63643333cad8beb99049905e7e994848b42c2ec85a1180f4595065",
+          "proof_path": "proofs/lean/collections/Collections.lean",
+          "theorem_ids": [
+            "Terlan.Collections.listUpdatePreservesLength",
+            "Terlan.Collections.mapPutReturnsInsertedValue",
+            "Terlan.Collections.deleteFromEmptyIsEmpty",
+            "Terlan.Collections.duplicateSetInsertIsStable",
+            "Terlan.Collections.collisionUpdateSelectsNewest",
+            "Terlan.Collections.nondeterministicIterationRejected"
+          ]
+        }
+      ],
+      "runtime_lane": "vm",
+      "slice_id": "Slice 17",
+      "std_lane": "stdlib-release",
+      "trace_id": "sha256:e756a2626ba7de5d9d7a414450993b4fd5d8fe3ea7cd690044999d7b57e682e4"
+    },
+    {
+      "compiler_inputs": [
+        {
+          "path": "crates/terlan/src/backends/wasm/README.md",
+          "sha256": "sha256:fbbeee23e8588b95f75c897f610c3c261d07d1937948bb7c580b7e163fb71a5a"
+        }
+      ],
+      "coverage_status": "proof_current",
+      "feature_class": "wasm",
+      "lane_id": "wasm",
+      "owner": "compiler",
+      "proof_ids": [
+        "wasm-bridge"
+      ],
+      "proofs": [
+        {
+          "family": "wasm-bridge",
+          "proof_digest": "sha256:8801c7dccbcd7dbdb2c3fd61c751add78e18198194fb82dda221322d8b4aba62",
+          "proof_path": "proofs/lean/wasm_bridge/WasmBridge.lean",
+          "theorem_ids": [
+            "Terlan.WasmBridge.portableSignaturePreservesArity",
+            "Terlan.WasmBridge.dynamicSignatureRejected",
+            "Terlan.WasmBridge.resourceTransferChangesOwner",
+            "Terlan.WasmBridge.callAndAbortPathsAreDeterministic",
+            "Terlan.WasmBridge.undeclaredHostSideEffectRejected"
+          ]
+        }
+      ],
+      "runtime_lane": "vm-core",
+      "slice_id": "Slice 18",
+      "std_lane": "stdlib-release",
+      "trace_id": "sha256:b974d83f08659c0eb7563f784a3f36a29e7f82cb61cf8a324b8054bb7fd23416"
+    },
+    {
+      "compiler_inputs": [
+        {
+          "path": "std/summaries/std.db.Postgres.native_boundary.json",
+          "sha256": "sha256:0684e2277c917c92903dfd4c5f47459a369d627f5ef5ca99fe04b39568aa9ac2"
+        }
+      ],
+      "coverage_status": "proof_current",
+      "feature_class": "std_packages",
+      "lane_id": "std_packages",
+      "owner": "compiler",
+      "proof_ids": [
+        "database-sql"
+      ],
+      "proofs": [
+        {
+          "family": "database-sql",
+          "proof_digest": "sha256:0f746de88857fdacc2fc85f6a1f255b3150e0dca758bdac8fcd3aa753a4fdfdf",
+          "proof_path": "proofs/lean/database_sql/DatabaseSql.lean",
+          "theorem_ids": [
+            "Terlan.DatabaseSql.matchingPreparedStatementAccepted",
+            "Terlan.DatabaseSql.wrongParameterArityRejected",
+            "Terlan.DatabaseSql.wrongParameterTypeRejected",
+            "Terlan.DatabaseSql.beginThenCommitIsWellFormed",
+            "Terlan.DatabaseSql.commitWithoutBeginRejected",
+            "Terlan.DatabaseSql.databaseEffectRejectedInPureRegion"
+          ]
+        }
+      ],
+      "runtime_lane": "vm",
+      "slice_id": "Slice 19",
+      "std_lane": "stdlib-release",
+      "trace_id": "sha256:80118f8541ed99b6517d824613e4adc320f09ea85b2572e9b55720b5ac67de83"
+    },
+    {
+      "compiler_inputs": [
+        {
+          "path": "std/data/Json.terl",
+          "sha256": "sha256:74f2f288ffbb57ad9e5de296dcb39192139338227cdb028f960c68dcb0e2d179"
+        }
+      ],
+      "coverage_status": "proof_current",
+      "feature_class": "std_packages",
+      "lane_id": "std_packages",
+      "owner": "compiler",
+      "proof_ids": [
+        "std-packages"
+      ],
+      "proofs": [
+        {
+          "family": "std-packages",
+          "proof_digest": "sha256:1c2ea16fd3a3ce051d1e1bb355564b0df399e739ce051c0b656c824ddf8322d2",
+          "proof_path": "proofs/lean/std_packages/StdPackages.lean",
+          "theorem_ids": [
+            "Terlan.StdPackages.jsonRoundTrip",
+            "Terlan.StdPackages.invalidJsonIsTypedFailure",
+            "Terlan.StdPackages.binaryStringConversionPreservesBytes",
+            "Terlan.StdPackages.missingOptionReturnsTypedError",
+            "Terlan.StdPackages.monotonicTimerAccepted",
+            "Terlan.StdPackages.earlyTimerRejected"
+          ]
+        }
+      ],
+      "runtime_lane": "vm",
+      "slice_id": "Slice 20",
+      "std_lane": "stdlib-release",
+      "trace_id": "sha256:d4c5386d13ed38f57b84122f5724da4d27448572aa5e5b69225f1438cc9da0ba"
+    }
+  ],
+  "replay_corpus": [
+    {
+      "family": "collections",
+      "proof_digest": "sha256:cd429b6b7d63643333cad8beb99049905e7e994848b42c2ec85a1180f4595065",
+      "verdict": "pass"
+    },
+    {
+      "family": "concurrency",
+      "proof_digest": "sha256:5e0c61d3a415d71089334d3e9f133b99958a151bc83081b7191613d15d846f33",
+      "verdict": "pass"
+    },
+    {
+      "family": "coreir-checked-lowering",
+      "proof_digest": "sha256:46422c5fd264e49c147c5f08a436b3a92d647550be498d0db140d1966c082974",
+      "verdict": "pass"
+    },
+    {
+      "family": "database-sql",
+      "proof_digest": "sha256:0f746de88857fdacc2fc85f6a1f255b3150e0dca758bdac8fcd3aa753a4fdfdf",
+      "verdict": "pass"
+    },
+    {
+      "family": "native-boundary",
+      "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+      "verdict": "pass"
+    },
+    {
+      "family": "parser-shape",
+      "proof_digest": "sha256:b1af86ef1a14129efe0e7497472d71ee23fb68fb356539de82cfb2c4335e2789",
+      "verdict": "pass"
+    },
+    {
+      "family": "semantic-smoke-chain",
+      "proof_digest": "sha256:35e967e46a00e564f0e56ea95afc63b6d032496f435cf2bb87a095e9e6ea2014",
+      "verdict": "pass"
+    },
+    {
+      "family": "std-packages",
+      "proof_digest": "sha256:1c2ea16fd3a3ce051d1e1bb355564b0df399e739ce051c0b656c824ddf8322d2",
+      "verdict": "pass"
+    },
+    {
+      "family": "templates-routes",
+      "proof_digest": "sha256:e90cd3d15c814c74b2b4529ef350dcc34cf1ddc6f3379e15c50f14570326f8cf",
+      "verdict": "pass"
+    },
+    {
+      "family": "wasm-bridge",
+      "proof_digest": "sha256:8801c7dccbcd7dbdb2c3fd61c751add78e18198194fb82dda221322d8b4aba62",
+      "verdict": "pass"
+    }
+  ],
+  "runtime_evidence": {
+    "lane_statuses": [
+      {
+        "checksum": "sha256:2912155b66e6daab43973be84b3e32634250bf4c05ddd4cdd5f50e8b9bcea41a",
+        "coverage_status": "executable_current",
+        "lane": "coreir",
+        "status": "pass"
+      },
+      {
+        "checksum": "sha256:55d6565f0c7600961f7892d869fbb96dcee85fb19bf3145fc2d76330816e86ed",
+        "coverage_status": "accepted_gap",
+        "lane": "distribution",
+        "status": "pass"
+      },
+      {
+        "checksum": "sha256:ef5eb0198db953852c56032e3225e919278290872710fc865bef4c7baad69354",
+        "coverage_status": "executable_current",
+        "lane": "native_boundary",
+        "status": "pass"
+      },
+      {
+        "checksum": "sha256:9084cd33e37456a7f035b708885c16703dfb2b011af6b878f0a508cade83bcbf",
+        "coverage_status": "executable_current",
+        "lane": "parser",
+        "status": "pass"
+      },
+      {
+        "checksum": "sha256:7920fe2a37a8f8b210ec8b2c33168c377a5a80d6717aff9c4646efb1c2b02981",
+        "coverage_status": "accepted_gap",
+        "lane": "std_packages",
+        "status": "pass"
+      },
+      {
+        "checksum": "sha256:cd25cd95774b5ba5aa1f7e34e63869972daa5bd68afaddf18a664c7054e04ffe",
+        "coverage_status": "executable_current",
+        "lane": "target_profile",
+        "status": "pass"
+      },
+      {
+        "checksum": "sha256:8be25d16a2249af6a85272c5229b9009fe61d1e43a527e241ef352efad3a33a5",
+        "coverage_status": "executable_current",
+        "lane": "vm_runtime",
+        "status": "pass"
+      },
+      {
+        "checksum": "sha256:0a36bf59ab4812259c3e186bc8681248a133d94a42da2be3790c044fbdc3f64f",
+        "coverage_status": "executable_current",
+        "lane": "wasm",
+        "status": "pass"
+      }
+    ],
+    "semantic_families": [
+      {
+        "family": "collections",
+        "proof_digest": "sha256:cd429b6b7d63643333cad8beb99049905e7e994848b42c2ec85a1180f4595065",
+        "runtime_oracle": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "terlan",
+          "--lib",
+          "compiler::native_ir::map_suite_native_parity_test::map_portable_contracts_execute_through_linked_native_object",
+          "--",
+          "--exact"
+        ]
+      },
+      {
+        "family": "concurrency",
+        "proof_digest": "sha256:5e0c61d3a415d71089334d3e9f133b99958a151bc83081b7191613d15d846f33",
+        "runtime_oracle": [
+          "target/debug/terlc",
+          "test",
+          "tests/language/VmServiceActorTest.terl"
+        ]
+      },
+      {
+        "family": "database-sql",
+        "proof_digest": "sha256:0f746de88857fdacc2fc85f6a1f255b3150e0dca758bdac8fcd3aa753a4fdfdf",
+        "runtime_oracle": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "terlan",
+          "--lib",
+          "runtime::native::postgres::postgres_test::config_builders_set_pool_limits_and_timeouts",
+          "--",
+          "--exact"
+        ]
+      },
+      {
+        "family": "std-packages",
+        "proof_digest": "sha256:1c2ea16fd3a3ce051d1e1bb355564b0df399e739ce051c0b656c824ddf8322d2",
+        "runtime_oracle": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "terlan",
+          "--lib",
+          "runtime::native::json::json_test::parse_and_stringify_round_trip_json_text",
+          "--",
+          "--exact"
+        ]
+      },
+      {
+        "family": "templates-routes",
+        "proof_digest": "sha256:e90cd3d15c814c74b2b4529ef350dcc34cf1ddc6f3379e15c50f14570326f8cf",
+        "runtime_oracle": [
+          "target/debug/terlc",
+          "test",
+          "tests/template/TypedTemplateRuntimeTest.terl"
+        ]
+      },
+      {
+        "family": "wasm-bridge",
+        "proof_digest": "sha256:8801c7dccbcd7dbdb2c3fd61c751add78e18198194fb82dda221322d8b4aba62",
+        "runtime_oracle": [
+          "target/debug/terlc",
+          "test",
+          "std/wasm/AbiTest.terl"
+        ]
+      }
+    ]
+  },
+  "schema": "terlan.proof-release-evidence.v1"
+}

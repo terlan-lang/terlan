@@ -24,6 +24,7 @@ use string_capture::check_string_capture_pattern;
 /// - `struct_name`: expected struct type name for the record pattern.
 /// - `field_key`: pattern field key, optionally written as `#field`.
 /// - `ctx`: optional expression inference context with visibility/import data.
+///
 /// Output:
 /// - `Ok(())` when the field key is visibility-compatible, otherwise a
 ///   diagnostic message.

@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::HashSet;
 
 pub(crate) const VM_LIVE_TEMPLATE_PROTOCOL_SCHEMA: &str = "terlan-vm-live-template-protocol-v1";
@@ -7,6 +5,7 @@ pub(crate) const VM_LIVE_TEMPLATE_PROTOCOL_VERSION: u32 = 1;
 
 #[cfg(test)]
 #[path = "live_template_protocol_test.rs"]
+#[cfg(test)]
 mod live_template_protocol_test;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -90,18 +89,21 @@ pub(crate) struct VmLiveTemplateProtocolManifest {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmLiveTemplateAngularTsRuntimeModule {
     pub(crate) path: &'static str,
     pub(crate) source: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmLiveTemplateWasmProtocolBindingModule {
     pub(crate) path: &'static str,
     pub(crate) manifest: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmLiveTemplateJsProtocolBindingValidation {
     pub(crate) target: &'static str,
     pub(crate) checked_events: usize,
@@ -109,6 +111,7 @@ pub(crate) struct VmLiveTemplateJsProtocolBindingValidation {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmLiveTemplateWasmProtocolBindingValidation {
     pub(crate) target: &'static str,
     pub(crate) checked_events: usize,
@@ -117,6 +120,7 @@ pub(crate) struct VmLiveTemplateWasmProtocolBindingValidation {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmLiveTemplateRollingDeployCompatibilityPlan {
     pub(crate) previous_protocol_version: u32,
     pub(crate) next_protocol_version: u32,
@@ -129,6 +133,7 @@ pub(crate) struct VmLiveTemplateRollingDeployCompatibilityPlan {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmLiveTemplateRollingDeployCompatibilityValidation {
     pub(crate) negotiated_protocol_version: u32,
     pub(crate) schema_compatible: bool,
@@ -157,6 +162,7 @@ pub(crate) fn generate_vm_live_template_protocol_manifest() -> VmLiveTemplatePro
     }
 }
 
+#[cfg(test)]
 pub(crate) fn generate_vm_live_template_angular_ts_runtime_module(
     manifest: &VmLiveTemplateProtocolManifest,
 ) -> Result<VmLiveTemplateAngularTsRuntimeModule, String> {
@@ -242,6 +248,7 @@ export function connectTerlanLiveTemplateSse($sse, url, dispatch) {{
     })
 }
 
+#[cfg(test)]
 pub(crate) fn generate_vm_live_template_wasm_protocol_binding_module(
     manifest: &VmLiveTemplateProtocolManifest,
 ) -> Result<VmLiveTemplateWasmProtocolBindingModule, String> {
@@ -313,6 +320,7 @@ pub(crate) fn generate_vm_live_template_wasm_protocol_binding_module(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn validate_vm_live_template_js_protocol_binding(
     manifest: &VmLiveTemplateProtocolManifest,
     module: &VmLiveTemplateAngularTsRuntimeModule,
@@ -377,6 +385,7 @@ pub(crate) fn validate_vm_live_template_js_protocol_binding(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn validate_vm_live_template_wasm_protocol_binding(
     manifest: &VmLiveTemplateProtocolManifest,
     module: &VmLiveTemplateWasmProtocolBindingModule,
@@ -456,6 +465,7 @@ pub(crate) fn validate_vm_live_template_wasm_protocol_binding(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn validate_vm_live_template_rolling_deploy_compatibility(
     plan: &VmLiveTemplateRollingDeployCompatibilityPlan,
 ) -> Result<VmLiveTemplateRollingDeployCompatibilityValidation, String> {
@@ -619,6 +629,7 @@ fn live_template_protocol_schema_hash(
     format!("{hash:016x}")
 }
 
+#[cfg(test)]
 fn js_string(value: &str) -> String {
     let mut escaped = String::from("\"");
     for character in value.chars() {

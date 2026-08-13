@@ -67,9 +67,17 @@ pub encode_url_round_trips_with_url_safe_decoder(): Bool ->
 
 @test
 pub decode_rows_report_invalid_base64_text(): Bool ->
-    each([row("plain text", "not base64!", true), row("bad padding", "abcd=", true), row("bad character", "!!!!", true)], (current) -> case current {
-        {_name, input, _expected} -> assert(is_err(Base64.decode(input)))
-    }).
+    each(
+        [
+            row("plain text", "not base64!", true),
+            row("bad padding", "abcd=", true),
+            row("bad character", "!!!!", true),
+        ],
+        (current) ->
+            case current {
+                {_name, input, _expected} -> assert(is_err(Base64.decode(input)))
+            },
+    ).
 
 @test
 pub byte_operations_preserve_non_utf8_octets(): Bool ->
@@ -99,18 +107,33 @@ pub byte_modes_use_distinct_rfc_4648_alphabets(): Bool ->
 
 @test
 pub byte_decoders_reject_cross_alphabet_input(): Bool ->
-    assert(is_err(Base64.decode_bytes("F-o_o--B_a-r")) and is_err(Base64.decode_url_bytes("F+o/o++B/a+r"))).
+    assert(
+        is_err(Base64.decode_bytes("F-o_o--B_a-r"))
+            and is_err(Base64.decode_url_bytes("F+o/o++B/a+r")),
+    ).
 
 @test
 pub strict_decoder_rejects_missing_padding_trailing_data_and_whitespace(): Bool ->
-    each([row("two pads missing", "QWxhZGRpbjpvcGVuIHNlc2FtZQ", true), row("one pad missing", "SGVsbG8gV29ybGQ", true), row("trailing payload", "dGVzda==a", true), row("embedded whitespace", "MDEy MzQ1", true)], (current) -> case current {
-        {_name, input, _expected} -> assert(is_err(Base64.decode_bytes(input)))
-    }).
+    each(
+        [
+            row("two pads missing", "QWxhZGRpbjpvcGVuIHNlc2FtZQ", true),
+            row("one pad missing", "SGVsbG8gV29ybGQ", true),
+            row("trailing payload", "dGVzda==a", true),
+            row("embedded whitespace", "MDEy MzQ1", true),
+        ],
+        (current) ->
+            case current {
+                {_name, input, _expected} -> assert(is_err(Base64.decode_bytes(input)))
+            },
+    ).
 
 @test
 pub standard_text_vectors_preserve_padding_boundaries(): Bool ->
     assert_equal("QWxhZGRpbjpvcGVuIHNlc2FtZQ==", Base64.encode("Aladdin:open sesame"));
     assert_equal("SGVsbG8gV29ybGQ=", Base64.encode("Hello World"));
     assert_equal("QWxhZGRpbjpvcGVuIHNlc2Ft", Base64.encode("Aladdin:open sesam"));
-    assert_equal("MDEyMzQ1Njc4OSFAIzBeJiooKTs6PD4sLiBbXXt9", Base64.encode("0123456789!@#0^&*();:<>,. []{}"));
+    assert_equal(
+    "MDEyMzQ1Njc4OSFAIzBeJiooKTs6PD4sLiBbXXt9",
+    Base64.encode("0123456789!@#0^&*();:<>,. []{}"),
+);
     assert_equal("PT09", Base64.encode("===")).

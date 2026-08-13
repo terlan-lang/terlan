@@ -23,7 +23,7 @@
       "adversarial_tests": [],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct Module",
-        "crates/terlan/src/runtime/vm.rs::pub(crate) fn load_module"
+        "crates/terlan/src/compiler/native_ir/application.rs::pub(crate) fn lower_application"
       ]
     },
     {
@@ -42,7 +42,7 @@
       "adversarial_tests": [],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct ImportDecl",
-        "crates/terlan/src/runtime/vm.rs::evaluate_imported_std_call"
+        "crates/terlan/src/compiler/native_ir/application/remote_calls.rs::pub(super) fn normalize_remote_calls"
       ]
     },
     {
@@ -99,7 +99,7 @@
       "adversarial_tests": [],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct FunctionDecl",
-        "crates/terlan/src/runtime/vm.rs::fn apply_core_function"
+        "crates/terlan/src/compiler/typeck/core_interface.rs::pub(crate) fn lower_core_functions"
       ]
     },
     {
@@ -118,7 +118,7 @@
       "adversarial_tests": [],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct FunctionDecl",
-        "crates/terlan/src/runtime/vm.rs::fn evaluate_call"
+        "crates/terlan/src/compiler/native_ir/function_lowering.rs::pub(crate) struct NativeFunction"
       ]
     },
     {
@@ -155,7 +155,7 @@
       "positive_tests": ["module_import_public_private_let_sequence_execute"],
       "adversarial_tests": [],
       "source_fragments": [
-        "crates/terlan/src/runtime/vm.rs::CoreExpr::Let { bindings, body }",
+        "crates/terlan/src/compiler/native_ir/expression.rs::CoreExpr::Let { bindings, body }",
         "crates/terlan/src/compiler/syntax/parse_tree.rs::Let"
       ]
     },
@@ -174,7 +174,7 @@
       "positive_tests": ["module_import_public_private_let_sequence_execute"],
       "adversarial_tests": [],
       "source_fragments": [
-        "crates/terlan/src/runtime/vm.rs::evaluate_exprs",
+        "crates/terlan/src/compiler/typeck/core_expr_lowering.rs::Models sequence items before the final expression as discard bindings",
         "crates/terlan/src/compiler/typeck/core_expr_lowering.rs::explicit result expression"
       ]
     },
@@ -193,8 +193,8 @@
       "positive_tests": ["lambda_and_closure_execute", "lambda_variable_pattern_binds_argument"],
       "adversarial_tests": [],
       "source_fragments": [
-        "crates/terlan/src/runtime/vm.rs::CoreExpr::Lam { params, body }",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::fn evaluate_function_call"
+        "crates/terlan/src/compiler/typeck/core_ir.rs::CoreExpr::Lam { params, body }",
+        "crates/terlan/src/compiler/native_ir/closure_conversion.rs::pub(super) fn lower_escaping_lambda"
       ]
     },
     {
@@ -213,7 +213,7 @@
       "adversarial_tests": [],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct IfClause",
-        "crates/terlan/src/runtime/vm.rs::CoreExpr::If { clauses }"
+        "crates/terlan/src/compiler/native_ir/expression.rs::CoreExpr::If { clauses }"
       ]
     },
     {
@@ -232,7 +232,7 @@
       "adversarial_tests": [],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct CaseClause",
-        "crates/terlan/src/runtime/vm.rs::CoreExpr::Case { scrutinee, clauses }"
+        "crates/terlan/src/compiler/native_ir/case_lowering.rs::pub(super) fn lower_scalar_cases"
       ]
     },
     {
@@ -250,8 +250,8 @@
       "positive_tests": ["conditional_and_case_execute"],
       "adversarial_tests": [],
       "source_fragments": [
-        "crates/terlan/src/runtime/vm.rs::CoreExpr::ConstructorCall",
-        "crates/terlan/src/runtime/vm.rs::fn evaluate_constructor_call"
+        "crates/terlan/src/compiler/typeck/core_ir.rs::ConstructorCall {",
+        "crates/terlan/src/compiler/native_ir/constructors.rs::pub(super) fn lower_constructor_call"
       ]
     },
     {
@@ -270,7 +270,7 @@
       "adversarial_tests": [],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::pub enum Pattern",
-        "crates/terlan/src/runtime/vm/patterns.rs::bind_repl_pattern"
+        "crates/terlan/src/compiler/native_ir/case_lowering.rs::pub(super) fn lower_scalar_cases"
       ]
     },
     {
@@ -285,10 +285,10 @@
       "js": "supported",
       "lsp": "supported",
       "diagnostic": null,
-      "positive_tests": ["collection_tuple_list_map_index_execute", "list_equality_compares_structure"],
+      "positive_tests": ["list_and_index_execute", "list_equality_compares_structure"],
       "adversarial_tests": [],
       "source_fragments": [
-        "crates/terlan/src/runtime/vm.rs::CoreExpr::List(items)",
+        "crates/terlan/src/compiler/native_ir/collection_values.rs::CoreExpr::List(items)",
         "crates/terlan/src/compiler/syntax/parse_tree.rs::List"
       ]
     },
@@ -304,10 +304,10 @@
       "js": "supported",
       "lsp": "supported",
       "diagnostic": null,
-      "positive_tests": ["collection_tuple_list_map_index_execute", "tuple_equality_compares_structure"],
+      "positive_tests": ["tuple_equality_compares_structure"],
       "adversarial_tests": [],
       "source_fragments": [
-        "crates/terlan/src/runtime/vm.rs::CoreExpr::Tuple(items)",
+        "crates/terlan/src/compiler/native_ir/collection_values.rs::CoreExpr::Tuple(items)",
         "crates/terlan/src/compiler/syntax/parse_tree.rs::Tuple"
       ]
     },
@@ -323,10 +323,10 @@
       "js": "supported",
       "lsp": "supported",
       "diagnostic": null,
-      "positive_tests": ["collection_tuple_list_map_index_execute", "map_equality_compares_structure"],
+      "positive_tests": ["map_equality_compares_structure"],
       "adversarial_tests": [],
       "source_fragments": [
-        "crates/terlan/src/runtime/vm.rs::CoreExpr::Map(fields)",
+        "crates/terlan/src/compiler/native_ir/collection_values.rs::CoreExpr::Map(fields)",
         "crates/terlan/src/compiler/syntax/parse_tree.rs::Map"
       ]
     },
@@ -342,10 +342,10 @@
       "js": "partial",
       "lsp": "supported",
       "diagnostic": null,
-      "positive_tests": ["collection_tuple_list_map_index_execute"],
+      "positive_tests": ["list_and_index_execute"],
       "adversarial_tests": [],
       "source_fragments": [
-        "crates/terlan/src/runtime/vm.rs::(\"IndexGet.get_at\", [collection, ReplValue::Int(index)])",
+        "crates/terlan/src/compiler/native_ir/collection_intrinsic_specialization.rs::if function == \"IndexGet.get_at\"",
         "crates/terlan/src/compiler/typeck/core_expr_lowering.rs::IndexGet.get_at"
       ]
     },
@@ -365,7 +365,7 @@
       "adversarial_tests": [],
       "source_fragments": [
         "docs/compiler/type_spec/operator_coverage_matrix.json::terlan.operator-coverage.v1",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::fn evaluate_binary"
+        "crates/terlan/src/compiler/native_ir/expression.rs::CoreExpr::BinaryOp {"
       ]
     },
     {
@@ -383,8 +383,8 @@
       "positive_tests": ["string_receiver_and_constructor_execute"],
       "adversarial_tests": [],
       "source_fragments": [
-        "crates/terlan/src/runtime/vm/std_remote.rs::Evaluates a VM-facing dynamic receiver call",
-        "crates/terlan/src/runtime/vm.rs::ReplValue::String(value)"
+        "crates/terlan/src/compiler/native_ir/expression/string_intrinsics.rs::pub(super) fn lower_string_intrinsic",
+        "crates/terlan/src/compiler/native_ir/expression/intrinsics.rs::CorePrimitiveIntrinsic::StringContains"
       ]
     },
     {
@@ -402,7 +402,7 @@
       "positive_tests": ["string_receiver_and_constructor_execute"],
       "adversarial_tests": [],
       "source_fragments": [
-        "crates/terlan/src/runtime/vm.rs::if function == \"to_string\"",
+        "crates/terlan/src/compiler/typeck/core_intrinsic_lowering/registry.rs::(\"to_string\", 1)",
         "crates/terlan/src/tests/check_std_vm_test.rs::String(1) == \\\"1\\\""
       ]
     },
@@ -411,20 +411,18 @@
       "feature": "struct declarations and constructor encoding",
       "parse": "supported",
       "format": "supported",
-      "typecheck": "partial",
-      "core_ir": "partial",
+      "typecheck": "supported",
+      "core_ir": "supported",
       "target_profile": "supported",
-      "vm": "partial",
+      "vm": "supported",
       "js": "partial",
       "lsp": "supported",
-      "diagnostic": "unsupported_vm_feature",
-      "positive_tests": [],
-      "adversarial_tests": [
-        "crates/terlan/src/runtime/vm_test.rs::record field access `name` expects record receiver"
-      ],
+      "diagnostic": null,
+      "positive_tests": ["struct_declaration_executes"],
+      "adversarial_tests": [],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct StructDecl",
-        "crates/terlan/src/runtime/vm.rs::record field access `{field}` expects record receiver"
+        "crates/terlan/src/compiler/native_ir/constructors.rs::pub(super) fn lower_record_construct"
       ]
     },
     {
@@ -432,20 +430,18 @@
       "feature": "user receiver methods",
       "parse": "supported",
       "format": "supported",
-      "typecheck": "partial",
-      "core_ir": "partial",
+      "typecheck": "supported",
+      "core_ir": "supported",
       "target_profile": "supported",
-      "vm": "partial",
+      "vm": "supported",
       "js": "partial",
       "lsp": "supported",
-      "diagnostic": "unsupported_vm_feature",
-      "positive_tests": [],
-      "adversarial_tests": [
-        "crates/terlan/src/runtime/vm/std_remote.rs::receiver call `{function}` for"
-      ],
+      "diagnostic": null,
+      "positive_tests": ["receiver_methods_execute"],
+      "adversarial_tests": [],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct MethodDecl",
-        "crates/terlan/src/runtime/vm/std_remote.rs::receiver call `{function}` for"
+        "crates/terlan/src/compiler/native_ir/application/mutable_receivers.rs::pub(crate) fn resolve_typed_mutable_receiver_calls"
       ]
     },
     {
@@ -459,14 +455,14 @@
       "vm": "partial",
       "js": "partial",
       "lsp": "supported",
-      "diagnostic": "unsupported_vm_feature",
+      "diagnostic": "native_ir.unresolved_call",
       "positive_tests": [],
       "adversarial_tests": [
-        "crates/terlan/src/compiler/typeck/trait_test.rs::Verifies immutable receivers do not satisfy mutable trait requirements"
+        "crates/terlan/src/compiler/native_ir/application_admission_test.rs::unresolved_trait_impl_dispatch_has_stable_prelink_diagnostic"
       ],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct TraitDecl",
-        "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct TraitImplDecl"
+        "crates/terlan/src/compiler/typeck/trait_conformance.rs::pub(super) fn check_syntax_trait_impl_signatures"
       ]
     },
     {
@@ -475,20 +471,17 @@
       "parse": "supported",
       "format": "supported",
       "typecheck": "supported",
-      "core_ir": "partial",
-      "target_profile": "vm-gated",
-      "vm": "unsupported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
       "js": "supported",
       "lsp": "supported",
-      "diagnostic": "unsupported_vm_feature",
-      "positive_tests": [],
-      "adversarial_tests": [
-        "crates/terlan/src/compiler/typeck/expression_test.rs::syntax_output_infers_pipe_forward_on_formal_path",
-        "docs/compiler/type_spec/operator_coverage_matrix.json::pipe_forward"
-      ],
+      "diagnostic": null,
+      "positive_tests": ["pipe_forward_executes"],
+      "adversarial_tests": [],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::PipeForward",
-        "crates/terlan/src/compiler/typeck/expression/calls/pipe.rs::right side of |> must be a function call"
+        "crates/terlan/src/compiler/typeck/core_expr_lowering.rs::Converts `left |> target(args...)` into the same CoreIR"
       ]
     },
     {
@@ -502,15 +495,14 @@
       "vm": "unsupported",
       "js": "unsupported",
       "lsp": "supported",
-      "diagnostic": "unsupported_vm_feature",
+      "diagnostic": "native_ir.unresolved_call",
       "positive_tests": [],
       "adversarial_tests": [
-        "crates/terlan/src/compiler/typeck/core_expr_test.rs::syntax_output_lowering_to_core_index_assignment_uses_index_set_call",
-        "docs/compiler/type_spec/operator_coverage_matrix.json::index_assignment"
+        "crates/terlan/src/compiler/native_ir/application_admission_test.rs::unresolved_index_assignment_has_stable_prelink_diagnostic"
       ],
       "source_fragments": [
         "crates/terlan/src/compiler/typeck/core_expr_lowering.rs::IndexSet.set_at",
-        "crates/terlan/src/runtime/vm.rs::IndexSet.set_at expects assignable indexed receiver"
+        "crates/terlan/src/compiler/native_ir/collection_intrinsic_specialization.rs::Functionalizes one mutable collection receiver call for the persistent AOT"
       ]
     },
     {
@@ -524,17 +516,17 @@
       "vm": "diagnostic-only",
       "js": "diagnostic-only",
       "lsp": "supported",
-      "diagnostic": "parse_error,type_error,unsupported_vm_feature",
+      "diagnostic": "parse_error,type_error,native_ir.unsupported_application_function",
       "positive_tests": [],
       "adversarial_tests": [
-        "crates/terlan/src/compiler/syntax/parser_expr_test.rs::formal_deprecated_equality_operators_are_rejected",
-        "crates/terlan/src/compiler/typeck/diagnostic_test.rs::unknown constructor Some / 1",
-        "crates/terlan/src/runtime/vm.rs::unsupported_vm_feature"
+        "crates/terlan/src/compiler/syntax/parser_expr_test/precedence_and_patterns.rs::formal_deprecated_equality_operators_are_rejected",
+        "crates/terlan/src/compiler/typeck/diagnostic_test/arguments_and_constructors.rs::unknown constructor Some / 1",
+        "crates/terlan/src/compiler/native_ir/application_admission_test.rs::error[native_ir.unsupported_application_function]"
       ],
       "source_fragments": [
         "crates/terlan/src/formal_pipeline.rs::parse_error",
         "crates/terlan/src/formal_pipeline.rs::type_error",
-        "crates/terlan/src/runtime/vm.rs::const UNSUPPORTED_VM_FEATURE_CODE"
+        "crates/terlan/src/compiler/native_ir/application.rs::error[native_ir.unsupported_application_function]"
       ]
     }
   ]

@@ -9,21 +9,23 @@ import std.vm.Bytes.
 
 @test
 pub resolves_and_splits_a_tcp_header(): Bool ->
-    let payload = Bytes.from_list([0, 80, 1, 187, 0, 0, 0, 1, 0, 0, 0, 2, 80, 18, 16, 0, 18, 52, 0, 0, 170, 187]);
-    case protocol_shape_set("transport", List(tcp_header_shape()), List.new[std.binary.Binary.ProtocolShapeAlias]()) {
-        Err(_reason) -> false;
-        Ok(set) ->
-            case protocol_shape_set_resolve(set, "tcp_header") {
-                Err(_reason) -> false;
-                Ok(shape) ->
-                    case decode_fixed_header(shape, payload) {
-                        Err(_reason) -> false;
-                        Ok({header, body}) ->
-                            assert_equal(20, header.length())
-                                and assert_equal(Bytes.from_list([170, 187]), body)
-                    }
-            }
-    }.
+    let payload =
+        Bytes.from_list(
+            [0, 80, 1, 187, 0, 0, 0, 1, 0, 0, 0, 2, 80, 18, 16, 0, 18, 52, 0, 0, 170, 187],
+        );
+    let {
+        Ok(set) <-
+            protocol_shape_set(
+                "transport",
+                List(tcp_header_shape()),
+                List.new[std.binary.Binary.ProtocolShapeAlias](),
+            );
+        Ok(shape) <- protocol_shape_set_resolve(set, "tcp_header");
+        Ok({header, body}) <- decode_fixed_header(shape, payload)
+    } else {
+        _ -> false
+    };
+    assert_equal(20, header.length()) and assert_equal(Bytes.from_list([170, 187]), body).
 
 @test
 pub roundtrips_an_aliased_compact_frame(): Bool ->
@@ -31,31 +33,21 @@ pub roundtrips_an_aliased_compact_frame(): Bool ->
         List(
             decoded_int_field("version", 1),
             decoded_int_field("kind", 2),
-            decoded_int_field("length", 2)
+            decoded_int_field("length", 2),
         );
     let decoded = decoded_protocol(fields, Bytes.from_list([170, 187]));
     let aliases = List(protocol_shape_alias("current", "compact_frame"));
-    case protocol_shape_set("frames", List(compact_frame_shape()), aliases) {
-        Err(_reason) -> false;
-        Ok(set) ->
-            case protocol_shape_set_encode_exact(set, "current", decoded) {
-                Err(_reason) -> false;
-                Ok(encoded) ->
-                    case protocol_shape_set_decode(set, "current", encoded) {
-                        Err(_reason) -> false;
-                        Ok(roundtrip) ->
-                            case {
-                                decoded_protocol_int_value(roundtrip, "version"),
-                                decoded_protocol_int_value(roundtrip, "kind"),
-                                decoded_protocol_int_value(roundtrip, "length")
-                            } {
-                                {Some(1), Some(2), Some(2)} ->
-                                    assert_equal(
-                                        Bytes.from_list([170, 187]),
-                                        decoded_protocol_remaining_bytes(roundtrip)
-                                    );
-                                _ -> false
-                            }
-                    }
+    let {
+        Ok(set) <- protocol_shape_set("frames", List(compact_frame_shape()), aliases);
+        Ok(encoded) <- protocol_shape_set_encode_exact(set, "current", decoded);
+        Ok(roundtrip) <- protocol_shape_set_decode(set, "current", encoded);
+        {Some(1), Some(2), Some(2)} <-
+            {
+                decoded_protocol_int_value(roundtrip, "version"),
+                decoded_protocol_int_value(roundtrip, "kind"),
+                decoded_protocol_int_value(roundtrip, "length"),
             }
-    }.
+    } else {
+        _ -> false
+    };
+    assert_equal(Bytes.from_list([170, 187]), decoded_protocol_remaining_bytes(roundtrip)).

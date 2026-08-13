@@ -37,6 +37,21 @@ impl TestRepo {
 
     fn write_complete_fixture(&self) -> io::Result<()> {
         self.write(
+            "crates/terlan/src/commands/serve/config.rs",
+            r#"
+terlan-vm-serve-config-v1 EffectiveServeConfig resolve_effective_serve_config
+write_effective_serve_config error[serve.config.public_bind]
+max_request_bytes shutdown_grace_ms
+"#,
+        )?;
+        self.write(
+            "crates/terlan/src/commands/serve/observability.rs",
+            r#"
+terlan-vm-observability-v1 VmEventDomain VmServeEvent VmServeMetrics
+VmServeTrace parse_traceparent begin_shutdown finish_shutdown
+"#,
+        )?;
+        self.write(
             "crates/terlan/src/commands/serve/logging.rs",
             r#"
 next_request_id connection_id_for_request request_id={request_id}
@@ -91,7 +106,7 @@ error[vm_websocket_queue]: pending frame queue is full
         self.write(
             "crates/terlan/src/runtime/vm/code_server.rs",
             r#"
-source_map_id Compiled module name and checksum/source-map metadata source_name
+source_map_id VmModuleArtifact VmModuleGenerationSnapshot
 "#,
         )?;
         self.write(
@@ -118,10 +133,12 @@ impl Drop for TestRepo {
 }
 
 const COMPLETE_MAKEFILE: &str = r#"
-vm-web-observability-check: vm-web-config-secret-boundary-check
-	$(MAKE) http-observability-check
-	$(MAKE) vm-diagnostics-quality-check
-	$(RUST_TEST) --locked -p terlan --bin terlan-quality vm_web_observability_test
+vm-web-observability-check: \
+	vm-http-serve-config-check \
+	vm-runtime-observability-check \
+	vm-web-config-secret-boundary-check \
+	http-observability-check \
+	vm-diagnostics-quality-check
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-web-observability
 "#;
 
@@ -135,17 +152,17 @@ fn vm_web_observability_writes_report_for_complete_gate() {
     assert_eq!(summary.telemetry_field_count, 10);
     assert_eq!(summary.route_trace_count, 5);
     assert_eq!(summary.stream_trace_count, 5);
-    assert_eq!(summary.rejected_observability_path_count, 10);
+    assert_eq!(summary.rejected_observability_path_count, 0);
     let report = fs::read_to_string(summary.report_path).expect("read report");
     assert!(report.contains("terlan-vm-web-observability-report-v1"));
     assert!(report.contains("request_id"));
     assert!(report.contains("connection_id"));
-    assert!(report.contains("template_stream_id.rejectedUntilLiveTemplateRuntimeEmission"));
+    assert!(report.contains("config_fingerprint"));
     assert!(report.contains("SSE stream inspect exposes pending/emitted event counts"));
-    assert!(report.contains("production trace sampling controls"));
+    assert!(report.contains("validated W3C sampled flag"));
     assert!(!report.contains("placeholder"));
     assert!(!report.contains("connection id emitted on every HTTP/WebSocket/SSE exchange"));
-    assert!(report.contains("connection id emitted on every WebSocket/SSE exchange"));
+    assert!(report.contains("\"rejectedObservabilityPaths\": []"));
 }
 
 #[test]
@@ -224,7 +241,7 @@ fn vm_web_observability_rejects_missing_make_gate_term() {
     repo.write_complete_fixture().expect("write fixture");
     repo.write(
         "Makefile",
-        &COMPLETE_MAKEFILE.replace("$(MAKE) vm-diagnostics-quality-check", ""),
+        &COMPLETE_MAKEFILE.replace("\tvm-diagnostics-quality-check", ""),
     )
     .expect("rewrite makefile");
 

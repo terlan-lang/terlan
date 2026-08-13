@@ -69,7 +69,7 @@ pub extend_typechecks(receiver: Selection, node: Node, offset: JsNumber): Unit -
 
 pub get_composed_ranges_typechecks(
     receiver: Selection,
-    options: GetComposedRangesOptions
+    options: GetComposedRangesOptions,
 ): std.js.Array[StaticRange] ->
     receiver.get_composed_ranges(options).
 
@@ -80,7 +80,7 @@ pub modify_typechecks(
     receiver: Selection,
     alter: JsString,
     direction: JsString,
-    granularity: JsString
+    granularity: JsString,
 ): Unit ->
     receiver.modify(alter, direction, granularity).
 
@@ -98,7 +98,7 @@ pub set_base_and_extent_typechecks(
     anchor_node: Node,
     anchor_offset: JsNumber,
     focus_node: Node,
-    focus_offset: JsNumber
+    focus_offset: JsNumber,
 ): Unit ->
     receiver.set_base_and_extent(anchor_node, anchor_offset, focus_node, focus_offset).
 

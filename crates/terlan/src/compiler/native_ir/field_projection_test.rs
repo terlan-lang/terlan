@@ -12,6 +12,7 @@ use crate::{
     },
 };
 
+use super::native_object_test_support::with_dispatch_lookup_harness;
 use super::{emit_native_application_object, NativeExpr, NativeModule};
 
 /// Lowers the canonical managed-record projection fixture into CoreIR.
@@ -19,6 +20,8 @@ fn projection_core() -> CoreModule {
     let syntax = parse_module_as_syntax_output(
         "module managed_field_projection.\n\n\
          pub struct Pair {left: Int, right: Int}.\n\n\
+         pub struct Profile {title: String}.\n\n\
+         pub struct User {name: String, profile: Profile}.\n\n\
          pub constructor Pair {\n\
              (left: Int, right: Int): Pair -> Pair {left: left, right: right}\n\
          }.\n\n\
@@ -27,7 +30,9 @@ fn projection_core() -> CoreModule {
          pub answer(): Int -> read(Pair(20, 22)).\n\n\
          pub record_answer(): Int -> read_record(Pair(42, 0)).\n\n\
          pub constructed_answer(): Int -> read(Pair {right: 22, left: 20}).\n\n\
-         pub updated_answer(): Int -> read(Pair {left: 2, right: 0}#Pair {right: 40}).\n",
+         pub updated_answer(): Int -> read(Pair {left: 2, right: 0}#Pair {right: 40}).\n\n\
+         pub nested_title[T => {profile: {title: String}}](value: T): String -> value.profile.title.\n\n\
+         pub nested_answer(): String -> nested_title(User {name: \"Ada\", profile: Profile {title: \"Engineer\"}}).\n",
     )
     .expect("parse managed field projection source");
     let resolved = resolve_syntax_module_output(&syntax).module;
@@ -73,6 +78,42 @@ fn public_managed_fields_execute_through_bounded_operations() {
         .expect("public record reader");
     assert_eq!(operation_count(&read.body), 2);
     assert_eq!(operation_count(&read_record.body), 1);
+    let nested = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "nested_answer")
+        .expect("nested projection answer");
+    let nested_title = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| {
+            function.name.starts_with("$aot_generic_") && function.name.contains("nested_title")
+        })
+        .expect("specialized nested projection reader");
+    let NativeExpr::ManagedOperation {
+        encoded: title_operation,
+        args,
+    } = &nested_title.body
+    else {
+        panic!("nested projection must lower its outer field read");
+    };
+    let [NativeExpr::ManagedOperation {
+        encoded: profile_operation,
+        args: profile_args,
+    }] = args.as_slice()
+    else {
+        panic!("nested projection must retain its inner field read");
+    };
+    assert_eq!(
+        u32::from_le_bytes(profile_operation[24..28].try_into().unwrap()),
+        1
+    );
+    assert_eq!(
+        u32::from_le_bytes(title_operation[24..28].try_into().unwrap()),
+        0
+    );
+    assert_eq!(profile_args, &[NativeExpr::Param(0)]);
+    assert_eq!(operation_count(&nested.body), 0);
 
     let answer = modules
         .iter()
@@ -290,7 +331,7 @@ fn assert_managed_projection_result(label: &str, object: &[u8], export_id: u64, 
     let harness_path = root.join("harness.rs");
     let executable_path = root.join("harness");
     fs::write(&object_path, object).expect("write managed projection object");
-    let harness = MANAGED_PROJECTION_HARNESS
+    let harness = with_dispatch_lookup_harness(MANAGED_PROJECTION_HARNESS)
         .replace("$EXPORT_ID", &export_id.to_string())
         .replace("$EXPECTED", &expected.to_string());
     fs::write(&harness_path, harness).expect("write managed projection harness");
@@ -332,10 +373,11 @@ type Allocator = unsafe extern "C" fn(
 ) -> i32;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v2(
+    fn terlan_native_dispatch_v3(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
+        dispatch_lookup: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -388,10 +430,11 @@ fn main() {
     let mut transitions = [0_i64; 1];
     let mut transition_len = 0_u64;
     let status = unsafe {
-        terlan_native_dispatch_v2(
+        terlan_native_dispatch_v3(
             (&mut heap as *mut Heap).cast(),
             managed as Allocator as *const c_void,
             std::ptr::null(),
+            dispatch_lookup as *const c_void,
             $EXPORT_ID,
             std::ptr::null(),
             0,

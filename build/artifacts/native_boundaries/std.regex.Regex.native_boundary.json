@@ -1,0 +1,156 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.regex.Regex.compile/1",
+      "name": "compile",
+      "operation": "std.regex.regex.compile",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:845768b5973ce6bd1c1f431b33f7d821607b5b78e3ac087139ffddc30a8d74d3"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.regex.Regex.is_match/2",
+      "name": "is_match",
+      "operation": "std.regex.regex.is_match",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:cf24aaa21ada09d65e552a1de9362754ad24173d07b1ab9e145061a7339c3b4b"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.regex.Regex.matching_line_numbers/2",
+      "name": "matching_line_numbers",
+      "operation": "std.regex.regex.matching_line_numbers",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:9bb972df14f6217bff1f72a28c42d30a683ebefc045d838cc2840b8ed0095d09"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.regex.Regex.find/2",
+      "name": "find",
+      "operation": "std.regex.regex.find",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:4b5372e30edd5ac2a4d02bfa0f062857e9a2795752cb8dde922751966d27f514"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.regex.Regex.find_all/2",
+      "name": "find_all",
+      "operation": "std.regex.regex.find_all",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:d638c4864803e6b3e4d2bf734e5f664edb58847294e65aea5cb62ce18fc32fc9"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.regex.Regex.capture/3",
+      "name": "capture",
+      "operation": "std.regex.regex.capture",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:2943a623f596b39a197ed1ec3ada26d8bcb0598cd9e1932b9af6bf94c260fe15"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.regex.Regex.named_capture/3",
+      "name": "named_capture",
+      "operation": "std.regex.regex.named_capture",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:8666802fa5b653d3f826c44d549631a8fcc638b113c6a95dc941b23b07d5373d"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.regex.Regex.replace/3",
+      "name": "replace",
+      "operation": "std.regex.regex.replace",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:18ee2543a670819086d6075255bffefea7c001b1ad02bb116eec8f490ba49e6f"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.regex.Regex.split/2",
+      "name": "split",
+      "operation": "std.regex.regex.split",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:b559ba3b297167eb013e1ebd9703b02c9fecc519349536eef67728d7183c7c8f"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.regex.Regex.escape/1",
+      "name": "escape",
+      "operation": "std.regex.regex.escape",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:77fc15807c823553505d08b908dff9628eef1026b3fdf625bfe84ee453a27b21"
+    }
+  ],
+  "manifest_digest": "sha256:4bb3acb4c3d59a70699c8e822cdca59597c91e2dd0461bde833ee7a416f7c7cb",
+  "module": "std_regex_regex_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "text.regex",
+    "error_policy": "typed-result",
+    "module_prefix": "std.regex.Regex",
+    "notes": "Regex APIs use the maintained Rust regex engine and return opaque VM-owned regex values.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:950a432165be5a17eb1445d0929b0d2377c20d6b29e189bf90466d7e01850eda",
+  "source_module": "std.regex.Regex",
+  "source_path": "std/summaries/std.regex.Regex.native_boundary.json"
+}

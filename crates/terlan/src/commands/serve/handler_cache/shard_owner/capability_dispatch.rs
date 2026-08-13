@@ -23,7 +23,7 @@ use crate::runtime::vm::scheduler_topology::{VmFixedActorRoute, VmSchedulerId};
 use crate::terlan_native_boundary::metadata::NativeBoundaryExecutionProfile;
 use crate::terlan_native_boundary::term::NativeBoundaryReplyTerm;
 
-use super::owner_loop::drain_route;
+use super::owner_loop::{drain_route, ShardOwnerState};
 use super::replay_events::settle_terminal;
 use super::runnable_queue::GeneratedRunnableQueues;
 use super::timer_queue::GeneratedTimerQueue;
@@ -49,6 +49,9 @@ pub(super) struct PendingGeneratedCapability {
 /// Event returned to the scheduler owner without granting actor mutation authority.
 pub(super) type GeneratedCapabilityEvent =
     VmCapabilityWorkerEventPumpEvent<PendingGeneratedCapability>;
+
+/// Rare worker-dispatch rejection retaining the exact parked actor envelope.
+pub(super) type GeneratedCapabilityFailure = (String, Box<PendingGeneratedCapability>);
 
 /// Lazy scheduler-local capability event pump and route assignment index.
 pub(super) struct GeneratedCapabilityDispatcher {
@@ -83,10 +86,10 @@ impl GeneratedCapabilityDispatcher {
     pub(super) fn submit(
         &mut self,
         pending: PendingGeneratedCapability,
-    ) -> Result<(), (String, PendingGeneratedCapability)> {
+    ) -> Result<(), GeneratedCapabilityFailure> {
         let context = match pending.wait.worker_context() {
             Ok(context) => context,
-            Err(error) => return Err((error, pending)),
+            Err(error) => return Err((error, Box::new(pending))),
         };
         let request = pending.wait.request();
         let operation = request.operation.to_string();
@@ -95,9 +98,11 @@ impl GeneratedCapabilityDispatcher {
         let owner = pending.owner;
         let pump = match self.ensure_pump() {
             Ok(pump) => pump,
-            Err(error) => return Err((error, pending)),
+            Err(error) => return Err((error, Box::new(pending))),
         };
-        let assignment = pump.submit(owner, context, operation, arguments, pending)?;
+        let assignment = pump
+            .submit(owner, context, operation, arguments, pending)
+            .map_err(|(error, pending)| (error, Box::new(pending)))?;
         if self
             .assignments
             .insert(route.actor_id(), assignment)
@@ -124,14 +129,13 @@ impl GeneratedCapabilityDispatcher {
                         self.assignments.remove(&payload.route.actor_id());
                     }
                 }
-                VmCapabilityWorkerEventPumpEvent::Ignored(_) => {}
+                VmCapabilityWorkerEventPumpEvent::Ignored { .. } => {}
             }
         }
         Ok(event)
     }
 
     /// Publishes and drains at most one worker event on this scheduler owner.
-    #[allow(clippy::too_many_arguments)]
     pub(super) fn dispatch_next(
         &mut self,
         shard: &mut PureNativeExecutionShard,
@@ -163,7 +167,17 @@ impl GeneratedCapabilityDispatcher {
                     }
                 };
                 self.publish_completion(
-                    shard, routes, runnable, timers, control, telemetry, payload, outcome,
+                    &mut ShardOwnerState {
+                        shard,
+                        routes,
+                        runnable,
+                        timers,
+                        control,
+                        telemetry,
+                        scheduler: self.scheduler,
+                    },
+                    payload,
+                    outcome,
                 )?;
             }
             VmCapabilityWorkerEventPumpEvent::WorkerLost {
@@ -182,11 +196,21 @@ impl GeneratedCapabilityDispatcher {
                         offset: 0,
                     };
                     self.publish_completion(
-                        shard, routes, runnable, timers, control, telemetry, payload, outcome,
+                        &mut ShardOwnerState {
+                            shard,
+                            routes,
+                            runnable,
+                            timers,
+                            control,
+                            telemetry,
+                            scheduler: self.scheduler,
+                        },
+                        payload,
+                        outcome,
                     )?;
                 }
             }
-            VmCapabilityWorkerEventPumpEvent::Ignored(_) => {}
+            VmCapabilityWorkerEventPumpEvent::Ignored { .. } => {}
         }
         Ok(())
     }
@@ -195,7 +219,7 @@ impl GeneratedCapabilityDispatcher {
     pub(super) fn cancel_route(
         &mut self,
         route: VmFixedActorRoute,
-    ) -> Result<Option<PendingGeneratedCapability>, (String, PendingGeneratedCapability)> {
+    ) -> Result<Option<PendingGeneratedCapability>, GeneratedCapabilityFailure> {
         let Some(assignment) = self.assignments.remove(&route.actor_id()) else {
             return Ok(None);
         };
@@ -205,7 +229,7 @@ impl GeneratedCapabilityDispatcher {
             .expect("an indexed assignment has an initialized event pump");
         match pump.cancel(&assignment) {
             Ok(pending) => Ok(Some(pending)),
-            Err((error, pending)) => Err((error, pending)),
+            Err((error, pending)) => Err((error, Box::new(pending))),
         }
     }
 
@@ -258,20 +282,14 @@ impl GeneratedCapabilityDispatcher {
     }
 
     /// Publishes a complete result before reacquiring and resuming its actor.
-    #[allow(clippy::too_many_arguments)]
     fn publish_completion(
         &mut self,
-        shard: &mut PureNativeExecutionShard,
-        routes: &mut BTreeMap<std::num::NonZeroU64, VmProcessId>,
-        runnable: &mut GeneratedRunnableQueues,
-        timers: &mut GeneratedTimerQueue,
-        control: &VmFixedSchedulerControl<AotSchedulerPublication>,
-        telemetry: &VmFixedSchedulerTelemetry,
+        state: &mut ShardOwnerState<'_>,
         pending: PendingGeneratedCapability,
         outcome: NativeBoundaryReplyTerm,
     ) -> Result<(), String> {
         let route = pending.route;
-        let (identity, wake) = control.publish_identified(
+        let (identity, wake) = state.control.publish_identified(
             route,
             AotSchedulerPublication::CapabilityCompletion {
                 owner: pending.owner,
@@ -281,7 +299,7 @@ impl GeneratedCapabilityDispatcher {
                 reply: pending.reply,
             },
         )?;
-        telemetry.record_publication(
+        state.telemetry.record_publication(
             VmFixedSchedulerEventKind::CapabilityCompletionPublished,
             route,
             identity,
@@ -292,17 +310,7 @@ impl GeneratedCapabilityDispatcher {
                 route.actor_id()
             ));
         }
-        drain_route(
-            shard,
-            routes,
-            runnable,
-            timers,
-            self,
-            control,
-            telemetry,
-            self.scheduler,
-            route,
-        )
+        drain_route(state, self, route)
     }
 
     /// Lazily starts one sandboxed worker process for this scheduler owner.

@@ -28,3 +28,16 @@ import std.core.Unit.
 @compiler.intrinsic
 pub println(value: String): Unit ->
     Unit.
+
+/**
+ * Writes a diagnostic string followed by one line terminator to standard error.
+ *
+ * Input: one UTF-8 `String` value.
+ * Output: `Unit` after the diagnostic has been written.
+ * Transformation: lowers through the compiler-owned
+ * `runtime.console.eprintln` capability so portable command-line tools can
+ * keep diagnostics separate from machine-readable standard output.
+ */
+@compiler.intrinsic
+pub eprintln(value: String): Unit ->
+    Unit.

@@ -88,6 +88,7 @@ function testFiletypeSuffixes() {
   const ftdetect = readText("ftdetect/terlan.lua");
   const suffixes = [
     "*.terl",
+    "*.terls",
     "*.terli",
     "*.terl.html",
     "*.terl.md",

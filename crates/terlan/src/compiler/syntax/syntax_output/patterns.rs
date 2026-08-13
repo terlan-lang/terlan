@@ -97,7 +97,7 @@ pub(crate) fn pattern_output(pattern: &Pattern) -> SyntaxPatternOutput {
         Pattern::Int(value) => pattern_leaf(SyntaxPatternKind::Int, Some(value.to_string())),
         Pattern::Float(value) => pattern_leaf(SyntaxPatternKind::Float, Some(value.to_string())),
         Pattern::String(value) => pattern_leaf(SyntaxPatternKind::String, Some(value.clone())),
-        Pattern::StringPattern(segments) => pattern_node(
+        Pattern::StringSegments(segments) => pattern_node(
             SyntaxPatternKind::StringPattern,
             Some(string_pattern_text(segments)),
             string_pattern_capture_outputs(segments),
@@ -105,6 +105,12 @@ pub(crate) fn pattern_output(pattern: &Pattern) -> SyntaxPatternOutput {
         ),
         Pattern::Atom(name) => pattern_leaf(SyntaxPatternKind::Atom, Some(name.clone())),
         Pattern::AtomLiteral(name) => pattern_leaf(SyntaxPatternKind::Atom, Some(name.clone())),
+        Pattern::NullaryConstructorCall(name) => pattern_node(
+            SyntaxPatternKind::Constructor,
+            Some(name.clone()),
+            Vec::new(),
+            Vec::new(),
+        ),
         Pattern::Tuple(items) if is_constructor_pattern_tuple(items) => {
             let Pattern::Atom(name) = &items[0] else {
                 unreachable!("constructor pattern tuple starts with atom");

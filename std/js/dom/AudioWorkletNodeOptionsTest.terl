@@ -27,6 +27,6 @@ pub output_channel_count_typechecks(receiver: AudioWorkletNodeOptions): std.js.A
     receiver.output_channel_count().
 
 pub parameter_data_typechecks(
-    receiver: AudioWorkletNodeOptions
+    receiver: AudioWorkletNodeOptions,
 ): Record[std.js.String.JsString, JsNumber] ->
     receiver.parameter_data().

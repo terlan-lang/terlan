@@ -3,7 +3,9 @@
 use std::ffi::c_void;
 use std::sync::Arc;
 
-use crate::runtime::native_image::{TvmBoundaryType, TvmCallableDescriptor};
+use crate::runtime::native_image::{
+    TvmBoundaryType, TvmCallableDescriptor, TvmManagedLayoutDescriptor,
+};
 
 use super::*;
 
@@ -22,6 +24,68 @@ type TestClosureResolver = unsafe extern "C" fn(
     u64,
     *mut u64,
 ) -> i32;
+
+#[test]
+fn generated_callback_diagnostics_preserve_the_first_failure() {
+    let mut runtime = ManagedExecutionRuntime::runtime_default().expect("managed runtime");
+    runtime.retain_allocation_error("first failure".to_string());
+    runtime.retain_allocation_error("secondary failure".to_string());
+
+    assert_eq!(
+        runtime.take_allocation_error().as_deref(),
+        Some("first failure")
+    );
+}
+
+#[test]
+fn generated_allocation_context_requests_collection_at_the_soft_threshold() {
+    let descriptor =
+        ManagedAggregateDescriptor::tuple("app.PressureCell", vec![ManagedFieldType::Int])
+            .expect("pressure-cell descriptor");
+    let layout = encode_aggregate_layout(&descriptor).expect("pressure-cell layout");
+    let metadata = TvmManagedLayoutDescriptor {
+        semantic_id: descriptor.managed().semantic_id().bytes(),
+        encoded_layout: layout.clone(),
+    };
+    let mut runtime =
+        ManagedExecutionRuntime::with_image_layouts(&[metadata]).expect("managed runtime");
+
+    let allocations = runtime.with_dispatch(71, |context, allocator, _resolver| {
+        // SAFETY: `with_dispatch` supplies this exact call-scoped callback ABI.
+        let allocator: TestAllocator = unsafe { std::mem::transmute(allocator) };
+        for allocation in 1..=200_000 {
+            let mut result = 0_u64;
+            // SAFETY: every pointer references live bounded local storage.
+            let status = unsafe {
+                allocator(
+                    context,
+                    layout.as_ptr(),
+                    layout.len() as u64,
+                    [allocation].as_ptr(),
+                    1,
+                    &mut result,
+                )
+            };
+            assert_eq!(status, 0);
+            // SAFETY: the shared ABI offset names an aligned u64 in the live
+            // repr(C) dispatch context supplied by `with_dispatch`.
+            let requested = unsafe {
+                context
+                    .cast::<u8>()
+                    .add(MANAGED_CONTEXT_COLLECTION_REQUESTED_OFFSET as usize)
+                    .cast::<u64>()
+                    .read()
+            };
+            if requested != 0 {
+                return allocation;
+            }
+        }
+        0
+    });
+
+    assert_ne!(allocations, 0, "allocator never published heap pressure");
+    assert!(allocations < 200_000);
+}
 
 /// Pins authenticated callable membership into every empty shard fork.
 #[test]
@@ -67,7 +131,6 @@ fn executable_metadata_installs_generation_scoped_closure_dispatch() {
 
 /// Exercises the exact generated-code seam for validating and unpacking a closure.
 #[test]
-#[allow(unsafe_code)]
 fn dispatch_context_resolves_owned_closure_without_code_pointers() {
     let callable = TvmCallableDescriptor {
         id: 73,

@@ -23,6 +23,6 @@ pub draw_focus_if_needed_typechecks(receiver: CanvasUserInterface, element: Elem
 pub draw_focus_if_needed_typechecks(
     receiver: CanvasUserInterface,
     path: Path2D,
-    element: Element
+    element: Element,
 ): Unit ->
     receiver.draw_focus_if_needed(path, element).

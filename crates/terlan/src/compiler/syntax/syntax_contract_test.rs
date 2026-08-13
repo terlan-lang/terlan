@@ -34,6 +34,23 @@ fn validator_accepts_canonical_contract() {
 }
 
 #[test]
+fn generic_ebnf_validation_classifies_undefined_unreachable_and_strict_findings() {
+    let source = "Root ::= Child Missing .\nChild ::= [a-z]+ .\nUnused ::= \"unused\" .\n";
+    let report = validate_ebnf_source(source, true).expect("generic validation report");
+
+    assert_eq!(report.definitions, 3);
+    assert_eq!(report.undefined_symbols.len(), 1);
+    assert!(report.undefined_symbols[0].message.contains("Missing"));
+    assert_eq!(report.unreachable_symbols.len(), 1);
+    assert!(report.unreachable_symbols[0].message.contains("Unused"));
+    assert_eq!(report.strict_findings.len(), 2);
+    assert!(!report.is_valid());
+
+    let portable = validate_ebnf_source(source, false).expect("non-strict report");
+    assert!(portable.strict_findings.is_empty());
+}
+
+#[test]
 fn validated_canonical_contract_returns_checked_contract() {
     let contract =
         validated_canonical_terlan_syntax_contract().expect("validated canonical syntax contract");
@@ -200,6 +217,21 @@ fn validator_rejects_broken_contract() {
     assert!(diagnostics
         .iter()
         .any(|diagnostic| diagnostic.message == "syntax rule Expr must reference AssignExpr"));
+}
+
+#[test]
+fn validator_rejects_unreachable_rules() {
+    let mut contract =
+        canonical_terlan_syntax_contract().expect("compile canonical syntax contract");
+    let mut unused = contract.rule("Program").expect("Program rule").clone();
+    unused.name = "UnusedSyntax".to_string();
+    unused.id = "rule:UnusedSyntax".to_string();
+    contract.rules.push(unused);
+
+    let diagnostics = validate_syntax_contract(&contract);
+    assert!(diagnostics.iter().any(|diagnostic| {
+        diagnostic.message == "syntax rule UnusedSyntax is unreachable from SyntaxSpec"
+    }));
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

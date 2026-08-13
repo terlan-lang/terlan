@@ -46,7 +46,7 @@ impl VmMemoryTransfer {
 #[derive(Debug)]
 pub(crate) struct VmMemoryImportFailure {
     reason: String,
-    transfer: VmMemoryTransfer,
+    transfer: Box<VmMemoryTransfer>,
 }
 
 impl VmMemoryImportFailure {
@@ -57,7 +57,7 @@ impl VmMemoryImportFailure {
 
     /// Returns the complete memory state for source restoration.
     pub(crate) fn into_transfer(self) -> VmMemoryTransfer {
-        self.transfer
+        *self.transfer
     }
 }
 
@@ -232,7 +232,10 @@ impl VmMemoryAccountant {
         process_heap_bytes: usize,
     ) -> Result<(), VmMemoryImportFailure> {
         if let Err(reason) = self.validate_memory_import(&transfer, process_heap_bytes) {
-            return Err(VmMemoryImportFailure { reason, transfer });
+            return Err(VmMemoryImportFailure {
+                reason,
+                transfer: Box::new(transfer),
+            });
         }
         self.next_shared_allocation_id = self
             .next_shared_allocation_id

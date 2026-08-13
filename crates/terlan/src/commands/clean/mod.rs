@@ -156,4 +156,5 @@ fn remove_output_path(path: &Path) -> Result<(), String> {
 
 #[cfg(test)]
 #[path = "clean_test.rs"]
+#[cfg(test)]
 mod clean_test;

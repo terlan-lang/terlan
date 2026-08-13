@@ -253,6 +253,7 @@ const ADVERSARIAL_PERFORMANCE_CASES: &[&str] = &[
 const REJECTED_BUDGET_PATHS: &[&str] = &[];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm persistent actor performance summary.
 pub struct VmPersistentActorPerformanceSummary {
     pub fixture_budget_count: usize,
     pub deterministic_baseline_estimate_count: usize,
@@ -263,6 +264,7 @@ pub struct VmPersistentActorPerformanceSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm persistent actor performance.
 pub fn run_vm_persistent_actor_performance(
     root: &Path,
 ) -> QualityResult<VmPersistentActorPerformanceSummary> {
@@ -962,4 +964,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_persistent_actor_performance_test.rs"]
+#[cfg(test)]
 mod vm_persistent_actor_performance_test;

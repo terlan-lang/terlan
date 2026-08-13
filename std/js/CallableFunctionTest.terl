@@ -27,6 +27,6 @@ pub call_typechecks(receiver: CallableFunction, this_arg: T): R ->
 
 pub bind_typechecks(
     receiver: CallableFunction,
-    this_arg: ThisParameterType[T]
+    this_arg: ThisParameterType[T],
 ): OmitThisParameter[T] ->
     receiver.bind(this_arg).

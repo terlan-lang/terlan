@@ -1,0 +1,158 @@
+/**
+ * Validates deterministic hardware-independent accelerator target plans.
+ */
+module scripts.self_validation.AcceleratorTargetAdmission.
+
+import std.core.Result.{Ok, with_default}.
+import std.core.String.
+import std.data.Json.
+import std.io.File.{read_text}.
+
+import type std.data.Json.
+
+@pure
+report_schema(): String -> "terlan.accelerator-target-admission.v1".
+
+@pure
+plan_schema(): String -> "terlan.accelerator-target-plan.v1".
+
+/**
+ * Parses and validates one target-admission report.
+ */
+pub validate_text(text: String): Bool ->
+    case Json.parse(text) {
+        Ok(report) -> validate_report(report);
+        _ -> false
+    }.
+
+validate_report(report: Json): Bool ->
+    string_field(report, "schema") == report_schema()
+        and case report.get("plans") {
+    Ok(plans) ->
+        let count = array_length(plans);
+        count >= 2
+            and plans_are_valid(plans, 0, count)
+            and plans_contain_backend(plans, 0, count, "cuda")
+            and plans_contain_backend(plans, 0, count, "synthetic-vector")
+            and case report.get("rejection_evidence") {
+    Ok(evidence) -> rejection_evidence_is_complete(evidence);
+    _ -> false
+};
+    _ -> false
+}.
+
+plans_are_valid(plans: Json, index: Int, count: Int): Bool ->
+    if {
+        index == count -> true;
+        true -> case plans.at(index) {
+            Ok(plan) -> plan_is_valid(plan) and plans_are_valid(plans, index + 1, count);
+            _ -> false
+        }
+    }.
+
+plan_is_valid(plan: Json): Bool ->
+    string_field(plan, "schema") == plan_schema()
+        and string_field(plan, "mode") == "check-only"
+        and bool_field(plan, "hardware_probe_free")
+        and case plan.get("packages") {
+    Ok(packages) ->
+        array_length(packages) == 1
+            and case packages.at(0) {
+    Ok(package) -> backend_is_allowed(string_field(package, "backend"));
+    _ -> false
+};
+    _ -> false
+}.
+
+@pure
+backend_is_allowed(backend: String): Bool ->
+    backend == "cuda" or backend == "synthetic-vector".
+
+plans_contain_backend(plans: Json, index: Int, count: Int, expected: String): Bool ->
+    if {
+        index == count -> false;
+        true -> let {
+            Ok(plan) <- plans.at(index);
+            Ok(packages) <- plan.get("packages");
+            Ok(package) <- packages.at(0)
+        } else {
+            _ -> false
+        };
+        string_field(package, "backend") == expected
+            or plans_contain_backend(plans, index + 1, count, expected)
+    }.
+
+rejection_evidence_is_complete(evidence: Json): Bool ->
+    let count = array_length(evidence);
+    array_contains(evidence, 0, count, "target-mismatch")
+        and array_contains(evidence, 0, count, "architecture-mismatch")
+        and array_contains(evidence, 0, count, "artifact-format-mismatch")
+        and array_contains(evidence, 0, count, "driver-api-mismatch")
+        and array_contains(evidence, 0, count, "memory-budget-mismatch")
+        and array_contains(evidence, 0, count, "determinism-mismatch")
+        and array_contains(evidence, 0, count, "missing-explicit-toolchain")
+        and array_contains(evidence, 0, count, "toolchain-digest-mismatch")
+        and array_contains(evidence, 0, count, "duplicate-binding").
+
+array_contains(values: Json, index: Int, count: Int, expected: String): Bool ->
+    if {
+        index == count -> false;
+        true -> case values.at(index) {
+            Ok(value) ->
+                with_default(value.as_string(), "") == expected
+                    or array_contains(values, index + 1, count, expected);
+            _ -> false
+        }
+    }.
+
+string_field(value: Json, name: String): String ->
+    case value.get(name) {
+        Ok(field) -> with_default(field.as_string(), "");
+        _ -> ""
+    }.
+
+bool_field(value: Json, name: String): Bool ->
+    case value.get(name) {
+        Ok(field) -> with_default(field.as_bool(), false);
+        _ -> false
+    }.
+
+array_length(value: Json): Int ->
+    with_default(value.length(), -1).
+
+@pure
+accepted_fixture(): String ->
+    "{\"schema\":\"terlan.accelerator-target-admission.v1\",\"plans\":[{\"schema\":\"terlan.accelerator-target-plan.v1\",\"mode\":\"check-only\",\"hardware_probe_free\":true,\"packages\":[{\"backend\":\"cuda\"}]},{\"schema\":\"terlan.accelerator-target-plan.v1\",\"mode\":\"check-only\",\"hardware_probe_free\":true,\"packages\":[{\"backend\":\"synthetic-vector\"}]}],\"rejection_evidence\":[\"target-mismatch\",\"architecture-mismatch\",\"artifact-format-mismatch\",\"driver-api-mismatch\",\"memory-budget-mismatch\",\"determinism-mismatch\",\"missing-explicit-toolchain\",\"toolchain-digest-mismatch\",\"duplicate-binding\"]}".
+
+@test
+pub generated_target_admission_report_is_valid(): Bool ->
+    case read_text("target/quality/accelerator-target-plan.json") {
+        Ok(text) -> validate_text(text);
+        _ -> false
+    }.
+
+@test
+pub canonical_cuda_and_synthetic_fixture_is_accepted(): Bool ->
+    validate_text(accepted_fixture()).
+
+@test
+pub hardware_probing_plan_is_rejected(): Bool ->
+    not validate_text(
+    String.replace(
+        accepted_fixture(),
+        "\"hardware_probe_free\":true",
+        "\"hardware_probe_free\":false",
+    ),
+).
+
+@test
+pub incomplete_rejection_evidence_is_rejected(): Bool ->
+    not validate_text(String.replace(accepted_fixture(), ",\"duplicate-binding\"", "")).
+
+@test
+pub unexpected_backend_is_rejected(): Bool ->
+    not validate_text(String.replace(accepted_fixture(), "synthetic-vector", "opencl")).
+
+@test
+pub malformed_json_is_rejected(): Bool ->
+    not validate_text("{bad").

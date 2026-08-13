@@ -29,7 +29,7 @@ pub opaque type DOMImplementation.
 pub (value: DOMImplementation) create_document(
     namespace: Option[JsString],
     qualified_name: Option[JsString],
-    doctype: Option[DocumentType]
+    doctype: Option[DocumentType],
 ): XMLDocument.
 
 /**

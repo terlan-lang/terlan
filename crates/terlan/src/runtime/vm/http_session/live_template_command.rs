@@ -1,10 +1,8 @@
-use super::{
-    http_message_id_to_int, normalize_command_id, normalize_command_name, ReplValue, VmHttpSession,
-    VmHttpSessionCommandOutcome, VmHttpSessionRuntime,
-};
+use super::*;
 
 /// Validated live-template command envelope delivered to a session actor.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmHttpSessionCommandPayload {
     pub(crate) command_id: String,
     pub(crate) name: String,
@@ -13,12 +11,14 @@ pub(crate) struct VmHttpSessionCommandPayload {
 
 /// Typed live-template command consumed from a session actor mailbox.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmHttpSessionLiveTemplateActorCommand {
     pub(crate) command_id: String,
     pub(crate) name: String,
     pub(crate) body: ReplValue,
 }
 
+#[cfg(test)]
 impl VmHttpSessionCommandPayload {
     pub(crate) fn new(command_id: &str, name: &str, body: ReplValue) -> Result<Self, String> {
         Ok(Self {
@@ -31,6 +31,7 @@ impl VmHttpSessionCommandPayload {
 
 impl VmHttpSessionRuntime {
     /// Validates and applies one live-template command before actor dispatch.
+    #[cfg(test)]
     pub(crate) fn apply_live_template_command(
         &mut self,
         session: &VmHttpSession,
@@ -51,6 +52,7 @@ impl VmHttpSessionRuntime {
     }
 
     /// Dispatches one browser command postback into the session actor mailbox.
+    #[cfg(test)]
     pub(crate) fn dispatch_live_template_command_to_actor_mailbox(
         &mut self,
         session: &VmHttpSession,
@@ -72,6 +74,7 @@ impl VmHttpSessionRuntime {
     }
 
     /// Consumes one validated browser command from the session actor mailbox.
+    #[cfg(test)]
     pub(crate) fn receive_live_template_actor_command(
         &mut self,
         session: &VmHttpSession,
@@ -98,6 +101,7 @@ impl VmHttpSessionRuntime {
     }
 }
 
+#[cfg(test)]
 fn live_template_command_actor_message(payload: VmHttpSessionCommandPayload) -> ReplValue {
     ReplValue::Tuple(vec![
         ReplValue::Atom("live_template_command".to_string()),
@@ -107,6 +111,7 @@ fn live_template_command_actor_message(payload: VmHttpSessionCommandPayload) -> 
     ])
 }
 
+#[cfg(test)]
 fn invalid_live_template_actor_command_diagnostic() -> String {
     "invalid_live_template_actor_command: session actor mailbox message must be {live_template_command, command_id, name, body}"
         .to_string()

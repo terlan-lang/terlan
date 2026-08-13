@@ -1,0 +1,144 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.db.Postgres.connect/1",
+      "name": "connect",
+      "operation": "std.db.postgres.connect",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:03960d5715fb5e6ec87bcf40a9c9d0e0a3dd3a1c777852aca0cd23baaa6d6948"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.db.Postgres.query/3",
+      "name": "query",
+      "operation": "std.db.postgres.query",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:484bba1a4c92a9e79274a48b034833666ea24f5976bcefcb77c255113db76478"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.db.Postgres.query_one/3",
+      "name": "query_one",
+      "operation": "std.db.postgres.query_one",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:af1e511a41ad6d497213cfaf71fb3d3ef3869f24614cfdeb582de0eee430d83a"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.db.Postgres.execute/3",
+      "name": "execute",
+      "operation": "std.db.postgres.execute",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:2c991ffe2dd6892b1d18bbf4955bd51e6cfff82946b09fdfd1b666ff7f785e50"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.db.Postgres.transaction/2",
+      "name": "transaction",
+      "operation": "std.db.postgres.transaction",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:9c122ffbace42c279e7ea6718d410423cbd5b905210c18289b62ad2f2dc4da63"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.db.Postgres.string/2",
+      "name": "string",
+      "operation": "std.db.postgres.string",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:cce94c10cac1309dcabc3c8258ecf1b9fbc5ee5fd0a868551d27282522ca2af2"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.db.Postgres.int/2",
+      "name": "int",
+      "operation": "std.db.postgres.int",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:80051ee3c856dee74326d943ed1cd99a4c85d7d7adb642dfc24b98bced040521"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.db.Postgres.bool/2",
+      "name": "bool",
+      "operation": "std.db.postgres.bool",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:5b5beda1b28090c15eb9d26eced1dae258a086c232a80602a8796afb9b51be99"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "async-capability-rpc",
+      "identity": "std.db.Postgres.json/2",
+      "name": "json",
+      "operation": "std.db.postgres.json",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:151577eaf72329572fac6bd1b6d54f0c389046f4b5ad10226642534a97e3973e"
+    }
+  ],
+  "manifest_digest": "sha256:10904d9e80b826e5b9729a3fa66e256509f07d36f90bc1e2bbd37c0e3f5f7760",
+  "module": "std_db_postgres_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "blocking",
+    "cancellation_policy": "cancel-on-owner-exit",
+    "capability": "postgres",
+    "error_policy": "typed-result",
+    "module_prefix": "std.db.Postgres",
+    "notes": "Postgres operations use worker-owned pool and connection resources.",
+    "resource_policy": "owned-resource-handle",
+    "timeout_policy": "required",
+    "worker_placement": "native-worker"
+  },
+  "source_digest": "sha256:0684e2277c917c92903dfd4c5f47459a369d627f5ef5ca99fe04b39568aa9ac2",
+  "source_module": "std.db.Postgres",
+  "source_path": "std/summaries/std.db.Postgres.native_boundary.json"
+}

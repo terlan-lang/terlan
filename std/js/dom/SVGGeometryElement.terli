@@ -61,11 +61,11 @@ pub (value: SVGGeometryElement) is_point_in_stroke(point: DOMPointInit): Bool.
 pub (value: SVGGeometryElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit.
 
 pub (value: SVGGeometryElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit.

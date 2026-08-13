@@ -1,0 +1,8 @@
+module=std.system.Platform
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=1225562376353341896
+interface_hash=13523006377708486009
+interface_doc_hash=5068236962175761193
+deps=0

@@ -113,14 +113,17 @@ pub struct ManagedClosureTarget {
 }
 
 impl ManagedClosureTarget {
+    /// Returns the image-local callable identifier.
     pub fn callable_id(self) -> u64 {
         self.callable_id
     }
 
+    /// Returns the number of caller-supplied parameters.
     pub fn parameter_count(self) -> usize {
         self.parameter_count
     }
 
+    /// Returns the number of words captured by the closure.
     pub fn capture_count(self) -> usize {
         self.capture_count
     }
@@ -134,6 +137,7 @@ pub struct ManagedClosureInvocation {
 }
 
 impl ManagedClosureInvocation {
+    /// Returns the validated image-local dispatch target.
     pub fn target(&self) -> ManagedClosureTarget {
         self.target
     }

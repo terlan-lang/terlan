@@ -18,7 +18,7 @@ pub generated_binding_surface_contract(): Bool -> true.
 
 pub read_typechecks(
     receiver: ReadableStreamBYOBReader,
-    view: T
+    view: T,
 ): std.js.Promise[ReadableStreamReadResult[T]] ->
     receiver.read(view).
 

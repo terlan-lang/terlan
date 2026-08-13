@@ -8,6 +8,40 @@ struct AppendOutcome {
     overflow: Option<NodeSummary>,
 }
 
+/// Result of prepending beneath one node, including a sibling that did not fit.
+struct PrependOutcome {
+    overflow: Option<NodeSummary>,
+    node: NodeSummary,
+}
+
+/// Prepends one value while sharing every unchanged subtree.
+pub(super) fn prepend(
+    heap: &mut ActorHeap,
+    descriptor: &ManagedListDescriptor,
+    list: TvmRef<ManagedList>,
+    value: ManagedFieldValue,
+) -> Result<TvmRef<ManagedList>, ManagedMemoryError> {
+    let (header, _) = read_root(heap, descriptor, list)?;
+    let length = header
+        .length
+        .checked_add(1)
+        .ok_or(ManagedMemoryError::CollectionTooLarge)?;
+    validate_element_count(length)?;
+    if header.form != FORM_TREE || header.start != 0 {
+        let mut elements = heap.list_elements_from(descriptor, list, 0)?;
+        elements.insert(0, value);
+        return heap.list_from_elements(descriptor, &elements);
+    }
+
+    let root = tree_summary(heap, descriptor, list)?;
+    let prepended = prepend_node(heap, descriptor, root, value)?;
+    let tree = match prepended.overflow {
+        Some(overflow) => allocate_internal(heap, descriptor, &[overflow, prepended.node])?,
+        None => prepended.node,
+    };
+    allocate_tree_root(heap, descriptor, tree, 0, length)
+}
+
 /// Appends one value while sharing every unchanged subtree.
 pub(super) fn append(
     heap: &mut ActorHeap,
@@ -229,6 +263,62 @@ fn append_node(
     }
 }
 
+/// Prepends below one node and returns a same-height overflow sibling when full.
+fn prepend_node(
+    heap: &mut ActorHeap,
+    descriptor: &ManagedListDescriptor,
+    node: NodeSummary,
+    value: ManagedFieldValue,
+) -> Result<PrependOutcome, ManagedMemoryError> {
+    let header = read_node(heap, descriptor, node.reference)?;
+    if header.kind == NODE_LEAF {
+        if header.count == BRANCH_FACTOR {
+            return Ok(PrependOutcome {
+                overflow: Some(allocate_leaf(heap, descriptor, &[value])?),
+                node,
+            });
+        }
+        let mut elements = leaf_elements(heap, descriptor, node)?;
+        elements.insert(0, value);
+        return Ok(PrependOutcome {
+            overflow: None,
+            node: allocate_leaf(heap, descriptor, &elements)?,
+        });
+    }
+
+    let mut children = child_summaries(heap, descriptor, node)?;
+    if children.is_empty() {
+        return Err(ManagedMemoryError::CorruptedCollection);
+    }
+    let first = children.remove(0);
+    let prepended = prepend_node(heap, descriptor, first, value)?;
+    children.insert(0, prepended.node);
+    match prepended.overflow {
+        None => Ok(PrependOutcome {
+            overflow: None,
+            node: allocate_internal(heap, descriptor, &children)?,
+        }),
+        Some(overflow) if children.len() < BRANCH_FACTOR => {
+            children.insert(0, overflow);
+            Ok(PrependOutcome {
+                overflow: None,
+                node: allocate_internal(heap, descriptor, &children)?,
+            })
+        }
+        Some(overflow) => {
+            let current = if prepended.node.reference == first.reference {
+                node
+            } else {
+                allocate_internal(heap, descriptor, &children)?
+            };
+            Ok(PrependOutcome {
+                overflow: Some(lift_to_height(heap, descriptor, overflow, node.height)?),
+                node: current,
+            })
+        }
+    }
+}
+
 /// Replaces one node value and rebuilds only the selected ancestor path.
 fn update_node(
     heap: &mut ActorHeap,
@@ -398,6 +488,74 @@ fn tree_summary(
 ) -> Result<NodeSummary, ManagedMemoryError> {
     let reference = heap.reference_field(list, TREE_REFERENCE_OFFSET)?.cast();
     node_summary(heap, descriptor, reference)
+}
+
+/// Drops one bounded prefix by path-copying only the touched left fringe.
+///
+/// List-pattern traversal advances a root cursor for most elements. At a leaf
+/// boundary this removes the now-unreachable prefix in O(log n), so a linear
+/// head/tail walk neither retains the complete source tree nor materializes
+/// every remaining suffix.
+pub(super) fn trim_prefix(
+    heap: &mut ActorHeap,
+    descriptor: &ManagedListDescriptor,
+    list: TvmRef<ManagedList>,
+    count: usize,
+) -> Result<Option<NodeSummary>, ManagedMemoryError> {
+    let root = tree_summary(heap, descriptor, list)?;
+    trim_node_prefix(heap, descriptor, root, count)
+}
+
+fn trim_node_prefix(
+    heap: &mut ActorHeap,
+    descriptor: &ManagedListDescriptor,
+    node: NodeSummary,
+    count: usize,
+) -> Result<Option<NodeSummary>, ManagedMemoryError> {
+    if count == 0 {
+        return Ok(Some(node));
+    }
+    if count > node.total {
+        return Err(ManagedMemoryError::CollectionIndexOutOfBounds);
+    }
+    if count == node.total {
+        return Ok(None);
+    }
+    let header = read_node(heap, descriptor, node.reference)?;
+    if header.kind == NODE_LEAF {
+        let elements = leaf_elements(heap, descriptor, node)?;
+        return allocate_leaf(heap, descriptor, &elements[count..]).map(Some);
+    }
+
+    let children = child_summaries(heap, descriptor, node)?;
+    let mut consumed = 0_usize;
+    let mut retained = Vec::with_capacity(children.len());
+    for child in children {
+        if consumed >= count {
+            retained.push(child);
+            continue;
+        }
+        let next = consumed
+            .checked_add(child.total)
+            .ok_or(ManagedMemoryError::CollectionTooLarge)?;
+        if next <= count {
+            consumed = next;
+            continue;
+        }
+        let partial = trim_node_prefix(heap, descriptor, child, count - consumed)?
+            .ok_or(ManagedMemoryError::CorruptedCollection)?;
+        let partial = lift_to_height(heap, descriptor, partial, child.height)?;
+        retained.push(partial);
+        consumed = count;
+    }
+    if consumed != count || retained.is_empty() {
+        return Err(ManagedMemoryError::CorruptedCollection);
+    }
+    if retained.len() == 1 {
+        Ok(retained.first().copied())
+    } else {
+        allocate_internal(heap, descriptor, &retained).map(Some)
+    }
 }
 
 /// Reads one validated summary from a private RRB node.

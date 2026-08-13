@@ -37,7 +37,9 @@ pub(crate) fn native_request_projections(modules: &[NativeModule]) -> Vec<Native
     modules
         .iter()
         .flat_map(|module| {
-            let (suspending, _) = super::cranelift::native_suspension_profile(module);
+            let suspending = super::suspension::suspension_profile(module)
+                .map(|(suspending, _)| suspending)
+                .unwrap_or_else(|_| vec![true; module.functions.len()]);
             module
                 .functions
                 .iter()
@@ -213,25 +215,26 @@ fn rewrite_scalar_request_body(
             parameter_types: parameter_types.clone(),
             result_type: *result_type,
         },
-        NativeExpr::TailCall { function, args } => NativeExpr::TailCall {
+        NativeExpr::TailCall {
+            function,
+            args,
+            yield_continuation_id,
+        } => NativeExpr::TailCall {
             function: *function,
             args: rewrite_expressions(args, request_semantic, field)?,
+            yield_continuation_id: *yield_continuation_id,
         },
         NativeExpr::CallThen {
             function,
             args,
-            callee_continuation_id,
-            callee_capture_count,
-            continuation_id,
+            resumes,
             completion_continuation_id,
             completion_function,
             values,
         } => NativeExpr::CallThen {
             function: *function,
             args: rewrite_expressions(args, request_semantic, field)?,
-            callee_continuation_id: *callee_continuation_id,
-            callee_capture_count: *callee_capture_count,
-            continuation_id: *continuation_id,
+            resumes: resumes.clone(),
             completion_continuation_id: *completion_continuation_id,
             completion_function: *completion_function,
             values: rewrite_expressions(values, request_semantic, field)?,
@@ -448,6 +451,18 @@ impl Analysis {
             NativeExpr::InvokeClosure { callee, args, .. } => {
                 let mut uses = vec![self.expr(callee, origins)];
                 uses.extend(self.expressions(args, origins));
+                self.reject_request_use(&uses);
+                Origin::Other
+            }
+            NativeExpr::InvokeClosureThen {
+                callee,
+                args,
+                values,
+                ..
+            } => {
+                let mut uses = vec![self.expr(callee, origins)];
+                uses.extend(self.expressions(args, origins));
+                uses.extend(self.expressions(values, origins));
                 self.reject_request_use(&uses);
                 Origin::Other
             }

@@ -2,10 +2,33 @@
 
 use std::io::{Read, Write};
 
+use terlan_runtime_abi::{BoundaryError, ErrorDomain};
+
 const MAGIC: &[u8; 4] = b"TVMC";
 const VERSION: u16 = 1;
 const HEADER_LEN: usize = 12;
 pub const MAX_FRAME_BYTES: usize = 64 * 1024;
+
+/// Stable generated-capability tag for compiler-known SQL forms.
+pub const TVM_SQL_CAPABILITY_TAG: i64 = 42;
+
+/// SQL capability words before its dynamically typed parameter payload.
+pub const TVM_SQL_CAPABILITY_PREFIX_WORDS: usize = 11;
+
+/// Returns the complete transition-word count for one fixed-arity capability.
+/// Variable package and SQL frames deliberately return `None` and are decoded
+/// by their protocol-specific branches.
+pub const fn tvm_fixed_capability_frame_words(tag: i64) -> Option<usize> {
+    match tag {
+        8 | 12 | 33 | 36 | 37 | 59 => Some(4),
+        1 | 2 | 3 | 6 | 9 | 10 | 11 | 13 | 14 | 15 | 16 | 18 | 19 | 22 | 23 | 30 | 31 | 32 | 35
+        | 38 | 40 | 44 | 46 | 48 | 49 | 53 | 54 | 55 | 58 => Some(5),
+        4 | 5 | 17 | 20 | 34 | 43 | 45 | 47 | 50 | 51 | 52 | 56 => Some(6),
+        24 | 39 | 41 | 57 => Some(7),
+        21 => Some(10),
+        _ => None,
+    }
+}
 
 const HELLO: u16 = 1;
 const HELLO_ACK: u16 = 2;
@@ -20,6 +43,8 @@ const RESUME: u16 = 9;
 /// VM-owned operation requested by suspended native code.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TvmTransitionOperation {
+    Debug,
+    Identity,
     Yield,
     Send,
     Receive,
@@ -34,6 +59,7 @@ pub enum TvmTransitionOperation {
     Capability,
 }
 
+/// One bounded message exchanged between the VM supervisor and a native image.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TvmControlFrame {
     Hello {
@@ -76,10 +102,25 @@ pub enum TvmControlFrame {
     ShutdownAck,
 }
 
-pub fn write_control_frame(writer: &mut impl Write, frame: &TvmControlFrame) -> Result<(), String> {
-    let (kind, payload) = encode_payload(frame)?;
-    let payload_len = u32::try_from(payload.len())
-        .map_err(|_| "error[tvm.control.frame_size]: frame is too large".to_string())?;
+/// Writes and flushes one versioned, size-bounded control frame.
+pub fn write_control_frame(
+    writer: &mut impl Write,
+    frame: &TvmControlFrame,
+) -> Result<(), BoundaryError> {
+    let (kind, payload) = encode_payload(frame).map_err(|error| {
+        BoundaryError::message(
+            ErrorDomain::NativeImageAdmission,
+            "encode control frame",
+            error,
+        )
+    })?;
+    let payload_len = u32::try_from(payload.len()).map_err(|_| {
+        BoundaryError::message(
+            ErrorDomain::NativeImageAdmission,
+            "encode control frame",
+            "error[tvm.control.frame_size]: frame is too large",
+        )
+    })?;
     writer
         .write_all(MAGIC)
         .and_then(|()| writer.write_all(&VERSION.to_le_bytes()))
@@ -87,42 +128,85 @@ pub fn write_control_frame(writer: &mut impl Write, frame: &TvmControlFrame) -> 
         .and_then(|()| writer.write_all(&payload_len.to_le_bytes()))
         .and_then(|()| writer.write_all(&payload))
         .and_then(|()| writer.flush())
-        .map_err(|error| format!("error[tvm.control.write]: {error}"))
+        .map_err(|source| {
+            BoundaryError::sourced(
+                ErrorDomain::NativeImageAdmission,
+                "tvm.control.write",
+                "write control frame",
+                format!("error[tvm.control.write]: {source}"),
+                source,
+            )
+        })
 }
 
-pub fn read_control_frame(reader: &mut impl Read) -> Result<Option<TvmControlFrame>, String> {
+/// Reads one control frame, returning `None` only for clean end-of-stream.
+pub fn read_control_frame(
+    reader: &mut impl Read,
+) -> Result<Option<TvmControlFrame>, BoundaryError> {
     let mut header = [0_u8; HEADER_LEN];
-    let read = reader
-        .read(&mut header[..1])
-        .map_err(|error| format!("error[tvm.control.read]: {error}"))?;
+    let read = reader.read(&mut header[..1]).map_err(|source| {
+        BoundaryError::sourced(
+            ErrorDomain::NativeImageAdmission,
+            "tvm.control.read",
+            "read control-frame prefix",
+            format!("error[tvm.control.read]: {source}"),
+            source,
+        )
+    })?;
     if read == 0 {
         return Ok(None);
     }
-    reader
-        .read_exact(&mut header[1..])
-        .map_err(|error| format!("error[tvm.control.header]: {error}"))?;
+    reader.read_exact(&mut header[1..]).map_err(|source| {
+        BoundaryError::sourced(
+            ErrorDomain::NativeImageAdmission,
+            "tvm.control.header",
+            "read control-frame header",
+            format!("error[tvm.control.header]: {source}"),
+            source,
+        )
+    })?;
     if &header[..4] != MAGIC {
-        return Err("error[tvm.control.magic]: invalid control-frame magic".to_string());
+        return Err(BoundaryError::message(
+            ErrorDomain::NativeImageAdmission,
+            "validate control-frame magic",
+            "error[tvm.control.magic]: invalid control-frame magic",
+        ));
     }
     let version = u16::from_le_bytes([header[4], header[5]]);
     if version != VERSION {
-        return Err(format!(
-            "error[tvm.control.version]: unsupported control version {version}"
+        return Err(BoundaryError::message(
+            ErrorDomain::NativeImageAdmission,
+            "validate control-frame version",
+            format!("error[tvm.control.version]: unsupported control version {version}"),
         ));
     }
     let kind = u16::from_le_bytes([header[6], header[7]]);
     let payload_len =
         u32::from_le_bytes(header[8..12].try_into().expect("fixed header range")) as usize;
     if payload_len > MAX_FRAME_BYTES {
-        return Err(format!(
-            "error[tvm.control.frame_size]: payload exceeds {MAX_FRAME_BYTES} bytes"
+        return Err(BoundaryError::message(
+            ErrorDomain::NativeImageAdmission,
+            "validate control-frame size",
+            format!("error[tvm.control.frame_size]: payload exceeds {MAX_FRAME_BYTES} bytes"),
         ));
     }
     let mut payload = vec![0; payload_len];
-    reader
-        .read_exact(&mut payload)
-        .map_err(|error| format!("error[tvm.control.payload]: {error}"))?;
-    decode_payload(kind, &payload).map(Some)
+    reader.read_exact(&mut payload).map_err(|source| {
+        BoundaryError::sourced(
+            ErrorDomain::NativeImageAdmission,
+            "tvm.control.payload",
+            "read control-frame payload",
+            format!("error[tvm.control.payload]: {source}"),
+            source,
+        )
+    })?;
+    decode_payload(kind, &payload).map(Some).map_err(|error| {
+        BoundaryError::message(
+            ErrorDomain::NativeImageAdmission,
+            "decode control-frame payload",
+            error,
+        )
+    })
 }
 
 fn encode_payload(frame: &TvmControlFrame) -> Result<(u16, Vec<u8>), String> {
@@ -278,6 +362,8 @@ fn decode_payload(kind: u16, payload: &[u8]) -> Result<TvmControlFrame, String> 
                 10 => TvmTransitionOperation::Failure,
                 11 => TvmTransitionOperation::Scheduling,
                 12 => TvmTransitionOperation::Capability,
+                13 => TvmTransitionOperation::Debug,
+                14 => TvmTransitionOperation::Identity,
                 tag => {
                     return Err(format!(
                         "error[tvm.control.transition]: unsupported transition operation {tag}"
@@ -319,6 +405,8 @@ fn decode_payload(kind: u16, payload: &[u8]) -> Result<TvmControlFrame, String> 
 
 fn transition_operation_tag(operation: &TvmTransitionOperation) -> u16 {
     match operation {
+        TvmTransitionOperation::Debug => 13,
+        TvmTransitionOperation::Identity => 14,
         TvmTransitionOperation::Yield => 1,
         TvmTransitionOperation::Send => 2,
         TvmTransitionOperation::Receive => 3,

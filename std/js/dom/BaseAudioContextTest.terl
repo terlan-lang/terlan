@@ -48,7 +48,7 @@ pub create_buffer_typechecks(
     receiver: BaseAudioContext,
     number_of_channels: JsNumber,
     length: JsNumber,
-    sample_rate: JsNumber
+    sample_rate: JsNumber,
 ): AudioBuffer ->
     receiver.create_buffer(number_of_channels, length, sample_rate).
 
@@ -57,13 +57,13 @@ pub create_buffer_source_typechecks(receiver: BaseAudioContext): AudioBufferSour
 
 pub create_channel_merger_typechecks(
     receiver: BaseAudioContext,
-    number_of_inputs: JsNumber
+    number_of_inputs: JsNumber,
 ): ChannelMergerNode ->
     receiver.create_channel_merger(number_of_inputs).
 
 pub create_channel_splitter_typechecks(
     receiver: BaseAudioContext,
-    number_of_outputs: JsNumber
+    number_of_outputs: JsNumber,
 ): ChannelSplitterNode ->
     receiver.create_channel_splitter(number_of_outputs).
 
@@ -85,7 +85,7 @@ pub create_gain_typechecks(receiver: BaseAudioContext): GainNode ->
 pub create_iir_filter_typechecks(
     receiver: BaseAudioContext,
     feedforward: Array[JsNumber],
-    feedback: Array[JsNumber]
+    feedback: Array[JsNumber],
 ): IIRFilterNode ->
     receiver.create_iir_filter(feedforward, feedback).
 
@@ -99,7 +99,7 @@ pub create_periodic_wave_typechecks(
     receiver: BaseAudioContext,
     real: Float32Array | Array[JsNumber],
     imag: Float32Array | Array[JsNumber],
-    constraints: PeriodicWaveConstraints
+    constraints: PeriodicWaveConstraints,
 ): PeriodicWave ->
     receiver.create_periodic_wave(real, imag, constraints).
 
@@ -107,9 +107,10 @@ pub create_script_processor_typechecks(
     receiver: BaseAudioContext,
     buffer_size: JsNumber,
     number_of_input_channels: JsNumber,
-    number_of_output_channels: JsNumber
+    number_of_output_channels: JsNumber,
 ): ScriptProcessorNode ->
-    receiver.create_script_processor(buffer_size, number_of_input_channels, number_of_output_channels).
+    receiver
+        .create_script_processor(buffer_size, number_of_input_channels, number_of_output_channels).
 
 pub create_stereo_panner_typechecks(receiver: BaseAudioContext): StereoPannerNode ->
     receiver.create_stereo_panner().
@@ -121,7 +122,7 @@ pub decode_audio_data_typechecks(
     receiver: BaseAudioContext,
     audio_data: ArrayBuffer,
     success_callback: Option[DecodeSuccessCallback],
-    error_callback: Option[DecodeErrorCallback]
+    error_callback: Option[DecodeErrorCallback],
 ): std.js.Promise[AudioBuffer] ->
     receiver.decode_audio_data(audio_data, success_callback, error_callback).
 
@@ -129,7 +130,7 @@ pub add_event_listener_typechecks(
     receiver: BaseAudioContext,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -137,6 +138,6 @@ pub remove_event_listener_typechecks(
     receiver: BaseAudioContext,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

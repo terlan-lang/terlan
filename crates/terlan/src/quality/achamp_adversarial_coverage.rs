@@ -364,4 +364,5 @@ fn require_exact_inventory(
 
 #[cfg(test)]
 #[path = "achamp_adversarial_coverage_test.rs"]
+#[cfg(test)]
 mod achamp_adversarial_coverage_test;

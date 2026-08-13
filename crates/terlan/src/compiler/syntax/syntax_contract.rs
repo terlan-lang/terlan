@@ -1,5 +1,6 @@
-use std::sync::OnceLock;
+use std::{collections::BTreeSet, sync::OnceLock};
 
+use super::ebnf_lexer::{EbnfLexer, EbnfTokenKind};
 use crate::terlan_syntax::{
     ebnf::{
         compile_ebnf, EbnfCompileError, EbnfCompileResult, EbnfGrammarContract, EbnfGrammarExpr,
@@ -323,6 +324,161 @@ pub struct SyntaxContractDiagnostic {
     pub message: String,
 }
 
+/// Machine-readable finding emitted by generic EBNF validation.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct EbnfValidationFinding {
+    pub line: usize,
+    pub kind: String,
+    pub message: String,
+}
+
+/// Generic EBNF validation result consumed by typed repository tooling.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct EbnfValidationReport {
+    pub schema: String,
+    pub definitions: usize,
+    pub undefined_symbols: Vec<EbnfValidationFinding>,
+    pub unreachable_symbols: Vec<EbnfValidationFinding>,
+    pub strict_findings: Vec<EbnfValidationFinding>,
+}
+
+impl EbnfValidationReport {
+    /// Returns whether every enabled EBNF validation class passed.
+    pub fn is_valid(&self) -> bool {
+        self.undefined_symbols.is_empty()
+            && self.unreachable_symbols.is_empty()
+            && self.strict_findings.is_empty()
+    }
+}
+
+/// Compiles and generically validates one EBNF source document.
+pub fn validate_ebnf_source(source: &str, strict: bool) -> EbnfCompileResult<EbnfValidationReport> {
+    let contract = compile_ebnf(source)?;
+    let names = contract
+        .rules
+        .iter()
+        .map(|rule| rule.name.clone())
+        .collect::<BTreeSet<_>>();
+    let mut undefined_symbols = Vec::new();
+    let mut references = std::collections::BTreeMap::<String, BTreeSet<String>>::new();
+    for rule in &contract.rules {
+        let mut rule_references = BTreeSet::new();
+        collect_generic_references(
+            source,
+            &rule.expr,
+            &names,
+            &mut rule_references,
+            &mut undefined_symbols,
+        );
+        references.insert(rule.name.clone(), rule_references);
+    }
+    undefined_symbols
+        .sort_by(|left, right| (left.line, &left.message).cmp(&(right.line, &right.message)));
+    undefined_symbols.dedup();
+
+    let mut reachable = BTreeSet::new();
+    let mut pending = contract.entry_rule.iter().cloned().collect::<Vec<_>>();
+    while let Some(name) = pending.pop() {
+        if !reachable.insert(name.clone()) {
+            continue;
+        }
+        if let Some(referenced) = references.get(&name) {
+            pending.extend(referenced.iter().cloned());
+        }
+    }
+    let entry = contract.entry_rule.as_deref().unwrap_or("<missing>");
+    let mut unreachable_symbols = contract
+        .rules
+        .iter()
+        .filter(|rule| !reachable.contains(&rule.name))
+        .map(|rule| EbnfValidationFinding {
+            line: source_line(source, rule.name_span.start),
+            kind: "unreachable-symbol".to_string(),
+            message: format!("production '{}' is unreachable from '{}'", rule.name, entry),
+        })
+        .collect::<Vec<_>>();
+    unreachable_symbols
+        .sort_by(|left, right| (&left.message, left.line).cmp(&(&right.message, right.line)));
+
+    let mut strict_findings = Vec::new();
+    if strict {
+        for token in EbnfLexer::new(source)
+            .lex()
+            .map_err(|error| EbnfCompileError::Parse(error.message, error.span))?
+        {
+            let message = match token.kind {
+                EbnfTokenKind::CharacterClass(_) => {
+                    Some("regex-style character class is not strict EBNF")
+                }
+                EbnfTokenKind::Star => Some("'*' repetition shorthand is not strict EBNF"),
+                EbnfTokenKind::Plus => Some("'+' repetition shorthand is not strict EBNF"),
+                _ => None,
+            };
+            if let Some(message) = message {
+                strict_findings.push(EbnfValidationFinding {
+                    line: source_line(source, token.span.start),
+                    kind: "strict-ebnf".to_string(),
+                    message: message.to_string(),
+                });
+            }
+        }
+    }
+
+    Ok(EbnfValidationReport {
+        schema: "terlan.ebnf-validation.v1".to_string(),
+        definitions: contract.rules.len(),
+        undefined_symbols,
+        unreachable_symbols,
+        strict_findings,
+    })
+}
+
+fn collect_generic_references(
+    source: &str,
+    expr: &EbnfGrammarExpr,
+    names: &BTreeSet<String>,
+    references: &mut BTreeSet<String>,
+    findings: &mut Vec<EbnfValidationFinding>,
+) {
+    match &expr.kind {
+        EbnfGrammarExprKind::Nonterminal { name } => {
+            if names.contains(name) {
+                references.insert(name.clone());
+            } else {
+                findings.push(EbnfValidationFinding {
+                    line: source_line(source, expr.span.start),
+                    kind: "undefined-symbol".to_string(),
+                    message: format!("reference to '{name}' is not defined"),
+                });
+            }
+        }
+        EbnfGrammarExprKind::Sequence { items } | EbnfGrammarExprKind::Alternation { items } => {
+            for item in items {
+                collect_generic_references(source, item, names, references, findings);
+            }
+        }
+        EbnfGrammarExprKind::Optional { expr }
+        | EbnfGrammarExprKind::Repetition { expr }
+        | EbnfGrammarExprKind::Group { expr }
+        | EbnfGrammarExprKind::OneOrMore { expr } => {
+            collect_generic_references(source, expr, names, references, findings);
+        }
+        EbnfGrammarExprKind::Terminal { .. }
+        | EbnfGrammarExprKind::CharacterClass { .. }
+        | EbnfGrammarExprKind::Special { .. } => {}
+    }
+}
+
+fn source_line(source: &str, byte: usize) -> usize {
+    source
+        .as_bytes()
+        .iter()
+        .take(byte.min(source.len()))
+        .filter(|value| **value == b'\n')
+        .count()
+        + 1
+}
+
 /// Validates the required shape of the Terlan syntax contract.
 ///
 /// Inputs: compiled grammar contract. Output: validation diagnostics.
@@ -337,6 +493,8 @@ pub fn validate_syntax_contract(contract: &EbnfGrammarContract) -> Vec<SyntaxCon
             message: "syntax contract entry rule must be SyntaxSpec".to_string(),
         });
     }
+
+    require_all_rules_reachable(contract, &mut diagnostics);
 
     for rule in REQUIRED_SYNTAX_RULES {
         if contract.rule(rule).is_none() {
@@ -538,6 +696,54 @@ fn require_rule_reference(
     }
 }
 
+/// Requires every production to be reachable from the declared entry rule.
+fn require_all_rules_reachable(
+    contract: &EbnfGrammarContract,
+    diagnostics: &mut Vec<SyntaxContractDiagnostic>,
+) {
+    let Some(entry_rule) = contract.entry_rule.as_deref() else {
+        return;
+    };
+    let mut reachable = BTreeSet::new();
+    let mut pending = vec![entry_rule.to_string()];
+    while let Some(name) = pending.pop() {
+        if !reachable.insert(name.clone()) {
+            continue;
+        }
+        let Some(rule) = contract.rule(&name) else {
+            continue;
+        };
+        collect_rule_references(&rule.expr, &mut pending);
+    }
+    for rule in &contract.rules {
+        if !reachable.contains(&rule.name) {
+            diagnostics.push(SyntaxContractDiagnostic {
+                span: rule.name_span.into(),
+                message: format!("syntax rule {} is unreachable from {entry_rule}", rule.name),
+            });
+        }
+    }
+}
+
+/// Collects direct nonterminal references from one EBNF expression tree.
+fn collect_rule_references(expr: &EbnfGrammarExpr, references: &mut Vec<String>) {
+    match &expr.kind {
+        EbnfGrammarExprKind::Nonterminal { name } => references.push(name.clone()),
+        EbnfGrammarExprKind::Sequence { items } | EbnfGrammarExprKind::Alternation { items } => {
+            for item in items {
+                collect_rule_references(item, references);
+            }
+        }
+        EbnfGrammarExprKind::Optional { expr }
+        | EbnfGrammarExprKind::Repetition { expr }
+        | EbnfGrammarExprKind::Group { expr }
+        | EbnfGrammarExprKind::OneOrMore { expr } => collect_rule_references(expr, references),
+        EbnfGrammarExprKind::Terminal { .. }
+        | EbnfGrammarExprKind::CharacterClass { .. }
+        | EbnfGrammarExprKind::Special { .. } => {}
+    }
+}
+
 /// Returns whether an EBNF expression references a rule.
 ///
 /// Inputs: grammar expression and rule name. Output: reference flag.
@@ -563,4 +769,5 @@ fn expr_references_rule(expr: &EbnfGrammarExpr, rule_name: &str) -> bool {
 
 #[cfg(test)]
 #[path = "syntax_contract_test.rs"]
+#[cfg(test)]
 mod syntax_contract_test;

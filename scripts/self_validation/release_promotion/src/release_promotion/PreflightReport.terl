@@ -1,0 +1,170 @@
+/**
+ * Deterministic final release support and preflight report writer.
+ */
+module release_promotion.PreflightReport.
+
+import std.core.Result.{Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.File.
+
+@pure
+child(parent: String, relative: String): String ->
+    if {
+        String.ends_with(parent, "/") -> String.append(parent, relative);
+        true -> String.concat([parent, "/", relative])
+    }.
+
+text(root: String, relative: String): String ->
+    case File.read_text(child(root, relative)) {
+        Ok(value) -> value;
+        _ -> ""
+    }.
+
+support_identity(candidate_seal: String): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.release-support-matrix.v1"))
+        .put("decision", Json.string("pass"))
+        .put("candidate_seal", Json.string(candidate_seal))
+        .put("supported_host", Json.string("linux-x86_64-installed"))
+        .put("platform_contracts", Json.int(6)).
+
+support_abi(document: Json): Json ->
+    document
+        .put("cross_host_status", Json.string("required-platform-attestation"))
+        .put("runtime_abi", Json.int(3))
+        .put("image_format", Json.string("1.5"))
+        .put("native_ir_abi", Json.string("terlan-native-v2"))
+        .put("native_boundary_adapter_abi", Json.int(1)).
+
+support_document(candidate_seal: String): Json ->
+    support_abi(support_identity(candidate_seal))
+        .put("release_version", Json.string("0.0.7"))
+        .put(
+            "deployment_baseline",
+            Json.string("linux-x86_64; platform attestations required elsewhere"),
+        )
+        .put(
+            "known_limitations",
+            Json.string(
+                "cross-host execution and controlled performance require their classified runners",
+            ),
+        ).
+
+final_identity(candidate_seal: String, metadata_bound: Bool): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.release-0-0-7-preflight.v1"))
+        .put("decision", Json.string("pass"))
+        .put("candidate_seal", Json.string(candidate_seal))
+        .put("release_metadata_bound", Json.bool(metadata_bound)).
+
+final_counts(
+    document: Json,
+    total: Int,
+    local: Int,
+    platform: Int,
+    controlled: Int,
+    experimental: Int,
+    retired: Int,
+): Json ->
+    document
+        .put("closure_gate_count", Json.int(total))
+        .put("required_local", Json.int(local))
+        .put("required_platform", Json.int(platform))
+        .put("required_controlled_host", Json.int(controlled))
+        .put("experimental", Json.int(experimental))
+        .put("retired", Json.int(retired)).
+
+final_documentation(document: Json, docs_digest: String): Json ->
+    document
+        .put("outcome_report_count", Json.int(17))
+        .put("documentation_manifest", Json.string("docs/release/PUBLISHABLE_DOCUMENTATION.tsv"))
+        .put("documentation_manifest_sha256", Json.string(docs_digest)).
+
+final_policy(document: Json): Json ->
+    document
+        .put("offline", Json.bool(true))
+        .put("publication_required", Json.bool(false))
+        .put("candidate_build_count", Json.int(1))
+        .put("candidate_seal_count", Json.int(1))
+        .put("evidence_strategy", Json.string("candidate-bound-composition-v1"))
+        .put("evidence_refresh_command", Json.string("make release-0-0-7-evidence-refresh"))
+        .put("preflight_replays_completed_gates", Json.bool(false))
+        .put("same_process_required", Json.bool(false))
+        .put("selective_invalidation_required", Json.bool(true)).
+
+final_document(
+    candidate_seal: String,
+    metadata_bound: Bool,
+    docs_digest: String,
+    total: Int,
+    local: Int,
+    platform: Int,
+    controlled: Int,
+    experimental: Int,
+    retired: Int,
+): Json ->
+    final_policy(
+        final_documentation(
+            final_counts(
+                final_identity(candidate_seal, metadata_bound),
+                total,
+                local,
+                platform,
+                controlled,
+                experimental,
+                retired,
+            ),
+            docs_digest,
+        ),
+    ).
+
+/**
+ * Writes both final reports after all validation has succeeded.
+ */
+pub write(
+    root: String,
+    candidate_seal: String,
+    total: Int,
+    local: Int,
+    platform: Int,
+    controlled: Int,
+    experimental: Int,
+    retired: Int,
+): Bool ->
+    let docs_manifest = "docs/release/PUBLISHABLE_DOCUMENTATION.tsv";
+    let {
+        Ok(docs_digest) <- Hash.sha256_file(child(root, docs_manifest));
+        Ok(support_rendered) <- Json.stringify_pretty(support_document(candidate_seal));
+        Ok(Unit) <-
+            File.write_text(
+                child(root, "target/quality/release-0-0-7-support-manifest.json"),
+                String.append(support_rendered, "\n"),
+            );
+        Ok(final_rendered) <-
+            Json.stringify_pretty(
+                final_document(
+                    candidate_seal,
+                    String.contains(
+                        text(root, "dist/terlan-release.json"),
+                        "\"version\": \"0.0.7\"",
+                    ),
+                    docs_digest,
+                    total,
+                    local,
+                    platform,
+                    controlled,
+                    experimental,
+                    retired,
+                ),
+            );
+        Ok(Unit) <-
+            File.write_text(
+                child(root, "target/quality/release-0-0-7-preflight-report.json"),
+                String.append(final_rendered, "\n"),
+            )
+    } else {
+        _ -> false
+    };
+    true.

@@ -1,3 +1,44 @@
+macro_rules! expr_node {
+    (
+        $kind:expr,
+        $text:expr,
+        $operator:expr,
+        $remote:expr,
+        $children:expr,
+        $patterns:expr,
+        $fields:expr,
+        $clauses:expr,
+        $span:expr $(,)?
+    ) => {{
+        let children: Vec<SyntaxExprOutput> = $children;
+        let patterns: Vec<SyntaxPatternOutput> = $patterns;
+        let fields: Vec<SyntaxExprFieldOutput> = $fields;
+        let clauses: Vec<SyntaxClauseOutput> = $clauses;
+        SyntaxExprOutput {
+            kind: $kind,
+            arity: $crate::compiler::syntax::syntax_output::node_arity(
+                &children, &patterns, &fields, &clauses,
+            ),
+            text: $text,
+            span: $span,
+            raw: None,
+            comprehension_lift: None,
+            type_args: Vec::new(),
+            operator: $operator,
+            remote: $remote,
+            arg_names: Vec::new(),
+            children,
+            patterns,
+            let_guards: Vec::new(),
+            fields,
+            clauses,
+            catch_clauses: Vec::new(),
+            try_after: None,
+            html_nodes: Vec::new(),
+        }
+    }};
+}
+
 mod annotation_schemas;
 mod annotations;
 mod config;
@@ -70,9 +111,21 @@ use crate::terlan_syntax::{
 pub fn parse_module_as_syntax_output(input: &str) -> EbnfCompileResult<SyntaxModuleOutput> {
     let module =
         parse_module(input).map_err(|err| EbnfCompileError::Parse(err.message, err.span))?;
-    let mut output = module_as_syntax_output(&module, SyntaxSourceKind::Module)?;
-    expand_local_shape_synonyms(&module, &mut output.declarations)?;
-    Ok(output)
+    module_as_validated_syntax_output(&module, SyntaxSourceKind::Module)
+}
+
+/// Parses a headerless executable script into ordinary module syntax output.
+///
+/// The parser synthesizes public `main/0` while preserving source-authored
+/// expression spans. Downstream resolution, typing, Core lowering, and AOT
+/// compilation therefore use the exact maintained module pipeline.
+pub fn parse_script_as_syntax_output(
+    input: &str,
+    module_name: &str,
+) -> EbnfCompileResult<SyntaxModuleOutput> {
+    let module = crate::terlan_syntax::parser::parse_script(input, module_name)
+        .map_err(|err| EbnfCompileError::Parse(err.message, err.span))?;
+    module_as_validated_syntax_output(&module, SyntaxSourceKind::Module)
 }
 
 /// Collects canonical provider identities for module imports.
@@ -95,8 +148,13 @@ pub fn syntax_module_import_identities(module: &SyntaxModuleOutput) -> Vec<Strin
                 import_kind: SyntaxImportKind::Module,
                 module_name,
                 items,
+                is_selected,
                 ..
-            } => Some(syntax_module_import_identity(module_name, items)),
+            } => Some(syntax_module_import_identity(
+                module_name,
+                items,
+                *is_selected,
+            )),
             _ => None,
         })
         .collect::<Vec<_>>();
@@ -115,7 +173,23 @@ pub fn parse_interface_module_as_syntax_output(
 ) -> EbnfCompileResult<SyntaxModuleOutput> {
     let module = parse_interface_module(input)
         .map_err(|err| EbnfCompileError::Parse(err.message, err.span))?;
-    module_as_syntax_output(&module, SyntaxSourceKind::Interface)
+    module_as_validated_syntax_output(&module, SyntaxSourceKind::Interface)
+}
+
+/// Builds and validates syntax output from an already parsed module.
+///
+/// This boundary lets consumers that also need the parse tree avoid parsing the
+/// same source twice while retaining syntax-output schema, annotation, and shape
+/// validation.
+pub(crate) fn module_as_validated_syntax_output(
+    module: &Module,
+    source_kind: SyntaxSourceKind,
+) -> EbnfCompileResult<SyntaxModuleOutput> {
+    let mut output = module_as_syntax_output(module, source_kind)?;
+    if source_kind == SyntaxSourceKind::Module {
+        expand_local_shape_synonyms(module, &mut output.declarations)?;
+    }
+    Ok(output)
 }
 
 /// Parses one Terlan expression into syntax-output form.
@@ -201,7 +275,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             expr_leaf_with_span(SyntaxExprKind::Binary, Some(value.clone()), span)
         }
         Expr::Var(name) => expr_leaf_with_span(SyntaxExprKind::Var, Some(name.clone()), span),
-        Expr::Tuple(items) => expr_node(
+        Expr::Tuple(items) => expr_node!(
             SyntaxExprKind::Tuple,
             None,
             None,
@@ -215,7 +289,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
-        Expr::List(items) => expr_node(
+        Expr::List(items) => expr_node!(
             SyntaxExprKind::List,
             None,
             None,
@@ -229,7 +303,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
-        Expr::ListCons(head, tail) => expr_node(
+        Expr::ListCons(head, tail) => expr_node!(
             SyntaxExprKind::ListCons,
             None,
             None,
@@ -243,7 +317,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
-        Expr::FixedArray(items) => expr_node(
+        Expr::FixedArray(items) => expr_node!(
             SyntaxExprKind::FixedArray,
             None,
             None,
@@ -257,7 +331,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
-        Expr::Index(value, index) => expr_node(
+        Expr::Index(value, index) => expr_node!(
             SyntaxExprKind::Index,
             None,
             None,
@@ -275,7 +349,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             collection,
             index,
             value,
-        } => expr_node(
+        } => expr_node!(
             SyntaxExprKind::IndexAssign,
             None,
             None,
@@ -290,7 +364,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
-        Expr::Map(fields) => expr_node(
+        Expr::Map(fields) => expr_node!(
             SyntaxExprKind::Map,
             None,
             None,
@@ -320,7 +394,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
                     .iter()
                     .map(|guard| expr_output_with_span(guard, span)),
             );
-            expr_node(
+            expr_node!(
                 SyntaxExprKind::ListComprehension,
                 None,
                 None,
@@ -349,7 +423,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
                 children.push(expr_output_with_span(body, span));
             }
 
-            expr_node(
+            expr_node!(
                 SyntaxExprKind::Let,
                 None,
                 None,
@@ -379,7 +453,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             let mut children = Vec::with_capacity(args.len() + 1);
             children.push(expr_output_with_span(callee, span));
             children.extend(args.iter().map(|arg| expr_output_with_span(arg, span)));
-            let mut output = expr_node(
+            let mut output = expr_node!(
                 if *is_fun_value {
                     SyntaxExprKind::FunctionCall
                 } else {
@@ -399,7 +473,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             output.type_args = type_args.iter().map(type_expr_output).collect();
             output
         }
-        Expr::Case { scrutinee, clauses } => expr_node(
+        Expr::Case { scrutinee, clauses } => expr_node!(
             SyntaxExprKind::Case,
             None,
             None,
@@ -419,7 +493,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             catch_clauses,
             after_clause,
         } => {
-            let mut output = expr_node(
+            let mut output = expr_node!(
                 SyntaxExprKind::Try,
                 None,
                 None,
@@ -443,7 +517,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             });
             output
         }
-        Expr::If { clauses } => expr_node(
+        Expr::If { clauses } => expr_node!(
             SyntaxExprKind::If,
             None,
             None,
@@ -457,7 +531,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
                 .collect(),
             span,
         ),
-        Expr::Fun { clauses } => expr_node(
+        Expr::Fun { clauses } => expr_node!(
             SyntaxExprKind::Fun,
             None,
             None,
@@ -471,7 +545,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
                 .collect(),
             span,
         ),
-        Expr::MacroCall { name, args } => expr_node(
+        Expr::MacroCall { name, args } => expr_node!(
             SyntaxExprKind::Macro,
             Some(name.clone()),
             None,
@@ -491,7 +565,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             interpolations,
             raw,
         } => {
-            let mut output = expr_node(
+            let mut output = expr_node!(
                 SyntaxExprKind::RawMacro,
                 Some(name.clone()),
                 None,
@@ -511,7 +585,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
         }
         Expr::HtmlBlock(block) => {
             let html_nodes = block.nodes.iter().map(html_node_output).collect::<Vec<_>>();
-            let mut output = expr_node(
+            let mut output = expr_node!(
                 SyntaxExprKind::HtmlBlock,
                 Some(block.raw.clone()),
                 None,
@@ -526,7 +600,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             output.html_nodes = html_nodes;
             output
         }
-        Expr::RecordAccess { value, name, field } => expr_node(
+        Expr::RecordAccess { value, name, field } => expr_node!(
             SyntaxExprKind::RecordAccess,
             Some(format!("{name}.{field}")),
             None,
@@ -537,7 +611,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
-        Expr::FieldAccess { value, field } => expr_node(
+        Expr::FieldAccess { value, field } => expr_node!(
             SyntaxExprKind::FieldAccess,
             Some(field.clone()),
             None,
@@ -552,7 +626,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             value,
             name,
             fields,
-        } => expr_node(
+        } => expr_node!(
             SyntaxExprKind::RecordUpdate,
             Some(name.clone()),
             None,
@@ -566,7 +640,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
-        Expr::RecordConstruct { name, fields } => expr_node(
+        Expr::RecordConstruct { name, fields } => expr_node!(
             SyntaxExprKind::RecordConstruct,
             Some(name.clone()),
             None,
@@ -580,7 +654,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
-        Expr::BinaryLayout { endian, fields } => expr_node(
+        Expr::BinaryLayout { endian, fields } => expr_node!(
             SyntaxExprKind::BinaryLayout,
             Some(endian.clone()),
             None,
@@ -594,7 +668,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
-        Expr::ConstructorChain { base, record } => expr_node(
+        Expr::ConstructorChain { base, record } => expr_node!(
             SyntaxExprKind::ConstructorChain,
             None,
             None,
@@ -608,7 +682,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
-        Expr::UnaryOp { op, expr } => expr_node(
+        Expr::UnaryOp { op, expr } => expr_node!(
             SyntaxExprKind::UnaryOp,
             None,
             Some(unary_op_text(op).to_string()),
@@ -620,7 +694,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             span,
         )
         .with_arity(1),
-        Expr::Cast { expr, target_type } => expr_node(
+        Expr::Cast { expr, target_type } => expr_node!(
             SyntaxExprKind::Cast,
             Some(target_type.text.clone()),
             Some("as".to_string()),
@@ -632,21 +706,8 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             span,
         )
         .with_arity(1),
-        Expr::BinaryOp { op, left, right } => expr_node(
-            SyntaxExprKind::BinaryOp,
-            None,
-            Some(binary_op_text(op).to_string()),
-            None,
-            vec![
-                expr_output_with_span(left, span),
-                expr_output_with_span(right, span),
-            ],
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            span,
-        ),
-        Expr::Quote(inner) => expr_node(
+        Expr::BinaryOp { .. } => binary_expr_output_with_span(expr, span),
+        Expr::Quote(inner) => expr_node!(
             SyntaxExprKind::Quote,
             None,
             None,
@@ -657,7 +718,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
-        Expr::Unquote(inner) => expr_node(
+        Expr::Unquote(inner) => expr_node!(
             SyntaxExprKind::Unquote,
             None,
             None,
@@ -668,7 +729,7 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
-        Expr::Sequence(expressions) => expr_node(
+        Expr::Sequence(expressions) => expr_node!(
             SyntaxExprKind::Sequence,
             None,
             None,
@@ -685,161 +746,13 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
     }
 }
 
-/// Builds a leaf expression node with no raw spelling override.
-///
-/// Inputs: expression kind, optional text, and span. Output: syntax-output leaf
-/// expression. Transformation: delegates to the general node builder with empty
-/// child/pattern/field/clause collections.
-fn expr_leaf_with_span(
-    kind: SyntaxExprKind,
-    text: Option<String>,
-    span: EbnfSourceSpan,
-) -> SyntaxExprOutput {
-    expr_node(
-        kind,
-        text,
-        None,
-        None,
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        span,
-    )
-}
+mod expression_nodes;
 
-/// Builds a leaf expression node while preserving raw source spelling.
-///
-/// Inputs:
-/// - `kind`: syntax-output expression kind.
-/// - `text`: normalized expression payload.
-/// - `raw`: canonical source spelling that should survive the syntax boundary.
-/// - `span`: source span for diagnostics.
-///
-/// Output:
-/// - A `SyntaxExprOutput` leaf with no children and the supplied raw payload.
-///
-/// Transformation:
-/// - Starts from the standard expression-node shape and overrides only `raw`
-///   so downstream phases can distinguish explicit source forms that share the
-///   same semantic kind.
-fn expr_leaf_with_span_and_raw(
-    kind: SyntaxExprKind,
-    text: Option<String>,
-    raw: Option<String>,
-    span: EbnfSourceSpan,
-) -> SyntaxExprOutput {
-    let mut output = expr_leaf_with_span(kind, text, span);
-    output.raw = raw;
-    output
-}
-
-/// Renders the canonical raw syntax for an atom literal expression.
-///
-/// Inputs:
-/// - `payload`: unescaped atom payload text.
-///
-/// Output:
-/// - Canonical `Atom["..."]` source spelling.
-///
-/// Transformation:
-/// - Escapes only the characters that need stable representation inside a
-///   normal Terlan string literal.
-fn format_canonical_atom_literal_raw(payload: &str) -> String {
-    let escaped = payload
-        .chars()
-        .flat_map(|ch| match ch {
-            '"' => "\\\"".chars().collect::<Vec<_>>(),
-            '\\' => "\\\\".chars().collect::<Vec<_>>(),
-            '\n' => "\\n".chars().collect::<Vec<_>>(),
-            '\r' => "\\r".chars().collect::<Vec<_>>(),
-            '\t' => "\\t".chars().collect::<Vec<_>>(),
-            other => vec![other],
-        })
-        .collect::<String>();
-    format!("Atom[\"{escaped}\"]")
-}
-
-/// Builds a syntax-output expression node.
-///
-/// Inputs: kind, optional text/operator/remote metadata, children, patterns,
-/// fields, clauses, and span. Output: populated `SyntaxExprOutput`.
-/// Transformation: computes arity from the widest child collection and fills
-/// default optional collections for catch/after/html payloads.
-fn expr_node(
-    kind: SyntaxExprKind,
-    text: Option<String>,
-    operator: Option<String>,
-    remote: Option<String>,
-    children: Vec<SyntaxExprOutput>,
-    patterns: Vec<SyntaxPatternOutput>,
-    fields: Vec<SyntaxExprFieldOutput>,
-    clauses: Vec<SyntaxClauseOutput>,
-    span: EbnfSourceSpan,
-) -> SyntaxExprOutput {
-    SyntaxExprOutput {
-        kind,
-        arity: node_arity(&children, &patterns, &fields, &clauses),
-        text,
-        span,
-        raw: None,
-        comprehension_lift: None,
-        type_args: Vec::new(),
-        operator,
-        remote,
-        arg_names: Vec::new(),
-        children,
-        patterns,
-        let_guards: Vec::new(),
-        fields,
-        clauses,
-        catch_clauses: Vec::new(),
-        try_after: None,
-        html_nodes: Vec::new(),
-    }
-}
-
-/// Computes default expression-node arity.
-///
-/// Inputs: child, pattern, field, and clause collections. Output: maximum
-/// collection length. Transformation: treats the widest structural collection
-/// as the node's default arity.
-fn node_arity(
-    children: &[SyntaxExprOutput],
-    patterns: &[SyntaxPatternOutput],
-    fields: &[SyntaxExprFieldOutput],
-    clauses: &[SyntaxClauseOutput],
-) -> usize {
-    fields
-        .len()
-        .max(clauses.len())
-        .max(patterns.len())
-        .max(children.len())
-}
-
-/// Extension trait for overriding syntax-output expression arity.
-///
-/// Inputs: expression output and explicit arity. Output: expression output with
-/// replaced arity. Transformation: supports source forms where semantic arity
-/// differs from the widest child collection.
-trait SyntaxExprArity {
-    /// Overrides expression arity.
-    ///
-    /// Inputs: expression output and new arity. Output: updated expression.
-    /// Transformation: replaces only the `arity` field.
-    fn with_arity(self, arity: usize) -> Self;
-}
-
-impl SyntaxExprArity for SyntaxExprOutput {
-    /// Overrides expression arity.
-    ///
-    /// Inputs: expression output and new arity. Output: updated expression.
-    /// Transformation: mutates only the `arity` field before returning `self`.
-    fn with_arity(mut self, arity: usize) -> Self {
-        self.arity = arity;
-        self
-    }
-}
+pub(crate) use expression_nodes::node_arity;
+use expression_nodes::{
+    binary_expr_output_with_span, expr_leaf_with_span, expr_leaf_with_span_and_raw,
+    format_canonical_atom_literal_raw, SyntaxExprArity,
+};
 
 /// Converts a map/record expression field to syntax output.
 ///
@@ -920,32 +833,40 @@ fn function_clause_output_with_span(
 
 #[cfg(test)]
 #[path = "syntax_output_decl_test.rs"]
+#[cfg(test)]
 mod syntax_output_decl_test;
 
 #[cfg(test)]
 #[path = "syntax_output_expr_test.rs"]
+#[cfg(test)]
 mod syntax_output_expr_test;
 
 #[cfg(test)]
 #[path = "syntax_output_html_test.rs"]
+#[cfg(test)]
 mod syntax_output_html_test;
 
 #[cfg(test)]
 #[path = "syntax_output_pattern_test.rs"]
+#[cfg(test)]
 mod syntax_output_pattern_test;
 
 #[cfg(test)]
 #[path = "syntax_output/shapes_test.rs"]
+#[cfg(test)]
 mod shapes_test;
 
 #[cfg(test)]
 #[path = "syntax_output/shapes/overlap_predicate_implication_test.rs"]
+#[cfg(test)]
 mod shape_overlap_predicate_implication_test;
 
 #[cfg(test)]
 #[path = "syntax_output/shapes/overlap_relation_transitive_test.rs"]
+#[cfg(test)]
 mod shape_overlap_relation_transitive_test;
 
 #[cfg(test)]
 #[path = "syntax_output/shapes/overlap_test.rs"]
+#[cfg(test)]
 mod shape_overlap_test;

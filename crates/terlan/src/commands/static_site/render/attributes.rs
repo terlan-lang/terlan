@@ -48,5 +48,6 @@ pub(super) fn render_static_template_attribute(
         },
     };
 
-    render_template_attribute(name, typed_value).map_err(StaticSyntaxRenderError::Invalid)
+    render_template_attribute(name, typed_value)
+        .map_err(|error| StaticSyntaxRenderError::Invalid(error.into()))
 }

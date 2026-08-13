@@ -24,6 +24,6 @@ pub name_typechecks(receiver: FileSystemHandle): std.js.String.JsString ->
 
 pub is_same_entry_typechecks(
     receiver: FileSystemHandle,
-    other: FileSystemHandle
+    other: FileSystemHandle,
 ): std.js.Promise[std.core.Bool] ->
     receiver.is_same_entry(other).

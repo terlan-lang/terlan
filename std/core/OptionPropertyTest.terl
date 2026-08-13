@@ -20,10 +20,14 @@ import std.test.Test.{each}.
  */
 @test
 pub generated_options_are_classified_by_shape(): Bool ->
-    for_all(option_of(elements([1, 2, 3])), (value) -> case value {
-        None -> is_none(value) and is_some(value) == false;
-        Some(_) -> is_some(value) and is_none(value) == false
-    }).
+    for_all(
+        option_of(elements([1, 2, 3])),
+        (value) ->
+            case value {
+                None -> is_none(value) and is_some(value) == false;
+                Some(_) -> is_some(value) and is_none(value) == false
+            },
+    ).
 
 /**
  * Verifies generated options use defaults only when missing.
@@ -35,7 +39,11 @@ pub generated_options_are_classified_by_shape(): Bool ->
  */
 @test
 pub generated_options_with_default_respects_shape(): Bool ->
-    for_all(option_of(elements([1, 2, 3])), (value) -> case value {
-        None -> with_default(value, 7) == 7;
-        Some(payload) -> with_default(value, 7) == payload
-    }).
+    for_all(
+        option_of(elements([1, 2, 3])),
+        (value) ->
+            case value {
+                None -> with_default(value, 7) == 7;
+                Some(payload) -> with_default(value, 7) == payload
+            },
+    ).

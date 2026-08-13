@@ -26,6 +26,6 @@ pub opaque type FileSystemDirectoryReader.
  */
 pub (value: FileSystemDirectoryReader) read_entries(
     success_callback: FileSystemEntriesCallback,
-    error_callback: ErrorCallback
+    error_callback: ErrorCallback,
 ): std.core.Unit ->
     native.

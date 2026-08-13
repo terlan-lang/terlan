@@ -6,7 +6,7 @@
     "Terlan.Core.typedIntegerExpressionEvaluates"
   ],
   "manifest_fingerprints": {
-    "docs/compiler/CORE_IR_LEAN_CONFORMANCE.md": "sha256:7405d0f3c400fba6c027c05961cfb541d6b4813fe01b4dd8be90e077e10b6b6f",
+    "docs/compiler/CORE_IR_LEAN_CONFORMANCE.md": "sha256:1e9e52dcd1b10f2a63583853df5701009cc084233363e840c493abc45eab02a0",
     "docs/compiler/type_spec/terlan_core_typing_spec.toml": "sha256:ad3030afeacca68027a719071a87526c0e8902067d639475cdd350539a6fefd3"
   },
   "dependency_files": [

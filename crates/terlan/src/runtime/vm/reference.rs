@@ -1,10 +1,9 @@
-#![allow(dead_code)]
-
 use std::fmt;
 use std::sync::Arc;
 
 #[cfg(test)]
 #[path = "reference_test.rs"]
+#[cfg(test)]
 mod reference_test;
 
 /// Distribution-safe identity allocated by one Terlan VM instance.
@@ -17,11 +16,13 @@ pub(crate) struct VmReferenceId {
 
 impl VmReferenceId {
     /// Returns the VM node that allocated this reference.
+    #[cfg(test)]
     pub(crate) fn node_id(&self) -> &str {
         &self.node_id
     }
 
     /// Returns the allocating VM boot epoch.
+    #[cfg(test)]
     pub(crate) const fn epoch(&self) -> u64 {
         self.epoch
     }
@@ -36,6 +37,7 @@ impl VmReferenceId {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmReferenceAllocationError {
     ReferenceSequenceExhausted,
+    #[cfg(test)]
     UniqueIntegerSequenceExhausted,
 }
 
@@ -45,6 +47,7 @@ impl fmt::Display for VmReferenceAllocationError {
             Self::ReferenceSequenceExhausted => {
                 formatter.write_str("VM reference sequence exhausted")
             }
+            #[cfg(test)]
             Self::UniqueIntegerSequenceExhausted => {
                 formatter.write_str("VM unique-integer sequence exhausted")
             }
@@ -63,8 +66,10 @@ pub(crate) struct VmReferenceAllocator {
     node_id: Arc<str>,
     epoch: u64,
     next_reference_id: u64,
+    #[cfg(test)]
     next_unique_integer: i64,
     reference_limit: u64,
+    #[cfg(test)]
     unique_integer_limit: i64,
 }
 
@@ -95,8 +100,10 @@ impl VmReferenceAllocator {
             node_id: Arc::from(node_id),
             epoch,
             next_reference_id: 0,
+            #[cfg(test)]
             next_unique_integer: 0,
             reference_limit,
+            #[cfg(test)]
             unique_integer_limit,
         })
     }
@@ -121,6 +128,7 @@ impl VmReferenceAllocator {
     }
 
     /// Allocates a positive monotonic integer unique within this VM epoch.
+    #[cfg(test)]
     pub(crate) fn allocate_unique_integer(&mut self) -> Result<i64, VmReferenceAllocationError> {
         let value = self
             .next_unique_integer

@@ -20,19 +20,27 @@ pub equal_rejects_different_integers(): Bool ->
 
 @test
 pub min_rows_return_expected_integer(): Bool ->
-    each_result([row("smaller left", {3, 7}, 3), row("equal values", {3, 3}, 3)], (input) -> case input {
-        {left, right} -> min(left, right)
-    }).
+    each_result(
+        [row("smaller left", {3, 7}, 3), row("equal values", {3, 3}, 3)],
+        (input) ->
+            case input {
+                {left, right} -> min(left, right)
+            },
+    ).
 
 @test
 pub max_rows_return_expected_integer(): Bool ->
-    each_result([row("larger right", {3, 7}, 7), row("equal values", {7, 7}, 7)], (input) -> case input {
-        {left, right} -> max(left, right)
-    }).
+    each_result(
+        [row("larger right", {3, 7}, 7), row("equal values", {7, 7}, 7)],
+        (input) ->
+            case input {
+                {left, right} -> max(left, right)
+            },
+    ).
 
 @test
 pub abs_rows_return_expected_integer(): Bool ->
-    each_result([row("positive", 7, 7), row("negative", -7, 7)], (value) -> abs(value)).
+    each_result([row("positive", 7, 7), row("negative", -7, 7)], abs).
 
 @test
 pub compare_orders_smaller_integer_first(): Bool ->
@@ -85,14 +93,13 @@ pub from_string_rejects_unknown_text(): Bool ->
 
 @test
 pub to_string_base_formats_signed_values_and_uppercase_digits(): Bool ->
-    case to_string_base(255, 16) {
-        Some(hexadecimal) ->
-            case to_string_base(-2, 2) {
-                Some(binary) -> assert_equal("FF", hexadecimal) and assert_equal("-10", binary);
-                None -> false
-            };
-        None -> false
-    }.
+    let {
+        Some(hexadecimal) <- to_string_base(255, 16);
+        Some(binary) <- to_string_base(-2, 2)
+    } else {
+        _ -> false
+    };
+    assert_equal("FF", hexadecimal) and assert_equal("-10", binary).
 
 @test
 pub to_string_base_rejects_out_of_range_bases(): Bool ->
@@ -100,20 +107,17 @@ pub to_string_base_rejects_out_of_range_bases(): Bool ->
 
 @test
 pub from_string_base_parses_signed_case_insensitive_digits(): Bool ->
-    case from_string_base("FF", 16) {
-        Some(uppercase) ->
-            case from_string_base("ff", 16) {
-                Some(lowercase) ->
-                    case from_string_base("-10", 2) {
-                        Some(signed) ->
-                            assert_equal(255, uppercase) and assert_equal(255, lowercase) and assert_equal(-2, signed);
-                        None -> false
-                    };
-                None -> false
-            };
-        None -> false
-    }.
+    let {
+        Some(uppercase) <- from_string_base("FF", 16);
+        Some(lowercase) <- from_string_base("ff", 16);
+        Some(signed) <- from_string_base("-10", 2)
+    } else {
+        _ -> false
+    };
+    assert_equal(255, uppercase) and assert_equal(255, lowercase) and assert_equal(-2, signed).
 
 @test
 pub from_string_base_rejects_invalid_text_base_and_overflow(): Bool ->
-    assert_equal(None, from_string_base("12x", 10)) and assert_equal(None, from_string_base("1", 1)) and assert_equal(None, from_string_base("9223372036854775808", 10)).
+    assert_equal(None, from_string_base("12x", 10))
+        and assert_equal(None, from_string_base("1", 1))
+        and assert_equal(None, from_string_base("9223372036854775808", 10)).

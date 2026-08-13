@@ -1,4 +1,7 @@
-use super::{VmSupervisionBackoffCompletion, VmSupervisionBackoffQueue, VmSupervisionBackoffStart};
+use super::{
+    VmSupervisionBackoffCompletion, VmSupervisionBackoffQueue, VmSupervisionBackoffStart,
+    VmSupervisionRestartRequest,
+};
 use crate::runtime::vm::{
     process::{VmExitReason, VmProcessSource, VmProcessState, VmProcessTable},
     scheduler::VmScheduler,
@@ -68,10 +71,7 @@ fn supervision_backoff_defers_restart_until_vm_timer_fires() {
             &mut supervision,
             &mut timers,
             &mut processes,
-            supervisor,
-            "worker",
-            VmExitReason::Killed,
-            100,
+            VmSupervisionRestartRequest::new(supervisor, "worker", VmExitReason::Killed, 100),
         )
         .expect("schedule restart");
     let VmSupervisionBackoffStart::Deferred {
@@ -138,10 +138,7 @@ fn supervision_backoff_rejects_duplicate_and_cancels_without_restart() {
             &mut supervision,
             &mut timers,
             &mut processes,
-            supervisor,
-            "worker",
-            VmExitReason::Killed,
-            0,
+            VmSupervisionRestartRequest::new(supervisor, "worker", VmExitReason::Killed, 0),
         )
         .expect("schedule")
     else {
@@ -157,10 +154,7 @@ fn supervision_backoff_rejects_duplicate_and_cancels_without_restart() {
             &mut supervision,
             &mut timers,
             &mut processes,
-            supervisor,
-            "worker",
-            VmExitReason::Killed,
-            1,
+            VmSupervisionRestartRequest::new(supervisor, "worker", VmExitReason::Killed, 1),
         )
         .expect_err("duplicate must fail");
     assert!(duplicate.contains("already pending"));
@@ -201,10 +195,7 @@ fn supervision_backoff_ignores_stale_deadline_after_external_restart() {
             &mut supervision,
             &mut timers,
             &mut processes,
-            supervisor,
-            "worker",
-            VmExitReason::Killed,
-            0,
+            VmSupervisionRestartRequest::new(supervisor, "worker", VmExitReason::Killed, 0),
         )
         .expect("schedule");
     let VmSupervisionRestart::Restarted { new_pid, .. } = supervision
@@ -252,10 +243,7 @@ fn supervision_backoff_rejects_deadline_overflow_without_exiting_child() {
             &mut supervision,
             &mut timers,
             &mut processes,
-            supervisor,
-            "worker",
-            VmExitReason::Killed,
-            u64::MAX,
+            VmSupervisionRestartRequest::new(supervisor, "worker", VmExitReason::Killed, u64::MAX),
         )
         .expect_err("overflow must fail");
     assert!(error.contains("deadline overflow"));
@@ -288,10 +276,7 @@ fn supervision_backoff_cleans_pending_intent_when_timer_owner_exits() {
             &mut supervision,
             &mut timers,
             &mut processes,
-            supervisor,
-            "worker",
-            VmExitReason::Killed,
-            0,
+            VmSupervisionRestartRequest::new(supervisor, "worker", VmExitReason::Killed, 0),
         )
         .expect("schedule");
     let timer_owner = backoff.timer_owner.expect("timer owner");

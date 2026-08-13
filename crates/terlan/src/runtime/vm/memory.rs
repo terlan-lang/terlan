@@ -1,20 +1,18 @@
-#![allow(dead_code)]
-
+#[cfg(test)]
+use std::path::Path;
 use std::{
     collections::{BTreeMap, BTreeSet},
     error::Error,
     fmt,
-    path::Path,
 };
 
 use serde::Serialize;
 
+#[cfg(test)]
+use super::resource::{VmResourceDescriptor, VmResourceId, VmResourceTransferPolicy};
 use super::{
     process::{VmExitReason, VmMessage, VmProcessId, VmProcessState, VmProcessTable},
-    resource::{
-        VmResourceDescriptor, VmResourceEvent, VmResourceId, VmResourceTable,
-        VmResourceTransferPolicy,
-    },
+    resource::{VmResourceEvent, VmResourceTable},
     ReplValue,
 };
 
@@ -25,6 +23,7 @@ mod collection;
 #[path = "memory/publication.rs"]
 mod publication;
 #[path = "memory/shared.rs"]
+#[cfg(test)]
 mod shared;
 #[path = "memory/transfer.rs"]
 pub(crate) mod transfer;
@@ -67,13 +66,17 @@ pub(crate) enum VmMemoryPressureOutcome {
 /// Stable failure returned when a VM value cannot be measured safely.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmValueSizeError {
-    OpaqueValue { kind: &'static str },
+    #[cfg(test)]
+    OpaqueValue {
+        kind: &'static str,
+    },
     Overflow,
 }
 
 impl fmt::Display for VmValueSizeError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            #[cfg(test)]
             Self::OpaqueValue { kind } => write!(
                 formatter,
                 "error[vm_memory_unaccounted_value]: `{kind}` requires a dedicated ownership contract"
@@ -116,6 +119,7 @@ pub(crate) struct VmAccountedResourceOwnership {
 
 /// Typed result of resource registration or transfer under memory pressure.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmAccountedResourceDecision {
     pub(crate) event: Option<VmResourceEvent>,
     pub(crate) pressure: VmMemoryPressureDecision,
@@ -134,6 +138,7 @@ pub(crate) struct VmAccountedProcessExit {
 pub(crate) struct VmSharedAllocationId(u64);
 
 impl VmSharedAllocationId {
+    #[cfg(test)]
     pub(crate) fn as_u64(self) -> u64 {
         self.0
     }
@@ -143,15 +148,21 @@ impl VmSharedAllocationId {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum VmSharedAllocationKind {
+    #[cfg(test)]
     Binary,
+    #[cfg(test)]
     NativeBoundaryBuffer,
+    #[cfg(test)]
     ProtocolBuffer,
+    #[cfg(test)]
     ResponseBuffer,
+    #[cfg(test)]
     TemplateOutput,
 }
 
 /// Typed outcome of registering or retaining one shared allocation reference.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSharedAllocationDecision {
     pub(crate) allocation_id: Option<VmSharedAllocationId>,
     pub(crate) pressure: VmMemoryPressureDecision,
@@ -168,6 +179,7 @@ struct VmSharedAllocation {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 struct VmSharedAllocationCounts {
     active_allocations: usize,
     unique_logical_bytes: usize,
@@ -186,6 +198,7 @@ pub(crate) struct VmProcessMemoryMetrics {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 struct VmMemoryPressureReport<'a> {
     schema: &'static str,
     limits: VmMemoryLimitsReport,
@@ -199,6 +212,7 @@ struct VmMemoryPressureReport<'a> {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 struct VmMemoryLimitsReport {
     soft_bytes: usize,
     hard_bytes: usize,
@@ -206,6 +220,7 @@ struct VmMemoryLimitsReport {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 struct VmMemoryLeakClassification {
     pid: u64,
     classification: &'static str,
@@ -412,6 +427,7 @@ impl VmMemoryAccountant {
     }
 
     /// Measures and sends a value through the priority mailbox lane.
+    #[cfg(test)]
     pub(crate) fn send_priority_value_message(
         &mut self,
         processes: &mut VmProcessTable,
@@ -441,6 +457,7 @@ impl VmMemoryAccountant {
     }
 
     /// Receives one mailbox payload and releases its logical ownership charge.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn receive_message(
         &mut self,
         processes: &mut VmProcessTable,
@@ -455,6 +472,7 @@ impl VmMemoryAccountant {
     }
 
     /// Selectively receives one payload and releases only its ownership charge.
+    #[cfg(test)]
     pub(crate) fn selective_receive_message(
         &mut self,
         processes: &mut VmProcessTable,
@@ -490,6 +508,7 @@ impl VmMemoryAccountant {
     }
 
     /// Registers a native resource only after reserving its owner heap charge.
+    #[cfg(test)]
     pub(crate) fn register_resource(
         &mut self,
         processes: &mut VmProcessTable,
@@ -531,6 +550,7 @@ impl VmMemoryAccountant {
     }
 
     /// Transfers a resource and its logical bytes as one validated operation.
+    #[cfg(test)]
     pub(crate) fn transfer_resource(
         &mut self,
         processes: &mut VmProcessTable,
@@ -591,6 +611,7 @@ impl VmMemoryAccountant {
     }
 
     /// Releases a native resource and its owner heap charge together.
+    #[cfg(test)]
     pub(crate) fn release_resource(
         &mut self,
         processes: &mut VmProcessTable,
@@ -723,6 +744,7 @@ impl VmMemoryAccountant {
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn resource_ownership(
         &self,
         resource: VmResourceId,
@@ -730,6 +752,7 @@ impl VmMemoryAccountant {
         self.resource_ownership.get(&resource.as_u64())
     }
 
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn process_metrics(&self, pid: VmProcessId) -> Option<&VmProcessMemoryMetrics> {
         self.processes.get(&pid.as_u64())
     }
@@ -773,6 +796,7 @@ impl VmMemoryAccountant {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(crate) fn write_pressure_report(&self, path: &Path) -> Result<(), String> {
         let unique_logical_bytes =
             self.shared_allocations
@@ -844,10 +868,11 @@ pub(crate) fn logical_value_bytes(value: &ReplValue) -> Result<usize, VmValueSiz
             ReplValue::Unit => {}
             ReplValue::Bool(_) => checked_add_size(&mut total, 1)?,
             ReplValue::Int(_) => checked_add_size(&mut total, 8)?,
-            ReplValue::Float(value)
-            | ReplValue::String(value)
-            | ReplValue::Atom(value)
-            | ReplValue::Type(value) => add_logical_string(&mut total, value)?,
+            ReplValue::Float(value) | ReplValue::String(value) | ReplValue::Atom(value) => {
+                add_logical_string(&mut total, value)?
+            }
+            #[cfg(test)]
+            ReplValue::Type(value) => add_logical_string(&mut total, value)?,
             ReplValue::StringBytes(value) => {
                 checked_add_size(&mut total, LOGICAL_STRING_HEADER_BYTES)?;
                 checked_add_size(&mut total, value.len())?;
@@ -920,76 +945,35 @@ pub(crate) fn logical_value_bytes(value: &ReplValue) -> Result<usize, VmValueSiz
     Ok(total)
 }
 
-fn opaque_value(kind: &'static str) -> VmValueSizeError {
-    VmValueSizeError::OpaqueValue { kind }
-}
-
-fn add_sequence_storage(total: &mut usize, slots: usize) -> Result<(), VmValueSizeError> {
-    checked_add_size(total, LOGICAL_SEQUENCE_HEADER_BYTES)?;
-    let bytes = slots
-        .checked_mul(LOGICAL_VALUE_SLOT_BYTES)
-        .ok_or(VmValueSizeError::Overflow)?;
-    checked_add_size(total, bytes)
-}
-
-fn add_logical_string(total: &mut usize, value: &str) -> Result<(), VmValueSizeError> {
-    checked_add_size(total, LOGICAL_STRING_HEADER_BYTES)?;
-    checked_add_size(total, value.len())
-}
-
-fn checked_add_size(total: &mut usize, bytes: usize) -> Result<(), VmValueSizeError> {
-    *total = total.checked_add(bytes).ok_or(VmValueSizeError::Overflow)?;
-    Ok(())
-}
-
-/// Runs one memory mutation under the process table's scoped actor ownership.
-fn with_live_process_mut<R>(
-    processes: &mut VmProcessTable,
-    pid: VmProcessId,
-    mutate: impl FnOnce(&mut super::process::VmProcess) -> R,
-) -> Result<R, String> {
-    require_live_process(processes, pid)?;
-    processes.with_process_control_mutator(pid, mutate)
-}
-
-/// Validates a live process before memory ownership is read or changed.
-fn require_live_process(processes: &VmProcessTable, pid: VmProcessId) -> Result<(), String> {
-    let process = processes
-        .get(pid)
-        .ok_or_else(|| format!("missing process {} for VM memory accounting", pid.as_u64()))?;
-    if matches!(process.state, VmProcessState::Exited(_)) {
-        return Err(format!(
-            "exited process {} cannot own VM heap bytes",
-            pid.as_u64()
-        ));
-    }
-    Ok(())
-}
-
-fn stale_shared_allocation(allocation: VmSharedAllocationId) -> String {
-    format!("stale VM shared allocation {}", allocation.as_u64())
-}
+mod accounting_support;
+use accounting_support::*;
 
 #[cfg(test)]
 #[path = "memory_collection_test.rs"]
+#[cfg(test)]
 mod memory_collection_test;
 
 #[cfg(test)]
 #[path = "memory_conformance_test.rs"]
+#[cfg(test)]
 mod memory_conformance_test;
 
 #[cfg(test)]
 #[path = "memory_alloc_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod memory_alloc_beam_suite_parity_test;
 
 #[cfg(test)]
 #[path = "memory_test.rs"]
+#[cfg(test)]
 mod memory_test;
 
 #[cfg(test)]
 #[path = "memory_transfer_test.rs"]
+#[cfg(test)]
 mod memory_transfer_test;
 
 #[cfg(test)]
 #[path = "term_model_parity_test.rs"]
+#[cfg(test)]
 mod term_model_parity_test;

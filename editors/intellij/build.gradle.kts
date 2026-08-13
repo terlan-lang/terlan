@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.0.21"
-    id("org.jetbrains.intellij.platform") version "2.2.1"
+    kotlin("jvm") version "2.3.21"
+    id("org.jetbrains.intellij.platform") version "2.18.1"
 }
 
 group = "org.terlan"
@@ -15,8 +15,10 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        intellijIdeaCommunity("2024.3")
-        bundledPlugin("com.intellij.modules.platform")
+        // JetBrains' LSP API is an Ultimate-platform module for the 2024.3
+        // baseline. Compiling against Community made the previous descriptor
+        // impossible to register or execute.
+        intellijIdeaUltimate("2024.3")
     }
 }
 

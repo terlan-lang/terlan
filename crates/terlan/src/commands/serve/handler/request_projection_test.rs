@@ -8,11 +8,13 @@ fn request() -> Request {
         "POST",
         "/items/7",
         "payload",
-        vec![("id".to_string(), "7".to_string())],
-        "page=2",
-        vec![("page".to_string(), "2".to_string())],
-        vec![("content-type".to_string(), "text/plain".to_string())],
-        vec![("session".to_string(), "abc".to_string())],
+        crate::terlan_native::http::RequestMetadata {
+            params: vec![("id".to_string(), "7".to_string())],
+            query_string: ("page=2").into(),
+            query: vec![("page".to_string(), "2".to_string())],
+            headers: vec![("content-type".to_string(), "text/plain".to_string())],
+            cookies: vec![("session".to_string(), "abc".to_string())],
+        },
     )
 }
 

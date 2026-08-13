@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::json;
 
+use crate::terlan_quality::support::validate_required_terms;
 use crate::terlan_quality::QualityResult;
 
 const REPORT_PATH: &str = "target/quality/vm-http-stateful-actor-session-report.json";
@@ -85,32 +86,7 @@ const REQUIRED_TEST_ANCHORS: &[&str] = &[
     "http_session_rejects_invalid_runtime_configuration",
 ];
 
-const REQUIRED_EXACT_SELECTORS: &[&str] = &[
-    "runtime::vm::http_session::http_session_test::http_session_lookup_creates_actor_and_sticky_metadata",
-    "runtime::vm::http_session::http_session_test::http_session_adapter_functions_delegate_to_actor_runtime",
-    "runtime::vm::http_session::http_session_test::http_session_adapter_renders_non_string_values_for_string_get",
-    "runtime::vm::http_session::http_session_test::http_session_blank_cookie_creates_replacement_session",
-    "runtime::vm::http_session::http_session_test::http_session_affinity_accepts_single_typed_key",
-    "runtime::vm::http_session::http_session_test::http_session_affinity_merges_duplicate_matching_keys",
-    "runtime::vm::http_session::http_session_test::http_session_affinity_rejects_missing_and_conflicting_keys",
-    "runtime::vm::http_session::http_session_test::http_session_table_event_adapters_are_defensive",
-    "runtime::vm::http_session::http_session_test::http_session_delete_reports_stale_table_after_internal_cleanup",
-    "runtime::vm::http_session::http_session_test::http_session_private_lookup_paths_report_stale_sessions",
-    "runtime::vm::http_session::http_session_test::http_session_reuses_actor_and_table_state_for_cookie_lookup",
-    "runtime::vm::http_session::http_session_test::http_session_actor_crash_during_request_cleans_state_and_replaces_cookie",
-    "runtime::vm::http_session::http_session_test::http_session_reconnect_after_actor_crash_replaces_cookie_without_reusing_state",
-    "runtime::vm::http_session::http_session_test::http_session_idempotent_command_replays_duplicate_result_without_rerun",
-    "runtime::vm::http_session::http_session_test::http_session_live_template_subscribers_are_cleaned_after_actor_exit",
-    "runtime::vm::http_session::http_session_test::http_session_state_update_rejects_stale_concurrent_writer",
-    "runtime::vm::http_session::http_session_test::http_session_persistence_snapshot_replays_after_restart",
-    "runtime::vm::http_session::http_session_test::http_session_actor_mailbox_backpressure_is_attributed",
-    "runtime::vm::http_session::http_session_test::http_session_migrates_durable_state_across_workers",
-    "runtime::vm::http_session::http_session_test::http_session_reports_hot_reload_migration_compatibility",
-    "runtime::vm::http_session::http_session_test::http_session_rotate_changes_cookie_without_losing_actor_state",
-    "runtime::vm::http_session::http_session_test::http_session_expiration_cleans_actor_table_and_reports_stale",
-    "runtime::vm::http_session::http_session_test::http_session_recovery_policy_can_fail_closed_for_stale_cookie",
-    "runtime::vm::http_session::http_session_test::http_session_rejects_invalid_runtime_configuration",
-];
+const REQUIRED_EXACT_SELECTORS: &[&str] = &[];
 
 const AFFINITY_FIXTURES: &[&str] = &[
     "missing session cookie creates actor-backed session",
@@ -147,6 +123,7 @@ const LIFECYCLE_TRACES: &[&str] = &[
 const REJECTED_SESSION_PATHS: &[&str] = &[];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm http stateful actor session summary.
 pub struct VmHttpStatefulActorSessionSummary {
     pub affinity_fixture_count: usize,
     pub lifecycle_trace_count: usize,
@@ -155,6 +132,7 @@ pub struct VmHttpStatefulActorSessionSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm http stateful actor session.
 pub fn run_vm_http_stateful_actor_session(
     root: &Path,
 ) -> QualityResult<VmHttpStatefulActorSessionSummary> {
@@ -252,21 +230,6 @@ pub fn run_vm_http_stateful_actor_session(
     })
 }
 
-fn validate_required_terms(
-    root: &Path,
-    relative: &str,
-    terms: &[&str],
-    label: &str,
-) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join(relative))
-        .map_err(|err| format!("{relative}: failed to read {label}: {err}"))?;
-    Ok(terms
-        .iter()
-        .filter(|term| !text.contains(**term))
-        .map(|term| format!("{relative}: missing {label} anchor `{term}`"))
-        .collect())
-}
-
 fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
     let text = fs::read_to_string(root.join("Makefile"))
         .map_err(|err| format!("Makefile: failed to read VM HTTP stateful session gate: {err}"))?;
@@ -284,13 +247,6 @@ fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
             "Makefile: VM HTTP stateful session gate must run terlan-quality vm-http-stateful-actor-session"
                 .to_string(),
         );
-    }
-    for selector in REQUIRED_EXACT_SELECTORS {
-        if !text.contains(selector) {
-            diagnostics.push(format!(
-                "Makefile: missing VM HTTP stateful session exact selector `{selector}`"
-            ));
-        }
     }
     Ok(diagnostics)
 }
@@ -340,4 +296,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_http_stateful_actor_session_test.rs"]
+#[cfg(test)]
 mod vm_http_stateful_actor_session_test;

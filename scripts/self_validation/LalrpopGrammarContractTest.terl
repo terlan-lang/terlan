@@ -1,0 +1,129 @@
+/**
+ * Binds the generated parser and Lean shape proof to the canonical EBNF.
+ */
+module scripts.self_validation.LalrpopGrammarContract.
+
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.crypto.Hash.{sha256}.
+import std.io.Console.{println}.
+import std.io.File.{read_text}.
+
+pub repository_contract_holds(root: String): Bool ->
+    let ebnf = read_text(String.append(root, "/docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"));
+    let grammar = read_text(String.append(root, "/crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop"));
+    let proof = read_text(String.append(root, "/proofs/lean/parser_shape/ParserShape.lean"));
+    case {ebnf, grammar, proof} {
+        {Ok(ebnf_text), Ok(grammar_text), Ok(proof_text)} ->
+            contract_holds(ebnf_text, grammar_text, proof_text);
+        _ -> false
+    }.
+
+pub contract_holds(ebnf: String, grammar: String, proof: String): Bool ->
+    fingerprints_match(sha256(ebnf), grammar, proof)
+        and required_ebnf_rules_present(String.split(ebnf, "\n"))
+        and required_productions_present(String.split(grammar, "\n"))
+        and not String.contains(grammar, "parse_tree::")
+        and not String.contains(grammar, "CoreIR")
+        and not String.contains(grammar, "lower_lalrpop_")
+        and not String.contains(grammar, "validate_lalrpop_").
+
+pub fingerprints_match(digest: String, grammar: String, proof: String): Bool ->
+    marker_matches(digest, grammar) and marker_matches(digest, proof).
+
+marker_matches(digest: String, text: String): Bool ->
+    String.contains(
+        String.replace(String.replace(text, " ", ""), "\t", ""),
+        String.append("canonical-ebnf-sha256:", digest),
+    ).
+
+required_ebnf_rules_present(lines: List[String]): Bool ->
+    rule_present(lines, "SyntaxSpec")
+        and rule_present(lines, "Declaration")
+        and rule_present(lines, "Annotation")
+        and rule_present(lines, "ImportDecl")
+        and rule_present(lines, "TypeDecl")
+        and rule_present(lines, "StructDecl")
+        and rule_present(lines, "TraitDecl")
+        and rule_present(lines, "FunctionDecl")
+        and rule_present(lines, "MethodDecl")
+        and rule_present(lines, "TypeExpr")
+        and rule_present(lines, "Expr")
+        and rule_present(lines, "Pattern")
+        and rule_present(lines, "PostfixExpr")
+        and rule_present(lines, "LetExpr")
+        and rule_present(lines, "CaseExpr")
+        and rule_present(lines, "IfExpr")
+        and rule_present(lines, "TryExpr")
+        and rule_present(lines, "LambdaExpr").
+
+rule_present(lines: List[String], name: String): Bool ->
+    case lines {
+        [] -> false;
+        [line | rest] ->
+            String.starts_with(compact(line), String.append(name, "::="))
+                or rule_present(rest, name)
+    }.
+
+required_productions_present(lines: List[String]): Bool ->
+    production_present(lines, "ModuleSyntaxOutput")
+        and production_present(lines, "GeneratedDeclaration")
+        and production_present(lines, "GeneratedAnnotation")
+        and production_present(lines, "GeneratedImportDeclaration")
+        and production_present(lines, "GeneratedConstantDeclaration")
+        and production_present(lines, "GeneratedTypeDeclaration")
+        and production_present(lines, "GeneratedStructDeclaration")
+        and production_present(lines, "GeneratedConstructorDeclaration")
+        and production_present(lines, "GeneratedTraitDeclaration")
+        and production_present(lines, "GeneratedTraitImplementationDeclaration")
+        and production_present(lines, "GeneratedFunctionDeclaration")
+        and production_present(lines, "GeneratedMethodDeclaration")
+        and production_present(lines, "TypeExpression")
+        and production_present(lines, "Expression")
+        and production_present(lines, "Pattern")
+        and production_present(lines, "PostfixExpression")
+        and production_present(lines, "LetExpression")
+        and production_present(lines, "PrimaryExpression")
+        and production_present(lines, "LambdaExpression").
+
+production_present(lines: List[String], name: String): Bool ->
+    case lines {
+        [] -> false;
+        [line | rest] ->
+            let value = compact(line);
+            String.starts_with(value, String.append(name, ":"))
+                or String.starts_with(value, String.append("pub", String.append(name, ":")))
+                or production_present(rest, name)
+    }.
+
+compact(text: String): String ->
+    String.replace(String.replace(text, " ", ""), "\t", "").
+
+@test
+pub repository_lalrpop_contract_holds(): Bool ->
+    repository_contract_holds(".").
+
+@test
+pub policy_accepts_matching_fingerprints(): Bool ->
+    fingerprints_match("abc", "// canonical-ebnf-sha256: abc", "-- canonical-ebnf-sha256:\tabc").
+
+@test
+pub policy_rejects_stale_fingerprint(): Bool ->
+    not fingerprints_match("abc", "// canonical-ebnf-sha256: stale", "-- canonical-ebnf-sha256: abc").
+
+@test
+pub policy_rejects_syntaxoutput_boundary_crossing(): Bool ->
+    not contract_holds("SyntaxSpec ::= \"x\" .", "CoreIR", "").
+
+@test
+pub rule_and_production_matching_require_line_prefixes(): Bool ->
+    rule_present(["Expr ::= Value ."], "Expr")
+        and not rule_present(["OtherExpr ::= Value ."], "Expr")
+        and production_present(["pub Expression: Node = { };"], "Expression")
+        and not production_present(["ExpressionOutput: Node = { };"], "Expression").
+
+pub main(): Unit ->
+    if {
+        repository_contract_holds(".") -> println("LALRPOP grammar contract check passed");
+        true -> println("LALRPOP grammar contract check failed")
+    }.

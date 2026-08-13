@@ -19,6 +19,6 @@ pub generated_binding_surface_contract(): Bool -> true.
 pub add_module_typechecks(
     receiver: Worklet,
     module_url: URL | std.js.String.JsString,
-    options: WorkletOptions
+    options: WorkletOptions,
 ): std.js.Promise[std.core.Unit] ->
     receiver.add_module(module_url, options).

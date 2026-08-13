@@ -15,18 +15,25 @@
 # Format:
 # module_prefix<TAB>capability<TAB>blocking_policy<TAB>cancellation_policy<TAB>timeout_policy<TAB>worker_placement<TAB>resource_policy<TAB>error_policy<TAB>notes
 module_prefix	capability	blocking_policy	cancellation_policy	timeout_policy	worker_placement	resource_policy	error_policy	notes
+std.crypto.Hash	crypto.hash	nonblocking	not-required	none	direct	value-only	typed-result	SHA-256 byte and framed-field operations are bounded value transformations and return VM-owned digest text.
 std.data.Json	json	nonblocking	not-required	none	direct	value-only	typed-result	Serde JSON value operations do not carry native resources.
+std.data.Toml	structured-data.parse	nonblocking	not-required	none	direct	value-only	typed-result	TOML parsing produces an existing VM-owned JSON value and carries no parser or host resource.
 std.encoding.Base64	encoding	nonblocking	not-required	none	direct	value-only	typed-result	Base64 operations are bounded value transformations.
 std.encoding.Md5	encoding	nonblocking	not-required	none	direct	value-only	typed-result	MD5 digest operations are bounded compatibility transformations and must not be treated as secure hashing.
 std.io.Path	filesystem.path	nonblocking	not-required	none	direct	value-only	typed-result	Path APIs transform path values and do not open files.
 std.net.Uri	network.parse	nonblocking	not-required	none	direct	value-only	typed-result	URI APIs parse and inspect value data only.
 std.random.Random	random	nonblocking	not-required	none	direct	value-only	typed-result	Random APIs use maintained Rust RNG crates and return explicit VM-owned generator state.
 std.regex.Regex	text.regex	nonblocking	not-required	none	direct	value-only	typed-result	Regex APIs use the maintained Rust regex engine and return opaque VM-owned regex values.
+std.system.Arguments	system.arguments	nonblocking	not-required	none	direct	value-only	typed-result	Argument inspection reads immutable process-start metadata and returns VM-owned values.
+std.system.Environment	system.environment	nonblocking	not-required	none	direct	value-only	typed-result	Environment and current-directory inspection perform bounded host metadata reads and return VM-owned values.
+std.system.Platform	system.platform	nonblocking	not-required	none	direct	value-only	typed-result	Platform current reads immutable target constants; dynamic metrics use a separate VM-owned capability transition.
 std.http.Request	http.request	nonblocking	not-required	none	direct	value-only	typed-result	Request inspection is value based.
 std.http.Cookies	http.cookies	nonblocking	not-required	none	direct	value-only	typed-result	Cookie APIs construct and inspect typed header values.
 std.http.Response	http.response	nonblocking	not-required	none	direct	value-only	typed-result	Response APIs construct typed response values.
 std.http.Session	http.session	nonblocking	not-required	none	direct	owned-resource-handle	typed-result	Session APIs operate on VM-owned session handles and typed cookie metadata.
 std.http.Sse	http.sse	nonblocking	not-required	none	direct	value-only	typed-result	SSE APIs construct typed VM HTTP event and endpoint descriptors.
+std.http.Tls	acme.tls	nonblocking	not-required	none	direct	value-only	typed-result	TLS APIs construct typed configuration; certificate and ACME host work requires asynchronous capability handoff.
 std.http.WebSocket	http.websocket	nonblocking	not-required	none	direct	value-only	typed-result	WebSocket APIs construct typed VM HTTP frame and endpoint descriptors.
 std.db.Postgres	postgres	blocking	cancel-on-owner-exit	required	native-worker	owned-resource-handle	typed-result	Postgres operations use worker-owned pool and connection resources.
 std.native.collections.Vector	native.collections.vector	nonblocking	ignore-stale-reply	caller-provided	native-worker	owned-resource-handle	typed-result	Vector handles are VM-tracked native resources with stale-handle checks.
+terlan_libpq.Driver	postgres	blocking	cancel-on-owner-exit	required	native-worker	owned-resource-handle	typed-result	The internal libpq driver uses worker-owned connection resources and typed failures.

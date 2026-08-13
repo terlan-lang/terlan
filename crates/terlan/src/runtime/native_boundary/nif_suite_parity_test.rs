@@ -65,12 +65,14 @@ fn nif_suite_portable_calls_keep_values_resources_and_failures_vm_owned() {
     assert_credit_recovered(&worker);
 
     let created = worker.call_for_process_with_policy(
-        request_id(2),
-        OWNER,
-        &[],
-        &[] as &[NativeBoundaryWorkerClass],
-        "std.data.json.parse",
-        &[NativeBoundaryTerm::Text(String::from("\"Ada\""))],
+        crate::terlan_native_boundary::worker::NativeBoundaryWorkerCall {
+            request_id: request_id(2),
+            owner_process_id: OWNER,
+            granted_capabilities: &[],
+            admitted_worker_classes: &[] as &[NativeBoundaryWorkerClass],
+            operation: "std.data.json.parse",
+            args: &[NativeBoundaryTerm::Text(String::from("\"Ada\""))],
+        },
     );
     let handle = handle_from_reply(&created);
     assert!(handle.is_some(), "JSON parse must return an opaque handle");
@@ -80,12 +82,14 @@ fn nif_suite_portable_calls_keep_values_resources_and_failures_vm_owned() {
     assert_credit_recovered(&worker);
 
     let foreign_read = worker.call_for_process_with_policy(
-        request_id(3),
-        FOREIGN_OWNER,
-        &[],
-        &[],
-        "std.data.json.as_string",
-        &[handle_term(handle)],
+        crate::terlan_native_boundary::worker::NativeBoundaryWorkerCall {
+            request_id: request_id(3),
+            owner_process_id: FOREIGN_OWNER,
+            granted_capabilities: &[],
+            admitted_worker_classes: &[],
+            operation: "std.data.json.as_string",
+            args: &[handle_term(handle)],
+        },
     );
     assert_eq!(error_code(&foreign_read.result), Some("resource.owner"));
 
@@ -93,12 +97,14 @@ fn nif_suite_portable_calls_keep_values_resources_and_failures_vm_owned() {
     assert_eq!(error_code(&foreign_dispose.result), Some("resource.owner"));
 
     let owner_read = worker.call_for_process_with_policy(
-        request_id(5),
-        OWNER,
-        &[],
-        &[],
-        "std.data.json.as_string",
-        &[handle_term(handle)],
+        crate::terlan_native_boundary::worker::NativeBoundaryWorkerCall {
+            request_id: request_id(5),
+            owner_process_id: OWNER,
+            granted_capabilities: &[],
+            admitted_worker_classes: &[],
+            operation: "std.data.json.as_string",
+            args: &[handle_term(handle)],
+        },
     );
     assert_eq!(
         owner_read.result,
@@ -112,12 +118,14 @@ fn nif_suite_portable_calls_keep_values_resources_and_failures_vm_owned() {
     );
 
     let stale = worker.call_for_process_with_policy(
-        request_id(7),
-        OWNER,
-        &[],
-        &[],
-        "std.data.json.as_string",
-        &[handle_term(handle)],
+        crate::terlan_native_boundary::worker::NativeBoundaryWorkerCall {
+            request_id: request_id(7),
+            owner_process_id: OWNER,
+            granted_capabilities: &[],
+            admitted_worker_classes: &[],
+            operation: "std.data.json.as_string",
+            args: &[handle_term(handle)],
+        },
     );
     assert_eq!(error_code(&stale.result), Some("resource.stale_handle"));
 

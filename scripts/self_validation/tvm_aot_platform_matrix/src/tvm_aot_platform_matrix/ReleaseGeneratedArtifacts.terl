@@ -1,0 +1,504 @@
+/**
+ * Validates release-generated artifacts around one canonical regeneration.
+ */
+module tvm_aot_platform_matrix.ReleaseGeneratedArtifacts.
+
+import std.collections.List.{concat, length}.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.{Directory, File}.
+import tvm_aot_platform_matrix.ReleasePayload.{child}.
+
+import type std.core.Option.
+import type std.crypto.Hash.LabeledFilePattern.
+import type std.data.Json.
+import type std.io.File.TextFile.
+
+struct Artifact {
+    id: String,
+    classification: String,
+    paths: List[String],
+    regenerate: String,
+    freshness_gate: String,
+    owner: String,
+}.
+
+struct Snapshot {
+    file_count: Int,
+    digest: String,
+}.
+
+schema(): String -> "terlan.release-generated-artifacts.v1".
+
+snapshot_schema(): String -> "terlan.release-generated-artifacts-snapshot.v1".
+
+inventory_relative(): String -> "docs/release/GENERATED_ARTIFACTS.json".
+
+snapshot_relative(): String -> "target/quality/release-generated-artifacts-before.json".
+
+report_relative(): String -> "target/quality/release-generated-artifacts-report.json".
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[release_generated_artifacts]: ", message));
+    false.
+
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+add_unique(values: List[String], value: String): List[String] ->
+    if {
+        contains(values, value) -> values;
+        true -> concat(values, [value])
+    }.
+
+strings_at(array: Json, index: Int, count: Int, result: List[String]): Option[List[String]] ->
+    if {
+        index == count -> Some(result);
+        true -> let {
+            Ok(value) <- array.at(index);
+            Ok(text) <- value.as_string()
+        } else {
+            _ -> None
+        };
+        strings_at(array, index + 1, count, concat(result, [text]))
+    }.
+
+json_strings(array: Json): Option[List[String]] ->
+    case array.length() {
+        Ok(count) -> strings_at(array, 0, count, []);
+        Err(_reason) -> None
+    }.
+
+artifact_at(value: Json): Option[Artifact] ->
+    let {
+        Ok(fields) <- value.string_fields(["id", "classification", "regenerate", "freshness_gate", "owner"]);
+        [Some(id), Some(classification), Some(regenerate), Some(freshness_gate), Some(owner)] <- fields;
+        Ok(paths_value) <- value.get("paths");
+        Some(paths) <- json_strings(paths_value)
+    } else {
+        _ -> None
+    };
+    Some(
+        Artifact(
+            id = id,
+            classification = classification,
+            paths = paths,
+            regenerate = regenerate,
+            freshness_gate = freshness_gate,
+            owner = owner,
+        ),
+    ).
+
+artifacts_at(
+    array: Json,
+    index: Int,
+    count: Int,
+    result: List[Artifact],
+): Option[List[Artifact]] ->
+    if {
+        index == count -> Some(result);
+        true -> let {
+            Ok(value) <- array.at(index);
+            Some(artifact) <- artifact_at(value)
+        } else {
+            _ -> None
+        };
+        artifacts_at(
+            array,
+            index + 1,
+            count,
+            concat(result, [artifact | std.collections.List.new[Artifact]()]),
+        )
+    }.
+
+parse_inventory(source: String): Option[List[Artifact]] ->
+    let {
+        Ok(inventory) <- Json.parse(source);
+        Ok(schema_fields) <- inventory.string_fields(["schema"]);
+        [Some(actual_schema)] <- schema_fields;
+        Ok(artifacts) <- inventory.get("artifacts");
+        Ok(count) <- artifacts.length()
+    } else {
+        _ -> None
+    };
+    if {
+        actual_schema != schema() or count == 0 -> None;
+        true -> artifacts_at(artifacts, 0, count, [])
+    }.
+
+classification_valid(value: String): Bool ->
+    contains(["cache-only", "committed", "ignored-build-output", "packaged-only"], value).
+
+text_field_valid(value: String): Bool ->
+    let normalized = String.lowercase(value);
+    value != ""
+        and not String.starts_with(value, "/")
+        and not String.starts_with(value, "~")
+        and not String.contains(value, "\\")
+        and not String.contains(normalized, "todo")
+        and not String.contains(normalized, "tbd")
+        and not String.contains(normalized, "placeholder")
+        and not String.contains(normalized, "fixme")
+        and not String.contains(normalized, "unknown").
+
+path_safe(value: String): Bool ->
+    value != ""
+        and not String.starts_with(value, "/")
+        and not String.starts_with(value, "~")
+        and not String.contains(value, "\\")
+        and not String.contains(value, "../")
+        and not String.ends_with(value, "/..").
+
+sorted_unique(values: List[String], previous: String): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            (previous == "" or String.compare(previous, value) == Lt) and sorted_unique(rest, value)
+    }.
+
+paths_valid(paths: List[String]): Bool ->
+    paths != [] and sorted_unique(paths, "") and paths_safe(paths).
+
+paths_safe(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] -> path_safe(path) and paths_safe(rest)
+    }.
+
+artifacts_valid_at(values: List[Artifact], previous: String): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            classification_valid(value.classification)
+                and text_field_valid(value.id)
+                and text_field_valid(value.regenerate)
+                and text_field_valid(value.freshness_gate)
+                and text_field_valid(value.owner)
+                and paths_valid(value.paths)
+                and (previous == "" or String.compare(previous, value.id) == Lt)
+                and artifacts_valid_at(rest, value.id)
+    }.
+
+artifacts_valid(values: List[Artifact]): Bool ->
+    values != [] and artifacts_valid_at(values, "").
+
+target_words_at(values: List[String], result: List[String]): List[String] ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            let normalized = String.trim(value);
+            if {
+                normalized == "" -> target_words_at(rest, result);
+                true -> let _pushed = result.push(normalized);
+                target_words_at(rest, result)
+            }
+    }.
+
+make_targets_at(lines: List[String], result: List[String]): List[String] ->
+    case lines {
+        [] -> result;
+        [line | rest] ->
+            if {
+                line == ""
+                    or String.starts_with(line, "\t")
+                    or String.starts_with(String.trim(line), "#") -> make_targets_at(rest, result);
+                true -> case String.split_once(line, ":") {
+                    Some({names, _body}) ->
+                        make_targets_at(
+                            rest,
+                            target_words_at(String.split(String.trim(names), " "), result),
+                        );
+                    None -> make_targets_at(rest, result)
+                }
+            }
+    }.
+
+make_targets_from_files(files: List[TextFile], result: List[String]): List[String] ->
+    case files {
+        [] -> result;
+        [file | rest] ->
+            make_targets_from_files(
+                rest,
+                make_targets_at(String.split(File.text_file_contents(file), "\n"), result),
+            )
+    }.
+
+repository_makefiles(root: String): List[String] ->
+    [
+        child(root, "Makefile"),
+        child(root, "crates/terlan/cli.mk"),
+        child(root, "editors/editor.mk"),
+        child(root, "mk/code-quality.mk"),
+        child(root, "std/stdlib.mk"),
+    ].
+
+repository_targets(root: String): Option[List[String]] ->
+    case File.read_text_many(repository_makefiles(root)) {
+        Err(_reason) -> None;
+        Ok(files) -> Some(make_targets_from_files(files, []))
+    }.
+
+gates_exist(values: List[Artifact], targets: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> contains(targets, value.freshness_gate) and gates_exist(rest, targets)
+    }.
+
+add_labeled_file_patterns(
+    id: String,
+    paths: List[String],
+    result: List[LabeledFilePattern],
+): List[LabeledFilePattern] ->
+    case paths {
+        [] -> result;
+        [pattern | rest] ->
+            let _pushed = result.push(Hash.labeled_file_pattern(id, pattern));
+            add_labeled_file_patterns(id, rest, result)
+    }.
+
+artifact_patterns_at(
+    values: List[Artifact],
+    result: List[LabeledFilePattern],
+): List[LabeledFilePattern] ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            artifact_patterns_at(rest, add_labeled_file_patterns(value.id, value.paths, result))
+    }.
+
+snapshot(root: String, artifacts: List[Artifact]): Option[Snapshot] ->
+    let patterns = artifact_patterns_at(artifacts, []);
+    case Hash.audit_labeled_file_patterns(
+    root,
+    patterns,
+    ["/home/", "/Users/", "/tmp/", "/private/tmp/", "\\Users\\", "\\Documents and Settings\\"],
+) {
+        Err(_reason) -> None;
+        Ok(audit) ->
+            if {
+                not audit.portable or audit.file_count == 0 -> None;
+                true -> Some(Snapshot(file_count = audit.file_count, digest = audit.digest))
+            }
+    }.
+
+load_inventory(root: String): Option[{String, List[Artifact]}] ->
+    let {
+        Ok(source) <- File.read_text(child(root, inventory_relative()));
+        Some(artifacts) <- parse_inventory(source)
+    } else {
+        _ -> None
+    };
+    Some({source, artifacts}).
+
+current_snapshot(root: String): Option[{String, List[Artifact], Snapshot}] ->
+    let {
+        Some({source, artifacts}) <- load_inventory(root);
+        Some(targets) <- repository_targets(root)
+    } else {
+        _ -> None
+    };
+    if {
+        not artifacts_valid(artifacts) or not gates_exist(artifacts, targets) -> None;
+        true -> case snapshot(root, artifacts) {
+            Some(value) -> Some({source, artifacts, value});
+            None -> None
+        }
+    }.
+
+write_json(path: String, value: Json): Bool ->
+    let {
+        Ok(rendered) <- Json.stringify_pretty(value);
+        Ok(Unit) <- File.write_text(path, String.append(rendered, "\n"))
+    } else {
+        _ -> false
+    };
+    true.
+
+snapshot_json(value: Snapshot): Json ->
+    Json.object()
+        .put("schema", Json.string(snapshot_schema()))
+        .put("file_count", Json.int(value.file_count))
+        .put("digest", Json.string(value.digest)).
+
+read_snapshot(root: String): Option[Snapshot] ->
+    let {
+        Ok(source) <- File.read_text(child(root, snapshot_relative()));
+        Ok(value) <- Json.parse(source);
+        Ok(fields) <- value.required_fields(["schema", "digest"], ["file_count"], []);
+        [actual_schema, digest] <- Json.required_field_strings(fields);
+        [file_count] <- Json.required_field_ints(fields)
+    } else {
+        _ -> None
+    };
+    if {
+        actual_schema == snapshot_schema() -> Some(Snapshot(file_count = file_count, digest = digest));
+        true -> None
+    }.
+
+pub record(root: String): Bool ->
+    case current_snapshot(root) {
+        None -> failure("cannot validate and snapshot the generated-artifact inventory");
+        Some({_source, _artifacts, value}) ->
+            if {
+                write_json(child(root, snapshot_relative()), snapshot_json(value)) -> true;
+                true -> failure("cannot write the pre-regeneration snapshot")
+            }
+    }.
+
+json_string_array(values: List[String], result: Json): Json ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            let _pushed = result.push(Json.string(value));
+            json_string_array(rest, result)
+    }.
+
+artifact_ids_at(values: List[Artifact], result: List[String]): List[String] ->
+    case values {
+        [] -> result;
+        [value | rest] -> artifact_ids_at(rest, concat(result, [value.id]))
+    }.
+
+freshness_gates_at(values: List[Artifact], result: List[String]): List[String] ->
+    case values {
+        [] -> result;
+        [value | rest] -> freshness_gates_at(rest, add_unique(result, value.freshness_gate))
+    }.
+
+classification_count_at(values: List[Artifact], classification: String, count: Int): Int ->
+    case values {
+        [] -> count;
+        [value | rest] ->
+            if {
+                value.classification == classification -> classification_count_at(rest, classification, count + 1);
+                true -> classification_count_at(rest, classification, count)
+            }
+    }.
+
+classification_count(values: List[Artifact], classification: String): Int ->
+    classification_count_at(values, classification, 0).
+
+report_json(
+    inventory_source: String,
+    artifacts: List[Artifact],
+    before: Snapshot,
+    after_snapshot: Snapshot,
+): Json ->
+    let classifications =
+        Json.object()
+            .put("cache-only", Json.int(classification_count(artifacts, "cache-only")))
+            .put("committed", Json.int(classification_count(artifacts, "committed")))
+            .put(
+                "ignored-build-output",
+                Json.int(classification_count(artifacts, "ignored-build-output")),
+            )
+            .put("packaged-only", Json.int(classification_count(artifacts, "packaged-only")));
+    let comparison =
+        Json.object()
+            .put("run_count", Json.int(1))
+            .put("before_snapshot_digest", Json.string(before.digest))
+            .put("after_snapshot_digest", Json.string(after_snapshot.digest))
+            .put("identical", Json.bool(before.digest == after_snapshot.digest));
+    Json.object()
+        .put("schema", Json.string(schema()))
+        .put("gate_id", Json.string("release-generated-artifacts-check"))
+        .put(
+            "input_digests",
+            Json.object()
+                .put(
+                    inventory_relative(),
+                    Json.string(String.append("sha256:", Hash.sha256(inventory_source))),
+                ),
+        )
+        .put("artifact_count", Json.int(length(artifacts)))
+        .put("artifact_file_count", Json.int(after_snapshot.file_count))
+        .put("classifications", classifications)
+        .put(
+            "content_policies",
+            json_string_array(["unix-home", "unix-temp", "windows-user"], Json.array()),
+        )
+        .put("artifact_ids", json_string_array(artifact_ids_at(artifacts, []), Json.array()))
+        .put("freshness_gates", json_string_array(freshness_gates_at(artifacts, []), Json.array()))
+        .put(
+            "hash_comparison",
+            Json.object()
+                .put("algorithm", Json.string("sha256-labeled-file-digests"))
+                .put("file_count", Json.int(after_snapshot.file_count))
+                .put("combined_digest", Json.string(after_snapshot.digest)),
+        )
+        .put("single_regeneration_comparison", comparison)
+        .put(
+            "drift_summary",
+            Json.object()
+                .put("changed_after_regeneration", Json.int(0))
+                .put("freshness_gate_count", Json.int(length(freshness_gates_at(artifacts, [])))),
+        )
+        .put("decision", Json.string("pass")).
+
+pub finalize(root: String): Bool ->
+    let {
+        Some(before) <- read_snapshot(root);
+        Some({source, artifacts, after_snapshot}) <- current_snapshot(root)
+    } else {
+        _ -> failure("cannot load before/after generated-artifact snapshots")
+    };
+    if {
+        before.file_count != after_snapshot.file_count or before.digest != after_snapshot.digest -> failure("generated artifacts changed during the canonical regeneration pass");
+        write_json(
+            child(root, report_relative()),
+            report_json(source, artifacts, before, after_snapshot),
+        ) -> true;
+        true -> failure("cannot write the generated-artifact quality report")
+    }.
+
+fixture_inventory(): String ->
+    "{\"schema\":\"terlan.release-generated-artifacts.v1\",\"artifacts\":[{\"id\":\"fixture\",\"classification\":\"committed\",\"paths\":[\"fixture.txt\"],\"regenerate\":\"make fixture-check\",\"freshness_gate\":\"fixture-check\",\"owner\":\"release-tooling\"}]}".
+
+self_test_in(root: String): Bool ->
+    let fixture = child(root, "fixture.txt");
+    let inventory = child(root, inventory_relative());
+    let makefile = child(root, "Makefile");
+    let {
+        Ok(Unit) <- Directory.create_all(child(root, "docs/release"));
+        Ok(Unit) <- Directory.create_all(child(root, "crates/terlan"));
+        Ok(Unit) <- Directory.create_all(child(root, "editors"));
+        Ok(Unit) <- Directory.create_all(child(root, "mk"));
+        Ok(Unit) <- Directory.create_all(child(root, "std"));
+        Ok(Unit) <- Directory.create_all(child(root, "target/quality"));
+        Ok(Unit) <- File.write_text(fixture, "portable generated artifact\n");
+        Ok(Unit) <- File.write_text(inventory, fixture_inventory());
+        Ok(Unit) <- File.write_text(makefile, "fixture-check:\n\t@true\n");
+        Ok(Unit) <- File.write_text(child(root, "crates/terlan/cli.mk"), "");
+        Ok(Unit) <- File.write_text(child(root, "editors/editor.mk"), "");
+        Ok(Unit) <- File.write_text(child(root, "mk/code-quality.mk"), "");
+        Ok(Unit) <- File.write_text(child(root, "std/stdlib.mk"), "")
+    } else {
+        _ -> failure("cannot create generated-artifact self-test fixture")
+    };
+    (let valid = current_snapshot(root);
+let leaked = File.write_text(fixture, "generated by /home/alice/project/terlc\n");
+let rejected = current_snapshot(root);
+case {valid, leaked, rejected} {
+    {Some({_source, _artifacts, _snapshot}), Ok(Unit), None} -> true;
+    _ -> failure("generated-artifact self-test did not detect host path leakage")
+}).
+
+pub self_test(): Bool ->
+    case Directory.create_temporary("terlan-release-generated-artifacts.") {
+        Err(_reason) -> failure("cannot create generated-artifact self-test directory");
+        Ok(root) ->
+            let passed = self_test_in(root);
+            let removed = Directory.remove_all(root);
+            case removed {
+                Ok(Unit) -> passed;
+                Err(_reason) -> failure("cannot clean generated-artifact self-test directory")
+            }
+    }.

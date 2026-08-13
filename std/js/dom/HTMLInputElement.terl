@@ -439,7 +439,7 @@ pub (value: HTMLInputElement) set_range_text(
     replacement: JsString,
     start: JsNumber,
     end: JsNumber,
-    selection_mode: SelectionMode
+    selection_mode: SelectionMode,
 ): Unit ->
     native.
 
@@ -470,13 +470,13 @@ pub (value: HTMLInputElement) step_up(n: JsNumber): Unit ->
 pub (value: HTMLInputElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     native.
 
 pub (value: HTMLInputElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     native.

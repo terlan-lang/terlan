@@ -37,7 +37,7 @@ impl TestRepo {
 
     fn write_complete_fixture(&self) -> io::Result<()> {
         self.write(
-            "crates/terlan/src/commands/serve/tls.rs",
+            "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
             r#"
 ACME_RENEWAL_INTERVAL ACME_METADATA_CLOCK_SKEW
 validate_acme_certificate_cache_age validate_acme_certificate_cache_mode load_acme_runtime_tls_cache
@@ -46,7 +46,7 @@ rustls_server_config
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/tls/cache.rs",
+            "crates/terlan/src/commands/serve/tls/acme_runtime/cache.rs",
             r#"
 AcmeCertificateCacheMetadata renew_after_unix_seconds
 store_acme_certificate_cache_metadata write_cache_file_atomically rename_cache_file
@@ -80,7 +80,7 @@ start_listener_server_connection build_listener_server_config
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/tls_test.rs",
+            "crates/terlan/src/commands/serve/tls/acme_runtime/tls_test.rs",
             r#"
 runtime_tls_config_rejects_future_dated_auto_tls_certificate_cache_metadata
 runtime_tls_config_rejects_stale_auto_tls_certificate_cache
@@ -134,17 +134,6 @@ impl Drop for TestRepo {
 
 const COMPLETE_MAKEFILE: &str = r#"
 vm-http-acme-renewal-rotation-check: vm-http-acme-cache-custody-check
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_renewal_retry_policy_is_typed_and_deterministic -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_renewal_actor_owns_worker_timer_and_shutdown_cleanup -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::serve::tls::tls_test::runtime_tls_config_rejects_staging_mode_auto_tls_certificate_cache -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_schedules_renewal_through_vm_timer_table -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_denies_stale_challenge_access_after_renewal_scheduled -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_records_renewal_telemetry_and_redacted_support_bundle_step -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_routes_challenge_after_due_renewal_begins -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_captures_deterministic_renewal_cache_tls_handoff_replay -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::tls::tls_test::vm_tls_runtime_enforces_rotation_overlap_window_before_retiring_old_config -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::tls::tls_test::vm_tls_runtime_hot_rotation_keeps_existing_connection_mode_for_old_accepts -- --exact
-	$(RUST_TEST) --locked -p terlan --bin terlan-quality vm_http_acme_renewal_test
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-http-acme-renewal
 "#;
 
@@ -180,10 +169,12 @@ fn vm_http_acme_renewal_writes_report_for_current_foundation() {
 fn vm_http_acme_renewal_rejects_missing_renewal_interval_anchor() {
     let repo = TestRepo::new("missing-renewal-interval").expect("fixture");
     repo.write_complete_fixture().expect("write fixture");
-    let path = repo.root().join("crates/terlan/src/commands/serve/tls.rs");
+    let path = repo
+        .root()
+        .join("crates/terlan/src/commands/serve/tls/acme_runtime.rs");
     let source = fs::read_to_string(&path).expect("tls source");
     repo.write(
-        "crates/terlan/src/commands/serve/tls.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
         &source.replace("ACME_RENEWAL_INTERVAL", ""),
     )
     .expect("rewrite tls source");
@@ -235,11 +226,11 @@ fn vm_http_acme_renewal_rejects_missing_make_gate_term() {
     repo.write_complete_fixture().expect("write fixture");
     repo.write(
         "Makefile",
-        &COMPLETE_MAKEFILE.replace("vm_http_acme_renewal_test", ""),
+        &COMPLETE_MAKEFILE.replace("vm-http-acme-renewal", ""),
     )
     .expect("rewrite makefile");
 
     let error = run_vm_http_acme_renewal(repo.root()).expect_err("gate should fail");
 
-    assert!(error.contains("vm_http_acme_renewal_test"));
+    assert!(error.contains("vm-http-acme-renewal"));
 }

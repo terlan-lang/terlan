@@ -1,0 +1,25 @@
+{
+  "schema": "terlan.native-boundary-proof-promotion.v1",
+  "proof_family": "native-boundary",
+  "proof_status": "current",
+  "release_critical": true,
+  "required_gate": "lean-proof-native-boundary-check",
+  "must_precede_lanes": [
+    "vm_http_critical",
+    "db_runtime"
+  ],
+  "denied_host_effects": [
+    "file",
+    "socket",
+    "timer",
+    "process_spawn",
+    "process_registry",
+    "acme_tls"
+  ],
+  "runtime_contract": {
+    "execution_owner": "terlan-vm",
+    "handle_encoding": "typed",
+    "side_effect_handoff": "async-capability-rpc",
+    "legacy_fallback": "deny"
+  }
+}

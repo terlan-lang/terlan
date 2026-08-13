@@ -79,7 +79,7 @@ pub (value: IDBObjectStore) count(query: IDBKeyRange | IDBValidKey): IDBRequest[
 pub (value: IDBObjectStore) create_index(
     name: JsString,
     key_path: Array[JsString] | JsString,
-    options: IDBIndexParameters
+    options: IDBIndexParameters,
 ): IDBIndex ->
     native.
 
@@ -98,7 +98,7 @@ pub (value: IDBObjectStore) delete_index(name: JsString): std.core.Unit ->
  */
 pub (value: IDBObjectStore) get_all_keys(
     query: Option[IDBKeyRange | IDBValidKey],
-    count: JsNumber
+    count: JsNumber,
 ): IDBRequest[Array[IDBValidKey]] ->
     native.
 
@@ -125,7 +125,7 @@ pub (value: IDBObjectStore) index(name: JsString): IDBIndex ->
  */
 pub (value: IDBObjectStore) open_cursor(
     query: Option[IDBKeyRange | IDBValidKey],
-    direction: IDBCursorDirection
+    direction: IDBCursorDirection,
 ): IDBRequest[Option[IDBCursorWithValue]] ->
     native.
 
@@ -136,6 +136,6 @@ pub (value: IDBObjectStore) open_cursor(
  */
 pub (value: IDBObjectStore) open_key_cursor(
     query: Option[IDBKeyRange | IDBValidKey],
-    direction: IDBCursorDirection
+    direction: IDBCursorDirection,
 ): IDBRequest[Option[IDBCursor]] ->
     native.

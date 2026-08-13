@@ -9,6 +9,7 @@ const REPO_ROOT = path.resolve(EDITORS_ROOT, "..");
 
 const CANONICAL_SUFFIXES = Object.freeze([
   ".terl",
+  ".terls",
   ".terli",
   ".terl.html",
   ".terl.md",
@@ -21,6 +22,7 @@ const CANONICAL_SUFFIXES = Object.freeze([
 
 const CANONICAL_LANGUAGE_IDS = Object.freeze([
   "terlan",
+  "terlan-script",
   "terlan-interface",
   "terlan-template-html",
   "terlan-template-markdown",
@@ -236,6 +238,7 @@ function testEmacsEditorContract() {
   const mode = readText("editors/emacs/terlan-mode.el");
   const suffixPatterns = [
     String.raw`\\.terl\\'`,
+    String.raw`\\.terls\\'`,
     String.raw`\\.terli\\'`,
     String.raw`\\.terl\\.html\\'`,
     String.raw`\\.terl\\.md\\'`,
@@ -283,11 +286,32 @@ function testIntellijEditorContract() {
   assertNoSeparateLspBinary("IntelliJ descriptor", descriptor);
 }
 
+/** Verifies both editor packages consume compiler-owned document formatting. */
+function testCompilerFormattingContract() {
+  const lsp = readText("crates/terlan/src/lsp/mod.rs");
+  const document = readText("crates/terlan/src/lsp/document.rs");
+  const vscode = readText("editors/vscode/src/extension.js");
+  const intellij = readText(
+    "editors/intellij/src/main/kotlin/org/terlan/intellij/TerlanLspServerDescriptor.kt"
+  );
+  const plugin = readText("editors/intellij/src/main/resources/META-INF/plugin.xml");
+
+  assert.ok(lsp.includes("document_formatting_provider: Some(OneOf::Left(true))"));
+  assert.ok(lsp.includes("async fn formatting"));
+  assert.ok(document.includes("format_source_module"));
+  assert.ok(document.includes("format_interface_source_module"));
+  assert.ok(document.includes("format_script_source"));
+  assert.ok(vscode.includes('executeCommand("editor.action.formatDocument")'));
+  assert.ok(intellij.includes("ensureServerStarted"));
+  assert.ok(plugin.includes("platform.lsp.serverSupportProvider"));
+}
+
 testVscodeLanguageContract();
 testVscodeLspContract();
 testTreeSitterSuffixContract();
 testNeovimEditorContract();
 testEmacsEditorContract();
 testIntellijEditorContract();
+testCompilerFormattingContract();
 
 console.log("terlan shared editor contract tests passed");

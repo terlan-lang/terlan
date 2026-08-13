@@ -24,7 +24,7 @@ pub enumerate_devices_typechecks(receiver: MediaDevices): Promise[std.js.Array[M
 
 pub get_display_media_typechecks(
     receiver: MediaDevices,
-    options: DisplayMediaStreamOptions
+    options: DisplayMediaStreamOptions,
 ): Promise[MediaStream] ->
     receiver.get_display_media(options).
 
@@ -33,7 +33,7 @@ pub get_supported_constraints_typechecks(receiver: MediaDevices): MediaTrackSupp
 
 pub get_user_media_typechecks(
     receiver: MediaDevices,
-    constraints: MediaStreamConstraints
+    constraints: MediaStreamConstraints,
 ): Promise[MediaStream] ->
     receiver.get_user_media(constraints).
 
@@ -41,7 +41,7 @@ pub add_event_listener_typechecks(
     receiver: MediaDevices,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -49,6 +49,6 @@ pub remove_event_listener_typechecks(
     receiver: MediaDevices,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

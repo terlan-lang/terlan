@@ -12,7 +12,7 @@ use super::policy::{load_policy, validate_performance, validate_policy};
 use super::{
     copy_tree, create_workspace, fixture_sha256, replace_text, validate_report, REPORT_SCHEMA,
 };
-use crate::hardware::HardwareFingerprint;
+use crate::benchmark::hardware::HardwareFingerprint;
 
 /// Runs report, percentile, serialization, and fixture contract checks.
 pub(super) fn run() -> Result<(), String> {

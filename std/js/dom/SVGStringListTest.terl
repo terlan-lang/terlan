@@ -39,7 +39,7 @@ pub initialize_typechecks(receiver: SVGStringList, new_item: JsString): JsString
 pub insert_item_before_typechecks(
     receiver: SVGStringList,
     new_item: JsString,
-    index: JsNumber
+    index: JsNumber,
 ): JsString ->
     receiver.insert_item_before(new_item, index).
 

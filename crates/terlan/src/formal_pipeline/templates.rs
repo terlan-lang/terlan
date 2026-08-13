@@ -21,7 +21,7 @@ use crate::terlan_typeck::{
 /// - Converts prop types/defaults and expression islands into CoreIR, then
 ///   moves the already-checked parsed HTML tree without reopening source.
 pub(super) fn core_template_render_plans(
-    inputs: Vec<crate::commands::artifacts::SyntaxTemplateFrontendInput>,
+    inputs: Vec<crate::template_inputs::SyntaxTemplateFrontendInput>,
     core: &CoreModule,
 ) -> Result<Vec<CoreTemplateRenderPlan>, String> {
     let mut plans = inputs
@@ -44,7 +44,7 @@ pub(super) fn core_template_render_plans(
 
 /// Lowers declaration-order template props into checked CoreIR contracts.
 fn lower_props(
-    input: &crate::commands::artifacts::SyntaxTemplateFrontendInput,
+    input: &crate::template_inputs::SyntaxTemplateFrontendInput,
 ) -> Result<Vec<CoreTemplateProp>, String> {
     input
         .props
@@ -82,7 +82,7 @@ fn lower_props(
 
 /// Lowers every unique non-path interpolation into typed CoreIR.
 fn lower_expressions(
-    input: &crate::commands::artifacts::SyntaxTemplateFrontendInput,
+    input: &crate::template_inputs::SyntaxTemplateFrontendInput,
     props: &[CoreTemplateProp],
     core: &CoreModule,
 ) -> Result<Vec<CoreTemplateExpression>, String> {
@@ -192,9 +192,7 @@ fn infer_expression_type(
                         CoreType::Int
                     })
                 }
-                "==" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "&&" | "or" | "||" => {
-                    Some(CoreType::Bool)
-                }
+                "==" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "or" => Some(CoreType::Bool),
                 _ => None,
             }
         }

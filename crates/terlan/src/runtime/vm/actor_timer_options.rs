@@ -1,11 +1,8 @@
-use super::{VmActorRuntime, VmProcessId};
-use crate::runtime::vm::{
-    timer::{VmTimerEvent, VmTimerId},
-    ReplValue,
-};
+use super::*;
 
 /// Deadline interpretation for a delayed actor message.
 #[derive(Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmActorTimerDeadline {
     Relative(u64),
     Absolute(u64),
@@ -13,6 +10,7 @@ pub(crate) enum VmActorTimerDeadline {
 
 /// Reply policy for reading one delayed actor timer.
 #[derive(Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmActorTimerReadMode {
     Synchronous,
     Asynchronous,
@@ -20,6 +18,7 @@ pub(crate) enum VmActorTimerReadMode {
 
 /// Reply policy for cancelling one delayed actor timer.
 #[derive(Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmActorTimerCancelMode {
     Synchronous { include_information: bool },
     Asynchronous { include_information: bool },
@@ -27,6 +26,7 @@ pub(crate) enum VmActorTimerCancelMode {
 
 /// Information returned for an active or stale delayed actor timer.
 #[derive(Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmActorTimerInformation {
     Remaining(u64),
     Missing,
@@ -34,6 +34,7 @@ pub(crate) enum VmActorTimerInformation {
 
 /// Immediate result of one timer option operation.
 #[derive(Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmActorTimerOptionResult {
     Information(VmActorTimerInformation),
     Acknowledged,
@@ -41,12 +42,14 @@ pub(crate) enum VmActorTimerOptionResult {
 
 /// Observable effects from one typed timer option operation.
 #[derive(Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmActorTimerOptionOutcome {
     pub(crate) result: VmActorTimerOptionResult,
     pub(crate) timer_event: Option<VmTimerEvent>,
     pub(crate) reply_message_id: Option<u64>,
 }
 
+#[cfg(test)]
 impl VmActorTimerDeadline {
     fn resolve(self, now_tick: u64, operation: &str) -> Result<u64, String> {
         match self {
@@ -60,6 +63,7 @@ impl VmActorTimerDeadline {
 
 impl VmActorRuntime {
     /// Schedules a delayed message using an explicit relative or absolute deadline.
+    #[cfg(test)]
     pub(crate) fn send_with_deadline(
         &mut self,
         sender: VmProcessId,
@@ -74,6 +78,7 @@ impl VmActorRuntime {
     }
 
     /// Starts a correlated message timer with a relative or absolute deadline.
+    #[cfg(test)]
     pub(crate) fn start_message_timer_with_deadline(
         &mut self,
         sender: VmProcessId,
@@ -88,6 +93,7 @@ impl VmActorRuntime {
     }
 
     /// Reads one delayed timer synchronously or queues a typed asynchronous reply.
+    #[cfg(test)]
     pub(crate) fn read_delayed_send_with_mode(
         &mut self,
         requester: VmProcessId,
@@ -119,6 +125,7 @@ impl VmActorRuntime {
     }
 
     /// Cancels one delayed timer with explicit synchronous/asynchronous information policy.
+    #[cfg(test)]
     pub(crate) fn cancel_delayed_send_with_mode(
         &mut self,
         requester: VmProcessId,
@@ -169,6 +176,7 @@ impl VmActorRuntime {
         })
     }
 
+    #[cfg(test)]
     fn delayed_timer_information(
         &self,
         timer_id: VmTimerId,
@@ -181,6 +189,7 @@ impl VmActorRuntime {
     }
 }
 
+#[cfg(test)]
 fn timer_option_reply(
     name: &str,
     timer_id: VmTimerId,

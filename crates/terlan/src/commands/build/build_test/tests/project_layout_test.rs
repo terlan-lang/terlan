@@ -329,10 +329,10 @@ fn build_command_compiles_project_manifest_namespace_layout() {
         )
         .expect("failed to write project manifest fixture");
     fs::write(
-            module_dir.join("DataFrame.terl"),
-            "module std.sample.polars.DataFrame.\n\npub opaque type DataFrame.\n\npub height(df: DataFrame): Int ->\n    0.\n\npub version(): Int ->\n    4.\n",
-        )
-        .expect("failed to write namespaced module");
+        module_dir.join("DataFrame.terl"),
+        "module std.sample.polars.DataFrame.\n\npub version(): Int ->\n    4.\n",
+    )
+    .expect("failed to write namespaced module");
 
     let state = CliState {
         out_dir: out_dir.clone(),
@@ -450,7 +450,7 @@ fn build_command_accepts_project_manifest_multiple_source_roots_vm_import_closur
     .expect("failed to write multi-root provider module");
     fs::write(
             app_dir.join("Main.terl"),
-            "module demo.Main.\n\nimport demo.Util.{one}.\nimport std.io.Console.{println}.\n\npub main(): Unit ->\n    println(\"ok\");\n    Unit.\n\npub value(): Int ->\n    one().\n",
+            "module demo.Main.\n\nimport demo.Util.{one}.\n\npub main(): Int ->\n    value().\n\npub value(): Int ->\n    one().\n",
         )
         .expect("failed to write multi-root consumer module");
 
@@ -474,7 +474,7 @@ fn build_command_accepts_project_manifest_multiple_source_roots_vm_import_closur
     assert!(!out_dir.join("ebin").exists());
     assert_eq!(
         native_image_export_names(&out_dir.join("vm/demo_Main.tvm")),
-        vec!["demo.Main.value/0", "demo.Util.one/0"]
+        vec!["demo.Main.main/0", "demo.Main.value/0", "demo.Util.one/0"]
     );
     assert!(!out_dir.join("vm/demo_Util.tvm").exists());
 }

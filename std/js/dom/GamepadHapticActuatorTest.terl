@@ -20,7 +20,7 @@ pub generated_binding_surface_contract(): Bool -> true.
 pub play_effect_typechecks(
     receiver: GamepadHapticActuator,
     type_: GamepadHapticEffectType,
-    params: GamepadEffectParameters
+    params: GamepadEffectParameters,
 ): Promise[GamepadHapticsResult] ->
     receiver.play_effect(type_, params).
 

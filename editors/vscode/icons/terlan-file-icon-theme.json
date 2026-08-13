@@ -17,6 +17,7 @@
   },
   "languageIds": {
     "terlan": "_terlan_file",
+    "terlan-script": "_terlan_file",
     "terlan-test": "_terlan_test_file",
     "terlan-interface": "_terlan_file",
     "terlan-template-html": "_terlan_template_html_file",
@@ -28,6 +29,7 @@
   },
   "fileExtensions": {
     "terl": "_terlan_file",
+    "terls": "_terlan_file",
     "terli": "_terlan_file",
     "terl.html": "_terlan_template_html_file",
     "terl.md": "_terlan_file",

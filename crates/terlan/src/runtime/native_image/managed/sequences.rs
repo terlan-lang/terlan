@@ -398,4 +398,5 @@ fn decode_usize(payload: &[u8], offset: usize) -> Result<usize, ManagedMemoryErr
 
 #[cfg(test)]
 #[path = "managed_sequence_test.rs"]
+#[cfg(test)]
 mod managed_sequence_test;

@@ -1,0 +1,468 @@
+/**
+ * Bounds regenerable Cargo artifacts through typed filesystem capabilities.
+ */
+module scripts.self_validation.CargoArtifactRetentionTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.io.Console.{println}.
+import std.io.Directory.{create_all, create_temporary, entries, remove_all, tree_usage}.
+import std.io.File.{delete, exists, read_text, size, write_text}.
+import std.system.Environment.
+
+import type std.collections.List.
+
+pub struct CleanupOutcome {
+    reclaimed_bytes: Int,
+    removed_count: Int,
+    valid: Bool,
+}.
+
+@pure
+child(root: String, relative: String): String ->
+    if {
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+@pure
+ephemeral_names(): List[String] -> ["coverage", "cq0-timings", "cq3-timings", "gnutsan"].
+
+@pure
+ephemeral_prefix(target_root: String): String ->
+    child(target_root, "terlan-").
+
+@pure
+maximum_incremental_bytes(): Int -> 68719476736.
+
+@pure
+warning_debug_bytes(): Int -> 137438953472.
+
+usage_bytes(path: String): Int ->
+    if {
+        not exists(path) -> 0;
+        true -> case tree_usage(path) {
+            Ok(usage) -> usage.logical_file_bytes;
+            Err(_directory_reason) ->
+                case size(path) {
+                    Ok(bytes) -> bytes;
+                    Err(_file_reason) -> -1
+                }
+        }
+    }.
+
+@pure
+reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_at(values, List.new[String]()).
+
+@pure
+reverse_strings_at(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings_at(rest, [value | reversed])
+    }.
+
+findings(target_root: String, maximum: Int): List[String] ->
+    let root_entries =
+        case entries(target_root) {
+            Ok(paths) -> paths;
+            Err(_reason) -> List.new[String]()
+        };
+    let isolated = isolated_findings(target_root, root_entries, ephemeral_names(), List.new[String]());
+    let prefixed = prefixed_findings(root_entries, ephemeral_prefix(target_root), isolated);
+    let incremental = child(target_root, "debug/incremental");
+    let incremental_bytes = usage_bytes(incremental);
+    reverse_strings(
+        if {
+            incremental_bytes < 0 -> [String.append("refusing unexpected incremental target `", String.append(incremental, "`")) | prefixed];
+            incremental_bytes > maximum -> [String.append(
+    "shared debug incremental state ",
+    String.append(
+        Int.to_string(incremental_bytes),
+        String.append(" bytes exceeds ", Int.to_string(maximum)),
+    ),
+) | prefixed];
+            true -> prefixed
+        },
+    ).
+
+@pure
+prefixed_findings(paths: List[String], prefix: String, diagnostics: List[String]): List[String] ->
+    case paths {
+        [] -> diagnostics;
+        [path | rest] ->
+            prefixed_findings(
+                rest,
+                prefix,
+                if {
+                    String.starts_with(path, prefix) -> [String.append("test-owned target escaped cleanup `", String.append(path, "`")) | diagnostics];
+                    true -> diagnostics
+                },
+            )
+    }.
+
+@pure
+isolated_findings(
+    target_root: String,
+    root_entries: List[String],
+    names: List[String],
+    diagnostics: List[String],
+): List[String] ->
+    case names {
+        [] -> diagnostics;
+        [name | rest] ->
+            isolated_findings(
+                target_root,
+                root_entries,
+                rest,
+                if {
+                    string_member(root_entries, child(target_root, name)) -> [String.append("regenerable Cargo target `", String.append(name, "` escaped retention cleanup")) | diagnostics];
+                    true -> diagnostics
+                },
+            )
+    }.
+
+@pure
+string_member(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or string_member(rest, expected)
+    }.
+
+cleanup_named_targets(
+    target_root: String,
+    names: List[String],
+    outcome: CleanupOutcome,
+): CleanupOutcome ->
+    case names {
+        [] -> outcome;
+        [name | rest] ->
+            let path = child(target_root, name);
+            if {
+                not exists(path) -> cleanup_named_targets(target_root, rest, outcome);
+                true -> let bytes = usage_bytes(path);
+                if {
+                    bytes < 0 -> CleanupOutcome(
+                        reclaimed_bytes = outcome.reclaimed_bytes,
+                        removed_count = outcome.removed_count,
+                        valid = false,
+                    );
+                    true -> case remove_all(path) {
+                        Ok(Unit) ->
+                            cleanup_named_targets(
+                                target_root,
+                                rest,
+                                CleanupOutcome(
+                                    reclaimed_bytes = outcome.reclaimed_bytes + bytes,
+                                    removed_count = outcome.removed_count + 1,
+                                    valid = outcome.valid,
+                                ),
+                            );
+                        Err(_reason) ->
+                            CleanupOutcome(
+                                reclaimed_bytes = outcome.reclaimed_bytes,
+                                removed_count = outcome.removed_count,
+                                valid = false,
+                            )
+                    }
+                }
+            }
+    }.
+
+cleanup_prefixed_targets(
+    paths: List[String],
+    prefix: String,
+    outcome: CleanupOutcome,
+): CleanupOutcome ->
+    case paths {
+        [] -> outcome;
+        [path | rest] ->
+            if {
+                not String.starts_with(path, prefix) -> cleanup_prefixed_targets(rest, prefix, outcome);
+                true -> let bytes = usage_bytes(path);
+                if {
+                    bytes < 0 -> CleanupOutcome(
+                        reclaimed_bytes = outcome.reclaimed_bytes,
+                        removed_count = outcome.removed_count,
+                        valid = false,
+                    );
+                    true -> if {
+                        remove_owned_path(path) -> cleanup_prefixed_targets(
+                            rest,
+                            prefix,
+                            CleanupOutcome(
+                                reclaimed_bytes = outcome.reclaimed_bytes + bytes,
+                                removed_count = outcome.removed_count + 1,
+                                valid = outcome.valid,
+                            ),
+                        );
+                        true -> CleanupOutcome(
+                            reclaimed_bytes = outcome.reclaimed_bytes,
+                            removed_count = outcome.removed_count,
+                            valid = false,
+                        )
+                    }
+                }
+            }
+    }.
+
+remove_owned_path(path: String): Bool ->
+    let {
+        Err(_directory_reason) <- remove_all(path);
+        Err(_file_reason) <- delete(path)
+    } else {
+        _ -> true
+    };
+    false.
+
+clean(target_root: String, maximum: Int): CleanupOutcome ->
+    let isolated =
+        cleanup_named_targets(
+            target_root,
+            ephemeral_names(),
+            CleanupOutcome(reclaimed_bytes = 0, removed_count = 0, valid = true),
+        );
+    let root_entries =
+        case entries(target_root) {
+            Ok(paths) -> paths;
+            Err(_reason) -> List.new[String]()
+        };
+    let prefixed = cleanup_prefixed_targets(root_entries, ephemeral_prefix(target_root), isolated);
+    let incremental = child(target_root, "debug/incremental");
+    let incremental_bytes = usage_bytes(incremental);
+    if {
+        not prefixed.valid or incremental_bytes < 0 -> CleanupOutcome(
+            reclaimed_bytes = prefixed.reclaimed_bytes,
+            removed_count = prefixed.removed_count,
+            valid = false,
+        );
+        incremental_bytes <= maximum -> prefixed;
+        true -> case remove_all(incremental) {
+            Ok(Unit) ->
+                CleanupOutcome(
+                    reclaimed_bytes = prefixed.reclaimed_bytes + incremental_bytes,
+                    removed_count = prefixed.removed_count + 1,
+                    valid = true,
+                );
+            Err(_reason) ->
+                CleanupOutcome(
+                    reclaimed_bytes = prefixed.reclaimed_bytes,
+                    removed_count = prefixed.removed_count,
+                    valid = false,
+                )
+        }
+    }.
+
+@pure
+report_text(debug_bytes: Int): String ->
+    let warning = debug_bytes > warning_debug_bytes();
+    String.append(
+        "{\n  \"maintenance_command\": \"make rust-artifact-retention-clean-shared-debug\",\n  \"schema_version\": 1,\n  \"shared_debug_bytes\": ",
+        String.append(
+            Int.to_string(debug_bytes),
+            String.append(
+                ",\n  \"warning\": ",
+                String.append(
+                    if {
+                        warning -> "true";
+                        true -> "false"
+                    },
+                    String.append(
+                        ",\n  \"warning_bytes\": ",
+                        String.append(Int.to_string(warning_debug_bytes()), "\n}\n"),
+                    ),
+                ),
+            ),
+        ),
+    ).
+
+write_report(target_root: String, report_path: String): Bool ->
+    let debug_bytes = usage_bytes(child(target_root, "debug"));
+    if {
+        debug_bytes < 0 -> false;
+        true -> let {
+            Ok(Unit) <- create_all(child(target_root, "quality"));
+            Ok(Unit) <- write_text(report_path, report_text(debug_bytes))
+        } else {
+            _ -> false
+        };
+        finish_report_write(debug_bytes)
+    }.
+
+finish_report_write(debug_bytes: Int): Bool ->
+    if {
+        debug_bytes > warning_debug_bytes() -> let _warning =
+            println(
+                String.append(
+                    "Cargo artifact retention warning: shared debug artifacts use ",
+                    String.append(
+                        Int.to_string(debug_bytes),
+                        " bytes; explicit maintenance is `make rust-artifact-retention-clean-shared-debug`",
+                    ),
+                ),
+            );
+        true;
+        true -> true
+    }.
+
+print_findings(diagnostics: List[String]): Bool ->
+    let _header = println("Cargo artifact retention failed:");
+    print_finding_rows(diagnostics).
+
+print_finding_rows(diagnostics: List[String]): Bool ->
+    case diagnostics {
+        [] -> false;
+        [diagnostic | rest] ->
+            let _row = println(String.append("  - ", diagnostic));
+            print_finding_rows(rest)
+    }.
+
+check(target_root: String, report_path: String): Bool ->
+    let diagnostics = findings(target_root, maximum_incremental_bytes());
+    case diagnostics {
+        [] -> write_check_report(target_root, report_path);
+        _ -> print_findings(diagnostics)
+    }.
+
+write_check_report(target_root: String, report_path: String): Bool ->
+    let written = write_report(target_root, report_path);
+    finish_check_report(written).
+
+finish_check_report(written: Bool): Bool ->
+    if {
+        written -> let _passed = println("Cargo artifact retention passed");
+        true;
+        true -> false
+    }.
+
+clean_and_check(target_root: String, report_path: String): Bool ->
+    let outcome = clean(target_root, maximum_incremental_bytes());
+    let _cleaned =
+        println(
+            String.append(
+                "Cargo artifact retention cleaned ",
+                String.append(
+                    Int.to_string(outcome.removed_count),
+                    String.append(
+                        " regenerable targets (",
+                        String.append(Int.to_string(outcome.reclaimed_bytes), " bytes)"),
+                    ),
+                ),
+            ),
+        );
+    if {
+        outcome.valid -> check(target_root, report_path);
+        true -> false
+    }.
+
+clean_shared_debug(target_root: String): Bool ->
+    let debug = child(target_root, "debug");
+    let reclaimed = usage_bytes(debug);
+    let debug_exists = exists(debug);
+    if {
+        reclaimed < 0 -> false;
+        not debug_exists -> let _empty = println("Cargo shared debug maintenance reclaimed 0 bytes");
+        true;
+        true -> case remove_all(debug) {
+            Err(_reason) -> false;
+            Ok(Unit) ->
+                let _cleaned =
+                    println(
+                        String.append(
+                            "Cargo shared debug maintenance reclaimed ",
+                            String.append(Int.to_string(reclaimed), " bytes"),
+                        ),
+                    );
+                true
+        }
+    }.
+
+self_test(): Bool ->
+    case create_temporary("terlan-cargo-retention-test") {
+        Err(_reason) -> false;
+        Ok(workspace) -> run_self_test(workspace)
+    }.
+
+run_self_test(workspace: String): Bool ->
+    let target_root = child(workspace, "target");
+    let isolated = child(target_root, "cq0-timings");
+    let coverage = child(target_root, "coverage");
+    let escaped = child(target_root, "terlan-partial-build");
+    let debug = child(target_root, "debug");
+    let incremental = child(debug, "incremental");
+    let made_isolated = create_all(isolated);
+    let artifact = write_text(child(isolated, "artifact"), "artifact");
+    let made_coverage = create_all(coverage);
+    let coverage_artifact = write_text(child(coverage, "artifact"), "coverage");
+    let made_escaped = create_all(escaped);
+    let escaped_artifact = write_text(child(escaped, "artifact"), "partial");
+    let made_incremental = create_all(incremental);
+    let preserved = write_text(child(debug, "preserved"), "keep");
+    let cache = write_text(child(incremental, "cache"), "incremental");
+    let before = findings(target_root, 4);
+    let cleaned = clean(target_root, 4);
+    let after_findings = findings(target_root, 4);
+    let retained = read_text(child(debug, "preserved"));
+    let shared = clean_shared_debug(target_root);
+    let removed = remove_all(workspace);
+    case {
+    made_isolated,
+    artifact,
+    made_coverage,
+    coverage_artifact,
+    made_escaped,
+    escaped_artifact,
+    made_incremental,
+    preserved,
+    cache,
+    retained,
+    removed,
+} {
+        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok("keep"), Ok(Unit)} ->
+            before != List.new[String]()
+                and cleaned.valid
+                and cleaned.reclaimed_bytes == 34
+                and cleaned.removed_count == 4
+                and after_findings == List.new[String]()
+                and shared;
+        _ -> false
+    }.
+
+repository_gate(): Bool ->
+    let mode = environment_or("TERLAN_CARGO_ARTIFACT_RETENTION_MODE", "check");
+    let target_root = environment_or("TERLAN_CARGO_ARTIFACT_RETENTION_TARGET", "target");
+    let report_path =
+        environment_or(
+            "TERLAN_CARGO_ARTIFACT_RETENTION_REPORT",
+            child(target_root, "quality/cargo-artifact-retention.json"),
+        );
+    if {
+        mode == "self-test" -> run_self_test_mode();
+        mode == "clean-check" -> clean_and_check(target_root, report_path);
+        mode == "clean-shared-debug" -> clean_shared_debug(target_root);
+        mode == "check" -> check(target_root, report_path);
+        true -> false
+    }.
+
+run_self_test_mode(): Bool ->
+    let valid = self_test();
+    finish_self_test_mode(valid).
+
+finish_self_test_mode(valid: Bool): Bool ->
+    if {
+        valid -> let _status = println("Cargo artifact retention self-test passed");
+        true;
+        true -> false
+    }.
+
+@test
+pub cargo_artifact_retention_gate(): Bool ->
+    repository_gate().

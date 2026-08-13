@@ -1,8 +1,9 @@
 module=std.vm.Port
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=13898823416299084215
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=13574027045913505418
 interface_hash=7277425510993767852
 interface_doc_hash=7398620594069696850
-deps=0
+deps=1
+std.collections.List=5599785960849014878

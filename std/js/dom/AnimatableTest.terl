@@ -20,7 +20,7 @@ pub generated_binding_surface_contract(): Bool -> true.
 pub animate_typechecks(
     receiver: Animatable,
     keyframes: Option[PropertyIndexedKeyframes | Array[Keyframe]],
-    options: KeyframeAnimationOptions | std.js.Number.JsNumber
+    options: KeyframeAnimationOptions | std.js.Number.JsNumber,
 ): Animation ->
     receiver.animate(keyframes, options).
 

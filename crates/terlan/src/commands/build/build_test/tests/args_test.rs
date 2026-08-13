@@ -1,5 +1,4 @@
 use super::*;
-use crate::commands::build::args::MobileBuildTarget;
 
 /// Verifies `terlc build <path>` defaults to the Terlan VM target.
 ///
@@ -240,51 +239,6 @@ fn parse_build_args_accepts_wasm_core_target() {
     assert!(parsed.target_explicit);
 }
 
-/// Verifies build argument parsing accepts the Android mobile planning target.
-///
-/// Inputs:
-/// - A build argument vector containing a source path and
-///   `--target mobile.android`.
-///
-/// Output:
-/// - Test assertion only; parsed target must select Android mobile planning.
-///
-/// Transformation:
-/// - Runs argument parsing without invoking native shell tooling so mobile
-///   build planning can be accepted before package generation exists.
-#[test]
-fn parse_build_args_accepts_mobile_android_target() {
-    let parsed = parse_build_args(&args(&["src/main.terl", "--target", "mobile.android"]))
-        .expect("mobile.android target");
-
-    assert_eq!(
-        parsed.target,
-        BuildTarget::Mobile(MobileBuildTarget::Android)
-    );
-    assert!(parsed.target_explicit);
-}
-
-/// Verifies build argument parsing accepts the iOS mobile planning target.
-///
-/// Inputs:
-/// - A build argument vector containing a source path and
-///   `--target mobile.ios`.
-///
-/// Output:
-/// - Test assertion only; parsed target must select iOS mobile planning.
-///
-/// Transformation:
-/// - Runs argument parsing without invoking Apple build tooling so mobile
-///   build planning can be accepted before package generation exists.
-#[test]
-fn parse_build_args_accepts_mobile_ios_target() {
-    let parsed = parse_build_args(&args(&["src/main.terl", "--target", "mobile.ios"]))
-        .expect("mobile.ios target");
-
-    assert_eq!(parsed.target, BuildTarget::Mobile(MobileBuildTarget::Ios));
-    assert!(parsed.target_explicit);
-}
-
 /// Verifies future mobile build targets are reserved with stable diagnostics.
 ///
 /// Inputs:
@@ -298,7 +252,7 @@ fn parse_build_args_accepts_mobile_ios_target() {
 ///   mobile emitter.
 #[test]
 fn parse_build_args_rejects_reserved_mobile_targets() {
-    for target in ["mobile", "mobile.shell"] {
+    for target in ["mobile", "mobile.shell", "mobile.android", "mobile.ios"] {
         let error = parse_build_args(&args(&["src/main.terl", "--target", target]))
             .expect_err("mobile target should be reserved");
 
@@ -372,7 +326,7 @@ fn parse_build_args_accepts_declarations_flag() {
 ///
 /// Inputs:
 /// - Build commands using `--declarations` with default VM, explicit VM,
-///   Wasm, and mobile targets.
+///   and Wasm targets.
 ///
 /// Output:
 /// - Test assertion only; command execution must return a usage-level failure.
@@ -386,8 +340,6 @@ fn build_command_rejects_declarations_for_non_js_targets() {
         vec!["--declarations"],
         vec!["--declarations", "--target", "terlan-vm"],
         vec!["--declarations", "--target", "wasm.core"],
-        vec!["--declarations", "--target", "mobile.android"],
-        vec!["--declarations", "--target", "mobile.ios"],
     ] {
         let status = run(
             CliCommand {

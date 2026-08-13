@@ -35,6 +35,14 @@ pub opaque type Bytes.
 
 pub concat(left: Bytes, right: Bytes): Bytes.
 
+/// Returns whether this buffer contains the complete needle buffer.
+
+pub (bytes: Bytes) contains(needle: Bytes): Bool.
+
+/// Returns the first non-ASCII-whitespace byte index, or `-1` when absent.
+
+pub (bytes: Bytes) first_non_ascii_whitespace(): Int.
+
 /// Builds a byte buffer from unsigned octets.
 ///
 /// Input: one list of byte values.
@@ -102,6 +110,10 @@ pub (bytes: Bytes) read_uint_le(bit_offset: Int, bit_width: Int): Int.
 /// bytes into VM-owned immutable storage.
 
 pub (bytes: Bytes) slice(start: Int, length: Int): Bytes.
+
+/// Returns whether this buffer begins with the complete prefix buffer.
+
+pub (bytes: Bytes) starts_with(prefix: Bytes): Bool.
 
 /// Returns a byte buffer as unsigned octets.
 ///

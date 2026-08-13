@@ -42,7 +42,7 @@ pub close_typechecks(receiver: WebSocket, code: JsNumber, reason: JsString): Uni
 
 pub send_typechecks(
     receiver: WebSocket,
-    data: ArrayBufferLike | ArrayBufferView | Blob | JsString
+    data: ArrayBufferLike | ArrayBufferView | Blob | JsString,
 ): Unit ->
     receiver.send(data).
 
@@ -50,7 +50,7 @@ pub add_event_listener_typechecks(
     receiver: WebSocket,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -58,6 +58,6 @@ pub remove_event_listener_typechecks(
     receiver: WebSocket,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

@@ -98,6 +98,94 @@ fn managed_heap_and_mailbox_roots_move_with_parked_continuation() {
 }
 
 #[test]
+fn parked_collection_relocates_top_and_nested_completion_roots() {
+    let owner = 37;
+    let mut runtime = PureNativeExecutionRuntime::runtime_default().expect("managed runtime");
+    let top = runtime
+        .managed
+        .allocate_string_value(owner, "top")
+        .expect("top continuation root");
+    let completion = runtime
+        .managed
+        .allocate_string_value(owner, "completion")
+        .expect("completion root");
+    let garbage = "unreachable-managed-allocation";
+    for _ in 0..40_000 {
+        runtime
+            .managed
+            .allocate_string_value(owner, garbage)
+            .expect("garbage below the hard heap limit");
+    }
+    let (_, top_pending) = runtime
+        .managed
+        .park_continuation_captures(owner, 41, &[TvmBoundaryType::String], &[top])
+        .expect("park top root");
+    let (_, completion_pending) = runtime
+        .managed
+        .park_continuation_captures(owner, 43, &[TvmBoundaryType::String], &[completion])
+        .expect("park completion root");
+    runtime
+        .park_continuation_with_completions(
+            owner,
+            47,
+            41,
+            None,
+            top_pending,
+            vec![PendingNativeCompletionFrame {
+                continuation_id: 43,
+                scalar_captures: Vec::new(),
+                managed: completion_pending,
+            }],
+        )
+        .expect("park complete continuation stack");
+
+    runtime
+        .collect_parked_owner_at_safepoint(owner)
+        .expect("collect precise parked roots");
+    let claim = runtime
+        .claim_continuation(owner, 47, 41)
+        .expect("claim relocated continuation");
+    let (_, top_pending, mut completions) = claim.into_resume_state_with_completions();
+    let restored_top = runtime
+        .managed
+        .restore_continuation_captures(owner, 41, &[TvmBoundaryType::String], &[], top_pending)
+        .expect("restore relocated top root");
+    let completion = completions.pop().expect("completion frame");
+    let restored_completion = runtime
+        .managed
+        .restore_continuation_captures(
+            owner,
+            completion.continuation_id,
+            &[TvmBoundaryType::String],
+            &completion.scalar_captures,
+            completion.managed,
+        )
+        .expect("restore relocated completion root");
+
+    assert_eq!(
+        runtime
+            .managed
+            .materialize_string_value(owner, restored_top[0])
+            .expect("materialize top root"),
+        "top"
+    );
+    assert_eq!(
+        runtime
+            .managed
+            .materialize_string_value(owner, restored_completion[0])
+            .expect("materialize completion root"),
+        "completion"
+    );
+    assert_eq!(
+        runtime
+            .managed
+            .heap_usage(owner)
+            .map(|(_, objects)| objects),
+        Some(2)
+    );
+}
+
+#[test]
 fn managed_destination_collision_returns_the_complete_actor_for_rollback() {
     let mut source = PureNativeExecutionRuntime::runtime_default().expect("source runtime");
     let source_value = source

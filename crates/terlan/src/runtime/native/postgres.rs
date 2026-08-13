@@ -4,8 +4,6 @@
 //! and deterministic row decoding. Live socket execution belongs to the VM
 //! Postgres driver worker; this compatibility surface must not create an
 //! independent async runtime.
-#![cfg_attr(not(feature = "postgres-libpq"), allow(dead_code, unused_imports))]
-
 use crate::terlan_native::json as json_adapter;
 
 #[path = "postgres/config.rs"]
@@ -24,10 +22,15 @@ pub(crate) mod test_support;
 
 pub use config::{validate_config, Config};
 pub use row::{int, json, r#bool, string, Row};
+#[cfg(any(
+    test,
+    all(not(feature = "serve-runtime-bin"), feature = "postgres-libpq")
+))]
 pub(crate) use row::{value, DecodedValue};
 
 /// Driver status recorded in database evidence reports.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct DriverProvenance {
     pub(crate) client_crate: &'static str,
     pub(crate) client_version: &'static str,
@@ -37,6 +40,7 @@ pub(crate) struct DriverProvenance {
 }
 
 /// Returns the current VM-owned Postgres driver provenance.
+#[cfg(test)]
 pub(crate) const fn driver_provenance() -> DriverProvenance {
     DriverProvenance {
         client_crate: "libpq",

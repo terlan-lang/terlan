@@ -414,10 +414,8 @@ fn is_balanced(text: &str) -> bool {
                     return false;
                 }
             }
-            '}' => {
-                if stack.pop() != Some('{') {
-                    return false;
-                }
+            '}' if stack.pop() != Some('{') => {
+                return false;
             }
             _ => {}
         }
@@ -526,4 +524,5 @@ fn render_json_report(report: &MigrationReport) -> String {
 
 #[cfg(test)]
 #[path = "migrate_test.rs"]
+#[cfg(test)]
 mod migrate_test;

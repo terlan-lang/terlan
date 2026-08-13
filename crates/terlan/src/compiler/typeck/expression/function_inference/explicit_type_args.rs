@@ -48,9 +48,7 @@ pub(super) fn bind_explicit_call_type_args(
                 continue;
             }
         }
-        if let Err(message) = unify(&Type::Var(var), &supplied, subst) {
-            return Err(message);
-        }
+        unify(&Type::Var(var), &supplied, subst)?;
     }
 
     Ok(())
@@ -259,7 +257,7 @@ fn variance_display(variance: Variance) -> &'static str {
 ///   constructors for HKT arguments, expands local value-level aliases, and
 ///   qualifies selected imported type names so call-site generics obey the same
 ///   naming rules as annotations.
-fn parse_explicit_call_type_arg(
+pub(super) fn parse_explicit_call_type_arg(
     type_arg: &SyntaxTypeOutput,
     ctx: &ExprInferContext<'_>,
 ) -> Result<Type, String> {

@@ -18,25 +18,29 @@
 path	classification	owner	notes
 Cargo.lock	lockfile-transitive	cargo	Dependency lockfile records Tokio-backed crates until migration removes them.
 crates/terlan/Cargo.toml	migration-debt	cargo	Removal plan: tokio -> replace with VM scheduler, timers, sockets, and worker wakeups.
-crates/terlan/src/commands/serve/tls_part_001.rs	migration-debt	http	Serve TLS keeps temporary Tokio usage only for ACME issuance until `instant-acme` moves behind a VM worker or NativeBoundary adapter.
-crates/terlan/src/lsp/lib_test_part_001.rs	test-harness	editor-tests	Split LSP integration tests use Tokio IO fixtures.
-crates/terlan/src/lsp/lib_test_part_002.rs	test-harness	editor-tests	Split LSP integration tests use Tokio IO fixtures.
-crates/terlan/src/lsp/lib_test_part_003.rs	test-harness	editor-tests	Split LSP integration tests use Tokio IO fixtures.
-crates/terlan/src/lsp/lib_test_part_004.rs	test-harness	editor-tests	Split LSP integration tests use Tokio IO fixtures.
-crates/terlan/src/lsp/lib_test_part_005.rs	test-harness	editor-tests	Split LSP integration tests use Tokio IO fixtures.
-crates/terlan/src/lsp/lib_test_part_006.rs	test-harness	editor-tests	Split LSP integration tests use Tokio IO fixtures.
-crates/terlan/src/lsp/lib_test_part_007.rs	test-harness	editor-tests	Split LSP integration tests use Tokio IO fixtures.
-crates/terlan/src/lsp/lib_test_part_008.rs	test-harness	editor-tests	Split LSP integration tests use Tokio IO fixtures.
+crates/terlan/src/benchmark/axum_baseline.rs	test-harness	benchmark	Axum comparison harness uses Tokio only outside Terlan VM runtime semantics.
+crates/terlan/src/benchmark/http_framework_baseline.rs	test-harness	benchmark	Framework comparison process control recognizes Tokio baseline implementations.
+crates/terlan/src/benchmark/http_paired_benchmark.rs	test-harness	benchmark	Paired benchmark evidence classifies the external Tokio comparison runtime.
+crates/terlan/src/benchmark/hyper_baseline.rs	test-harness	benchmark	Hyper comparison harness uses Tokio only as an external benchmark baseline.
+crates/terlan/src/commands/serve/tls/acme_runtime.rs	migration-debt	http	Serve TLS keeps one current-thread Tokio adapter only for maintained async ACME issuance behind the VM ACME worker boundary.
+crates/terlan/src/lsp/lib_test/completion_inventory.rs	test-harness	editor-tests	LSP integration tests use Tokio IO fixtures.
+crates/terlan/src/lsp/lib_test/completion_ranking.rs	test-harness	editor-tests	LSP integration tests use Tokio IO fixtures.
+crates/terlan/src/lsp/lib_test/documents_and_shapes.rs	test-harness	editor-tests	LSP integration tests use Tokio IO fixtures.
+crates/terlan/src/lsp/lib_test/parse_diagnostics.rs	test-harness	editor-tests	LSP integration tests use Tokio IO fixtures.
+crates/terlan/src/lsp/lib_test/resolution_diagnostics.rs	test-harness	editor-tests	LSP integration tests use Tokio IO fixtures.
+crates/terlan/src/lsp/lib_test/semantic_tokens_and_diagnostic_support.rs	test-harness	editor-tests	LSP integration tests use Tokio IO fixtures.
+crates/terlan/src/lsp/lib_test/signatures_symbols_and_local_navigation.rs	test-harness	editor-tests	LSP integration tests use Tokio IO fixtures.
+crates/terlan/src/lsp/lib_test/support.rs	test-harness	editor-tests	Shared LSP test support owns Tokio IO fixtures.
+crates/terlan/src/lsp/lib_test/type_diagnostics.rs	test-harness	editor-tests	LSP integration tests use Tokio IO fixtures.
 crates/terlan/src/lsp/server.rs	editor-tooling	lsp	LSP transport may use Tokio because it is editor tooling, not default runtime semantics.
-crates/terlan/src/quality/main.rs	quality-gate	quality	Quality command names the Tokio inventory gate.
-crates/terlan/src/quality/main_command_group_002.rs	quality-gate	quality	Split quality command dispatch names and reports the Tokio inventory gate.
+crates/terlan/src/quality/cli.rs	quality-gate	quality	Quality CLI dispatch names and reports the Tokio inventory gate.
+crates/terlan/src/quality/cli/runtime_and_release_commands.rs	quality-gate	quality	Runtime quality command group dispatches the Tokio inventory gate.
 crates/terlan/src/quality/mod.rs	quality-gate	quality	Quality module registry names the Tokio inventory gate.
-crates/terlan/src/quality/mod_part_001.rs	quality-gate	quality	Split quality module registry names the Tokio inventory gate.
 crates/terlan/src/quality/no_default_tokio_runtime.rs	quality-gate	quality	The checker defines the Tokio inventory policy.
 crates/terlan/src/quality/no_default_tokio_runtime_test.rs	quality-gate	quality	The checker tests the Tokio inventory policy.
-crates/terlan/src/quality/no_default_tokio_runtime_test_part_001.rs	quality-gate	quality	Split checker tests exercise the Tokio inventory policy.
-crates/terlan/src/quality/no_default_tokio_runtime_test_part_002.rs	quality-gate	quality	Split checker tests exercise the Tokio inventory policy.
-crates/terlan/src/quality/std_vm_surface_classification.rs	quality-gate	quality	Std VM surface gate rejects Tokio as unclassified std source wording.
+crates/terlan/src/quality/no_default_tokio_runtime_test/dependency_features.rs	quality-gate	quality	Checker dependency-feature tests exercise the Tokio inventory policy.
+crates/terlan/src/quality/no_default_tokio_runtime_test/inventory_contract.rs	quality-gate	quality	Checker inventory-contract tests exercise the Tokio inventory policy.
+crates/terlan/src/quality/rust_quality.rs	quality-gate	quality	Rust quality closeout names the no-default-Tokio gate as a required contract.
 crates/terlan/src/quality/vm_io_reactor_runtime.rs	quality-gate	quality	VM I/O reactor gate requires no-default-Tokio ownership checks.
 crates/terlan/src/quality/vm_io_reactor_runtime_test.rs	quality-gate	quality	VM I/O reactor gate fixtures include no-default-Tokio ownership checks.
 crates/terlan/src/quality/vm_native_worker_runtime.rs	quality-gate	quality	VM native worker gate rejects Tokio-owned native runtime paths.

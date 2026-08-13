@@ -1,18 +1,24 @@
+#[cfg(test)]
+use super::{
+    process::{VmProcessLocation, VmProcessSnapshot},
+    scheduler::{VmSchedulerClass, VmSchedulerMetrics},
+};
+#[cfg(test)]
 use std::collections::BTreeMap;
-
-use super::process::{VmProcessLocation, VmProcessSnapshot};
-use super::scheduler::{VmSchedulerClass, VmSchedulerMetrics};
 
 #[cfg(test)]
 #[path = "system_profile_test.rs"]
+#[cfg(test)]
 mod system_profile_test;
 
 /// Immutable position in the scheduler transition stream.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSystemProfileCursor {
     transition_index: usize,
 }
 
+#[cfg(test)]
 impl VmSystemProfileCursor {
     pub(super) fn at(transition_index: usize) -> Self {
         Self { transition_index }
@@ -21,6 +27,7 @@ impl VmSystemProfileCursor {
 
 /// Portable actor scheduling activity retained for deterministic profiling.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmSystemProfileActivity {
     Runnable,
     Inactive,
@@ -28,6 +35,7 @@ pub(crate) enum VmSystemProfileActivity {
 
 /// One replay-stable scheduler profile event.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSystemProfileEvent {
     pub(crate) sequence: usize,
     pub(crate) tick: u64,
@@ -41,6 +49,7 @@ pub(crate) struct VmSystemProfileEvent {
 
 /// Immutable system profile events and scheduler totals captured at one point.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSystemProfileSnapshot {
     pub(crate) events: Vec<VmSystemProfileEvent>,
     pub(crate) next_cursor: VmSystemProfileCursor,
@@ -49,6 +58,7 @@ pub(crate) struct VmSystemProfileSnapshot {
     pub(crate) total_preemptions: u64,
 }
 
+#[cfg(test)]
 impl VmSystemProfileSnapshot {
     pub(super) fn capture(
         scheduler: &VmSchedulerMetrics,

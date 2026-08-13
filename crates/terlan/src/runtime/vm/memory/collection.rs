@@ -1,8 +1,10 @@
 use super::VmMemoryAccountant;
+#[cfg(test)]
 use crate::runtime::vm::process::{VmProcessId, VmProcessState, VmProcessTable};
 
 /// Deterministic result of reconciling one process heap with traced live data.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmMemoryCollection {
     pub(crate) pid: VmProcessId,
     pub(crate) previous_bytes: usize,
@@ -19,6 +21,7 @@ impl VmMemoryAccountant {
     /// tracer. Mailbox payloads, resources, and shared allocations are added by
     /// the accountant because their ownership cannot be inferred from a value
     /// stack alone.
+    #[cfg(test)]
     pub(crate) fn collect_process_heap(
         &mut self,
         processes: &mut VmProcessTable,
@@ -65,6 +68,7 @@ impl VmMemoryAccountant {
         })
     }
 
+    #[cfg(test)]
     fn protected_process_bytes(
         &self,
         pid: VmProcessId,
@@ -93,6 +97,7 @@ impl VmMemoryAccountant {
     }
 }
 
+#[cfg(test)]
 fn checked_owned_sum(
     mut bytes: impl Iterator<Item = usize>,
     pid: VmProcessId,

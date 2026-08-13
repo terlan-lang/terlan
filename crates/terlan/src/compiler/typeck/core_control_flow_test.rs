@@ -216,7 +216,7 @@ pub choose(value: Int): Int ->\n\
                         ],
                         return_type: CoreType::Bool,
                         effects: core_pure_effect_set(),
-                        span: Span::new(37, 124),
+                        span: Span::new(37, 123),
                     })),
                     body: CoreExpr::Int(1),
                 },

@@ -1,0 +1,52 @@
+/**
+ * Safe deterministic creation and extraction of release-owned archives.
+ */
+module std.io.Archive.
+
+import type std.core.{Error, Result}.
+
+pub type UnsupportedFormat.
+
+pub type InvalidArchive.
+
+pub type UnsafeEntry.
+
+pub type DestinationExists.
+
+pub type IoFailure.
+
+pub type ArchiveErrorCode =
+      UnsupportedFormat
+    | InvalidArchive
+    | UnsafeEntry
+    | DestinationExists
+    | IoFailure.
+
+/**
+ * Portable archive failure retaining both input and destination paths.
+ */
+pub struct ArchiveError includes Error {
+    archive: String,
+    destination: String,
+}.
+
+/**
+ * Creates a deterministic `.tar.gz` or `.zip` from a directory tree.
+ * Entries are sorted, timestamps and ownership are normalized, executable
+ * files retain executable mode, and links or special files are rejected.
+ * The archive output must not already exist.
+ *
+ * On creation errors, `ArchiveError.archive` names the output archive and
+ * `ArchiveError.destination` names the input source directory.
+ */
+@compiler.intrinsic
+pub create(source: String, archive: String): Result[Unit, ArchiveError] ->
+    native.
+
+/**
+ * Extracts `.tar.gz` or `.zip` into a destination that must not yet exist.
+ * Absolute paths, parent traversal, links, and special entries are rejected.
+ */
+@compiler.intrinsic
+pub extract(archive: String, destination: String): Result[Unit, ArchiveError] ->
+    native.

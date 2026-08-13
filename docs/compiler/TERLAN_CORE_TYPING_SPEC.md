@@ -45,13 +45,23 @@ compiler preserves that distinction.
 
 ### Variables
 
-Local variables are looked up in `Gamma`.
+Local variables are looked up in `Gamma` by compiler-owned binding identity,
+not by spelling alone. Source names are resolved to `CoreBindingId` before the
+string-keyed type environment is populated. Two same-spelled declarations in
+one `CoreBindingRegionId` are rejected; a nested lexical region may introduce a
+fresh identity without replacing the outer binding.
 
 ```text
 Gamma(x) = T
 ------------
 Gamma |- x : T
 ```
+
+Checked CoreIR carries declarations, resolved reference targets, region IDs,
+stable source paths, and a deterministic evidence fingerprint. Backends reject
+missing or forged identity evidence rather than reconstructing scope from
+names. The complete contract is in
+`docs/compiler/TERLAN_BINDING_IDENTITIES.md`.
 
 ### Tuples And Lists
 

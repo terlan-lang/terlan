@@ -402,4 +402,5 @@ fn highest_weighted_nonempty(snapshot: VmSchedulerWorkSnapshot) -> VmSchedulerCl
 
 #[cfg(test)]
 #[path = "work_stealing_test.rs"]
+#[cfg(test)]
 mod work_stealing_test;

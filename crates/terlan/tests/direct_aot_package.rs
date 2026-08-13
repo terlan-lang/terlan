@@ -25,7 +25,7 @@ fn package_build_emits_one_tvm_image_with_qualified_module_exports() {
     .expect("write package manifest");
     fs::write(
         source_dir.join("Main.terl"),
-        "module app.Main.\n\nimport app.Math.\n\nprivate_value(): Int ->\n    99.\n\npub value(): Int ->\n    Math.math_value() + 34.\n\npub main(): Bool ->\n    value() == 41.\n",
+        "module app.Main.\n\nimport app.Math.\n\nprivate_value(): Int ->\n    99.\n\npub value(): Int ->\n    Math.value() + 34.\n\npub main(): Bool ->\n    value() == 41.\n",
     )
     .expect("write package main module");
     let math_source = source_dir.join("Math.terl");

@@ -3,9 +3,10 @@
 use std::collections::HashMap;
 
 use crate::runtime::native_image::managed::{
-    encode_list_append_operation, encode_list_empty_operation, encode_list_first_option_operation,
-    encode_list_get_operation, encode_list_is_empty_operation, encode_list_length_operation,
-    encode_list_rest_option_operation, SemanticTypeId,
+    encode_list_append_operation, encode_list_clear_operation, encode_list_concat_operation,
+    encode_list_empty_operation, encode_list_first_option_operation, encode_list_get_operation,
+    encode_list_is_empty_operation, encode_list_length_operation,
+    encode_list_rest_option_operation, encode_list_subtract_operation, SemanticTypeId,
 };
 use crate::terlan_typeck::{CoreIntrinsicCall, CoreIntrinsicId, CorePrimitiveIntrinsic};
 
@@ -69,7 +70,13 @@ pub(super) fn lower_list_intrinsic(
             args: lowered,
         });
     }
-    if *intrinsic == CorePrimitiveIntrinsic::ListPush && call.args.len() == 2 {
+    if matches!(
+        intrinsic,
+        CorePrimitiveIntrinsic::ListPush
+            | CorePrimitiveIntrinsic::ListConcat
+            | CorePrimitiveIntrinsic::ListSubtract
+    ) && call.args.len() == 2
+    {
         let list_semantic = match infer_native_type_with_constructors(
             &call.args[0],
             param_types,
@@ -97,8 +104,14 @@ pub(super) fn lower_list_intrinsic(
                 )
             })
             .collect::<Result<Vec<_>, _>>()?;
+        let encoded = match intrinsic {
+            CorePrimitiveIntrinsic::ListPush => encode_list_append_operation(list_semantic),
+            CorePrimitiveIntrinsic::ListConcat => encode_list_concat_operation(list_semantic),
+            CorePrimitiveIntrinsic::ListSubtract => encode_list_subtract_operation(list_semantic),
+            _ => unreachable!("closed two-argument list intrinsic"),
+        };
         return Ok(NativeExpr::ManagedOperation {
-            encoded: encode_list_append_operation(list_semantic).into(),
+            encoded: encoded.into(),
             args,
         });
     }
@@ -140,6 +153,7 @@ pub(super) fn lower_list_intrinsic(
             list_semantic,
             managed_semantic_from_type(&call.return_type)?,
         ),
+        CorePrimitiveIntrinsic::ListClear => encode_list_clear_operation(list_semantic),
         _ => {
             return Err(
                 "error[native_ir.list_intrinsic]: unsupported typed list intrinsic".to_string(),
@@ -161,10 +175,13 @@ pub(super) fn infer_list_intrinsic_type(call: &CoreIntrinsicCall) -> Option<Nati
         }
         CoreIntrinsicId::Primitive(
             CorePrimitiveIntrinsic::ListNew
+            | CorePrimitiveIntrinsic::ListConcat
+            | CorePrimitiveIntrinsic::ListSubtract
             | CorePrimitiveIntrinsic::ListFirst
             | CorePrimitiveIntrinsic::ListRest
             | CorePrimitiveIntrinsic::ListIterator
-            | CorePrimitiveIntrinsic::ListPush,
+            | CorePrimitiveIntrinsic::ListPush
+            | CorePrimitiveIntrinsic::ListClear,
         ) => native_type(Some(&call.return_type), &call.return_type.contract_text()),
         _ => None,
     }

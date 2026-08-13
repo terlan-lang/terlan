@@ -1,7 +1,6 @@
-#![allow(dead_code)]
-
-// Consumed by the upcoming Oxc TypeScript parser adapter; tests pin the
 // contract before the generator command is wired to real `.d.ts` inputs.
+
+use crate::terlan_hir::source_name_to_terlan_identifier;
 
 /// TypeScript primitive type names accepted by the binding mapper.
 ///
@@ -69,10 +68,10 @@ pub(super) enum TsTypeRef {
         params: Vec<TsTypeRef>,
         return_type: Box<TsTypeRef>,
     },
+    #[cfg(test)]
     OverloadSet(Vec<TsTypeRef>),
     Null,
     Undefined,
-    Function,
     Object,
     Any,
     Unknown,
@@ -170,11 +169,11 @@ fn map_ts_type_inner(ty: &TsTypeRef) -> Result<String, TsTypeSkip> {
             params: _,
             return_type: _,
         } => Err(skip_type("ts_bindgen.unsupported_callback_type", ty)),
+        #[cfg(test)]
         TsTypeRef::OverloadSet(_) => Err(skip_type("ts_bindgen.overload_requires_resolution", ty)),
         TsTypeRef::Null | TsTypeRef::Undefined => {
             Err(skip_type("ts_bindgen.nullish_without_value_type", ty))
         }
-        TsTypeRef::Function => Err(skip_type("ts_bindgen.unsupported_function_type", ty)),
         TsTypeRef::Object => Err(skip_type("ts_bindgen.unsupported_object_type", ty)),
         TsTypeRef::Any => Err(skip_type("ts_bindgen.unsupported_any", ty)),
         TsTypeRef::Unknown => Err(skip_type("ts_bindgen.unsupported_unknown", ty)),
@@ -228,36 +227,13 @@ fn map_ts_record_to_terlan(fields: &[TsRecordField]) -> Result<String, TsTypeSki
         } else {
             field.ty.clone()
         };
-        mapped.push(format!("{}: {}", field.name, map_ts_type_inner(&field_ty)?));
+        mapped.push(format!(
+            "{}: {}",
+            source_name_to_terlan_identifier(&field.name),
+            map_ts_type_inner(&field_ty)?
+        ));
     }
     Ok(format!("{{{}}}", mapped.join(", ")))
-}
-
-/// Maps a TypeScript callback type into a Terlan arrow type.
-///
-/// Inputs:
-/// - `params`: callback parameter types.
-/// - `return_type`: callback return type.
-///
-/// Output:
-/// - `Ok(String)` with Terlan `(A, B) -> R` syntax.
-/// - `Err(TsTypeSkip)` when any parameter or return type is unsupported.
-///
-/// Transformation:
-/// - Emits the canonical Terlan type-arrow form already defined by EBNF.
-fn map_ts_callback_to_terlan(
-    params: &[TsTypeRef],
-    return_type: &TsTypeRef,
-) -> Result<String, TsTypeSkip> {
-    let params = params
-        .iter()
-        .map(map_ts_type_inner)
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok(format!(
-        "({}) -> {}",
-        params.join(", "),
-        map_ts_type_inner(return_type)?
-    ))
 }
 
 /// Maps optional, nullable, and conservative TypeScript unions.
@@ -331,13 +307,13 @@ fn is_simple_union_member(ty: &TsTypeRef) -> bool {
         TsTypeRef::Union(_)
         | TsTypeRef::Record(_)
         | TsTypeRef::Callback { .. }
-        | TsTypeRef::OverloadSet(_)
         | TsTypeRef::Null
         | TsTypeRef::Undefined
-        | TsTypeRef::Function
         | TsTypeRef::Object
         | TsTypeRef::Any
         | TsTypeRef::Unknown => false,
+        #[cfg(test)]
+        TsTypeRef::OverloadSet(_) => false,
     }
 }
 

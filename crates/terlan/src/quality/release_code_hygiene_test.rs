@@ -14,7 +14,7 @@ fn complete_makefile_contract() -> String {
         .map(|target| format!("{target}:\n\t@true"))
         .collect::<Vec<_>>();
     lines.push(format!(
-        "{GATE_TARGET}:\n\t$(MAKE) --no-print-directory rust-warnings-check\n\t$(MAKE) --no-print-directory rust-quality-check\n\t$(MAKE) --no-print-directory dormant-runtime-code-check\n\t$(MAKE) --no-print-directory vm-deterministic-hashmap-check\n\t$(MAKE) --no-print-directory shared-helper-check\n\t$(MAKE) --no-print-directory terlan-lint-style-profile-check\n\t$(MAKE) --no-print-directory terlan-lint-pipe-canonicalization-check\n\t$(RUST_TEST) -p terlan --bin terlan-quality release_code_hygiene_test\n\t$(CARGO) run -p terlan --bin terlan-quality --quiet -- release-code-hygiene"
+        "{GATE_TARGET}: \\\n\trust-warnings-check \\\n\trust-quality-check \\\n\trust-file-headroom-check \\\n\tdormant-runtime-code-check \\\n\tvm-deterministic-hashmap-check \\\n\tshared-helper-check \\\n\tterlan-lint-style-profile-check \\\n\tterlan-lint-pipe-canonicalization-check\n\t$(CARGO) run -p terlan --bin terlan-quality --features quality-tools --quiet -- release-code-hygiene"
     ));
     lines.join("\n\n")
 }
@@ -25,6 +25,7 @@ fn release_code_hygiene_writes_report() {
     let repo = TempRepo::new("release_code_hygiene_writes_report");
     repo.write(ROADMAP_PATH, &complete_roadmap_contract());
     repo.write(MAKEFILE_PATH, &complete_makefile_contract());
+    repo.write(CODE_QUALITY_MAKEFILE_PATH, "# code-quality targets\n");
 
     let summary = run_release_code_hygiene(repo.path()).expect("release code hygiene gate");
 
@@ -41,6 +42,26 @@ fn release_code_hygiene_writes_report() {
     assert!(report.contains("duplicate_helper_findings"));
     assert!(report.contains("remediation_owners"));
     assert!(report.contains("owner, reason, expiry milestone"));
+}
+
+/// Verifies targets may be owned by the checked code-quality Make fragment.
+#[test]
+fn release_code_hygiene_reads_split_make_graph() {
+    let combined = complete_makefile_contract();
+    let warning_target = "rust-warnings-check:\n\t@true\n\n";
+    let quality_target = "rust-quality-check:\n\t@true\n\n";
+    let root_makefile = combined
+        .replace(warning_target, "")
+        .replace(quality_target, "");
+    let code_quality_makefile = format!("{warning_target}{quality_target}");
+
+    let diagnostics =
+        validate_makefile_targets(&format!("{root_makefile}\n{code_quality_makefile}"));
+
+    assert!(
+        diagnostics.is_empty(),
+        "split Make ownership should remain visible: {diagnostics:?}"
+    );
 }
 
 /// Verifies roadmap ownership is required before the umbrella gate can pass.
@@ -75,10 +96,8 @@ fn release_code_hygiene_rejects_missing_sub_gate_target() {
 /// Verifies the umbrella target must call the sub-gates before reporting.
 #[test]
 fn release_code_hygiene_rejects_missing_umbrella_command() {
-    let makefile = complete_makefile_contract().replace(
-        "\n\t$(MAKE) --no-print-directory terlan-lint-pipe-canonicalization-check",
-        "",
-    );
+    let makefile =
+        complete_makefile_contract().replace("\n\tterlan-lint-pipe-canonicalization-check", "");
 
     let diagnostics = validate_makefile_targets(&makefile);
 
@@ -94,8 +113,8 @@ fn release_code_hygiene_rejects_missing_umbrella_command() {
 #[test]
 fn release_code_hygiene_rejects_misordered_umbrella_commands() {
     let makefile = complete_makefile_contract().replace(
-        "\t$(MAKE) --no-print-directory rust-warnings-check\n\t$(MAKE) --no-print-directory rust-quality-check",
-        "\t$(MAKE) --no-print-directory rust-quality-check\n\t$(MAKE) --no-print-directory rust-warnings-check",
+        "\trust-warnings-check \\\n\trust-quality-check",
+        "\trust-quality-check \\\n\trust-warnings-check",
     );
 
     let diagnostics = validate_makefile_targets(&makefile);
@@ -103,8 +122,8 @@ fn release_code_hygiene_rejects_misordered_umbrella_commands() {
     assert!(
         diagnostics
             .iter()
-            .any(|diagnostic| diagnostic.contains("after the previous hygiene command")),
-        "diagnostics should reject reordered umbrella commands: {diagnostics:?}"
+            .any(|diagnostic| diagnostic.contains("canonical order")),
+        "diagnostics should reject reordered umbrella prerequisites: {diagnostics:?}"
     );
 }
 

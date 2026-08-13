@@ -19,6 +19,7 @@ impl VmResourceTransfer {
     }
 
     /// Returns the number of exact resource records in this transfer.
+    #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
         self.records.len()
     }

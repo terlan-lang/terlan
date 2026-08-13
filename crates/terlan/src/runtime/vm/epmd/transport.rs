@@ -2,7 +2,6 @@
 
 use std::future::Future;
 use std::io::{self, Read, Write};
-use std::net::TcpListener;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
@@ -13,18 +12,20 @@ use super::protocol::{
 };
 use super::state::{ConnectionId, ServerOptions, ServerReply, ServerState};
 use super::super::protocol_task_executor::{
-    serve_protocol_tasks, VmProtocolTaskFactory, VmProtocolTaskRoute, VmReadyTcpStream,
+    VmProtocolTaskFactory, VmProtocolTaskRoute, VmReadyTcpStream,
 };
 
 /// Shared deterministic EPMD registry used by fixed protocol owners.
 pub(crate) type VmSharedEpmdState = Arc<Mutex<ServerState>>;
 
 /// Creates an empty shared EPMD registry.
+#[cfg(test)]
 pub(crate) fn shared_state(options: ServerOptions) -> VmSharedEpmdState {
     Arc::new(Mutex::new(ServerState::new(options)))
 }
 
 /// Builds a protocol-task factory for EPMD discovery connections.
+#[cfg(test)]
 pub(crate) fn protocol_factory(state: VmSharedEpmdState) -> VmProtocolTaskFactory {
     Arc::new(move |stream, route| {
         Box::pin(VmEpmdConnection::new(
@@ -35,13 +36,6 @@ pub(crate) fn protocol_factory(state: VmSharedEpmdState) -> VmProtocolTaskFactor
     })
 }
 
-/// Serves EPMD discovery on the VM's fixed protocol scheduler pool.
-pub(crate) fn serve(
-    listener: TcpListener,
-    state: VmSharedEpmdState,
-) -> Result<(), String> {
-    serve_protocol_tasks(listener, protocol_factory(state))
-}
 
 /// Incremental state of one length-prefixed EPMD connection.
 #[derive(Debug)]

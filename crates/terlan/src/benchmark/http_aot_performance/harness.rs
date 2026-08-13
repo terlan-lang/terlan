@@ -225,6 +225,46 @@ pub(super) fn write_package(
       "function": "static_response",
       "arity": 1,
       "source": {"path": "src/app/Api.terl", "line": 22, "column": 5}
+    },
+    {
+      "method": "GET",
+      "route": "/api/add/{left:Int}/{right:Int}",
+      "module": "app.Api",
+      "function": "add",
+      "arity": 3,
+      "source": {"path": "src/app/Api.terl", "line": 25, "column": 5}
+    },
+    {
+      "method": "POST",
+      "route": "/api/items",
+      "module": "app.Api",
+      "function": "create_item",
+      "arity": 1,
+      "source": {"path": "src/app/Api.terl", "line": 31, "column": 5}
+    },
+    {
+      "method": "GET",
+      "route": "/api/items/:id",
+      "module": "app.Api",
+      "function": "read_item",
+      "arity": 2,
+      "source": {"path": "src/app/Api.terl", "line": 34, "column": 5}
+    },
+    {
+      "method": "PUT",
+      "route": "/api/items/:id",
+      "module": "app.Api",
+      "function": "update_item",
+      "arity": 2,
+      "source": {"path": "src/app/Api.terl", "line": 37, "column": 5}
+    },
+    {
+      "method": "DELETE",
+      "route": "/api/items/:id",
+      "module": "app.Api",
+      "function": "delete_item",
+      "arity": 2,
+      "source": {"path": "src/app/Api.terl", "line": 40, "column": 5}
     }
   ],
   "assets": [{
@@ -246,7 +286,7 @@ pub(super) fn write_handler_source(workspace: &Path, generation: &str) -> Result
     fs::write(
         workspace.join("src/app/Api.terl"),
         format!(
-            "module app.Api.\n\nimport std.core.Option.\nimport std.core.Result.{{Err, Ok}}.\nimport std.http.Response.\nimport type std.http.Request.{{Request}}.\nimport type std.http.Response.{{Response}}.\n\npub handle(request: Request): Response ->\n    Response.text(\"{generation}:\" + request.body_text()).\n\npub json(request: Request): Response ->\n    case request.body_json() {{\n        Ok(value) -> Response.json(value);\n        Err(_error) -> Response.text(\"invalid-json\").with_status(400)\n    }}.\n\npub metadata(request: Request): Response ->\n    Response.text(request.method() + \":\" + request.query_string() + \":\" + Option.with_default(request.header(\"accept\"), \"missing\") + \":\" + Option.with_default(request.header(\"cookie\"), \"missing\") + \":\" + request.body_text()).\n\npub static_response(_request: Request): Response ->\n    Response.text(\"static-benchmark-response\").\n"
+            "module app.Api.\n\nimport std.core.Int.\nimport std.core.Option.\nimport std.core.Result.{{Err, Ok}}.\nimport std.http.Response.\nimport type std.http.Request.{{Request}}.\nimport type std.http.Response.{{Response}}.\n\npub handle(request: Request): Response ->\n    Response.text(\"{generation}:\" + request.body_text()).\n\npub json(request: Request): Response ->\n    case request.body_json() {{\n        Ok(value) -> Response.json(value);\n        Err(_error) -> Response.text(\"invalid-json\").with_status(400)\n    }}.\n\npub metadata(request: Request): Response ->\n    Response.text(request.method() + \":\" + request.query_string() + \":\" + Option.with_default(request.header(\"accept\"), \"missing\") + \":\" + Option.with_default(request.header(\"cookie\"), \"missing\") + \":\" + request.body_text()).\n\npub static_response(_request: Request): Response ->\n    Response.text(\"static-benchmark-response\").\n\npub add(_request: Request, left: Int, right: Int): Response ->\n    Response.text(Int.to_string(left + right)).\n\npub create_item(request: Request): Response ->\n    Response.text(request.body_text()).with_status(201).\n\npub read_item(_request: Request, id: String): Response ->\n    Response.text(\"item-\" + id).\n\npub update_item(request: Request, id: String): Response ->\n    Response.text(id + \":\" + request.body_text()).\n\npub delete_item(_request: Request, _id: String): Response ->\n    Response.text(\"\").with_status(204).\n"
         ),
     )
     .map_err(|error| format!("failed to write HTTP benchmark handler source: {error}"))

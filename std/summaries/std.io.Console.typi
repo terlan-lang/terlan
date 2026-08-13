@@ -5,6 +5,16 @@
 
 module std.io.Console.
 
+/// Writes a diagnostic string followed by one line terminator to standard error.
+///
+/// Input: one UTF-8 `String` value.
+/// Output: `Unit` after the diagnostic has been written.
+/// Transformation: lowers through the compiler-owned
+/// `runtime.console.eprintln` capability so portable command-line tools can
+/// keep diagnostics separate from machine-readable standard output.
+
+pub eprintln(value: String): Unit.
+
 /// Writes a string followed by one line terminator.
 ///
 /// Input: one UTF-8 `String` value.

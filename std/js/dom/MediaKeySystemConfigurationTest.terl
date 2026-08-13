@@ -19,7 +19,7 @@ import type std.js.{Array}.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub audio_capabilities_typechecks(
-    receiver: MediaKeySystemConfiguration
+    receiver: MediaKeySystemConfiguration,
 ): Array[MediaKeySystemMediaCapability] ->
     receiver.audio_capabilities().
 
@@ -39,6 +39,6 @@ pub session_types_typechecks(receiver: MediaKeySystemConfiguration): Array[JsStr
     receiver.session_types().
 
 pub video_capabilities_typechecks(
-    receiver: MediaKeySystemConfiguration
+    receiver: MediaKeySystemConfiguration,
 ): Array[MediaKeySystemMediaCapability] ->
     receiver.video_capabilities().

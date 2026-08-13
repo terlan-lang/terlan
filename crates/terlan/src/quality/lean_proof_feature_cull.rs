@@ -288,14 +288,16 @@ fn stale_term_diagnostics(path: &str, text: &str, map: &FeatureCullMap) -> Vec<S
     map.features
         .iter()
         .flat_map(|feature| {
-            feature.forbidden_terms.iter().filter_map(move |term| {
-                text.contains(term).then(|| {
+            feature
+                .forbidden_terms
+                .iter()
+                .filter(|&term| text.contains(term))
+                .map(|term| {
                     format!(
                         "`{path}` restores removed feature `{}` through term `{term}`",
                         feature.id
                     )
                 })
-            })
         })
         .collect()
 }
@@ -354,4 +356,5 @@ fn normalize_path(root: &Path, path: &Path) -> String {
 
 #[cfg(test)]
 #[path = "lean_proof_feature_cull_test.rs"]
+#[cfg(test)]
 mod lean_proof_feature_cull_test;

@@ -18,7 +18,7 @@ import type std.js.Dom.ReadableStreamDefaultController.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub desired_size_typechecks(
-    receiver: ReadableStreamDefaultController[R]
+    receiver: ReadableStreamDefaultController[R],
 ): Option[std.js.Number.JsNumber] ->
     receiver.desired_size().
 

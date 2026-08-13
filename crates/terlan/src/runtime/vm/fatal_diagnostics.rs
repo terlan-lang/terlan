@@ -1,10 +1,10 @@
-#![allow(dead_code)]
-
-use std::fs::{self, OpenOptions};
-use std::io::Write;
-use std::path::{Path, PathBuf};
-
 use serde::Serialize;
+#[cfg(test)]
+use std::{
+    fs::{self, OpenOptions},
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use super::native_image_diagnostics::VmNativeImageDiagnosticMetadata;
 
@@ -20,6 +20,7 @@ const MAX_CAUSE_CODE_BYTES: usize = 128;
 /// Explicit policy controlling bounded fatal-diagnostic capture.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmFatalDiagnosticPolicy {
+    #[cfg(test)]
     Disabled,
     Enabled {
         max_subjects: usize,
@@ -109,6 +110,7 @@ impl VmFatalDiagnosticBundle {
     /// Disabled policy returns no bundle before validating capture inputs. An
     /// enabled capture is deterministic and mutation-free: it does not stop,
     /// wake, schedule, or otherwise alter any process.
+    #[cfg(test)]
     pub(crate) fn capture(
         policy: VmFatalDiagnosticPolicy,
         generation: u64,
@@ -138,12 +140,13 @@ impl VmFatalDiagnosticBundle {
         observed_processes: &[VmProcessId],
         native_image: Option<VmNativeImageDiagnosticMetadata>,
     ) -> Result<Option<Self>, String> {
-        let VmFatalDiagnosticPolicy::Enabled {
-            max_subjects,
-            max_output_bytes,
-        } = policy
-        else {
-            return Ok(None);
+        let (max_subjects, max_output_bytes) = match policy {
+            #[cfg(test)]
+            VmFatalDiagnosticPolicy::Disabled => return Ok(None),
+            VmFatalDiagnosticPolicy::Enabled {
+                max_subjects,
+                max_output_bytes,
+            } => (max_subjects, max_output_bytes),
         };
         if generation == 0 {
             return Err("fatal diagnostic generation must be nonzero".to_string());
@@ -217,6 +220,7 @@ impl VmFatalDiagnosticBundle {
     ///
     /// Existing destinations are never overwritten. Any failed write removes
     /// the private partial file and leaves the destination absent.
+    #[cfg(test)]
     pub(crate) fn publish_atomic(&self, path: &Path) -> Result<(), String> {
         if path.file_name().is_none() {
             return Err("fatal diagnostic path must name a file".to_string());
@@ -351,6 +355,7 @@ fn validate_cause_code(cause_code: &str) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(test)]
 fn partial_path(path: &Path, generation: u64) -> Result<PathBuf, String> {
     let file_name = path
         .file_name()
@@ -365,8 +370,10 @@ fn partial_path(path: &Path, generation: u64) -> Result<PathBuf, String> {
 
 #[cfg(test)]
 #[path = "fatal_diagnostics_test.rs"]
+#[cfg(test)]
 mod fatal_diagnostics_test;
 
 #[cfg(test)]
 #[path = "fatal_diagnostics_ignore_cores_parity_test.rs"]
+#[cfg(test)]
 mod fatal_diagnostics_ignore_cores_parity_test;

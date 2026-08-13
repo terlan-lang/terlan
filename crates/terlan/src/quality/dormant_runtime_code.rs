@@ -322,4 +322,5 @@ fn is_test_file(path: &Path) -> bool {
 
 #[cfg(test)]
 #[path = "dormant_runtime_code_test.rs"]
+#[cfg(test)]
 mod dormant_runtime_code_test;

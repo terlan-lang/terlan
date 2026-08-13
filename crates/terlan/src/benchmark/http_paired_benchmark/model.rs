@@ -14,6 +14,9 @@ pub(super) struct PairedReport {
     pub(super) pairs: Vec<PairEvidence>,
     pub(super) comparisons: BTreeMap<String, Comparison>,
     pub(super) hyper_comparisons: BTreeMap<String, Comparison>,
+    pub(super) realism_matrix: BTreeMap<String, serde_json::Value>,
+    pub(super) component_lanes: serde_json::Value,
+    pub(super) runtime_architecture: serde_json::Value,
     pub(super) isolation: Vec<IsolationEvidence>,
 }
 
@@ -89,6 +92,7 @@ pub(super) struct Comparison {
     pub(super) aot_wins: usize,
     pub(super) verdict: &'static str,
     pub(super) suspected_subsystem: Option<&'static str>,
+    pub(super) source_location: Option<&'static str>,
     pub(super) next_optimization_hypothesis: Option<&'static str>,
 }
 

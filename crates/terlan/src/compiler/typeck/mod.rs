@@ -14,7 +14,12 @@ use crate::terlan_syntax::{
 };
 
 #[cfg(test)]
+#[path = "binding_identity_test.rs"]
+#[cfg(test)]
+mod binding_identity_test;
+#[cfg(test)]
 #[path = "const_eval_test.rs"]
+#[cfg(test)]
 mod const_eval_test;
 mod types;
 
@@ -32,7 +37,7 @@ pub use raw_macros::{
     expand_syntax_macros_with_interfaces, expand_syntax_raw_macros,
 };
 
-mod sql_forms;
+pub(crate) mod sql_forms;
 
 mod import_maps;
 use import_maps::*;
@@ -64,8 +69,6 @@ use trait_conformance::*;
 mod html_typecheck;
 use html_typecheck::*;
 
-mod mobile_bridge_validation;
-
 mod patterns;
 use patterns::*;
 
@@ -85,26 +88,20 @@ mod constructors;
 pub(crate) use constructors::alias_constructor_schemes;
 use constructors::*;
 
+mod variance;
+use variance::*;
+
 mod core_ir;
 
 pub use core_ir::*;
 pub(crate) use core_ir::{core_type_from_body_variants, core_type_from_text};
 
+mod binding_identity;
+pub use binding_identity::*;
+
 mod core_sql_lowering;
 
-/// Callable function type scheme used by expression inference.
-///
-/// Inputs:
-/// - Local/imported function signature metadata after type parsing.
-///
-/// Output:
-/// - Parameter types, return type, source generic parameter texts, and generic
-///   trait bounds.
-///
-/// Transformation:
-/// - Stores one overload candidate in a compact form that can be instantiated
-///   during call resolution while retaining generic parameter spelling for
-///   HKT variance checks at explicit call sites.
+/// One overload candidate retained for call inference and bound checking.
 #[derive(Debug, Clone)]
 struct FunctionScheme {
     params: Vec<Type>,
@@ -357,7 +354,6 @@ fn type_check_syntax_module_with_inputs<'a>(
     let file_imports = import_maps.file_imports;
     let markdown_imports = import_maps.markdown_imports;
     let function_imports = import_maps.function_imports;
-    let imported_type_names = imported_type_names;
     let constructor_aliases = imported_type_names.clone();
     let trait_method_calls = inputs.trait_method_calls;
     let trait_bound_impl_type_args = collect_trait_bound_impl_type_args(&trait_method_calls);
@@ -404,14 +400,16 @@ fn type_check_syntax_module_with_inputs<'a>(
     ));
     diagnostics.extend(check_syntax_module_functions(
         inputs.syntax_function_module,
-        &function_signatures,
-        &constructor_signatures,
-        &alias_names,
-        &aliases,
-        &imported_type_names,
-        &imported_type_aliases,
-        &local_aliases,
-        &expr_ctx,
+        declarations::SyntaxDeclarationCheckEnvironment {
+            function_signatures: &function_signatures,
+            constructor_signatures: &constructor_signatures,
+            alias_names: &alias_names,
+            aliases: &aliases,
+            imported_type_names: &imported_type_names,
+            imported_type_aliases: &imported_type_aliases,
+            local_aliases: &local_aliases,
+            expr_ctx: &expr_ctx,
+        },
     ));
 
     diagnostics
@@ -433,8 +431,13 @@ pub(crate) fn type_check_syntax_module_output_with_database_schema(
     resolved: &ResolvedModule,
     database_schema: Option<&crate::database_schema::DatabaseSchemaSnapshot>,
 ) -> Vec<Diagnostic> {
+    let (binding_module, _) =
+        expand_syntax_macros_with_interfaces(module.clone(), &resolved.interface_map);
     let (prepared, mut diagnostics) =
         prepare_syntax_constants_with_interfaces(module, &resolved.interface_map);
+    let mut binding_diagnostics = analyze_syntax_bindings(&binding_module).diagnostics();
+    binding_diagnostics.append(&mut diagnostics);
+    diagnostics = binding_diagnostics;
     diagnostics.extend(type_check_prepared_syntax_module_output(
         &prepared,
         resolved,
@@ -443,6 +446,7 @@ pub(crate) fn type_check_syntax_module_output_with_database_schema(
     diagnostics
 }
 
+/// Prepares syntax constants.
 pub fn prepare_syntax_constants(
     module: &SyntaxModuleOutput,
 ) -> (SyntaxModuleOutput, Vec<Diagnostic>) {
@@ -519,10 +523,16 @@ fn type_check_prepared_syntax_module_output(
         &alias_names,
     ));
 
+    let struct_environment = TypeResolutionEnvironment {
+        alias_names: &alias_names,
+        imported_type_names: &imported_names,
+        imported_type_aliases: &imported_aliases,
+        local_aliases: &local_aliases,
+    };
     let mut struct_fields = collect_imported_struct_fields(resolved, &alias_names);
-    struct_fields.extend(collect_syntax_struct_fields(module, &alias_names));
+    struct_fields.extend(collect_syntax_struct_fields(module, struct_environment));
     let mut struct_schemes = collect_imported_struct_schemes(resolved, &alias_names);
-    struct_schemes.extend(collect_syntax_struct_schemes(module, &alias_names));
+    struct_schemes.extend(collect_syntax_struct_schemes(module, struct_environment));
     let mut struct_field_visibility = collect_imported_struct_field_visibility(resolved);
     struct_field_visibility.extend(collect_syntax_struct_field_visibility(module));
 
@@ -572,6 +582,7 @@ fn type_check_prepared_syntax_module_output(
     diagnostics
 }
 
+mod core_const_termination;
 pub(crate) mod core_expr_lowering;
 mod core_expr_proof;
 mod core_interface;
@@ -580,6 +591,7 @@ mod core_lowering;
 mod core_pattern_lowering;
 mod core_proof;
 
+pub(crate) use core_const_termination::core_const_function_termination_evidence;
 pub(crate) use core_intrinsic_lowering::core_intrinsic_is_pure;
 pub use core_intrinsic_lowering::core_primitive_intrinsic_return_type;
 pub use core_lowering::{lower_resolved_module_to_core, lower_syntax_module_output_to_core};
@@ -746,9 +758,15 @@ pub fn infer_syntax_expression_type(
         &imported_aliases,
         &aliases,
     );
+    let struct_environment = TypeResolutionEnvironment {
+        alias_names: &alias_names,
+        imported_type_names: &imported_names,
+        imported_type_aliases: &imported_aliases,
+        local_aliases: &local_aliases,
+    };
     let mut struct_fields = collect_imported_struct_fields(resolved, &alias_names);
-    struct_fields.extend(collect_syntax_struct_fields(module, &alias_names));
-    let struct_schemes = collect_syntax_struct_schemes(module, &alias_names);
+    struct_fields.extend(collect_syntax_struct_fields(module, struct_environment));
+    let struct_schemes = collect_syntax_struct_schemes(module, struct_environment);
     let mut struct_field_visibility = collect_imported_struct_field_visibility(resolved);
     struct_field_visibility.extend(collect_syntax_struct_field_visibility(module));
     let receiver_methods = collect_syntax_receiver_method_dispatch_signatures_with_imports(
@@ -819,77 +837,6 @@ pub fn infer_syntax_expression_type(
     )
 }
 
-/// Normalizes generic type parameter text.
-///
-/// Inputs:
-/// - `param`: source type parameter text, possibly with variance or bounds.
-///
-/// Output:
-/// - Bare type parameter name.
-///
-/// Transformation:
-/// - Removes leading variance markers and discards any inline bracketed suffix
-///   so signature and interface loaders share one stable type-variable key.
-fn normalize_type_param_name(param: &str) -> String {
-    let trimmed = param.trim().trim_start_matches('-').trim_start_matches('+');
-    if let Some(rest) = trimmed.strip_prefix("const ") {
-        return rest
-            .split_once(':')
-            .map(|(name, _)| name.trim())
-            .unwrap_or(rest.trim())
-            .to_string();
-    }
-    let trimmed = trimmed
-        .split_once("=>")
-        .map(|(name, _)| name.trim())
-        .unwrap_or(trimmed);
-    if let Some(open) = trimmed.find('[') {
-        trimmed[..open].trim().to_string()
-    } else {
-        trimmed.to_string()
-    }
-}
-
-/// Extracts variance from one generic type parameter declaration.
-///
-/// Inputs:
-/// - `param`: source type parameter text, possibly variance-prefixed.
-///
-/// Output:
-/// - `Covariant` for `+T`, `Contravariant` for `-T`, and `Invariant`
-///   otherwise.
-///
-/// Transformation:
-/// - Reads only the leading marker and deliberately ignores higher-kind slot
-///   text so alias-level parameter variance remains independent of HKT slot
-///   variance.
-fn type_param_variance(param: &str) -> Variance {
-    match param.trim().chars().next() {
-        Some('+') => Variance::Covariant,
-        Some('-') => Variance::Contravariant,
-        _ => Variance::Invariant,
-    }
-}
-
-/// Extracts variance metadata for generic type parameters.
-///
-/// Inputs:
-/// - `params`: source type parameter texts from a type declaration or
-///   interface summary.
-///
-/// Output:
-/// - One variance entry per parameter in declaration order.
-///
-/// Transformation:
-/// - Maps each parameter through `type_param_variance`, preserving arity and
-///   keeping invariant as the default.
-fn type_param_variances(params: &[String]) -> Vec<Variance> {
-    params
-        .iter()
-        .map(|param| type_param_variance(param))
-        .collect()
-}
-
 #[cfg(test)]
 mod expression_test;
 
@@ -920,6 +867,8 @@ mod core_control_flow_test;
 #[cfg(test)]
 mod core_intrinsic_test;
 
+#[cfg(test)]
+mod core_intrinsic_memory_test;
 #[cfg(test)]
 mod core_intrinsic_process_test;
 

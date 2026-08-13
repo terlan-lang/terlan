@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::path::PathBuf;
 
 use serde::Serialize;
@@ -36,6 +34,11 @@ pub(super) struct BuildPackageMetadata {
     pub(super) wasi: Option<BuildWasiTargetMetadata>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) native: Option<BuildPackageNative>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) accelerator: Option<crate::compiler::accelerator::AcceleratorDescriptor>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) accelerator_closure:
+        Option<crate::compiler::accelerator::AcceleratorDependencyClosure>,
 }
 
 /// Serializable package identity inside build metadata.
@@ -228,6 +231,8 @@ pub(super) struct ProjectBuildRoots {
     pub(super) source_roots: Vec<ProjectSourceRoot>,
     pub(super) native_rust_dependencies: Vec<ProjectNativeRustDependency>,
     pub(super) native_artifact_environment: Vec<(String, PathBuf)>,
+    pub(super) accelerator_closure:
+        Option<crate::compiler::accelerator::AcceleratorDependencyClosure>,
 }
 
 /// Resolved source root with package identity.
@@ -295,12 +300,19 @@ impl ProjectDependencyOrigin {
 /// Transformation:
 /// - Copies validated package fields and converts dependency enum variants to a
 ///   sorted, string-keyed metadata schema without resolving external packages.
+#[cfg(test)]
 pub(super) fn build_package_metadata(
     project_dir: &std::path::Path,
     manifest: &project_manifest::ProjectManifest,
     native_rust_dependencies: &[ProjectNativeRustDependency],
 ) -> BuildPackageMetadata {
-    build_package_metadata_with_artifacts(project_dir, manifest, native_rust_dependencies, &[])
+    build_package_metadata_with_artifacts(
+        project_dir,
+        manifest,
+        native_rust_dependencies,
+        &[],
+        None,
+    )
 }
 
 /// Builds package metadata including prebuilt target artifact bindings.
@@ -309,6 +321,7 @@ pub(super) fn build_package_metadata_with_artifacts(
     manifest: &project_manifest::ProjectManifest,
     native_rust_dependencies: &[ProjectNativeRustDependency],
     native_artifact_environment: &[(String, PathBuf)],
+    accelerator_closure: Option<&crate::compiler::accelerator::AcceleratorDependencyClosure>,
 ) -> BuildPackageMetadata {
     let mut dependencies = manifest
         .dependencies
@@ -360,6 +373,11 @@ pub(super) fn build_package_metadata_with_artifacts(
             native_rust_dependencies,
             native_artifact_environment,
         ),
+        accelerator: manifest
+            .accelerator
+            .as_ref()
+            .and_then(|metadata| metadata.contract.clone()),
+        accelerator_closure: accelerator_closure.cloned(),
     }
 }
 

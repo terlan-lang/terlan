@@ -42,5 +42,5 @@ pub (value: TextEvent) init_text_event(
     bubbles: Bool,
     cancelable: Bool,
     view: Option[Window],
-    data: JsString
+    data: JsString,
 ): std.core.Unit.

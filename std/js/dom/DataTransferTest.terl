@@ -41,6 +41,6 @@ pub set_drag_image_typechecks(
     receiver: DataTransfer,
     image: Element,
     x: JsNumber,
-    y: JsNumber
+    y: JsNumber,
 ): Unit ->
     receiver.set_drag_image(image, x, y).

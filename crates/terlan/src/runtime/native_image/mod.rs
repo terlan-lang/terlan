@@ -4,6 +4,7 @@ mod boundary_type;
 pub mod control;
 pub(crate) mod debug;
 mod descriptor;
+pub(crate) mod dispatch_lookup;
 mod image;
 pub mod managed;
 pub mod package_validation;
@@ -14,7 +15,7 @@ pub use descriptor::{
     decode_descriptor, encode_descriptor, TvmCallableDescriptor, TvmContinuationDescriptor,
     TvmDependencyDescriptor, TvmExecutableDescriptor, TvmExportDescriptor, TvmImageIdentity,
     TvmImageIntegrity, TvmImageTarget, TvmManagedCollectionDescriptor, TvmManagedLayoutDescriptor,
-    TvmNativeResourceDescriptor, TvmSignatureDescriptor, TVM_DISPATCH_SYMBOL_V2,
+    TvmNativeResourceDescriptor, TvmSignatureDescriptor, TVM_DISPATCH_SYMBOL_V3,
     TVM_IMAGE_ENTRY_SYMBOL_V1,
 };
 pub use image::{
@@ -31,4 +32,5 @@ pub(crate) const TVM_INDIRECT_TRANSITION_WORD_CAPACITY: usize = 128;
 
 #[cfg(test)]
 #[path = "native_image_test.rs"]
+#[cfg(test)]
 mod native_image_test;

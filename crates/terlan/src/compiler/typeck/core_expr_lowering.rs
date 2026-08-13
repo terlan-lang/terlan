@@ -85,7 +85,7 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
             if operator == "|>" {
                 return core_pipe_forward_expr_from_syntax(expr);
             }
-            if matches!(operator.as_str(), "and" | "&&" | "or" | "||") {
+            if matches!(operator.as_str(), "and" | "or") {
                 return core_logical_expr_from_syntax(expr, &operator);
             }
             let left = expr.children.first().and_then(core_expr_from_syntax)?;
@@ -113,11 +113,10 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
 /// retains operand order and bounds subsequent CoreIR traversal depth to the
 /// logarithm of the operand count.
 fn core_logical_expr_from_syntax(expr: &SyntaxExprOutput, operator: &str) -> Option<CoreExpr> {
-    let conjunction = matches!(operator, "and" | "&&");
+    let conjunction = operator == "and";
     let same_operator = |candidate: Option<&str>| {
         candidate.is_some_and(|candidate| {
-            matches!(candidate, "and" | "&&") == conjunction
-                && matches!(candidate, "and" | "&&" | "or" | "||")
+            (candidate == "and") == conjunction && matches!(candidate, "and" | "or")
         })
     };
     let mut pending = vec![expr];
@@ -772,8 +771,8 @@ fn core_template_instantiate_expr_from_syntax(expr: &SyntaxExprOutput) -> Option
 ///   all base arguments lower into typed Core, and the right side lowers into
 ///   typed `CoreExpr::RecordConstruct`.
 /// - `None` when the node is not constructor-chain syntax, has the wrong child
-///   shape, uses a remote/non-name base call, has unsupported argument
-///   expressions, or has a non-record right side.
+///   shape, uses a non-name base call, has unsupported argument expressions,
+///   or has a non-record right side.
 ///
 /// Transformation:
 /// - Preserves constructor-chain candidate identity as backend-neutral CoreIR
@@ -785,7 +784,7 @@ fn core_constructor_chain_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<Co
     }
 
     let base_call = &expr.children[0];
-    if !matches!(base_call.kind, SyntaxExprKind::Call) || base_call.remote.is_some() {
+    if !matches!(base_call.kind, SyntaxExprKind::Call) {
         return None;
     }
 
@@ -991,4 +990,6 @@ fn core_case_clauses_from_syntax(expr: &SyntaxExprOutput) -> Option<Vec<CoreCase
         .collect()
 }
 
-include!("core_expr_lowering/try_if.rs");
+mod try_if;
+
+use try_if::*;

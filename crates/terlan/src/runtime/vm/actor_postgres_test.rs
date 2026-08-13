@@ -25,8 +25,10 @@ fn actor_runtime_dispatches_multi_statement_batches_as_an_explicit_operation() {
             owner,
             VmPostgresQueryTarget::Pool(pool),
             "CREATE TABLE one(id INT); CREATE TABLE two(id INT);",
-            0,
-            10,
+            crate::runtime::vm::postgres::VmPostgresDeadline {
+                now_tick: 0,
+                timeout_ticks: 10,
+            },
         )
         .expect("batch request");
 
@@ -60,7 +62,14 @@ fn config(max_connections: usize) -> VmPostgresConnectConfig {
 
 fn connect(runtime: &mut VmActorRuntime, owner: VmProcessId) -> VmPostgresPool {
     let request = runtime
-        .postgres_connect(owner, config(2), 0, 10)
+        .postgres_connect(
+            owner,
+            config(2),
+            crate::runtime::vm::postgres::VmPostgresDeadline {
+                now_tick: 0,
+                timeout_ticks: 10,
+            },
+        )
         .expect("connect request");
     runtime.take_postgres_dispatch().expect("connect dispatch");
     runtime
@@ -84,7 +93,14 @@ fn actor_runtime_releases_connection_after_successful_transaction_commit() {
     let owner = runtime.spawn_root(source());
     let pool = connect(&mut runtime, owner);
     let acquire = runtime
-        .postgres_acquire(owner, pool, 10, 10)
+        .postgres_acquire(
+            owner,
+            pool,
+            crate::runtime::vm::postgres::VmPostgresDeadline {
+                now_tick: 10,
+                timeout_ticks: 10,
+            },
+        )
         .expect("acquire request");
     runtime.take_postgres_dispatch().expect("acquire dispatch");
     runtime
@@ -100,7 +116,14 @@ fn actor_runtime_releases_connection_after_successful_transaction_commit() {
         panic!("expected connection reply");
     };
     let begin = runtime
-        .postgres_begin(owner, connection, 20, 10)
+        .postgres_begin(
+            owner,
+            connection,
+            crate::runtime::vm::postgres::VmPostgresDeadline {
+                now_tick: 20,
+                timeout_ticks: 10,
+            },
+        )
         .expect("begin request");
     runtime.take_postgres_dispatch().expect("begin dispatch");
     runtime
@@ -116,7 +139,15 @@ fn actor_runtime_releases_connection_after_successful_transaction_commit() {
         panic!("expected transaction reply");
     };
     let commit = runtime
-        .postgres_finish_transaction(owner, transaction, true, 30, 10)
+        .postgres_finish_transaction(
+            owner,
+            transaction,
+            true,
+            crate::runtime::vm::postgres::VmPostgresDeadline {
+                now_tick: 30,
+                timeout_ticks: 10,
+            },
+        )
         .expect("commit request");
     runtime.take_postgres_dispatch().expect("commit dispatch");
     runtime
@@ -144,7 +175,14 @@ fn actor_runtime_owns_postgres_resources_and_cleans_them_on_exit() {
     assert_eq!(format!("{pool:?}"), "VmPostgresPool(<opaque>)");
 
     let acquire = runtime
-        .postgres_acquire(owner, pool, 10, 10)
+        .postgres_acquire(
+            owner,
+            pool,
+            crate::runtime::vm::postgres::VmPostgresDeadline {
+                now_tick: 10,
+                timeout_ticks: 10,
+            },
+        )
         .expect("acquire request");
     runtime.take_postgres_dispatch().expect("acquire dispatch");
     runtime
@@ -162,7 +200,14 @@ fn actor_runtime_owns_postgres_resources_and_cleans_them_on_exit() {
     };
 
     let begin = runtime
-        .postgres_begin(owner, connection, 20, 10)
+        .postgres_begin(
+            owner,
+            connection,
+            crate::runtime::vm::postgres::VmPostgresDeadline {
+                now_tick: 20,
+                timeout_ticks: 10,
+            },
+        )
         .expect("begin request");
     runtime.take_postgres_dispatch().expect("begin dispatch");
     runtime
@@ -239,8 +284,10 @@ fn actor_timer_loop_cancels_timed_out_postgres_request() {
             "SELECT value FROM items",
             Vec::new(),
             false,
-            10,
-            5,
+            crate::runtime::vm::postgres::VmPostgresDeadline {
+                now_tick: 10,
+                timeout_ticks: 5,
+            },
         )
         .expect("query request");
     runtime.take_postgres_dispatch().expect("query dispatch");

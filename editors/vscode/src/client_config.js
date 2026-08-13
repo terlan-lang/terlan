@@ -2,6 +2,7 @@
 
 const DOCUMENT_SELECTOR = Object.freeze([
   Object.freeze({ scheme: "file", language: "terlan" }),
+  Object.freeze({ scheme: "file", language: "terlan-script" }),
   Object.freeze({ scheme: "file", language: "terlan-test" }),
   Object.freeze({ scheme: "file", language: "terlan-interface" }),
   Object.freeze({ scheme: "file", language: "terlan-template-html" }),

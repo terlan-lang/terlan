@@ -56,7 +56,9 @@ pub case_count_reports_generated_sample_count(): Bool ->
  */
 @test
 pub for_all_limit_checks_selected_prefix_only(): Bool ->
-    for_all_limit(int_range(1, 3), 0, (value) -> value == 0) and for_all_limit(int_range(1, 3), 2, (value) -> value < 3) and assert_false(for_all_limit(int_range(1, 3), 3, (value) -> value < 3)).
+    for_all_limit(int_range(1, 3), 0, (value) -> value == 0)
+        and for_all_limit(int_range(1, 3), 2, (value) -> value < 3)
+        and assert_false(for_all_limit(int_range(1, 3), 3, (value) -> value < 3)).
 
 /**
  * Verifies deterministic step-limit reports.
@@ -68,7 +70,13 @@ pub for_all_limit_checks_selected_prefix_only(): Bool ->
  */
 @test
 pub step_report_records_limit_and_property_failures(): Bool ->
-    assert_equal({true, 3, "ok"}, step_report(int_range(1, 3), 3, (value) -> value > 0)) and assert_equal({false, 2, "step limit exceeded"}, step_report(int_range(1, 3), 2, (value) -> value > 0)) and assert_equal({false, 3, "property failed"}, step_report(int_range(1, 3), 3, (value) -> value < 3)) and assert_equal({true, 0, "ok"}, step_report(elements([]), 0, (value) -> value == value)).
+    assert_equal({true, 3, "ok"}, step_report(int_range(1, 3), 3, (value) -> value > 0))
+        and assert_equal(
+    {false, 2, "step limit exceeded"},
+    step_report(int_range(1, 3), 2, (value) -> value > 0),
+)
+        and assert_equal({false, 3, "property failed"}, step_report(int_range(1, 3), 3, (value) -> value < 3))
+        and assert_equal({true, 0, "ok"}, step_report(elements([]), 0, (value) -> value == value)).
 
 /**
  * Verifies filtered generators compose with `for_all`.
@@ -92,7 +100,8 @@ pub for_all_accepts_filtered_generated_values(): Bool ->
  */
 @test
 pub deterministic_seed_replay_is_stable(): Bool ->
-    assert_equal([2, 3, 1], sample(replay(1, elements([1, 2, 3])))) and assert_equal([2, 3, 1], sample(replay(4, elements([1, 2, 3])))).
+    assert_equal([2, 3, 1], sample(replay(1, elements([1, 2, 3]))))
+        and assert_equal([2, 3, 1], sample(replay(4, elements([1, 2, 3])))).
 
 /**
  * Verifies shrinking reports smaller candidates that still fail.
@@ -103,7 +112,7 @@ pub deterministic_seed_replay_is_stable(): Bool ->
  */
 @test
 pub shrink_failure_reports_smaller_failing_case(): Bool ->
-    assert_equal([0], shrink_failure(elements([42]), (value) -> value < 0, (value) -> shrink_int(value))).
+    assert_equal([0], shrink_failure(elements([42]), (value) -> value < 0, shrink_int)).
 
 /**
  * Verifies shrink reports expose minimal failing input and path.
@@ -116,7 +125,11 @@ pub shrink_failure_reports_smaller_failing_case(): Bool ->
  */
 @test
 pub shrink_report_records_minimal_failure_and_path(): Bool ->
-    assert_equal({false, Some(0), [0]}, shrink_report(elements([42]), (value) -> value < 0, (value) -> shrink_int(value))) and assert_equal({true, None, List.new[Int]()}, shrink_report(elements([1]), (value) -> value > 0, (value) -> shrink_int(value))).
+    assert_equal({false, Some(0), [0]}, shrink_report(elements([42]), (value) -> value < 0, shrink_int))
+        and assert_equal(
+    {true, None, List.new[Int]()},
+    shrink_report(elements([1]), (value) -> value > 0, shrink_int),
+).
 
 /**
  * Verifies property reports expose stable reproduction commands.
@@ -158,7 +171,12 @@ pub property_run_report_includes_case_count(): Bool ->
  */
 @test
 pub property_distribution_observations_are_stable(): Bool ->
-    assert_equal({true, ["positive"]}, label("positive", true)) and assert_equal({true, ["small"]}, classify(true, "small", true)) and assert_equal({true, List.new[String]()}, classify(false, "large", true)) and assert_equal({true, ["size=3"]}, collect("size=3", true)) and assert_equal({true, ["small"]}, cover(2, 3, "small", true)) and assert_equal({false, ["large"]}, cover(4, 3, "large", true)).
+    assert_equal({true, ["positive"]}, label("positive", true))
+        and assert_equal({true, ["small"]}, classify(true, "small", true))
+        and assert_equal({true, List.new[String]()}, classify(false, "large", true))
+        and assert_equal({true, ["size=3"]}, collect("size=3", true))
+        and assert_equal({true, ["small"]}, cover(2, 3, "small", true))
+        and assert_equal({false, ["large"]}, cover(4, 3, "large", true)).
 
 /**
  * Verifies discard-limit reports are stable.
@@ -169,7 +187,11 @@ pub property_distribution_observations_are_stable(): Bool ->
  */
 @test
 pub discard_report_counts_rejected_samples(): Bool ->
-    assert_equal({true, 2, "ok"}, discard_report(int_range(1, 3), 2, (value) -> value == 3)) and assert_equal({false, 2, "discard limit exceeded"}, discard_report(int_range(1, 3), 1, (value) -> value == 3)).
+    assert_equal({true, 2, "ok"}, discard_report(int_range(1, 3), 2, (value) -> value == 3))
+        and assert_equal(
+    {false, 2, "discard limit exceeded"},
+    discard_report(int_range(1, 3), 1, (value) -> value == 3),
+).
 
 /**
  * Verifies property checks compose with lifecycle setup and cleanup.
@@ -182,7 +204,14 @@ pub discard_report_counts_rejected_samples(): Bool ->
  */
 @test
 pub property_lifecycle_threads_generated_fixture(): Bool ->
-    lifecycle(1, (seed) -> seed + 1, (suite) -> suite + 1, (fixture) -> for_all(int_range(1, fixture), (value) -> value <= fixture), (fixture) -> fixture == 3, (suite) -> suite == 2).
+    lifecycle(
+        1,
+        (seed) -> seed + 1,
+        (suite) -> suite + 1,
+        (fixture) -> for_all(int_range(1, fixture), (value) -> value <= fixture),
+        (fixture) -> fixture == 3,
+        (suite) -> suite == 2,
+    ).
 
 /**
  * Verifies `implies` skips properties whose precondition is false.

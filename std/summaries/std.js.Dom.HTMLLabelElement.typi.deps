@@ -1,8 +1,8 @@
 module=std.js.Dom.HTMLLabelElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
-source_hash=16440760155716164234
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=7730781764195380993
 interface_hash=13418135119328464333
 interface_doc_hash=13418135119328464333
 deps=0

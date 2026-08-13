@@ -2,10 +2,13 @@
 name = "terlan"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
 
-[lints.rust]
-unexpected_cfgs = { level = "allow", check-cfg = ['cfg(coverage)'] }
-warnings = "deny"
+[lints]
+workspace = true
 
 [[bin]]
 name = "terlc"
@@ -32,22 +35,50 @@ required-features = ["editor-lsp"]
 [[bin]]
 name = "terlan-quality"
 path = "src/quality/main.rs"
-
-[[bin]]
-name = "terlan-test-orchestrator"
-path = "src/quality/test_orchestrator_main.rs"
+required-features = ["quality-tools"]
 
 [[bin]]
 name = "terlan-native-target-feasibility"
 path = "src/quality/native_no_std_target_feasibility_main.rs"
+required-features = ["quality-tools"]
 
 [[bin]]
 name = "terlan-lean-proof-closeout"
 path = "src/quality/lean_proof_closeout_main.rs"
+required-features = ["quality-tools"]
+
+[[bin]]
+name = "terlan-accelerator-value-contract"
+path = "src/quality/accelerator_value_contract_main.rs"
+
+[[bin]]
+name = "terlan-accelerator-target-admission"
+path = "src/quality/accelerator_target_admission_main.rs"
+
+[[bin]]
+name = "terlan-accelerator-ir"
+path = "src/quality/accelerator_ir_main.rs"
+
+[[bin]]
+name = "terlan-accelerator-aot-backend"
+path = "src/quality/accelerator_aot_backend_main.rs"
+
+[[bin]]
+name = "terlan-accelerator-placement"
+path = "src/quality/accelerator_placement_main.rs"
+
+[[bin]]
+name = "terlan-accelerator-vm-integration"
+path = "src/quality/accelerator_vm_integration_main.rs"
+
+[[bin]]
+name = "terlan-accelerator-specialized-artifact"
+path = "src/quality/accelerator_specialized_artifact_main.rs"
 
 [[bin]]
 name = "terlan-benchmark"
 path = "src/benchmark/main.rs"
+required-features = ["benchmark-tools"]
 
 [[bin]]
 name = "terlan-axum-baseline"
@@ -72,30 +103,32 @@ required-features = ["axum-baseline"]
 [[bin]]
 name = "terlan-http-paired-benchmark"
 path = "src/benchmark/http_paired_benchmark.rs"
+required-features = ["benchmark-tools"]
 
 [features]
 default = ["native-codegen", "postgres-libpq"]
-serve-runtime-bin = ["native-codegen"]
+serve-runtime-bin = []
 acme-live = ["dep:tokio"]
 editor-lsp = ["dep:tower-lsp", "dep:tokio", "tokio/io-std"]
 axum-baseline = ["dep:axum", "dep:hyper-util", "dep:tokio", "tokio/macros", "tokio/net", "tokio/rt-multi-thread"]
-multicore-tsan-harness = []
+benchmark-tools = []
+multicore-tsan-harness = ["native-codegen"]
+quality-tools = ["dep:shell-words"]
 native-codegen = [
   "dep:cranelift-codegen",
   "dep:cranelift-frontend",
   "dep:cranelift-module",
   "dep:cranelift-native",
   "dep:cranelift-object",
-  "dep:target-lexicon",
 ]
 postgres-libpq = ["dep:terlan-libpq"]
 
 [dependencies]
 ammonia = "4.1.2"
 axum = { version = "0.8.9", optional = true }
-base64 = "0.22.1"
+base64.workspace = true
 basic-toml = "0.1.10"
-comrak = "0.52"
+comrak = { version = "0.52", default-features = false }
 concurrent-queue = "2.5.0"
 cookie = "0.18"
 cranelift-codegen = { version = "=0.133.1", optional = true }
@@ -104,9 +137,10 @@ cranelift-module = { version = "=0.133.1", optional = true }
 cranelift-native = { version = "=0.133.1", optional = true }
 cranelift-object = { version = "=0.133.1", optional = true }
 crossterm = "0.28.1"
-cssparser = "0.35.0"
-html5ever = "0.35.0"
+cssparser = "0.37.0"
+html5ever = "0.39.0"
 mime_guess = "2"
+lalrpop-util = { version = "=0.23.1", default-features = false }
 md-5 = "0.11.0"
 mio = { version = "1.2.2", features = ["net", "os-poll"] }
 oxc_allocator = "0.134.0"
@@ -120,7 +154,7 @@ http = "1.3.1"
 http-body = "1.0.1"
 http-body-util = { version = "0.1.3", features = ["channel", "full"] }
 httparse = "1.10.1"
-hyper = { version = "1.10.1", features = ["client", "http1", "server"] }
+hyper = { version = "1.10.1", features = ["client", "http1", "http2", "server"] }
 hyper-util = { version = "0.1.20", features = ["tokio"], optional = true }
 instant-acme = "0.7"
 libloading = "=0.9.0"
@@ -131,25 +165,24 @@ percent-encoding = "2.3.2"
 quick-xml = "0.39.4"
 rcgen = "0.13"
 rand = "0.9.4"
-rand_chacha = "0.9.0"
-refinery = "0.8"
 regex = "1"
 rustls = "0.23"
 rustls-pemfile = "2"
 rustls-webpki = "0.103.13"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0", features = ["unbounded_depth"] }
+serde_json = { workspace = true, features = ["unbounded_depth"] }
 serde_yaml = "0.9.34"
-sha2 = "0.11.0"
-shell-words = "1.1.1"
+sha2.workspace = true
+shell-words = { version = "1.1.1", optional = true }
 socket2 = { version = "0.6.1", features = ["all"] }
 smallvec = "1.15.2"
 sqlparser = "=0.60.0"
-tar = "0.4.44"
-target-lexicon = { version = "0.13.5", optional = true }
+target-lexicon = "0.13.5"
+terlan-archive.workspace = true
+terlan-runtime-abi.workspace = true
 terlan-libpq = { path = "../../std/native/libpq/generated/native/rust", optional = true }
 time = { version = "0.3", features = ["formatting", "parsing"] }
-tokio = { version = "1", features = ["rt"], optional = true }
+tokio = { workspace = true, features = ["rt"], optional = true }
 tower-lsp = { version = "0.20", optional = true }
 tungstenite = "0.28"
 url = "2.5.8"
@@ -158,10 +191,12 @@ wasm-encoder = "0.252.0"
 wasmparser = "0.252.0"
 yaml-rust = "0.4.5"
 ratatui = "0.29.0"
-zstd = "0.13.3"
 
 [dev-dependencies]
-cxx = "=1.0.197"
-cxx-build = "=1.0.197"
-tokio = { version = "1", features = ["io-util", "macros", "time"] }
-wat = "1.252.0"
+tar.workspace = true
+tokio = { workspace = true, features = ["io-util", "macros", "time"] }
+zstd.workspace = true
+
+[build-dependencies]
+lalrpop = { version = "=0.23.1", default-features = false }
+sha2.workspace = true

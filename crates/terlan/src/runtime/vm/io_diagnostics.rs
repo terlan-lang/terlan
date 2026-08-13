@@ -1,14 +1,14 @@
-#![allow(dead_code)]
-
 use std::sync::atomic::{AtomicU64, Ordering};
 
 #[cfg(test)]
 #[path = "io_diagnostics_test.rs"]
+#[cfg(test)]
 mod io_diagnostics_test;
 
 static NEXT_DIAGNOSTIC_LOG_ID: AtomicU64 = AtomicU64::new(1);
 
 /// Stable code for an I/O resource removed before interest was deselected.
+#[cfg(test)]
 pub(crate) const VM_IO_RESOURCE_REMOVED_WITHOUT_DESELECTING: &str =
     "vm.io.resource_removed_without_deselecting";
 
@@ -25,6 +25,7 @@ pub(crate) struct VmIoDiagnosticSourceMap {
     pub(crate) end_column: u32,
 }
 
+#[cfg(test)]
 impl VmIoDiagnosticSourceMap {
     /// Creates source-map identity metadata for one I/O diagnostic.
     pub(crate) fn new(
@@ -81,6 +82,7 @@ impl VmIoDiagnosticSourceMap {
 
 /// One-based source span used by VM I/O diagnostics.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmIoDiagnosticSpan {
     pub(crate) start_line: u32,
     pub(crate) start_column: u32,
@@ -88,6 +90,7 @@ pub(crate) struct VmIoDiagnosticSpan {
     pub(crate) end_column: u32,
 }
 
+#[cfg(test)]
 impl VmIoDiagnosticSpan {
     /// Creates one-based source span metadata.
     pub(crate) fn new(start_line: u32, start_column: u32, end_line: u32, end_column: u32) -> Self {
@@ -121,6 +124,7 @@ pub(crate) struct VmIoDiagnosticResource {
     pub(crate) handle: String,
 }
 
+#[cfg(test)]
 impl VmIoDiagnosticResource {
     /// Creates diagnostic resource metadata.
     pub(crate) fn new(
@@ -141,16 +145,11 @@ pub(crate) enum VmIoDiagnosticResourceKind {
     TcpStream,
     UdpSocket,
     PackageDownload,
-    Timer,
-    HttpHandler,
-    WebSocket,
-    TlsConnection,
 }
 
 /// Runtime-visible I/O diagnostic severity.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmIoDiagnosticSeverity {
-    Info,
     Warning,
     Error,
 }
@@ -166,6 +165,7 @@ pub(crate) struct VmIoDiagnostic {
     pub(crate) source_map: VmIoDiagnosticSourceMap,
 }
 
+#[cfg(test)]
 impl VmIoDiagnostic {
     /// Creates one VM I/O diagnostic with source-map metadata.
     pub(crate) fn new(
@@ -231,6 +231,7 @@ impl Default for VmIoDiagnosticLog {
 
 /// Installed typed diagnostic query over one exact log generation.
 #[derive(Debug)]
+#[cfg(test)]
 pub(crate) struct VmIoDiagnosticProbe {
     log_id: u64,
     start_index: usize,
@@ -238,6 +239,7 @@ pub(crate) struct VmIoDiagnosticProbe {
     closed: bool,
 }
 
+#[cfg(test)]
 impl VmIoDiagnosticLog {
     /// Creates an empty diagnostic log.
     pub(crate) fn new() -> Self {
@@ -276,6 +278,7 @@ impl VmIoDiagnosticLog {
     }
 }
 
+#[cfg(test)]
 impl VmIoDiagnosticProbe {
     /// Returns whether the installed code has appeared since installation.
     pub(crate) fn matched(&self, log: &VmIoDiagnosticLog) -> Result<bool, String> {

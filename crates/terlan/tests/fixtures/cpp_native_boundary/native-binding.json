@@ -13,6 +13,20 @@
     "platform_conditions": [],
     "rebuild_inputs": ["src/lib.rs", "include", "cpp"]
   },
+  "null_failure": {
+    "probe_symbol": "function.take_last_failure",
+    "cases": [
+      {
+        "value": 1,
+        "code": "cpp_fixture.null_result",
+        "message": "The C++ fixture returned no owned result."
+      }
+    ],
+    "fallback": {
+      "code": "cpp_fixture.native_failure",
+      "message": "The C++ fixture returned no classified result."
+    }
+  },
   "mapping": {
     "schema": "terlan.cpp.mapping.v1",
     "symbols": [
@@ -23,6 +37,7 @@
         "thread_safety": "thread_confined"
       },
       {"symbol": "function.make_native_boundary", "disposition": "bind"},
+      {"symbol": "function.take_last_failure", "disposition": "bind"},
       {"symbol": "method.native_boundary.value", "disposition": "bind"},
       {"symbol": "method.native_boundary.doubled", "disposition": "bind"},
       {"symbol": "method.native_boundary.label", "disposition": "bind"},
@@ -585,6 +600,28 @@
         "overload_candidates": 1
       },
       {
+        "id": "function.take_last_failure",
+        "cpp_name": "take_last_failure",
+        "source": {"path": "native_boundary.hpp", "line": 52, "column": 14},
+        "kind": "function",
+        "documentation": "Returns and clears the fixture's finite null-result status.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::take_last_failure",
+        "returns": {
+          "spelling": "std::int64_t",
+          "canonical": "std::int64_t",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
         "id": "function.sum_snapshot_fields",
         "cpp_name": "sum_snapshot_fields",
         "source": {"path": "native_boundary.hpp", "line": 41, "column": 14},
@@ -1109,7 +1146,7 @@
           "args": [{"name": "value", "ty": "Int"}],
           "returns": "NativeBoundary",
           "blocking": "fast",
-          "resource": "opaque_handle",
+          "resource": "owned_handle",
           "documentation": "Creates a uniquely owned NativeBoundary handle."
         },
         {
@@ -1310,7 +1347,7 @@
           "args": [{"name": "value", "ty": "Int"}],
           "returns": "NativeGauge",
           "blocking": "fast",
-          "resource": "opaque_handle",
+          "resource": "nullable_handle",
           "documentation": "Creates a uniquely owned NativeGauge handle."
         },
         {

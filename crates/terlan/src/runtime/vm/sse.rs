@@ -1,41 +1,56 @@
-#![allow(dead_code)]
-
 use std::collections::VecDeque;
 
+#[cfg(test)]
 use super::memory::{
     VmMemoryAccountant, VmMemoryPressureOutcome, VmSharedAllocationId, VmSharedAllocationKind,
 };
 use super::native_callable::VmNativeCallableRef;
+#[cfg(test)]
 use super::process::{VmProcessId, VmProcessTable};
+#[cfg(test)]
 use super::scheduler::VmScheduler;
 
 #[path = "sse_live_session.rs"]
 mod sse_live_session;
 #[cfg(test)]
 #[path = "sse_test.rs"]
+#[cfg(test)]
 mod sse_test;
 pub(crate) use sse_live_session::VmSseLiveSession;
 
 /// VM SSE stream failure with stable typed variants.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum VmSseError {
+    #[cfg(test)]
     Closed,
     BackpressureExceeded,
+    #[cfg(test)]
     InvalidEventName,
+    #[cfg(test)]
     InvalidRetry,
+    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
     InvalidKeepAlive,
+    #[cfg(test)]
     HeartbeatTimedOut,
+    #[cfg(test)]
     InvalidReconnectToken,
+    #[cfg(test)]
     StaleReconnectToken,
+    #[cfg(test)]
     InvalidProtocolAssetHash,
+    #[cfg(test)]
     StaleProtocolAssetHash,
+    #[cfg(test)]
     DomPatchBackpressureExceeded,
+    #[cfg(test)]
     EventTooLarge,
+    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
     CallbacksAlreadyConfigured,
 }
 
 /// Typed failure from an SSE stream governed by VM memory ownership.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmAccountedSseError {
     Stream(VmSseError),
     Memory(String),
@@ -73,6 +88,7 @@ pub(crate) struct VmSseStreamInfo {
 
 /// Inspectable heartbeat state for a browser-side live-template stream.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSseHeartbeatInfo {
     pub(crate) timeout_ms: u64,
     pub(crate) last_seen_ms: u64,
@@ -91,6 +107,7 @@ pub(crate) struct VmSseHeartbeatInfo {
 /// - Keeps heartbeat policy in the VM protocol layer instead of relying on
 ///   browser glue, host timers, or wall-clock reads inside the handler.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSseHeartbeatState {
     timeout_ms: u64,
     last_seen_ms: u64,
@@ -99,6 +116,7 @@ pub(crate) struct VmSseHeartbeatState {
 
 /// Inspectable reconnect-token state for a browser-side live-template stream.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSseReconnectTokenInfo {
     pub(crate) token: String,
     pub(crate) generation: u64,
@@ -118,6 +136,7 @@ pub(crate) struct VmSseReconnectTokenInfo {
 /// - Keeps reconnect replay protection in the VM protocol layer instead of
 ///   letting browser glue or handlers accept stale live-template tokens.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSseReconnectTokenState {
     token: String,
     generation: u64,
@@ -126,6 +145,7 @@ pub(crate) struct VmSseReconnectTokenState {
 
 /// Inspectable protocol asset hash state for generated live-template assets.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSseProtocolAssetHashInfo {
     pub(crate) asset_hash: String,
     pub(crate) generation: u64,
@@ -144,6 +164,7 @@ pub(crate) struct VmSseProtocolAssetHashInfo {
 ///   the VM protocol layer instead of letting stale browser bundles apply
 ///   patches from a different compiler/runtime protocol.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSseProtocolAssetHashState {
     asset_hash: String,
     generation: u64,
@@ -151,6 +172,7 @@ pub(crate) struct VmSseProtocolAssetHashState {
 
 /// Inspectable DOM patch backpressure state for a browser-side live-template stream.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSseDomPatchBackpressureInfo {
     pub(crate) pending_patches: usize,
     pub(crate) max_pending_patches: usize,
@@ -171,6 +193,7 @@ pub(crate) struct VmSseDomPatchBackpressureInfo {
 /// - Keeps live-template DOM patch pressure in the VM protocol layer instead
 ///   of allowing unbounded browser-side patch lag to accumulate.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSseDomPatchBackpressure {
     pending: VecDeque<String>,
     max_pending_patches: usize,
@@ -235,6 +258,7 @@ pub(crate) struct VmSseStream {
 
 /// SSE stream whose queued protocol buffers are owned by one VM process.
 #[derive(Debug)]
+#[cfg(test)]
 pub(crate) struct VmAccountedSseStream {
     stream: VmSseStream,
     owner: VmProcessId,
@@ -243,6 +267,7 @@ pub(crate) struct VmAccountedSseStream {
 
 impl VmSseEvent {
     /// Creates a data-only SSE event.
+    #[cfg(test)]
     pub(crate) fn data(data: impl Into<String>) -> Self {
         Self {
             id: None,
@@ -253,24 +278,28 @@ impl VmSseEvent {
     }
 
     /// Adds an event id.
+    #[cfg(test)]
     pub(crate) fn with_id(mut self, id: impl Into<String>) -> Self {
         self.id = Some(id.into());
         self
     }
 
     /// Adds an event name.
+    #[cfg(test)]
     pub(crate) fn with_event(mut self, event: impl Into<String>) -> Self {
         self.event = Some(event.into());
         self
     }
 
     /// Adds a reconnect retry hint in milliseconds.
+    #[cfg(test)]
     pub(crate) fn with_retry_ms(mut self, retry_ms: u64) -> Self {
         self.retry_ms = Some(retry_ms);
         self
     }
 
     /// Encodes this event into the SSE wire format.
+    #[cfg(test)]
     pub(crate) fn encode(&self) -> Result<Vec<u8>, VmSseError> {
         let text = encode_event_text(self)?;
         Ok(text.into_bytes())
@@ -279,6 +308,7 @@ impl VmSseEvent {
 
 impl VmSseEndpointPlan {
     /// Creates an SSE endpoint plan with explicit non-zero stream limits.
+    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
     pub(crate) fn new(
         max_pending_events: usize,
         max_event_bytes: usize,
@@ -295,6 +325,7 @@ impl VmSseEndpointPlan {
     }
 
     /// Adds a non-zero keep-alive interval in milliseconds.
+    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
     pub(crate) fn with_keep_alive_ms(mut self, keep_alive_ms: u64) -> Result<Self, VmSseError> {
         if keep_alive_ms == 0 {
             return Err(VmSseError::InvalidKeepAlive);
@@ -314,16 +345,19 @@ impl VmSseEndpointPlan {
     }
 
     /// Returns the maximum encoded event size for streams opened from this plan.
+    #[cfg(test)]
     pub(crate) fn max_event_bytes(&self) -> usize {
         self.max_event_bytes
     }
 
     /// Returns the optional keep-alive interval in milliseconds.
+    #[cfg(test)]
     pub(crate) fn keep_alive_ms(&self) -> Option<u64> {
         self.keep_alive_ms
     }
 
     /// Attaches one complete closure-free callback set to this endpoint.
+    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
     pub(crate) fn with_callbacks(
         mut self,
         callbacks: VmSseCallbackPlan,
@@ -341,6 +375,7 @@ impl VmSseEndpointPlan {
     }
 }
 
+#[cfg(test)]
 impl VmSseHeartbeatState {
     /// Creates heartbeat state with a non-zero timeout and initial observation.
     pub(crate) fn new(timeout_ms: u64, now_ms: u64) -> Result<Self, VmSseError> {
@@ -379,6 +414,7 @@ impl VmSseHeartbeatState {
     }
 }
 
+#[cfg(test)]
 impl VmSseReconnectTokenState {
     /// Creates reconnect-token state with a non-empty initial token.
     pub(crate) fn new(initial_token: impl Into<String>, now_ms: u64) -> Result<Self, VmSseError> {
@@ -430,6 +466,7 @@ impl VmSseReconnectTokenState {
     }
 }
 
+#[cfg(test)]
 impl VmSseProtocolAssetHashState {
     /// Creates protocol asset hash state with a non-empty hash.
     pub(crate) fn new(asset_hash: impl Into<String>) -> Result<Self, VmSseError> {
@@ -470,6 +507,7 @@ impl VmSseProtocolAssetHashState {
     }
 }
 
+#[cfg(test)]
 impl VmSseDomPatchBackpressure {
     /// Creates DOM patch backpressure state with a non-zero pending patch limit.
     pub(crate) fn new(max_pending_patches: usize) -> Result<Self, VmSseError> {
@@ -531,12 +569,14 @@ impl VmSseStream {
     }
 
     /// Enqueues one typed event after validating size and stream state.
+    #[cfg(test)]
     pub(crate) fn enqueue(&mut self, event: VmSseEvent) -> Result<(), VmSseError> {
         self.validate_enqueue(&event)?;
         self.pending.push_back(event);
         Ok(())
     }
 
+    #[cfg(test)]
     fn validate_enqueue(&self, event: &VmSseEvent) -> Result<usize, VmSseError> {
         if self.closed {
             return Err(VmSseError::Closed);
@@ -552,6 +592,7 @@ impl VmSseStream {
     }
 
     /// Encodes and removes the next queued SSE event.
+    #[cfg(test)]
     pub(crate) fn flush_next(&mut self) -> Result<Option<Vec<u8>>, VmSseError> {
         let Some(event) = self.pending.pop_front() else {
             return Ok(None);
@@ -561,6 +602,7 @@ impl VmSseStream {
     }
 
     /// Closes the stream for new events while retaining already queued events.
+    #[cfg(test)]
     pub(crate) fn close(&mut self) {
         self.closed = true;
     }
@@ -577,6 +619,7 @@ impl VmSseStream {
     }
 }
 
+#[cfg(test)]
 impl VmAccountedSseStream {
     /// Opens a bounded SSE queue owned by one live VM process.
     pub(crate) fn new(
@@ -693,31 +736,37 @@ impl VmAccountedSseStream {
 }
 
 /// Encodes a comment keep-alive frame.
+#[cfg(test)]
 pub(crate) fn keep_alive_frame() -> Vec<u8> {
     b": keep-alive\n\n".to_vec()
 }
 
 /// Builds one Rust-backed SSE event value for `std.http.Sse.data`.
+#[cfg(test)]
 pub fn data(value: String) -> VmSseEvent {
     VmSseEvent::data(value)
 }
 
 /// Builds one Rust-backed SSE event value with an id.
+#[cfg(test)]
 pub fn with_id(event: VmSseEvent, id: String) -> VmSseEvent {
     event.with_id(id)
 }
 
 /// Builds one Rust-backed SSE event value with an event name.
+#[cfg(test)]
 pub fn with_name(event: VmSseEvent, name: String) -> VmSseEvent {
     event.with_event(name)
 }
 
 /// Builds one Rust-backed SSE event value with a retry hint.
+#[cfg(test)]
 pub fn with_retry_ms(event: VmSseEvent, retry_ms: u64) -> VmSseEvent {
     event.with_retry_ms(retry_ms)
 }
 
 /// Returns queued SSE response inputs after validating event encodability.
+#[cfg(test)]
 pub fn response(
     events: Vec<VmSseEvent>,
     status: u16,
@@ -729,6 +778,7 @@ pub fn response(
 }
 
 /// Builds one Rust-backed SSE endpoint plan.
+#[cfg(test)]
 pub fn endpoint(
     max_pending_events: usize,
     max_event_bytes: usize,
@@ -737,6 +787,7 @@ pub fn endpoint(
 }
 
 /// Builds one Rust-backed SSE endpoint plan with a keep-alive interval.
+#[cfg(test)]
 pub fn endpoint_with_keep_alive(
     max_pending_events: usize,
     max_event_bytes: usize,
@@ -745,6 +796,7 @@ pub fn endpoint_with_keep_alive(
     VmSseEndpointPlan::new(max_pending_events, max_event_bytes)?.with_keep_alive_ms(keep_alive_ms)
 }
 
+#[cfg(test)]
 fn encode_event_text(event: &VmSseEvent) -> Result<String, VmSseError> {
     validate_line_field(event.id.as_deref()).map_err(|_| VmSseError::InvalidEventName)?;
     validate_line_field(event.event.as_deref()).map_err(|_| VmSseError::InvalidEventName)?;
@@ -780,6 +832,7 @@ fn encode_event_text(event: &VmSseEvent) -> Result<String, VmSseError> {
     Ok(output)
 }
 
+#[cfg(test)]
 fn validate_line_field(value: Option<&str>) -> Result<(), ()> {
     match value {
         Some(value) if value.contains('\n') || value.contains('\r') || value.contains('\0') => {
@@ -789,6 +842,7 @@ fn validate_line_field(value: Option<&str>) -> Result<(), ()> {
     }
 }
 
+#[cfg(test)]
 fn validate_reconnect_token(token: &str) -> Result<(), VmSseError> {
     if token.trim().is_empty()
         || token
@@ -800,6 +854,7 @@ fn validate_reconnect_token(token: &str) -> Result<(), VmSseError> {
     Ok(())
 }
 
+#[cfg(test)]
 fn validate_protocol_asset_hash(asset_hash: &str) -> Result<(), VmSseError> {
     if asset_hash.trim().is_empty()
         || asset_hash

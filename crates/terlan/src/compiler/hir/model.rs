@@ -34,6 +34,7 @@ pub struct ModuleInterface {
 }
 
 #[derive(Debug, Clone)]
+/// Data describing expression macro signature.
 pub struct ExpressionMacroSignature {
     pub name: String,
     pub params: Vec<ParamSignature>,
@@ -44,6 +45,7 @@ pub struct ExpressionMacroSignature {
 }
 
 #[derive(Debug, Clone)]
+/// Data describing constant signature.
 pub struct ConstantSignature {
     pub name: String,
     pub annotation: String,
@@ -54,6 +56,7 @@ pub struct ConstantSignature {
 }
 
 #[derive(Debug, Clone)]
+/// Data describing const function signature.
 pub struct ConstFunctionSignature {
     pub name: String,
     pub params: Vec<ParamSignature>,
@@ -65,6 +68,7 @@ pub struct ConstFunctionSignature {
 }
 
 #[derive(Debug, Clone)]
+/// Data describing valued union signature.
 pub struct ValuedUnionSignature {
     pub name: String,
     pub representation: String,
@@ -72,6 +76,7 @@ pub struct ValuedUnionSignature {
 }
 
 #[derive(Debug, Clone)]
+/// Data describing valued union arm signature.
 pub struct ValuedUnionArmSignature {
     pub name: String,
     pub value: SyntaxExprOutput,
@@ -165,6 +170,7 @@ pub struct TraitSignature {
 }
 
 #[derive(Debug, Clone)]
+/// Data describing trait constant signature.
 pub struct TraitConstantSignature {
     pub annotation: String,
     pub default: Option<SyntaxExprOutput>,
@@ -219,12 +225,14 @@ pub enum TraitConformanceSource {
 ///
 /// Inputs: syntax-output parameter. Output: name, normalized annotation, and
 /// mutability/default metadata. Transformation: removes spans while preserving
-/// callable type shape and optional source-like default text for generated
-/// interface summaries.
+/// callable type shape plus structured and source-like defaults for executable
+/// lowering and generated interface summaries.
 pub struct ParamSignature {
     pub name: String,
     pub annotation: String,
     pub is_mutable: bool,
+    /// Structured compile-time default retained for executable call lowering.
+    pub default: Option<SyntaxExprOutput>,
     pub default_text: Option<String>,
 }
 

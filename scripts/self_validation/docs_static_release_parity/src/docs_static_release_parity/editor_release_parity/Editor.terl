@@ -1,0 +1,210 @@
+/**
+ * Installed VS Code and Tree-sitter release-surface validation.
+ */
+module docs_static_release_parity.editor_release_parity.Editor.
+
+import docs_static_release_parity.editor_release_parity.Support.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.File.{read_text}.
+
+import type std.core.Option.
+import type std.data.Json.{Json, StringFieldRow}.
+
+/**
+ * Exact installed editor evidence retained in the release report.
+ */
+pub struct EditorSummary {
+    version: String,
+    command_ids: List[String],
+    icon_hash: String,
+    grammar_hash: String,
+    selected_surface_hash: String,
+}.
+
+/**
+ * Exact installed Tree-sitter evidence retained in the release report.
+ */
+pub struct TreeSummary {
+    version: String,
+    grammar_hash: String,
+    generated_parser_hash: String,
+    selected_surface_hash: String,
+}.
+
+pub editor_root(): String -> "share/terlan/editors/vscode".
+
+pub tree_root(): String -> "share/terlan/tree-sitter-terlan".
+
+pub required_commands(): List[String] ->
+    [
+        "terlan.runMain",
+        "terlan.runTestAtCursor",
+        "terlan.addMissingImport",
+        "terlan.formatDocument",
+        "terlan.showDiagnostics",
+        "terlan.runDebug",
+        "terlan.inspectRuntime",
+    ].
+
+pub editor_files(): List[String] ->
+    [
+        "icons/terlan-file-icon-theme.json",
+        "icons/terlan-file.svg",
+        "icons/terlan-template-html-file.svg",
+        "icons/terlan-test-file.svg",
+        "language-configuration.json",
+        "package.json",
+        "src/client_config.js",
+        "src/extension.js",
+        "src/run_command.js",
+        "syntaxes/terlan-template-html.tmLanguage.json",
+        "syntaxes/terlan.tmLanguage.json",
+    ].
+
+pub tree_files(): List[String] ->
+    [
+        "grammar.js",
+        "package.json",
+        "queries/highlights.scm",
+        "queries/injections.scm",
+        "src/grammar.json",
+        "src/node-types.json",
+        "src/parser.c",
+    ].
+
+pub generated_tree_files(): List[String] ->
+    ["src/grammar.json", "src/node-types.json", "src/parser.c"].
+
+command_ids_from_rows(rows: List[StringFieldRow], commands: List[String]): Option[List[String]] ->
+    case rows {
+        [] -> Some(Support.sort_strings(commands));
+        [row | rest] ->
+            if {
+                not Json.string_field_row_is_object(row) -> None;
+                true -> case Json.string_field_row_values(row) {
+                    [Some(command) | _] -> command_ids_from_rows(rest, [command | commands]);
+                    _ -> None
+                }
+            }
+    }.
+
+command_ids(manifest: Json): Option[List[String]] ->
+    let {
+        Ok(contributes) <- manifest.get("contributes");
+        Ok(commands) <- contributes.get("commands");
+        Ok(rows) <- commands.string_field_rows(["command"]);
+        Some(ids) <- command_ids_from_rows(rows, [])
+    } else {
+        _ -> None
+    };
+    Some(ids).
+
+command_key(command: String): String ->
+    case String.split_once(command, ".") {
+        Some({_prefix, key}) -> key;
+        None -> command
+    }.
+
+extension_registers(source: String, commands: List[String]): Bool ->
+    case commands {
+        [] -> true;
+        [command | rest] ->
+            String.contains(source, command_key(command)) and extension_registers(source, rest)
+    }.
+
+/**
+ * Validates packaged VS Code metadata and installed-command registration.
+ */
+pub validate_editor(installed: String): Option[EditorSummary] ->
+    let root = Support.child(installed, editor_root());
+    let {
+        Some(manifest) <- Support.read_json(Support.child(root, "package.json"));
+        Some(version) <- Support.json_string(manifest, "version");
+        Some(icon) <- Support.json_string(manifest, "icon");
+        Some(commands) <- command_ids(manifest);
+        Ok(extension_source) <- read_text(Support.child(root, "src/extension.js"));
+        Ok(icon_theme_source) <- read_text(Support.child(root, "icons/terlan-file-icon-theme.json"));
+        Ok(client_source) <- read_text(Support.child(root, "src/client_config.js"));
+        Some(icon_hash) <- Support.file_hash(Support.child(root, icon));
+        Some(grammar_hash) <- Support.file_hash(Support.child(root, "syntaxes/terlan.tmLanguage.json"));
+        Some(surface_hash) <- Support.selected_surface_hash(root, editor_files())
+    } else {
+        _ -> None
+    };
+    if {
+        not Support.required_files_hold(root, editor_files()) -> None;
+        not Support.contains_all(commands, required_commands()) -> None;
+        not extension_registers(extension_source, required_commands()) -> None;
+        String.contains(String.lowercase(icon_theme_source), "folded") -> None;
+        not String.contains(client_source, "\"lsp\",\n    \"--stdio\"") -> None;
+        not String.contains(client_source, "\"terlc\"") -> None;
+        true -> Some(
+            EditorSummary(
+                version = version,
+                command_ids = commands,
+                icon_hash = icon_hash,
+                grammar_hash = grammar_hash,
+                selected_surface_hash = surface_hash,
+            ),
+        )
+    }.
+
+/**
+ * Validates packaged Tree-sitter source and generated parser identity.
+ */
+pub validate_tree(installed: String): Option[TreeSummary] ->
+    let root = Support.child(installed, tree_root());
+    let {
+        Some(package) <- Support.read_json(Support.child(root, "package.json"));
+        Some(grammar) <- Support.read_json(Support.child(root, "src/grammar.json"));
+        Some(package_name) <- Support.json_string(package, "name");
+        Some(version) <- Support.json_string(package, "version");
+        Some(grammar_name) <- Support.json_string(grammar, "name");
+        Some(grammar_hash) <- Support.file_hash(Support.child(root, "grammar.js"));
+        Some(parser_hash) <- Support.file_hash(Support.child(root, "src/parser.c"));
+        Some(surface_hash) <- Support.selected_surface_hash(root, tree_files())
+    } else {
+        _ -> None
+    };
+    if {
+        not Support.required_files_hold(root, tree_files()) -> None;
+        package_name != "tree-sitter-terlan" or grammar_name != "terlan" -> None;
+        true -> Some(
+            TreeSummary(
+                version = version,
+                grammar_hash = grammar_hash,
+                generated_parser_hash = parser_hash,
+                selected_surface_hash = surface_hash,
+            ),
+        )
+    }.
+
+pub editor_version(summary: EditorSummary): String ->
+    summary.version.
+
+pub editor_commands(summary: EditorSummary): List[String] ->
+    summary.command_ids.
+
+pub tree_version(summary: TreeSummary): String ->
+    summary.version.
+
+pub editor_json(summary: EditorSummary): Json ->
+    Json.object()
+        .put("version", Json.string(summary.version))
+        .put("command_ids", Support.string_array(summary.command_ids))
+        .put("icon_hash", Json.string(summary.icon_hash))
+        .put("grammar_hash", Json.string(summary.grammar_hash))
+        .put("selected_surface_hash", Json.string(summary.selected_surface_hash)).
+
+pub tree_base_json(summary: TreeSummary): Json ->
+    Json.object()
+        .put("version", Json.string(summary.version))
+        .put("grammar_hash", Json.string(summary.grammar_hash))
+        .put("generated_parser_hash", Json.string(summary.generated_parser_hash))
+        .put("selected_surface_hash", Json.string(summary.selected_surface_hash)).
+
+pub tree_json(summary: TreeSummary, fresh_hash: String): Json ->
+    tree_base_json(summary).put("fresh_generated_hash", Json.string(fresh_hash)).

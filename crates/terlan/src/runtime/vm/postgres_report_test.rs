@@ -73,14 +73,18 @@ fn postgres_report_derives_lifecycle_evidence_and_cleanup_proof_from_runtime_sta
     );
     let commit = runtime
         .finish_transaction(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 30,
+                    timeout_ticks: 10,
+                },
+            ),
             committed,
             true,
-            30,
-            10,
         )
         .expect("commit request");
     complete_unit(
@@ -115,14 +119,18 @@ fn postgres_report_derives_lifecycle_evidence_and_cleanup_proof_from_runtime_sta
     );
     let rollback = runtime
         .finish_transaction(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 40,
+                    timeout_ticks: 10,
+                },
+            ),
             rolled_back,
             false,
-            40,
-            10,
         )
         .expect("rollback request");
     complete_unit(
@@ -141,16 +149,20 @@ fn postgres_report_derives_lifecycle_evidence_and_cleanup_proof_from_runtime_sta
 
     let successful_query = runtime
         .query(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 50,
+                    timeout_ticks: 10,
+                },
+            ),
             VmPostgresQueryTarget::Pool(pool),
             "SELECT private_value FROM secrets",
             Vec::new(),
             false,
-            50,
-            10,
         )
         .expect("successful query request");
     runtime.take_dispatch().expect("successful query dispatch");
@@ -175,16 +187,20 @@ fn postgres_report_derives_lifecycle_evidence_and_cleanup_proof_from_runtime_sta
 
     let failed_query = runtime
         .query(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 60,
+                    timeout_ticks: 10,
+                },
+            ),
             VmPostgresQueryTarget::Pool(pool),
             "SELECT broken FROM missing",
             Vec::new(),
             true,
-            60,
-            10,
         )
         .expect("failed query request");
     runtime.take_dispatch().expect("failed query dispatch");
@@ -209,16 +225,20 @@ fn postgres_report_derives_lifecycle_evidence_and_cleanup_proof_from_runtime_sta
 
     let cancelled_query = runtime
         .query(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 70,
+                    timeout_ticks: 10,
+                },
+            ),
             VmPostgresQueryTarget::Pool(pool),
             "SELECT pg_sleep(10)",
             Vec::new(),
             false,
-            70,
-            10,
         )
         .expect("cancelled query request");
     runtime.take_dispatch().expect("cancelled query dispatch");
@@ -238,15 +258,19 @@ fn postgres_report_derives_lifecycle_evidence_and_cleanup_proof_from_runtime_sta
 
     let decode = runtime
         .decode(
-            &mut timers,
-            &mut processes,
-            &mut scheduler,
-            owner,
+            crate::runtime::vm::postgres::VmPostgresRequestContext::new(
+                &mut timers,
+                &mut processes,
+                &mut scheduler,
+                owner,
+                crate::runtime::vm::postgres::VmPostgresDeadline {
+                    now_tick: 80,
+                    timeout_ticks: 10,
+                },
+            ),
             row,
             "private_value",
             VmPostgresDecodeType::Int,
-            80,
-            10,
         )
         .expect("decode request");
     runtime.take_dispatch().expect("decode dispatch");

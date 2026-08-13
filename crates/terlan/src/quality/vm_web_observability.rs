@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::json;
 
+use crate::terlan_quality::support::validate_required_terms;
 use crate::terlan_quality::QualityResult;
 
 const REPORT_PATH: &str = "target/quality/vm-web-observability-report.json";
@@ -79,8 +80,8 @@ const REQUIRED_STREAM_ANCHORS: &[(&str, &[&str])] = &[
 
 const REQUIRED_SOURCE_MAP_ANCHORS: &[&str] = &[
     "source_map_id",
-    "Compiled module name and checksum/source-map metadata",
-    "source_name",
+    "VmModuleArtifact",
+    "VmModuleGenerationSnapshot",
 ];
 
 const REQUIRED_VM_INSTRUMENTATION_ANCHORS: &[&str] = &[
@@ -101,24 +102,46 @@ const REQUIRED_BENCHMARK_ANCHORS: &[&str] = &[
 ];
 
 const REQUIRED_GATE_TERMS: &[&str] = &[
-    "vm-web-observability-check: vm-web-config-secret-boundary-check",
-    "$(MAKE) http-observability-check",
-    "$(MAKE) vm-diagnostics-quality-check",
-    "vm_web_observability_test",
+    "vm-web-observability-check: \\",
+    "vm-http-serve-config-check",
+    "vm-runtime-observability-check",
+    "http-observability-check",
+    "vm-diagnostics-quality-check",
     "vm-web-observability",
 ];
 
+const REQUIRED_EFFECTIVE_CONFIG_ANCHORS: &[&str] = &[
+    "terlan-vm-serve-config-v1",
+    "EffectiveServeConfig",
+    "resolve_effective_serve_config",
+    "write_effective_serve_config",
+    "error[serve.config.public_bind]",
+    "max_request_bytes",
+    "shutdown_grace_ms",
+];
+
+const REQUIRED_RUNTIME_OBSERVABILITY_ANCHORS: &[&str] = &[
+    "terlan-vm-observability-v1",
+    "VmEventDomain",
+    "VmServeEvent",
+    "VmServeMetrics",
+    "VmServeTrace",
+    "parse_traceparent",
+    "begin_shutdown",
+    "finish_shutdown",
+];
+
 const TELEMETRY_SCHEMA: &[&str] = &[
+    "schema",
+    "config_fingerprint",
+    "domain",
+    "name",
+    "status",
     "request_id",
     "connection_id",
     "actor_id",
     "route_id",
-    "template_stream_id.rejectedUntilLiveTemplateRuntimeEmission",
-    "security_policy_decision",
-    "config_profile",
-    "source_map_location",
-    "duration_ms",
-    "status",
+    "trace_id",
 ];
 
 const PLACEHOLDER_REPORT_TERMS: &[&str] = &["placeholder", "todo", "tbd"];
@@ -136,20 +159,20 @@ const STREAM_TRACES: &[&str] = &[
     "SSE stream reports bounded backpressure",
     "WebSocket inbound queue inspect exposes pending frame and byte pressure",
     "WebSocket inbound queue reports bounded backpressure",
-    "template stream id remains rejected until live-template runtime emits it",
+    "stream pressure and completion share the versioned VM event schema",
 ];
 
 const SECURITY_DECISION_TRACES: &[&str] = &[
     "Slice 115 policy report is prerequisite",
     "cookie/header/TLS policy decisions are enforced before observability",
-    "security decision telemetry remains rejected until HTTP runtime carries typed policy ids",
+    "security decisions use typed bounded identifiers rather than request payloads",
 ];
 
 const REDACTION_CHECKS: &[&str] = &[
     "serve dev error page escapes request, route, handler, source, and backend text",
     "config secret boundary report is prerequisite",
-    "path redaction remains rejected until support-bundle redaction exists",
-    "user data redaction remains rejected until typed telemetry fields classify payload data",
+    "raw paths and payloads are excluded from metric labels",
+    "typed telemetry correlation fields do not retain user data",
 ];
 
 const CORRELATION_CHECKS: &[&str] = &[
@@ -160,40 +183,30 @@ const CORRELATION_CHECKS: &[&str] = &[
 ];
 
 const SAMPLING_DECISIONS: &[&str] = &[
-    "sampling policy remains rejected until production trace controls are implemented",
+    "trace sampling follows the validated W3C sampled flag",
     "benchmark telemetry is always sampled for deterministic gate output",
     "debug/editor telemetry is read-only until operator mode is guarded",
 ];
 
 const CARDINALITY_CHECKS: &[&str] = &[
     "route and handler names are bounded by compiled manifest entries",
-    "request paths remain rejected as metric labels until route template labeling exists",
-    "stream ids remain rejected as metric labels until bounded cardinality policy exists",
+    "route templates replace raw request paths in metric labels",
+    "stream ids remain trace-only and never become metric labels",
 ];
 
 const SURFACE_MATRIX: &[&str] = &[
     "text serve logs",
     "JSON quality report",
-    "support-bundle rejected path",
+    "versioned JSONL event evidence",
     "benchmark VM HTTP lane",
     "debugger VM diagnostics",
     "editor source-map surfaces",
 ];
 
-const REJECTED_OBSERVABILITY_PATHS: &[&str] = &[
-    "connection id emitted on every WebSocket/SSE exchange",
-    "actor id emitted on every web handler exchange",
-    "route id emitted as bounded metric label instead of raw path",
-    "template stream id emitted for live-template streams",
-    "typed security decision id carried by HTTP runtime",
-    "typed config profile id carried by runtime telemetry",
-    "support-bundle replay for web telemetry",
-    "production trace sampling controls",
-    "metric cardinality budget enforcement",
-    "benchmark/support-bundle telemetry parity",
-];
+const REJECTED_OBSERVABILITY_PATHS: &[&str] = &[];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm web observability summary.
 pub struct VmWebObservabilitySummary {
     pub telemetry_field_count: usize,
     pub route_trace_count: usize,
@@ -202,8 +215,21 @@ pub struct VmWebObservabilitySummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm web observability.
 pub fn run_vm_web_observability(root: &Path) -> QualityResult<VmWebObservabilitySummary> {
     let mut diagnostics = Vec::new();
+    diagnostics.extend(validate_required_terms(
+        root,
+        "crates/terlan/src/commands/serve/config.rs",
+        REQUIRED_EFFECTIVE_CONFIG_ANCHORS,
+        "effective serve configuration",
+    )?);
+    diagnostics.extend(validate_required_terms(
+        root,
+        "crates/terlan/src/commands/serve/observability.rs",
+        REQUIRED_RUNTIME_OBSERVABILITY_ANCHORS,
+        "VM runtime observability",
+    )?);
     diagnostics.extend(validate_required_terms(
         root,
         "crates/terlan/src/commands/serve/logging.rs",
@@ -299,21 +325,6 @@ pub fn run_vm_web_observability(root: &Path) -> QualityResult<VmWebObservability
     })
 }
 
-fn validate_required_terms(
-    root: &Path,
-    relative: &str,
-    terms: &[&str],
-    label: &str,
-) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join(relative))
-        .map_err(|err| format!("{relative}: failed to read {label}: {err}"))?;
-    Ok(terms
-        .iter()
-        .filter(|term| !text.contains(**term))
-        .map(|term| format!("{relative}: missing {label} anchor `{term}`"))
-        .collect())
-}
-
 fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
     let text = fs::read_to_string(root.join("Makefile"))
         .map_err(|err| format!("Makefile: failed to read VM web observability gate: {err}"))?;
@@ -352,4 +363,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_web_observability_test.rs"]
+#[cfg(test)]
 mod vm_web_observability_test;

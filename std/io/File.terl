@@ -11,6 +11,7 @@ import std.core.Result.{Err}.
 import std.core.Unit.
 
 import type std.core.{Error, Result}.
+import type std.vm.Bytes.
 
 /**
  * The file path did not resolve to an existing file.
@@ -48,8 +49,62 @@ pub type FileErrorCode = NotFound | PermissionDenied | InvalidPath | Unknown.
  * instead of exposing backend-specific error atoms directly.
  */
 pub struct FileError includes Error {
-    path: String
+    path: String,
 }.
+
+/**
+ * One UTF-8 text file returned by a batch read.
+ *
+ * Input: the requested path and decoded UTF-8 contents.
+ * Output: a typed path/content pair.
+ * Transformation: keeps each file's identity attached to its contents so
+ * validators can scan discovered file sets without positional bookkeeping.
+ */
+pub struct TextFile {
+    path: String,
+    contents: String,
+}.
+
+/**
+ * One regular-file copy requested as part of a bounded batch.
+ */
+pub struct CopyPlan {
+    source: String,
+    destination: String,
+}.
+
+/**
+ * Constructs one typed regular-file copy plan.
+ */
+@pure
+pub copy_plan(source: String, destination: String): CopyPlan ->
+    CopyPlan(source = source, destination = destination).
+
+/**
+ * Portable nanosecond file timestamps.
+ *
+ * Both values are signed Unix-epoch nanoseconds so a caller can snapshot file
+ * metadata before a temporary edit and restore it without invoking a platform
+ * shell utility. Backends reject timestamps outside their representable range.
+ */
+pub struct FileTimestamps {
+    accessed_unix_ns: Int,
+    modified_unix_ns: Int,
+}.
+
+/**
+ * Returns the requested path stored in a batch-read value.
+ */
+@pure
+pub text_file_path(file: TextFile): String ->
+    file.path.
+
+/**
+ * Returns the decoded UTF-8 contents stored in a batch-read value.
+ */
+@pure
+pub text_file_contents(file: TextFile): String ->
+    file.contents.
 
 /**
  * Builds a portable file error.
@@ -59,6 +114,7 @@ pub struct FileError includes Error {
  * Transformation: stores the portable code and message included from
  * `std.core.Error.Error` plus file-specific path context.
  */
+@pure
 pub new(code: Atom, message: String, path: String): FileError ->
     FileError(code = code, message = message, path = path).
 
@@ -70,6 +126,7 @@ pub new(code: Atom, message: String, path: String): FileError ->
  * Transformation: reads the included `code` field without exposing backend
  * filesystem reason values.
  */
+@pure
 pub code(error: FileError): Atom ->
     error.code.
 
@@ -80,6 +137,7 @@ pub code(error: FileError): Atom ->
  * Output: human-readable UTF-8 message.
  * Transformation: reads the included `message` field.
  */
+@pure
 pub message(error: FileError): String ->
     error.message.
 
@@ -90,6 +148,7 @@ pub message(error: FileError): String ->
  * Output: the UTF-8 path supplied to the file operation.
  * Transformation: reads the file-specific `path` field.
  */
+@pure
 pub path(error: FileError): String ->
     error.path.
 
@@ -115,6 +174,151 @@ pub exists(path: String): Bool -> false.
  */
 @compiler.intrinsic
 pub read_text(path: String): Result[String, FileError] ->
+    Err(new(Unknown, "unknown file error", path)).
+
+/**
+ * Reads one file without UTF-8 decoding into VM-owned immutable bytes.
+ */
+@compiler.intrinsic
+pub read_bytes(path: String): Result[Bytes, FileError] ->
+    Err(new(Unknown, "unknown file error", path)).
+
+/**
+ * Returns the logical byte length of one regular file without reading it.
+ *
+ * This metadata operation follows the selected path in the same way as a
+ * normal file read, rejects non-files, and never materializes file contents in
+ * the actor heap.
+ */
+@compiler.intrinsic
+pub size(path: String): Result[Int, FileError] ->
+    Err(new(Unknown, "unknown file error", path)).
+
+/**
+ * Returns access and modification timestamps for one regular file.
+ */
+@compiler.intrinsic
+pub timestamps(path: String): Result[FileTimestamps, FileError] ->
+    Err(new(Unknown, "unknown file error", path)).
+
+/**
+ * Restores access and modification timestamps for one regular file.
+ *
+ * This operation changes metadata only; it never reads or rewrites contents.
+ */
+@compiler.intrinsic
+pub set_timestamps(
+    path: String,
+    accessed_unix_ns: Int,
+    modified_unix_ns: Int,
+): Result[Unit, FileError] ->
+    Err(new(Unknown, "unknown file error", path)).
+
+/**
+ * Reports whether a regular file is executable on the current host.
+ * Unix reads the executable mode bits; Windows uses executable extensions.
+ */
+@compiler.intrinsic
+pub is_executable(path: String): Result[Bool, FileError] ->
+    Err(new(Unknown, "unknown file error", path)).
+
+/**
+ * Changes a regular file's executable marker without rewriting its contents.
+ * Unix preserves all non-executable mode bits. On Windows, where executable
+ * state is extension-defined, requests inconsistent with the suffix fail.
+ */
+@compiler.intrinsic
+pub set_executable(path: String, executable: Bool): Result[Unit, FileError] ->
+    Err(new(Unknown, "unknown file error", path)).
+
+/**
+ * Copies one regular file to a new path while preserving host permissions.
+ *
+ * The destination parent must already exist. The operation rejects directory
+ * sources and normalizes host failures into `FileError` without exposing file
+ * descriptors or host-language values.
+ */
+@compiler.intrinsic
+pub copy(source: String, destination: String): Result[Unit, FileError] ->
+    Err(new(Unknown, "unknown file error", source)).
+
+/**
+ * Copies a bounded ordered set of regular files in one capability call.
+ *
+ * Destinations must be unique and absent. Missing destination parents are
+ * created, source permissions are preserved, and files created before a later
+ * failure are removed. This avoids one scheduler transition per payload file
+ * in deterministic packaging and validation staging.
+ */
+@compiler.intrinsic
+pub copy_many(plans: List[CopyPlan]): Result[Unit, FileError] ->
+    Err(new(Unknown, "unknown file error", "")).
+
+/**
+ * Reads an ordered set of UTF-8 text files in one filesystem capability call.
+ *
+ * Input: requested UTF-8 paths in deterministic caller order.
+ * Output: `Result[List[TextFile], FileError]` in the same order.
+ * Transformation: lowers through the compiler-owned
+ * `runtime.file.read_text_many` capability. The runtime stops at the first
+ * failure and reports that path through `FileError`. This batch surface lets
+ * validators discover paths purely and cross the effect boundary once.
+ */
+@compiler.intrinsic
+pub read_text_many(paths: List[String]): Result[List[TextFile], FileError] ->
+    Err(new(Unknown, "unknown file error", "")).
+
+/**
+ * Reads every immediate regular UTF-8 file in one directory.
+ *
+ * Input: one UTF-8 directory path.
+ * Output: `Result[List[TextFile], FileError]` sorted by normalized path.
+ * Transformation: lowers through the compiler-owned
+ * `runtime.file.read_text_directory` capability, omits directories and
+ * symlinks, and reports the exact directory entry that first fails. Validators
+ * can then select relevant files with pure list and string operations.
+ */
+@compiler.intrinsic
+pub read_text_directory(path: String): Result[List[TextFile], FileError] ->
+    Err(new(Unknown, "unknown file error", path)).
+
+/**
+ * Reads a sorted UTF-8 file tree while pruning exact directory basenames.
+ *
+ * Input: a root path and exact directory basenames to exclude recursively.
+ * Output: every remaining regular file as a root-relative path and UTF-8 text,
+ * sorted by path, or the first typed filesystem/UTF-8 failure.
+ * Transformation: prunes excluded directories before descent and never follows
+ * them through a later filtering pass.
+ */
+@compiler.intrinsic
+pub read_text_tree_excluding(
+    path: String,
+    excluded_directory_names: List[String],
+): Result[List[TextFile], FileError] ->
+    Err(new(Unknown, "unknown file error", path)).
+
+/**
+ * Reads matching UTF-8 files from a sorted tree while pruning directories.
+ *
+ * Input: a root path, excluded directory basenames, accepted path suffixes,
+ * rejected path suffixes, a zero-based sorted-path offset, and a positive page
+ * limit.
+ * Output: one bounded page of matching regular files as sorted path/text pairs,
+ * or the first typed filesystem/UTF-8 failure. An empty suffix list matches no
+ * files; an offset beyond the tree returns an empty page.
+ * Transformation: filters and pages paths before reading bytes, so unrelated
+ * binary artifacts and out-of-page text never enter the actor heap.
+ */
+@compiler.intrinsic
+pub read_text_tree_matching(
+    path: String,
+    excluded_directory_names: List[String],
+    included_suffixes: List[String],
+    excluded_suffixes: List[String],
+    offset: Int,
+    limit: Int,
+): Result[List[TextFile], FileError] ->
     Err(new(Unknown, "unknown file error", path)).
 
 /**

@@ -13,8 +13,16 @@ use crate::runtime::vm::{
 pub(super) struct PoolState {
     pub(super) owner: VmProcessId,
     pub(super) driver_pool: VmPostgresDriverPool,
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     pub(super) max_connections: usize,
     pub(super) active_connections: usize,
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     pub(super) reserved_connections: usize,
     pub(super) open: bool,
 }

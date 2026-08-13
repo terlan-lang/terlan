@@ -38,18 +38,18 @@ pub get_byte_frequency_data_typechecks(receiver: AnalyserNode, array: Uint8Array
 
 pub get_byte_time_domain_data_typechecks(
     receiver: AnalyserNode,
-    array: Uint8Array[ArrayBuffer]
+    array: Uint8Array[ArrayBuffer],
 ): Unit ->
     receiver.get_byte_time_domain_data(array).
 
 pub get_float_frequency_data_typechecks(
     receiver: AnalyserNode,
-    array: Float32Array[ArrayBuffer]
+    array: Float32Array[ArrayBuffer],
 ): Unit ->
     receiver.get_float_frequency_data(array).
 
 pub get_float_time_domain_data_typechecks(
     receiver: AnalyserNode,
-    array: Float32Array[ArrayBuffer]
+    array: Float32Array[ArrayBuffer],
 ): Unit ->
     receiver.get_float_time_domain_data(array).

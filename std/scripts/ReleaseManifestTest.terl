@@ -1,0 +1,1136 @@
+/**
+ * Validates the complete standard-library release manifest.
+ */
+module std.scripts.ReleaseManifestTest.
+
+import std.collections.{List, Set}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.io.Console.{println}.
+import std.io.Directory.{create_temporary, remove_all}.
+import std.io.File.{exists, read_text, read_text_many, read_text_tree_matching}.
+import std.regex.Regex.
+import std.system.{Environment, Process}.
+
+import type std.collections.{List, Set}.
+import type std.core.Option.
+import type std.io.File.TextFile.
+import type std.system.Process.{BatchCompletion, Command}.
+
+pub struct ManifestRow {
+    kind: String,
+    identifier: String,
+    source: String,
+    summary: String,
+    tests: String,
+    docs: String,
+}.
+
+pub struct ApiRow {
+    api_id: String,
+    test_file: String,
+    test_function: String,
+}.
+
+pub struct ParsedManifest {
+    rows: List[ManifestRow],
+    diagnostics: List[String],
+    module_total: Int,
+    api_manifest_total: Int,
+}.
+
+pub struct ParsedApiManifest {
+    rows: List[ApiRow],
+    diagnostics: List[String],
+}.
+
+pub struct DocSource {
+    path: String,
+    module_name: String,
+}.
+
+pub struct DocInventory {
+    sources: List[DocSource],
+    diagnostics: List[String],
+}.
+
+pub struct ValidationOutcome {
+    module_count: Int,
+    diagnostics: List[String],
+}.
+
+pub struct ValidationContext {
+    root: String,
+    docs: String,
+    manifest: ParsedManifest,
+    api: ParsedApiManifest,
+    inventory: DocInventory,
+}.
+
+@pure
+child(root: String, relative: String): String ->
+    if {
+        root == "." -> relative;
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+@pure
+manifest_header(): String -> "kind\tid\tsource\tsummary\ttests\tdocs".
+
+@pure
+reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_at(values, List.new[String]()).
+
+@pure
+reverse_strings_at(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings_at(rest, [value | reversed])
+    }.
+
+@pure
+reverse_manifest_rows(values: List[ManifestRow]): List[ManifestRow] ->
+    reverse_manifest_rows_at(values, List.new[ManifestRow]()).
+
+@pure
+reverse_manifest_rows_at(
+    values: List[ManifestRow],
+    reversed: List[ManifestRow],
+): List[ManifestRow] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_manifest_rows_at(rest, [value | reversed])
+    }.
+
+@pure
+reverse_api_rows(values: List[ApiRow]): List[ApiRow] ->
+    reverse_api_rows_at(values, List.new[ApiRow]()).
+
+@pure
+reverse_api_rows_at(values: List[ApiRow], reversed: List[ApiRow]): List[ApiRow] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_api_rows_at(rest, [value | reversed])
+    }.
+
+@pure
+reverse_doc_sources(values: List[DocSource]): List[DocSource] ->
+    reverse_doc_sources_at(values, List.new[DocSource]()).
+
+@pure
+reverse_doc_sources_at(values: List[DocSource], reversed: List[DocSource]): List[DocSource] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_doc_sources_at(rest, [value | reversed])
+    }.
+
+@pure
+parse_manifest(source: String): ParsedManifest ->
+    parse_manifest_lines(
+        String.split(source, "\n"),
+        1,
+        false,
+        List.new[ManifestRow](),
+        List.new[String](),
+    ).
+
+@pure
+parse_manifest_lines(
+    lines: List[String],
+    line_number: Int,
+    header_seen: Bool,
+    rows: List[ManifestRow],
+    diagnostics: List[String],
+): ParsedManifest ->
+    case lines {
+        [] ->
+            let ordered_rows = reverse_manifest_rows(rows);
+            ParsedManifest(
+                rows = ordered_rows,
+                diagnostics = reverse_strings(
+                    if {
+                        header_seen -> diagnostics;
+                        true -> ["std/RELEASE_MANIFEST.tsv: missing TSV header" | diagnostics]
+                    },
+                ),
+                module_total = module_count(ordered_rows),
+                api_manifest_total = api_manifest_count(ordered_rows),
+            );
+        [line | rest] ->
+            if {
+                line == "" or String.starts_with(line, "#") -> parse_manifest_lines(rest, line_number + 1, header_seen, rows, diagnostics);
+                not header_seen -> parse_manifest_lines(
+                    rest,
+                    line_number + 1,
+                    true,
+                    rows,
+                    if {
+                        line == manifest_header() -> diagnostics;
+                        true -> [String.append(
+    "std/RELEASE_MANIFEST.tsv:",
+    String.append(Int.to_string(line_number), ": invalid header"),
+) | diagnostics]
+                    },
+                );
+                true -> case String.split(line, "\t") {
+                    [kind, identifier, source_path, summary, tests, docs] ->
+                        parse_manifest_lines(
+                            rest,
+                            line_number + 1,
+                            true,
+                            [ManifestRow(
+    kind = kind,
+    identifier = identifier,
+    source = source_path,
+    summary = summary,
+    tests = tests,
+    docs = docs,
+) | rows],
+                            diagnostics,
+                        );
+                    _ ->
+                        parse_manifest_lines(
+                            rest,
+                            line_number + 1,
+                            true,
+                            rows,
+                            [String.append(
+    "std/RELEASE_MANIFEST.tsv:",
+    String.append(Int.to_string(line_number), ": expected 6 fields"),
+) | diagnostics],
+                        )
+                }
+            }
+    }.
+
+@pure
+parse_api_manifest(source: String): ParsedApiManifest ->
+    parse_api_lines(String.split(source, "\n"), 1, List.new[ApiRow](), List.new[String]()).
+
+@pure
+parse_api_lines(
+    lines: List[String],
+    line_number: Int,
+    rows: List[ApiRow],
+    diagnostics: List[String],
+): ParsedApiManifest ->
+    case lines {
+        [] ->
+            ParsedApiManifest(
+                rows = reverse_api_rows(rows),
+                diagnostics = reverse_strings(diagnostics),
+            );
+        [line | rest] ->
+            if {
+                line == "" or String.starts_with(line, "#") -> parse_api_lines(rest, line_number + 1, rows, diagnostics);
+                true -> case String.split(line, "\t") {
+                    [api_id, test_file, test_function] ->
+                        parse_api_lines(
+                            rest,
+                            line_number + 1,
+                            [ApiRow(api_id = api_id, test_file = test_file, test_function = test_function) | rows],
+                            diagnostics,
+                        );
+                    _ ->
+                        parse_api_lines(
+                            rest,
+                            line_number + 1,
+                            rows,
+                            [String.append(
+    "tests/std/RELEASE_API_TESTS.tsv:",
+    String.append(Int.to_string(line_number), ": expected 3 fields"),
+) | diagnostics],
+                        )
+                }
+            }
+    }.
+
+@pure
+module_count(rows: List[ManifestRow]): Int ->
+    module_count_at(rows, 0).
+
+@pure
+module_count_at(rows: List[ManifestRow], count: Int): Int ->
+    case rows {
+        [] -> count;
+        [row | rest] ->
+            module_count_at(
+                rest,
+                if {
+                    row.kind == "module" -> count + 1;
+                    true -> count
+                },
+            )
+    }.
+
+@pure
+api_manifest_count(rows: List[ManifestRow]): Int ->
+    api_manifest_count_at(rows, 0).
+
+@pure
+api_manifest_count_at(rows: List[ManifestRow], count: Int): Int ->
+    case rows {
+        [] -> count;
+        [row | rest] ->
+            api_manifest_count_at(
+                rest,
+                if {
+                    row.kind == "api_manifest" -> count + 1;
+                    true -> count
+                },
+            )
+    }.
+
+@pure
+api_manifest_path(rows: List[ManifestRow]): String ->
+    case rows {
+        [] -> "";
+        [row | rest] ->
+            if {
+                row.kind == "api_manifest" -> row.tests;
+                true -> api_manifest_path(rest)
+            }
+    }.
+
+@pure
+is_test_source_name(path: String): Bool ->
+    String.ends_with(path, "Test.terl") and not String.ends_with(path, "/test/Test.terl").
+
+@pure
+is_generated_typescript_binding(source: String): Bool ->
+    let header = first_lines(String.split(source, "\n"), 20, "");
+    String.contains(header, "@generated true")
+        and String.contains(header, "@generator-profile typescript-standard-js-dom").
+
+@pure
+first_lines(lines: List[String], remaining: Int, accumulated: String): String ->
+    if {
+        remaining == 0 -> accumulated;
+        true -> case lines {
+            [] -> accumulated;
+            [line | rest] ->
+                first_lines(
+                    rest,
+                    remaining - 1,
+                    String.append(accumulated, String.append(line, "\n")),
+                )
+        }
+    }.
+
+source_module(source: String): String ->
+    let {
+        Ok(pattern) <- Regex.compile("(?m)^\\s*module\\s+([A-Za-z_][A-Za-z0-9_.]*)\\s*\\.\\s*$");
+        Some(name) <- Regex.capture(pattern, source, 1)
+    } else {
+        _ -> ""
+    };
+    name.
+
+discover_doc_inventory(root: String): DocInventory ->
+    discover_doc_pages(root, 0, List.new[DocSource](), List.new[String]()).
+
+discover_doc_pages(
+    root: String,
+    offset: Int,
+    sources: List[DocSource],
+    diagnostics: List[String],
+): DocInventory ->
+    case read_text_tree_matching(
+    child(root, "std"),
+    ["summaries", "disabled", "__pycache__"],
+    [".terl"],
+    List.new[String](),
+    offset,
+    128,
+) {
+        Ok([]) ->
+            DocInventory(
+                sources = reverse_doc_sources(sources),
+                diagnostics = reverse_strings(diagnostics),
+            );
+        Ok(files) ->
+            let page = collect_doc_sources(files, sources, diagnostics);
+            discover_doc_pages(root, offset + files.length(), page.sources, page.diagnostics);
+        Err(_reason) ->
+            DocInventory(
+                sources = reverse_doc_sources(sources),
+                diagnostics = ["cannot inventory std documentation sources"],
+            )
+    }.
+
+collect_doc_sources(
+    files: List[TextFile],
+    sources: List[DocSource],
+    diagnostics: List[String],
+): DocInventory ->
+    case files {
+        [] -> DocInventory(sources = sources, diagnostics = diagnostics);
+        [file | rest] ->
+            if {
+                is_test_source_name(file.path) or is_generated_typescript_binding(file.contents) -> collect_doc_sources(rest, sources, diagnostics);
+                true -> let module_name = source_module(file.contents);
+                if {
+                    module_name == "" -> collect_doc_sources(
+                        rest,
+                        sources,
+                        [String.append(file.path, ": missing module declaration for docs inventory") | diagnostics],
+                    );
+                    true -> collect_doc_sources(
+                        rest,
+                        [DocSource(path = file.path, module_name = module_name) | sources],
+                        diagnostics,
+                    )
+                }
+            }
+    }.
+
+@pure
+string_member(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or string_member(rest, expected)
+    }.
+
+@pure
+unique_strings(values: List[String]): List[String] ->
+    reverse_strings(unique_strings_at(values, List.new[String]())).
+
+@pure
+unique_strings_at(values: List[String], selected: List[String]): List[String] ->
+    case values {
+        [] -> selected;
+        [value | rest] ->
+            unique_strings_at(
+                rest,
+                if {
+                    string_member(selected, value) -> selected;
+                    true -> [value | selected]
+                },
+            )
+    }.
+
+@pure
+doc_source_paths(sources: List[DocSource]): List[String] ->
+    reverse_strings(doc_source_paths_at(sources, List.new[String]())).
+
+@pure
+doc_source_paths_at(sources: List[DocSource], paths: List[String]): List[String] ->
+    case sources {
+        [] -> paths;
+        [source | rest] -> doc_source_paths_at(rest, [source.path | paths])
+    }.
+
+@pure
+module_source_paths(rows: List[ManifestRow]): List[String] ->
+    reverse_strings(module_source_paths_at(rows, List.new[String]())).
+
+@pure
+module_source_paths_at(rows: List[ManifestRow], paths: List[String]): List[String] ->
+    case rows {
+        [] -> paths;
+        [row | rest] ->
+            if {
+                row.kind == "module" -> module_source_paths_at(rest, [row.source | paths]);
+                true -> module_source_paths_at(rest, paths)
+            }
+    }.
+
+@pure
+append_strings(left: List[String], right: List[String]): List[String] ->
+    prepend_reversed_strings(reverse_strings(left), right).
+
+@pure
+prepend_reversed_strings(left: List[String], right: List[String]): List[String] ->
+    case left {
+        [] -> right;
+        [value | rest] -> prepend_reversed_strings(rest, [value | right])
+    }.
+
+process_command(compiler: String, root: String, docs: String, source: String): Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(
+                    Process.command(compiler),
+                    ["--out-dir", docs, "doc", source],
+                ),
+                root,
+            ),
+            600000,
+        ),
+        4194304,
+    ).
+
+doc_commands(compiler: String, root: String, docs: String, sources: List[String]): List[Command] ->
+    reverse_commands(doc_commands_at(compiler, root, docs, sources, List.new[Command]())).
+
+doc_commands_at(
+    compiler: String,
+    root: String,
+    docs: String,
+    sources: List[String],
+    commands: List[Command],
+): List[Command] ->
+    case sources {
+        [] -> commands;
+        [source | rest] ->
+            doc_commands_at(
+                compiler,
+                root,
+                docs,
+                rest,
+                [process_command(compiler, root, docs, source) | commands],
+            )
+    }.
+
+reverse_commands(values: List[Command]): List[Command] ->
+    reverse_commands_at(values, List.new[Command]()).
+
+reverse_commands_at(values: List[Command], reversed: List[Command]): List[Command] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_commands_at(rest, [value | reversed])
+    }.
+
+completions_hold(completions: List[BatchCompletion]): Bool ->
+    case completions {
+        [] -> true;
+        [completion | rest] ->
+            case {Process.completion_output(completion), Process.completion_error(completion)} {
+                {Some(output), None} -> Process.status(output) == 0 and completions_hold(rest);
+                _ -> false
+            }
+    }.
+
+generate_docs(
+    compiler: String,
+    root: String,
+    docs: String,
+    rows: List[ManifestRow],
+    inventory: DocInventory,
+): Bool ->
+    let source_paths =
+        unique_strings(
+            append_strings(module_source_paths(rows), doc_source_paths(inventory.sources)),
+        );
+    let commands = doc_commands(compiler, root, docs, source_paths);
+    case Process.run_many(Process.batch(commands, 4)) {
+        Ok(batch) -> completions_hold(Process.completions(batch));
+        Err(_reason) -> false
+    }.
+
+@pure
+artifact_paths(rows: List[ManifestRow]): List[String] ->
+    unique_strings(reverse_strings(artifact_paths_at(rows, List.new[String]()))).
+
+@pure
+artifact_paths_at(rows: List[ManifestRow], paths: List[String]): List[String] ->
+    case rows {
+        [] -> paths;
+        [row | rest] ->
+            if {
+                row.kind == "api_manifest" and row.source == "std" -> artifact_paths_at(rest, [row.tests | [row.summary | paths]]);
+                true -> artifact_paths_at(rest, [row.tests | [row.summary | [row.source | paths]]])
+            }
+    }.
+
+@pure
+text_file_paths(files: List[TextFile]): List[String] ->
+    reverse_strings(text_file_paths_at(files, List.new[String]())).
+
+@pure
+text_file_paths_at(files: List[TextFile], paths: List[String]): List[String] ->
+    case files {
+        [] -> paths;
+        [file | rest] -> text_file_paths_at(rest, [file.path | paths])
+    }.
+
+@pure
+artifact_set_diagnostics(
+    root: String,
+    docs: String,
+    rows: List[ManifestRow],
+    artifacts: Set[String],
+    doc_pages: Set[String],
+    diagnostics: List[String],
+): List[String] ->
+    case rows {
+        [] -> diagnostics;
+        [row | rest] ->
+            let kind_diagnostics =
+                if {
+                    row.kind == "module" or row.kind == "api_manifest" -> diagnostics;
+                    true -> [String.append(
+    row.identifier,
+    String.append(": unsupported manifest row kind `", String.append(row.kind, "`")),
+) | diagnostics]
+                };
+            let source_diagnostics =
+                if {
+                    row.kind == "api_manifest" and row.source == "std" -> kind_diagnostics;
+                    Set.contains(artifacts, child(root, row.source)) -> kind_diagnostics;
+                    true -> [String.append(
+    row.identifier,
+    String.append(": missing source path `", String.append(row.source, "`")),
+) | kind_diagnostics]
+                };
+            let summary_diagnostics =
+                if {
+                    Set.contains(artifacts, child(root, row.summary)) -> source_diagnostics;
+                    true -> [String.append(
+    row.identifier,
+    String.append(": missing summary file `", String.append(row.summary, "`")),
+) | source_diagnostics]
+                };
+            let test_diagnostics =
+                if {
+                    Set.contains(artifacts, child(root, row.tests)) -> summary_diagnostics;
+                    true -> [String.append(
+    row.identifier,
+    String.append(": missing tests file `", String.append(row.tests, "`")),
+) | summary_diagnostics]
+                };
+            let doc_diagnostics =
+                if {
+                    row.kind != "module" or Set.contains(doc_pages, child(docs, row.docs)) -> test_diagnostics;
+                    true -> [String.append(
+    row.identifier,
+    String.append(": missing generated docs page `", String.append(row.docs, "`")),
+) | test_diagnostics]
+                };
+            artifact_set_diagnostics(root, docs, rest, artifacts, doc_pages, doc_diagnostics)
+    }.
+
+@pure
+doc_inventory_set_diagnostics(
+    docs: String,
+    sources: List[DocSource],
+    doc_pages: Set[String],
+    diagnostics: List[String],
+): List[String] ->
+    case sources {
+        [] -> diagnostics;
+        [source | rest] ->
+            let page = String.append(source.module_name, ".html");
+            doc_inventory_set_diagnostics(
+                docs,
+                rest,
+                doc_pages,
+                if {
+                    Set.contains(doc_pages, child(docs, page)) -> diagnostics;
+                    true -> [String.append(
+    source.path,
+    String.append(": missing generated docs page `", String.append(page, "`")),
+) | diagnostics]
+                },
+            )
+    }.
+
+@pure
+owning_module(api_id: String, rows: List[ManifestRow]): String ->
+    owning_module_at(api_id, rows, "").
+
+@pure
+owning_module_at(api_id: String, rows: List[ManifestRow], selected: String): String ->
+    case rows {
+        [] -> selected;
+        [row | rest] ->
+            let owns =
+                row.kind == "module" and api_id == row.identifier
+                    or String.starts_with(api_id, String.append(row.identifier, "."));
+            owning_module_at(
+                api_id,
+                rest,
+                if {
+                    owns and String.length(row.identifier) > String.length(selected) -> row.identifier;
+                    true -> selected
+                },
+            )
+    }.
+
+@pure
+pub is_generated_surface_api(api_id: String): Bool ->
+    String.starts_with(api_id, "std.js.") and String.ends_with(api_id, ".generated_surface").
+
+@pure
+pub source_has_annotated_test(source: String, function_name: String): Bool ->
+    annotated_lines_hold(String.split(source, "\n"), function_name, false).
+
+@pure
+annotated_lines_hold(lines: List[String], function_name: String, pending: Bool): Bool ->
+    case lines {
+        [] -> false;
+        [line | rest] ->
+            let trimmed = String.trim(line);
+            if {
+                trimmed == "@test" -> annotated_lines_hold(rest, function_name, true);
+                trimmed == "" -> annotated_lines_hold(rest, function_name, pending);
+                pending
+                    and String.starts_with(trimmed, String.append("pub ", String.append(function_name, "("))) -> true;
+                true -> annotated_lines_hold(rest, function_name, false)
+            }
+    }.
+
+@pure
+pub source_has_public_function(source: String, function_name: String): Bool ->
+    public_function_lines(String.split(source, "\n"), function_name).
+
+@pure
+public_function_lines(lines: List[String], function_name: String): Bool ->
+    case lines {
+        [] -> false;
+        [line | rest] ->
+            String.starts_with(String.trim(line), String.append("pub ", String.append(function_name, "(")))
+                or public_function_lines(rest, function_name)
+    }.
+
+@pure
+api_test_paths(rows: List[ApiRow]): List[String] ->
+    unique_strings(api_test_paths_at(rows)).
+
+@pure
+api_test_paths_at(rows: List[ApiRow]): List[String] ->
+    reverse_strings(api_test_paths_collect(rows, List.new[String]())).
+
+@pure
+api_test_paths_collect(rows: List[ApiRow], paths: List[String]): List[String] ->
+    case rows {
+        [] -> paths;
+        [row | rest] -> api_test_paths_collect(rest, [row.test_file | paths])
+    }.
+
+@pure
+text_file_contents(files: List[TextFile], path: String): String ->
+    case files {
+        [] -> "";
+        [file | rest] ->
+            if {
+                file.path == path -> file.contents;
+                true -> text_file_contents(rest, path)
+            }
+    }.
+
+@pure
+function_key(path: String, function_name: String): String ->
+    String.append(path, String.append("\t", function_name)).
+
+@pure
+public_function_name(line: String): String ->
+    let trimmed = String.trim(line);
+    if {
+        not String.starts_with(trimmed, "pub ") -> "";
+        true -> case String.split_once(trimmed, "(") {
+            Some({declaration, _arguments}) -> String.trim(String.replace(declaration, "pub ", ""));
+            None -> ""
+        }
+    }.
+
+@pure
+annotated_function_keys(files: List[TextFile]): List[String] ->
+    annotated_function_keys_at(files, List.new[String]()).
+
+@pure
+annotated_function_keys_at(files: List[TextFile], keys: List[String]): List[String] ->
+    case files {
+        [] -> keys;
+        [file | rest] ->
+            annotated_function_keys_at(
+                rest,
+                annotated_line_keys(file.path, String.split(file.contents, "\n"), false, keys),
+            )
+    }.
+
+@pure
+annotated_line_keys(
+    path: String,
+    lines: List[String],
+    pending_test: Bool,
+    keys: List[String],
+): List[String] ->
+    case lines {
+        [] -> keys;
+        [line | rest] ->
+            let trimmed = String.trim(line);
+            if {
+                trimmed == "@test" -> annotated_line_keys(path, rest, true, keys);
+                trimmed == "" -> annotated_line_keys(path, rest, pending_test, keys);
+                true -> let function_name = public_function_name(trimmed);
+                annotated_line_keys(
+                    path,
+                    rest,
+                    false,
+                    if {
+                        function_name != "" and pending_test -> [function_key(path, function_name) | keys];
+                        true -> keys
+                    },
+                )
+            }
+    }.
+
+@pure
+public_function_keys(files: List[TextFile]): List[String] ->
+    public_function_keys_at(files, List.new[String]()).
+
+@pure
+public_function_keys_at(files: List[TextFile], keys: List[String]): List[String] ->
+    case files {
+        [] -> keys;
+        [file | rest] ->
+            public_function_keys_at(
+                rest,
+                public_line_keys(file.path, String.split(file.contents, "\n"), keys),
+            )
+    }.
+
+@pure
+public_line_keys(path: String, lines: List[String], keys: List[String]): List[String] ->
+    case lines {
+        [] -> keys;
+        [line | rest] ->
+            let function_name = public_function_name(line);
+            public_line_keys(
+                path,
+                rest,
+                if {
+                    function_name == "" -> keys;
+                    true -> [function_key(path, function_name) | keys]
+                },
+            )
+    }.
+
+@pure
+api_diagnostics(
+    root: String,
+    manifest_rows: List[ManifestRow],
+    api_rows: List[ApiRow],
+    present_paths: Set[String],
+    annotated_functions: Set[String],
+    public_functions: Set[String],
+    diagnostics: List[String],
+): List[String] ->
+    case api_rows {
+        [] -> diagnostics;
+        [row | rest] ->
+            let owner = owning_module(row.api_id, manifest_rows);
+            let owner_diagnostics =
+                if {
+                    owner != "" -> diagnostics;
+                    true -> [String.append(row.api_id, ": no release module owns this API id") | diagnostics]
+                };
+            let test_path = child(root, row.test_file);
+            let key = function_key(test_path, row.test_function);
+            let row_diagnostics =
+                if {
+                    not Set.contains(present_paths, test_path) -> [String.append(row.api_id, String.append(": missing test file `", String.append(row.test_file, "`"))) | owner_diagnostics];
+                    true -> let generated = is_generated_surface_api(row.api_id);
+                    let annotated = Set.contains(annotated_functions, key);
+                    let public = Set.contains(public_functions, key);
+                    if {
+                        generated -> if {
+                            annotated -> [String.append(
+    row.api_id,
+    String.append(": generated contract must not use @test: ", row.test_function),
+) | owner_diagnostics];
+                            not public -> [String.append(row.api_id, String.append(": missing generated contract: ", row.test_function)) | owner_diagnostics];
+                            true -> owner_diagnostics
+                        };
+                        not annotated -> [String.append(row.api_id, String.append(": missing @test function: ", row.test_function)) | owner_diagnostics];
+                        true -> owner_diagnostics
+                    }
+                };
+            api_diagnostics(
+                root,
+                manifest_rows,
+                rest,
+                present_paths,
+                annotated_functions,
+                public_functions,
+                row_diagnostics,
+            )
+    }.
+
+print_diagnostics(diagnostics: List[String]): Bool ->
+    let _header = println("[std-release-manifest] failures:");
+    print_diagnostic_rows(reverse_strings(diagnostics)).
+
+print_diagnostic_rows(diagnostics: List[String]): Bool ->
+    case diagnostics {
+        [] -> false;
+        [diagnostic | rest] ->
+            let _printed = println(String.append("  - ", diagnostic));
+            print_diagnostic_rows(rest)
+    }.
+
+validate_after_docs(context: ValidationContext): Bool ->
+    let paths =
+        unique_strings(
+            append_strings(
+                paths_with_root(
+                    context.root,
+                    append_strings(
+                        artifact_paths(context.manifest.rows),
+                        api_test_paths(context.api.rows),
+                    ),
+                ),
+                expected_doc_paths(context.docs, context.manifest.rows, context.inventory.sources),
+            ),
+        );
+    let present_paths = existing_paths(paths);
+    let api_paths = paths_with_root(context.root, api_test_paths(context.api.rows));
+    case read_text_many(api_paths) {
+        Err(_reason) -> print_diagnostics(["cannot read release manifest artifacts"]);
+        Ok(files) -> validate_loaded(context, files, Set.from_list(present_paths))
+    }.
+
+existing_paths(paths: List[String]): List[String] ->
+    reverse_strings(existing_paths_at(paths, List.new[String]())).
+
+existing_paths_at(paths: List[String], present: List[String]): List[String] ->
+    case paths {
+        [] -> present;
+        [path | rest] ->
+            let path_exists = exists(path);
+            existing_paths_at(
+                rest,
+                if {
+                    path_exists -> [path | present];
+                    true -> present
+                },
+            )
+    }.
+
+@pure
+expected_doc_paths(
+    docs: String,
+    rows: List[ManifestRow],
+    sources: List[DocSource],
+): List[String] ->
+    unique_strings(
+        append_strings(
+            manifest_doc_paths(docs, rows, List.new[String]()),
+            inventory_doc_paths(docs, sources, List.new[String]()),
+        ),
+    ).
+
+@pure
+manifest_doc_paths(docs: String, rows: List[ManifestRow], paths: List[String]): List[String] ->
+    case rows {
+        [] -> reverse_strings(paths);
+        [row | rest] ->
+            manifest_doc_paths(
+                docs,
+                rest,
+                if {
+                    row.kind == "module" -> [child(docs, row.docs) | paths];
+                    true -> paths
+                },
+            )
+    }.
+
+@pure
+inventory_doc_paths(docs: String, sources: List[DocSource], paths: List[String]): List[String] ->
+    case sources {
+        [] -> reverse_strings(paths);
+        [source | rest] ->
+            inventory_doc_paths(
+                docs,
+                rest,
+                [child(docs, String.append(source.module_name, ".html")) | paths],
+            )
+    }.
+
+validate_loaded(
+    context: ValidationContext,
+    files: List[TextFile],
+    present_paths: Set[String],
+): Bool ->
+    let outcome = validate_sets(context, files, present_paths);
+    finish_validation(outcome).
+
+validate_sets(
+    context: ValidationContext,
+    files: List[TextFile],
+    present_paths: Set[String],
+): ValidationOutcome ->
+    let initial =
+        append_strings(
+            context.manifest.diagnostics,
+            append_strings(context.api.diagnostics, context.inventory.diagnostics),
+        );
+    let manifest_shape =
+        if {
+            context.manifest.api_manifest_total == 1 -> initial;
+            true -> ["std release manifest must contain exactly one api_manifest row" | initial]
+        };
+    let artifacts =
+        artifact_set_diagnostics(
+            context.root,
+            context.docs,
+            context.manifest.rows,
+            present_paths,
+            present_paths,
+            manifest_shape,
+        );
+    let doc_inventory =
+        doc_inventory_set_diagnostics(
+            context.docs,
+            context.inventory.sources,
+            present_paths,
+            artifacts,
+        );
+    let annotated_functions = Set.from_list(annotated_function_keys(files));
+    let public_functions = Set.from_list(public_function_keys(files));
+    let api_checks =
+        api_diagnostics(
+            context.root,
+            context.manifest.rows,
+            context.api.rows,
+            present_paths,
+            annotated_functions,
+            public_functions,
+            doc_inventory,
+        );
+    ValidationOutcome(module_count = context.manifest.module_total, diagnostics = api_checks).
+
+finish_validation(outcome: ValidationOutcome): Bool ->
+    if {
+        outcome.diagnostics == List.new[String]() -> let _printed =
+            println(
+                String.append(
+                    "[std-release-manifest] ",
+                    String.append(
+                        Int.to_string(outcome.module_count),
+                        " modules and API tests are covered.",
+                    ),
+                ),
+            );
+        true;
+        true -> print_diagnostics(outcome.diagnostics)
+    }.
+
+@pure
+paths_with_root(root: String, paths: List[String]): List[String] ->
+    reverse_strings(paths_with_root_at(root, paths, List.new[String]())).
+
+@pure
+paths_with_root_at(root: String, paths: List[String], rooted: List[String]): List[String] ->
+    case paths {
+        [] -> rooted;
+        [path | rest] -> paths_with_root_at(root, rest, [child(root, path) | rooted])
+    }.
+
+run_with_docs(root: String, compiler: String, docs: String): Bool ->
+    case read_text(child(root, "std/RELEASE_MANIFEST.tsv")) {
+        Err(_reason) ->
+            print_diagnostics(["missing std release manifest: std/RELEASE_MANIFEST.tsv"]);
+        Ok(manifest_source) ->
+            let manifest = parse_manifest(manifest_source);
+            let api_path = api_manifest_path(manifest.rows);
+            if {
+                api_path == "" -> print_diagnostics(["std release manifest is missing api_manifest row"]);
+                true -> read_api_and_inventory(root, compiler, docs, manifest, api_path)
+            }
+    }.
+
+read_api_and_inventory(
+    root: String,
+    compiler: String,
+    docs: String,
+    manifest: ParsedManifest,
+    api_path: String,
+): Bool ->
+    case read_text(child(root, api_path)) {
+        Err(_reason) -> print_diagnostics([String.append("missing API test manifest: ", api_path)]);
+        Ok(api_source) ->
+            let api = parse_api_manifest(api_source);
+            let inventory = discover_doc_inventory(root);
+            if {
+                generate_docs(compiler, root, docs, manifest.rows, inventory) -> validate_after_docs(
+                    ValidationContext(
+                        root = root,
+                        docs = docs,
+                        manifest = manifest,
+                        api = api,
+                        inventory = inventory,
+                    ),
+                );
+                true -> print_diagnostics(["failed to generate std documentation"])
+            }
+    }.
+
+repository_gate(): Bool ->
+    let root = environment_or("TERLAN_RELEASE_MANIFEST_ROOT", ".");
+    let compiler = environment_or("TERLAN_RELEASE_MANIFEST_TERLC", "target/debug/terlc");
+    case create_temporary("terlan-std-docs") {
+        Err(_reason) -> false;
+        Ok(docs) ->
+            let valid = run_with_docs(root, compiler, docs);
+            let cleaned = remove_all(docs);
+            case cleaned {
+                Ok(Unit) -> valid;
+                Err(_reason) -> false
+            }
+    }.
+
+@test
+pub repository_std_release_manifest_is_complete(): Bool ->
+    repository_gate().
+
+@test
+pub generated_surface_contract_is_public_and_unannotated(): Bool ->
+    let source = "module std.js.ArrayTest.\n\npub generated_surface_contract(): Bool -> true.\n";
+    is_generated_surface_api("std.js.Array.generated_surface")
+        and not source_has_annotated_test(source, "generated_surface_contract")
+        and source_has_public_function(source, "generated_surface_contract").
+
+@test
+pub generated_surface_contract_rejects_test_annotation(): Bool ->
+    source_has_annotated_test(
+        "module std.js.ArrayTest.\n\n@test\npub generated_surface_contract(): Bool -> true.\n",
+        "generated_surface_contract",
+    ).
+
+@test
+pub public_function_requires_exact_name(): Bool ->
+    not source_has_public_function(
+    "pub generated_surface_contract_extra(): Bool -> true.\n",
+    "generated_surface_contract",
+).
+
+@test
+pub parser_rejects_malformed_manifest_rows(): Bool ->
+    let parsed =
+        parse_manifest(
+            String.append(manifest_header(), "\nmodule\tstd.core.Unit\tstd/core/Unit.terl\n"),
+        );
+    parsed.diagnostics != List.new[String]().
+
+@test
+pub longest_module_prefix_owns_nested_api(): Bool ->
+    let broad =
+        ManifestRow(
+            kind = "module",
+            identifier = "std.core",
+            source = "",
+            summary = "",
+            tests = "",
+            docs = "",
+        );
+    let exact =
+        ManifestRow(
+            kind = "module",
+            identifier = "std.core.Ordering",
+            source = "",
+            summary = "",
+            tests = "",
+            docs = "",
+        );
+    owning_module("std.core.Ordering.Bool.lt", [broad | [exact | List.new[ManifestRow]()]]) == "std.core.Ordering".

@@ -71,7 +71,7 @@ pub (value: WebTransport) close(close_info: WebTransportCloseInfo): Unit.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransport/createBidirectionalStream)
  */
 pub (value: WebTransport) create_bidirectional_stream(
-    options: WebTransportSendStreamOptions
+    options: WebTransportSendStreamOptions,
 ): Promise[WebTransportBidirectionalStream].
 
 /**

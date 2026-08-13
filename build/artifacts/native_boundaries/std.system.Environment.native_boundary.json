@@ -1,0 +1,47 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.system.Environment.contains/1",
+      "name": "contains",
+      "operation": "std.system.environment.contains",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:06cb1d7a10d7ca66ac90e128dfb1632c26b72a697009af91621061482dcf451d"
+    },
+    {
+      "argument_types": [],
+      "arity": 0,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.system.Environment.current_directory/0",
+      "name": "current_directory",
+      "operation": "std.system.environment.current_directory",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:100eb87950b34d17b8d2beedc57f978b5694c5b2b266f000157f6e5cab18d896"
+    }
+  ],
+  "manifest_digest": "sha256:9a997a01353de3b8f42f5d2a48160c3310fb394ed94d98fc801bba1dff3a7882",
+  "module": "std_system_environment_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "system.environment",
+    "error_policy": "typed-result",
+    "module_prefix": "std.system.Environment",
+    "notes": "Environment and current-directory inspection perform bounded host metadata reads and return VM-owned values.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:5b571bd57dd72cace3924ea121fe4503029cfce8f18b04fa5f14fb8aa441abed",
+  "source_module": "std.system.Environment",
+  "source_path": "std/summaries/std.system.Environment.native_boundary.json"
+}

@@ -18,8 +18,6 @@ pub(super) fn infer_iterator_intrinsic_type(call: &CoreIntrinsicCall) -> Option<
     .then(|| native_type(Some(&call.return_type), &call.return_type.contract_text()))
     .flatten()
 }
-
-#[allow(clippy::too_many_arguments)]
 pub(super) fn lower_iterator_intrinsic(
     call: &CoreIntrinsicCall,
     params: &HashMap<String, usize>,

@@ -210,7 +210,7 @@ pub (value: DOMMatrix) scale3d_self(
     scale: JsNumber,
     origin_x: JsNumber,
     origin_y: JsNumber,
-    origin_z: JsNumber
+    origin_z: JsNumber,
 ): DOMMatrix ->
     native.
 
@@ -225,7 +225,7 @@ pub (value: DOMMatrix) scale_self(
     scale_z: JsNumber,
     origin_x: JsNumber,
     origin_y: JsNumber,
-    origin_z: JsNumber
+    origin_z: JsNumber,
 ): DOMMatrix ->
     native.
 

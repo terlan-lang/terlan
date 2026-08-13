@@ -1,4 +1,6 @@
+use std::fmt;
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 
 use super::diagnostic::{LintDiagnostic, Severity};
@@ -27,8 +29,8 @@ use naming::{
 use pipe::{fix_pipe_candidates, pipe_candidate_diagnostics};
 use readability::{
     boolean_heavy_branch_diagnostics, callback_name_diagnostics, deep_expression_diagnostics,
-    doc_comment_spacing_diagnostics, public_docs_diagnostics, redundant_comment_diagnostics,
-    unused_destructure_binding_diagnostics,
+    doc_comment_spacing_diagnostics, function_reference_diagnostics, grouped_binding_diagnostics,
+    public_docs_diagnostics, redundant_comment_diagnostics, unused_destructure_binding_diagnostics,
 };
 use targets::incompatible_std_target_import_diagnostics;
 use test_rules::fake_test_diagnostics;
@@ -45,21 +47,67 @@ mod readability;
 mod targets;
 mod test_rules;
 
+fn parse_lint_source(
+    path: &Path,
+    source: &str,
+) -> crate::terlan_syntax::ebnf::EbnfCompileResult<crate::terlan_syntax::SyntaxModuleOutput> {
+    if path.extension().and_then(|extension| extension.to_str()) == Some("terls") {
+        crate::terlan_syntax::parse_script_as_syntax_output(
+            source,
+            &crate::formal_pipeline::script_module_name(path),
+        )
+    } else {
+        crate::terlan_syntax::parse_module_as_syntax_output(source)
+    }
+}
+
 const SEMICOLON_CHAIN_RULE_ID: &str = "TL0001";
 const SEMICOLON_CHAIN_RULE_NAME: &str = "readability.semicolon-chain";
 
 /// Applies only safe source-text fixes.
-pub(super) fn apply_safe_fixes(paths: &[PathBuf]) -> Result<(), String> {
+pub(super) fn apply_safe_fixes(paths: &[PathBuf]) -> Result<(), SafeFixError> {
     for path in paths {
-        let source = fs::read_to_string(path)
-            .map_err(|err| format!("failed to read {}: {err}", path.display()))?;
-        let fixed = fix_pipe_candidates(&fix_semicolon_chains(&source));
+        let source = fs::read_to_string(path).map_err(|source| SafeFixError {
+            operation: "read",
+            path: path.clone(),
+            source,
+        })?;
+        let fixed = fix_pipe_candidates(path, &fix_semicolon_chains(&source));
         if fixed != source {
-            fs::write(path, fixed)
-                .map_err(|err| format!("failed to write {}: {err}", path.display()))?;
+            fs::write(path, fixed).map_err(|source| SafeFixError {
+                operation: "write",
+                path: path.clone(),
+                source,
+            })?;
         }
     }
     Ok(())
+}
+
+/// Filesystem failure produced while applying a source-preserving lint fix.
+#[derive(Debug)]
+pub(super) struct SafeFixError {
+    operation: &'static str,
+    path: PathBuf,
+    source: io::Error,
+}
+
+impl fmt::Display for SafeFixError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "failed to {} {}: {}",
+            self.operation,
+            self.path.display(),
+            self.source
+        )
+    }
+}
+
+impl std::error::Error for SafeFixError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.source)
+    }
 }
 
 /// Finds lint diagnostics in one source file.
@@ -82,6 +130,8 @@ pub(super) fn lint_source(path: &Path, source: &str) -> Vec<LintDiagnostic> {
     diagnostics.extend(declaration_order_diagnostics(path, source));
     diagnostics.extend(std_module_path_diagnostics(path, source));
     diagnostics.extend(deep_expression_diagnostics(path, source));
+    diagnostics.extend(grouped_binding_diagnostics(path, source));
+    diagnostics.extend(function_reference_diagnostics(path, source));
     diagnostics.extend(callback_name_diagnostics(path, source));
     diagnostics.extend(unused_destructure_binding_diagnostics(path, source));
     diagnostics.extend(redundant_comment_diagnostics(path, source));
@@ -108,6 +158,20 @@ pub(super) fn lint_source(path: &Path, source: &str) -> Vec<LintDiagnostic> {
     diagnostics.extend(generated_skip_manifest_diagnostics(path, source));
     diagnostics.extend(incompatible_std_target_import_diagnostics(path, source));
     diagnostics
+}
+
+/// Runs one selected rule without paying for unrelated lint analyses.
+pub(super) fn lint_source_only(path: &Path, source: &str, rule_id: &str) -> Vec<LintDiagnostic> {
+    if rule_id == "TL0009" {
+        return grouped_binding_diagnostics(path, source);
+    }
+    if rule_id == "TL0010" {
+        return function_reference_diagnostics(path, source);
+    }
+    lint_source(path, source)
+        .into_iter()
+        .filter(|diagnostic| diagnostic.rule_id == rule_id)
+        .collect()
 }
 
 /// Builds a diagnostic for one dense semicolon chain line.

@@ -11,6 +11,8 @@
 #include "clang/AST/Attr.h"
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/RawCommentList.h"
+#include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/AST/Stmt.h"
 #include "clang/AST/Type.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
@@ -23,6 +25,7 @@
 #include "clang/Tooling/CompilationDatabase.h"
 #include "clang/Tooling/Tooling.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/JSON.h"
@@ -67,6 +70,19 @@ llvm::cl::opt<std::string> Namespace(
     "namespace", llvm::cl::desc("C++ namespace selected by package policy"),
     llvm::cl::value_desc("qualified-name"), llvm::cl::Required,
     llvm::cl::cat(ToolCategory));
+llvm::cl::opt<bool> PublicOnly(
+    "public-only",
+    llvm::cl::desc("Emit only declarations with public or namespace access"),
+    llvm::cl::init(false), llvm::cl::cat(ToolCategory));
+llvm::cl::opt<bool> ExactHeaders(
+    "exact-headers",
+    llvm::cl::desc("Match selected headers by canonical path instead of basename"),
+    llvm::cl::init(false), llvm::cl::cat(ToolCategory));
+llvm::cl::opt<std::string> HeaderRoot(
+    "header-root",
+    llvm::cl::desc("Root removed from emitted selected-header source paths"),
+    llvm::cl::value_desc("path"), llvm::cl::init(""),
+    llvm::cl::cat(ToolCategory));
 
 struct ExtractedSymbol {
   std::string id;
@@ -89,9 +105,48 @@ std::string access_spelling(clang::AccessSpecifier access) {
   return "none";
 }
 
+/// Returns whether a declaration is visible through public C++ API access.
+bool has_public_access(const Decl& declaration) {
+  const clang::AccessSpecifier access = declaration.getAccess();
+  return access == clang::AS_public || access == clang::AS_none;
+}
+
 /// Returns a deterministic package-relative spelling for a source path.
 std::string file_name(llvm::StringRef path) {
   return llvm::sys::path::filename(path).str();
+}
+
+/// Returns a canonical absolute path with platform separators normalized.
+std::string canonical_path(llvm::StringRef path) {
+  llvm::SmallString<256> absolute(path);
+  if (std::error_code error = llvm::sys::fs::make_absolute(absolute)) {
+    return {};
+  }
+  llvm::sys::path::remove_dots(absolute, true);
+  std::string normalized = absolute.str().str();
+  std::replace(normalized.begin(), normalized.end(), '\\', '/');
+  return normalized;
+}
+
+/// Returns the selected source path or an empty string for an unselected file.
+std::string selected_source_path(const Decl& declaration,
+                                 const SourceManager& sources) {
+  SourceLocation location = sources.getSpellingLoc(declaration.getLocation());
+  if (location.isInvalid()) {
+    return {};
+  }
+  const std::string source = canonical_path(sources.getFilename(location));
+  if (source.empty()) {
+    return {};
+  }
+  for (const std::string& header : HeaderPaths) {
+    const std::string selected = canonical_path(header);
+    if (ExactHeaders ? source == selected
+                     : file_name(source) == file_name(selected)) {
+      return source;
+    }
+  }
+  return {};
 }
 
 /// Removes the selected package namespace from source-oriented type spellings.
@@ -107,15 +162,24 @@ std::string source_type_spelling(QualType type, clang::PrintingPolicy policy) {
 
 /// Returns whether a declaration was spelled in the selected header.
 bool is_selected_header(const Decl& declaration, const SourceManager& sources) {
-  SourceLocation location = sources.getSpellingLoc(declaration.getLocation());
-  if (location.isInvalid()) {
-    return false;
+  return !selected_source_path(declaration, sources).empty();
+}
+
+/// Renders one selected source path relative to the requested header root.
+std::string rendered_source_path(const Decl& declaration,
+                                 const SourceManager& sources) {
+  const std::string source = selected_source_path(declaration, sources);
+  if (HeaderRoot.empty()) {
+    return file_name(source);
   }
-  const std::string selected = file_name(sources.getFilename(location));
-  return std::any_of(HeaderPaths.begin(), HeaderPaths.end(),
-                     [&selected](const std::string& header) {
-                       return selected == file_name(header);
-                     });
+  std::string root = canonical_path(HeaderRoot);
+  if (!root.empty() && root.back() != '/') {
+    root.push_back('/');
+  }
+  if (!root.empty() && source.rfind(root, 0) == 0) {
+    return source.substr(root.size());
+  }
+  return file_name(source);
 }
 
 /// Extracts maintained-Clang annotation payloads in deterministic order.
@@ -149,7 +213,7 @@ llvm::json::Object source_location(const Decl& declaration,
                                    const SourceManager& sources) {
   SourceLocation location = sources.getSpellingLoc(declaration.getLocation());
   llvm::json::Object result;
-  result["path"] = file_name(sources.getFilename(location));
+  result["path"] = rendered_source_path(declaration, sources);
   result["line"] = static_cast<std::int64_t>(sources.getSpellingLineNumber(location));
   result["column"] =
       static_cast<std::int64_t>(sources.getSpellingColumnNumber(location));
@@ -198,6 +262,9 @@ std::string default_expression(const ParmVarDecl& parameter,
     return {};
   }
   const clang::Expr* expression = parameter.getDefaultArg();
+  if (expression == nullptr || expression->getSourceRange().isInvalid()) {
+    return {};
+  }
   clang::CharSourceRange range =
       clang::CharSourceRange::getTokenRange(expression->getSourceRange());
   return clang::Lexer::getSourceText(range, *match.SourceManager,
@@ -282,6 +349,57 @@ std::string symbol_id(const FunctionDecl& function, ASTContext& context) {
   return value;
 }
 
+/// Collects direct callable targets from one selected function definition.
+class DirectCallCollector final
+    : public clang::RecursiveASTVisitor<DirectCallCollector> {
+ public:
+  /// Creates a collector using the active translation unit's type context.
+  explicit DirectCallCollector(ASTContext& context) : context_(context) {}
+
+  /// Records one statically resolved call target.
+  bool VisitCallExpr(clang::CallExpr* expression) {
+    const FunctionDecl* callee = expression->getDirectCallee();
+    if (callee == nullptr || callee->isImplicit()) {
+      return true;
+    }
+    const FunctionDecl* canonical = callee->getCanonicalDecl();
+    const std::string id = symbol_id(*canonical, context_);
+    llvm::json::Object value;
+    value["id"] = id;
+    value["overload_set"] = canonical->getQualifiedNameAsString();
+    value["kind"] =
+        llvm::isa<CXXMethodDecl>(canonical) ? "method" : "function";
+    calls_.emplace(id, std::move(value));
+    return true;
+  }
+
+  /// Returns direct calls sorted by their stable declaration identity.
+  llvm::json::Array take_calls() {
+    llvm::json::Array result;
+    for (auto& [id, value] : calls_) {
+      static_cast<void>(id);
+      result.push_back(std::move(value));
+    }
+    return result;
+  }
+
+ private:
+  ASTContext& context_;
+  std::map<std::string, llvm::json::Object> calls_;
+};
+
+/// Extracts statically resolved direct calls from one callable definition.
+llvm::json::Array direct_calls(const FunctionDecl& function,
+                              ASTContext& context) {
+  const FunctionDecl* definition = function.getDefinition();
+  if (definition == nullptr || !definition->hasBody()) {
+    return {};
+  }
+  DirectCallCollector collector(context);
+  collector.TraverseStmt(definition->getBody());
+  return collector.take_calls();
+}
+
 /// Reports whether Clang proved a callable to be non-throwing.
 bool is_noexcept(const FunctionDecl& function) {
   const auto* prototype = function.getType()->getAs<FunctionProtoType>();
@@ -318,7 +436,8 @@ class DeclarationCollector final : public MatchFinder::MatchCallback {
   void collect_enum(const EnumDecl& enumeration,
                     const MatchFinder::MatchResult& match) {
     if (!enumeration.isCompleteDefinition() ||
-        !is_selected_header(enumeration, *match.SourceManager)) {
+        !is_selected_header(enumeration, *match.SourceManager) ||
+        (PublicOnly && !has_public_access(enumeration))) {
       return;
     }
     remember_target(*match.Context);
@@ -349,7 +468,8 @@ class DeclarationCollector final : public MatchFinder::MatchCallback {
   void collect_record(const CXXRecordDecl& record,
                       const MatchFinder::MatchResult& match) {
     if (!record.isThisDeclarationADefinition() ||
-        !is_selected_header(record, *match.SourceManager)) {
+        !is_selected_header(record, *match.SourceManager) ||
+        (PublicOnly && !has_public_access(record))) {
       return;
     }
     remember_target(*match.Context);
@@ -388,6 +508,7 @@ class DeclarationCollector final : public MatchFinder::MatchCallback {
   void collect_function(const FunctionDecl& function,
                         const MatchFinder::MatchResult& match) {
     if (!is_selected_header(function, *match.SourceManager) ||
+        (PublicOnly && !has_public_access(function)) ||
         function.getFriendObjectKind() != Decl::FOK_None ||
         llvm::isa<clang::CXXConstructorDecl>(function) ||
         llvm::isa<clang::CXXDestructorDecl>(function)) {
@@ -413,6 +534,10 @@ class DeclarationCollector final : public MatchFinder::MatchCallback {
     value["noexcept"] = is_noexcept(function);
     value["template_parameters"] = template_parameters(function);
     value["variadic"] = function.isVariadic();
+    llvm::json::Array calls = direct_calls(function, *match.Context);
+    if (!calls.empty()) {
+      value["direct_calls"] = std::move(calls);
+    }
     symbols_.push_back(ExtractedSymbol{id, qualified, std::move(value)});
   }
 

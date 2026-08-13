@@ -1,0 +1,78 @@
+/**
+ * Verifies release-critical embedded standard interfaces are canonical and fresh.
+ */
+module scripts.self_validation.EmbeddedInterfaceContracts.
+
+import std.core.Result.{Ok}.
+import std.core.String.{append}.
+import std.core.Unit.
+import std.io.Directory.{create_temporary, remove_all}.
+import std.io.File.{read_text}.
+import std.system.Process.
+
+pub contracts_are_fresh(): Bool ->
+    case create_temporary("terlan-embedded-interfaces") {
+        Ok(generated) ->
+            let option = fixture_holds(generated, "std/core/Option.terl", "std.core.Option.typi");
+            let keyed =
+                fixture_holds(
+                    generated,
+                    "std/collections/KeyedEnumerable.terl",
+                    "std.collections.KeyedEnumerable.typi",
+                );
+            let distributed =
+                fixture_holds(
+                    generated,
+                    "std/vm/DistributedStorage.terl",
+                    "std.vm.DistributedStorage.typi",
+                );
+            let cleaned = remove_succeeds(generated);
+            option and keyed and distributed and cleaned;
+        _ -> false
+    }.
+
+fixture_holds(generated: String, source: String, artifact: String): Bool ->
+    let request =
+        Process.with_arguments(
+            Process.command("target/debug/terlc"),
+            ["interface", source, "--out-dir", generated],
+        );
+    case Process.run(request) {
+        Ok(output) ->
+            Process.status(output) == 0
+                and artifact_matches(generated, artifact)
+                and artifact_matches(generated, append(artifact, ".deps"));
+        _ -> false
+    }.
+
+artifact_matches(generated: String, artifact: String): Bool ->
+    let {
+        Ok(expected) <- read_text(append("std/summaries/", artifact));
+        Ok(actual) <- read_text(child(generated, artifact))
+    } else {
+        _ -> false
+    };
+    artifact_text_matches(expected, actual).
+
+@pure
+pub artifact_text_matches(expected: String, actual: String): Bool ->
+    expected == actual.
+
+remove_succeeds(path: String): Bool ->
+    case remove_all(path) {
+        Ok(Unit) -> true;
+        _ -> false
+    }.
+
+@pure
+child(root: String, name: String): String ->
+    append(root, append("/", name)).
+
+@test
+pub repository_embedded_interfaces_are_fresh(): Bool ->
+    contracts_are_fresh().
+
+@test
+pub exact_artifact_comparison_rejects_drift(): Bool ->
+    artifact_text_matches("canonical\n", "canonical\n")
+        and not artifact_text_matches("canonical\n", "generated\n").

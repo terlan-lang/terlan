@@ -53,7 +53,7 @@ VmAcmeWorkerWake::RenewalDue renewal_due_wakeups
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/tls.rs",
+            "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
             r#"
 instant_acme AcmeHttp01Challenge acme_http01_challenge
 runtime_tls_config_for_serve pending_http01_challenges rustls_server_config
@@ -70,7 +70,7 @@ start_listener_server_connection remove_listener_plan rustls_server_config
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/mod.rs",
+            "crates/terlan/src/commands/serve/request_dispatch.rs",
             r#"
 acme_http01_challenge AcmeHttp01Challenge::Found AcmeHttp01Challenge::Missing
 AcmeHttp01Challenge::Invalid
@@ -92,7 +92,7 @@ vm_acme_worker_starts_issuance_without_new_challenge_for_valid_authorizations
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/tls_test.rs",
+            "crates/terlan/src/commands/serve/tls/acme_runtime/tls_test.rs",
             r#"
 serve_live_acme_issuance_starts_vm_worker_lane
 pending_http01_challenges_reject_missing_http01
@@ -134,21 +134,9 @@ impl Drop for TestRepo {
 }
 
 const COMPLETE_MAKEFILE: &str = r#"
-vm-http-acme-tls-production-check: http-tls-check
+vm-http-acme-tls-base-check: vm-timer-deadline-check http-tls-check
 
-vm-http-acme-worker-migration-check: vm-http-acme-tls-production-check
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_runs_http01_state_machine_without_network -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_rejects_invalid_inputs_and_cleans_up_owner_workers -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_captures_support_bundle_replay_steps -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_enforces_owner_backpressure_limit -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_emits_challenge_and_issuance_telemetry_spans -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_authorizes_http01_challenge_route_through_policy_hook -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_parks_and_wakes_issuance_waiters -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_emits_due_renewal_wakeups -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_uses_one_contract_for_fixture_and_live_lanes -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_starts_issuance_without_new_challenge_for_valid_authorizations -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::serve::tls::tls_test::serve_live_acme_issuance_starts_vm_worker_lane -- --exact
-	$(RUST_TEST) --locked -p terlan --bin terlan-quality vm_http_acme_worker_test
+vm-http-acme-worker-migration-check: vm-http-acme-tls-base-check
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-http-acme-worker
 "#;
 
@@ -191,10 +179,12 @@ fn vm_http_acme_worker_writes_report_for_current_foundation() {
 fn vm_http_acme_worker_rejects_missing_serve_worker_handoff_anchor() {
     let repo = TestRepo::new("missing-serve-worker-handoff").expect("fixture");
     repo.write_complete_fixture().expect("write fixture");
-    let path = repo.root().join("crates/terlan/src/commands/serve/tls.rs");
+    let path = repo
+        .root()
+        .join("crates/terlan/src/commands/serve/tls/acme_runtime.rs");
     let source = fs::read_to_string(&path).expect("tls source");
     repo.write(
-        "crates/terlan/src/commands/serve/tls.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
         &source.replace("start_live_acme_worker_for_serve", ""),
     )
     .expect("rewrite tls source");
@@ -232,11 +222,11 @@ fn vm_http_acme_worker_rejects_missing_make_gate_term() {
     repo.write_complete_fixture().expect("write fixture");
     repo.write(
         "Makefile",
-        &COMPLETE_MAKEFILE.replace("vm_http_acme_worker_test", ""),
+        &COMPLETE_MAKEFILE.replace("vm-http-acme-worker", ""),
     )
     .expect("rewrite makefile");
 
     let error = run_vm_http_acme_worker(repo.root()).expect_err("gate should fail");
 
-    assert!(error.contains("vm_http_acme_worker_test"));
+    assert!(error.contains("vm-http-acme-worker"));
 }

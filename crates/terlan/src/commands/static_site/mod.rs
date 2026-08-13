@@ -32,7 +32,7 @@ pub(crate) use render_markdown::render_syntax_static_markdown_layout;
 pub(crate) use routes::*;
 
 /// Reserved template prop name used for component children.
-pub(crate) const TEMPLATE_CHILDREN_SLOT: &str = "children";
+pub(crate) use crate::template_inputs::TEMPLATE_CHILDREN_SLOT;
 
 /// Parsed command-local arguments for `terlc static emit`.
 ///
@@ -866,4 +866,5 @@ fn copy_syntax_static_asset_imports(
 
 #[cfg(test)]
 #[path = "mod_test.rs"]
+#[cfg(test)]
 mod mod_test;

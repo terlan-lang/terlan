@@ -1,0 +1,15 @@
+/**
+ * Executable contracts for process environment access.
+ */
+module std.system.EnvironmentTest.
+
+import std.system.Environment.
+import std.test.Test.{assert}.
+
+@test
+pub current_directory_is_not_empty(): Bool ->
+    assert(Environment.current_directory() != "").
+
+@test
+pub impossible_key_is_absent(): Bool ->
+    assert(not Environment.contains("TERLAN_SELF_VALIDATION_TEST_IMPOSSIBLE_KEY_92D2")).

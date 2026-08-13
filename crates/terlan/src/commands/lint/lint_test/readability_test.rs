@@ -4,6 +4,7 @@ use crate::commands::lint::render_diagnostic;
 
 use super::lint_source;
 
+#[cfg(test)]
 #[path = "readability_test/branch_test.rs"]
 mod branch_test;
 
@@ -52,6 +53,173 @@ pub value(input: Int): Int ->
             .iter()
             .all(|diagnostic| diagnostic.rule_id != "TL0002"),
         "staged expression should not receive deep-expression diagnostics: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn lint_reports_two_linear_cases_with_one_repeated_fallback() {
+    let diagnostics = lint_source(
+        Path::new("Sample.terl"),
+        r#"
+module sample.
+
+resolve(first: Option[Int], second: Option[Int]): Option[Int] ->
+    case first {
+        None -> None;
+        Some(left) -> case second {
+            None -> None;
+            Some(right) -> Some(left + right)
+        }
+    }.
+"#,
+    );
+
+    let rendered = diagnostics
+        .iter()
+        .map(render_diagnostic)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(rendered.contains("error[TL0009:readability.grouped-binding]"));
+    assert!(rendered.contains("should use grouped `let { ... } else { ... }` bindings"));
+    assert!(!rendered.contains("[fix available]"));
+}
+
+#[test]
+fn lint_accepts_nested_cases_with_distinct_failure_behavior() {
+    let diagnostics = lint_source(
+        Path::new("Sample.terl"),
+        r#"
+module sample.
+
+resolve(first: Option[Int], second: Option[Int]): Result[Int, String] ->
+    case first {
+        None -> Err("first");
+        Some(left) -> case second {
+            None -> Err("second");
+            Some(right) -> Ok(left + right)
+        }
+    }.
+"#,
+    );
+
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.rule_id != "TL0009"),
+        "distinct fallback behavior must retain explicit cases: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn lint_accepts_repeated_fallback_that_reads_failure_binding() {
+    let diagnostics = lint_source(
+        Path::new("Sample.terl"),
+        r#"
+module sample.
+
+resolve(first: Result[Int, String], second: Result[Int, String]): Result[Int, String] ->
+    case first {
+        Err(reason) -> Err(reason);
+        Ok(left) -> case second {
+            Err(reason) -> Err(reason);
+            Ok(right) -> Ok(left + right)
+        }
+    }.
+"#,
+    );
+
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.rule_id != "TL0009"),
+        "failure-binding-dependent cases cannot use a wildcard grouped else: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn lint_accepts_grouped_refutable_bindings() {
+    let diagnostics = lint_source(
+        Path::new("Sample.terl"),
+        r#"
+module sample.
+
+resolve(first: Option[Int], second: Option[Int]): Option[Int] ->
+    let {
+        Some(left) <- first;
+        Some(right) <- second
+    } else {
+        None -> None
+    };
+    Some(left + right).
+"#,
+    );
+
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.rule_id != "TL0009"),
+        "canonical grouped bindings must be accepted: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn lint_reports_lambda_that_only_forwards_its_parameter() {
+    let diagnostics = lint_source(
+        Path::new("Sample.terl"),
+        r#"
+module sample.
+
+property(generator: Gen[Int]): Bool ->
+    for_all(generator, (width) -> generated(width)).
+"#,
+    );
+
+    let rendered = diagnostics
+        .iter()
+        .map(render_diagnostic)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(rendered.contains("error[TL0010:readability.function-reference]"));
+    assert!(rendered.contains("should be a direct function reference"));
+}
+
+#[test]
+fn lint_accepts_direct_function_reference() {
+    let diagnostics = lint_source(
+        Path::new("Sample.terl"),
+        r#"
+module sample.
+
+property(generator: Gen[Int]): Bool ->
+    for_all(generator, generated).
+"#,
+    );
+
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.rule_id != "TL0010"),
+        "direct function references are canonical: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn lint_accepts_lambda_that_transforms_its_parameter() {
+    let diagnostics = lint_source(
+        Path::new("Sample.terl"),
+        r#"
+module sample.
+
+property(generator: Gen[Int]): Bool ->
+    for_all(generator, (width) -> generated(width + 1)).
+"#,
+    );
+
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.rule_id != "TL0010"),
+        "argument-transforming lambdas must remain explicit: {diagnostics:?}"
     );
 }
 

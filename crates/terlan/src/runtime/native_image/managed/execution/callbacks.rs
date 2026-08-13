@@ -1,5 +1,6 @@
+use super::*;
+
 /// Validates one generated allocation call and publishes through its owner heap.
-#[allow(unsafe_code)]
 pub(crate) unsafe extern "C" fn managed_allocate(
     context: *mut c_void,
     layout: *const u8,
@@ -15,7 +16,9 @@ pub(crate) unsafe extern "C" fn managed_allocate(
 }
 
 /// Resolves one owned closure into its stable image target and validated ABI words.
-#[allow(unsafe_code, clippy::too_many_arguments)]
+///
+/// cq4-ffi-explicit-parameters: generated Cranelift code calls this fixed C ABI
+/// directly, so every pointer/count pair remains explicit at the ABI edge.
 pub(crate) unsafe extern "C" fn managed_resolve_closure(
     context: *mut c_void,
     closure: i64,
@@ -30,7 +33,7 @@ pub(crate) unsafe extern "C" fn managed_resolve_closure(
     invocation_len: *mut u64,
 ) -> i32 {
     catch_unwind(AssertUnwindSafe(|| {
-        resolve_closure_inner(
+        resolve_closure_inner(ManagedClosureResolutionRaw {
             context,
             closure,
             parameter_type_words,
@@ -42,14 +45,13 @@ pub(crate) unsafe extern "C" fn managed_resolve_closure(
             invocation_words,
             invocation_capacity,
             invocation_len,
-        )
+        })
     }))
     .unwrap_or(MANAGED_ALLOCATION_FAILED_STATUS)
 }
 
-/// Checks all raw resolver buffers before entering actor-owned managed state.
-#[allow(unsafe_code, clippy::too_many_arguments)]
-fn resolve_closure_inner(
+/// Raw resolver packet validated before any pointer is dereferenced.
+struct ManagedClosureResolutionRaw {
     context: *mut c_void,
     closure: i64,
     parameter_type_words: *const i64,
@@ -61,7 +63,23 @@ fn resolve_closure_inner(
     invocation_words: *mut i64,
     invocation_capacity: u64,
     invocation_len: *mut u64,
-) -> i32 {
+}
+
+/// Checks all raw resolver buffers before entering actor-owned managed state.
+fn resolve_closure_inner(raw: ManagedClosureResolutionRaw) -> i32 {
+    let ManagedClosureResolutionRaw {
+        context,
+        closure,
+        parameter_type_words,
+        parameter_count,
+        parameter_words,
+        result_type_words,
+        result_count,
+        target,
+        invocation_words,
+        invocation_capacity,
+        invocation_len,
+    } = raw;
     let counts = (
         usize::try_from(parameter_count),
         usize::try_from(result_count),
@@ -106,7 +124,7 @@ fn resolve_closure_inner(
     let decode_types = |words: &[i64]| {
         words
             .chunks_exact(BOUNDARY_TYPE_WORDS)
-            .map(TvmBoundaryType::from_transition_words)
+            .map(|words| TvmBoundaryType::from_transition_words(words).map_err(String::from))
             .collect::<Result<Vec<_>, _>>()
     };
     let resolved = decode_types(parameter_types)
@@ -157,16 +175,16 @@ fn resolve_closure_inner(
         Ok(_) => {
             // SAFETY: context was checked and originated in `with_dispatch`.
             let runtime = unsafe { &mut *context.runtime };
-            runtime.last_allocation_error = Some(
+            runtime.retain_allocation_error({
                 "error[managed_execution.closure_resolver]: invocation exceeds output capacity"
-                    .to_string(),
-            );
+                    .to_string()
+            });
             MANAGED_ALLOCATION_FAILED_STATUS
         }
         Err(error) => {
             // SAFETY: context was checked and originated in `with_dispatch`.
             let runtime = unsafe { &mut *context.runtime };
-            runtime.last_allocation_error = Some(error);
+            runtime.retain_allocation_error(error);
             MANAGED_ALLOCATION_FAILED_STATUS
         }
     }

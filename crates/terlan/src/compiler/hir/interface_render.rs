@@ -326,7 +326,7 @@ impl ModuleInterface {
             }
 
             let mut methods: Vec<_> = trait_signature.methods.iter().collect();
-            methods.sort_by(|(left, _), (right, _)| left.cmp(right));
+            methods.sort_by_key(|(left, _)| *left);
 
             let params = render_type_params(Some(&trait_signature.type_params));
             out.push_str(&format!("pub trait {}{}", trait_signature.name, params));
@@ -339,7 +339,7 @@ impl ModuleInterface {
             out.push_str(" {\n");
 
             let mut constants = trait_signature.constants.iter().collect::<Vec<_>>();
-            constants.sort_by(|(left, _), (right, _)| left.cmp(right));
+            constants.sort_by_key(|(left, _)| *left);
             for (name, constant) in constants {
                 if include_docs {
                     push_doc_lines(&mut out, "/", &constant.docs);
@@ -426,7 +426,7 @@ impl ModuleInterface {
                 .iter()
                 .filter(|(name, _)| name.starts_with(&format!("{owner}.")))
                 .collect::<Vec<_>>();
-            constants.sort_by(|(left, _), (right, _)| left.cmp(right));
+            constants.sort_by_key(|(left, _)| *left);
             for (qualified, constant) in constants {
                 let name = qualified.rsplit('.').next().unwrap_or(qualified);
                 out.push_str(&format!("    const {name} = {}.\n", constant.value_text));
@@ -928,8 +928,9 @@ pub(crate) fn normalize_type_text(input: &str) -> String {
 /// - Stable, compact expression text.
 ///
 /// Transformation:
-/// - Reuses type-text normalization because interface constructor bodies only
-///   need conservative whitespace cleanup at this layer.
+/// - Trims only outer whitespace. Expression literals retain their internal
+///   spacing and quoting; type-text normalization would corrupt strings that
+///   contain commas or other type punctuation.
 fn normalize_expr_text(input: &str) -> String {
-    normalize_type_text(input)
+    input.trim().to_string()
 }

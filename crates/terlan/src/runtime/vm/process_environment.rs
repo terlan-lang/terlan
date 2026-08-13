@@ -1,8 +1,5 @@
-#![allow(dead_code)]
-
-use super::process::VmProcessTable;
-use super::scheduler::VmScheduler;
-use super::timer::VmTimerTable;
+#[cfg(test)]
+use super::{process::VmProcessTable, scheduler::VmScheduler, timer::VmTimerTable};
 
 /// Static capacity metadata for one Terlan VM runtime instance.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -11,6 +8,7 @@ pub(crate) struct VmRuntimeEnvironmentProfile {
     scheduler_count: usize,
 }
 
+#[cfg(test)]
 impl VmRuntimeEnvironmentProfile {
     /// Creates a profile with explicit non-zero runtime capacities.
     pub(crate) fn new(process_limit: usize, scheduler_count: usize) -> Result<Self, String> {
@@ -50,6 +48,7 @@ pub(crate) struct VmRuntimeEnvironmentSnapshot {
     pub(crate) scheduler_preemptions: u64,
 }
 
+#[cfg(test)]
 impl VmRuntimeEnvironmentSnapshot {
     /// Captures one deterministic runtime view without mutating its owners.
     pub(crate) fn capture(
@@ -92,4 +91,5 @@ impl VmRuntimeEnvironmentSnapshot {
 
 #[cfg(test)]
 #[path = "process_environment_test.rs"]
+#[cfg(test)]
 mod process_environment_test;

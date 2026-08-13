@@ -11,10 +11,12 @@ use crate::database_schema::{
     prefixed_digest, schema_fingerprint, DatabaseSchemaSnapshot, SchemaColumn, SchemaConstraint,
     SchemaEnum, SchemaIndex, SchemaRelation, DATABASE_SCHEMA_SNAPSHOT_SCHEMA,
 };
-use crate::runtime::vm::{
-    postgres::{VmPostgresDecodedValue, VmPostgresRow},
-    postgres_command::VmPostgresCommandClient,
-};
+#[cfg(any(
+    test,
+    all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+))]
+use crate::runtime::vm::postgres::VmPostgresDecodedValue;
+use crate::runtime::vm::{postgres::VmPostgresRow, postgres_command::VmPostgresCommandClient};
 
 const RELATION_SQL: &str = r#"
 SELECT table_schema, table_name, table_type
@@ -317,7 +319,15 @@ fn decode_string(
     column: &str,
 ) -> Result<String, String> {
     match client.decode_dynamic(row, column)? {
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::String(value) => Ok(value),
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         value => Err(decode_error(column, "string", &value)),
     }
 }
@@ -328,8 +338,20 @@ fn decode_optional_string(
     column: &str,
 ) -> Result<Option<String>, String> {
     match client.decode_dynamic(row, column)? {
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::Null => Ok(None),
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::String(value) => Ok(Some(value)),
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         value => Err(decode_error(column, "nullable string", &value)),
     }
 }
@@ -340,7 +362,15 @@ fn decode_int(
     column: &str,
 ) -> Result<i64, String> {
     match client.decode_dynamic(row, column)? {
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::Int(value) => Ok(value),
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         value => Err(decode_error(column, "integer", &value)),
     }
 }
@@ -351,11 +381,23 @@ fn decode_bool(
     column: &str,
 ) -> Result<bool, String> {
     match client.decode_dynamic(row, column)? {
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::Bool(value) => Ok(value),
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         value => Err(decode_error(column, "boolean", &value)),
     }
 }
 
+#[cfg(any(
+    test,
+    all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+))]
 fn decode_error(column: &str, expected: &str, value: &VmPostgresDecodedValue) -> String {
     format!(
         "Postgres schema column `{column}` expected {expected}, found {}",
@@ -363,12 +405,36 @@ fn decode_error(column: &str, expected: &str, value: &VmPostgresDecodedValue) ->
     )
 }
 
+#[cfg(any(
+    test,
+    all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+))]
 fn decoded_kind(value: &VmPostgresDecodedValue) -> &'static str {
     match value {
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::Null => "null",
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::Int(_) => "integer",
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::Bool(_) => "boolean",
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::String(_) => "string",
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::Json(_) => "json",
     }
 }
@@ -398,4 +464,5 @@ fn temporary_snapshot_path(path: &Path) -> PathBuf {
 
 #[cfg(test)]
 #[path = "snapshot_test.rs"]
+#[cfg(test)]
 mod snapshot_test;

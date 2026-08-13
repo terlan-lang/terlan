@@ -1,0 +1,148 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.io.Path.from_string/1",
+      "name": "from_string",
+      "operation": "std.io.path.from_string",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:c38a73907ad35112791e563969dc404021cb816dd220967b82b0d166a0d52cce"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.io.Path.to_string/1",
+      "name": "to_string",
+      "operation": "std.io.path.to_string",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:2878c95e73793bce87b038a2d60f71da03f5373925c94895fb3d8be3d226ae68"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.io.Path.join/2",
+      "name": "join",
+      "operation": "std.io.path.join",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:8070c7e01a3b5a486a03216810b5d95809c81398423267d0efe6b3ec30ffa8c9"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.io.Path.file_name/1",
+      "name": "file_name",
+      "operation": "std.io.path.file_name",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:5b837dd458bf620a0c62f957d701d96cedc7e4b9391f9fef855cf98c1cdde4d2"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.io.Path.extension/1",
+      "name": "extension",
+      "operation": "std.io.path.extension",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:2496e28f18fc242cc44719629e0765d1b338d3cc1d8b35465fdb69e147081a8c"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.io.Path.parent/1",
+      "name": "parent",
+      "operation": "std.io.path.parent",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:f16e079a7951b9c62634f3081d3e4a153c6788254efd532bb708f705a7602a03"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.io.Path.is_absolute/1",
+      "name": "is_absolute",
+      "operation": "std.io.path.is_absolute",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:112f727a35e427a88f720021f0b00f13a1b525cadbe28e52e29346633b2a5715"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.io.Path.normalize/1",
+      "name": "normalize",
+      "operation": "std.io.path.normalize",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:9ff525260dcafcb10624d4d1ac7eb326099c28fa505b7114f36ce152a903fef8"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.io.Path.starts_with/2",
+      "name": "starts_with",
+      "operation": "std.io.path.starts_with",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:562e5b516e966aa22d399966f5b9d01fd87b8531eb284cbbbea35c6242510a1a"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.io.Path.strip_prefix/2",
+      "name": "strip_prefix",
+      "operation": "std.io.path.strip_prefix",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:3e3147573457d2d3580b6ae753e6c8bcd9429d020f46941cd2120cc2a002b8bf"
+    }
+  ],
+  "manifest_digest": "sha256:c2f80023a0098dacbbb6936e7ae51726200edc3ca178bf37c4514e5e0b2d26c9",
+  "module": "std_io_path_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "filesystem.path",
+    "error_policy": "typed-result",
+    "module_prefix": "std.io.Path",
+    "notes": "Path APIs transform path values and do not open files.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:e41eb60713e6a7992c480c67450b134e46343df86a87a26b733074d6362194be",
+  "source_module": "std.io.Path",
+  "source_path": "std/summaries/std.io.Path.native_boundary.json"
+}

@@ -1,0 +1,28 @@
+{
+  "functions": [
+    {
+      "arity": 1,
+      "name": "sha256_bytes",
+      "operation": "std.crypto.hash.sha256_bytes"
+    },
+    {
+      "arity": 1,
+      "name": "sha256_framed",
+      "operation": "std.crypto.hash.sha256_framed"
+    },
+    {
+      "arity": 2,
+      "name": "sha256_domain_framed",
+      "operation": "std.crypto.hash.sha256_domain_framed"
+    },
+    {
+      "arity": 1,
+      "name": "sha256_nul_separated",
+      "operation": "std.crypto.hash.sha256_nul_separated"
+    }
+  ],
+  "module": "std_crypto_hash_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.crypto.Hash"
+}

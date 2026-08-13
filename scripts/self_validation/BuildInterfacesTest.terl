@@ -1,0 +1,517 @@
+/**
+ * Regenerates release-owned standard-library interface artifacts.
+ */
+module scripts.self_validation.BuildInterfacesTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.io.Console.{println}.
+import std.io.Directory.{create_all, entries, files_recursive_excluding}.
+import std.io.File.{delete, exists, read_text_many}.
+import std.system.{Arguments, Environment, Process}.
+
+import type std.core.Option.
+import type std.io.File.TextFile.
+import type std.system.Process.{BatchCompletion, Command}.
+
+struct HeaderMarkers {
+    generated: Bool,
+    profile: Bool,
+}.
+
+struct SourceInventory {
+    sources: List[String],
+    native_sources: List[String],
+}.
+
+@pure
+child(root: String, relative: String): String ->
+    if {
+        root == "." -> String.append("./", relative);
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+argument_value(name: String): Option[String] ->
+    argument_value_at(name, 0, Arguments.count()).
+
+argument_value_at(name: String, index: Int, count: Int): Option[String] ->
+    if {
+        index >= count -> None;
+        true -> case Arguments.get(index) {
+            Some(value) ->
+                if {
+                    value == name -> Arguments.get(index + 1);
+                    true -> argument_value_at(name, index + 1, count)
+                };
+            None -> None
+        }
+    }.
+
+selected_root(): String ->
+    environment_or("TERLAN_BUILD_INTERFACES_ROOT", Environment.current_directory()).
+
+selected_output(root: String): String ->
+    case Environment.get("TERLAN_BUILD_INTERFACES_OUT_DIR") {
+        Some(path) -> path;
+        None ->
+            case argument_value("--out-dir") {
+                Some(path) -> path;
+                None -> child(root, "std/summaries")
+            }
+    }.
+
+selected_compiler(root: String): String ->
+    case Environment.get("TERLAN_BUILD_INTERFACES_TERLC") {
+        Some(path) -> path;
+        None ->
+            case Environment.get("TERLC") {
+                Some(path) -> path;
+                None -> child(root, "target/debug/terlc")
+            }
+    }.
+
+jobs_text(): Option[String] ->
+    case Environment.get("TERLAN_BUILD_INTERFACES_JOBS") {
+        Some(value) -> Some(value);
+        None ->
+            case Environment.get("TERLAN_STDLIB_INTERFACE_JOBS") {
+                Some(value) -> Some(value);
+                None -> argument_value("--jobs")
+            }
+    }.
+
+selected_jobs(): Option[Int] ->
+    case jobs_text() {
+        None -> Some(16);
+        Some(text) ->
+            case Int.from_string(text) {
+                Some(value) ->
+                    if {
+                        value > 0 and value <= 64 -> Some(value);
+                        true -> None
+                    };
+                None -> None
+            }
+    }.
+
+/**
+ * Returns whether a basename is a canonical Terlan test source.
+ */
+@pure
+pub is_test_source_name(name: String): Bool ->
+    String.ends_with(name, "Test.terl")
+        and name != "Test.terl"
+        and not String.ends_with(name, "/Test.terl").
+
+/**
+ * Classifies release sources without reading their contents.
+ */
+@pure
+pub is_release_source_path(path: String): Bool ->
+    String.ends_with(path, ".terl")
+        and not is_test_source_name(path)
+        and not String.contains(path, "/summaries/")
+        and not String.contains(path, "/disabled/").
+
+@pure
+is_js_source(path: String): Bool ->
+    String.starts_with(path, "std/js/")
+        or String.starts_with(path, "./std/js/")
+        or String.contains(path, "/std/js/").
+
+@pure
+header_markers(text: String): HeaderMarkers ->
+    header_markers_at(
+        String.split(text, "\n"),
+        0,
+        HeaderMarkers(generated = false, profile = false),
+    ).
+
+@pure
+header_markers_at(lines: List[String], index: Int, markers: HeaderMarkers): HeaderMarkers ->
+    if {
+        index == 12 -> markers;
+        true -> case lines {
+            [] -> markers;
+            [line | rest] ->
+                header_markers_at(
+                    rest,
+                    index + 1,
+                    HeaderMarkers(
+                        generated = markers.generated or String.contains(line, "@generated true"),
+                        profile = markers.profile
+                            or String.contains(line, "@generator-profile typescript-standard-js-dom"),
+                    ),
+                )
+        }
+    }.
+
+/**
+ * Returns whether a source belongs to the TypeScript binding generator.
+ */
+@pure
+pub is_generated_js_binding_source(path: String, text: String): Bool ->
+    let markers = header_markers(text);
+    is_js_source(path) and markers.generated and markers.profile.
+
+@pure
+candidate_paths(paths: List[String]): List[String] ->
+    reverse_strings(candidate_paths_at(paths, List.new[String]())).
+
+@pure
+candidate_paths_at(paths: List[String], selected: List[String]): List[String] ->
+    case paths {
+        [] -> selected;
+        [path | rest] ->
+            if {
+                is_release_source_path(path) -> candidate_paths_at(rest, [path | selected]);
+                true -> candidate_paths_at(rest, selected)
+            }
+    }.
+
+@pure
+source_inventory(files: List[TextFile]): SourceInventory ->
+    source_inventory_at(files, List.new[String](), List.new[String]()).
+
+@pure
+source_inventory_at(
+    files: List[TextFile],
+    sources: List[String],
+    native_sources: List[String],
+): SourceInventory ->
+    case files {
+        [] ->
+            SourceInventory(
+                sources = reverse_strings(sources),
+                native_sources = reverse_strings(native_sources),
+            );
+        [file | rest] ->
+            if {
+                is_generated_js_binding_source(file.path, file.contents) -> source_inventory_at(rest, sources, native_sources);
+                String.contains(file.contents, "@compiler.native") -> source_inventory_at(rest, [file.path | sources], [file.path | native_sources]);
+                true -> source_inventory_at(rest, [file.path | sources], native_sources)
+            }
+    }.
+
+@pure
+reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_at(values, List.new[String]()).
+
+@pure
+reverse_strings_at(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings_at(rest, [value | reversed])
+    }.
+
+process_command(compiler: String, root: String, arguments: List[String]): Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_environment(
+                Process.with_working_directory(
+                    Process.with_arguments(Process.command(compiler), arguments),
+                    root,
+                ),
+                [Process.environment_entry("CARGO_TERM_COLOR", "never")],
+            ),
+            600000,
+        ),
+        16777216,
+    ).
+
+print_output_failure(label: String, output: std.system.Process.Output): Bool ->
+    let message =
+        String.append(
+            String.append("[build-stdlib-interfaces] ", label),
+            String.append("\n", String.append(Process.stdout(output), Process.stderr(output))),
+        );
+    let _printed = println(message);
+    false.
+
+print_process_error(label: String, reason: std.system.Process.ProcessError): Bool ->
+    let _label = println(String.append("[build-stdlib-interfaces] ", label));
+    let _reason = println(Process.error_message(reason));
+    false.
+
+@pure
+interface_arguments(sources: List[String], output: String): List[String] ->
+    ["interface" | append_interface_output(sources, output)].
+
+@pure
+append_interface_output(sources: List[String], output: String): List[String] ->
+    case sources {
+        [] -> ["--out-dir", output];
+        [source | rest] -> [source | append_interface_output(rest, output)]
+    }.
+
+native_commands(
+    compiler: String,
+    root: String,
+    output: String,
+    sources: List[String],
+): List[Command] ->
+    reverse_commands(native_commands_at(compiler, root, output, sources, List.new[Command]())).
+
+native_commands_at(
+    compiler: String,
+    root: String,
+    output: String,
+    sources: List[String],
+    commands: List[Command],
+): List[Command] ->
+    case sources {
+        [] -> commands;
+        [source | rest] ->
+            native_commands_at(
+                compiler,
+                root,
+                output,
+                rest,
+                [process_command(
+    compiler,
+    root,
+    [
+        "--native-policy",
+        "native_boundary_optional",
+        "emit-native-metadata",
+        source,
+        "--out-dir",
+        output,
+    ],
+) | commands],
+            )
+    }.
+
+reverse_commands(values: List[Command]): List[Command] ->
+    reverse_commands_at(values, List.new[Command]()).
+
+reverse_commands_at(values: List[Command], reversed: List[Command]): List[Command] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_commands_at(rest, [value | reversed])
+    }.
+
+@pure
+completions_hold(completions: List[BatchCompletion]): Bool ->
+    case completions {
+        [] -> true;
+        [completion | rest] ->
+            case {Process.completion_output(completion), Process.completion_error(completion)} {
+                {Some(output), None} ->
+                    if {
+                        Process.status(output) == 0 -> completions_hold(rest);
+                        true -> false
+                    };
+                {None, Some(_reason)} -> false;
+                _ -> false
+            }
+    }.
+
+@pure
+string_list_length(values: List[String]): Int ->
+    string_list_length_at(values, 0).
+
+@pure
+string_list_length_at(values: List[String], count: Int): Int ->
+    case values {
+        [] -> count;
+        [_value | rest] -> string_list_length_at(rest, count + 1)
+    }.
+
+/**
+ * Classifies release-owned summary artifacts.
+ */
+@pure
+pub is_release_summary_artifact(path: String): Bool ->
+    String.ends_with(path, "/.gitkeep")
+        or path == ".gitkeep"
+        or String.ends_with(path, ".typi")
+        or String.ends_with(path, ".typi.deps")
+        or String.ends_with(path, ".native_boundary.json")
+        or String.ends_with(path, ".native_boundary.rs").
+
+cleanup_entries(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            if {
+                not exists(path) -> cleanup_entries(rest);
+                is_release_summary_artifact(path) -> cleanup_entries(rest);
+                true -> case delete(path) {
+                    Ok(Unit) -> cleanup_entries(rest);
+                    Err(_reason) -> false
+                }
+            }
+    }.
+
+cleanup_output(output: String): Bool ->
+    case entries(output) {
+        Ok(paths) -> cleanup_entries(paths);
+        Err(_reason) -> false
+    }.
+
+/**
+ * Runs the complete deterministic std interface generation contract.
+ */
+pub build_interfaces(root: String, output: String, compiler: String, jobs: Int): Bool ->
+    case create_all(output) {
+        Err(_reason) -> false;
+        Ok(Unit) -> discover_interface_sources(root, output, compiler, jobs)
+    }.
+
+discover_interface_sources(root: String, output: String, compiler: String, jobs: Int): Bool ->
+    let std_root = child(root, "std");
+    let exclusions = ["summaries", "disabled"];
+    case files_recursive_excluding(std_root, exclusions) {
+        Err(_reason) -> false;
+        Ok(paths) -> filter_interface_paths(root, output, compiler, jobs, paths)
+    }.
+
+filter_interface_paths(
+    root: String,
+    output: String,
+    compiler: String,
+    jobs: Int,
+    paths: List[String],
+): Bool ->
+    let selected = candidate_paths(paths);
+    read_interface_sources(root, output, compiler, jobs, selected).
+
+read_interface_sources(
+    root: String,
+    output: String,
+    compiler: String,
+    jobs: Int,
+    paths: List[String],
+): Bool ->
+    case read_text_many(paths) {
+        Err(_reason) -> false;
+        Ok(files) -> prepare_interface_inventory(root, output, compiler, jobs, files)
+    }.
+
+prepare_interface_inventory(
+    root: String,
+    output: String,
+    compiler: String,
+    jobs: Int,
+    files: List[TextFile],
+): Bool ->
+    let inventory = source_inventory(files);
+    emit_interfaces(root, output, compiler, jobs, inventory).
+
+emit_interfaces(
+    root: String,
+    output: String,
+    compiler: String,
+    jobs: Int,
+    inventory: SourceInventory,
+): Bool ->
+    let arguments = interface_arguments(inventory.sources, output);
+    let command = process_command(compiler, root, arguments);
+    case Process.run(command) {
+        Ok(result) ->
+            if {
+                Process.status(result) == 0 -> emit_native_interfaces(root, output, compiler, jobs, inventory);
+                true -> print_output_failure("interface generation failed", result)
+            };
+        Err(reason) -> print_process_error("interface generation failed", reason)
+    }.
+
+emit_native_interfaces(
+    root: String,
+    output: String,
+    compiler: String,
+    jobs: Int,
+    inventory: SourceInventory,
+): Bool ->
+    let source_count = string_list_length(inventory.sources);
+    let commands = native_commands(compiler, root, output, inventory.native_sources);
+    case commands {
+        [] -> finish_interfaces(output, source_count);
+        _ ->
+            let request = Process.batch(commands, jobs);
+            case Process.run_many(request) {
+                Ok(batch) -> finish_native_batch(output, source_count, batch);
+                Err(reason) -> print_process_error("NativeBoundary metadata batch failed", reason)
+            }
+    }.
+
+finish_native_batch(
+    output: String,
+    source_count: Int,
+    batch: std.system.Process.BatchOutput,
+): Bool ->
+    let valid = completions_hold(Process.completions(batch));
+    if {
+        valid -> finish_interfaces(output, source_count);
+        true -> false
+    }.
+
+finish_interfaces(output: String, source_count: Int): Bool ->
+    let _written =
+        println(
+            String.append(
+                "[build-stdlib-interfaces] wrote interfaces: ",
+                Int.to_string(source_count),
+            ),
+        );
+    cleanup_output(output).
+
+@test
+pub source_classification_preserves_public_test_module(): Bool ->
+    is_release_source_path("std/test/Test.terl")
+        and not is_release_source_path("std/test/PropertyTest.terl")
+        and not is_release_source_path("std/summaries/Generated.terl")
+        and not is_release_source_path("std/disabled/Scratch.terl")
+        and not is_release_source_path("std/core/README.md").
+
+@test
+pub generated_js_classification_is_header_bounded(): Bool ->
+    let generated = "/**\n * @generated true\n * @generator-profile typescript-standard-js-dom\n */";
+    let late = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n@generated true\n@generator-profile typescript-standard-js-dom";
+    is_generated_js_binding_source("std/js/Array.terl", generated)
+        and not is_generated_js_binding_source("std/core/Array.terl", generated)
+        and not is_generated_js_binding_source("std/js/Late.terl", late).
+
+@test
+pub release_summary_classification_rejects_backend_scratch(): Bool ->
+    is_release_summary_artifact("out/std.core.String.typi")
+        and is_release_summary_artifact("out/std.core.String.typi.deps")
+        and is_release_summary_artifact("out/std_io_path.native_boundary.json")
+        and is_release_summary_artifact("out/std_io_path.native_boundary.rs")
+        and not is_release_summary_artifact("out/std.core.String.erl")
+        and not is_release_summary_artifact("out/std.core.String.hrl").
+
+@test
+pub repository_std_interfaces_build(): Bool ->
+    let root = selected_root();
+    repository_with_root(root).
+
+repository_with_root(root: String): Bool ->
+    let output = selected_output(root);
+    repository_with_output(root, output).
+
+repository_with_output(root: String, output: String): Bool ->
+    let compiler = selected_compiler(root);
+    repository_with_compiler(root, output, compiler).
+
+repository_with_compiler(root: String, output: String, compiler: String): Bool ->
+    case selected_jobs() {
+        None -> false;
+        Some(jobs) -> build_interfaces(root, output, compiler, jobs)
+    }.
+
+pub main(): Unit ->
+    if {
+        repository_std_interfaces_build() -> Unit;
+        true -> println("[build-stdlib-interfaces] generation failed")
+    }.

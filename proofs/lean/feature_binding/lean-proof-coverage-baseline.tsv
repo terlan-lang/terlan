@@ -1,0 +1,9 @@
+record_kind	key	proof_current	proof_in_progress	gap_exception	slice_blocked	total
+coverage_by_class	coreir	5	0	0	7	12
+coverage_by_class	native_boundary	0	0	0	1	1
+coverage_by_class	parser	0	0	0	1	1
+coverage_by_class	std_packages	0	0	0	3	3
+coverage_by_class	vm_runtime	1	0	0	2	3
+coverage_by_class	wasm	0	0	0	1	1
+proof_to_gap_ratio	2/5	6	0	0	15	21
+lane_block_count	6	6	0	0	15	21

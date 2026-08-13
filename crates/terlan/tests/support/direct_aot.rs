@@ -101,18 +101,11 @@ pub(super) fn transition_value(frame: &[u8], index: usize) -> i64 {
     )
 }
 
-pub(super) enum SuspendedAction {
-    Resume {
-        request_id: u64,
-        continuation_id_xor: u64,
-        values: Vec<i64>,
-    },
-    #[allow(dead_code)]
-    ResumeWrongOwner {
-        values: Vec<i64>,
-    },
-    Call,
-    Shutdown,
+pub(super) struct SuspendedAction {
+    pub(super) operation: u8,
+    pub(super) request_id: u64,
+    pub(super) continuation_id_xor: u64,
+    pub(super) values: Vec<i64>,
 }
 
 pub(super) fn assert_suspended_worker_rejects(
@@ -138,27 +131,28 @@ pub(super) fn assert_suspended_worker_rejects(
     let (transition_kind, transition) = read_control_frame(output);
     assert_eq!(transition_kind, 8);
     let continuation_id = transition_continuation(&transition);
-    match action {
-        SuspendedAction::Resume {
-            request_id,
-            continuation_id_xor,
-            values,
-        } => write_control_frame(
+    match action.operation {
+        9 => write_control_frame(
             worker.stdin.as_mut().unwrap(),
             9,
-            &resume_payload(request_id, continuation_id ^ continuation_id_xor, &values),
+            &resume_payload(
+                action.request_id,
+                continuation_id ^ action.continuation_id_xor,
+                &action.values,
+            ),
         ),
-        SuspendedAction::ResumeWrongOwner { values } => write_control_frame(
+        10 => write_control_frame(
             worker.stdin.as_mut().unwrap(),
             9,
-            &resume_payload_for_owner(1, TEST_OWNER_ID + 1, continuation_id, &values),
+            &resume_payload_for_owner(1, TEST_OWNER_ID + 1, continuation_id, &action.values),
         ),
-        SuspendedAction::Call => write_control_frame(
+        3 => write_control_frame(
             worker.stdin.as_mut().unwrap(),
             3,
             &call_payload(2, export_id, arguments),
         ),
-        SuspendedAction::Shutdown => write_control_frame(worker.stdin.as_mut().unwrap(), 6, &[]),
+        6 => write_control_frame(worker.stdin.as_mut().unwrap(), 6, &[]),
+        operation => panic!("unsupported suspended action operation {operation}"),
     }
     drop(worker.stdin.take());
     let result = worker
@@ -172,7 +166,7 @@ pub(super) fn assert_suspended_worker_rejects(
     );
 }
 
-pub(super) fn assert_duplicate_resume_rejected(
+pub fn assert_duplicate_resume_rejected(
     image_path: &std::path::Path,
     descriptor_digest: [u8; 32],
     export_id: u64,

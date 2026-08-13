@@ -1,0 +1,35 @@
+{
+  "exports": [
+    {
+      "argument_types": [],
+      "arity": 0,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.system.Arguments.count/0",
+      "name": "count",
+      "operation": "std.system.arguments.count",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:728f6a3e42eb1cdee56561be3f6232aa7114c040d83e467d4094a67ca26e1bb8"
+    }
+  ],
+  "manifest_digest": "sha256:e520a434d2fbf84db9aa5dac015c2d45b81b12ee08430f761189f4d184b318eb",
+  "module": "std_system_arguments_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "system.arguments",
+    "error_policy": "typed-result",
+    "module_prefix": "std.system.Arguments",
+    "notes": "Argument inspection reads immutable process-start metadata and returns VM-owned values.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:daad841493325e5338f909dd67dcc35b9e069f71e82b04ba8a0e3be2baa8b09c",
+  "source_module": "std.system.Arguments",
+  "source_path": "std/summaries/std.system.Arguments.native_boundary.json"
+}

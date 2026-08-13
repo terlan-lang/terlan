@@ -42,36 +42,39 @@ const REMOVED_DIRECT_TOKIO_FEATURES: &[&str] = &[
 ];
 
 const ALLOWED_TEST_HARNESS_PATHS: &[&str] = &[
+    "crates/terlan/src/benchmark/axum_baseline.rs",
+    "crates/terlan/src/benchmark/http_framework_baseline.rs",
+    "crates/terlan/src/benchmark/http_paired_benchmark.rs",
+    "crates/terlan/src/benchmark/hyper_baseline.rs",
     "crates/terlan/src/benchmark/main.rs",
     "crates/terlan/src/commands/serve/serve_test.rs",
     "crates/terlan/src/lsp/lib_test.rs",
-    "crates/terlan/src/lsp/lib_test_part_001.rs",
-    "crates/terlan/src/lsp/lib_test_part_002.rs",
-    "crates/terlan/src/lsp/lib_test_part_003.rs",
-    "crates/terlan/src/lsp/lib_test_part_004.rs",
-    "crates/terlan/src/lsp/lib_test_part_005.rs",
-    "crates/terlan/src/lsp/lib_test_part_006.rs",
-    "crates/terlan/src/lsp/lib_test_part_007.rs",
-    "crates/terlan/src/lsp/lib_test_part_008.rs",
+    "crates/terlan/src/lsp/lib_test/completion_inventory.rs",
+    "crates/terlan/src/lsp/lib_test/completion_ranking.rs",
+    "crates/terlan/src/lsp/lib_test/documents_and_shapes.rs",
+    "crates/terlan/src/lsp/lib_test/parse_diagnostics.rs",
+    "crates/terlan/src/lsp/lib_test/resolution_diagnostics.rs",
+    "crates/terlan/src/lsp/lib_test/semantic_tokens_and_diagnostic_support.rs",
+    "crates/terlan/src/lsp/lib_test/signatures_symbols_and_local_navigation.rs",
+    "crates/terlan/src/lsp/lib_test/support.rs",
+    "crates/terlan/src/lsp/lib_test/type_diagnostics.rs",
 ];
 
 const ALLOWED_QUALITY_GATE_PATHS: &[&str] = &[
-    "crates/terlan/src/quality/main.rs",
-    "crates/terlan/src/quality/main_command_group_002.rs",
+    "crates/terlan/src/quality/cli.rs",
+    "crates/terlan/src/quality/cli/runtime_and_release_commands.rs",
     "crates/terlan/src/quality/mod.rs",
-    "crates/terlan/src/quality/mod_part_001.rs",
     "crates/terlan/src/quality/no_default_tokio_runtime.rs",
     "crates/terlan/src/quality/no_default_tokio_runtime_test.rs",
-    "crates/terlan/src/quality/no_default_tokio_runtime_test_part_001.rs",
-    "crates/terlan/src/quality/no_default_tokio_runtime_test_part_002.rs",
-    "crates/terlan/src/quality/std_vm_surface_classification.rs",
+    "crates/terlan/src/quality/no_default_tokio_runtime_test/dependency_features.rs",
+    "crates/terlan/src/quality/no_default_tokio_runtime_test/inventory_contract.rs",
+    "crates/terlan/src/quality/rust_quality.rs",
     "crates/terlan/src/quality/vm_io_reactor_runtime.rs",
     "crates/terlan/src/quality/vm_io_reactor_runtime_test.rs",
     "crates/terlan/src/quality/vm_native_worker_runtime.rs",
 ];
 
-const SERVE_TLS_MIGRATION_PATH: &str = "crates/terlan/src/commands/serve/tls.rs";
-const SERVE_TLS_MIGRATION_SPLIT_PATH: &str = "crates/terlan/src/commands/serve/tls_part_001.rs";
+const SERVE_TLS_MIGRATION_PATH: &str = "crates/terlan/src/commands/serve/tls/acme_runtime.rs";
 
 /// Summary produced by the no-default-Tokio runtime gate.
 ///
@@ -748,7 +751,7 @@ fn path_is_migration_debt_boundary(path: &Path) -> bool {
 }
 
 fn path_is_serve_tls_migration_boundary(path: &Path) -> bool {
-    path == Path::new(SERVE_TLS_MIGRATION_PATH) || path == Path::new(SERVE_TLS_MIGRATION_SPLIT_PATH)
+    path == Path::new(SERVE_TLS_MIGRATION_PATH)
 }
 
 /// Validates the temporary serve TLS Tokio bridge is limited to live ACME.
@@ -804,4 +807,5 @@ fn should_skip_dir(path: &Path) -> bool {
 
 #[cfg(test)]
 #[path = "no_default_tokio_runtime_test.rs"]
+#[cfg(test)]
 mod no_default_tokio_runtime_test;

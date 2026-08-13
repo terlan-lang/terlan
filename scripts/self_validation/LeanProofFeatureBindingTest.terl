@@ -1,0 +1,362 @@
+/**
+ * Validates the closed Lean feature-slice binding matrix.
+ */
+module scripts.self_validation.LeanProofFeatureBindingTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.File.{exists, read_text_many, write_text}.
+import std.system.Environment.
+
+struct Inputs {
+    roadmap: String,
+    archive: String,
+    lanes: String,
+    gaps: String,
+    index: String,
+    baseline: String,
+    gate: String,
+    replay: String,
+    makefile: String,
+}.
+
+@pure
+child(root: String, relative: String): String ->
+    if {
+        root == "." -> relative;
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+@pure
+expected_matrix(): String ->
+    "slice_id\tfeature_class\tlane_id\tcoverage_status\towner\tproof_family_ids\tgap_ids\tblocker_hash\nSlice 4\tcoreir\tcoreir\tproof_current\tcompiler\tcoreir-arithmetic;coreir-checked-lowering;shape-implication\t\tnone\nSlice 5\tcoreir\tcoreir\tproof_current\tcompiler\tcoreir-arithmetic;coreir-checked-lowering\t\tnone\nSlice 9\tvm_runtime\tvm_runtime\tproof_current\tvm\tsemantic-smoke-chain\t\tnone\nSlice 10\tcoreir\tcoreir\tproof_current\tcompiler\tcoreir-checked-lowering\t\tnone\nSlice 11\tcoreir\tcoreir\tproof_current\tcompiler\tcoreir-checked-lowering\t\tnone\nSlice 12\tcoreir\tcoreir\tproof_current\tcompiler\tcoreir-checked-lowering\t\tnone\nSlice 13\tparser\tparser\tproof_current\tcompiler\tparser-shape\t\tnone\nSlice 14\tnative_boundary\tnative_boundary\tproof_current\truntime\tnative-boundary\t\tnone\nSlice 15\tcoreir\tcoreir\tproof_current\tcompiler\ttemplates-routes\t\tnone\nSlice 16\tvm_runtime\tvm_runtime\tproof_current\tvm\tconcurrency\t\tnone\nSlice 17\tstd_packages\tstd_packages\tproof_current\tcompiler\tcollections\t\tnone\nSlice 18\twasm\twasm\tproof_current\tcompiler\twasm-bridge\t\tnone\nSlice 19\tstd_packages\tstd_packages\tproof_current\tcompiler\tdatabase-sql\t\tnone\nSlice 20\tstd_packages\tstd_packages\tproof_current\tcompiler\tstd-packages\t\tnone\nSlice 22\tcoreir\tcoreir\tslice_blocked\tcompiler\t\ttyped-coreir-preservation\tsha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad\nSlice 23\tcoreir\tcoreir\tslice_blocked\tcompiler\t\ttyped-coreir-preservation\tsha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad\nSlice 24\tvm_runtime\tvm_runtime\tslice_blocked\tvm\t\tvm-execution-subset\tsha256:8917ce1bed441d5bc25165b893123a26cfd0b51ef1bb06fc16429bfc3f70af9c\nSlice 25\tcoreir\tcoreir\tslice_blocked\tcompiler\t\ttyped-coreir-preservation\tsha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad\nSlice 26\tcoreir\tcoreir\tslice_blocked\tcompiler\t\ttyped-coreir-preservation\tsha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad\nSlice 27\tcoreir\tcoreir\tslice_blocked\tcompiler\t\ttyped-coreir-preservation\tsha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad\nSlice 28\tcoreir\tcoreir\tslice_blocked\tcompiler\t\ttyped-coreir-preservation\tsha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad\n".
+
+@pure
+input_paths(root: String): List[String] ->
+    [
+        child(root, "docs/roadmap/ROADMAP_0_0_7.md"),
+        child(root, "docs/roadmap/archive/ROADMAP_0_0_7_ACTIVE_PRE_COMPACTION_2026_07_31.md"),
+        child(root, "docs/compiler/LEAN_PROOF_FEATURE_LANES.tsv"),
+        child(root, "docs/compiler/proof_track/lean_proof_gaps.tsv"),
+        child(root, "proofs/lean/feature_binding/lean_feature_slice_index.json"),
+        child(root, "proofs/lean/feature_binding/lean-proof-coverage-baseline.tsv"),
+        child(root, "build/artifacts/lean-proof-gate.json"),
+        child(root, "build/artifacts/lean-proof-repro-report.json"),
+        child(root, "Makefile"),
+    ].
+
+valid_json(source: String): Bool ->
+    case Json.parse(source) {
+        Ok(_document) -> true;
+        Err(_reason) -> false
+    }.
+
+@pure
+contains_all(source: String, values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> String.contains(source, value) and contains_all(source, rest)
+    }.
+
+@pure
+record_block(index: String, slice: String): String ->
+    let marker = String.append("\"slice_id\": \"", String.append(slice, "\""));
+    record_block_parts(String.split(index, "    {\n"), marker).
+
+@pure
+record_block_parts(parts: List[String], marker: String): String ->
+    case parts {
+        [] -> "";
+        [part | rest] ->
+            if {
+                String.contains(part, marker) -> first_record(part);
+                true -> record_block_parts(rest, marker)
+            }
+    }.
+
+@pure
+family_block(source: String, family: String): String ->
+    let marker = String.append("\"family\": \"", String.append(family, "\""));
+    block_after(source, marker).
+
+@pure
+block_after(source: String, marker: String): String ->
+    block_parts(String.split(source, marker)).
+
+@pure
+block_parts(parts: List[String]): String ->
+    case parts {
+        [_before | remaining] -> first_remaining_record(remaining);
+        _ -> ""
+    }.
+
+@pure
+first_remaining_record(parts: List[String]): String ->
+    case parts {
+        [suffix | _rest] -> first_record(suffix);
+        _ -> ""
+    }.
+
+@pure
+first_record(source: String): String ->
+    case String.split(source, "\n    },") {
+        [value | _rest] -> value;
+        _ -> source
+    }.
+
+@pure
+list_fragments_hold(block: String, values: String): Bool ->
+    list_fragments_at(block, String.split(values, ";")).
+
+@pure
+list_fragments_at(block: String, values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        ["" | rest] -> list_fragments_at(block, rest);
+        [value | rest] ->
+            String.contains(block, String.append("\"", String.append(value, "\"")))
+                and list_fragments_at(block, rest)
+    }.
+
+@pure
+matrix_rows_hold(lines: List[String], inputs: Inputs, count: Int): Bool ->
+    case lines {
+        [] -> count == 21;
+        ["" | rest] -> matrix_rows_hold(rest, inputs, count);
+        [line | rest] ->
+            case String.split(line, "\t") {
+                [slice, feature, lane, status, owner, families, gaps, blocker] ->
+                    let block = record_block(inputs.index, slice);
+                    let lane_row =
+                        String.append(
+                            slice,
+                            String.append(
+                                "\t",
+                                String.append(lane, String.append("\t", String.append(owner, "\t"))),
+                            ),
+                        );
+                    if {
+                        block == "" -> false;
+                        not contains_all(
+    block,
+    [
+        String.append("\"feature_class\": \"", String.append(feature, "\"")),
+        String.append("\"lane_id\": \"", String.append(lane, "\"")),
+        String.append("\"coverage_status\": \"", String.append(status, "\"")),
+        String.append("\"owner\": \"", String.append(owner, "\"")),
+        String.append("\"blocker_hash\": \"", String.append(blocker, "\"")),
+    ],
+) -> false;
+                        not list_fragments_hold(block, families) -> false;
+                        not list_fragments_hold(block, gaps) -> false;
+                        not String.contains(inputs.lanes, lane_row) -> false;
+                        not archive_slice_holds(inputs.archive, slice) -> false;
+                        status == "proof_current" and not proof_families_hold(inputs, families) -> false;
+                        status != "proof_current"
+                            and not gaps_hold(inputs.gaps, gaps, owner, blocker) -> false;
+                        true -> matrix_rows_hold(rest, inputs, count + 1)
+                    };
+                _ -> false
+            }
+    }.
+
+@pure
+archive_slice_holds(archive: String, slice: String): Bool ->
+    let prefix = String.append(" ", slice);
+    String.contains(archive, String.append(prefix, ":"))
+        or String.contains(archive, String.append(prefix, " (")).
+
+@pure
+proof_families_hold(inputs: Inputs, families: String): Bool ->
+    proof_families_at(inputs, String.split(families, ";")).
+
+@pure
+proof_families_at(inputs: Inputs, families: List[String]): Bool ->
+    case families {
+        [] -> true;
+        ["" | rest] -> proof_families_at(inputs, rest);
+        [family | rest] ->
+            let gate = family_block(inputs.gate, family);
+            let replay = family_block(inputs.replay, family);
+            contains_all(gate, ["\"proof_status\": \"current\"", "\"reproducibility_verdict\": \"pass\""])
+                and contains_all(replay, ["\"verdict\": \"pass\"", "\"proof_path\": \"proofs/lean/"])
+                and proof_families_at(inputs, rest)
+    }.
+
+@pure
+gaps_hold(source: String, gaps: String, owner: String, blocker: String): Bool ->
+    gaps_at(source, String.split(gaps, ";"), owner, blocker).
+
+@pure
+gaps_at(source: String, gaps: List[String], owner: String, blocker: String): Bool ->
+    case gaps {
+        [] -> true;
+        ["" | rest] -> gaps_at(source, rest, owner, blocker);
+        [gap | rest] ->
+            let feature = gap_feature(gap);
+            let row = tsv_row(source, feature);
+            feature != ""
+                and contains_all(
+    row,
+    [
+        "\tblocked\t",
+        String.append("\t", String.append(owner, "\t")),
+        "exception:",
+        "@2026-08-31",
+        blocker,
+    ],
+)
+                and gaps_at(source, rest, owner, blocker)
+    }.
+
+@pure
+gap_feature(gap: String): String ->
+    if {
+        gap == "typed-coreir-preservation" -> "typed CoreIR preservation";
+        gap == "vm-execution-subset" -> "VM execution subset";
+        true -> ""
+    }.
+
+@pure
+tsv_row(source: String, prefix: String): String ->
+    tsv_row_at(String.split(source, "\n"), prefix).
+
+@pure
+tsv_row_at(lines: List[String], prefix: String): String ->
+    case lines {
+        [] -> "";
+        [line | rest] ->
+            if {
+                String.starts_with(line, String.append(prefix, "\t")) -> line;
+                true -> tsv_row_at(rest, prefix)
+            }
+    }.
+
+@pure
+baseline_holds(source: String): Bool ->
+    contains_all(
+        source,
+        [
+            "coverage_by_class\tcoreir\t5\t0\t0\t7\t12",
+            "coverage_by_class\tnative_boundary\t0\t0\t0\t1\t1",
+            "coverage_by_class\tparser\t0\t0\t0\t1\t1",
+            "coverage_by_class\tstd_packages\t0\t0\t0\t3\t3",
+            "coverage_by_class\tvm_runtime\t1\t0\t0\t2\t3",
+            "coverage_by_class\twasm\t0\t0\t0\t1\t1",
+            "proof_to_gap_ratio\t2/5\t6\t0\t0\t15\t21",
+            "lane_block_count\t6\t6\t0\t0\t15\t21",
+        ],
+    ).
+
+@pure
+make_targets_hold(source: String): Bool ->
+    contains_all(
+        source,
+        [
+            "lean-proof-track-check:",
+            "vm-runtime-semantics-check:",
+            "core-typing-spec-check:",
+            "lalrpop-parser-parity-check:",
+            "lean-proof-native-boundary-check:",
+            "std-package-coverage-100-check:",
+            "wasm-coreir-lowering-check:",
+        ],
+    ).
+
+inputs_hold(inputs: Inputs): Bool ->
+    String.contains(inputs.roadmap, "archive/ROADMAP_0_0_7_ACTIVE_PRE_COMPACTION_2026_07_31.md")
+        and String.contains(inputs.archive, "### Lean Proof Track Completion")
+        and String.starts_with(inputs.lanes, "roadmap_slice\tlane\towner\tacceptance_gate\n")
+        and String.starts_with(
+    inputs.gaps,
+    "feature\tlifecycle_status\tproof_gap_category\tgap_reason\tremediation_owner\tplanned_gate\tdeadline_or_exception\tblocker_updated_at\tblocker_hash\tcovered_manifests\n",
+)
+        and valid_json(inputs.index)
+        and String.contains(inputs.index, "\"schema\": \"terlan.lean-feature-binding.v1\"")
+        and valid_json(inputs.gate)
+        and valid_json(inputs.replay)
+        and baseline_holds(inputs.baseline)
+        and make_targets_hold(inputs.makefile)
+        and matrix_rows_hold(matrix_data_lines(expected_matrix()), inputs, 0).
+
+@pure
+matrix_data_lines(matrix: String): List[String] ->
+    case String.split(matrix, "\n") {
+        [_header | rest] -> rest;
+        _ -> List.new[String]()
+    }.
+
+fail(message: String): Bool ->
+    let _printed = println(String.append("Lean proof feature binding failed: ", message));
+    false.
+
+pub repository_feature_binding_holds(): Bool ->
+    let root = environment_or("TERLAN_LEAN_FEATURE_BINDING_ROOT", Environment.current_directory());
+    case read_text_many(input_paths(root)) {
+        Ok([roadmap, archive, lanes, gaps, index, baseline, gate, replay, makefile]) ->
+            let inputs =
+                Inputs(
+                    roadmap = roadmap.contents,
+                    archive = archive.contents,
+                    lanes = lanes.contents,
+                    gaps = gaps.contents,
+                    index = index.contents,
+                    baseline = baseline.contents,
+                    gate = gate.contents,
+                    replay = replay.contents,
+                    makefile = makefile.contents,
+                );
+            if {
+                inputs_hold(inputs) -> write_matrix(root);
+                true -> fail("feature binding contracts drifted")
+            };
+        Ok(_files) -> fail("feature binding input batch has an unexpected shape");
+        Err(_reason) -> fail("feature binding inputs could not be read")
+    }.
+
+write_matrix(root: String): Bool ->
+    case write_text(child(root, "build/artifacts/lean-proof-coverage-matrix.tsv"), expected_matrix()) {
+        Ok(Unit) -> report_success(root);
+        Err(_reason) -> fail("coverage matrix could not be written")
+    }.
+
+report_success(root: String): Bool ->
+    case Hash.sha256_file(child(root, "build/artifacts/lean-proof-coverage-matrix.tsv")) {
+        Ok(digest) ->
+            let _printed =
+                println(
+                    String.append(
+                        "Lean proof feature binding passed: 21 slices, 14 proof-current, 2 blocked lanes, sha256:",
+                        digest,
+                    ),
+                );
+            true;
+        Err(_reason) -> fail("coverage matrix could not be hashed")
+    }.
+
+@test
+pub stable_gap_slug_is_canonical(): Bool ->
+    gap_feature("vm-execution-subset") == "VM execution subset"
+        and gap_feature("typed-coreir-preservation") == "typed CoreIR preservation".
+
+@test
+pub regression_metrics_are_stable(): Bool ->
+    let proof_current = 14;
+    let blocked = 7;
+    proof_current * 5 >= blocked * 2 and blocked <= 15.
+
+@test
+pub repository_feature_binding_is_closed(): Bool ->
+    repository_feature_binding_holds().

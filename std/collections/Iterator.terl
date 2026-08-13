@@ -39,6 +39,7 @@ pub type Step[T] = {value: T, next: Iterator[T]}.
  * intrinsic and advances traversal by returning a new iterator state rather
  * than mutating the current value.
  */
+@pure
 @compiler.intrinsic
 pub next(iterator: Iterator[T]): Option[Step[T]] ->
     None.

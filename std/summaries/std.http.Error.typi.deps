@@ -1,8 +1,9 @@
 module=std.http.Error
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=4825843052441482869
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=7230696633876250991
 interface_hash=10678806214723408090
 interface_doc_hash=14027728939331747430
-deps=0
+deps=1
+std.core.Error=1244151485527378485

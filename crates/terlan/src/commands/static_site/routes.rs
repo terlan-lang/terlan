@@ -855,4 +855,5 @@ pub(crate) fn is_static_html_return_type(type_text: &str) -> bool {
 
 #[cfg(test)]
 #[path = "routes_test.rs"]
+#[cfg(test)]
 mod routes_test;

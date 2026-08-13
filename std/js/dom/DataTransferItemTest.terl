@@ -28,7 +28,7 @@ pub get_as_file_typechecks(receiver: DataTransferItem): Option[File] ->
 
 pub get_as_string_typechecks(
     receiver: DataTransferItem,
-    callback: Option[FunctionStringCallback]
+    callback: Option[FunctionStringCallback],
 ): std.core.Unit ->
     receiver.get_as_string(callback).
 

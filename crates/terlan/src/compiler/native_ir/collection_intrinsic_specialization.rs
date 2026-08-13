@@ -3,13 +3,22 @@
 use std::collections::HashMap;
 
 use crate::terlan_typeck::{
-    core_type_from_text, CoreEffectSet, CoreExpr, CoreIntrinsicCall, CoreIntrinsicId,
-    CoreLetBinding, CoreModule, CorePattern, CorePrimitiveIntrinsic, CoreType,
+    core_primitive_intrinsic_return_type, core_type_from_text, CoreEffectSet, CoreExpr,
+    CoreIntrinsicCall, CoreIntrinsicId, CoreLetBinding, CoreModule, CorePattern,
+    CorePrimitiveIntrinsic, CoreType,
 };
 
 #[path = "collection_intrinsic_specialization/expected_constructors.rs"]
 mod expected_constructors;
-use expected_constructors::annotate_expected_structural_constructors;
+pub(super) use expected_constructors::annotate_expected_structural_constructors;
+mod comprehension;
+use comprehension::specialize_comprehension;
+mod expected_new;
+use expected_new::{specialize_collection_new_bindings, specialize_expected_collection_new};
+pub(super) mod receiver_intrinsics;
+use receiver_intrinsics::*;
+mod type_helpers;
+use type_helpers::*;
 
 #[derive(Clone)]
 pub(super) struct FunctionSignature {
@@ -19,8 +28,23 @@ pub(super) struct FunctionSignature {
 
 pub(super) type FunctionTypes = HashMap<(String, String, usize), FunctionSignature>;
 
+/// Attaches each declared result type to structural constructors before
+/// transparent aliases erase their nominal constructor identity.
+pub(super) fn annotate_function_result_constructors(core: &mut CoreModule) {
+    for function in &mut core.functions {
+        let Some(expected) = function.core_return_type.as_ref() else {
+            continue;
+        };
+        for clause in &mut function.clauses {
+            if let Some(body) = clause.body.core_expr.as_mut() {
+                annotate_expected_structural_constructors(body, expected);
+            }
+        }
+    }
+}
+
 pub(super) fn specialize_collection_intrinsic_results(cores: &mut [CoreModule]) {
-    let function_types = cores
+    let mut function_types = cores
         .iter()
         .flat_map(|core| {
             core.functions.iter().filter_map(|function| {
@@ -45,9 +69,27 @@ pub(super) fn specialize_collection_intrinsic_results(cores: &mut [CoreModule]) 
             })
         })
         .collect::<FunctionTypes>();
+    for core in cores.iter() {
+        for declaration in &core.types {
+            if let Some(body) = declaration.core_body.clone() {
+                function_types.insert(
+                    (core.module.clone(), nominal_type_key(&declaration.name), 0),
+                    FunctionSignature {
+                        params: Vec::new(),
+                        result: body,
+                    },
+                );
+            }
+        }
+    }
     for core in cores {
         for function in &mut core.functions {
-            let variables = function
+            let parameter_types = function
+                .params
+                .iter()
+                .map(|parameter| parameter.core_ty.clone())
+                .collect::<Vec<_>>();
+            let parameter_variables = function
                 .params
                 .iter()
                 .filter_map(|parameter| {
@@ -58,9 +100,20 @@ pub(super) fn specialize_collection_intrinsic_results(cores: &mut [CoreModule]) 
                 })
                 .collect::<HashMap<_, _>>();
             for clause in &mut function.clauses {
+                let mut variables = parameter_variables.clone();
+                for (pattern, ty) in clause.core_patterns.iter().zip(&parameter_types) {
+                    if let (Some(pattern), Some(ty)) = (pattern, ty) {
+                        bind_pattern(pattern, ty, &mut variables);
+                    }
+                }
                 if let Some(body) = clause.body.core_expr.as_mut() {
                     if let Some(return_type) = function.core_return_type.as_ref() {
-                        specialize_expected_collection_new(body, return_type);
+                        specialize_expected_collection_new(
+                            body,
+                            return_type,
+                            &function_types,
+                            &core.module,
+                        );
                         annotate_expected_structural_constructors(body, return_type);
                     }
                     specialize_expr(body, &variables, &function_types, &core.module);
@@ -84,6 +137,32 @@ pub(super) fn specialize_expr(
         CoreExpr::Atom(value) if value == "Unit" => Some(CoreType::Named("Unit".to_string())),
         CoreExpr::Atom(_) => Some(CoreType::Atom),
         CoreExpr::Var(name) => variables.get(name).cloned(),
+        CoreExpr::FieldAccess { base, field } | CoreExpr::RecordAccess { base, field, .. } => {
+            let base_type = specialize_expr(base, variables, functions, module)?;
+            named_field_type_with_nominals(&base_type, field, functions, module).cloned()
+        }
+        CoreExpr::RecordConstruct { name, fields } => {
+            let nominal = CoreType::Named(name.clone());
+            let Some(record_type) = nominal_type(functions, module, &nominal).cloned() else {
+                for field in fields {
+                    specialize_expr(&mut field.value, variables, functions, module);
+                }
+                return Some(nominal);
+            };
+            for field in fields {
+                if let Some(expected) = named_field_type(&record_type, &field.key) {
+                    specialize_expected_collection_new(
+                        &mut field.value,
+                        expected,
+                        functions,
+                        module,
+                    );
+                    annotate_expected_structural_constructors(&mut field.value, expected);
+                }
+                specialize_expr(&mut field.value, variables, functions, module);
+            }
+            Some(record_type)
+        }
         CoreExpr::Tuple(items) => items
             .iter_mut()
             .map(|item| {
@@ -99,6 +178,20 @@ pub(super) fn specialize_expr(
                 .unwrap_or(CoreType::Dynamic);
             Some(CoreType::List(Box::new(element)))
         }
+        CoreExpr::ListComprehension {
+            expr,
+            generators,
+            guards,
+            lift,
+        } => specialize_comprehension(
+            expr.as_mut(),
+            generators,
+            guards,
+            lift,
+            variables,
+            functions,
+            module,
+        ),
         CoreExpr::ConstructorCall {
             constructor,
             constructor_identity,
@@ -118,6 +211,62 @@ pub(super) fn specialize_expr(
                 target_type: list_type.clone(),
             };
             Some(list_type)
+        }
+        CoreExpr::ConstructorCall {
+            constructor,
+            constructor_identity,
+            args,
+        } if is_std_set_constructor(constructor, constructor_identity.as_deref()) => {
+            let element = args
+                .iter_mut()
+                .find_map(|item| specialize_expr(item, variables, functions, module))
+                .unwrap_or_else(|| CoreType::Named("Unit".to_string()));
+            let set_type = CoreType::Apply {
+                constructor: "Set".to_string(),
+                args: vec![element],
+            };
+            let values = CoreExpr::List(std::mem::take(args));
+            *expr = CoreExpr::Intrinsic(CoreIntrinsicCall {
+                id: CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::SetFromList),
+                args: vec![values],
+                return_type: set_type.clone(),
+                effects: CoreEffectSet {
+                    effects: Vec::new(),
+                },
+                span: crate::terlan_syntax::span::Span { start: 0, end: 0 },
+            });
+            Some(set_type)
+        }
+        CoreExpr::ConstructorCall {
+            constructor,
+            constructor_identity,
+            args,
+        } if is_std_map_constructor(constructor, constructor_identity.as_deref()) => {
+            let entry_types = args
+                .iter_mut()
+                .map(|entry| specialize_expr(entry, variables, functions, module))
+                .collect::<Option<Vec<_>>>()?;
+            let (key, value) = entry_types
+                .first()
+                .and_then(tuple_elements)
+                .map(|(key, value)| (key.clone(), value.clone()))?;
+            if !entry_types.iter().all(|entry| {
+                tuple_elements(entry).is_some_and(|(entry_key, entry_value)| {
+                    entry_key == &key && entry_value == &value
+                })
+            }) {
+                return None;
+            }
+            let map_type = CoreType::Apply {
+                constructor: "Map".to_string(),
+                args: vec![key, value],
+            };
+            let constructor = std::mem::replace(expr, CoreExpr::Atom("Unit".to_string()));
+            *expr = CoreExpr::Cast {
+                expr: Box::new(constructor),
+                target_type: map_type.clone(),
+            };
+            Some(map_type)
         }
         CoreExpr::ListCons { head, tail } => {
             let head = specialize_expr(head, variables, functions, module);
@@ -150,7 +299,7 @@ pub(super) fn specialize_expr(
                 .collect::<Vec<_>>();
             if let Some(signature) = signature.as_ref() {
                 for (argument, expected) in args.iter_mut().zip(&signature.params) {
-                    specialize_expected_collection_new(argument, expected);
+                    specialize_expected_collection_new(argument, expected, functions, module);
                     annotate_expected_structural_constructors(argument, expected);
                 }
             }
@@ -215,6 +364,24 @@ pub(super) fn specialize_expr(
                     }
                 }
             }
+            if let Some(set) = argument_types.first().and_then(Option::as_ref) {
+                if set_element(set).is_some() {
+                    let name = function.rsplit('.').next().unwrap_or(function);
+                    if let Some(intrinsic) = set_receiver_intrinsic(name, args.len()) {
+                        let return_type = set_intrinsic_return_type(&intrinsic, set);
+                        *expr = CoreExpr::Intrinsic(CoreIntrinsicCall {
+                            id: CoreIntrinsicId::Primitive(intrinsic),
+                            args: std::mem::take(args),
+                            return_type: return_type.clone(),
+                            effects: CoreEffectSet {
+                                effects: Vec::new(),
+                            },
+                            span: crate::terlan_syntax::span::Span { start: 0, end: 0 },
+                        });
+                        return Some(return_type);
+                    }
+                }
+            }
             function_return_type(functions, module, function, args.len())
         }
         CoreExpr::RemoteCall {
@@ -231,25 +398,32 @@ pub(super) fn specialize_expr(
                 .collect::<Vec<_>>();
             if let Some(signature) = signature.as_ref() {
                 for (argument, expected) in args.iter_mut().zip(&signature.params) {
-                    specialize_expected_collection_new(argument, expected);
+                    specialize_expected_collection_new(argument, expected, functions, module);
                     annotate_expected_structural_constructors(argument, expected);
                 }
             }
             if owner.rsplit('.').next() == Some("__receiver__") {
                 if let Some(receiver) = argument_types.first().and_then(Option::as_ref) {
-                    if matches!(receiver, CoreType::String)
-                        && function == "is_empty"
-                        && args.len() == 1
-                    {
-                        let value = args
-                            .pop()
-                            .expect("string receiver call has one checked argument");
-                        *expr = CoreExpr::BinaryOp {
-                            operator: "==".to_string(),
-                            left: Box::new(value),
-                            right: Box::new(CoreExpr::Binary(String::new())),
-                        };
-                        return Some(CoreType::Bool);
+                    if matches!(receiver, CoreType::String) {
+                        if let Some(intrinsic) =
+                            crate::terlan_typeck::core_intrinsic_lowering::core_primitive_intrinsic(
+                                "std.core.String",
+                                function,
+                                args.len(),
+                            )
+                        {
+                            let return_type = core_primitive_intrinsic_return_type(&intrinsic);
+                            *expr = CoreExpr::Intrinsic(CoreIntrinsicCall {
+                                id: CoreIntrinsicId::Primitive(intrinsic),
+                                args: std::mem::take(args),
+                                return_type: return_type.clone(),
+                                effects: CoreEffectSet {
+                                    effects: Vec::new(),
+                                },
+                                span: crate::terlan_syntax::span::Span { start: 0, end: 0 },
+                            });
+                            return Some(return_type);
+                        }
                     } else if is_bitstring(receiver) {
                         if let Some(intrinsic) = bitstring_receiver_intrinsic(function, args.len())
                         {
@@ -282,6 +456,20 @@ pub(super) fn specialize_expr(
                     } else if map_elements(receiver).is_some() {
                         if let Some(intrinsic) = map_receiver_intrinsic(function, args.len()) {
                             let return_type = map_intrinsic_return_type(&intrinsic, receiver);
+                            *expr = CoreExpr::Intrinsic(CoreIntrinsicCall {
+                                id: CoreIntrinsicId::Primitive(intrinsic),
+                                args: std::mem::take(args),
+                                return_type: return_type.clone(),
+                                effects: CoreEffectSet {
+                                    effects: Vec::new(),
+                                },
+                                span: crate::terlan_syntax::span::Span { start: 0, end: 0 },
+                            });
+                            return Some(return_type);
+                        }
+                    } else if set_element(receiver).is_some() {
+                        if let Some(intrinsic) = set_receiver_intrinsic(function, args.len()) {
+                            let return_type = set_intrinsic_return_type(&intrinsic, receiver);
                             *expr = CoreExpr::Intrinsic(CoreIntrinsicCall {
                                 id: CoreIntrinsicId::Primitive(intrinsic),
                                 args: std::mem::take(args),
@@ -331,6 +519,25 @@ pub(super) fn specialize_expr(
                     }
                 }
             }
+            if owner == "std.collections.Set" {
+                if let Some(set) = argument_types.first().and_then(Option::as_ref) {
+                    if set_element(set).is_some() {
+                        if let Some(intrinsic) = set_receiver_intrinsic(function, args.len()) {
+                            let return_type = set_intrinsic_return_type(&intrinsic, set);
+                            *expr = CoreExpr::Intrinsic(CoreIntrinsicCall {
+                                id: CoreIntrinsicId::Primitive(intrinsic),
+                                args: std::mem::take(args),
+                                return_type: return_type.clone(),
+                                effects: CoreEffectSet {
+                                    effects: Vec::new(),
+                                },
+                                span: crate::terlan_syntax::span::Span { start: 0, end: 0 },
+                            });
+                            return Some(return_type);
+                        }
+                    }
+                }
+            }
             signature.map(|signature| signature.result)
         }
         CoreExpr::MutableReceiverCall {
@@ -348,9 +555,7 @@ pub(super) fn specialize_expr(
                 .as_ref()
                 .filter(|ty| map_elements(ty).is_some())
             {
-                let Some(intrinsic) = map_receiver_intrinsic(method, arity) else {
-                    return None;
-                };
+                let intrinsic = map_receiver_intrinsic(method, arity)?;
                 let mut operands = Vec::with_capacity(arity);
                 operands.push((**receiver).clone());
                 operands.append(args);
@@ -363,12 +568,25 @@ pub(super) fn specialize_expr(
                 });
                 return Some(map.clone());
             }
-            let Some(list) = receiver_type.as_ref().and_then(|ty| list_element(ty)) else {
-                return None;
-            };
-            let Some(intrinsic) = list_receiver_intrinsic(method, arity) else {
-                return None;
-            };
+            if let Some(set) = receiver_type
+                .as_ref()
+                .filter(|ty| set_element(ty).is_some())
+            {
+                let intrinsic = set_receiver_intrinsic(method, arity)?;
+                let mut operands = Vec::with_capacity(arity);
+                operands.push((**receiver).clone());
+                operands.append(args);
+                *expr = CoreExpr::Intrinsic(CoreIntrinsicCall {
+                    id: CoreIntrinsicId::Primitive(intrinsic),
+                    args: operands,
+                    return_type: set.clone(),
+                    effects: effects.clone(),
+                    span: crate::terlan_syntax::span::Span { start: 0, end: 0 },
+                });
+                return Some(set.clone());
+            }
+            let list = receiver_type.as_ref().and_then(|ty| list_element(ty))?;
+            let intrinsic = list_receiver_intrinsic(method, arity)?;
             let return_type = list_intrinsic_return_type(list, &intrinsic);
             let mut operands = Vec::with_capacity(arity);
             operands.push((**receiver).clone());
@@ -389,6 +607,19 @@ pub(super) fn specialize_expr(
                 .map(|argument| specialize_expr(argument, variables, functions, module))
                 .collect::<Vec<_>>();
             if let CoreIntrinsicId::Primitive(intrinsic) = &call.id {
+                if *intrinsic == CorePrimitiveIntrinsic::SetNew
+                    && set_element(&call.return_type).is_some_and(is_dynamic_type)
+                {
+                    // An unconstrained empty set has no observable element
+                    // representation. Give it the zero-sized Unit witness so
+                    // direct AOT retains a closed schema without inventing a
+                    // dynamic managed-field ABI. Any typed consumer or later
+                    // mutation has already retargeted SetNew above.
+                    call.return_type = CoreType::Apply {
+                        constructor: "Set".to_string(),
+                        args: vec![CoreType::Named("Unit".to_string())],
+                    };
+                }
                 if let Some(list) = argument_types.first().and_then(Option::as_ref) {
                     if let Some(element) = list_element(list) {
                         call.return_type = match intrinsic {
@@ -410,6 +641,12 @@ pub(super) fn specialize_expr(
                                     args: vec![key.clone(), value.clone()],
                                 };
                             }
+                        }
+                        if *intrinsic == CorePrimitiveIntrinsic::SetFromList {
+                            call.return_type = CoreType::Apply {
+                                constructor: "Set".to_string(),
+                                args: vec![element.clone()],
+                            };
                         }
                     }
                 }
@@ -433,6 +670,23 @@ pub(super) fn specialize_expr(
                             CorePrimitiveIntrinsic::MapPut
                             | CorePrimitiveIntrinsic::MapRemove
                             | CorePrimitiveIntrinsic::MapClear => map.clone(),
+                            _ => call.return_type.clone(),
+                        };
+                    }
+                }
+                if let Some(set) = argument_types.first().and_then(Option::as_ref) {
+                    if let Some(element) = set_element(set) {
+                        call.return_type = match intrinsic {
+                            CorePrimitiveIntrinsic::SetIsEmpty
+                            | CorePrimitiveIntrinsic::SetContains => CoreType::Bool,
+                            CorePrimitiveIntrinsic::SetSize => CoreType::Int,
+                            CorePrimitiveIntrinsic::SetIterator => CoreType::Apply {
+                                constructor: "Iterator".to_string(),
+                                args: vec![element.clone()],
+                            },
+                            CorePrimitiveIntrinsic::SetAdd
+                            | CorePrimitiveIntrinsic::SetRemove
+                            | CorePrimitiveIntrinsic::SetClear => set.clone(),
                             _ => call.return_type.clone(),
                         };
                     }
@@ -493,11 +747,11 @@ pub(super) fn specialize_expr(
                     CoreExpr::Call { .. } | CoreExpr::Tuple(_)
                 ) {
                     let call =
-                        std::mem::replace(scrutinee, Box::new(CoreExpr::Atom("Unit".to_string())));
-                    *scrutinee = Box::new(CoreExpr::Cast {
-                        expr: call,
+                        std::mem::replace(scrutinee.as_mut(), CoreExpr::Atom("Unit".to_string()));
+                    **scrutinee = CoreExpr::Cast {
+                        expr: Box::new(call),
                         target_type: ty.clone(),
-                    });
+                    };
                 }
             }
             let mut result = None;
@@ -539,6 +793,12 @@ pub(super) fn specialize_expr(
         } => {
             let left_type = specialize_expr(left, variables, functions, module);
             let right_type = specialize_expr(right, variables, functions, module);
+            if operator == ".." {
+                return Some(CoreType::Named("std.range.Range.Range".to_string()));
+            }
+            if operator == "in" {
+                return Some(CoreType::Bool);
+            }
             if matches!(operator.as_str(), "==" | "!=") {
                 if let Some(expected) = right_type.as_ref() {
                     annotate_expected_structural_constructors(left, expected);
@@ -549,7 +809,7 @@ pub(super) fn specialize_expr(
             }
             if matches!(
                 operator.as_str(),
-                "==" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "&&" | "or" | "||"
+                "==" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "or"
             ) {
                 Some(CoreType::Bool)
             } else {
@@ -598,6 +858,15 @@ fn functionalize_collection_receiver_binding(
                     | CorePrimitiveIntrinsic::MapClear
             )
         )
+    } else if set_element(receiver_type).is_some() {
+        matches!(
+            set_receiver_intrinsic(method, arity),
+            Some(
+                CorePrimitiveIntrinsic::SetAdd
+                    | CorePrimitiveIntrinsic::SetRemove
+                    | CorePrimitiveIntrinsic::SetClear
+            )
+        )
     } else if list_element(receiver_type).is_some() {
         matches!(
             list_receiver_intrinsic(method, arity),
@@ -618,340 +887,6 @@ fn functionalize_collection_receiver_binding(
     ))
 }
 
-fn is_std_list_constructor(constructor: &str, identity: Option<&str>) -> bool {
-    constructor == "std.collections.List.List"
-        || identity.is_some_and(|identity| {
-            identity == "std.collections.List.List"
-                || identity.starts_with("std.collections.List.List/")
-        })
-}
+mod support;
 
-include!("collection_intrinsic_specialization/support.rs");
-
-fn option_element(ty: &CoreType) -> Option<&CoreType> {
-    match ty {
-        CoreType::Apply { constructor, args }
-            if constructor.rsplit('.').next() == Some("Option") && args.len() == 1 =>
-        {
-            Some(&args[0])
-        }
-        CoreType::Union(variants)
-            if variants.iter().any(
-                |variant| matches!(variant, CoreType::AtomLiteral(atom) if atom == "none"),
-            ) =>
-        {
-            variants.iter().find_map(|variant| {
-                let CoreType::Tuple(elements) = variant else {
-                    return None;
-                };
-                let [tag, value] = elements.as_slice() else {
-                    return None;
-                };
-                matches!(tuple_element_type(tag), CoreType::AtomLiteral(atom) if atom == "some")
-                    .then(|| tuple_element_type(value))
-            })
-        }
-        _ => None,
-    }
-}
-
-fn tuple_elements(ty: &CoreType) -> Option<(&CoreType, &CoreType)> {
-    let CoreType::Tuple(elements) = ty else {
-        return None;
-    };
-    let [left, right] = elements.as_slice() else {
-        return None;
-    };
-    Some((tuple_element_type(left), tuple_element_type(right)))
-}
-
-fn tuple_element_type(element: &crate::terlan_typeck::CoreTupleTypeElem) -> &CoreType {
-    match element {
-        crate::terlan_typeck::CoreTupleTypeElem::Type(ty)
-        | crate::terlan_typeck::CoreTupleTypeElem::Field { ty, .. } => ty,
-    }
-}
-
-fn map_elements(ty: &CoreType) -> Option<(&CoreType, &CoreType)> {
-    match ty {
-        CoreType::Apply { constructor, args }
-            if constructor.rsplit('.').next() == Some("Map") && args.len() == 2 =>
-        {
-            Some((&args[0], &args[1]))
-        }
-        _ => None,
-    }
-}
-
-fn option(element: CoreType) -> CoreType {
-    CoreType::Apply {
-        constructor: "Option".to_string(),
-        args: vec![element],
-    }
-}
-
-fn specialize_expected_collection_new(expr: &mut CoreExpr, expected: &CoreType) {
-    let CoreExpr::Intrinsic(call) = expr else {
-        return;
-    };
-    match call.id {
-        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapNew)
-            if map_elements(expected).is_some() =>
-        {
-            call.return_type = expected.clone();
-        }
-        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListNew)
-            if list_element(expected).is_some() =>
-        {
-            call.return_type = expected.clone();
-        }
-        _ => {}
-    }
-}
-
-fn specialize_collection_new_bindings(
-    bindings: &mut [CoreLetBinding],
-    body: &CoreExpr,
-    functions: &FunctionTypes,
-    module: &str,
-) {
-    for index in 0..bindings.len() {
-        let CorePattern::Var(name) = &bindings[index].pattern else {
-            continue;
-        };
-        let name = name.clone();
-        let inferred = bindings[index + 1..]
-            .iter()
-            .find_map(|binding| {
-                expected_call_argument_type(&name, &binding.value, functions, module)
-                    .or_else(|| infer_map_put(&name, &binding.value))
-            })
-            .or_else(|| expected_call_argument_type(&name, body, functions, module))
-            .or_else(|| infer_map_put(&name, body));
-        let Some(inferred) = inferred else {
-            continue;
-        };
-        if let CoreExpr::Intrinsic(call) = &mut bindings[index].value {
-            match call.id {
-                CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapNew)
-                    if map_elements(&inferred).is_some() =>
-                {
-                    call.return_type = inferred;
-                }
-                CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListNew)
-                    if list_element(&inferred).is_some() =>
-                {
-                    call.return_type = inferred;
-                }
-                _ => {}
-            }
-        }
-    }
-}
-
-fn expected_call_argument_type(
-    name: &str,
-    expr: &CoreExpr,
-    functions: &FunctionTypes,
-    module: &str,
-) -> Option<CoreType> {
-    let (signature, args) = match expr {
-        CoreExpr::Call { function, args } => (
-            function_signature(functions, module, function, args.len()),
-            args,
-        ),
-        CoreExpr::RemoteCall {
-            module: owner,
-            function,
-            args,
-        } => (
-            functions.get(&(owner.clone(), function.clone(), args.len())),
-            args,
-        ),
-        CoreExpr::Cast { expr, .. } => {
-            return expected_call_argument_type(name, expr, functions, module);
-        }
-        _ => return None,
-    };
-    let signature = signature?;
-    args.iter()
-        .zip(&signature.params)
-        .find_map(|(argument, expected)| {
-            matches!(argument, CoreExpr::Var(argument) if argument == name)
-                .then(|| expected.clone())
-        })
-}
-
-fn infer_map_put(name: &str, expr: &CoreExpr) -> Option<CoreType> {
-    match expr {
-        CoreExpr::MutableReceiverCall {
-            receiver,
-            method,
-            args,
-            ..
-        } if method == "put"
-            && matches!(receiver.as_ref(), CoreExpr::Var(receiver) if receiver == name) =>
-        {
-            let [key, value] = args.as_slice() else {
-                return None;
-            };
-            Some(CoreType::Apply {
-                constructor: "Map".to_string(),
-                args: vec![literal_type(key)?, literal_type(value)?],
-            })
-        }
-        CoreExpr::Let { bindings, body } => bindings
-            .iter()
-            .find_map(|binding| infer_map_put(name, &binding.value))
-            .or_else(|| infer_map_put(name, body)),
-        _ => None,
-    }
-}
-
-fn literal_type(expr: &CoreExpr) -> Option<CoreType> {
-    match expr {
-        CoreExpr::Int(_) => Some(CoreType::Int),
-        CoreExpr::Float(_) => Some(CoreType::Float),
-        CoreExpr::Binary(_) => Some(CoreType::String),
-        CoreExpr::Atom(value) if matches!(value.as_str(), "true" | "false") => Some(CoreType::Bool),
-        CoreExpr::Atom(_) => Some(CoreType::Atom),
-        _ => None,
-    }
-}
-
-fn map_receiver_intrinsic(method: &str, arity: usize) -> Option<CorePrimitiveIntrinsic> {
-    match (method, arity) {
-        ("is_empty", 1) => Some(CorePrimitiveIntrinsic::MapIsEmpty),
-        ("size", 1) => Some(CorePrimitiveIntrinsic::MapSize),
-        ("get", 2) => Some(CorePrimitiveIntrinsic::MapGet),
-        ("contains_key", 2) => Some(CorePrimitiveIntrinsic::MapContainsKey),
-        ("iterator", 1) => Some(CorePrimitiveIntrinsic::MapIterator),
-        ("put", 3) => Some(CorePrimitiveIntrinsic::MapPut),
-        ("remove", 2) => Some(CorePrimitiveIntrinsic::MapRemove),
-        ("clear", 1) => Some(CorePrimitiveIntrinsic::MapClear),
-        _ => None,
-    }
-}
-
-fn list_receiver_intrinsic(method: &str, arity: usize) -> Option<CorePrimitiveIntrinsic> {
-    match (method, arity) {
-        ("is_empty", 1) => Some(CorePrimitiveIntrinsic::ListIsEmpty),
-        ("length", 1) => Some(CorePrimitiveIntrinsic::ListLength),
-        ("first", 1) => Some(CorePrimitiveIntrinsic::ListFirst),
-        ("rest", 1) => Some(CorePrimitiveIntrinsic::ListRest),
-        ("iterator", 1) => Some(CorePrimitiveIntrinsic::ListIterator),
-        ("push", 2) => Some(CorePrimitiveIntrinsic::ListPush),
-        ("clear", 1) => Some(CorePrimitiveIntrinsic::ListClear),
-        _ => None,
-    }
-}
-
-fn bytes_receiver_intrinsic(method: &str, arity: usize) -> Option<CorePrimitiveIntrinsic> {
-    match (method, arity) {
-        ("to_list", 1) => Some(CorePrimitiveIntrinsic::VmBytesToList),
-        ("length", 1) => Some(CorePrimitiveIntrinsic::VmBytesLength),
-        ("slice", 3) => Some(CorePrimitiveIntrinsic::VmBytesSlice),
-        ("read_uint_be", 3) => Some(CorePrimitiveIntrinsic::VmBytesReadUintBe),
-        ("read_int_be", 3) => Some(CorePrimitiveIntrinsic::VmBytesReadIntBe),
-        ("read_uint_le", 3) => Some(CorePrimitiveIntrinsic::VmBytesReadUintLe),
-        ("read_int_le", 3) => Some(CorePrimitiveIntrinsic::VmBytesReadIntLe),
-        _ => None,
-    }
-}
-
-fn bitstring_receiver_intrinsic(method: &str, arity: usize) -> Option<CorePrimitiveIntrinsic> {
-    match (method, arity) {
-        ("to_utf8_scalar", 1) => Some(CorePrimitiveIntrinsic::VmBitStringToUtf8Scalar),
-        ("to_utf16_be_scalar", 1) => Some(CorePrimitiveIntrinsic::VmBitStringToUtf16BeScalar),
-        ("to_utf16_le_scalar", 1) => Some(CorePrimitiveIntrinsic::VmBitStringToUtf16LeScalar),
-        ("to_utf32_be_scalar", 1) => Some(CorePrimitiveIntrinsic::VmBitStringToUtf32BeScalar),
-        ("to_utf32_le_scalar", 1) => Some(CorePrimitiveIntrinsic::VmBitStringToUtf32LeScalar),
-        ("bit_length", 1) => Some(CorePrimitiveIntrinsic::VmBitStringBitLength),
-        ("byte_length", 1) => Some(CorePrimitiveIntrinsic::VmBitStringByteLength),
-        ("is_byte_aligned", 1) => Some(CorePrimitiveIntrinsic::VmBitStringIsByteAligned),
-        ("slice", 3) => Some(CorePrimitiveIntrinsic::VmBitStringSlice),
-        ("concat", 2) => Some(CorePrimitiveIntrinsic::VmBitStringConcat),
-        ("to_bytes", 1) => Some(CorePrimitiveIntrinsic::VmBitStringToBytes),
-        ("to_uint_be", 1) => Some(CorePrimitiveIntrinsic::VmBitStringToUintBe),
-        ("to_int_be", 1) => Some(CorePrimitiveIntrinsic::VmBitStringToIntBe),
-        ("to_uint_le", 1) => Some(CorePrimitiveIntrinsic::VmBitStringToUintLe),
-        ("to_int_le", 1) => Some(CorePrimitiveIntrinsic::VmBitStringToIntLe),
-        _ => None,
-    }
-}
-
-fn bitstring_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) -> CoreType {
-    match intrinsic {
-        CorePrimitiveIntrinsic::VmBitStringBitLength
-        | CorePrimitiveIntrinsic::VmBitStringByteLength
-        | CorePrimitiveIntrinsic::VmBitStringToUtf8Scalar
-        | CorePrimitiveIntrinsic::VmBitStringToUtf16BeScalar
-        | CorePrimitiveIntrinsic::VmBitStringToUtf16LeScalar
-        | CorePrimitiveIntrinsic::VmBitStringToUtf32BeScalar
-        | CorePrimitiveIntrinsic::VmBitStringToUtf32LeScalar
-        | CorePrimitiveIntrinsic::VmBitStringToUintBe
-        | CorePrimitiveIntrinsic::VmBitStringToIntBe
-        | CorePrimitiveIntrinsic::VmBitStringToUintLe
-        | CorePrimitiveIntrinsic::VmBitStringToIntLe => CoreType::Int,
-        CorePrimitiveIntrinsic::VmBitStringIsByteAligned => CoreType::Bool,
-        CorePrimitiveIntrinsic::VmBitStringToBytes => CoreType::Named("Bytes".to_string()),
-        _ => CoreType::Named("BitString".to_string()),
-    }
-}
-
-fn bytes_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) -> CoreType {
-    match intrinsic {
-        CorePrimitiveIntrinsic::VmBytesToList => CoreType::List(Box::new(CoreType::Int)),
-        CorePrimitiveIntrinsic::VmBytesLength
-        | CorePrimitiveIntrinsic::VmBytesReadUintBe
-        | CorePrimitiveIntrinsic::VmBytesReadIntBe
-        | CorePrimitiveIntrinsic::VmBytesReadUintLe
-        | CorePrimitiveIntrinsic::VmBytesReadIntLe => CoreType::Int,
-        _ => CoreType::Named("Bytes".to_string()),
-    }
-}
-
-pub(super) fn list_intrinsic_return_type(
-    element: &CoreType,
-    intrinsic: &CorePrimitiveIntrinsic,
-) -> CoreType {
-    match intrinsic {
-        CorePrimitiveIntrinsic::ListIsEmpty => CoreType::Bool,
-        CorePrimitiveIntrinsic::ListLength => CoreType::Int,
-        CorePrimitiveIntrinsic::ListGet => element.clone(),
-        CorePrimitiveIntrinsic::ListFirst => CoreType::Apply {
-            constructor: "Option".to_string(),
-            args: vec![element.clone()],
-        },
-        CorePrimitiveIntrinsic::ListRest => CoreType::Apply {
-            constructor: "Option".to_string(),
-            args: vec![CoreType::List(Box::new(element.clone()))],
-        },
-        CorePrimitiveIntrinsic::ListIterator => CoreType::Apply {
-            constructor: "Iterator".to_string(),
-            args: vec![element.clone()],
-        },
-        _ => CoreType::List(Box::new(element.clone())),
-    }
-}
-
-fn map_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic, map: &CoreType) -> CoreType {
-    let Some((key, value)) = map_elements(map) else {
-        return map.clone();
-    };
-    match intrinsic {
-        CorePrimitiveIntrinsic::MapIsEmpty | CorePrimitiveIntrinsic::MapContainsKey => {
-            CoreType::Bool
-        }
-        CorePrimitiveIntrinsic::MapSize => CoreType::Int,
-        CorePrimitiveIntrinsic::MapGet => option(value.clone()),
-        CorePrimitiveIntrinsic::MapIterator => CoreType::Apply {
-            constructor: "Iterator".to_string(),
-            args: vec![CoreType::Tuple(vec![
-                crate::terlan_typeck::CoreTupleTypeElem::Type(key.clone()),
-                crate::terlan_typeck::CoreTupleTypeElem::Type(value.clone()),
-            ])],
-        },
-        _ => map.clone(),
-    }
-}
+use support::*;

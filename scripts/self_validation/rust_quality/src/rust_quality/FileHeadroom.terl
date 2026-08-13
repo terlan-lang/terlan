@@ -1,0 +1,582 @@
+/**
+ * Keeps handwritten Rust sources away from their hard source and test size
+ * ceilings with reviewed, expiring no-growth schedules.
+ */
+module rust_quality.FileHeadroom.
+
+import rust_quality.SourceInventory.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.io.Console.{eprintln, println}.
+import std.io.File.
+
+import type rust_quality.SourceInventory.RustSource.
+import type std.core.Option.
+
+struct HeadroomRow {
+    valid: Bool,
+    path: String,
+    category: String,
+    recorded_lines: Int,
+    headroom_limit: Int,
+    hard_limit: Int,
+    owner: String,
+    milestone: String,
+}.
+
+struct InventoryParse {
+    valid_header: Bool,
+    rows: List[HeadroomRow],
+}.
+
+struct RowsLoad {
+    valid: Bool,
+    rows: List[HeadroomRow],
+    message: String,
+}.
+
+@pure
+header(): String -> "path\tcategory\trecorded_lines\theadroom_limit\thard_limit\towner\tmilestone".
+
+@pure
+milestone(): String -> "0.0.8".
+
+@pure
+target_rows(): Int -> 65.
+
+@pure
+headroom_limit(category: String): Int ->
+    if {
+        category == "implementation" -> 900;
+        category == "test" -> 1800;
+        true -> 0
+    }.
+
+@pure
+owner_parts(parts: List[String]): String ->
+    case parts {
+        [] -> "test-structure";
+        ["src" | rest] ->
+            let {
+                [owner | tail] <- rest;
+                [_next | _remaining] <- tail
+            } else {
+                _ -> "test-structure"
+            };
+            String.append(owner, "-structure");
+        [_part | rest] ->
+            let selected = owner_parts(rest);
+            String.append("", selected)
+    }.
+
+@pure
+owner(path: String): String ->
+    owner_parts(String.split(path, "/")).
+
+@pure
+actual_row(source: RustSource): HeadroomRow ->
+    HeadroomRow(
+        valid = true,
+        path = source.path,
+        category = source.category,
+        recorded_lines = source.physical_lines,
+        headroom_limit = headroom_limit(source.category),
+        hard_limit = source.line_limit,
+        owner = owner(source.path),
+        milestone = milestone(),
+    ).
+
+@pure
+insert_actual_row(row: HeadroomRow, rows: List[HeadroomRow]): List[HeadroomRow] ->
+    case rows {
+        [] -> List[HeadroomRow](row);
+        [head | rest] ->
+            if {
+                String.compare(row.path, head.path) == Lt -> [row | rows];
+                true -> [head | insert_actual_row(row, rest)]
+            }
+    }.
+
+@pure
+actual_rows_at(sources: List[RustSource], output: List[HeadroomRow]): List[HeadroomRow] ->
+    case sources {
+        [] -> output;
+        [source | rest] ->
+            let warning = headroom_limit(source.category);
+            if {
+                warning == 0 or source.physical_lines < warning -> actual_rows_at(rest, output);
+                true -> actual_rows_at(rest, insert_actual_row(actual_row(source), output))
+            }
+    }.
+
+@pure
+actual_rows(sources: List[RustSource]): List[HeadroomRow] ->
+    actual_rows_at(sources, List.new[HeadroomRow]()).
+
+load_rows_at(root: String, paths: List[String], output: List[HeadroomRow]): RowsLoad ->
+    case paths {
+        [] -> RowsLoad(valid = true, rows = output, message = "");
+        _ ->
+            let batch = SourceInventory.load_next(root, paths);
+            if {
+                not batch.valid -> RowsLoad(valid = false, rows = List.new[HeadroomRow](), message = batch.message);
+                true -> load_rows_at(root, batch.remaining, actual_rows_at(batch.sources, output))
+            }
+    }.
+
+load_rows(root: String): RowsLoad ->
+    let discovered = SourceInventory.discover(root);
+    if {
+        not discovered.valid -> RowsLoad(valid = false, rows = List.new[HeadroomRow](), message = discovered.message);
+        true -> load_rows_at(root, discovered.paths, List.new[HeadroomRow]())
+    }.
+
+@pure
+parse_row(fields: List[String]): HeadroomRow ->
+    case fields {
+        [path, category, recorded, warning, hard, row_owner, row_milestone] ->
+            let {
+                Some(recorded_lines) <- Int.from_string(recorded);
+                Some(headroom) <- Int.from_string(warning);
+                Some(hard_limit) <- Int.from_string(hard)
+            } else {
+                _ ->
+                    HeadroomRow(
+                        valid = false,
+                        path = path,
+                        category = category,
+                        recorded_lines = 0,
+                        headroom_limit = 0,
+                        hard_limit = 0,
+                        owner = row_owner,
+                        milestone = row_milestone,
+                    )
+            };
+            HeadroomRow(
+                valid = true,
+                path = path,
+                category = category,
+                recorded_lines = recorded_lines,
+                headroom_limit = headroom,
+                hard_limit = hard_limit,
+                owner = row_owner,
+                milestone = row_milestone,
+            );
+        [path | _rest] ->
+            HeadroomRow(
+                valid = false,
+                path = path,
+                category = "",
+                recorded_lines = 0,
+                headroom_limit = 0,
+                hard_limit = 0,
+                owner = "",
+                milestone = "",
+            );
+        [] ->
+            HeadroomRow(
+                valid = false,
+                path = "<empty>",
+                category = "",
+                recorded_lines = 0,
+                headroom_limit = 0,
+                hard_limit = 0,
+                owner = "",
+                milestone = "",
+            )
+    }.
+
+@pure
+parse_rows_at(lines: List[String], output: List[HeadroomRow]): List[HeadroomRow] ->
+    case lines {
+        [] -> output;
+        [""] -> output;
+        [line | rest] -> parse_rows_at(rest, [parse_row(String.split(line, "\t")) | output])
+    }.
+
+@pure
+parse_inventory(source: String): InventoryParse ->
+    case String.split(source, "\n") {
+        [] -> InventoryParse(valid_header = false, rows = List.new[HeadroomRow]());
+        [first | rest] ->
+            InventoryParse(
+                valid_header = first == header(),
+                rows = SourceInventory.reverse(parse_rows_at(rest, List.new[HeadroomRow]())),
+            )
+    }.
+
+@pure
+sorted_unique_at(rows: List[HeadroomRow], previous: String, first: Bool): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            if {
+                not first and String.compare(previous, row.path) != Lt -> false;
+                true -> sorted_unique_at(rest, row.path, false)
+            }
+    }.
+
+@pure
+find_row(path: String, rows: List[HeadroomRow]): Option[HeadroomRow] ->
+    case rows {
+        [] -> None;
+        [row | rest] ->
+            if {
+                row.path == path -> Some(row);
+                true -> find_row(path, rest)
+            }
+    }.
+
+@pure
+contains_path(path: String, rows: List[HeadroomRow]): Bool ->
+    case find_row(path, rows) {
+        Some(_row) -> true;
+        None -> false
+    }.
+
+@pure
+finding(output: List[String], message: String): List[String] ->
+    List.concat(output, [message]).
+
+@pure
+validate_checked_at(
+    checked: List[HeadroomRow],
+    actual: List[HeadroomRow],
+    output: List[String],
+): List[String] ->
+    case checked {
+        [] -> output;
+        [row | rest] ->
+            if {
+                not row.valid -> validate_checked_at(
+                    rest,
+                    actual,
+                    finding(output, String.concat([row.path, ": malformed headroom row"])),
+                );
+                row.milestone != milestone() -> let _found =
+                    finding(
+                        output,
+                        String.concat(
+                            [row.path, ": headroom schedule must expire at ", milestone()],
+                        ),
+                    );
+                validate_checked_at(rest, actual, _found);
+                row.owner == "" -> let _found =
+                    finding(
+                        output,
+                        String.concat([row.path, ": headroom schedule requires an owner"]),
+                    );
+                validate_checked_at(rest, actual, _found);
+                true -> case find_row(row.path, actual) {
+                    None ->
+                        validate_checked_at(
+                            rest,
+                            actual,
+                            finding(
+                                output,
+                                String.concat(
+                                    [
+                                        row.path,
+                                        ": obsolete headroom row or file moved below its warning limit",
+                                    ],
+                                ),
+                            ),
+                        );
+                    Some(current) ->
+                        if {
+                            current.category != row.category
+                                or current.headroom_limit != row.headroom_limit
+                                or current.hard_limit != row.hard_limit -> validate_checked_at(
+                                rest,
+                                actual,
+                                finding(
+                                    output,
+                                    String.concat([row.path, ": category or size policy drifted"]),
+                                ),
+                            );
+                            current.recorded_lines > row.recorded_lines -> validate_checked_at(
+                                rest,
+                                actual,
+                                finding(
+                                    output,
+                                    String.concat(
+                                        [
+                                            row.path,
+                                            ": grew from ",
+                                            Int.to_string(row.recorded_lines),
+                                            " to ",
+                                            Int.to_string(current.recorded_lines),
+                                            " lines inside the headroom band",
+                                        ],
+                                    ),
+                                ),
+                            );
+                            current.recorded_lines < row.recorded_lines -> validate_checked_at(
+                                rest,
+                                actual,
+                                finding(
+                                    output,
+                                    String.concat(
+                                        [
+                                            row.path,
+                                            ": shrank from ",
+                                            Int.to_string(row.recorded_lines),
+                                            " to ",
+                                            Int.to_string(current.recorded_lines),
+                                            " lines; record the lower no-growth ceiling",
+                                        ],
+                                    ),
+                                ),
+                            );
+                            true -> validate_checked_at(rest, actual, output)
+                        }
+                }
+            }
+    }.
+
+@pure
+new_actual_at(
+    actual: List[HeadroomRow],
+    checked: List[HeadroomRow],
+    output: List[String],
+): List[String] ->
+    case actual {
+        [] -> output;
+        [row | rest] ->
+            if {
+                contains_path(row.path, checked) -> new_actual_at(rest, checked, output);
+                true -> new_actual_at(
+                    rest,
+                    checked,
+                    finding(
+                        output,
+                        String.concat(
+                            [
+                                row.path,
+                                ": entered the Rust file-headroom band at ",
+                                Int.to_string(row.recorded_lines),
+                                " lines without a reviewed split schedule",
+                            ],
+                        ),
+                    ),
+                )
+            }
+    }.
+
+@pure
+validate(
+    sources: List[RustSource],
+    checked: List[HeadroomRow],
+    enforce_milestone: Bool,
+): List[String] ->
+    if {
+        not sorted_unique_at(checked, "", true) -> ["Rust file-headroom rows must be unique and sorted by path"];
+        true -> let current = actual_rows(sources);
+        let output = validate_checked_at(checked, current, List.new[String]());
+        let with_new = new_actual_at(current, checked, output);
+        if {
+            enforce_milestone and List.length(checked) > target_rows() -> finding(
+                with_new,
+                String.concat(
+                    [
+                        milestone(),
+                        " headroom target ",
+                        Int.to_string(target_rows()),
+                        " files not met (actual ",
+                        Int.to_string(List.length(checked)),
+                        ")",
+                    ],
+                ),
+            );
+            true -> with_new
+        }
+    }.
+
+@pure
+validate_rows(
+    current: List[HeadroomRow],
+    checked: List[HeadroomRow],
+    enforce_milestone: Bool,
+): List[String] ->
+    if {
+        not sorted_unique_at(checked, "", true) -> ["Rust file-headroom rows must be unique and sorted by path"];
+        true -> let output = validate_checked_at(checked, current, List.new[String]());
+        let with_new = new_actual_at(current, checked, output);
+        if {
+            enforce_milestone and List.length(checked) > target_rows() -> finding(
+                with_new,
+                String.concat(
+                    [
+                        milestone(),
+                        " headroom target ",
+                        Int.to_string(target_rows()),
+                        " files not met (actual ",
+                        Int.to_string(List.length(checked)),
+                        ")",
+                    ],
+                ),
+            );
+            true -> with_new
+        }
+    }.
+
+@pure
+row_text(row: HeadroomRow): String ->
+    String.concat(
+        [
+            row.path,
+            "\t",
+            row.category,
+            "\t",
+            Int.to_string(row.recorded_lines),
+            "\t",
+            Int.to_string(row.headroom_limit),
+            "\t",
+            Int.to_string(row.hard_limit),
+            "\t",
+            row.owner,
+            "\t",
+            row.milestone,
+            "\n",
+        ],
+    ).
+
+@pure
+render_rows_at(rows: List[HeadroomRow], fragments: List[String]): String ->
+    case rows {
+        [] -> String.concat(SourceInventory.reverse(fragments));
+        [row | rest] -> render_rows_at(rest, [row_text(row) | fragments])
+    }.
+
+@pure
+render_inventory(rows: List[HeadroomRow]): String ->
+    String.append(String.append(header(), "\n"), render_rows_at(rows, List.new[String]())).
+
+print_findings(findings: List[String]): Bool ->
+    case findings {
+        [] -> false;
+        [message | rest] ->
+            let _printed = eprintln(String.concat(["  - ", message]));
+            print_findings(rest)
+    }.
+
+pub record(root: String): Bool ->
+    let loaded = load_rows(root);
+    if {
+        not loaded.valid -> let _printed = eprintln(String.concat(["Rust file headroom failed: ", loaded.message]));
+        false;
+        true -> let rendered = render_inventory(loaded.rows);
+        let count = List.length(loaded.rows);
+        case File.write_text(SourceInventory.child(root, "docs/quality/RUST_FILE_HEADROOM.tsv"), rendered) {
+            Ok(_unit) ->
+                let _printed =
+                    println(
+                        String.concat(["Recorded ", Int.to_string(count), " Rust headroom rows"]),
+                    );
+                true;
+            Err(reason) ->
+                let _printed = eprintln(String.concat(["Rust file headroom failed: ", File.message(reason)]));
+                false
+        }
+    }.
+
+pub check(root: String, enforce_milestone: Bool): Bool ->
+    let loaded = load_rows(root);
+    if {
+        not loaded.valid -> let _printed = eprintln(String.concat(["Rust file headroom failed: ", loaded.message]));
+        false;
+        true -> case File.read_text(SourceInventory.child(root, "docs/quality/RUST_FILE_HEADROOM.tsv")) {
+            Err(reason) ->
+                let _printed = eprintln(String.concat(["Rust file headroom failed: ", File.message(reason)]));
+                false;
+            Ok(source) ->
+                let parsed = parse_inventory(source);
+                if {
+                    not parsed.valid_header -> let _printed = eprintln("Rust file headroom failed: invalid inventory header");
+                    false;
+                    true -> let findings = validate_rows(loaded.rows, parsed.rows, enforce_milestone);
+                    if {
+                        List.length(findings) == 0 -> let _printed =
+                            println(
+                                String.concat(
+                                    [
+                                        "Rust file headroom passed: ",
+                                        Int.to_string(List.length(parsed.rows)),
+                                        " near-limit files have no-growth split schedules",
+                                    ],
+                                ),
+                            );
+                        true;
+                        true -> let _printed = eprintln("Rust file headroom failed:");
+                        print_findings(findings)
+                    }
+                }
+        }
+    }.
+
+@pure
+contains(findings: List[String], expected: String): Bool ->
+    case findings {
+        [] -> false;
+        [value | rest] -> String.contains(value, expected) or contains(rest, expected)
+    }.
+
+@pure
+synthetic(path: String, lines: Int): RustSource ->
+    SourceInventory.fixture_source(path, "", "implementation", lines, 999).
+
+@pure
+many_sources_at(index: Int, count: Int, output: List[RustSource]): List[RustSource] ->
+    if {
+        index == count -> SourceInventory.reverse(output);
+        true -> many_sources_at(
+            index + 1,
+            count,
+            [synthetic(String.concat(["crates/x/src/compiler/large_", Int.to_string(index), ".rs"]), 950) | output],
+        )
+    }.
+
+pub self_test(): Bool ->
+    let sources = List[RustSource](synthetic("crates/x/src/compiler/large.rs", 950));
+    let rows = actual_rows(sources);
+    let clean = List.length(validate(sources, rows, false)) == 0;
+    let grown =
+        contains(
+            validate(
+                List[RustSource](synthetic("crates/x/src/compiler/large.rs", 951)),
+                rows,
+                false,
+            ),
+            "grew from 950 to 951",
+        );
+    let entered = contains(validate(sources, List.new[HeadroomRow](), false), "entered");
+    let many_sources = many_sources_at(0, target_rows() + 1, List.new[RustSource]());
+    let target = contains(validate(many_sources, actual_rows(many_sources), true), "headroom target");
+    if {
+        not clean -> let _printed =
+            eprintln(
+                "error[rust_quality.file_headroom.self_test.clean]: matching inventory was rejected",
+            );
+        false;
+        not grown -> let _printed =
+            eprintln(
+                "error[rust_quality.file_headroom.self_test.growth]: warning-band growth was accepted",
+            );
+        false;
+        not entered -> let _printed =
+            eprintln(
+                "error[rust_quality.file_headroom.self_test.entry]: new warning-band file was accepted",
+            );
+        false;
+        not target -> let _printed =
+            eprintln(
+                "error[rust_quality.file_headroom.self_test.milestone]: excess milestone rows were accepted",
+            );
+        false;
+        true;
+        true -> let _printed = println("Rust file-headroom self-test passed");
+        true
+    }.

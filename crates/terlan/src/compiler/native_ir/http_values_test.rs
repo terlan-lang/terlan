@@ -127,7 +127,7 @@ fn complete_http_managed_boundary_inventory_is_closed_and_decodable() {
     for (canonical, count) in [
         ("Named(Request)", 1),
         ("Named(Jar)", 1),
-        ("Option[String]", 2),
+        ("Apply(Option;String)", 2),
         ("Named(Json)", 1),
         ("Named(Error)", 1),
         ("Apply(Result;Named(Json),Named(Error))", 2),
@@ -187,7 +187,7 @@ fn request_accessors_lower_to_checked_managed_operations() {
             2,
             NativeType::ManagedRef(
                 crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                    "Option[String]",
+                    "Apply(Option;String)",
                 )
                 .expect("option semantic"),
             ),
@@ -197,7 +197,7 @@ fn request_accessors_lower_to_checked_managed_operations() {
             2,
             NativeType::ManagedRef(
                 crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                    "Option[String]",
+                    "Apply(Option;String)",
                 )
                 .expect("option semantic"),
             ),
@@ -207,7 +207,7 @@ fn request_accessors_lower_to_checked_managed_operations() {
             2,
             NativeType::ManagedRef(
                 crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                    "Option[String]",
+                    "Apply(Option;String)",
                 )
                 .expect("option semantic"),
             ),
@@ -217,7 +217,7 @@ fn request_accessors_lower_to_checked_managed_operations() {
             2,
             NativeType::ManagedRef(
                 crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                    "Option[String]",
+                    "Apply(Option;String)",
                 )
                 .expect("option semantic"),
             ),
@@ -527,6 +527,25 @@ fn response_status_headers_and_raw_cookies_lower_to_persistent_operations() {
     }
 }
 
+/// Canonical selected-import resolution may retain the response-qualified
+/// function identity while making the receiver the first argument. That typed
+/// spelling must use the same managed operation as a receiver expression.
+#[test]
+fn module_owned_response_method_lowers_to_persistent_operation() {
+    let mut core = http_core();
+    *body(&mut core) = CoreExpr::Call {
+        function: "std.http.Response.with_status".to_string(),
+        args: vec![CoreExpr::Var("response".to_string()), CoreExpr::Int(204)],
+    };
+
+    lower_http_values(&mut core).expect("lower module-owned response method");
+    assert!(matches!(
+        body(&mut core),
+        CoreExpr::RemoteCall { module, function, .. }
+            if module == "$terlan.managed.http" && function == "response_status"
+    ));
+}
+
 /// Verifies the complete session surface becomes managed operations.
 #[test]
 fn session_calls_lower_to_vm_owned_managed_operations() {
@@ -635,7 +654,7 @@ fn session_import_installs_complete_managed_boundary_metadata() {
         "Named(Session)",
         "Named(Request)",
         "Named(Response)",
-        "Option[String]",
+        "Apply(Option;String)",
     ] {
         assert!(semantics
             .contains(&SemanticTypeId::from_canonical(canonical).expect("expected semantic")));

@@ -5,9 +5,10 @@ use crate::terlan_syntax::{
     parse_module_as_syntax_output, SyntaxDeclarationPayload, SyntaxExprKind, SyntaxExprOutput,
 };
 
+#[cfg(test)]
+use crate::commands::build::js::JsModuleArtifact;
 use crate::commands::web_route::{route_ambiguity_key, route_param_types, validate_route_pattern};
 
-use super::super::js::JsModuleArtifact;
 use super::manifest::{
     WebErrorHandlerArtifact, WebFileResponseArtifact, WebHandlerArtifact, WebSocketArtifact,
     WebSseArtifact, WebStaticResponseArtifact,
@@ -18,16 +19,19 @@ mod helpers;
 mod responses;
 mod validation;
 
+#[cfg(test)]
+use validation::validate_discovered_web_handler_routes;
 use validation::{
-    apply_router_handler_arities, validate_discovered_web_handler_routes,
-    validate_discovered_web_routes, validate_router_error_handler, validate_router_handler_rows,
-    validate_router_middleware, validate_router_response_middleware,
+    apply_router_handler_arities, validate_discovered_web_routes, validate_router_error_handler,
+    validate_router_handler_rows, validate_router_middleware, validate_router_response_middleware,
 };
 
+#[cfg(test)]
+use helpers::prefixed_router_route;
 use helpers::{
     is_http_error_type, is_middleware_result_type, is_request_type, is_response_type,
-    is_router_builder_receiver, prefix_web_route_manifest_rows, prefixed_router_route,
-    route_source_context, router_group_body_expr, router_handler_name, router_middleware_from_expr,
+    is_router_builder_receiver, prefix_web_route_manifest_rows, route_source_context,
+    router_group_body_expr, router_handler_name, router_middleware_from_expr,
     router_receiver_method_name, router_response_middleware_from_expr, router_route_literal,
     source_span_for_expr, WebRouteSourceContext,
 };
@@ -128,7 +132,7 @@ pub(super) fn discover_web_route_manifest_from_sources(
 /// - Reparses source modules, finds `router` functions, and extracts direct
 ///   `Router.get/post/put/patch/delete/head/options/fallback` calls from their
 ///   body.
-#[allow(dead_code)]
+#[cfg(test)]
 pub(super) fn discover_web_handlers_from_modules(
     modules: &[JsModuleArtifact],
 ) -> Result<Vec<WebHandlerArtifact>, String> {
@@ -151,7 +155,7 @@ pub(super) fn discover_web_handlers_from_modules(
 /// Transformation:
 /// - Reparses route sources and extracts dynamic route rows without depending
 ///   on browser JavaScript artifacts.
-#[allow(dead_code)]
+#[cfg(test)]
 fn discover_web_handlers_from_sources(
     sources: &[WebRouteSourceArtifact],
 ) -> Result<Vec<WebHandlerArtifact>, String> {
@@ -207,7 +211,7 @@ fn discover_web_handlers_from_sources(
 /// Transformation:
 /// - Converts JS module artifacts to route-source artifacts before using the
 ///   route-source error-handler discovery path.
-#[allow(dead_code)]
+#[cfg(test)]
 pub(super) fn discover_web_error_handler_from_modules(
     modules: &[JsModuleArtifact],
 ) -> Result<Option<WebErrorHandlerArtifact>, String> {
@@ -655,7 +659,7 @@ fn router_sse_from_expr(
 /// Transformation:
 /// - Walks expression children and appends rows for recognized `Router.*`
 ///   calls, leaving unsupported route-builder forms for later diagnostics.
-#[allow(dead_code)]
+#[cfg(test)]
 fn collect_router_handlers_from_expr(
     module_name: &str,
     expr: &SyntaxExprOutput,
@@ -731,40 +735,10 @@ fn collect_router_error_handlers_from_expr(
     Ok(())
 }
 
-/// Validates handler rows before they enter the web manifest.
+/// Extracts a statically named router error handler from a router expression.
 ///
-/// Inputs:
-/// - `module_name`: Terlan module that owns the handler functions.
-/// - `handlers`: one or more rows produced from a router builder call.
-/// - `signatures`: local function signature map.
-///
-/// Output:
-/// - `Ok(())` when every handler target is a local `Request -> Response`
-///   function.
-/// - Stable error for missing, wrong-arity, wrong-request, or wrong-return
-///   handlers.
-///
-/// Transformation:
-/// - Checks only local function declarations; richer imported handler and
-///   higher-order handler validation remains future compiler work.
-
-/// Converts a constant response handler into a static manifest row.
-///
-/// Inputs:
-/// - `handler`: route row referencing a local handler function.
-/// - `signatures`: local function signatures and single-clause bodies.
-///
-/// Output:
-/// - Static response row for supported constant response builder bodies.
-/// - `None` for dynamic handlers or unsupported response builders.
-///
-/// Transformation:
-/// - Recognizes `Response.text("body", status = 200)` and
-///   `Response.html("body", status = 200)` without evaluating arbitrary code.
-/// Transformation:
-/// - Performs conservative textual recognition until route extraction is wired
-///   through the full resolved typechecker.
-///   generation remains deterministic before higher-order router values land.
+/// Returns `None` for dynamic or higher-order handlers so manifest generation
+/// remains deterministic until resolved route extraction owns those shapes.
 fn router_error_handler_from_expr(
     module_name: &str,
     expr: &SyntaxExprOutput,

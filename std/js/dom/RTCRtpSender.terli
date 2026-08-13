@@ -78,7 +78,7 @@ pub (value: RTCRtpSender) replace_track(with_track: Option[MediaStreamTrack]): P
  */
 pub (value: RTCRtpSender) set_parameters(
     parameters: RTCRtpSendParameters,
-    set_parameter_options: RTCSetParameterOptions
+    set_parameter_options: RTCSetParameterOptions,
 ): Promise[Unit].
 
 /**

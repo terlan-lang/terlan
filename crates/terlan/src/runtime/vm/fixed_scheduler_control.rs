@@ -47,7 +47,7 @@ impl VmFixedActorMigrationTicket {
     }
 
     /// Duplicates authority only so tests can prove stale-ticket rejection.
-    #[cfg(test)]
+    #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
     fn duplicate_for_test(&self) -> Self {
         Self {
             source: self.source,
@@ -104,6 +104,7 @@ impl<P> VmFixedSchedulerControl<P> {
     }
 
     /// Resolves the current scheduler route for one incoming actor identity.
+    #[cfg(test)]
     pub(crate) fn resolve_route(
         &self,
         actor_id: std::num::NonZeroU64,
@@ -148,6 +149,7 @@ impl<P> VmFixedSchedulerControl<P> {
     }
 
     /// Publishes one complete cross-thread payload through the MC-3 mailbox.
+    #[cfg(any(test, feature = "multicore-tsan-harness"))]
     pub(crate) fn publish(
         &self,
         route: VmFixedActorRoute,
@@ -171,7 +173,7 @@ impl<P> VmFixedSchedulerControl<P> {
     }
 
     /// Drains complete payloads under the receiver's exact execution lease.
-    #[allow(dead_code)] // Compatibility path for non-observability consumers.
+    #[cfg(any(test, feature = "multicore-tsan-harness"))]
     pub(crate) fn drain(&self, lease: &VmFixedActorLease) -> Result<Vec<P>, String> {
         self.drain_identified(lease)
             .map(|fragments| fragments.into_iter().map(|(_, payload)| payload).collect())
@@ -259,6 +261,7 @@ impl<P> VmFixedSchedulerControl<P> {
     }
 
     /// Restores the source route when transfer publication cannot complete.
+    #[cfg(test)]
     pub(crate) fn abort_migration(
         &self,
         ticket: VmFixedActorMigrationTicket,
@@ -362,7 +365,7 @@ impl<P> VmFixedSchedulerControl<P> {
     }
 
     /// Returns one actor lifecycle for diagnostics and tests.
-    #[cfg(test)]
+    #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
     pub(crate) fn lifecycle(&self, route: VmFixedActorRoute) -> Result<VmActorLifecycle, String> {
         let directory = self.read_directory("lifecycle")?;
         validate_route(&directory, route)?;
@@ -469,13 +472,26 @@ fn control_error(operation: &str, error: super::actor_directory::VmActorDirector
 }
 
 #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
+#[cfg(test)]
 #[path = "fixed_scheduler_control_test.rs"]
+#[cfg(test)]
 mod fixed_scheduler_control_test;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "multicore-tsan-harness"))]
 #[path = "fixed_scheduler_control_stress_test.rs"]
 mod fixed_scheduler_control_stress_test;
 
+#[cfg(feature = "multicore-tsan-harness")]
+pub(super) fn run_multicore_sanitizer_stress() {
+    fixed_scheduler_control_stress_test::run_bounded_stress();
+}
+
+#[cfg(feature = "multicore-tsan-harness")]
+pub(super) fn run_multicore_sanitizer_seed() {
+    fixed_scheduler_control_stress_test::run_seed_from_environment();
+}
+
 #[cfg(test)]
 #[path = "fixed_scheduler_control_mtx_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod fixed_scheduler_control_mtx_beam_suite_parity_test;

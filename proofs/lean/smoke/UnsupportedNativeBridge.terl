@@ -1,0 +1,11 @@
+/**
+ * Unsupported-target counterpart to the Lean target-admission theorem.
+ */
+module proofs.lean.smoke.UnsupportedNativeBridge.
+
+import std.core.Unit.
+
+import type std.vm.NativeBridge.
+
+pub observe(_bridge: NativeBridge[String]): Unit ->
+    Unit.

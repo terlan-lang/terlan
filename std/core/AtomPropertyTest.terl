@@ -31,8 +31,12 @@ pub generated_atoms_equal_is_reflexive(): Bool ->
  */
 @test
 pub generated_atoms_render_known_payloads(): Bool ->
-    for_all(atoms(), (value) -> let rendered = to_string(value);
-    rendered == "ok" or rendered == "error").
+    for_all(
+        atoms(),
+        (value) ->
+            let rendered = to_string(value);
+            rendered == "ok" or rendered == "error",
+    ).
 
 /**
  * Verifies atom equality agrees with rendered payload equality.
@@ -44,7 +48,15 @@ pub generated_atoms_render_known_payloads(): Bool ->
  */
 @test
 pub generated_atom_pairs_equal_when_payloads_match(): Bool ->
-    for_all(atoms(), (left) -> for_all(atoms(), (right) -> case equal(left, right) {
-        true -> to_string(left) == to_string(right);
-        false -> to_string(left) != to_string(right)
-    })).
+    for_all(
+        atoms(),
+        (left) ->
+            for_all(
+                atoms(),
+                (right) ->
+                    case equal(left, right) {
+                        true -> to_string(left) == to_string(right);
+                        false -> to_string(left) != to_string(right)
+                    },
+            ),
+    ).

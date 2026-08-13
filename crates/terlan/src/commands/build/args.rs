@@ -14,25 +14,8 @@ use crate::validation::target_profile::{TargetFamily, TargetProfile};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum BuildTarget {
     Js(TargetProfile),
-    Mobile(MobileBuildTarget),
     TerlanVm,
     WasmCore,
-}
-
-/// Mobile shell build target accepted by `terlc build`.
-///
-/// Inputs:
-/// - Parsed from command-local `--target mobile.*` arguments.
-///
-/// Output:
-/// - Mobile platform selected for planning.
-///
-/// Transformation:
-/// - Keeps mobile planning separate from JS and Vm backend emission.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum MobileBuildTarget {
-    Android,
-    Ios,
 }
 
 /// Parsed command-local arguments for `terlc build`.
@@ -187,8 +170,6 @@ fn parse_build_target(value: &str) -> Result<BuildTarget, String> {
         ),
         "terlan-vm" => Ok(BuildTarget::TerlanVm),
         "wasm.core" => Ok(BuildTarget::WasmCore),
-        "mobile.android" => Ok(BuildTarget::Mobile(MobileBuildTarget::Android)),
-        "mobile.ios" => Ok(BuildTarget::Mobile(MobileBuildTarget::Ios)),
         js_target => crate::commands::emit_js::target_contract::parse_js_build_target_profile(
             js_target,
         )
@@ -196,11 +177,11 @@ fn parse_build_target(value: &str) -> Result<BuildTarget, String> {
         .ok_or_else(|| {
             if let Some(family) = TargetFamily::reserved_target(js_target) {
                 format!(
-                    "build target `{js_target}` is reserved for the {} target family but is not implemented yet; supported targets: terlan-vm, wasm.core, js, js.shared, js.browser, js.worker, mobile.android, mobile.ios",
+                    "build target `{js_target}` is reserved for the {} target family but is not implemented yet; supported targets: terlan-vm, wasm.core, js, js.shared, js.browser, js.worker",
                     family.as_str()
                 )
             } else {
-                format!("unsupported build target `{js_target}`; supported targets: terlan-vm, wasm.core, js, js.shared, js.browser, js.worker, mobile.android, mobile.ios")
+                format!("unsupported build target `{js_target}`; supported targets: terlan-vm, wasm.core, js, js.shared, js.browser, js.worker")
             }
         }),
     }

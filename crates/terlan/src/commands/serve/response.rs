@@ -50,7 +50,7 @@ pub(super) fn inject_reload_script(html: &str) -> String {
 /// Transformation:
 /// - Uses Rust `http` request/response primitives as the shared boundary
 ///   between Terlan route selection and the Hyper server implementation.
-#[allow(dead_code)] // Retained for borrowed test and compatibility adapters.
+#[cfg(test)]
 pub(super) fn build_http_response(
     status: u16,
     content_type: &str,
@@ -63,25 +63,6 @@ pub(super) fn build_http_response(
         content_type,
         extra_headers,
         body.to_vec(),
-        head_only,
-        true,
-    )
-}
-
-/// Builds a typed response while consuming an already-owned handler body.
-#[allow(dead_code)] // Retained for non-streaming owned response adapters.
-pub(super) fn build_http_response_owned(
-    status: u16,
-    content_type: &str,
-    extra_headers: &[(String, String)],
-    body: Vec<u8>,
-    head_only: bool,
-) -> Result<http::Response<Vec<u8>>, String> {
-    build_http_response_owned_with_connection(
-        status,
-        content_type,
-        extra_headers,
-        body,
         head_only,
         true,
     )
@@ -159,7 +140,7 @@ pub(super) fn build_http_shared_response_owned_for_stream(
     )
 }
 
-fn build_http_response_owned_with_connection<B: Default>(
+fn build_http_response_owned_with_connection<B>(
     status: u16,
     content_type: &str,
     extra_headers: &[(String, String)],
@@ -168,7 +149,7 @@ fn build_http_response_owned_with_connection<B: Default>(
     connection_close: bool,
 ) -> Result<http::Response<B>, String>
 where
-    B: AsRef<[u8]>,
+    B: AsRef<[u8]> + Default,
 {
     let (status, content_type, extra_headers) =
         validate_http_response_metadata(status, content_type, extra_headers)?;
@@ -202,6 +183,12 @@ where
     Ok(response)
 }
 
+type ValidatedHttpResponseMetadata = (
+    http::StatusCode,
+    http::HeaderValue,
+    Vec<(http::HeaderName, http::HeaderValue)>,
+);
+
 /// Validates HTTP response metadata before response construction.
 ///
 /// Inputs:
@@ -220,14 +207,7 @@ fn validate_http_response_metadata(
     status: u16,
     content_type: &str,
     extra_headers: &[(String, String)],
-) -> Result<
-    (
-        http::StatusCode,
-        http::HeaderValue,
-        Vec<(http::HeaderName, http::HeaderValue)>,
-    ),
-    String,
-> {
+) -> Result<ValidatedHttpResponseMetadata, String> {
     let status = if status == 200 {
         http::StatusCode::OK
     } else {

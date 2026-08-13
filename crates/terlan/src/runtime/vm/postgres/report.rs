@@ -1,11 +1,16 @@
+#[cfg(test)]
 use std::{collections::BTreeMap, path::Path};
 
+#[cfg(test)]
 use serde::Serialize;
 
-use super::{VmPostgresRuntime, VmPostgresRuntimeEvent, VmPostgresTransactionState};
+use super::VmPostgresRuntime;
+#[cfg(test)]
+use super::{state::VmPostgresRuntimeEvent, VmPostgresTransactionState};
 
 #[derive(Default, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 struct QueryLifecycleSummary {
     dispatched: u64,
     succeeded: u64,
@@ -15,6 +20,7 @@ struct QueryLifecycleSummary {
     owner_exited: u64,
 }
 
+#[cfg(test)]
 impl QueryLifecycleSummary {
     fn record(&mut self, event: &VmPostgresRuntimeEvent) {
         match event.outcome.as_str() {
@@ -30,6 +36,7 @@ impl QueryLifecycleSummary {
 
 #[derive(Default, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 struct TransactionOutcomeSummary {
     committed: u64,
     rolled_back: u64,
@@ -39,6 +46,7 @@ struct TransactionOutcomeSummary {
     owner_exited: u64,
 }
 
+#[cfg(test)]
 impl TransactionOutcomeSummary {
     fn record(&mut self, event: &VmPostgresRuntimeEvent) {
         if event.outcome == "dispatched" {
@@ -58,6 +66,7 @@ impl TransactionOutcomeSummary {
 
 #[derive(Default, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 struct CancellationDecisionSummary {
     explicit: u64,
     timed_out: u64,
@@ -66,6 +75,7 @@ struct CancellationDecisionSummary {
 
 #[derive(Default, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 struct RowDecodeFailureSummary {
     count: u64,
     error_codes: BTreeMap<String, u64>,
@@ -73,6 +83,7 @@ struct RowDecodeFailureSummary {
 
 #[derive(Default, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 struct RuntimeEvidenceSummary {
     query_lifecycle: QueryLifecycleSummary,
     transaction_outcomes: TransactionOutcomeSummary,
@@ -80,6 +91,7 @@ struct RuntimeEvidenceSummary {
     row_decode_failures: RowDecodeFailureSummary,
 }
 
+#[cfg(test)]
 impl RuntimeEvidenceSummary {
     fn from_events(events: &std::collections::VecDeque<VmPostgresRuntimeEvent>) -> Self {
         let mut summary = Self::default();
@@ -112,6 +124,7 @@ impl RuntimeEvidenceSummary {
 }
 
 impl VmPostgresRuntime {
+    #[cfg(test)]
     pub(crate) fn write_report(&self, path: &Path) -> Result<(), String> {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)

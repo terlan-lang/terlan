@@ -51,7 +51,7 @@ pub(crate) fn type_check_syntax_module_output_with_templates(
 ///   template source after the contract check.
 pub(crate) struct TemplateTypeCheckResult {
     pub(crate) diagnostics: Vec<Diagnostic>,
-    pub(crate) template_inputs: Vec<crate::commands::artifacts::SyntaxTemplateFrontendInput>,
+    pub(crate) template_inputs: Vec<crate::template_inputs::SyntaxTemplateFrontendInput>,
 }
 
 /// Runs typechecking while retaining the exact external template inputs.
@@ -75,7 +75,7 @@ pub(crate) fn type_check_syntax_module_output_with_template_inputs(
     let (database_schema, database_schema_error) =
         match crate::database_schema::DatabaseSchemaSnapshot::discover_for_source(source_path) {
             Ok(snapshot) => (snapshot, None),
-            Err(error) => (None, Some(error)),
+            Err(error) => (None, Some(error.to_string())),
         };
     let mut diagnostics = type_check_syntax_module_output_with_database_schema(
         module,
@@ -90,7 +90,7 @@ pub(crate) fn type_check_syntax_module_output_with_template_inputs(
         });
     }
     let collected =
-        crate::commands::artifacts::collect_syntax_template_frontend_inputs(module, source_path);
+        crate::template_inputs::collect_syntax_template_frontend_inputs(module, source_path);
     diagnostics.extend(collected.errors.into_iter().map(|error| Diagnostic {
         span: error.span,
         message: error.message,
@@ -109,10 +109,12 @@ pub(crate) fn type_check_syntax_module_output_with_template_inputs(
 
 #[cfg(test)]
 #[path = "template_contract_test.rs"]
+#[cfg(test)]
 mod template_contract_test;
 
 #[cfg(test)]
 #[path = "template_purity_test.rs"]
+#[cfg(test)]
 mod template_purity_test;
 
 /// Template declaration shape used by the validator.
@@ -167,7 +169,7 @@ struct TemplateCheckProp {
 /// - Reads and parses template files, indexes component tags, and checks each
 ///   parsed template against its declared contract.
 fn check_template_declarations_from_parts(
-    templates: Vec<crate::commands::artifacts::SyntaxTemplateFrontendInput>,
+    templates: Vec<crate::template_inputs::SyntaxTemplateFrontendInput>,
     struct_fields: HashMap<String, HashMap<String, String>>,
     expression_context: Option<TemplateExpressionContext<'_>>,
 ) -> Vec<Diagnostic> {
@@ -305,7 +307,7 @@ fn check_template_slots(
         let Some(root) = slot.path.first() else {
             continue;
         };
-        if root == crate::commands::static_site::TEMPLATE_CHILDREN_SLOT {
+        if root == crate::template_inputs::TEMPLATE_CHILDREN_SLOT {
             if slot.path.len() != 1 {
                 diagnostics.push(Diagnostic {
                     span: template.span,
@@ -468,13 +470,13 @@ fn validate_template_prop_signatures(template: &TemplateCheckDecl) -> Vec<Diagno
     diagnostics.extend(validate_template_metadata_signatures(template));
 
     for prop in &template.props {
-        if prop.name == crate::commands::static_site::TEMPLATE_CHILDREN_SLOT {
+        if prop.name == crate::template_inputs::TEMPLATE_CHILDREN_SLOT {
             diagnostics.push(Diagnostic {
                 span: prop.span,
                 message: format!(
                     "template `{}` declares reserved prop `{}`",
                     template.name,
-                    crate::commands::static_site::TEMPLATE_CHILDREN_SLOT
+                    crate::template_inputs::TEMPLATE_CHILDREN_SLOT
                 ),
                 severity: DiagSeverity::Error,
             });
@@ -615,17 +617,27 @@ fn check_template_component_tags(
         .map(|prop| (prop.name.clone(), prop.annotation.clone()))
         .collect::<HashMap<_, _>>();
     let mut diagnostics = Vec::new();
-    check_template_component_nodes(
+    let mut context = TemplateComponentCheckContext {
         template,
-        &parsed.nodes,
         templates_by_tag,
         duplicate_tags,
-        &prop_types,
+        prop_types: &prop_types,
         struct_fields,
         expression_context,
-        &mut diagnostics,
-    );
+        diagnostics: &mut diagnostics,
+    };
+    check_template_component_nodes(&parsed.nodes, &mut context);
     diagnostics
+}
+
+struct TemplateComponentCheckContext<'a, 'diagnostics> {
+    template: &'a TemplateCheckDecl,
+    templates_by_tag: &'a HashMap<String, &'a TemplateCheckDecl>,
+    duplicate_tags: &'a BTreeSet<String>,
+    prop_types: &'a HashMap<String, String>,
+    struct_fields: &'a HashMap<String, HashMap<String, String>>,
+    expression_context: Option<TemplateExpressionContext<'a>>,
+    diagnostics: &'diagnostics mut Vec<Diagnostic>,
 }
 
 /// Recursively checks component elements in template nodes.
@@ -646,14 +658,8 @@ fn check_template_component_tags(
 /// - Walks parsed element nodes depth-first and validates component-looking
 ///   tags.
 fn check_template_component_nodes(
-    template: &TemplateCheckDecl,
     nodes: &[crate::terlan_html::HtmlNode],
-    templates_by_tag: &HashMap<String, &TemplateCheckDecl>,
-    duplicate_tags: &BTreeSet<String>,
-    prop_types: &HashMap<String, String>,
-    struct_fields: &HashMap<String, HashMap<String, String>>,
-    expression_context: Option<TemplateExpressionContext<'_>>,
-    diagnostics: &mut Vec<Diagnostic>,
+    context: &mut TemplateComponentCheckContext<'_, '_>,
 ) {
     for node in nodes {
         let crate::terlan_html::HtmlNode::Element(element) = node else {
@@ -661,28 +667,10 @@ fn check_template_component_nodes(
         };
 
         if element.name.contains('-') {
-            check_template_component_element(
-                template,
-                element,
-                templates_by_tag,
-                duplicate_tags,
-                prop_types,
-                struct_fields,
-                expression_context,
-                diagnostics,
-            );
+            check_template_component_element(element, context);
         }
 
-        check_template_component_nodes(
-            template,
-            &element.children,
-            templates_by_tag,
-            duplicate_tags,
-            prop_types,
-            struct_fields,
-            expression_context,
-            diagnostics,
-        );
+        check_template_component_nodes(&element.children, context);
     }
 }
 
@@ -704,15 +692,18 @@ fn check_template_component_nodes(
 /// - Validates component existence, required props, unknown props, static-text
 ///   prop compatibility, slot prop compatibility, and missing values.
 fn check_template_component_element(
-    template: &TemplateCheckDecl,
     element: &crate::terlan_html::HtmlElement,
-    templates_by_tag: &HashMap<String, &TemplateCheckDecl>,
-    duplicate_tags: &BTreeSet<String>,
-    prop_types: &HashMap<String, String>,
-    struct_fields: &HashMap<String, HashMap<String, String>>,
-    expression_context: Option<TemplateExpressionContext<'_>>,
-    diagnostics: &mut Vec<Diagnostic>,
+    context: &mut TemplateComponentCheckContext<'_, '_>,
 ) {
+    let TemplateComponentCheckContext {
+        template,
+        templates_by_tag,
+        duplicate_tags,
+        prop_types,
+        struct_fields,
+        expression_context,
+        diagnostics,
+    } = context;
     if duplicate_tags.contains(&element.name) {
         return;
     }
@@ -786,7 +777,7 @@ fn check_template_component_element(
                         expected_type,
                         prop_types,
                         struct_fields,
-                        expression_context,
+                        *expression_context,
                     ) {
                         TemplateExpressionCheck::Valid => {}
                         TemplateExpressionCheck::Impure(detail) => diagnostics.push(Diagnostic {
@@ -927,7 +918,7 @@ fn template_slot_type_text(
     struct_fields: &HashMap<String, HashMap<String, String>>,
 ) -> Option<String> {
     let root = slot.path.first()?;
-    if root == crate::commands::static_site::TEMPLATE_CHILDREN_SLOT {
+    if root == crate::template_inputs::TEMPLATE_CHILDREN_SLOT {
         return Some("Template.Html".to_string());
     }
     let mut current_type = prop_types.get(root)?.clone();

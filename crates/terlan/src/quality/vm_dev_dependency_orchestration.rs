@@ -10,11 +10,13 @@ use crate::terlan_quality::QualityResult;
 const REPORT_PATH: &str = "target/quality/vm-dev-dependency-report.json";
 const COMMAND_MAPPINGS: &[&str] = &[
     "serve",
+    "test",
     "db migrate",
     "db status",
     "db snapshot",
     "db rebuild --dev --confirm",
     "db reset --dev --confirm",
+    "SQL validation from schema snapshot",
 ];
 const DIAGNOSTICS: &[&str] = &[
     "dev_dependency.docker_missing",
@@ -45,6 +47,7 @@ const SOURCE_CONTRACTS: &[(&str, &[&str])] = &[
             "docker_compose_inspect_command",
             "docker_compose_remove_command",
             "finish_dependency_session",
+            "classify_dependency_ownership",
             "error[dev_dependency.docker_missing]",
             "error[dev_dependency.start_failed]",
             "error[dev_dependency.readiness_failed]",
@@ -63,9 +66,16 @@ const SOURCE_CONTRACTS: &[(&str, &[&str])] = &[
         ],
     ),
     (
-        "crates/terlan/src/commands/serve/mod.rs",
+        "crates/terlan/src/commands/serve/server_lifecycle.rs",
         &[
             "dev_dependencies::start_project_dependencies",
+            "dev_dependencies::finish_dependency_session",
+        ],
+    ),
+    (
+        "crates/terlan/src/commands/test/execution.rs",
+        &[
+            "dev_dependencies::start_project_dependencies_for_path",
             "dev_dependencies::finish_dependency_session",
         ],
     ),
@@ -73,9 +83,21 @@ const SOURCE_CONTRACTS: &[(&str, &[&str])] = &[
         "crates/terlan/src/commands/serve/manifest.rs",
         &["dev_dependencies::validate_project_compose"],
     ),
+    (
+        "crates/terlan/src/validation/template_contract/mod.rs",
+        &[
+            "DatabaseSchemaSnapshot::discover_for_source",
+            "type_check_syntax_module_output_with_database_schema",
+        ],
+    ),
+    (
+        "crates/terlan/src/database_schema.rs",
+        &["discover_for_source", "validate_integrity"],
+    ),
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm dev dependency orchestration summary.
 pub struct VmDevDependencyOrchestrationSummary {
     pub command_count: usize,
     pub diagnostic_count: usize,
@@ -147,13 +169,16 @@ pub fn run_vm_dev_dependency_orchestration(
                 "redact-and-bound-log-excerpts",
                 "probe-existing-container",
                 "preserve-external",
+                "reuse-stopped-container",
+                "preserve-stale-volumes",
                 "stop-and-remove-owned",
+                "test-command-lifecycle",
+                "sql-validation-snapshot-discovery",
             ],
             "remote_database_policy": "never-start-local-dependencies",
             "ownership_policy": "probe-before-start-and-remove-only-session-created-containers",
-            "remaining_lifecycle": [
-                "multi-service-dependency-graph",
-            ],
+            "remaining_lifecycle": [],
+            "scope_boundary": "typed-project-postgres-only",
             "generation_timestamp_policy": "omitted-for-determinism",
             "stable_ordering_policy": "static-command-order-and-btree-input-order",
             "path_redaction_policy": "repository-relative-inputs-only",
@@ -174,8 +199,8 @@ fn validate_make_ownership(root: &Path) -> QualityResult<Vec<String>> {
     let makefile = read(root, "Makefile")?;
     let required = [
         "vm-dev-dependency-orchestration-check:",
-        "terlan-quality vm_dev_dependency_orchestration",
-        "terlan-quality --quiet -- vm-dev-dependency-orchestration",
+        "--features quality-tools vm_dev_dependency_orchestration",
+        "--features quality-tools --quiet -- vm-dev-dependency-orchestration",
         "test -s target/quality/vm-dev-dependency-report.json",
         "vm-db-migration-command-check: vm-dev-dependency-orchestration-check db-command-check",
     ];
@@ -262,4 +287,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_dev_dependency_orchestration_test.rs"]
+#[cfg(test)]
 mod vm_dev_dependency_orchestration_test;

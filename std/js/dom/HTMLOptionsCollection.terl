@@ -45,7 +45,7 @@ pub (value: HTMLOptionsCollection) selected_index(): JsNumber ->
  */
 pub (value: HTMLOptionsCollection) add(
     element: HTMLOptGroupElement | HTMLOptionElement,
-    before: Option[HTMLElement | JsNumber]
+    before: Option[HTMLElement | JsNumber],
 ): Unit ->
     native.
 

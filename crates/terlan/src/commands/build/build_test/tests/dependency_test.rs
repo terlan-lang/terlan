@@ -7,11 +7,11 @@ use super::*;
 /// - A build command selecting only the entry source file.
 ///
 /// Output:
-/// - A checked entry interface without emitting an unrelated helper image.
+/// - One linked project image containing the entry and imported sibling.
 ///
 /// Transformation:
-/// - Exercises package discovery and the source-root interface prepass used by
-///   `terlc run <file>` while preserving selected-entry artifact emission.
+/// - Exercises package discovery and links the complete AOT application
+///   closure required by `terlc run <file>`.
 #[test]
 fn build_command_resolves_project_sibling_for_direct_vm_file() {
     let dir = make_temp_dir("direct_vm_file_project_sibling");
@@ -53,9 +53,16 @@ fn build_command_resolves_project_sibling_for_direct_vm_file() {
 
     assert_eq!(status, ExitCode::SUCCESS);
     assert!(out_dir.join(".terlan/app.Main.typi").is_file());
-    assert!(!out_dir.join("vm/app_Main.tvm").exists());
+    let image = out_dir.join("vm/app_Main.tvm");
+    assert_eq!(
+        native_image_export_names(&image),
+        vec!["app.Helper.answer/0", "app.Main.main/0"]
+    );
     assert!(!out_dir.join("vm/app_Helper.tvm").exists());
     assert!(out_dir.join(".terlan/app.Helper.typi").is_file());
+    let metadata = fs::read_to_string(out_dir.join(BUILD_PACKAGE_METADATA_FILE))
+        .expect("direct project file build metadata");
+    assert!(metadata.contains(r#""name": "app""#), "{metadata}");
 }
 
 /// Verifies VM project builds resolve local path dependency import closure.
@@ -100,7 +107,7 @@ fn build_command_accepts_project_with_local_path_dependency_vm_import_closure() 
     .expect("failed to write dependency module");
     fs::write(
             app_src.join("Main.terl"),
-            "module app.Main.\n\nimport local_utils.Util.{one}.\nimport std.io.Console.{println}.\n\npub main(): Unit ->\n    println(\"ok\");\n    Unit.\n\npub value(): Int ->\n    one().\n",
+            "module app.Main.\n\nimport local_utils.Util.{one}.\n\npub main(): Int ->\n    value().\n\npub value(): Int ->\n    one().\n",
         )
         .expect("failed to write app module");
 
@@ -127,7 +134,11 @@ fn build_command_accepts_project_with_local_path_dependency_vm_import_closure() 
     assert!(!out_dir.join("vm/local_utils_Util.tvm").exists());
     assert_eq!(
         native_image_export_names(&image_path),
-        vec!["app.Main.value/0", "local_utils.Util.one/0"]
+        vec![
+            "app.Main.main/0",
+            "app.Main.value/0",
+            "local_utils.Util.one/0"
+        ]
     );
 }
 
@@ -196,17 +207,7 @@ fn build_command_rejects_polars_native_dependency_on_unsupported_target() {
         error,
         "error[package_native_target_unsupported]: target `js.shared` cannot build package `app` because local dependency `terlan-polars` requires native process helper `terlan-polars-native-boundary`; capability `native-process-helper` is currently supported only by target `terlan-vm`"
     );
-    for (target, target_name) in [
-        (BuildTarget::WasmCore, "wasm.core"),
-        (
-            BuildTarget::Mobile(args::MobileBuildTarget::Android),
-            "mobile.android",
-        ),
-        (
-            BuildTarget::Mobile(args::MobileBuildTarget::Ios),
-            "mobile.ios",
-        ),
-    ] {
+    for (target, target_name) in [(BuildTarget::WasmCore, "wasm.core")] {
         let error = validate_project_native_target(&app_dir, target)
             .expect_err("non-VM target should reject package native helper");
         assert!(error.contains(&format!("target `{target_name}`")));

@@ -1,15 +1,46 @@
-#![allow(dead_code)]
-
 use std::collections::BTreeMap;
 
 use super::{
     memory::{VmMemoryAccountant, VmMemoryPressureDecision, VmMemoryPressureOutcome},
     process::{VmExitReason, VmProcessId, VmProcessSource, VmProcessState, VmProcessTable},
     resource::VmResourceTable,
+    restart_backoff::VmRestartBackoffSchedule,
 };
 
 pub(crate) mod backoff;
+mod runtime;
 pub(crate) mod shutdown;
+
+pub use runtime::{
+    VmSupervisedChild, VmSupervisionAdvance, VmSupervisionChildSpec, VmSupervisionDeadline,
+    VmSupervisionError, VmSupervisionErrorKind, VmSupervisionMemoryDecision, VmSupervisionOutcome,
+    VmSupervisionRestartClass, VmSupervisionRestartStart, VmSupervisionRuntime,
+    VmSupervisionShutdownStart, VmSupervisionSnapshot, VmSupervisionState, VmSupervisionStrategy,
+    VmSupervisorHandle,
+};
+
+fn live_timer_owner(
+    slot: &mut Option<VmProcessId>,
+    module: &'static str,
+    processes: &mut VmProcessTable,
+) -> VmProcessId {
+    if let Some(owner) = *slot {
+        if matches!(
+            processes.get(owner).map(|process| &process.state),
+            Some(
+                VmProcessState::Runnable
+                    | VmProcessState::Blocked
+                    | VmProcessState::Hibernated
+                    | VmProcessState::Suspended(_),
+            )
+        ) {
+            return owner;
+        }
+    }
+    let owner = processes.spawn_root(VmProcessSource::new(module, "wait", 0));
+    *slot = Some(owner);
+    owner
+}
 
 /// VM-owned supervisor identifier.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -81,35 +112,6 @@ impl VmChildRestartClass {
             VmChildRestartClass::Transient => !matches!(reason, VmExitReason::Normal),
             VmChildRestartClass::Temporary => false,
         }
-    }
-}
-
-/// Deterministic restart backoff policy for a supervised child.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct VmRestartBackoffSchedule {
-    pub(crate) initial_delay_ms: u64,
-    pub(crate) max_delay_ms: u64,
-}
-
-impl VmRestartBackoffSchedule {
-    /// Creates an exponential backoff schedule capped by `max_delay_ms`.
-    pub(crate) fn exponential(initial_delay_ms: u64, max_delay_ms: u64) -> Self {
-        Self {
-            initial_delay_ms,
-            max_delay_ms,
-        }
-    }
-
-    /// Returns the capped delay for a one-based restart attempt.
-    pub(crate) fn delay_for_restart_count(&self, restart_count: u32) -> u64 {
-        if restart_count == 0 || self.initial_delay_ms == 0 || self.max_delay_ms == 0 {
-            return 0;
-        }
-        let mut delay = self.initial_delay_ms;
-        for _ in 1..restart_count {
-            delay = delay.saturating_mul(2).min(self.max_delay_ms);
-        }
-        delay.min(self.max_delay_ms)
     }
 }
 
@@ -425,6 +427,115 @@ impl VmSupervisionSystem {
             }
         }
         Ok(restart)
+    }
+
+    /// Rebuilds failed child-supervisor subtrees according to their parent's
+    /// ordered restart strategy.
+    pub(crate) fn restart_failed_supervisor(
+        &mut self,
+        processes: &mut VmProcessTable,
+        failed_supervisor_id: VmSupervisorId,
+        reason: VmExitReason,
+    ) -> Result<Vec<VmSupervisorId>, String> {
+        let failed = self
+            .supervisors
+            .get(&failed_supervisor_id)
+            .ok_or_else(|| format!("missing supervisor {}", failed_supervisor_id.as_u64()))?;
+        let parent_id = failed.parent_id.ok_or_else(|| {
+            format!(
+                "root supervisor {} has no parent restart strategy",
+                failed_supervisor_id.as_u64()
+            )
+        })?;
+        let parent = self
+            .supervisors
+            .get(&parent_id)
+            .ok_or_else(|| format!("missing supervisor {}", parent_id.as_u64()))?;
+        let siblings = self
+            .supervisors
+            .values()
+            .filter_map(|supervisor| {
+                (supervisor.parent_id == Some(parent_id)).then_some(supervisor.id)
+            })
+            .collect::<Vec<_>>();
+        let failed_index = siblings
+            .iter()
+            .position(|candidate| *candidate == failed_supervisor_id)
+            .ok_or_else(|| {
+                format!(
+                    "supervisor {} is not attached to parent {}",
+                    failed_supervisor_id.as_u64(),
+                    parent_id.as_u64()
+                )
+            })?;
+        let selected = match parent.policy {
+            VmRestartPolicy::OneForOne => vec![failed_supervisor_id],
+            VmRestartPolicy::OneForAll => siblings,
+            VmRestartPolicy::RestForOne => siblings[failed_index..].to_vec(),
+        };
+        for supervisor_id in &selected {
+            self.restart_supervisor_subtree(processes, *supervisor_id, reason.clone())?;
+        }
+        if let Some(parent) = self.supervisors.get_mut(&parent_id) {
+            parent.state = VmSupervisorState::Running;
+        }
+        Ok(selected)
+    }
+
+    fn restart_supervisor_subtree(
+        &mut self,
+        processes: &mut VmProcessTable,
+        supervisor_id: VmSupervisorId,
+        reason: VmExitReason,
+    ) -> Result<(), String> {
+        let descendants = self
+            .supervisors
+            .values()
+            .filter_map(|supervisor| {
+                (supervisor.parent_id == Some(supervisor_id)).then_some(supervisor.id)
+            })
+            .collect::<Vec<_>>();
+        let supervisor = self
+            .supervisors
+            .get_mut(&supervisor_id)
+            .ok_or_else(|| format!("missing supervisor {}", supervisor_id.as_u64()))?;
+        let child_ids = supervisor.child_order.clone();
+        if !child_ids.is_empty() {
+            let mut restarted = Vec::with_capacity(child_ids.len());
+            for child_id in child_ids {
+                let child = supervisor
+                    .children
+                    .get_mut(&child_id)
+                    .expect("supervisor child order references a live child spec");
+                let old_pid = child.pid;
+                if !matches!(
+                    processes.get(old_pid).map(|process| &process.state),
+                    Some(VmProcessState::Exited(_))
+                ) {
+                    processes.exit_process(old_pid, reason.clone())?;
+                }
+                let new_pid = processes.spawn_root(child.spec.source.clone());
+                child.pid = new_pid;
+                child.restart_count = 0;
+                child.last_restart_delay_ms = 0;
+                child.last_shutdown_timeout_ms = None;
+                restarted.push(VmSupervisionRestartEvent {
+                    child_id,
+                    old_pid,
+                    new_pid,
+                    restart_count: 0,
+                    restart_delay_ms: 0,
+                    shutdown_timeout_ms: None,
+                });
+            }
+            let restart = VmSupervisionRestart::RestartedGroup { restarted };
+            record_supervision_restart(supervisor, "<supervisor>", &reason, &restart);
+        }
+        supervisor.state = VmSupervisorState::Running;
+        for descendant in descendants {
+            self.restart_supervisor_subtree(processes, descendant, reason.clone())?;
+        }
+        Ok(())
     }
 
     /// Restarts one child whose supervisor policy was already applied before
@@ -797,8 +908,10 @@ fn shutdown_timeout_ms(spec: &VmChildSpec) -> Option<u64> {
 
 #[cfg(test)]
 #[path = "supervision_test.rs"]
+#[cfg(test)]
 mod supervision_test;
 
 #[cfg(test)]
 #[path = "supervision/memory_pressure_test.rs"]
+#[cfg(test)]
 mod memory_pressure_test;

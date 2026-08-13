@@ -179,4 +179,5 @@ fn expected_artifact_kind(file: &Path) -> &'static str {
 
 #[cfg(test)]
 #[path = "std_generated_metadata_test.rs"]
+#[cfg(test)]
 mod std_generated_metadata_test;

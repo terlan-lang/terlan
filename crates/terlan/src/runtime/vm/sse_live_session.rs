@@ -1,4 +1,6 @@
-use super::{VmSseEndpointPlan, VmSseError, VmSseEvent, VmSseStream, VmSseStreamInfo};
+#[cfg(test)]
+use super::VmSseEvent;
+use super::{VmSseEndpointPlan, VmSseError, VmSseStream, VmSseStreamInfo};
 
 /// Live SSE state admitted from one materialized router endpoint plan.
 ///
@@ -34,11 +36,13 @@ impl VmSseLiveSession {
     }
 
     /// Queues one event under the endpoint's bounded stream policy.
+    #[cfg(test)]
     pub(crate) fn enqueue(&mut self, event: VmSseEvent) -> Result<(), VmSseError> {
         self.stream.enqueue(event)
     }
 
     /// Encodes and removes the oldest event admitted to this stream.
+    #[cfg(test)]
     pub(crate) fn flush_next(&mut self) -> Result<Option<Vec<u8>>, VmSseError> {
         self.stream.flush_next()
     }
@@ -49,6 +53,7 @@ impl VmSseLiveSession {
     }
 
     /// Closes both the live-session lease and its bounded stream.
+    #[cfg(test)]
     pub(crate) fn close(&mut self) {
         self.stream.close();
         self.open = false;

@@ -39,14 +39,14 @@ pub style_sheets_typechecks(receiver: DocumentOrShadowRoot): StyleSheetList ->
 pub element_from_point_typechecks(
     receiver: DocumentOrShadowRoot,
     x: JsNumber,
-    y: JsNumber
+    y: JsNumber,
 ): Option[Element] ->
     receiver.element_from_point(x, y).
 
 pub elements_from_point_typechecks(
     receiver: DocumentOrShadowRoot,
     x: JsNumber,
-    y: JsNumber
+    y: JsNumber,
 ): Array[Element] ->
     receiver.elements_from_point(x, y).
 

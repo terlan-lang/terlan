@@ -94,11 +94,12 @@ pub fn run_test_hierarchy(root: &Path) -> QualityResult<TestHierarchySummary> {
 ///
 /// Transformation:
 /// - Resolves the fixed Makefile set used by root and module-level checks.
-fn makefiles(root: &Path) -> [PathBuf; 3] {
+fn makefiles(root: &Path) -> [PathBuf; 4] {
     [
         root.join("Makefile"),
         root.join("crates/terlan/cli.mk"),
         root.join("std/stdlib.mk"),
+        root.join("mk/code-quality.mk"),
     ]
 }
 
@@ -221,29 +222,49 @@ pub(crate) fn script_from_command(command: &str) -> Option<PathBuf> {
 ///   release-owned script roots.
 pub(crate) fn is_allowed_script(script: &Path) -> bool {
     let allowed_exact = [
-        Path::new("tools/package_release_artifact.py"),
-        Path::new("tools/release_promotion_pipeline.py"),
-        Path::new("tools/validate_ebnf.py"),
         Path::new("scripts/run_exact_cargo_test.sh"),
         Path::new("scripts/publish_release_from_dist.sh"),
-        Path::new("std/scripts/build_interfaces.py"),
         Path::new("std/scripts/run_release_tests.sh"),
     ];
-    if allowed_exact.iter().any(|allowed| script == *allowed) {
+    let normalized = repository_relative_script(script);
+    if normalized
+        .as_deref()
+        .is_some_and(|path| allowed_exact.contains(&path))
+    {
         return true;
     }
     let is_check_script = script
         .file_name()
         .and_then(|name| name.to_str())
-        .is_some_and(|name| name.starts_with("check_"));
-    is_check_script
-        && [
+        .is_some_and(|name| name.starts_with("check_") || name.starts_with("check-"));
+    if !is_check_script {
+        return false;
+    }
+    match normalized {
+        Some(path) => [
             Path::new("tools"),
             Path::new("scripts"),
             Path::new("std/scripts"),
         ]
         .iter()
-        .any(|prefix| script.starts_with(prefix))
+        .any(|prefix| path.starts_with(prefix)),
+        None => script
+            .components()
+            .any(|component| component.as_os_str() == "scripts"),
+    }
+}
+
+/// Resolves a statically repository-relative script path.
+///
+/// `$(CURDIR)` is a stable Make alias for the repository root. Other Make and
+/// shell variables are runtime paths and therefore cannot be checked for
+/// existence until their owning recipe resolves them.
+fn repository_relative_script(script: &Path) -> Option<PathBuf> {
+    let script = script.to_string_lossy();
+    if let Some(relative) = script.strip_prefix("$(CURDIR)/") {
+        return Some(PathBuf::from(relative));
+    }
+    (!script.contains('$')).then(|| PathBuf::from(script.as_ref()))
 }
 
 /// Validates one script invocation.
@@ -262,17 +283,19 @@ pub(crate) fn is_allowed_script(script: &Path) -> bool {
 fn check_invocation(root: &Path, invocation: &ScriptInvocation) -> Vec<String> {
     let mut diagnostics = Vec::new();
     let prefix = invocation.diagnostic_prefix();
-    if !root.join(&invocation.script).exists() {
-        diagnostics.push(format!(
-            "{prefix}: script `{}` does not exist",
-            invocation.script.display()
-        ));
-    }
-    if invocation.script.starts_with("crates/terlan") {
-        diagnostics.push(format!(
-            "{prefix}: script `{}` is crate-local; move policy scripts to scripts/ or std/scripts/",
-            invocation.script.display()
-        ));
+    if let Some(script) = repository_relative_script(&invocation.script) {
+        if !root.join(&script).exists() {
+            diagnostics.push(format!(
+                "{prefix}: script `{}` does not exist",
+                invocation.script.display()
+            ));
+        }
+        if script.starts_with("crates/terlan") {
+            diagnostics.push(format!(
+                "{prefix}: script `{}` is crate-local; move policy scripts to scripts/ or std/scripts/",
+                invocation.script.display()
+            ));
+        }
     }
     if !is_allowed_script(&invocation.script) {
         diagnostics.push(format!(
@@ -285,4 +308,5 @@ fn check_invocation(root: &Path, invocation: &ScriptInvocation) -> Vec<String> {
 
 #[cfg(test)]
 #[path = "test_hierarchy_test.rs"]
+#[cfg(test)]
 mod test_hierarchy_test;

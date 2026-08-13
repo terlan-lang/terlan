@@ -1,7 +1,6 @@
 module tests.language.EffectfulComprehensionFailureTest.
 
-import std.core.Effect.
-import std.core.GuardResult.{GuardResult}.
+import std.core.{Effect, GuardResult}.
 
 @test
 pub propagates_typed_guard_failure(): Bool ->

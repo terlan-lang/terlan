@@ -1,8 +1,8 @@
 module=std.time.Duration
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=17067232324381932577
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=3313057923015486148
 interface_hash=184410982357761526
 interface_doc_hash=8497413417367666900
 deps=0

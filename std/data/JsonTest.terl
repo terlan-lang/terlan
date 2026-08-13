@@ -6,12 +6,13 @@
  */
 module std.data.JsonTest.
 
+import std.core.Option.{is_none}.
 import std.core.Result.{Err, Ok, is_err, with_default}.
 import std.data.Json.
 import std.test.Test.{assert, assert_equal}.
 
-import type std.core.Result.
-import type std.data.Json.{Json, JsonError}.
+import type std.core.{Option, Result}.
+import type std.data.Json.{Json, JsonError, NestedStringFieldRow, StringFieldRow}.
 
 /**
  * Accepts one JSON value and returns it unchanged.
@@ -24,6 +25,29 @@ import type std.data.Json.{Json, JsonError}.
 pub accepts_json(value: Json): Json ->
     value.
 
+@test
+pub fluent_json_mutators_return_the_mutated_value(): Bool ->
+    let value = Json.object().put("name", Json.string("Terlan")).put("version", Json.int(7));
+    case Json.stringify(value) {
+        Ok(rendered) -> rendered == "{\"name\":\"Terlan\",\"version\":7}";
+        Err(_reason) -> false
+    }.
+
+@test
+pub pure_json_string_quoting_preserves_utf8_and_escapes_control_text(): Bool ->
+    assert_equal("\"Terlan ✓\\u000a\\\"vm\\\"\\\\\"", Json.quote_string("Terlan ✓\n\"vm\"\\")).
+
+@test
+pub object_put_replaces_an_existing_member(): Bool ->
+    let value = Json.object().put("decision", Json.string("pass")).put("decision", Json.string("skipped"));
+    let {
+        Ok(decision) <- value.get("decision");
+        Ok(text) <- decision.as_string()
+    } else {
+        _ -> false
+    };
+    text == "skipped".
+
 /**
  * Accepts one JSON error value and returns it unchanged.
  *
@@ -34,6 +58,13 @@ pub accepts_json(value: Json): Json ->
  */
 pub accepts_json_error(value: JsonError): JsonError ->
     value.
+
+@test
+pub parse_error_accessors_expose_stable_typed_fields(): Bool ->
+    case Json.parse("{") {
+        Err(reason) -> Json.error_message(reason) != "" and Json.error_offset(reason) == 0;
+        Ok(_value) -> false
+    }.
 
 /**
  * Accepts a JSON result and returns it unchanged.
@@ -55,6 +86,215 @@ pub accepts_json_result(value: Result[Json, JsonError]): Result[Json, JsonError]
  */
 pub accepts_string_result(value: Result[String, JsonError]): Result[String, JsonError] ->
     value.
+
+@pure
+string_then_none(values: List[Option[String]], expected: String): Bool ->
+    case values {
+        [first | [second | []]] ->
+            std.core.Option.with_default(first, "") == expected and is_none(second);
+        _ -> false
+    }.
+
+@pure
+none_then_none(values: List[Option[String]]): Bool ->
+    case values {
+        [first | [second | []]] -> is_none(first) and is_none(second);
+        _ -> false
+    }.
+
+@pure
+projected_rows_hold(rows: List[StringFieldRow]): Bool ->
+    case rows {
+        [first | [second | [third | []]]] ->
+            Json.string_field_row_is_object(first)
+                and string_then_none(Json.string_field_row_values(first), "Ada")
+                and not Json.string_field_row_is_object(second)
+                and none_then_none(Json.string_field_row_values(second))
+                and Json.string_field_row_is_object(third)
+                and string_then_none(Json.string_field_row_values(third), "Grace");
+        _ -> false
+    }.
+
+@test
+pub string_field_rows_project_large_manifest_shapes_in_one_call(): Bool ->
+    let {
+        Ok(value) <- Json.parse("[{\"name\":\"Ada\",\"count\":3},null,{\"name\":\"Grace\"}]");
+        Ok(rows) <- value.string_field_rows(["name", "count"])
+    } else {
+        _ -> false
+    };
+    projected_rows_hold(rows).
+
+@test
+pub string_field_rows_reject_non_array_receivers(): Bool ->
+    case Json.parse("{}") {
+        Ok(value) -> is_err(value.string_field_rows(["name"]));
+        Err(_reason) -> false
+    }.
+
+@pure
+nested_projection_holds(rows: List[NestedStringFieldRow]): Bool ->
+    case rows {
+        [first | [second | []]] ->
+            let parent_values_hold =
+                case Json.nested_string_field_row_values(first) {
+                    [module_name | []] -> std.core.Option.with_default(module_name, "") == "alpha";
+                    _ -> false
+                };
+            Json.nested_string_field_row_is_object(first)
+                and Json.nested_string_field_row_has_child_array(first)
+                and parent_values_hold
+                and projected_child_holds(Json.nested_string_field_row_children(first))
+                and Json.nested_string_field_row_is_object(second)
+                and not Json.nested_string_field_row_has_child_array(second);
+        _ -> false
+    }.
+
+@pure
+projected_child_holds(rows: List[StringFieldRow]): Bool ->
+    case rows {
+        [first | []] ->
+            let values_hold =
+                case Json.string_field_row_values(first) {
+                    [kind | [name | []]] ->
+                        std.core.Option.with_default(kind, "") == "function"
+                            and std.core.Option.with_default(name, "") == "run";
+                    _ -> false
+                };
+            Json.string_field_row_is_object(first) and values_hold;
+        _ -> false
+    }.
+
+@test
+pub nested_string_field_rows_project_nested_arrays_in_one_call(): Bool ->
+    let {
+        Ok(value) <-
+            Json.parse(
+                "[{\"module\":\"alpha\",\"declarations\":[{\"kind\":\"function\",\"name\":\"run\"}]},{\"module\":\"missing\"}]",
+            );
+        Ok(rows) <- value.nested_string_field_rows(["module"], "declarations", ["kind", "name"])
+    } else {
+        _ -> false
+    };
+    nested_projection_holds(rows).
+
+@test
+pub nested_string_field_rows_page_preserves_bounds_and_order(): Bool ->
+    let {
+        Ok(value) <-
+            Json.parse(
+                "[{\"module\":\"zero\",\"declarations\":[]},{\"module\":\"one\",\"declarations\":[]}]",
+            );
+        Ok(rows) <- value.nested_string_field_rows_page(1, 1, ["module"], "declarations", ["kind", "name"]);
+        [row | []] <- rows;
+        [name | []] <- Json.nested_string_field_row_values(row)
+    } else {
+        _ -> false
+    };
+    std.core.Option.with_default(name, "") == "one".
+
+@test
+pub array_extend_appends_source_array_values(): Bool ->
+    let {
+        Ok(target) <- Json.parse("[1]");
+        Ok(values) <- Json.parse("[2,3]")
+    } else {
+        _ -> false
+    };
+    (let _extend = target.extend(values); assert_equal("[1,2,3]", with_default(Json.stringify(target), ""))).
+
+@test
+pub string_object_rows_build_exact_width_objects(): Bool ->
+    let {
+        Ok(value) <- Json.string_object_rows(["kind", "name"], [["module", "alpha"], ["function", "run"]]);
+        Ok(text) <- Json.stringify(value)
+    } else {
+        _ -> false
+    };
+    text == "[{\"kind\":\"module\",\"name\":\"alpha\"},{\"kind\":\"function\",\"name\":\"run\"}]".
+
+@test
+pub string_object_rows_reject_duplicate_fields_and_bad_widths(): Bool ->
+    is_err(Json.string_object_rows(["name", "name"], []))
+        and is_err(Json.string_object_rows(["name"], [[]])).
+
+@test
+pub string_fields_preserve_order_and_missing_members(): Bool ->
+    let {
+        Ok(value) <- Json.parse("{\"name\":\"Ada\",\"count\":3}");
+        Ok(values) <- value.string_fields(["missing", "name", "count"]);
+        [missing | [name | [count | []]]] <- values
+    } else {
+        _ -> false
+    };
+    is_none(missing) and std.core.Option.with_default(name, "") == "Ada" and is_none(count).
+
+@test
+pub required_fields_project_owned_values_in_one_call(): Bool ->
+    let {
+        Ok(value) <- Json.parse("{\"name\":\"Ada\",\"count\":3,\"items\":[1,2]}");
+        Ok(projection) <- value.required_fields(["name"], ["count"], ["items"]);
+        {["Ada"], [3], [2]} <-
+            {
+                Json.required_field_strings(projection),
+                Json.required_field_ints(projection),
+                Json.required_field_array_lengths(projection),
+            }
+    } else {
+        _ -> false
+    };
+    true.
+
+@test
+pub required_fields_reject_missing_or_mistyped_values(): Bool ->
+    case Json.parse("{\"count\":3}") {
+        Err(_reason) -> false;
+        Ok(value) -> is_err(value.required_fields(["count"], [], []))
+    }.
+
+@test
+pub required_field_rows_project_owned_scalars_in_source_order(): Bool ->
+    let {
+        Ok(value) <-
+            Json.parse(
+                "[{\"name\":\"Ada\",\"count\":3,\"enabled\":true},{\"name\":\"Lin\",\"count\":4,\"enabled\":false}]",
+            );
+        Ok(rows) <- value.required_field_rows(["name"], ["count"], ["enabled"]);
+        [first, second] <- rows;
+        {["Ada"], [3], [true], ["Lin"], [4], [false]} <-
+            {
+                Json.required_field_row_strings(first),
+                Json.required_field_row_ints(first),
+                Json.required_field_row_bools(first),
+                Json.required_field_row_strings(second),
+                Json.required_field_row_ints(second),
+                Json.required_field_row_bools(second),
+            }
+    } else {
+        _ -> false
+    };
+    true.
+
+@test
+pub required_field_rows_reject_type_drift(): Bool ->
+    case Json.parse("[{\"name\":\"Ada\"},{\"name\":2}]") {
+        Err(_reason) -> false;
+        Ok(value) -> is_err(value.required_field_rows(["name"], [], []))
+    }.
+
+@test
+pub required_field_rows_page_is_bounded_and_ordered(): Bool ->
+    case Json.parse("[{\"name\":\"Ada\"},{\"name\":\"Lin\"}]") {
+        Err(_reason) -> false;
+        Ok(value) ->
+            case value.required_field_rows_page(1, 1, ["name"], [], []) {
+                Err(_reason) -> false;
+                Ok([row]) ->
+                    Json.required_field_row_strings(row) == ["Lin"]
+                        and is_err(value.required_field_rows_page(0, 257, [], [], []));
+                Ok(_rows) -> false
+            }
+    }.
 
 /**
  * Accepts a JSON integer result and returns it unchanged.
@@ -98,6 +338,17 @@ pub stringify_renders_json_scalar_values(): Bool ->
     assert_equal("true", with_default(Json.stringify(Json.bool(true)), "")).
 
 @test
+pub stringify_pretty_uses_two_space_indentation(): Bool ->
+    case Json.parse("{\"z\":[1,2],\"a\":true}") {
+        Ok(value) ->
+            assert_equal(
+                "{\n  \"a\": true,\n  \"z\": [\n    1,\n    2\n  ]\n}",
+                with_default(Json.stringify_pretty(value), ""),
+            );
+        Err(_reason) -> false
+    }.
+
+@test
 pub parse_reads_json_string_values(): Bool ->
     case Json.parse("\"Ada\"") {
         Ok(value) -> assert_equal("Ada", with_default(value.as_string(), ""));
@@ -106,12 +357,170 @@ pub parse_reads_json_string_values(): Bool ->
 
 @test
 pub parse_object_get_reads_member_values(): Bool ->
-    case Json.parse("{\"name\":\"Ada\"}") {
+    let {
+        Ok(value) <- Json.parse("{\"name\":\"Ada\"}");
+        Ok(name) <- value.get("name")
+    } else {
+        _ -> false
+    };
+    assert_equal("Ada", with_default(name.as_string(), "")).
+
+@test
+pub parse_array_at_reads_element_values(): Bool ->
+    let {
+        Ok(value) <- Json.parse("[\"Ada\"]");
+        Ok(element) <- value.at(0)
+    } else {
+        _ -> false
+    };
+    assert_equal("Ada", with_default(element.as_string(), "")).
+
+@test
+pub array_set_replaces_one_existing_element(): Bool ->
+    case Json.parse("[\"Ada\",\"Grace\"]") {
         Ok(value) ->
-            case value.get("name") {
-                Ok(name) -> assert_equal("Ada", with_default(name.as_string(), ""));
-                Err(_reason) -> false
-            };
+            let _set = value.set(0, Json.string("Margaret"));
+            assert_equal("[\"Margaret\",\"Grace\"]", with_default(Json.stringify(value), ""));
+        Err(_reason) -> false
+    }.
+
+walk_array(value: Json, index: Int, count: Int): Int ->
+    if {
+        index == count -> count;
+        true -> case value.at(index) {
+            Ok(_element) -> walk_array(value, index + 1, count);
+            Err(_reason) -> -1
+        }
+    }.
+
+struct WideScan {
+    valid: Bool,
+    values: List[String],
+    count: Int,
+}.
+
+walk_wide_array(
+    value: Json,
+    index: Int,
+    count: Int,
+    first: String,
+    second: String,
+    values: List[String],
+    offset: Int,
+    accepted: Int,
+    mut output: Json,
+): WideScan ->
+    if {
+        index == count -> WideScan(valid = first == second, values = values, count = accepted + offset);
+        true -> case value.at(index) {
+            Ok(element) ->
+                let _push = output.push(element);
+                walk_wide_array(
+                    value,
+                    index + 1,
+                    count,
+                    first,
+                    second,
+                    values,
+                    offset,
+                    accepted + 1,
+                    output,
+                );
+            Err(_reason) -> WideScan(valid = false, values = [], count = -1)
+        }
+    }.
+
+walk_mutual_array(
+    value: Json,
+    index: Int,
+    count: Int,
+    first: String,
+    second: String,
+    values: List[String],
+    offset: Int,
+    accepted: Int,
+    mut output: Json,
+): WideScan ->
+    if {
+        index == count -> WideScan(valid = first == second, values = values, count = accepted + offset);
+        true -> case value.at(index) {
+            Ok(element) ->
+                walk_mutual_element(
+                    value,
+                    element,
+                    index,
+                    count,
+                    first,
+                    second,
+                    values,
+                    offset,
+                    accepted,
+                    output,
+                );
+            Err(_reason) -> WideScan(valid = false, values = [], count = -1)
+        }
+    }.
+
+walk_mutual_element(
+    value: Json,
+    _element: Json,
+    index: Int,
+    count: Int,
+    first: String,
+    second: String,
+    values: List[String],
+    offset: Int,
+    accepted: Int,
+    mut output: Json,
+): WideScan ->
+    walk_mutual_array(value, index + 1, count, first, second, values, offset, accepted + 1, output).
+
+@test
+pub recursive_array_access_resumes_into_tail_recursion(): Bool ->
+    case Json.parse("[1,2,3]") {
+        Ok(value) -> assert_equal(3, walk_array(value, 0, 3));
+        Err(_reason) -> false
+    }.
+
+@test
+pub wide_recursive_array_access_preserves_all_continuation_captures(): Bool ->
+    case Json.parse("[1,2,3]") {
+        Ok(value) ->
+            let scan = walk_wide_array(value, 0, 3, "same", "same", ["kept"], 4, 0, Json.array());
+            assert_equal(WideScan(valid = true, values = ["kept"], count = 7), scan);
+        Err(_reason) -> false
+    }.
+
+@test
+pub mutual_array_access_preserves_heterogeneous_continuation_frames(): Bool ->
+    case Json.parse("[1,2,3]") {
+        Ok(value) ->
+            let scan = walk_mutual_array(value, 0, 3, "equal", "equal", ["preserved"], 4, 0, Json.array());
+            assert_equal(WideScan(valid = true, values = ["preserved"], count = 7), scan);
+        Err(_reason) -> false
+    }.
+
+@test
+pub object_keys_are_sorted_and_typed(): Bool ->
+    let {
+        Ok(value) <- Json.parse("{\"z\":1,\"a\":2}");
+        Ok(keys) <- value.keys()
+    } else {
+        _ -> false
+    };
+    assert_equal(["a", "z"], keys).
+
+@test
+pub object_length_counts_members_without_materializing_keys(): Bool ->
+    case Json.parse("{\"z\":1,\"a\":2}") {
+        Ok(value) -> assert_equal(2, with_default(value.object_length(), -1));
+        Err(_reason) -> false
+    }.
+
+@test
+pub object_keys_reject_non_objects(): Bool ->
+    case Json.parse("[]") {
+        Ok(value) -> is_err(value.keys());
         Err(_reason) -> false
     }.
 

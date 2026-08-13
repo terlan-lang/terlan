@@ -46,7 +46,7 @@ pub (value: CanvasTransform) set_transform(
     c: JsNumber,
     d: JsNumber,
     e: JsNumber,
-    f: JsNumber
+    f: JsNumber,
 ): Unit.
 
 pub (value: CanvasTransform) set_transform(transform: DOMMatrix2DInit): Unit.

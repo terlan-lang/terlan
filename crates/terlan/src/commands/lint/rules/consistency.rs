@@ -22,6 +22,10 @@ enum DeclarationBlock {
 
 /// Builds a diagnostic when the module declaration is not first after docs.
 pub(super) fn module_order_diagnostic(path: &Path, source: &str) -> Option<LintDiagnostic> {
+    if path.extension().and_then(|extension| extension.to_str()) == Some("terls") {
+        return None;
+    }
+
     let mut in_block_comment = false;
 
     for (line_index, line) in source.lines().enumerate() {

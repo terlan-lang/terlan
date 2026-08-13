@@ -1,7 +1,3 @@
-#![allow(dead_code)]
-
-//! Static asset and response body metadata for VM HTTP.
-
 use std::collections::HashMap;
 use std::path::{Component, Path};
 
@@ -19,12 +15,15 @@ pub(crate) use range::VmHttpByteRange;
 
 #[cfg(test)]
 #[path = "http_static/http1_stream_test.rs"]
+#[cfg(test)]
 mod http1_stream_test;
 #[cfg(test)]
 #[path = "http_static_test.rs"]
+#[cfg(test)]
 mod http_static_test;
 #[cfg(test)]
 #[path = "http_static/stream_test.rs"]
+#[cfg(test)]
 mod stream_test;
 
 /// Static asset table failure with stable typed variants.
@@ -69,31 +68,37 @@ pub(crate) struct VmHttpStaticAsset {
 
 impl VmHttpStaticAsset {
     /// Returns the HTTP route path used for lookup.
+    #[cfg(test)]
     pub(crate) fn route_path(&self) -> &str {
         &self.route_path
     }
 
     /// Returns the package-relative source path.
+    #[cfg(test)]
     pub(crate) fn package_path(&self) -> &str {
         &self.package_path
     }
 
     /// Returns the response content type.
+    #[cfg(test)]
     pub(crate) fn content_type(&self) -> &str {
         &self.content_type
     }
 
     /// Returns borrowed asset bytes.
+    #[cfg(test)]
     pub(crate) fn bytes(&self) -> &[u8] {
         &self.bytes
     }
 
     /// Returns response cache-control metadata.
+    #[cfg(test)]
     pub(crate) fn cache_control(&self) -> &str {
         &self.cache_control
     }
 
     /// Returns immutable asset fingerprint metadata when present.
+    #[cfg(test)]
     pub(crate) fn fingerprint(&self) -> Option<&str> {
         self.fingerprint.as_deref()
     }
@@ -106,6 +111,7 @@ impl VmHttpStaticAsset {
 /// Output: insertable manifest row.
 /// Transformation: separates manifest normalization from route lookup.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmHttpStaticManifestEntry {
     pub(crate) route_path: String,
     pub(crate) package_path: String,
@@ -127,6 +133,7 @@ pub(crate) struct VmHttpStaticAssetTable {
     assets: HashMap<String, VmHttpStaticAsset>,
 }
 
+#[cfg(test)]
 impl VmHttpStaticAssetTable {
     /// Creates an empty static asset table with a maximum asset byte size.
     pub(crate) fn new(max_asset_bytes: usize) -> Result<Self, VmHttpStaticError> {
@@ -198,22 +205,6 @@ impl VmHttpStaticAssetTable {
             .ok_or(VmHttpStaticError::AssetNotFound)
     }
 
-    /// Looks up one manifest asset by its package-relative source path.
-    ///
-    /// When one package asset is mounted at multiple routes, the
-    /// lexicographically smallest route wins so response materialization does
-    /// not depend on randomized `HashMap` iteration order.
-    pub(crate) fn lookup_package_path(
-        &self,
-        package_path: &str,
-    ) -> Result<&VmHttpStaticAsset, VmHttpStaticError> {
-        self.assets
-            .values()
-            .filter(|asset| asset.package_path() == package_path)
-            .min_by(|left, right| left.route_path().cmp(right.route_path()))
-            .ok_or(VmHttpStaticError::AssetNotFound)
-    }
-
     /// Resolves a route and builds its deterministic single-range response.
     pub(crate) fn range_http_response(
         &self,
@@ -237,11 +228,17 @@ impl VmHttpStaticAssetTable {
 /// bytes and keeps streaming as a typed VM contract.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum VmHttpResponseBody {
+    #[cfg(test)]
     Empty,
+    #[cfg(test)]
     Text(String),
+    #[cfg(test)]
     Binary(Vec<u8>),
+    #[cfg(test)]
     StaticAsset(VmHttpStaticAsset),
+    #[cfg(test)]
     SseEventStream(Vec<VmSseEvent>),
+    #[cfg(test)]
     Stream(VmHttpStreamPlan),
 }
 
@@ -273,26 +270,31 @@ impl VmHttpStreamPlan {
     }
 
     /// Returns maximum emitted chunk size.
+    #[cfg(test)]
     pub(crate) fn chunk_size(&self) -> usize {
         self.chunk_size
     }
 
     /// Returns maximum queued writes.
+    #[cfg(test)]
     pub(crate) fn max_pending_writes(&self) -> usize {
         self.max_pending_writes
     }
 
     /// Returns the stable unsupported-streaming outcome for non-VM backends.
+    #[cfg(test)]
     pub(crate) fn unsupported_backend() -> VmHttpStaticError {
         VmHttpStaticError::UnsupportedStreaming
     }
 
     /// Opens a pollable VM-owned response stream using this bounded plan.
+    #[cfg(test)]
     pub(crate) fn open_stream(&self) -> stream::VmHttpResponseStream {
         stream::VmHttpResponseStream::new(self.clone())
     }
 
     /// Opens a chunk-framed HTTP/1 response stream over the VM TCP lane.
+    #[cfg(test)]
     pub(crate) fn open_http1_stream(
         &self,
         response: ::http::Response<()>,
@@ -316,6 +318,7 @@ impl VmHttpResponseBody {
     /// Transformation:
     /// - Assigns content metadata from the body mode while rejecting stream
     ///   bodies until scheduler-backed chunk emission is implemented.
+    #[cfg(test)]
     pub(crate) fn into_http_response(
         self,
         status: ::http::StatusCode,
@@ -348,6 +351,7 @@ impl VmHttpResponseBody {
     }
 }
 
+#[cfg(test)]
 fn encode_sse_events(events: Vec<VmSseEvent>) -> Result<Vec<u8>, VmHttpStaticError> {
     let mut body = Vec::new();
     for event in events {
@@ -359,6 +363,7 @@ fn encode_sse_events(events: Vec<VmSseEvent>) -> Result<Vec<u8>, VmHttpStaticErr
     Ok(body)
 }
 
+#[cfg(test)]
 fn build_response(
     status: ::http::StatusCode,
     content_type: Option<&str>,
@@ -380,6 +385,7 @@ fn build_response(
         .map_err(|_| VmHttpStaticError::InvalidResponse)
 }
 
+#[cfg(test)]
 fn validate_route_path(route_path: &str) -> Result<(), VmHttpStaticError> {
     if !route_path.starts_with('/') || route_path.contains("..") || route_path.contains('\0') {
         return Err(VmHttpStaticError::InvalidRoute);
@@ -387,6 +393,7 @@ fn validate_route_path(route_path: &str) -> Result<(), VmHttpStaticError> {
     Ok(())
 }
 
+#[cfg(test)]
 fn validate_package_path(package_path: &str) -> Result<(), VmHttpStaticError> {
     if package_path.trim().is_empty() || package_path.contains('\0') {
         return Err(VmHttpStaticError::InvalidAssetPath);

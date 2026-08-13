@@ -45,7 +45,7 @@ pub (endpoint: Endpoint) callbacks(
     event_ready: (String) -> Unit,
     keep_alive: () -> Unit,
     drain: () -> Unit,
-    cancellation: (String) -> Unit
+    cancellation: (String) -> Unit,
 ): Endpoint ->
     endpoint.
 
@@ -134,6 +134,6 @@ pub endpoint(max_pending_events: Int = 128, max_event_bytes: Int = 65536): Endpo
 pub endpoint_with_keep_alive(
     max_pending_events: Int = 128,
     max_event_bytes: Int = 65536,
-    keep_alive_ms: Int = 15000
+    keep_alive_ms: Int = 15000,
 ): Endpoint ->
     native.

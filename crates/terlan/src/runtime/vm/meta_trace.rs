@@ -4,6 +4,7 @@ use super::process::{VmProcessId, VmProcessLocation, VmProcessSource};
 
 #[cfg(test)]
 #[path = "meta_trace_test.rs"]
+#[cfg(test)]
 mod meta_trace_test;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -31,6 +32,7 @@ pub(crate) struct VmMetaTraceConfig {
 
 /// Typed state for exact-function observer inspection.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmMetaTraceState {
     Disabled,
     Enabled {
@@ -41,6 +43,7 @@ pub(crate) enum VmMetaTraceState {
 
 /// Stable global position for incremental observer inspection.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmMetaTraceCursor {
     event_index: usize,
 }
@@ -76,6 +79,7 @@ pub(crate) struct VmMetaTraceEvent {
 
 /// Immutable event suffix for one exact observer identity.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmMetaTraceSnapshot {
     pub(crate) events: Vec<VmMetaTraceEvent>,
     pub(crate) next_cursor: VmMetaTraceCursor,
@@ -106,6 +110,7 @@ impl VmMetaTraceRegistry {
         self.entries.is_empty()
     }
 
+    #[cfg(test)]
     pub(crate) fn enable(
         &mut self,
         source: VmProcessSource,
@@ -125,6 +130,7 @@ impl VmMetaTraceRegistry {
             .is_none()
     }
 
+    #[cfg(test)]
     pub(crate) fn disable(&mut self, source: &VmProcessSource) -> bool {
         self.entries.remove(&VmMetaTraceKey::from(source)).is_some()
     }
@@ -135,6 +141,7 @@ impl VmMetaTraceRegistry {
             .map(|entry| entry.observer)
     }
 
+    #[cfg(test)]
     pub(crate) fn state(&self, source: &VmProcessSource) -> VmMetaTraceState {
         match self.entries.get(&VmMetaTraceKey::from(source)) {
             None => VmMetaTraceState::Disabled,
@@ -145,6 +152,7 @@ impl VmMetaTraceRegistry {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn cursor(&self) -> VmMetaTraceCursor {
         VmMetaTraceCursor {
             event_index: self.events.len(),
@@ -194,6 +202,7 @@ impl VmMetaTraceRegistry {
         self.entries.retain(|_, entry| entry.observer != observer);
     }
 
+    #[cfg(test)]
     pub(crate) fn since(
         &self,
         cursor: VmMetaTraceCursor,

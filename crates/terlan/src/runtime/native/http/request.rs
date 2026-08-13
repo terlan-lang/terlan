@@ -13,6 +13,21 @@ pub struct Request {
     cookies: Vec<(String, String)>,
 }
 
+/// Route, query, header, and cookie metadata attached to one HTTP request.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct RequestMetadata {
+    /// Decoded route parameters in source-visible order.
+    pub params: Vec<(String, String)>,
+    /// Raw query text without a leading question mark.
+    pub query_string: String,
+    /// Decoded query parameters in source-visible order.
+    pub query: Vec<(String, String)>,
+    /// Decoded request headers in source-visible order.
+    pub headers: Vec<(String, String)>,
+    /// Decoded request cookies in source-visible order.
+    pub cookies: Vec<(String, String)>,
+}
+
 /// Owned request metadata transferred into the VM managed-value boundary.
 pub(crate) struct RequestParts {
     pub(crate) method: String,
@@ -134,7 +149,16 @@ impl Request {
         cookies: Vec<(String, String)>,
     ) -> Self {
         Self::from_parts_with_raw_query_metadata(
-            method, path, body, params, "", query, headers, cookies,
+            method,
+            path,
+            body,
+            RequestMetadata {
+                params,
+                query_string: String::new(),
+                query,
+                headers,
+                cookies,
+            },
         )
     }
 
@@ -155,23 +179,25 @@ impl Request {
     ///
     /// Transformation:
     /// - Preserves raw query text separately from decoded query pairs.
-    #[allow(clippy::too_many_arguments)]
     pub fn from_parts_with_raw_query_metadata(
         method: impl Into<String>,
         path: impl Into<String>,
         body: impl Into<String>,
-        params: Vec<(String, String)>,
-        query_string: impl Into<String>,
-        query: Vec<(String, String)>,
-        headers: Vec<(String, String)>,
-        cookies: Vec<(String, String)>,
+        metadata: RequestMetadata,
     ) -> Self {
+        let RequestMetadata {
+            params,
+            query_string,
+            query,
+            headers,
+            cookies,
+        } = metadata;
         Self {
             method: method.into(),
             path: path.into(),
             body: body.into(),
             params,
-            query_string: query_string.into(),
+            query_string,
             query,
             headers,
             cookies,

@@ -165,7 +165,7 @@ pub caret_position_from_point_typechecks(
     receiver: Document,
     x: JsNumber,
     y: JsNumber,
-    options: CaretPositionFromPointOptions
+    options: CaretPositionFromPointOptions,
 ): Option[CaretPosition] ->
     receiver.caret_position_from_point(x, y, options).
 
@@ -184,7 +184,7 @@ pub create_attribute_typechecks(receiver: Document, local_name: JsString): Attr 
 pub create_attribute_ns_typechecks(
     receiver: Document,
     namespace: Option[JsString],
-    qualified_name: JsString
+    qualified_name: JsString,
 ): Attr ->
     receiver.create_attribute_ns(namespace, qualified_name).
 
@@ -200,7 +200,7 @@ pub create_document_fragment_typechecks(receiver: Document): DocumentFragment ->
 pub create_element_typechecks(
     receiver: Document,
     tag_name: JsString,
-    options: ElementCreationOptions
+    options: ElementCreationOptions,
 ): HTMLElement ->
     receiver.create_element(tag_name, options).
 
@@ -208,7 +208,7 @@ pub create_element_ns_typechecks(
     receiver: Document,
     namespace_uri: Option[JsString],
     qualified_name: JsString,
-    options: ElementCreationOptions
+    options: ElementCreationOptions,
 ): Element ->
     receiver.create_element_ns(namespace_uri, qualified_name, options).
 
@@ -216,7 +216,7 @@ pub create_element_ns_typechecks(
     receiver: Document,
     namespace: Option[JsString],
     qualified_name: JsString,
-    options: ElementCreationOptions | JsString
+    options: ElementCreationOptions | JsString,
 ): Element ->
     receiver.create_element_ns(namespace, qualified_name, options).
 
@@ -227,14 +227,14 @@ pub create_node_iterator_typechecks(
     receiver: Document,
     root: Node,
     what_to_show: JsNumber,
-    filter: Option[NodeFilter]
+    filter: Option[NodeFilter],
 ): NodeIterator ->
     receiver.create_node_iterator(root, what_to_show, filter).
 
 pub create_processing_instruction_typechecks(
     receiver: Document,
     target_: JsString,
-    data: JsString
+    data: JsString,
 ): ProcessingInstruction ->
     receiver.create_processing_instruction(target_, data).
 
@@ -248,7 +248,7 @@ pub create_tree_walker_typechecks(
     receiver: Document,
     root: Node,
     what_to_show: JsNumber,
-    filter: Option[NodeFilter]
+    filter: Option[NodeFilter],
 ): TreeWalker ->
     receiver.create_tree_walker(root, what_to_show, filter).
 
@@ -256,7 +256,7 @@ pub exec_command_typechecks(
     receiver: Document,
     command_id: JsString,
     show_ui: Bool,
-    value: JsString
+    value: JsString,
 ): Bool ->
     receiver.exec_command(command_id, show_ui, value).
 
@@ -274,26 +274,26 @@ pub get_element_by_id_typechecks(receiver: Document, element_id: JsString): Opti
 
 pub get_elements_by_class_name_typechecks(
     receiver: Document,
-    class_names: JsString
+    class_names: JsString,
 ): HTMLCollectionOf[Element] ->
     receiver.get_elements_by_class_name(class_names).
 
 pub get_elements_by_name_typechecks(
     receiver: Document,
-    element_name: JsString
+    element_name: JsString,
 ): NodeListOf[HTMLElement] ->
     receiver.get_elements_by_name(element_name).
 
 pub get_elements_by_tag_name_typechecks(
     receiver: Document,
-    qualified_name: JsString
+    qualified_name: JsString,
 ): HTMLCollectionOf[Element] ->
     receiver.get_elements_by_tag_name(qualified_name).
 
 pub get_elements_by_tag_name_ns_typechecks(
     receiver: Document,
     namespace: Option[JsString],
-    local_name: JsString
+    local_name: JsString,
 ): HTMLCollectionOf[Element] ->
     receiver.get_elements_by_tag_name_ns(namespace, local_name).
 
@@ -316,7 +316,7 @@ pub open_typechecks(
     receiver: Document,
     url: URL | JsString,
     name: JsString,
-    features: JsString
+    features: JsString,
 ): Option[WindowProxy] ->
     receiver.open(url, name, features).
 
@@ -343,7 +343,7 @@ pub request_storage_access_typechecks(receiver: Document): Promise[Unit] ->
 
 pub start_view_transition_typechecks(
     receiver: Document,
-    callback_options: StartViewTransitionOptions | ViewTransitionUpdateCallback
+    callback_options: StartViewTransitionOptions | ViewTransitionUpdateCallback,
 ): ViewTransition ->
     receiver.start_view_transition(callback_options).
 
@@ -357,7 +357,7 @@ pub add_event_listener_typechecks(
     receiver: Document,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -365,6 +365,6 @@ pub remove_event_listener_typechecks(
     receiver: Document,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

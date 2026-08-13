@@ -1,0 +1,1466 @@
+/**
+ * Measures and enforces the canonical Cargo build-artifact budget.
+ */
+module scripts.self_validation.BuildArtifactBudgetTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.{sha256, sha256_framed}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.{copy_tree_excluding, create_all, create_temporary, entries, find_named_recursive_excluding, remove_all, tree_usage}.
+import std.io.File.{exists, read_text, read_text_tree_matching, set_timestamps, size, text_file_contents, text_file_path, timestamps, write_text}.
+import std.system.{Arguments, Environment, Process}.
+import std.time.Clock.{monotonic_time_ns, unix_time_ns}.
+import std.vm.Process.{exit_reason}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.io.File.{FileTimestamps, TextFile}.
+import type std.system.Process.{EnvironmentEntry}.
+
+struct Lane {
+    name: String,
+    command: String,
+    edited_file: String,
+    started_unix_ns: Int,
+    finished_unix_ns: Int,
+    wall_time_ms: Int,
+    invalidated_artifact_count: Int,
+    valid: Bool,
+}.
+
+struct LaneSet {
+    clean_debug: Lane,
+    no_op_warm: Lane,
+    implementation_edit: Lane,
+    public_interface_edit: Lane,
+    release: Lane,
+    coverage: Lane,
+}.
+
+schema(): String -> "terlan.build-artifact-budget.v1".
+
+pub root(): String ->
+    case Environment.get("TERLAN_REPOSITORY_ROOT") {
+        Some(value) -> value;
+        None -> Environment.current_directory()
+    }.
+
+child(parent: String, name: String): String ->
+    if {
+        String.ends_with(parent, "/") -> String.append(parent, name);
+        true -> String.append(parent, String.append("/", name))
+    }.
+
+pub policy_path(repository: String): String ->
+    child(repository, "docs/quality/BUILD_ARTIFACT_BUDGET.json").
+
+pub report_path(repository: String): String ->
+    child(repository, "target/quality/build-artifact-budget-report.json").
+
+debug_arguments(): List[String] ->
+    [
+        "build",
+        "--locked",
+        "-p",
+        "terlan",
+        "-p",
+        "terlan-test-orchestrator",
+        "--bin",
+        "terlc",
+        "--bin",
+        "terlan-vm",
+        "--bin",
+        "terlan-native-worker",
+        "--bin",
+        "terlan-test-orchestrator",
+    ].
+
+release_arguments(): List[String] ->
+    [
+        "build",
+        "--release",
+        "--locked",
+        "-p",
+        "terlan",
+        "-p",
+        "terlan-test-orchestrator",
+        "--bin",
+        "terlc",
+        "--bin",
+        "terlan-vm",
+        "--bin",
+        "terlan-native-worker",
+        "--bin",
+        "terlan-test-orchestrator",
+    ].
+
+coverage_arguments(): List[String] ->
+    ["test", "--locked", "-p", "terlan", "--lib", "--features", "quality-tools", "--no-run"].
+
+debug_command_text(): String ->
+    "cargo build --locked -p terlan -p terlan-test-orchestrator --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator".
+
+release_command_text(): String ->
+    "cargo build --release --locked -p terlan -p terlan-test-orchestrator --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator".
+
+coverage_command_text(): String ->
+    "CARGO_TARGET_DIR=target/coverage RUSTFLAGS=--cfg coverage cargo test --locked -p terlan --lib --features quality-tools --no-run".
+
+pub read_json(path: String): Option[Json] ->
+    let {
+        Ok(text) <- read_text(path);
+        Ok(value) <- Json.parse(text)
+    } else {
+        _ -> None
+    };
+    Some(value).
+
+json_member(value: Json, key: String): Option[Json] ->
+    case value.get(key) {
+        Ok(member) -> Some(member);
+        Err(_reason) -> None
+    }.
+
+json_int(value: Json, key: String): Option[Int] ->
+    let {
+        Some(member) <- json_member(value, key);
+        Ok(number) <- member.as_int()
+    } else {
+        _ -> None
+    };
+    Some(number).
+
+json_string(value: Json, key: String): Option[String] ->
+    let {
+        Some(member) <- json_member(value, key);
+        Ok(text) <- member.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+json_bool(value: Json, key: String): Option[Bool] ->
+    let {
+        Some(member) <- json_member(value, key);
+        Ok(flag) <- member.as_bool()
+    } else {
+        _ -> None
+    };
+    Some(flag).
+
+same_strings(left: List[String], right: List[String]): Bool ->
+    case {left, right} {
+        {[], []} -> true;
+        {[a | a_rest], [b | b_rest]} -> a == b and same_strings(a_rest, b_rest);
+        _ -> false
+    }.
+
+reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_into(values, []).
+
+reverse_strings_into(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_strings_into(rest, [value | output])
+    }.
+
+compilation_suffix(path: String): Bool ->
+    String.ends_with(path, ".c")
+        or String.ends_with(path, ".cc")
+        or String.ends_with(path, ".cpp")
+        or String.ends_with(path, ".h")
+        or String.ends_with(path, ".hpp")
+        or String.ends_with(path, ".lalrpop")
+        or String.ends_with(path, ".rs")
+        or String.ends_with(path, "/Cargo.lock")
+        or String.ends_with(path, "/Cargo.toml")
+        or String.ends_with(path, "/clippy.toml")
+        or String.ends_with(path, "/rustfmt.toml").
+
+compilation_input_hash(repository: String): Option[String] ->
+    compilation_input_hash_page(repository, 0, sha256_framed([])).
+
+compilation_input_hash_page(repository: String, offset: Int, digest: String): Option[String] ->
+    let page =
+        read_text_tree_matching(
+            repository,
+            [".git", "target", "node_modules", "__pycache__"],
+            [
+                ".c",
+                ".cc",
+                ".cpp",
+                ".h",
+                ".hpp",
+                ".lalrpop",
+                ".rs",
+                "Cargo.lock",
+                "Cargo.toml",
+                "clippy.toml",
+                "rustfmt.toml",
+            ],
+            [],
+            offset,
+            128,
+        );
+    case page {
+        Err(_reason) -> None;
+        Ok([]) -> Some(digest);
+        Ok(files) ->
+            let count = text_file_count(files);
+            let fields = compilation_hash_fields(files, []);
+            compilation_input_hash_page(
+                repository,
+                offset + count,
+                sha256_framed([digest | fields]),
+            )
+    }.
+
+text_file_count(files: List[TextFile]): Int ->
+    case files {
+        [] -> 0;
+        [_file | rest] -> 1 + text_file_count(rest)
+    }.
+
+compilation_hash_fields(files: List[TextFile], reversed: List[String]): List[String] ->
+    case files {
+        [] -> reverse_strings(reversed);
+        [file | rest] ->
+            let path = text_file_path(file);
+            let contents = text_file_contents(file);
+            compilation_hash_fields(rest, [contents | [path | reversed]])
+    }.
+
+profile_fingerprint(repository: String, command: String): Option[String] ->
+    let cargo = read_text(child(repository, "Cargo.toml"));
+    let lock = read_text(child(repository, "Cargo.lock"));
+    case {cargo, lock} {
+        {Ok(cargo), Ok(lock)} -> Some(sha256_framed([cargo, lock, command]));
+        _ -> None
+    }.
+
+usage(path: String): Int ->
+    if {
+        not exists(path) -> 0;
+        true -> case tree_usage(path) {
+            Ok(value) -> value.allocated_bytes;
+            Err(_reason) -> -1
+        }
+    }.
+
+file_size(path: String): Int ->
+    if {
+        not exists(path) -> 0;
+        true -> case size(path) {
+            Ok(bytes) -> bytes;
+            Err(_reason) -> -1
+        }
+    }.
+
+target_roots(repository: String): Option[List[String]] ->
+    case find_named_recursive_excluding(repository, "target", [".git"]) {
+        Ok(roots) -> Some(roots);
+        Err(_reason) -> None
+    }.
+
+run_command(
+    repository: String,
+    arguments: List[String],
+    environment: List[EnvironmentEntry],
+): Option[std.system.Process.Output] ->
+    let base = Process.with_arguments(Process.command("cargo"), arguments);
+    let working = Process.with_working_directory(base, repository);
+    let limits = Process.limits();
+    let timeout = Process.maximum_timeout_ms(limits);
+    let output_limit = Process.maximum_output_bytes(limits);
+    let bounded = Process.with_timeout_ms(working, timeout);
+    let captured = Process.with_output_limit_bytes(bounded, output_limit);
+    let configured = Process.with_environment(captured, environment);
+    case Process.run(configured) {
+        Ok(output) -> Some(output);
+        Err(_reason) -> None
+    }.
+
+invalidated_count(text: String): Int ->
+    invalidated_lines(String.split(text, "\n"), 0).
+
+invalidated_lines(lines: List[String], count: Int): Int ->
+    case lines {
+        [] -> count;
+        [line | rest] ->
+            let {
+                Ok(value) <- Json.parse(line);
+                {Some("compiler-artifact"), Some(false)} <- {json_string(value, "reason"), json_bool(value, "fresh")}
+            } else {
+                _ -> invalidated_lines(rest, count)
+            };
+            invalidated_lines(rest, count + 1)
+    }.
+
+elapsed_milliseconds(started_ns: Int, finished_ns: Int): Int ->
+    (finished_ns - started_ns) / 1000000.
+
+run_lane(
+    repository: String,
+    name: String,
+    arguments: List[String],
+    command: String,
+    environment: List[EnvironmentEntry],
+    edited: String,
+): Lane ->
+    let started_unix = unix_time_ns();
+    let started = monotonic_time_ns();
+    let output =
+        run_command(
+            repository,
+            std.collections.List.concat(arguments, ["--message-format=json-render-diagnostics"]),
+            environment,
+        );
+    let finished = monotonic_time_ns();
+    let finished_unix = unix_time_ns();
+    case output {
+        Some(value) ->
+            Lane(
+                name = name,
+                command = command,
+                edited_file = edited,
+                started_unix_ns = started_unix,
+                finished_unix_ns = finished_unix,
+                wall_time_ms = elapsed_milliseconds(started, finished),
+                invalidated_artifact_count = invalidated_count(Process.stdout(value)),
+                valid = Process.status(value) == 0,
+            );
+        None ->
+            Lane(
+                name = name,
+                command = command,
+                edited_file = edited,
+                started_unix_ns = started_unix,
+                finished_unix_ns = finished_unix,
+                wall_time_ms = elapsed_milliseconds(started, finished),
+                invalidated_artifact_count = -1,
+                valid = false,
+            )
+    }.
+
+touch_source(path: String): Option[FileTimestamps] ->
+    let {
+        Ok(saved) <- timestamps(path);
+        Ok(contents) <- read_text(path);
+        Ok(Unit) <- write_text(path, contents)
+    } else {
+        _ -> None
+    };
+    Some(saved).
+
+touched_lane(repository: String, name: String, relative: String): Lane ->
+    let path = child(repository, relative);
+    case touch_source(path) {
+        Some(saved) ->
+            let measured = run_lane(repository, name, debug_arguments(), debug_command_text(), [], relative);
+            case set_timestamps(path, saved.accessed_unix_ns, saved.modified_unix_ns) {
+                Ok(Unit) -> measured;
+                Err(_reason) ->
+                    Lane(
+                        name = measured.name,
+                        command = measured.command,
+                        edited_file = measured.edited_file,
+                        started_unix_ns = measured.started_unix_ns,
+                        finished_unix_ns = measured.finished_unix_ns,
+                        wall_time_ms = measured.wall_time_ms,
+                        invalidated_artifact_count = measured.invalidated_artifact_count,
+                        valid = false,
+                    )
+            };
+        None ->
+            Lane(
+                name = name,
+                command = debug_command_text(),
+                edited_file = relative,
+                started_unix_ns = 0,
+                finished_unix_ns = 0,
+                wall_time_ms = 0,
+                invalidated_artifact_count = -1,
+                valid = false,
+            )
+    }.
+
+lane_json(lane: Lane): Json ->
+    let value = Json.object();
+    let _a = value.put("name", Json.string(lane.name));
+    let _b = value.put("command", Json.string(lane.command));
+    let _c =
+        if {
+            lane.edited_file == "" -> value.put("edited_file", Json.null());
+            true -> value.put("edited_file", Json.string(lane.edited_file))
+        };
+    let _d = value.put("started_unix_ns", Json.int(lane.started_unix_ns));
+    let _e = value.put("finished_unix_ns", Json.int(lane.finished_unix_ns));
+    let _f = value.put("wall_time_ms", Json.int(lane.wall_time_ms));
+    let _g = value.put("invalidated_artifact_count", Json.int(lane.invalidated_artifact_count));
+    let _h = value.put("process_starts", Json.int(1));
+    value.
+
+lanes_json(lanes: List[Lane]): Json ->
+    let values = Json.array();
+    let _filled = push_lanes(values, lanes);
+    values.
+
+push_lanes(mut values: Json, lanes: List[Lane]): Bool ->
+    case lanes {
+        [] -> true;
+        [lane | rest] ->
+            let _pushed = values.push(lane_json(lane));
+            push_lanes(values, rest)
+    }.
+
+put_int_member(mut object: Json, key: String, source: Json): Bool ->
+    case json_int(source, key) {
+        Some(value) ->
+            let _put = object.put(key, Json.int(value));
+            true;
+        None -> false
+    }.
+
+copy_int_object(source: Json, keys: List[String]): Option[Json] ->
+    let object = Json.object();
+    if {
+        copy_int_members(object, source, keys) -> Some(object);
+        true -> None
+    }.
+
+copy_int_members(mut object: Json, source: Json, keys: List[String]): Bool ->
+    case keys {
+        [] -> true;
+        [key | rest] ->
+            put_int_member(object, key, source) and copy_int_members(object, source, rest)
+    }.
+
+artifact_classes(repository: String): Json ->
+    let target = child(repository, "target");
+    let value = Json.object();
+    let _a = value.put("coverage", Json.int(usage(child(target, "coverage"))));
+    let _b = value.put("debug_build_scripts", Json.int(usage(child(target, "debug/build"))));
+    let _c = value.put("debug_dependencies", Json.int(usage(child(target, "debug/deps"))));
+    let _d = value.put("debug_incremental", Json.int(usage(child(target, "debug/incremental"))));
+    let _e = value.put("debug_profile", Json.int(usage(child(target, "debug"))));
+    let _f = value.put("release", Json.int(usage(child(target, "release"))));
+    let _g = value.put("total_target", Json.int(usage(target)));
+    value.
+
+executable_sizes(repository: String): Json ->
+    let target = child(repository, "target");
+    let value = Json.object();
+    let _a = value.put("debug/terlc", Json.int(file_size(child(target, "debug/terlc"))));
+    let _b = value.put("debug/terlan-vm", Json.int(file_size(child(target, "debug/terlan-vm"))));
+    let _c =
+        value
+            .put(
+                "debug/terlan-native-worker",
+                Json.int(file_size(child(target, "debug/terlan-native-worker"))),
+            );
+    let _d =
+        value
+            .put(
+                "debug/terlan-test-orchestrator",
+                Json.int(file_size(child(target, "debug/terlan-test-orchestrator"))),
+            );
+    let _e = value.put("release/terlc", Json.int(file_size(child(target, "release/terlc"))));
+    let _f = value.put("release/terlan-vm", Json.int(file_size(child(target, "release/terlan-vm"))));
+    let _g =
+        value
+            .put(
+                "release/terlan-native-worker",
+                Json.int(file_size(child(target, "release/terlan-native-worker"))),
+            );
+    let _h =
+        value
+            .put(
+                "release/terlan-test-orchestrator",
+                Json.int(file_size(child(target, "release/terlan-test-orchestrator"))),
+            );
+    value.
+
+profile_fingerprints(repository: String): Option[Json] ->
+    let debug_value = profile_fingerprint(repository, debug_command_text());
+    let release_value = profile_fingerprint(repository, release_command_text());
+    let coverage_value = profile_fingerprint(repository, coverage_command_text());
+    case {debug_value, release_value, coverage_value} {
+        {Some(debug), Some(release), Some(coverage)} ->
+            let value = Json.object();
+            let _a = value.put("debug", Json.string(debug));
+            let _b = value.put("release", Json.string(release));
+            let _c = value.put("coverage", Json.string(coverage));
+            Some(value);
+        _ -> None
+    }.
+
+canonical_commands(): Json ->
+    let value = Json.array();
+    let _a = value.push(Json.string(debug_command_text()));
+    let _b = value.push(Json.string(debug_command_text()));
+    let _c = value.push(Json.string(debug_command_text()));
+    let _d = value.push(Json.string(debug_command_text()));
+    let _e = value.push(Json.string(release_command_text()));
+    let _f = value.push(Json.string(coverage_command_text()));
+    value.
+
+fixed_string_array(values: List[String]): Json ->
+    let array = Json.array();
+    let _filled = push_strings(array, values);
+    array.
+
+push_strings(mut array: Json, values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let _pushed = array.push(Json.string(value));
+            push_strings(array, rest)
+    }.
+
+enabled_features(): Json ->
+    let value = Json.object();
+    let _a = value.put("coverage", fixed_string_array(["quality-tools", "cfg(coverage)"]));
+    let _b = value.put("debug", Json.array());
+    let _c = value.put("release", Json.array());
+    value.
+
+command_stdout(repository: String, program: String, arguments: List[String]): String ->
+    let configured = Process.with_arguments(Process.command(program), arguments);
+    let working = Process.with_working_directory(configured, repository);
+    case Process.run(working) {
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> String.trim(Process.stdout(output));
+                true -> "unavailable"
+            };
+        Err(_reason) -> "unavailable"
+    }.
+
+rustc_target_triple(rustc: String): String ->
+    rustc_target_triple_lines(String.split(rustc, "\n")).
+
+rustc_target_triple_lines(lines: List[String]): String ->
+    case lines {
+        [] -> "unavailable";
+        [line | rest] ->
+            if {
+                String.starts_with(line, "host: ") -> case String.split_once(line, "host: ") {
+                    Some({_prefix, target}) -> target;
+                    None -> "unavailable"
+                };
+                true -> rustc_target_triple_lines(rest)
+            }
+    }.
+
+toolchain_json(repository: String): Json ->
+    let value = Json.object();
+    let _a = value.put("cargo", Json.string(command_stdout(repository, "cargo", ["--version"])));
+    let rustc = command_stdout(repository, "rustc", ["--version", "--verbose"]);
+    let _b = value.put("rustc", Json.string(rustc));
+    let _c = value.put("host", Json.string(command_stdout(repository, "uname", ["-a"])));
+    let _d = value.put("go", Json.string(command_stdout(repository, "go", ["version"])));
+    let _e = value.put("target_triple", Json.string(rustc_target_triple(rustc)));
+    value.
+
+preserve_quality(repository: String): Option[String] ->
+    case create_temporary("terlan-build-budget-quality") {
+        Err(_reason) -> None;
+        Ok(temporary) ->
+            let quality = child(repository, "target/quality");
+            if {
+                not exists(quality) -> Some(temporary);
+                true -> case copy_tree_excluding(quality, child(temporary, "quality"), []) {
+                    Ok(Unit) -> Some(temporary);
+                    Err(_reason) -> None
+                }
+            }
+    }.
+
+restore_quality(repository: String, temporary: String): Bool ->
+    let saved = child(temporary, "quality");
+    let quality = child(repository, "target/quality");
+    if {
+        exists(saved) -> restore_saved_quality(saved, quality, temporary);
+        true -> create_empty_quality(quality, temporary)
+    }.
+
+restore_saved_quality(saved: String, quality: String, temporary: String): Bool ->
+    if {
+        exists(quality) -> remove_preserved_quality(temporary, true);
+        true -> case copy_tree_excluding(saved, quality, []) {
+            Ok(Unit) -> remove_preserved_quality(temporary, true);
+            Err(_reason) -> remove_preserved_quality(temporary, false)
+        }
+    }.
+
+create_empty_quality(quality: String, temporary: String): Bool ->
+    case create_all(quality) {
+        Ok(Unit) -> remove_preserved_quality(temporary, true);
+        Err(_reason) -> remove_preserved_quality(temporary, false)
+    }.
+
+remove_preserved_quality(temporary: String, restored: Bool): Bool ->
+    case remove_all(temporary) {
+        Ok(Unit) -> restored;
+        Err(_reason) -> false
+    }.
+
+all_lanes_valid(lanes: List[Lane]): Bool ->
+    case lanes {
+        [] -> true;
+        [lane | rest] -> lane.valid and all_lanes_valid(rest)
+    }.
+
+measure(repository: String, policy: Json): Option[Json] ->
+    case {compilation_input_hash(repository), target_roots(repository)} {
+        {Some(input_hash), Some(roots)} ->
+            if {
+                same_strings(roots, []) or same_strings(roots, ["target"]) -> case preserve_quality(repository) {
+                    None -> None;
+                    Some(temporary) -> measure_preserved(repository, policy, input_hash, temporary)
+                };
+                true -> None
+            };
+        _ -> None
+    }.
+
+measure_preserved(
+    repository: String,
+    policy: Json,
+    input_hash: String,
+    temporary: String,
+): Option[Json] ->
+    let started = unix_time_ns();
+    let preclean = usage(child(repository, "target"));
+    let cleaned = run_command(repository, ["clean"], []);
+    let clean_finished = unix_time_ns();
+    let clean_ok =
+        case cleaned {
+            Some(output) -> Process.status(output) == 0;
+            None -> false
+        };
+    if {
+        clean_ok -> let lane_set = run_measurement_lanes(repository);
+        finish_measurement(
+            repository,
+            policy,
+            input_hash,
+            temporary,
+            preclean,
+            started,
+            clean_finished,
+            lane_set,
+        );
+        true -> let _cleaned = cleanup_failed_measurement(repository, temporary);
+        None
+    }.
+
+cleanup_failed_measurement(repository: String, temporary: String): Bool ->
+    let cleaned = run_command(repository, ["clean"], []);
+    let cargo_cleaned =
+        case cleaned {
+            Some(output) -> Process.status(output) == 0;
+            None -> false
+        };
+    let restored = restore_quality(repository, temporary);
+    cargo_cleaned and restored.
+
+run_measurement_lanes(repository: String): LaneSet ->
+    let clean_debug = run_lane(repository, "clean_debug", debug_arguments(), debug_command_text(), [], "");
+    let warm = run_lane(repository, "no_op_warm", debug_arguments(), debug_command_text(), [], "");
+    let implementation =
+        touched_lane(
+            repository,
+            "implementation_edit",
+            "crates/terlan/src/compiler/native_ir/expression/inference.rs",
+        );
+    let interface = touched_lane(repository, "public_interface_edit", "crates/terlan/src/lib.rs");
+    let release = run_lane(repository, "release", release_arguments(), release_command_text(), [], "");
+    let coverage =
+        run_lane(
+            repository,
+            "coverage",
+            coverage_arguments(),
+            coverage_command_text(),
+            [
+                Process.environment_entry("CARGO_TARGET_DIR", "target/coverage"),
+                Process.environment_entry("RUSTFLAGS", "--cfg coverage"),
+            ],
+            "",
+        );
+    LaneSet(
+        clean_debug = clean_debug,
+        no_op_warm = warm,
+        implementation_edit = implementation,
+        public_interface_edit = interface,
+        release = release,
+        coverage = coverage,
+    ).
+
+lane_set_list(lanes: LaneSet): List[Lane] ->
+    [
+        lanes.clean_debug,
+        lanes.no_op_warm,
+        lanes.implementation_edit,
+        lanes.public_interface_edit,
+        lanes.release,
+        lanes.coverage,
+    ].
+
+lane_set_valid(lanes: LaneSet): Bool ->
+    lanes.clean_debug.valid
+        and lanes.no_op_warm.valid
+        and lanes.implementation_edit.valid
+        and lanes.public_interface_edit.valid
+        and lanes.release.valid
+        and lanes.coverage.valid.
+
+finish_measurement(
+    repository: String,
+    policy: Json,
+    input_hash: String,
+    temporary: String,
+    preclean: Int,
+    started: Int,
+    clean_finished: Int,
+    lane_set: LaneSet,
+): Option[Json] ->
+    if {
+        not lane_set_valid(lane_set) -> let _cleaned = cleanup_failed_measurement(repository, temporary);
+        None;
+        true -> finish_valid_measurement(
+            repository,
+            policy,
+            input_hash,
+            temporary,
+            preclean,
+            started,
+            clean_finished,
+            lane_set,
+        )
+    }.
+
+finish_valid_measurement(
+    repository: String,
+    policy: Json,
+    input_hash: String,
+    temporary: String,
+    preclean: Int,
+    started: Int,
+    clean_finished: Int,
+    lane_set: LaneSet,
+): Option[Json] ->
+    case compilation_input_hash(repository) {
+        Some(after_hash) ->
+            if {
+                after_hash == input_hash -> let restored = restore_quality(repository, temporary);
+                if {
+                    restored -> build_report(
+                        repository,
+                        policy,
+                        input_hash,
+                        preclean,
+                        started,
+                        clean_finished,
+                        lane_set_list(lane_set),
+                    );
+                    true -> None
+                };
+                true -> let _cleaned = cleanup_failed_measurement(repository, temporary);
+                None
+            };
+        None ->
+            let _cleaned = cleanup_failed_measurement(repository, temporary);
+            None
+    }.
+
+build_report(
+    repository: String,
+    policy: Json,
+    input_hash: String,
+    preclean: Int,
+    started: Int,
+    clean_finished: Int,
+    lanes: List[Lane],
+): Option[Json] ->
+    let fingerprints_value = profile_fingerprints(repository);
+    let roots_value = target_roots(repository);
+    let finished = unix_time_ns();
+    let generated = unix_time_ns();
+    case {
+    json_member(policy, "artifact_class_maximum_bytes"),
+    json_member(policy, "executable_maximum_bytes"),
+    json_member(policy, "lane_maximum_wall_time_ms"),
+    json_int(policy, "maximum_total_target_bytes"),
+    json_string(policy, "ratchet_policy"),
+    fingerprints_value,
+    roots_value,
+} {
+        {Some(class_max), Some(executable_max), Some(lane_max), Some(total_max), Some(ratchet), Some(fingerprints), Some(roots)} ->
+            let report = Json.object();
+            let _a = report.put("schema", Json.string(schema()));
+            let _b = report.put("run_started_unix_ns", Json.int(started));
+            let _c = report.put("clean_finished_unix_ns", Json.int(clean_finished));
+            let _d = report.put("run_finished_unix_ns", Json.int(finished));
+            let _e = report.put("generated_unix_ns", Json.int(generated));
+            let _f = report.put("clean_rebuild", Json.bool(true));
+            let _g = report.put("compilation_input_sha256", Json.string(input_hash));
+            let _h = report.put("preclean_target_bytes", Json.int(preclean));
+            let _i = report.put("artifact_classes", artifact_classes(repository));
+            let _j = report.put("artifact_class_maximum_bytes", class_max);
+            let _k = report.put("maximum_total_target_bytes", Json.int(total_max));
+            let _l = report.put("lanes", lanes_json(lanes));
+            let _m = report.put("lane_maximum_wall_time_ms", lane_max);
+            let _n = report.put("executable_sizes", executable_sizes(repository));
+            let _o = report.put("executable_maximum_bytes", executable_max);
+            let _p = report.put("profile_fingerprints", fingerprints);
+            let _q = report.put("target_roots", fixed_string_array(roots));
+            let _r = report.put("unaccounted_target_children", unaccounted_target_children(repository));
+            let _s = report.put("toolchain", toolchain_json(repository));
+            let _t = report.put("enabled_features", enabled_features());
+            let _u = report.put("canonical_commands", canonical_commands());
+            let _v = report.put("policy_sha256", Json.string(policy_hash(repository)));
+            let _w = report.put("ratchet_policy", Json.string(ratchet));
+            Some(report);
+        _ -> None
+    }.
+
+unaccounted_target_children(repository: String): Json ->
+    case entries(child(repository, "target")) {
+        Err(_reason) -> Json.array();
+        Ok(paths) -> unaccounted_paths(paths, Json.array())
+    }.
+
+unaccounted_paths(paths: List[String], mut output: Json): Json ->
+    case paths {
+        [] -> output;
+        [path | rest] ->
+            let allowed =
+                String.ends_with(path, "/.rustc_info.json")
+                    or String.ends_with(path, "/CACHEDIR.TAG")
+                    or String.ends_with(path, "/coverage")
+                    or String.ends_with(path, "/debug")
+                    or String.ends_with(path, "/quality")
+                    or String.ends_with(path, "/release")
+                    or String.ends_with(path, "/tmp");
+            if {
+                allowed -> unaccounted_paths(rest, output);
+                true -> let _pushed = output.push(Json.string(path));
+                unaccounted_paths(rest, output)
+            }
+    }.
+
+policy_hash(repository: String): String ->
+    case read_text(policy_path(repository)) {
+        Ok(text) -> sha256(text);
+        Err(_reason) -> ""
+    }.
+
+pub write_report(repository: String, report: Json): Bool ->
+    let {
+        Ok(text) <- Json.stringify_pretty(report);
+        Ok(Unit) <- create_all(child(repository, "target/quality"));
+        Ok(Unit) <- write_text(report_path(repository), String.append(text, "\n"))
+    } else {
+        _ -> false
+    };
+    true.
+
+append_finding(findings: List[String], condition: Bool, message: String): List[String] ->
+    if {
+        condition -> [message | findings];
+        true -> findings
+    }.
+
+optional_string_equals(value: Option[String], expected: String): Bool ->
+    case value {
+        Some(actual) -> actual == expected;
+        None -> false
+    }.
+
+optional_strings_equal(left: Option[String], right: Option[String]): Bool ->
+    case {left, right} {
+        {Some(a), Some(b)} -> a == b;
+        {None, None} -> true;
+        _ -> false
+    }.
+
+optional_bool_equals(value: Option[Bool], expected: Bool): Bool ->
+    case value {
+        Some(actual) -> actual == expected;
+        None -> false
+    }.
+
+optional_int_equals(value: Option[Int], expected: Int): Bool ->
+    case value {
+        Some(actual) -> actual == expected;
+        None -> false
+    }.
+
+profile_fingerprints_match(report: Json, current: Option[Json]): Bool ->
+    case {json_member(report, "profile_fingerprints"), current} {
+        {Some(recorded), Some(expected)} ->
+            optional_strings_equal(json_string(recorded, "debug"), json_string(expected, "debug"))
+                and optional_strings_equal(json_string(recorded, "release"), json_string(expected, "release"))
+                and optional_strings_equal(json_string(recorded, "coverage"), json_string(expected, "coverage"));
+        _ -> false
+    }.
+
+validate(repository: String, report: Json, policy: Json): List[String] ->
+    let current_policy_hash = policy_hash(repository);
+    let current_hash = compilation_input_hash(repository);
+    let first =
+        append_finding(
+            [],
+            not optional_string_equals(json_string(report, "schema"), schema()),
+            "unsupported or missing report schema",
+        );
+    let second =
+        append_finding(
+            first,
+            not optional_bool_equals(json_bool(report, "clean_rebuild"), true),
+            "cleanup-only evidence has no successful canonical rebuild",
+        );
+    let timestamp_bad =
+        case {
+    json_int(report, "run_started_unix_ns"),
+    json_int(report, "clean_finished_unix_ns"),
+    json_int(report, "run_finished_unix_ns"),
+    json_int(report, "generated_unix_ns"),
+} {
+            {Some(start), Some(clean), Some(finish), Some(generated)} ->
+                not (0 < start and start < clean and clean < finish and finish <= generated);
+            _ -> true
+        };
+    let third =
+        append_finding(
+            second,
+            timestamp_bad,
+            "report timestamps do not prove clean-build completion before recording",
+        );
+    let fourth =
+        append_finding(
+            third,
+            not optional_string_equals(json_string(report, "policy_sha256"), current_policy_hash),
+            "report was measured against a stale budget policy",
+        );
+    let fifth =
+        append_finding(
+            fourth,
+            not optional_strings_equal(json_string(report, "compilation_input_sha256"), current_hash),
+            "report predates the current compilation inputs",
+        );
+    let sixth = validate_classes(report, policy, fifth);
+    let seventh = validate_lanes(report, policy, sixth);
+    let eighth = validate_executables(report, policy, seventh);
+    let ninth = validate_roots(report, eighth);
+    let tenth =
+        append_finding(
+            ninth,
+            not profile_fingerprints_match(report, profile_fingerprints(repository)),
+            "profile fingerprints are stale",
+        );
+    reverse_strings(tenth).
+
+validate_classes(report: Json, policy: Json, findings: List[String]): List[String] ->
+    let {
+        {Some(classes), Some(maxima), Some(total_max)} <-
+            {
+                json_member(report, "artifact_classes"),
+                json_member(policy, "artifact_class_maximum_bytes"),
+                json_int(policy, "maximum_total_target_bytes"),
+            };
+        Ok(keys) <- classes.keys()
+    } else {
+        _ -> ["report is missing or adds unaccounted artifact classes" | findings]
+    };
+    (let required =
+    [
+        "coverage",
+        "debug_build_scripts",
+        "debug_dependencies",
+        "debug_incremental",
+        "debug_profile",
+        "release",
+        "total_target",
+    ];
+let checked =
+    append_finding(
+        findings,
+        not same_strings(keys, required),
+        "report is missing or adds unaccounted artifact classes",
+    );
+let total_checked =
+    case json_int(classes, "total_target") {
+        Some(total) ->
+            append_finding(
+                checked,
+                total > total_max,
+                "total target footprint exceeds policy maximum",
+            );
+        None -> checked
+    };
+validate_maximum_members(
+    classes,
+    maxima,
+    ["coverage", "debug_build_scripts", "debug_dependencies", "debug_incremental", "release"],
+    total_checked,
+)).
+
+validate_maximum_members(
+    actual: Json,
+    maxima: Json,
+    keys: List[String],
+    findings: List[String],
+): List[String] ->
+    case keys {
+        [] -> findings;
+        [key | rest] ->
+            case {json_int(actual, key), json_int(maxima, key)} {
+                {Some(value), Some(maximum)} ->
+                    validate_maximum_members(
+                        actual,
+                        maxima,
+                        rest,
+                        append_finding(
+                            findings,
+                            value > maximum,
+                            String.append("artifact class exceeds maximum: ", key),
+                        ),
+                    );
+                _ ->
+                    validate_maximum_members(
+                        actual,
+                        maxima,
+                        rest,
+                        [String.append("artifact class evidence is missing: ", key) | findings],
+                    )
+            }
+    }.
+
+validate_lanes(report: Json, policy: Json, findings: List[String]): List[String] ->
+    let {
+        {Some(lanes), Some(maxima)} <- {json_member(report, "lanes"), json_member(policy, "lane_maximum_wall_time_ms")};
+        Ok(6) <- lanes.length()
+    } else {
+        _ -> ["report is missing canonical timing/invalidation lanes" | findings]
+    };
+    validate_lane_rows(
+        lanes,
+        maxima,
+        0,
+        [
+            "clean_debug",
+            "no_op_warm",
+            "implementation_edit",
+            "public_interface_edit",
+            "release",
+            "coverage",
+        ],
+        findings,
+    ).
+
+validate_lane_rows(
+    lanes: Json,
+    maxima: Json,
+    index: Int,
+    names: List[String],
+    findings: List[String],
+): List[String] ->
+    case names {
+        [] -> findings;
+        [name | rest] ->
+            case lanes.at(index) {
+                Err(_reason) ->
+                    ["report is missing canonical timing/invalidation lanes" | findings];
+                Ok(lane) ->
+                    let named =
+                        append_finding(
+                            findings,
+                            not optional_string_equals(json_string(lane, "name"), name),
+                            "canonical lane order or identity is invalid",
+                        );
+                    let process =
+                        append_finding(
+                            named,
+                            not optional_int_equals(json_int(lane, "process_starts"), 1),
+                            String.append(name, ": compiler process-start accounting is invalid"),
+                        );
+                    let evidence =
+                        case {
+    json_int(lane, "wall_time_ms"),
+    json_int(maxima, name),
+    json_int(lane, "invalidated_artifact_count"),
+    json_string(lane, "command"),
+} {
+                            {Some(wall), Some(maximum), Some(invalidated), Some(command)} ->
+                                let timed =
+                                    append_finding(
+                                        process,
+                                        wall > maximum,
+                                        String.append(name, ": feedback latency exceeds policy"),
+                                    );
+                                append_finding(
+                                    timed,
+                                    invalidated < 0 or command == "",
+                                    String.append(
+                                        name,
+                                        ": invalidation or command evidence is missing",
+                                    ),
+                                );
+                            _ ->
+                                [String.append(name, ": invalidation or command evidence is missing") | process]
+                        };
+                    validate_lane_rows(lanes, maxima, index + 1, rest, evidence)
+            }
+    }.
+
+sum_profile(sizes: Json, prefix: String, names: List[String], total: Int): Int ->
+    case names {
+        [] -> total;
+        [name | rest] ->
+            case json_int(sizes, String.append(prefix, name)) {
+                Some(value) -> sum_profile(sizes, prefix, rest, total + value);
+                None -> sum_profile(sizes, prefix, rest, total)
+            }
+    }.
+
+validate_executables(report: Json, policy: Json, findings: List[String]): List[String] ->
+    case {json_member(report, "executable_sizes"), json_member(policy, "executable_maximum_bytes")} {
+        {Some(sizes), Some(maxima)} ->
+            let names = ["terlc", "terlan-vm", "terlan-native-worker", "terlan-test-orchestrator"];
+            let debug = sum_profile(sizes, "debug/", names, 0);
+            let release = sum_profile(sizes, "release/", names, 0);
+            let debug_findings =
+                case json_int(maxima, "debug") {
+                    Some(maximum) ->
+                        append_finding(
+                            findings,
+                            debug > maximum,
+                            "canonical debug executable-size total exceeds policy",
+                        );
+                    None -> findings
+                };
+            case json_int(maxima, "release") {
+                Some(maximum) ->
+                    append_finding(
+                        debug_findings,
+                        release > maximum,
+                        "canonical release executable-size total exceeds policy",
+                    );
+                None -> debug_findings
+            };
+        _ -> ["canonical executable-size evidence is missing" | findings]
+    }.
+
+validate_roots(report: Json, findings: List[String]): List[String] ->
+    let {
+        Some(roots) <- json_member(report, "target_roots");
+        {Ok(1), Ok(root_value)} <- {roots.length(), roots.at(0)};
+        Ok("target") <- root_value.as_string()
+    } else {
+        _ -> ["duplicate or missing target roots" | findings]
+    };
+    (let {
+    Some(children) <- json_member(report, "unaccounted_target_children");
+    Ok(0) <- children.length()
+} else {
+    _ -> ["unaccounted top-level target artifact classes are present" | findings]
+};
+findings).
+
+print_findings(findings: List[String]): Bool ->
+    let _header = eprintln("Build artifact budget check failed:");
+    print_finding_rows(findings).
+
+print_finding_rows(findings: List[String]): Bool ->
+    case findings {
+        [] -> false;
+        [finding | rest] ->
+            let _row = eprintln(String.append("  - ", finding));
+            print_finding_rows(rest)
+    }.
+
+pub check(repository: String, policy: Json, report: Json): Bool ->
+    let validated = validate(repository, report, policy);
+    case validated {
+        [] ->
+            let {
+                {Some(classes), Some(maximum), Some(lanes)} <-
+                    {
+                        json_member(report, "artifact_classes"),
+                        json_int(policy, "maximum_total_target_bytes"),
+                        json_member(report, "lanes"),
+                    };
+                {Some(total), Ok(count)} <- {json_int(classes, "total_target"), lanes.length()}
+            } else {
+                _ -> false
+            };
+            (let _passed =
+    println(
+        String.append(
+            "Build artifact budget passed: ",
+            String.append(
+                Int.to_string(total),
+                String.append(
+                    " / ",
+                    String.append(
+                        Int.to_string(maximum),
+                        String.append(
+                            " bytes; ",
+                            String.append(
+                                Int.to_string(count),
+                                " clean/warm/invalidation/profile lanes measured.",
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    );
+true);
+        findings -> print_findings(findings)
+    }.
+
+pub self_test(repository: String, policy: Json): Bool ->
+    let input_hash_value = compilation_input_hash(repository);
+    let fingerprints_value = profile_fingerprints(repository);
+    case {input_hash_value, fingerprints_value} {
+        {Some(input_hash), Some(fingerprints)} ->
+            let now = unix_time_ns();
+            let report = Json.object();
+            let _a = report.put("schema", Json.string(schema()));
+            let _b = report.put("run_started_unix_ns", Json.int(now - 4));
+            let _c = report.put("clean_finished_unix_ns", Json.int(now - 3));
+            let _d = report.put("run_finished_unix_ns", Json.int(now - 2));
+            let _e = report.put("generated_unix_ns", Json.int(now - 1));
+            let _f = report.put("clean_rebuild", Json.bool(true));
+            let _g = report.put("compilation_input_sha256", Json.string(input_hash));
+            let _h = report.put("policy_sha256", Json.string(policy_hash(repository)));
+            let classes = Json.object();
+            let _i =
+                put_zeroes(
+                    classes,
+                    [
+                        "coverage",
+                        "debug_build_scripts",
+                        "debug_dependencies",
+                        "debug_incremental",
+                        "debug_profile",
+                        "release",
+                        "total_target",
+                    ],
+                );
+            let _j = report.put("artifact_classes", classes);
+            let lanes = self_test_lanes();
+            let _k = report.put("lanes", lanes);
+            let _l = report.put("executable_sizes", Json.object());
+            let _m = report.put("target_roots", fixed_string_array(["target"]));
+            let _n = report.put("unaccounted_target_children", Json.array());
+            let _o = report.put("profile_fingerprints", fingerprints);
+            let first_validation = validate(repository, report, policy);
+            let valid = findings_empty(first_validation);
+            let _broken = report.put("clean_rebuild", Json.bool(false));
+            let second_validation = validate(repository, report, policy);
+            let rejected = not findings_empty(second_validation);
+            valid and rejected;
+        _ -> false
+    }.
+
+findings_empty(findings: List[String]): Bool ->
+    case findings {
+        [] -> true;
+        _ -> false
+    }.
+
+put_zeroes(mut object: Json, keys: List[String]): Bool ->
+    case keys {
+        [] -> true;
+        [key | rest] ->
+            let _put = object.put(key, Json.int(0));
+            put_zeroes(object, rest)
+    }.
+
+self_test_lanes(): Json ->
+    let lanes = Json.array();
+    let _filled =
+        push_self_test_lanes(
+            lanes,
+            [
+                "clean_debug",
+                "no_op_warm",
+                "implementation_edit",
+                "public_interface_edit",
+                "release",
+                "coverage",
+            ],
+        );
+    lanes.
+
+push_self_test_lanes(mut lanes: Json, names: List[String]): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            let lane = Json.object();
+            let _a = lane.put("name", Json.string(name));
+            let _b = lane.put("command", Json.string("cargo build"));
+            let _c = lane.put("invalidated_artifact_count", Json.int(0));
+            let _d = lane.put("process_starts", Json.int(1));
+            let _e = lane.put("wall_time_ms", Json.int(1));
+            let _f = lanes.push(lane);
+            push_self_test_lanes(lanes, rest)
+    }.
+
+fail(message: String): Bool ->
+    let _printed = eprintln(message);
+    let _failed = std.vm.Process.fail(exit_reason(1));
+    false.
+
+fail_without_message(): Bool ->
+    let _failed = std.vm.Process.fail(exit_reason(2));
+    false.
+
+checked_exit(repository: String, policy: Json, report: Json): Bool ->
+    if {
+        check(repository, policy, report) -> true;
+        true -> fail_without_message()
+    }.
+
+persist_and_check(repository: String, policy: Json, report: Json): Bool ->
+    if {
+        write_report(repository, report) -> checked_exit(repository, policy, report);
+        true -> fail("Build artifact budget check failed: cannot write report")
+    }.
+
+refresh_report(repository: String, report: Json, policy: Json): Bool ->
+    case {
+    json_member(policy, "artifact_class_maximum_bytes"),
+    json_member(policy, "executable_maximum_bytes"),
+    json_member(policy, "lane_maximum_wall_time_ms"),
+    json_int(policy, "maximum_total_target_bytes"),
+    json_string(policy, "ratchet_policy"),
+} {
+        {Some(class_max), Some(executable_max), Some(lane_max), Some(total_max), Some(ratchet)} ->
+            let _a = report.put("artifact_class_maximum_bytes", class_max);
+            let _b = report.put("executable_maximum_bytes", executable_max);
+            let _c = report.put("lane_maximum_wall_time_ms", lane_max);
+            let _d = report.put("maximum_total_target_bytes", Json.int(total_max));
+            let _e = report.put("policy_sha256", Json.string(policy_hash(repository)));
+            let _f = report.put("ratchet_policy", Json.string(ratchet));
+            let _g = report.put("generated_unix_ns", Json.int(unix_time_ns()));
+            true;
+        _ -> false
+    }.
+
+run_measure(repository: String, policy: Json, refresh: Bool): Bool ->
+    case measure(repository, policy) {
+        None -> fail("Build artifact budget check failed: canonical measurement failed");
+        Some(report) ->
+            if {
+                refresh and not refresh_report(repository, report, policy) -> fail("Build artifact budget check failed: cannot refresh policy evidence");
+                true -> persist_and_check(repository, policy, report)
+            }
+    }.
+
+run_refresh(repository: String, policy: Json): Bool ->
+    case read_json(report_path(repository)) {
+        None -> fail("Build artifact budget check failed: cannot read report");
+        Some(report) ->
+            if {
+                refresh_report(repository, report, policy) -> persist_and_check(repository, policy, report);
+                true -> fail("Build artifact budget check failed: cannot refresh policy evidence")
+            }
+    }.
+
+run_existing_check(repository: String, policy: Json): Bool ->
+    case read_json(report_path(repository)) {
+        Some(report) -> checked_exit(repository, policy, report);
+        None -> fail("Build artifact budget check failed: cannot read report")
+    }.
+
+run_self_test(repository: String, policy: Json): Bool ->
+    if {
+        self_test(repository, policy) -> let _passed = println("Build artifact budget self-test passed.");
+        true;
+        true -> fail("Build artifact budget self-test failed")
+    }.
+
+pub check_entry(): Bool ->
+    let repository = root();
+    case read_json(policy_path(repository)) {
+        None -> fail("Build artifact budget check failed: cannot read policy");
+        Some(policy) -> run_existing_check(repository, policy)
+    }.
+
+pub measure_entry(refresh: Bool): Bool ->
+    let repository = root();
+    case read_json(policy_path(repository)) {
+        None -> fail("Build artifact budget check failed: cannot read policy");
+        Some(policy) -> run_measure(repository, policy, refresh)
+    }.
+
+pub refresh_entry(): Bool ->
+    let repository = root();
+    case read_json(policy_path(repository)) {
+        None -> fail("Build artifact budget check failed: cannot read policy");
+        Some(policy) -> run_refresh(repository, policy)
+    }.
+
+pub self_test_entry(): Bool ->
+    let repository = root();
+    case read_json(policy_path(repository)) {
+        None -> fail("Build artifact budget self-test failed: cannot read policy");
+        Some(policy) -> run_self_test(repository, policy)
+    }.
+
+run_measure_mode(repository: String, policy: Json): Bool ->
+    case Arguments.get(1) {
+        None -> run_measure(repository, policy, false);
+        Some("--refresh-policy") ->
+            if {
+                Arguments.count() == 2 -> run_measure(repository, policy, true);
+                true -> fail("Build artifact budget check failed: unsupported argument")
+            };
+        Some(_unsupported) -> fail("Build artifact budget check failed: unsupported argument")
+    }.
+
+run_refresh_mode(repository: String, policy: Json): Bool ->
+    case Arguments.get(1) {
+        None -> run_refresh(repository, policy);
+        Some("--measure") ->
+            if {
+                Arguments.count() == 2 -> run_measure(repository, policy, true);
+                true -> fail("Build artifact budget check failed: unsupported argument")
+            };
+        Some(_unsupported) -> fail("Build artifact budget check failed: unsupported argument")
+    }.
+
+run_mode(repository: String, policy: Json): Bool ->
+    case Arguments.get(0) {
+        Some("--self-test") ->
+            if {
+                Arguments.count() == 1 -> run_self_test(repository, policy);
+                true -> fail("Build artifact budget check failed: unsupported argument")
+            };
+        Some("--measure") -> run_measure_mode(repository, policy);
+        Some("--refresh-policy") -> run_refresh_mode(repository, policy);
+        None -> run_existing_check(repository, policy);
+        Some(_unsupported) -> fail("Build artifact budget check failed: unsupported argument")
+    }.
+
+pub main(): Bool ->
+    let repository = root();
+    case read_json(policy_path(repository)) {
+        None -> fail("Build artifact budget check failed: cannot read policy");
+        Some(policy) -> run_mode(repository, policy)
+    }.
+
+@test
+pub clock_contract_supports_evidence_and_elapsed_time(): Bool ->
+    let started = monotonic_time_ns();
+    unix_time_ns() > 0
+        and monotonic_time_ns() >= started
+        and elapsed_milliseconds(1000000000, 1123456789) == 123.

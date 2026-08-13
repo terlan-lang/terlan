@@ -1,0 +1,10 @@
+module=std.io.Directory
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=3262017332860654124
+interface_hash=17786101849765552139
+interface_doc_hash=926080196743633682
+deps=2
+std.core.Result=11040488711914238385
+std.core.Unit=13611133214341763160

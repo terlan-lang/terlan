@@ -4,7 +4,19 @@ use std::path::{Path, PathBuf};
 use crate::terlan_quality::{render_failure, QualityResult};
 
 /// Forbidden planning terms that must not appear in published docs paths.
-const FORBIDDEN_NAME_PARTS: &[&str] = &["roadmap", "baseline", "checkpoint", "scratch", "research"];
+const FORBIDDEN_NAME_PARTS: &[&str] = &[
+    "roadmap",
+    "archive",
+    "baseline",
+    "checkpoint",
+    "scratch",
+    "research",
+    "inventory",
+    "evidence",
+];
+
+/// Source-controlled allowlist for documentation copied into release archives.
+const PUBLISHABLE_MANIFEST: &str = "docs/release/PUBLISHABLE_DOCUMENTATION.tsv";
 
 /// Summary produced by the internal-docs check.
 ///
@@ -95,49 +107,63 @@ pub fn run_internal_docs(root: &Path) -> QualityResult<InternalDocsSummary> {
 /// - Repository-relative documentation file paths.
 ///
 /// Transformation:
-/// - Recursively walks `docs/` and ignores directories because file paths carry
-///   the full directory context needed for matching.
+/// - Reads the explicit staged-documentation manifest and rejects malformed,
+///   unsorted, duplicate, missing, or out-of-tree entries.
 fn doc_paths(root: &Path) -> QualityResult<Vec<PathBuf>> {
-    let docs = root.join("docs");
-    if !docs.is_dir() {
-        return Ok(Vec::new());
-    }
+    let manifest_path = root.join(PUBLISHABLE_MANIFEST);
+    let source = fs::read_to_string(&manifest_path).map_err(|err| {
+        format!(
+            "{}: failed to read publishable documentation manifest: {err}",
+            manifest_path.display()
+        )
+    })?;
     let mut paths = Vec::new();
-    collect_doc_paths(root, &docs, &mut paths)?;
-    paths.sort();
-    Ok(paths)
-}
-
-/// Recursively collects documentation file paths.
-///
-/// Inputs:
-/// - `root`: repository root used for relative paths.
-/// - `dir`: current directory being scanned.
-/// - `paths`: output accumulator.
-///
-/// Output:
-/// - `Ok(())` when the directory tree was read.
-/// - Diagnostic string when a directory entry or relative path fails.
-///
-/// Transformation:
-/// - Traverses directories recursively and pushes only file paths.
-fn collect_doc_paths(root: &Path, dir: &Path, paths: &mut Vec<PathBuf>) -> QualityResult<()> {
-    for entry in fs::read_dir(dir)
-        .map_err(|err| format!("{}: failed to read docs dir: {err}", dir.display()))?
-    {
-        let path = entry
-            .map_err(|err| format!("{}: failed to read docs entry: {err}", dir.display()))?
-            .path();
-        if path.is_dir() {
-            collect_doc_paths(root, &path, paths)?;
-        } else if path.is_file() {
-            let relative = path.strip_prefix(root).map_err(|err| {
-                format!("{}: failed to relativize docs path: {err}", path.display())
-            })?;
-            paths.push(relative.to_path_buf());
+    let mut previous: Option<&str> = None;
+    for (index, line) in source.lines().enumerate() {
+        if index == 0 {
+            if line != "path" {
+                return Err(format!(
+                    "{}: expected exact `path` header",
+                    manifest_path.display()
+                ));
+            }
+            continue;
         }
+        if line.is_empty() {
+            continue;
+        }
+        if !line.starts_with("docs/") || line.contains('\t') {
+            return Err(format!(
+                "{}:{}: invalid publishable documentation path `{line}`",
+                manifest_path.display(),
+                index + 1
+            ));
+        }
+        if previous.is_some_and(|value| value >= line) {
+            return Err(format!(
+                "{}:{}: paths must be unique and bytewise sorted",
+                manifest_path.display(),
+                index + 1
+            ));
+        }
+        let relative = PathBuf::from(line);
+        if !root.join(&relative).is_file() {
+            return Err(format!(
+                "{}:{}: publishable document is missing: {line}",
+                manifest_path.display(),
+                index + 1
+            ));
+        }
+        paths.push(relative);
+        previous = Some(line);
     }
-    Ok(())
+    if paths.is_empty() {
+        return Err(format!(
+            "{}: publishable documentation manifest is empty",
+            manifest_path.display()
+        ));
+    }
+    Ok(paths)
 }
 
 /// Returns internal-looking documentation path findings.
@@ -173,4 +199,5 @@ pub(crate) fn internal_doc_findings(paths: &[PathBuf]) -> Vec<InternalDocFinding
 
 #[cfg(test)]
 #[path = "internal_docs_test.rs"]
+#[cfg(test)]
 mod internal_docs_test;

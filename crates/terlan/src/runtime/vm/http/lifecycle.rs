@@ -7,6 +7,7 @@ use crate::runtime::vm::{
 
 /// Final state of a bounded graceful HTTP drain.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmHttpDrainOutcome {
     Pending,
     Drained,
@@ -27,6 +28,7 @@ pub(super) enum VmHttpLifecycleState {
 
 /// Deterministic accounting for a graceful HTTP drain.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmHttpDrainReport {
     pub(crate) outcome: VmHttpDrainOutcome,
     pub(crate) polls: usize,
@@ -37,6 +39,7 @@ pub(crate) struct VmHttpDrainReport {
 
 impl VmHttpTcpServer {
     /// Cancels one active handler and releases its VM process and TCP stream.
+    #[cfg(test)]
     pub(crate) fn cancel_handler(
         &mut self,
         processes: &mut VmProcessTable,
@@ -67,6 +70,7 @@ impl VmHttpTcpServer {
     }
 
     /// Stops new accepts and starts a scheduler-driven graceful drain.
+    #[cfg(test)]
     pub(crate) fn begin_drain(
         &mut self,
         tcp: &mut VmTcpRuntime,
@@ -100,6 +104,7 @@ impl VmHttpTcpServer {
     }
 
     /// Polls one plaintext graceful-drain scheduler tick.
+    #[cfg(test)]
     pub(crate) fn poll_drain(
         &mut self,
         processes: &mut VmProcessTable,
@@ -112,6 +117,7 @@ impl VmHttpTcpServer {
 
     /// Polls one TLS-aware graceful-drain scheduler tick and removes the
     /// listener plan after a terminal outcome.
+    #[cfg(test)]
     pub(crate) fn poll_drain_with_tls(
         &mut self,
         processes: &mut VmProcessTable,
@@ -130,6 +136,7 @@ impl VmHttpTcpServer {
 
     /// Polls one graceful-drain tick while retaining an optional TLS plan for
     /// the duration of the scheduler operation.
+    #[cfg(test)]
     fn poll_drain_retained(
         &mut self,
         processes: &mut VmProcessTable,
@@ -221,6 +228,7 @@ impl VmHttpTcpServer {
     }
 
     /// Shuts down the listener and every active handler process.
+    #[cfg(test)]
     pub(crate) fn shutdown(
         &mut self,
         processes: &mut VmProcessTable,
@@ -244,6 +252,7 @@ impl VmHttpTcpServer {
     }
 
     /// Shuts down HTTP state and removes listener-bound TLS metadata.
+    #[cfg(test)]
     pub(crate) fn shutdown_with_tls(
         &mut self,
         processes: &mut VmProcessTable,

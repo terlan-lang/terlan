@@ -1,6 +1,7 @@
 use super::transfer::VmProcessAliasTransfer;
 use super::*;
 use crate::runtime::vm::process::VmProcessSource;
+use crate::runtime::vm::process::VmProcessTable;
 
 fn owner_process() -> (VmProcessTable, VmProcessId) {
     let mut processes = VmProcessTable::default();

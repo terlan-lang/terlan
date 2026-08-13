@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use serde::Serialize;
 
 use crate::backends::wasm::{
@@ -178,7 +176,8 @@ pub(super) fn build_one_wasm_core_artifact(
     path: &str,
     state: &crate::CliState,
 ) -> Result<(), BuildOneError> {
-    let source = crate::support::read_file(path).map_err(BuildOneError::Message)?;
+    let source = crate::support::read_file(path)
+        .map_err(|error| BuildOneError::Message(error.to_string()))?;
     let compiled =
         match crate::formal_pipeline::compile_syntax_module_through_phases_with_profile_options(
             path,
@@ -363,4 +362,5 @@ fn module_file_stem(core: &CoreModule) -> String {
 
 #[cfg(test)]
 #[path = "wasm_artifact_test.rs"]
+#[cfg(test)]
 mod wasm_artifact_test;

@@ -1,10 +1,29 @@
 //! Linearizes composed calls by sharing continuation bodies as hidden functions.
 
-use std::collections::{hash_map::DefaultHasher, HashMap};
+use std::collections::{hash_map::DefaultHasher, HashMap, HashSet};
 use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
 
 use super::{NativeContinuation, NativeExpr, NativeFunction, NativeModule};
+
+pub(crate) const MATERIALIZED_CONTINUATION_MODULE: &str = "$terlan.continuations";
+
+/// Reports whether a module contains implementation-only continuation bodies.
+///
+/// These functions are linked direct-call targets. They are never public VM
+/// entries or closure targets; externally resumable identities remain in the
+/// ordinary continuation table as small adapters.
+pub(crate) fn is_materialized_continuation_module(module: &NativeModule) -> bool {
+    module.name == MATERIALIZED_CONTINUATION_MODULE
+}
+
+/// Protocol roles that must remain distinct even when continuation bodies and
+/// physical parameter lists happen to be identical.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+struct ContinuationProtocolRole {
+    completion: bool,
+    outward: bool,
+}
 
 /// Resolves identity-based continuation calls after application lowering.
 ///
@@ -48,10 +67,34 @@ pub(super) fn materialize_shared_continuations(
 
     for module in modules.iter_mut() {
         for function in &mut module.functions {
-            resolve_calls(&mut function.body, &indexes)?;
+            resolve_calls(&mut function.body, &indexes).map_err(|error| {
+                format!(
+                    "{error}; while materializing `{}.{}/{}`",
+                    function.source_module, function.source_function, function.source_arity
+                )
+            })?;
         }
         for continuation in &mut module.continuations {
-            resolve_calls(&mut continuation.body, &indexes)?;
+            resolve_calls(&mut continuation.body, &indexes).map_err(|error| {
+                format!(
+                    "{error}; while materializing continuation {}",
+                    continuation.id
+                )
+            })?;
+        }
+    }
+
+    // Outward suspension identities remain part of the VM image contract, but
+    // their complete bodies now live in the direct-call function table. Keep
+    // only ABI adapters here so Cranelift does not emit every body twice.
+    for module in modules.iter_mut() {
+        for continuation in &mut module.continuations {
+            let (function, arity) = continuation_function(continuation.id, &indexes)?;
+            continuation.body = NativeExpr::TailCall {
+                function,
+                args: (0..arity).map(NativeExpr::Param).collect(),
+                yield_continuation_id: None,
+            };
         }
     }
 
@@ -95,7 +138,7 @@ pub(super) fn materialize_shared_continuations(
     managed_collections.sort_by(|left, right| left.as_ref().cmp(right.as_ref()));
     managed_collections.dedup_by(|left, right| left.as_ref() == right.as_ref());
     modules.push(NativeModule {
-        name: "$terlan.continuations".to_string(),
+        name: MATERIALIZED_CONTINUATION_MODULE.to_string(),
         functions,
         continuations: Vec::new(),
         managed_layouts,
@@ -112,6 +155,18 @@ pub(super) fn materialize_shared_continuations(
 /// equivalent bodies before code generation prevents code size from growing
 /// with the number of paths while retaining exact short-circuit semantics.
 pub(super) fn intern_equivalent_continuations(modules: &mut [NativeModule]) {
+    let roles = continuation_protocol_roles(modules.iter().flat_map(|module| {
+        module
+            .functions
+            .iter()
+            .map(|function| &function.body)
+            .chain(
+                module
+                    .continuations
+                    .iter()
+                    .map(|continuation| &continuation.body),
+            )
+    }));
     let mut owners = Vec::new();
     let mut continuations = Vec::new();
     for (owner, module) in modules.iter_mut().enumerate() {
@@ -119,7 +174,7 @@ pub(super) fn intern_equivalent_continuations(modules: &mut [NativeModule]) {
         owners.extend(std::iter::repeat_n(owner, owned.len()));
         continuations.extend(owned);
     }
-    let aliases = intern_continuations(&mut continuations);
+    let aliases = intern_continuations(&mut continuations, &roles);
     rewrite_application_continuation_ids(modules, &aliases);
     for (owner, mut continuation) in owners.into_iter().zip(continuations) {
         if canonical_id(continuation.id, &aliases) != continuation.id {
@@ -139,7 +194,10 @@ pub(super) fn intern_function_continuations(
     body: &mut NativeExpr,
     continuations: &mut Vec<NativeContinuation>,
 ) {
-    let aliases = intern_continuations(continuations);
+    let roles = continuation_protocol_roles(
+        std::iter::once(&*body).chain(continuations.iter().map(|continuation| &continuation.body)),
+    );
+    let aliases = intern_continuations(continuations, &roles);
     rewrite_continuation_ids(body, &aliases);
     for continuation in continuations.iter_mut() {
         rewrite_continuation_ids(&mut continuation.body, &aliases);
@@ -153,7 +211,10 @@ pub(super) fn intern_function_continuations(
 /// suffix layer per pass. Deep generated DAGs therefore multiplied complete
 /// graph scans. A DFS canonicalizes every referenced suffix before its parent,
 /// making the work proportional to the graph plus collision candidates.
-fn intern_continuations(continuations: &mut [NativeContinuation]) -> HashMap<u64, u64> {
+fn intern_continuations(
+    continuations: &mut [NativeContinuation],
+    roles: &HashMap<u64, ContinuationProtocolRole>,
+) -> HashMap<u64, u64> {
     let indexes = continuations
         .iter()
         .enumerate()
@@ -170,6 +231,7 @@ fn intern_continuations(continuations: &mut [NativeContinuation]) -> HashMap<u64
             &mut states,
             &mut aliases,
             &mut canonical,
+            roles,
         );
     }
     aliases
@@ -182,6 +244,7 @@ fn intern_continuation(
     states: &mut [u8],
     aliases: &mut HashMap<u64, u64>,
     canonical: &mut HashMap<u64, Vec<usize>>,
+    roles: &HashMap<u64, ContinuationProtocolRole>,
 ) -> u64 {
     if states[index] == 2 {
         return canonical_id(continuations[index].id, aliases);
@@ -203,16 +266,26 @@ fn intern_continuation(
                 states,
                 aliases,
                 canonical,
+                roles,
             );
         }
     }
     rewrite_continuation_ids(&mut continuations[index].body, aliases);
-    let fingerprint = continuation_fingerprint(&continuations[index]);
+    let role = roles
+        .get(&continuations[index].id)
+        .copied()
+        .unwrap_or_default();
+    let fingerprint = continuation_fingerprint(&continuations[index], role);
     let candidates = canonical.get(&fingerprint).cloned().unwrap_or_default();
     if let Some(existing) = candidates.into_iter().find(|existing| {
         continuations[*existing].params == continuations[index].params
             && continuations[*existing].return_type == continuations[index].return_type
             && continuations[*existing].body == continuations[index].body
+            && roles
+                .get(&continuations[*existing].id)
+                .copied()
+                .unwrap_or_default()
+                == role
     }) {
         aliases.insert(continuations[index].id, continuations[existing].id);
     } else {
@@ -248,16 +321,35 @@ fn continuation_references(expr: &NativeExpr, references: &mut Vec<u64>) {
             args.iter()
                 .for_each(|arg| continuation_references(arg, references));
         }
-        NativeExpr::CallThen {
+        NativeExpr::InvokeClosureThen {
+            callee,
             args,
-            callee_continuation_id,
-            continuation_id,
+            resumes,
             completion_continuation_id,
             values,
             ..
         } => {
-            references.push(*callee_continuation_id);
-            references.push(*continuation_id);
+            continuation_references(callee, references);
+            for resume in resumes {
+                references.push(resume.callee_continuation_id);
+                references.push(resume.continuation_id);
+            }
+            references.push(*completion_continuation_id);
+            args.iter()
+                .chain(values)
+                .for_each(|value| continuation_references(value, references));
+        }
+        NativeExpr::CallThen {
+            args,
+            resumes,
+            completion_continuation_id,
+            values,
+            ..
+        } => {
+            for resume in resumes {
+                references.push(resume.callee_continuation_id);
+                references.push(resume.continuation_id);
+            }
             references.push(*completion_continuation_id);
             args.iter()
                 .chain(values)
@@ -357,17 +449,40 @@ fn rewrite_continuation_ids(expr: &mut NativeExpr, aliases: &HashMap<u64, u64>) 
             args.iter_mut()
                 .for_each(|arg| rewrite_continuation_ids(arg, aliases));
         }
-        NativeExpr::CallThen {
+        NativeExpr::InvokeClosureThen {
+            callee,
             args,
-            callee_continuation_id,
-            continuation_id,
+            resumes,
             completion_continuation_id,
             completion_function,
             values,
             ..
         } => {
-            *callee_continuation_id = canonical_id(*callee_continuation_id, aliases);
-            *continuation_id = canonical_id(*continuation_id, aliases);
+            rewrite_continuation_ids(callee, aliases);
+            for resume in resumes {
+                resume.callee_continuation_id =
+                    canonical_id(resume.callee_continuation_id, aliases);
+                resume.continuation_id = canonical_id(resume.continuation_id, aliases);
+            }
+            *completion_continuation_id = canonical_id(*completion_continuation_id, aliases);
+            *completion_function = None;
+            args.iter_mut()
+                .chain(values)
+                .for_each(|value| rewrite_continuation_ids(value, aliases));
+        }
+        NativeExpr::CallThen {
+            args,
+            resumes,
+            completion_continuation_id,
+            completion_function,
+            values,
+            ..
+        } => {
+            for resume in resumes {
+                resume.callee_continuation_id =
+                    canonical_id(resume.callee_continuation_id, aliases);
+                resume.continuation_id = canonical_id(resume.continuation_id, aliases);
+            }
             *completion_continuation_id = canonical_id(*completion_continuation_id, aliases);
             *completion_function = None;
             args.iter_mut()
@@ -439,14 +554,91 @@ fn rewrite_continuation_ids(expr: &mut NativeExpr, aliases: &HashMap<u64, u64>) 
     }
 }
 
-fn continuation_fingerprint(continuation: &NativeContinuation) -> u64 {
+fn continuation_fingerprint(
+    continuation: &NativeContinuation,
+    role: ContinuationProtocolRole,
+) -> u64 {
     let mut writer = HashWriter(DefaultHasher::new());
     let _ = write!(
         writer,
-        "{:?}|{:?}|{:?}",
-        continuation.params, continuation.return_type, continuation.body
+        "{:?}|{:?}|{:?}|{:?}",
+        role, continuation.params, continuation.return_type, continuation.body
     );
     writer.0.finish()
+}
+
+/// Inventories the external protocol role of every referenced continuation.
+fn continuation_protocol_roles<'a>(
+    roots: impl IntoIterator<Item = &'a NativeExpr>,
+) -> HashMap<u64, ContinuationProtocolRole> {
+    let mut roles = HashMap::<u64, ContinuationProtocolRole>::new();
+    for root in roots {
+        super::call_composition::walk_native_expr(root, &mut |expr| match expr {
+            NativeExpr::CallThen {
+                resumes,
+                completion_continuation_id,
+                ..
+            } => {
+                roles
+                    .entry(*completion_continuation_id)
+                    .or_default()
+                    .completion = true;
+                for resume in resumes {
+                    roles.entry(resume.continuation_id).or_default().outward = true;
+                }
+            }
+            NativeExpr::InvokeClosureThen {
+                resumes,
+                completion_continuation_id,
+                ..
+            } => {
+                roles
+                    .entry(*completion_continuation_id)
+                    .or_default()
+                    .completion = true;
+                for resume in resumes {
+                    roles.entry(resume.continuation_id).or_default().outward = true;
+                }
+            }
+            NativeExpr::Suspend {
+                continuation_id, ..
+            } => {
+                roles.entry(*continuation_id).or_default().outward = true;
+            }
+            NativeExpr::TailCall {
+                yield_continuation_id: Some(continuation_id),
+                ..
+            } => {
+                roles.entry(*continuation_id).or_default().outward = true;
+            }
+            _ => {}
+        });
+    }
+    roles
+}
+
+/// Returns continuation identities that can cross from generated code to the VM.
+///
+/// Synchronous completion nodes and direct continuation-tail calls remain in
+/// the compiler graph, but they do not require exported image entries. Only a
+/// suspension, caller-owned resume edge, or reduction-yield identity can be
+/// presented to the VM and later re-enter through image dispatch.
+pub(super) fn externally_resumable_continuation_ids(modules: &[NativeModule]) -> HashSet<u64> {
+    continuation_protocol_roles(modules.iter().flat_map(|module| {
+        module
+            .functions
+            .iter()
+            .map(|function| &function.body)
+            .chain(
+                module
+                    .continuations
+                    .iter()
+                    .map(|continuation| &continuation.body),
+            )
+    }))
+    .into_iter()
+    .filter_map(|(id, role)| role.outward.then_some(id))
+    .collect()
 }
 
 struct HashWriter(DefaultHasher);
@@ -476,7 +668,11 @@ fn resolve_calls(
                     args.len()
                 ));
             }
-            *expr = NativeExpr::TailCall { function, args };
+            *expr = NativeExpr::TailCall {
+                function,
+                args,
+                yield_continuation_id: None,
+            };
         }
         NativeExpr::Construct { fields, .. }
         | NativeExpr::ManagedOperation { args: fields, .. }
@@ -488,6 +684,20 @@ fn resolve_calls(
         NativeExpr::InvokeClosure { callee, args, .. } => {
             resolve_calls(callee, indexes)?;
             resolve_sequence(args, indexes)?;
+        }
+        NativeExpr::InvokeClosureThen {
+            callee,
+            args,
+            completion_continuation_id,
+            completion_function,
+            values,
+            ..
+        } => {
+            resolve_calls(callee, indexes)?;
+            resolve_sequence(args, indexes)?;
+            resolve_sequence(values, indexes)?;
+            *completion_function =
+                Some(continuation_function(*completion_continuation_id, indexes)?.0);
         }
         NativeExpr::CallThen {
             args,

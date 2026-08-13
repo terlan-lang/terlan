@@ -21,7 +21,6 @@ use super::types::WebPackageResponseHeader;
 /// Transformation:
 /// - Keeps handler runtime output separate from socket writing so handler
 ///   execution can be tested without binding a server.
-#[cfg_attr(not(test), allow(dead_code))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct HandlerResponse {
     pub(crate) status: u16,
@@ -46,14 +45,11 @@ impl HandlerBody {
             Self::Transferred(body) => body,
         }
     }
-
-    #[allow(dead_code)] // Retained for adapters that can elide empty response bodies.
+    #[cfg(test)]
     pub(crate) fn is_empty(&self) -> bool {
         self.as_bytes().is_empty()
     }
 }
-
-#[cfg_attr(not(test), allow(dead_code))]
 impl HandlerResponse {
     /// Converts the direct managed response envelope copied before heap release.
     pub(crate) fn from_aot_http_response(response: VmAotHttpResponse) -> Result<Self, String> {
@@ -363,14 +359,17 @@ fn native_response_kind(kind: i64) -> Result<&'static str, String> {
 
 #[cfg(test)]
 #[path = "response_bridge_test.rs"]
+#[cfg(test)]
 mod response_bridge_test;
+
+type VmResponseBase = (u16, String, Vec<u8>, Vec<(String, String)>);
 
 /// Builds the base HTTP response from a VM response kind and payload.
 fn vm_response_base(
     kind: &str,
     rest: &[ReplValue],
     package_root: Option<&Path>,
-) -> Result<(u16, String, Vec<u8>, Vec<(String, String)>), String> {
+) -> Result<VmResponseBase, String> {
     match kind {
         "text" => {
             let (body, status) = vm_text_body_and_status("Response.text", rest, 200)?;
@@ -452,7 +451,7 @@ fn vm_response_base_arity(kind: &str, rest: &[ReplValue]) -> Result<usize, Strin
 fn vm_file_response(
     rest: &[ReplValue],
     package_root: Option<&Path>,
-) -> Result<(u16, String, Vec<u8>, Vec<(String, String)>), String> {
+) -> Result<VmResponseBase, String> {
     let package_root = package_root.ok_or_else(|| {
         "error[serve_handler]: Response.file requires package file-serving context".to_string()
     })?;
@@ -571,16 +570,16 @@ fn apply_vm_response_metadata(
         [ReplValue::Atom(tag), ReplValue::String(name), ReplValue::String(value), ReplValue::String(path), ReplValue::String(domain), ReplValue::Int(max_age), ReplValue::Bool(include_max_age), ReplValue::String(expires), ReplValue::Bool(http_only), ReplValue::Bool(secure), ReplValue::String(same_site)]
             if tag == "cookie_options" =>
         {
-            let options = vm_cookie_options(
+            let options = vm_cookie_options(VmCookieOptionsMetadata {
                 path,
                 domain,
-                *max_age,
-                *include_max_age,
+                max_age: *max_age,
+                include_max_age: *include_max_age,
                 expires,
-                *http_only,
-                *secure,
+                http_only: *http_only,
+                secure: *secure,
                 same_site,
-            )?;
+            })?;
             let value = native_http::set_header_with_options(name, value, &options)
                 .map_err(vm_cookie_error)?;
             headers.push(validate_response_header("Set-Cookie", &value)?);
@@ -597,18 +596,31 @@ fn apply_vm_response_metadata(
     }
 }
 
-/// Converts VM cookie option metadata into the native cookie serializer shape.
-#[allow(clippy::too_many_arguments)]
-fn vm_cookie_options(
-    path: &str,
-    domain: &str,
+struct VmCookieOptionsMetadata<'a> {
+    path: &'a str,
+    domain: &'a str,
     max_age: i64,
     include_max_age: bool,
-    expires: &str,
+    expires: &'a str,
     http_only: bool,
     secure: bool,
-    same_site: &str,
+    same_site: &'a str,
+}
+
+/// Converts VM cookie option metadata into the native cookie serializer shape.
+fn vm_cookie_options(
+    metadata: VmCookieOptionsMetadata<'_>,
 ) -> Result<native_http::CookieOptions, String> {
+    let VmCookieOptionsMetadata {
+        path,
+        domain,
+        max_age,
+        include_max_age,
+        expires,
+        http_only,
+        secure,
+        same_site,
+    } = metadata;
     let mut options = native_http::CookieOptions::defaults();
     options.path = path.to_string();
     options.domain = non_empty_string(domain);

@@ -17,6 +17,6 @@ import type std.js.Dom.PictureInPictureEventInit.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub picture_in_picture_window_typechecks(
-    receiver: PictureInPictureEventInit
+    receiver: PictureInPictureEventInit,
 ): PictureInPictureWindow ->
     receiver.picture_in_picture_window().

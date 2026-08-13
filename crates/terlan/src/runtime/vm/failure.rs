@@ -1,6 +1,5 @@
-#![allow(dead_code)]
-
 use std::collections::{BTreeMap, BTreeSet};
+#[cfg(test)]
 use std::fmt;
 
 use super::process::{
@@ -20,6 +19,7 @@ impl VmMonitorRef {
     }
 
     /// Returns the complete distribution-safe reference identity.
+    #[cfg(test)]
     pub(crate) fn reference(&self) -> &VmReferenceId {
         &self.0
     }
@@ -61,11 +61,13 @@ pub(crate) struct VmFailureProcessSnapshot {
 
 /// Typed failure returned by trap-exit state operations.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmTrapExitError {
     MissingProcess(VmProcessId),
     ExitedProcess(VmProcessId),
 }
 
+#[cfg(test)]
 impl fmt::Display for VmTrapExitError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -89,6 +91,7 @@ impl fmt::Display for VmTrapExitError {
 
 /// Observable result of changing a process trap-exit setting.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmTrapExitUpdate {
     pub(crate) previous: bool,
     pub(crate) current: bool,
@@ -149,6 +152,7 @@ impl VmFailureRuntime {
     }
 
     /// Removes a link if it exists.
+    #[cfg(test)]
     pub(crate) fn unlink(&mut self, left: VmProcessId, right: VmProcessId) {
         let link = canonical_link(left, right);
         self.links.remove(&link);
@@ -161,12 +165,8 @@ impl VmFailureRuntime {
         self.links.contains(&canonical_link(left, right))
     }
 
-    /// Returns whether the active link delivers priority exit messages.
-    pub(crate) fn is_priority_link(&self, left: VmProcessId, right: VmProcessId) -> bool {
-        self.priority_links.contains(&(left, right))
-    }
-
     /// Returns whether a process owns any active priority signal relationship.
+    #[cfg(test)]
     pub(crate) fn has_priority_relationship(&self, pid: VmProcessId) -> bool {
         self.priority_links
             .iter()
@@ -178,6 +178,7 @@ impl VmFailureRuntime {
     }
 
     /// Enables or disables trap-exit behavior for a live process.
+    #[cfg(test)]
     pub(crate) fn set_trap_exits(
         &mut self,
         processes: &VmProcessTable,
@@ -198,6 +199,7 @@ impl VmFailureRuntime {
     }
 
     /// Returns whether a live process converts linked exits into messages.
+    #[cfg(test)]
     pub(crate) fn trap_exits(
         &self,
         processes: &VmProcessTable,
@@ -208,6 +210,7 @@ impl VmFailureRuntime {
     }
 
     /// Returns the number of live trap-exit settings retained by the runtime.
+    #[cfg(test)]
     pub(crate) fn trap_exit_process_count(&self) -> usize {
         self.trap_exits.len()
     }
@@ -242,17 +245,6 @@ impl VmFailureRuntime {
         self.monitors
             .insert(monitor_ref.clone(), (watcher, target, priority));
         Ok(monitor_ref)
-    }
-
-    /// Monitors a known process identity, completing immediately when it has exited.
-    pub(crate) fn monitor_or_complete(
-        &mut self,
-        references: &mut VmReferenceAllocator,
-        processes: &mut VmProcessTable,
-        watcher: VmProcessId,
-        target: VmProcessId,
-    ) -> Result<VmMonitorRegistration, String> {
-        self.monitor_or_complete_with_priority(references, processes, watcher, target, false)
     }
 
     /// Monitors a known identity with priority `DOWN` delivery.
@@ -301,11 +293,13 @@ impl VmFailureRuntime {
     }
 
     /// Removes a monitor reference.
+    #[cfg(test)]
     pub(crate) fn demonitor(&mut self, monitor_ref: VmMonitorRef) -> bool {
         self.monitors.remove(&monitor_ref).is_some()
     }
 
     /// Removes a monitor only when it belongs to the requesting watcher.
+    #[cfg(test)]
     pub(crate) fn demonitor_for(
         &mut self,
         watcher: VmProcessId,
@@ -326,6 +320,7 @@ impl VmFailureRuntime {
     }
 
     /// Returns the number of active monitor references.
+    #[cfg(test)]
     pub(crate) fn monitor_count(&self) -> usize {
         self.monitors.len()
     }
@@ -516,6 +511,7 @@ fn empty_failure_snapshot(pid: VmProcessId) -> VmFailureProcessSnapshot {
     }
 }
 
+#[cfg(test)]
 fn ensure_trap_exit_process(
     processes: &VmProcessTable,
     pid: VmProcessId,
@@ -606,6 +602,7 @@ fn send_down_payload(
 }
 
 /// Returns whether one mailbox value is the completion for a monitor.
+#[cfg(test)]
 pub(crate) fn is_monitor_down_message(payload: &ReplValue, monitor_ref: &VmMonitorRef) -> bool {
     matches!(
         payload,
@@ -654,16 +651,20 @@ pub(crate) fn reason_value(reason: &VmExitReason) -> ReplValue {
 
 #[cfg(test)]
 #[path = "failure_test.rs"]
+#[cfg(test)]
 mod failure_test;
 
 #[cfg(test)]
 #[path = "failure_inspection_test.rs"]
+#[cfg(test)]
 mod failure_inspection_test;
 
 #[cfg(test)]
 #[path = "failure_erl_link_parity_test.rs"]
+#[cfg(test)]
 mod failure_erl_link_parity_test;
 
 #[cfg(test)]
 #[path = "failure_reason_test.rs"]
+#[cfg(test)]
 mod failure_reason_test;

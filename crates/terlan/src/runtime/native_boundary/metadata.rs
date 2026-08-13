@@ -293,17 +293,26 @@ const READ_POOL_CREATE_CONNECTION: &[NativeBoundaryResourcePermission] = &[
 const READ_ROW: &[NativeBoundaryResourcePermission] =
     &[NativeBoundaryResourcePermission::Read(ROW)];
 
+struct NativeBoundaryExportRuntimePolicy {
+    worker_class: NativeBoundaryWorkerClass,
+    cancellation: NativeBoundaryCancellationPolicy,
+    result_memory: NativeBoundaryMemoryOwnership,
+}
+
 const fn export(
     function: &'static str,
     arity: usize,
     operation: &'static str,
     argument_types: &'static [&'static str],
     return_type: &'static str,
-    worker_class: NativeBoundaryWorkerClass,
-    cancellation: NativeBoundaryCancellationPolicy,
     resource_permissions: &'static [NativeBoundaryResourcePermission],
-    result_memory: NativeBoundaryMemoryOwnership,
+    policy: NativeBoundaryExportRuntimePolicy,
 ) -> NativeBoundaryExportManifest {
+    let NativeBoundaryExportRuntimePolicy {
+        worker_class,
+        cancellation,
+        result_memory,
+    } = policy;
     NativeBoundaryExportManifest {
         module: MODULE,
         function,
@@ -329,10 +338,12 @@ pub const POSTGRES_EXPORTS: &[NativeBoundaryExportManifest] = &[
         "std.db.postgres.connect",
         CONNECT_ARGS,
         "Result[Pool, Error]",
-        NativeBoundaryWorkerClass::ResourceOwning,
-        NativeBoundaryCancellationPolicy::Cooperative,
         CREATE_POOL,
-        NativeBoundaryMemoryOwnership::ResourceOwnedResult(POOL),
+        NativeBoundaryExportRuntimePolicy {
+            worker_class: NativeBoundaryWorkerClass::ResourceOwning,
+            cancellation: NativeBoundaryCancellationPolicy::Cooperative,
+            result_memory: NativeBoundaryMemoryOwnership::ResourceOwnedResult(POOL),
+        },
     ),
     export(
         "query",
@@ -340,10 +351,12 @@ pub const POSTGRES_EXPORTS: &[NativeBoundaryExportManifest] = &[
         "std.db.postgres.query",
         QUERY_ARGS,
         "Result[List[Row], Error]",
-        NativeBoundaryWorkerClass::ResourceOwning,
-        NativeBoundaryCancellationPolicy::Cooperative,
         READ_QUERY_TARGET_CREATE_ROW,
-        NativeBoundaryMemoryOwnership::ResourceOwnedResult(ROW),
+        NativeBoundaryExportRuntimePolicy {
+            worker_class: NativeBoundaryWorkerClass::ResourceOwning,
+            cancellation: NativeBoundaryCancellationPolicy::Cooperative,
+            result_memory: NativeBoundaryMemoryOwnership::ResourceOwnedResult(ROW),
+        },
     ),
     export(
         "query_one",
@@ -351,10 +364,12 @@ pub const POSTGRES_EXPORTS: &[NativeBoundaryExportManifest] = &[
         "std.db.postgres.query_one",
         QUERY_ARGS,
         "Result[Option[Row], Error]",
-        NativeBoundaryWorkerClass::ResourceOwning,
-        NativeBoundaryCancellationPolicy::Cooperative,
         READ_QUERY_TARGET_CREATE_ROW,
-        NativeBoundaryMemoryOwnership::ResourceOwnedResult(ROW),
+        NativeBoundaryExportRuntimePolicy {
+            worker_class: NativeBoundaryWorkerClass::ResourceOwning,
+            cancellation: NativeBoundaryCancellationPolicy::Cooperative,
+            result_memory: NativeBoundaryMemoryOwnership::ResourceOwnedResult(ROW),
+        },
     ),
     export(
         "execute",
@@ -362,10 +377,12 @@ pub const POSTGRES_EXPORTS: &[NativeBoundaryExportManifest] = &[
         "std.db.postgres.execute",
         QUERY_ARGS,
         "Result[Int, Error]",
-        NativeBoundaryWorkerClass::Blocking,
-        NativeBoundaryCancellationPolicy::Cooperative,
         READ_QUERY_TARGET,
-        NativeBoundaryMemoryOwnership::VmOwnedResult,
+        NativeBoundaryExportRuntimePolicy {
+            worker_class: NativeBoundaryWorkerClass::Blocking,
+            cancellation: NativeBoundaryCancellationPolicy::Cooperative,
+            result_memory: NativeBoundaryMemoryOwnership::VmOwnedResult,
+        },
     ),
     export(
         "transaction",
@@ -373,10 +390,12 @@ pub const POSTGRES_EXPORTS: &[NativeBoundaryExportManifest] = &[
         "std.db.postgres.transaction",
         TRANSACTION_ARGS,
         "Result[T, Error]",
-        NativeBoundaryWorkerClass::ResourceOwning,
-        NativeBoundaryCancellationPolicy::Cooperative,
         READ_POOL_CREATE_CONNECTION,
-        NativeBoundaryMemoryOwnership::VmOwnedResult,
+        NativeBoundaryExportRuntimePolicy {
+            worker_class: NativeBoundaryWorkerClass::ResourceOwning,
+            cancellation: NativeBoundaryCancellationPolicy::Cooperative,
+            result_memory: NativeBoundaryMemoryOwnership::VmOwnedResult,
+        },
     ),
     export(
         "string",
@@ -384,10 +403,12 @@ pub const POSTGRES_EXPORTS: &[NativeBoundaryExportManifest] = &[
         "std.db.postgres.string",
         ROW_ACCESS_ARGS,
         "Result[String, Error]",
-        NativeBoundaryWorkerClass::Fast,
-        NativeBoundaryCancellationPolicy::NotCancellable,
         READ_ROW,
-        NativeBoundaryMemoryOwnership::VmOwnedResult,
+        NativeBoundaryExportRuntimePolicy {
+            worker_class: NativeBoundaryWorkerClass::Fast,
+            cancellation: NativeBoundaryCancellationPolicy::NotCancellable,
+            result_memory: NativeBoundaryMemoryOwnership::VmOwnedResult,
+        },
     ),
     export(
         "int",
@@ -395,10 +416,12 @@ pub const POSTGRES_EXPORTS: &[NativeBoundaryExportManifest] = &[
         "std.db.postgres.int",
         ROW_ACCESS_ARGS,
         "Result[Int, Error]",
-        NativeBoundaryWorkerClass::Fast,
-        NativeBoundaryCancellationPolicy::NotCancellable,
         READ_ROW,
-        NativeBoundaryMemoryOwnership::VmOwnedResult,
+        NativeBoundaryExportRuntimePolicy {
+            worker_class: NativeBoundaryWorkerClass::Fast,
+            cancellation: NativeBoundaryCancellationPolicy::NotCancellable,
+            result_memory: NativeBoundaryMemoryOwnership::VmOwnedResult,
+        },
     ),
     export(
         "bool",
@@ -406,10 +429,12 @@ pub const POSTGRES_EXPORTS: &[NativeBoundaryExportManifest] = &[
         "std.db.postgres.bool",
         ROW_ACCESS_ARGS,
         "Result[Bool, Error]",
-        NativeBoundaryWorkerClass::Fast,
-        NativeBoundaryCancellationPolicy::NotCancellable,
         READ_ROW,
-        NativeBoundaryMemoryOwnership::VmOwnedResult,
+        NativeBoundaryExportRuntimePolicy {
+            worker_class: NativeBoundaryWorkerClass::Fast,
+            cancellation: NativeBoundaryCancellationPolicy::NotCancellable,
+            result_memory: NativeBoundaryMemoryOwnership::VmOwnedResult,
+        },
     ),
     export(
         "json",
@@ -417,10 +442,12 @@ pub const POSTGRES_EXPORTS: &[NativeBoundaryExportManifest] = &[
         "std.db.postgres.json",
         ROW_ACCESS_ARGS,
         "Result[std.data.Json, Error]",
-        NativeBoundaryWorkerClass::Fast,
-        NativeBoundaryCancellationPolicy::NotCancellable,
         READ_ROW,
-        NativeBoundaryMemoryOwnership::VmOwnedResult,
+        NativeBoundaryExportRuntimePolicy {
+            worker_class: NativeBoundaryWorkerClass::Fast,
+            cancellation: NativeBoundaryCancellationPolicy::NotCancellable,
+            result_memory: NativeBoundaryMemoryOwnership::VmOwnedResult,
+        },
     ),
 ];
 
@@ -444,4 +471,5 @@ pub fn postgres_worker_manifest() -> &'static NativeBoundaryWorkerManifest {
 
 #[cfg(test)]
 #[path = "metadata_test.rs"]
+#[cfg(test)]
 mod metadata_test;

@@ -6,6 +6,20 @@ use super::handler::{HandlerLogIdentity, WebPackageSourceSpan};
 /// Local request id counter for `terlc serve`.
 static REQUEST_ID_COUNTER: AtomicU64 = AtomicU64::new(1);
 
+/// Complete observability record for a manifest-backed static or file route.
+pub(super) struct RouteLogEvent<'a> {
+    pub(super) request_id: u64,
+    pub(super) build_id: &'a str,
+    pub(super) request_method: &'a str,
+    pub(super) request_path: &'a str,
+    pub(super) route_method: &'a str,
+    pub(super) route: &'a str,
+    pub(super) response_path: Option<&'a Path>,
+    pub(super) source: Option<&'a WebPackageSourceSpan>,
+    pub(super) status: u16,
+    pub(super) duration_ms: u128,
+}
+
 /// Allocates the next local request id.
 ///
 /// Inputs:
@@ -155,31 +169,8 @@ pub(super) fn log_static_result(
 /// Transformation:
 /// - Keeps manifest-cached static responses visible in local logs without
 ///   pretending they were served from a filesystem asset path.
-pub(super) fn log_static_route_result(
-    request_id: u64,
-    build_id: &str,
-    request_method: &str,
-    request_path: &str,
-    route_method: &str,
-    route: &str,
-    source: Option<&WebPackageSourceSpan>,
-    status: u16,
-    duration_ms: u128,
-) {
-    eprintln!(
-        "{}",
-        render_static_route_log_line(
-            request_id,
-            build_id,
-            request_method,
-            request_path,
-            route_method,
-            route,
-            source,
-            status,
-            duration_ms,
-        )
-    );
+pub(super) fn log_static_route_result(event: RouteLogEvent<'_>) {
+    eprintln!("{}", render_static_route_log_line(&event));
 }
 
 /// Writes one file-route response log line.
@@ -194,33 +185,8 @@ pub(super) fn log_static_route_result(
 /// Transformation:
 /// - Keeps route-backed file responses distinct from generic static-file
 ///   fallback logs while preserving source-aware route metadata.
-pub(super) fn log_file_route_result(
-    request_id: u64,
-    build_id: &str,
-    request_method: &str,
-    request_path: &str,
-    route_method: &str,
-    route: &str,
-    response_path: &Path,
-    source: Option<&WebPackageSourceSpan>,
-    status: u16,
-    duration_ms: u128,
-) {
-    eprintln!(
-        "{}",
-        render_file_route_log_line(
-            request_id,
-            build_id,
-            request_method,
-            request_path,
-            route_method,
-            route,
-            response_path,
-            source,
-            status,
-            duration_ms,
-        )
-    );
+pub(super) fn log_file_route_result(event: RouteLogEvent<'_>) {
+    eprintln!("{}", render_file_route_log_line(&event));
 }
 
 /// Renders one local static-file log line.
@@ -275,22 +241,24 @@ pub(super) fn render_static_log_line(
 /// Transformation:
 /// - Captures compiler-cached static responses with the same request-id,
 ///   build-id, status, and duration fields used by handler and file logs.
-pub(super) fn render_static_route_log_line(
-    request_id: u64,
-    build_id: &str,
-    request_method: &str,
-    request_path: &str,
-    route_method: &str,
-    route: &str,
-    source: Option<&WebPackageSourceSpan>,
-    status: u16,
-    duration_ms: u128,
-) -> String {
-    let connection_id = connection_id_for_request(request_id);
+pub(super) fn render_static_route_log_line(event: &RouteLogEvent<'_>) -> String {
+    let RouteLogEvent {
+        request_id,
+        build_id,
+        request_method,
+        request_path,
+        route_method,
+        route,
+        source,
+        status,
+        duration_ms,
+        ..
+    } = event;
+    let connection_id = connection_id_for_request(*request_id);
     let mut line = format!(
         "terlc serve request_id={request_id} connection_id={connection_id} build_id={build_id} method={request_method} path={request_path} static_route_method={route_method} static_route={route} status={status} duration_ms={duration_ms}"
     );
-    append_source_span(&mut line, source);
+    append_source_span(&mut line, *source);
     line
 }
 
@@ -314,24 +282,26 @@ pub(super) fn render_static_route_log_line(
 /// Transformation:
 /// - Captures route-backed file responses with both route identity and selected
 ///   package file path for local debugging.
-pub(super) fn render_file_route_log_line(
-    request_id: u64,
-    build_id: &str,
-    request_method: &str,
-    request_path: &str,
-    route_method: &str,
-    route: &str,
-    response_path: &Path,
-    source: Option<&WebPackageSourceSpan>,
-    status: u16,
-    duration_ms: u128,
-) -> String {
-    let connection_id = connection_id_for_request(request_id);
+pub(super) fn render_file_route_log_line(event: &RouteLogEvent<'_>) -> String {
+    let RouteLogEvent {
+        request_id,
+        build_id,
+        request_method,
+        request_path,
+        route_method,
+        route,
+        response_path,
+        source,
+        status,
+        duration_ms,
+    } = event;
+    let response_path = response_path.expect("file-route log events require a response path");
+    let connection_id = connection_id_for_request(*request_id);
     let mut line = format!(
         "terlc serve request_id={request_id} connection_id={connection_id} build_id={build_id} method={request_method} path={request_path} file_route_method={route_method} file_route={route} file={} status={status} duration_ms={duration_ms}",
         response_path.display()
     );
-    append_source_span(&mut line, source);
+    append_source_span(&mut line, *source);
     line
 }
 

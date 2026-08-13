@@ -98,12 +98,11 @@ fn collect_sources(root: &Path, dir: &Path, sources: &mut Vec<PathBuf>) -> Quali
         let path = entry.path();
         if path.is_dir() {
             collect_sources(root, &path, sources)?;
-        } else if is_terlan_source(&path) {
-            sources.push(path);
-        } else if path
-            .extension()
-            .and_then(|extension| extension.to_str())
-            .is_some_and(|extension| extension == "tert")
+        } else if is_terlan_source(&path)
+            || path
+                .extension()
+                .and_then(|extension| extension.to_str())
+                .is_some_and(|extension| extension == "tert")
         {
             sources.push(path);
         }
@@ -259,4 +258,5 @@ fn read_module_name(text: &str) -> Option<String> {
 
 #[cfg(test)]
 #[path = "std_source_naming_test.rs"]
+#[cfg(test)]
 mod std_source_naming_test;

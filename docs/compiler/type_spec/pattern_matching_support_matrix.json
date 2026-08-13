@@ -67,7 +67,7 @@
         ],
         "adversarial_tests": [
           "crates/terlan/src/compiler/typeck/shape_purity_test.rs::syntax_output_rejects_effectful_helper_in_shape_guard_after_expansion",
-          "crates/terlan/src/compiler/typeck/diagnostic_test_part_002.rs::syntax_output_rejects_non_bool_shape_guard_after_expansion"
+          "crates/terlan/src/compiler/typeck/diagnostic_test/macros_sql_and_shapes.rs::syntax_output_rejects_non_bool_shape_guard_after_expansion"
         ]
       },
       {

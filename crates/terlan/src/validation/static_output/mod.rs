@@ -70,4 +70,5 @@ fn format_html_diagnostics(diagnostics: Vec<crate::terlan_html::HtmlDiagnostic>)
 
 #[cfg(test)]
 #[path = "mod_test.rs"]
+#[cfg(test)]
 mod mod_test;

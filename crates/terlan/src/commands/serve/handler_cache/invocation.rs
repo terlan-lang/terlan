@@ -8,9 +8,11 @@ use crate::runtime::vm::protocol_task_executor::{
     current_protocol_task_route, protocol_sleep_until, with_current_protocol_resource,
     with_existing_current_protocol_resource, VmProtocolTaskRoute,
 };
+#[cfg(test)]
+use crate::runtime::vm::pure_native::PureNativeIoWake;
 use crate::runtime::vm::pure_native::{
-    PureNativeCapabilityRequest, PureNativeCapabilityWait, PureNativeIoWait, PureNativeIoWake,
-    PureNativeSuspension, PureNativeTimerWait,
+    PureNativeCapabilityRequest, PureNativeCapabilityWait, PureNativeIoWait, PureNativeSuspension,
+    PureNativeTimerWait,
 };
 use crate::runtime::vm::scheduler_topology::VmFixedActorRoute;
 use crate::runtime::vm::ReplValue;
@@ -196,7 +198,6 @@ impl AotHandlerCapabilityInvocation {
     }
 
     /// Publishes one worker reply through the fixed actor owner.
-    #[allow(dead_code)] // Retained as a deterministic manual completion test seam.
     pub(in crate::commands::serve) fn resume(
         mut self,
         outcome: NativeBoundaryReplyTerm,
@@ -283,6 +284,7 @@ pub(in crate::commands::serve) struct AotHandlerInvocation {
     /// Typed external wait captured before the owner returns to its event loop.
     wait: PureNativeIoWait,
     /// Exact protocol connection allowed to publish this request's completion.
+    #[cfg(test)]
     protocol_origin: Option<VmProtocolTaskRoute>,
     execution_owner: InvocationOwner,
     /// Reservation in the generation's fixed scheduler routing table.
@@ -312,11 +314,9 @@ impl AotHandlerRuntime {
         let shard_index = route.scheduler().index();
         let export = format!("{module}.{function}");
         let arity = args.len();
-        let execution_owner = if protocol_origin.is_some() {
-            InvocationOwner::Protocol(protocol_origin.expect("checked protocol origin"))
-        } else {
-            InvocationOwner::Dedicated
-        };
+        let execution_owner = protocol_origin
+            .map(InvocationOwner::Protocol)
+            .unwrap_or(InvocationOwner::Dedicated);
         let result = match execution_owner {
             InvocationOwner::Protocol(_) => with_current_protocol_resource(
                 generation.identity,
@@ -362,7 +362,7 @@ impl AotHandlerInvocation {
     }
 
     /// Moves this parked invocation to one explicitly selected scheduler.
-    #[allow(dead_code)] // Publicly hidden until explicit migration instrumentation lands.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn migrate_to_scheduler(
         mut self,
         destination_index: usize,
@@ -389,6 +389,7 @@ impl AotHandlerInvocation {
     }
 
     /// Resumes generated code through execution-shard authority after one wake.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn resume(
         mut self,
         wake: PureNativeIoWake,
@@ -421,6 +422,7 @@ impl AotHandlerInvocation {
     }
 
     /// Rejects completion publication outside the connection that parked it.
+    #[cfg(test)]
     fn validate_protocol_origin(&self) -> Result<(), String> {
         let Some(expected) = self.protocol_origin else {
             return Ok(());
@@ -509,6 +511,7 @@ fn materialize_step(
             owner,
             suspension: Some(suspension),
             wait,
+            #[cfg(test)]
             protocol_origin: current_protocol_task_route(),
             execution_owner,
             active_route: true,
@@ -552,8 +555,10 @@ fn materialize_step(
 
 #[cfg(test)]
 #[path = "invocation_test.rs"]
+#[cfg(test)]
 mod invocation_test;
 
 #[cfg(test)]
 #[path = "invocation_protocol_test.rs"]
+#[cfg(test)]
 mod invocation_protocol_test;

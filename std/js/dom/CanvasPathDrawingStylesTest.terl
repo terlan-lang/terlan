@@ -38,6 +38,6 @@ pub get_line_dash_typechecks(receiver: CanvasPathDrawingStyles): Array[JsNumber]
 
 pub set_line_dash_typechecks(
     receiver: CanvasPathDrawingStyles,
-    segments: Array[JsNumber]
+    segments: Array[JsNumber],
 ): std.core.Unit ->
     receiver.set_line_dash(segments).

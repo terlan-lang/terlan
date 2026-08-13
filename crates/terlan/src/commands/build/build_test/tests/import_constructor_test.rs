@@ -29,7 +29,7 @@ fn build_command_accepts_directory_with_imported_constructors_and_aliases_vm_imp
     .expect("failed to write constructor user source fixture");
     fs::write(
         source_dir.join("z_shapes.terl"),
-        "module z_shapes.\n\npub type Ok[T] =\n    {Atom[\"ok\"], value: T}.\n\npub constructor Box {\n    (value: Int): Dynamic ->\n        {Atom[\"box\"], value}\n}.\n",
+        "module z_shapes.\n\npub type Box =\n    {Atom[\"box\"], value: Int}.\n\npub type Ok[T] =\n    {Atom[\"ok\"], value: T}.\n",
     )
     .expect("failed to write constructor provider source fixture");
 
@@ -78,7 +78,7 @@ fn build_command_accepts_directory_with_aliased_imported_alias_patterns_vm_impor
     fs::create_dir_all(&source_dir).expect("failed to create source dir");
     fs::write(
         source_dir.join("a_user.terl"),
-        "module a_user.\n\nimport z_result.{Ok as Success}.\n\npub make_success(value: Int): Dynamic ->\n    Success(value).\n\npub unwrap_success(input: Dynamic): Dynamic ->\n    case input {\n        Success(value) -> value;\n        _ -> 0\n    }.\n",
+        "module a_user.\n\nimport z_result.{Ok as Success}.\n\npub make_success(value: Int): Dynamic ->\n    Success(value).\n\npub unwrap_success(input: {Atom[\"ok\"], value: Int}): Int ->\n    case input {\n        Success(value) -> value;\n        _ -> 0\n    }.\n",
     )
     .expect("failed to write aliased alias user source fixture");
     fs::write(
@@ -133,7 +133,7 @@ fn build_command_accepts_directory_with_aliased_imported_alias_constructor_chain
     fs::create_dir_all(&source_dir).expect("failed to create source dir");
     fs::write(
         source_dir.join("a_user.terl"),
-        "module a_user.\n\nimport z_user.{User as Member}.\n\npub make_admin(id: Int, name: Binary): Dynamic ->\n    Member(id, name) with Admin { id: id, name: name }.\n",
+        "module a_user.\n\nimport z_user.{User as Member}.\n\npub struct Admin {\n    id: Int,\n    name: Binary\n}.\n\npub make_admin(id: Int, name: Binary): Admin ->\n    Member(id, name) with Admin { id: id, name: name }.\n",
     )
     .expect("failed to write aliased alias constructor-chain user source fixture");
     fs::write(

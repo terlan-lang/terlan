@@ -1,10 +1,7 @@
 use super::std_runtime::{
-    target_profile_supports_task_operation, target_profile_supports_vm_agent_operation,
-    target_profile_supports_vm_gen_server_operation,
-    target_profile_supports_vm_native_bridge_operation,
-    target_profile_supports_vm_supervisor_operation, target_profile_supports_vm_task_operation,
+    target_profile_supports_task_operation, target_profile_supports_vm_native_bridge_operation,
     validate_std_runtime_operation_summary_support, validate_std_runtime_operation_support,
-    StdCallHeads,
+    StdCallHeads, StdRuntimeOperationPolicy,
 };
 use super::summary_shape::ProfileExprShapeExtensions;
 use super::{TargetProfile, TargetProfileViolation};
@@ -13,6 +10,23 @@ use crate::terlan_typeck::{CoreExpr, CoreExprSummary, CorePattern};
 mod vm_runtime;
 
 use vm_runtime::summary_allows_vm_owned_expr;
+
+fn std_runtime_operation_policies(heads: &StdCallHeads) -> [StdRuntimeOperationPolicy<'_>; 2] {
+    [
+        StdRuntimeOperationPolicy {
+            call_heads: &heads.task,
+            diagnostic_label: "task operation",
+            canonical_module: "std.core.Task",
+            supports_operation: target_profile_supports_task_operation,
+        },
+        StdRuntimeOperationPolicy {
+            call_heads: &heads.vm_native_bridge,
+            diagnostic_label: "VM NativeBridge operation",
+            canonical_module: "std.vm.NativeBridge",
+            supports_operation: target_profile_supports_vm_native_bridge_operation,
+        },
+    ]
+}
 
 /// Validates one expression summary and its recursive child summaries.
 ///
@@ -39,72 +53,16 @@ pub(super) fn validate_core_expr_summary(
     summary: &CoreExprSummary,
     violations: &mut Vec<TargetProfileViolation>,
 ) {
-    validate_std_runtime_operation_summary_support(
-        profile,
-        function_scope,
-        location,
-        summary,
-        &std_call_heads.task,
-        "task operation",
-        "std.core.Task",
-        target_profile_supports_task_operation,
-        violations,
-    );
-    validate_std_runtime_operation_summary_support(
-        profile,
-        function_scope,
-        location,
-        summary,
-        &std_call_heads.vm_agent,
-        "VM Agent operation",
-        "std.vm.Agent",
-        target_profile_supports_vm_agent_operation,
-        violations,
-    );
-    validate_std_runtime_operation_summary_support(
-        profile,
-        function_scope,
-        location,
-        summary,
-        &std_call_heads.vm_gen_server,
-        "VM GenServer operation",
-        "std.vm.GenServer",
-        target_profile_supports_vm_gen_server_operation,
-        violations,
-    );
-    validate_std_runtime_operation_summary_support(
-        profile,
-        function_scope,
-        location,
-        summary,
-        &std_call_heads.vm_native_bridge,
-        "VM NativeBridge operation",
-        "std.vm.NativeBridge",
-        target_profile_supports_vm_native_bridge_operation,
-        violations,
-    );
-    validate_std_runtime_operation_summary_support(
-        profile,
-        function_scope,
-        location,
-        summary,
-        &std_call_heads.vm_supervisor,
-        "VM Supervisor operation",
-        "std.vm.Supervisor",
-        target_profile_supports_vm_supervisor_operation,
-        violations,
-    );
-    validate_std_runtime_operation_summary_support(
-        profile,
-        function_scope,
-        location,
-        summary,
-        &std_call_heads.vm_task,
-        "VM Task operation",
-        "std.vm.Task",
-        target_profile_supports_vm_task_operation,
-        violations,
-    );
+    for policy in std_runtime_operation_policies(std_call_heads) {
+        validate_std_runtime_operation_summary_support(
+            profile,
+            function_scope,
+            location,
+            summary,
+            policy,
+            violations,
+        );
+    }
 
     let vm_owned_expr = summary_allows_vm_owned_expr(profile, summary);
 
@@ -477,78 +435,17 @@ fn validate_core_expr(
             function,
             args,
         } => {
-            validate_std_runtime_operation_support(
-                profile,
-                function_scope,
-                location,
-                module,
-                function,
-                &std_call_heads.task,
-                "task operation",
-                "std.core.Task",
-                target_profile_supports_task_operation,
-                violations,
-            );
-            validate_std_runtime_operation_support(
-                profile,
-                function_scope,
-                location,
-                module,
-                function,
-                &std_call_heads.vm_agent,
-                "VM Agent operation",
-                "std.vm.Agent",
-                target_profile_supports_vm_agent_operation,
-                violations,
-            );
-            validate_std_runtime_operation_support(
-                profile,
-                function_scope,
-                location,
-                module,
-                function,
-                &std_call_heads.vm_gen_server,
-                "VM GenServer operation",
-                "std.vm.GenServer",
-                target_profile_supports_vm_gen_server_operation,
-                violations,
-            );
-            validate_std_runtime_operation_support(
-                profile,
-                function_scope,
-                location,
-                module,
-                function,
-                &std_call_heads.vm_native_bridge,
-                "VM NativeBridge operation",
-                "std.vm.NativeBridge",
-                target_profile_supports_vm_native_bridge_operation,
-                violations,
-            );
-            validate_std_runtime_operation_support(
-                profile,
-                function_scope,
-                location,
-                module,
-                function,
-                &std_call_heads.vm_supervisor,
-                "VM Supervisor operation",
-                "std.vm.Supervisor",
-                target_profile_supports_vm_supervisor_operation,
-                violations,
-            );
-            validate_std_runtime_operation_support(
-                profile,
-                function_scope,
-                location,
-                module,
-                function,
-                &std_call_heads.vm_task,
-                "VM Task operation",
-                "std.vm.Task",
-                target_profile_supports_vm_task_operation,
-                violations,
-            );
+            for policy in std_runtime_operation_policies(std_call_heads) {
+                validate_std_runtime_operation_support(
+                    profile,
+                    function_scope,
+                    location,
+                    module,
+                    function,
+                    policy,
+                    violations,
+                );
+            }
             for arg in args {
                 validate_core_expr(
                     profile,

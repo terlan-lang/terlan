@@ -3,9 +3,8 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use crate::terlan_syntax::{
-    format_interface_source_module, format_source_module,
-    format_source_module_migrating_repeated_lets, migrate_repeated_let_source,
-    parse_interface_module_as_syntax_output, parse_module_as_syntax_output,
+    format_script_source, format_source_module_migrating_repeated_lets,
+    format_validated_interface_module, format_validated_source_module, migrate_repeated_let_source,
     REPEATED_LET_BINDING_DIAGNOSTIC,
 };
 
@@ -21,13 +20,18 @@ use crate::terlan_syntax::{
 ///
 /// Transformation:
 /// - Reads a file path or walks a directory for `.terl`/`.terli` sources,
-///   parses each as a module/interface depending on extension using formal
-///   syntax-output parsing, then prints single-file output or rewrites
-///   directory-mode files in place.
+///   parses each once as a module/interface depending on extension, validates
+///   the tree through formal syntax output, then prints single-file output,
+///   rewrites an explicitly requested single file, or rewrites directory-mode
+///   files in place.
 pub(crate) fn run(args: &[String]) -> ExitCode {
-    let (migrate_repeated_lets, path) = match args {
-        [path] => (false, path),
-        [flag, path] if flag == "--migrate-repeated-lets" => (true, path),
+    let (mode, path) = match args {
+        [path] => (FormatMode::WriteOrPrint, path),
+        [flag, path] if flag == "--write" => (FormatMode::Write, path),
+        [flag, path] if flag == "--check" => (FormatMode::Check, path),
+        [flag, path] if flag == "--migrate-repeated-lets" => {
+            (FormatMode::MigrateRepeatedLets, path)
+        }
         _ => {
             eprintln!("missing or extra path argument");
             crate::print_usage();
@@ -35,7 +39,7 @@ pub(crate) fn run(args: &[String]) -> ExitCode {
         }
     };
 
-    if migrate_repeated_lets {
+    if mode == FormatMode::MigrateRepeatedLets {
         return migrate_repeated_lets_path(Path::new(path));
     }
 
@@ -47,7 +51,7 @@ pub(crate) fn run(args: &[String]) -> ExitCode {
 
     let path_ref = Path::new(path);
     if path_ref.is_dir() {
-        return format_directory(path_ref);
+        return format_directory(path_ref, mode);
     }
 
     let source = match crate::support::read_file(path) {
@@ -58,14 +62,42 @@ pub(crate) fn run(args: &[String]) -> ExitCode {
         }
     };
     match parse_source(path, &source) {
-        Ok(formatted) => {
-            print!("{formatted}");
-            ExitCode::SUCCESS
-        }
+        Ok(formatted) => match mode {
+            FormatMode::Check => check_formatted_source(path_ref, &source, &formatted),
+            FormatMode::Write => match fs::write(path_ref, formatted) {
+                Ok(()) => ExitCode::SUCCESS,
+                Err(error) => {
+                    eprintln!("failed to write {}: {error}", path_ref.display());
+                    ExitCode::from(1)
+                }
+            },
+            FormatMode::WriteOrPrint => {
+                print!("{formatted}");
+                ExitCode::SUCCESS
+            }
+            FormatMode::MigrateRepeatedLets => unreachable!("handled before formatting"),
+        },
         Err(err) => {
             eprintln!("parse_error: {err}");
             ExitCode::from(1)
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum FormatMode {
+    WriteOrPrint,
+    Write,
+    Check,
+    MigrateRepeatedLets,
+}
+
+fn check_formatted_source(path: &Path, source: &str, formatted: &str) -> ExitCode {
+    if formatted == source {
+        ExitCode::SUCCESS
+    } else {
+        eprintln!("would reformat: {}", path.display());
+        ExitCode::from(1)
     }
 }
 
@@ -139,7 +171,7 @@ fn migrate_repeated_lets_path(path: &Path) -> ExitCode {
 }
 
 /// Formats every Terlan source/interface file under a directory in place.
-fn format_directory(root: &Path) -> ExitCode {
+fn format_directory(root: &Path, mode: FormatMode) -> ExitCode {
     let paths = match collect_format_paths(root) {
         Ok(paths) => paths,
         Err(message) => {
@@ -148,6 +180,7 @@ fn format_directory(root: &Path) -> ExitCode {
         }
     };
 
+    let mut noncanonical = Vec::new();
     for path in paths {
         let source = match fs::read_to_string(&path) {
             Ok(source) => source,
@@ -156,6 +189,9 @@ fn format_directory(root: &Path) -> ExitCode {
                 return ExitCode::from(1);
             }
         };
+        if is_generated_do_not_edit(&source) {
+            continue;
+        }
         let path_text = path.to_string_lossy();
         let formatted = match parse_source(&path_text, &source) {
             Ok(formatted) => formatted,
@@ -164,13 +200,31 @@ fn format_directory(root: &Path) -> ExitCode {
                 return ExitCode::from(1);
             }
         };
-        if let Err(err) = fs::write(&path, formatted) {
+        if formatted == source {
+            continue;
+        }
+        if mode == FormatMode::Check {
+            noncanonical.push(path);
+        } else if let Err(err) = fs::write(&path, formatted) {
             eprintln!("failed to write {}: {err}", path.display());
             return ExitCode::from(1);
         }
     }
 
-    ExitCode::SUCCESS
+    if noncanonical.is_empty() {
+        ExitCode::SUCCESS
+    } else {
+        for path in noncanonical {
+            eprintln!("would reformat: {}", path.display());
+        }
+        ExitCode::from(1)
+    }
+}
+
+/// Returns whether a generated artifact explicitly forbids direct edits.
+fn is_generated_do_not_edit(source: &str) -> bool {
+    let header = source.lines().take(24).collect::<Vec<_>>().join("\n");
+    header.contains("@generated true") && header.contains("@do-not-edit true")
 }
 
 /// Collects `.terl` and `.terli` files under a directory in deterministic order.
@@ -207,7 +261,7 @@ fn is_format_source_path(path: &Path) -> bool {
     crate::terlan_html::is_terlan_artifact_template_path(path)
         || matches!(
             path.extension().and_then(|extension| extension.to_str()),
-            Some("terl" | "terli")
+            Some("terl" | "terli" | "terls")
         )
 }
 
@@ -222,8 +276,8 @@ fn is_format_source_path(path: &Path) -> bool {
 /// - `String` parse error message on malformed syntax.
 ///
 /// Transformation:
-/// - Parses `.terli` sources with `parse_interface_module_as_syntax_output`, and all
-///   others with `parse_module_as_syntax_output`.
+/// - Parses each source once, validates the resulting tree through syntax
+///   output, and formats that same tree; `.terli` selects interface mode.
 fn parse_source(path: &str, source: &str) -> Result<String, String> {
     if crate::terlan_html::is_terlan_artifact_template_path(path) {
         crate::terlan_html::validate_artifact_template_structure(source, path).map_err(
@@ -238,14 +292,24 @@ fn parse_source(path: &str, source: &str) -> Result<String, String> {
         crate::terlan_html::format_template_interpolations(source)
             .map_err(|error| format!("line {}: {}", error.line, error.message))
     } else if path.ends_with(".terli") {
-        parse_interface_module_as_syntax_output(source).map_err(|error| match error {
+        format_validated_interface_module(source).map_err(|error| match error {
+            crate::terlan_syntax::EbnfCompileError::Parse(message, _) => message,
+            crate::terlan_syntax::EbnfCompileError::Serialize(message) => message,
+        })
+    } else if path.ends_with(".terls") {
+        let formatted = format_script_source(source).map_err(|error| error.message)?;
+        crate::terlan_syntax::parse_script_as_syntax_output(
+            &formatted,
+            &crate::formal_pipeline::script_module_name(Path::new(path)),
+        )
+        .map_err(|error| match error {
             crate::terlan_syntax::EbnfCompileError::Parse(message, _) => message,
             crate::terlan_syntax::EbnfCompileError::Serialize(message) => message,
         })?;
-        format_interface_source_module(source).map_err(|error| error.message)
+        Ok(formatted)
     } else {
-        match parse_module_as_syntax_output(source) {
-            Ok(_) => format_source_module(source).map_err(|error| error.message),
+        match format_validated_source_module(source) {
+            Ok(formatted) => Ok(formatted),
             Err(crate::terlan_syntax::EbnfCompileError::Parse(message, _))
                 if message == REPEATED_LET_BINDING_DIAGNOSTIC =>
             {
@@ -259,4 +323,5 @@ fn parse_source(path: &str, source: &str) -> Result<String, String> {
 
 #[cfg(test)]
 #[path = "fmt_test.rs"]
+#[cfg(test)]
 mod fmt_test;

@@ -198,4 +198,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "function_head_migration_diagnostic_policy_test.rs"]
+#[cfg(test)]
 mod function_head_migration_diagnostic_policy_test;

@@ -18,6 +18,6 @@ pub generated_binding_surface_contract(): Bool -> true.
 
 pub query_typechecks(
     receiver: Permissions,
-    permission_desc: PermissionDescriptor
+    permission_desc: PermissionDescriptor,
 ): std.js.Promise[PermissionStatus] ->
     receiver.query(permission_desc).

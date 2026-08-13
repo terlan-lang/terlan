@@ -6,7 +6,7 @@ use super::{
 use crate::runtime::vm::execution_shard_protocol::{
     VmExecutionShardId, VmSealedShardImage, VmShardEpoch,
 };
-use crate::runtime::vm::supervision::VmRestartBackoffSchedule;
+use crate::runtime::vm::restart_backoff::VmRestartBackoffSchedule;
 
 /// Creates the protocol version used by lifecycle tests.
 pub(super) fn protocol(value: u16) -> VmShardProtocolVersion {

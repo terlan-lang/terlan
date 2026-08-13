@@ -22,7 +22,7 @@ pub draw_image_typechecks(
     receiver: CanvasDrawImage,
     image: CanvasImageSource,
     dx: JsNumber,
-    dy: JsNumber
+    dy: JsNumber,
 ): Unit ->
     receiver.draw_image(image, dx, dy).
 
@@ -32,7 +32,7 @@ pub draw_image_typechecks(
     dx: JsNumber,
     dy: JsNumber,
     dw: JsNumber,
-    dh: JsNumber
+    dh: JsNumber,
 ): Unit ->
     receiver.draw_image(image, dx, dy, dw, dh).
 
@@ -46,6 +46,6 @@ pub draw_image_typechecks(
     dx: JsNumber,
     dy: JsNumber,
     dw: JsNumber,
-    dh: JsNumber
+    dh: JsNumber,
 ): Unit ->
     receiver.draw_image(image, sx, sy, sw, sh, dx, dy, dw, dh).

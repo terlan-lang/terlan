@@ -11,6 +11,8 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 
+const NATIVE_SLICE_ALLOCATION_RESERVE_BYTES: usize = 8 * 1024 * 1024;
+
 /// Soft and hard actor-local managed-heap limits.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HeapLimits {
@@ -42,6 +44,33 @@ impl HeapLimits {
 }
 
 impl ActorHeap {
+    /// Reports whether allocation has crossed the actor's adaptive collection
+    /// threshold. A live set above the configured soft floor receives bounded
+    /// growth room instead of being recopied at every subsequent safepoint.
+    pub fn should_collect(&self) -> bool {
+        self.allocated_bytes() >= self.next_collection_bytes
+    }
+
+    /// Gives a surviving live set proportional room before its next copy.
+    pub(super) fn adapt_collection_threshold(&mut self) {
+        let reserve = NATIVE_SLICE_ALLOCATION_RESERVE_BYTES.min(self.limits.hard_bytes / 4);
+        let ceiling = self
+            .limits
+            .hard_bytes
+            .saturating_sub(reserve)
+            .max(self.limits.soft_bytes);
+        self.next_collection_bytes = self
+            .allocated_bytes()
+            .saturating_mul(2)
+            .max(self.limits.soft_bytes)
+            .min(ceiling);
+    }
+
+    /// Restores the configured floor when an actor heap becomes empty.
+    pub(super) fn reset_collection_threshold(&mut self) {
+        self.next_collection_bytes = self.limits.soft_bytes;
+    }
+
     /// Allocates one String ABI placeholder backed by immutable external bytes.
     pub(crate) fn allocate_external_string_storage<T>(
         &mut self,

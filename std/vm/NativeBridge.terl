@@ -79,7 +79,7 @@ pub trait NativeBridgeRuntime[Resource, Command, Reply] extends Supervised[Nativ
  */
 @target.vm {process_mailbox: true}
 pub start[Resource](
-    resource: Resource
+    resource: Resource,
 )[NativeTransfer[Resource]]: Result[NativeBridge[Resource], Error] ->
     native.
 
@@ -93,7 +93,7 @@ pub start[Resource](
  */
 @target.vm {process_mailbox: true}
 pub (bridge: NativeBridge[Resource]) call[Command, Reply](
-    command: Command
+    command: Command,
 )[NativeTransfer[Command], NativeTransfer[Reply]]: Result[Reply, Error] ->
     native.
 

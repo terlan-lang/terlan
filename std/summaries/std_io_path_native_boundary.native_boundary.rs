@@ -18,6 +18,9 @@ pub const FUNCTIONS: &[(&str, usize)] = &[
     ("extension", 1),
     ("parent", 1),
     ("is_absolute", 1),
+    ("normalize", 1),
+    ("starts_with", 2),
+    ("strip_prefix", 2),
 ];
 
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
@@ -28,6 +31,9 @@ pub const OPERATIONS: &[(&str, &str, usize)] = &[
     ("extension", "std.io.path.extension", 1),
     ("parent", "std.io.path.parent", 1),
     ("is_absolute", "std.io.path.is_absolute", 1),
+    ("normalize", "std.io.path.normalize", 1),
+    ("starts_with", "std.io.path.starts_with", 2),
+    ("strip_prefix", "std.io.path.strip_prefix", 2),
 ];
 
 pub const DEFAULT_CREDIT_WINDOW: usize = 32;
@@ -162,6 +168,9 @@ fn worker_loop(rx: Receiver<NativeBoundaryCommand>, credit_window: usize) {
                         "std.io.path.extension" => native_unimplemented_operation(operation),
                         "std.io.path.parent" => native_unimplemented_operation(operation),
                         "std.io.path.is_absolute" => native_unimplemented_operation(operation),
+                        "std.io.path.normalize" => native_unimplemented_operation(operation),
+                        "std.io.path.starts_with" => native_unimplemented_operation(operation),
+                        "std.io.path.strip_prefix" => native_unimplemented_operation(operation),
                         _ => native_unknown_operation(operation),
                     },
                     Err(err) => Err(err),

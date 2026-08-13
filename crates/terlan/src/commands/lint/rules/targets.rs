@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use super::super::diagnostic::{LintDiagnostic, Severity};
+use super::imports::{import_lines, ImportLine};
 
 const INCOMPATIBLE_STD_TARGET_RULE_ID: &str = "TL0702";
 const INCOMPATIBLE_STD_TARGET_RULE_NAME: &str = "targets.incompatible-std";
@@ -93,38 +94,4 @@ fn import_module_name(import_line: &str) -> Option<&str> {
     } else {
         Some(module_name)
     }
-}
-
-struct ImportLine<'a> {
-    line_index: usize,
-    line: &'a str,
-}
-
-fn import_lines(source: &str) -> Vec<ImportLine<'_>> {
-    let mut in_block_comment = false;
-    let mut imports = Vec::new();
-
-    for (line_index, line) in source.lines().enumerate() {
-        let trimmed = line.trim();
-        if trimmed.is_empty() || trimmed.starts_with("//") {
-            continue;
-        }
-        if in_block_comment {
-            if trimmed.contains("*/") {
-                in_block_comment = false;
-            }
-            continue;
-        }
-        if trimmed.starts_with("/*") {
-            if !trimmed.contains("*/") {
-                in_block_comment = true;
-            }
-            continue;
-        }
-        if trimmed.starts_with("import ") {
-            imports.push(ImportLine { line_index, line });
-        }
-    }
-
-    imports
 }

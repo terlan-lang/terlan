@@ -73,7 +73,7 @@ fn instantiate(core: &mut CoreModule, name: &str, fields: Vec<CoreRecordExprFiel
 
 #[test]
 fn public_html_types_erase_to_managed_strings_only_after_typechecking() {
-    for name in ["Template.Html", "std.template.Template.Html"] {
+    for name in ["Html", "Template.Html", "std.template.Template.Html"] {
         let ty = CoreType::Named(name.to_string());
         assert_eq!(native_type(Some(&ty), name), Some(NativeType::StringRef));
     }

@@ -2,8 +2,9 @@ use super::super::model_sync::{
     VmModelSyncChange, VmModelSyncChangeKind, VmModelSyncKey, VmModelSyncVersion,
 };
 use super::super::persistent_actor_store::{
-    VmDatabaseBackedPersistentActorStore, VmPersistentActorEvent, VmPersistentActorId,
-    VmPersistentActorSchema, VmPersistentActorSnapshot, VmPersistentActorStoreAdapter,
+    VmDatabaseBackedPersistentActorStore, VmPersistentActorDurability, VmPersistentActorEvent,
+    VmPersistentActorId, VmPersistentActorSchema, VmPersistentActorSnapshot,
+    VmPersistentActorStoreAdapter,
 };
 use super::super::ReplValue;
 use super::{
@@ -32,8 +33,10 @@ fn snapshot(
         ReplValue::String("state-v2".to_string()),
         vec![ReplValue::Atom("pending_message".to_string())],
         vec![30, 40],
-        vec!["db-session".to_string()],
-        10,
+        VmPersistentActorDurability {
+            resource_handles: vec!["db-session".to_string()],
+            last_event_sequence: 10,
+        },
     )
     .expect("snapshot")
 }
@@ -204,8 +207,10 @@ fn vm_persistent_actor_restore_rejects_reordered_mailbox_checkpoint() {
             mailbox_checkpoint(3, "third"),
         ],
         vec![30],
-        vec!["db-session".to_string()],
-        10,
+        VmPersistentActorDurability {
+            resource_handles: vec!["db-session".to_string()],
+            last_event_sequence: 10,
+        },
     )
     .expect("snapshot");
 

@@ -27,6 +27,6 @@ pub truncate_typechecks(receiver: FileSystemWritableFileStream, size: JsNumber):
 
 pub write_typechecks(
     receiver: FileSystemWritableFileStream,
-    data: FileSystemWriteChunkType
+    data: FileSystemWriteChunkType,
 ): Promise[Unit] ->
     receiver.write(data).

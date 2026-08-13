@@ -51,6 +51,29 @@ Initial rules:
   when a named `let`, helper, or pipe would clarify intent.
 - `TL0003 readability.callback-name`: require meaningful callback parameter
   names when the callback has multiple expressions or captures outer state.
+- `TL0004 readability.unused-destructure-binding`: require destructured names
+  to be used or explicitly marked as intentionally ignored.
+- `TL0005 readability.redundant-comment`: reject comments that merely restate
+  the following expression.
+- `TL0006 readability.public-docs`: require documentation on public source
+  declarations outside test-only modules.
+- `TL0007 readability.doc-comment-spacing`: enforce canonical block-doc star
+  spacing.
+- `TL0008 readability.boolean-heavy-branch`: require complex boolean branch
+  conditions to be factored into `case`, guards, or a named predicate.
+- `TL0009 readability.grouped-binding`: require two-or-more-deep linear
+  refutable `case` chains with one structurally repeated fallback to use
+  grouped `let { ... } else { ... }` bindings. Distinct failure behavior stays
+  explicit and receives no diagnostic. The lint fix remains unavailable;
+  `terlc fmt` performs the guarded syntax-tree rewrite only when capture and
+  evaluation-order preservation are proven structurally.
+- `TL0010 readability.function-reference`: reject a lambda whose sole clause
+  forwards every simple parameter, unchanged and in order, to one named local,
+  selected-import, or module function. Use the named function value directly;
+  the typechecker verifies its arity, contravariant parameter compatibility,
+  and covariant result compatibility at the receiving callback type. `terlc
+  fmt` performs this canonical rewrite; transformed or reordered arguments,
+  guards, captures, and multi-clause lambdas remain explicit.
 
 ### Imports
 

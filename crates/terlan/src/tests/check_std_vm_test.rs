@@ -119,7 +119,7 @@ module vm_agent_operation.\n\
 import std.vm.Agent.\n\
 \n\
 pub queue_update(agent: Agent[Int]): Int ->\n\
-    Agent.get_and_update(agent, (value: Int) -> {state: value, value: value}).\n",
+    Agent.get_and_update[Int](agent, 1, 2).\n",
     )
     .expect("write VM Agent operation source");
     let manifest = dir.join("vm_agent_operation.phase-manifest.json");
@@ -166,22 +166,13 @@ fn run_check_single_file_accepts_vm_gen_server_default_terminate_before_runtime_
         "\
 module vm_gen_server_default_terminate.\n\
 \n\
-import std.vm.GenServer.{GenServer, CallReply}.\n\
-import std.core.Result.{Result, Ok}.\n\
-import std.core.Error.{Error}.\n\
+import std.vm.GenServer.{CallReply, init_succeeded}.\n\
 \n\
-pub struct CounterServer implements GenServer[CounterServer, Int, Int, Int, Int] {\n\
-    seed: Int\n\
-}.\n\
+pub transition(state: Int, request: Int): CallReply[Int, Int] ->\n\
+    CallReply(state, request).\n\
 \n\
-pub (server: CounterServer) init(): Result[Int, Error] ->\n\
-    Ok(server.seed).\n\
-\n\
-pub (server: CounterServer) handle_call(state: Int, request: Int): Result[CallReply[Int, Int], Error] ->\n\
-    Ok({state: state, reply: request}).\n\
-\n\
-pub (server: CounterServer) handle_cast(state: Int, event: Int): Result[Int, Error] ->\n\
-    Ok(state + event).\n",
+pub init_ok(): Bool ->\n\
+    init_succeeded(true).\n",
     )
     .expect("write VM GenServer source");
     let manifest = dir.join("vm_gen_server_default_terminate.phase-manifest.json");
@@ -228,26 +219,12 @@ fn run_check_single_file_accepts_vm_gen_server_operation_before_runtime_executio
         "\
 module vm_gen_server_operation.\n\
 \n\
-import std.vm.GenServer.{CallReply, GenServer, ServerRef, start}.\n\
-import std.core.Result.{Ok}.\n\
-import type std.core.Result.Result.\n\
-import type std.core.Error.Error.\n\
+import std.vm.GenServer.{start}.\n\
+import type std.vm.GenServer.{GenServerCommand, ServerRef}.\n\
+import type std.vm.Process.Process.\n\
 \n\
-pub struct CounterServer implements GenServer[CounterServer, Int, Int, Int, Int] {\n\
-    seed: Int\n\
-}.\n\
-\n\
-pub (server: CounterServer) init(): Result[Int, Error] ->\n\
-    Ok(server.seed).\n\
-\n\
-pub (server: CounterServer) handle_call(state: Int, request: Int): Result[CallReply[Int, Int], Error] ->\n\
-    Ok({state: state, reply: request}).\n\
-\n\
-pub (server: CounterServer) handle_cast(state: Int, event: Int): Result[Int, Error] ->\n\
-    Ok(state + event).\n\
-\n\
-pub start_server(server: CounterServer): Dynamic ->\n\
-    start(server).\n",
+pub start_server(process: Process[GenServerCommand[Int]]): ServerRef[Int] ->\n\
+    start[Int](process, 0).\n",
     )
     .expect("write VM GenServer operation source");
     let manifest = dir.join("vm_gen_server_operation.phase-manifest.json");
@@ -295,9 +272,11 @@ fn run_check_single_file_accepts_vm_task_operation_before_runtime_execution() {
 module vm_task_operation.\n\
 \n\
 import std.vm.Task.\n\
+import type std.vm.Process.Process.\n\
+import type std.vm.Task.{Task, TaskCommand}.\n\
 \n\
-pub start_work(): Dynamic ->\n\
-    Task.start(() -> 1).\n",
+pub start_work(process: Process[TaskCommand[Int]]): Task[Int] ->\n\
+    Task.start[Int](process, 0).\n",
     )
     .expect("write VM Task operation source");
     let manifest = dir.join("vm_task_operation.phase-manifest.json");
@@ -375,11 +354,11 @@ pub start_bridge(resource: String): Dynamic ->\n\
     assert!(manifest_text.contains(r#""name":"core","status":"ok""#));
 }
 
-/// Verifies Supervisor runtime operations pass the check pipeline.
+/// Verifies Supervisor source policy passes the check pipeline.
 ///
 /// Inputs:
-/// - A temporary Terlan module importing `std.vm.Supervisor` and calling
-///   `Supervisor.child_spec(value)`.
+/// - A temporary Terlan module importing `std.vm.Supervisor` and evaluating
+///   one restart-class decision.
 ///
 /// Output:
 /// - Test assertion only; `terlc check --emit-phase-manifest` must succeed
@@ -398,10 +377,10 @@ fn run_check_single_file_accepts_vm_supervisor_operation_before_runtime_executio
         "\
 module vm_supervisor_operation.\n\
 \n\
-import std.vm.Supervisor.\n\
+import std.vm.Supervisor.{Transient, should_restart}.\n\
 \n\
-pub make_spec(value: Int): Dynamic ->\n\
-    Supervisor.child_spec(value).\n",
+pub should_restart(abnormal: Bool): Bool ->\n\
+    should_restart(Transient, abnormal).\n",
     )
     .expect("write VM Supervisor operation source");
     let manifest = dir.join("vm_supervisor_operation.phase-manifest.json");

@@ -38,5 +38,5 @@ pub (value: CustomEvent[T]) init_custom_event(
     type_: std.js.String.JsString,
     bubbles: Bool,
     cancelable: Bool,
-    detail: T
+    detail: T,
 ): std.core.Unit.

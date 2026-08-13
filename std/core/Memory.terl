@@ -1,0 +1,93 @@
+/**
+ * Target-aware memory introspection.
+ *
+ * `std.core.Memory` exposes compiler-owned physical layout information and
+ * runtime-owned managed-memory accounting without conflating either operation
+ * with collection length or encoded payload size.
+ */
+module std.core.Memory.
+
+/**
+ * Storage class selected for a Terlan value representation.
+ *
+ * `Inline` values are carried directly in native storage. `Managed` values are
+ * actor-local references whose object payload is accounted for at runtime.
+ * `Opaque` is reserved for target resources whose representation cannot be
+ * inspected by portable code.
+ */
+pub type Storage = Inline | Managed | Opaque.
+
+/**
+ * Physical representation selected for one type on the current target.
+ *
+ * `size` and `alignment` are expressed in bytes. They describe a value slot,
+ * not the transitive memory retained by a managed value.
+ */
+pub struct Layout {
+    size: Int,
+    alignment: Int,
+    storage: Storage,
+}.
+
+/**
+ * Returns the current target's physical representation for `T`.
+ *
+ * Input: one explicit type argument and no runtime value.
+ * Output: size, alignment, and storage class for a value slot of `T`.
+ * Transformation: lowers to a compiler-owned target-layout constant after
+ * generic specialization.
+ */
+pub layout_of[T](): Layout ->
+    Layout(size = 0, alignment = 1, storage = Opaque).
+
+/**
+ * Returns bytes owned directly by one value.
+ *
+ * Input: one value whose explicit type argument is `T`.
+ * Output: direct inline bytes or the fixed payload plus directly owned
+ * out-of-line bytes of one managed object.
+ * Transformation: folds scalar values to their target layout size and asks the
+ * owning actor heap to measure managed values without traversing children.
+ */
+pub shallow_size[T](value: T): Int -> 0.
+
+/**
+ * Returns distinct bytes transitively retained by one value.
+ *
+ * Input: one value whose explicit type argument is `T`.
+ * Output: direct scalar bytes or all distinct managed object and directly owned
+ * payload bytes reachable from the value.
+ * Transformation: folds scalar values to their target layout size and performs
+ * cycle-safe, deduplicated traversal for managed values.
+ */
+pub retained_size[T](value: T): Int -> 0.
+
+/**
+ * Returns the size component of a layout.
+ *
+ * Input: one layout descriptor.
+ * Output: its physical size in bytes.
+ * Transformation: reads the immutable `size` field.
+ */
+pub (layout: Layout) size(): Int ->
+    layout.size.
+
+/**
+ * Returns the alignment component of a layout.
+ *
+ * Input: one layout descriptor.
+ * Output: its required alignment in bytes.
+ * Transformation: reads the immutable `alignment` field.
+ */
+pub (layout: Layout) alignment(): Int ->
+    layout.alignment.
+
+/**
+ * Returns the storage component of a layout.
+ *
+ * Input: one layout descriptor.
+ * Output: its closed storage class.
+ * Transformation: reads the immutable `storage` field.
+ */
+pub (layout: Layout) storage(): Storage ->
+    layout.storage.

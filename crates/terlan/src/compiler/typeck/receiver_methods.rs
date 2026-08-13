@@ -5,6 +5,7 @@ use crate::terlan_syntax::{
     span::Span, SyntaxDeclarationPayload, SyntaxModuleOutput, SyntaxParamOutput, SyntaxTypeOutput,
 };
 
+use super::signature_loading::TypeResolutionEnvironment;
 use super::{
     collect_local_syntax_struct_fields, expand_imported_aliases_except_named,
     imported_type_aliases, normalize_trait_type_text, normalize_type_param_name,
@@ -318,10 +319,12 @@ pub(super) fn collect_syntax_receiver_method_dispatch_signatures(
             return_type,
             generic_params,
             generic_bounds,
-            alias_names,
-            imported_type_names,
-            imported_type_aliases,
-            local_aliases,
+            TypeResolutionEnvironment {
+                alias_names,
+                imported_type_names,
+                imported_type_aliases,
+                local_aliases,
+            },
         ) else {
             continue;
         };
@@ -570,11 +573,14 @@ fn receiver_method_dispatch_signature(
     return_type: &SyntaxTypeOutput,
     generic_params: &[String],
     generic_bounds: &[String],
-    alias_names: &HashSet<String>,
-    imported_type_names: &HashMap<String, QualifiedTypeName>,
-    imported_type_aliases: &HashMap<String, TypeAlias>,
-    local_aliases: &HashMap<String, TypeAlias>,
+    environment: TypeResolutionEnvironment<'_>,
 ) -> Option<ReceiverMethodDispatchSignature> {
+    let TypeResolutionEnvironment {
+        alias_names,
+        imported_type_names,
+        imported_type_aliases,
+        local_aliases,
+    } = environment;
     let mut vars = HashMap::new();
     let mut next_var: TypeVarId = 0;
     for param in generic_params {

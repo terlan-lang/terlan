@@ -1,0 +1,925 @@
+/**
+ * Proves every active Terlan test lane is owned by the direct-AOT VM.
+ */
+module scripts.self_validation.AllTerlanTestsVmInventoryTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.io.Console.{println}.
+import std.io.File.{NotFound, code, exists, message, read_text, read_text_tree_matching}.
+import std.regex.Regex.
+
+import type std.core.Result.
+import type std.io.File.{FileError, TextFile}.
+import type std.regex.Regex.
+import type std.regex.Regex.{RegexError}.
+
+type StdTree.
+
+type RepositoryTree.
+
+type CommandTree.
+
+struct Inventory {
+    std_tests: List[String],
+    repository_tests: List[String],
+    implementations: List[String],
+    runners: List[String],
+    manifests: List[String],
+}.
+
+struct TextPatterns {
+    erlc: Regex,
+    erl: Regex,
+    erlc_command: Regex,
+    eunit: Regex,
+    ebin: Regex,
+}.
+
+struct ManifestPatterns {
+    beam_thin: Regex,
+    erlang_target: Regex,
+    beam_runtime: Regex,
+}.
+
+struct Finding {
+    path: String,
+    line: Int,
+    message: String,
+}.
+
+struct ScanState {
+    inventory: Inventory,
+    findings: List[Finding],
+}.
+
+@pure
+child(root: String, relative: String): String ->
+    if {
+        root == "." -> relative;
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+@pure
+relative_path(root: String, path: String): String ->
+    if {
+        root == "." -> path;
+        true -> let prefix = child(root, "");
+        if {
+            String.starts_with(path, prefix) -> case String.split_once(path, prefix) {
+                Some({_before, relative}) -> relative;
+                None -> path
+            };
+            true -> path
+        }
+    }.
+
+@pure
+basename(path: String): String ->
+    last_part(String.split(path, "/"), path).
+
+@pure
+last_part(parts: List[String], fallback: String): String ->
+    case parts {
+        [] -> fallback;
+        [value] -> value;
+        [_value | rest] -> last_part(rest, fallback)
+    }.
+
+@pure
+empty_inventory(): Inventory ->
+    Inventory(
+        std_tests = List.new[String](),
+        repository_tests = List.new[String](),
+        implementations = List.new[String](),
+        runners = List.new[String](),
+        manifests = List.new[String](),
+    ).
+
+@pure
+classify_paths(root: String, paths: List[String]): Inventory ->
+    classify_paths_into(root, paths, empty_inventory()).
+
+@pure
+classify_paths_into(root: String, paths: List[String], inventory: Inventory): Inventory ->
+    case paths {
+        [] -> reverse_inventory(inventory);
+        [path | rest] ->
+            let relative = relative_path(root, path);
+            classify_paths_into(root, rest, classify_path(path, relative, inventory))
+    }.
+
+@pure
+classify_path(path: String, relative: String, inventory: Inventory): Inventory ->
+    Inventory(
+        std_tests = if {
+            is_std_test(relative) -> [relative | inventory.std_tests];
+            true -> inventory.std_tests
+        },
+        repository_tests = if {
+            is_repository_test(relative) -> [relative | inventory.repository_tests];
+            true -> inventory.repository_tests
+        },
+        implementations = if {
+            is_command_implementation(relative) -> [relative | inventory.implementations];
+            true -> inventory.implementations
+        },
+        runners = if {
+            is_active_runner(relative) -> [relative | inventory.runners];
+            true -> inventory.runners
+        },
+        manifests = if {
+            is_active_manifest(relative) -> [relative | inventory.manifests];
+            true -> inventory.manifests
+        },
+    ).
+
+@pure
+reverse_inventory(inventory: Inventory): Inventory ->
+    Inventory(
+        std_tests = reverse(inventory.std_tests, List.new[String]()),
+        repository_tests = reverse(inventory.repository_tests, List.new[String]()),
+        implementations = command_order(inventory.implementations),
+        runners = reverse(inventory.runners, List.new[String]()),
+        manifests = reverse(inventory.manifests, List.new[String]()),
+    ).
+
+@pure
+reverse(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse(rest, [value | output])
+    }.
+
+@pure
+command_order(paths: List[String]): List[String] ->
+    let sorted = reverse(paths, List.new[String]());
+    append(
+        select_prefix(sorted, "crates/terlan/src/commands/test/"),
+        append(
+            select_prefix(sorted, "crates/terlan/src/commands/run/"),
+            select_prefix(sorted, "crates/terlan/src/commands/repl/"),
+        ),
+    ).
+
+@pure
+select_prefix(paths: List[String], prefix: String): List[String] ->
+    reverse(select_prefix_into(paths, prefix, List.new[String]()), List.new[String]()).
+
+@pure
+select_prefix_into(paths: List[String], prefix: String, selected: List[String]): List[String] ->
+    case paths {
+        [] -> selected;
+        [path | rest] ->
+            if {
+                String.starts_with(path, prefix) -> select_prefix_into(rest, prefix, [path | selected]);
+                true -> select_prefix_into(rest, prefix, selected)
+            }
+    }.
+
+@pure
+append(left: List[String], right: List[String]): List[String] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+is_std_test(path: String): Bool ->
+    String.starts_with(path, "std/") and String.ends_with(path, "Test.terl").
+
+@pure
+is_repository_test(path: String): Bool ->
+    String.starts_with(path, "tests/") and String.ends_with(path, ".terl").
+
+@pure
+is_command_implementation(path: String): Bool ->
+    String.starts_with(path, "crates/terlan/src/commands/test/")
+        or String.starts_with(path, "crates/terlan/src/commands/run/")
+        or String.starts_with(path, "crates/terlan/src/commands/repl/")
+    and path == "crates/terlan/src/commands/test/README.md"
+        or path == "crates/terlan/src/commands/run/README.md"
+        or path == "crates/terlan/src/commands/repl/README.md"
+        or String.ends_with(path, ".rs") and not String.ends_with(path, "_test.rs").
+
+@pure
+is_active_runner(path: String): Bool ->
+    path == "Makefile"
+        or path == "std/stdlib.mk"
+        or path == "std/scripts/run_release_tests.sh"
+        or path == "scripts/run_exact_cargo_test.sh".
+
+@pure
+is_active_manifest(path: String): Bool ->
+    basename(path) == "terlan.toml" and not String.starts_with(path, "tests/rc/").
+
+compile_text_patterns(): Result[TextPatterns, RegexError] ->
+    case Regex.compile("\\berlc\\b") {
+        Err(reason) -> Err(reason);
+        Ok(erlc) ->
+            case Regex.compile("\\bCommand::new\\(\\s*[\\\"']erl[\\\"']\\s*\\)") {
+                Err(reason) -> Err(reason);
+                Ok(erl) -> compile_remaining_text_patterns(erlc, erl)
+            }
+    }.
+
+compile_remaining_text_patterns(erlc: Regex, erl: Regex): Result[TextPatterns, RegexError] ->
+    case Regex.compile("\\bCommand::new\\(\\s*[\\\"']erlc[\\\"']\\s*\\)") {
+        Err(reason) -> Err(reason);
+        Ok(erlc_command) ->
+            case Regex.compile("(?i)\\beunit\\b") {
+                Err(reason) -> Err(reason);
+                Ok(eunit) ->
+                    case Regex.compile("_build/ebin") {
+                        Err(reason) -> Err(reason);
+                        Ok(ebin) ->
+                            Ok(
+                                TextPatterns(
+                                    erlc = erlc,
+                                    erl = erl,
+                                    erlc_command = erlc_command,
+                                    eunit = eunit,
+                                    ebin = ebin,
+                                ),
+                            )
+                    }
+            }
+    }.
+
+compile_manifest_patterns(): Result[ManifestPatterns, RegexError] ->
+    case Regex.compile("artifact\\s*=\\s*\\\"beam-thin\\\"") {
+        Err(reason) -> Err(reason);
+        Ok(beam_thin) ->
+            case Regex.compile("target\\s*=\\s*\\\"erlang\\\"") {
+                Err(reason) -> Err(reason);
+                Ok(erlang_target) ->
+                    case Regex.compile("runtime\\s*=\\s*\\\"beam\\\"") {
+                        Err(reason) -> Err(reason);
+                        Ok(beam_runtime) ->
+                            Ok(
+                                ManifestPatterns(
+                                    beam_thin = beam_thin,
+                                    erlang_target = erlang_target,
+                                    beam_runtime = beam_runtime,
+                                ),
+                            )
+                    }
+            }
+    }.
+
+scan_text_file(path: String, text: String): List[Finding] ->
+    let lowercase = String.lowercase(text);
+    let without_terlc = String.replace(lowercase, "terlc", "");
+    let has_forbidden_text =
+        String.contains(without_terlc, "erlc")
+            or String.contains(lowercase, "eunit")
+            or String.contains(text, "Command::new")
+            or String.contains(text, "_build/ebin");
+    if {
+        has_forbidden_text -> compile_text_details(path, text);
+        true -> List.new[Finding]()
+    }.
+
+compile_text_details(path: String, text: String): List[Finding] ->
+    case compile_text_patterns() {
+        Err(_reason) ->
+            [Finding(path = path, line = 0, message = "internal text regex compilation failed")];
+        Ok(patterns) -> scan_text_details(path, text, patterns)
+    }.
+
+scan_text_details(path: String, text: String, patterns: TextPatterns): List[Finding] ->
+    let erlc_lines = Regex.matching_line_numbers(patterns.erlc, text);
+    scan_text_erl(path, text, patterns, erlc_lines).
+
+scan_text_erl(
+    path: String,
+    text: String,
+    patterns: TextPatterns,
+    erlc_lines: List[Int],
+): List[Finding] ->
+    let erl_lines = Regex.matching_line_numbers(patterns.erl, text);
+    scan_text_erlc_command(path, text, patterns, erlc_lines, erl_lines).
+
+scan_text_erlc_command(
+    path: String,
+    text: String,
+    patterns: TextPatterns,
+    erlc_lines: List[Int],
+    erl_lines: List[Int],
+): List[Finding] ->
+    let erlc_command_lines = Regex.matching_line_numbers(patterns.erlc_command, text);
+    scan_text_eunit(path, text, patterns, erlc_lines, erl_lines, erlc_command_lines).
+
+scan_text_eunit(
+    path: String,
+    text: String,
+    patterns: TextPatterns,
+    erlc_lines: List[Int],
+    erl_lines: List[Int],
+    erlc_command_lines: List[Int],
+): List[Finding] ->
+    let eunit_lines = Regex.matching_line_numbers(patterns.eunit, text);
+    scan_text_ebin(path, text, patterns, erlc_lines, erl_lines, erlc_command_lines, eunit_lines).
+
+scan_text_ebin(
+    path: String,
+    text: String,
+    patterns: TextPatterns,
+    erlc_lines: List[Int],
+    erl_lines: List[Int],
+    erlc_command_lines: List[Int],
+    eunit_lines: List[Int],
+): List[Finding] ->
+    let ebin_lines = Regex.matching_line_numbers(patterns.ebin, text);
+    text_findings(
+        path,
+        String.split(text, "\n"),
+        erlc_lines,
+        erl_lines,
+        erlc_command_lines,
+        eunit_lines,
+        ebin_lines,
+        1,
+    ).
+
+@pure
+matches_current(lines: List[Int], number: Int): Bool ->
+    case lines {
+        [] -> false;
+        [matched | _rest] -> matched == number
+    }.
+
+@pure
+drop_current(lines: List[Int], number: Int): List[Int] ->
+    case lines {
+        [] -> List.new[Int]();
+        [matched | rest] ->
+            if {
+                matched == number -> rest;
+                true -> lines
+            }
+    }.
+
+@pure
+text_findings(
+    path: String,
+    lines: List[String],
+    erlc_lines: List[Int],
+    erl_lines: List[Int],
+    erlc_command_lines: List[Int],
+    eunit_lines: List[Int],
+    ebin_lines: List[Int],
+    number: Int,
+): List[Finding] ->
+    let {
+        _ <- {erlc_lines, erl_lines, erlc_command_lines, eunit_lines, ebin_lines};
+        [line | rest] <- lines
+    } else {
+        _ -> List.new[Finding]()
+    };
+    (let erlc_hit = matches_current(erlc_lines, number);
+let erl_hit = matches_current(erl_lines, number);
+let erlc_command_hit = matches_current(erlc_command_lines, number);
+let eunit_hit = matches_current(eunit_lines, number);
+let ebin_hit = matches_current(ebin_lines, number);
+let remaining =
+    text_findings(
+        path,
+        rest,
+        drop_current(erlc_lines, number),
+        drop_current(erl_lines, number),
+        drop_current(erlc_command_lines, number),
+        drop_current(eunit_lines, number),
+        drop_current(ebin_lines, number),
+        number + 1,
+    );
+if {
+    allowed_negative_context(line) -> remaining;
+    true -> prepend_text_findings(
+        path,
+        number,
+        erlc_hit,
+        erl_hit,
+        erlc_command_hit,
+        eunit_hit,
+        ebin_hit,
+        remaining,
+    )
+}).
+
+@pure
+prepend_text_findings(
+    path: String,
+    number: Int,
+    erlc_hit: Bool,
+    erl_hit: Bool,
+    erlc_command_hit: Bool,
+    eunit_hit: Bool,
+    ebin_hit: Bool,
+    remaining: List[Finding],
+): List[Finding] ->
+    let with_ebin =
+        if {
+            ebin_hit -> [Finding(path = path, line = number, message = "depends on BEAM ebin output") | remaining];
+            true -> remaining
+        };
+    let with_eunit =
+        if {
+            eunit_hit -> [Finding(path = path, line = number, message = "depends on EUnit") | with_ebin];
+            true -> with_ebin
+        };
+    let with_erlc_command =
+        if {
+            erlc_command_hit -> [Finding(path = path, line = number, message = "launches `erlc`") | with_eunit];
+            true -> with_eunit
+        };
+    let with_erl =
+        if {
+            erl_hit -> [Finding(path = path, line = number, message = "launches `erl`") | with_erlc_command];
+            true -> with_erlc_command
+        };
+    if {
+        erlc_hit -> [Finding(path = path, line = number, message = "uses `erlc`") | with_erl];
+        true -> with_erl
+    }.
+
+@pure
+allowed_negative_context(line: String): Bool ->
+    String.contains(line, "without invoking generated Erlang, BEAM bytecode, or EUnit")
+        or String.contains(line, "test ! -d /tmp/terlan_vm_execution_check/_build/ebin").
+
+scan_manifest(path: String, text: String): List[Finding] ->
+    let has_forbidden_manifest =
+        String.contains(text, "beam-thin")
+            or String.contains(text, "erlang")
+            or String.contains(text, "\"beam\"");
+    if {
+        has_forbidden_manifest -> compile_manifest_details(path, text);
+        true -> List.new[Finding]()
+    }.
+
+compile_manifest_details(path: String, text: String): List[Finding] ->
+    case compile_manifest_patterns() {
+        Err(_reason) ->
+            [Finding(path = path, line = 0, message = "internal manifest regex compilation failed")];
+        Ok(patterns) -> scan_manifest_details(path, text, patterns)
+    }.
+
+scan_manifest_details(path: String, text: String, patterns: ManifestPatterns): List[Finding] ->
+    let beam_thin_lines = Regex.matching_line_numbers(patterns.beam_thin, text);
+    scan_manifest_erlang(path, text, patterns, beam_thin_lines).
+
+scan_manifest_erlang(
+    path: String,
+    text: String,
+    patterns: ManifestPatterns,
+    beam_thin_lines: List[Int],
+): List[Finding] ->
+    let erlang_target_lines = Regex.matching_line_numbers(patterns.erlang_target, text);
+    scan_manifest_runtime(path, text, patterns, beam_thin_lines, erlang_target_lines).
+
+scan_manifest_runtime(
+    path: String,
+    text: String,
+    patterns: ManifestPatterns,
+    beam_thin_lines: List[Int],
+    erlang_target_lines: List[Int],
+): List[Finding] ->
+    let beam_runtime_lines = Regex.matching_line_numbers(patterns.beam_runtime, text);
+    manifest_findings(path, beam_thin_lines, erlang_target_lines, beam_runtime_lines, 1).
+
+@pure
+manifest_findings(
+    path: String,
+    beam_thin_lines: List[Int],
+    erlang_target_lines: List[Int],
+    beam_runtime_lines: List[Int],
+    number: Int,
+): List[Finding] ->
+    case {beam_thin_lines, erlang_target_lines, beam_runtime_lines} {
+        {[], [], []} -> List.new[Finding]();
+        _ ->
+            let beam_thin_hit = matches_current(beam_thin_lines, number);
+            let erlang_target_hit = matches_current(erlang_target_lines, number);
+            let beam_runtime_hit = matches_current(beam_runtime_lines, number);
+            let remaining =
+                manifest_findings(
+                    path,
+                    drop_current(beam_thin_lines, number),
+                    drop_current(erlang_target_lines, number),
+                    drop_current(beam_runtime_lines, number),
+                    number + 1,
+                );
+            let with_runtime =
+                if {
+                    beam_runtime_hit -> [Finding(path = path, line = number, message = "declares `runtime = \"beam\"`") | remaining];
+                    true -> remaining
+                };
+            let with_target =
+                if {
+                    erlang_target_hit -> [Finding(path = path, line = number, message = "declares `target = \"erlang\"`") | with_runtime];
+                    true -> with_runtime
+                };
+            if {
+                beam_thin_hit -> [Finding(path = path, line = number, message = "declares `artifact = \"beam-thin\"`") | with_target];
+                true -> with_target
+            }
+    }.
+
+scan_tree_pages(
+    repository_root: String,
+    tree_root: String,
+    kind: Atom,
+    included_suffixes: List[String],
+    excluded_suffixes: List[String],
+    offset: Int,
+    state: ScanState,
+): Result[ScanState, FileError] ->
+    case read_text_tree_matching(
+    tree_root,
+    [".git", "target", "node_modules", "__pycache__", ".terlan", "_build"],
+    included_suffixes,
+    excluded_suffixes,
+    offset,
+    64,
+) {
+        Err(reason) ->
+            if {
+                code(reason) == NotFound -> Ok(state);
+                true -> Err(reason)
+            };
+        Ok([]) -> Ok(state);
+        Ok(files) ->
+            let page_count = List.length(files);
+            let scanned = scan_tree_page_files(repository_root, files, kind, state);
+            scan_tree_pages(
+                repository_root,
+                tree_root,
+                kind,
+                included_suffixes,
+                excluded_suffixes,
+                offset + page_count,
+                scanned,
+            )
+    }.
+
+scan_tree_page_files(
+    repository_root: String,
+    files: List[TextFile],
+    kind: Atom,
+    state: ScanState,
+): ScanState ->
+    case files {
+        [] -> state;
+        [file | rest] ->
+            let path = relative_path(repository_root, file.path);
+            if {
+                accepts_tree_path(kind, path) -> let file_findings = scan_text_file(path, file.contents);
+                scan_tree_page_files(
+                    repository_root,
+                    rest,
+                    kind,
+                    ScanState(
+                        inventory = classify_path(path, path, state.inventory),
+                        findings = append_findings(state.findings, file_findings),
+                    ),
+                );
+                true -> scan_tree_page_files(repository_root, rest, kind, state)
+            }
+    }.
+
+@pure
+accepts_tree_path(kind: Atom, path: String): Bool ->
+    if {
+        kind == StdTree -> is_std_test(path);
+        kind == RepositoryTree -> is_repository_test(path);
+        true -> is_command_implementation(path)
+    }.
+
+scan_manifest_pages(
+    repository_root: String,
+    offset: Int,
+    state: ScanState,
+): Result[ScanState, FileError] ->
+    case read_text_tree_matching(
+    repository_root,
+    [".git", "target", "node_modules", "__pycache__", ".terlan", "_build"],
+    ["terlan.toml"],
+    List.new[String](),
+    offset,
+    64,
+) {
+        Err(reason) -> Err(reason);
+        Ok([]) -> Ok(state);
+        Ok(files) ->
+            let page_count = List.length(files);
+            let scanned = scan_manifest_page_files(repository_root, files, state);
+            scan_manifest_pages(repository_root, offset + page_count, scanned)
+    }.
+
+scan_manifest_page_files(
+    repository_root: String,
+    files: List[TextFile],
+    state: ScanState,
+): ScanState ->
+    case files {
+        [] -> state;
+        [file | rest] ->
+            let path = relative_path(repository_root, file.path);
+            if {
+                is_active_manifest(path) -> let file_findings = scan_manifest(path, file.contents);
+                scan_manifest_page_files(
+                    repository_root,
+                    rest,
+                    ScanState(
+                        inventory = classify_path(path, path, state.inventory),
+                        findings = append_findings(state.findings, file_findings),
+                    ),
+                );
+                true -> scan_manifest_page_files(repository_root, rest, state)
+            }
+    }.
+
+scan_runner_paths(
+    root: String,
+    paths: List[String],
+    state: ScanState,
+): Result[ScanState, FileError] ->
+    case paths {
+        [] -> Ok(state);
+        [path | rest] ->
+            let absolute = child(root, path);
+            let present = exists(absolute);
+            if {
+                present -> case read_text(absolute) {
+                    Err(reason) -> Err(reason);
+                    Ok(text) ->
+                        let file_findings = scan_text_file(path, text);
+                        scan_runner_paths(
+                            root,
+                            rest,
+                            ScanState(
+                                inventory = classify_path(path, path, state.inventory),
+                                findings = append_findings(state.findings, file_findings),
+                            ),
+                        )
+                };
+                true -> scan_runner_paths(root, rest, state)
+            }
+    }.
+
+@pure
+append_findings(left: List[Finding], right: List[Finding]): List[Finding] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_findings(rest, right)]
+    }.
+
+minimum_findings(inventory: Inventory): List[Finding] ->
+    let std_missing = List.length(inventory.std_tests) < 1;
+    let repository_missing = List.length(inventory.repository_tests) < 1;
+    if {
+        std_missing and repository_missing -> [
+            Finding(
+                path = "std",
+                line = 0,
+                message = "expected at least one standard-library VM test fixture",
+            ),
+            Finding(
+                path = "tests",
+                line = 0,
+                message = "expected at least one repository VM test fixture",
+            ),
+        ];
+        std_missing -> [
+            Finding(
+                path = "std",
+                line = 0,
+                message = "expected at least one standard-library VM test fixture",
+            ),
+        ];
+        repository_missing -> [
+            Finding(
+                path = "tests",
+                line = 0,
+                message = "expected at least one repository VM test fixture",
+            ),
+        ];
+        true -> List.new[Finding]()
+    }.
+
+render_finding(finding: Finding): String ->
+    if {
+        finding.line == 0 -> String.append(finding.path, String.append(": ", finding.message));
+        true -> String.append(
+            finding.path,
+            String.append(
+                ":",
+                String.append(Int.to_string(finding.line), String.append(": ", finding.message)),
+            ),
+        )
+    }.
+
+print_findings(findings: List[Finding]): Bool ->
+    case findings {
+        [] -> false;
+        [finding | rest] ->
+            let _line = println(render_finding(finding));
+            print_findings(rest)
+    }.
+
+print_success(inventory: Inventory): Bool ->
+    let _header = println("all_terlan_tests_vm_inventory:");
+    let _std = println(String.append("  std_test_files=", Int.to_string(List.length(inventory.std_tests))));
+    let _repository =
+        println(
+            String.append(
+                "  repository_test_files=",
+                Int.to_string(List.length(inventory.repository_tests)),
+            ),
+        );
+    let _implementations =
+        println(
+            String.append(
+                "  command_implementation_files=",
+                Int.to_string(List.length(inventory.implementations)),
+            ),
+        );
+    let _runners =
+        println(
+            String.append("  active_runner_files=", Int.to_string(List.length(inventory.runners))),
+        );
+    let _manifests =
+        println(
+            String.append("  active_manifests=", Int.to_string(List.length(inventory.manifests))),
+        );
+    let _forbidden = println("  forbidden_otp_runtime_paths=0");
+    true.
+
+scan_std_tree(root: String): Bool ->
+    case scan_tree_pages(
+    root,
+    child(root, "std"),
+    StdTree,
+    ["Test.terl"],
+    List.new[String](),
+    0,
+    ScanState(inventory = empty_inventory(), findings = List.new[Finding]()),
+) {
+        Err(reason) -> report_file_error(reason);
+        Ok(state) -> scan_repository_tree(root, state)
+    }.
+
+scan_repository_tree(root: String, state: ScanState): Bool ->
+    case scan_tree_pages(root, child(root, "tests"), RepositoryTree, [".terl"], List.new[String](), 0, state) {
+        Err(reason) -> report_file_error(reason);
+        Ok(next) -> scan_test_command_tree(root, next)
+    }.
+
+scan_test_command_tree(root: String, state: ScanState): Bool ->
+    case scan_tree_pages(
+    root,
+    child(root, "crates/terlan/src/commands/test"),
+    CommandTree,
+    [".rs", "README.md"],
+    ["_test.rs"],
+    0,
+    state,
+) {
+        Err(reason) -> report_file_error(reason);
+        Ok(next) -> scan_run_command_tree(root, next)
+    }.
+
+scan_run_command_tree(root: String, state: ScanState): Bool ->
+    case scan_tree_pages(
+    root,
+    child(root, "crates/terlan/src/commands/run"),
+    CommandTree,
+    [".rs", "README.md"],
+    ["_test.rs"],
+    0,
+    state,
+) {
+        Err(reason) -> report_file_error(reason);
+        Ok(next) -> scan_repl_command_tree(root, next)
+    }.
+
+scan_repl_command_tree(root: String, state: ScanState): Bool ->
+    case scan_tree_pages(
+    root,
+    child(root, "crates/terlan/src/commands/repl"),
+    CommandTree,
+    [".rs", "README.md"],
+    ["_test.rs"],
+    0,
+    state,
+) {
+        Err(reason) -> report_file_error(reason);
+        Ok(next) -> scan_runner_inventory(root, next)
+    }.
+
+scan_runner_inventory(root: String, state: ScanState): Bool ->
+    case scan_runner_paths(
+    root,
+    [
+        "Makefile",
+        "scripts/run_exact_cargo_test.sh",
+        "std/scripts/run_release_tests.sh",
+        "std/stdlib.mk",
+    ],
+    state,
+) {
+        Err(reason) -> report_file_error(reason);
+        Ok(next) -> scan_manifest_tree(root, next)
+    }.
+
+scan_manifest_tree(root: String, state: ScanState): Bool ->
+    case scan_manifest_pages(root, 0, state) {
+        Err(reason) -> report_file_error(reason);
+        Ok(final_state) ->
+            report_scan(
+                final_state.inventory,
+                append_findings(minimum_findings(final_state.inventory), final_state.findings),
+            )
+    }.
+
+report_file_error(reason: FileError): Bool ->
+    let _message = println(message(reason));
+    false.
+
+report_scan(inventory: Inventory, findings: List[Finding]): Bool ->
+    case findings {
+        [] -> print_success(inventory);
+        _ -> report_failure(findings)
+    }.
+
+report_failure(findings: List[Finding]): Bool ->
+    let _printed = print_findings(findings);
+    false.
+
+pub validate(root: String): Bool ->
+    scan_std_tree(root).
+
+@test
+pub repository_test_inventory_is_vm_owned(): Bool ->
+    validate(".").
+
+@test
+pub active_and_historical_paths_are_classified_exactly(): Bool ->
+    is_std_test("std/core/StringTest.terl")
+        and is_repository_test("tests/compiler/parser.terl")
+        and is_command_implementation("crates/terlan/src/commands/test/runner.rs")
+        and not is_command_implementation("crates/terlan/src/commands/test/runner_test.rs")
+        and is_active_manifest("packages/demo/terlan.toml")
+        and not is_active_manifest("tests/rc/old/terlan.toml").
+
+@test
+pub forbidden_and_allowed_text_contexts_are_distinguished(): Bool ->
+    let forbidden =
+        scan_text_file(
+            "Makefile",
+            "one\nerlc Command::new(\"erl\") Command::new('erlc') EUNIT _build/ebin",
+        );
+    let exact =
+        case forbidden {
+            [erlc, erl, erlc_command, eunit, ebin] ->
+                erlc.message == "uses `erlc`"
+                    and erl.message == "launches `erl`"
+                    and erlc_command.message == "launches `erlc`"
+                    and eunit.message == "depends on EUnit"
+                    and ebin.message == "depends on BEAM ebin output"
+                    and erlc.line == 2
+                    and ebin.line == 2;
+            _ -> false
+        };
+    exact
+        and List.length(
+    scan_text_file(
+        "README.md",
+        "one\ntwo\nthree\nwithout invoking generated Erlang, BEAM bytecode, or EUnit",
+    ),
+) == 0.
+
+@test
+pub legacy_manifest_spelling_is_rejected(): Bool ->
+    case scan_manifest(
+    "terlan.toml",
+    "[build]\nartifact = \"beam-thin\"\ntarget = \"erlang\"\nruntime = \"beam\"",
+) {
+        [artifact, target, runtime] ->
+            artifact.message == "declares `artifact = \"beam-thin\"`"
+                and target.message == "declares `target = \"erlang\"`"
+                and runtime.message == "declares `runtime = \"beam\"`"
+                and artifact.line == 2
+                and runtime.line == 4;
+        _ -> false
+    }.
+
+pub main(): Unit ->
+    if {
+        repository_test_inventory_is_vm_owned() -> Unit;
+        true -> println("all-Terlan VM inventory failed")
+    }.

@@ -27,28 +27,28 @@ pub add_all_typechecks(receiver: Cache, requests: Array[RequestInfo]): Promise[U
 pub delete_typechecks(
     receiver: Cache,
     request: RequestInfo | URL,
-    options: CacheQueryOptions
+    options: CacheQueryOptions,
 ): Promise[std.core.Bool] ->
     receiver.delete(request, options).
 
 pub keys_typechecks(
     receiver: Cache,
     request: RequestInfo | URL,
-    options: CacheQueryOptions
+    options: CacheQueryOptions,
 ): Promise[Array[Request]] ->
     receiver.keys(request, options).
 
 pub match_typechecks(
     receiver: Cache,
     request: RequestInfo | URL,
-    options: CacheQueryOptions
+    options: CacheQueryOptions,
 ): Promise[Option[Response]] ->
     receiver.match(request, options).
 
 pub match_all_typechecks(
     receiver: Cache,
     request: RequestInfo | URL,
-    options: CacheQueryOptions
+    options: CacheQueryOptions,
 ): Promise[Array[Response]] ->
     receiver.match_all(request, options).
 

@@ -3,7 +3,8 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::terlan_typeck::{
-    core_type_from_text, CoreExpr, CoreIntrinsicId, CoreModule, CoreTupleTypeElem, CoreType,
+    core_type_from_text, CoreExpr, CoreIntrinsicId, CoreModule, CorePattern, CoreTupleTypeElem,
+    CoreType,
 };
 
 #[derive(Clone)]
@@ -26,17 +27,12 @@ pub(super) fn expand_transparent_aliases(cores: &mut [CoreModule]) {
                     return None;
                 }
                 let canonical = format!("{}.{}", core.module, declaration.name);
-                let body = if matches!(body, CoreType::Struct { .. }) {
-                    CoreType::Named(canonical.clone())
-                } else {
-                    body.clone()
-                };
                 Some((
                     canonical,
                     Alias {
                         module: core.module.clone(),
                         params: declaration.params.clone(),
-                        body,
+                        body: body.clone(),
                     },
                 ))
             })
@@ -91,6 +87,9 @@ pub(super) fn expand_transparent_aliases(cores: &mut [CoreModule]) {
                 *ty = resolve(ty, &module, &imports, &aliases, &mut HashSet::new());
             }
             for clause in &mut function.clauses {
+                for pattern in clause.core_patterns.iter_mut().flatten() {
+                    resolve_pattern(pattern, &module, &imports, &aliases);
+                }
                 if let Some(guard) = clause
                     .guard
                     .as_mut()
@@ -369,8 +368,24 @@ fn resolve_expr(
     };
     match expr {
         CoreExpr::Cast { expr, target_type } => {
-            resolve_expr(expr, module, imports, aliases);
             resolve_type(target_type);
+            if let CoreExpr::ConstructorCall {
+                constructor,
+                constructor_identity,
+                args,
+            } = expr.as_mut()
+            {
+                for arg in args.iter_mut() {
+                    resolve_expr(arg, module, imports, aliases);
+                }
+                let identity = constructor_identity.as_deref().unwrap_or(constructor);
+                if transparent_alias_constructor_tag(identity, args.len(), module, imports, aliases)
+                    .is_some()
+                {
+                    return;
+                }
+            }
+            resolve_expr(expr, module, imports, aliases);
         }
         CoreExpr::Intrinsic(call) => {
             for arg in &mut call.args {
@@ -381,10 +396,15 @@ fn resolve_expr(
                 CoreIntrinsicId::VmProcessSendMessage(ty)
                 | CoreIntrinsicId::VmProcessReceiveMessage(ty)
                 | CoreIntrinsicId::VmProcessSpawn(ty)
+                | CoreIntrinsicId::VmProcessEntry(ty)
+                | CoreIntrinsicId::VmProcessCurrent(ty)
                 | CoreIntrinsicId::VmProcessLink(ty)
                 | CoreIntrinsicId::VmProcessMonitor(ty)
                 | CoreIntrinsicId::VmProcessAcquireResource(ty)
-                | CoreIntrinsicId::VmProcessCancel(ty) => resolve_type(ty),
+                | CoreIntrinsicId::VmProcessCancel(ty)
+                | CoreIntrinsicId::MemoryLayoutOf(ty)
+                | CoreIntrinsicId::MemoryShallowSize(ty)
+                | CoreIntrinsicId::MemoryRetainedSize(ty) => resolve_type(ty),
                 CoreIntrinsicId::NativeOperation {
                     parameter_types, ..
                 } => parameter_types.iter_mut().for_each(&mut resolve_type),
@@ -445,9 +465,25 @@ fn resolve_expr(
                 resolve_expr(&mut field.value, module, imports, aliases);
             }
         }
-        CoreExpr::RemoteCall { args, .. }
-        | CoreExpr::ConstructorCall { args, .. }
-        | CoreExpr::Call { args, .. } => {
+        CoreExpr::ConstructorCall {
+            constructor,
+            constructor_identity,
+            args,
+        } => {
+            for arg in args.iter_mut() {
+                resolve_expr(arg, module, imports, aliases);
+            }
+            let identity = constructor_identity.as_deref().unwrap_or(constructor);
+            if let Some(tag) =
+                transparent_alias_constructor_tag(identity, args.len(), module, imports, aliases)
+            {
+                let mut items = Vec::with_capacity(args.len().saturating_add(1));
+                items.push(CoreExpr::Atom(tag));
+                items.append(args);
+                *expr = CoreExpr::Tuple(items);
+            }
+        }
+        CoreExpr::RemoteCall { args, .. } | CoreExpr::Call { args, .. } => {
             for arg in args {
                 resolve_expr(arg, module, imports, aliases);
             }
@@ -477,6 +513,7 @@ fn resolve_expr(
         CoreExpr::Case { scrutinee, clauses } => {
             resolve_expr(scrutinee, module, imports, aliases);
             for clause in clauses {
+                resolve_pattern(&mut clause.pattern, module, imports, aliases);
                 if let Some(guard) = &mut clause.guard {
                     resolve_expr(guard, module, imports, aliases);
                 }
@@ -507,7 +544,12 @@ fn resolve_expr(
                 resolve_expr(&mut clause.body, module, imports, aliases);
             }
         }
-        CoreExpr::SqlQuery { parameters, .. } => {
+        CoreExpr::SqlQuery {
+            parameters,
+            result_core_type,
+            ..
+        } => {
+            resolve_type(result_core_type);
             for parameter in parameters {
                 resolve_expr(parameter, module, imports, aliases);
             }
@@ -518,5 +560,87 @@ fn resolve_expr(
         | CoreExpr::Atom(_)
         | CoreExpr::Var(_)
         | CoreExpr::RemoteFunRef { .. } => {}
+    }
+}
+
+fn transparent_alias_constructor_tag(
+    identity: &str,
+    arity: usize,
+    module: &str,
+    imports: &[String],
+    aliases: &HashMap<String, Alias>,
+) -> Option<String> {
+    let (_, alias) = find_alias(identity, module, imports, aliases)?;
+    let CoreType::Tuple(elements) = &alias.body else {
+        return None;
+    };
+    if elements.len() != arity.saturating_add(1) {
+        return None;
+    }
+    match elements.first()? {
+        CoreTupleTypeElem::Type(CoreType::AtomLiteral(tag))
+        | CoreTupleTypeElem::Field {
+            ty: CoreType::AtomLiteral(tag),
+            ..
+        } => Some(tag.clone()),
+        _ => None,
+    }
+}
+
+fn resolve_pattern(
+    pattern: &mut CorePattern,
+    module: &str,
+    imports: &[String],
+    aliases: &HashMap<String, Alias>,
+) {
+    match pattern {
+        CorePattern::Constructor {
+            name,
+            constructor_identity,
+            args,
+        } => {
+            for arg in args.iter_mut() {
+                resolve_pattern(arg, module, imports, aliases);
+            }
+            let identity = constructor_identity.as_deref().unwrap_or(name);
+            if let Some(tag) =
+                transparent_alias_constructor_tag(identity, args.len(), module, imports, aliases)
+            {
+                let mut items = Vec::with_capacity(args.len().saturating_add(1));
+                items.push(CorePattern::Atom(tag));
+                items.append(args);
+                *pattern = CorePattern::Tuple(items);
+            }
+        }
+        CorePattern::Tuple(items) | CorePattern::List(items) => {
+            for item in items {
+                resolve_pattern(item, module, imports, aliases);
+            }
+        }
+        CorePattern::Alias { pattern, .. } => {
+            resolve_pattern(pattern, module, imports, aliases);
+        }
+        CorePattern::ListCons { head, tail } => {
+            resolve_pattern(head, module, imports, aliases);
+            resolve_pattern(tail, module, imports, aliases);
+        }
+        CorePattern::Map(fields) => {
+            for field in fields {
+                resolve_pattern(&mut field.value, module, imports, aliases);
+            }
+        }
+        CorePattern::Record { fields, .. } => {
+            for field in fields {
+                resolve_pattern(&mut field.value, module, imports, aliases);
+            }
+        }
+        CorePattern::Wildcard
+        | CorePattern::Var(_)
+        | CorePattern::Int(_)
+        | CorePattern::Float(_)
+        | CorePattern::String(_)
+        | CorePattern::StringPattern(_)
+        | CorePattern::Atom(_)
+        | CorePattern::BinaryLayout { .. } => {}
     }
 }

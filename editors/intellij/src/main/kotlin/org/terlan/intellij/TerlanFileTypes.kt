@@ -44,6 +44,7 @@ object TerlanFileTypes {
      */
     val suffixes: List<String> = listOf(
         ".terl",
+        ".terls",
         ".terli",
         ".terl.html",
         ".terl.md",
@@ -53,4 +54,7 @@ object TerlanFileTypes {
         ".terl.yml",
         ".terl.txt",
     )
+
+    /** Returns whether an IDE file name belongs to the Terlan suffix family. */
+    fun isSupported(fileName: String): Boolean = suffixes.any(fileName::endsWith)
 }

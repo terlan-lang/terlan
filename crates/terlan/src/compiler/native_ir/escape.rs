@@ -27,7 +27,9 @@ pub(super) fn retained_managed_bindings(bindings: &[CoreLetBinding], body: &Core
 fn is_allocation_only_value(expr: &CoreExpr) -> bool {
     match expr {
         CoreExpr::Int(_) | CoreExpr::Float(_) | CoreExpr::Atom(_) | CoreExpr::Var(_) => true,
-        CoreExpr::ConstructorCall { args, .. } => args.iter().all(is_allocation_only_value),
+        CoreExpr::ConstructorCall { args, .. } | CoreExpr::Tuple(args) => {
+            args.iter().all(is_allocation_only_value)
+        }
         CoreExpr::UnaryOp { operand, .. } => is_allocation_only_value(operand),
         CoreExpr::BinaryOp { left, right, .. } => {
             is_allocation_only_value(left) && is_allocation_only_value(right)
@@ -51,5 +53,10 @@ fn is_allocation_only_value(expr: &CoreExpr) -> bool {
 
 /// Reports whether a dead expression is exactly an effect-free constructor graph.
 fn is_allocation_only_constructor(expr: &CoreExpr) -> bool {
-    matches!(expr, CoreExpr::ConstructorCall { args, .. } if args.iter().all(is_allocation_only_value))
+    match expr {
+        CoreExpr::ConstructorCall { args, .. } | CoreExpr::Tuple(args) => {
+            args.iter().all(is_allocation_only_value)
+        }
+        _ => false,
+    }
 }

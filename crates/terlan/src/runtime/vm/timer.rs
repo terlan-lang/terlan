@@ -1,17 +1,18 @@
-#![allow(dead_code)]
-
 use std::collections::BTreeMap;
+#[cfg(test)]
 use std::path::Path;
 
 use serde::Serialize;
 
 use super::process::{VmProcessId, VmProcessState, VmProcessTable};
 use super::scheduler::VmScheduler;
+#[cfg(test)]
 use super::ReplValue;
 
 #[path = "timer/transfer.rs"]
 pub(crate) mod transfer;
 
+#[cfg(test)]
 const TIMER_MAILBOX_DELIVERY_REDUCTIONS: u64 = 1;
 
 /// VM-owned timer identifier.
@@ -36,6 +37,7 @@ pub(crate) enum VmTimerKind {
 
 impl VmTimerKind {
     /// Returns the stable runtime/inspection label for this timer kind.
+    #[cfg(test)]
     pub(crate) const fn as_str(self) -> &'static str {
         match self {
             Self::OneShot => "one_shot",
@@ -175,6 +177,7 @@ pub(crate) struct VmTimerCancellationDecision {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 struct VmTimerCounts {
     started: u64,
     fired: u64,
@@ -190,6 +193,7 @@ struct VmTimerCounts {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 struct VmTimerSchedulerPressure {
     max_consecutive_timer_wakeups: usize,
     fairness_interleaves: usize,
@@ -197,6 +201,7 @@ struct VmTimerSchedulerPressure {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 struct VmTimerDeadlineReport<'a> {
     schema: &'static str,
     timer_counts: VmTimerCounts,
@@ -255,6 +260,7 @@ impl VmTimerTable {
     }
 
     /// Starts an interval timer for a live process.
+    #[cfg(test)]
     pub(crate) fn start_interval(
         &mut self,
         processes: &VmProcessTable,
@@ -278,6 +284,7 @@ impl VmTimerTable {
     }
 
     /// Starts a receive-timeout timer and blocks the receiving process.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn start_receive_timeout(
         &mut self,
         processes: &mut VmProcessTable,
@@ -327,6 +334,7 @@ impl VmTimerTable {
     }
 
     /// Returns the number of ticks before an active timer reaches its deadline.
+    #[cfg(test)]
     pub(crate) fn remaining_ticks(
         &self,
         timer_id: VmTimerId,
@@ -340,6 +348,7 @@ impl VmTimerTable {
     }
 
     /// Cancels a timer only when the token still names its current owner.
+    #[cfg(test)]
     pub(crate) fn cancel_with_token(
         &mut self,
         token: VmTimerCancellationToken,
@@ -470,16 +479,19 @@ impl VmTimerTable {
     }
 
     /// Returns the number of active timer identities without allocating snapshots.
+    #[cfg(test)]
     pub(crate) fn active_count(&self) -> usize {
         self.timers.len()
     }
 
     /// Returns cumulative timer accounting for debugger and inspector surfaces.
+    #[cfg(test)]
     pub(crate) fn metrics(&self) -> &VmTimerMetrics {
         &self.metrics
     }
 
     /// Persists deterministic timer/deadline evidence for release validation.
+    #[cfg(test)]
     pub(crate) fn write_deadline_report(
         &self,
         path: &Path,
@@ -521,6 +533,7 @@ impl VmTimerTable {
     }
 
     /// Delivers one typed timer outcome to its live owner's mailbox.
+    #[cfg(test)]
     pub(crate) fn deliver_event_to_mailbox(
         &mut self,
         processes: &mut VmProcessTable,
@@ -689,10 +702,12 @@ impl VmTimerTable {
     }
 }
 
+#[cfg(test)]
 fn timer_event_owner(event: &VmTimerEvent) -> VmProcessId {
     event.owner()
 }
 
+#[cfg(test)]
 fn timer_event_mailbox_value(event: &VmTimerEvent) -> ReplValue {
     let (timer_id, kind, outcome, detail) = match *event {
         VmTimerEvent::Fired { timer_id, kind, .. } => (timer_id, kind, "fired", ReplValue::Unit),
@@ -768,20 +783,25 @@ fn require_live_process(processes: &VmProcessTable, pid: VmProcessId) -> Result<
 
 #[cfg(test)]
 #[path = "timer_test.rs"]
+#[cfg(test)]
 mod timer_test;
 
 #[cfg(test)]
 #[path = "timer_accounting_test.rs"]
+#[cfg(test)]
 mod timer_accounting_test;
 
 #[cfg(test)]
 #[path = "timer_load_parity_test.rs"]
+#[cfg(test)]
 mod timer_load_parity_test;
 
 #[cfg(test)]
 #[path = "long_timer_parity_test.rs"]
+#[cfg(test)]
 mod long_timer_parity_test;
 
 #[cfg(test)]
 #[path = "timer_transfer_test.rs"]
+#[cfg(test)]
 mod timer_transfer_test;

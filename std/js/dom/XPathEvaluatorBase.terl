@@ -38,6 +38,6 @@ pub (value: XPathEvaluatorBase) evaluate(
     context_node: Node,
     resolver: Option[XPathNSResolver],
     type_: std.js.Number.JsNumber,
-    result: Option[XPathResult]
+    result: Option[XPathResult],
 ): XPathResult ->
     native.

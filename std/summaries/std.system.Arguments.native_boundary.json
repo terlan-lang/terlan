@@ -1,0 +1,13 @@
+{
+  "functions": [
+    {
+      "arity": 0,
+      "name": "count",
+      "operation": "std.system.arguments.count"
+    }
+  ],
+  "module": "std_system_arguments_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.system.Arguments"
+}

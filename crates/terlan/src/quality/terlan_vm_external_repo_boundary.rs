@@ -35,7 +35,6 @@ const ALLOWED_REFERENCE_PATHS: &[&str] = &[
     "Makefile",
     "crates/terlan/src/quality/terlan_vm_external_repo_boundary.rs",
     "crates/terlan/src/quality/terlan_vm_external_repo_boundary_test.rs",
-    "tools/check_terlan_vm_erl_suite_audit.py",
     BOUNDARY_DOC,
 ];
 
@@ -133,7 +132,7 @@ fn validate_same_crate_release_train(root: &Path) -> QualityResult<Vec<String>> 
     let cargo = read_repo_text(root, "crates/terlan/Cargo.toml")?;
     let cli_mk = read_repo_text(root, "crates/terlan/cli.mk")?;
     let makefile = read_repo_text(root, "Makefile")?;
-    let vm_main = read_repo_text(root, "crates/terlan/src/vm/main.rs")?;
+    let vm_cli = read_repo_text(root, "crates/terlan/src/vm/cli.rs")?;
     let mut diagnostics = Vec::new();
 
     if !cargo.contains("version.workspace = true") {
@@ -145,18 +144,23 @@ fn validate_same_crate_release_train(root: &Path) -> QualityResult<Vec<String>> 
     if !cargo.contains("name = \"terlan-vm\"") || !cargo.contains("path = \"src/vm/main.rs\"") {
         diagnostics.push("compiler crate must own the `terlan-vm` binary".to_string());
     }
-    if !vm_main.contains("env!(\"CARGO_PKG_VERSION\")") {
+    if !vm_cli.contains("env!(\"CARGO_PKG_VERSION\")") {
         diagnostics.push("terlan-vm version must come from the shared Cargo package".to_string());
     }
 
-    let cli_build = make_target_body(&cli_mk, "cli-build");
-    if !cli_build.contains("--bin terlc --bin terlan-vm") {
-        diagnostics.push("cli-build must build `terlc` and `terlan-vm` together".to_string());
+    let compiler_bootstrap = make_target_body(&makefile, "terlan-compiler-bootstrap");
+    if !compiler_bootstrap.contains("--bin terlc --bin terlan-vm") {
+        diagnostics
+            .push("compiler bootstrap must build `terlc` and `terlan-vm` together".to_string());
     }
 
     let cli_test_full = make_target_body(&cli_mk, "cli-test-full");
-    if !cli_test_full.contains("--bin terlc --bin terlan-vm") {
-        diagnostics.push("cli-test-full must build `terlc` and `terlan-vm` together".to_string());
+    if !cli_test_full.contains("--workspace")
+        && !cli_test_full.contains("--bin terlc --bin terlan-vm")
+    {
+        diagnostics.push(
+            "cli-test-full must test the workspace or both `terlc` and `terlan-vm`".to_string(),
+        );
     }
 
     let release_artifact = make_target_body(&cli_mk, "cli-release-artifact-current");
@@ -300,9 +304,8 @@ fn should_skip_entry(name: &str) -> bool {
 
 /// Returns whether the file extension is treated as text for this gate.
 fn is_scanned_text_file(path: &Path) -> bool {
-    match path.file_name().and_then(|name| name.to_str()) {
-        Some("Makefile" | "Cargo.toml") => return true,
-        _ => {}
+    if let Some("Makefile" | "Cargo.toml") = path.file_name().and_then(|name| name.to_str()) {
+        return true;
     }
     matches!(
         path.extension().and_then(|extension| extension.to_str()),
@@ -345,4 +348,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "terlan_vm_external_repo_boundary_test.rs"]
+#[cfg(test)]
 mod terlan_vm_external_repo_boundary_test;

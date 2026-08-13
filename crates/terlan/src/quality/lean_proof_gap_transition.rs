@@ -180,4 +180,5 @@ fn is_sha256(value: &str) -> bool {
 
 #[cfg(test)]
 #[path = "lean_proof_gap_transition_test.rs"]
+#[cfg(test)]
 mod lean_proof_gap_transition_test;

@@ -1,8 +1,8 @@
 module=std.net.Uri
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=18332216862999516071
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=9025989894363066184
 interface_hash=7359896522744288170
 interface_doc_hash=7578515119596726429
 deps=0

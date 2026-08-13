@@ -1,0 +1,37 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.encoding.Md5.digest/1",
+      "name": "digest",
+      "operation": "std.encoding.md5.digest",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:a894d2271d99e31c3a692f5acf6c278e3a1b772ecc92b60a5edfd417ca869dbe"
+    }
+  ],
+  "manifest_digest": "sha256:ee6d00939caf096cc083a164c1ac4b1e3fc3f23bfa76a2f02d7ac644c6d1cc56",
+  "module": "std_encoding_md5_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "encoding",
+    "error_policy": "typed-result",
+    "module_prefix": "std.encoding.Md5",
+    "notes": "MD5 digest operations are bounded compatibility transformations and must not be treated as secure hashing.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:7dda0c121fab95fffe3ca9e58a37c91e97046f58bc0d907861edef968552baab",
+  "source_module": "std.encoding.Md5",
+  "source_path": "std/summaries/std.encoding.Md5.native_boundary.json"
+}

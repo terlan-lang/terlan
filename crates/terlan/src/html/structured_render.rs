@@ -3,6 +3,7 @@ use std::path::Path;
 
 use serde::Serialize;
 use serde_json::Value;
+use terlan_runtime_abi::{BoundaryError, ErrorDomain};
 
 use super::{
     artifact_template_target_from_path, scan_template_interpolations,
@@ -93,6 +94,13 @@ enum StructuredSegment {
 pub fn structured_template_telemetry(
     source: &str,
     path: &Path,
+) -> Result<StructuredTemplateTelemetry, BoundaryError> {
+    structured_template_telemetry_untyped(source, path).map_err(template_error)
+}
+
+fn structured_template_telemetry_untyped(
+    source: &str,
+    path: &Path,
 ) -> Result<StructuredTemplateTelemetry, String> {
     structured_template_telemetry_inner(source, path, None)
 }
@@ -101,6 +109,14 @@ pub fn structured_template_telemetry(
 /// This keeps cached/code-generated metadata from silently drifting from a
 /// template's explicit `.terl.*` suffix.
 pub fn structured_template_telemetry_for_target(
+    source: &str,
+    path: &Path,
+    expected: ArtifactTemplateTarget,
+) -> Result<StructuredTemplateTelemetry, BoundaryError> {
+    structured_template_telemetry_for_target_untyped(source, path, expected).map_err(template_error)
+}
+
+fn structured_template_telemetry_for_target_untyped(
     source: &str,
     path: &Path,
     expected: ArtifactTemplateTarget,
@@ -146,9 +162,17 @@ pub fn render_structured_template(
     source: &str,
     path: &Path,
     values: &BTreeMap<String, Value>,
+) -> Result<StructuredTemplateRender, BoundaryError> {
+    render_structured_template_untyped(source, path, values).map_err(template_error)
+}
+
+fn render_structured_template_untyped(
+    source: &str,
+    path: &Path,
+    values: &BTreeMap<String, Value>,
 ) -> Result<StructuredTemplateRender, String> {
     let (_target, segments) = structured_segments(source, path, None)?;
-    let telemetry = structured_template_telemetry(source, path)?;
+    let telemetry = structured_template_telemetry_untyped(source, path)?;
     let mut output = String::new();
     for segment in segments {
         match segment {
@@ -185,6 +209,15 @@ pub fn emit_structured_template_browser_renderer(
     source: &str,
     path: &Path,
     export_name: &str,
+) -> Result<String, BoundaryError> {
+    emit_structured_template_browser_renderer_untyped(source, path, export_name)
+        .map_err(template_error)
+}
+
+fn emit_structured_template_browser_renderer_untyped(
+    source: &str,
+    path: &Path,
+    export_name: &str,
 ) -> Result<String, String> {
     if export_name.is_empty()
         || !export_name.chars().enumerate().all(|(index, ch)| {
@@ -196,7 +229,7 @@ pub fn emit_structured_template_browser_renderer(
         ));
     }
     let (_, segments) = structured_segments(source, path, None)?;
-    let telemetry = structured_template_telemetry(source, path)?;
+    let telemetry = structured_template_telemetry_untyped(source, path)?;
     let descriptor = serde_json::to_string(&segments)
         .map_err(|error| format!("failed to encode structured template descriptor: {error}"))?;
     let telemetry = serde_json::to_string(&telemetry)
@@ -240,6 +273,14 @@ export function {export_name}(props) {{
 }}
 "#
     ))
+}
+
+fn template_error(error: String) -> BoundaryError {
+    BoundaryError::message(
+        ErrorDomain::TemplateRendering,
+        "render structured template",
+        error,
+    )
 }
 
 fn structured_segments(
@@ -441,4 +482,5 @@ fn source_location(source: &str, offset: usize) -> (usize, usize) {
 
 #[cfg(test)]
 #[path = "structured_render_test.rs"]
+#[cfg(test)]
 mod structured_render_test;

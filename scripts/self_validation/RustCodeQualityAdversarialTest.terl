@@ -1,0 +1,146 @@
+/**
+ * Proves command-line Rust feedback gates reject representative defects.
+ */
+module scripts.self_validation.RustCodeQualityAdversarial.
+
+import std.core.Result.{Ok}.
+import std.core.{String, Unit}.
+import std.io.Directory.{create_all, create_temporary, remove_all}.
+import std.io.File.{append_text, write_text}.
+import std.system.Process.
+
+pub fixtures_hold(): Bool ->
+    case create_temporary("terlan-rust-quality") {
+        Ok(root) ->
+            let formatting = formatting_fixture(root);
+            let locked = locked_check_fixture(root);
+            let clippy = clippy_fixture(root);
+            let cleaned = remove_succeeds(root);
+            formatting and locked and clippy and cleaned;
+        _ -> false
+    }.
+
+formatting_fixture(root: String): Bool ->
+    let source = child(root, "format.rs");
+    case write_text(source, "fn main(){println!(\"unformatted\");}\n") {
+        Ok(Unit) ->
+            command_rejects(
+                Process.with_working_directory(
+                    Process.with_arguments(Process.command("rustfmt"), ["--check", source]),
+                    root,
+                ),
+                "diff in",
+            );
+        _ -> false
+    }.
+
+locked_check_fixture(root: String): Bool ->
+    let crate = child(root, "locked");
+    let target = child(root, "locked-target");
+    if {
+        not write_binary_crate(crate, "fn main() {}\n") -> false;
+        true -> case Process.run(
+    Process.with_working_directory(
+        Process.with_arguments(Process.command("cargo"), ["generate-lockfile", "--offline"]),
+        crate,
+    ),
+) {
+            Ok(generated) ->
+                if {
+                    Process.status(generated) != 0 -> false;
+                    true -> locked_dependency_fixture(crate, target)
+                };
+            _ -> false
+        }
+    }.
+
+locked_dependency_fixture(crate: String, target: String): Bool ->
+    let dependency = child(crate, "fixture-dependency");
+    let source = child(dependency, "src");
+    case create_all(source) {
+        Ok(Unit) ->
+            let manifest =
+                write_text(
+                    child(dependency, "Cargo.toml"),
+                    "[package]\nname = \"fixture-dependency\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+                );
+            let library = write_text(child(source, "lib.rs"), "pub fn value() -> u8 { 1 }\n");
+            let dependency_row =
+                append_text(
+                    child(crate, "Cargo.toml"),
+                    "\n[dependencies]\nfixture-dependency = { path = \"fixture-dependency\" }\n",
+                );
+            case {manifest, library, dependency_row} {
+                {Ok(Unit), Ok(Unit), Ok(Unit)} ->
+                    let request =
+                        Process.with_environment(
+                            Process.with_working_directory(
+                                Process.with_arguments(
+                                    Process.command("cargo"),
+                                    ["check", "--locked", "--offline"],
+                                ),
+                                crate,
+                            ),
+                            [Process.environment_entry("CARGO_TARGET_DIR", target)],
+                        );
+                    command_rejects(request, "lock file");
+                _ -> false
+            };
+        _ -> false
+    }.
+
+clippy_fixture(root: String): Bool ->
+    let crate = child(root, "clippy");
+    let target = child(root, "clippy-target");
+    if {
+        not write_binary_crate(crate, "fn main() { let _same = 1 == 1; }\n") -> false;
+        true -> let request =
+            Process.with_environment(
+                Process.with_working_directory(
+                    Process.with_arguments(
+                        Process.command("cargo"),
+                        ["clippy", "--offline", "--", "-D", "warnings"],
+                    ),
+                    crate,
+                ),
+                [Process.environment_entry("CARGO_TARGET_DIR", target)],
+            );
+        command_rejects(request, "equal expressions")
+    }.
+
+write_binary_crate(root: String, body: String): Bool ->
+    let source = child(root, "src");
+    let {
+        Ok(Unit) <- create_all(source);
+        Ok(Unit) <-
+            write_text(
+                child(root, "Cargo.toml"),
+                "[package]\nname = \"cq-fixture\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+            );
+        Ok(Unit) <- write_text(child(source, "main.rs"), body)
+    } else {
+        _ -> false
+    };
+    true.
+
+command_rejects(request: std.system.Process.Command, expected: String): Bool ->
+    case Process.run(request) {
+        Ok(output) ->
+            let combined = String.lowercase(String.append(Process.stdout(output), Process.stderr(output)));
+            Process.status(output) != 0 and String.contains(combined, expected);
+        _ -> false
+    }.
+
+remove_succeeds(path: String): Bool ->
+    case remove_all(path) {
+        Ok(Unit) -> true;
+        _ -> false
+    }.
+
+@pure
+child(root: String, name: String): String ->
+    String.append(root, String.append("/", name)).
+
+@test
+pub rust_command_line_gates_reject_adversarial_fixtures(): Bool ->
+    fixtures_hold().

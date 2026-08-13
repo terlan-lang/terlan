@@ -147,4 +147,5 @@ fn postgres_history_error(error: String) -> String {
 
 #[cfg(test)]
 #[path = "history_test.rs"]
+#[cfg(test)]
 mod history_test;

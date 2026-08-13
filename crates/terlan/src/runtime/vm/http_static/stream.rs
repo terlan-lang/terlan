@@ -26,6 +26,7 @@ pub(crate) struct VmHttpStreamInfo {
 
 /// One scheduler-visible attempt to move a response chunk onto VM TCP.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmHttpStreamTcpFlush {
     Idle,
     Parked,
@@ -53,6 +54,7 @@ pub(crate) struct VmHttpResponseStream {
     emitted_bytes: usize,
 }
 
+#[cfg(test)]
 impl VmHttpResponseStream {
     /// Creates an empty open response stream under a validated plan.
     pub(super) fn new(plan: VmHttpStreamPlan) -> Self {

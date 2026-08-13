@@ -18,6 +18,7 @@ impl VmProcess {
     }
 
     /// Parks a live process until its next VM-owned wake event.
+    #[cfg(test)]
     pub(crate) fn hibernate(&mut self) -> Result<(), String> {
         self.state = match self.state {
             VmProcessState::Runnable | VmProcessState::Blocked | VmProcessState::Hibernated => {

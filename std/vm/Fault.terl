@@ -98,7 +98,7 @@ pub opaque type Rollback.
 pub policy(
     suspicion_threshold_ticks: Int,
     isolation_threshold_ticks: Int,
-    recovery_window_ticks: Int
+    recovery_window_ticks: Int,
 ): Policy ->
     native.
 
@@ -304,7 +304,7 @@ pub classify_heartbeat(
     node_id: String,
     tick: Int,
     heartbeat_gap_ticks: Int,
-    reason: String
+    reason: String,
 ): Transition ->
     native.
 
@@ -322,7 +322,7 @@ pub isolate_partition(
     node_id: String,
     tick: Int,
     heartbeat_gap_ticks: Int,
-    reason: String
+    reason: String,
 ): Transition ->
     native.
 
@@ -378,7 +378,7 @@ pub migration_timeout(
     to_node_id: String,
     phase: String,
     tick: Int,
-    reason: String
+    reason: String,
 ): Rollback ->
     native.
 
@@ -399,7 +399,7 @@ pub migration_partial_commit(
     to_node_id: String,
     phase: String,
     tick: Int,
-    reason: String
+    reason: String,
 ): Rollback ->
     native.
 
@@ -425,6 +425,6 @@ pub stale_placement_update(
     incoming_sequence: Int,
     current_sequence: Int,
     tick: Int,
-    reason: String
+    reason: String,
 ): Failure ->
     native.

@@ -139,7 +139,7 @@ fn vm_http_stateful_actor_session_writes_report_for_complete_gate() {
 
     assert_eq!(summary.affinity_fixture_count, 18);
     assert_eq!(summary.lifecycle_trace_count, 8);
-    assert_eq!(summary.exact_selector_count, 24);
+    assert_eq!(summary.exact_selector_count, 0);
     assert_eq!(summary.rejected_session_path_count, 0);
     let report = fs::read_to_string(summary.report_path).expect("read report");
     assert!(report.contains("terlan-vm-http-stateful-actor-session-report-v1"));
@@ -212,21 +212,19 @@ fn vm_http_stateful_actor_session_rejects_missing_test_anchor() {
 }
 
 #[test]
-fn vm_http_stateful_actor_session_rejects_missing_exact_selector() {
-    let repo = TestRepo::new("missing-selector").expect("fixture");
+fn vm_http_stateful_actor_session_rejects_missing_quality_invocation() {
+    let repo = TestRepo::new("missing-invocation").expect("fixture");
     repo.write_complete_fixture().expect("write fixture");
     repo.write(
         "Makefile",
-        &COMPLETE_MAKEFILE.replace(
-            "runtime::vm::http_session::http_session_test::http_session_recovery_policy_can_fail_closed_for_stale_cookie",
-            "runtime::vm::http_session::http_session_test::stale_cookie_is_not_checked",
-        ),
+        &COMPLETE_MAKEFILE.replace("vm-http-stateful-actor-session", "renamed-session-gate"),
     )
     .expect("rewrite makefile");
 
-    let error = run_vm_http_stateful_actor_session(repo.root()).expect_err("selector should fail");
+    let error =
+        run_vm_http_stateful_actor_session(repo.root()).expect_err("invocation should fail");
 
-    assert!(error.contains("http_session_recovery_policy_can_fail_closed_for_stale_cookie"));
+    assert!(error.contains("vm-http-stateful-actor-session"));
 }
 
 #[test]

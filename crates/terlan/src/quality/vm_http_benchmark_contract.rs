@@ -99,6 +99,7 @@ struct AdversarialContract {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm http benchmark comparability summary.
 pub struct VmHttpBenchmarkComparabilitySummary {
     pub profile_fingerprint: String,
     pub concurrency_count: usize,
@@ -107,6 +108,7 @@ pub struct VmHttpBenchmarkComparabilitySummary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm http runtime attribution contract summary.
 pub struct VmHttpRuntimeAttributionContractSummary {
     pub bucket_count: usize,
     pub invariant_count: usize,
@@ -363,7 +365,7 @@ fn validate_make_ownership(root: &Path) -> QualityResult<Vec<String>> {
         "vm-http-benchmark-comparability-check: $(VM_HTTP_BENCHMARK_COMPARABILITY_DEPS)",
         "vm-http-runtime-attribution-check: vm-http-benchmark-comparability-check",
         "vm-http-runtime-attribution-check \\",
-        "vm-http-vs-axum-check:\n",
+        "vm-http-vs-axum-check: tvm-http-paired-performance-check\n",
         "release-0-0-7-preflight: vm-http-runtime-attribution-check",
     ];
     Ok(required
@@ -396,4 +398,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_http_benchmark_contract_test.rs"]
+#[cfg(test)]
 mod vm_http_benchmark_contract_test;

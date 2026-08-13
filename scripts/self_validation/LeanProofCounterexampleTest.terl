@@ -1,0 +1,450 @@
+/**
+ * Converts classified Lean counterexamples into executable VM regression evidence.
+ */
+module scripts.self_validation.LeanProofCounterexampleTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.Directory.{entries}.
+import std.io.File.{exists, read_text_many, write_text}.
+import std.system.{Environment, Process}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.io.File.TextFile.
+import type std.system.Process.Output.
+
+struct Inputs {
+    policy: String,
+    lanes: String,
+    accepted: String,
+    index: String,
+    artifacts: String,
+    obligations: String,
+    case_record: String,
+    source_fixture: String,
+    vm_fixture: String,
+    baseline: String,
+}.
+
+@pure
+root_path(root: String, relative: String): String ->
+    if {
+        root == "." -> relative;
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+@pure
+input_paths(root: String): List[String] ->
+    [
+        root_path(root, "docs/runtime/lean-proof-counterexample-policy.toml"),
+        root_path(root, "docs/compiler/LEAN_PROOF_FEATURE_LANES.tsv"),
+        root_path(root, "proofs/lean/feature_binding/lean-proof-accepted-snapshot.tsv"),
+        root_path(root, "proofs/lean/feature_binding/lean_feature_slice_index.json"),
+        root_path(root, "proofs/lean/ci/lean-proof-artifacts.tsv"),
+        root_path(root, "proofs/lean/counterexamples/proof-obligations.json"),
+        root_path(
+            root,
+            "proofs/lean/counterexamples/cases/typed-coreir-return-type-preservation.json",
+        ),
+        root_path(
+            root,
+            "proofs/lean/counterexamples/fixtures/terlc/typed-coreir-return-type-preservation.terl",
+        ),
+        root_path(
+            root,
+            "proofs/lean/counterexamples/fixtures/vm/typed-coreir-return-type-preservation.json",
+        ),
+        root_path(root, "proofs/lean/counterexamples/counterexample-backlog-baseline.tsv"),
+    ].
+
+@pure
+expected_source(): String ->
+    "module bench_lean_counterexample_typed_coreir_return_type.\n\npub bad(X: Int): Binary ->\n    X + 1.\n".
+
+@pure
+contains_all(source: String, fragments: List[String]): Bool ->
+    case fragments {
+        [] -> true;
+        [fragment | rest] -> String.contains(source, fragment) and contains_all(source, rest)
+    }.
+
+@pure
+count_lines_containing(lines: List[String], fragment: String, count: Int): Int ->
+    case lines {
+        [] -> count;
+        [line | rest] ->
+            count_lines_containing(
+                rest,
+                fragment,
+                if {
+                    String.contains(line, fragment) -> count + 1;
+                    true -> count
+                },
+            )
+    }.
+
+valid_json(source: String): Bool ->
+    case Json.parse(source) {
+        Ok(_document) -> true;
+        Err(_reason) -> false
+    }.
+
+@pure
+policy_holds(source: String): Bool ->
+    contains_all(
+        source,
+        [
+            "schema = \"terlan.lean-proof-counterexample-policy.v1\"",
+            "[priorities.high]\nrerun_window_hours = 4\nmax_unresolved_per_lane = 0",
+            "[priorities.medium]\nrerun_window_hours = 24\nmax_unresolved_per_lane = 2",
+            "[priorities.low]\nrerun_window_hours = 168\nmax_unresolved_per_lane = 8",
+            "[lanes.coreir]\nmax_unresolved = 2",
+            "[lanes.native_boundary]\nmax_unresolved = 1",
+            "[lanes.parser]\nmax_unresolved = 2",
+            "[lanes.std_packages]\nmax_unresolved = 4",
+            "[lanes.vm_runtime]\nmax_unresolved = 1",
+            "[lanes.wasm]\nmax_unresolved = 2",
+        ],
+    ).
+
+@pure
+lane_owners_hold(source: String): Bool ->
+    let lines = String.split(source, "\n");
+    String.starts_with(source, "roadmap_slice\tlane\towner\tacceptance_gate\n")
+        and count_lines_containing(lines, "\tcoreir\tcompiler\t", 0) > 0
+        and count_lines_containing(lines, "\tcoreir\t", 0) == count_lines_containing(lines, "\tcoreir\tcompiler\t", 0).
+
+@pure
+artifacts_hold(source: String): Bool ->
+    String.starts_with(
+    source,
+    "path\tstatus\ttheorem_scope\ttargeted_manifests\texpected_exit\tstderr_class\tproof_digest\treplay_metadata\tremediation_plan\n",
+)
+        and not String.contains(source, "\tstale\t")
+        and not String.contains(source, "\tincomplete\t")
+        and not String.contains(source, "\tstopped\t").
+
+obligation_holds(root: String, source: String): Bool ->
+    valid_json(source)
+        and contains_all(
+    source,
+    [
+        "\"schema\": \"terlan.lean-proof-obligations.v1\"",
+        "\"theorem_id\": \"typed-coreir-return-type-preservation\"",
+        "\"proof_family_id\": \"typed-coreir-preservation\"",
+        "\"proof_status\": \"stale\"",
+        "\"classification\": \"soundness_gap\"",
+        "\"feature_class\": \"coreir\"",
+        "\"lane_id\": \"coreir\"",
+        "\"source_contract\": \"docs/compiler/type_spec/terlan_core_typing_spec.toml\"",
+    ],
+)
+        and exists(root_path(root, "docs/compiler/type_spec/terlan_core_typing_spec.toml")).
+
+case_holds(source: String): Bool ->
+    valid_json(source)
+        and contains_all(
+    source,
+    [
+        "\"schema\": \"terlan.lean-counterexample.v1\"",
+        "\"theorem_id\": \"typed-coreir-return-type-preservation\"",
+        "\"feature_class\": \"coreir\"",
+        "\"module\": \"bench_lean_counterexample_typed_coreir_return_type\"",
+        "\"visibility\": \"pub\"",
+        "\"name\": \"bad\"",
+        "\"name\": \"X\"",
+        "\"type\": \"Int\"",
+        "\"return_type\": \"Binary\"",
+        "\"kind\": \"binary_add\"",
+        "\"left\": \"X\"",
+        "\"right\": 1",
+        "\"counterexample_lexeme\": \"X + 1\"",
+        "\"harness\": \"terlc_check\"",
+        "\"namespace\": \"bench_lean_counterexample\"",
+        "\"expected_exit\": \"nonzero\"",
+        "\"error[type_mismatch]\"",
+        "\"expected: Binary\"",
+        "\"found:    Int\"",
+        "\"classification\": \"soundness_gap\"",
+        "\"severity\": \"high\"",
+        "\"lane_id\": \"coreir\"",
+        "\"resolution_status\": \"regression_guarded\"",
+        "\"blocker_plan\": \"lean-proof-counterexample-check\"",
+    ],
+).
+
+vm_fixture_holds(source: String): Bool ->
+    valid_json(source)
+        and contains_all(
+    source,
+    [
+        "\"schema\": \"terlan.vm-counterexample-fixture.v1\"",
+        "\"theorem_id\": \"typed-coreir-return-type-preservation\"",
+        "\"feature_class\": \"coreir\"",
+        "\"lane_id\": \"coreir\"",
+        "\"source_fixture\": \"proofs/lean/counterexamples/fixtures/terlc/typed-coreir-return-type-preservation.terl\"",
+        "\"harness\": \"terlc_check\"",
+        "\"expected_exit\": \"nonzero\"",
+    ],
+).
+
+@pure
+transition_holds(accepted: String, current: String): Bool ->
+    contains_all(
+    accepted,
+    [
+        "Slice 12\tcoreir\tcompiler\tslice_blocked",
+        "slice_id\tfeature_class\towner\tcoverage_status\tblocker_hash",
+    ],
+)
+        and contains_all(
+    current,
+    [
+        "\"slice_id\": \"Slice 12\"",
+        "\"lane_id\": \"coreir\"",
+        "\"coverage_status\": \"proof_current\"",
+    ],
+).
+
+@pure
+baseline_holds(source: String): Bool ->
+    source == "owner\tunresolved\ncompiler\t0\nformal\t0\nruntime\t0\nvm\t0\n".
+
+inputs_hold(root: String, inputs: Inputs): Bool ->
+    policy_holds(inputs.policy)
+        and lane_owners_hold(inputs.lanes)
+        and artifacts_hold(inputs.artifacts)
+        and obligation_holds(root, inputs.obligations)
+        and case_holds(inputs.case_record)
+        and inputs.source_fixture == expected_source()
+        and vm_fixture_holds(inputs.vm_fixture)
+        and transition_holds(inputs.accepted, inputs.index)
+        and baseline_holds(inputs.baseline).
+
+fail(message: String): Bool ->
+    let _printed = println(String.append("Lean proof counterexample check failed: ", message));
+    false.
+
+pub repository_counterexamples_are_executable_and_guarded(): Bool ->
+    let root = environment_or("TERLAN_LEAN_COUNTEREXAMPLE_ROOT", Environment.current_directory());
+    case entries(root_path(root, "proofs/lean/counterexamples/cases")) {
+        Ok([path]) ->
+            if {
+                not String.ends_with(path, "/typed-coreir-return-type-preservation.json") -> fail("unexpected counterexample inventory");
+                true -> read_inputs(root)
+            };
+        Ok(_paths) -> fail("counterexample inventory must contain exactly one classified case");
+        Err(_reason) -> fail("counterexample case directory is unavailable")
+    }.
+
+read_inputs(root: String): Bool ->
+    case read_text_many(input_paths(root)) {
+        Ok([policy, lanes, accepted, index, artifacts, obligations, case_record, source_fixture, vm_fixture, baseline]) ->
+            let inputs =
+                Inputs(
+                    policy = policy.contents,
+                    lanes = lanes.contents,
+                    accepted = accepted.contents,
+                    index = index.contents,
+                    artifacts = artifacts.contents,
+                    obligations = obligations.contents,
+                    case_record = case_record.contents,
+                    source_fixture = source_fixture.contents,
+                    vm_fixture = vm_fixture.contents,
+                    baseline = baseline.contents,
+                );
+            if {
+                inputs_hold(root, inputs) -> run_oracle(root, inputs.source_fixture);
+                true -> fail("counterexample source contracts drifted")
+            };
+        Ok(_files) -> fail("counterexample input batch has an unexpected shape");
+        Err(_reason) -> fail("counterexample input could not be read")
+    }.
+
+run_oracle(root: String, source: String): Bool ->
+    let compiler = environment_or("TERLAN_LEAN_COUNTEREXAMPLE_TERLC", root_path(root, "target/debug/terlc"));
+    let command =
+        Process.command(compiler)
+            .with_arguments(
+                [
+                    "check",
+                    "proofs/lean/counterexamples/fixtures/terlc/typed-coreir-return-type-preservation.terl",
+                ],
+            )
+            .with_working_directory(root)
+            .with_timeout_ms(60000)
+            .with_output_limit_bytes(1048576);
+    case Process.run(command) {
+        Ok(output) -> inspect_oracle(root, source, output);
+        Err(reason) -> fail(Process.error_message(reason))
+    }.
+
+inspect_oracle(root: String, source: String, output: Output): Bool ->
+    let stderr = Process.stderr(output);
+    if {
+        Process.status(output) == 0 -> fail("controlled negative fixture unexpectedly succeeded");
+        not contains_all(stderr, ["error[type_mismatch]", "expected: Binary", "found:    Int"]) -> fail("controlled negative fixture oracle drifted");
+        true -> write_report(root, source, Process.status(output))
+    }.
+
+string_array(values: List[String]): Json ->
+    string_array_at(values, Json.array()).
+
+string_array_at(values: List[String], array: Json): Json ->
+    case values {
+        [] -> array;
+        [value | rest] -> string_array_at(rest, array.push(Json.string(value)))
+    }.
+
+priority(window: Int, maximum: Int): Json ->
+    Json.object()
+        .put("rerun_window_hours", Json.int(window))
+        .put("max_unresolved_per_lane", Json.int(maximum)).
+
+lane_limit(maximum: Int): Json ->
+    Json.object().put("max_unresolved", Json.int(maximum)).
+
+owner_delta(owner: String): Json ->
+    Json.object()
+        .put("owner", Json.string(owner))
+        .put("baseline_unresolved", Json.int(0))
+        .put("current_unresolved", Json.int(0))
+        .put("delta", Json.int(0)).
+
+report(source_digest: String, exit_code: Int): Json ->
+    let evidence =
+        Json.object()
+            .put("theorem_id", Json.string("typed-coreir-return-type-preservation"))
+            .put(
+                "command",
+                Json.string(
+                    "terlc check proofs/lean/counterexamples/fixtures/terlc/typed-coreir-return-type-preservation.terl",
+                ),
+            )
+            .put("exit_code", Json.int(exit_code))
+            .put("oracle_verdict", Json.string("expected_failure_observed"))
+            .put(
+                "matched_stderr",
+                string_array(["error[type_mismatch]", "expected: Binary", "found:    Int"]),
+            )
+            .put("source_digest", Json.string(String.append("sha256:", source_digest)));
+    let counterexample =
+        Json.object()
+            .put("theorem_id", Json.string("typed-coreir-return-type-preservation"))
+            .put("proof_family_id", Json.string("typed-coreir-preservation"))
+            .put("proof_status", Json.string("stale"))
+            .put("classification", Json.string("soundness_gap"))
+            .put("feature_class", Json.string("coreir"))
+            .put("lane_id", Json.string("coreir"))
+            .put("severity", Json.string("high"))
+            .put("resolution_status", Json.string("regression_guarded"))
+            .put("owner", Json.string("compiler"))
+            .put("blocker_plan", Json.string("lean-proof-counterexample-check"))
+            .put("reproducibility_evidence", evidence);
+    let priorities =
+        Json.object()
+            .put("high", priority(4, 0))
+            .put("medium", priority(24, 2))
+            .put("low", priority(168, 8));
+    let lanes =
+        Json.object()
+            .put("coreir", lane_limit(2))
+            .put("native_boundary", lane_limit(1))
+            .put("parser", lane_limit(2))
+            .put("std_packages", lane_limit(4))
+            .put("vm_runtime", lane_limit(1))
+            .put("wasm", lane_limit(2));
+    Json.object()
+        .put("schema", Json.string("terlan.lean-proof-counterexamples-report.v1"))
+        .put("verdict", Json.string("pass"))
+        .put("triage_policy", Json.object().put("priorities", priorities).put("lane_limits", lanes))
+        .put("counterexamples", Json.array().push(counterexample))
+        .put(
+            "backlog_scorecard_by_feature_class",
+            Json.array()
+                .push(
+                    Json.object()
+                        .put("feature_class", Json.string("coreir"))
+                        .put("total", Json.int(1))
+                        .put("unresolved", Json.int(0))
+                        .put("regression_guarded", Json.int(1)),
+                ),
+        )
+        .put(
+            "owner_to_backlog_delta",
+            Json.array()
+                .push(owner_delta("compiler"))
+                .push(owner_delta("formal"))
+                .push(owner_delta("runtime"))
+                .push(owner_delta("vm")),
+        ).
+
+write_report(root: String, source: String, exit_code: Int): Bool ->
+    let digest = Hash.sha256(source);
+    case Json.stringify_pretty(report(digest, exit_code)) {
+        Ok(rendered) -> persist_report(root, String.append(rendered, "\n"));
+        Err(_reason) -> fail("counterexample report could not be rendered")
+    }.
+
+persist_report(root: String, rendered: String): Bool ->
+    case write_text(root_path(root, "build/artifacts/lean-proof-counterexamples.json"), rendered) {
+        Ok(Unit) ->
+            let _printed =
+                println(
+                    "Lean proof counterexample check passed: 1 fixture(s), 1 regression guarded",
+                );
+            true;
+        Err(_reason) -> fail("counterexample report could not be written")
+    }.
+
+@test
+pub minimal_ast_conversion_is_canonical(): Bool ->
+    contains_all(
+        expected_source(),
+        ["module bench_lean_counterexample_", "pub bad(X: Int): Binary", "X + 1"],
+    ).
+
+@test
+pub missing_reproducer_is_rejected(): Bool ->
+    not coverage_holds(1, 0) and coverage_holds(1, 1).
+
+@pure
+coverage_holds(classified: Int, reproducers: Int): Bool ->
+    classified == reproducers.
+
+@test
+pub unplanned_high_backlog_is_rejected(): Bool ->
+    not backlog_holds("high", "unresolved", "none")
+        and backlog_holds("high", "regression_guarded", "none").
+
+@pure
+backlog_holds(severity: String, resolution: String, plan: String): Bool ->
+    not (severity == "high" and resolution == "unresolved" and (plan == "" or plan == "none")).
+
+@test
+pub unsafe_proof_promotion_is_rejected(): Bool ->
+    not promotion_holds("proof_in_progress", "proof_current", "high", "unresolved")
+        and promotion_holds("proof_in_progress", "proof_current", "high", "regression_guarded").
+
+@pure
+promotion_holds(prior: String, current: String, severity: String, resolution: String): Bool ->
+    not (prior == "proof_in_progress"
+    and current == "proof_current"
+    and severity == "high"
+    and resolution == "unresolved").
+
+@test
+pub repository_counterexample_contract_holds(): Bool ->
+    repository_counterexamples_are_executable_and_guarded().

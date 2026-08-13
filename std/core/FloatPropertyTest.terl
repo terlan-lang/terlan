@@ -64,4 +64,7 @@ pub generated_floats_abs_is_non_negative_and_symmetric(): Bool ->
  */
 @test
 pub generated_floats_are_bounded_by_floor_and_ceiling(): Bool ->
-    for_all(floats(), (value) -> floor(value) <= value and value <= ceil(value) and ceil(value) - floor(value) <= 1).
+    for_all(
+        floats(),
+        (value) -> floor(value) <= value and value <= ceil(value) and ceil(value) - floor(value) <= 1,
+    ).

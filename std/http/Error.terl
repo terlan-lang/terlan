@@ -21,7 +21,7 @@ import type std.core.Error.
  * source-visible data shape without exposing server implementation details.
  */
 pub struct HttpError includes Error {
-    status: Int
+    status: Int,
 }.
 
 /**

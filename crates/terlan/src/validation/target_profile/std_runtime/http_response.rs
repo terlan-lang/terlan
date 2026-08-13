@@ -6,7 +6,7 @@ pub(super) fn supports_operation(function: &str, arity: usize) -> bool {
             | ("json_text", 1 | 2)
             | ("text", 1 | 2)
             | ("html", 1 | 2)
-            | ("file", 1 | 2 | 3)
+            | ("file", 1..=3)
             | ("stream", 1 | 5)
             | ("redirect", 1 | 2)
     )

@@ -80,12 +80,13 @@ sample_cookie_with_options sample_delete_cookie sample_redirect
             "session_get_and_response_threading_execute",
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/http_session.rs",
+            "crates/terlan/src/runtime/vm/http_session/state/commands.rs",
             r#"
 {SESSION_COOKIE_NAME}={session_id}; Path=/; HttpOnly; SameSite=Lax
-SESSION_COOKIE_NAME expire(runtime runtime.rotate(session)
+SESSION_COOKIE_NAME runtime.expire(session) runtime.rotate(session)
 "#,
         )?;
+        self.write("crates/terlan/src/runtime/vm/http_session/state.rs", "")?;
         self.write(
             "crates/terlan/src/commands/serve/handler/response_bridge.rs",
             r#"
@@ -94,7 +95,7 @@ unsupported cookie SameSite value Set-Cookie Location
 "#,
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/http.rs",
+            "crates/terlan/src/runtime/vm/http/protocol/exchange.rs",
             r#"
 VM HTTP request exceeded 64 KiB header limit
 VM HTTP request exceeded 1 MiB body limit
@@ -104,7 +105,7 @@ httparse
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/tls.rs",
+            "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
             r#"
 RuntimeTlsConfig ProjectServerTlsMode::Manual ProjectServerTlsMode::Internal
 ProjectServerTlsMode::Auto instant_acme::LetsEncrypt::Production.url()
@@ -112,7 +113,11 @@ is_acme_http01_token
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/serve_test.rs",
+            "crates/terlan/src/commands/serve/tls/acme_runtime/certificate_validation.rs",
+            "",
+        )?;
+        self.write(
+            "crates/terlan/src/commands/serve/serve_test/dynamic_dispatch.rs",
             r#"
 VM HTTP request exceeded 1 MiB body limit
 "#,
@@ -122,14 +127,18 @@ VM HTTP request exceeded 1 MiB body limit
             "build_http_response_rejects_invalid_http_metadata\n",
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/http_test.rs",
+            "crates/terlan/src/runtime/vm/http_test/transport_fixtures.rs",
             r#"
 vm_http_rejects_oversized_request_headers
 vm_http_rejects_oversized_response_headers
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/tls_test.rs",
+            "crates/terlan/src/runtime/vm/http/response_wire_test.rs",
+            "",
+        )?;
+        self.write(
+            "crates/terlan/src/commands/serve/tls/acme_runtime/tls_test/tls_and_acme_fixtures.rs",
             r#"
 runtime_tls_config_accepts_internal_local_tls
 acme_runtime_plan_defaults_to_lets_encrypt_production
@@ -147,9 +156,8 @@ impl Drop for TestRepo {
 
 const COMPLETE_MAKEFILE: &str = r#"
 vm-web-security-policy-check: web-asset-pipeline-check
-	$(MAKE) http-tls-check
-	$(MAKE) native-boundary-http-cookie-check
-	$(RUST_TEST) --locked -p terlan --bin terlan-quality vm_web_security_policy_test
+	http-tls-check
+	native-boundary-http-cookie-check
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-web-security-policy
 "#;
 
@@ -212,10 +220,12 @@ fn vm_web_security_policy_rejects_missing_cookie_anchor() {
 fn vm_web_security_policy_rejects_missing_http_limit_anchor() {
     let repo = TestRepo::new("missing-http-limit-anchor").expect("fixture");
     repo.write_complete_fixture().expect("write fixture");
-    let path = repo.root().join("crates/terlan/src/runtime/vm/http.rs");
+    let path = repo
+        .root()
+        .join("crates/terlan/src/runtime/vm/http/protocol/exchange.rs");
     let source = fs::read_to_string(&path).expect("http source");
     repo.write(
-        "crates/terlan/src/runtime/vm/http.rs",
+        "crates/terlan/src/runtime/vm/http/protocol/exchange.rs",
         &source.replace("VM HTTP response exceeded 1 MiB body limit", ""),
     )
     .expect("rewrite http source");
@@ -231,7 +241,7 @@ fn vm_web_security_policy_rejects_missing_make_gate_term() {
     repo.write_complete_fixture().expect("write fixture");
     repo.write(
         "Makefile",
-        &COMPLETE_MAKEFILE.replace("$(MAKE) native-boundary-http-cookie-check", ""),
+        &COMPLETE_MAKEFILE.replace("native-boundary-http-cookie-check", ""),
     )
     .expect("rewrite makefile");
 

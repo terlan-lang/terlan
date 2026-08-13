@@ -1,0 +1,40 @@
+//! Portable TOML parsing contract.
+//!
+//! TOML documents lower into `std.data.Json.Json` because both formats share
+//! the object, array, string, integer, float, and boolean data model required by
+//! repository manifests. This keeps one typed accessor surface while the
+//! selected backend owns TOML syntax and parser errors.
+
+module std.data.Toml.
+
+/// Stable portable TOML parser error.
+
+pub struct TomlError {
+    offset: Int
+}.
+
+/// Returns a TOML error's stable machine-readable code.
+
+@pure
+pub error_code(error: TomlError): Atom.
+
+/// Returns a TOML error's human-readable message.
+
+@pure
+pub error_message(error: TomlError): String.
+
+/// Returns a TOML error's byte offset, or zero when unavailable.
+
+@pure
+pub error_offset(error: TomlError): Int.
+
+/// Parses one TOML document into the portable structured-data representation.
+///
+/// Input: UTF-8 TOML source text.
+/// Output: `Ok(Json)` for a valid document or `Err(TomlError)` for malformed or
+/// unsupported TOML syntax.
+/// Transformation: delegates parsing to the selected maintained TOML backend,
+/// converts recursively owned values to `Json`, and exposes no host values or
+/// parser handles.
+
+pub parse(text: String): Result[Json, TomlError].

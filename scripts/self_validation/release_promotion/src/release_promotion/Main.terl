@@ -1,0 +1,935 @@
+/**
+ * Seals and verifies prebuilt release artifacts without rebuilding them.
+ */
+module release_promotion.Main.
+
+import release_promotion.{Preflight, PublishableDocs, Readiness}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.Lt.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.{Directory, File}.
+import std.system.{Arguments, Environment}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.data.Json.RequiredFieldRow.
+
+struct DocumentResult {
+    valid: Bool,
+    document: Json,
+    message: String,
+}.
+
+struct StringResult {
+    valid: Bool,
+    value: String,
+    message: String,
+}.
+
+@pure
+child(parent: String, relative: String): String ->
+    if {
+        parent == "" or parent == "." -> relative;
+        String.ends_with(parent, "/") -> String.append(parent, relative);
+        true -> String.concat([parent, "/", relative])
+    }.
+
+@pure
+basename(path: String): String ->
+    basename_parts(String.split(path, "/"), "").
+
+@pure
+basename_parts(parts: List[String], output: String): String ->
+    case parts {
+        [] -> output;
+        [part | rest] -> basename_parts(rest, part)
+    }.
+
+repository_root(): String ->
+    case Environment.get("TERLAN_RELEASE_ROOT") {
+        Some(value) -> value;
+        None -> Environment.current_directory()
+    }.
+
+document_failure(message: String): DocumentResult ->
+    DocumentResult(valid = false, document = Json.null(), message = message).
+
+@pure
+string_failure(message: String): StringResult ->
+    StringResult(valid = false, value = "", message = message).
+
+@pure
+tag_digest(value: String): String ->
+    String.append("sha256:", Hash.sha256(value)).
+
+canonical(document: Json): StringResult ->
+    case Json.stringify_pretty(document) {
+        Err(reason) -> string_failure(Json.error_message(reason));
+        Ok(value) -> StringResult(valid = true, value = String.append(value, "\n"), message = "")
+    }.
+
+file_digest(path: String): StringResult ->
+    case Hash.sha256_file(path) {
+        Err(reason) -> string_failure(File.message(reason));
+        Ok(value) ->
+            StringResult(valid = true, value = String.append("sha256:", value), message = "")
+    }.
+
+@pure
+relative(root: String, path: String): String ->
+    let prefix =
+        if {
+            String.ends_with(root, "/") -> root;
+            true -> String.append(root, "/")
+        };
+    if {
+        String.starts_with(path, prefix) -> path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size());
+        true -> path
+    }.
+
+@pure
+archive_name(name: String): Bool ->
+    String.starts_with(name, "terlc-")
+        and (String.ends_with(name, ".tar.gz") or String.ends_with(name, ".zip")).
+
+release_archives(root: String): List[String] ->
+    let directory = child(root, "dist");
+    case Directory.files_recursive_excluding(directory, []) {
+        Err(_reason) -> List.new[String]();
+        Ok(entries) -> release_archives_at(root, entries, List.new[String]())
+    }.
+
+@pure
+release_archives_at(root: String, paths: List[String], output: List[String]): List[String] ->
+    case paths {
+        [] -> sort_unique(output);
+        [path | rest] ->
+            release_archives_at(
+                root,
+                rest,
+                (let item = relative(root, path);
+if {
+    archive_name(basename(path)) and direct_dist_path(item) -> [item | output];
+    true -> output
+}),
+            )
+    }.
+
+@pure
+direct_dist_path(path: String): Bool ->
+    if {
+        not String.starts_with(path, "dist/") -> false;
+        true -> let suffix = path.utf8_slice(5, path.byte_size() - 5);
+        not String.contains(suffix, "/")
+    }.
+
+@pure
+insert_sorted(value: String, values: List[String]): List[String] ->
+    case values {
+        [] -> [value];
+        [head | rest] ->
+            if {
+                value == head -> values;
+                String.compare(value, head) == Lt -> [value | values];
+                true -> [head | insert_sorted(value, rest)]
+            }
+    }.
+
+@pure
+sort_unique_at(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> sort_unique_at(rest, insert_sorted(value, output))
+    }.
+
+@pure
+sort_unique(values: List[String]): List[String] ->
+    sort_unique_at(values, List.new[String]()).
+
+@pure
+excluded(path: String): Bool ->
+    String.contains(path, "/.git/")
+        or String.contains(path, "/.lake/")
+        or String.contains(path, "/__pycache__/")
+        or String.contains(path, "/node_modules/")
+        or String.contains(path, "/target/").
+
+directory_files(root: String, relative_directory: String): List[String] ->
+    case Directory.files_recursive_excluding(
+    child(root, relative_directory),
+    [".git", ".lake", "__pycache__", "node_modules", "target"],
+) {
+        Err(_reason) -> List.new[String]();
+        Ok(files) -> sort_unique(relative_paths(root, files, List.new[String]()))
+    }.
+
+@pure
+relative_paths(root: String, files: List[String], output: List[String]): List[String] ->
+    case files {
+        [] -> output;
+        [path | rest] ->
+            let item = relative(root, path);
+            relative_paths(
+                root,
+                rest,
+                if {
+                    excluded(path) -> output;
+                    true -> [item | output]
+                },
+            )
+    }.
+
+file_row(root: String, path: String, include_size: Bool): DocumentResult ->
+    let digest = file_digest(child(root, path));
+    if {
+        not digest.valid -> document_failure(digest.message);
+        true -> case File.size(child(root, path)) {
+            Err(reason) -> document_failure(File.message(reason));
+            Ok(size) ->
+                let row =
+                    Json.object()
+                        .put("path", Json.string(path))
+                        .put("sha256", Json.string(digest.value));
+                DocumentResult(
+                    valid = true,
+                    document = if {
+                        include_size -> row.put("size_bytes", Json.int(size));
+                        true -> row
+                    },
+                    message = "",
+                )
+        }
+    }.
+
+file_rows(root: String, paths: List[String], include_size: Bool, output: Json): DocumentResult ->
+    case paths {
+        [] -> DocumentResult(valid = true, document = output, message = "");
+        [path | rest] ->
+            let row = file_row(root, path, include_size);
+            if {
+                not row.valid -> row;
+                true -> file_rows(root, rest, include_size, output.push(row.document))
+            }
+    }.
+
+tree_digest(root: String, files: List[String]): DocumentResult ->
+    let rows = file_rows(root, files, true, Json.array());
+    if {
+        not rows.valid -> rows;
+        true -> let wrapper = Json.object().put("files", rows.document);
+        let rendered = canonical(wrapper);
+        if {
+            not rendered.valid -> document_failure(rendered.message);
+            true -> DocumentResult(
+                valid = true,
+                document = Json.object()
+                    .put("file_count", Json.int(List.length(files)))
+                    .put("sha256", Json.string(tag_digest(rendered.value))),
+                message = "",
+            )
+        }
+    }.
+
+matching_files(root: String, base: String, suffixes: List[String]): List[String] ->
+    case Directory.files_recursive_excluding(child(root, base), ["target", ".git"]) {
+        Err(_reason) -> List.new[String]();
+        Ok(files) -> matching_files_at(root, files, suffixes, List.new[String]())
+    }.
+
+@pure
+matching_files_at(
+    root: String,
+    files: List[String],
+    suffixes: List[String],
+    output: List[String],
+): List[String] ->
+    case files {
+        [] -> sort_unique(output);
+        [path | rest] ->
+            matching_files_at(
+                root,
+                rest,
+                suffixes,
+                if {
+                    has_suffix(path, suffixes) -> [relative(root, path) | output];
+                    true -> output
+                },
+            )
+    }.
+
+@pure
+has_suffix(path: String, suffixes: List[String]): Bool ->
+    case suffixes {
+        [] -> false;
+        [suffix | rest] -> String.ends_with(path, suffix) or has_suffix(path, rest)
+    }.
+
+quality_reports(root: String): List[String] ->
+    case Directory.files_recursive_excluding(child(root, "target/quality"), []) {
+        Err(_reason) -> List.new[String]();
+        Ok(paths) -> quality_reports_at(root, paths, List.new[String]())
+    }.
+
+@pure
+quality_reports_at(root: String, paths: List[String], output: List[String]): List[String] ->
+    case paths {
+        [] -> sort_unique(output);
+        [path | rest] ->
+            let item = relative(root, path);
+            quality_reports_at(
+                root,
+                rest,
+                if {
+                    String.ends_with(path, ".json")
+                        and item != "target/quality/release-promotion-pipeline-report.json"
+                        and item != "target/quality/release-readiness-attestation-report.json"
+                        and item != "target/quality/release-staged-distribution-verification-report.json"
+                        and item != "target/quality/release-0-0-7-support-manifest.json"
+                        and item != "target/quality/release-0-0-7-preflight-report.json" -> [item | output];
+                    true -> output
+                },
+            )
+    }.
+
+metadata(root: String): DocumentResult ->
+    case File.read_text(child(root, "dist/terlan-release.json")) {
+        Err(_reason) -> document_failure("release metadata is missing: dist/terlan-release.json");
+        Ok(source) ->
+            case Json.parse(source) {
+                Err(reason) ->
+                    document_failure(
+                        String.append(
+                            "release metadata is invalid JSON: ",
+                            Json.error_message(reason),
+                        ),
+                    );
+                Ok(document) ->
+                    let {
+                        Ok(value) <- document.get("schema");
+                        Ok("terlan.release-artifact.v1") <- value.as_string()
+                    } else {
+                        _ -> document_failure("release metadata has an unsupported schema")
+                    };
+                    DocumentResult(valid = true, document = document, message = "")
+            }
+    }.
+
+candidate_payload(root: String, expected_version: String): DocumentResult ->
+    let loaded = metadata(root);
+    if {
+        not loaded.valid -> loaded;
+        true -> let Ok(fields) <-
+            loaded.document
+                .required_fields(["version", "source_revision", "target_triple", "os"], [], []) else {
+            _ -> document_failure("release metadata is missing version, revision, target, or OS")
+        };
+        case Json.required_field_strings(fields) {
+            [version, revision, target, operating_system] ->
+                if {
+                    version == "" -> document_failure("release metadata has no version");
+                    expected_version != "" and version != expected_version -> document_failure(
+                        String.concat(
+                            [
+                                "release version mismatch: expected ",
+                                expected_version,
+                                ", found ",
+                                version,
+                            ],
+                        ),
+                    );
+                    revision == "" -> document_failure("release metadata has no source revision");
+                    target == "" -> document_failure("release metadata has no target triple");
+                    true -> build_payload(root, version, revision, target, operating_system)
+                };
+            _ -> document_failure("release metadata fields have an unsupported shape")
+        }
+    }.
+
+build_payload(
+    root: String,
+    version: String,
+    revision: String,
+    target: String,
+    operating_system: String,
+): DocumentResult ->
+    let archives = release_archives(root);
+    let vm =
+        if {
+            operating_system == "windows" -> "dist/terlan-vm.exe";
+            true -> "dist/terlan-vm"
+        };
+    let worker =
+        if {
+            operating_system == "windows" -> "dist/terlan-native-worker.exe";
+            true -> "dist/terlan-native-worker"
+        };
+    if {
+        List.length(archives) == 0 -> document_failure("no release archives found under dist");
+        not File.exists(child(root, vm)) -> document_failure(String.append("release VM binary is missing: ", vm));
+        not File.exists(child(root, worker)) -> document_failure(String.append("release native worker is missing: ", worker));
+        true -> let artifacts = file_rows(root, archives, true, Json.array());
+        let benchmarks =
+            file_rows(
+                root,
+                matching_files(root, "benchmarks", [".baseline.json", ".latest.json"]),
+                false,
+                Json.array(),
+            );
+        let reports = file_rows(root, quality_reports(root), false, Json.array());
+        let stdlib = tree_digest(root, directory_files(root, "std"));
+        let docs_manifest = PublishableDocs.load(root);
+        let docs =
+            if {
+                PublishableDocs.valid(docs_manifest) -> tree_digest(root, PublishableDocs.paths(docs_manifest));
+                true -> document_failure(PublishableDocs.message(docs_manifest))
+            };
+        let editor =
+            tree_digest(
+                root,
+                sort_unique(
+                    List.concat(
+                        directory_files(root, "editors"),
+                        directory_files(root, "tree-sitter-terlan"),
+                    ),
+                ),
+            );
+        let vm_row = file_row(root, vm, false);
+        let worker_row = file_row(root, worker, false);
+        let notes = file_row(root, "CHANGELOG.md", false);
+        if {
+            not artifacts.valid -> artifacts;
+            not benchmarks.valid -> benchmarks;
+            not reports.valid -> reports;
+            not stdlib.valid -> stdlib;
+            not docs.valid -> docs;
+            not editor.valid -> editor;
+            not vm_row.valid -> vm_row;
+            not worker_row.valid -> worker_row;
+            not notes.valid -> notes;
+            true -> DocumentResult(
+                valid = true,
+                document = Json.object()
+                    .put("schema", Json.string("terlan.release-candidate.v1"))
+                    .put("version", Json.string(version))
+                    .put("source_revision", Json.string(revision))
+                    .put("target_triples", Json.array().push(Json.string(target)))
+                    .put("artifacts", artifacts.document)
+                    .put(
+                        "component_hashes",
+                        Json.object()
+                            .put("stdlib", stdlib.document)
+                            .put("vm", vm_row.document)
+                            .put("native_worker", worker_row.document)
+                            .put("docs", docs.document)
+                            .put("editor", editor.document),
+                    )
+                    .put("benchmark_baselines", benchmarks.document)
+                    .put("gate_reports", reports.document)
+                    .put("release_notes", notes.document),
+                message = "",
+            )
+        }
+    }.
+
+sealed_payload(payload: Json): DocumentResult ->
+    let rendered = canonical(payload);
+    if {
+        not rendered.valid -> document_failure(rendered.message);
+        true -> DocumentResult(
+            valid = true,
+            document = payload
+                .put(
+                    "seal",
+                    Json.object()
+                        .put("algorithm", Json.string("sha256"))
+                        .put("digest", Json.string(tag_digest(rendered.value))),
+                ),
+            message = "",
+        )
+    }.
+
+write_json(path: String, document: Json): Bool ->
+    let rendered = canonical(document);
+    if {
+        not rendered.valid -> let _printed = eprintln(rendered.message);
+        false;
+        true -> case File.write_text(path, rendered.value) {
+            Err(reason) ->
+                let _printed = eprintln(File.message(reason));
+                false;
+            Ok(_written) -> true
+        }
+    }.
+
+seal(root: String, version: String): Bool ->
+    let payload = candidate_payload(root, version);
+    if {
+        not payload.valid -> fail(payload.message);
+        true -> let sealed = sealed_payload(payload.document);
+        if {
+            not sealed.valid -> fail(sealed.message);
+            true -> let path = child(root, "dist/release-candidate.json");
+            if {
+                write_json(path, sealed.document) -> let _printed = println("sealed release candidate: dist/release-candidate.json");
+                true;
+                true -> false
+            }
+        }
+    }.
+
+read_candidate(root: String): DocumentResult ->
+    case File.read_text(child(root, "dist/release-candidate.json")) {
+        Err(_reason) ->
+            document_failure("sealed candidate manifest is missing: dist/release-candidate.json");
+        Ok(source) ->
+            case Json.parse(source) {
+                Err(reason) ->
+                    document_failure(
+                        String.append(
+                            "candidate manifest is invalid JSON: ",
+                            Json.error_message(reason),
+                        ),
+                    );
+                Ok(document) -> DocumentResult(valid = true, document = document, message = "")
+            }
+    }.
+
+verify(root: String, version: String): DocumentResult ->
+    let actual = read_candidate(root);
+    if {
+        not actual.valid -> actual;
+        true -> let payload = candidate_payload(root, version);
+        if {
+            not payload.valid -> payload;
+            true -> let expected = sealed_payload(payload.document);
+            if {
+                not expected.valid -> expected;
+                true -> let actual_text = canonical(actual.document);
+                let expected_text = canonical(expected.document);
+                if {
+                    not actual_text.valid -> document_failure(actual_text.message);
+                    not expected_text.valid -> document_failure(expected_text.message);
+                    actual_text.value != expected_text.value -> document_failure(
+                        "candidate manifest seal or retained release input drifted; run `make release-staged-distribution-verification-refresh`",
+                    );
+                    true -> actual
+                }
+            }
+        }
+    }.
+
+candidate_string(candidate: Json, field: String): String ->
+    let {
+        Ok(value) <- candidate.get(field);
+        Ok(text) <- value.as_string()
+    } else {
+        _ -> ""
+    };
+    text.
+
+seal_digest(candidate: Json): String ->
+    case candidate.get("seal") {
+        Err(_reason) -> "";
+        Ok(seal) -> candidate_string(seal, "digest")
+    }.
+
+artifact_paths(candidate: Json): List[String] ->
+    let {
+        Ok(rows) <- candidate.get("artifacts");
+        Ok(values) <- Json.required_field_rows(rows, ["path"], [], [])
+    } else {
+        _ -> List.new[String]()
+    };
+    artifact_paths_at(values, List.new[String]()).
+
+artifact_paths_at(values: List[RequiredFieldRow], output: List[String]): List[String] ->
+    case values {
+        [] -> reverse(output);
+        [value | rest] ->
+            case Json.required_field_row_strings(value) {
+                [path] -> artifact_paths_at(rest, [path | output]);
+                _ -> List.new[String]()
+            }
+    }.
+
+@pure
+reverse(values: List[String]): List[String] ->
+    reverse_at(values, List.new[String]()).
+
+@pure
+reverse_at(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+print_paths(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            let _printed = println(path);
+            print_paths(rest)
+    }.
+
+write_report(root: String, candidate: Json, synthetic: Bool): Bool ->
+    case candidate.get("artifacts") {
+        Err(_reason) -> fail("candidate artifacts are missing");
+        Ok(artifacts) ->
+            let plan =
+                paths_json(
+                    List.concat(artifact_paths(candidate), ["dist/release-candidate.json"]),
+                    Json.array(),
+                );
+            let report =
+                Json.object()
+                    .put("schema", Json.string("terlan.release-promotion-pipeline.v1"))
+                    .put("decision", Json.string("pass"))
+                    .put("synthetic_fixture", Json.bool(synthetic))
+                    .put("sealed_manifest", Json.string("dist/release-candidate.json"))
+                    .put("candidate_seal", Json.string(seal_digest(candidate)))
+                    .put("version", Json.string(candidate_string(candidate, "version")))
+                    .put("artifact_hashes", artifacts)
+                    .put("dry_run_upload_plan", plan)
+                    .put(
+                        "publish_inputs",
+                        Json.array().push(Json.string("dist/release-candidate.json")),
+                    )
+                    .put("prebuilt_only", Json.bool(true))
+                    .put("rebuild_commands_executed", Json.array());
+            let directory = child(root, "target/quality");
+            case Directory.create_all(directory) {
+                Err(reason) -> fail(Directory.message(reason));
+                Ok(_created) ->
+                    write_json(
+                        child(root, "target/quality/release-promotion-pipeline-report.json"),
+                        report,
+                    )
+            }
+    }.
+
+paths_json(paths: List[String], output: Json): Json ->
+    case paths {
+        [] -> output;
+        [path | rest] -> paths_json(rest, output.push(Json.string(path)))
+    }.
+
+repository_contract(root: String): Bool ->
+    let {
+        Ok(makefile) <- File.read_text(child(root, "Makefile"));
+        Ok(publisher) <- File.read_text(child(root, "scripts/publish_release_from_dist.sh"))
+    } else {
+        _ -> fail("release promotion repository wiring is missing")
+    };
+    contract_text(makefile, publisher).
+
+@pure
+contract_text(makefile: String, publisher: String): Bool ->
+    String.contains(makefile, "release-promotion-pipeline-check:")
+        and String.contains(makefile, "release-promotion-dry-run:")
+        and String.contains(makefile, "$(TERLAN_RELEASE_PROMOTION) seal")
+        and String.contains(makefile, "$(TERLAN_RELEASE_PROMOTION) dry-run")
+        and not String.contains(publisher, "cargo build")
+        and not String.contains(publisher, "cargo run")
+        and not String.contains(publisher, "npm ")
+        and not String.contains(publisher, "make release-artifact")
+        and String.contains(publisher, "scripts_ReleasePromotion.tvm")
+        and String.contains(publisher, "verify")
+        and String.contains(publisher, "list")
+        and String.contains(publisher, "digest")
+        and not String.contains(publisher, "find dist").
+
+create_fixture(root: String): Bool ->
+    let directories =
+        [
+            "dist",
+            "std",
+            "docs/release",
+            "editors",
+            "tree-sitter-terlan",
+            "benchmarks",
+            "target/quality",
+        ];
+    if {
+        not create_directories(root, directories) -> false;
+        true -> write_fixture_files(root)
+    }.
+
+create_directories(root: String, values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            case Directory.create_all(child(root, value)) {
+                Err(_reason) -> false;
+                Ok(_created) -> create_directories(root, rest)
+            }
+    }.
+
+write_fixture_files(root: String): Bool ->
+    let metadata =
+        Json.object()
+            .put("schema", Json.string("terlan.release-artifact.v1"))
+            .put("version", Json.string("0.0.7"))
+            .put("source_revision", Json.string("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+            .put("target_triple", Json.string("x86_64-unknown-linux-gnu"))
+            .put("os", Json.string("linux"));
+    write_texts(
+    root,
+    [
+        {"README.md", "fixture\n"},
+        {"CHANGELOG.md", "## 0.0.7\n\nfixture\n"},
+        {"std/core.terl", "std/core.terl\n"},
+        {"docs/index.md", "docs/index.md\n"},
+        {"docs/release/PUBLISHABLE_DOCUMENTATION.tsv", "path\ndocs/index.md\n"},
+        {"editors/editor.json", "editors/editor.json\n"},
+        {"tree-sitter-terlan/grammar.js", "tree-sitter-terlan/grammar.js\n"},
+        {"benchmarks/http.baseline.json", "{}\n"},
+        {
+            "target/quality/self-test-report.json",
+            "{\"schema\":\"terlan.release-self-test.v1\",\"decision\":\"pass\"}\n",
+        },
+        {"dist/terlc-linux-x86_64.tar.gz", "archive"},
+        {"dist/terlan-vm", "vm"},
+        {"dist/terlan-native-worker", "native-worker"},
+    ],
+)
+        and write_json(child(root, "dist/terlan-release.json"), metadata).
+
+write_texts(root: String, values: List[{String, String}]): Bool ->
+    case values {
+        [] -> true;
+        [{path, contents} | rest] ->
+            case File.write_text(child(root, path), contents) {
+                Err(_reason) -> false;
+                Ok(_written) -> write_texts(root, rest)
+            }
+    }.
+
+self_test(root: String, report: Bool): Bool ->
+    case Directory.create_temporary("terlan-release-promotion-") {
+        Err(reason) -> fail(Directory.message(reason));
+        Ok(fixture) ->
+            let created = create_fixture(fixture);
+            let sealed = created and seal(fixture, "0.0.7");
+            let verified =
+                if {
+                    sealed -> verify(fixture, "0.0.7");
+                    true -> document_failure("fixture creation failed")
+                };
+            let paths =
+                if {
+                    verified.valid -> artifact_paths(verified.document);
+                    true -> List.new[String]()
+                };
+            let reported =
+                if {
+                    report and verified.valid -> write_report(root, verified.document, true);
+                    true -> true
+                };
+            let changed =
+                case File.write_text(child(fixture, "dist/terlc-linux-x86_64.tar.gz"), "changed") {
+                    Err(_reason) -> false;
+                    Ok(_written) ->
+                        let drift = verify(fixture, "0.0.7");
+                        not drift.valid
+                };
+            let restored =
+                case File.write_text(child(fixture, "dist/terlc-linux-x86_64.tar.gz"), "archive") {
+                    Err(_reason) -> false;
+                    Ok(_written) -> true
+                };
+            let extra =
+                case File.write_text(child(fixture, "dist/terlc-linux-aarch64.tar.gz"), "extra") {
+                    Err(_reason) -> false;
+                    Ok(_written) ->
+                        let drift = verify(fixture, "0.0.7");
+                        let _deleted = File.delete(child(fixture, "dist/terlc-linux-aarch64.tar.gz"));
+                        not drift.valid
+                };
+            let wrong_version = verify(fixture, "9.9.9");
+            let version_drift = not wrong_version.valid;
+            let docs_drift =
+                case File.write_text(child(fixture, "docs/index.md"), "stale\n") {
+                    Err(_reason) -> false;
+                    Ok(_written) ->
+                        let drift = verify(fixture, "0.0.7");
+                        not drift.valid
+                };
+            let docs_restored =
+                case File.write_text(child(fixture, "docs/index.md"), "docs/index.md\n") {
+                    Ok(_written) -> true;
+                    Err(_reason) -> false
+                };
+            let unpublished_docs_ignored =
+                case File.write_text(child(fixture, "docs/internal-roadmap.md"), "internal\n") {
+                    Err(_reason) -> false;
+                    Ok(_written) ->
+                        let stable = verify(fixture, "0.0.7");
+                        let _deleted = File.delete(child(fixture, "docs/internal-roadmap.md"));
+                        stable.valid
+                };
+            let stale_report =
+                case File.write_text(
+    child(fixture, "target/quality/self-test-report.json"),
+    "{\"schema\":\"terlan.release-self-test.v1\",\"decision\":\"fail\"}\n",
+) {
+                    Err(_reason) -> false;
+                    Ok(_written) ->
+                        let drift = verify(fixture, "0.0.7");
+                        not drift.valid
+                };
+            let report_restored =
+                case File.write_text(
+    child(fixture, "target/quality/self-test-report.json"),
+    "{\"schema\":\"terlan.release-self-test.v1\",\"decision\":\"pass\"}\n",
+) {
+                    Ok(_written) -> true;
+                    Err(_reason) -> false
+                };
+            let missing_report =
+                case File.delete(child(fixture, "target/quality/self-test-report.json")) {
+                    Err(_reason) -> false;
+                    Ok(_deleted) ->
+                        let drift = verify(fixture, "0.0.7");
+                        not drift.valid
+                };
+            let cleaned =
+                case Directory.remove_all(fixture) {
+                    Err(_reason) -> false;
+                    Ok(_removed) -> true
+                };
+            let contract =
+                contract_text(
+                    "release-promotion-pipeline-check:\n\t$(TERLAN_RELEASE_PROMOTION) seal\nrelease-promotion-dry-run:\n\t$(TERLAN_RELEASE_PROMOTION) dry-run\n",
+                    "scripts_ReleasePromotion.tvm verify list digest",
+                );
+            created
+                and sealed
+                and verified.valid
+                and paths == ["dist/terlc-linux-x86_64.tar.gz"]
+                and changed
+                and restored
+                and extra
+                and version_drift
+                and docs_drift
+                and docs_restored
+                and unpublished_docs_ignored
+                and stale_report
+                and report_restored
+                and missing_report
+                and reported
+                and cleaned
+                and contract
+    }.
+
+fail(message: String): Bool ->
+    let _printed = eprintln(String.append("release promotion failed: ", message));
+    false.
+
+argument(index: Int): String ->
+    case Arguments.get(index) {
+        Some(value) -> value;
+        None -> ""
+    }.
+
+pub entry(): Bool ->
+    let root = repository_root();
+    let command = argument(0);
+    let version =
+        if {
+            argument(1) == "--version" -> argument(2);
+            true -> ""
+        };
+    case command {
+        "seal" -> seal(root, version);
+        "readiness" ->
+            let sealed = seal(root, version);
+            let candidate = verify(root, version);
+            if {
+                sealed and candidate.valid and Readiness.attest(root, candidate.document) -> let _printed = println("release readiness attestation passed");
+                true;
+                true -> false
+            };
+        "preflight" ->
+            let candidate = verify(root, version);
+            if {
+                candidate.valid and Preflight.run(root, seal_digest(candidate.document)) -> let _printed = println("release 0.0.7 offline preflight passed");
+                true;
+                true -> fail(candidate.message)
+            };
+        "preflight-self-test" ->
+            if {
+                Preflight.self_test() -> let _printed = println("release 0.0.7 preflight adversarial self-tests passed");
+                true;
+                true -> false
+            };
+        "contract" ->
+            if {
+                repository_contract(root) -> let _printed = println("release promotion repository contract passed");
+                true;
+                true -> false
+            };
+        "self-test" ->
+            let report = argument(1) == "--report";
+            let passed = self_test(root, report);
+            if {
+                passed -> let _printed = println("release promotion adversarial self-tests passed");
+                true;
+                true -> false
+            };
+        "verify" ->
+            let candidate = verify(root, version);
+            if {
+                candidate.valid -> let _printed =
+                    println(
+                        String.concat(
+                            [
+                                "verified release candidate ",
+                                candidate_string(candidate.document, "version"),
+                                " (",
+                                seal_digest(candidate.document),
+                                ")",
+                            ],
+                        ),
+                    );
+                true;
+                true -> fail(candidate.message)
+            };
+        "list" ->
+            let candidate = verify(root, version);
+            if {
+                candidate.valid -> print_paths(
+                    List.concat(artifact_paths(candidate.document), ["dist/release-candidate.json"]),
+                );
+                true -> fail(candidate.message)
+            };
+        "digest" ->
+            let candidate = verify(root, version);
+            if {
+                candidate.valid -> let _printed = println(seal_digest(candidate.document));
+                true;
+                true -> fail(candidate.message)
+            };
+        "dry-run" ->
+            let candidate = verify(root, version);
+            if {
+                candidate.valid -> let written = write_report(root, candidate.document, false);
+                if {
+                    written -> let _printed =
+                        println(
+                            "release promotion dry-run passed; report written to target/quality/release-promotion-pipeline-report.json",
+                        );
+                    true;
+                    true -> false
+                };
+                true -> fail(candidate.message)
+            };
+        _ ->
+            fail(
+                "expected seal, readiness, preflight, preflight-self-test, verify, dry-run, list, digest, contract, or self-test",
+            )
+    }.

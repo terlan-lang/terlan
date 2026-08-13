@@ -37,7 +37,7 @@ impl TestRepo {
 
     fn write_complete_fixture(&self) -> io::Result<()> {
         self.write(
-            "crates/terlan/src/commands/serve/tls/cache.rs",
+            "crates/terlan/src/commands/serve/tls/acme_runtime/cache.rs",
             r#"
 AcmeCertificateCacheMetadata schema_version cache_format_version domains
 subject_alternative_names issuer account_id key_algorithm challenge_method
@@ -54,7 +54,7 @@ AcmeKeyCustodyPolicy validate_acme_key_custody_policy
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/tls.rs",
+            "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
             r#"
 load_acme_runtime_tls_cache validate_acme_certificate_cache_age
 validate_acme_certificate_cache_domains
@@ -73,7 +73,7 @@ VM TLS manual encrypted private keys are not supported
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/tls_test.rs",
+            "crates/terlan/src/commands/serve/tls/acme_runtime/tls_test.rs",
             r#"
 acme_certificate_cache_write_feeds_runtime_tls_config
 runtime_tls_config_accepts_auto_tls_certificate_cache
@@ -115,16 +115,6 @@ impl Drop for TestRepo {
 
 const COMPLETE_MAKEFILE: &str = r#"
 vm-http-acme-cache-custody-check: vm-http-acme-worker-migration-check
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::serve::tls::tls_test::acme_certificate_cache_metadata_records_typed_provenance_schema -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::serve::tls::tls_test::runtime_tls_config_rejects_world_readable_auto_tls_private_key_cache -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::serve::tls::tls_test::runtime_tls_config_rejects_staging_mode_auto_tls_certificate_cache -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::serve::tls::tls_test::acme_cache_support_bundle_redaction_removes_sensitive_material -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::serve::tls::tls_test::acme_key_custody_policy_rejects_cache_path_escape -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::serve::tls::tls_test::runtime_tls_config_rejects_mismatched_auto_tls_certificate_key_pair -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::serve::tls::tls_test::runtime_tls_config_rejects_wrong_domain_auto_tls_certificate_cache -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::serve::tls::tls_test::runtime_tls_config_rejects_expired_auto_tls_certificate_cache -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlc commands::serve::tls::tls_test::runtime_tls_config_rejects_tampered_auto_tls_certificate_cache_provenance_hash -- --exact
-	$(RUST_TEST) --locked -p terlan --bin terlan-quality vm_http_acme_cache_custody_test
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-http-acme-cache-custody
 "#;
 
@@ -162,10 +152,10 @@ fn vm_http_acme_cache_custody_rejects_missing_atomic_write_anchor() {
     repo.write_complete_fixture().expect("write fixture");
     let path = repo
         .root()
-        .join("crates/terlan/src/commands/serve/tls/cache.rs");
+        .join("crates/terlan/src/commands/serve/tls/acme_runtime/cache.rs");
     let source = fs::read_to_string(&path).expect("cache source");
     repo.write(
-        "crates/terlan/src/commands/serve/tls/cache.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime/cache.rs",
         &source.replace("write_cache_file_atomically", ""),
     )
     .expect("rewrite cache source");
@@ -181,10 +171,10 @@ fn vm_http_acme_cache_custody_rejects_missing_stale_cache_fixture() {
     repo.write_complete_fixture().expect("write fixture");
     let path = repo
         .root()
-        .join("crates/terlan/src/commands/serve/tls_test.rs");
+        .join("crates/terlan/src/commands/serve/tls/acme_runtime/tls_test.rs");
     let source = fs::read_to_string(&path).expect("tls test source");
     repo.write(
-        "crates/terlan/src/commands/serve/tls_test.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime/tls_test.rs",
         &source.replace(
             "runtime_tls_config_rejects_stale_auto_tls_certificate_cache",
             "",
@@ -203,13 +193,13 @@ fn vm_http_acme_cache_custody_rejects_missing_make_gate_term() {
     repo.write_complete_fixture().expect("write fixture");
     repo.write(
         "Makefile",
-        &COMPLETE_MAKEFILE.replace("vm_http_acme_cache_custody_test", ""),
+        &COMPLETE_MAKEFILE.replace("vm-http-acme-cache-custody", ""),
     )
     .expect("rewrite makefile");
 
     let error = run_vm_http_acme_cache_custody(repo.root()).expect_err("gate should fail");
 
-    assert!(error.contains("vm_http_acme_cache_custody_test"));
+    assert!(error.contains("vm-http-acme-cache-custody"));
 }
 
 #[test]

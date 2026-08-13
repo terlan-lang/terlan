@@ -36,6 +36,34 @@ mod tests {
     }
 
     #[test]
+    fn preserves_formal_atom_literals_in_case_scrutinees() {
+        let output = parse_module_as_syntax_output(
+            "module atom_shape_scrutinee.\n\
+             shape Tagged(value) = {Atom[\"ok\"], value}.\n\
+             pub read(): Int ->\n\
+                 case {Atom[\"ok\"], 7} { Tagged(value) -> value; _ -> 0 }.\n",
+        )
+        .expect("formal atom literal case scrutinee should parse");
+
+        let SyntaxDeclarationPayload::Function { clauses, .. } = &output.declarations[1].payload
+        else {
+            panic!("expected function declaration");
+        };
+        let scrutinee = &clauses[0].body.children[0];
+        assert_eq!(scrutinee.kind, crate::terlan_syntax::SyntaxExprKind::Tuple);
+        assert_eq!(
+            scrutinee.children[0].kind,
+            crate::terlan_syntax::SyntaxExprKind::Atom
+        );
+        assert_eq!(scrutinee.children[0].text.as_deref(), Some("ok"));
+        assert_eq!(scrutinee.children[0].raw.as_deref(), Some("Atom[\"ok\"]"));
+        let pattern = &clauses[0].body.clauses[0].patterns[0];
+        assert_eq!(pattern.kind, SyntaxPatternKind::Tuple);
+        assert_eq!(pattern.children[0].kind, SyntaxPatternKind::Atom);
+        assert_eq!(pattern.children[0].text.as_deref(), Some("ok"));
+    }
+
+    #[test]
     fn expands_binary_layout_shape_captures_without_rewriting_descriptors() {
         let output = parse_module_as_syntax_output(
             "module binary_shapes.\n\

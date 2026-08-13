@@ -3,11 +3,22 @@ use std::fmt;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
+#[cfg(any(
+    test,
+    all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+))]
+use crate::terlan_native::postgres;
 use crate::{
-    runtime::vm::process::VmProcessId,
-    terlan_native::{json, postgres},
+    runtime::vm::process::VmProcessId, terlan_native::json,
     terlan_native_boundary::request::RequestId,
 };
+
+/// VM tick window applied uniformly to one Postgres capability request.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct VmPostgresDeadline {
+    pub(crate) now_tick: u64,
+    pub(crate) timeout_ticks: u64,
+}
 
 macro_rules! database_handle {
     ($name:ident) => {
@@ -36,35 +47,52 @@ database_handle!(VmPostgresDriverPreparedStatement);
 database_handle!(VmPostgresDriverRow);
 
 #[cfg(test)]
-impl VmPostgresTransaction {
-    #[allow(dead_code)]
-    pub(crate) const fn fixture(id: u64) -> Self {
-        Self(id)
-    }
-}
+impl VmPostgresTransaction {}
 
 /// Redacted connection configuration carried only to the maintained driver worker.
+#[cfg(any(
+    test,
+    all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+))]
 #[derive(Clone)]
 pub(crate) struct VmPostgresConnectConfig {
     config: postgres::Config,
 }
 
+#[cfg(any(
+    test,
+    all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+))]
 impl VmPostgresConnectConfig {
-    #[allow(dead_code)]
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     pub(crate) fn new(config: postgres::Config) -> Result<Self, postgres::PostgresError> {
         postgres::validate_config(&config)?;
         Ok(Self { config })
     }
 
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     pub(super) fn max_connections(&self) -> usize {
         self.config.max_connections()
     }
-
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     pub(super) fn driver_config(&self) -> &postgres::Config {
         &self.config
     }
 }
 
+#[cfg(any(
+    test,
+    all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+))]
 impl fmt::Debug for VmPostgresConnectConfig {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
@@ -80,7 +108,6 @@ impl fmt::Debug for VmPostgresConnectConfig {
 
 /// Resource accepted by a query or execute request.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[allow(dead_code)]
 pub(crate) enum VmPostgresQueryTarget {
     Pool(VmPostgresPool),
     Transaction(VmPostgresTransaction),
@@ -93,24 +120,31 @@ pub(crate) enum VmPostgresDriverQueryTarget {
 }
 
 /// Expected row-decoding type. The maintained driver owns concrete conversion.
-#[allow(
-    dead_code,
-    reason = "the benchmark binary shares protocol types without source Postgres dispatch"
-)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum VmPostgresDecodeType {
     Dynamic,
     String,
+    #[cfg(test)]
     Int,
+    #[cfg(test)]
     Bool,
+    #[cfg(test)]
     Json,
 }
 
 /// VM-to-driver work. Debug output intentionally excludes credentials, SQL, and values.
 #[derive(Clone)]
 pub(crate) enum VmPostgresDriverOperation {
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Connect(VmPostgresConnectConfig),
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Acquire {
         pool: VmPostgresPool,
         driver_pool: VmPostgresDriverPool,
@@ -133,6 +167,10 @@ pub(crate) enum VmPostgresDriverOperation {
         driver_target: VmPostgresDriverQueryTarget,
         sql: String,
     },
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Begin {
         connection: VmPostgresConnection,
         driver_connection: VmPostgresDriverConnection,
@@ -145,6 +183,7 @@ pub(crate) enum VmPostgresDriverOperation {
         transaction: VmPostgresTransaction,
         driver_transaction: VmPostgresDriverTransaction,
     },
+    #[cfg(test)]
     Prepare {
         connection: VmPostgresConnection,
         driver_connection: VmPostgresDriverConnection,
@@ -162,15 +201,28 @@ pub(crate) enum VmPostgresDriverOperation {
 impl VmPostgresDriverOperation {
     pub(super) fn name(&self) -> &'static str {
         match self {
+            #[cfg(any(
+                test,
+                all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+            ))]
             Self::Connect(_) => "connect",
+            #[cfg(any(
+                test,
+                all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+            ))]
             Self::Acquire { .. } => "acquire",
             Self::Query { one: true, .. } => "query_one",
             Self::Query { one: false, .. } => "query",
             Self::Execute { .. } => "execute",
             Self::BatchExecute { .. } => "batch_execute",
+            #[cfg(any(
+                test,
+                all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+            ))]
             Self::Begin { .. } => "begin",
             Self::Commit { .. } => "commit",
             Self::Rollback { .. } => "rollback",
+            #[cfg(test)]
             Self::Prepare { .. } => "prepare",
             Self::Decode { .. } => "decode",
         }
@@ -180,8 +232,9 @@ impl VmPostgresDriverOperation {
         let sql = match self {
             Self::Query { sql, .. }
             | Self::Execute { sql, .. }
-            | Self::BatchExecute { sql, .. }
-            | Self::Prepare { sql, .. } => sql,
+            | Self::BatchExecute { sql, .. } => sql,
+            #[cfg(test)]
+            Self::Prepare { sql, .. } => sql,
             _ => return None,
         };
         let hexadecimal = Sha256::digest(sql.as_bytes())
@@ -200,23 +253,35 @@ impl fmt::Debug for VmPostgresDriverOperation {
         match self {
             Self::Query {
                 target,
+                driver_target,
                 parameters,
                 one,
                 ..
             } => {
                 debug.field("target", target);
+                debug.field("driver_target", driver_target);
                 debug.field("parameter_count", &parameters.len());
                 debug.field("one", one);
             }
             Self::Execute {
-                target, parameters, ..
+                target,
+                driver_target,
+                parameters,
+                ..
             } => {
                 debug.field("target", target);
+                debug.field("driver_target", driver_target);
                 debug.field("parameter_count", &parameters.len());
             }
-            Self::BatchExecute { target, .. } => {
+            Self::BatchExecute {
+                target,
+                driver_target,
+                ..
+            } => {
                 debug.field("target", target);
+                debug.field("driver_target", driver_target);
             }
+            #[cfg(test)]
             Self::Prepare {
                 connection,
                 parameter_count,
@@ -227,18 +292,28 @@ impl fmt::Debug for VmPostgresDriverOperation {
             }
             Self::Decode {
                 row,
+                driver_row,
                 column,
                 expected,
                 ..
             } => {
                 debug.field("row", row);
+                debug.field("driver_row", driver_row);
                 debug.field("column", column);
                 debug.field("expected", expected);
             }
+            #[cfg(any(
+                test,
+                all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+            ))]
             Self::Acquire { pool, driver_pool } => {
                 debug.field("pool", pool);
                 debug.field("driver_pool", driver_pool);
             }
+            #[cfg(any(
+                test,
+                all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+            ))]
             Self::Begin {
                 connection,
                 driver_connection,
@@ -257,20 +332,19 @@ impl fmt::Debug for VmPostgresDriverOperation {
                 debug.field("transaction", transaction);
                 debug.field("driver_transaction", driver_transaction);
             }
-            Self::Connect(_) => {}
+            #[cfg(any(
+                test,
+                all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+            ))]
+            Self::Connect(config) => {
+                debug.field("config", config);
+            }
         }
         debug.finish_non_exhaustive()
     }
 }
 
 /// One request ready for a maintained Postgres driver worker.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "the maintained Postgres driver worker has not consumed VM requests yet"
-    )
-)]
 #[derive(Clone, Debug)]
 pub(crate) struct VmPostgresDriverRequest {
     pub(crate) request_id: RequestId,
@@ -297,39 +371,119 @@ impl VmPostgresFailure {
 /// Maintained-driver completion payload consumed by the VM.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum VmPostgresDriverCompletion {
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Connected(VmPostgresDriverPool),
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Acquired(VmPostgresDriverConnection),
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     TransactionStarted(VmPostgresDriverTransaction),
+    #[cfg(test)]
     Prepared(VmPostgresDriverPreparedStatement),
-    Rows { rows: Vec<VmPostgresDriverRow> },
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
+    Rows {
+        rows: Vec<VmPostgresDriverRow>,
+    },
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     AffectedRows(i64),
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Decoded(VmPostgresDecodedValue),
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Unit,
     Failed(VmPostgresFailure),
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum VmPostgresDecodedValue {
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Null,
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     String(String),
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Int(i64),
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Bool(bool),
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Json(String),
 }
 
 /// Typed value delivered back to a resumed Terlan process.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum VmPostgresReply {
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Pool(VmPostgresPool),
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Connection(VmPostgresConnection),
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Transaction(VmPostgresTransaction),
+    #[cfg(test)]
     PreparedStatement(VmPostgresPreparedStatement),
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Rows {
         result_set: VmPostgresResultSet,
         rows: Vec<VmPostgresRow>,
     },
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     AffectedRows(i64),
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Decoded(VmPostgresDecodedValue),
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Unit,
     Error(VmPostgresFailure),
 }
@@ -364,6 +518,10 @@ pub(crate) enum VmPostgresDriverControl {
 #[serde(rename_all = "snake_case")]
 pub(crate) enum VmPostgresTransactionState {
     Active,
+    #[cfg(any(
+        test,
+        all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+    ))]
     Committed,
     RolledBack,
 }

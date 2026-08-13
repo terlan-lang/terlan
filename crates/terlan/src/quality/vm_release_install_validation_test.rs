@@ -1,6 +1,4 @@
 use super::*;
-use std::time::{SystemTime, UNIX_EPOCH};
-
 /// Verifies required release/install terms are accepted.
 ///
 /// Inputs:
@@ -127,24 +125,9 @@ fn editor_package_version_text_rejects_stale_version() {
 /// - Locks the release artifact smoke onto the VM-first release line.
 #[test]
 fn release_smoke_text_rejects_erlang_target_marker() {
-    let root = std::env::temp_dir().join(format!(
-        "terlan-vm-release-install-validation-test-{}-{}",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock")
-            .as_nanos()
-    ));
-    let tools = root.join("tools");
-    fs::create_dir_all(&tools).expect("tools dir");
-    fs::write(
-        tools.join("package_release_artifact.py"),
-        r#"run_smoke_command(["terlc", "build", "--target", "erlang"])"#,
-    )
-    .expect("write helper");
-
-    let diagnostics = validate_release_smoke_does_not_use_erlang(&root).expect("validate");
-    fs::remove_dir_all(&root).expect("remove fixture");
+    let source = r#"run(["build", "--target", "terlan-vm", "erlang"])
+run(["--entry", "vm_release.Main.main", "--test-eval"])"#;
+    let diagnostics = validate_release_smoke_text(RELEASE_SMOKE_SOURCE, source);
 
     assert!(
         diagnostics
@@ -157,27 +140,9 @@ fn release_smoke_text_rejects_erlang_target_marker() {
 /// Verifies release smoke diagnostics reject transitional artifact discovery.
 #[test]
 fn release_smoke_text_requires_native_tvm_execution() {
-    let root = std::env::temp_dir().join(format!(
-        "terlan-vm-release-native-smoke-test-{}-{}",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock")
-            .as_nanos()
-    ));
-    let tools = root.join("tools");
-    fs::create_dir_all(&tools).expect("tools dir");
-    fs::write(
-        tools.join("package_release_artifact.py"),
-        format!(
-            "run_smoke_command([\"terlc\", \"build\", \"--target\", \"terlan-vm\"])\nvm_artifacts = list(vm_dir.glob(\"*.tvm{}\"))",
-            ".json"
-        ),
-    )
-    .expect("write helper");
-
-    let diagnostics = validate_release_smoke_does_not_use_erlang(&root).expect("validate");
-    fs::remove_dir_all(&root).expect("remove fixture");
+    let source = r#"run(["build", "--target", "terlan-vm"])
+let transitional = "*.tvm.json"."#;
+    let diagnostics = validate_release_smoke_text(RELEASE_SMOKE_SOURCE, source);
 
     assert!(diagnostics.iter().any(|diagnostic| {
         diagnostic.contains("transitional JSON")

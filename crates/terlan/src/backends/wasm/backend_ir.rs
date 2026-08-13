@@ -39,6 +39,7 @@ pub struct WasmFunction {
 
 impl WasmFunction {
     /// Creates an exported i32 constant function.
+    #[cfg(test)]
     pub fn exported_i32_const(name: impl Into<String>, value: i32) -> Self {
         let name = name.into();
         Self {

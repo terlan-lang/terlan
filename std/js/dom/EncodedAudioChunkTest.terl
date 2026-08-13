@@ -31,6 +31,6 @@ pub type__typechecks(receiver: EncodedAudioChunk): EncodedAudioChunkType ->
 
 pub copy_to_typechecks(
     receiver: EncodedAudioChunk,
-    destination: AllowSharedBufferSource
+    destination: AllowSharedBufferSource,
 ): std.core.Unit ->
     receiver.copy_to(destination).

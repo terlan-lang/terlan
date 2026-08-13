@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::{BTreeMap, BTreeSet};
 
 /// VM-owned schema identity used before persistent actor replay can load state.
@@ -39,6 +37,7 @@ impl VmPersistentActorField {
         Self::new(name, type_name, true)
     }
 
+    #[cfg(test)]
     pub(crate) fn optional(
         name: impl Into<String>,
         type_name: impl Into<String>,
@@ -118,6 +117,7 @@ impl VmPersistentActorSchemaDescriptor {
         Ok(self)
     }
 
+    #[cfg(test)]
     pub(crate) fn with_mailbox_payload_schema(
         mut self,
         schema: VmPersistentActorSchemaKey,
@@ -130,7 +130,9 @@ impl VmPersistentActorSchemaDescriptor {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum VmPersistentActorMigrationGuard {
     Deterministic,
+    #[cfg(test)]
     Nondeterministic,
+    #[cfg(test)]
     WallClockDependent,
 }
 
@@ -168,21 +170,25 @@ impl VmPersistentActorMigrationEdge {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn rename_field(mut self, from: impl Into<String>, to: impl Into<String>) -> Self {
         self.field_renames.insert(from.into(), to.into());
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn default_field(mut self, name: impl Into<String>) -> Self {
         self.defaulted_fields.insert(name.into());
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn tombstone_field(mut self, name: impl Into<String>) -> Self {
         self.tombstoned_fields.insert(name.into());
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn rename_event_variant(
         mut self,
         from: impl Into<String>,
@@ -192,16 +198,19 @@ impl VmPersistentActorMigrationEdge {
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn migrate_mailbox_payload(mut self) -> Self {
         self.migrates_mailbox_payload = true;
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn with_guard(mut self, guard: VmPersistentActorMigrationGuard) -> Self {
         self.guard = guard;
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn with_effect(mut self, effect: VmPersistentActorMigrationEffect) -> Self {
         self.effect = effect;
         self
@@ -225,6 +234,7 @@ pub(crate) enum VmPersistentActorSchemaError {
     AmbiguousMigrationEdge {
         from: VmPersistentActorSchemaKey,
     },
+    #[cfg(test)]
     NondeterministicMigrationGuard {
         from: VmPersistentActorSchemaKey,
         to: VmPersistentActorSchemaKey,
@@ -233,6 +243,7 @@ pub(crate) enum VmPersistentActorSchemaError {
         from: VmPersistentActorSchemaKey,
         to: VmPersistentActorSchemaKey,
     },
+    #[cfg(test)]
     WallClockDependentMigration {
         from: VmPersistentActorSchemaKey,
         to: VmPersistentActorSchemaKey,
@@ -255,6 +266,7 @@ pub(crate) enum VmPersistentActorSchemaError {
         expected_at_least: u64,
         actual: u64,
     },
+    #[cfg(test)]
     OutOfOrderEventMigration {
         expected_next: u64,
         actual: u64,
@@ -301,6 +313,7 @@ impl VmPersistentActorMigrationGraph {
         }
         match edge.guard {
             VmPersistentActorMigrationGuard::Deterministic => {}
+            #[cfg(test)]
             VmPersistentActorMigrationGuard::Nondeterministic => {
                 return Err(
                     VmPersistentActorSchemaError::NondeterministicMigrationGuard {
@@ -309,6 +322,7 @@ impl VmPersistentActorMigrationGraph {
                     },
                 );
             }
+            #[cfg(test)]
             VmPersistentActorMigrationGuard::WallClockDependent => {
                 return Err(VmPersistentActorSchemaError::WallClockDependentMigration {
                     from: edge.from,
@@ -360,19 +374,18 @@ impl VmPersistentActorMigrationGraph {
         Ok(plan)
     }
 
+    #[cfg(test)]
     pub(crate) fn validate_event_migration_sequence(
         &self,
         event_schema_versions: &[u64],
     ) -> Result<(), VmPersistentActorSchemaError> {
-        let mut expected_next = 1;
-        for actual in event_schema_versions {
+        for (expected_next, actual) in (1..).zip(event_schema_versions.iter()) {
             if *actual != expected_next {
                 return Err(VmPersistentActorSchemaError::OutOfOrderEventMigration {
                     expected_next,
                     actual: *actual,
                 });
             }
-            expected_next += 1;
         }
         Ok(())
     }
@@ -475,4 +488,5 @@ fn validate_mailbox_payload(
 
 #[cfg(test)]
 #[path = "persistent_actor_schema_test.rs"]
+#[cfg(test)]
 mod persistent_actor_schema_test;

@@ -126,14 +126,14 @@
       "expected": "true",
       "field": "runtime_version_source",
       "observed": "true",
-      "path": "crates/terlan/src/main.rs",
+      "path": "crates/terlan/src/lib.rs",
       "status": "ok"
     },
     {
       "expected": "true",
       "field": "runtime_version_source",
       "observed": "true",
-      "path": "crates/terlan/src/vm/main_part_001.rs",
+      "path": "crates/terlan/src/vm/cli.rs",
       "status": "ok"
     },
     {

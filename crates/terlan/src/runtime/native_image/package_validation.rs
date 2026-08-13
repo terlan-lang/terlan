@@ -12,6 +12,7 @@ use crate::runtime::vm::ReplValue;
 
 use super::debug::inspect_tvm_native_debug;
 use super::{host_tvm_target, inspect_tvm_image, reject_tvm_image_sidecars};
+use terlan_runtime_abi::{BoundaryError, ErrorDomain};
 
 const RELEASE_SCHEMA: &str = "terlan.release-artifact.v1";
 
@@ -82,6 +83,20 @@ pub fn describe_packaged_tvm_image(
     image_path: &Path,
     package_path: &str,
     entry: &str,
+) -> Result<PackagedTvmImageMetadata, BoundaryError> {
+    describe_packaged_tvm_image_untyped(image_path, package_path, entry).map_err(|error| {
+        BoundaryError::message(
+            ErrorDomain::NativeImageAdmission,
+            "describe packaged TVM image",
+            error,
+        )
+    })
+}
+
+fn describe_packaged_tvm_image_untyped(
+    image_path: &Path,
+    package_path: &str,
+    entry: &str,
 ) -> Result<PackagedTvmImageMetadata, String> {
     validate_package_relative_path(package_path)?;
     let bytes = fs::read(image_path).map_err(|error| {
@@ -131,6 +146,18 @@ pub fn describe_packaged_tvm_image(
 
 /// Admits and executes the packaged self-test image rooted at an archive or installation.
 pub fn validate_and_execute_release_package(
+    package_root: &Path,
+) -> Result<PackageValidationReport, BoundaryError> {
+    validate_and_execute_release_package_untyped(package_root).map_err(|error| {
+        BoundaryError::message(
+            ErrorDomain::NativeImageAdmission,
+            "validate and execute release package",
+            error,
+        )
+    })
+}
+
+fn validate_and_execute_release_package_untyped(
     root: &Path,
 ) -> Result<PackageValidationReport, String> {
     let metadata_path = locate_release_metadata(root)?;
@@ -164,7 +191,7 @@ pub fn validate_and_execute_release_package(
     let image_path = locate_packaged_image(root, &metadata_path, &release.native_self_test.path)?;
     reject_tvm_image_sidecars(&image_path)
         .map_err(|error| error.replace("tvm.image.sidecar", "tvm.package.sidecar"))?;
-    let actual = describe_packaged_tvm_image(
+    let actual = describe_packaged_tvm_image_untyped(
         &image_path,
         &release.native_self_test.path,
         &release.native_self_test.entry,

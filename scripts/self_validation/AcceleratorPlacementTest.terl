@@ -1,0 +1,216 @@
+/**
+ * Validates whole-program accelerator placement and differential evidence.
+ */
+module scripts.self_validation.AcceleratorPlacement.
+
+import std.core.Result.{Ok, with_default}.
+import std.core.String.
+import std.data.Json.
+import std.io.File.{read_text}.
+
+import type std.data.Json.
+
+/**
+ * Parses and validates one placement report.
+ */
+pub validate_text(text: String): Bool ->
+    case Json.parse(text) {
+        Ok(report) -> validate_report(report);
+        _ -> false
+    }.
+
+validate_report(report: Json): Bool ->
+    string_field(report, "schema") == "terlan.accelerator-placement-report.v1"
+        and plan_is_valid(report)
+        and differential_is_valid(report)
+        and artifact_identities_are_valid(report)
+        and package_optimizer_inventory_is_empty(report).
+
+plan_is_valid(report: Json): Bool ->
+    case report.get("plan") {
+        Ok(plan) ->
+            plan_header_is_valid(plan)
+                and regions_are_valid(plan)
+                and synchronization_is_valid(plan);
+        _ -> false
+    }.
+
+plan_header_is_valid(plan: Json): Bool ->
+    string_field(plan, "schema") == "terlan.accelerator-placement.v1"
+        and int_field(plan, "reference_transfer_count") == 4
+        and int_field(plan, "optimized_transfer_count") == 3.
+
+regions_are_valid(plan: Json): Bool ->
+    case plan.get("regions") {
+        Ok(regions) -> array_length(regions) == 2 and first_region_is_valid(regions);
+        _ -> false
+    }.
+
+first_region_is_valid(regions: Json): Bool ->
+    case regions.at(0) {
+        Ok(region) ->
+            bool_field(region, "fused")
+                and string_field(region, "maintained_library_operation") == "terlan-cuda:buffer.add"
+                and operation_count(region) == 2;
+        _ -> false
+    }.
+
+synchronization_is_valid(plan: Json): Bool ->
+    case plan.get("synchronizations") {
+        Ok(synchronizations) -> array_length(synchronizations) == 1;
+        _ -> false
+    }.
+
+operation_count(region: Json): Int ->
+    case region.get("operations") {
+        Ok(operations) -> array_length(operations);
+        _ -> -1
+    }.
+
+differential_is_valid(report: Json): Bool ->
+    case report.get("differential") {
+        Ok(differential) ->
+            bool_field(differential, "exact_match")
+                and string_field(differential, "maximum_absolute_error") == "0";
+        _ -> false
+    }.
+
+artifact_identities_are_valid(report: Json): Bool ->
+    case report.get("artifact_identities") {
+        Ok(identities) ->
+            array_length(identities) == 3
+                and identity_at_is_valid(identities, 0)
+                and identity_at_is_valid(identities, 1)
+                and identity_at_is_valid(identities, 2);
+        _ -> false
+    }.
+
+identity_at_is_valid(identities: Json, index: Int): Bool ->
+    case identities.at(index) {
+        Ok(identity) -> is_lowercase_sha256(with_default(identity.as_string(), ""));
+        _ -> false
+    }.
+
+package_optimizer_inventory_is_empty(report: Json): Bool ->
+    case report.get("package_side_optimizers") {
+        Ok(optimizers) -> array_length(optimizers) == 0;
+        _ -> false
+    }.
+
+string_field(value: Json, name: String): String ->
+    case value.get(name) {
+        Ok(field) -> with_default(field.as_string(), "");
+        _ -> ""
+    }.
+
+int_field(value: Json, name: String): Int ->
+    case value.get(name) {
+        Ok(field) -> with_default(field.as_int(), -1);
+        _ -> -1
+    }.
+
+bool_field(value: Json, name: String): Bool ->
+    case value.get(name) {
+        Ok(field) -> with_default(field.as_bool(), false);
+        _ -> false
+    }.
+
+array_length(value: Json): Int ->
+    with_default(value.length(), -1).
+
+is_lowercase_sha256(value: String): Bool ->
+    String.byte_size(value) == 64 and strip_hex_digits(value) == "".
+
+@pure
+strip_hex_digits(value: String): String ->
+    String.replace(
+        String.replace(
+            String.replace(
+                String.replace(
+                    String.replace(
+                        String.replace(
+                            String.replace(
+                                String.replace(
+                                    String.replace(
+                                        String.replace(
+                                            String.replace(
+                                                String.replace(
+                                                    String.replace(
+                                                        String.replace(
+                                                            String.replace(
+                                                                String.replace(value, "0", ""),
+                                                                "1",
+                                                                "",
+                                                            ),
+                                                            "2",
+                                                            "",
+                                                        ),
+                                                        "3",
+                                                        "",
+                                                    ),
+                                                    "4",
+                                                    "",
+                                                ),
+                                                "5",
+                                                "",
+                                            ),
+                                            "6",
+                                            "",
+                                        ),
+                                        "7",
+                                        "",
+                                    ),
+                                    "8",
+                                    "",
+                                ),
+                                "9",
+                                "",
+                            ),
+                            "a",
+                            "",
+                        ),
+                        "b",
+                        "",
+                    ),
+                    "c",
+                    "",
+                ),
+                "d",
+                "",
+            ),
+            "e",
+            "",
+        ),
+        "f",
+        "",
+    ).
+
+@test
+pub generated_placement_report_is_valid(): Bool ->
+    case read_text("target/quality/accelerator-placement-report.json") {
+        Ok(text) -> validate_text(text);
+        _ -> false
+    }.
+
+@test
+pub missing_report_schema_is_rejected(): Bool ->
+    case read_text("target/quality/accelerator-placement-report.json") {
+        Ok(text) ->
+            not validate_text(String.replace(text, "terlan.accelerator-placement-report.v1", "invalid"));
+        _ -> false
+    }.
+
+@test
+pub non_reproducible_differential_is_rejected(): Bool ->
+    case read_text("target/quality/accelerator-placement-report.json") {
+        Ok(text) ->
+            not validate_text(String.replace(text, "\"exact_match\": true", "\"exact_match\": false"));
+        _ -> false
+    }.
+
+@test
+pub missing_fusion_is_rejected(): Bool ->
+    case read_text("target/quality/accelerator-placement-report.json") {
+        Ok(text) -> not validate_text(String.replace(text, "\"fused\": true", "\"fused\": false"));
+        _ -> false
+    }.

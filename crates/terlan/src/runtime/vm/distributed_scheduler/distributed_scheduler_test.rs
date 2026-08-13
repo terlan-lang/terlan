@@ -7,16 +7,22 @@ use super::{
 };
 use crate::runtime::vm::coordination::{VmClusterNodeSnapshot, VmClusterNodeState};
 
+#[cfg(test)]
 #[path = "distributed_scheduler_test/fault.rs"]
 mod fault;
+#[cfg(test)]
 #[path = "distributed_scheduler_test/migration.rs"]
 mod migration;
+#[cfg(test)]
 #[path = "distributed_scheduler_test/placement.rs"]
 mod placement;
+#[cfg(test)]
 #[path = "distributed_scheduler_test/placement_override.rs"]
 mod placement_override;
+#[cfg(test)]
 #[path = "distributed_scheduler_test/pool_parity.rs"]
 mod pool_parity;
+#[cfg(test)]
 #[path = "distributed_scheduler_test/recovery.rs"]
 mod recovery;
 

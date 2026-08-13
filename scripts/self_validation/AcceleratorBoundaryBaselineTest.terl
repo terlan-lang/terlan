@@ -1,0 +1,332 @@
+/**
+ * Validates and records the accelerator-specific production boundary.
+ */
+module scripts.self_validation.AcceleratorBoundaryBaseline.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok}.
+import std.core.{String, Unit}.
+import std.data.Json.
+import std.io.Directory.create_all.
+import std.io.File.{read_text, read_text_tree_matching, text_file_contents, text_file_path, write_text}.
+import std.regex.Regex.
+import std.system.Environment.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.io.File.TextFile.
+import type std.regex.Regex.
+
+struct Reference {
+    category: String,
+    line: Int,
+    path: String,
+}.
+
+struct ScanResult {
+    valid: Bool,
+    references: List[Reference],
+}.
+
+@pure
+pub classify(path: String): Option[String] ->
+    if {
+        path == "Makefile" -> Some("build-gate");
+        path == "crates/terlan/src/compiler/accelerator/aot/llvm_nvptx.rs" -> Some("backend-adapter");
+        String.starts_with(path, "tools/") -> Some("quality-tool");
+        String.starts_with(path, "crates/terlan/src/quality/") -> Some("quality-gate");
+        String.contains(path, "_test") or String.contains(path, "/tests/") -> Some("test-fixture");
+        true -> None
+    }.
+
+scan_repository(): ScanResult ->
+    let pattern_result = Regex.compile("(?i)cuda|nvidia|cudarc|libtorch_cuda|(^|[^a-z])ptx([^a-z]|$)");
+    let makefile_result = read_text("Makefile");
+    case {pattern_result, makefile_result} {
+        {Ok(pattern), Ok(makefile)} ->
+            let makefile_scan = scan_text("Makefile", makefile, pattern, []);
+            if {
+                not makefile_scan.valid -> makefile_scan;
+                true -> let scanned = scan_roots(["crates", "tools"], pattern, makefile_scan.references);
+                ScanResult(
+                    valid = scanned.valid,
+                    references = reverse_references(scanned.references, []),
+                )
+            };
+        _ -> ScanResult(valid = false, references = [])
+    }.
+
+scan_roots(roots: List[String], pattern: Regex, references: List[Reference]): ScanResult ->
+    case roots {
+        [] -> ScanResult(valid = true, references = references);
+        [root | rest] ->
+            let scanned = scan_tree_page(root, pattern, 0, references);
+            if {
+                scanned.valid -> scan_roots(rest, pattern, scanned.references);
+                true -> scanned
+            }
+    }.
+
+scan_tree_page(
+    root: String,
+    pattern: Regex,
+    offset: Int,
+    references: List[Reference],
+): ScanResult ->
+    let page_result = read_text_tree_matching(root, [], [".rs", ".py", ".toml", ".mk"], [], offset, 64);
+    case page_result {
+        Ok([]) -> ScanResult(valid = true, references = references);
+        Ok(files) ->
+            let page_count = text_file_count(files);
+            let scanned = scan_text_files(files, pattern, references);
+            if {
+                not scanned.valid -> scanned;
+                true -> scan_tree_page(root, pattern, offset + page_count, scanned.references)
+            };
+        _ -> ScanResult(valid = false, references = references)
+    }.
+
+scan_text_files(files: List[TextFile], pattern: Regex, references: List[Reference]): ScanResult ->
+    case files {
+        [] -> ScanResult(valid = true, references = references);
+        [file | rest] ->
+            let scanned = scan_text(text_file_path(file), text_file_contents(file), pattern, references);
+            if {
+                scanned.valid -> scan_text_files(rest, pattern, scanned.references);
+                true -> scanned
+            }
+    }.
+
+@pure
+text_file_count(files: List[TextFile]): Int ->
+    case files {
+        [] -> 0;
+        [_ | rest] -> 1 + text_file_count(rest)
+    }.
+
+scan_text(path: String, text: String, pattern: Regex, references: List[Reference]): ScanResult ->
+    let line_numbers = Regex.matching_line_numbers(pattern, text);
+    case line_numbers {
+        [] -> ScanResult(valid = true, references = references);
+        [_ | _] ->
+            case classify(path) {
+                Some(category) ->
+                    ScanResult(
+                        valid = true,
+                        references = prepend_references(line_numbers, category, path, references),
+                    );
+                None -> ScanResult(valid = false, references = references)
+            }
+    }.
+
+@pure
+prepend_references(
+    lines: List[Int],
+    category: String,
+    path: String,
+    references: List[Reference],
+): List[Reference] ->
+    case lines {
+        [] -> references;
+        [line | rest] ->
+            prepend_references(
+                rest,
+                category,
+                path,
+                [Reference(category = category, line = line, path = path) | references],
+            )
+    }.
+
+@pure
+reverse_references(remaining: List[Reference], accumulated: List[Reference]): List[Reference] ->
+    case remaining {
+        [] -> accumulated;
+        [reference | rest] -> reverse_references(rest, [reference | accumulated])
+    }.
+
+package_evidence(package_dir: String): Json ->
+    let contract_path = child(package_dir, "contracts/cuda-baseline-v1.json");
+    let report_path = child(package_dir, "reports/cuda-baseline-freeze.json");
+    let contract_read = read_text(contract_path);
+    let report_read = read_text(report_path);
+    case {contract_read, report_read} {
+        {Ok(contract_text), Ok(report_text)} ->
+            let contract_json = Json.parse(contract_text);
+            let report_json = Json.parse(report_text);
+            case {contract_json, report_json} {
+                {Ok(contract), Ok(report)} -> package_evidence_from_json(contract, report);
+                _ -> Json.null()
+            };
+        _ -> Json.null()
+    }.
+
+package_evidence_from_json(contract: Json, report: Json): Json ->
+    let {
+        {Some("terlan.cuda-baseline-contract.v1"), Some("terlan.cuda-baseline-freeze.v1"), Ok(interfaces), Ok(package), Ok(consumer)} <-
+            {
+                string_field(contract, "schema"),
+                string_field(report, "schema"),
+                contract.get("interfaces"),
+                contract.get("package"),
+                report.get("consumer"),
+            };
+        {Ok(interface_names), Some("passed")} <- {interfaces.keys(), string_field(consumer, "fresh_isolated_check")}
+    } else {
+        _ -> Json.null()
+    };
+    (let evidence = Json.object(); let _contract_schema = evidence.put("contract_schema", Json.string("terlan.cuda-baseline-contract.v1")); let _execution_schema = evidence.put("execution_schema", Json.string("terlan.cuda-baseline-freeze.v1")); let _interfaces = evidence.put("interfaces", string_array(interface_names)); let _package = evidence.put("package", package); evidence).
+
+string_field(value: Json, name: String): Option[String] ->
+    let {
+        Ok(field) <- value.get(name);
+        Ok(text) <- field.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+string_array(values: List[String]): Json ->
+    let array = Json.array();
+    push_strings(array, values);
+    array.
+
+push_strings(mut array: Json, values: List[String]): Unit ->
+    case values {
+        [] -> Unit;
+        [value | rest] ->
+            let _push = array.push(Json.string(value));
+            push_strings(array, rest)
+    }.
+
+references_json(references: List[Reference]): Json ->
+    let array = Json.array();
+    push_references(array, references);
+    array.
+
+push_references(mut array: Json, references: List[Reference]): Unit ->
+    case references {
+        [] -> Unit;
+        [reference | rest] ->
+            let row = Json.object();
+            let _category = row.put("category", Json.string(reference.category));
+            let _line = row.put("line", Json.int(reference.line));
+            let _path = row.put("path", Json.string(reference.path));
+            let _push = array.push(row);
+            push_references(array, rest)
+    }.
+
+category_counts_json(references: List[Reference]): Json ->
+    let backend_count = count_category(references, "backend-adapter");
+    let build_count = count_category(references, "build-gate");
+    let gate_count = count_category(references, "quality-gate");
+    let tool_count = count_category(references, "quality-tool");
+    let test_count = count_category(references, "test-fixture");
+    let counts = Json.object();
+    let _backend = counts.put("backend-adapter", Json.int(backend_count));
+    let _build = counts.put("build-gate", Json.int(build_count));
+    let _gate = counts.put("quality-gate", Json.int(gate_count));
+    let _tool = counts.put("quality-tool", Json.int(tool_count));
+    let _test = counts.put("test-fixture", Json.int(test_count));
+    counts.
+
+@pure
+count_category(references: List[Reference], expected: String): Int ->
+    case references {
+        [] -> 0;
+        [reference | rest] ->
+            let increment =
+                if {
+                    reference.category == expected -> 1;
+                    true -> 0
+                };
+            increment + count_category(rest, expected)
+    }.
+
+report_json(evidence: Json, references: List[Reference]): Json ->
+    let report = Json.object();
+    let _package = report.put("cuda_package", evidence);
+    let _references = report.put("references", references_json(references));
+    let _categories = report.put("references_by_category", category_counts_json(references));
+    let _schema = report.put("schema", Json.string("terlan.accelerator-boundary-baseline.v1"));
+    let _status = report.put("status", Json.string("passed"));
+    report.
+
+pub generate_report(package_dir: String, output: String): Bool ->
+    let scan = scan_repository();
+    if {
+        not scan.valid -> false;
+        true -> let evidence = package_evidence(package_dir);
+        let missing_evidence = evidence.is_null();
+        if {
+            missing_evidence -> false;
+            true -> let report = report_json(evidence, scan.references);
+            let encoded_result = Json.stringify(report);
+            case encoded_result {
+                Ok(encoded) ->
+                    let created = create_all("target/quality");
+                    let contents = String.append(encoded, "\n");
+                    let written = write_text(output, contents);
+                    case {created, written} {
+                        {Ok(Unit), Ok(Unit)} ->
+                            let read_result = read_text(output);
+                            case read_result {
+                                Ok(written) -> written == contents;
+                                _ -> false
+                            };
+                        _ -> false
+                    };
+                _ -> false
+            }
+        }
+    }.
+
+@pure
+child(root: String, relative: String): String ->
+    String.append(root, String.append("/", relative)).
+
+@test
+pub classification_contract_rejects_production_leaks(): Bool ->
+    classification_is("Makefile", "build-gate")
+        and classification_is("tools/check_cuda.py", "quality-tool")
+        and classification_is("crates/terlan/src/quality/cuda.rs", "quality-gate")
+        and classification_is("crates/terlan/src/compiler/accelerator/aot/llvm_nvptx.rs", "backend-adapter")
+        and classification_is("crates/terlan/src/runtime/cuda_test.rs", "test-fixture")
+        and classification_is_absent("crates/terlan/src/compiler/cuda.rs").
+
+@test
+pub classification_build_gate_is_selected(): Bool ->
+    classification_is("Makefile", "build-gate").
+
+@test
+pub classification_absent_path_is_rejected(): Bool ->
+    classification_is_absent("crates/terlan/src/compiler/cuda.rs").
+
+@pure
+classification_is(path: String, expected: String): Bool ->
+    case classify(path) {
+        Some(actual) -> actual == expected;
+        None -> false
+    }.
+
+@pure
+classification_is_absent(path: String): Bool ->
+    case classify(path) {
+        Some(_) -> false;
+        None -> true
+    }.
+
+@test
+pub repository_boundary_report_is_written_by_terlan(): Bool ->
+    generate_report(
+        environment_or("TERLAN_ACCELERATOR_PACKAGE_DIR", "../terlan-cuda"),
+        environment_or(
+            "TERLAN_ACCELERATOR_BOUNDARY_OUTPUT",
+            "target/quality/accelerator-boundary-baseline.json",
+        ),
+    ).
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.

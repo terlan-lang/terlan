@@ -1,11 +1,13 @@
+use super::super::meta_trace::VmMetaTraceCallToken;
+#[cfg(test)]
 use super::super::meta_trace::{
-    VmMetaTraceCallToken, VmMetaTraceConfig, VmMetaTraceCursor, VmMetaTraceSnapshot,
-    VmMetaTraceState,
+    VmMetaTraceConfig, VmMetaTraceCursor, VmMetaTraceSnapshot, VmMetaTraceState,
 };
 use super::super::process::{VmProcessId, VmProcessLocation, VmProcessSource};
 use super::VmActorRuntime;
 
 impl VmActorRuntime {
+    #[cfg(test)]
     pub(crate) fn enable_meta_trace(
         &mut self,
         source: VmProcessSource,
@@ -16,18 +18,22 @@ impl VmActorRuntime {
         Ok(self.meta_trace.enable(source, observer, config))
     }
 
+    #[cfg(test)]
     pub(crate) fn disable_meta_trace(&mut self, source: &VmProcessSource) -> bool {
         self.meta_trace.disable(source)
     }
 
+    #[cfg(test)]
     pub(crate) fn meta_trace_state(&self, source: &VmProcessSource) -> VmMetaTraceState {
         self.meta_trace.state(source)
     }
 
+    #[cfg(test)]
     pub(crate) fn meta_trace_cursor(&self) -> VmMetaTraceCursor {
         self.meta_trace.cursor()
     }
 
+    #[cfg(test)]
     pub(crate) fn meta_trace_since(
         &self,
         cursor: VmMetaTraceCursor,

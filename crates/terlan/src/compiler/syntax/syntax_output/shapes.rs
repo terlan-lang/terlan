@@ -5,7 +5,7 @@ mod string_patterns;
 use string_patterns::{rewrite_string_pattern_text, string_capture_name};
 
 use super::{
-    expr_node, SyntaxClauseOutput, SyntaxDeclarationOutput, SyntaxDeclarationPayload,
+    SyntaxClauseOutput, SyntaxDeclarationOutput, SyntaxDeclarationPayload, SyntaxExprFieldOutput,
     SyntaxExprKind, SyntaxExprOutput, SyntaxFunctionClauseOutput, SyntaxHtmlAttrValueOutput,
     SyntaxHtmlNodeOutput, SyntaxParamOutput, SyntaxPatternKind, SyntaxPatternOutput,
 };
@@ -21,12 +21,13 @@ mod guard_predicates;
 mod overlap;
 mod runtime_use;
 
-use declarations::{collect_shapes, duplicate_pattern_binding};
+use declarations::{collect_shapes, validate_expanded_shape_bindings};
 use guard_predicates::{collect_guard_predicate_definitions, GuardPredicateDefinitions};
 use overlap::{validate_expr_clause_overlap, validate_function_clause_overlap};
 use runtime_use::reject_runtime_shape_call;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing syntax shape import.
 pub struct SyntaxShapeImport {
     pub(crate) local_name: String,
     pub(crate) source_module: String,
@@ -317,6 +318,9 @@ fn expand_expr(
     guard_predicates: &GuardPredicateDefinitions,
     next_hygiene_id: &mut usize,
 ) -> EbnfCompileResult<()> {
+    if plain_expression_tree_requires_no_shape_work(expression, shapes)? {
+        return Ok(());
+    }
     reject_runtime_shape_call(expression, shapes)?;
     if expression.kind == SyntaxExprKind::Let {
         return expand_let_expr(expression, shapes, guard_predicates, next_hygiene_id);
@@ -370,6 +374,28 @@ fn expand_expr(
         append_comprehension_shape_guards(expression, shape_guards)?;
     }
     Ok(())
+}
+
+/// Fast-paths ordinary expression trees without recursive shape traversal.
+fn plain_expression_tree_requires_no_shape_work(
+    expression: &SyntaxExprOutput,
+    shapes: &BTreeMap<String, ShapePattern>,
+) -> EbnfCompileResult<bool> {
+    let mut pending = vec![expression];
+    while let Some(current) = pending.pop() {
+        reject_runtime_shape_call(current, shapes)?;
+        if !current.patterns.is_empty()
+            || !current.fields.is_empty()
+            || !current.clauses.is_empty()
+            || !current.catch_clauses.is_empty()
+            || current.try_after.is_some()
+            || !current.html_nodes.is_empty()
+        {
+            return Ok(false);
+        }
+        pending.extend(&current.children);
+    }
+    Ok(true)
 }
 
 /// Expands shape aliases in ordered let bindings.
@@ -443,7 +469,7 @@ fn expand_let_expr(
 
     for (pattern, value, guard) in bindings.into_iter().rev() {
         continuation = if let Some(guard) = guard {
-            expr_node(
+            expr_node!(
                 SyntaxExprKind::Case,
                 None,
                 None,
@@ -459,7 +485,7 @@ fn expand_let_expr(
                 span,
             )
         } else {
-            let mut let_expr = expr_node(
+            let mut let_expr = expr_node!(
                 SyntaxExprKind::Let,
                 None,
                 None,
@@ -658,113 +684,9 @@ fn expand_pattern(
     })
 }
 
-fn validate_expanded_shape_bindings(
-    shape_name: &str,
-    pattern: &SyntaxPatternOutput,
-) -> EbnfCompileResult<()> {
-    let mut seen = BTreeSet::new();
-    if let Some(binding) = duplicate_pattern_binding(pattern, &mut seen) {
-        return Err(EbnfCompileError::Serialize(format!(
-            "shape `{shape_name}` expansion binds `{binding}` more than once; overlapping shape arguments are ambiguous"
-        )));
-    }
-    Ok(())
-}
+mod guard_substitution;
 
-fn substitute_guard_expr(
-    mut expression: SyntaxExprOutput,
-    substitutions: &BTreeMap<String, SyntaxPatternOutput>,
-    shape_name: &str,
-) -> EbnfCompileResult<SyntaxExprOutput> {
-    if expression.kind == SyntaxExprKind::Var {
-        if let Some((param, pattern)) = expression
-            .text
-            .as_ref()
-            .and_then(|name| substitutions.get_key_value(name))
-        {
-            return guard_value_from_pattern(pattern).ok_or_else(|| {
-                EbnfCompileError::Serialize(format!(
-                    "shape `{shape_name}` guard references parameter `{param}` with a non-value pattern argument"
-                ))
-            });
-        }
-    }
-    expression.children = expression
-        .children
-        .into_iter()
-        .map(|child| substitute_guard_expr(child, substitutions, shape_name))
-        .collect::<EbnfCompileResult<Vec<_>>>()?;
-    expression.let_guards = expression
-        .let_guards
-        .into_iter()
-        .map(|guard| {
-            guard
-                .map(|guard| substitute_guard_expr(*guard, substitutions, shape_name).map(Box::new))
-                .transpose()
-        })
-        .collect::<EbnfCompileResult<Vec<_>>>()?;
-    for field in &mut expression.fields {
-        *field.value = substitute_guard_expr((*field.value).clone(), substitutions, shape_name)?;
-    }
-    for clause in &mut expression.clauses {
-        substitute_clause_guard_expr(clause, substitutions, shape_name)?;
-    }
-    for clause in &mut expression.catch_clauses {
-        substitute_clause_guard_expr(clause, substitutions, shape_name)?;
-    }
-    if let Some(after) = &mut expression.try_after {
-        *after.trigger =
-            substitute_guard_expr((*after.trigger).clone(), substitutions, shape_name)?;
-        *after.body = substitute_guard_expr((*after.body).clone(), substitutions, shape_name)?;
-    }
-    for node in &mut expression.html_nodes {
-        substitute_html_guard_expr(node, substitutions, shape_name)?;
-    }
-    Ok(expression)
-}
-
-fn substitute_clause_guard_expr(
-    clause: &mut SyntaxClauseOutput,
-    substitutions: &BTreeMap<String, SyntaxPatternOutput>,
-    shape_name: &str,
-) -> EbnfCompileResult<()> {
-    if let Some(guard) = &mut clause.guard {
-        **guard = substitute_guard_expr((**guard).clone(), substitutions, shape_name)?;
-    }
-    *clause.body = substitute_guard_expr((*clause.body).clone(), substitutions, shape_name)?;
-    Ok(())
-}
-
-fn substitute_html_guard_expr(
-    node: &mut SyntaxHtmlNodeOutput,
-    substitutions: &BTreeMap<String, SyntaxPatternOutput>,
-    shape_name: &str,
-) -> EbnfCompileResult<()> {
-    match node {
-        SyntaxHtmlNodeOutput::Text { .. } => Ok(()),
-        SyntaxHtmlNodeOutput::Expr { expr } => {
-            **expr = substitute_guard_expr((**expr).clone(), substitutions, shape_name)?;
-            Ok(())
-        }
-        SyntaxHtmlNodeOutput::NamedSlot { slot } => {
-            for child in &mut slot.children {
-                substitute_html_guard_expr(child, substitutions, shape_name)?;
-            }
-            Ok(())
-        }
-        SyntaxHtmlNodeOutput::Element { element } => {
-            for attr in &mut element.attrs {
-                if let Some(SyntaxHtmlAttrValueOutput::Expr { expr }) = &mut attr.value {
-                    **expr = substitute_guard_expr((**expr).clone(), substitutions, shape_name)?;
-                }
-            }
-            for child in &mut element.children {
-                substitute_html_guard_expr(child, substitutions, shape_name)?;
-            }
-            Ok(())
-        }
-    }
-}
+use guard_substitution::substitute_guard_expr;
 
 fn guard_value_from_pattern(pattern: &SyntaxPatternOutput) -> Option<SyntaxExprOutput> {
     let kind = match pattern.kind {
@@ -775,7 +697,7 @@ fn guard_value_from_pattern(pattern: &SyntaxPatternOutput) -> Option<SyntaxExprO
         SyntaxPatternKind::Atom => SyntaxExprKind::Atom,
         SyntaxPatternKind::Alias => {
             return pattern.text.as_ref().map(|alias| {
-                expr_node(
+                expr_node!(
                     SyntaxExprKind::Var,
                     Some(alias.clone()),
                     None,
@@ -790,7 +712,7 @@ fn guard_value_from_pattern(pattern: &SyntaxPatternOutput) -> Option<SyntaxExprO
         }
         _ => return None,
     };
-    Some(expr_node(
+    Some(expr_node!(
         kind,
         pattern.text.clone(),
         None,
@@ -821,7 +743,7 @@ fn combine_boxed_guards(
 }
 
 fn and_guard(left: SyntaxExprOutput, right: SyntaxExprOutput) -> SyntaxExprOutput {
-    expr_node(
+    expr_node!(
         SyntaxExprKind::BinaryOp,
         None,
         Some("and".to_string()),

@@ -1,8 +1,10 @@
-use super::super::memory::{VmMemoryPressureDecision, VmMemoryPressureOutcome};
-use super::{VmActorRuntime, VmExitReason, VmProcessId, ACTOR_OPERATION_REDUCTIONS};
+use super::*;
+#[cfg(test)]
+use crate::runtime::vm::memory::VmMemoryPressureDecision;
 
 /// Process policy applied when a requested heap charge exceeds the hard limit.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmActorHeapLimitPolicy {
     Reject,
     Kill,
@@ -10,6 +12,7 @@ pub(crate) enum VmActorHeapLimitPolicy {
 
 /// Result of one actor heap reservation and its process-lifecycle effect.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmActorHeapLimitOutcome {
     pub(crate) pressure: VmMemoryPressureDecision,
     pub(crate) exited: bool,
@@ -18,6 +21,7 @@ pub(crate) struct VmActorHeapLimitOutcome {
 impl VmActorRuntime {
     /// Reserves process heap and optionally turns a hard-limit rejection into
     /// an immediate, untrappable `killed` process exit.
+    #[cfg(test)]
     pub(crate) fn reserve_actor_heap(
         &mut self,
         pid: VmProcessId,

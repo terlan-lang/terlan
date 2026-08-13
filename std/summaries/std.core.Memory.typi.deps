@@ -1,0 +1,8 @@
+module=std.core.Memory
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=14216911397884827299
+interface_hash=15408363826877547313
+interface_doc_hash=1203812568982909925
+deps=0

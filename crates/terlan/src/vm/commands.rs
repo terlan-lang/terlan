@@ -10,11 +10,7 @@
 /// Transformation:
 /// - Reuses the production helper implementations without importing the full
 ///   `terlc` command dispatcher into the standalone VM artifact.
-#[path = "../commands/artifacts.rs"]
-pub(crate) mod artifacts;
-
-#[path = "../commands/json.rs"]
-pub(crate) mod json;
+pub(crate) use crate::commands::{artifacts, json};
 
 pub(crate) mod static_site {
     /// Reserved template prop name used for component children.

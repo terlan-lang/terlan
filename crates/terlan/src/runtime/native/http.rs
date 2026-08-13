@@ -82,8 +82,8 @@ impl HttpError {
 
 #[path = "http/request.rs"]
 mod request;
-pub use request::Request;
 pub(crate) use request::RequestParts;
+pub use request::{Request, RequestMetadata};
 #[path = "http/request_projection.rs"]
 mod request_projection;
 pub(crate) use request_projection::RequestFieldProjection;
@@ -864,4 +864,5 @@ pub fn with_cookies(mut response: Response, jar: &CookieJar) -> Response {
 
 #[cfg(test)]
 #[path = "http_test.rs"]
+#[cfg(test)]
 mod http_test;

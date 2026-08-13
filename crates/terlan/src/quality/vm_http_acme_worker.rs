@@ -43,7 +43,7 @@ const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
         ],
     ),
     (
-        "crates/terlan/src/commands/serve/tls.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
         &[
             "instant_acme",
             "AcmeHttp01Challenge",
@@ -70,7 +70,7 @@ const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
         ],
     ),
     (
-        "crates/terlan/src/commands/serve/mod.rs",
+        "crates/terlan/src/commands/serve/request_dispatch.rs",
         &[
             "acme_http01_challenge",
             "AcmeHttp01Challenge::Found",
@@ -97,7 +97,7 @@ const REQUIRED_TEST_ANCHORS: &[(&str, &[&str])] = &[
         ],
     ),
     (
-        "crates/terlan/src/commands/serve/tls_test.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime/tls_test.rs",
         &[
             "serve_live_acme_issuance_starts_vm_worker_lane",
             "pending_http01_challenges_reject_missing_http01",
@@ -131,20 +131,8 @@ const REQUIRED_TEST_ANCHORS: &[(&str, &[&str])] = &[
 ];
 
 const REQUIRED_GATE_TERMS: &[&str] = &[
-    "vm-http-acme-tls-production-check: http-tls-check",
-    "vm-http-acme-worker-migration-check: vm-http-acme-tls-production-check",
-    "runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_runs_http01_state_machine_without_network",
-    "runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_rejects_invalid_inputs_and_cleans_up_owner_workers",
-    "runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_captures_support_bundle_replay_steps",
-    "runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_enforces_owner_backpressure_limit",
-    "runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_emits_challenge_and_issuance_telemetry_spans",
-    "runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_authorizes_http01_challenge_route_through_policy_hook",
-    "runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_parks_and_wakes_issuance_waiters",
-    "runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_emits_due_renewal_wakeups",
-    "runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_uses_one_contract_for_fixture_and_live_lanes",
-    "runtime::vm::acme_worker::acme_worker_test::vm_acme_worker_starts_issuance_without_new_challenge_for_valid_authorizations",
-    "commands::serve::tls::tls_test::serve_live_acme_issuance_starts_vm_worker_lane",
-    "vm_http_acme_worker_test",
+    "vm-http-acme-tls-base-check: vm-timer-deadline-check http-tls-check",
+    "vm-http-acme-worker-migration-check: vm-http-acme-tls-base-check",
     "vm-http-acme-worker",
 ];
 
@@ -216,6 +204,7 @@ const TYPED_DIAGNOSTIC_FIXTURES: &[&str] = &[
 const REJECTED_WORKER_PATHS: &[&str] = &[];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm http acme worker summary.
 pub struct VmHttpAcmeWorkerSummary {
     pub worker_state_trace_count: usize,
     pub challenge_routing_trace_count: usize,
@@ -224,6 +213,7 @@ pub struct VmHttpAcmeWorkerSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm http acme worker.
 pub fn run_vm_http_acme_worker(root: &Path) -> QualityResult<VmHttpAcmeWorkerSummary> {
     let mut diagnostics = Vec::new();
     for (relative, anchors) in REQUIRED_FOUNDATION_ANCHORS {
@@ -298,13 +288,39 @@ fn validate_required_terms(
     terms: &[&str],
     label: &str,
 ) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join(relative))
+    let text = read_split_source(root, relative)
         .map_err(|err| format!("{relative}: failed to read {label}: {err}"))?;
     Ok(terms
         .iter()
         .filter(|term| !text.contains(**term))
         .map(|term| format!("{relative}: missing {label} anchor `{term}`"))
         .collect())
+}
+
+pub(super) fn read_split_source(root: &Path, relative: &str) -> Result<String, std::io::Error> {
+    let path = root.join(relative);
+    let mut text = fs::read_to_string(&path)?;
+    let directory = path.with_extension("");
+    append_rs_sources(&directory, &mut text)?;
+    Ok(text)
+}
+
+fn append_rs_sources(directory: &Path, text: &mut String) -> Result<(), std::io::Error> {
+    if !directory.is_dir() {
+        return Ok(());
+    }
+    let mut entries = fs::read_dir(directory)?.collect::<Result<Vec<_>, _>>()?;
+    entries.sort_by_key(std::fs::DirEntry::path);
+    for entry in entries {
+        let path = entry.path();
+        if path.is_dir() {
+            append_rs_sources(&path, text)?;
+        } else if path.extension().is_some_and(|extension| extension == "rs") {
+            text.push('\n');
+            text.push_str(&fs::read_to_string(path)?);
+        }
+    }
+    Ok(())
 }
 
 fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
@@ -328,4 +344,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_http_acme_worker_test.rs"]
+#[cfg(test)]
 mod vm_http_acme_worker_test;

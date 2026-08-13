@@ -108,8 +108,8 @@ impl VmSealedShardImage {
 }
 
 /// Monotonic identity of one supervisor control request.
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[cfg(test)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct VmShardControlRequestId(
     /// Validated nonzero request number.
     u64,
@@ -132,8 +132,8 @@ impl VmShardControlRequestId {
 }
 
 /// Exhaustive class of supervisor-to-shard control traffic.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg(test)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmShardControlClass {
     /// Admits one sealed native image generation.
     Admission,
@@ -160,8 +160,8 @@ impl VmShardControlClass {
 }
 
 /// Coarse lifecycle intent sent by the supervisor.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg(test)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmShardLifecycleDirective {
     /// Starts control-plane admission for a new shard process.
     Start,
@@ -172,8 +172,8 @@ pub(crate) enum VmShardLifecycleDirective {
 }
 
 /// Bounded inspection subject owned by the shard control plane.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg(test)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmShardInspectionSubject {
     /// Shard health and progress counters.
     Health,
@@ -217,8 +217,8 @@ pub(crate) enum VmShardControlError {
 }
 
 /// Closed payload set for one supervisor-to-shard control request.
-#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg(test)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 enum VmShardControlPayload {
     /// Sealed image metadata to admit before shard readiness.
     Admission {
@@ -254,8 +254,8 @@ enum VmShardControlPayload {
 }
 
 /// One validated coarse supervisor-to-shard command.
-#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg(test)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct VmShardControlCommand {
     /// Correlation identity assigned by the supervisor.
     request_id: VmShardControlRequestId,
@@ -369,4 +369,5 @@ impl VmShardControlCommand {
 
 #[cfg(test)]
 #[path = "execution_shard_protocol_test.rs"]
+#[cfg(test)]
 mod execution_shard_protocol_test;

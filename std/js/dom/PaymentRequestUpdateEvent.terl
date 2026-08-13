@@ -26,6 +26,6 @@ pub opaque type PaymentRequestUpdateEvent.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequestUpdateEvent/updateWith)
  */
 pub (value: PaymentRequestUpdateEvent) update_with(
-    details_promise: PaymentDetailsUpdate | PromiseLike[PaymentDetailsUpdate]
+    details_promise: PaymentDetailsUpdate | PromiseLike[PaymentDetailsUpdate],
 ): std.core.Unit ->
     native.

@@ -3,7 +3,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use super::{
     evaluate_repl_prompt_inputs, parse_repl_command_args, repl_generation_run_name,
-    run_repl_expression_in_session_with_output, ReplCompilerService, ReplValueBinding,
+    run_repl_expression_in_session_with_output, ReplCompilerService, ReplExpressionRequest,
+    ReplValueBinding,
 };
 use crate::validation::native_policy::NativePolicy;
 use crate::validation::target_profile::TargetProfile;
@@ -94,6 +95,51 @@ fn scalar_repl_generation_executes_without_resident_core_ir() {
     );
 
     fs::remove_dir_all(&root).expect("remove native-only REPL root");
+}
+
+#[test]
+fn repl_debug_mode_executes_generation_through_live_vm_debugger() {
+    let root = std::env::temp_dir().join(format!(
+        "terlan-repl-debug-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time")
+            .as_nanos()
+    ));
+    fs::create_dir_all(&root).expect("create debugger REPL root");
+    let mut compiler_service = ReplCompilerService::default();
+    compiler_service.set_debug_enabled(true);
+    let module_name = "repl_debug_live";
+    let expression = "40 + 2";
+    let run_name = repl_generation_run_name("repl_debug_eval", expression, &[], &[], module_name);
+    let mut debug_events = Vec::new();
+    let value = run_repl_expression_in_session_with_output(
+        &mut compiler_service,
+        None,
+        ReplExpressionRequest {
+            expression,
+            declarations: &[],
+            value_bindings: &[],
+            module_name,
+            run_name: &run_name,
+            temp_dir: &root,
+            diagnostic_format: DiagnosticFormat::Text {
+                color: ColorChoice::Never,
+            },
+            native_policy: NativePolicy::NativeBoundaryOptional,
+            target_profile: TargetProfile::Vm,
+        },
+        &mut |event| debug_events.push(event.to_string()),
+    )
+    .expect("execute REPL expression through debugger");
+
+    assert_eq!(value, "42");
+    assert!(debug_events
+        .iter()
+        .any(|event| event.contains("stopped:breakpoint:")));
+    assert!(debug_events.iter().any(|event| event.contains("bt:")));
+    fs::remove_dir_all(&root).expect("remove debugger REPL root");
 }
 
 /// Managed REPL results execute and render through the admitted native image.
@@ -188,17 +234,19 @@ fn float_repl_generation_executes_without_resident_core_ir() {
         let value = run_repl_expression_in_session_with_output(
             &mut compiler_service,
             None,
-            expression,
-            &[],
-            &[],
-            module_name,
-            &run_name,
-            &root,
-            DiagnosticFormat::Text {
-                color: ColorChoice::Never,
+            ReplExpressionRequest {
+                expression,
+                declarations: &[],
+                value_bindings: &[],
+                module_name,
+                run_name: &run_name,
+                temp_dir: &root,
+                diagnostic_format: DiagnosticFormat::Text {
+                    color: ColorChoice::Never,
+                },
+                native_policy: NativePolicy::NativeBoundaryOptional,
+                target_profile: TargetProfile::Vm,
             },
-            NativePolicy::NativeBoundaryOptional,
-            TargetProfile::Vm,
             &mut |_| {},
         )
         .unwrap_or_else(|error| panic!("native Float REPL generation failed: {error}"));
@@ -276,17 +324,19 @@ fn run_scalar_generation(
     let value = run_repl_expression_in_session_with_output(
         compiler_service,
         None,
-        expression,
-        declarations,
-        bindings,
-        module_name,
-        &run_name,
-        root,
-        DiagnosticFormat::Text {
-            color: ColorChoice::Never,
+        ReplExpressionRequest {
+            expression,
+            declarations,
+            value_bindings: bindings,
+            module_name,
+            run_name: &run_name,
+            temp_dir: root,
+            diagnostic_format: DiagnosticFormat::Text {
+                color: ColorChoice::Never,
+            },
+            native_policy: NativePolicy::NativeBoundaryOptional,
+            target_profile: TargetProfile::Vm,
         },
-        NativePolicy::NativeBoundaryOptional,
-        TargetProfile::Vm,
         &mut |_| {},
     )
     .unwrap_or_else(|error| panic!("native REPL generation `{expression}` failed: {error}"));

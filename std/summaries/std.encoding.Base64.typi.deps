@@ -1,8 +1,9 @@
 module=std.encoding.Base64
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=7472225211629847869
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=9122735713437918334
 interface_hash=3921758983143870508
 interface_doc_hash=10301689513079929202
-deps=0
+deps=1
+std.vm.Bytes=17172708358078158316

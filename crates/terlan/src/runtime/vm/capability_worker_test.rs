@@ -122,6 +122,7 @@ fn client_with_output_for_generation(
             deadlines: VmNativeBoundaryDeadlineQueue::new(1),
             pending_contexts: BTreeMap::new(),
             parked_contexts: BTreeMap::new(),
+            late_cleanup: parked::VmCapabilityLateCleanupState::default(),
             capabilities: BTreeSet::from(["example".to_string(), "postgres".to_string()]),
             last_request_id: RequestId { value: 0 },
             remote_credit_limit: 1,
@@ -163,12 +164,14 @@ fn capability_worker_rejects_undeclared_capability_before_parking() {
                 processes: &mut processes,
                 scheduler: &mut scheduler,
             },
-            owner,
-            request_context("filesystem"),
-            "std.fs.read",
-            Vec::new(),
-            0,
-            10,
+            crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
+                owner: owner,
+                context: request_context("filesystem"),
+                operation: ("std.fs.read").into(),
+                arguments: Vec::new(),
+                now_tick: 0,
+                timeout_ticks: 10,
+            },
         )
         .expect_err("undeclared capability");
 
@@ -205,12 +208,14 @@ fn capability_worker_restart_generation_attributes_reused_request_ids() {
                     processes: &mut processes,
                     scheduler: &mut scheduler,
                 },
-                owner,
-                request_context("example"),
-                "std.example.call",
-                Vec::new(),
-                0,
-                10,
+                crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
+                    owner: owner,
+                    context: request_context("example"),
+                    operation: ("std.example.call").into(),
+                    arguments: Vec::new(),
+                    now_tick: 0,
+                    timeout_ticks: 10,
+                },
             )
             .expect("park generation request");
         let completion =
@@ -317,12 +322,14 @@ fn capability_worker_reply_completes_live_vm_deadline() {
                 processes: &mut processes,
                 scheduler: &mut scheduler,
             },
-            owner,
-            context.clone(),
-            "std.example.call",
-            vec![NativeBoundaryTerm::Text("input".to_string())],
-            4,
-            10,
+            crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
+                owner: owner,
+                context: context.clone(),
+                operation: ("std.example.call").into(),
+                arguments: vec![NativeBoundaryTerm::Text("input".to_string())],
+                now_tick: 4,
+                timeout_ticks: 10,
+            },
         )
         .expect("park external call");
 
@@ -383,12 +390,14 @@ fn capability_worker_cancellation_wins_over_late_reply() {
                 processes: &mut processes,
                 scheduler: &mut scheduler,
             },
-            owner,
-            request_context("example"),
-            "std.example.call",
-            Vec::new(),
-            0,
-            10,
+            crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
+                owner: owner,
+                context: request_context("example"),
+                operation: ("std.example.call").into(),
+                arguments: Vec::new(),
+                now_tick: 0,
+                timeout_ticks: 10,
+            },
         )
         .expect("park call");
     let terminal = client
@@ -442,12 +451,14 @@ fn capability_worker_timeout_wakes_owner_and_delivers_cancellation() {
                 processes: &mut processes,
                 scheduler: &mut scheduler,
             },
-            owner,
-            request_context("example"),
-            "std.example.slow",
-            Vec::new(),
-            0,
-            2,
+            crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
+                owner: owner,
+                context: request_context("example"),
+                operation: ("std.example.slow").into(),
+                arguments: Vec::new(),
+                now_tick: 0,
+                timeout_ticks: 2,
+            },
         )
         .expect("park slow call");
     let events = timers.advance_clock(&mut processes, &mut scheduler, 2);
@@ -489,12 +500,14 @@ fn capability_worker_eof_cancels_pending_vm_requests() {
                 processes: &mut processes,
                 scheduler: &mut scheduler,
             },
-            owner,
-            request_context("example"),
-            "std.example.call",
-            Vec::new(),
-            0,
-            100,
+            crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
+                owner: owner,
+                context: request_context("example"),
+                operation: ("std.example.call").into(),
+                arguments: Vec::new(),
+                now_tick: 0,
+                timeout_ticks: 100,
+            },
         )
         .expect("park call before EOF");
 
@@ -536,12 +549,14 @@ fn capability_worker_protocol_failure_closes_transport_and_cancels_pending() {
                 processes: &mut processes,
                 scheduler: &mut scheduler,
             },
-            owner,
-            request_context("example"),
-            "std.example.call",
-            Vec::new(),
-            0,
-            100,
+            crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
+                owner: owner,
+                context: request_context("example"),
+                operation: ("std.example.call").into(),
+                arguments: Vec::new(),
+                now_tick: 0,
+                timeout_ticks: 100,
+            },
         )
         .expect("park call before malformed reply");
 
@@ -626,18 +641,20 @@ fn capability_worker_process_transport_runs_full_cycle() {
                 processes: &mut processes,
                 scheduler: &mut scheduler,
             },
-            owner,
-            request_context("postgres"),
-            "std.db.postgres.string",
-            vec![
-                NativeBoundaryTerm::Handle {
-                    id: 1,
-                    generation: 1,
-                },
-                NativeBoundaryTerm::Text("name".to_string()),
-            ],
-            0,
-            100,
+            crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
+                owner: owner,
+                context: request_context("postgres"),
+                operation: ("std.db.postgres.string").into(),
+                arguments: vec![
+                    NativeBoundaryTerm::Handle {
+                        id: 1,
+                        generation: 1,
+                    },
+                    NativeBoundaryTerm::Text("name".to_string()),
+                ],
+                now_tick: 0,
+                timeout_ticks: 100,
+            },
         )
         .expect("park real worker call");
 
@@ -730,6 +747,7 @@ fn capability_worker_sandbox_closes_inherited_descriptor() {
         deadlines: VmNativeBoundaryDeadlineQueue::new(1),
         pending_contexts: BTreeMap::new(),
         parked_contexts: BTreeMap::new(),
+        late_cleanup: parked::VmCapabilityLateCleanupState::default(),
         capabilities: BTreeSet::from(["postgres".to_string()]),
         last_request_id: RequestId { value: 0 },
         remote_credit_limit: 1,
@@ -742,18 +760,20 @@ fn capability_worker_sandbox_closes_inherited_descriptor() {
                 processes: &mut processes,
                 scheduler: &mut scheduler,
             },
-            owner,
-            request_context("postgres"),
-            "std.db.postgres.string",
-            vec![
-                NativeBoundaryTerm::Handle {
-                    id: 1,
-                    generation: 1,
-                },
-                NativeBoundaryTerm::Text("name".to_string()),
-            ],
-            0,
-            100,
+            crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
+                owner: owner,
+                context: request_context("postgres"),
+                operation: ("std.db.postgres.string").into(),
+                arguments: vec![
+                    NativeBoundaryTerm::Handle {
+                        id: 1,
+                        generation: 1,
+                    },
+                    NativeBoundaryTerm::Text("name".to_string()),
+                ],
+                now_tick: 0,
+                timeout_ticks: 100,
+            },
         )
         .expect("park descriptor-test call");
 

@@ -11,6 +11,32 @@ use crate::runtime::vm::pure_native::{PureNativeExecutionImage, PureNativeExecut
 
 use super::*;
 
+#[test]
+fn completion_frame_trailers_decode_in_execution_order() {
+    let words = vec![11, 101, 1, 21, 22, 202, 2];
+    assert_eq!(
+        decode_completion_frame_words(words).expect("decode completion stack"),
+        vec![(101, vec![11]), (202, vec![21, 22])]
+    );
+}
+
+#[test]
+fn completion_frame_trailers_reject_truncation() {
+    let error = decode_completion_frame_words(vec![11, 101, 2])
+        .expect_err("capture count exceeds available trailer");
+    assert!(error.contains("truncated captures"), "{error}");
+}
+
+#[test]
+fn completion_frame_identity_preserves_all_u64_bits() {
+    let id = u64::MAX - 7;
+    let encoded = i64::from_ne_bytes(id.to_ne_bytes());
+    assert_eq!(
+        decode_completion_frame_words(vec![encoded, 0]).expect("decode high-bit identity"),
+        vec![(id, Vec::new())]
+    );
+}
+
 /// Requires shard-migratable parked state at compile time.
 fn assert_thread_neutral<T: Send + Sync + 'static>() {}
 
@@ -23,6 +49,18 @@ fn direct_backend_parked_state_is_send_sync_and_static() {
 }
 
 #[test]
+fn public_record_names_match_canonical_named_types() {
+    assert!(managed_values::type_name_matches(
+        "Named(std.core.Error.Error)",
+        "Error"
+    ));
+    assert!(!managed_values::type_name_matches(
+        "Named(std.core.Error.Error)",
+        "Other"
+    ));
+}
+
+#[test]
 fn transition_storage_covers_materialized_continuation_callables() {
     let callable = TvmCallableDescriptor {
         id: 17,
@@ -31,7 +69,7 @@ fn transition_storage_covers_materialized_continuation_callables() {
         captures: vec![TvmBoundaryType::String; 3],
     };
 
-    assert_eq!(transition_capacity(&[], &[callable]), 2_006);
+    assert_eq!(transition_capacity(&[], &[callable]), 2_134);
 }
 
 /// Verifies independent actors can park and resume without sharing continuation state.
@@ -126,6 +164,79 @@ fn capability_status_preserves_typed_rpc_arguments_and_separates_captures() {
             values: vec![103],
         }
     );
+}
+
+#[test]
+fn sql_capability_status_uses_dynamic_parameter_count_to_separate_captures() {
+    let mut expected_arguments =
+        vec![crate::runtime::native_image::control::TVM_SQL_CAPABILITY_TAG];
+    expected_arguments.extend(TvmBoundaryType::Managed([7; 16]).transition_words());
+    expected_arguments.extend([101, 102, 103, 104, 105, 106, 1]);
+    expected_arguments.extend(TvmBoundaryType::String.transition_words());
+    expected_arguments.push(107);
+    assert_eq!(expected_arguments.len(), 15);
+    let mut transport = expected_arguments.clone();
+    transport.push(109);
+
+    let frame = frame_from_status(17, 19, 24, 23, transport).expect("SQL capability frame");
+    assert_eq!(
+        frame,
+        TvmControlFrame::Transition {
+            request_id: 17,
+            owner_id: 19,
+            continuation_id: 23,
+            operation: TvmTransitionOperation::Capability,
+            arguments: expected_arguments,
+            values: vec![109],
+        }
+    );
+}
+
+#[test]
+fn process_context_capability_status_accepts_zero_and_one_argument_frames() {
+    for (tag, result_type, payload) in [
+        (8, TvmBoundaryType::Int, Vec::new()),
+        (
+            9,
+            TvmBoundaryType::Managed(
+                SemanticTypeId::from_canonical("Apply(Option;String)")
+                    .expect("Option[String] identity")
+                    .bytes(),
+            ),
+            vec![0],
+        ),
+        (10, TvmBoundaryType::Bool, vec![101]),
+        (
+            11,
+            TvmBoundaryType::Managed(
+                SemanticTypeId::from_canonical("Apply(Option;String)")
+                    .expect("Option[String] identity")
+                    .bytes(),
+            ),
+            vec![103],
+        ),
+        (12, TvmBoundaryType::String, Vec::new()),
+    ] {
+        let mut expected_arguments = vec![tag];
+        expected_arguments.extend(result_type.transition_words());
+        expected_arguments.extend(payload);
+        let mut transport = expected_arguments.clone();
+        transport.push(107);
+
+        let frame =
+            frame_from_status(7, 11, 24, 47, transport).expect("process-context capability frame");
+        assert_eq!(
+            frame,
+            TvmControlFrame::Transition {
+                request_id: 7,
+                owner_id: 11,
+                continuation_id: 47,
+                operation: TvmTransitionOperation::Capability,
+                arguments: expected_arguments,
+                values: vec![107],
+            }
+        );
+    }
 }
 
 #[test]

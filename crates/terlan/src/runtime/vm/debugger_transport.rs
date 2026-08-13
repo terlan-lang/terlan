@@ -1,11 +1,10 @@
-#![allow(dead_code)]
-
 use std::collections::{HashMap, VecDeque};
 
 use super::process::VmProcessId;
 
 #[cfg(test)]
 #[path = "debugger_transport_test.rs"]
+#[cfg(test)]
 mod debugger_transport_test;
 
 /// VM-owned debugger transport session handle.
@@ -19,7 +18,6 @@ pub(crate) struct VmDebuggerSession {
 pub(crate) enum VmDebuggerCommand {
     Continue,
     Step,
-    Pause,
     SetBreakpoint { source_map_id: String, line: u32 },
 }
 

@@ -358,6 +358,29 @@ fn write_report() {
     fs::write(path, [bytes, vec![b'\n']].concat()).expect("write stress report");
 }
 
+/// Executes one child seed selected by the sanitizer harness environment.
+#[cfg(feature = "multicore-tsan-harness")]
+pub(super) fn run_seed_from_environment() {
+    if env::var_os(FORCE_HANG_ENV).is_some() {
+        thread::sleep(Duration::from_secs(60));
+        return;
+    }
+    let seed = env::var(CHILD_SEED_ENV)
+        .expect("watchdog child requires an explicit stress seed")
+        .parse::<u64>()
+        .expect("stress seed must be an unsigned integer");
+    run_seed(seed);
+}
+
+/// Runs every source-controlled stress seed through the watchdog boundary.
+#[cfg(feature = "multicore-tsan-harness")]
+pub(super) fn run_bounded_stress() {
+    for seed in STRESS_SEEDS {
+        run_seed_child(seed).unwrap_or_else(|error| panic!("{error}"));
+    }
+    write_report();
+}
+
 #[test]
 #[ignore = "launched with an explicit seed by the bounded parent test"]
 /// Executes one isolated stress seed on behalf of the watchdog parent.

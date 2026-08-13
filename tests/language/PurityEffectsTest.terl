@@ -20,9 +20,7 @@ classify_asserted(value: Int): String ->
     }.
 
 @test
-pub inferred_and_asserted_helpers_execute_in_guards(): Bool ->
-    true.
+pub inferred_and_asserted_helpers_execute_in_guards(): Bool -> true.
 
 @test
-pub pure_effect_description_executes_only_at_explicit_boundary(): Bool ->
-    true.
+pub pure_effect_description_executes_only_at_explicit_boundary(): Bool -> true.

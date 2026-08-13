@@ -187,6 +187,7 @@ pub enum ProtocolError {
 }
 
 /// Returns the payload inside a length-prefixed EPMD request frame.
+#[cfg(test)]
 pub fn frame_payload(input: &[u8]) -> Result<&[u8], FrameError> {
     if input.len() < 2 {
         return Err(FrameError::Incomplete);
@@ -215,6 +216,7 @@ pub fn registration_result_byte(result: RegistrationResult) -> u8 {
 }
 
 /// Parse a length-prefixed EPMD request frame.
+#[cfg(test)]
 pub fn parse_frame(input: &[u8]) -> Result<Request, ProtocolError> {
     let payload = frame_payload(input).map_err(map_frame_error)?;
     parse_payload(payload)

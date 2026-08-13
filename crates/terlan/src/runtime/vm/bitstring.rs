@@ -13,8 +13,8 @@ pub(crate) struct VmBitString {
     bit_len: usize,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg(test)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmBitStringEndian {
     Big,
     Little,
@@ -450,6 +450,7 @@ impl VmBitString {
     }
 
     /// Shares canonical packed storage with a byte-oriented VM subsystem.
+    #[cfg(test)]
     pub(crate) fn packed_storage(&self) -> Arc<[u8]> {
         Arc::clone(&self.bytes)
     }
@@ -632,4 +633,5 @@ fn integer_fits(value: i64, bit_width: usize, signed: bool) -> bool {
 
 #[cfg(test)]
 #[path = "bitstring_test.rs"]
+#[cfg(test)]
 mod bitstring_test;

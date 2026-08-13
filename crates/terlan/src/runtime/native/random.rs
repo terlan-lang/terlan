@@ -2,19 +2,19 @@
 //!
 //! This module owns Terlan's portable random-number generator implementation.
 //! It delegates deterministic and OS-seeded randomness to the maintained
-//! `rand` and `rand_chacha` crates and keeps generator state explicit.
+//! `rand` crate and keeps generator state explicit.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
-use rand_chacha::ChaCha12Rng;
 
 static ENTROPY_GENERATOR_ID: AtomicU64 = AtomicU64::new(1);
 
 /// Explicit random generator state owned by the VM/native adapter.
 #[derive(Clone, Debug)]
 pub struct Generator {
-    rng: ChaCha12Rng,
+    rng: StdRng,
     identity: GeneratorIdentity,
     steps: u64,
 }
@@ -29,7 +29,7 @@ impl Generator {
     /// Builds a deterministic generator from unsigned seed material.
     pub fn from_seed(seed: u64) -> Self {
         Self {
-            rng: ChaCha12Rng::seed_from_u64(seed),
+            rng: StdRng::seed_from_u64(seed),
             identity: GeneratorIdentity::Seed(seed),
             steps: 0,
         }
@@ -38,7 +38,7 @@ impl Generator {
     /// Builds a generator seeded from OS randomness.
     pub fn from_entropy() -> Self {
         Self {
-            rng: ChaCha12Rng::from_os_rng(),
+            rng: StdRng::from_os_rng(),
             identity: GeneratorIdentity::Entropy(
                 ENTROPY_GENERATOR_ID.fetch_add(1, Ordering::Relaxed),
             ),
@@ -231,4 +231,5 @@ pub fn sample(
 
 #[cfg(test)]
 #[path = "random_test.rs"]
+#[cfg(test)]
 mod random_test;

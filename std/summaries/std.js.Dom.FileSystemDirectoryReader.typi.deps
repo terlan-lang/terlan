@@ -1,8 +1,8 @@
 module=std.js.Dom.FileSystemDirectoryReader
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
-source_hash=15224187083307489980
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=1350816982060093967
 interface_hash=14065643364847063621
 interface_doc_hash=14065643364847063621
 deps=0

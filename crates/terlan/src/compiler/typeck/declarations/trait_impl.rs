@@ -38,10 +38,12 @@ pub(super) fn check_trait_impl_methods(
             &method.return_type.text,
             generic_params,
             &method.generic_bounds,
-            ctx.alias_names,
-            ctx.imported_type_names,
-            ctx.imported_type_aliases,
-            ctx.local_aliases,
+            TypeResolutionEnvironment {
+                alias_names: ctx.alias_names,
+                imported_type_names: ctx.imported_type_names,
+                imported_type_aliases: ctx.imported_type_aliases,
+                local_aliases: ctx.local_aliases,
+            },
         );
 
         check_callable_alias_implications(
@@ -61,20 +63,24 @@ pub(super) fn check_trait_impl_methods(
             diagnostics,
         );
         check_syntax_callable_clauses(
-            &format!("impl method {}", method.name),
-            &method.name,
-            &method.params,
-            &method.clauses,
-            &scheme,
-            method.span.into(),
-            ctx.alias_names,
-            ctx.aliases,
-            ctx.expr_ctx,
+            CallableDeclaration {
+                label: &format!("impl method {}", method.name),
+                name: &method.name,
+                params: &method.params,
+                clauses: &method.clauses,
+                scheme: &scheme,
+                fallback_span: method.span.into(),
+                requires_pure_body: requires_trait_purity,
+                requires_trait_purity,
+            },
+            CallableCheckEnvironment {
+                alias_names: ctx.alias_names,
+                aliases: ctx.aliases,
+                expr_ctx: ctx.expr_ctx,
+                effectful_local_calls: ctx.effectful_local_calls,
+                imported_effects: ctx.effectful_imported_calls,
+            },
             diagnostics,
-            requires_trait_purity,
-            requires_trait_purity,
-            ctx.effectful_local_calls,
-            ctx.effectful_imported_calls,
         );
     }
 }

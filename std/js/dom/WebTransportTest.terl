@@ -38,12 +38,12 @@ pub close_typechecks(receiver: WebTransport, close_info: WebTransportCloseInfo):
 
 pub create_bidirectional_stream_typechecks(
     receiver: WebTransport,
-    options: WebTransportSendStreamOptions
+    options: WebTransportSendStreamOptions,
 ): Promise[WebTransportBidirectionalStream] ->
     receiver.create_bidirectional_stream(options).
 
 pub create_unidirectional_stream_typechecks(
     receiver: WebTransport,
-    options: WebTransportSendStreamOptions
+    options: WebTransportSendStreamOptions,
 ): Promise[WritableStream] ->
     receiver.create_unidirectional_stream(options).

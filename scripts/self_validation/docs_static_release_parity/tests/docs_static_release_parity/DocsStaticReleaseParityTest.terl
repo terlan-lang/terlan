@@ -1,0 +1,10 @@
+/**
+ * Unit contracts for the staged installed-release documentation validator.
+ */
+module docs_static_release_parity.DocsStaticReleaseParityTest.
+
+import docs_static_release_parity.Main.
+
+@test
+pub adversarial_contract_rejects_incomplete_evidence(): Bool ->
+    Main.adversarial_contract_rejects_incomplete_evidence().

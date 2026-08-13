@@ -17,7 +17,7 @@ import type std.js.Dom.StartViewTransitionOptions.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub types_typechecks(
-    receiver: StartViewTransitionOptions
+    receiver: StartViewTransitionOptions,
 ): Option[std.js.Array[std.js.String.JsString]] ->
     receiver.types().
 

@@ -220,7 +220,7 @@ const REQUIRED_GATE_TERMS: &[&str] = &[
     "$(MAKE) vm-resource-ownership-check",
     "$(MAKE) vm-distributed-transport-check",
     "$(TERLC) check std/vm/PersistentActorTest.terl",
-    "formal_pipeline::formal_pipeline_test::embedded_std_interfaces_include_vm_persistent_actor_contract",
+    "formal_pipeline::formal_pipeline_test::persistence_and_effect_interfaces::embedded_std_interfaces_include_vm_persistent_actor_contract",
     "runtime::vm::persistent_actor_store::persistent_actor_store_test::vm_persistent_actor_store_replays_snapshot_and_events_deterministically",
     "runtime::vm::persistent_actor_store::persistent_actor_store_test::vm_persistent_actor_declaration_binds_actor_schema_and_storage_lane",
     "runtime::vm::persistent_actor_store::persistent_actor_store_test::vm_persistent_actor_declaration_rejects_invalid_storage_lanes",
@@ -306,6 +306,7 @@ const CRASH_INJECTION_OUTCOMES: &[&str] = &[
 const REJECTED_PERSISTENT_ACTOR_PATHS: &[&str] = &[];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm persistent actor store summary.
 pub struct VmPersistentActorStoreSummary {
     pub adapter_matrix_count: usize,
     pub snapshot_event_fixture_count: usize,
@@ -314,6 +315,7 @@ pub struct VmPersistentActorStoreSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm persistent actor store.
 pub fn run_vm_persistent_actor_store(root: &Path) -> QualityResult<VmPersistentActorStoreSummary> {
     let mut diagnostics = Vec::new();
     diagnostics.extend(validate_required_terms(
@@ -479,4 +481,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_persistent_actor_store_test.rs"]
+#[cfg(test)]
 mod vm_persistent_actor_store_test;

@@ -139,6 +139,19 @@ pub entry[T](tag: Int): Entry[T] ->
     native.
 
 /**
+ * Returns the typed handle for the currently executing process.
+ *
+ * Input: mailbox payload type `T`.
+ * Output: the VM-owned `Process[T]` identity of the calling actor.
+ * Transformation: suspends at the scheduler boundary so identity is supplied
+ * by the owning execution shard; generated code never manufactures process
+ * identifiers.
+ */
+@target.vm {process_mailbox: true}
+pub current[T](): Process[T] ->
+    native.
+
+/**
  * Starts a local VM process.
  *
  * Input: one image-local `Entry[T]` descriptor.
@@ -425,17 +438,23 @@ pub exit_reason(code: Int): ExitReason ->
 pub fail(reason: ExitReason): Unit ->
     native.
 
-/** Returns the VM priority scheduling class. */
+/**
+ * Returns the VM priority scheduling class.
+ */
 @target.vm {process_mailbox: true}
 pub priority(): SchedulingClass ->
     native.
 
-/** Returns the VM normal scheduling class. */
+/**
+ * Returns the VM normal scheduling class.
+ */
 @target.vm {process_mailbox: true}
 pub normal(): SchedulingClass ->
     native.
 
-/** Returns the VM background scheduling class. */
+/**
+ * Returns the VM background scheduling class.
+ */
 @target.vm {process_mailbox: true}
 pub background(): SchedulingClass ->
     native.

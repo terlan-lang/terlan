@@ -303,6 +303,14 @@ pub compact_frame_shape(): ProtocolShape.
 
 pub compose_header_body(header: ProtocolShape, body: ProtocolShape): Result[ProtocolShape, BinaryConstructError].
 
+/// Copies body fields and constructs the final shape in tail position.
+
+pub compose_protocol_body_fields(body: List[ProtocolField], output: List[ProtocolField], name: String, endian: EndianPolicy, terminal_rest: Bool): ProtocolShape.
+
+/// Copies header fields before tail-calling the body-field continuation.
+
+pub compose_protocol_header_fields(header: List[ProtocolField], body: List[ProtocolField], output: List[ProtocolField], name: String, endian: EndianPolicy, terminal_rest: Bool): ProtocolShape.
+
 /// Validates the body and enforces shape-composition invariants.
 
 pub compose_valid_header_body(header: ProtocolShape, body: ProtocolShape): Result[ProtocolShape, BinaryConstructError].
@@ -486,9 +494,17 @@ pub encode_protocol(shape: ProtocolShape, value: DecodedProtocol, include_rest: 
 
 pub encode_protocol_bits(next: List[ProtocolField], endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, include_rest: Bool, name: String, width: Int): Result[std.vm.Bytes.Bytes, BinaryConstructError].
 
+/// Validates and appends one exact bit field without recursing over the shape.
+
+pub encode_protocol_bits_value(decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, name: String, width: Int): Result[std.vm.BitString.BitString, BinaryConstructError].
+
 /// Packs one exact byte-aligned immutable byte field.
 
 pub encode_protocol_bytes(next: List[ProtocolField], endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, include_rest: Bool, name: String, width: Int): Result[std.vm.Bytes.Bytes, BinaryConstructError].
+
+/// Validates and appends one fixed byte field without recursing over the shape.
+
+pub encode_protocol_bytes_value(decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, name: String, width: Int): Result[std.vm.BitString.BitString, BinaryConstructError].
 
 /// Packs fields in declaration order into one exact-length bit accumulator.
 
@@ -498,6 +514,10 @@ pub encode_protocol_fields(fields: List[ProtocolField], endian: EndianPolicy, de
 
 pub encode_protocol_int(next: List[ProtocolField], endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, include_rest: Bool, name: String, width: Int): Result[std.vm.Bytes.Bytes, BinaryConstructError].
 
+/// Validates and appends one signed field without recursing over the shape.
+
+pub encode_protocol_int_value(endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, name: String, width: Int): Result[std.vm.BitString.BitString, BinaryConstructError].
+
 /// Appends the terminal body only for exact encoding.
 
 pub encode_protocol_rest(decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, include_rest: Bool): Result[std.vm.Bytes.Bytes, BinaryConstructError].
@@ -505,6 +525,10 @@ pub encode_protocol_rest(decoded: DecodedProtocol, encoded: std.vm.BitString.Bit
 /// Packs one checked unsigned integer field.
 
 pub encode_protocol_uint(next: List[ProtocolField], endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, include_rest: Bool, name: String, width: Int): Result[std.vm.Bytes.Bytes, BinaryConstructError].
+
+/// Validates and appends one unsigned field without recursing over the shape.
+
+pub encode_protocol_uint_value(endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, name: String, width: Int): Result[std.vm.BitString.BitString, BinaryConstructError].
 
 /// Converts a completed byte-aligned bit accumulator to immutable bytes.
 
@@ -663,6 +687,10 @@ pub split_header_body(payload: std.vm.Bytes.Bytes, header_length: Int): Result[{
 /// canonical checked byte splitter.
 
 pub split_protocol_header(shape: ProtocolShape, payload: std.vm.Bytes.Bytes): Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError].
+
+/// Advances fixed-prefix accounting as one tail-position continuation chain.
+
+pub split_protocol_header_fields(fields: List[ProtocolField], total: Int, payload: std.vm.Bytes.Bytes): Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError].
 
 /// Returns a golden TCP-like fixed header shape.
 

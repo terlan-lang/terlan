@@ -103,4 +103,5 @@ fn validate_atom_identity(identity: &str) -> Result<(), ManagedMemoryError> {
 
 #[cfg(test)]
 #[path = "managed_atom_test.rs"]
+#[cfg(test)]
 mod managed_atom_test;

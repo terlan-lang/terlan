@@ -23,8 +23,12 @@ import type std.range.Range.
  */
 @test
 pub generated_ranges_match_materialized_length(): Bool ->
-    for_all(range_of(-2, 2), (range) -> let values = to_list(range);
-    assert_equal(length(range), values.length())).
+    for_all(
+        range_of(-2, 2),
+        (range) ->
+            let values = to_list(range);
+            assert_equal(length(range), values.length()),
+    ).
 
 /**
  * Verifies every materialized generated range value is contained by the range.
@@ -37,4 +41,7 @@ pub generated_ranges_match_materialized_length(): Bool ->
  */
 @test
 pub generated_range_values_are_contained(): Bool ->
-    for_all(range_of(2, -2), (range) -> each(to_list(range), (value) -> assert(contains(range, value)))).
+    for_all(
+        range_of(2, -2),
+        (range) -> each(to_list(range), (value) -> assert(contains(range, value))),
+    ).

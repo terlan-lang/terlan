@@ -30,7 +30,7 @@ pub opaque type CustomElementRegistry.
 pub (value: CustomElementRegistry) define(
     name: JsString,
     constructor_: CustomElementConstructor,
-    options: ElementDefinitionOptions
+    options: ElementDefinitionOptions,
 ): Unit ->
     native.
 

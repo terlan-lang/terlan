@@ -8,6 +8,7 @@ use crate::runtime::vm::http_static::{VmHttp1ResponseStream, VmHttpStreamPlan};
 
 /// Source-aware plan for rendering one actor-bound template response.
 #[derive(Clone, Copy, Debug)]
+#[cfg(test)]
 pub(crate) struct VmHttpSessionLiveTemplateRenderPlan<'a> {
     pub(crate) template_id: &'a str,
     pub(crate) state_key: &'a str,
@@ -19,6 +20,7 @@ pub(crate) struct VmHttpSessionLiveTemplateRenderPlan<'a> {
 
 /// HTTP response rendered from a versioned VM actor-state binding.
 #[derive(Debug)]
+#[cfg(test)]
 pub(crate) struct VmHttpSessionLiveTemplateRenderedResponse {
     pub(crate) binding: VmHttpSessionLiveTemplateActorBinding,
     pub(crate) response: http::Response<String>,
@@ -26,6 +28,7 @@ pub(crate) struct VmHttpSessionLiveTemplateRenderedResponse {
 
 /// Bounded HTTP/1 stream plan for one actor-bound typed template response.
 #[derive(Clone, Copy, Debug)]
+#[cfg(test)]
 pub(crate) struct VmHttpSessionLiveTemplateStreamPlan<'a> {
     pub(crate) response: VmHttpSessionLiveTemplateRenderPlan<'a>,
     pub(crate) chunk_size: usize,
@@ -35,6 +38,7 @@ pub(crate) struct VmHttpSessionLiveTemplateStreamPlan<'a> {
 
 /// Open actor-bound template stream accepting typed rendered chunks.
 #[derive(Debug)]
+#[cfg(test)]
 pub(crate) struct VmHttpSessionLiveTemplateOpenStream {
     binding: VmHttpSessionLiveTemplateActorBinding,
     stream: VmHttp1ResponseStream,
@@ -44,11 +48,13 @@ pub(crate) struct VmHttpSessionLiveTemplateOpenStream {
 
 /// Finished actor-bound response ready for VM TCP scheduling.
 #[derive(Debug)]
+#[cfg(test)]
 pub(crate) struct VmHttpSessionLiveTemplateRenderedStream {
     pub(crate) binding: VmHttpSessionLiveTemplateActorBinding,
     pub(crate) stream: VmHttp1ResponseStream,
 }
 
+#[cfg(test)]
 impl VmHttpSessionLiveTemplateOpenStream {
     /// Renders and atomically admits one bounded body chunk.
     pub(crate) fn enqueue_rendered_chunk(
@@ -93,6 +99,7 @@ impl VmHttpSessionLiveTemplateOpenStream {
 
 impl VmHttpSessionRuntime {
     /// Resolves actor state and renders it through the typed VM HTTP boundary.
+    #[cfg(test)]
     pub(crate) fn render_live_template_actor_state_response(
         &mut self,
         session: &VmHttpSession,
@@ -123,6 +130,7 @@ impl VmHttpSessionRuntime {
     }
 
     /// Opens a typed actor-bound template on the VM HTTP/1 stream lane.
+    #[cfg(test)]
     pub(crate) fn open_live_template_actor_state_stream(
         &mut self,
         session: &VmHttpSession,
@@ -171,6 +179,7 @@ impl VmHttpSessionRuntime {
         })
     }
 
+    #[cfg(test)]
     fn resolve_live_template_actor_binding(
         &mut self,
         session: &VmHttpSession,
@@ -196,6 +205,7 @@ impl VmHttpSessionRuntime {
     }
 }
 
+#[cfg(test)]
 fn live_template_actor_bind_error(
     source: &VmHttpSessionLiveTemplateSourceSpan,
     template_id: &str,
@@ -207,6 +217,7 @@ fn live_template_actor_bind_error(
     )
 }
 
+#[cfg(test)]
 fn live_template_stream_unavailable(
     source: &VmHttpSessionLiveTemplateSourceSpan,
     template_id: &str,

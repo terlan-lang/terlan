@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::BTreeSet;
 
 use super::persistent_actor_store::{
@@ -30,20 +28,15 @@ impl VmPersistentActorRetentionPolicy {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn with_schema_migration_floor(mut self, floor: u64) -> Self {
         self.schema_migration_floor = floor;
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn with_audit_floor(mut self, floor: u64) -> Self {
         self.audit_floor = floor;
-        self
-    }
-
-    pub(crate) fn allow_checkpoint_and_resource_cleanup(mut self) -> Self {
-        self.allow_mailbox_checkpoint_prune = true;
-        self.allow_timer_checkpoint_prune = true;
-        self.allow_resource_handle_cleanup = true;
         self
     }
 }
@@ -268,4 +261,5 @@ fn validate_retained_event_suffix(
 
 #[cfg(test)]
 #[path = "persistent_actor_compaction_test.rs"]
+#[cfg(test)]
 mod persistent_actor_compaction_test;

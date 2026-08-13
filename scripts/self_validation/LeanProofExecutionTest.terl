@@ -1,0 +1,114 @@
+/**
+ * Executes one repository Lean proof through a bounded typed process request.
+ */
+module scripts.self_validation.LeanProofExecutionTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.Console.{println}.
+import std.io.File.{read_text}.
+import std.system.{Environment, Process}.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+@pure
+child(root: String, relative: String): String ->
+    if {
+        root == "." -> relative;
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+@pure
+proof_path_is_safe(path: String): Bool ->
+    path != ""
+        and String.ends_with(path, ".lean")
+        and not String.starts_with(path, "/")
+        and not String.contains(path, "..")
+        and not String.contains(path, "\\").
+
+proof_holds(root: String, proof_path: String): Bool ->
+    if {
+        not proof_path_is_safe(proof_path) -> false;
+        true -> let command =
+            Process.with_output_limit_bytes(
+                Process.with_timeout_ms(
+                    Process.with_environment(
+                        Process.with_working_directory(
+                            Process.with_arguments(
+                                Process.command("lake"),
+                                ["env", "lean", proof_path],
+                            ),
+                            child(root, "proofs/lean"),
+                        ),
+                        [Process.environment_entry("ELAN_NO_UPDATE_CHECK", "1")],
+                    ),
+                    600000,
+                ),
+                8388608,
+            );
+        case Process.run(command) {
+            Ok(output) -> Process.status(output) == 0;
+            Err(_reason) -> false
+        }
+    }.
+
+proof_repro_report(root: String): Bool ->
+    case read_text(child(root, "proofs/lean/ci/lean-proof-artifacts.tsv")) {
+        Ok(text) -> proof_repro_rows(String.split(text, "\n"), false, false);
+        Err(_reason) -> false
+    }.
+
+proof_repro_rows(lines: List[String], header_seen: Bool, current_seen: Bool): Bool ->
+    case lines {
+        [] -> header_seen and current_seen;
+        [line | rest] ->
+            if {
+                line == "" -> proof_repro_rows(rest, header_seen, current_seen);
+                not header_seen -> if {
+                    String.starts_with(line, "path\tstatus\t") -> proof_repro_rows(rest, true, current_seen);
+                    true -> false
+                };
+                true -> case String.split(line, "\t") {
+                    [path, status, _scope, _manifests, _exit, _stderr, digest, _replay, _remediation] ->
+                        if {
+                            status == "current" -> let _printed =
+                                println(
+                                    String.append(
+                                        "[proof-repro] ",
+                                        String.append(
+                                            path,
+                                            String.append(
+                                                " ",
+                                                String.append(digest, " reproducibility=pass"),
+                                            ),
+                                        ),
+                                    ),
+                                );
+                            proof_repro_rows(rest, true, true);
+                            true -> proof_repro_rows(rest, true, current_seen)
+                        };
+                    _ -> false
+                }
+            }
+    }.
+
+@test
+pub selected_lean_task_holds(): Bool ->
+    let root = environment_or("TERLAN_LEAN_PROOF_ROOT", ".");
+    if {
+        environment_or("TERLAN_LEAN_PROOF_TASK", "proof") == "proof-repro-report" -> proof_repro_report(root);
+        true -> proof_holds(root, environment_or("TERLAN_LEAN_PROOF_PATH", "parser_shape/ParserShape.lean"))
+    }.
+
+@test
+pub proof_paths_cannot_escape_the_lean_workspace(): Bool ->
+    proof_path_is_safe("Terlan/Type/ShapeImplication.lean")
+        and not proof_path_is_safe("../outside.lean")
+        and not proof_path_is_safe("/tmp/outside.lean")
+        and not proof_path_is_safe("not-a-proof.txt").

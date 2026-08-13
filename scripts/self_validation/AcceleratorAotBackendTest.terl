@@ -1,0 +1,240 @@
+/**
+ * Validates maintained AcceleratorIR-to-PTX backend evidence.
+ */
+module scripts.self_validation.AcceleratorAotBackend.
+
+import std.core.Result.{Ok, with_default}.
+import std.core.String.
+import std.data.Json.
+import std.io.File.{read_text}.
+
+import type std.data.Json.
+
+/**
+ * Parses and validates one accelerator AOT backend report.
+ */
+pub validate_text(text: String): Bool ->
+    case Json.parse(text) {
+        Ok(report) -> validate_report(report);
+        _ -> false
+    }.
+
+validate_report(report: Json): Bool ->
+    string_field(report, "schema") == "terlan.accelerator-aot-backend.v1"
+        and bool_field(report, "cache_hit_verified")
+        and bool_field(report, "isolated_builds_reproducible")
+        and selection_is_valid(report)
+        and artifact_is_valid(report)
+        and rejection_inventory_is_valid(report).
+
+selection_is_valid(report: Json): Bool ->
+    case report.get("backend_selection") {
+        Ok(selection) ->
+            string_field(selection, "implementation") == "llvm-nvptx"
+                and string_field(selection, "license") == "Apache-2.0 WITH LLVM-exception"
+                and is_lowercase_sha256(string_field(selection, "executable_sha256"))
+                and case selection.get("evaluated_alternatives") {
+    Ok(alternatives) -> array_length(alternatives) >= 3;
+    _ -> false
+};
+        _ -> false
+    }.
+
+artifact_is_valid(report: Json): Bool ->
+    case report.get("artifact") {
+        Ok(artifact) ->
+            string_field(artifact, "schema") == "terlan.accelerator-artifact.v1"
+                and string_field(artifact, "backend") == "llvm-nvptx"
+                and string_field(artifact, "artifact_format") == "ptx"
+                and is_lowercase_sha256(string_field(artifact, "ir_sha256"))
+                and is_lowercase_sha256(string_field(artifact, "artifact_sha256"))
+                and case artifact.get("kernels") {
+    Ok(kernels) ->
+        array_length(kernels) == 1
+            and case kernels.at(0) {
+    Ok(kernel) -> kernel_is_valid(kernel);
+    _ -> false
+};
+    _ -> false
+};
+        _ -> false
+    }.
+
+kernel_is_valid(kernel: Json): Bool ->
+    string_field(kernel, "entrypoint") == "choose"
+        and int_field(kernel, "shared_memory_bytes") == 0
+        and parameters_are_present(kernel)
+        and dimensions_are_valid(kernel).
+
+parameters_are_present(kernel: Json): Bool ->
+    case kernel.get("parameters") {
+        Ok(parameters) -> array_length(parameters) >= 0;
+        _ -> false
+    }.
+
+dimensions_are_valid(kernel: Json): Bool ->
+    case kernel.get("dimensions") {
+        Ok(dimensions) ->
+            array_field_has_length(dimensions, "grid", 3)
+                and array_field_has_length(dimensions, "block", 3);
+        _ -> false
+    }.
+
+array_field_has_length(value: Json, name: String, expected: Int): Bool ->
+    case value.get(name) {
+        Ok(field) -> array_length(field) == expected;
+        _ -> false
+    }.
+
+rejection_inventory_is_valid(report: Json): Bool ->
+    case report.get("rejected_cases") {
+        Ok(rejections) ->
+            let count = array_length(rejections);
+            array_contains(rejections, 0, count, "unadmitted-toolchain")
+                and array_contains(rejections, 0, count, "invalid-architecture")
+                and array_contains(rejections, 0, count, "unsupported-scalar")
+                and array_contains(rejections, 0, count, "invalid-ir")
+                and array_contains(rejections, 0, count, "toolchain-failure")
+                and array_contains(rejections, 0, count, "malformed-ptx")
+                and array_contains(rejections, 0, count, "missing-entrypoint")
+                and array_contains(rejections, 0, count, "static-loop-unroll-limit");
+        _ -> false
+    }.
+
+array_contains(values: Json, index: Int, count: Int, expected: String): Bool ->
+    if {
+        index == count -> false;
+        true -> case values.at(index) {
+            Ok(value) ->
+                with_default(value.as_string(), "") == expected
+                    or array_contains(values, index + 1, count, expected);
+            _ -> false
+        }
+    }.
+
+string_field(value: Json, name: String): String ->
+    case value.get(name) {
+        Ok(field) -> with_default(field.as_string(), "");
+        _ -> ""
+    }.
+
+bool_field(value: Json, name: String): Bool ->
+    case value.get(name) {
+        Ok(field) -> with_default(field.as_bool(), false);
+        _ -> false
+    }.
+
+int_field(value: Json, name: String): Int ->
+    case value.get(name) {
+        Ok(field) -> with_default(field.as_int(), -1);
+        _ -> -1
+    }.
+
+array_length(value: Json): Int ->
+    with_default(value.length(), -1).
+
+is_lowercase_sha256(value: String): Bool ->
+    String.byte_size(value) == 64 and strip_hex_digits(value) == "".
+
+@pure
+strip_hex_digits(value: String): String ->
+    String.replace(
+        String.replace(
+            String.replace(
+                String.replace(
+                    String.replace(
+                        String.replace(
+                            String.replace(
+                                String.replace(
+                                    String.replace(
+                                        String.replace(
+                                            String.replace(
+                                                String.replace(
+                                                    String.replace(
+                                                        String.replace(
+                                                            String.replace(
+                                                                String.replace(value, "0", ""),
+                                                                "1",
+                                                                "",
+                                                            ),
+                                                            "2",
+                                                            "",
+                                                        ),
+                                                        "3",
+                                                        "",
+                                                    ),
+                                                    "4",
+                                                    "",
+                                                ),
+                                                "5",
+                                                "",
+                                            ),
+                                            "6",
+                                            "",
+                                        ),
+                                        "7",
+                                        "",
+                                    ),
+                                    "8",
+                                    "",
+                                ),
+                                "9",
+                                "",
+                            ),
+                            "a",
+                            "",
+                        ),
+                        "b",
+                        "",
+                    ),
+                    "c",
+                    "",
+                ),
+                "d",
+                "",
+            ),
+            "e",
+            "",
+        ),
+        "f",
+        "",
+    ).
+
+@pure
+accepted_fixture(): String ->
+    "{\"schema\":\"terlan.accelerator-aot-backend.v1\",\"backend_selection\":{\"implementation\":\"llvm-nvptx\",\"license\":\"Apache-2.0 WITH LLVM-exception\",\"executable_sha256\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\",\"evaluated_alternatives\":[{},{},{}]},\"artifact\":{\"schema\":\"terlan.accelerator-artifact.v1\",\"backend\":\"llvm-nvptx\",\"artifact_format\":\"ptx\",\"ir_sha256\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\",\"artifact_sha256\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\",\"kernels\":[{\"entrypoint\":\"choose\",\"parameters\":[],\"dimensions\":{\"grid\":[1,1,1],\"block\":[32,1,1]},\"shared_memory_bytes\":0}]},\"cache_hit_verified\":true,\"isolated_builds_reproducible\":true,\"rejected_cases\":[\"unadmitted-toolchain\",\"invalid-architecture\",\"unsupported-scalar\",\"invalid-ir\",\"toolchain-failure\",\"malformed-ptx\",\"missing-entrypoint\",\"static-loop-unroll-limit\"]}".
+
+@test
+pub generated_aot_backend_report_is_valid(): Bool ->
+    case read_text("target/quality/accelerator-aot-backend.json") {
+        Ok(text) -> validate_text(text);
+        _ -> false
+    }.
+
+@test
+pub canonical_aot_backend_fixture_is_accepted(): Bool ->
+    validate_text(accepted_fixture()).
+
+@test
+pub non_reproducible_artifact_is_rejected(): Bool ->
+    not validate_text(
+    String.replace(
+        accepted_fixture(),
+        "\"isolated_builds_reproducible\":true",
+        "\"isolated_builds_reproducible\":false",
+    ),
+).
+
+@test
+pub malformed_toolchain_digest_is_rejected(): Bool ->
+    not validate_text(
+    String.replace(
+        accepted_fixture(),
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "not-a-digest",
+    ),
+).
+
+@test
+pub incomplete_rejection_inventory_is_rejected(): Bool ->
+    not validate_text(String.replace(accepted_fixture(), ",\"static-loop-unroll-limit\"", "")).

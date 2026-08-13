@@ -27,7 +27,7 @@ pub content_rect_typechecks(receiver: ResizeObserverEntry): DOMRectReadOnly ->
     receiver.content_rect().
 
 pub device_pixel_content_box_size_typechecks(
-    receiver: ResizeObserverEntry
+    receiver: ResizeObserverEntry,
 ): Array[ResizeObserverSize] ->
     receiver.device_pixel_content_box_size().
 

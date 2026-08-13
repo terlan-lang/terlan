@@ -281,4 +281,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_runtime_concept_inventory_test.rs"]
+#[cfg(test)]
 mod vm_runtime_concept_inventory_test;

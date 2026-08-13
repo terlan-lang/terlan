@@ -1,6 +1,6 @@
 use super::{
-    VmCodeServer, VmCodeServerEvent, VmModuleGenerationState, VmProcessSource, VmProcessState,
-    VmProcessTable,
+    VmCodeInstructionOffsets, VmCodeServer, VmCodeServerEvent, VmModuleGenerationState,
+    VmProcessSource, VmProcessState, VmProcessTable,
 };
 
 const MODULE: &str = "cpbugx";
@@ -31,7 +31,14 @@ fn returned_functions_do_not_leave_false_module_generation_dependencies() {
 
     for (index, function) in ["before", "before2", "before3"].into_iter().enumerate() {
         let binding = code_server
-            .enter_process_function(&mut processes, pid, MODULE, function, 0, index, index + 1)
+            .enter_process_function(
+                &mut processes,
+                pid,
+                MODULE,
+                function,
+                0,
+                VmCodeInstructionOffsets::new(index, index + 1),
+            )
             .expect("enter exported function");
         assert_eq!(binding.generation, first_generation);
         assert_eq!(
@@ -99,10 +106,24 @@ fn nested_calls_release_once_and_failed_entry_is_side_effect_free() {
     let pid = processes.spawn_root(VmProcessSource::new("app.Loop", "wait", 0));
 
     let outer = code_server
-        .enter_process_function(&mut processes, pid, MODULE, "before", 0, 0, 5)
+        .enter_process_function(
+            &mut processes,
+            pid,
+            MODULE,
+            "before",
+            0,
+            VmCodeInstructionOffsets::new(0, 5),
+        )
         .expect("enter outer function");
     let inner = code_server
-        .enter_process_function(&mut processes, pid, MODULE, "before2", 0, 0, 7)
+        .enter_process_function(
+            &mut processes,
+            pid,
+            MODULE,
+            "before2",
+            0,
+            VmCodeInstructionOffsets::new(0, 7),
+        )
         .expect("enter inner function");
     assert_eq!(inner, outer);
     assert_eq!(
@@ -129,7 +150,14 @@ fn nested_calls_release_once_and_failed_entry_is_side_effect_free() {
         .expect("process snapshot")
         .current_stacktrace;
     let error = code_server
-        .enter_process_function(&mut processes, pid, MODULE, "missing", 0, 0, 9)
+        .enter_process_function(
+            &mut processes,
+            pid,
+            MODULE,
+            "missing",
+            0,
+            VmCodeInstructionOffsets::new(0, 9),
+        )
         .expect_err("missing export must fail");
     assert!(error.contains("does not export `missing/0`"));
     assert_eq!(

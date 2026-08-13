@@ -1,3 +1,4 @@
+#[cfg(test)]
 use super::{normalize_live_template_subscriber_field, validate_live_template_source_location};
 use crate::runtime::vm::ReplValue;
 
@@ -9,6 +10,7 @@ pub(crate) struct VmHttpSessionLiveTemplateSourceSpan {
     pub(crate) column: u32,
 }
 
+#[cfg(test)]
 impl VmHttpSessionLiveTemplateSourceSpan {
     pub(crate) fn new(module: impl Into<String>, line: u32, column: u32) -> Result<Self, String> {
         let module = module.into();
@@ -41,10 +43,8 @@ fn unsupported_live_template_patch_value(value: &ReplValue) -> Option<&'static s
     match value {
         ReplValue::Bytes(_) => Some("Bytes"),
         ReplValue::BitString(_) => Some("BitString"),
-        #[cfg(test)]
         ReplValue::RandomGenerator(_) => Some("RandomGenerator"),
         ReplValue::Type(_) => Some("Type"),
-        #[cfg(test)]
         ReplValue::Iterator { .. } => Some("Iterator"),
         ReplValue::Tuple(values) | ReplValue::List(values) | ReplValue::Set(values) => values
             .iter()
@@ -56,7 +56,6 @@ fn unsupported_live_template_patch_value(value: &ReplValue) -> Option<&'static s
             unsupported_live_template_patch_value(key)
                 .or_else(|| unsupported_live_template_patch_value(value))
         }),
-        #[cfg(test)]
         ReplValue::MapIndexed(map) => map.to_entries().iter().find_map(|(key, value)| {
             unsupported_live_template_patch_value(key)
                 .or_else(|| unsupported_live_template_patch_value(value))

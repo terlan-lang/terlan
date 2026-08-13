@@ -424,7 +424,7 @@ fn physical_core_count(cpuinfo: &str) -> Option<usize> {
 }
 
 /// Converts a cgroup v2 CPU quota into a conservative scheduler count.
-#[cfg(test)]
+#[cfg(all(test, not(feature = "multicore-tsan-harness")))]
 fn cgroup_v2_quota(value: &str) -> Option<usize> {
     parse_cgroup_v2_quota(value)?.scheduler_limit
 }
@@ -454,9 +454,12 @@ fn parse_cgroup_v2_quota(value: &str) -> Option<CgroupV2CpuQuota> {
 }
 
 #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
+#[cfg(test)]
 #[path = "scheduler_topology_test.rs"]
+#[cfg(test)]
 mod scheduler_topology_test;
 
 #[cfg(test)]
 #[path = "scheduler_smoke_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod scheduler_smoke_beam_suite_parity_test;

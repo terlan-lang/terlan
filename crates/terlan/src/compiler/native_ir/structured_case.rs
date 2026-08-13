@@ -18,10 +18,16 @@ use super::{NativeBinaryOperator, NativeConstructorLayouts, NativeExpr, NativeTy
 mod binary;
 #[path = "structured_case/lowering.rs"]
 mod lowering;
+#[path = "structured_case/suspending.rs"]
+mod suspending;
 #[path = "structured_case/type_support.rs"]
 mod type_support;
 use binary::binary_plan;
-pub(super) use lowering::{contains_case, lower_structured_case};
+pub(super) use lowering::{
+    contains_case, lower_lexical_expr, lower_structured_case, structured_result_type,
+    StructuredCaseEnvironment,
+};
+pub(super) use suspending::lower_suspending_case;
 use type_support::{
     list_element_type, map_key, map_types, native_core_type, option_element_type,
     struct_field_type, tuple_element_type,
@@ -51,6 +57,20 @@ pub(super) struct PatternPlan {
     pub(super) bindings: Vec<PatternBinding>,
 }
 
+/// Constructor identity and nested patterns selected by one source pattern.
+struct ConstructorPattern<'a> {
+    name: &'a str,
+    identity: Option<&'a str>,
+    fields: &'a [CorePattern],
+}
+
+/// Native and checked source representations of one matched value.
+struct PatternSubject<'a> {
+    value: NativeExpr,
+    native_type: NativeType,
+    core_type: Option<&'a CoreType>,
+}
+
 pub(super) fn pattern_plan(
     pattern: &CorePattern,
     value: NativeExpr,
@@ -66,7 +86,9 @@ pub(super) fn pattern_plan(
     }
     match pattern {
         CorePattern::Wildcard => Ok(always()),
-        CorePattern::Var(name) if !matches!(name.as_str(), "true" | "false" | "Unit") => {
+        CorePattern::Var(name)
+            if !matches!(name.as_str(), "true" | "false" | "Unit" | "unit") =>
+        {
             Ok(PatternPlan {
                 predicate: NativeExpr::Bool(true),
                 bindings: vec![PatternBinding {
@@ -78,7 +100,7 @@ pub(super) fn pattern_plan(
             })
         }
         CorePattern::Var(name) | CorePattern::Atom(name)
-            if matches!(name.as_str(), "true" | "false" | "Unit") =>
+            if matches!(name.as_str(), "true" | "false" | "Unit" | "unit") =>
         {
             let literal = match name.as_str() {
                 "true" => NativeExpr::Bool(true),
@@ -152,12 +174,16 @@ pub(super) fn pattern_plan(
             constructor_identity,
             args,
         } => constructor_plan(
-            name,
-            constructor_identity.as_deref(),
-            args,
-            value,
-            value_type,
-            core_type,
+            ConstructorPattern {
+                name,
+                identity: constructor_identity.as_deref(),
+                fields: args,
+            },
+            PatternSubject {
+                value,
+                native_type: value_type,
+                core_type,
+            },
             constructors,
             depth,
         ),
@@ -235,18 +261,22 @@ pub(super) fn pattern_plan(
         }
     }
 }
-
-#[allow(clippy::too_many_arguments)]
 fn constructor_plan(
-    name: &str,
-    identity: Option<&str>,
-    patterns: &[CorePattern],
-    value: NativeExpr,
-    value_type: NativeType,
-    core_type: Option<&CoreType>,
+    pattern: ConstructorPattern<'_>,
+    subject: PatternSubject<'_>,
     constructors: &NativeConstructorLayouts,
     depth: usize,
 ) -> Result<PatternPlan, String> {
+    let ConstructorPattern {
+        name,
+        identity,
+        fields: patterns,
+    } = pattern;
+    let PatternSubject {
+        value,
+        native_type: value_type,
+        core_type,
+    } = subject;
     if name == "Unit" && patterns.is_empty() {
         return Ok(equality(value, NativeExpr::Unit, NativeType::Unit));
     }
@@ -272,26 +302,29 @@ fn constructor_plan(
             }
         };
         return tagged_union_constructor_plan(
-            name,
-            patterns,
+            TaggedUnionPattern {
+                name,
+                fields: patterns,
+                discriminant,
+                field_types: std::slice::from_ref(field),
+            },
             value,
             value_type,
-            discriminant,
-            2,
-            std::slice::from_ref(field),
             constructors,
             depth,
         );
     }
-    if let Some((discriminant, variant_count, fields)) = tagged_union_constructor(name, core_type) {
+    if let Some((discriminant, _variant_count, fields)) = tagged_union_constructor(name, core_type)
+    {
         return tagged_union_constructor_plan(
-            name,
-            patterns,
+            TaggedUnionPattern {
+                name,
+                fields: patterns,
+                discriminant,
+                field_types: &fields,
+            },
             value,
             value_type,
-            discriminant,
-            variant_count,
-            &fields,
             constructors,
             depth,
         );
@@ -336,19 +369,26 @@ fn result_element_types(core_type: Option<&CoreType>) -> Option<(&CoreType, &Cor
         _ => None,
     }
 }
+struct TaggedUnionPattern<'a> {
+    name: &'a str,
+    fields: &'a [CorePattern],
+    discriminant: u32,
+    field_types: &'a [CoreType],
+}
 
-#[allow(clippy::too_many_arguments)]
 fn tagged_union_constructor_plan(
-    name: &str,
-    patterns: &[CorePattern],
+    pattern: TaggedUnionPattern<'_>,
     value: NativeExpr,
     value_type: NativeType,
-    discriminant: u32,
-    _variant_count: u32,
-    fields: &[CoreType],
     constructors: &NativeConstructorLayouts,
     depth: usize,
 ) -> Result<PatternPlan, String> {
+    let TaggedUnionPattern {
+        name,
+        fields: patterns,
+        discriminant,
+        field_types: fields,
+    } = pattern;
     if patterns.len() != fields.len() {
         return Err(format!(
             "error[native_ir.union_pattern_arity]: `{name}` expects {} fields",
@@ -503,18 +543,39 @@ fn tuple_plan(
     constructors: &NativeConstructorLayouts,
     depth: usize,
 ) -> Result<PatternPlan, String> {
-    if let (Some(CoreType::Union(variants)), Some(CorePattern::Atom(tag))) =
-        (core_type, patterns.first())
+    if let (Some(element), Some(CorePattern::Atom(tag))) =
+        (option_element_type(core_type), patterns.first())
     {
-        if let Some((discriminant, variant_count, fields)) = tagged_union_by_atom(tag, variants) {
-            return tagged_union_constructor_plan(
-                tag,
+        let constructor = match tag.as_str() {
+            "none" => Some("None"),
+            "some" => Some("Some"),
+            _ => None,
+        };
+        if let Some(constructor) = constructor {
+            return option_constructor_plan(
+                constructor,
                 &patterns[1..],
                 value,
                 value_type,
-                discriminant,
-                variant_count,
-                &fields,
+                element,
+                constructors,
+                depth,
+            );
+        }
+    }
+    if let (Some(CoreType::Union(variants)), Some(CorePattern::Atom(tag))) =
+        (core_type, patterns.first())
+    {
+        if let Some((discriminant, _variant_count, fields)) = tagged_union_by_atom(tag, variants) {
+            return tagged_union_constructor_plan(
+                TaggedUnionPattern {
+                    name: tag,
+                    fields: &patterns[1..],
+                    discriminant,
+                    field_types: &fields,
+                },
+                value,
+                value_type,
                 constructors,
                 depth,
             );
@@ -589,8 +650,6 @@ fn list_plan(
     plans.push(empty(current, semantic));
     merge(plans)
 }
-
-#[allow(clippy::too_many_arguments)]
 fn list_cons_plan(
     head: &CorePattern,
     tail: &CorePattern,
@@ -627,8 +686,6 @@ fn list_cons_plan(
         pattern_plan(tail, rest, value_type, core_type, constructors, depth + 1)?,
     ])
 }
-
-#[allow(clippy::too_many_arguments)]
 fn structural_map_plan(
     patterns: &[crate::terlan_typeck::CoreMapPatternField],
     value: NativeExpr,
@@ -671,8 +728,6 @@ fn structural_map_plan(
     }
     merge(plans)
 }
-
-#[allow(clippy::too_many_arguments)]
 fn map_plan(
     fields: &[crate::terlan_typeck::CoreMapPatternField],
     value: NativeExpr,

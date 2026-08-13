@@ -29,7 +29,7 @@ struct ForbiddenRuntimeFragment {
 const RUNTIME_SELECTION_RULES: &[RuntimeSelectionRule] = &[
     RuntimeSelectionRule {
         path: "crates/terlan/src/main.rs",
-        marker: "terlc build [file.terl|dir] [--target terlan-vm|js|wasm.core|mobile.android|mobile.ios]",
+        marker: "terlc build [file.terl|dir] [--target terlan-vm|js|wasm.core]",
         reason: "build usage must not expose the removed Erlang target",
     },
     RuntimeSelectionRule {
@@ -81,7 +81,7 @@ const RUNTIME_SELECTION_RULES: &[RuntimeSelectionRule] = &[
     },
     RuntimeSelectionRule {
         path: "crates/terlan/src/main.rs",
-        marker: "terlc run [project-dir|file.terl] [--target terlan-vm]",
+        marker: "terlc run [project-dir|file.terl|file.terls] [--target terlan-vm]",
         reason: "run usage must not expose the removed Erlang target",
     },
     RuntimeSelectionRule {
@@ -351,4 +351,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "no_implicit_otp_runtime_test.rs"]
+#[cfg(test)]
 mod no_implicit_otp_runtime_test;

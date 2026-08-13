@@ -1,8 +1,11 @@
 module=std.collections.Set
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 source_hash=5629580205654851188
 interface_hash=16707557694768624407
 interface_doc_hash=15544204159797042004
-deps=0
+deps=3
+std.collections.Iterator=12304855843837514477
+std.collections.List=5599785960849014878
+std.core.Unit=13611133214341763160

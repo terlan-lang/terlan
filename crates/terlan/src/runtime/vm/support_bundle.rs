@@ -1,7 +1,6 @@
-#![allow(dead_code)]
-
 use super::multicore_replay::VmMulticoreReplayEvidence;
 use super::native_image_diagnostics::VmNativeImageDiagnosticMetadata;
+#[cfg(test)]
 use super::process::VmProcessId;
 
 use serde::Serialize;
@@ -10,6 +9,7 @@ const NATIVE_SUPPORT_BUNDLE_SCHEMA: &str = "terlan.vm.native-support-bundle.v1";
 
 #[cfg(test)]
 #[path = "support_bundle_test.rs"]
+#[cfg(test)]
 mod support_bundle_test;
 
 /// Deterministic support bundle for one admitted native image generation.
@@ -36,6 +36,7 @@ impl VmNativeSupportBundle {
     }
 
     /// Attaches validated live scheduler evidence without changing image data.
+    #[cfg(test)]
     pub(crate) fn with_multicore_replay(
         native_image: VmNativeImageDiagnosticMetadata,
         multicore_replay: VmMulticoreReplayEvidence,
@@ -58,11 +59,13 @@ impl VmNativeSupportBundle {
 
 /// VM-owned I/O resource identity captured in a support bundle.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSupportBundleReplayResource {
     pub(crate) kind: VmSupportBundleReplayResourceKind,
     pub(crate) handle: String,
 }
 
+#[cfg(test)]
 impl VmSupportBundleReplayResource {
     /// Creates replayable resource identity metadata.
     pub(crate) fn new(
@@ -79,6 +82,7 @@ impl VmSupportBundleReplayResource {
 
 /// Stable VM resource categories supported by I/O replay metadata.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmSupportBundleReplayResourceKind {
     TcpStream,
     UdpSocket,
@@ -92,6 +96,7 @@ pub(crate) enum VmSupportBundleReplayResourceKind {
 
 /// Optional source identity captured beside an I/O replay step.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSupportBundleReplaySource {
     pub(crate) module: String,
     pub(crate) function: String,
@@ -99,6 +104,7 @@ pub(crate) struct VmSupportBundleReplaySource {
     pub(crate) column: u32,
 }
 
+#[cfg(test)]
 impl VmSupportBundleReplaySource {
     /// Creates source identity metadata for a replay step.
     pub(crate) fn new(
@@ -129,6 +135,7 @@ impl VmSupportBundleReplaySource {
 
 /// One deterministic VM I/O replay step.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSupportBundleReplayStep {
     pub(crate) sequence: u64,
     pub(crate) process: VmProcessId,
@@ -140,6 +147,7 @@ pub(crate) struct VmSupportBundleReplayStep {
 
 /// Expected replay shape for one I/O step.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSupportBundleReplayExpectation {
     pub(crate) sequence: u64,
     pub(crate) process: VmProcessId,
@@ -147,6 +155,7 @@ pub(crate) struct VmSupportBundleReplayExpectation {
     pub(crate) operation: String,
 }
 
+#[cfg(test)]
 impl VmSupportBundleReplayExpectation {
     /// Creates an expected replay step identity.
     pub(crate) fn new(
@@ -173,6 +182,7 @@ impl VmSupportBundleReplayExpectation {
 
 /// Complete support-bundle replay metadata snapshot.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSupportBundleReplayMetadata {
     /// Admitted native generation associated with these replay steps.
     pub(crate) native_image: Option<VmNativeImageDiagnosticMetadata>,
@@ -183,6 +193,7 @@ pub(crate) struct VmSupportBundleReplayMetadata {
 
 /// VM-owned support-bundle replay metadata recorder.
 #[derive(Debug)]
+#[cfg(test)]
 pub(crate) struct VmSupportBundleReplayRecorder {
     /// Native generation bound before publication.
     native_image: Option<VmNativeImageDiagnosticMetadata>,
@@ -192,6 +203,7 @@ pub(crate) struct VmSupportBundleReplayRecorder {
     finished: bool,
 }
 
+#[cfg(test)]
 impl VmSupportBundleReplayRecorder {
     /// Creates an empty replay recorder for one scheduler seed.
     pub(crate) fn new(scheduler_seed: u64) -> Self {

@@ -1,0 +1,45 @@
+{
+  "schema": "terlan.lean-counterexample.v1",
+  "theorem_id": "typed-coreir-return-type-preservation",
+  "feature_class": "coreir",
+  "reproduction_steps": [
+    "convert minimal_terlan_ast into the canonical terlc fixture",
+    "run terlc check on the generated fixture",
+    "require the controlled type-mismatch oracle"
+  ],
+  "minimal_terlan_ast": {
+    "module": "bench_lean_counterexample_typed_coreir_return_type",
+    "function": {
+      "visibility": "pub",
+      "name": "bad",
+      "parameters": [
+        {
+          "name": "X",
+          "type": "Int"
+        }
+      ],
+      "return_type": "Binary",
+      "body": {
+        "kind": "binary_add",
+        "left": "X",
+        "right": 1
+      }
+    }
+  },
+  "counterexample_lexeme": "X + 1",
+  "expected_runtime_oracle": {
+    "harness": "terlc_check",
+    "namespace": "bench_lean_counterexample",
+    "expected_exit": "nonzero",
+    "stderr_contains": [
+      "error[type_mismatch]",
+      "expected: Binary",
+      "found:    Int"
+    ]
+  },
+  "classification": "soundness_gap",
+  "severity": "high",
+  "lane_id": "coreir",
+  "resolution_status": "regression_guarded",
+  "blocker_plan": "lean-proof-counterexample-check"
+}

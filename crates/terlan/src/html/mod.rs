@@ -348,4 +348,5 @@ fn normalize_template_tag(path: &Path, stem: &str) -> Result<String, HtmlDiagnos
 
 #[cfg(test)]
 #[path = "lib_test.rs"]
+#[cfg(test)]
 mod lib_test;

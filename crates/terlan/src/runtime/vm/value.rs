@@ -11,6 +11,7 @@ use crate::terlan_native::random as native_random;
 mod hash;
 #[cfg(test)]
 #[path = "value_hash_test.rs"]
+#[cfg(test)]
 mod hash_test;
 
 /// Transitional scalar and runtime-service value used at native boundaries.
@@ -36,6 +37,7 @@ pub(crate) enum ReplValue {
     Bool(bool),
     #[cfg(test)]
     RandomGenerator(native_random::Generator),
+    #[cfg(test)]
     Type(String),
     Tuple(Vec<ReplValue>),
     Record {
@@ -56,25 +58,12 @@ pub(crate) enum ReplValue {
 
 impl Hash for ReplValue {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        #[cfg(not(test))]
-        {
-            let hash = match self.stable_hash() {
-                Ok(hash) => hash,
-                Err(error) => match error {},
-            };
-            hash.hash(state);
-            return;
-        }
-
-        #[cfg(test)]
         if let Ok(hash) = self.stable_hash() {
             hash.hash(state);
             return;
         }
 
-        #[cfg(test)]
         std::mem::discriminant(self).hash(state);
-        #[cfg(test)]
         match self {
             Self::Tuple(items) | Self::List(items) | Self::Set(items) => items.hash(state),
             Self::Record { name, fields } => {
@@ -140,6 +129,7 @@ impl ReplValue {
             Self::Bool(value) => value.to_string(),
             #[cfg(test)]
             Self::RandomGenerator(_) => "<random-generator>".to_string(),
+            #[cfg(test)]
             Self::Type(value) => value.clone(),
             Self::Tuple(items) => {
                 let rendered = items

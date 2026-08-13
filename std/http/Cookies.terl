@@ -68,7 +68,7 @@ pub struct Options {
     expires: Option[String],
     http_only: Bool,
     secure: Bool,
-    same_site: Option[SameSite]
+    same_site: Option[SameSite],
 }.
 
 /**
@@ -82,7 +82,15 @@ pub struct Options {
  */
 pub constructor Options {
     (path: Option[String], domain: Option[String], max_age: Option[Int], expires: Option[String], http_only: Bool, secure: Bool, same_site: Option[SameSite]): Options ->
-        Options {path: path, domain: domain, max_age: max_age, expires: expires, http_only: http_only, secure: secure, same_site: same_site}
+        Options {
+            path: path,
+            domain: domain,
+            max_age: max_age,
+            expires: expires,
+            http_only: http_only,
+            secure: secure,
+            same_site: same_site,
+        }
 }.
 
 /**
@@ -124,7 +132,7 @@ pub (mut jar: Jar) set(
     value: String,
     path: String = "/",
     http_only: Bool = false,
-    secure: Bool = false
+    secure: Bool = false,
 ): Unit ->
     native.
 
@@ -156,7 +164,7 @@ pub set_header(
     value: String,
     path: String = "/",
     http_only: Bool = false,
-    secure: Bool = false
+    secure: Bool = false,
 ): String ->
     native.
 
@@ -183,7 +191,7 @@ pub set_header_with_options(
     expires: String = "",
     http_only: Bool = false,
     secure: Bool = false,
-    same_site: String = ""
+    same_site: String = "",
 ): String ->
     native.
 
@@ -197,7 +205,18 @@ pub set_header_with_options(
  * converting `SameSite` markers into the adapter's string vocabulary.
  */
 pub set_header_options(name: String, value: String, options: Options): String ->
-    set_header_with_options(name, value, with_default(options.path, "/"), with_default(options.domain, ""), with_default(options.max_age, 0), is_some(options.max_age), with_default(options.expires, ""), options.http_only, options.secure, same_site_to_string(options.same_site)).
+    set_header_with_options(
+        name,
+        value,
+        with_default(options.path, "/"),
+        with_default(options.domain, ""),
+        with_default(options.max_age, 0),
+        is_some(options.max_age),
+        with_default(options.expires, ""),
+        options.http_only,
+        options.secure,
+        same_site_to_string(options.same_site),
+    ).
 
 /**
  * Converts optional SameSite policy into runtime header text.

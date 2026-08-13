@@ -1,0 +1,29 @@
+//! Stable native statuses returned across the direct-AOT boundary.
+
+pub(crate) const OK: i32 = 0;
+pub(crate) const UNKNOWN_EXPORT: i32 = 1;
+pub(crate) const ARITY: i32 = 2;
+pub(crate) const OVERFLOW: i32 = 3;
+pub(crate) const DIVISION_BY_ZERO: i32 = 4;
+pub(crate) const NO_MATCHING_BRANCH: i32 = 5;
+pub(crate) const YIELD: i32 = 6;
+pub(crate) const TRANSITION_CAPACITY: i32 = 7;
+pub(crate) const SEND: i32 = 8;
+pub(crate) const RECEIVE: i32 = 9;
+pub(crate) const SPAWN: i32 = 10;
+pub(crate) const TIMER: i32 = 11;
+pub(crate) const LINK: i32 = 12;
+pub(crate) const MONITOR: i32 = 13;
+pub(crate) const RESOURCE: i32 = 14;
+pub(crate) const CANCELLATION: i32 = 15;
+pub(crate) const FAILURE: i32 = 16;
+pub(crate) const SCHEDULING: i32 = 17;
+pub(crate) const FLOAT_OVERFLOW: i32 = 18;
+pub(crate) const FLOAT_DIVISION_BY_ZERO: i32 = 19;
+pub(crate) const MANAGED_RUNTIME_UNAVAILABLE: i32 = 20;
+pub(crate) const INVALID_MANAGED_REFERENCE: i32 = 21;
+pub(crate) const SEND_TYPED: i32 = 22;
+pub(crate) const RECEIVE_TYPED: i32 = 23;
+pub(crate) const CAPABILITY: i32 = 24;
+pub(crate) const DEBUG: i32 = 25;
+pub(crate) const IDENTITY: i32 = 26;

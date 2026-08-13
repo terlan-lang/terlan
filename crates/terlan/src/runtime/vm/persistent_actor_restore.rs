@@ -1,12 +1,11 @@
-#![allow(dead_code)]
-
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::model_sync::VmModelSyncChange;
 use super::persistent_actor_store::{
-    VmPersistentActorEvent, VmPersistentActorId, VmPersistentActorSchema,
-    VmPersistentActorSnapshot, VmPersistentActorStoreAdapter, VmPersistentActorStoreOutcome,
+    VmPersistentActorEvent, VmPersistentActorId, VmPersistentActorSchema, VmPersistentActorSnapshot,
 };
+#[cfg(any(test, feature = "benchmark-tools"))]
+use super::persistent_actor_store::{VmPersistentActorStoreAdapter, VmPersistentActorStoreOutcome};
 use super::ReplValue;
 
 const DEFAULT_RESTORE_ADAPTER_KIND: &str = "force_local";
@@ -48,6 +47,7 @@ impl VmPersistentActorExport {
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn with_checksum(mut self, checksum: impl Into<String>) -> Self {
         self.checksum = checksum.into();
         self
@@ -62,6 +62,7 @@ impl VmPersistentActorExport {
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn with_model_sync_changes(
         mut self,
         model_sync_changes: Vec<VmModelSyncChange>,
@@ -118,6 +119,7 @@ impl VmPersistentActorRestoreCapabilities {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn without_compaction() -> Self {
         Self {
             supports_compacted_snapshot_restore: false,
@@ -125,6 +127,7 @@ impl VmPersistentActorRestoreCapabilities {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn without_resource_handles() -> Self {
         Self {
             supports_compacted_snapshot_restore: true,
@@ -173,6 +176,7 @@ impl VmPersistentActorRestoreTarget {
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn with_required_model_sync_streams(
         mut self,
         required_model_sync_streams: Vec<VmPersistentActorModelSyncContinuity>,
@@ -190,6 +194,7 @@ pub(crate) struct VmPersistentActorModelSyncContinuity {
 }
 
 impl VmPersistentActorModelSyncContinuity {
+    #[cfg(test)]
     pub(crate) fn new(model: impl Into<String>, retained_from_sequence: u64) -> Self {
         Self {
             model: model.into(),
@@ -229,6 +234,7 @@ pub(crate) struct VmPersistentActorModelSyncRestoreStream {
 
 /// Actor-visible outcome after a validated export has been written to a store.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg(any(test, feature = "benchmark-tools"))]
 pub(crate) struct VmPersistentActorRestoreExecution {
     pub(crate) source_adapter_kind: String,
     pub(crate) destination_adapter_kind: String,
@@ -356,6 +362,7 @@ pub(crate) enum VmPersistentActorRestoreError {
         expected: u64,
         actual: u64,
     },
+    #[cfg(any(test, feature = "benchmark-tools"))]
     StoreRejected {
         step: &'static str,
         outcome: &'static str,
@@ -472,6 +479,7 @@ pub(crate) fn build_cross_machine_actor_export(
 }
 
 /// Validates and executes restore through the destination actor-store adapter.
+#[cfg(any(test, feature = "benchmark-tools"))]
 pub(crate) fn execute_persistent_actor_restore(
     export: &VmPersistentActorExport,
     target: &VmPersistentActorRestoreTarget,
@@ -562,14 +570,14 @@ fn validate_model_sync_continuity(
 ) -> Result<Vec<VmPersistentActorModelSyncRestoreStream>, VmPersistentActorRestoreError> {
     let mut streams = Vec::new();
     for required in &target.required_model_sync_streams {
-        let mut expected = required.retained_from_sequence;
         let mut matched = 0usize;
         let mut last_sequence = None;
-        for change in export
-            .model_sync_changes
-            .iter()
-            .filter(|change| change.key.model == required.model)
-        {
+        for (expected, change) in (required.retained_from_sequence..).zip(
+            export
+                .model_sync_changes
+                .iter()
+                .filter(|change| change.key.model == required.model),
+        ) {
             if change.sequence != expected {
                 return Err(VmPersistentActorRestoreError::ReorderedModelSyncStream {
                     expected,
@@ -578,7 +586,6 @@ fn validate_model_sync_continuity(
             }
             matched += 1;
             last_sequence = Some(change.sequence);
-            expected += 1;
         }
         let Some(retained_to_sequence) = last_sequence else {
             return Err(VmPersistentActorRestoreError::MissingModelSyncContinuity {
@@ -637,6 +644,7 @@ fn is_valid_cross_machine_source(source_machine_id: &str) -> bool {
             .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.'))
 }
 
+#[cfg(any(test, feature = "benchmark-tools"))]
 fn persistent_actor_store_outcome_kind(outcome: &VmPersistentActorStoreOutcome) -> &'static str {
     match outcome {
         VmPersistentActorStoreOutcome::SnapshotStored(_) => "snapshot_stored",
@@ -647,6 +655,7 @@ fn persistent_actor_store_outcome_kind(outcome: &VmPersistentActorStoreOutcome) 
         VmPersistentActorStoreOutcome::StaleEvent { .. } => "stale_event",
         VmPersistentActorStoreOutcome::DuplicateEvent { .. } => "duplicate_event",
         VmPersistentActorStoreOutcome::IncompatibleSchema { .. } => "incompatible_schema",
+        #[cfg(test)]
         VmPersistentActorStoreOutcome::PartialWriteRejected { .. } => "partial_write_rejected",
         VmPersistentActorStoreOutcome::PersistenceFailed { .. } => "persistence_failed",
     }
@@ -716,8 +725,9 @@ fn validate_export_suffix(
     snapshot: &VmPersistentActorSnapshot,
     retained_events: &[VmPersistentActorEvent],
 ) -> Result<(), VmPersistentActorRestoreError> {
-    let mut expected_sequence = snapshot.last_event_sequence + 1;
-    for event in retained_events {
+    for (expected_sequence, event) in
+        (snapshot.last_event_sequence + 1..).zip(retained_events.iter())
+    {
         if event.actor_id != snapshot.actor_id {
             return Err(VmPersistentActorRestoreError::EventActorChanged {
                 sequence: event.sequence,
@@ -736,11 +746,11 @@ fn validate_export_suffix(
                 },
             );
         }
-        expected_sequence += 1;
     }
     Ok(())
 }
 
 #[cfg(test)]
 #[path = "persistent_actor_restore_test.rs"]
+#[cfg(test)]
 mod persistent_actor_restore_test;

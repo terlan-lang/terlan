@@ -43,6 +43,7 @@ pub struct SyntaxImportItem {
 /// Inputs:
 /// - `module_name`: parser-preserved module prefix.
 /// - `items`: selected or default import items.
+/// - `is_selected`: whether source used the explicit `{...}` selection form.
 ///
 /// Output:
 /// - Fully qualified provider module identity.
@@ -51,7 +52,14 @@ pub struct SyntaxImportItem {
 /// - Reconstructs default imports such as `import std.core.Task.` from parser
 ///   prefix `std.core` plus item `Task`.
 /// - Preserves the complete provider stored by selected imports.
-pub fn syntax_module_import_identity(module_name: &str, items: &[SyntaxImportItem]) -> String {
+pub fn syntax_module_import_identity(
+    module_name: &str,
+    items: &[SyntaxImportItem],
+    is_selected: bool,
+) -> String {
+    if is_selected {
+        return module_name.to_string();
+    }
     let Some(item) = items.first() else {
         return module_name.to_string();
     };

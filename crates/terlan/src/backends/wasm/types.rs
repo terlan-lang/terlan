@@ -6,6 +6,7 @@
 /// Output:
 /// - Stable ABI type used by Wasm function signatures and value checks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg(test)]
 pub enum WasmAbiType {
     I32,
     I64,
@@ -13,8 +14,10 @@ pub enum WasmAbiType {
     F64,
 }
 
+#[cfg(test)]
 impl WasmAbiType {
     /// Returns the canonical Wasm ABI spelling.
+    #[cfg(test)]
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::I32 => "i32",
@@ -33,6 +36,7 @@ impl WasmAbiType {
 /// Output:
 /// - Typed scalar value that can be checked against an ABI signature.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg(test)]
 pub enum WasmValue {
     I32(i32),
     I64(i64),
@@ -40,6 +44,7 @@ pub enum WasmValue {
     F64(f64),
 }
 
+#[cfg(test)]
 impl WasmValue {
     /// Returns the ABI type of this value.
     pub const fn abi_type(self) -> WasmAbiType {
@@ -54,4 +59,5 @@ impl WasmValue {
 
 #[cfg(test)]
 #[path = "types_test.rs"]
+#[cfg(test)]
 mod types_test;

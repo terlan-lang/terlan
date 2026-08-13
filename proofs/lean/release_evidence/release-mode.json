@@ -1,0 +1,49 @@
+{
+  "schema": "terlan.proof-release-mode.v1",
+  "target_profile": "native",
+  "feature_set": [
+    "quality-tools"
+  ],
+  "runtime_lane_map": {
+    "coreir": "vm-core",
+    "distribution": "vm",
+    "native_boundary": "vm",
+    "parser": "vm-core",
+    "std_packages": "vm",
+    "target_profile": "vm-core",
+    "vm_runtime": "vm",
+    "wasm": "vm-core"
+  },
+  "std_lane_map": {
+    "coreir": "unit",
+    "distribution": "integration",
+    "native_boundary": "integration",
+    "parser": "unit",
+    "std_packages": "stdlib-release",
+    "target_profile": "unit",
+    "vm_runtime": "integration",
+    "wasm": "stdlib-release"
+  },
+  "replay_families": [
+    "collections",
+    "concurrency",
+    "coreir-checked-lowering",
+    "database-sql",
+    "native-boundary",
+    "parser-shape",
+    "semantic-smoke-chain",
+    "std-packages",
+    "templates-routes",
+    "wasm-bridge"
+  ],
+  "stage_order": [
+    "proof-repro-check",
+    "lean-proof-track-runtime-check",
+    "release-artifacts-closeout-check",
+    "proof-readiness-release-mode-check",
+    "lean-proof-track-regression-check",
+    "lean-proof-track-pr-gate"
+  ],
+  "local_command": "make proof-readiness-release-mode-check",
+  "ci_command": "make proof-readiness-release-mode-check"
+}

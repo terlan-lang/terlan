@@ -15,8 +15,27 @@ use super::{
 const MAX_TRY_CLAUSES: usize = 256;
 const FAILURE_STATUS_TYPE: NativeType = NativeType::Int;
 
+/// Clause selection values shared by success and failure arms of one `try`.
+struct TryClauseSelection<'a> {
+    clauses: &'a [CoreCaseClause],
+    value: NativeExpr,
+    value_type: NativeType,
+    result_type: NativeType,
+    value_slot: usize,
+    default_to_value: bool,
+}
+
+/// Lexical and application-wide lookup tables used by `try` clause lowering.
+#[derive(Clone, Copy)]
+struct TryLoweringEnvironment<'a> {
+    params: &'a HashMap<String, usize>,
+    param_types: &'a HashMap<String, NativeType>,
+    functions: &'a HashMap<(String, usize), usize>,
+    function_types: &'a HashMap<(String, usize), NativeType>,
+    constructors: &'a NativeConstructorLayouts,
+}
+
 /// Lowers a top-level non-suspending protected region into local status control flow.
-#[allow(clippy::too_many_arguments)]
 pub(super) fn lower_try(
     expr: &CoreExpr,
     function: &CoreFunction,
@@ -61,31 +80,34 @@ pub(super) fn lower_try(
         "error[native_ir.try_result_type]: result type is unavailable".to_string()
     })?;
     let value_slot = params.values().copied().max().map_or(0, |slot| slot + 1);
-    let success = lower_clauses(
-        of_clauses,
-        NativeExpr::Param(value_slot),
-        protected_type,
-        result_type,
-        value_slot,
+    let environment = TryLoweringEnvironment {
         params,
         param_types,
         functions,
         function_types,
         constructors,
-        true,
+    };
+    let success = lower_clauses(
+        TryClauseSelection {
+            clauses: of_clauses,
+            value: NativeExpr::Param(value_slot),
+            value_type: protected_type,
+            result_type,
+            value_slot,
+            default_to_value: true,
+        },
+        environment,
     )?;
     let failure = lower_clauses(
-        catch_clauses,
-        NativeExpr::Param(value_slot),
-        FAILURE_STATUS_TYPE,
-        result_type,
-        value_slot,
-        params,
-        param_types,
-        functions,
-        function_types,
-        constructors,
-        false,
+        TryClauseSelection {
+            clauses: catch_clauses,
+            value: NativeExpr::Param(value_slot),
+            value_type: FAILURE_STATUS_TYPE,
+            result_type,
+            value_slot,
+            default_to_value: false,
+        },
+        environment,
     )?;
     let cleanup = after_clause
         .iter()
@@ -109,21 +131,25 @@ pub(super) fn lower_try(
         cleanup,
     }))
 }
-
-#[allow(clippy::too_many_arguments)]
 fn lower_clauses(
-    clauses: &[CoreCaseClause],
-    value: NativeExpr,
-    value_type: NativeType,
-    result_type: NativeType,
-    value_slot: usize,
-    params: &HashMap<String, usize>,
-    param_types: &HashMap<String, NativeType>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    constructors: &NativeConstructorLayouts,
-    default_to_value: bool,
+    selection: TryClauseSelection<'_>,
+    environment: TryLoweringEnvironment<'_>,
 ) -> Result<NativeExpr, String> {
+    let TryClauseSelection {
+        clauses,
+        value,
+        value_type,
+        result_type,
+        value_slot,
+        default_to_value,
+    } = selection;
+    let TryLoweringEnvironment {
+        params,
+        param_types,
+        functions,
+        function_types,
+        constructors,
+    } = environment;
     if clauses.is_empty() && default_to_value && value_type == result_type {
         return Ok(value);
     }

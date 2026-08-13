@@ -137,3 +137,72 @@ pub resolve(first: Result[Int, String], second: Result[Int, String]): Result[Int
                         (identifier))
                       (expression
                         (identifier)))))))))))))
+
+==================
+single unbraced refutable let binding
+==================
+
+module app.SingleLetElse.
+
+pub resolve(value: Result[Int, String]): Result[Int, String] ->
+  let Ok(result) <- value else {
+      Err(reason) -> Err(reason)
+  };
+  Ok(result).
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (generic_type
+            (type_identifier)
+            (type_expression
+              (type_identifier))
+            (type_expression
+              (type_identifier))))))
+    (type_expression
+      (generic_type
+        (type_identifier)
+        (type_expression
+          (type_identifier))
+        (type_expression
+          (type_identifier))))
+    (expression
+      (let_expression
+        (refutable_let_expression
+          (refutable_let_binding
+            (pattern
+              (constructor_pattern
+                (type_identifier)
+                (pattern
+                  (identifier))))
+            (expression
+              (identifier)))
+          (case_arm
+            (pattern
+              (constructor_pattern
+                (type_identifier)
+                (pattern
+                  (identifier))))
+            (expression
+              (call_expression
+                (type_identifier)
+                (arguments
+                  (argument
+                    (expression
+                      (identifier)))))))
+          (expression
+            (call_expression
+              (type_identifier)
+              (arguments
+                (argument
+                  (expression
+                    (identifier)))))))))))

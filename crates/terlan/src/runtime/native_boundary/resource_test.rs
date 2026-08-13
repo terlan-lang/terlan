@@ -93,6 +93,27 @@ fn process_owned_resource_rejects_non_owner_disposal() {
     assert_eq!(store.dispose_for_owner(handle, 7), Ok(()));
 }
 
+/// Validates process closeout removes only resources owned by that process.
+#[test]
+fn dispose_owner_releases_exact_process_resources() {
+    let mut store = ResourceStore::new();
+    let first = store
+        .insert_for_owner(7, json_resource())
+        .expect("first owner resource");
+    let second = store
+        .insert_for_owner(7, json_resource())
+        .expect("second owner resource");
+    let retained = store
+        .insert_for_owner(8, json_resource())
+        .expect("retained resource");
+
+    assert_eq!(store.dispose_owner(7), 2);
+    assert_eq!(store.dispose_owner(7), 0);
+    assert!(store.json(first).is_err());
+    assert!(store.json(second).is_err());
+    assert_eq!(store.validate_owner(retained, 8), Ok(()));
+}
+
 /// Validates resource-kind mismatches use a stable error code.
 ///
 /// Inputs:

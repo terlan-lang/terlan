@@ -2,10 +2,14 @@ use cranelift_codegen::ir::{self, AbiParam, InstBuilder, Signature};
 use cranelift_codegen::isa::CallConv;
 use cranelift_frontend::{FunctionBuilder, FunctionBuilderContext};
 
+use super::{function::declare_managed_tail_roots, RUNTIME_ARGUMENT_COUNT};
+
 #[test]
-fn managed_reference_live_across_cranelift_safepoint_emits_precise_stack_map() {
+fn managed_tail_parameter_live_across_cranelift_safepoint_emits_precise_stack_map() {
     let mut signature = Signature::new(CallConv::SystemV);
-    signature.params.push(AbiParam::new(ir::types::I64));
+    for _ in 0..RUNTIME_ARGUMENT_COUNT + 1 {
+        signature.params.push(AbiParam::new(ir::types::I64));
+    }
     signature.returns.push(AbiParam::new(ir::types::I64));
     let mut function = ir::Function::with_name_signature(
         ir::UserFuncName::testcase("terlan_managed_safepoint"),
@@ -31,8 +35,10 @@ fn managed_reference_live_across_cranelift_safepoint_emits_precise_stack_map() {
     let entry = builder.create_block();
     builder.append_block_params_for_function_params(entry);
     builder.switch_to_block(entry);
-    let managed_reference = builder.block_params(entry)[0];
-    builder.declare_value_needs_stack_map(managed_reference);
+    let params = builder.block_params(entry).to_vec();
+    let managed_reference = params[RUNTIME_ARGUMENT_COUNT];
+    declare_managed_tail_roots(&mut builder, &params, &[true])
+        .expect("declare typed managed tail root");
     builder.ins().call(safepoint, &[]);
     builder.ins().return_(&[managed_reference]);
     builder.seal_all_blocks();

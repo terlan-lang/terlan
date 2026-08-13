@@ -241,6 +241,17 @@ fn field_values_equal(
     }
 }
 
+/// Compares two values using one admitted managed field schema.
+pub(super) fn managed_field_values_equal(
+    heap: &ActorHeap,
+    layouts: &ManagedLayoutRegistry,
+    field_type: ManagedFieldType,
+    left: ManagedFieldValue,
+    right: ManagedFieldValue,
+) -> Result<bool, ManagedMemoryError> {
+    field_values_equal(heap, layouts, field_type, left, right, &mut HashSet::new())
+}
+
 /// Compares two ordered typed field sequences.
 fn ordered_values_equal(
     heap: &ActorHeap,

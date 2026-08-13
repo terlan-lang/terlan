@@ -16,6 +16,7 @@ pub(crate) struct VmNativeTimerWait {
 
 /// Observable result of one VM-owned actor hibernation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmActorHibernateOutcome {
     pub(crate) released_heap_bytes: usize,
     pub(crate) retained_mailbox_bytes: usize,
@@ -24,6 +25,7 @@ pub(crate) struct VmActorHibernateOutcome {
 
 impl VmActorRuntime {
     /// Compacts and parks an actor until a queued or future VM wake event.
+    #[cfg(test)]
     pub(crate) fn hibernate(
         &mut self,
         pid: VmProcessId,
@@ -64,6 +66,7 @@ impl VmActorRuntime {
     }
 
     /// Suspends an actor without discarding queued mailbox work.
+    #[cfg(test)]
     pub(crate) fn suspend(&mut self, pid: VmProcessId) -> Result<(), String> {
         let native_pending = self.native_continuations_by_owner.contains_key(&pid);
         self.scheduler.suspend_process(&mut self.processes, pid)?;
@@ -75,6 +78,7 @@ impl VmActorRuntime {
     }
 
     /// Resumes an actor through the scheduler-owned runnable queue.
+    #[cfg(test)]
     pub(crate) fn resume(&mut self, pid: VmProcessId) -> Result<(), String> {
         let explicit_native_suspension = self.explicit_native_suspensions.remove(&pid);
         if let Some((request_id, continuation_id)) =
@@ -222,6 +226,7 @@ impl VmActorRuntime {
     /// Exact continuation authority is validated before name lookup. A missing
     /// or stale registration leaves the mailbox, scheduler, and continuation
     /// lease unchanged so native adapters cannot manufacture delivery races.
+    #[cfg(test)]
     pub(crate) fn service_native_named_send(
         &mut self,
         owner_id: u64,
@@ -277,6 +282,7 @@ impl VmActorRuntime {
     /// Conversion occurs while the message remains queued. A failed allocation
     /// or type conversion therefore leaves mailbox order, accounting, and the
     /// continuation lease unchanged.
+    #[cfg(test)]
     pub(crate) fn service_native_receive_typed(
         &mut self,
         owner_id: u64,

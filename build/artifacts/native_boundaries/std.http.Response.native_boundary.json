@@ -1,0 +1,173 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Response.json/2",
+      "name": "json",
+      "operation": "std.http.response.json",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:3d1c2a4db6eb830fa22ab66bcda9595b75a12802cbc290f72ddc144b5caa526a"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Response.json_text/2",
+      "name": "json_text",
+      "operation": "std.http.response.json_text",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:d9ad5ca9bb3dce4b8db0f5374f24113533877d69ae307a9f489e38bcec5ee618"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Response.text/2",
+      "name": "text",
+      "operation": "std.http.response.text",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:1ef3d4dc980a61af6d12ccddcd4f5eeecfd8b28d0e849af2dacfdbf939a525ec"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Response.html/2",
+      "name": "html",
+      "operation": "std.http.response.html",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:f31e7190d19ba5b87fed3ec5d3bf85c59a70c051570c7635ae9ca448d851c50e"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Response.file/3",
+      "name": "file",
+      "operation": "std.http.response.file",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:f4462bd4f4b8e156c4411c0a7c08c206b86eb55b2f8f84a5b8e727ddb6d8a7ee"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 5,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Response.stream/5",
+      "name": "stream",
+      "operation": "std.http.response.stream",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:2c728a7b580514bf729e851b5c50fe850a9acd72d4f2afbc5120649b9dc35ed1"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Response.redirect/2",
+      "name": "redirect",
+      "operation": "std.http.response.redirect",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:ab001770387ec894c35239db95be4cf1e08c44434ded8ef5e937ac9198315ee1"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Response.status/2",
+      "name": "status",
+      "operation": "std.http.response.status",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:71e537f7559273ab741aeb3d57c6545ea7be0c5c18271e5a798b4e589e29f0e7"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Response.header/3",
+      "name": "header",
+      "operation": "std.http.response.header",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:0ba834468dfe2ee91e5fd73c80c919728af01478ec7f1f8dbbd62f977b7b2c00"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Response.set_cookie_header/2",
+      "name": "set_cookie_header",
+      "operation": "std.http.response.set_cookie_header",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:cbd3e3b74d2624f836b188531c6753256c27f8377257fc1185cace2585d0d399"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.http.Response.with_cookies/2",
+      "name": "with_cookies",
+      "operation": "std.http.response.with_cookies",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:6d9e85eac04b1c8941630bbcd9d35c5c8e554849767d43519a9d9d2d57f7ec85"
+    }
+  ],
+  "manifest_digest": "sha256:e9867b868101c07d0c8db167889625b4218f21870fb906fd49a9f5c4bc2f01df",
+  "module": "std_http_response_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "http.response",
+    "error_policy": "typed-result",
+    "module_prefix": "std.http.Response",
+    "notes": "Response APIs construct typed response values.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:8b4a41b012494d8b2442f8da20a64c2c0156b4bccdc6a7d00bc8c73f24f8a767",
+  "source_module": "std.http.Response",
+  "source_path": "std/summaries/std.http.Response.native_boundary.json"
+}

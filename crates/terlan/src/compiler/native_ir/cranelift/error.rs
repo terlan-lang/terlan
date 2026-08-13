@@ -3,7 +3,27 @@
 use cranelift_codegen::ir::{condcodes::IntCC, types, Block, BlockArg, InstBuilder, Value};
 use cranelift_frontend::FunctionBuilder;
 
-use super::super::status;
+use super::super::{status, NativeBinaryOperator};
+
+/// Emits one integer comparison as the canonical native boolean word.
+pub(super) fn emit_integer_comparison(
+    builder: &mut FunctionBuilder<'_>,
+    operator: NativeBinaryOperator,
+    left: Value,
+    right: Value,
+) -> Value {
+    let condition = match operator {
+        NativeBinaryOperator::Equal => IntCC::Equal,
+        NativeBinaryOperator::NotEqual => IntCC::NotEqual,
+        NativeBinaryOperator::LessThan => IntCC::SignedLessThan,
+        NativeBinaryOperator::LessThanOrEqual => IntCC::SignedLessThanOrEqual,
+        NativeBinaryOperator::GreaterThan => IntCC::SignedGreaterThan,
+        NativeBinaryOperator::GreaterThanOrEqual => IntCC::SignedGreaterThanOrEqual,
+        _ => unreachable!("comparison operators validated by caller"),
+    };
+    let comparison = builder.ins().icmp(condition, left, right);
+    builder.ins().uextend(types::I64, comparison)
+}
 
 /// Branches to the shared error block when a checked operation failed.
 pub(super) fn branch_on_flag(

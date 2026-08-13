@@ -28,6 +28,8 @@ fn debug_info_artifact_covers_public_and_private_functions() {
         .map(|entry| {
             assert_eq!(entry.source_file, source_path.display().to_string());
             assert_eq!(entry.module, "debug_info");
+            assert_eq!(entry.source_sha256.len(), 64);
+            assert_eq!(entry.source_origin, "source");
             assert!(!entry.core_schema.is_empty());
             assert!(!entry.proof_readiness.is_empty());
             format!("{}/{}", entry.function, entry.arity)
@@ -68,11 +70,27 @@ fn debug_info_artifact_covers_generated_continuation_functions() {
         !generated.is_empty(),
         "generated continuation debug records"
     );
+    assert!(generated
+        .iter()
+        .all(|record| record.source_origin.starts_with("generated:")));
     assert!(generated.iter().all(|record| {
         record.function.starts_with("$continuation_")
             && record.source_file == source_path.display().to_string()
             && record.span_start < record.span_end
     }));
+    let source = fs::read_to_string(&source_path).expect("read continuation source");
+    let expression_spans = records
+        .iter()
+        .flat_map(|record| &record.continuation_spans)
+        .collect::<Vec<_>>();
+    assert!(
+        expression_spans.iter().any(|span| {
+            source
+                .get(span.span_start..span.span_end)
+                .is_some_and(|text| text.contains("Process.yield_now()"))
+        }),
+        "generated resume entries must retain exact source-expression spans"
+    );
 }
 
 /// Keeps artifact provenance owned by the compiler input path.
@@ -98,10 +116,17 @@ fn cover_messages_parity_ignores_source_remap_markers_in_program_text() {
     assert_eq!(run(cmd, state), ExitCode::SUCCESS);
     let expected_source = source_path.display().to_string();
     let records = native_debug_records(&out_dir.join("vm/cover_messages.tvm"));
-    assert_eq!(records.len(), 1);
-    assert_eq!(records[0].source_file, expected_source);
-    assert_eq!(records[0].function, "marker");
-    assert!(!records[0].source_file.contains(forged_path));
+    assert_eq!(records.len(), 2);
+    assert_eq!(
+        records
+            .iter()
+            .map(|record| record.function.as_str())
+            .collect::<Vec<_>>(),
+        ["forged", "marker"]
+    );
+    assert!(records.iter().all(|record| {
+        record.source_file == expected_source && !record.source_file.contains(forged_path)
+    }));
 }
 
 fn native_debug_records(
@@ -110,7 +135,7 @@ fn native_debug_records(
     let bytes = fs::read(path).expect("read native image");
     let image = object::File::parse(&*bytes).expect("parse native image");
     let section_name = if cfg!(target_os = "windows") {
-        ".debug$T"
+        ".tdbg"
     } else if cfg!(target_os = "macos") {
         "__terlan"
     } else {

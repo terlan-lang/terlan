@@ -21,10 +21,14 @@ import std.test.Test.{assert_false}.
  */
 @test
 pub generated_value_add_updates_presence_and_size(): Bool ->
-    for_all(elements([1, 2, 3]), (value) -> let state = Set.new[Int]();
-    state.add(value);
-    state.add(value);
-    state.contains(value) and state.size() == 1).
+    for_all(
+        elements([1, 2, 3]),
+        (value) ->
+            let state = Set.new[Int]();
+            state.add(value);
+            state.add(value);
+            state.contains(value) and state.size() == 1,
+    ).
 
 /**
  * Verifies removing generated values restores missing state.
@@ -36,7 +40,11 @@ pub generated_value_add_updates_presence_and_size(): Bool ->
  */
 @test
 pub generated_value_remove_restores_missing_state(): Bool ->
-    for_all(elements([1, 2, 3]), (value) -> let state = Set.new[Int]();
-    state.add(value);
-    state.remove(value);
-    assert_false(state.contains(value)) and state.size() == 0).
+    for_all(
+        elements([1, 2, 3]),
+        (value) ->
+            let state = Set.new[Int]();
+            state.add(value);
+            state.remove(value);
+            assert_false(state.contains(value)) and state.size() == 0,
+    ).

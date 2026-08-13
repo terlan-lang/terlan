@@ -92,7 +92,7 @@ jobs:
         run: rustup toolchain install stable --profile minimal
 
       - name: Validate target-native AOT consumers
-        run: python -B tools/check_tvm_aot_platform_matrix.py target
+        run: make tvm-aot-platform-target-check
         env:
           TERLAN_MATRIX_TARGET: ${{ matrix.target }}
 
@@ -123,7 +123,9 @@ jobs:
           merge-multiple: true
 
       - name: Require the complete executable matrix
-        run: python -B tools/check_tvm_aot_platform_matrix.py aggregate target/quality/tvm-aot-platform-input
+        run: make tvm-aot-platform-aggregate-check
+        env:
+          TERLAN_TVM_PLATFORM_REPORT_ROOT: target/quality/tvm-aot-platform-input
 
       - name: Upload aggregate evidence
         uses: actions/upload-artifact@v4

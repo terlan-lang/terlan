@@ -1,0 +1,344 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.start/1",
+      "name": "start",
+      "operation": "postgres.libpq.connection.start",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:9147c605a1e2ab665a0433b5fe256f123263d084c2bf5bd0b08c3e9eaac58f9e"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.dispose_connection/1",
+      "name": "dispose_connection",
+      "operation": "postgres.libpq.connection.dispose",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:273ac1079c1115f987f03f7ad8774e88afd7b94cd9dab507edd1675f7de4365f"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.socket/1",
+      "name": "socket",
+      "operation": "postgres.libpq.connection.socket",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:5754c219a7d7886bb272271df690442155af73e83f836a15e5b6af78c8161e75"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.poll_connect/1",
+      "name": "poll_connect",
+      "operation": "postgres.libpq.connection.poll_connect",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:3690154db5ef37115a48f4031c659c541787ecdd1ebba09fb372ce8beef6865d"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.error_length/1",
+      "name": "error_length",
+      "operation": "postgres.libpq.connection.error_length",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:2619a36fc17c0d97f797406271ebdf8d9f88b507d2fa52a91ab2d97d63cd0666"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.error_bytes/1",
+      "name": "error_bytes",
+      "operation": "postgres.libpq.connection.error_bytes",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:d648223efad8c7ef12971fe1ac4499644e001db775087f775ed626f6d89ea0be"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.clear_parameters/1",
+      "name": "clear_parameters",
+      "operation": "postgres.libpq.connection.clear_parameters",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:6fbdb1e7f48e96ab1c27ba0d019a28a959093cf6fbca81c4e28a818f6447eb47"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.push_null/1",
+      "name": "push_null",
+      "operation": "postgres.libpq.connection.push_null",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:f4beaa73d31fc9679249cad32396596f98c64b4cead131d401664a7d97091ece"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.push_text/2",
+      "name": "push_text",
+      "operation": "postgres.libpq.connection.push_text",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:4e061621cea3a6fe79d1dc31c15fa03d4f65fbb0f45dc7139c16aeab971c28fc"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.send_query/2",
+      "name": "send_query",
+      "operation": "postgres.libpq.connection.send_query",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:f9fd3cfca402b740eaf9f891e3854db7bb11908b097ff60b1b3d0e3ec6453346"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.send_batch/2",
+      "name": "send_batch",
+      "operation": "postgres.libpq.connection.send_batch",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:ba5e17673c57ba44b80de5cf70bd5603e83c3e0dbfbc3825e75821b2fddbf784"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.consume_input/1",
+      "name": "consume_input",
+      "operation": "postgres.libpq.connection.consume_input",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:89f8a5c60d4cd6008e87b2ff2589472ab8ff02047f7e33971800092d54641a7c"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.is_busy/1",
+      "name": "is_busy",
+      "operation": "postgres.libpq.connection.is_busy",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:06891528ec34a2359dc699854f4d89b1935efbf02dbddb5101ead0248e5a0005"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.next_result/1",
+      "name": "next_result",
+      "operation": "postgres.libpq.connection.next_result",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:d06e01dd458a2bb76f836a41f034413eea0e273f4e9ac954f03561ff717dd9db"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.abort/1",
+      "name": "abort",
+      "operation": "postgres.libpq.connection.abort",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:66a4dede279e95d5e88b12856b54ba7c3aec740882f7022d23eb0886f73af485"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.dispose_result/1",
+      "name": "dispose_result",
+      "operation": "postgres.libpq.result.dispose",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:3c383b079ec4cf236bd8068c03631940476ded5020c8c4d0cef637830e913955"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.status/1",
+      "name": "status",
+      "operation": "postgres.libpq.result.status",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:bb702e00413ec8b137b9359d964caaa3456b5f0291649676ef451f5b5dd8e03f"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.row_count/1",
+      "name": "row_count",
+      "operation": "postgres.libpq.result.row_count",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:bf9b43394c667fb406c345c952e343164c9dd6424386ca8555df6e5eac8a9174"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.column_count/1",
+      "name": "column_count",
+      "operation": "postgres.libpq.result.column_count",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:922f0c8c6eeb145ef9e9ecf4c782de8d0eec186facee5efe6a6467c485290ff1"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.select_column_name/2",
+      "name": "select_column_name",
+      "operation": "postgres.libpq.result.select_column_name",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:ce7dca5c548fcd289b8b3569c485fc0efb5fb83242d88756266f285f011dd81d"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.column_oid/2",
+      "name": "column_oid",
+      "operation": "postgres.libpq.result.column_oid",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:818a2c36cbdf027379d55648bc713f64261b3b358af154e4576572d6ae1a945f"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 3,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.select_value/3",
+      "name": "select_value",
+      "operation": "postgres.libpq.result.select_value",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:5d3d35c26bf5446d80ed04589ee9f39660aa79b10955fae135fec524b38b4e37"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.value_length/1",
+      "name": "value_length",
+      "operation": "postgres.libpq.result.value_length",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:c500ed96aaac08122935d9fbcc9f82a491bfb7c57e27e7cc7cc3fe2e7f80b840"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.value_bytes/1",
+      "name": "value_bytes",
+      "operation": "postgres.libpq.result.value_bytes",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:c991f5044ca1d11e894dc5500d45e0bd58d2099b245782f7476b56fa2bfa7e7f"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.value_is_null/1",
+      "name": "value_is_null",
+      "operation": "postgres.libpq.result.value_is_null",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:7909ab50d67a20bf898104bdf1f31f92ec3e302de35c415c84fc1ac6b136f56f"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "async-capability-rpc",
+      "identity": "terlan_libpq.Driver.affected_rows/1",
+      "name": "affected_rows",
+      "operation": "postgres.libpq.result.affected_rows",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:498b1347d1b5947f507ee0c6ef5e3bf456012b70585f805d96954e44eb082395"
+    }
+  ],
+  "manifest_digest": "sha256:ec66b8b990593a93ad3a796a1a15477db0497d9659f22da33ac34beaf3af4652",
+  "module": "terlan_libpq_driver_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "blocking",
+    "cancellation_policy": "cancel-on-owner-exit",
+    "capability": "postgres",
+    "error_policy": "typed-result",
+    "module_prefix": "terlan_libpq.Driver",
+    "notes": "The internal libpq driver uses worker-owned connection resources and typed failures.",
+    "resource_policy": "owned-resource-handle",
+    "timeout_policy": "required",
+    "worker_placement": "native-worker"
+  },
+  "source_digest": "sha256:dfac5564c98683a9e3e4d1d7f8c4930d1760530358b00391217e92e59e7edcc7",
+  "source_module": "terlan_libpq.Driver",
+  "source_path": "std/summaries/terlan_libpq.Driver.native_boundary.json"
+}

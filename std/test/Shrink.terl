@@ -23,8 +23,8 @@ import type std.collections.List.
  */
 pub shrink_int(value: Int): List[Int] ->
     if {
-    value == 0 -> [];
-    true -> [0]
+        value == 0 -> [];
+        true -> [0]
     }.
 
 /**
@@ -37,8 +37,8 @@ pub shrink_int(value: Int): List[Int] ->
  */
 pub shrink_float(value: Float): List[Float] ->
     if {
-    value == 0.0 -> [];
-    true -> [0.0]
+        value == 0.0 -> [];
+        true -> [0.0]
     }.
 
 /**
@@ -50,8 +50,8 @@ pub shrink_float(value: Float): List[Float] ->
  */
 pub shrink_bool(value: Bool): List[Bool] ->
     if {
-    value -> [false];
-    true -> []
+        value -> [false];
+        true -> []
     }.
 
 /**
@@ -64,8 +64,8 @@ pub shrink_bool(value: Bool): List[Bool] ->
  */
 pub shrink_string(value: String): List[String] ->
     if {
-    value == "" -> [];
-    true -> [""]
+        value == "" -> [];
+        true -> [""]
     }.
 
 /**
@@ -95,7 +95,7 @@ pub shrink_option(value: Option[T]): List[Option[T]] ->
 pub shrink_result(
     value: Result[T, E],
     shrink_ok: (T) -> List[T],
-    shrink_err: (E) -> List[E]
+    shrink_err: (E) -> List[E],
 ): List[Result[T, E]] ->
     case value {
         Ok(ok_value) -> ok_result_values(shrink_ok(ok_value));
@@ -129,10 +129,13 @@ pub shrink_list(value: List[T]): List[List[T]] ->
 pub shrink_pair(
     value: {A, B},
     shrink_left: (A) -> List[A],
-    shrink_right: (B) -> List[B]
+    shrink_right: (B) -> List[B],
 ): List[{A, B}] ->
     let {left, right} = value;
-    append(shrink_left_pairs(shrink_left(left), right), shrink_right_pairs(left, shrink_right(right))).
+    append(
+        shrink_left_pairs(shrink_left(left), right),
+        shrink_right_pairs(left, shrink_right(right)),
+    ).
 
 /**
  * Returns simpler map candidates.
@@ -144,8 +147,8 @@ pub shrink_pair(
  */
 pub shrink_map(value: T, empty_value: T): List[T] ->
     if {
-    value == empty_value -> [];
-    true -> [empty_value]
+        value == empty_value -> [];
+        true -> [empty_value]
     }.
 
 /**
@@ -158,8 +161,8 @@ pub shrink_map(value: T, empty_value: T): List[T] ->
  */
 pub shrink_object(value: T, empty_value: T): List[T] ->
     if {
-    value == empty_value -> [];
-    true -> [empty_value]
+        value == empty_value -> [];
+        true -> [empty_value]
     }.
 
 /**
@@ -175,8 +178,8 @@ pub guard_self(original: T, candidates: List[T]): List[T] ->
         [] -> [];
         [head | tail] ->
             if {
-            head == original -> guard_self(original, tail);
-            true -> [head | guard_self(original, tail)]
+                head == original -> guard_self(original, tail);
+                true -> [head | guard_self(original, tail)]
             }
     }.
 
@@ -189,8 +192,8 @@ pub guard_self(original: T, candidates: List[T]): List[T] ->
  */
 pub limit(max: Int, candidates: List[T]): List[T] ->
     if {
-    max <= 0 -> [];
-    true -> case candidates {
+        max <= 0 -> [];
+        true -> case candidates {
             [] -> [];
             [head | tail] -> [head | limit(max - 1, tail)]
         }

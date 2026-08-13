@@ -377,9 +377,10 @@ pub enum Pattern {
     Int(i64),
     Float(f64),
     String(String),
-    StringPattern(Vec<StringPatternSegment>),
+    StringSegments(Vec<StringPatternSegment>),
     Atom(String),
     AtomLiteral(String),
+    NullaryConstructorCall(String),
     Tuple(Vec<Pattern>),
     Alias {
         alias: String,
@@ -536,23 +537,6 @@ pub enum BuiltinBlockMacro {
 }
 
 impl BuiltinBlockMacro {
-    /// Resolves a source macro name to a built-in block macro.
-    ///
-    /// Inputs:
-    /// - `name`: raw source macro name.
-    ///
-    /// Output:
-    /// - Matching built-in block macro kind, or `None` for user macros.
-    ///
-    /// Transformation:
-    /// - Keeps the parser's reserved built-in macro name table explicit.
-    pub fn from_name(name: &str) -> Option<Self> {
-        match name {
-            "html" => Some(Self::Html),
-            _ => None,
-        }
-    }
-
     /// Returns the canonical source name for a built-in block macro.
     ///
     /// Inputs:

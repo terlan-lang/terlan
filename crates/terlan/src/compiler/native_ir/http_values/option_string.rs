@@ -1,6 +1,9 @@
 //! Shared direct-AOT case lowering for managed `Option[String]` values.
 
-use crate::terlan_typeck::{CoreCaseClause, CoreExpr, CoreIfClause, CoreLetBinding, CorePattern};
+use crate::terlan_typeck::{
+    CoreCaseClause, CoreExpr, CoreIfClause, CoreIntrinsicId, CoreLetBinding, CorePattern,
+    CorePrimitiveIntrinsic, CoreType,
+};
 
 use super::MANAGED_HTTP_MODULE;
 
@@ -71,6 +74,16 @@ fn is_request_string_option(expr: &CoreExpr) -> bool {
             if module == MANAGED_HTTP_MODULE
                 && matches!(function.as_str(), "param" | "query" | "header" | "cookie" | "jar_get")
                 && args.len() == 2
+    ) || matches!(
+        expr,
+        CoreExpr::Intrinsic(call)
+            if call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapGet)
+                && matches!(
+                    &call.return_type,
+                    CoreType::Apply { constructor, args }
+                        if constructor.rsplit('.').next() == Some("Option")
+                            && matches!(args.as_slice(), [CoreType::String])
+                )
     )
 }
 
@@ -145,6 +158,7 @@ fn option_pattern(
     operations: &ManagedOptionCase,
 ) -> Result<(CoreExpr, Option<String>), String> {
     match pattern {
+        CorePattern::Atom(name) if name == "none" => Ok((option_is_none(operations), None)),
         CorePattern::Constructor { name, args, .. }
             if name.rsplit('.').next() == Some("None") && args.is_empty() =>
         {
@@ -154,6 +168,29 @@ fn option_pattern(
             if name.rsplit('.').next() == Some("Some") && args.len() == 1 =>
         {
             let payload = match &args[0] {
+                CorePattern::Wildcard => None,
+                CorePattern::Var(name) => Some(name.clone()),
+                _ => {
+                    return Err(diagnostic(
+                        operations.diagnostic,
+                        "Some payload must be a variable or wildcard",
+                    ));
+                }
+            };
+            Ok((
+                CoreExpr::UnaryOp {
+                    operator: "not".to_string(),
+                    operand: Box::new(option_is_none(operations)),
+                },
+                payload,
+            ))
+        }
+        CorePattern::Tuple(items) if matches!(items.as_slice(), [CorePattern::Atom(tag), _] if tag == "some") =>
+        {
+            let [CorePattern::Atom(_), payload] = items.as_slice() else {
+                unreachable!("matched structural option pattern")
+            };
+            let payload = match payload {
                 CorePattern::Wildcard => None,
                 CorePattern::Var(name) => Some(name.clone()),
                 _ => {

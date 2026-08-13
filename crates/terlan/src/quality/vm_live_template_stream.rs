@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::json;
 
+use crate::terlan_quality::support::validate_required_terms;
 use crate::terlan_quality::QualityResult;
 
 const REPORT_PATH: &str = "target/quality/vm-live-template-stream-report.json";
@@ -178,7 +179,6 @@ const REQUIRED_GATE_TERMS: &[&str] = &[
     "vm-http-websocket-termination-check \\",
     "vm-http-live-channel-source-check",
     "vm-live-template-stream",
-    "http_session_rejects_unsupported_actor_patch_return_before_state_update",
 ];
 
 const TEMPLATE_FIXTURES: &[&str] = &[
@@ -204,6 +204,7 @@ const REJECTED_STREAM_PATHS: &[&str] =
     &["stateful VM values are rejected before actor-bound template update and fanout"];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm live template stream summary.
 pub struct VmLiveTemplateStreamSummary {
     pub template_fixture_count: usize,
     pub patch_event_count: usize,
@@ -211,6 +212,7 @@ pub struct VmLiveTemplateStreamSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm live template stream.
 pub fn run_vm_live_template_stream(root: &Path) -> QualityResult<VmLiveTemplateStreamSummary> {
     let mut diagnostics = Vec::new();
     diagnostics.extend(validate_required_terms(
@@ -465,21 +467,6 @@ pub fn run_vm_live_template_stream(root: &Path) -> QualityResult<VmLiveTemplateS
     })
 }
 
-fn validate_required_terms(
-    root: &Path,
-    relative: &str,
-    terms: &[&str],
-    label: &str,
-) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join(relative))
-        .map_err(|err| format!("{relative}: failed to read {label}: {err}"))?;
-    Ok(terms
-        .iter()
-        .filter(|term| !text.contains(**term))
-        .map(|term| format!("{relative}: missing {label} anchor `{term}`"))
-        .collect())
-}
-
 fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
     let text = fs::read_to_string(root.join("Makefile"))
         .map_err(|err| format!("Makefile: failed to read VM live template stream gate: {err}"))?;
@@ -535,4 +522,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_live_template_stream_test.rs"]
+#[cfg(test)]
 mod vm_live_template_stream_test;

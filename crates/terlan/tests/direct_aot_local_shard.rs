@@ -4,7 +4,11 @@ use std::fs;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// Builds one native image and executes representative VM transitions locally.
+/// Builds one rooted native image and executes representative VM transitions locally.
+///
+/// The fixture's `main/0` closure explicitly retains these probes. This keeps
+/// the test aligned with production AOT reachability pruning: unrelated public
+/// declarations must not become accidental executable ABI exports.
 #[test]
 fn native_image_transitions_execute_on_the_local_shard() {
     let root = std::env::temp_dir().join(format!(

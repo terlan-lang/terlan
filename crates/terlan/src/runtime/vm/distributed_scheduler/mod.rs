@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::BTreeMap;
 
 use super::coordination::{VmClusterNodeSnapshot, VmClusterNodeState};
@@ -7,14 +5,12 @@ use super::coordination::{VmClusterNodeSnapshot, VmClusterNodeState};
 mod fault;
 mod placement_override;
 mod source_snapshot;
-
-#[allow(unused_imports)]
-pub(crate) use fault::{
-    distributed_fault_compatibility, VmDistributedFailureEnvelope, VmDistributedFailureKind,
-    VmDistributedFaultPolicy, VmDistributedFaultState, VmDistributedFaultTransition,
-    VmDistributedHeartbeatObservation,
-};
 use fault::{validate_fault_policy, VmDistributedFaultStatus};
+pub(crate) use fault::{
+    VmDistributedFailureEnvelope, VmDistributedFailureKind, VmDistributedFaultPolicy,
+    VmDistributedFaultTransition,
+};
+pub(crate) use fault::{VmDistributedFaultState, VmDistributedHeartbeatObservation};
 
 /// Fallback behavior when a shard-affinity owner is unavailable.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -183,6 +179,7 @@ pub(crate) struct VmDistributedScheduler {
     last_heartbeat_ticks: BTreeMap<String, u64>,
 }
 
+#[cfg(test)]
 impl VmDistributedScheduler {
     /// Builds a scheduler from the active portion of a membership view.
     pub(crate) fn from_membership(
@@ -361,11 +358,6 @@ impl VmDistributedScheduler {
     /// Returns the number of active nodes available for placement.
     pub(crate) fn active_node_count(&self) -> usize {
         self.active_nodes.len()
-    }
-
-    /// Returns the active migration pressure limits for this scheduler.
-    pub(crate) const fn limits(&self) -> VmSchedulingLimits {
-        self.limits
     }
 
     /// Returns the number of in-flight migrations currently tracked.
@@ -898,6 +890,7 @@ fn validate_scheduling_limits(limits: VmSchedulingLimits) -> Result<(), String> 
 }
 
 /// Returns the only valid next migration phase.
+#[cfg(test)]
 fn next_migration_phase(phase: VmMigrationPhase) -> Option<VmMigrationPhase> {
     match phase {
         VmMigrationPhase::Requested => Some(VmMigrationPhase::Snapshotting),
@@ -909,4 +902,5 @@ fn next_migration_phase(phase: VmMigrationPhase) -> Option<VmMigrationPhase> {
 
 #[cfg(test)]
 #[path = "distributed_scheduler_test.rs"]
+#[cfg(test)]
 mod distributed_scheduler_test;

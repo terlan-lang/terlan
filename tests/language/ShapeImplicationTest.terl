@@ -3,20 +3,20 @@ module tests.language.ShapeImplicationTest.
 import std.test.Test.{assert_equal}.
 
 pub struct Profile {
-    title: String
+    title: String,
 }.
 
 pub struct User {
     name: String,
-    profile: Profile
+    profile: Profile,
 }.
 
 pub struct Presenter {
-    prefix: String
+    prefix: String,
 }.
 
 pub struct Page[T => {title: String}] {
-    model: T
+    model: T,
 }.
 
 pub type Titled[T => {title: String}] = T.
@@ -26,10 +26,12 @@ pub trait Render[T] {
 }.
 
 pub impl Render[T => {title: String}] for T {
-    render(value: T): String -> value.title.
+    render(value: T): String ->
+        value.title.
 }.
 
-pub titled_name(value: Titled[Profile]): String -> value.title.
+pub titled_name(value: Titled[Profile]): String ->
+    value.title.
 
 pub display_name[T => {name: String}](value: T): String ->
     value.name.

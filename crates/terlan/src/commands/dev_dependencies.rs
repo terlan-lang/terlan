@@ -139,6 +139,7 @@ pub(crate) fn finish_dependency_session(
 /// - Uses `docker-compose-types` plus Serde YAML deserialization to parse the
 ///   Compose model, then applies only Terlan's strict web-profile Postgres
 ///   service contract.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 pub(crate) fn validate_project_compose(project_root: &Path) -> Result<(), String> {
     let Some(path) = project_compose_path(project_root) else {
         return Ok(());
@@ -174,10 +175,22 @@ pub(crate) fn start_project_dependencies(
         &docker_compose_up_command(&path),
         &docker_compose_logs_command(&path),
     )?;
+    Ok(classify_dependency_ownership(existed_before_start, path))
+}
+
+/// Classifies the service after a pre-start ownership probe.
+///
+/// A stopped container is deliberately considered external because the probe
+/// uses `docker compose ps --all`. Starting it may repair a stale development
+/// service, but Terlan must not remove a container it did not create.
+fn classify_dependency_ownership(
+    existed_before_start: bool,
+    compose_path: PathBuf,
+) -> DevDependencySession {
     if existed_before_start {
-        Ok(DevDependencySession::external())
+        DevDependencySession::external()
     } else {
-        Ok(DevDependencySession::owned(path))
+        DevDependencySession::owned(compose_path)
     }
 }
 
@@ -865,4 +878,5 @@ fn healthcheck_command_is_enabled(command: &str) -> bool {
 
 #[cfg(test)]
 #[path = "serve/compose_test.rs"]
+#[cfg(test)]
 mod compose_test;

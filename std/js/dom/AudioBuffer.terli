@@ -58,7 +58,7 @@ pub (value: AudioBuffer) sample_rate(): JsNumber.
 pub (value: AudioBuffer) copy_from_channel(
     destination: Float32Array[ArrayBuffer],
     channel_number: JsNumber,
-    buffer_offset: JsNumber
+    buffer_offset: JsNumber,
 ): Unit.
 
 /**
@@ -69,7 +69,7 @@ pub (value: AudioBuffer) copy_from_channel(
 pub (value: AudioBuffer) copy_to_channel(
     source: Float32Array[ArrayBuffer],
     channel_number: JsNumber,
-    buffer_offset: JsNumber
+    buffer_offset: JsNumber,
 ): Unit.
 
 /**

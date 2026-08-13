@@ -1,72 +1,64 @@
-//! Terlan VM Agent contract.
-//!
-//! `std.vm.Agent` models a supervised process that owns one typed state value.
-//! It is a runtime process wrapper built on the same ordinary type and method
-//! rules as the rest of Terlan; it is not a portable mutable reference.
+//! Typed state cells implemented in Terlan over VM process primitives.
 
 module std.vm.Agent.
 
-/// Agent represents a supervised typed state process.
-///
-/// Input: type parameter `T`.
-/// Output: an opaque runtime-owned process handle.
-/// Transformation: hides process identity, mailbox mechanics, and supervision
-/// details behind a typed receiver-method surface.
+pub type Agent[T] =
+    {Atom["agent"], process: std.vm.Process.Process[AgentCommand[T]], placeholder: T}.
 
-pub opaque type Agent[T].
+pub type AgentCommand[T] =
+    {Atom["agent_command"], kind: AgentCommandKind, request_id: Int, reply_to: std.vm.Process.Process[AgentReply[T]], value: T}.
 
-/// Queues an asynchronous state update.
-///
-/// Input: one mutable `Agent[T]` receiver and one writer from `T` to `T`.
-/// Output: `Unit`.
-/// Transformation: records an effectful state update request without exposing
-/// runtime cast messages in Terlan source.
+pub type AgentCommandKind =
+    AgentInit
+  | AgentGet
+  | AgentUpdate
+  | AgentGetAndUpdate
+  | AgentStop.
 
-pub (mut agent: Agent[T]) cast(writer: (T) -> T): Unit.
+pub type AgentCommandTag =
+    Atom["agent_command"].
 
-/// Reads the current state.
-///
-/// Input: one `Agent[T]` receiver.
-/// Output: the current state value.
-/// Transformation: performs a typed synchronous state read without exposing a
-/// process message or reply tuple in Terlan source.
+pub type AgentGet =
+    Atom["agent_get"].
 
-pub (agent: Agent[T]) get(): T.
+pub type AgentGetAndUpdate =
+    Atom["agent_get_and_update"].
 
-/// Updates state and returns a derived value.
-///
-/// Input: one `Agent[T]` receiver and one writer from `T` to a named
-/// `{state, value}` pair.
-/// Output: the derived value.
-/// Transformation: performs a single state transition and read through the
-/// runtime-owned process. The receiver handle remains stable; the target runtime
-/// owns the state transition.
+pub type AgentInit =
+    Atom["agent_init"].
 
-pub (agent: Agent[T]) get_and_update[U](writer: (T) -> {state: T, value: U}): U.
+pub type AgentReply[T] =
+    {Atom["agent_reply"], request_id: Int, value: T}.
 
-/// Starts an agent with an initial value.
-///
-/// Input: one initial state value of type `T`.
-/// Output: `Result[Agent[T], Error]`.
-/// Transformation: asks the selected VM runtime to start a supervised state
-/// process and normalizes startup failure into the standard typed error channel.
+pub type AgentStop =
+    Atom["agent_stop"].
 
-pub start[T](initial: T): Result[Agent[T], Error].
+pub type AgentTag =
+    Atom["agent"].
 
-/// Stops the agent.
-///
-/// Input: one mutable `Agent[T]` receiver.
-/// Output: `Unit`.
-/// Transformation: asks the selected VM runtime to terminate the supervised state
-/// process and release the target-owned handle.
+pub type AgentUpdate =
+    Atom["agent_update"].
 
-pub (mut agent: Agent[T]) stop(): Unit.
+pub await_reply[T](request_id: Int, witness: T): T.
 
-/// Replaces state by applying a writer function.
-///
-/// Input: one mutable `Agent[T]` receiver and one writer from `T` to `T`.
-/// Output: `Unit`.
-/// Transformation: updates the agent state through receiver mutability while
-/// preserving process ownership behind the target runtime.
+pub cast[T](agent: Agent[T], value: T): Unit.
 
-pub (mut agent: Agent[T]) update(writer: (T) -> T): Unit.
+pub get[T](agent: Agent[T], request_id: Int): T.
+
+pub get_and_update[T](agent: Agent[T], request_id: Int, value: T): T.
+
+pub make_agent[T](process: std.vm.Process.Process[AgentCommand[T]], initial: T): Agent[T].
+
+pub request_get[T](agent: Agent[T], request_id: Int, reply_to: std.vm.Process.Process[AgentReply[T]]): Unit.
+
+pub send_reply[T](reply_to: std.vm.Process.Process[AgentReply[T]], request_id: Int, value: T): Unit.
+
+pub serve[T](witness: T): Unit.
+
+pub serve_state[T](state: T): Unit.
+
+pub start[T](process: std.vm.Process.Process[AgentCommand[T]], initial: T): Agent[T].
+
+pub stop[T](agent: Agent[T], request_id: Int): Unit.
+
+pub update[T](agent: Agent[T], value: T): Unit.

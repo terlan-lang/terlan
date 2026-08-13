@@ -97,7 +97,7 @@ pub (value: BaseAudioContext) create_biquad_filter(): BiquadFilterNode ->
 pub (value: BaseAudioContext) create_buffer(
     number_of_channels: JsNumber,
     length: JsNumber,
-    sample_rate: JsNumber
+    sample_rate: JsNumber,
 ): AudioBuffer ->
     native.
 
@@ -197,7 +197,7 @@ pub (value: BaseAudioContext) create_panner(): PannerNode ->
 pub (value: BaseAudioContext) create_periodic_wave(
     real: Float32Array | Array[JsNumber],
     imag: Float32Array | Array[JsNumber],
-    constraints: PeriodicWaveConstraints
+    constraints: PeriodicWaveConstraints,
 ): PeriodicWave ->
     native.
 
@@ -210,7 +210,7 @@ pub (value: BaseAudioContext) create_periodic_wave(
 pub (value: BaseAudioContext) create_script_processor(
     buffer_size: JsNumber,
     number_of_input_channels: JsNumber,
-    number_of_output_channels: JsNumber
+    number_of_output_channels: JsNumber,
 ): ScriptProcessorNode ->
     native.
 
@@ -238,20 +238,20 @@ pub (value: BaseAudioContext) create_wave_shaper(): WaveShaperNode ->
 pub (value: BaseAudioContext) decode_audio_data(
     audio_data: ArrayBuffer,
     success_callback: Option[DecodeSuccessCallback],
-    error_callback: Option[DecodeErrorCallback]
+    error_callback: Option[DecodeErrorCallback],
 ): std.js.Promise[AudioBuffer] ->
     native.
 
 pub (value: BaseAudioContext) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     native.
 
 pub (value: BaseAudioContext) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     native.

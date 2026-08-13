@@ -27,19 +27,19 @@ pub ready_typechecks(receiver: ServiceWorkerContainer): Promise[ServiceWorkerReg
 
 pub get_registration_typechecks(
     receiver: ServiceWorkerContainer,
-    client_url: URL | JsString
+    client_url: URL | JsString,
 ): Promise[Option[ServiceWorkerRegistration]] ->
     receiver.get_registration(client_url).
 
 pub get_registrations_typechecks(
-    receiver: ServiceWorkerContainer
+    receiver: ServiceWorkerContainer,
 ): Promise[std.js.Array[ServiceWorkerRegistration]] ->
     receiver.get_registrations().
 
 pub register_typechecks(
     receiver: ServiceWorkerContainer,
     script_url: URL | JsString,
-    options: RegistrationOptions
+    options: RegistrationOptions,
 ): Promise[ServiceWorkerRegistration] ->
     receiver.register(script_url, options).
 
@@ -50,7 +50,7 @@ pub add_event_listener_typechecks(
     receiver: ServiceWorkerContainer,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -58,6 +58,6 @@ pub remove_event_listener_typechecks(
     receiver: ServiceWorkerContainer,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

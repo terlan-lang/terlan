@@ -67,6 +67,29 @@ impl PureNativeCapabilityWait {
 }
 
 impl PureNativeExecutionShard {
+    /// Claims one spawned actor capability suspension for helper dispatch.
+    pub(crate) fn take_resident_capability_call(
+        &mut self,
+    ) -> Result<Option<(VmProcessId, PureNativeSuspension, PureNativeCapabilityWait)>, String> {
+        let Some(suspension) = self.execution.take_resident_capability_suspension() else {
+            return Ok(None);
+        };
+        let owner = VmProcessId::from_native_owner(suspension.owner_id())?;
+        let wait = match self.begin_capability_call(owner, &suspension) {
+            Ok(wait) => wait,
+            Err(error) => {
+                let cleanup = self.finish_owner(owner, VmExitReason::Error(error.clone()));
+                return match cleanup {
+                    Ok(()) => Err(error),
+                    Err(cleanup_error) => Err(format!(
+                        "{error}; error[execution_shard.cleanup]: {cleanup_error}"
+                    )),
+                };
+            }
+        };
+        Ok(Some((owner, suspension, wait)))
+    }
+
     /// Decodes and admits one generated capability suspension under the active epoch.
     pub(crate) fn begin_capability_call(
         &mut self,
@@ -75,9 +98,12 @@ impl PureNativeExecutionShard {
     ) -> Result<PureNativeCapabilityWait, String> {
         let epoch = self.require_active_epoch("begin_capability_call")?;
         let request = {
-            let context = PureNativeExecutionContext::new(owner, &mut self.execution);
-            self.boundary
-                .capability_request_for_actor(&context, suspension)?
+            let mut context = PureNativeExecutionContext::new(owner, &mut self.execution);
+            let request = self
+                .boundary
+                .capability_request_for_actor(&context, suspension)?;
+            context.collect_parked_owner_at_safepoint()?;
+            request
         };
         let completion = self.begin_epoch_operation(
             "capability completion",
@@ -131,12 +157,14 @@ impl PureNativeExecutionShard {
     ) -> Result<PureNativeExecution, String> {
         let epoch = self.require_active_epoch("resume_capability_value_call")?;
         wait.validate(self.supervisor.shard_id(), epoch, owner, &suspension)?;
+        let result_type = wait.request.result_type.clone();
         let execution = {
             let mut context = PureNativeExecutionContext::new(owner, &mut self.execution);
-            self.boundary.resume_capability_for_actor(
+            self.boundary.resume_capability_value_for_actor(
                 &mut self.actors,
                 &mut context,
                 suspension,
+                &result_type,
                 &value,
             )
         };
@@ -155,6 +183,41 @@ impl PureNativeExecutionShard {
         self.record_completion(owner, &execution);
         self.commit_epoch_operation(wait.completion)?;
         Ok(execution)
+    }
+
+    /// Resumes a spawned actor capability and drives it until it parks or exits.
+    pub(crate) fn resume_resident_capability_value_call(
+        &mut self,
+        owner: VmProcessId,
+        suspension: PureNativeSuspension,
+        wait: PureNativeCapabilityWait,
+        value: ReplValue,
+    ) -> Result<bool, String> {
+        let execution = self.resume_capability_value_call(owner, suspension, wait, value)?;
+        self.drive_resident_capability_execution(owner, execution)
+    }
+
+    /// Resumes a spawned built-in capability and drives it until it parks or exits.
+    pub(crate) fn resume_resident_capability_call(
+        &mut self,
+        owner: VmProcessId,
+        suspension: PureNativeSuspension,
+        wait: PureNativeCapabilityWait,
+        reply: NativeBoundaryReplyTerm,
+    ) -> Result<bool, String> {
+        let execution = self.resume_capability_call(owner, suspension, wait, reply)?;
+        self.drive_resident_capability_execution(owner, execution)
+    }
+
+    /// Settles one capability completion inside its spawned actor lifecycle.
+    fn drive_resident_capability_execution(
+        &mut self,
+        owner: VmProcessId,
+        execution: PureNativeExecution,
+    ) -> Result<bool, String> {
+        let mut context = PureNativeExecutionContext::new(owner, &mut self.execution);
+        self.boundary
+            .drive_resident_execution(&mut self.actors, &mut context, owner, execution)
     }
 }
 
@@ -188,6 +251,11 @@ fn capability_reply_value(
         (TvmBoundaryType::Binary | TvmBoundaryType::Bytes, NativeBoundaryTerm::Bytes(value)) => {
             ReplValue::Bytes(value.into())
         }
+        (TvmBoundaryType::Managed(_), term @ NativeBoundaryTerm::OptionalText(_))
+        | (TvmBoundaryType::Managed(_), term @ NativeBoundaryTerm::Record { .. })
+        | (TvmBoundaryType::Managed(_), term @ NativeBoundaryTerm::List(_)) => {
+            managed_capability_term(term)?
+        }
         (expected, actual) => {
             return Err(format!(
                 "error[execution_shard.capability_type]: expected {expected:?}, received {actual:?}"
@@ -195,4 +263,42 @@ fn capability_reply_value(
         }
     };
     Ok(value)
+}
+
+fn managed_capability_term(term: NativeBoundaryTerm) -> Result<ReplValue, String> {
+    match term {
+        NativeBoundaryTerm::Unit => Ok(ReplValue::Unit),
+        NativeBoundaryTerm::Text(value) => Ok(ReplValue::String(value)),
+        NativeBoundaryTerm::Bytes(value) => Ok(ReplValue::Bytes(value.into())),
+        NativeBoundaryTerm::Int(value) => Ok(ReplValue::Int(value)),
+        NativeBoundaryTerm::Float(value) => Ok(ReplValue::Float(value.to_string())),
+        NativeBoundaryTerm::Bool(value) => Ok(ReplValue::Bool(value)),
+        NativeBoundaryTerm::Atom(value) => Ok(ReplValue::Atom(value)),
+        NativeBoundaryTerm::OptionalText(value) => Ok(match value {
+            Some(value) => ReplValue::Record {
+                name: "Some".to_string(),
+                fields: vec![("value".to_string(), ReplValue::String(value))],
+            },
+            None => ReplValue::Record {
+                name: "None".to_string(),
+                fields: Vec::new(),
+            },
+        }),
+        NativeBoundaryTerm::Record { name, fields } => Ok(ReplValue::Record {
+            name,
+            fields: fields
+                .into_iter()
+                .map(|(name, value)| managed_capability_term(value).map(|value| (name, value)))
+                .collect::<Result<Vec<_>, _>>()?,
+        }),
+        NativeBoundaryTerm::List(values) => Ok(ReplValue::List(
+            values
+                .into_iter()
+                .map(managed_capability_term)
+                .collect::<Result<Vec<_>, _>>()?,
+        )),
+        unsupported => Err(format!(
+            "error[execution_shard.capability_type]: managed result cannot contain `{unsupported:?}`"
+        )),
+    }
 }

@@ -2,9 +2,11 @@
 
 use std::collections::HashMap;
 
-use crate::terlan_typeck::{CoreExpr, CoreImportKind, CoreModule, CoreType};
+use crate::terlan_typeck::{
+    CoreExpr, CoreImportKind, CoreIntrinsicId, CoreModule, CoreRuntimeCapability, CoreType,
+};
 
-type Signature = Vec<CoreType>;
+pub(super) type Signature = Vec<CoreType>;
 
 pub(super) fn annotate_empty_list_arguments(cores: &mut [CoreModule]) {
     let providers = cores
@@ -78,7 +80,7 @@ pub(super) fn annotate_empty_list_arguments(cores: &mut [CoreModule]) {
     }
 }
 
-fn annotate(expr: &mut CoreExpr, resolver: &HashMap<(String, usize), Signature>) {
+pub(super) fn annotate(expr: &mut CoreExpr, resolver: &HashMap<(String, usize), Signature>) {
     match expr {
         CoreExpr::Call { function, args } => {
             args.iter_mut().for_each(|arg| annotate(arg, resolver));
@@ -166,6 +168,16 @@ fn annotate(expr: &mut CoreExpr, resolver: &HashMap<(String, usize), Signature>)
         }
         CoreExpr::Intrinsic(call) => {
             call.args.iter_mut().for_each(|arg| annotate(arg, resolver));
+            for index in runtime_string_list_arguments(&call.id) {
+                if let Some(argument) = call.args.get_mut(*index) {
+                    if matches!(argument, CoreExpr::List(items) if items.is_empty()) {
+                        *argument = CoreExpr::Cast {
+                            expr: Box::new(CoreExpr::List(Vec::new())),
+                            target_type: CoreType::List(Box::new(CoreType::String)),
+                        };
+                    }
+                }
+            }
         }
         CoreExpr::SqlQuery { parameters, .. } => {
             parameters
@@ -212,6 +224,20 @@ fn annotate(expr: &mut CoreExpr, resolver: &HashMap<(String, usize), Signature>)
         | CoreExpr::Atom(_)
         | CoreExpr::Var(_)
         | CoreExpr::RemoteFunRef { .. } => {}
+    }
+}
+
+fn runtime_string_list_arguments(id: &CoreIntrinsicId) -> &'static [usize] {
+    match id {
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileReadTextMany) => &[0],
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileReadTextTreeExcluding)
+        | CoreIntrinsicId::Runtime(CoreRuntimeCapability::DirectoryFilesRecursiveExcluding) => &[1],
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::DirectoryFindNamedRecursiveExcluding) => {
+            &[2]
+        }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::DirectoryCopyTreeExcluding) => &[2],
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileReadTextTreeMatching) => &[1, 2, 3],
+        _ => &[],
     }
 }
 

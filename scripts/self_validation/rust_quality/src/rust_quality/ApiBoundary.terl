@@ -1,0 +1,1261 @@
+/**
+ * Enforces typed Rust failure boundaries from the compiler-owned AST audit.
+ */
+module rust_quality.ApiBoundary.
+
+import rust_quality.SourceInventory.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Eq, Gt, Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.File.
+
+import type std.core.Option.
+import type std.data.Json.RequiredFieldRow.
+
+struct FunctionRow {
+    valid: Bool,
+    message: String,
+    name: String,
+    path: String,
+    visibility: String,
+    argument_count: Int,
+    returns_string_error: Bool,
+    explicit_ffi_parameters: Bool,
+    implementation: Bool,
+}.
+
+struct ReportLoad {
+    valid: Bool,
+    message: String,
+    parse_failures: Int,
+    lint_attributes: Int,
+    errors: List[ErrorRow],
+    public_strings: List[String],
+    oversized_signatures: List[String],
+}.
+
+struct ErrorRow {
+    valid: Bool,
+    path: String,
+    count: Int,
+    classification: String,
+    owner: String,
+    milestone: String,
+}.
+
+struct ErrorRuns {
+    current: ErrorRow,
+    has_current: Bool,
+    reversed: List[ErrorRow],
+}.
+
+struct FunctionAnalysis {
+    errors: ErrorRuns,
+    public_strings: List[String],
+    public_count: Int,
+    oversized_signatures: List[String],
+    oversized_count: Int,
+}.
+
+struct FunctionBatch {
+    valid: Bool,
+    message: String,
+    next_index: Int,
+    analysis: FunctionAnalysis,
+}.
+
+struct InventoryParse {
+    valid_header: Bool,
+    rows: List[ErrorRow],
+}.
+
+struct BudgetRow {
+    valid: Bool,
+    owner: String,
+    maximum_rows: Int,
+    maximum_sites: Int,
+    target_rows: Int,
+    target_sites: Int,
+    milestone: String,
+}.
+
+struct BudgetParse {
+    valid_header: Bool,
+    rows: List[BudgetRow],
+}.
+
+struct CheckInputs {
+    valid: Bool,
+    message: String,
+    boundary_source: String,
+    inventory: InventoryParse,
+    budgets: BudgetParse,
+}.
+
+struct OwnerTotal {
+    owner: String,
+    rows: Int,
+    sites: Int,
+}.
+
+@pure
+inventory_header(): String -> "path\tcount\tclassification\towner\tmilestone".
+
+@pure
+budget_header(): String ->
+    "owner\tmaximum_rows\tmaximum_sites\ttarget_rows\ttarget_sites\tmilestone".
+
+@pure
+milestone(): String -> "0.0.8".
+
+@pure
+report_failure(message: String): ReportLoad ->
+    ReportLoad(
+        valid = false,
+        message = message,
+        parse_failures = 0,
+        lint_attributes = 0,
+        errors = List.new[ErrorRow](),
+        public_strings = List.new[String](),
+        oversized_signatures = List.new[String](),
+    ).
+
+@pure
+function_failure(message: String): FunctionRow ->
+    FunctionRow(
+        valid = false,
+        message = message,
+        name = "",
+        path = "",
+        visibility = "",
+        argument_count = 0,
+        returns_string_error = false,
+        explicit_ffi_parameters = false,
+        implementation = false,
+    ).
+
+@pure
+load_function(row: RequiredFieldRow, index: Int): FunctionRow ->
+    case {
+    Json.required_field_row_strings(row),
+    Json.required_field_row_ints(row),
+    Json.required_field_row_bools(row),
+} {
+        {[name, path, visibility], [argument_count], [returns_string_error, explicit_ffi_parameters, implementation]} ->
+            FunctionRow(
+                valid = true,
+                message = "",
+                name = name,
+                path = path,
+                visibility = visibility,
+                argument_count = argument_count,
+                returns_string_error = returns_string_error,
+                explicit_ffi_parameters = explicit_ffi_parameters,
+                implementation = implementation,
+            );
+        _ -> function_failure(String.concat(["malformed function row ", Int.to_string(index)]))
+    }.
+
+@pure
+empty_analysis(): FunctionAnalysis ->
+    FunctionAnalysis(
+        errors = ErrorRuns(
+            current = ErrorRow(
+                valid = true,
+                path = "",
+                count = 0,
+                classification = "internal-helper",
+                owner = "support-errors",
+                milestone = milestone(),
+            ),
+            has_current = false,
+            reversed = List.new[ErrorRow](),
+        ),
+        public_strings = List.new[String](),
+        public_count = 0,
+        oversized_signatures = List.new[String](),
+        oversized_count = 0,
+    ).
+
+@pure
+analyze_error_runs(runs: ErrorRuns, row: FunctionRow): ErrorRuns ->
+    if {
+        not (row.implementation and row.visibility != "public" and row.returns_string_error) -> runs;
+        not runs.has_current -> ErrorRuns(current = new_error_row(row.path), has_current = true, reversed = runs.reversed);
+        runs.current.path == row.path -> ErrorRuns(
+            current = increment_error(runs.current),
+            has_current = true,
+            reversed = runs.reversed,
+        );
+        true -> ErrorRuns(
+            current = new_error_row(row.path),
+            has_current = true,
+            reversed = [runs.current | runs.reversed],
+        )
+    }.
+
+@pure
+analyze_function(analysis: FunctionAnalysis, row: FunctionRow): FunctionAnalysis ->
+    let public_match = row.visibility == "public" and row.returns_string_error and analysis.public_count < 5;
+    let oversized_match =
+        row.implementation
+            and row.argument_count > 7
+            and not row.explicit_ffi_parameters
+            and analysis.oversized_count < 5;
+    FunctionAnalysis(
+        errors = analyze_error_runs(analysis.errors, row),
+        public_strings = if {
+            public_match -> [String.concat([row.path, "::", row.name]) | analysis.public_strings];
+            true -> analysis.public_strings
+        },
+        public_count = if {
+            public_match -> analysis.public_count + 1;
+            true -> analysis.public_count
+        },
+        oversized_signatures = if {
+            oversized_match -> [String.concat([row.path, "::", row.name, "(", Int.to_string(row.argument_count), ")"]) | analysis.oversized_signatures];
+            true -> analysis.oversized_signatures
+        },
+        oversized_count = if {
+            oversized_match -> analysis.oversized_count + 1;
+            true -> analysis.oversized_count
+        },
+    ).
+
+@pure
+load_function_page(
+    functions: List[RequiredFieldRow],
+    index: Int,
+    analysis: FunctionAnalysis,
+): FunctionBatch ->
+    case functions {
+        [] -> FunctionBatch(valid = true, message = "", next_index = index, analysis = analysis);
+        [projection | rest] ->
+            let row = load_function(projection, index);
+            if {
+                not row.valid -> FunctionBatch(
+                    valid = false,
+                    message = row.message,
+                    next_index = index,
+                    analysis = analysis,
+                );
+                true -> load_function_page(rest, index + 1, analyze_function(analysis, row))
+            }
+    }.
+
+load_function_pages(
+    functions: Json,
+    index: Int,
+    count: Int,
+    analysis: FunctionAnalysis,
+): ReportLoad ->
+    if {
+        index == count -> let grouped =
+            if {
+                analysis.errors.has_current -> [analysis.errors.current | analysis.errors.reversed];
+                true -> analysis.errors.reversed
+            };
+        ReportLoad(
+            valid = true,
+            message = "",
+            parse_failures = 0,
+            lint_attributes = 0,
+            errors = sort_error_rows(grouped, List.new[ErrorRow]()),
+            public_strings = SourceInventory.reverse(analysis.public_strings),
+            oversized_signatures = SourceInventory.reverse(analysis.oversized_signatures),
+        );
+        true -> let remaining = count - index;
+        let maximum =
+            if {
+                remaining > 256 -> 256;
+                true -> remaining
+            };
+        case Json.required_field_rows_page(
+    functions,
+    index,
+    maximum,
+    ["name", "path", "visibility"],
+    ["argument_count"],
+    ["returns_string_error", "explicit_ffi_parameters", "implementation"],
+) {
+            Err(reason) -> report_failure(Json.error_message(reason));
+            Ok(projected) ->
+                let loaded = load_function_page(projected, index, analysis);
+                if {
+                    not loaded.valid -> report_failure(loaded.message);
+                    true -> load_function_pages(functions, loaded.next_index, count, loaded.analysis)
+                }
+        }
+    }.
+
+@pure
+bool_text(value: String): Option[Bool] ->
+    if {
+        value == "true" -> Some(true);
+        value == "false" -> Some(false);
+        true -> None
+    }.
+
+@pure
+load_compact_function(line: String, index: Int): FunctionRow ->
+    case String.split(line, "\t") {
+        [name, path, visibility, argument_text, string_error_text, ffi_text, implementation_text] ->
+            let {
+                Some(argument_count) <- Int.from_string(argument_text);
+                Some(returns_string_error) <- bool_text(string_error_text);
+                Some(explicit_ffi_parameters) <- bool_text(ffi_text);
+                Some(implementation) <- bool_text(implementation_text)
+            } else {
+                _ ->
+                    function_failure(
+                        String.concat(["malformed compact function row ", Int.to_string(index)]),
+                    )
+            };
+            FunctionRow(
+                valid = true,
+                message = "",
+                name = name,
+                path = path,
+                visibility = visibility,
+                argument_count = argument_count,
+                returns_string_error = returns_string_error,
+                explicit_ffi_parameters = explicit_ffi_parameters,
+                implementation = implementation,
+            );
+        _ ->
+            function_failure(
+                String.concat(["malformed compact function row ", Int.to_string(index)]),
+            )
+    }.
+
+@pure
+finish_analysis(analysis: FunctionAnalysis): ReportLoad ->
+    let grouped =
+        if {
+            analysis.errors.has_current -> [analysis.errors.current | analysis.errors.reversed];
+            true -> analysis.errors.reversed
+        };
+    ReportLoad(
+        valid = true,
+        message = "",
+        parse_failures = 0,
+        lint_attributes = 0,
+        errors = sort_error_rows(grouped, List.new[ErrorRow]()),
+        public_strings = SourceInventory.reverse(analysis.public_strings),
+        oversized_signatures = SourceInventory.reverse(analysis.oversized_signatures),
+    ).
+
+@pure
+load_compact_functions(lines: List[String], index: Int, analysis: FunctionAnalysis): ReportLoad ->
+    case lines {
+        [] -> finish_analysis(analysis);
+        [""] -> finish_analysis(analysis);
+        [line | rest] ->
+            let row = load_compact_function(line, index);
+            if {
+                not row.valid -> report_failure(row.message);
+                true -> load_compact_functions(rest, index + 1, analyze_function(analysis, row))
+            }
+    }.
+
+@pure
+count_row(line: String, name: String): Option[Int] ->
+    case String.split(line, "\t") {
+        [key, value] ->
+            if {
+                key == name -> Int.from_string(value);
+                true -> None
+            };
+        _ -> None
+    }.
+
+load_report(root: String): ReportLoad ->
+    case File.read_text(SourceInventory.child(root, "target/quality/rust-api-boundary-input.tsv")) {
+        Err(reason) -> report_failure(File.message(reason));
+        Ok(source) ->
+            case String.split(source, "\n") {
+                [schema | remaining] -> load_compact_report(schema, remaining);
+                _ -> report_failure("malformed compact Rust boundary audit report")
+            }
+    }.
+
+@pure
+load_compact_report(schema: String, lines: List[String]): ReportLoad ->
+    let {
+        [parse_line | after_parse] <- lines;
+        [lint_line | after_lint] <- after_parse;
+        [header | functions] <- after_lint
+    } else {
+        _ -> report_failure("malformed compact Rust boundary audit report")
+    };
+    (let {
+    Some(parse_failures) <- count_row(parse_line, "parse_failures");
+    Some(lint_attributes) <- count_row(lint_line, "lint_attributes")
+} else {
+    _ -> report_failure("malformed compact Rust boundary audit metadata")
+};
+if {
+    schema != "schema\tterlan.rust-api-boundary-input.v1" -> report_failure("unsupported compact Rust boundary audit schema");
+    header != "name\tpath\tvisibility\targument_count\treturns_string_error\texplicit_ffi_parameters\timplementation" -> report_failure("malformed compact Rust boundary audit header");
+    true -> let loaded = load_compact_functions(functions, 0, empty_analysis());
+    ReportLoad(
+        valid = loaded.valid,
+        message = loaded.message,
+        parse_failures = parse_failures,
+        lint_attributes = lint_attributes,
+        errors = loaded.errors,
+        public_strings = loaded.public_strings,
+        oversized_signatures = loaded.oversized_signatures,
+    )
+}).
+
+@pure
+owner(path: String): String ->
+    if {
+        String.starts_with(path, "crates/terlan/src/compiler/") -> "compiler-errors";
+        String.starts_with(path, "crates/terlan/src/native_worker/")
+            or String.starts_with(path, "crates/terlan/src/runtime/native_boundary/") -> "native-boundary-errors";
+        String.starts_with(path, "crates/terlan/src/runtime/") -> "runtime-errors";
+        String.starts_with(path, "crates/terlan/src/commands/")
+            or String.starts_with(path, "crates/terlan/src/vm/") -> "command-errors";
+        String.starts_with(path, "crates/terlan/src/benchmark/") -> "benchmark-errors";
+        String.starts_with(path, "crates/terlan/src/quality/") -> "quality-errors";
+        true -> "support-errors"
+    }.
+
+@pure
+new_error_row(path: String): ErrorRow ->
+    ErrorRow(
+        valid = true,
+        path = path,
+        count = 1,
+        classification = "internal-helper",
+        owner = owner(path),
+        milestone = milestone(),
+    ).
+
+@pure
+increment_error(row: ErrorRow): ErrorRow ->
+    ErrorRow(
+        valid = true,
+        path = row.path,
+        count = row.count + 1,
+        classification = row.classification,
+        owner = row.owner,
+        milestone = row.milestone,
+    ).
+
+@pure
+group_error_runs(
+    functions: List[FunctionRow],
+    current: ErrorRow,
+    has_current: Bool,
+    output: List[ErrorRow],
+): List[ErrorRow] ->
+    case functions {
+        [] ->
+            if {
+                has_current -> [current | output];
+                true -> output
+            };
+        [row | rest] ->
+            if {
+                row.implementation and row.visibility != "public" and row.returns_string_error -> if {
+                    not has_current -> group_error_runs(rest, new_error_row(row.path), true, output);
+                    current.path == row.path -> group_error_runs(rest, increment_error(current), true, output);
+                    true -> group_error_runs(rest, new_error_row(row.path), true, [current | output])
+                };
+                true -> group_error_runs(rest, current, has_current, output)
+            }
+    }.
+
+@pure
+insert_error_row(row: ErrorRow, sorted: List[ErrorRow]): List[ErrorRow] ->
+    case sorted {
+        [] -> List[ErrorRow](row);
+        [head | rest] ->
+            case String.compare(row.path, head.path) {
+                Lt -> [row | sorted];
+                Eq ->
+                    [ErrorRow(
+    valid = true,
+    path = head.path,
+    count = head.count + row.count,
+    classification = head.classification,
+    owner = head.owner,
+    milestone = head.milestone,
+) | rest];
+                Gt -> [head | insert_error_row(row, rest)]
+            }
+    }.
+
+@pure
+sort_error_rows(rows: List[ErrorRow], sorted: List[ErrorRow]): List[ErrorRow] ->
+    case rows {
+        [] -> sorted;
+        [row | rest] -> sort_error_rows(rest, insert_error_row(row, sorted))
+    }.
+
+@pure
+internal_errors(functions: List[FunctionRow]): List[ErrorRow] ->
+    sort_error_rows(
+        group_error_runs(functions, new_error_row(""), false, List.new[ErrorRow]()),
+        List.new[ErrorRow](),
+    ).
+
+@pure
+error_row(fields: List[String]): ErrorRow ->
+    case fields {
+        [path, count_text, classification, row_owner, row_milestone] ->
+            case Int.from_string(count_text) {
+                Some(count) ->
+                    ErrorRow(
+                        valid = true,
+                        path = path,
+                        count = count,
+                        classification = classification,
+                        owner = row_owner,
+                        milestone = row_milestone,
+                    );
+                None ->
+                    ErrorRow(
+                        valid = false,
+                        path = path,
+                        count = 0,
+                        classification = classification,
+                        owner = row_owner,
+                        milestone = row_milestone,
+                    )
+            };
+        [path | _rest] ->
+            ErrorRow(
+                valid = false,
+                path = path,
+                count = 0,
+                classification = "",
+                owner = "",
+                milestone = "",
+            );
+        [] ->
+            ErrorRow(
+                valid = false,
+                path = "<empty>",
+                count = 0,
+                classification = "",
+                owner = "",
+                milestone = "",
+            )
+    }.
+
+@pure
+parse_error_rows(lines: List[String], output: List[ErrorRow]): List[ErrorRow] ->
+    case lines {
+        [] -> SourceInventory.reverse(output);
+        [""] -> SourceInventory.reverse(output);
+        [line | rest] -> parse_error_rows(rest, [error_row(String.split(line, "\t")) | output])
+    }.
+
+@pure
+parse_inventory(source: String): InventoryParse ->
+    case String.split(source, "\n") {
+        [] -> InventoryParse(valid_header = false, rows = List.new[ErrorRow]());
+        [first | rest] ->
+            InventoryParse(
+                valid_header = first == inventory_header(),
+                rows = parse_error_rows(rest, List.new[ErrorRow]()),
+            )
+    }.
+
+@pure
+same_error_rows(expected: List[ErrorRow], actual: List[ErrorRow]): Bool ->
+    case expected {
+        [] -> List.length(actual) == 0;
+        [left | rest] ->
+            case actual {
+                [] -> false;
+                [right | remaining] ->
+                    left.valid
+                        and right.valid
+                        and left.path == right.path
+                        and left.count == right.count
+                        and left.classification == right.classification
+                        and left.owner == right.owner
+                        and left.milestone == right.milestone
+                        and same_error_rows(rest, remaining)
+            }
+    }.
+
+@pure
+error_row_text(row: ErrorRow): String ->
+    String.concat(
+        [
+            row.path,
+            "\t",
+            Int.to_string(row.count),
+            "\t",
+            row.classification,
+            "\t",
+            row.owner,
+            "\t",
+            row.milestone,
+            "\n",
+        ],
+    ).
+
+@pure
+render_error_rows(rows: List[ErrorRow], output: List[String]): String ->
+    case rows {
+        [] -> String.concat(SourceInventory.reverse(output));
+        [row | rest] -> render_error_rows(rest, [error_row_text(row) | output])
+    }.
+
+@pure
+render_inventory(rows: List[ErrorRow]): String ->
+    String.concat([inventory_header(), "\n", render_error_rows(rows, List.new[String]())]).
+
+@pure
+budget_row(fields: List[String]): BudgetRow ->
+    case fields {
+        [row_owner, maximum_rows, maximum_sites, target_rows, target_sites, row_milestone] ->
+            let {
+                Some(maximum_row_count) <- Int.from_string(maximum_rows);
+                Some(maximum_site_count) <- Int.from_string(maximum_sites);
+                Some(target_row_count) <- Int.from_string(target_rows);
+                Some(target_site_count) <- Int.from_string(target_sites)
+            } else {
+                _ ->
+                    BudgetRow(
+                        valid = false,
+                        owner = row_owner,
+                        maximum_rows = 0,
+                        maximum_sites = 0,
+                        target_rows = 0,
+                        target_sites = 0,
+                        milestone = row_milestone,
+                    )
+            };
+            BudgetRow(
+                valid = true,
+                owner = row_owner,
+                maximum_rows = maximum_row_count,
+                maximum_sites = maximum_site_count,
+                target_rows = target_row_count,
+                target_sites = target_site_count,
+                milestone = row_milestone,
+            );
+        [row_owner | _rest] ->
+            BudgetRow(
+                valid = false,
+                owner = row_owner,
+                maximum_rows = 0,
+                maximum_sites = 0,
+                target_rows = 0,
+                target_sites = 0,
+                milestone = "",
+            );
+        [] ->
+            BudgetRow(
+                valid = false,
+                owner = "<empty>",
+                maximum_rows = 0,
+                maximum_sites = 0,
+                target_rows = 0,
+                target_sites = 0,
+                milestone = "",
+            )
+    }.
+
+@pure
+parse_budget_rows(lines: List[String], output: List[BudgetRow]): List[BudgetRow] ->
+    case lines {
+        [] -> SourceInventory.reverse(output);
+        [""] -> SourceInventory.reverse(output);
+        [line | rest] -> parse_budget_rows(rest, [budget_row(String.split(line, "\t")) | output])
+    }.
+
+@pure
+parse_budgets(source: String): BudgetParse ->
+    case String.split(source, "\n") {
+        [] -> BudgetParse(valid_header = false, rows = List.new[BudgetRow]());
+        [first | rest] ->
+            BudgetParse(
+                valid_header = first == budget_header(),
+                rows = parse_budget_rows(rest, List.new[BudgetRow]()),
+            )
+    }.
+
+@pure
+insert_total(row: ErrorRow, totals: List[OwnerTotal]): List[OwnerTotal] ->
+    case totals {
+        [] -> List[OwnerTotal](OwnerTotal(owner = row.owner, rows = 1, sites = row.count));
+        [total | rest] ->
+            if {
+                row.owner == total.owner -> [OwnerTotal(owner = total.owner, rows = total.rows + 1, sites = total.sites + row.count) | rest];
+                String.compare(row.owner, total.owner) == Lt -> [OwnerTotal(owner = row.owner, rows = 1, sites = row.count) | totals];
+                true -> [total | insert_total(row, rest)]
+            }
+    }.
+
+@pure
+owner_totals_at(rows: List[ErrorRow], output: List[OwnerTotal]): List[OwnerTotal] ->
+    case rows {
+        [] -> output;
+        [row | rest] -> owner_totals_at(rest, insert_total(row, output))
+    }.
+
+@pure
+owner_totals(rows: List[ErrorRow]): List[OwnerTotal] ->
+    owner_totals_at(rows, List.new[OwnerTotal]()).
+
+@pure
+find_total(name: String, totals: List[OwnerTotal]): Option[OwnerTotal] ->
+    case totals {
+        [] -> None;
+        [total | rest] ->
+            if {
+                total.owner == name -> Some(total);
+                true -> find_total(name, rest)
+            }
+    }.
+
+@pure
+has_budget(name: String, budgets: List[BudgetRow]): Bool ->
+    case budgets {
+        [] -> false;
+        [budget | rest] -> budget.owner == name or has_budget(name, rest)
+    }.
+
+@pure
+append_finding(findings: List[String], message: String): List[String] ->
+    List.concat(findings, [message]).
+
+@pure
+total_or_empty(name: String, totals: List[OwnerTotal]): OwnerTotal ->
+    case find_total(name, totals) {
+        Some(value) -> value;
+        None -> OwnerTotal(owner = name, rows = 0, sites = 0)
+    }.
+
+@pure
+budget_findings_at(
+    budgets: List[BudgetRow],
+    totals: List[OwnerTotal],
+    enforce_milestone: Bool,
+    previous: String,
+    first: Bool,
+    output: List[String],
+): List[String] ->
+    case budgets {
+        [] -> output;
+        [budget | rest] ->
+            let ordered = first or String.compare(previous, budget.owner) == Lt;
+            let actual = total_or_empty(budget.owner, totals);
+            let next =
+                if {
+                    not budget.valid -> append_finding(
+                        output,
+                        String.concat([budget.owner, ": malformed string-error budget"]),
+                    );
+                    not ordered -> append_finding(output, "string-error owner budgets must be unique and sorted");
+                    budget.milestone != milestone() -> append_finding(
+                        output,
+                        String.concat(
+                            [budget.owner, ": string-error budget must expire at ", milestone()],
+                        ),
+                    );
+                    budget.target_rows < 0 or budget.target_sites < 0 -> append_finding(
+                        output,
+                        String.concat(
+                            [budget.owner, ": string-error reduction targets cannot be negative"],
+                        ),
+                    );
+                    budget.target_rows > budget.maximum_rows
+                        or budget.target_sites > budget.maximum_sites -> append_finding(
+                        output,
+                        String.concat(
+                            [budget.owner, ": reduction target exceeds the current ceiling"],
+                        ),
+                    );
+                    (budget.maximum_rows != 0 or budget.maximum_sites != 0)
+                        and budget.target_rows == budget.maximum_rows
+                        and budget.target_sites == budget.maximum_sites -> append_finding(
+                        output,
+                        String.concat(
+                            [
+                                budget.owner,
+                                ": ",
+                                milestone(),
+                                " must schedule a lower row or site target",
+                            ],
+                        ),
+                    );
+                    actual.sites > budget.maximum_sites -> append_finding(
+                        output,
+                        String.concat(
+                            [
+                                budget.owner,
+                                ": string-error debt grew to ",
+                                Int.to_string(actual.rows),
+                                " rows/",
+                                Int.to_string(actual.sites),
+                                " sites above site budget ",
+                                Int.to_string(budget.maximum_sites),
+                            ],
+                        ),
+                    );
+                    enforce_milestone
+                        and (actual.rows > budget.target_rows or actual.sites > budget.target_sites) -> append_finding(
+                        output,
+                        String.concat(
+                            [budget.owner, ": ", milestone(), " string-error target not met"],
+                        ),
+                    );
+                    true -> output
+                };
+            budget_findings_at(rest, totals, enforce_milestone, budget.owner, false, next)
+    }.
+
+@pure
+missing_budget_findings(
+    totals: List[OwnerTotal],
+    budgets: List[BudgetRow],
+    output: List[String],
+): List[String] ->
+    case totals {
+        [] -> output;
+        [total | rest] ->
+            if {
+                has_budget(total.owner, budgets) -> missing_budget_findings(rest, budgets, output);
+                true -> missing_budget_findings(
+                    rest,
+                    budgets,
+                    append_finding(
+                        output,
+                        String.concat(
+                            [
+                                total.owner,
+                                ": missing string-error budget for ",
+                                Int.to_string(total.rows),
+                                " rows/",
+                                Int.to_string(total.sites),
+                                " sites",
+                            ],
+                        ),
+                    ),
+                )
+            }
+    }.
+
+@pure
+budget_findings(
+    rows: List[ErrorRow],
+    budgets: List[BudgetRow],
+    enforce_milestone: Bool,
+): List[String] ->
+    let totals = owner_totals(rows);
+    missing_budget_findings(
+        totals,
+        budgets,
+        budget_findings_at(budgets, totals, enforce_milestone, "", true, List.new[String]()),
+    ).
+
+@pure
+public_sample(functions: List[FunctionRow], remaining: Int, output: List[String]): List[String] ->
+    case functions {
+        [] -> output;
+        [row | rest] ->
+            if {
+                remaining == 0 -> output;
+                row.visibility == "public" and row.returns_string_error -> public_sample(
+                    rest,
+                    remaining - 1,
+                    List.concat(output, [String.concat([row.path, "::", row.name])]),
+                );
+                true -> public_sample(rest, remaining, output)
+            }
+    }.
+
+@pure
+oversized_sample(
+    functions: List[FunctionRow],
+    remaining: Int,
+    output: List[String],
+): List[String] ->
+    case functions {
+        [] -> output;
+        [row | rest] ->
+            if {
+                remaining == 0 -> output;
+                row.implementation and row.argument_count > 7 and not row.explicit_ffi_parameters -> oversized_sample(
+                    rest,
+                    remaining - 1,
+                    List.concat(
+                        output,
+                        [
+                            String.concat(
+                                [
+                                    row.path,
+                                    "::",
+                                    row.name,
+                                    "(",
+                                    Int.to_string(row.argument_count),
+                                    ")",
+                                ],
+                            ),
+                        ],
+                    ),
+                );
+                true -> oversized_sample(rest, remaining, output)
+            }
+    }.
+
+@pure
+join(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value] -> value;
+        [value | rest] -> String.concat([value, ", ", join(rest)])
+    }.
+
+@pure
+boundary_findings(source: String): List[String] ->
+    let domains =
+        [
+            "CompilerPhase",
+            "NativeIrEmission",
+            "NativeImageAdmission",
+            "NativeBoundary",
+            "LspAnalysis",
+            "CommandExecution",
+        ];
+    boundary_markers(source, domains, List.new[String]()).
+
+@pure
+boundary_markers(source: String, markers: List[String], output: List[String]): List[String] ->
+    case markers {
+        [] ->
+            if {
+                not String.contains(source, "impl Error for BoundaryError") -> append_finding(
+                    output,
+                    "BoundaryError is missing source-chain contract `impl Error for BoundaryError`",
+                );
+                not String.contains(source, "fn source(&self)") -> append_finding(
+                    output,
+                    "BoundaryError is missing source-chain contract `fn source(&self)`",
+                );
+                true -> output
+            };
+        [marker | rest] ->
+            if {
+                String.contains(source, marker) -> boundary_markers(source, rest, output);
+                true -> boundary_markers(
+                    source,
+                    rest,
+                    append_finding(
+                        output,
+                        String.concat(["BoundaryError is missing required domain ", marker]),
+                    ),
+                )
+            }
+    }.
+
+check_inputs_failure(message: String): CheckInputs ->
+    CheckInputs(
+        valid = false,
+        message = message,
+        boundary_source = "",
+        inventory = InventoryParse(valid_header = false, rows = List.new[ErrorRow]()),
+        budgets = BudgetParse(valid_header = false, rows = List.new[BudgetRow]()),
+    ).
+
+load_check_inputs(root: String): CheckInputs ->
+    case File.read_text(SourceInventory.child(root, "crates/terlan-runtime-abi/src/boundary_error.rs")) {
+        Err(reason) -> check_inputs_failure(File.message(reason));
+        Ok(boundary_source) ->
+            case File.read_text(SourceInventory.child(root, "docs/quality/RUST_STRING_ERROR_INVENTORY.tsv")) {
+                Err(reason) -> check_inputs_failure(File.message(reason));
+                Ok(inventory_source) ->
+                    case File.read_text(SourceInventory.child(root, "docs/quality/RUST_STRING_ERROR_BUDGETS.tsv")) {
+                        Err(reason) -> check_inputs_failure(File.message(reason));
+                        Ok(budget_source) ->
+                            CheckInputs(
+                                valid = true,
+                                message = "",
+                                boundary_source = boundary_source,
+                                inventory = parse_inventory(inventory_source),
+                                budgets = parse_budgets(budget_source),
+                            )
+                    }
+            }
+    }.
+
+@pure
+check_findings(report: ReportLoad, inputs: CheckInputs, enforce_milestone: Bool): List[String] ->
+    let first =
+        if {
+            report.parse_failures > 0 -> ["the Rust AST audit has parse failures"];
+            true -> List.new[String]()
+        };
+    let second =
+        if {
+            report.lint_attributes > 0 -> append_finding(first, "lint allowance/expectation attributes remain");
+            true -> first
+        };
+    let third =
+        if {
+            List.length(report.public_strings) > 0 -> append_finding(
+                second,
+                String.concat(
+                    ["public Result<_, String> APIs remain: ", join(report.public_strings)],
+                ),
+            );
+            true -> second
+        };
+    let fourth =
+        if {
+            List.length(report.oversized_signatures) > 0 -> append_finding(
+                third,
+                String.concat(
+                    [
+                        "oversized implementation signatures remain: ",
+                        join(report.oversized_signatures),
+                    ],
+                ),
+            );
+            true -> third
+        };
+    let fifth = List.concat(fourth, boundary_findings(inputs.boundary_source));
+    let sixth =
+        if {
+            not inputs.inventory.valid_header -> append_finding(fifth, "invalid or missing string-error inventory header");
+            not same_error_rows(report.errors, inputs.inventory.rows) -> append_finding(
+                fifth,
+                "internal Result<_, String> inventory is stale; run `make rust-api-boundary-quality-record`",
+            );
+            true -> fifth
+        };
+    if {
+        not inputs.budgets.valid_header -> append_finding(sixth, "invalid or missing string-error budget header");
+        true -> List.concat(sixth, budget_findings(report.errors, inputs.budgets.rows, enforce_milestone))
+    }.
+
+print_findings(findings: List[String]): Bool ->
+    case findings {
+        [] -> true;
+        [message | rest] ->
+            let _printed = eprintln(String.concat(["  - ", message]));
+            print_findings(rest)
+    }.
+
+@pure
+site_count(rows: List[ErrorRow]): Int ->
+    case rows {
+        [] -> 0;
+        [row | rest] -> row.count + site_count(rest)
+    }.
+
+pub check(root: String, enforce_milestone: Bool): Bool ->
+    case load_report(root) {
+        report ->
+            if {
+                not report.valid -> let _printed = eprintln(String.concat(["Rust API boundary quality failed: ", report.message]));
+                false;
+                true -> case load_check_inputs(root) {
+                    inputs ->
+                        if {
+                            not inputs.valid -> let _printed =
+                                eprintln(
+                                    String.concat(
+                                        ["Rust API boundary quality failed: ", inputs.message],
+                                    ),
+                                );
+                            false;
+                            true -> let findings = check_findings(report, inputs, enforce_milestone);
+                            if {
+                                List.length(findings) > 0 -> let _heading = eprintln("Rust API boundary quality failed:");
+                                let _printed = print_findings(findings);
+                                false;
+                                true -> let _printed =
+                                    println(
+                                        String.concat(
+                                            [
+                                                "Rust API boundary quality passed: ",
+                                                Int.to_string(site_count(report.errors)),
+                                                " inventoried internal string errors",
+                                            ],
+                                        ),
+                                    );
+                                true
+                            }
+                        }
+                }
+            }
+    }.
+
+pub record(root: String): Bool ->
+    case load_report(root) {
+        report ->
+            if {
+                not report.valid -> let _printed = eprintln(report.message);
+                false;
+                true -> let rows = report.errors;
+                case File.write_text(
+    SourceInventory.child(root, "docs/quality/RUST_STRING_ERROR_INVENTORY.tsv"),
+    render_inventory(rows),
+) {
+                    Err(reason) ->
+                        let _printed = eprintln(File.message(reason));
+                        false;
+                    Ok(_written) ->
+                        let _printed =
+                            println(
+                                String.concat(
+                                    [
+                                        "Recorded ",
+                                        Int.to_string(List.length(rows)),
+                                        " internal string-error rows",
+                                    ],
+                                ),
+                            );
+                        true
+                }
+            }
+    }.
+
+@pure
+reduction_target(value: Int): Int ->
+    if {
+        value == 0 -> 0;
+        true -> let reduction = (value + 4) / 5;
+        value - if {
+    reduction > 1 -> reduction;
+    true -> 1
+}
+    }.
+
+@pure
+budget_from_total(total: OwnerTotal): BudgetRow ->
+    BudgetRow(
+        valid = true,
+        owner = total.owner,
+        maximum_rows = total.rows,
+        maximum_sites = total.sites,
+        target_rows = reduction_target(total.rows),
+        target_sites = reduction_target(total.sites),
+        milestone = milestone(),
+    ).
+
+@pure
+budgets_from_totals(totals: List[OwnerTotal]): List[BudgetRow] ->
+    case totals {
+        [] -> List.new[BudgetRow]();
+        [total | rest] -> [budget_from_total(total) | budgets_from_totals(rest)]
+    }.
+
+@pure
+budget_text(row: BudgetRow): String ->
+    String.concat(
+        [
+            row.owner,
+            "\t",
+            Int.to_string(row.maximum_rows),
+            "\t",
+            Int.to_string(row.maximum_sites),
+            "\t",
+            Int.to_string(row.target_rows),
+            "\t",
+            Int.to_string(row.target_sites),
+            "\t",
+            row.milestone,
+            "\n",
+        ],
+    ).
+
+@pure
+render_budgets_at(rows: List[BudgetRow], output: List[String]): String ->
+    case rows {
+        [] -> String.concat(SourceInventory.reverse(output));
+        [row | rest] -> render_budgets_at(rest, [budget_text(row) | output])
+    }.
+
+@pure
+render_budgets(rows: List[BudgetRow]): String ->
+    String.concat([budget_header(), "\n", render_budgets_at(rows, List.new[String]())]).
+
+pub record_budgets(root: String): Bool ->
+    case load_report(root) {
+        report ->
+            if {
+                not report.valid -> let _printed = eprintln(report.message);
+                false;
+                true -> let rows = budgets_from_totals(owner_totals(report.errors));
+                case File.write_text(
+    SourceInventory.child(root, "docs/quality/RUST_STRING_ERROR_BUDGETS.tsv"),
+    render_budgets(rows),
+) {
+                    Err(reason) ->
+                        let _printed = eprintln(File.message(reason));
+                        false;
+                    Ok(_written) ->
+                        let _printed =
+                            println(
+                                String.concat(
+                                    [
+                                        "Recorded ",
+                                        Int.to_string(List.length(rows)),
+                                        " string-error owner budgets",
+                                    ],
+                                ),
+                            );
+                        true
+                }
+            }
+    }.
+
+@pure
+fixture_function(visibility: String, arguments: Int): FunctionRow ->
+    FunctionRow(
+        valid = true,
+        message = "",
+        name = "helper",
+        path = "crates/x/src/a.rs",
+        visibility = visibility,
+        argument_count = arguments,
+        returns_string_error = true,
+        explicit_ffi_parameters = false,
+        implementation = true,
+    ).
+
+pub self_test(): Bool ->
+    let errors = internal_errors([fixture_function("private", 2)]);
+    let rendered = render_inventory(errors);
+    let parsed = parse_inventory(rendered);
+    let public = public_sample([fixture_function("public", 2)], 5, List.new[String]());
+    let oversized = oversized_sample([fixture_function("private", 8)], 5, List.new[String]());
+    let split_budget =
+        BudgetRow(
+            valid = true,
+            owner = "support-errors",
+            maximum_rows = 1,
+            maximum_sites = 2,
+            target_rows = 0,
+            target_sites = 1,
+            milestone = milestone(),
+        );
+    let first = new_error_row("a.rs");
+    let second = new_error_row("b.rs");
+    let third = new_error_row("c.rs");
+    let split_without_site_growth = List.length(budget_findings([first, second], [split_budget], false)) == 0;
+    let site_growth_rejected = List.length(budget_findings([first, second, third], [split_budget], false)) == 1;
+    parsed.valid_header
+        and same_error_rows(errors, parsed.rows)
+        and site_count(errors) == 1
+        and reduction_target(1) == 0
+        and List.length(public) == 1
+        and List.length(oversized) == 1
+        and split_without_site_growth
+        and site_growth_rejected.

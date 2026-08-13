@@ -1,0 +1,12 @@
+module terlan.angular.wasm.App.
+
+pub title(): String -> "Terlan Wasm Angular App".
+
+pub remaining(open: Int, completed: Int): Int ->
+    open - completed.
+
+pub status(open: Int, completed: Int): String ->
+    if {
+        remaining(open, completed) == 0 -> "complete";
+        true -> "active"
+    }.

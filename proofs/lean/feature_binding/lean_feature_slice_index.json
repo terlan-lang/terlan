@@ -1,0 +1,323 @@
+{
+  "records": [
+    {
+      "blocker_expiry": "none",
+      "blocker_hash": "none",
+      "blocker_reason": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "gap_ids": [],
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-track-check",
+      "proof_family_ids": [
+        "coreir-arithmetic",
+        "coreir-checked-lowering",
+        "shape-implication"
+      ],
+      "slice_id": "Slice 4"
+    },
+    {
+      "blocker_expiry": "none",
+      "blocker_hash": "none",
+      "blocker_reason": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "gap_ids": [],
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-track-check",
+      "proof_family_ids": [
+        "coreir-arithmetic",
+        "coreir-checked-lowering"
+      ],
+      "slice_id": "Slice 5"
+    },
+    {
+      "blocker_expiry": "none",
+      "blocker_hash": "none",
+      "blocker_reason": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "vm_runtime",
+      "gap_ids": [],
+      "lane_id": "vm_runtime",
+      "owner": "vm",
+      "planned_fix_gate": "lean-proof-smoke-check",
+      "proof_family_ids": [
+        "semantic-smoke-chain"
+      ],
+      "slice_id": "Slice 9"
+    },
+    {
+      "blocker_expiry": "none",
+      "blocker_hash": "none",
+      "blocker_reason": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "gap_ids": [],
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-feature-binding-check",
+      "proof_family_ids": [
+        "coreir-checked-lowering"
+      ],
+      "slice_id": "Slice 10"
+    },
+    {
+      "blocker_expiry": "none",
+      "blocker_hash": "none",
+      "blocker_reason": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "gap_ids": [],
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-snapshot-consistency-check",
+      "proof_family_ids": [
+        "coreir-checked-lowering"
+      ],
+      "slice_id": "Slice 11"
+    },
+    {
+      "blocker_expiry": "none",
+      "blocker_hash": "none",
+      "blocker_reason": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "gap_ids": [],
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-counterexample-check",
+      "proof_family_ids": [
+        "coreir-checked-lowering"
+      ],
+      "slice_id": "Slice 12"
+    },
+    {
+      "blocker_expiry": "none",
+      "blocker_hash": "none",
+      "blocker_reason": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "parser",
+      "gap_ids": [],
+      "lane_id": "parser",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-parser-shape-check",
+      "proof_family_ids": [
+        "parser-shape"
+      ],
+      "slice_id": "Slice 13"
+    },
+    {
+      "blocker_expiry": "none",
+      "blocker_hash": "none",
+      "blocker_reason": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "native_boundary",
+      "gap_ids": [],
+      "lane_id": "native_boundary",
+      "owner": "runtime",
+      "planned_fix_gate": "lean-proof-native-boundary-check",
+      "proof_family_ids": [
+        "native-boundary"
+      ],
+      "slice_id": "Slice 14"
+    },
+    {
+      "blocker_expiry": "none",
+      "blocker_hash": "none",
+      "blocker_reason": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "gap_ids": [],
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-semantic-kernels-check",
+      "proof_family_ids": [
+        "templates-routes"
+      ],
+      "slice_id": "Slice 15"
+    },
+    {
+      "blocker_expiry": "none",
+      "blocker_hash": "none",
+      "blocker_reason": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "vm_runtime",
+      "gap_ids": [],
+      "lane_id": "vm_runtime",
+      "owner": "vm",
+      "planned_fix_gate": "lean-proof-semantic-kernels-check",
+      "proof_family_ids": [
+        "concurrency"
+      ],
+      "slice_id": "Slice 16"
+    },
+    {
+      "blocker_expiry": "none",
+      "blocker_hash": "none",
+      "blocker_reason": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "std_packages",
+      "gap_ids": [],
+      "lane_id": "std_packages",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-semantic-kernels-check",
+      "proof_family_ids": [
+        "collections"
+      ],
+      "slice_id": "Slice 17"
+    },
+    {
+      "blocker_expiry": "none",
+      "blocker_hash": "none",
+      "blocker_reason": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "wasm",
+      "gap_ids": [],
+      "lane_id": "wasm",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-semantic-kernels-check",
+      "proof_family_ids": [
+        "wasm-bridge"
+      ],
+      "slice_id": "Slice 18"
+    },
+    {
+      "blocker_expiry": "none",
+      "blocker_hash": "none",
+      "blocker_reason": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "std_packages",
+      "gap_ids": [],
+      "lane_id": "std_packages",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-semantic-kernels-check",
+      "proof_family_ids": [
+        "database-sql"
+      ],
+      "slice_id": "Slice 19"
+    },
+    {
+      "blocker_expiry": "none",
+      "blocker_hash": "none",
+      "blocker_reason": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "std_packages",
+      "gap_ids": [],
+      "lane_id": "std_packages",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-semantic-kernels-check",
+      "proof_family_ids": [
+        "std-packages"
+      ],
+      "slice_id": "Slice 20"
+    },
+    {
+      "blocker_expiry": "exception:coreir@2026-08-31",
+      "blocker_hash": "sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad",
+      "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
+      "coverage_status": "slice_blocked",
+      "feature_class": "coreir",
+      "gap_ids": [
+        "typed-coreir-preservation"
+      ],
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-track-check",
+      "proof_family_ids": [],
+      "slice_id": "Slice 22"
+    },
+    {
+      "blocker_expiry": "exception:coreir@2026-08-31",
+      "blocker_hash": "sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad",
+      "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
+      "coverage_status": "slice_blocked",
+      "feature_class": "coreir",
+      "gap_ids": [
+        "typed-coreir-preservation"
+      ],
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-track-check",
+      "proof_family_ids": [],
+      "slice_id": "Slice 23"
+    },
+    {
+      "blocker_expiry": "exception:vm_runtime@2026-08-31",
+      "blocker_hash": "sha256:8917ce1bed441d5bc25165b893123a26cfd0b51ef1bb06fc16429bfc3f70af9c",
+      "blocker_reason": "Terlan VM semantics are expanding and currently proven by Rust unit/adversarial gates.",
+      "coverage_status": "slice_blocked",
+      "feature_class": "vm_runtime",
+      "gap_ids": [
+        "vm-execution-subset"
+      ],
+      "lane_id": "vm_runtime",
+      "owner": "vm",
+      "planned_fix_gate": "vm-runtime-semantics-check",
+      "proof_family_ids": [],
+      "slice_id": "Slice 24"
+    },
+    {
+      "blocker_expiry": "exception:coreir@2026-08-31",
+      "blocker_hash": "sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad",
+      "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
+      "coverage_status": "slice_blocked",
+      "feature_class": "coreir",
+      "gap_ids": [
+        "typed-coreir-preservation"
+      ],
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-track-check",
+      "proof_family_ids": [],
+      "slice_id": "Slice 25"
+    },
+    {
+      "blocker_expiry": "exception:coreir@2026-08-31",
+      "blocker_hash": "sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad",
+      "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
+      "coverage_status": "slice_blocked",
+      "feature_class": "coreir",
+      "gap_ids": [
+        "typed-coreir-preservation"
+      ],
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-track-check",
+      "proof_family_ids": [],
+      "slice_id": "Slice 26"
+    },
+    {
+      "blocker_expiry": "exception:coreir@2026-08-31",
+      "blocker_hash": "sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad",
+      "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
+      "coverage_status": "slice_blocked",
+      "feature_class": "coreir",
+      "gap_ids": [
+        "typed-coreir-preservation"
+      ],
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-track-check",
+      "proof_family_ids": [],
+      "slice_id": "Slice 27"
+    },
+    {
+      "blocker_expiry": "exception:coreir@2026-08-31",
+      "blocker_hash": "sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad",
+      "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
+      "coverage_status": "slice_blocked",
+      "feature_class": "coreir",
+      "gap_ids": [
+        "typed-coreir-preservation"
+      ],
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "planned_fix_gate": "lean-proof-track-check",
+      "proof_family_ids": [],
+      "slice_id": "Slice 28"
+    }
+  ],
+  "schema": "terlan.lean-feature-binding.v1"
+}

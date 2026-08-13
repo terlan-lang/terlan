@@ -111,7 +111,7 @@ pub add_text_track_typechecks(
     receiver: HTMLMediaElement,
     kind: TextTrackKind,
     label: JsString,
-    language: JsString
+    language: JsString,
 ): TextTrack ->
     receiver.add_text_track(kind, label, language).
 
@@ -132,7 +132,7 @@ pub play_typechecks(receiver: HTMLMediaElement): Promise[Unit] ->
 
 pub set_media_keys_typechecks(
     receiver: HTMLMediaElement,
-    media_keys: Option[MediaKeys]
+    media_keys: Option[MediaKeys],
 ): Promise[Unit] ->
     receiver.set_media_keys(media_keys).
 
@@ -143,7 +143,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLMediaElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -151,6 +151,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLMediaElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

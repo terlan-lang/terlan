@@ -93,12 +93,6 @@ check:\n\
 fn is_allowed_script_accepts_release_owned_policy_scripts() {
     assert!(is_allowed_script(Path::new("tools/check_policy.py")));
     assert!(is_allowed_script(Path::new(
-        "tools/package_release_artifact.py"
-    )));
-    assert!(is_allowed_script(Path::new(
-        "tools/release_promotion_pipeline.py"
-    )));
-    assert!(is_allowed_script(Path::new(
         "scripts/run_exact_cargo_test.sh"
     )));
     assert!(is_allowed_script(Path::new(
@@ -106,10 +100,16 @@ fn is_allowed_script_accepts_release_owned_policy_scripts() {
     )));
     assert!(is_allowed_script(Path::new("std/scripts/check_summary.py")));
     assert!(is_allowed_script(Path::new(
-        "std/scripts/build_interfaces.py"
+        "$(CURDIR)/tools/check_package_policy.py"
+    )));
+    assert!(is_allowed_script(Path::new(
+        "$$package_dir/scripts/check-package-report.py"
     )));
     assert!(!is_allowed_script(Path::new(
         "crates/terlan/scripts/check_policy.py"
     )));
     assert!(!is_allowed_script(Path::new("tools/run_behavior_test.py")));
+    assert!(!is_allowed_script(Path::new(
+        "$$package_dir/scripts/run_behavior_test.py"
+    )));
 }

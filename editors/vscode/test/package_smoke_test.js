@@ -1,6 +1,7 @@
 "use strict";
 
 const assert = require("assert");
+const childProcess = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
@@ -92,6 +93,24 @@ function collectPackageFiles(relativePath) {
   const files = [];
   for (const entry of fs.readdirSync(absolutePath)) {
     files.push(...collectPackageFiles(path.join(relativePath, entry)));
+  }
+  return files;
+}
+
+/** Recursively lists authored files while excluding dependency installations. */
+function collectAuthoredFiles(relativePath = ".") {
+  const absolutePath = path.join(EXTENSION_ROOT, relativePath);
+  const files = [];
+  for (const entry of fs.readdirSync(absolutePath, { withFileTypes: true })) {
+    if (entry.name === "node_modules") {
+      continue;
+    }
+    const child = relativePath === "." ? entry.name : path.join(relativePath, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...collectAuthoredFiles(child));
+    } else {
+      files.push(child.split(path.sep).join("/"));
+    }
   }
   return files;
 }
@@ -272,6 +291,35 @@ function testPackageFileSelection() {
   }
 }
 
+/** Rejects package files that are neither shipped nor used by validation. */
+function testNoDormantOrExperimentalFiles() {
+  const selected = selectedPackageFileSet();
+  const dormant = collectAuthoredFiles().filter((filePath) =>
+    !selected.has(filePath)
+      && filePath !== "package-lock.json"
+      && !filePath.startsWith("test/")
+  );
+  assert.deepStrictEqual(dormant, [], `dormant VS Code package files: ${dormant.join(", ")}`);
+}
+
+/** Ensures dependency installations cannot re-enter the repository. */
+function testDependencyTreeIsNotTracked() {
+  const repositoryRoot = path.resolve(EXTENSION_ROOT, "..", "..");
+  const tracked = childProcess.execFileSync(
+    "git",
+    ["ls-files", "--", "editors/vscode/node_modules"],
+    { cwd: repositoryRoot, encoding: "utf8" }
+  ).trim().split("\n").filter(Boolean);
+  const trackedAndPresent = tracked.filter((filePath) =>
+    fs.existsSync(path.join(repositoryRoot, filePath))
+  );
+  assert.deepStrictEqual(
+    trackedAndPresent,
+    [],
+    `VS Code node_modules files are tracked and present:\n${trackedAndPresent.join("\n")}`
+  );
+}
+
 /**
  * Verifies the packaged VS Code icon matches the shared canonical icon.
  *
@@ -329,6 +377,8 @@ testPackageMetadata();
 testLanguageContributionsDeclareTerlanFileIcon();
 testLanguageServerDeploymentDocs();
 testPackageFileSelection();
+testNoDormantOrExperimentalFiles();
+testDependencyTreeIsNotTracked();
 testPackagedIconMatchesCanonicalIcon();
 testPackagedExtensionIconMatchesCanonicalIcon();
 testPackagedPngIconsMatchCanonicalIcons();

@@ -24,7 +24,7 @@ enum StaticCallable {
         /// Ordered lambda parameter names.
         params: Vec<String>,
         /// Body after outer static callables have been normalized.
-        body: CoreExpr,
+        body: Box<CoreExpr>,
     },
     /// Qualified function identity produced by backend CoreIR.
     Remote {
@@ -66,7 +66,6 @@ pub(super) fn normalize_static_callables_with_budget(
 ) -> Result<CoreExpr, String> {
     let coverage = super::lowering_coverage::expression_coverage(expr);
     debug_assert!(!coverage.node.is_empty());
-    debug_assert!(super::lowering_coverage::LOWERING_COVERAGE_VERSION > 0);
     reject_deep_immediate_callable_chain(expr)?;
     StaticCallableNormalizer {
         capture_ordinal: 0,
@@ -434,13 +433,7 @@ impl StaticCallableNormalizer<'_> {
                         value,
                     })
                     .collect();
-                self.rewrite(
-                    &CoreExpr::Let {
-                        bindings,
-                        body: Box::new(body),
-                    },
-                    callables,
-                )
+                self.rewrite(&CoreExpr::Let { bindings, body }, callables)
             }
         }
     }
@@ -499,7 +492,7 @@ impl StaticCallableNormalizer<'_> {
                 }
                 Ok(Some(StaticCallable::Lambda {
                     params,
-                    body: self.rewrite(body, &lexical_callables)?,
+                    body: Box::new(self.rewrite(body, &lexical_callables)?),
                 }))
             }
             _ => Ok(None),
@@ -542,7 +535,7 @@ impl StaticCallableNormalizer<'_> {
         }
         Ok(StaticCallable::Lambda {
             params,
-            body: rename_free_variables(&body, &renames, &mut HashSet::new()),
+            body: Box::new(rename_free_variables(&body, &renames, &mut HashSet::new())),
         })
     }
 }
@@ -570,7 +563,7 @@ fn retain_terminal_callable(
     let escaped = match callable {
         StaticCallable::Lambda { params, body } => CoreExpr::Lam {
             params: params.into_iter().map(CorePattern::Var).collect(),
-            body: Box::new(body),
+            body,
         },
         StaticCallable::Remote { function, arity } => {
             let (module, function) = function.rsplit_once('.').ok_or_else(|| {
@@ -602,7 +595,7 @@ fn static_arity_error(expected: usize, actual: usize) -> String {
 }
 
 /// Renames free variables while preserving sequential lexical shadowing.
-fn rename_free_variables(
+pub(super) fn rename_free_variables(
     expr: &CoreExpr,
     renames: &HashMap<String, String>,
     bound: &mut HashSet<String>,

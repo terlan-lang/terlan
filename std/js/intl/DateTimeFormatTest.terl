@@ -18,7 +18,7 @@ pub generated_binding_surface_contract(): Bool -> true.
 
 pub format_typechecks(
     receiver: DateTimeFormat,
-    date: Date | std.js.Number.JsNumber
+    date: Date | std.js.Number.JsNumber,
 ): std.js.String.JsString ->
     receiver.format(date).
 

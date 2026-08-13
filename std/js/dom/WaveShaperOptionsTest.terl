@@ -17,7 +17,7 @@ import type std.js.Dom.WaveShaperOptions.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub curve_typechecks(
-    receiver: WaveShaperOptions
+    receiver: WaveShaperOptions,
 ): Float32Array | std.js.Array[std.js.Number.JsNumber] ->
     receiver.curve().
 

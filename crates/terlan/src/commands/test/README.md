@@ -1,7 +1,7 @@
 # Test Command Internals
 
 This directory owns `terlc test`, the command that discovers Terlan `@test`
-declarations and executes them against the selected target platform. The
+and `@benchmark` declarations and executes them against the selected target platform. The
 implementation is centered on a formal-pipeline compile followed by the
 compiler-owned VM runner, hosted Wasm runner, or JS profile validation. The
 command must not invent a host-side test model that bypasses CoreIR.
@@ -12,6 +12,8 @@ command must not invent a host-side test model that bypasses CoreIR.
   `--target wasm`,
   `--name <test_function>`, `--emit-test-manifest <path>`, and
   `--emit-test-result-manifest <path>`.
+- Select VM-native `@benchmark` declarations with `--bench`, with optional
+  `--warmup <count>` and `--samples <positive-count>` controls.
 - Compile the source module through the formal compiler pipeline.
 - Discover and validate `@test` function declarations from syntax output.
 - Execute supported tests through the Terlan VM runner.
@@ -47,6 +49,8 @@ discover `*Test.terl` files recursively in deterministic order. `--name`
 selects one exact `@test` function after discovery; this is the compiler-backed
 contract used by editor integrations for individual test runs. Manifest output
 flags are single-file only until an aggregate manifest format is promoted.
+`--bench` changes the selection category to `@benchmark`; benchmarks are not
+run by ordinary test commands and currently execute only on `terlan-vm`.
 
 The main flow is:
 
@@ -77,11 +81,16 @@ Important invariants:
   runtime forms through stable VM diagnostics. Scalar, managed, and mixed
   selections all use `PureNativeExecutionShard`; no selection constructs an
   evaluator or retains executable CoreIR.
+- Benchmark warmup and sample calls reuse the admitted AOT image and VM shard.
+  Timing excludes compilation, image loading, and warmup, and reports native
+  minimum, median, and p95 nanoseconds. Every sample must still return `true`,
+  so performance cases retain a correctness assertion.
 - The opt-in test manifest records source path, Terlan module name, selected
   target, selected target profile, discovered test names, and source spans. It
   is a compiler/runner artifact, not a replacement for normal test output.
 - The opt-in test result manifest records the same source/target identity plus
-  pass/fail counts, per-test statuses, failure messages, and source spans.
+  pass/fail counts, per-test statuses, failure messages, execution nanoseconds,
+  and source spans. Execution timing excludes compilation and image loading.
 
 ## Integration Points
 

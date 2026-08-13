@@ -19,7 +19,7 @@ pub generated_binding_surface_contract(): Bool -> true.
 
 pub create_writable_typechecks(
     receiver: FileSystemFileHandle,
-    options: FileSystemCreateWritableOptions
+    options: FileSystemCreateWritableOptions,
 ): Promise[FileSystemWritableFileStream] ->
     receiver.create_writable(options).
 

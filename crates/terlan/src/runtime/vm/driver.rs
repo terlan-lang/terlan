@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use super::iovec::{VmIoVector, VmIoVectorLimits};
@@ -8,17 +6,17 @@ use super::ReplValue;
 
 mod trace;
 
-#[cfg(test)]
-pub(crate) use trace::VmDriverTraceClass;
 use trace::VmDriverTraceLog;
 pub(crate) use trace::{
-    VmDriverTraceConfig, VmDriverTraceCursor, VmDriverTraceEventKind, VmDriverTraceRead,
+    VmDriverTraceClass, VmDriverTraceConfig, VmDriverTraceCursor, VmDriverTraceEventKind,
+    VmDriverTraceRead,
 };
 
 /// Stable identity for one VM-owned driver instance.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct VmDriverId(u64);
 
+#[cfg(test)]
 impl VmDriverId {
     pub(crate) const fn as_u64(self) -> u64 {
         self.0
@@ -27,6 +25,7 @@ impl VmDriverId {
 
 /// Portable limits and identity for one driver adapter.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmDriverDescriptor {
     pub(crate) name: String,
     pub(crate) queue_capacity_bytes: usize,
@@ -35,6 +34,7 @@ pub(crate) struct VmDriverDescriptor {
     pub(crate) max_environment_value_bytes: usize,
 }
 
+#[cfg(test)]
 impl VmDriverDescriptor {
     pub(crate) fn new(
         name: impl Into<String>,
@@ -70,6 +70,7 @@ pub(crate) enum VmDriverQueuePlacement {
 
 /// One exactly-once callback emitted by a driver helper.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmDriverCallback {
     pub(crate) sequence: u64,
     pub(crate) payload: Vec<u8>,
@@ -77,6 +78,7 @@ pub(crate) struct VmDriverCallback {
 
 /// One deterministic driver timer completion.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmDriverTimerEvent {
     pub(crate) driver: VmDriverId,
     pub(crate) controller: VmProcessId,
@@ -85,6 +87,7 @@ pub(crate) struct VmDriverTimerEvent {
 
 /// Stable inspection row for one live driver.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmDriverSnapshot {
     pub(crate) id: VmDriverId,
     pub(crate) name: String,
@@ -109,6 +112,7 @@ pub(crate) struct VmDriverCloseReport {
 }
 
 #[derive(Debug)]
+#[cfg(test)]
 struct VmDriverRecord {
     id: VmDriverId,
     descriptor: VmDriverDescriptor,
@@ -128,6 +132,7 @@ struct VmDriverRecord {
 /// produce bytes or readiness, but they cannot own process scheduling, expose
 /// raw file descriptors, or mutate the host process environment.
 #[derive(Debug, Default)]
+#[cfg(test)]
 pub(crate) struct VmDriverRuntime {
     next_id: u64,
     current_tick: u64,
@@ -135,6 +140,7 @@ pub(crate) struct VmDriverRuntime {
     trace: VmDriverTraceLog,
 }
 
+#[cfg(test)]
 impl VmDriverRuntime {
     /// Replaces the provider-neutral driver trace selection atomically.
     pub(crate) fn configure_trace(&mut self, config: VmDriverTraceConfig) {
@@ -702,6 +708,7 @@ impl VmDriverRuntime {
     }
 }
 
+#[cfg(test)]
 fn validate_descriptor(descriptor: &VmDriverDescriptor) -> Result<(), String> {
     if descriptor.name.trim().is_empty() {
         return Err("VM driver name cannot be empty".to_string());
@@ -721,6 +728,7 @@ fn validate_descriptor(descriptor: &VmDriverDescriptor) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(test)]
 fn validate_environment_key(key: &str) -> Result<(), String> {
     if key.is_empty() {
         return Err("driver environment key cannot be empty".to_string());
@@ -731,6 +739,7 @@ fn validate_environment_key(key: &str) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(test)]
 fn checked_segment_bytes(segments: &[&[u8]]) -> Result<usize, String> {
     segments.iter().try_fold(0usize, |total, segment| {
         total
@@ -739,6 +748,7 @@ fn checked_segment_bytes(segments: &[&[u8]]) -> Result<usize, String> {
     })
 }
 
+#[cfg(test)]
 fn flatten_segments(segments: &[&[u8]], total: usize) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(total);
     for segment in segments {
@@ -747,6 +757,7 @@ fn flatten_segments(segments: &[&[u8]], total: usize) -> Vec<u8> {
     bytes
 }
 
+#[cfg(test)]
 fn snapshot(record: &VmDriverRecord) -> VmDriverSnapshot {
     VmDriverSnapshot {
         id: record.id,
@@ -760,6 +771,7 @@ fn snapshot(record: &VmDriverRecord) -> VmDriverSnapshot {
     }
 }
 
+#[cfg(test)]
 fn close_report(record: VmDriverRecord) -> VmDriverCloseReport {
     VmDriverCloseReport {
         id: record.id,
@@ -772,6 +784,7 @@ fn close_report(record: VmDriverRecord) -> VmDriverCloseReport {
     }
 }
 
+#[cfg(test)]
 fn ensure_live_process(
     processes: &VmProcessTable,
     process: VmProcessId,
@@ -788,8 +801,10 @@ fn ensure_live_process(
 
 #[cfg(test)]
 #[path = "driver_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod driver_beam_suite_parity_test;
 
 #[cfg(test)]
 #[path = "driver/lttng_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod lttng_beam_suite_parity_test;

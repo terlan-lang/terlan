@@ -1,3 +1,13 @@
+use std::collections::HashMap;
+
+use super::*;
+use crate::terlan_hir::{
+    resolve_syntax_module_output_with_interfaces, syntax_module_output_to_interface,
+};
+use crate::terlan_syntax::{
+    parse_interface_module_as_syntax_output, parse_module_as_syntax_output,
+};
+
 /// Verifies provider-qualified struct fields remain assignable to a selected
 /// transparent union alias from the same provider.
 ///

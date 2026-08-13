@@ -7,7 +7,7 @@ import type std.core.Option.
 
 struct User {
     id: Int,
-    name: String
+    name: String,
 }.
 
 template BackendPage from "./template-interpolation-backend-page.terl.html" {
@@ -18,23 +18,45 @@ template BackendPage from "./template-interpolation-backend-page.terl.html" {
     tooltip: Option[String],
     count: Int,
     trusted: Template.Html,
-    user: User
+    user: User,
 }.
 
 template BackendBadge from "./template-interpolation-backend-badge.terl.html" {
-    label: String
+    label: String,
 }.
 
 pub render_some(): Template.Html ->
-    BackendPage(title = "<Terlan>", href = "/users/7?x=1&y=2", disabled = true, classes = ["hero", "wide"], tooltip = Some("profile"), count = 7, trusted = Template.trusted("<em>trusted</em>"), user = User(id = 7, name = "Ada & Bob")).
+    BackendPage(
+        title = "<Terlan>",
+        href = "/users/7?x=1&y=2",
+        disabled = true,
+        classes = ["hero", "wide"],
+        tooltip = Some("profile"),
+        count = 7,
+        trusted = Template.trusted("<em>trusted</em>"),
+        user = User(id = 7, name = "Ada & Bob"),
+    ).
 
 pub render_none(): Template.Html ->
-    BackendPage(title = "Terlan", href = "/users/7", disabled = false, classes = ["hero"], tooltip = None, count = 3, trusted = Template.trusted("<i>safe</i>"), user = User(id = 7, name = "Ada")).
+    BackendPage(
+        title = "Terlan",
+        href = "/users/7",
+        disabled = false,
+        classes = ["hero"],
+        tooltip = None,
+        count = 3,
+        trusted = Template.trusted("<i>safe</i>"),
+        user = User(id = 7, name = "Ada"),
+    ).
 
 @test
 pub vm_renders_shared_backend_fixture_with_trusted_some_and_component(): Bool ->
-    render_some() == Template.trusted("<main class=\"hero wide\" title=\"profile\" data-count=\"7\"><h1>&lt;Terlan&gt;</h1><a href=\"/users/7?x=1&amp;y=2\">Ada&#32;&amp;&#32;Bob</a><button disabled>14</button><em>trusted</em><strong>&lt;Terlan&gt;:<span>child</span></strong>\n</main>\n").
+    render_some() == Template.trusted(
+    "<main class=\"hero wide\" title=\"profile\" data-count=\"7\"><h1>&lt;Terlan&gt;</h1><a href=\"/users/7?x=1&amp;y=2\">Ada&#32;&amp;&#32;Bob</a><button disabled>14</button><em>trusted</em><strong>&lt;Terlan&gt;:<span>child</span></strong>\n</main>\n",
+).
 
 @test
 pub vm_renders_shared_backend_fixture_with_none_and_false_attributes(): Bool ->
-    render_none() == Template.trusted("<main class=\"hero\" data-count=\"3\"><h1>Terlan</h1><a href=\"/users/7\">Ada</a><button>6</button><i>safe</i><strong>Terlan:<span>child</span></strong>\n</main>\n").
+    render_none() == Template.trusted(
+    "<main class=\"hero\" data-count=\"3\"><h1>Terlan</h1><a href=\"/users/7\">Ada</a><button>6</button><i>safe</i><strong>Terlan:<span>child</span></strong>\n</main>\n",
+).

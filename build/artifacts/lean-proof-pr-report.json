@@ -27,6 +27,19 @@
     },
     {
       "subject_type": "inventory",
+      "subject": "proofs/lean/Terlan/Core/CheckedLowering.lean",
+      "owner_bucket": "cli",
+      "feature_slices": [
+        "Slice 1"
+      ],
+      "required_gates": [
+        "lean-proof-track-check"
+      ],
+      "next_action": "Keep deterministic checked lowering, preservation, and target rejection synchronized with the CoreIR and target-profile contracts.",
+      "exception": null
+    },
+    {
+      "subject_type": "inventory",
       "subject": "proofs/lean/Terlan/FeatureCull/LegacyBoundaries.lean",
       "owner_bucket": "cli",
       "feature_slices": [
@@ -41,17 +54,32 @@
     },
     {
       "subject_type": "inventory",
-      "subject": "proofs/lean/Terlan/Runtime/NativeBoundary.lean",
+      "subject": "proofs/lean/native_boundary/NativeBoundary.lean",
       "owner_bucket": "runtime",
       "feature_slices": [
-        "Slice 42"
+        "Slice 14"
       ],
       "required_gates": [
+        "lean-proof-native-boundary-check",
         "lean-proof-track-check",
         "native-boundary-security-check",
         "vm-native-boundary-contract-check"
       ],
-      "next_action": "Keep NativeBoundary admission, ownership, and credit theorems synchronized with fingerprinted runtime contracts.",
+      "next_action": "Keep typed dispatch, handle linearity, async policy, deny-list soundness, generated manifests, and runtime oracles synchronized.",
+      "exception": null
+    },
+    {
+      "subject_type": "inventory",
+      "subject": "proofs/lean/Terlan/Smoke/SemanticChain.lean",
+      "owner_bucket": "vm",
+      "feature_slices": [
+        "Slice 9"
+      ],
+      "required_gates": [
+        "lean-proof-smoke-check",
+        "lean-proof-track-check"
+      ],
+      "next_action": "Keep the semantic proof, VM/native runtime counterparts, unsupported-target rejection, and 0.0.7 signatures synchronized.",
       "exception": null
     },
     {
@@ -66,6 +94,111 @@
         "shape-implications-check"
       ],
       "next_action": "Keep structural implication evidence, lexical scope, result preservation, and non-conversion theorems synchronized with the canonical type specification and EBNF.",
+      "exception": null
+    },
+    {
+      "subject_type": "inventory",
+      "subject": "proofs/lean/collections/Collections.lean",
+      "owner_bucket": "std",
+      "feature_slices": [
+        "Slice 17"
+      ],
+      "required_gates": [
+        "lean-proof-collections-check",
+        "lean-proof-semantic-kernels-check",
+        "lean-proof-track-check"
+      ],
+      "next_action": "Keep list, map, and set preservation and rejection witnesses synchronized with their executable collection runtime oracle.",
+      "exception": null
+    },
+    {
+      "subject_type": "inventory",
+      "subject": "proofs/lean/concurrency/Concurrency.lean",
+      "owner_bucket": "vm",
+      "feature_slices": [
+        "Slice 16"
+      ],
+      "required_gates": [
+        "lean-proof-concurrency-check",
+        "lean-proof-semantic-kernels-check",
+        "lean-proof-track-check"
+      ],
+      "next_action": "Keep mailbox ordering, bounded scheduler progress, timeout, and unsupported scheduling assumptions synchronized with the VM service-actor oracle.",
+      "exception": null
+    },
+    {
+      "subject_type": "inventory",
+      "subject": "proofs/lean/database_sql/DatabaseSql.lean",
+      "owner_bucket": "db",
+      "feature_slices": [
+        "Slice 19"
+      ],
+      "required_gates": [
+        "lean-proof-db-sql-check",
+        "lean-proof-semantic-kernels-check",
+        "lean-proof-track-check"
+      ],
+      "next_action": "Keep Terlan-owned prepared-binding, transaction-state, and effect-boundary theorems distinct from external SQL-engine and isolation evidence.",
+      "exception": null
+    },
+    {
+      "subject_type": "inventory",
+      "subject": "proofs/lean/parser_shape/ParserShape.lean",
+      "owner_bucket": "cli",
+      "feature_slices": [
+        "Slice 13"
+      ],
+      "required_gates": [
+        "lalrpop-parser-parity-check",
+        "lean-proof-parser-shape-check",
+        "lean-proof-track-check"
+      ],
+      "next_action": "Keep parser-shape theorems synchronized with the canonical EBNF identity, generated LALRPOP grammar, SyntaxOutput boundary, and checked CoreIR preservation contract.",
+      "exception": null
+    },
+    {
+      "subject_type": "inventory",
+      "subject": "proofs/lean/std_packages/StdPackages.lean",
+      "owner_bucket": "std",
+      "feature_slices": [
+        "Slice 20"
+      ],
+      "required_gates": [
+        "lean-proof-std-package-check",
+        "lean-proof-semantic-kernels-check",
+        "lean-proof-track-check"
+      ],
+      "next_action": "Keep release-critical JSON, binary, option, and timer contracts synchronized with their typed runtime oracle.",
+      "exception": null
+    },
+    {
+      "subject_type": "inventory",
+      "subject": "proofs/lean/templates_routes/TemplateRoutes.lean",
+      "owner_bucket": "templates",
+      "feature_slices": [
+        "Slice 15"
+      ],
+      "required_gates": [
+        "lean-proof-templates-routes-check",
+        "lean-proof-semantic-kernels-check",
+        "lean-proof-track-check"
+      ],
+      "next_action": "Keep template-slot and route-lowering preservation and rejection witnesses synchronized with the typed template runtime oracle.",
+      "exception": null
+    },
+    {
+      "subject_type": "inventory",
+      "subject": "proofs/lean/wasm_bridge/WasmBridge.lean",
+      "owner_bucket": "runtime",
+      "feature_slices": [
+        "Slice 18"
+      ],
+      "required_gates": [
+        "lean-proof-wasm-bridge-check",
+        "lean-proof-semantic-kernels-check",
+        "lean-proof-track-check"
+      ],
+      "next_action": "Keep portable Wasm value lowering, resource ownership, deterministic abort, and host-side-effect rejection synchronized with the ABI runtime oracle.",
       "exception": null
     },
     {
@@ -86,12 +219,13 @@
       "subject": "EBNF syntax preservation",
       "owner_bucket": "cli",
       "feature_slices": [
-        "Slice 1"
+        "Slice 13"
       ],
       "required_gates": [
+        "lean-proof-parser-shape-check",
         "lean-proof-track-check"
       ],
-      "next_action": "Restore syntax preservation proofs against the current EBNF and parser contracts.",
+      "next_action": "Keep the closed syntax-preservation gap bound to the executable parser-shape proof and canonical grammar contract.",
       "exception": null
     },
     {
@@ -155,13 +289,13 @@
       "subject": "native-boundary contracts",
       "owner_bucket": "runtime",
       "feature_slices": [
-        "Slice 1"
+        "Slice 14"
       ],
       "required_gates": [
-        "native-boundary-security-check",
+        "lean-proof-native-boundary-check",
         "lean-proof-track-check"
       ],
-      "next_action": "Refine the fingerprinted NativeBoundary admission, ownership, and credit model against the Rust implementation through Aeneas.",
+      "next_action": "Keep the closed NativeBoundary contract gap bound to typed manifests and VM runtime-oracle evidence.",
       "exception": null
     },
     {

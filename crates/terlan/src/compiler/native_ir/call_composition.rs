@@ -1,7 +1,8 @@
 //! Admission and evaluation-context extraction for bounded suspending calls.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
+use crate::terlan_syntax::span::Span;
 use crate::terlan_typeck::{CoreExpr, CoreLetBinding, CorePattern};
 
 use super::{
@@ -9,7 +10,23 @@ use super::{
     NativeContinuation, NativeExpr, NativeType,
 };
 
-const MAX_COMPOSED_CALL_CONTINUATIONS: usize = 1_024;
+mod analysis;
+mod contracts;
+mod region;
+
+pub(super) use analysis::*;
+#[cfg(test)]
+pub(super) use contracts::validate_call_then_contracts;
+pub(super) use contracts::{
+    refresh_recursive_call_contract, validate_call_then_contracts_with_destinations,
+};
+pub(super) use region::composed_call_region;
+
+// Large generated services and typed repository tools can legitimately compose
+// several thousand suspension sites. Keep a finite compiler resource budget
+// against pathological graphs while admitting the measured self-validation
+// workload with greater than two-times headroom.
+const MAX_COMPOSED_CALL_CONTINUATIONS: usize = 16_384;
 
 pub(super) fn suspending_call_count(
     expr: &CoreExpr,
@@ -19,6 +36,7 @@ pub(super) fn suspending_call_count(
         CoreExpr::Call { function, args } => {
             usize::from(suspending.contains(&(function.clone(), args.len())))
         }
+        CoreExpr::FunctionCall { .. } => 1,
         _ => 0,
     };
     own + match expr {
@@ -28,10 +46,32 @@ pub(super) fn suspending_call_count(
             .iter()
             .map(|arg| suspending_call_count(arg, suspending))
             .sum(),
-        CoreExpr::RecordConstruct { fields, .. } => fields
+        CoreExpr::FunctionCall { callee, args } => {
+            suspending_call_count(callee, suspending)
+                + args
+                    .iter()
+                    .map(|arg| suspending_call_count(arg, suspending))
+                    .sum::<usize>()
+        }
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => items
+            .iter()
+            .map(|item| suspending_call_count(item, suspending))
+            .sum(),
+        CoreExpr::ListCons { head, tail }
+        | CoreExpr::Index {
+            base: head,
+            index: tail,
+        } => suspending_call_count(head, suspending) + suspending_call_count(tail, suspending),
+        CoreExpr::Map(fields) => fields
             .iter()
             .map(|field| suspending_call_count(&field.value, suspending))
             .sum(),
+        CoreExpr::RecordConstruct { fields, .. } | CoreExpr::TemplateInstantiate { fields, .. } => {
+            fields
+                .iter()
+                .map(|field| suspending_call_count(&field.value, suspending))
+                .sum()
+        }
         CoreExpr::RecordUpdate { base, fields, .. } => {
             suspending_call_count(base, suspending)
                 + fields
@@ -42,7 +82,42 @@ pub(super) fn suspending_call_count(
         CoreExpr::FieldAccess { base, .. } | CoreExpr::RecordAccess { base, .. } => {
             suspending_call_count(base, suspending)
         }
-        CoreExpr::UnaryOp { operand, .. } => suspending_call_count(operand, suspending),
+        CoreExpr::RemoteCall { args, .. } => args
+            .iter()
+            .map(|arg| suspending_call_count(arg, suspending))
+            .sum(),
+        CoreExpr::MutableReceiverCall { receiver, args, .. } => {
+            suspending_call_count(receiver, suspending)
+                + args
+                    .iter()
+                    .map(|arg| suspending_call_count(arg, suspending))
+                    .sum::<usize>()
+        }
+        CoreExpr::ConstructorChain { args, record, .. } => {
+            args.iter()
+                .map(|arg| suspending_call_count(arg, suspending))
+                .sum::<usize>()
+                + suspending_call_count(record, suspending)
+        }
+        CoreExpr::ListComprehension {
+            expr,
+            generators,
+            guards,
+            ..
+        } => {
+            suspending_call_count(expr, suspending)
+                + generators
+                    .iter()
+                    .map(|generator| suspending_call_count(&generator.source, suspending))
+                    .sum::<usize>()
+                + guards
+                    .iter()
+                    .map(|guard| suspending_call_count(guard, suspending))
+                    .sum::<usize>()
+        }
+        CoreExpr::UnaryOp { operand, .. } | CoreExpr::Cast { expr: operand, .. } => {
+            suspending_call_count(operand, suspending)
+        }
         CoreExpr::BinaryOp { left, right, .. } => {
             suspending_call_count(left, suspending) + suspending_call_count(right, suspending)
         }
@@ -60,33 +135,106 @@ pub(super) fn suspending_call_count(
                     + suspending_call_count(&clause.body, suspending)
             })
             .sum(),
+        CoreExpr::Case { scrutinee, clauses } => {
+            suspending_call_count(scrutinee, suspending)
+                + clauses
+                    .iter()
+                    .map(|clause| {
+                        clause
+                            .guard
+                            .as_ref()
+                            .map_or(0, |guard| suspending_call_count(guard, suspending))
+                            + suspending_call_count(&clause.body, suspending)
+                    })
+                    .sum::<usize>()
+        }
+        CoreExpr::Try {
+            body,
+            of_clauses,
+            catch_clauses,
+            after_clause,
+        } => {
+            suspending_call_count(body, suspending)
+                + of_clauses
+                    .iter()
+                    .chain(catch_clauses)
+                    .map(|clause| {
+                        clause
+                            .guard
+                            .as_ref()
+                            .map_or(0, |guard| suspending_call_count(guard, suspending))
+                            + suspending_call_count(&clause.body, suspending)
+                    })
+                    .sum::<usize>()
+                + after_clause.as_ref().map_or(0, |after| {
+                    suspending_call_count(&after.trigger, suspending)
+                        + suspending_call_count(&after.body, suspending)
+                })
+        }
+        CoreExpr::SqlQuery { parameters, .. } => parameters
+            .iter()
+            .map(|parameter| suspending_call_count(parameter, suspending))
+            .sum(),
         _ => 0,
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub(super) struct ComposedCallProfile {
     pub(super) continuations: Vec<ComposedContinuationProfile>,
+    pub(super) entries: Vec<u64>,
+    pub(super) tail_entries: HashMap<usize, Vec<(u64, usize)>>,
 }
 
 /// The bounded ABI metadata needed to call a shared continuation body.
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub(super) struct ComposedContinuationProfile {
     pub(super) id: u64,
+    pub(super) source_span: Option<Span>,
     pub(super) params: Vec<NativeType>,
     pub(super) body: NativeExpr,
+    pub(super) completion_result: bool,
+}
+
+pub(super) struct RecursiveReductionMember {
+    pub(super) module: String,
+    pub(super) function_name: String,
+    pub(super) arity: usize,
+    pub(super) function: usize,
+    pub(super) params: Vec<NativeType>,
 }
 
 #[derive(Clone, Debug)]
 pub(super) struct CallRegion {
     pub(super) prefix: Vec<CoreLetBinding>,
-    pub(super) function: String,
+    pub(super) target: CallTarget,
     pub(super) args: Vec<CoreExpr>,
     pub(super) resume: CoreExpr,
     pub(super) result_name: String,
     pub(super) gates: Vec<CallGate>,
     pub(super) join: Option<CallJoin>,
 }
+
+#[derive(Clone, Debug)]
+pub(super) enum CallTarget {
+    Direct(String),
+    Dynamic(Box<CoreExpr>),
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub(super) struct DynamicCallSignature {
+    pub(super) parameters: Vec<NativeType>,
+    pub(super) result: NativeType,
+}
+
+#[derive(Clone, Eq, PartialEq)]
+pub(super) struct DynamicTargetProfile {
+    pub(super) export_id: u64,
+    pub(super) source: String,
+    pub(super) profile: ComposedCallProfile,
+}
+
+pub(super) type DynamicCallProfiles = HashMap<DynamicCallSignature, Vec<DynamicTargetProfile>>;
 
 #[derive(Clone, Debug)]
 pub(super) struct CallJoin {
@@ -131,6 +279,27 @@ fn unique_prefix_name(
         .expect("generated prefix name space is unbounded")
 }
 
+fn unconditional_true_prefix(
+    expr: &CoreExpr,
+    suspending: &HashSet<(String, usize)>,
+) -> Option<Vec<CoreLetBinding>> {
+    match expr {
+        CoreExpr::Atom(value) | CoreExpr::Var(value) if value == "true" => Some(Vec::new()),
+        CoreExpr::Let { bindings, body }
+            if bindings.iter().all(|binding| {
+                matches!(binding.pattern, CorePattern::Var(_))
+                    && !expr_calls_suspending(&binding.value, suspending)
+                    && !contains_process_yield(&binding.value)
+            }) =>
+        {
+            let mut prefix = bindings.clone();
+            prefix.extend(unconditional_true_prefix(body, suspending)?);
+            Some(prefix)
+        }
+        _ => None,
+    }
+}
+
 pub(super) fn is_composable_suspending_body(
     body: &CoreExpr,
     suspending: &HashSet<(String, usize)>,
@@ -139,8 +308,30 @@ pub(super) fn is_composable_suspending_body(
     let continuation_count =
         process_yield_count(body).saturating_add(suspending_call_count(body, suspending));
     (1..=MAX_COMPOSED_CALL_CONTINUATIONS).contains(&continuation_count)
-        && !has_ambiguous_yield_branches(body)
         && suspending_calls_are_composable(body, suspending, composable)
+}
+
+pub(super) fn composable_suspension_gap_reason(
+    body: &CoreExpr,
+    suspending: &HashSet<(String, usize)>,
+    composable: &HashSet<(String, usize)>,
+) -> String {
+    let continuation_count =
+        process_yield_count(body).saturating_add(suspending_call_count(body, suspending));
+    if continuation_count == 0 {
+        return "suspension reachability and continuation counting disagree: no continuation-producing expression was counted".to_string();
+    }
+    if continuation_count > MAX_COMPOSED_CALL_CONTINUATIONS {
+        return format!(
+            "candidate requires {continuation_count} continuation records; maximum is {MAX_COMPOSED_CALL_CONTINUATIONS}"
+        );
+    }
+    if !suspending_calls_are_composable(body, suspending, composable) {
+        return "candidate reaches a suspension target outside the closed composable set"
+            .to_string();
+    }
+    "candidate failed composable suspension admission without a reported invariant violation"
+        .to_string()
 }
 
 fn suspending_calls_are_composable(
@@ -156,23 +347,71 @@ fn suspending_calls_are_composable(
     }
     match expr {
         CoreExpr::Call { args, .. }
+        | CoreExpr::RemoteCall { args, .. }
         | CoreExpr::ConstructorCall { args, .. }
         | CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => args
             .iter()
             .all(|arg| suspending_calls_are_composable(arg, suspending, composable)),
-        CoreExpr::RecordConstruct { fields, .. } => fields
+        CoreExpr::FunctionCall { callee, args } => {
+            suspending_calls_are_composable(callee, suspending, composable)
+                && args
+                    .iter()
+                    .all(|arg| suspending_calls_are_composable(arg, suspending, composable))
+        }
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => items
+            .iter()
+            .all(|item| suspending_calls_are_composable(item, suspending, composable)),
+        CoreExpr::ListCons { head, tail }
+        | CoreExpr::Index {
+            base: head,
+            index: tail,
+        } => {
+            suspending_calls_are_composable(head, suspending, composable)
+                && suspending_calls_are_composable(tail, suspending, composable)
+        }
+        CoreExpr::Map(fields) => fields
             .iter()
             .all(|field| suspending_calls_are_composable(&field.value, suspending, composable)),
+        CoreExpr::RecordConstruct { fields, .. } | CoreExpr::TemplateInstantiate { fields, .. } => {
+            fields
+                .iter()
+                .all(|field| suspending_calls_are_composable(&field.value, suspending, composable))
+        }
         CoreExpr::RecordUpdate { base, fields, .. } => {
             suspending_calls_are_composable(base, suspending, composable)
                 && fields.iter().all(|field| {
                     suspending_calls_are_composable(&field.value, suspending, composable)
                 })
         }
+        CoreExpr::MutableReceiverCall { receiver, args, .. } => {
+            suspending_calls_are_composable(receiver, suspending, composable)
+                && args
+                    .iter()
+                    .all(|arg| suspending_calls_are_composable(arg, suspending, composable))
+        }
+        CoreExpr::ConstructorChain { args, record, .. } => {
+            args.iter()
+                .all(|arg| suspending_calls_are_composable(arg, suspending, composable))
+                && suspending_calls_are_composable(record, suspending, composable)
+        }
+        CoreExpr::ListComprehension {
+            expr,
+            generators,
+            guards,
+            ..
+        } => {
+            suspending_calls_are_composable(expr, suspending, composable)
+                && generators.iter().all(|generator| {
+                    suspending_calls_are_composable(&generator.source, suspending, composable)
+                })
+                && guards
+                    .iter()
+                    .all(|guard| suspending_calls_are_composable(guard, suspending, composable))
+        }
         CoreExpr::FieldAccess { base, .. } | CoreExpr::RecordAccess { base, .. } => {
             suspending_calls_are_composable(base, suspending, composable)
         }
-        CoreExpr::UnaryOp { operand, .. } => {
+        CoreExpr::UnaryOp { operand, .. } | CoreExpr::Cast { expr: operand, .. } => {
             suspending_calls_are_composable(operand, suspending, composable)
         }
         CoreExpr::BinaryOp { left, right, .. } => {
@@ -188,671 +427,477 @@ fn suspending_calls_are_composable(
             suspending_calls_are_composable(&clause.condition, suspending, composable)
                 && suspending_calls_are_composable(&clause.body, suspending, composable)
         }),
+        CoreExpr::Case { scrutinee, clauses } => {
+            suspending_calls_are_composable(scrutinee, suspending, composable)
+                && clauses.iter().all(|clause| {
+                    clause.guard.as_ref().is_none_or(|guard| {
+                        suspending_calls_are_composable(guard, suspending, composable)
+                    }) && suspending_calls_are_composable(&clause.body, suspending, composable)
+                })
+        }
+        CoreExpr::Try {
+            body,
+            of_clauses,
+            catch_clauses,
+            after_clause,
+        } => {
+            suspending_calls_are_composable(body, suspending, composable)
+                && of_clauses.iter().chain(catch_clauses).all(|clause| {
+                    clause.guard.as_ref().is_none_or(|guard| {
+                        suspending_calls_are_composable(guard, suspending, composable)
+                    }) && suspending_calls_are_composable(&clause.body, suspending, composable)
+                })
+                && after_clause.as_ref().is_none_or(|after| {
+                    suspending_calls_are_composable(&after.trigger, suspending, composable)
+                        && suspending_calls_are_composable(&after.body, suspending, composable)
+                })
+        }
+        CoreExpr::SqlQuery { parameters, .. } => parameters
+            .iter()
+            .all(|parameter| suspending_calls_are_composable(parameter, suspending, composable)),
         _ => true,
     }
 }
 
 impl ComposedCallProfile {
+    pub(super) fn pure() -> Self {
+        Self {
+            continuations: Vec::new(),
+            entries: Vec::new(),
+            tail_entries: HashMap::new(),
+        }
+    }
+
+    /// Describes the cyclic resume graph of one direct self-recursive
+    /// reduction loop.
+    ///
+    /// The VM may enter the reduction continuation repeatedly before the
+    /// function completes. `CallThen` keeps the outer caller's captures on
+    /// every parked edge and routes synchronous completion through a distinct
+    /// result node.
+    pub(super) fn recursive_component(
+        entry_module: &str,
+        entry_function: &str,
+        entry_arity: usize,
+        result: NativeType,
+        members: Vec<RecursiveReductionMember>,
+    ) -> Self {
+        let completion_id = super::identity::stable_reduction_completion_id(
+            entry_module,
+            entry_function,
+            entry_arity,
+        );
+        let reductions = members
+            .iter()
+            .map(|member| {
+                (
+                    super::identity::stable_reduction_continuation_id(
+                        &member.module,
+                        &member.function_name,
+                        member.arity,
+                    ),
+                    member,
+                )
+            })
+            .collect::<Vec<_>>();
+        let resumes = reductions
+            .iter()
+            .map(|(id, member)| super::NativeCallResume {
+                callee_continuation_id: *id,
+                callee_capture_count: member.params.len(),
+                continuation_id: *id,
+                caller_value_start: 0,
+            })
+            .collect::<Vec<_>>();
+        let mut continuations = reductions
+            .iter()
+            .map(|(id, member)| ComposedContinuationProfile {
+                id: *id,
+                source_span: None,
+                params: member.params.clone(),
+                body: NativeExpr::CallThen {
+                    function: member.function,
+                    args: (0..member.params.len()).map(NativeExpr::Param).collect(),
+                    resumes: resumes.clone(),
+                    completion_continuation_id: completion_id,
+                    completion_function: None,
+                    values: Vec::new(),
+                },
+                completion_result: false,
+            })
+            .collect::<Vec<_>>();
+        let completion = ComposedContinuationProfile {
+            id: completion_id,
+            source_span: None,
+            params: vec![result],
+            body: NativeExpr::Param(0),
+            completion_result: true,
+        };
+        continuations.push(completion);
+        Self {
+            entries: reductions.iter().map(|(id, _)| *id).collect(),
+            continuations,
+            tail_entries: HashMap::new(),
+        }
+    }
+
     pub(super) fn new(
         function_body: &NativeExpr,
         continuations: &[NativeContinuation],
+        terminal_profiles: &HashMap<usize, ComposedCallProfile>,
     ) -> Option<Self> {
-        if continuations.is_empty() || continuations.len() > MAX_COMPOSED_CALL_CONTINUATIONS {
-            return None;
+        Self::build(function_body, continuations, terminal_profiles).ok()
+    }
+
+    /// Builds one profile while retaining the exact failed graph invariant for
+    /// fixed-point diagnostics.
+    fn build(
+        function_body: &NativeExpr,
+        continuations: &[NativeContinuation],
+        terminal_profiles: &HashMap<usize, ComposedCallProfile>,
+    ) -> super::NativeIrResult<Self> {
+        let mut continuation_pool = continuations.to_vec();
+        let mut tail_entries = HashMap::new();
+        let mut pending_targets = direct_tail_targets(function_body);
+        pending_targets.extend(
+            continuation_pool
+                .iter()
+                .flat_map(|continuation| direct_tail_targets(&continuation.body)),
+        );
+        let mut visited_targets = HashSet::new();
+        while let Some(target) = pending_targets.pop() {
+            if !visited_targets.insert(target) {
+                continue;
+            }
+            let profile = terminal_profiles.get(&target).ok_or_else(|| {
+                format!("tail target {target} has no available suspension profile")
+            })?;
+            let by_id = profile
+                .continuations
+                .iter()
+                .map(|continuation| (continuation.id, continuation))
+                .collect::<HashMap<_, _>>();
+            let entries = profile
+                .entries
+                .iter()
+                .map(|entry| {
+                    by_id
+                        .get(entry)
+                        .map(|continuation| (*entry, continuation.params.len()))
+                        .ok_or_else(|| {
+                            format!("tail target {target} advertises absent continuation {entry}")
+                        })
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            tail_entries.insert(target, entries);
+            for (nested_target, entries) in &profile.tail_entries {
+                tail_entries
+                    .entry(*nested_target)
+                    .or_insert_with(|| entries.clone());
+                pending_targets.push(*nested_target);
+            }
+            // Tail callees retain ownership of their continuation bodies.  A
+            // caller profile needs only the outward entry identities and
+            // capture shapes; copying the complete graph here makes profile
+            // width grow transitively with every call edge.
+            for entry in &profile.entries {
+                let continuation = by_id.get(entry).copied().ok_or_else(|| {
+                    format!("tail target {target} advertises absent continuation {entry}")
+                })?;
+                if continuation_pool
+                    .iter()
+                    .any(|existing| existing.id == *entry)
+                {
+                    continue;
+                }
+                continuation_pool.push(opaque_profile_entry(continuation));
+            }
+        }
+        // `CallThen` also exposes callee-owned continuation identities.  Add
+        // shape-only records so fixed-point admission can validate those
+        // edges without materializing another copy of their bodies.
+        let mut outward_ids = direct_suspend_ids(function_body);
+        outward_ids.extend(
+            continuation_pool
+                .iter()
+                .flat_map(|continuation| direct_suspend_ids(&continuation.body)),
+        );
+        outward_ids.sort_unstable();
+        outward_ids.dedup();
+        for id in outward_ids {
+            if continuation_pool
+                .iter()
+                .any(|continuation| continuation.id == id)
+            {
+                continue;
+            }
+            let source = terminal_profiles
+                .values()
+                .flat_map(|profile| profile.continuations.iter())
+                .find(|continuation| continuation.id == id)
+                .ok_or_else(|| {
+                    format!("outward continuation {id} has no available suspension profile")
+                })?;
+            continuation_pool.push(NativeContinuation {
+                id,
+                source_module: String::new(),
+                source_function: String::new(),
+                source_arity: 0,
+                source_span: source.source_span,
+                capture_names: Vec::new(),
+                params: source.params.clone(),
+                return_type: source.params.last().copied().unwrap_or(NativeType::Unit),
+                body: NativeExpr::Unit,
+            });
+        }
+        if continuation_pool.is_empty() || continuation_pool.len() > MAX_COMPOSED_CALL_CONTINUATIONS
+        {
+            return Err(format!(
+                "profile continuation width {} is outside 1..={MAX_COMPOSED_CALL_CONTINUATIONS}",
+                continuation_pool.len()
+            )
+            .into());
         }
 
-        let by_id = continuations
+        let by_id = continuation_pool
             .iter()
             .map(|continuation| (continuation.id, continuation))
             .collect::<std::collections::HashMap<_, _>>();
-        if by_id.len() != continuations.len() {
-            return None;
+        if by_id.len() != continuation_pool.len() {
+            return Err("profile contains duplicate continuation identities".into());
         }
-        let mut next_ids = unique_direct_resume_ids(function_body);
-        if next_ids.len() != 1 {
-            return None;
+        let completion_ids = continuation_pool
+            .iter()
+            .flat_map(|continuation| direct_completion_ids(&continuation.body))
+            .chain(direct_completion_ids(function_body))
+            .collect::<HashSet<_>>();
+        let yield_ids = continuation_pool
+            .iter()
+            .flat_map(|continuation| profile_entry_ids(&continuation.body, &tail_entries))
+            .chain(profile_entry_ids(function_body, &tail_entries))
+            .collect::<HashSet<_>>();
+        if completion_ids.iter().any(|id| yield_ids.contains(id)) {
+            let mut overlap = completion_ids
+                .intersection(&yield_ids)
+                .copied()
+                .collect::<Vec<_>>();
+            overlap.sort_unstable();
+            let sites = overlap
+                .iter()
+                .map(|id| {
+                    let mut completion_sites = Vec::new();
+                    let mut yield_sites = Vec::new();
+                    if direct_completion_ids(function_body).contains(id) {
+                        completion_sites.push("function".to_string());
+                    }
+                    if profile_entry_ids(function_body, &tail_entries).contains(id) {
+                        yield_sites.push("function".to_string());
+                    }
+                    for continuation in &continuation_pool {
+                        if direct_completion_ids(&continuation.body).contains(id) {
+                            completion_sites.push(format!("continuation {}", continuation.id));
+                        }
+                        if profile_entry_ids(&continuation.body, &tail_entries).contains(id) {
+                            yield_sites.push(format!("continuation {}", continuation.id));
+                        }
+                    }
+                    format!("{id}: completion={completion_sites:?}, outward={yield_sites:?}")
+                })
+                .collect::<Vec<_>>();
+            return Err(format!(
+                "continuations {overlap:?} are both completion and outward-yield entries ({})",
+                sites.join("; ")
+            )
+            .into());
         }
+        let initial_entries = profile_entry_ids(function_body, &tail_entries);
+        if initial_entries.is_empty() {
+            return Err("function body exposes no initial suspension entry".into());
+        }
+        let mut next_ids = initial_entries;
 
-        let mut ordered = Vec::with_capacity(continuations.len());
-        let mut visited = HashSet::with_capacity(continuations.len());
+        let mut ordered = Vec::with_capacity(continuation_pool.len());
+        let mut visited = HashSet::with_capacity(continuation_pool.len());
         while let Some(id) = next_ids.pop() {
             if !visited.insert(id) {
                 continue;
             }
-            let continuation = by_id.get(&id).copied()?;
+            let continuation = by_id.get(&id).copied().ok_or_else(|| {
+                format!("reachable suspension edge references absent continuation {id}")
+            })?;
             ordered.push(ComposedContinuationProfile {
                 id,
+                source_span: continuation.source_span,
                 params: continuation.params.clone(),
                 body: continuation.body.clone(),
+                completion_result: completion_ids.contains(&id),
             });
-            next_ids.extend(unique_direct_resume_ids(&continuation.body));
+            next_ids.extend(unique_profile_edges(&continuation.body, &tail_entries));
         }
-        if visited.len() != continuations.len() {
-            return None;
+        // Structured control lowering can retain branch-local continuation
+        // records after a condition was folded or a shared entry was
+        // interned. They are not reachable from this function's primary
+        // entry, but may still be referenced by the lowered module until
+        // application-wide continuation materialization. Preserve those
+        // records in the profile without advertising them as call entries.
+        for continuation in &continuation_pool {
+            if visited.insert(continuation.id) {
+                ordered.push(ComposedContinuationProfile {
+                    id: continuation.id,
+                    source_span: continuation.source_span,
+                    params: continuation.params.clone(),
+                    body: continuation.body.clone(),
+                    completion_result: completion_ids.contains(&continuation.id),
+                });
+            }
         }
-        Some(Self {
+        // A composed call can complete several inner calls synchronously
+        // before its first externally visible yield. After the caller resumes
+        // that yield, later stages can likewise expose any other reachable
+        // yield in the continuation graph. Advertise the complete reachable
+        // outward-yield set so every generated call contract accepts every
+        // continuation identity that the callee can legitimately return.
+        let mut entries = ordered
+            .iter()
+            .filter(|continuation| yield_ids.contains(&continuation.id))
+            .map(|continuation| continuation.id)
+            .collect::<Vec<_>>();
+        entries.sort_unstable();
+        entries.dedup();
+        Ok(Self {
             continuations: ordered,
+            entries,
+            tail_entries,
         })
     }
 }
 
-fn unique_direct_resume_ids(body: &NativeExpr) -> Vec<u64> {
-    let mut ids = direct_suspend_ids(body);
+fn opaque_profile_entry(continuation: &ComposedContinuationProfile) -> NativeContinuation {
+    NativeContinuation {
+        id: continuation.id,
+        source_module: String::new(),
+        source_function: String::new(),
+        source_arity: 0,
+        source_span: continuation.source_span,
+        capture_names: Vec::new(),
+        params: continuation.params.clone(),
+        return_type: continuation
+            .params
+            .last()
+            .copied()
+            .unwrap_or(NativeType::Unit),
+        body: NativeExpr::Unit,
+    }
+}
+
+pub(super) fn profile_gap_reason(
+    function_body: &NativeExpr,
+    continuations: &[NativeContinuation],
+    terminal_profiles: &HashMap<usize, ComposedCallProfile>,
+    function_labels: &HashMap<usize, String>,
+    unavailable_profiles: &HashMap<usize, String>,
+) -> String {
+    let mut tails = direct_tail_targets(function_body);
+    tails.extend(
+        continuations
+            .iter()
+            .flat_map(|continuation| direct_tail_targets(&continuation.body)),
+    );
+    tails.sort_unstable();
+    tails.dedup();
+    if let Some(target) = tails
+        .into_iter()
+        .find(|target| !terminal_profiles.contains_key(target))
+    {
+        let label = function_labels
+            .get(&target)
+            .map_or_else(|| target.to_string(), |label| format!("{target} ({label})"));
+        let cause = unavailable_profiles
+            .get(&target)
+            .map_or(String::new(), |reason| format!(": {reason}"));
+        return format!("tail target {label} has no converged suspension profile{cause}");
+    }
+    if continuations.is_empty() {
+        return "lowered body has no continuation records".to_string();
+    }
+    if continuations.len() > MAX_COMPOSED_CALL_CONTINUATIONS {
+        return format!(
+            "lowered body has {} continuation records; maximum is {MAX_COMPOSED_CALL_CONTINUATIONS}",
+            continuations.len()
+        );
+    }
+    let known = continuations
+        .iter()
+        .map(|continuation| continuation.id)
+        .collect::<HashSet<_>>();
+    let mut entries = direct_suspend_ids(function_body);
+    entries.sort_unstable();
+    entries.dedup();
+    if entries.is_empty() {
+        return "lowered body has no outward suspension entry".to_string();
+    }
+    if let Some(entry) = entries.into_iter().find(|entry| !known.contains(entry)) {
+        return format!("suspension entry continuation {entry} is absent from the lowered pool");
+    }
+    ComposedCallProfile::build(function_body, continuations, terminal_profiles)
+        .err()
+        .map(|error| error.to_string())
+        .unwrap_or_else(|| {
+            "continuation graph is not closed under reachable suspension edges".to_string()
+        })
+}
+
+fn unique_profile_edges(
+    body: &NativeExpr,
+    tail_entries: &HashMap<usize, Vec<(u64, usize)>>,
+) -> Vec<u64> {
+    let mut ids = profile_entry_ids(body, tail_entries);
+    ids.extend(direct_completion_ids(body));
+    ids.extend(direct_tail_continuation_ids(body));
     ids.sort_unstable();
     ids.dedup();
     ids
 }
 
-pub(super) fn rebase_callee_locals(
+fn profile_entry_ids(
     body: &NativeExpr,
-    callee_param_count: usize,
-    caller_param_count: usize,
-) -> NativeExpr {
-    match body {
-        NativeExpr::Param(index) if *index >= callee_param_count => {
-            NativeExpr::Param(index.saturating_add(caller_param_count))
-        }
-        NativeExpr::Construct {
-            descriptor,
-            encoded_layout,
-            fields,
-        } => NativeExpr::Construct {
-            descriptor: descriptor.clone(),
-            encoded_layout: encoded_layout.clone(),
-            fields: fields
-                .iter()
-                .map(|field| rebase_callee_locals(field, callee_param_count, caller_param_count))
-                .collect(),
-        },
-        NativeExpr::ManagedOperation { encoded, args } => NativeExpr::ManagedOperation {
-            encoded: encoded.clone(),
-            args: args
-                .iter()
-                .map(|arg| rebase_callee_locals(arg, callee_param_count, caller_param_count))
-                .collect(),
-        },
-        NativeExpr::MakeClosure { encoded, captures } => NativeExpr::MakeClosure {
-            encoded: encoded.clone(),
-            captures: captures
-                .iter()
-                .map(|capture| {
-                    rebase_callee_locals(capture, callee_param_count, caller_param_count)
-                })
-                .collect(),
-        },
-        NativeExpr::InvokeClosure {
-            callee,
-            args,
-            parameter_types,
-            result_type,
-        } => NativeExpr::InvokeClosure {
-            callee: Box::new(rebase_callee_locals(
-                callee,
-                callee_param_count,
-                caller_param_count,
-            )),
-            args: args
-                .iter()
-                .map(|arg| rebase_callee_locals(arg, callee_param_count, caller_param_count))
-                .collect(),
-            parameter_types: parameter_types.clone(),
-            result_type: *result_type,
-        },
-        NativeExpr::Call { function, args } => NativeExpr::Call {
-            function: *function,
-            args: args
-                .iter()
-                .map(|arg| rebase_callee_locals(arg, callee_param_count, caller_param_count))
-                .collect(),
-        },
-        NativeExpr::TailCall { function, args } => NativeExpr::TailCall {
-            function: *function,
-            args: args
-                .iter()
-                .map(|arg| rebase_callee_locals(arg, callee_param_count, caller_param_count))
-                .collect(),
-        },
-        NativeExpr::ContinuationTailCall {
-            continuation_id,
-            args,
-        } => NativeExpr::ContinuationTailCall {
-            continuation_id: *continuation_id,
-            args: args
-                .iter()
-                .map(|arg| rebase_callee_locals(arg, callee_param_count, caller_param_count))
-                .collect(),
-        },
-        NativeExpr::CallThen {
-            function,
-            args,
-            callee_continuation_id,
-            callee_capture_count,
-            continuation_id,
-            completion_continuation_id,
-            completion_function,
-            values,
-        } => NativeExpr::CallThen {
-            function: *function,
-            args: args
-                .iter()
-                .map(|arg| rebase_callee_locals(arg, callee_param_count, caller_param_count))
-                .collect(),
-            callee_continuation_id: *callee_continuation_id,
-            callee_capture_count: *callee_capture_count,
-            continuation_id: *continuation_id,
-            completion_continuation_id: *completion_continuation_id,
-            completion_function: *completion_function,
-            values: values
-                .iter()
-                .map(|value| rebase_callee_locals(value, callee_param_count, caller_param_count))
-                .collect(),
-        },
-        NativeExpr::Neg(operand) => NativeExpr::Neg(Box::new(rebase_callee_locals(
-            operand,
-            callee_param_count,
-            caller_param_count,
-        ))),
-        NativeExpr::FloatNeg(operand) => NativeExpr::FloatNeg(Box::new(rebase_callee_locals(
-            operand,
-            callee_param_count,
-            caller_param_count,
-        ))),
-        NativeExpr::FloatFloor(operand) => NativeExpr::FloatFloor(Box::new(rebase_callee_locals(
-            operand,
-            callee_param_count,
-            caller_param_count,
-        ))),
-        NativeExpr::FloatCeil(operand) => NativeExpr::FloatCeil(Box::new(rebase_callee_locals(
-            operand,
-            callee_param_count,
-            caller_param_count,
-        ))),
-        NativeExpr::IntToFloat(operand) => NativeExpr::IntToFloat(Box::new(rebase_callee_locals(
-            operand,
-            callee_param_count,
-            caller_param_count,
-        ))),
-        NativeExpr::Not(operand) => NativeExpr::Not(Box::new(rebase_callee_locals(
-            operand,
-            callee_param_count,
-            caller_param_count,
-        ))),
-        NativeExpr::Binary {
-            operator,
-            operand_type,
-            left,
-            right,
-        } => NativeExpr::Binary {
-            operator: *operator,
-            operand_type: *operand_type,
-            left: Box::new(rebase_callee_locals(
-                left,
-                callee_param_count,
-                caller_param_count,
-            )),
-            right: Box::new(rebase_callee_locals(
-                right,
-                callee_param_count,
-                caller_param_count,
-            )),
-        },
-        NativeExpr::Let { bindings, body } => NativeExpr::Let {
-            bindings: bindings
-                .iter()
-                .map(|binding| {
-                    rebase_callee_locals(binding, callee_param_count, caller_param_count)
-                })
-                .collect(),
-            body: Box::new(rebase_callee_locals(
-                body,
-                callee_param_count,
-                caller_param_count,
-            )),
-        },
-        NativeExpr::If { clauses } => NativeExpr::If {
-            clauses: clauses
-                .iter()
-                .map(|(condition, body)| {
-                    (
-                        rebase_callee_locals(condition, callee_param_count, caller_param_count),
-                        rebase_callee_locals(body, callee_param_count, caller_param_count),
-                    )
-                })
-                .collect(),
-        },
-        NativeExpr::Try {
-            protected,
-            success,
-            failure,
-            cleanup,
-        } => NativeExpr::Try {
-            protected: Box::new(rebase_callee_locals(
-                protected,
-                callee_param_count,
-                caller_param_count,
-            )),
-            success: Box::new(rebase_callee_locals(
-                success,
-                callee_param_count,
-                caller_param_count,
-            )),
-            failure: Box::new(rebase_callee_locals(
-                failure,
-                callee_param_count,
-                caller_param_count,
-            )),
-            cleanup: cleanup
-                .iter()
-                .map(|value| rebase_callee_locals(value, callee_param_count, caller_param_count))
-                .collect(),
-        },
-        NativeExpr::Suspend {
-            operation,
-            arguments,
-            continuation_id,
-            values,
-        } => NativeExpr::Suspend {
-            operation: *operation,
-            arguments: arguments
-                .iter()
-                .map(|value| rebase_callee_locals(value, callee_param_count, caller_param_count))
-                .collect(),
-            continuation_id: *continuation_id,
-            values: values
-                .iter()
-                .map(|value| rebase_callee_locals(value, callee_param_count, caller_param_count))
-                .collect(),
-        },
-        _ => body.clone(),
+    tail_entries: &HashMap<usize, Vec<(u64, usize)>>,
+) -> Vec<u64> {
+    let mut ids = direct_suspend_ids(body);
+    for target in direct_tail_targets(body) {
+        ids.extend(
+            tail_entries
+                .get(&target)
+                .into_iter()
+                .flatten()
+                .map(|(id, _)| *id),
+        );
     }
+    ids.sort_unstable();
+    ids.dedup();
+    ids
 }
 
-fn direct_suspend_ids(body: &NativeExpr) -> Vec<u64> {
-    match body {
-        NativeExpr::Suspend {
-            continuation_id, ..
-        } => vec![*continuation_id],
-        NativeExpr::CallThen {
-            continuation_id, ..
+fn direct_tail_targets(body: &NativeExpr) -> Vec<usize> {
+    let mut targets = Vec::new();
+    walk_native_expr(body, &mut |expr| {
+        if let NativeExpr::TailCall { function, .. } = expr {
+            targets.push(*function);
         }
-        | NativeExpr::ContinuationTailCall {
-            continuation_id, ..
-        } => vec![*continuation_id],
-        NativeExpr::Let { body, .. } => direct_suspend_ids(body),
-        NativeExpr::If { clauses } => clauses
-            .iter()
-            .flat_map(|(_, body)| direct_suspend_ids(body))
-            .collect(),
-        _ => Vec::new(),
-    }
+    });
+    targets
 }
 
-fn process_yield_count(expr: &CoreExpr) -> usize {
-    let own = usize::from(is_process_transition(expr));
-    own + match expr {
-        CoreExpr::Call { args, .. }
-        | CoreExpr::ConstructorCall { args, .. }
-        | CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => {
-            args.iter().map(process_yield_count).sum()
-        }
-        CoreExpr::RecordConstruct { fields, .. } => fields
-            .iter()
-            .map(|field| process_yield_count(&field.value))
-            .sum(),
-        CoreExpr::RecordUpdate { base, fields, .. } => {
-            process_yield_count(base)
-                + fields
-                    .iter()
-                    .map(|field| process_yield_count(&field.value))
-                    .sum::<usize>()
-        }
-        CoreExpr::FieldAccess { base, .. } | CoreExpr::RecordAccess { base, .. } => {
-            process_yield_count(base)
-        }
-        CoreExpr::UnaryOp { operand, .. } => process_yield_count(operand),
-        CoreExpr::BinaryOp { left, right, .. } => {
-            process_yield_count(left) + process_yield_count(right)
-        }
-        CoreExpr::Let { bindings, body } => {
-            bindings
-                .iter()
-                .map(|binding| process_yield_count(&binding.value))
-                .sum::<usize>()
-                + process_yield_count(body)
-        }
-        CoreExpr::If { clauses } => clauses
-            .iter()
-            .map(|clause| {
-                process_yield_count(&clause.condition) + process_yield_count(&clause.body)
-            })
-            .sum(),
-        _ => 0,
-    }
-}
+/// Returns whether an expression still contains an ordinary call to a
+/// suspension-capable function.
+///
+/// Call profiles are built as a dependency fixed point. A caller can be
+/// lowered before one of its callee profiles exists, in which case lowering
+/// temporarily leaves an ordinary `Call` in a generated continuation. Such a
+/// profile must not be cached: the suspension ABI adds transition arguments
+/// that an ordinary call neither supplies nor knows how to resume. Deferring
+/// admission lets the next fixed-point pass compose the call after its callee
+/// profile becomes available.
+mod yield_analysis;
 
-fn has_ambiguous_yield_branches(expr: &CoreExpr) -> bool {
-    match expr {
-        CoreExpr::If { clauses } => {
-            clauses
-                .iter()
-                .filter(|clause| {
-                    contains_process_yield(&clause.condition)
-                        || contains_process_yield(&clause.body)
-                })
-                .count()
-                > 1
-                || clauses.iter().any(|clause| {
-                    has_ambiguous_yield_branches(&clause.condition)
-                        || has_ambiguous_yield_branches(&clause.body)
-                })
-        }
-        CoreExpr::Call { args, .. }
-        | CoreExpr::ConstructorCall { args, .. }
-        | CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => {
-            args.iter().any(has_ambiguous_yield_branches)
-        }
-        CoreExpr::RecordConstruct { fields, .. } => fields
-            .iter()
-            .any(|field| has_ambiguous_yield_branches(&field.value)),
-        CoreExpr::RecordUpdate { base, fields, .. } => {
-            has_ambiguous_yield_branches(base)
-                || fields
-                    .iter()
-                    .any(|field| has_ambiguous_yield_branches(&field.value))
-        }
-        CoreExpr::FieldAccess { base, .. } | CoreExpr::RecordAccess { base, .. } => {
-            has_ambiguous_yield_branches(base)
-        }
-        CoreExpr::UnaryOp { operand, .. } => has_ambiguous_yield_branches(operand),
-        CoreExpr::BinaryOp { left, right, .. } => {
-            has_ambiguous_yield_branches(left) || has_ambiguous_yield_branches(right)
-        }
-        CoreExpr::Let { bindings, body } => {
-            bindings
-                .iter()
-                .any(|binding| has_ambiguous_yield_branches(&binding.value))
-                || has_ambiguous_yield_branches(body)
-        }
-        _ => false,
-    }
-}
-
-pub(super) fn composed_call_region<F>(
-    expr: &CoreExpr,
-    suspending: &HashSet<(String, usize)>,
-    is_composable: &F,
-    reserved: &HashSet<String>,
-) -> Option<CallRegion>
-where
-    F: Fn(&str, usize) -> bool,
-{
-    let result_name = "$native_call_result".to_string();
-    composed_call_region_at(expr, suspending, is_composable, &result_name, reserved)
-}
-
-fn composed_call_region_at<F>(
-    expr: &CoreExpr,
-    suspending: &HashSet<(String, usize)>,
-    is_composable: &F,
-    result_name: &str,
-    reserved: &HashSet<String>,
-) -> Option<CallRegion>
-where
-    F: Fn(&str, usize) -> bool,
-{
-    match expr {
-        CoreExpr::Call { function, args }
-            if is_composable(function, args.len())
-                && args.iter().all(|arg| {
-                    !expr_calls_suspending(arg, suspending) && !contains_process_yield(arg)
-                }) =>
-        {
-            Some(CallRegion {
-                prefix: Vec::new(),
-                function: function.clone(),
-                args: args.clone(),
-                resume: CoreExpr::Var(result_name.to_string()),
-                result_name: result_name.to_string(),
-                gates: Vec::new(),
-                join: None,
-            })
-        }
-        CoreExpr::Call { function, args }
-            if !suspending.contains(&(function.clone(), args.len())) && !args.is_empty() =>
-        {
-            for (call_index, arg) in args.iter().enumerate() {
-                let Some(mut region) =
-                    composed_call_region_at(arg, suspending, is_composable, result_name, reserved)
-                else {
-                    if expr_calls_suspending(arg, suspending) || contains_process_yield(arg) {
-                        return None;
-                    }
-                    continue;
-                };
-                let mut resumed_args = args.clone();
-                let mut evaluated_prefix = Vec::with_capacity(call_index + region.prefix.len());
-                for (index, earlier) in args[..call_index].iter().enumerate() {
-                    let name = unique_prefix_name(
-                        &format!("$native_call_arg_{index}"),
-                        &region,
-                        &evaluated_prefix,
-                        reserved,
-                    );
-                    evaluated_prefix.push(CoreLetBinding {
-                        pattern: CorePattern::Var(name.clone()),
-                        value: earlier.clone(),
-                    });
-                    resumed_args[index] = CoreExpr::Var(name);
-                }
-                evaluated_prefix.append(&mut region.prefix);
-                resumed_args[call_index] = region.resume.clone();
-                region.prefix = evaluated_prefix;
-                return Some(map_region_resumes(region, |resume| {
-                    let mut args = resumed_args.clone();
-                    args[call_index] = resume;
-                    CoreExpr::Call {
-                        function: function.clone(),
-                        args,
-                    }
-                }));
-            }
-            None
-        }
-        CoreExpr::Intrinsic(call) if !is_process_transition(expr) && !call.args.is_empty() => {
-            for (call_index, arg) in call.args.iter().enumerate() {
-                let Some(mut region) =
-                    composed_call_region_at(arg, suspending, is_composable, result_name, reserved)
-                else {
-                    if expr_calls_suspending(arg, suspending) || contains_process_yield(arg) {
-                        return None;
-                    }
-                    continue;
-                };
-                let mut resumed_args = call.args.clone();
-                let mut evaluated_prefix = Vec::with_capacity(call_index + region.prefix.len());
-                for (index, earlier) in call.args[..call_index].iter().enumerate() {
-                    let name = unique_prefix_name(
-                        &format!("$native_intrinsic_arg_{index}"),
-                        &region,
-                        &evaluated_prefix,
-                        reserved,
-                    );
-                    evaluated_prefix.push(CoreLetBinding {
-                        pattern: CorePattern::Var(name.clone()),
-                        value: earlier.clone(),
-                    });
-                    resumed_args[index] = CoreExpr::Var(name);
-                }
-                resumed_args[call_index] = region.resume.clone();
-                region.prefix = evaluated_prefix;
-                return Some(map_region_resumes(region, |resume| {
-                    let mut resumed = call.clone();
-                    let mut args = resumed_args.clone();
-                    args[call_index] = resume;
-                    resumed.args = args;
-                    CoreExpr::Intrinsic(resumed)
-                }));
-            }
-            None
-        }
-        CoreExpr::UnaryOp { operator, operand } => {
-            let region =
-                composed_call_region_at(operand, suspending, is_composable, result_name, reserved)?;
-            Some(map_region_resumes(region, |resume| CoreExpr::UnaryOp {
-                operator: operator.clone(),
-                operand: Box::new(resume),
-            }))
-        }
-        CoreExpr::ListCons { head, tail } => {
-            if let Some(region) =
-                composed_call_region_at(head, suspending, is_composable, result_name, reserved)
-            {
-                return Some(map_region_resumes(region, |resume| CoreExpr::ListCons {
-                    head: Box::new(resume),
-                    tail: tail.clone(),
-                }));
-            }
-            if expr_calls_suspending(head, suspending) || contains_process_yield(head) {
-                return None;
-            }
-            let mut region =
-                composed_call_region_at(tail, suspending, is_composable, result_name, reserved)?;
-            let head_name = unique_prefix_name("$native_list_head", &region, &[], reserved);
-            region.prefix.insert(
-                0,
-                CoreLetBinding {
-                    pattern: CorePattern::Var(head_name.clone()),
-                    value: head.as_ref().clone(),
-                },
-            );
-            Some(map_region_resumes(region, |resume| CoreExpr::ListCons {
-                head: Box::new(CoreExpr::Var(head_name.clone())),
-                tail: Box::new(resume),
-            }))
-        }
-        CoreExpr::BinaryOp {
-            operator,
-            left,
-            right,
-        } => {
-            if let Some(region) =
-                composed_call_region_at(left, suspending, is_composable, result_name, reserved)
-            {
-                return Some(map_region_resumes(region, |resume| CoreExpr::BinaryOp {
-                    operator: operator.clone(),
-                    left: Box::new(resume),
-                    right: right.clone(),
-                }));
-            }
-            if expr_calls_suspending(left, suspending) || contains_process_yield(left) {
-                return None;
-            }
-            let mut region =
-                composed_call_region_at(right, suspending, is_composable, result_name, reserved)?;
-            if matches!(operator.as_str(), "and" | "&&" | "or" | "||") {
-                let gated_prefix = std::mem::take(&mut region.prefix);
-                let call_when_true = matches!(operator.as_str(), "and" | "&&");
-                if gated_prefix.is_empty()
-                    && region
-                        .gates
-                        .first()
-                        .is_some_and(|gate| gate.call_when_true == call_when_true)
-                {
-                    let gate = &mut region.gates[0];
-                    gate.condition = CoreExpr::BinaryOp {
-                        operator: operator.clone(),
-                        left: left.clone(),
-                        right: Box::new(gate.condition.clone()),
-                    };
-                    return Some(region);
-                }
-                region.gates.insert(
-                    0,
-                    CallGate {
-                        condition: left.as_ref().clone(),
-                        call_when_true,
-                        prefix: gated_prefix,
-                        bypass_resume: CoreExpr::Atom(
-                            if matches!(operator.as_str(), "or" | "||") {
-                                "true"
-                            } else {
-                                "false"
-                            }
-                            .to_string(),
-                        ),
-                    },
-                );
-                return Some(region);
-            }
-            let left_name = unique_prefix_name("$native_call_left", &region, &[], reserved);
-            let left_binding = CoreLetBinding {
-                pattern: CorePattern::Var(left_name.clone()),
-                value: left.as_ref().clone(),
-            };
-            region.prefix.insert(0, left_binding);
-            Some(map_region_resumes(region, |resume| CoreExpr::BinaryOp {
-                operator: operator.clone(),
-                left: Box::new(CoreExpr::Var(left_name.clone())),
-                right: Box::new(resume),
-            }))
-        }
-        CoreExpr::Let { bindings, body } if !bindings.is_empty() => {
-            for (binding_index, binding) in bindings.iter().enumerate() {
-                let Some(mut region) = composed_call_region_at(
-                    &binding.value,
-                    suspending,
-                    is_composable,
-                    result_name,
-                    reserved,
-                ) else {
-                    if expr_calls_suspending(&binding.value, suspending)
-                        || contains_process_yield(&binding.value)
-                    {
-                        return None;
-                    }
-                    continue;
-                };
-                let mut evaluated_prefix = bindings[..binding_index].to_vec();
-                evaluated_prefix.append(&mut region.prefix);
-                let mut resumed_bindings = bindings[binding_index..].to_vec();
-                resumed_bindings[0].value = region.resume.clone();
-                region.prefix = evaluated_prefix;
-                return Some(map_region_resumes(region, |resume| {
-                    let mut bindings = resumed_bindings.clone();
-                    bindings[0].value = resume;
-                    CoreExpr::Let {
-                        bindings,
-                        body: body.clone(),
-                    }
-                }));
-            }
-            let mut region =
-                composed_call_region_at(body, suspending, is_composable, result_name, reserved)?;
-            let mut evaluated_prefix = bindings.clone();
-            evaluated_prefix.append(&mut region.prefix);
-            region.prefix = evaluated_prefix;
-            Some(region)
-        }
-        _ => None,
-    }
-}
-
-/// Applies one surrounding evaluation context to both the call result and its
-/// short-circuit bypass result.
-fn map_region_resumes(
-    mut region: CallRegion,
-    mut map: impl FnMut(CoreExpr) -> CoreExpr,
-) -> CallRegion {
-    if let Some(join) = &mut region.join {
-        join.resume = map(join.resume.clone());
-    } else if region.gates.is_empty() {
-        region.resume = map(region.resume);
-    } else {
-        let result_name = unique_prefix_name("$native_gate_result", &region, &[], &HashSet::new());
-        region.join = Some(CallJoin {
-            result_name: result_name.clone(),
-            resume: map(CoreExpr::Var(result_name)),
-        });
-    }
-    region
-}
+use yield_analysis::process_yield_count;

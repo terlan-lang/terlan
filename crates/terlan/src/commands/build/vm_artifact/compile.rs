@@ -22,7 +22,8 @@ pub(super) fn compile_vm_module(
     path: &str,
     state: &CliState,
 ) -> Result<CompiledVmModule, BuildOneError> {
-    let source_text = crate::support::read_file(path).map_err(BuildOneError::Message)?;
+    let source_text = crate::support::read_file(path)
+        .map_err(|error| BuildOneError::Message(error.to_string()))?;
     if state.incremental {
         if let Some(compiled) =
             checked_cache::load_checked_implementation(path, &source_text, state)

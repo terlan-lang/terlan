@@ -1,0 +1,96 @@
+{
+  "diff_digest": "sha256:30088f0216895451656588fa290c778f94bbdb1af00cfa19fc7dab387bc0ed83",
+  "impacts": [
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "compiler",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-11",
+      "slice_id": "Slice 11"
+    },
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "compiler",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-12",
+      "slice_id": "Slice 12"
+    },
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "compiler",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-13",
+      "slice_id": "Slice 13"
+    },
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "runtime",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-14",
+      "slice_id": "Slice 14"
+    },
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "compiler",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-15",
+      "slice_id": "Slice 15"
+    },
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "vm",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-16",
+      "slice_id": "Slice 16"
+    },
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "compiler",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-17",
+      "slice_id": "Slice 17"
+    },
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "compiler",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-18",
+      "slice_id": "Slice 18"
+    },
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "compiler",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-19",
+      "slice_id": "Slice 19"
+    },
+    {
+      "change_classes": [
+        "coverage_status_delta",
+        "resolved_blockers"
+      ],
+      "owner": "compiler",
+      "roadmap_link": "docs/roadmap/ROADMAP_0_0_7.md#slice-20",
+      "slice_id": "Slice 20"
+    }
+  ],
+  "schema": "terlan.lean-proof-change-impact.v1"
+}

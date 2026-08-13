@@ -471,4 +471,5 @@ fn render_vm_artifact_format_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_artifact_format_test.rs"]
+#[cfg(test)]
 mod vm_artifact_format_test;

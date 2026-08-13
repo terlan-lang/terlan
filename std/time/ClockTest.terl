@@ -1,0 +1,13 @@
+module std.time.ClockTest.
+
+import std.time.Clock.{monotonic_time_ns, unix_time_ns}.
+
+@test
+pub wall_clock_is_positive(): Bool ->
+    unix_time_ns() > 0.
+
+@test
+pub monotonic_clock_does_not_move_backwards(): Bool ->
+    let first = monotonic_time_ns();
+    let second = monotonic_time_ns();
+    second >= first.

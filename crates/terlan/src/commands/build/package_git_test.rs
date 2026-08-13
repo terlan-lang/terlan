@@ -1,6 +1,7 @@
 use super::*;
 use crate::commands::build::package_artifact::tests::write_named_test_artifact;
 use crate::commands::build::project_roots::resolve_project_build_roots;
+use crate::commands::build::resolve_project_test_dependencies;
 use crate::support::test_fs;
 
 #[test]
@@ -71,6 +72,13 @@ fn package_fetch_locks_artifact_and_resolves_prebuilt_source_and_runtime() {
         .path
         .to_string_lossy()
         .contains("/artifacts/"));
+    let test_dependencies = resolve_project_test_dependencies(&app, &manifest)
+        .expect("resolve artifact dependency for tests");
+    assert_eq!(test_dependencies.native_helper_environment.len(), 1);
+    assert_eq!(
+        test_dependencies.native_helper_environment[0].0,
+        "TERLAN_NATIVE_BOUNDARY_HELPER_PATH"
+    );
 
     assert_eq!(
         fetch_project_git_dependencies(&app),

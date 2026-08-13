@@ -25,7 +25,7 @@ pub get_current_position_typechecks(
     receiver: Geolocation,
     success_callback: PositionCallback,
     error_callback: Option[PositionErrorCallback],
-    options: PositionOptions
+    options: PositionOptions,
 ): Unit ->
     receiver.get_current_position(success_callback, error_callback, options).
 
@@ -33,6 +33,6 @@ pub watch_position_typechecks(
     receiver: Geolocation,
     success_callback: PositionCallback,
     error_callback: Option[PositionErrorCallback],
-    options: PositionOptions
+    options: PositionOptions,
 ): JsNumber ->
     receiver.watch_position(success_callback, error_callback, options).

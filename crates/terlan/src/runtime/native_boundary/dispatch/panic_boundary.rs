@@ -22,4 +22,5 @@ pub(super) fn catch_native_boundary_panic<T>(
 
 #[cfg(test)]
 #[path = "panic_boundary_test.rs"]
+#[cfg(test)]
 mod panic_boundary_test;

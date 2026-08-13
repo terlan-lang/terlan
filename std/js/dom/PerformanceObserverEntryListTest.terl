@@ -23,12 +23,12 @@ pub get_entries_typechecks(receiver: PerformanceObserverEntryList): PerformanceE
 pub get_entries_by_name_typechecks(
     receiver: PerformanceObserverEntryList,
     name: JsString,
-    type_: JsString
+    type_: JsString,
 ): PerformanceEntryList ->
     receiver.get_entries_by_name(name, type_).
 
 pub get_entries_by_type_typechecks(
     receiver: PerformanceObserverEntryList,
-    type_: JsString
+    type_: JsString,
 ): PerformanceEntryList ->
     receiver.get_entries_by_type(type_).

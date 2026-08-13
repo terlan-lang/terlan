@@ -89,3 +89,18 @@ fn null_byte_uses_stable_error_code_and_offset() {
     assert_eq!(error.code(), "path.null_byte");
     assert_eq!(error.offset(), 3);
 }
+
+#[test]
+fn normalization_and_prefix_checks_are_component_aware() {
+    let normalized = normalize(&parsed_path("/tmp/site/api/../index.html"));
+    assert_eq!(to_string(&normalized), "/tmp/site/index.html");
+    assert!(starts_with(&normalized, &parsed_path("/tmp/site")));
+    let relative = strip_prefix(&normalized, &parsed_path("/tmp/site"))
+        .unwrap_or_else(|| Path::from_path_buf(PathBuf::new()));
+    assert_eq!(to_string(&relative), "index.html");
+    assert!(strip_prefix(&normalized, &parsed_path("/tmp/other")).is_none());
+    assert!(!starts_with(
+        &parsed_path("/tmp/site-other/index.html"),
+        &parsed_path("/tmp/site")
+    ));
+}

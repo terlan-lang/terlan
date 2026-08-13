@@ -22,7 +22,7 @@ pub draw_arrays_instanced_angle_typechecks(
     mode: GLenum,
     first: GLint,
     count: GLsizei,
-    primcount: GLsizei
+    primcount: GLsizei,
 ): Unit ->
     receiver.draw_arrays_instanced_angle(mode, first, count, primcount).
 
@@ -32,13 +32,13 @@ pub draw_elements_instanced_angle_typechecks(
     count: GLsizei,
     type_: GLenum,
     offset: GLintptr,
-    primcount: GLsizei
+    primcount: GLsizei,
 ): Unit ->
     receiver.draw_elements_instanced_angle(mode, count, type_, offset, primcount).
 
 pub vertex_attrib_divisor_angle_typechecks(
     receiver: ANGLE_instanced_arrays,
     index: GLuint,
-    divisor: GLuint
+    divisor: GLuint,
 ): Unit ->
     receiver.vertex_attrib_divisor_angle(index, divisor).

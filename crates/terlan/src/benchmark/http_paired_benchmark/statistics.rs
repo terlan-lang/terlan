@@ -117,37 +117,65 @@ pub(super) fn comparisons(
                 aot_wins: ratio.iter().filter(|value| **value > 1.0).count(),
                 verdict,
                 suspected_subsystem: clue.map(|value| value.0),
-                next_optimization_hypothesis: clue.map(|value| value.1),
+                source_location: clue.map(|value| value.1),
+                next_optimization_hypothesis: clue.map(|value| value.2),
             };
             Ok((name, comparison))
         })
         .collect()
 }
 
-fn performance_clue(name: &str) -> Option<(&'static str, &'static str)> {
+fn performance_clue(name: &str) -> Option<(&'static str, &'static str, &'static str)> {
     Some(match name {
-        "large-body-64k" | "matrix-c4-1m" => (
+        "large-body-64k" | "matrix-c4-1m" | "maintained-payload-64k" | "maintained-payload-1m" => (
             "request/response body materialization",
+            "crates/terlan/src/commands/serve/handler/request_materialization.rs::{replace_vm_request_descriptor,vm_request_descriptor_owned}",
             "profile copy counts and retain body buffers across reusable service-actor calls",
         ),
-        "matrix-headers-32" => (
+        "matrix-headers-32" | "maintained-headers-32" | "maintained-metadata" => (
             "header projection and managed-value materialization",
+            "crates/terlan/src/commands/serve/handler/request_materialization.rs::{replace_projected_map,replace_string_map}",
             "defer uncommon header projection and reuse owner-local header storage",
         ),
         "matrix-slow-reader-5ms" => (
             "socket readiness and backpressure",
+            "crates/terlan/src/runtime/vm/protocol_task_executor.rs::{publish_readiness,run}",
             "profile write-interest registration and bounded slow-client queue occupancy",
         ),
-        "pressure" | "matrix-oversubscribed-512" | "matrix-cores-4k" => (
+        "pressure"
+        | "matrix-oversubscribed-512"
+        | "matrix-cores-4k"
+        | "maintained-pressure"
+        | "maintained-oversubscribed"
+        | "maintained-concurrency-100"
+        | "maintained-concurrency-1000" => (
             "shard admission and cross-shard dispatch",
+            "crates/terlan/src/commands/serve/handler_cache/{invocation.rs::begin_request_invocation,shard_owner/owner_loop.rs::owner_loop}",
             "profile inbox publication, wake coalescing, and owner-loop batch size",
         ),
-        "persistent-small-body" => (
+        "persistent-small-body"
+        | "maintained-json"
+        | "maintained-add"
+        | "maintained-crud-create"
+        | "maintained-crud-read"
+        | "maintained-crud-update"
+        | "maintained-crud-delete" => (
             "reusable service-actor dispatch",
+            "crates/terlan/src/commands/serve/handler_cache/{http_response.rs::execute_suspendable_http_response,invocation.rs::begin_request_invocation}",
             "profile per-call heap release, actor wakeup, and response handoff",
         ),
-        "sequential" | "longevity" | "empty-connection-churn" | "matrix-c1-empty" => (
+        "sequential"
+        | "longevity"
+        | "empty-connection-churn"
+        | "matrix-c1-empty"
+        | "maintained-sequential"
+        | "maintained-connection-close"
+        | "maintained-empty"
+        | "maintained-static"
+        | "maintained-not-found"
+        | "maintained-payload-4k" => (
             "connection lifecycle and request admission",
+            "crates/terlan/src/runtime/vm/protocol_task_executor.rs::{serve_protocol_tasks,publish_readiness}; crates/terlan/src/commands/serve/server_lifecycle.rs::serve_bound_directory_vm_stream",
             "profile connection slab reuse, accept wakeups, and fixed-owner routing",
         ),
         _ => return None,

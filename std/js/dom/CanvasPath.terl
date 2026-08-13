@@ -26,7 +26,7 @@ pub (value: CanvasPath) arc(
     radius: JsNumber,
     start_angle: JsNumber,
     end_angle: JsNumber,
-    counterclockwise: Bool
+    counterclockwise: Bool,
 ): Unit ->
     native.
 
@@ -45,7 +45,7 @@ pub (value: CanvasPath) bezier_curve_to(
     cp2x: JsNumber,
     cp2y: JsNumber,
     x: JsNumber,
-    y: JsNumber
+    y: JsNumber,
 ): Unit ->
     native.
 
@@ -66,7 +66,7 @@ pub (value: CanvasPath) ellipse(
     rotation: JsNumber,
     start_angle: JsNumber,
     end_angle: JsNumber,
-    counterclockwise: Bool
+    counterclockwise: Bool,
 ): Unit ->
     native.
 

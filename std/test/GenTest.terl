@@ -176,7 +176,10 @@ pub filter_generator_returns_empty_when_no_samples_match(): Bool ->
  */
 @test
 pub mapped_generator_builds_custom_record_values(): Bool ->
-    assert_equal([{name: "user", age: 1}, {name: "user", age: 2}], sample(map(elements([1, 2]), (age) -> {name: "user", age: age}))).
+    assert_equal(
+        [{name: "user", age: 1}, {name: "user", age: 2}],
+        sample(map(elements([1, 2]), (age) -> {name: "user", age: age})),
+    ).
 
 /**
  * Verifies sized generators pass the explicit bound to the builder.
@@ -200,7 +203,10 @@ pub sized_generator_threads_explicit_size(): Bool ->
  */
 @test
 pub recursive_generator_applies_bounded_steps(): Bool ->
-    assert_equal([1, 2, 2], sample(recursive(2, constant(1), (generator) -> one_of(generator, constant(2))))).
+    assert_equal(
+        [1, 2, 2],
+        sample(recursive(2, constant(1), (generator) -> one_of(generator, constant(2)))),
+    ).
 
 /**
  * Verifies optional generators include missing and present values.
@@ -226,7 +232,10 @@ none_int_option(): Option[Int] ->
  */
 @test
 pub result_of_generator_wraps_success_then_error_samples(): Bool ->
-    assert_equal([ok_int_result(), Ok(2), err_string_result()], sample(result_of(elements([1, 2]), elements(["bad"])))).
+    assert_equal(
+        [ok_int_result(), Ok(2), err_string_result()],
+        sample(result_of(elements([1, 2]), elements(["bad"]))),
+    ).
 
 /**
  * Verifies list generators include empty and sample-list shapes.
@@ -248,7 +257,10 @@ pub list_of_generator_returns_empty_and_sample_list(): Bool ->
  */
 @test
 pub pair_of_generator_returns_left_major_pairs(): Bool ->
-    assert_equal([{1, "a"}, {1, "b"}, {2, "a"}, {2, "b"}], sample(pair_of(elements([1, 2]), elements(["a", "b"])))).
+    assert_equal(
+        [{1, "a"}, {1, "b"}, {2, "a"}, {2, "b"}],
+        sample(pair_of(elements([1, 2]), elements(["a", "b"]))),
+    ).
 
 /**
  * Verifies pair generators return no rows when either side is empty.
@@ -260,7 +272,8 @@ pub pair_of_generator_returns_left_major_pairs(): Bool ->
  */
 @test
 pub pair_of_generator_returns_empty_when_either_side_is_empty(): Bool ->
-    assert_equal(empty_pair_rows(), sample(pair_of(empty_int_generator(), elements(["a"])))) and assert_equal(empty_pair_rows(), sample(pair_of(elements([1]), empty_binary_generator()))).
+    assert_equal(empty_pair_rows(), sample(pair_of(empty_int_generator(), elements(["a"]))))
+        and assert_equal(empty_pair_rows(), sample(pair_of(elements([1]), empty_binary_generator()))).
 
 /**
  * Verifies map generators emit empty and pair-built maps.
@@ -273,7 +286,10 @@ pub pair_of_generator_returns_empty_when_either_side_is_empty(): Bool ->
 pub map_of_generator_returns_empty_and_pair_map(): Bool ->
     case sample(map_of(elements(["alice", "bob"]), elements([1]))) {
         [empty, generated] ->
-            assert_equal(0, empty.size()) and assert_equal(2, generated.size()) and assert_equal(Some(1), generated.get("alice")) and assert_equal(Some(1), generated.get("bob"));
+            assert_equal(0, empty.size())
+                and assert_equal(2, generated.size())
+                and assert_equal(Some(1), generated.get("alice"))
+                and assert_equal(Some(1), generated.get("bob"));
         _ -> false
     }.
 
@@ -288,7 +304,10 @@ pub map_of_generator_returns_empty_and_pair_map(): Bool ->
 pub object_of_generator_returns_empty_and_pair_object(): Bool ->
     case sample(object_of(elements(["status", "mode"]), elements(["ok"]))) {
         [empty, generated] ->
-            assert_equal(0, empty.size()) and assert_equal(2, generated.size()) and assert_equal(Some("ok"), generated.get("status")) and assert_equal(Some("ok"), generated.get("mode"));
+            assert_equal(0, empty.size())
+                and assert_equal(2, generated.size())
+                and assert_equal(Some("ok"), generated.get("status"))
+                and assert_equal(Some("ok"), generated.get("mode"));
         _ -> false
     }.
 

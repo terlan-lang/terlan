@@ -1,0 +1,85 @@
+module std.io.ArchiveTest.
+
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.io.Archive.
+import std.io.Directory.{create_all, create_temporary, remove_all}.
+import std.io.File.{is_executable, read_text, set_executable, write_text}.
+
+@test
+pub unsupported_archive_format_is_a_typed_error(): Bool ->
+    case create_temporary("terlan-archive-test.") {
+        Ok(root) ->
+            let source = String.append(root, "/fixture.txt");
+            let destination = String.append(root, "/output");
+            let _written = write_text(source, "not an archive");
+            let rejected =
+                case Archive.extract(source, destination) {
+                    Err(_reason) -> true;
+                    Ok(_unit) -> false
+                };
+            let _removed = remove_all(root);
+            rejected;
+        Err(_reason) -> false
+    }.
+
+@test
+pub deterministic_archive_creation_roundtrips_contents_and_mode(): Bool ->
+    case create_temporary("terlan-archive-roundtrip.") {
+        Ok(root) -> create_roundtrip_source(root);
+        Err(_reason) -> false
+    }.
+
+create_roundtrip_source(root: String): Bool ->
+    let source = String.append(root, "/source/bin");
+    case create_all(source) {
+        Ok(Unit) -> write_roundtrip_executable(root);
+        Err(_reason) -> cleanup(root, false)
+    }.
+
+write_roundtrip_executable(root: String): Bool ->
+    let executable = String.append(root, "/source/bin/terlc");
+    case write_text(executable, "release fixture") {
+        Ok(Unit) -> enable_roundtrip_executable(root, executable);
+        Err(_reason) -> cleanup(root, false)
+    }.
+
+enable_roundtrip_executable(root: String, executable: String): Bool ->
+    case set_executable(executable, true) {
+        Ok(Unit) -> create_roundtrip_archive(root);
+        Err(_reason) -> cleanup(root, false)
+    }.
+
+create_roundtrip_archive(root: String): Bool ->
+    let source = String.append(root, "/source");
+    let archive = String.append(root, "/release.tar.gz");
+    case Archive.create(source, archive) {
+        Ok(Unit) -> extract_roundtrip_archive(root, archive);
+        Err(_reason) -> cleanup(root, false)
+    }.
+
+extract_roundtrip_archive(root: String, archive: String): Bool ->
+    let destination = String.append(root, "/extracted");
+    case Archive.extract(archive, destination) {
+        Ok(Unit) -> inspect_roundtrip_archive(root, destination);
+        Err(_reason) -> cleanup(root, false)
+    }.
+
+inspect_roundtrip_archive(root: String, destination: String): Bool ->
+    let executable = String.append(destination, "/bin/terlc");
+    case read_text(executable) {
+        Ok("release fixture") -> inspect_roundtrip_mode(root, executable);
+        _ -> cleanup(root, false)
+    }.
+
+inspect_roundtrip_mode(root: String, executable: String): Bool ->
+    case is_executable(executable) {
+        Ok(true) -> cleanup(root, true);
+        _ -> cleanup(root, false)
+    }.
+
+cleanup(root: String, result: Bool): Bool ->
+    case remove_all(root) {
+        Ok(Unit) -> result;
+        Err(_reason) -> false
+    }.

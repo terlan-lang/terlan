@@ -1,8 +1,6 @@
-#![allow(dead_code)]
-
-use std::collections::{BTreeMap, BTreeSet};
-
 use super::ReplValue;
+#[cfg(test)]
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Stable VM-owned identity for one syncable model row.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -12,6 +10,7 @@ pub(crate) struct VmModelSyncKey {
 }
 
 impl VmModelSyncKey {
+    #[cfg(test)]
     pub(crate) fn new(model: impl Into<String>, id: impl Into<String>) -> Result<Self, String> {
         let model = model.into();
         let id = id.into();
@@ -33,6 +32,7 @@ pub(crate) struct VmModelSyncVersion {
 }
 
 impl VmModelSyncVersion {
+    #[cfg(test)]
     pub(crate) fn new(sequence: u64, writer_id: impl Into<String>) -> Result<Self, String> {
         let writer_id = writer_id.into();
         if sequence == 0 {
@@ -55,12 +55,16 @@ impl VmModelSyncVersion {
 /// Source-facing model change kind emitted after committed updates.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmModelSyncChangeKind {
+    #[cfg(test)]
     Created,
+    #[cfg(test)]
     Updated,
+    #[cfg(test)]
     Deleted,
 }
 
 impl VmModelSyncChangeKind {
+    #[cfg(test)]
     pub(crate) fn kind(self) -> &'static str {
         match self {
             Self::Created => "created",
@@ -82,6 +86,7 @@ pub(crate) struct VmModelSyncChange {
 
 /// Current stored row for a syncable model.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmModelSyncRow {
     pub(crate) key: VmModelSyncKey,
     pub(crate) version: VmModelSyncVersion,
@@ -90,6 +95,7 @@ pub(crate) struct VmModelSyncRow {
 
 /// Typed optimistic-concurrency outcome for model writes.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmModelSyncOutcome {
     Applied(VmModelSyncChange),
     Replayed(VmModelSyncRow),
@@ -104,14 +110,15 @@ pub(crate) enum VmModelSyncOutcome {
 
 /// VM-owned scalar type expected while projecting database rows to sync rows.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmModelSyncProjectedFieldType {
     Int,
     String,
     Bool,
     Atom,
-    Dynamic,
 }
 
+#[cfg(test)]
 impl VmModelSyncProjectedFieldType {
     fn accepts(self, value: &ReplValue) -> bool {
         match self {
@@ -119,19 +126,20 @@ impl VmModelSyncProjectedFieldType {
             Self::String => matches!(value, ReplValue::String(_)),
             Self::Bool => matches!(value, ReplValue::Bool(_)),
             Self::Atom => matches!(value, ReplValue::Atom(_)),
-            Self::Dynamic => true,
         }
     }
 }
 
 /// Explicit field mapping from an adapter row into a syncable model record.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmModelSyncRowFieldProjection {
     pub(crate) row_field: String,
     pub(crate) model_field: String,
     pub(crate) field_type: VmModelSyncProjectedFieldType,
 }
 
+#[cfg(test)]
 impl VmModelSyncRowFieldProjection {
     pub(crate) fn new(
         row_field: impl Into<String>,
@@ -158,6 +166,7 @@ impl VmModelSyncRowFieldProjection {
 
 /// Deterministic adapter-row projection into a VM-owned syncable model row.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmModelSyncRowProjection {
     pub(crate) model: String,
     pub(crate) id_field: String,
@@ -166,6 +175,7 @@ pub(crate) struct VmModelSyncRowProjection {
     pub(crate) fields: Vec<VmModelSyncRowFieldProjection>,
 }
 
+#[cfg(test)]
 impl VmModelSyncRowProjection {
     pub(crate) fn new(
         model: impl Into<String>,
@@ -223,6 +233,7 @@ impl VmModelSyncRowProjection {
 }
 
 /// Projects an adapter row into a typed sync row without ORM identity maps.
+#[cfg(test)]
 pub(crate) fn project_model_sync_row_from_adapter_fields(
     projection: &VmModelSyncRowProjection,
     row: &BTreeMap<String, ReplValue>,
@@ -256,6 +267,7 @@ pub(crate) fn project_model_sync_row_from_adapter_fields(
     })
 }
 
+#[cfg(test)]
 fn required_string_row_field(
     row: &BTreeMap<String, ReplValue>,
     field: &str,
@@ -271,6 +283,7 @@ fn required_string_row_field(
     }
 }
 
+#[cfg(test)]
 fn required_positive_sequence_row_field(
     row: &BTreeMap<String, ReplValue>,
     field: &str,
@@ -288,6 +301,7 @@ fn required_positive_sequence_row_field(
 
 /// Permission operation checked against model-sync changes before publication.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmModelSyncPermissionOperation {
     Read,
     Write,
@@ -297,11 +311,13 @@ pub(crate) enum VmModelSyncPermissionOperation {
 
 /// Field-level permission grant for a syncable model.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmModelSyncFieldPermission {
     pub(crate) field: String,
     pub(crate) operations: Vec<VmModelSyncPermissionOperation>,
 }
 
+#[cfg(test)]
 impl VmModelSyncFieldPermission {
     pub(crate) fn new(
         field: impl Into<String>,
@@ -328,12 +344,14 @@ impl VmModelSyncFieldPermission {
 
 /// Model-level permission policy used to detect permission drift in changes.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmModelSyncPermissionPolicy {
     pub(crate) model: String,
     pub(crate) operations: Vec<VmModelSyncPermissionOperation>,
     pub(crate) fields: Vec<VmModelSyncFieldPermission>,
 }
 
+#[cfg(test)]
 impl VmModelSyncPermissionPolicy {
     pub(crate) fn new(
         model: impl Into<String>,
@@ -374,6 +392,7 @@ impl VmModelSyncPermissionPolicy {
 
 /// Validates that committed model changes remain inside the model and field
 /// permission surface declared for the affected syncable models.
+#[cfg(test)]
 pub(crate) fn validate_model_sync_permission_drift(
     changes: &[VmModelSyncChange],
     policies: &[VmModelSyncPermissionPolicy],
@@ -412,6 +431,7 @@ pub(crate) fn validate_model_sync_permission_drift(
     Ok(())
 }
 
+#[cfg(test)]
 fn permission_operation_for_change(kind: VmModelSyncChangeKind) -> VmModelSyncPermissionOperation {
     match kind {
         VmModelSyncChangeKind::Created | VmModelSyncChangeKind::Updated => {
@@ -423,12 +443,14 @@ fn permission_operation_for_change(kind: VmModelSyncChangeKind) -> VmModelSyncPe
 
 /// VM-owned template binding for replaying model changes into DOM patches.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmDomPatchTemplateBinding {
     pub(crate) model: String,
     pub(crate) field: String,
     pub(crate) selector_template: String,
 }
 
+#[cfg(test)]
 impl VmDomPatchTemplateBinding {
     pub(crate) fn new(
         model: impl Into<String>,
@@ -461,6 +483,7 @@ impl VmDomPatchTemplateBinding {
 
 /// DOM patch operation kind emitted by typed template binding replay.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmDomPatchOperationKind {
     ReplaceText,
     RemoveBinding,
@@ -468,6 +491,7 @@ pub(crate) enum VmDomPatchOperationKind {
 
 /// Deterministic DOM patch operation generated from a typed model change.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmDomPatchOperation {
     pub(crate) sequence: u64,
     pub(crate) selector: String,
@@ -477,12 +501,14 @@ pub(crate) struct VmDomPatchOperation {
 
 /// Typed live-template subscription that depends on committed model changes.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmModelSyncTemplateSubscription {
     pub(crate) model: String,
     pub(crate) subscriber_id: String,
     pub(crate) template_id: String,
 }
 
+#[cfg(test)]
 impl VmModelSyncTemplateSubscription {
     pub(crate) fn new(
         model: impl Into<String>,
@@ -519,6 +545,7 @@ impl VmModelSyncTemplateSubscription {
 
 /// Deterministic invalidation emitted after a committed model event.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmModelSyncTemplateInvalidation {
     pub(crate) sequence: u64,
     pub(crate) model: String,
@@ -529,6 +556,7 @@ pub(crate) struct VmModelSyncTemplateInvalidation {
 }
 
 /// Converts committed model changes into live-template invalidations.
+#[cfg(test)]
 pub(crate) fn invalidate_live_template_subscribers_from_model_events(
     changes: &[VmModelSyncChange],
     subscriptions: &[VmModelSyncTemplateSubscription],
@@ -553,6 +581,7 @@ pub(crate) fn invalidate_live_template_subscribers_from_model_events(
 }
 
 /// Replays one typed model change against template bindings.
+#[cfg(test)]
 pub(crate) fn replay_dom_patches_for_template_bindings(
     change: &VmModelSyncChange,
     bindings: &[VmDomPatchTemplateBinding],
@@ -593,6 +622,7 @@ pub(crate) fn replay_dom_patches_for_template_bindings(
     Ok(operations)
 }
 
+#[cfg(test)]
 fn dom_patch_record_field<'a>(value: &'a ReplValue, field: &str) -> Option<&'a ReplValue> {
     match value {
         ReplValue::Record { fields, .. } => fields
@@ -602,6 +632,7 @@ fn dom_patch_record_field<'a>(value: &'a ReplValue, field: &str) -> Option<&'a R
     }
 }
 
+#[cfg(test)]
 fn dom_patch_text_value(value: &ReplValue) -> Result<String, String> {
     match value {
         ReplValue::Unit => Ok("".to_string()),
@@ -615,6 +646,7 @@ fn dom_patch_text_value(value: &ReplValue) -> Result<String, String> {
 }
 
 /// Adapter contract for VM-owned syncable model stores.
+#[cfg(test)]
 pub(crate) trait VmModelSyncStoreAdapter {
     fn get(&self, key: &VmModelSyncKey) -> Option<&VmModelSyncRow>;
     fn put(
@@ -636,6 +668,7 @@ pub(crate) trait VmModelSyncStoreAdapter {
 
 /// Portable capability required from a model-sync adapter.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmModelSyncAdapterCapability {
     TypedKey,
     OptimisticVersion,
@@ -650,12 +683,14 @@ pub(crate) enum VmModelSyncAdapterCapability {
 /// Explicit model-sync adapter contract used to keep the public abstraction
 /// portable across VM-owned stores and database-backed stores.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmModelSyncAdapterContract {
     pub(crate) name: &'static str,
     pub(crate) storage_family: &'static str,
     pub(crate) capabilities: Vec<VmModelSyncAdapterCapability>,
 }
 
+#[cfg(test)]
 impl VmModelSyncAdapterContract {
     pub(crate) fn new(
         name: &'static str,
@@ -691,12 +726,14 @@ impl VmModelSyncAdapterContract {
 
 /// Source-visible declaration for one syncable model family.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSyncableModelDeclaration {
     pub(crate) name: String,
     pub(crate) adapter_contract: VmModelSyncAdapterContract,
     pub(crate) key_model: String,
 }
 
+#[cfg(test)]
 impl VmSyncableModelDeclaration {
     pub(crate) fn new(
         name: impl Into<String>,
@@ -726,6 +763,7 @@ impl VmSyncableModelDeclaration {
     }
 }
 
+#[cfg(test)]
 const PORTABLE_MODEL_SYNC_CAPABILITIES: &[VmModelSyncAdapterCapability] = &[
     VmModelSyncAdapterCapability::TypedKey,
     VmModelSyncAdapterCapability::OptimisticVersion,
@@ -735,6 +773,7 @@ const PORTABLE_MODEL_SYNC_CAPABILITIES: &[VmModelSyncAdapterCapability] = &[
     VmModelSyncAdapterCapability::ChangeStream,
 ];
 
+#[cfg(test)]
 const POSTGRES_ONLY_MODEL_SYNC_CAPABILITIES: &[VmModelSyncAdapterCapability] = &[
     VmModelSyncAdapterCapability::TypedRowDecode,
     VmModelSyncAdapterCapability::TransactionRollback,
@@ -742,6 +781,7 @@ const POSTGRES_ONLY_MODEL_SYNC_CAPABILITIES: &[VmModelSyncAdapterCapability] = &
 
 /// Checks that non-Postgres model-sync adapters keep the same portable core
 /// capability surface and do not leak Postgres-only behavior.
+#[cfg(test)]
 pub(crate) fn validate_non_postgres_model_sync_adapter_contracts(
     contracts: &[VmModelSyncAdapterContract],
 ) -> Result<(), String> {
@@ -779,13 +819,16 @@ pub(crate) fn validate_non_postgres_model_sync_adapter_contracts(
 
 /// Deterministic in-memory adapter used by the VM and adversarial tests.
 #[derive(Clone, Debug, Default, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmInMemoryModelSyncStore {
     rows: BTreeMap<VmModelSyncKey, VmModelSyncRow>,
     changes: Vec<VmModelSyncChange>,
     next_change_sequence: u64,
 }
 
+#[cfg(test)]
 impl VmInMemoryModelSyncStore {
+    #[cfg(test)]
     pub(crate) fn new() -> Self {
         Self {
             rows: BTreeMap::new(),
@@ -794,12 +837,14 @@ impl VmInMemoryModelSyncStore {
         }
     }
 
+    #[cfg(test)]
     fn next_sequence(&mut self) -> u64 {
         let sequence = self.next_change_sequence;
         self.next_change_sequence += 1;
         sequence
     }
 
+    #[cfg(test)]
     fn conflict(
         key: VmModelSyncKey,
         current_version: VmModelSyncVersion,
@@ -813,6 +858,7 @@ impl VmInMemoryModelSyncStore {
     }
 }
 
+#[cfg(test)]
 impl VmModelSyncStoreAdapter for VmInMemoryModelSyncStore {
     fn get(&self, key: &VmModelSyncKey) -> Option<&VmModelSyncRow> {
         self.rows.get(key)
@@ -903,4 +949,5 @@ impl VmModelSyncStoreAdapter for VmInMemoryModelSyncStore {
 
 #[cfg(test)]
 #[path = "model_sync_test.rs"]
+#[cfg(test)]
 mod model_sync_test;

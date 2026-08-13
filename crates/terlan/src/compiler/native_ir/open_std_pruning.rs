@@ -7,13 +7,174 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use crate::terlan_typeck::{CoreExportKind, CoreExpr, CoreModule};
+use crate::terlan_typeck::{CoreExportKind, CoreExpr, CoreIntrinsicId, CoreModule, CoreType};
 
 #[cfg(test)]
 #[path = "open_std_pruning_test.rs"]
+#[cfg(test)]
 mod open_std_pruning_test;
 
 type FunctionKey = (String, String, usize);
+
+/// Removes source router builders after the frontend has extracted their static plan.
+///
+/// Router values are compiler-owned metadata, not runtime values. Keeping a
+/// `router/0` declaration or a grouped `Router -> Router` helper in the direct
+/// AOT application closure incorrectly requires executable implementations of
+/// `std.http.Router.new/get/post/...`. Route handlers, middleware, and error
+/// callbacks have non-Router result types and remain ordinary native exports.
+pub(super) fn prune_compile_time_router_builders(cores: &mut [CoreModule]) {
+    for core in cores {
+        let imports_router = core.imports.iter().any(|import| {
+            import.module == "std.http.Router" || import.module.starts_with("std.http.Router.")
+        });
+        if !imports_router {
+            continue;
+        }
+        let builders = core
+            .functions
+            .iter()
+            .filter(|function| {
+                router_result(function.core_return_type.as_ref(), &function.return_type)
+            })
+            .map(|function| (function.name.clone(), function.arity))
+            .collect::<HashSet<_>>();
+        core.functions
+            .retain(|function| !builders.contains(&(function.name.clone(), function.arity)));
+        core.exports.retain(|export| {
+            let CoreExportKind::Function { arity } = export.kind else {
+                return true;
+            };
+            !builders.contains(&(export.name.clone(), arity))
+        });
+    }
+}
+
+fn router_result(core: Option<&CoreType>, source: &str) -> bool {
+    matches!(core, Some(CoreType::Named(name)) if name.rsplit('.').next() == Some("Router"))
+        || source
+            .split(['[', '<'])
+            .next()
+            .unwrap_or(source)
+            .trim()
+            .rsplit('.')
+            .next()
+            == Some("Router")
+}
+
+/// Retains the same-module function closure reachable from selected entrypoints.
+///
+/// Test compilation type-checks the complete source module, but its native
+/// image only needs selected `@test` exports and the local helpers they call.
+/// Compiler-only declarations such as router manifest builders therefore stay
+/// visible to the frontend without becoming fake runtime dependencies.
+pub(crate) fn prune_module_to_function_roots(core: &mut CoreModule, roots: &[&str]) {
+    let providers = providers(std::slice::from_ref(core));
+    let mut edges = HashMap::<FunctionKey, HashSet<FunctionKey>>::new();
+    for function in &core.functions {
+        let caller = (core.module.clone(), function.name.clone(), function.arity);
+        let mut calls = HashSet::new();
+        for clause in &function.clauses {
+            if let Some(guard) = clause
+                .guard
+                .as_ref()
+                .and_then(|guard| guard.core_expr.as_ref())
+            {
+                collect_calls(guard, core, &providers, &mut calls);
+            }
+            if let Some(body) = &clause.body.core_expr {
+                collect_calls(body, core, &providers, &mut calls);
+            }
+        }
+        edges.insert(caller, calls);
+    }
+    let root_names = roots.iter().copied().collect::<HashSet<_>>();
+    let mut reachable = edges
+        .keys()
+        .filter(|(_, name, arity)| *arity == 0 && root_names.contains(name.as_str()))
+        .cloned()
+        .collect::<HashSet<_>>();
+    let mut queue = reachable.iter().cloned().collect::<VecDeque<_>>();
+    while let Some(caller) = queue.pop_front() {
+        for callee in edges.get(&caller).into_iter().flatten() {
+            if reachable.insert(callee.clone()) {
+                queue.push_back(callee.clone());
+            }
+        }
+    }
+    core.functions.retain(|function| {
+        reachable.contains(&(core.module.clone(), function.name.clone(), function.arity))
+    });
+    core.exports.retain(|export| {
+        let CoreExportKind::Function { arity } = export.kind else {
+            return true;
+        };
+        reachable.contains(&(core.module.clone(), export.name.clone(), arity))
+    });
+}
+
+/// Retains one closed application function graph from exact executable roots.
+///
+/// All modules remain available for nominal types and constructor layouts, but
+/// dead declarations are not manufactured into runtime exports. Frontend
+/// checking has already validated the complete source set before this native
+/// linker step.
+pub(crate) fn prune_application_to_function_roots(
+    cores: &mut [CoreModule],
+    roots: &[(String, String, usize)],
+) -> super::NativeIrResult<()> {
+    let providers = providers(cores);
+    for root in roots {
+        if !providers.contains(root) {
+            return Err(format!(
+                "error[native_ir.application_root]: missing executable root `{}.{}/{}`",
+                root.0, root.1, root.2
+            )
+            .into());
+        }
+    }
+    let mut edges = HashMap::<FunctionKey, HashSet<FunctionKey>>::new();
+    for core in cores.iter() {
+        for function in &core.functions {
+            let caller = (core.module.clone(), function.name.clone(), function.arity);
+            let mut calls = HashSet::new();
+            for clause in &function.clauses {
+                if let Some(guard) = clause
+                    .guard
+                    .as_ref()
+                    .and_then(|guard| guard.core_expr.as_ref())
+                {
+                    collect_calls(guard, core, &providers, &mut calls);
+                }
+                if let Some(body) = &clause.body.core_expr {
+                    collect_calls(body, core, &providers, &mut calls);
+                }
+            }
+            edges.insert(caller, calls);
+        }
+    }
+    let mut reachable = roots.iter().cloned().collect::<HashSet<_>>();
+    let mut queue = roots.iter().cloned().collect::<VecDeque<_>>();
+    while let Some(caller) = queue.pop_front() {
+        for callee in edges.get(&caller).into_iter().flatten() {
+            if reachable.insert(callee.clone()) {
+                queue.push_back(callee.clone());
+            }
+        }
+    }
+    for core in cores {
+        core.functions.retain(|function| {
+            reachable.contains(&(core.module.clone(), function.name.clone(), function.arity))
+        });
+        core.exports.retain(|export| {
+            let CoreExportKind::Function { arity } = export.kind else {
+                return true;
+            };
+            reachable.contains(&(core.module.clone(), export.name.clone(), arity))
+        });
+    }
+    Ok(())
+}
 
 /// Removes `std.*` functions that have no path from an executable application
 /// function. Reachable open generic functions remain present so normal native
@@ -22,11 +183,10 @@ pub(super) fn prune_unreachable_open_std_functions(cores: &mut [CoreModule]) {
     let standard = cores
         .iter()
         .flat_map(|core| {
-            core.functions.iter().filter_map(|function| {
-                core.module
-                    .starts_with("std.")
-                    .then(|| (core.module.clone(), function.name.clone(), function.arity))
-            })
+            core.functions
+                .iter()
+                .filter(|&_function| core.module.starts_with("std."))
+                .map(|function| (core.module.clone(), function.name.clone(), function.arity))
         })
         .collect::<HashSet<_>>();
     let providers = providers(cores);
@@ -51,6 +211,15 @@ pub(super) fn prune_unreachable_open_std_functions(cores: &mut [CoreModule]) {
         }
     }
 
+    let executable_root_modules = cores
+        .iter()
+        .filter(|core| {
+            core.functions
+                .iter()
+                .any(|function| function.name == "main" && function.arity == 0)
+        })
+        .map(|core| core.module.as_str())
+        .collect::<HashSet<_>>();
     let explicit_root_modules = cores
         .iter()
         .filter(|core| {
@@ -64,12 +233,22 @@ pub(super) fn prune_unreachable_open_std_functions(cores: &mut [CoreModule]) {
         })
         .map(|core| core.module.as_str())
         .collect::<HashSet<_>>();
-    let root_modules = if explicit_root_modules.is_empty() {
-        cores
+    let root_modules = if !executable_root_modules.is_empty() {
+        executable_root_modules
+    } else if explicit_root_modules.is_empty() {
+        let application_roots = cores
             .iter()
             .filter(|core| !core.module.starts_with("std.") || core.module.ends_with(".Main"))
             .map(|core| core.module.as_str())
-            .collect::<HashSet<_>>()
+            .collect::<HashSet<_>>();
+        if application_roots.is_empty() {
+            cores
+                .iter()
+                .map(|core| core.module.as_str())
+                .collect::<HashSet<_>>()
+        } else {
+            application_roots
+        }
     } else {
         explicit_root_modules
     };
@@ -210,7 +389,12 @@ fn collect_calls(
             function,
             args,
         } => {
-            if let Some(target) = resolve_remote(module, function, args.len(), providers) {
+            let target = if module == "__receiver__" {
+                resolve_call(caller, function, args.len(), providers)
+            } else {
+                resolve_remote(module, function, args.len(), providers)
+            };
+            if let Some(target) = target {
                 calls.insert(target);
             }
             collect_many(args, caller, providers, calls);
@@ -286,7 +470,19 @@ fn collect_calls(
             collect_many(args, caller, providers, calls);
         }
         CoreExpr::Cast { expr, .. } => collect_calls(expr, caller, providers, calls),
-        CoreExpr::Intrinsic(intrinsic) => collect_many(&intrinsic.args, caller, providers, calls),
+        CoreExpr::Intrinsic(intrinsic) => {
+            if matches!(intrinsic.id, CoreIntrinsicId::VmProcessEntry(_)) {
+                if let [CoreExpr::Int(tag)] = intrinsic.args.as_slice() {
+                    if *tag > 0 {
+                        let function = format!("spawn_{tag}");
+                        if let Some(target) = resolve_call(caller, &function, 0, providers) {
+                            calls.insert(target);
+                        }
+                    }
+                }
+            }
+            collect_many(&intrinsic.args, caller, providers, calls);
+        }
         CoreExpr::SqlQuery { parameters, .. } => collect_many(parameters, caller, providers, calls),
         CoreExpr::Case { scrutinee, clauses } => {
             collect_calls(scrutinee, caller, providers, calls);

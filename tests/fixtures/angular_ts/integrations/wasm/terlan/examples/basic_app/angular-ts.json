@@ -1,0 +1,12 @@
+{
+  "module": "terlanWasmDemo",
+  "package": "../pkg/terlan_angular_wasm_app.js",
+  "appTemplatePath": "index.html",
+  "registrations": [
+    {
+      "kind": "component",
+      "name": "terlanWasmApp",
+      "templatePath": "templates/terlan-wasm-app.html"
+    }
+  ]
+}

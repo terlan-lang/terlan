@@ -37,8 +37,6 @@ pub(super) fn infer_map_intrinsic_type(call: &CoreIntrinsicCall) -> Option<Nativ
         _ => None,
     }
 }
-
-#[allow(clippy::too_many_arguments)]
 pub(super) fn lower_map_intrinsic(
     call: &CoreIntrinsicCall,
     params: &HashMap<String, usize>,
@@ -128,10 +126,16 @@ pub(super) fn lower_map_intrinsic(
             )
         }
         CorePrimitiveIntrinsic::MapIterator if lowered.len() == 1 => {
-            let pair = list_element(&call.return_type)?;
+            let pair = iterator_element(&call.return_type)?;
+            // `Iterator[T]` is opaque at the source boundary but its AOT
+            // representation is the immutable managed `List[T]` selected by
+            // `type_mapping::native_type`.  The runtime operation must receive
+            // that physical semantic identity rather than the public opaque
+            // identity.
+            let physical_iterator = CoreType::List(Box::new(pair.clone()));
             encode_map_iterator_operation(
                 map_semantic,
-                semantic(&call.return_type)?,
+                semantic(&physical_iterator)?,
                 semantic(pair)?,
             )
         }
@@ -154,6 +158,16 @@ fn map_semantic(
     function_types: &HashMap<(String, usize), NativeType>,
     constructors: &NativeConstructorLayouts,
 ) -> Result<SemanticTypeId, String> {
+    // `MapFromEntries` receives its physical `List[Tuple[K,V]]` source as the
+    // first argument. Its result schema therefore comes from the checked map
+    // return type, unlike receiver-based map operations whose first argument
+    // is already the map value.
+    if matches!(
+        call.id,
+        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapFromEntries)
+    ) {
+        return managed_semantic(&call.return_type);
+    }
     if let Some(argument) = call.args.first() {
         if let Some(NativeType::ManagedRef(semantic)) =
             infer_native_type_with_constructors(argument, param_types, function_types, constructors)
@@ -200,11 +214,10 @@ fn take_option_type(ty: &CoreType) -> Result<&CoreType, String> {
     }
 }
 
-fn list_element(ty: &CoreType) -> Result<&CoreType, String> {
+fn iterator_element(ty: &CoreType) -> Result<&CoreType, String> {
     match ty {
-        CoreType::List(element) => Ok(element),
         CoreType::Apply { constructor, args }
-            if constructor.rsplit('.').next() == Some("List") && args.len() == 1 =>
+            if constructor.rsplit('.').next() == Some("Iterator") && args.len() == 1 =>
         {
             Ok(&args[0])
         }

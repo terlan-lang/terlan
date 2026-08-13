@@ -34,6 +34,21 @@
       "arity": 1,
       "name": "is_absolute",
       "operation": "std.io.path.is_absolute"
+    },
+    {
+      "arity": 1,
+      "name": "normalize",
+      "operation": "std.io.path.normalize"
+    },
+    {
+      "arity": 2,
+      "name": "starts_with",
+      "operation": "std.io.path.starts_with"
+    },
+    {
+      "arity": 2,
+      "name": "strip_prefix",
+      "operation": "std.io.path.strip_prefix"
     }
   ],
   "module": "std_io_path_native_boundary",

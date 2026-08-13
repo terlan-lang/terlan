@@ -162,4 +162,5 @@ pub(crate) fn should_use_indexed_map(entry_count: usize) -> bool {
 
 #[cfg(test)]
 #[path = "map_layout_test.rs"]
+#[cfg(test)]
 mod map_layout_test;

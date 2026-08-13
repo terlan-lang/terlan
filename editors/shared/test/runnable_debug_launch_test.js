@@ -583,11 +583,11 @@ function testTerminalReuseContract() {
  */
 function testDebugLaunchFallbackContract() {
   const manifest = readJson("editors/vscode/package.json");
-  const mainSource = readText("crates/terlan/src/main.rs");
+  const cliDispatchSource = readText("crates/terlan/src/lib.rs");
   const usageSource = readText("crates/terlan/src/cli_usage.rs");
   const debugSource = readText("crates/terlan/src/commands/debug/mod.rs");
 
-  assert.ok(mainSource.includes("debug\" => commands::debug::run"));
+  assert.ok(cliDispatchSource.includes("\"debug\" => commands::debug::run"));
   assert.ok(usageSource.includes("terlc debug <image.tvm>"));
   assert.ok(debugSource.includes("--json-events"));
   assert.ok(debugSource.includes("--script"));

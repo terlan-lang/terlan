@@ -41,6 +41,16 @@
       "operation": "std.data.json.array_push"
     },
     {
+      "arity": 2,
+      "name": "extend",
+      "operation": "std.data.json.array_extend"
+    },
+    {
+      "arity": 3,
+      "name": "set",
+      "operation": "std.data.json.array_set"
+    },
+    {
       "arity": 3,
       "name": "put",
       "operation": "std.data.json.object_put"
@@ -56,9 +66,64 @@
       "operation": "std.data.json.stringify"
     },
     {
+      "arity": 1,
+      "name": "stringify_pretty",
+      "operation": "std.data.json.stringify_pretty"
+    },
+    {
       "arity": 2,
       "name": "get",
       "operation": "std.data.json.get"
+    },
+    {
+      "arity": 1,
+      "name": "keys",
+      "operation": "std.data.json.keys"
+    },
+    {
+      "arity": 1,
+      "name": "object_length",
+      "operation": "std.data.json.object_length"
+    },
+    {
+      "arity": 2,
+      "name": "string_fields",
+      "operation": "std.data.json.string_fields"
+    },
+    {
+      "arity": 4,
+      "name": "required_fields",
+      "operation": "std.data.json.required_fields"
+    },
+    {
+      "arity": 4,
+      "name": "required_field_rows",
+      "operation": "std.data.json.required_field_rows"
+    },
+    {
+      "arity": 6,
+      "name": "required_field_rows_page",
+      "operation": "std.data.json.required_field_rows_page"
+    },
+    {
+      "arity": 2,
+      "name": "string_field_rows",
+      "operation": "std.data.json.string_field_rows"
+    },
+    {
+      "arity": 4,
+      "name": "nested_string_field_rows",
+      "operation": "std.data.json.nested_string_field_rows"
+    },
+    {
+      "arity": 6,
+      "name": "nested_string_field_rows_page",
+      "operation": "std.data.json.nested_string_field_rows_page"
+    },
+    {
+      "arity": 2,
+      "name": "string_object_rows",
+      "operation": "std.data.json.string_object_rows"
     },
     {
       "arity": 1,

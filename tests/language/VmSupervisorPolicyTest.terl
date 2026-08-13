@@ -1,0 +1,30 @@
+module tests.language.VmSupervisorPolicyTest.
+
+import std.test.Test.{assert_equal}.
+import std.vm.Supervisor.{OneForAll, OneForOne, Permanent, RestForOne, Temporary, Transient, restart_backoff, selects_child, should_restart, shutdown_expired, within_intensity}.
+
+@test
+pub restart_strategies_select_ordered_children(): Bool ->
+    assert_equal(true, selects_child(OneForOne, 2, 2))
+        and assert_equal(false, selects_child(OneForOne, 2, 3))
+        and assert_equal(true, selects_child(OneForAll, 2, 1))
+        and assert_equal(false, selects_child(RestForOne, 2, 1))
+        and assert_equal(true, selects_child(RestForOne, 2, 3)).
+
+@test
+pub restart_classes_and_intensity_are_explicit_policy(): Bool ->
+    assert_equal(true, should_restart(Permanent, false))
+        and assert_equal(false, should_restart(Transient, false))
+        and assert_equal(true, should_restart(Transient, true))
+        and assert_equal(false, should_restart(Temporary, true))
+        and assert_equal(true, within_intensity(2, 3))
+        and assert_equal(false, within_intensity(3, 3)).
+
+@test
+pub backoff_and_shutdown_deadlines_are_deterministic(): Bool ->
+    assert_equal(0, restart_backoff(10, 80, 0))
+        and assert_equal(10, restart_backoff(10, 80, 1))
+        and assert_equal(40, restart_backoff(10, 80, 3))
+        and assert_equal(80, restart_backoff(10, 80, 7))
+        and assert_equal(false, shutdown_expired(100, 20, 119))
+        and assert_equal(true, shutdown_expired(100, 20, 120)).

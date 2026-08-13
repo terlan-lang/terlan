@@ -1,0 +1,103 @@
+/**
+ * Typed rows shared by proof-release evidence construction stages.
+ */
+module proof_release_evidence.Model.
+
+import type std.data.Json.
+
+pub struct Artifact {
+    family: String,
+    path: String,
+    proof_digest: String,
+    theorem_ids: List[String],
+    input_paths: List[String],
+    input_digests: List[String],
+}.
+
+pub struct Repro {
+    family: String,
+    proof_digest: String,
+    verdict: String,
+}.
+
+pub struct Lane {
+    lane: String,
+    status: String,
+    coverage_status: String,
+    checksum: String,
+}.
+
+pub struct Semantic {
+    family: String,
+    proof_digest: String,
+    runtime_oracle: Json,
+}.
+
+pub struct Binding {
+    slice_id: String,
+    feature_class: String,
+    owner: String,
+    lane_id: String,
+    coverage_status: String,
+    proof_ids: List[String],
+}.
+
+pub struct Material {
+    path: String,
+    digest: String,
+}.
+
+pub struct Record {
+    number: Int,
+    slice_id: String,
+    value: Json,
+}.
+
+pub artifact(
+    family: String,
+    path: String,
+    proof_digest: String,
+    theorem_ids: List[String],
+    input_paths: List[String],
+    input_digests: List[String],
+): Artifact ->
+    Artifact(
+        family = family,
+        path = path,
+        proof_digest = proof_digest,
+        theorem_ids = theorem_ids,
+        input_paths = input_paths,
+        input_digests = input_digests,
+    ).
+
+pub repro(family: String, proof_digest: String, verdict: String): Repro ->
+    Repro(family = family, proof_digest = proof_digest, verdict = verdict).
+
+pub lane(lane: String, status: String, coverage_status: String, checksum: String): Lane ->
+    Lane(lane = lane, status = status, coverage_status = coverage_status, checksum = checksum).
+
+pub semantic(family: String, proof_digest: String, runtime_oracle: Json): Semantic ->
+    Semantic(family = family, proof_digest = proof_digest, runtime_oracle = runtime_oracle).
+
+pub binding(
+    slice_id: String,
+    feature_class: String,
+    owner: String,
+    lane_id: String,
+    coverage_status: String,
+    proof_ids: List[String],
+): Binding ->
+    Binding(
+        slice_id = slice_id,
+        feature_class = feature_class,
+        owner = owner,
+        lane_id = lane_id,
+        coverage_status = coverage_status,
+        proof_ids = proof_ids,
+    ).
+
+pub material(path: String, digest: String): Material ->
+    Material(path = path, digest = digest).
+
+pub record(number: Int, slice_id: String, value: Json): Record ->
+    Record(number = number, slice_id = slice_id, value = value).

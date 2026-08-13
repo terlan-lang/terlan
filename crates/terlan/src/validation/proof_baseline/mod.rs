@@ -225,4 +225,5 @@ pub(crate) fn validate_manifest_baseline_artifact(
 
 #[cfg(test)]
 #[path = "proof_baseline_test.rs"]
+#[cfg(test)]
 mod proof_baseline_test;

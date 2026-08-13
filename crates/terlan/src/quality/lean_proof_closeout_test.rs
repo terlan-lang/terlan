@@ -15,7 +15,8 @@ fn lean_proof_closeout_accepts_current_reproducible_family_idempotently() {
     let second = run_lean_proof_closeout(root.path()).expect("second closeout");
 
     assert_eq!(first.family_count, 1);
-    assert_eq!(first.baseline_count, 8);
+    assert_eq!(first.lane_count, 8);
+    assert_eq!(first.baseline_count, 9);
     assert_eq!(first.baseline_hash, second.baseline_hash);
 }
 
@@ -122,6 +123,90 @@ fn lean_proof_closeout_rejects_nondeterministic_family_with_stable_id() {
     assert!(error.contains("error[lean_proof_closeout_reproducibility]"));
 }
 
+#[test]
+fn lean_proof_closeout_rejects_lane_checksum_missing_from_gate_report() {
+    let root = TempRepo::new("closeout_lane_checksum");
+    write_complete_fixture(root.path(), Vec::new(), "pass", "current");
+    let gate_path = root.path().join(GATE_REPORT);
+    let mut gate: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&gate_path).expect("read gate"))
+            .expect("parse gate");
+    gate["lane_checksums"]
+        .as_object_mut()
+        .expect("lane checksums")
+        .remove("wasm");
+    fs::write(
+        gate_path,
+        serde_json::to_string_pretty(&gate).expect("serialize gate"),
+    )
+    .expect("write gate");
+
+    let error = run_lean_proof_closeout(root.path()).expect_err("missing checksum must fail");
+
+    assert!(error.contains("error[lean_proof_closeout_lane_checksum]"));
+}
+
+#[test]
+fn lean_proof_closeout_rejects_lane_level_blocker() {
+    let root = TempRepo::new("closeout_lane_blocker");
+    write_complete_fixture(root.path(), Vec::new(), "pass", "current");
+    let report_path = root.path().join(LANE_REPORT);
+    let mut report: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&report_path).expect("read lanes"))
+            .expect("parse lanes");
+    report["lanes"][0]["blockers"] = json!(["synthetic-proof"]);
+    fs::write(
+        report_path,
+        serde_json::to_string_pretty(&report).expect("serialize lanes"),
+    )
+    .expect("write lanes");
+
+    let error = run_lean_proof_closeout(root.path()).expect_err("lane blocker must fail");
+
+    assert!(error.contains("error[lean_proof_closeout_lane_blocker]"));
+}
+
+#[test]
+fn lean_proof_closeout_rejects_unresolved_open_gap_metric() {
+    let root = TempRepo::new("closeout_open_gap");
+    write_complete_fixture(root.path(), Vec::new(), "pass", "current");
+    let gate_path = root.path().join(GATE_REPORT);
+    let mut gate: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&gate_path).expect("read gate"))
+            .expect("parse gate");
+    gate["proof_gap_metrics"]["unresolved_open_count"] = json!(1);
+    fs::write(
+        gate_path,
+        serde_json::to_string_pretty(&gate).expect("serialize gate"),
+    )
+    .expect("write gate");
+
+    let error = run_lean_proof_closeout(root.path()).expect_err("open gap must fail");
+
+    assert!(error.contains("error[lean_proof_closeout_open_gap]"));
+}
+
+#[test]
+fn lean_proof_closeout_rejects_proof_runtime_smoke_mismatch() {
+    let root = TempRepo::new("closeout_smoke_mismatch");
+    write_complete_fixture(root.path(), Vec::new(), "pass", "current");
+    let report_path = root.path().join(SMOKE_REPORT);
+    let mut report: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&report_path).expect("read smoke"))
+            .expect("parse smoke");
+    report["results"][0]["runtime_status"] = json!("failure");
+    report["blockers"] = json!([{"smoke_id": "semantic-chain"}]);
+    fs::write(
+        report_path,
+        serde_json::to_string_pretty(&report).expect("serialize smoke"),
+    )
+    .expect("write smoke");
+
+    let error = run_lean_proof_closeout(root.path()).expect_err("mismatch must fail");
+
+    assert!(error.contains("error[lean_proof_closeout_smoke]"));
+}
+
 fn write_complete_fixture(root: &Path, blockers: Vec<String>, reproducibility: &str, status: &str) {
     fs::create_dir_all(root.join("proofs/lean/Terlan")).expect("proof tree");
     fs::create_dir_all(root.join("build/artifacts")).expect("artifact directory");
@@ -136,6 +221,12 @@ fn write_complete_fixture(root: &Path, blockers: Vec<String>, reproducibility: &
     } else {
         vec!["proof_repro_check"]
     };
+    let lane_checksum = format!("sha256:{}", "c".repeat(64));
+    let matrix_checksum = format!("sha256:{}", "d".repeat(64));
+    let lane_checksums = EXPECTED_LANES
+        .iter()
+        .map(|lane| ((*lane).to_string(), json!(lane_checksum)))
+        .collect::<serde_json::Map<_, _>>();
     let gate = json!({
         "families": [{
             "family": "coreir-arithmetic",
@@ -146,13 +237,75 @@ fn write_complete_fixture(root: &Path, blockers: Vec<String>, reproducibility: &
             "reproducibility_verdict": reproducibility,
             "blockers": blockers,
             "remediation_gates": remediation,
-        }]
+        }],
+        "lane_matrix_checksum": matrix_checksum,
+        "lane_checksums": lane_checksums,
+        "proof_gap_metrics": {
+            "unresolved_open_count": 0
+        },
     });
     fs::write(
         root.join(GATE_REPORT),
         serde_json::to_string_pretty(&gate).expect("gate JSON"),
     )
     .expect("gate report");
+    let lanes = EXPECTED_LANES
+        .iter()
+        .enumerate()
+        .map(|(index, lane)| {
+            let executable = index < 6;
+            json!({
+                "lane": lane,
+                "severity": "hard",
+                "status": "pass",
+                "coverage_status": if executable { "executable_current" } else { "accepted_gap" },
+                "duration_ms": 1,
+                "duration_tolerance_ms": 100,
+                "number_of_families": if executable { 1 } else { 0 },
+                "failed_families": [],
+                "gap_count": 1,
+                "nondeterministic_count": 0,
+                "reproducibility_failures": 0,
+                "smoke_health_score": 100,
+                "smoke_policy_minimum": 100,
+                "blockers": [],
+                "checksum": lane_checksum,
+            })
+        })
+        .collect::<Vec<_>>();
+    let lane_report = json!({
+        "schema": "terlan.lean-proof-lanes.v1",
+        "lane_matrix_checksum": matrix_checksum,
+        "lanes": lanes,
+    });
+    fs::write(
+        root.join(LANE_REPORT),
+        serde_json::to_string_pretty(&lane_report).expect("lane JSON"),
+    )
+    .expect("lane report");
+    let lane_health = EXPECTED_LANES
+        .iter()
+        .map(|lane| ((*lane).to_string(), json!(100)))
+        .collect::<serde_json::Map<_, _>>();
+    let smoke_report = json!({
+        "schema": "terlan.lean-proof-smoke.v1",
+        "policy_minimum": 100,
+        "compatibility_status": "pass",
+        "lane_health": lane_health,
+        "blockers": [],
+        "results": [{
+            "smoke_id": "semantic-chain",
+            "proof_status": "pass",
+            "runtime_status": "pass",
+            "compatibility_status": "stable",
+            "health_score": 100
+        }]
+    });
+    fs::write(
+        root.join(SMOKE_REPORT),
+        serde_json::to_string_pretty(&smoke_report).expect("smoke JSON"),
+    )
+    .expect("smoke report");
 
     let mut baseline = String::from("feature_class\texpected_status\tlast_confirmed_hash\n");
     for class in EXPECTED_CLASSES {

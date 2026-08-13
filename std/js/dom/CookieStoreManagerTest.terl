@@ -19,18 +19,18 @@ import type std.js.{Array, Promise}.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub get_subscriptions_typechecks(
-    receiver: CookieStoreManager
+    receiver: CookieStoreManager,
 ): Promise[Array[CookieStoreGetOptions]] ->
     receiver.get_subscriptions().
 
 pub subscribe_typechecks(
     receiver: CookieStoreManager,
-    subscriptions: Array[CookieStoreGetOptions]
+    subscriptions: Array[CookieStoreGetOptions],
 ): Promise[Unit] ->
     receiver.subscribe(subscriptions).
 
 pub unsubscribe_typechecks(
     receiver: CookieStoreManager,
-    subscriptions: Array[CookieStoreGetOptions]
+    subscriptions: Array[CookieStoreGetOptions],
 ): Promise[Unit] ->
     receiver.unsubscribe(subscriptions).

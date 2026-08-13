@@ -238,7 +238,7 @@ const REQUIRED_GATE_TERMS: &[&str] = &[
     "$(MAKE) native-boundary-postgres-check",
     "$(MAKE) db-command-check",
     "$(TERLC) test std/vm/ModelSyncTest.terl",
-    "formal_pipeline::formal_pipeline_test::embedded_std_interfaces_include_vm_model_sync_contract",
+    "formal_pipeline::formal_pipeline_test::persistence_and_effect_interfaces::embedded_std_interfaces_include_vm_model_sync_contract",
     "runtime::vm::model_sync::model_sync_test::vm_model_sync_store_rejects_stale_versions_without_mutation",
     "runtime::vm::model_sync::model_sync_test::vm_model_sync_projects_adapter_row_into_typed_model_row",
     "runtime::vm::model_sync::model_sync_test::vm_model_sync_permission_policy_rejects_field_level_drift",
@@ -318,6 +318,7 @@ const ROLLBACK_BEHAVIOR: &[&str] = &[
 const REJECTED_MODEL_SYNC_PATHS: &[&str] = &[];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm model sync store summary.
 pub struct VmModelSyncStoreSummary {
     pub model_fixture_count: usize,
     pub adapter_matrix_count: usize,
@@ -326,6 +327,7 @@ pub struct VmModelSyncStoreSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm model sync store.
 pub fn run_vm_model_sync_store(root: &Path) -> QualityResult<VmModelSyncStoreSummary> {
     let mut diagnostics = Vec::new();
     diagnostics.extend(validate_required_terms(
@@ -506,4 +508,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_model_sync_store_test.rs"]
+#[cfg(test)]
 mod vm_model_sync_store_test;

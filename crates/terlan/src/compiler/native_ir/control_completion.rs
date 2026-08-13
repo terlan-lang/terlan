@@ -2,12 +2,18 @@
 
 use std::collections::HashMap;
 
-use super::NativeExpr;
+use crate::terlan_typeck::CoreType;
+
+use super::{NativeExpr, NativeType};
 
 #[derive(Clone)]
 pub(super) struct CompletionTarget {
     pub(super) continuation_id: u64,
     pub(super) captures: Vec<String>,
+    /// Exact representation required for the completed value.
+    pub(super) result_type: NativeType,
+    /// Checked semantic result used to materialize structural union variants.
+    pub(super) result_core_type: Option<CoreType>,
 }
 
 pub(super) fn complete(

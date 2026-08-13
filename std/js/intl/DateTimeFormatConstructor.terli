@@ -19,7 +19,7 @@ pub opaque type DateTimeFormatConstructor.
 
 pub (value: DateTimeFormatConstructor) supported_locales_of(
     locales: Array[JsString] | JsString,
-    options: DateTimeFormatOptions
+    options: DateTimeFormatOptions,
 ): Array[JsString].
 
 pub (value: DateTimeFormatConstructor) prototype(): DateTimeFormat.

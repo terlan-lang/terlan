@@ -329,62 +329,8 @@ pub(super) fn validate_lock_entry(entry: &LockedPackageArtifact) -> Result<(), S
 
 /// Extracts one zstd-compressed tar archive after validating every entry path.
 fn extract_archive(archive_path: &Path, destination: &Path) -> Result<(), String> {
-    fs::create_dir_all(destination).map_err(|error| {
-        format!(
-            "error[package_artifact_extract_failed]: cannot create {}: {error}",
-            destination.display()
-        )
-    })?;
-    let file = fs::File::open(archive_path).map_err(|error| {
-        format!(
-            "error[package_artifact_read_failed]: cannot open {}: {error}",
-            archive_path.display()
-        )
-    })?;
-    let decoder = zstd::stream::read::Decoder::new(file).map_err(|error| {
-        format!("error[package_artifact_decode_failed]: invalid zstd archive: {error}")
-    })?;
-    let mut archive = tar::Archive::new(decoder);
-    let entries = archive.entries().map_err(|error| {
-        format!("error[package_artifact_decode_failed]: invalid tar archive: {error}")
-    })?;
-    for entry in entries {
-        let mut entry = entry.map_err(|error| {
-            format!("error[package_artifact_decode_failed]: invalid tar entry: {error}")
-        })?;
-        let path = entry
-            .path()
-            .map_err(|error| {
-                format!("error[package_artifact_path_invalid]: invalid archive path: {error}")
-            })?
-            .into_owned();
-        validate_relative_path(&path)?;
-        let entry_type = entry.header().entry_type();
-        if !(entry_type.is_file() || entry_type.is_dir() || entry_type.is_symlink()) {
-            return Err(format!(
-                "error[package_artifact_entry_unsupported]: unsupported archive entry `{}`",
-                path.display()
-            ));
-        }
-        if entry_type.is_symlink() {
-            let target = entry.link_name().map_err(|error| {
-                format!("error[package_artifact_link_invalid]: invalid link target: {error}")
-            })?;
-            let Some(target) = target else {
-                return Err("error[package_artifact_link_invalid]: missing link target".into());
-            };
-            validate_relative_path(&target)?;
-        }
-        if !entry.unpack_in(destination).map_err(|error| {
-            format!("error[package_artifact_extract_failed]: cannot extract entry: {error}")
-        })? {
-            return Err(format!(
-                "error[package_artifact_path_invalid]: archive entry escapes cache: {}",
-                path.display()
-            ));
-        }
-    }
-    Ok(())
+    terlan_archive::extract_tar_zstd(archive_path, destination)
+        .map_err(|error| format!("error[package_artifact_extract_failed]: {error}"))
 }
 
 /// Finds the sole top-level artifact directory after extraction.

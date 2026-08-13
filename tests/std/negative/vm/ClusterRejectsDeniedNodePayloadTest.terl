@@ -6,7 +6,7 @@ import std.vm.Cluster.{SendAcrossNode}.
 import type std.vm.Cluster.{Frame, Session}.
 
 pub struct LocalOnlyPayload {
-    value: Int
+    value: Int,
 }.
 
 pub impl not SendAcrossNode[LocalOnlyPayload].

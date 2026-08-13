@@ -27,6 +27,6 @@ pub init_composition_event_typechecks(
     bubbles_arg: Bool,
     cancelable_arg: Bool,
     view_arg: Option[WindowProxy],
-    data_arg: JsString
+    data_arg: JsString,
 ): std.core.Unit ->
     receiver.init_composition_event(type_arg, bubbles_arg, cancelable_arg, view_arg, data_arg).

@@ -25,7 +25,7 @@ pub column_number_typechecks(receiver: SecurityPolicyViolationEvent): JsNumber -
     receiver.column_number().
 
 pub disposition_typechecks(
-    receiver: SecurityPolicyViolationEvent
+    receiver: SecurityPolicyViolationEvent,
 ): SecurityPolicyViolationEventDisposition ->
     receiver.disposition().
 

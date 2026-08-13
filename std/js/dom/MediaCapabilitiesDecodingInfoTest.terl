@@ -17,6 +17,6 @@ import type std.js.Dom.MediaCapabilitiesDecodingInfo.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub key_system_access_typechecks(
-    receiver: MediaCapabilitiesDecodingInfo
+    receiver: MediaCapabilitiesDecodingInfo,
 ): Option[MediaKeySystemAccess] ->
     receiver.key_system_access().

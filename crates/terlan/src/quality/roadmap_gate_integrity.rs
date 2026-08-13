@@ -1,12 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use regex::Regex;
 
+use super::support::find_active_roadmap;
 use crate::terlan_quality::{render_failure, QualityResult};
 
-const ROADMAP_RELATIVE_PATH: &str = "docs/roadmap/ROADMAP_0_0_7.md";
 const IMPLEMENTED_ARCHIVE_FILE: &str = "archive/ROADMAP_0_0_7_IMPLEMENTED.md";
 const MULTICORE_ROADMAP_FILE: &str = "ROADMAP_0_0_7_MULTICORE_VM.md";
 const PLANNED_GATES_HEADING: &str = "## Planned Gates";
@@ -16,6 +16,7 @@ const MAKE_FILES: &[&str] = &[
     "crates/terlan/cli.mk",
     "std/stdlib.mk",
     "editors/editor.mk",
+    "mk/code-quality.mk",
 ];
 const COMPLETED_RUST_GATES_VARIABLE: &str = "COMPLETED_SLICE_RUST_GATES";
 
@@ -44,7 +45,7 @@ pub struct RoadmapGateIntegritySummary {
 /// - Turns the active roadmap into a consistency contract so future roadmap
 ///   edits cannot add vague, unwired checklist items.
 pub fn run_roadmap_gate_integrity(root: &Path) -> QualityResult<RoadmapGateIntegritySummary> {
-    let roadmap_path = find_roadmap(root)?;
+    let roadmap_path = find_active_roadmap(root)?;
     let roadmap = fs::read_to_string(&roadmap_path)
         .map_err(|err| format!("{}: failed to read roadmap: {err}", roadmap_path.display()))?;
     let archive_path = roadmap_path
@@ -125,28 +126,6 @@ fn read_make_graph(root: &Path) -> QualityResult<String> {
 }
 
 /// Finds the active roadmap from the compiler root.
-fn find_roadmap(root: &Path) -> QualityResult<PathBuf> {
-    let root = root
-        .canonicalize()
-        .map_err(|err| format!("failed to canonicalize repository root: {err}"))?;
-    let local = root.join(ROADMAP_RELATIVE_PATH);
-    if local.exists() {
-        return Ok(local);
-    }
-    let parent = root
-        .parent()
-        .map(|parent| parent.join(ROADMAP_RELATIVE_PATH))
-        .ok_or_else(|| "repository root has no parent for roadmap lookup".to_string())?;
-    if parent.exists() {
-        return Ok(parent);
-    }
-    Err(format!(
-        "missing active roadmap at `{}` or `{}`",
-        local.display(),
-        parent.display()
-    ))
-}
-
 /// Collects Make targets from the root Make graph files.
 fn collect_make_targets(root: &Path) -> QualityResult<BTreeSet<String>> {
     let target_re = Regex::new(r"^([A-Za-z0-9_.-]+)\s*:").expect("valid Make target regex");
@@ -716,4 +695,5 @@ struct RoadmapSlice {
 
 #[cfg(test)]
 #[path = "roadmap_gate_integrity_test.rs"]
+#[cfg(test)]
 mod roadmap_gate_integrity_test;

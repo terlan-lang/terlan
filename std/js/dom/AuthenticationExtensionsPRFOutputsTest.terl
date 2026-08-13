@@ -20,6 +20,6 @@ pub enabled_typechecks(receiver: AuthenticationExtensionsPRFOutputs): std.core.B
     receiver.enabled().
 
 pub results_typechecks(
-    receiver: AuthenticationExtensionsPRFOutputs
+    receiver: AuthenticationExtensionsPRFOutputs,
 ): AuthenticationExtensionsPRFValues ->
     receiver.results().

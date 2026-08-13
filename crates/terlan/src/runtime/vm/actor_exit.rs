@@ -1,3 +1,4 @@
+#[cfg(test)]
 use super::super::failure::exit_signal_message;
 use super::super::fatal_diagnostics::{VmFatalDiagnosticBundle, VmFatalDiagnosticPolicy};
 use super::{VmActorRuntime, VmExitReason, VmProcessId, ACTOR_OPERATION_REDUCTIONS};
@@ -5,6 +6,7 @@ use crate::runtime::vm::process::VmProcessState;
 
 /// Observable result of delivering one local actor exit signal.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmActorExitSignalOutcome {
     IgnoredNormal,
     DeliveredMessage { message_id: u64 },
@@ -14,6 +16,7 @@ pub(crate) enum VmActorExitSignalOutcome {
 impl VmActorRuntime {
     /// Sends one local exit signal with BEAM-compatible trap, normal, and kill
     /// behavior while retaining Terlan-owned process identities.
+    #[cfg(test)]
     pub(crate) fn send_exit_signal(
         &mut self,
         sender: VmProcessId,
@@ -82,6 +85,7 @@ impl VmActorRuntime {
             self.remove_native_continuation_for_owner(*exited);
             self.resources.cleanup_owner(*exited);
             self.code_server.release_process_bindings(*exited)?;
+            #[cfg(test)]
             self.dynamic_modules.cleanup_owner(*exited);
             for event in self.remove_delayed_messages_for_owner(*exited) {
                 self.consume_postgres_timer_event(&event)?;

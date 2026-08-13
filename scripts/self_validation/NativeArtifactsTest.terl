@@ -1,0 +1,841 @@
+/**
+ * Verifies reproducible Rust-backed standard-library NativeBoundary artifacts.
+ */
+module scripts.self_validation.NativeArtifactsTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.io.Console.{println}.
+import std.io.Directory.{create_all, create_temporary, entries, message, remove_all}.
+import std.io.File.{exists, read_text, read_text_many}.
+import std.system.{Environment, Process}.
+
+import type std.io.File.TextFile.
+import type std.system.Process.{Command}.
+
+struct SourceModule {
+    module_name: String,
+    source: String,
+}.
+
+struct SourceInventory {
+    sources: List[SourceModule],
+    diagnostics: List[String],
+}.
+
+@pure
+manifest_relative(): String -> "std/RUST_BACKED_MANIFEST.tsv".
+
+@pure
+summaries_relative(): String -> "std/summaries".
+
+@pure
+child(root: String, relative: String): String ->
+    if {
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+selected_root(): String ->
+    environment_or("TERLAN_NATIVE_ARTIFACTS_ROOT", Environment.current_directory()).
+
+selected_compiler(root: String): String ->
+    environment_or("TERLAN_NATIVE_ARTIFACTS_TERLC", child(root, "target/debug/terlc")).
+
+selected_rustc(): String ->
+    environment_or("RUSTC", "rustc").
+
+@pure
+add_diagnostic(diagnostics: List[String], message: String): List[String] ->
+    [message | diagnostics].
+
+@pure
+path_diagnostic(path: String, message: String): String ->
+    String.append(path, String.append(": ", message)).
+
+@pure
+line_diagnostic(path: String, line: Int, message: String): String ->
+    String.append(
+        path,
+        String.append(":", String.append(Int.to_string(line), String.append(": ", message))),
+    ).
+
+@pure
+reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_at(values, []).
+
+@pure
+reverse_strings_at(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings_at(rest, [value | reversed])
+    }.
+
+@pure
+reverse_sources(values: List[SourceModule]): List[SourceModule] ->
+    reverse_sources_at(values, []).
+
+@pure
+reverse_sources_at(values: List[SourceModule], reversed: List[SourceModule]): List[SourceModule] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_sources_at(rest, [value | reversed])
+    }.
+
+@pure
+contains_string(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains_string(rest, expected)
+    }.
+
+@pure
+header_holds(parts: List[String]): Bool ->
+    case parts {
+        [module_name | [source | _rest]] -> module_name == "module" and source == "source";
+        _ -> false
+    }.
+
+@pure
+pub parse_manifest(source: String, path: String): SourceInventory ->
+    parse_manifest_lines(String.split(source, "\n"), path, 1, false, [], [], []).
+
+@pure
+parse_manifest_lines(
+    lines: List[String],
+    path: String,
+    line_number: Int,
+    header_seen: Bool,
+    sources: List[SourceModule],
+    seen: List[String],
+    diagnostics: List[String],
+): SourceInventory ->
+    case lines {
+        [] ->
+            let finished =
+                if {
+                    header_seen -> diagnostics;
+                    true -> add_diagnostic(diagnostics, path_diagnostic(path, "missing header"))
+                };
+            SourceInventory(
+                sources = reverse_sources(sources),
+                diagnostics = reverse_strings(finished),
+            );
+        [raw | rest] ->
+            let line = String.trim(raw);
+            if {
+                line == "" or String.starts_with(line, "#") -> parse_manifest_lines(
+                    rest,
+                    path,
+                    line_number + 1,
+                    header_seen,
+                    sources,
+                    seen,
+                    diagnostics,
+                );
+                not header_seen -> let next =
+                    if {
+                        header_holds(String.split(raw, "\t")) -> diagnostics;
+                        true -> add_diagnostic(
+                            diagnostics,
+                            line_diagnostic(path, line_number, "invalid manifest header"),
+                        )
+                    };
+                parse_manifest_lines(rest, path, line_number + 1, true, sources, seen, next);
+                true -> parse_manifest_row(
+                    rest,
+                    path,
+                    line_number,
+                    true,
+                    sources,
+                    seen,
+                    diagnostics,
+                    String.split(raw, "\t"),
+                )
+            }
+    }.
+
+@pure
+parse_manifest_row(
+    rest: List[String],
+    path: String,
+    line_number: Int,
+    header_seen: Bool,
+    sources: List[SourceModule],
+    seen: List[String],
+    diagnostics: List[String],
+    parts: List[String],
+): SourceInventory ->
+    case parts {
+        [module_name | [source | [_operation | [_kind | [_crate | [_symbol | []]]]]]] ->
+            let key = String.append(module_name, String.append("\t", source));
+            if {
+                contains_string(seen, key) -> parse_manifest_lines(
+                    rest,
+                    path,
+                    line_number + 1,
+                    header_seen,
+                    sources,
+                    seen,
+                    diagnostics,
+                );
+                true -> parse_manifest_lines(
+                    rest,
+                    path,
+                    line_number + 1,
+                    header_seen,
+                    [SourceModule(module_name = module_name, source = source) | sources],
+                    [key | seen],
+                    diagnostics,
+                )
+            };
+        _ ->
+            parse_manifest_lines(
+                rest,
+                path,
+                line_number + 1,
+                header_seen,
+                sources,
+                seen,
+                add_diagnostic(
+                    diagnostics,
+                    line_diagnostic(path, line_number, "expected 6 columns"),
+                ),
+            )
+    }.
+
+@pure
+source_count(sources: List[SourceModule]): Int ->
+    source_count_at(sources, 0).
+
+@pure
+source_count_at(sources: List[SourceModule], count: Int): Int ->
+    case sources {
+        [] -> count;
+        [_source | rest] -> source_count_at(rest, count + 1)
+    }.
+
+@pure
+process_failure_text(output: std.system.Process.Output): String ->
+    String.trim_end(String.append(Process.stdout(output), Process.stderr(output))).
+
+emit_command(compiler: String, root: String, source: String, output: String): Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_environment(
+                Process.with_working_directory(
+                    Process.with_arguments(
+                        Process.command(compiler),
+                        [
+                            "--native-policy",
+                            "native_boundary_optional",
+                            "emit-native-metadata",
+                            source,
+                            "--out-dir",
+                            output,
+                        ],
+                    ),
+                    root,
+                ),
+                [Process.environment_entry("CARGO_TERM_COLOR", "never")],
+            ),
+            600000,
+        ),
+        16777216,
+    ).
+
+rustc_command(
+    rustc: String,
+    root: String,
+    artifact: String,
+    output: String,
+    crate_name: String,
+): Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(
+                    Process.command(rustc),
+                    ["--crate-type", "lib", "--crate-name", crate_name, "-o", output, artifact],
+                ),
+                root,
+            ),
+            600000,
+        ),
+        16777216,
+    ).
+
+pub validate(root: String, compiler: String, rustc: String): Bool ->
+    let manifest = child(root, manifest_relative());
+    case read_text(manifest) {
+        Err(_reason) -> report([String.append("missing manifest: ", manifest)]);
+        Ok(source) ->
+            let inventory = parse_manifest(source, manifest);
+            validate_inventory(root, compiler, rustc, inventory)
+    }.
+
+validate_inventory(
+    root: String,
+    compiler: String,
+    rustc: String,
+    inventory: SourceInventory,
+): Bool ->
+    if {
+        diagnostics_empty(inventory.diagnostics) -> create_workspace(root, compiler, rustc, inventory.sources);
+        true -> report(inventory.diagnostics)
+    }.
+
+@pure
+diagnostics_empty(diagnostics: List[String]): Bool ->
+    case diagnostics {
+        [] -> true;
+        _ -> false
+    }.
+
+create_workspace(
+    root: String,
+    compiler: String,
+    rustc: String,
+    sources: List[SourceModule],
+): Bool ->
+    case create_temporary("terlan-std-native-artifacts-") {
+        Err(reason) -> report([message(reason)]);
+        Ok(workspace) -> check_sources(root, compiler, rustc, workspace, sources, sources, 0, [])
+    }.
+
+check_sources(
+    root: String,
+    compiler: String,
+    rustc: String,
+    workspace: String,
+    all_sources: List[SourceModule],
+    remaining: List[SourceModule],
+    index: Int,
+    diagnostics: List[String],
+): Bool ->
+    case remaining {
+        [] -> finish(workspace, source_count(all_sources), diagnostics);
+        [source | rest] ->
+            let output = child(workspace, Int.to_string(index));
+            case create_all(output) {
+                Err(reason) ->
+                    check_sources(
+                        root,
+                        compiler,
+                        rustc,
+                        workspace,
+                        all_sources,
+                        rest,
+                        index + 1,
+                        add_diagnostic(diagnostics, message(reason)),
+                    );
+                Ok(Unit) ->
+                    emit_source(
+                        root,
+                        compiler,
+                        rustc,
+                        workspace,
+                        all_sources,
+                        rest,
+                        index,
+                        source,
+                        output,
+                        diagnostics,
+                    )
+            }
+    }.
+
+emit_source(
+    root: String,
+    compiler: String,
+    rustc: String,
+    workspace: String,
+    all_sources: List[SourceModule],
+    remaining: List[SourceModule],
+    index: Int,
+    source: SourceModule,
+    output: String,
+    diagnostics: List[String],
+): Bool ->
+    case Process.run(emit_command(compiler, root, source.source, output)) {
+        Err(reason) ->
+            next_source(
+                root,
+                compiler,
+                rustc,
+                workspace,
+                all_sources,
+                remaining,
+                index,
+                add_diagnostic(
+                    diagnostics,
+                    String.append(
+                        String.append(source.source, ": emit-native-metadata failed\n"),
+                        Process.error_message(reason),
+                    ),
+                ),
+            );
+        Ok(result) ->
+            if {
+                Process.status(result) == 0 -> discover_artifacts(
+                    root,
+                    compiler,
+                    rustc,
+                    workspace,
+                    all_sources,
+                    remaining,
+                    index,
+                    source,
+                    output,
+                    diagnostics,
+                );
+                true -> next_source(
+                    root,
+                    compiler,
+                    rustc,
+                    workspace,
+                    all_sources,
+                    remaining,
+                    index,
+                    add_diagnostic(
+                        diagnostics,
+                        String.append(
+                            String.append(source.source, ": emit-native-metadata failed\n"),
+                            process_failure_text(result),
+                        ),
+                    ),
+                )
+            }
+    }.
+
+discover_artifacts(
+    root: String,
+    compiler: String,
+    rustc: String,
+    workspace: String,
+    all_sources: List[SourceModule],
+    remaining: List[SourceModule],
+    index: Int,
+    source: SourceModule,
+    output: String,
+    diagnostics: List[String],
+): Bool ->
+    case entries(output) {
+        Err(reason) ->
+            next_source(
+                root,
+                compiler,
+                rustc,
+                workspace,
+                all_sources,
+                remaining,
+                index,
+                add_diagnostic(diagnostics, message(reason)),
+            );
+        Ok(paths) ->
+            check_artifacts(
+                root,
+                compiler,
+                rustc,
+                workspace,
+                all_sources,
+                remaining,
+                index,
+                source,
+                output,
+                paths,
+                0,
+                diagnostics,
+            )
+    }.
+
+@pure
+pub comparable_artifact(path: String): Bool ->
+    String.ends_with(path, ".native_boundary.json") or String.ends_with(path, ".native_boundary.rs").
+
+@pure
+last_component(path: String): String ->
+    last_string(String.split(path, "/"), "").
+
+@pure
+last_string(parts: List[String], current: String): String ->
+    case parts {
+        [] -> current;
+        [part | rest] -> last_string(rest, part)
+    }.
+
+@pure
+pub rust_crate_name(path: String): String ->
+    let name = last_component(path);
+    String.replace(name, ".", "_").
+
+check_artifacts(
+    root: String,
+    compiler: String,
+    rustc: String,
+    workspace: String,
+    all_sources: List[SourceModule],
+    remaining: List[SourceModule],
+    index: Int,
+    source: SourceModule,
+    output: String,
+    paths: List[String],
+    comparable_count: Int,
+    diagnostics: List[String],
+): Bool ->
+    case paths {
+        [] ->
+            let next =
+                if {
+                    comparable_count > 0 -> diagnostics;
+                    true -> add_diagnostic(
+                        diagnostics,
+                        String.append(
+                            source.source,
+                            ": emitted no comparable NativeBoundary artifacts",
+                        ),
+                    )
+                };
+            next_source(root, compiler, rustc, workspace, all_sources, remaining, index, next);
+        [artifact | rest] ->
+            if {
+                comparable_artifact(artifact) -> compare_artifact(
+                    root,
+                    compiler,
+                    rustc,
+                    workspace,
+                    all_sources,
+                    remaining,
+                    index,
+                    source,
+                    output,
+                    artifact,
+                    rest,
+                    comparable_count + 1,
+                    diagnostics,
+                );
+                true -> check_artifacts(
+                    root,
+                    compiler,
+                    rustc,
+                    workspace,
+                    all_sources,
+                    remaining,
+                    index,
+                    source,
+                    output,
+                    rest,
+                    comparable_count,
+                    diagnostics,
+                )
+            }
+    }.
+
+compare_artifact(
+    root: String,
+    compiler: String,
+    rustc: String,
+    workspace: String,
+    all_sources: List[SourceModule],
+    remaining: List[SourceModule],
+    index: Int,
+    source: SourceModule,
+    output: String,
+    artifact: String,
+    rest: List[String],
+    comparable_count: Int,
+    diagnostics: List[String],
+): Bool ->
+    let name = last_component(artifact);
+    let committed_relative = child(summaries_relative(), name);
+    let committed = child(root, committed_relative);
+    if {
+        not exists(committed) -> compile_artifact(
+            root,
+            compiler,
+            rustc,
+            workspace,
+            all_sources,
+            remaining,
+            index,
+            source,
+            output,
+            artifact,
+            rest,
+            comparable_count,
+            add_diagnostic(
+                diagnostics,
+                String.append("missing committed NativeBoundary artifact: ", committed_relative),
+            ),
+        );
+        true -> case read_text_many([artifact, committed]) {
+            Ok([generated | [checked_in | []]]) ->
+                let next = compare_texts(generated, checked_in, committed_relative, diagnostics);
+                compile_artifact(
+                    root,
+                    compiler,
+                    rustc,
+                    workspace,
+                    all_sources,
+                    remaining,
+                    index,
+                    source,
+                    output,
+                    artifact,
+                    rest,
+                    comparable_count,
+                    next,
+                );
+            _ ->
+                compile_artifact(
+                    root,
+                    compiler,
+                    rustc,
+                    workspace,
+                    all_sources,
+                    remaining,
+                    index,
+                    source,
+                    output,
+                    artifact,
+                    rest,
+                    comparable_count,
+                    add_diagnostic(
+                        diagnostics,
+                        String.append("failed to compare NativeBoundary artifact: ", name),
+                    ),
+                )
+        }
+    }.
+
+@pure
+compare_texts(
+    generated: TextFile,
+    committed: TextFile,
+    committed_relative: String,
+    diagnostics: List[String],
+): List[String] ->
+    if {
+        generated.contents == committed.contents -> diagnostics;
+        true -> add_diagnostic(
+            diagnostics,
+            String.append(
+                "stale NativeBoundary artifact: ",
+                String.append(committed_relative, "; run `make stdlib-build-interfaces`"),
+            ),
+        )
+    }.
+
+compile_artifact(
+    root: String,
+    compiler: String,
+    rustc: String,
+    workspace: String,
+    all_sources: List[SourceModule],
+    remaining: List[SourceModule],
+    index: Int,
+    source: SourceModule,
+    output: String,
+    artifact: String,
+    rest: List[String],
+    comparable_count: Int,
+    diagnostics: List[String],
+): Bool ->
+    if {
+        not String.ends_with(artifact, ".native_boundary.rs") -> check_artifacts(
+            root,
+            compiler,
+            rustc,
+            workspace,
+            all_sources,
+            remaining,
+            index,
+            source,
+            output,
+            rest,
+            comparable_count,
+            diagnostics,
+        );
+        true -> let name = last_component(artifact);
+        let crate_name = rust_crate_name(name);
+        let rust_output = child(output, String.append(crate_name, ".rlib"));
+        case Process.run(rustc_command(rustc, root, artifact, rust_output, crate_name)) {
+            Err(reason) ->
+                continue_artifacts(
+                    root,
+                    compiler,
+                    rustc,
+                    workspace,
+                    all_sources,
+                    remaining,
+                    index,
+                    source,
+                    output,
+                    rest,
+                    comparable_count,
+                    add_diagnostic(
+                        diagnostics,
+                        String.append(
+                            String.append(name, ": rustc failed\n"),
+                            Process.error_message(reason),
+                        ),
+                    ),
+                );
+            Ok(result) ->
+                let next =
+                    if {
+                        Process.status(result) == 0 -> diagnostics;
+                        true -> add_diagnostic(
+                            diagnostics,
+                            String.append(
+                                String.append(name, ": rustc failed\n"),
+                                process_failure_text(result),
+                            ),
+                        )
+                    };
+                continue_artifacts(
+                    root,
+                    compiler,
+                    rustc,
+                    workspace,
+                    all_sources,
+                    remaining,
+                    index,
+                    source,
+                    output,
+                    rest,
+                    comparable_count,
+                    next,
+                )
+        }
+    }.
+
+continue_artifacts(
+    root: String,
+    compiler: String,
+    rustc: String,
+    workspace: String,
+    all_sources: List[SourceModule],
+    remaining: List[SourceModule],
+    index: Int,
+    source: SourceModule,
+    output: String,
+    rest: List[String],
+    comparable_count: Int,
+    diagnostics: List[String],
+): Bool ->
+    check_artifacts(
+        root,
+        compiler,
+        rustc,
+        workspace,
+        all_sources,
+        remaining,
+        index,
+        source,
+        output,
+        rest,
+        comparable_count,
+        diagnostics,
+    ).
+
+next_source(
+    root: String,
+    compiler: String,
+    rustc: String,
+    workspace: String,
+    all_sources: List[SourceModule],
+    remaining: List[SourceModule],
+    index: Int,
+    diagnostics: List[String],
+): Bool ->
+    check_sources(root, compiler, rustc, workspace, all_sources, remaining, index + 1, diagnostics).
+
+finish(workspace: String, count: Int, diagnostics: List[String]): Bool ->
+    case remove_all(workspace) {
+        Ok(Unit) -> report_success(count, diagnostics);
+        Err(reason) ->
+            report_success(
+                count,
+                add_diagnostic(
+                    diagnostics,
+                    String.append("temporary workspace cleanup failed: ", message(reason)),
+                ),
+            )
+    }.
+
+report_success(count: Int, diagnostics: List[String]): Bool ->
+    case diagnostics {
+        [] ->
+            let _printed =
+                println(
+                    String.append(
+                        "[stdlib-native-artifacts] ",
+                        String.append(Int.to_string(count), " Rust-backed modules match summaries."),
+                    ),
+                );
+            true;
+        _ -> report(reverse_strings(diagnostics))
+    }.
+
+report(diagnostics: List[String]): Bool ->
+    let _header = println("[stdlib-native-artifacts] failures:");
+    print_diagnostics(diagnostics).
+
+print_diagnostics(diagnostics: List[String]): Bool ->
+    case diagnostics {
+        [] -> false;
+        [entry | rest] ->
+            let _printed = println(String.append("  - ", entry));
+            print_diagnostics(rest)
+    }.
+
+@test
+pub manifest_parser_deduplicates_module_source_pairs(): Bool ->
+    let manifest = "module\tsource\toperation\tkind\tcrate\tsymbol\nstd.data.Json\tstd/data/Json.terl\tparse\tmethod\tterlan\tparse\nstd.data.Json\tstd/data/Json.terl\tget\tmethod\tterlan\tget\n";
+    let inventory = parse_manifest(manifest, "std/RUST_BACKED_MANIFEST.tsv");
+    source_count(inventory.sources) == 1 and inventory.diagnostics == [].
+
+@test
+pub manifest_parser_rejects_header_and_column_errors(): Bool ->
+    let manifest = "bad\tsource\toperation\tkind\tcrate\tsymbol\nonly\ttwo\n";
+    let inventory = parse_manifest(manifest, "std/RUST_BACKED_MANIFEST.tsv");
+    list_length(inventory.diagnostics) == 2.
+
+@test
+pub artifact_classification_and_crate_names_are_stable(): Bool ->
+    comparable_artifact("tmp/std_data_json_native_boundary.native_boundary.json")
+        and comparable_artifact("tmp/std_data_json_native_boundary.native_boundary.rs")
+        and not comparable_artifact("tmp/std.data.Json.typi")
+        and rust_crate_name("std_data_json_native_boundary.native_boundary.rs") == "std_data_json_native_boundary_native_boundary_rs".
+
+@pure
+list_length(values: List[String]): Int ->
+    list_length_at(values, 0).
+
+@pure
+list_length_at(values: List[String], count: Int): Int ->
+    case values {
+        [] -> count;
+        [_value | rest] -> list_length_at(rest, count + 1)
+    }.
+
+@test
+pub repository_native_artifacts_match(): Bool ->
+    let root = selected_root();
+    let compiler = selected_compiler(root);
+    let rustc = selected_rustc();
+    validate(root, compiler, rustc).
+
+pub main(): Unit ->
+    if {
+        repository_native_artifacts_match() -> Unit;
+        true -> println("[stdlib-native-artifacts] validation failed")
+    }.

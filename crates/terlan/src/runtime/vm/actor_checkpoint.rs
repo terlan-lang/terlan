@@ -1,9 +1,8 @@
-use super::{
-    ReplValue, VmActorRuntime, VmMemoryPressureOutcome, VmProcessId, ACTOR_OPERATION_REDUCTIONS,
-};
+use super::*;
 
 impl VmActorRuntime {
     /// Restores ordered mailbox checkpoint values without partial pressure writes.
+    #[cfg(test)]
     pub(crate) fn restore_mailbox_checkpoint(
         &mut self,
         recipient: VmProcessId,

@@ -1,7 +1,6 @@
-#![allow(dead_code)]
-
 //! Deterministic byte framing over VM-owned TCP streams.
 
+#[cfg(test)]
 use super::packet::{
     decode_packet, VmDecodedPacket, VmPacketDecodeOutcome, VmPacketMode, VmPacketOptions,
 };
@@ -9,10 +8,12 @@ use super::tcp::{VmTcpRuntime, VmTcpStream};
 
 #[cfg(test)]
 #[path = "framing_test.rs"]
+#[cfg(test)]
 mod framing_test;
 
 #[cfg(test)]
 #[path = "framing_packet_decode_test.rs"]
+#[cfg(test)]
 mod framing_packet_decode_test;
 
 /// Typed stream framing failure.
@@ -27,6 +28,7 @@ pub(crate) enum VmFramingError {
     InvalidFrame,
     BackpressureExceeded,
     Closed,
+    #[cfg(test)]
     Timeout,
     Cancelled,
 }
@@ -68,11 +70,13 @@ impl VmInMemoryFrameReader {
     }
 
     /// Returns staged bytes that were read but not yet framed.
+    #[cfg(test)]
     pub(crate) fn buffered_len(&self) -> usize {
         self.buffer.len()
     }
 
     /// Reads up to `max_bytes` from the underlying stream without framing.
+    #[cfg(test)]
     pub(crate) fn read(
         &mut self,
         tcp: &mut VmTcpRuntime,
@@ -97,11 +101,13 @@ impl VmInMemoryFrameReader {
     }
 
     /// Closes the stream handle.
+    #[cfg(test)]
     pub(crate) fn close(&mut self, tcp: &mut VmTcpRuntime) -> Result<(), VmFramingError> {
         map_tcp_unit(tcp.close_stream(self.stream))
     }
 
     /// Reads an exact byte count when enough bytes are available.
+    #[cfg(test)]
     pub(crate) fn read_exact(
         &mut self,
         tcp: &mut VmTcpRuntime,
@@ -118,6 +124,7 @@ impl VmInMemoryFrameReader {
     }
 
     /// Reads an exact byte count or reports timeout for a pending frame.
+    #[cfg(test)]
     pub(crate) fn read_exact_with_timeout(
         &mut self,
         tcp: &mut VmTcpRuntime,
@@ -132,6 +139,7 @@ impl VmInMemoryFrameReader {
     }
 
     /// Reads until `delimiter`, returning bytes before the delimiter.
+    #[cfg(test)]
     pub(crate) fn read_until(
         &mut self,
         tcp: &mut VmTcpRuntime,
@@ -195,6 +203,7 @@ impl VmInMemoryFrameReader {
     }
 
     /// Reads one typed packet while retaining incomplete bytes across polls.
+    #[cfg(test)]
     pub(crate) fn read_packet(
         &mut self,
         tcp: &mut VmTcpRuntime,
@@ -279,6 +288,7 @@ fn map_tcp_send(result: Result<usize, String>) -> Result<usize, VmFramingError> 
     result.map_err(map_tcp_error)
 }
 
+#[cfg(test)]
 fn map_tcp_unit(result: Result<(), String>) -> Result<(), VmFramingError> {
     result.map_err(map_tcp_error)
 }

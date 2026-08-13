@@ -32,7 +32,7 @@ editor-help:
 editor-check: lsp-outline-check vscode-extension-check tree-sitter-package-check neovim-editor-check emacs-editor-check intellij-editor-check shared-editor-icon-check shared-editor-contract-check editor-runnable-debug-launch-check editor-semantic-token-icon-check editor-diagnostic-parity-check editor-extension-install-update-check editor-debugger-surface-check
 
 lsp-outline-check:
-	$(RUST_TEST) --locked -p terlan --features editor-lsp --bin terlan-lsp document_symbol -- --nocapture
+	$(RUST_TEST) --locked -p terlan --features editor-lsp --lib document_symbol -- --nocapture
 
 editor-definition-navigation-check:
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- editor-definition-navigation-report
@@ -90,6 +90,7 @@ emacs-editor-check:
 
 intellij-editor-check:
 	node editors/intellij/test/package_smoke_test.js
+	cd editors/intellij && ./gradlew --no-daemon clean compileKotlin buildPlugin verifyPluginProjectConfiguration
 
 shared-editor-icon-check:
 	node editors/shared/test/icon_smoke_test.js

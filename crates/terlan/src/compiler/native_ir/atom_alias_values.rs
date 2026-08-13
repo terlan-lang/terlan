@@ -8,6 +8,7 @@ use crate::terlan_typeck::{
 
 #[cfg(test)]
 #[path = "atom_alias_values_test.rs"]
+#[cfg(test)]
 mod atom_alias_values_test;
 
 #[derive(Clone)]
@@ -143,7 +144,15 @@ fn is_atom_alias_variant(variant: &CoreType, declarations: &HashMap<&str, &CoreT
 fn rewrite(expr: &mut CoreExpr, aliases: &HashMap<String, AliasValue>) {
     if let CoreExpr::Var(name) = expr {
         if let Some(value) = aliases.get(name) {
-            *expr = CoreExpr::Atom(value.atom.clone());
+            let atom = if name.rsplit('.').next() == Some("Unit") && value.atom == "unit" {
+                // NativeIR carries Unit as its own zero-width value kind. Keep
+                // the sentinel spelling recognized by native lowering instead
+                // of erasing it into a broad runtime atom.
+                "Unit".to_string()
+            } else {
+                value.atom.clone()
+            };
+            *expr = CoreExpr::Atom(atom);
         }
         return;
     }

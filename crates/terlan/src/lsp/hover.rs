@@ -5,8 +5,8 @@ use crate::terlan_purity::{
     infer_body_available_pure_callables, syntax_declaration_callable_identity, CallableIdentity,
 };
 use crate::terlan_syntax::{
-    parse_module_as_syntax_output, SyntaxDeclarationOutput, SyntaxDeclarationPayload,
-    SyntaxModuleOutput, SyntaxParamOutput, SyntaxTraitMethodOutput,
+    SyntaxDeclarationOutput, SyntaxDeclarationPayload, SyntaxModuleOutput, SyntaxParamOutput,
+    SyntaxTraitMethodOutput,
 };
 use tower_lsp::lsp_types::{Hover, HoverContents, MarkupContent, MarkupKind, Position, Url};
 
@@ -35,7 +35,7 @@ pub(crate) fn hover_for_position(
 ) -> Option<Hover> {
     let byte_offset = document.byte_offset_from_position(position)?;
     let identifier = Backend::identifier_at_byte_offset(&document.text, byte_offset)?;
-    let module = parse_module_as_syntax_output(&document.text).ok()?;
+    let module = document.parse_syntax().ok()?;
     let interfaces = OpenDocuments::interfaces_for_uri(uri);
     let qualifier = qualifier_before_identifier(&document.text, byte_offset);
 
@@ -939,4 +939,5 @@ fn hover_markdown(kind: &str, name: &str, signature: &str, docs: &[String]) -> O
 
 #[cfg(test)]
 #[path = "hover_test.rs"]
+#[cfg(test)]
 mod hover_test;

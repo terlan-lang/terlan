@@ -7,7 +7,7 @@
 # - Exact per-API release-test manifest in tests/std/RELEASE_API_TESTS.tsv.
 #
 # Output:
-# - A tab-separated manifest consumed by std/scripts/check_release_manifest.py.
+# - A tab-separated manifest consumed by std/scripts/ReleaseManifestTest.terl.
 #
 # Transformation:
 # - Ties each release-owned std module to its source, summary, generated docs,
@@ -28,7 +28,9 @@ module	std.collections.KeyedEnumerable	std/collections/KeyedEnumerable.terl	std/
 module	std.collections.List	std/collections/List.terl	std/summaries/std.collections.List.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.List.html
 module	std.collections.Map	std/collections/Map.terl	std/summaries/std.collections.Map.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.Map.html
 module	std.collections.Set	std/collections/Set.terl	std/summaries/std.collections.Set.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.Set.html
+module	std.crypto.Hash	std/crypto/Hash.terl	std/summaries/std.crypto.Hash.typi	tests/std/RELEASE_API_TESTS.tsv	std.crypto.Hash.html
 module	std.data.Json	std/data/Json.terl	std/summaries/std.data.Json.typi	tests/std/RELEASE_API_TESTS.tsv	std.data.Json.html
+module	std.data.Toml	std/data/Toml.terl	std/summaries/std.data.Toml.typi	tests/std/RELEASE_API_TESTS.tsv	std.data.Toml.html
 module	std.db.Postgres	std/db/Postgres.terl	std/summaries/std.db.Postgres.typi	tests/std/RELEASE_API_TESTS.tsv	std.db.Postgres.html
 module	std.encoding.Base64	std/encoding/Base64.terl	std/summaries/std.encoding.Base64.typi	tests/std/RELEASE_API_TESTS.tsv	std.encoding.Base64.html
 module	std.encoding.Md5	std/encoding/Md5.terl	std/summaries/std.encoding.Md5.typi	tests/std/RELEASE_API_TESTS.tsv	std.encoding.Md5.html
@@ -36,6 +38,7 @@ module	std.vm.Cluster	std/vm/Cluster.terl	std/summaries/std.vm.Cluster.typi	test
 module	std.vm.DistributedState	std/vm/DistributedState.terl	std/summaries/std.vm.DistributedState.typi	tests/std/RELEASE_API_TESTS.tsv	std.vm.DistributedState.html
 module	std.vm.DistributedStorage	std/vm/DistributedStorage.terl	std/summaries/std.vm.DistributedStorage.typi	tests/std/RELEASE_API_TESTS.tsv	std.vm.DistributedStorage.html
 module	std.vm.Fault	std/vm/Fault.terl	std/summaries/std.vm.Fault.typi	tests/std/RELEASE_API_TESTS.tsv	std.vm.Fault.html
+module	std.vm.Process	std/vm/Process.terl	std/summaries/std.vm.Process.typi	tests/std/RELEASE_API_TESTS.tsv	std.vm.Process.html
 module	std.vm.Scheduler	std/vm/Scheduler.terl	std/summaries/std.vm.Scheduler.typi	tests/std/RELEASE_API_TESTS.tsv	std.vm.Scheduler.html
 module	std.vm.Task	std/vm/Task.terl	std/summaries/std.vm.Task.typi	tests/std/RELEASE_API_TESTS.tsv	std.vm.Task.html
 module	std.http.Cookies	std/http/Cookies.terl	std/summaries/std.http.Cookies.typi	tests/std/RELEASE_API_TESTS.tsv	std.http.Cookies.html
@@ -76,10 +79,13 @@ module	std.core.Object	std/core/Object.terl	std/summaries/std.core.Object.typi	t
 module	std.core.Option	std/core/Option.terl	std/summaries/std.core.Option.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Option.html
 module	std.core.Ordering	std/core/Ordering.terl	std/summaries/std.core.Ordering.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Ordering.html
 module	std.core.Result	std/core/Result.terl	std/summaries/std.core.Result.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Result.html
+module	std.core.Secret	std/core/Secret.terl	std/summaries/std.core.Secret.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Secret.html
 module	std.core.String	std/core/String.terl	std/summaries/std.core.String.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.String.html
 module	std.core.Task	std/core/Task.terl	std/summaries/std.core.Task.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Task.html
 module	std.core.Unit	std/core/Unit.terl	std/summaries/std.core.Unit.typi	tests/std/RELEASE_API_TESTS.tsv	std.core.Unit.html
+module	std.io.Archive	std/io/Archive.terl	std/summaries/std.io.Archive.typi	tests/std/RELEASE_API_TESTS.tsv	std.io.Archive.html
 module	std.io.Console	std/io/Console.terl	std/summaries/std.io.Console.typi	tests/std/RELEASE_API_TESTS.tsv	std.io.Console.html
+module	std.io.Directory	std/io/Directory.terl	std/summaries/std.io.Directory.typi	tests/std/RELEASE_API_TESTS.tsv	std.io.Directory.html
 module	std.io.File	std/io/File.terl	std/summaries/std.io.File.typi	tests/std/RELEASE_API_TESTS.tsv	std.io.File.html
 module	std.io.Path	std/io/Path.terl	std/summaries/std.io.Path.typi	tests/std/RELEASE_API_TESTS.tsv	std.io.Path.html
 module	std.log.Log	std/log/Log.terl	std/summaries/std.log.Log.typi	tests/std/RELEASE_API_TESTS.tsv	std.log.Log.html
@@ -88,6 +94,9 @@ module	std.random.Random	std/random/Random.terl	std/summaries/std.random.Random.
 module	std.regex.Regex	std/regex/Regex.terl	std/summaries/std.regex.Regex.typi	tests/std/RELEASE_API_TESTS.tsv	std.regex.Regex.html
 module	std.native.collections.Vector	std/native/collections/Vector.terl	std/summaries/std.native.collections.Vector.typi	tests/std/RELEASE_API_TESTS.tsv	std.native.collections.Vector.html
 module	std.sync.Resource	std/sync/Resource.terl	std/summaries/std.sync.Resource.typi	tests/std/RELEASE_API_TESTS.tsv	std.sync.Resource.html
+module	std.system.Arguments	std/system/Arguments.terl	std/summaries/std.system.Arguments.typi	tests/std/RELEASE_API_TESTS.tsv	std.system.Arguments.html
+module	std.system.Environment	std/system/Environment.terl	std/summaries/std.system.Environment.typi	tests/std/RELEASE_API_TESTS.tsv	std.system.Environment.html
+module	std.vcs.Git	std/vcs/Git.terl	std/summaries/std.vcs.Git.typi	tests/std/RELEASE_API_TESTS.tsv	std.vcs.Git.html
 module	std.test.Gen	std/test/Gen.terl	std/summaries/std.test.Gen.typi	tests/std/RELEASE_API_TESTS.tsv	std.test.Gen.html
 module	std.test.Shrink	std/test/Shrink.terl	std/summaries/std.test.Shrink.typi	tests/std/RELEASE_API_TESTS.tsv	std.test.Shrink.html
 module	std.test.Test	std/test/Test.terl	std/summaries/std.test.Test.typi	tests/std/RELEASE_API_TESTS.tsv	std.test.Test.html

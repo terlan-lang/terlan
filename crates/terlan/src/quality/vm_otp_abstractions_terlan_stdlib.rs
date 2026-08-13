@@ -10,6 +10,36 @@ const BEHAVIOR_MODULES: &[(&str, &str)] = &[
     ("std/vm/Task.terl", "std.vm.Task"),
 ];
 
+const SOURCE_IMPLEMENTED_MODULES: &[&str] = &[
+    "std/vm/Agent.terl",
+    "std/vm/GenServer.terl",
+    "std/vm/Supervisor.terl",
+    "std/vm/Task.terl",
+];
+
+const EXECUTABLE_EVIDENCE: &[(&str, &str)] = &[
+    (
+        "tests/language/VmServiceActorTest.terl",
+        "agent_service_orders_state_and_discards_stale_replies",
+    ),
+    (
+        "tests/language/VmServiceActorTest.terl",
+        "gen_server_init_call_cast_timeout_terminate_and_policy_wrappers_execute",
+    ),
+    (
+        "tests/language/VmServiceActorTest.terl",
+        "monitored_child_crash_does_not_crash_the_watcher",
+    ),
+    (
+        "tests/language/VmServiceActorTest.terl",
+        "task_result_monitor_and_cancel_execute_from_terlan",
+    ),
+    (
+        "tests/language/VmSupervisorPolicyTest.terl",
+        "restart_strategies_select_ordered_children",
+    ),
+];
+
 const COMPILER_INTRINSIC_FILES: &[&str] = &[
     "crates/terlan/src/compiler/typeck/core_ir/intrinsics.rs",
     "crates/terlan/src/compiler/typeck/core_intrinsic_lowering/registry.rs",
@@ -58,6 +88,7 @@ pub struct VmOtpAbstractionsTerlanStdlibSummary {
     pub pending_framework_intrinsic_count: usize,
     pub runtime_magic_count: usize,
     pub policy_doc_count: usize,
+    pub executable_evidence_count: usize,
 }
 
 /// Runs the gate that keeps OTP-style abstractions out of direct VM runtime magic.
@@ -68,8 +99,7 @@ pub struct VmOtpAbstractionsTerlanStdlibSummary {
 /// Output:
 /// - Success summary when framework abstractions have Terlan stdlib modules,
 ///   direct VM runtime code does not implement framework intrinsic keys, and
-///   remaining compiler-level framework intrinsics are inventoried as migration
-///   debt.
+///   compiler-level framework intrinsics have been removed.
 /// - Stable diagnostics for missing stdlib modules or new runtime magic.
 /// - Stable diagnostics when the VM-mechanics versus Terlan-policy boundary
 ///   is no longer documented for runtime and stdlib authors.
@@ -83,8 +113,14 @@ pub fn run_vm_otp_abstractions_terlan_stdlib(
 ) -> QualityResult<VmOtpAbstractionsTerlanStdlibSummary> {
     let mut diagnostics = Vec::new();
     diagnostics.extend(validate_behavior_modules(root)?);
+    diagnostics.extend(validate_executable_evidence(root)?);
     diagnostics.extend(validate_policy_docs(root)?);
     let pending_framework_intrinsic_count = count_pending_framework_intrinsics(root)?;
+    if pending_framework_intrinsic_count != 0 {
+        diagnostics.push(format!(
+            "compiler contains {pending_framework_intrinsic_count} high-level framework intrinsic marker(s); Agent, GenServer, Supervisor, and Task must lower through Terlan stdlib over hard VM primitives"
+        ));
+    }
     let runtime_magic = find_runtime_framework_magic(root)?;
     diagnostics.extend(runtime_magic.iter().map(|finding| {
         format!(
@@ -101,6 +137,7 @@ pub fn run_vm_otp_abstractions_terlan_stdlib(
         pending_framework_intrinsic_count,
         runtime_magic_count: runtime_magic.len(),
         policy_doc_count: POLICY_DOCS.len(),
+        executable_evidence_count: EXECUTABLE_EVIDENCE.len(),
     })
 }
 
@@ -126,6 +163,34 @@ fn validate_behavior_modules(root: &Path) -> QualityResult<Vec<String>> {
         if !text.contains("@target.vm") {
             diagnostics.push(format!(
                 "{relative}: VM behavior stdlib module must declare VM target metadata"
+            ));
+        }
+        if SOURCE_IMPLEMENTED_MODULES.contains(relative)
+            && text.lines().any(|line| line.trim() == "native.")
+        {
+            diagnostics.push(format!(
+                "{relative}: high-level service abstraction must execute as Terlan source, not a native placeholder"
+            ));
+        }
+    }
+    Ok(diagnostics)
+}
+
+fn validate_executable_evidence(root: &Path) -> QualityResult<Vec<String>> {
+    let mut diagnostics = Vec::new();
+    for (relative, selector) in EXECUTABLE_EVIDENCE {
+        let text = match fs::read_to_string(root.join(relative)) {
+            Ok(text) => text,
+            Err(err) => {
+                diagnostics.push(format!(
+                    "{relative}: missing executable Terlan service evidence: {err}"
+                ));
+                continue;
+            }
+        };
+        if !text.contains(&format!("pub {selector}(")) {
+            diagnostics.push(format!(
+                "{relative}: missing executable Terlan service case `{selector}`"
             ));
         }
     }
@@ -228,4 +293,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_otp_abstractions_terlan_stdlib_test.rs"]
+#[cfg(test)]
 mod vm_otp_abstractions_terlan_stdlib_test;

@@ -120,6 +120,16 @@ fn inventory_expr(expr: &CoreExpr, layouts: &mut BTreeSet<Vec<u8>>) -> Result<()
             ) {
                 inventory_map_entry_list(&call.return_type, layouts)?;
             }
+            if matches!(
+                call.id,
+                CoreIntrinsicId::Primitive(
+                    CorePrimitiveIntrinsic::ListIterator
+                        | CorePrimitiveIntrinsic::MapIterator
+                        | CorePrimitiveIntrinsic::SetIterator
+                )
+            ) {
+                inventory_iterator_storage(&call.return_type, layouts)?;
+            }
             inventory_exprs(&call.args, layouts)
         }
         CoreExpr::Cast { expr, target_type } => {
@@ -275,6 +285,22 @@ fn inventory_map_entry_list(map: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> 
     inventory_type(&CoreType::List(Box::new(pair)), layouts)
 }
 
+/// Iterators use immutable managed lists as their direct-AOT physical storage.
+/// The public opaque `Iterator[T]` type alone does not inventory that backing
+/// collection, so every iterator intrinsic must admit `List[T]` explicitly.
+fn inventory_iterator_storage(
+    iterator: &CoreType,
+    layouts: &mut BTreeSet<Vec<u8>>,
+) -> Result<(), String> {
+    let CoreType::Apply { constructor, args } = iterator else {
+        return Ok(());
+    };
+    if constructor.rsplit('.').next() != Some("Iterator") || args.len() != 1 {
+        return Ok(());
+    }
+    inventory_type(&CoreType::List(Box::new(args[0].clone())), layouts)
+}
+
 /// Inserts one canonical list schema.
 fn insert_list(
     collection: &CoreType,
@@ -341,4 +367,5 @@ fn collection_schema_error(error: impl std::fmt::Display) -> String {
 
 #[cfg(test)]
 #[path = "collections_test.rs"]
+#[cfg(test)]
 mod collections_test;

@@ -1,5 +1,14 @@
 use super::*;
 
+/// Visible aliases and qualified type names used to parse declarations.
+#[derive(Clone, Copy)]
+pub(super) struct TypeResolutionEnvironment<'a> {
+    pub(super) alias_names: &'a HashSet<String>,
+    pub(super) imported_type_names: &'a HashMap<String, QualifiedTypeName>,
+    pub(super) imported_type_aliases: &'a HashMap<String, TypeAlias>,
+    pub(super) local_aliases: &'a HashMap<String, TypeAlias>,
+}
+
 mod struct_schemes;
 pub(super) use struct_schemes::{collect_imported_struct_schemes, collect_syntax_struct_schemes};
 
@@ -47,10 +56,12 @@ pub(super) fn collect_syntax_function_signatures(
                     &return_type.text,
                     generic_params,
                     generic_bounds,
-                    alias_names,
-                    imported_type_names,
-                    imported_type_aliases,
-                    local_aliases,
+                    TypeResolutionEnvironment {
+                        alias_names,
+                        imported_type_names,
+                        imported_type_aliases,
+                        local_aliases,
+                    },
                 );
                 map.entry((name.clone(), params.len()))
                     .or_insert_with(Vec::new)
@@ -68,10 +79,12 @@ pub(super) fn collect_syntax_function_signatures(
                         &native_sig.return_type,
                         &Vec::new(),
                         &Vec::new(),
-                        alias_names,
-                        imported_type_names,
-                        imported_type_aliases,
-                        local_aliases,
+                        TypeResolutionEnvironment {
+                            alias_names,
+                            imported_type_names,
+                            imported_type_aliases,
+                            local_aliases,
+                        },
                     );
                     map.entry((native_sig.name, native_sig.arity))
                         .or_insert_with(Vec::new)
@@ -109,11 +122,14 @@ pub(super) fn function_decl_to_scheme(
     return_annotation: &str,
     generic_params: &[String],
     generic_bounds: &[String],
-    alias_names: &HashSet<String>,
-    imported_type_names: &HashMap<String, QualifiedTypeName>,
-    imported_type_aliases: &HashMap<String, TypeAlias>,
-    local_aliases: &HashMap<String, TypeAlias>,
+    environment: TypeResolutionEnvironment<'_>,
 ) -> FunctionScheme {
+    let TypeResolutionEnvironment {
+        alias_names,
+        imported_type_names,
+        imported_type_aliases,
+        local_aliases,
+    } = environment;
     let mut vars = HashMap::new();
     let mut next_var: TypeVarId = 0;
     for param in generic_params {
@@ -554,7 +570,7 @@ pub(super) fn primitive_type_names() -> HashSet<String> {
 ///   access checks.
 pub(super) fn collect_syntax_struct_fields(
     module: &SyntaxModuleOutput,
-    alias_names: &HashSet<String>,
+    environment: TypeResolutionEnvironment<'_>,
 ) -> HashMap<String, HashMap<String, Type>> {
     let mut out = HashMap::new();
 
@@ -570,11 +586,18 @@ pub(super) fn collect_syntax_struct_fields(
         for field in fields {
             let ty = parse_type_expr(
                 &field.annotation.text,
-                alias_names,
+                environment.alias_names,
                 &mut vars,
                 &mut next_var,
             )
             .unwrap_or(Type::Dynamic);
+            let ty = expand_imported_aliases_except_named(
+                &ty,
+                environment.imported_type_aliases,
+                environment.imported_type_names,
+                environment.local_aliases,
+            );
+            let ty = qualify_type_names(&ty, environment.imported_type_names);
             field_types.insert(field.name.clone(), ty);
         }
 

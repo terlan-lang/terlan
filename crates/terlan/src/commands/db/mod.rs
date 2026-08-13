@@ -573,7 +573,7 @@ fn prepare_local_database_dependencies(
     directory: &Path,
     config: &ResolvedDatabaseConfig,
 ) -> Result<Option<dev_dependencies::DevDependencySession>, String> {
-    let target = parse_database_target(config.config.url())?;
+    let target = parse_database_target(config.config.url()).map_err(|error| error.to_string())?;
     if !is_local_database_host(&target.host) {
         return Ok(None);
     }
@@ -601,279 +601,15 @@ struct MigrationStatusSummary {
     pending: usize,
 }
 
-/// Resolved database configuration for live `terlc db` commands.
-///
-/// Inputs:
-/// - Produced from `--database-url` or `TERLAN_DATABASE_URL`.
-///
-/// Output:
-/// - Validated Postgres config plus a source label for diagnostics.
-///
-/// Transformation:
-/// - Keeps command parsing separate from configuration validation and avoids
-///   exposing the database URL in user-facing adapter-gated messages.
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct ResolvedDatabaseConfig {
-    config: postgres::Config,
-    source: DatabaseConfigSource,
-}
-
-impl ResolvedDatabaseConfig {
-    /// Returns a user-facing source label.
-    ///
-    /// Inputs:
-    /// - `self`: resolved database configuration.
-    ///
-    /// Output:
-    /// - Stable diagnostic label for the source of the database URL.
-    ///
-    /// Transformation:
-    /// - Converts the enum source into text without exposing secret URL data.
-    fn source_label(&self) -> &'static str {
-        match self.source {
-            DatabaseConfigSource::CommandLine => "--database-url",
-            DatabaseConfigSource::Environment => DATABASE_URL_ENV,
-        }
-    }
-
-    /// Returns a redacted target summary for database diagnostics.
-    ///
-    /// Inputs:
-    /// - `self`: resolved database configuration.
-    ///
-    /// Output:
-    /// - Host/database text without user info, password, query, or fragment
-    ///   data.
-    ///
-    /// Transformation:
-    /// - Parses the already validated URL and extracts only routing identity
-    ///   for destructive-command confirmation messages.
-    fn target_summary(&self) -> String {
-        match parse_database_target(self.config.url()) {
-            Ok(target) => target.summary(),
-            Err(_) => "host=<invalid> database=<invalid>".to_string(),
-        }
-    }
-}
-
-/// Source of a database URL used by a live DB command.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum DatabaseConfigSource {
-    CommandLine,
-    Environment,
-}
-
-/// Parsed, redacted Postgres target identity.
-///
-/// Inputs:
-/// - Produced from a validated Postgres URL.
-///
-/// Output:
-/// - Host and database name used for diagnostics and development safeguards.
-///
-/// Transformation:
-/// - Drops credentials and option values while retaining protected transport
-///   option names required by destructive-command safety checks.
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct DatabaseTarget {
-    host: String,
-    database: String,
-    protected_transport_option: Option<String>,
-}
-
-impl DatabaseTarget {
-    /// Formats this target for user-facing diagnostics.
-    ///
-    /// Inputs:
-    /// - `self`: parsed target identity.
-    ///
-    /// Output:
-    /// - Compact host/database summary.
-    ///
-    /// Transformation:
-    /// - Uses stable labels so tests and scripts can match the message shape.
-    fn summary(&self) -> String {
-        format!("host={} database={}", self.host, self.database)
-    }
-}
-
-/// Validates a destructive command's database target as development-scoped.
-///
-/// Inputs:
-/// - `command`: destructive command name.
-/// - `config`: resolved and scheme-validated Postgres configuration.
-/// - `confirmed`: independent destructive-action confirmation.
-///
-/// Output:
-/// - `Ok(())` only for confirmed loopback targets without protected transport.
-/// - User-facing error when the target looks unsafe for destructive work.
-///
-/// Transformation:
-/// - Applies a conservative static guard before live migration execution exists.
-fn validate_development_database_config(
-    command: &str,
-    config: &ResolvedDatabaseConfig,
-    confirmed: bool,
-) -> Result<(), String> {
-    let target = parse_database_target(config.config.url())?;
-    if !is_local_database_host(&target.host) {
-        return Err(format!(
-            "terlc db {command} refuses non-local destructive database target {} from {}; use localhost, 127.0.0.1, or ::1",
-            target.summary(),
-            config.source_label()
-        ));
-    }
-    if let Some(option) = &target.protected_transport_option {
-        return Err(format!(
-            "terlc db {command} refuses destructive database target {} with protected transport option `{option}`",
-            target.summary()
-        ));
-    }
-    if !confirmed {
-        return Err(format!(
-            "terlc db {command} requires --confirm for destructive database target {}",
-            target.summary()
-        ));
-    }
-    Ok(())
-}
-
-/// Parses redacted target identity from a Postgres URL.
-///
-/// Inputs:
-/// - `url`: validated Postgres URL text.
-///
-/// Output:
-/// - Host and database name, or a stable invalid-target message.
-///
-/// Transformation:
-/// - Delegates URL parsing to the `url` crate and extracts only non-secret
-///   fields plus protected transport option names needed by safety checks.
-fn parse_database_target(url: &str) -> Result<DatabaseTarget, String> {
-    let parsed =
-        url::Url::parse(url).map_err(|error| format!("invalid Postgres database URL: {error}"))?;
-    let host = parsed
-        .host_str()
-        .filter(|host| !host.trim().is_empty())
-        .ok_or_else(|| "Postgres database URL must include a host".to_string())?;
-    let database = parsed
-        .path_segments()
-        .and_then(|mut segments| segments.find(|segment| !segment.trim().is_empty()))
-        .ok_or_else(|| "Postgres database URL must include a database name".to_string())?;
-    Ok(DatabaseTarget {
-        host: host.to_string(),
-        database: database.to_string(),
-        protected_transport_option: protected_transport_option(&parsed),
-    })
-}
-
-/// Returns whether a database host is loopback-local.
-///
-/// Inputs:
-/// - `host`: normalized host extracted by the URL parser.
-///
-/// Output:
-/// - `true` only for explicit loopback host spellings.
-///
-/// Transformation:
-/// - Does not infer safety from a remote database name.
-fn is_local_database_host(host: &str) -> bool {
-    matches!(host, "localhost" | "127.0.0.1" | "::1" | "[::1]")
-}
-
-/// Returns the first TLS or certificate option that protects a target.
-fn protected_transport_option(url: &url::Url) -> Option<String> {
-    url.query_pairs().find_map(|(key, value)| {
-        let key = key.to_ascii_lowercase();
-        let value = value.to_ascii_lowercase();
-        let protected = matches!(
-            key.as_str(),
-            "sslcert" | "sslkey" | "sslrootcert" | "sslcrl" | "sslcrldir"
-        ) || (key == "sslmode"
-            && matches!(value.as_str(), "require" | "verify-ca" | "verify-full"))
-            || (matches!(key.as_str(), "ssl" | "tls")
-                && matches!(value.as_str(), "1" | "true" | "require"));
-        protected.then_some(key)
-    })
-}
-
-/// Resolves an optional database config from CLI or environment input.
-///
-/// Inputs:
-/// - `database_url`: optional URL supplied through `--database-url`.
-///
-/// Output:
-/// - `Ok(Some(config))` when CLI or environment provided a valid URL.
-/// - `Ok(None)` when neither source provided a URL.
-/// - `Err(message)` for invalid Postgres configuration.
-///
-/// Transformation:
-/// - Reads `TERLAN_DATABASE_URL`, prefers explicit CLI input, and validates the
-///   resulting URL through the shared Postgres validator.
-fn resolve_optional_database_config(
-    database_url: Option<String>,
-) -> Result<Option<ResolvedDatabaseConfig>, String> {
-    let env_url = env::var(DATABASE_URL_ENV).ok();
-    resolve_optional_database_config_from_sources(database_url, env_url)
-}
-
-/// Resolves a required database config from CLI or environment input.
-///
-/// Inputs:
-/// - `database_url`: optional URL supplied through `--database-url`.
-///
-/// Output:
-/// - Validated database config or a user-facing missing/invalid configuration
-///   message.
-///
-/// Transformation:
-/// - Reuses optional resolution and upgrades missing config into the required
-///   live-command diagnostic.
-fn resolve_required_database_config(
-    database_url: Option<String>,
-) -> Result<ResolvedDatabaseConfig, String> {
-    resolve_optional_database_config(database_url)?.ok_or_else(|| {
-        format!("terlc db requires --database-url or {DATABASE_URL_ENV} for live database commands")
-    })
-}
-
-/// Resolves database config from explicit testable sources.
-///
-/// Inputs:
-/// - `database_url`: command-line URL.
-/// - `env_url`: environment URL.
-///
-/// Output:
-/// - Optional validated config or an invalid-config message.
-///
-/// Transformation:
-/// - Gives tests deterministic control over source precedence without mutating
-///   process environment variables.
-fn resolve_optional_database_config_from_sources(
-    database_url: Option<String>,
-    env_url: Option<String>,
-) -> Result<Option<ResolvedDatabaseConfig>, String> {
-    let (url, source) = match database_url {
-        Some(url) => (url, DatabaseConfigSource::CommandLine),
-        None => match env_url {
-            Some(url) => (url, DatabaseConfigSource::Environment),
-            None => return Ok(None),
-        },
-    };
-    if url.trim().is_empty() {
-        return Err(format!(
-            "{} must not be empty",
-            match source {
-                DatabaseConfigSource::CommandLine => "--database-url",
-                DatabaseConfigSource::Environment => DATABASE_URL_ENV,
-            }
-        ));
-    }
-    let config = postgres::Config::new(url);
-    postgres::validate_config(&config)
-        .map_err(|error| format!("invalid Postgres database URL: {}", error.message()))?;
-    Ok(Some(ResolvedDatabaseConfig { config, source }))
-}
+mod database_config;
+use database_config::{
+    is_local_database_host, parse_database_target, resolve_optional_database_config,
+    resolve_required_database_config, validate_development_database_config, ResolvedDatabaseConfig,
+};
+#[cfg(test)]
+pub(crate) use database_config::{
+    resolve_optional_database_config_from_sources, DatabaseConfigSource,
+};
 
 impl MigrationStatusSummary {
     /// Builds a status summary from migration status entries.
@@ -981,13 +717,17 @@ fn migration_template(name: &str) -> String {
 }
 
 #[cfg(all(test, not(feature = "serve-runtime-bin"), feature = "postgres-libpq"))]
+#[cfg(test)]
 #[path = "live_test.rs"]
+#[cfg(test)]
 mod live_test;
 #[cfg(test)]
 #[path = "migration_test.rs"]
+#[cfg(test)]
 mod migration_test;
 #[cfg(test)]
 #[path = "mod_test.rs"]
+#[cfg(test)]
 mod mod_test;
 #[cfg(test)]
 mod test_support;

@@ -1,7 +1,10 @@
 //! Compiler-owned source identities embedded in native TVM images.
 
 use crate::compiler::native_ir::NativeModule;
-use crate::runtime::native_image::debug::{encode_tvm_native_debug, TvmNativeDebugRecord};
+use crate::runtime::native_image::debug::{
+    encode_tvm_native_debug, tvm_debug_source_sha256, TvmNativeDebugContinuationRecord,
+    TvmNativeDebugRecord,
+};
 use crate::terlan_syntax::{SyntaxDeclarationPayload, SyntaxModuleOutput};
 use crate::terlan_typeck::CoreModule;
 
@@ -63,6 +66,57 @@ pub(crate) fn encode_native_debug(
             }
             let declaration = &input.source_text[span_start..span_end];
             span_start += declaration.len() - declaration.trim_start().len();
+            let declaration_text = input.source_text[span_start..span_end].trim();
+            let source_origin = if function.name != function.source_function
+                || function.arity != function.source_arity
+            {
+                format!(
+                    "generated:{}.{}/{}",
+                    function.source_module, function.source_function, function.source_arity
+                )
+            } else if declaration_text.contains("@template") {
+                "template".to_string()
+            } else {
+                "source".to_string()
+            };
+            let continuation_spans = native
+                .continuations
+                .iter()
+                .filter(|continuation| {
+                    continuation.source_module == function.source_module
+                        && continuation.source_function == function.source_function
+                        && continuation.source_arity == function.source_arity
+                })
+                .filter_map(|continuation| {
+                    continuation
+                        .source_span
+                        .map(|span| {
+                            (
+                                continuation.id,
+                                span,
+                                continuation.capture_names.clone(),
+                            )
+                        })
+                })
+                .map(|(id, span, local_names)| {
+                    if span.start >= span.end
+                        || span.end > input.source_text.len()
+                        || !input.source_text.is_char_boundary(span.start)
+                        || !input.source_text.is_char_boundary(span.end)
+                    {
+                        return Err(format!(
+                            "error[tvm.debug.continuation_span]: continuation {id} has invalid source span {}..{}",
+                            span.start, span.end
+                        ));
+                    }
+                    Ok(TvmNativeDebugContinuationRecord {
+                        id,
+                        span_start: span.start,
+                        span_end: span.end,
+                        local_names,
+                    })
+                })
+                .collect::<Result<Vec<_>, String>>()?;
             records.push(TvmNativeDebugRecord {
                 source_file: input.source_path.to_string(),
                 module: native.name.clone(),
@@ -70,6 +124,19 @@ pub(crate) fn encode_native_debug(
                 arity: function.arity,
                 span_start,
                 span_end,
+                source_sha256: tvm_debug_source_sha256(input.source_text.as_bytes()),
+                source_origin,
+                continuation_ids: native
+                    .continuations
+                    .iter()
+                    .filter(|continuation| {
+                        continuation.source_module == function.source_module
+                            && continuation.source_function == function.source_function
+                            && continuation.source_arity == function.source_arity
+                    })
+                    .map(|continuation| continuation.id)
+                    .collect(),
+                continuation_spans,
                 core_schema: input.core.schema.clone(),
                 proof_readiness: format!("{:?}", input.core.metadata.proof_readiness),
             });

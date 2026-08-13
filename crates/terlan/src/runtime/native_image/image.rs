@@ -6,21 +6,30 @@ use target_lexicon::{CallingConvention, HOST};
 use crate::runtime::native_boundary::adapter_abi::PUBLIC_ADAPTER_ABI_VERSION;
 
 use super::descriptor::{
-    decode_descriptor, encode_descriptor, TvmExecutableDescriptor, TvmImageIntegrity,
-    TvmImageTarget,
+    decode_descriptor_untyped, encode_descriptor_untyped, TvmExecutableDescriptor,
+    TvmImageIntegrity, TvmImageTarget,
 };
+use terlan_runtime_abi::{BoundaryError, ErrorDomain};
 
 const ELF_DESCRIPTOR_SECTION: &str = ".note.terlan.tvm";
 const MACHO_DESCRIPTOR_SECTION: &str = "__tvm_desc";
 const COFF_DESCRIPTOR_SECTION: &str = ".tvm$D";
 const PE_DESCRIPTOR_SECTION: &str = ".tvm";
 const COFF_DEBUG_SECTION: &str = ".tdbg$D";
-const SUPPORTED_RUNTIME_ABI: u16 = 2;
+const SUPPORTED_RUNTIME_ABI: u16 = 3;
 const SUPPORTED_NATIVE_BOUNDARY: u16 = PUBLIC_ADAPTER_ABI_VERSION;
+
+fn admission_error(operation: &'static str, error: String) -> BoundaryError {
+    BoundaryError::message(ErrorDomain::NativeImageAdmission, operation, error)
+}
 
 /// Returns the exact host target identity used for native image emission and
 /// admission.
-pub fn host_tvm_target() -> Result<TvmImageTarget, String> {
+pub fn host_tvm_target() -> Result<TvmImageTarget, BoundaryError> {
+    host_tvm_target_untyped().map_err(|error| admission_error("resolve host TVM target", error))
+}
+
+fn host_tvm_target_untyped() -> Result<TvmImageTarget, String> {
     let triple = &HOST;
     let calling_convention = match triple.default_calling_convention() {
         Ok(CallingConvention::SystemV) | Err(()) => "system_v",
@@ -52,12 +61,29 @@ pub fn host_tvm_target() -> Result<TvmImageTarget, String> {
 pub fn descriptor_object_for_native(
     native_object: &[u8],
     descriptor: &TvmExecutableDescriptor,
+) -> Result<Vec<u8>, BoundaryError> {
+    descriptor_object_for_native_untyped(native_object, descriptor)
+        .map_err(|error| admission_error("emit TVM descriptor object", error))
+}
+
+fn descriptor_object_for_native_untyped(
+    native_object: &[u8],
+    descriptor: &TvmExecutableDescriptor,
 ) -> Result<Vec<u8>, String> {
-    descriptor_object_for_native_with_debug(native_object, descriptor, &[])
+    descriptor_object_for_native_with_debug_untyped(native_object, descriptor, &[])
 }
 
 /// Encodes the descriptor and optional compiler source map into one link input.
 pub fn descriptor_object_for_native_with_debug(
+    native_object: &[u8],
+    descriptor: &TvmExecutableDescriptor,
+    debug_metadata: &[u8],
+) -> Result<Vec<u8>, BoundaryError> {
+    descriptor_object_for_native_with_debug_untyped(native_object, descriptor, debug_metadata)
+        .map_err(|error| admission_error("emit TVM descriptor and debug object", error))
+}
+
+fn descriptor_object_for_native_with_debug_untyped(
     native_object: &[u8],
     descriptor: &TvmExecutableDescriptor,
     debug_metadata: &[u8],
@@ -73,7 +99,7 @@ pub fn descriptor_object_for_native_with_debug(
     );
     object
         .section_mut(section)
-        .set_data(encode_descriptor(descriptor)?, 8);
+        .set_data(encode_descriptor_untyped(descriptor)?, 8);
     if !debug_metadata.is_empty() {
         let (debug_segment, debug_section, debug_kind) = match native.format() {
             BinaryFormat::Elf => (Vec::new(), b".debug_terlan".to_vec(), SectionKind::Debug),
@@ -106,6 +132,14 @@ pub fn descriptor_object_for_native_with_debug(
 /// Replaces the fixed-size placeholder descriptor with the final code and
 /// immutable-data digests without relinking or changing section offsets.
 pub fn seal_tvm_image(
+    bytes: &mut [u8],
+    descriptor: &TvmExecutableDescriptor,
+) -> Result<TvmExecutableDescriptor, BoundaryError> {
+    seal_tvm_image_untyped(bytes, descriptor)
+        .map_err(|error| admission_error("seal TVM image", error))
+}
+
+fn seal_tvm_image_untyped(
     bytes: &mut [u8],
     descriptor: &TvmExecutableDescriptor,
 ) -> Result<TvmExecutableDescriptor, String> {
@@ -147,7 +181,7 @@ pub fn seal_tvm_image(
         code_digest,
         immutable_data_digest,
     };
-    let encoded = encode_descriptor(&sealed)?;
+    let encoded = encode_descriptor_untyped(&sealed)?;
     if encoded.len() != section_size {
         return Err(format!(
             "error[tvm.image.descriptor_section]: encoded descriptor is {} bytes, linked section is {section_size} bytes",
@@ -176,6 +210,14 @@ pub struct TvmNativeImageInspection {
 
 /// Inspects one ELF, Mach-O, or PE image without executing it.
 pub fn inspect_tvm_image(
+    bytes: &[u8],
+    expected_target: &str,
+) -> Result<TvmNativeImageInspection, BoundaryError> {
+    inspect_tvm_image_untyped(bytes, expected_target)
+        .map_err(|error| admission_error("inspect TVM image", error))
+}
+
+fn inspect_tvm_image_untyped(
     bytes: &[u8],
     expected_target: &str,
 ) -> Result<TvmNativeImageInspection, String> {
@@ -223,7 +265,7 @@ pub fn inspect_tvm_image(
     let descriptor_bytes = section
         .data()
         .map_err(|error| format!("error[tvm.image.descriptor_section]: {error}"))?;
-    let descriptor = decode_descriptor(descriptor_bytes)?;
+    let descriptor = decode_descriptor_untyped(descriptor_bytes)?;
     let descriptor_digest = descriptor_bytes[descriptor_bytes.len() - 32..]
         .try_into()
         .expect("validated descriptor always has a digest footer");
@@ -247,7 +289,7 @@ pub fn inspect_tvm_image(
             descriptor.target.triple
         ));
     }
-    let host_target = host_tvm_target()?;
+    let host_target = host_tvm_target_untyped()?;
     if expected_target == host_target.triple {
         validate_host_target_identity(&descriptor.target, &host_target)?;
     }

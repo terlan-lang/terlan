@@ -257,4 +257,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "core_typing_spec_test.rs"]
+#[cfg(test)]
 mod core_typing_spec_test;

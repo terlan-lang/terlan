@@ -20,43 +20,70 @@ const READ_UINT_BE: u8 = 6;
 const READ_INT_BE: u8 = 7;
 const READ_UINT_LE: u8 = 8;
 const READ_INT_LE: u8 = 9;
+const STARTS_WITH: u8 = 10;
+const CONTAINS: u8 = 11;
+const FIRST_NON_ASCII_WHITESPACE: u8 = 12;
 
 pub(super) fn is_bytes_operation(encoded: &[u8]) -> bool {
     encoded.starts_with(MAGIC)
 }
 
+/// Encodes conversion from the identified managed byte list into immutable bytes.
 pub fn encode_bytes_from_list_operation(list_semantic: SemanticTypeId) -> Vec<u8> {
     operation(FROM_LIST, list_semantic, true)
 }
 
+/// Encodes conversion from immutable bytes into the identified managed byte list.
 pub fn encode_bytes_to_list_operation(list_semantic: SemanticTypeId) -> Vec<u8> {
     operation(TO_LIST, list_semantic, true)
 }
 
+/// Encodes a scalar byte-length query.
 pub fn encode_bytes_length_operation(list_semantic: SemanticTypeId) -> Vec<u8> {
     operation(LENGTH, list_semantic, false)
 }
 
+/// Encodes exact byte-prefix membership without list materialization.
+pub fn encode_bytes_starts_with_operation(list_semantic: SemanticTypeId) -> Vec<u8> {
+    operation(STARTS_WITH, list_semantic, false)
+}
+
+/// Encodes exact byte-subsequence membership without list materialization.
+pub fn encode_bytes_contains_operation(list_semantic: SemanticTypeId) -> Vec<u8> {
+    operation(CONTAINS, list_semantic, false)
+}
+
+/// Encodes the first non-ASCII-whitespace byte index, or `-1`.
+pub fn encode_bytes_first_non_ascii_whitespace_operation(list_semantic: SemanticTypeId) -> Vec<u8> {
+    operation(FIRST_NON_ASCII_WHITESPACE, list_semantic, false)
+}
+
+/// Encodes allocation of the concatenation of two immutable byte values.
 pub fn encode_bytes_concat_operation(list_semantic: SemanticTypeId) -> Vec<u8> {
     operation(CONCAT, list_semantic, true)
 }
 
+/// Encodes a bounds-checked immutable byte slice.
 pub fn encode_bytes_slice_operation(list_semantic: SemanticTypeId) -> Vec<u8> {
     operation(SLICE, list_semantic, true)
 }
 
+/// Encodes a bounded big-endian unsigned bit-field read.
 pub fn encode_bytes_read_uint_be_operation(list_semantic: SemanticTypeId) -> Vec<u8> {
     operation(READ_UINT_BE, list_semantic, false)
 }
 
+/// Encodes a bounded big-endian signed bit-field read.
 pub fn encode_bytes_read_int_be_operation(list_semantic: SemanticTypeId) -> Vec<u8> {
     operation(READ_INT_BE, list_semantic, false)
 }
 
+/// Encodes a bounded little-endian unsigned bit-field read.
 pub fn encode_bytes_read_uint_le_operation(list_semantic: SemanticTypeId) -> Vec<u8> {
     operation(READ_UINT_LE, list_semantic, false)
 }
 
+/// Encodes a bounded little-endian signed bit-field read.
 pub fn encode_bytes_read_int_le_operation(list_semantic: SemanticTypeId) -> Vec<u8> {
     operation(READ_INT_LE, list_semantic, false)
 }
@@ -120,6 +147,32 @@ pub(super) fn execute_bytes_operation(
             i64::try_from(length)
                 .map(|length| u64::from_ne_bytes(length.to_ne_bytes()))
                 .map_err(|_| ManagedMemoryError::InvalidSequenceLength)
+        }
+        STARTS_WITH | CONTAINS => {
+            let [value, pattern] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let value = heap.read_bytes(reference_word(*value)?.cast::<ManagedBytes>())?;
+            let pattern = heap.read_bytes(reference_word(*pattern)?.cast::<ManagedBytes>())?;
+            let matches = if operation == STARTS_WITH {
+                value.starts_with(pattern)
+            } else if pattern.is_empty() {
+                true
+            } else {
+                value.windows(pattern.len()).any(|window| window == pattern)
+            };
+            Ok(u64::from(matches))
+        }
+        FIRST_NON_ASCII_WHITESPACE => {
+            let [bytes] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let index = heap
+                .read_bytes(reference_word(*bytes)?.cast::<ManagedBytes>())?
+                .iter()
+                .position(|byte| !matches!(byte, b' ' | b'\t' | b'\n' | b'\r'))
+                .map_or(-1_i64, |index| i64::try_from(index).unwrap_or(i64::MAX));
+            Ok(u64::from_ne_bytes(index.to_ne_bytes()))
         }
         CONCAT => {
             let [left, right] = words else {

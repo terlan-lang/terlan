@@ -1,8 +1,8 @@
-#![allow(dead_code)]
-
 use std::collections::BTreeMap;
 
-use super::process::{VmProcessId, VmProcessState, VmProcessTable};
+use super::process::VmProcessId;
+#[cfg(test)]
+use super::process::{VmProcessState, VmProcessTable};
 
 /// Stable identifier for a live use of a dynamically registered VM module.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -25,6 +25,7 @@ pub(crate) struct VmDynamicModuleDescriptor {
 }
 
 impl VmDynamicModuleDescriptor {
+    #[cfg(test)]
     pub(crate) fn new(name: impl Into<String>, artifact_id: impl Into<String>) -> Self {
         let name = name.into();
         Self {
@@ -36,16 +37,19 @@ impl VmDynamicModuleDescriptor {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn with_declared_name(mut self, declared_name: impl Into<String>) -> Self {
         self.declared_name = declared_name.into();
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn with_permanent(mut self, permanent: bool) -> Self {
         self.permanent = permanent;
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn with_init_success(mut self, init_succeeds: bool) -> Self {
         self.init_succeeds = init_succeeds;
         self
@@ -70,24 +74,30 @@ pub(crate) struct VmDynamicModuleSnapshot {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmDynamicModuleLeaseCloseReason {
+    #[cfg(test)]
     Explicit,
     OwnerExited,
+    #[cfg(test)]
     ForcedUnload,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum VmDynamicModuleEvent {
+    #[cfg(test)]
     Loaded {
         name: String,
         artifact_id: String,
     },
+    #[cfg(test)]
     LoadReused {
         name: String,
         owner: VmProcessId,
     },
+    #[cfg(test)]
     UnloadPending {
         name: String,
     },
+    #[cfg(test)]
     UnloadCancelled {
         name: String,
     },
@@ -95,6 +105,7 @@ pub(crate) enum VmDynamicModuleEvent {
         name: String,
         artifact_id: String,
     },
+    #[cfg(test)]
     ReloadPending {
         name: String,
         replacement_artifact_id: String,
@@ -104,6 +115,7 @@ pub(crate) enum VmDynamicModuleEvent {
         previous_artifact_id: String,
         artifact_id: String,
     },
+    #[cfg(test)]
     LeaseOpened {
         name: String,
         lease: VmDynamicModuleLeaseId,
@@ -152,12 +164,14 @@ struct VmDynamicModuleRecord {
 /// and reload, and every transition has deterministic inspection state.
 #[derive(Debug, Default)]
 pub(crate) struct VmDynamicModuleRegistry {
+    #[cfg(test)]
     next_lease_id: u64,
     modules: BTreeMap<String, VmDynamicModuleRecord>,
     events: Vec<VmDynamicModuleEvent>,
 }
 
 impl VmDynamicModuleRegistry {
+    #[cfg(test)]
     pub(crate) fn load(
         &mut self,
         processes: &VmProcessTable,
@@ -204,6 +218,7 @@ impl VmDynamicModuleRegistry {
         Ok(VmDynamicModuleLoadOutcome::Loaded)
     }
 
+    #[cfg(test)]
     pub(crate) fn open_lease(
         &mut self,
         processes: &VmProcessTable,
@@ -230,6 +245,7 @@ impl VmDynamicModuleRegistry {
         Ok(lease)
     }
 
+    #[cfg(test)]
     pub(crate) fn close_lease(&mut self, lease: VmDynamicModuleLeaseId) -> Result<(), String> {
         let module_name = self
             .modules
@@ -250,6 +266,7 @@ impl VmDynamicModuleRegistry {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(crate) fn request_unload(
         &mut self,
         processes: &VmProcessTable,
@@ -300,6 +317,7 @@ impl VmDynamicModuleRegistry {
         Ok(VmDynamicModuleUnloadOutcome::Unloaded)
     }
 
+    #[cfg(test)]
     pub(crate) fn request_reload(
         &mut self,
         processes: &VmProcessTable,
@@ -377,6 +395,7 @@ impl VmDynamicModuleRegistry {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn snapshots(&self) -> Vec<VmDynamicModuleSnapshot> {
         self.modules
             .values()
@@ -399,6 +418,7 @@ impl VmDynamicModuleRegistry {
             .collect()
     }
 
+    #[cfg(test)]
     pub(crate) fn events(&self) -> &[VmDynamicModuleEvent] {
         &self.events
     }
@@ -440,6 +460,7 @@ impl VmDynamicModuleRegistry {
         });
     }
 
+    #[cfg(test)]
     fn force_unload(&mut self, module_name: &str) {
         let leases = self.modules[module_name]
             .leases
@@ -466,6 +487,7 @@ impl VmDynamicModuleRegistry {
     }
 }
 
+#[cfg(test)]
 fn decrement_reference(references: &mut BTreeMap<VmProcessId, usize>, owner: VmProcessId) {
     let count = references
         .get_mut(&owner)
@@ -476,6 +498,7 @@ fn decrement_reference(references: &mut BTreeMap<VmProcessId, usize>, owner: VmP
     }
 }
 
+#[cfg(test)]
 fn validate_descriptor(descriptor: &VmDynamicModuleDescriptor) -> Result<(), String> {
     if descriptor.name.trim().is_empty() {
         return Err("dynamic module name cannot be empty".to_string());
@@ -498,6 +521,7 @@ fn validate_descriptor(descriptor: &VmDynamicModuleDescriptor) -> Result<(), Str
     Ok(())
 }
 
+#[cfg(test)]
 fn ensure_live_process(
     processes: &VmProcessTable,
     pid: VmProcessId,
@@ -514,4 +538,5 @@ fn ensure_live_process(
 
 #[cfg(test)]
 #[path = "dynamic_module_ddll_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod dynamic_module_ddll_beam_suite_parity_test;

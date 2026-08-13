@@ -49,6 +49,7 @@ class NativeBoundary final {
 
 std::unique_ptr<NativeBoundary> make_native_boundary(std::int64_t value) noexcept;
 std::int64_t live_native_boundary_count() noexcept;
+std::int64_t take_last_failure() noexcept;
 std::int64_t sum_snapshot_fields(std::int64_t value,
                                  std::int64_t doubled) noexcept;
 std::int64_t sum_integer_list(

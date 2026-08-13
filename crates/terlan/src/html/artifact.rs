@@ -138,4 +138,5 @@ pub fn artifact_template_target_from_filename(file_name: &str) -> Option<Artifac
 
 #[cfg(test)]
 #[path = "artifact_test.rs"]
+#[cfg(test)]
 mod artifact_test;

@@ -1,3 +1,5 @@
+use super::*;
+
 /// Converts a syntax-output try expression into typed Core.
 ///
 /// Inputs:
@@ -12,7 +14,7 @@
 /// Transformation:
 /// - Preserves try body, success clauses, catch clauses, and optional cleanup
 ///   branch as a backend-neutral CoreIR keyword expression.
-fn core_try_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
+pub(super) fn core_try_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
     if !matches!(expr.kind, SyntaxExprKind::Try) || expr.children.len() != 1 {
         return None;
     }
@@ -44,7 +46,7 @@ fn core_try_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
 /// Transformation:
 /// - Preserves cleanup trigger and body as a try-specific CoreIR branch without
 ///   backend cleanup semantics.
-fn core_try_after_from_syntax(
+pub(super) fn core_try_after_from_syntax(
     after_clause: &crate::terlan_syntax::syntax_output::SyntaxTryAfterOutput,
 ) -> Option<CoreTryAfter> {
     Some(CoreTryAfter {
@@ -67,7 +69,7 @@ fn core_try_after_from_syntax(
 /// Transformation:
 /// - Reconstructs condition/body branches from syntax-output clauses without
 ///   treating them as pattern-matching case clauses.
-fn core_if_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
+pub(super) fn core_if_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
     if !matches!(expr.kind, SyntaxExprKind::If) {
         return None;
     }
@@ -93,7 +95,7 @@ fn core_if_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
 /// Transformation:
 /// - Lowers the condition/body pair while preserving the if-specific branch
 ///   shape independently from case-pattern clauses.
-fn core_if_clause_from_syntax(
+pub(super) fn core_if_clause_from_syntax(
     clause: &crate::terlan_syntax::SyntaxClauseOutput,
 ) -> Option<CoreIfClause> {
     if !clause.patterns.is_empty() {
@@ -119,7 +121,7 @@ fn core_if_clause_from_syntax(
 /// Transformation:
 /// - Lowers the branch pattern and body without using backend syntax or
 ///   rendered summary text.
-fn core_case_clause_from_syntax(
+pub(super) fn core_case_clause_from_syntax(
     clause: &crate::terlan_syntax::SyntaxClauseOutput,
 ) -> Option<CoreCaseClause> {
     if clause.patterns.len() != 1 {

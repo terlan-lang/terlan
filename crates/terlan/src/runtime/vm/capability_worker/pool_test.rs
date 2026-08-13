@@ -15,7 +15,7 @@ use crate::runtime::vm::process::{VmProcessSource, VmProcessState, VmProcessTabl
 use crate::runtime::vm::scheduler::{VmScheduler, VmSchedulerConfig};
 use crate::runtime::vm::timer::VmTimerTable;
 use crate::terlan_native_boundary::capability_wire::{
-    write_json_frame, CapabilityOutcome, CapabilityResponse, CapabilityValue,
+    write_json_frame, CapabilityHandle, CapabilityOutcome, CapabilityResponse, CapabilityValue,
     CAPABILITY_PROTOCOL_VERSION,
 };
 use crate::terlan_native_boundary::request::RequestId;
@@ -31,6 +31,38 @@ impl CapturedFrames {
     /// Returns a stable snapshot of frames emitted before this call.
     fn snapshot(&self) -> Vec<u8> {
         self.bytes.lock().expect("captured frames lock").clone()
+    }
+
+    /// Waits for the asynchronous writer to publish at least one frame.
+    fn wait_for_frame(&self) -> Vec<u8> {
+        let deadline = Instant::now() + Duration::from_secs(1);
+        loop {
+            let snapshot = self.snapshot();
+            if !snapshot.is_empty() {
+                return snapshot;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "capability-worker request frame timed out"
+            );
+            std::thread::yield_now();
+        }
+    }
+
+    /// Waits until the captured protocol text contains one required fragment.
+    fn wait_for_text(&self, expected: &str) -> String {
+        let deadline = Instant::now() + Duration::from_secs(1);
+        loop {
+            let snapshot = String::from_utf8(self.snapshot()).expect("captured UTF-8 frames");
+            if snapshot.contains(expected) {
+                return snapshot;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "capability-worker request text timed out: {expected}"
+            );
+            std::thread::yield_now();
+        }
     }
 }
 
@@ -88,6 +120,7 @@ fn client(
             deadlines: super::super::VmNativeBoundaryDeadlineQueue::new(credits),
             pending_contexts: BTreeMap::new(),
             parked_contexts: BTreeMap::new(),
+            late_cleanup: super::super::parked::VmCapabilityLateCleanupState::default(),
             capabilities: capabilities
                 .iter()
                 .map(|capability| (*capability).to_string())
@@ -100,14 +133,7 @@ fn client(
 }
 
 /// Creates one actor runtime table with the requested number of owners.
-fn runtime(
-    owner_count: usize,
-) -> (
-    VmProcessTable,
-    VmScheduler,
-    VmTimerTable,
-    Vec<VmProcessId>,
-) {
+fn runtime(owner_count: usize) -> (VmProcessTable, VmScheduler, VmTimerTable, Vec<VmProcessId>) {
     let mut processes = VmProcessTable::default();
     let owners = (0..owner_count)
         .map(|index| {
@@ -153,6 +179,28 @@ fn reply(request_id: u64, credits: u64) -> CapabilityResponse {
     }
 }
 
+/// Builds one successful response transferring an owned resource handle.
+fn handle_reply(request_id: u64, credits: u64, handle: CapabilityHandle) -> CapabilityResponse {
+    CapabilityResponse::Reply {
+        version: CAPABILITY_PROTOCOL_VERSION,
+        request_id,
+        reserved_credits: 0,
+        available_credits: credits,
+        outcome: CapabilityOutcome::Ok {
+            value: CapabilityValue::Record {
+                name: "Result".to_string(),
+                fields: vec![
+                    ("resource".to_string(), CapabilityValue::Handle(handle)),
+                    (
+                        "same_resource".to_string(),
+                        CapabilityValue::OptionalHandle(Some(handle)),
+                    ),
+                ],
+            },
+        },
+    }
+}
+
 /// Polls until the asynchronous transport produces one pool event.
 fn wait_for_event(
     pool: &mut VmCapabilityWorkerPool,
@@ -192,12 +240,14 @@ fn capability_worker_pool_enforces_bounded_non_reentrant_admission() {
                 processes: &mut processes,
                 scheduler: &mut scheduler,
             },
-            owners[0],
-            context(1, "example"),
-            "std.example.call",
-            Vec::new(),
-            0,
-            10,
+            crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
+                owner: owners[0],
+                context: context(1, "example"),
+                operation: ("std.example.call").into(),
+                arguments: Vec::new(),
+                now_tick: 0,
+                timeout_ticks: 10,
+            },
         )
         .expect("first request");
     let rejection = pool
@@ -207,12 +257,14 @@ fn capability_worker_pool_enforces_bounded_non_reentrant_admission() {
                 processes: &mut processes,
                 scheduler: &mut scheduler,
             },
-            owners[1],
-            context(2, "example"),
-            "std.example.call",
-            Vec::new(),
-            0,
-            10,
+            crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
+                owner: owners[1],
+                context: context(2, "example"),
+                operation: ("std.example.call").into(),
+                arguments: Vec::new(),
+                now_tick: 0,
+                timeout_ticks: 10,
+            },
         )
         .expect_err("serial slot must reject concurrent use");
 
@@ -238,7 +290,7 @@ fn capability_worker_pool_enforces_bounded_non_reentrant_admission() {
         VmCapabilityWorkerCompletion::Reply { request_id, .. }
             if request_id == RequestId { value: 1 }
     ));
-    assert!(!captured.snapshot().is_empty());
+    assert!(!captured.wait_for_frame().is_empty());
     assert_eq!(pool.available_capacity(), 1);
     assert_eq!(
         processes.get(owners[0]).expect("first owner").state,
@@ -252,7 +304,7 @@ fn capability_worker_pool_suppresses_duplicate_completion() {
     let responses = response_bytes(&[reply(1, 1), reply(1, 1)]);
     let (worker, _) = client("duplicate", 1, 1, &["example"], responses);
     let mut pool = VmCapabilityWorkerPool::new(vec![
-        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot"),
+        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot")
     ])
     .expect("pool");
     let (mut processes, mut scheduler, mut timers, owners) = runtime(1);
@@ -262,22 +314,19 @@ fn capability_worker_pool_suppresses_duplicate_completion() {
             processes: &mut processes,
             scheduler: &mut scheduler,
         },
-        owners[0],
-        context(1, "example"),
-        "std.example.call",
-        Vec::new(),
-        0,
-        10,
+        crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
+            owner: owners[0],
+            context: context(1, "example"),
+            operation: ("std.example.call").into(),
+            arguments: Vec::new(),
+            now_tick: 0,
+            timeout_ticks: 10,
+        },
     )
     .expect("request");
 
     assert!(matches!(
-        wait_for_event(
-            &mut pool,
-            &mut timers,
-            &mut processes,
-            &mut scheduler
-        ),
+        wait_for_event(&mut pool, &mut timers, &mut processes, &mut scheduler),
         VmCapabilityWorkerCompletion::Reply { .. }
     ));
     assert!(matches!(
@@ -302,7 +351,7 @@ fn capability_worker_pool_suppresses_duplicate_completion() {
 fn capability_worker_pool_replaces_crashed_slot_without_capacity_bypass() {
     let (worker, _) = client("replaceable", 1, 1, &["example"], b"not-json\n".to_vec());
     let mut pool = VmCapabilityWorkerPool::new(vec![
-        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot"),
+        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot")
     ])
     .expect("pool");
     let (mut processes, mut scheduler, mut timers, owners) = runtime(1);
@@ -313,12 +362,14 @@ fn capability_worker_pool_replaces_crashed_slot_without_capacity_bypass() {
                 processes: &mut processes,
                 scheduler: &mut scheduler,
             },
-            owners[0],
-            context(1, "example"),
-            "std.example.call",
-            Vec::new(),
-            0,
-            10,
+            crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
+                owner: owners[0],
+                context: context(1, "example"),
+                operation: ("std.example.call").into(),
+                arguments: Vec::new(),
+                now_tick: 0,
+                timeout_ticks: 10,
+            },
         )
         .expect("request");
     assert!(matches!(
@@ -373,7 +424,7 @@ fn capability_worker_pool_rejects_identity_and_capability_bypass() {
 
     let (worker, captured) = client("closed", 1, 1, &["example"], Vec::new());
     let mut pool = VmCapabilityWorkerPool::new(vec![
-        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot"),
+        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot")
     ])
     .expect("pool");
     let (mut processes, mut scheduler, mut timers, owners) = runtime(1);
@@ -384,12 +435,14 @@ fn capability_worker_pool_rejects_identity_and_capability_bypass() {
                 processes: &mut processes,
                 scheduler: &mut scheduler,
             },
-            owners[0],
-            context(1, "filesystem"),
-            "std.io.file.read_text",
-            vec![NativeBoundaryTerm::Text("/tmp/nope".to_string())],
-            0,
-            10,
+            crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
+                owner: owners[0],
+                context: context(1, "filesystem"),
+                operation: ("std.io.file.read_text").into(),
+                arguments: vec![NativeBoundaryTerm::Text("/tmp/nope".to_string())],
+                now_tick: 0,
+                timeout_ticks: 10,
+            },
         )
         .expect_err("capability bypass");
     assert!(error.contains("pool_capability"));
@@ -405,7 +458,7 @@ fn capability_worker_pool_rejects_identity_and_capability_bypass() {
 fn capability_worker_pool_cancellation_releases_exact_request_credit() {
     let (worker, _) = client("cancel", 1, 1, &["example"], response_bytes(&[reply(1, 1)]));
     let mut pool = VmCapabilityWorkerPool::new(vec![
-        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot"),
+        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot")
     ])
     .expect("pool");
     let (mut processes, mut scheduler, mut timers, owners) = runtime(1);
@@ -416,12 +469,14 @@ fn capability_worker_pool_cancellation_releases_exact_request_credit() {
                 processes: &mut processes,
                 scheduler: &mut scheduler,
             },
-            owners[0],
-            context(1, "example"),
-            "std.example.call",
-            Vec::new(),
-            0,
-            10,
+            crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
+                owner: owners[0],
+                context: context(1, "example"),
+                operation: ("std.example.call").into(),
+                arguments: Vec::new(),
+                now_tick: 0,
+                timeout_ticks: 10,
+            },
         )
         .expect("request");
     let terminal = pool
@@ -470,7 +525,7 @@ fn capability_worker_pool_completes_an_already_parked_generated_request() {
         response_bytes(&[reply(1, 1)]),
     );
     let mut pool = VmCapabilityWorkerPool::new(vec![
-        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot"),
+        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot")
     ])
     .expect("pool");
     let (processes, _scheduler, _timers, owners) = runtime(1);
@@ -514,9 +569,15 @@ fn capability_worker_pool_completes_an_already_parked_generated_request() {
 /// Proves a cancelled generated request cannot consume a late worker reply.
 #[test]
 fn capability_worker_pool_suppresses_late_already_parked_reply() {
-    let (worker, _) = client("generated", 1, 1, &["example"], response_bytes(&[reply(1, 1)]));
+    let (worker, _) = client(
+        "generated",
+        1,
+        1,
+        &["example"],
+        response_bytes(&[reply(1, 1)]),
+    );
     let mut pool = VmCapabilityWorkerPool::new(vec![
-        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot"),
+        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot")
     ])
     .expect("pool");
     let (_, _, _, owners) = runtime(1);
@@ -546,12 +607,59 @@ fn capability_worker_pool_suppresses_late_already_parked_reply() {
     }
 }
 
+/// Proves a late owned result is disposed once through the original capability.
+#[test]
+fn capability_worker_pool_disposes_late_result_resources_with_bounded_credit() {
+    let handle = CapabilityHandle {
+        id: 41,
+        generation: 7,
+    };
+    let responses = response_bytes(&[handle_reply(1, 1, handle), reply(2, 1)]);
+    let (worker, captured) = client("late-cleanup", 1, 1, &["example"], responses);
+    let mut pool = VmCapabilityWorkerPool::new(vec![
+        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot")
+    ])
+    .expect("pool");
+    let (_, _, _, owners) = runtime(1);
+    let assignment = pool
+        .start_parked_call(
+            owners[0],
+            context(10, "example"),
+            "std.example.call",
+            Vec::new(),
+        )
+        .expect("parked request");
+    pool.cancel_parked(&assignment).expect("cancel parked");
+
+    let deadline = Instant::now() + Duration::from_secs(1);
+    let mut stale_events = 0;
+    while stale_events < 2 {
+        if let Some(completion) = pool.poll_parked().expect("parked poll") {
+            assert!(matches!(
+                completion,
+                VmCapabilityWorkerCompletion::StaleReply { request_id, .. }
+                    if request_id == assignment.request_id
+            ));
+            stale_events += 1;
+        }
+        assert!(Instant::now() < deadline, "late cleanup timed out");
+        std::thread::yield_now();
+    }
+
+    let frames = captured.wait_for_text("\"type\":\"dispose\"");
+    assert_eq!(frames.matches("\"type\":\"dispose\"").count(), 1);
+    assert!(frames.contains("\"id\":41"));
+    assert!(frames.contains("\"generation\":7"));
+    assert!(frames.contains("\"capability\":\"example\""));
+    assert_eq!(pool.available_capacity(), 1);
+}
+
 /// Proves the event pump returns the exact retained owner payload with its reply.
 #[test]
 fn capability_event_pump_correlates_completion_with_fixed_owner_payload() {
     let (worker, _) = client("pump", 1, 1, &["example"], response_bytes(&[reply(1, 1)]));
     let pool = VmCapabilityWorkerPool::new(vec![
-        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot"),
+        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot")
     ])
     .expect("pool");
     let mut pump = VmCapabilityWorkerEventPump::new(pool);
@@ -599,7 +707,7 @@ fn capability_event_pump_correlates_completion_with_fixed_owner_payload() {
 fn capability_event_pump_returns_payload_on_backpressure_and_cancellation() {
     let (worker, _) = client("pump", 1, 1, &["example"], Vec::new());
     let pool = VmCapabilityWorkerPool::new(vec![
-        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot"),
+        VmCapabilityWorkerPoolSlot::new(worker, 1).expect("slot")
     ])
     .expect("pool");
     let mut pump = VmCapabilityWorkerEventPump::new(pool);
@@ -634,7 +742,7 @@ fn capability_event_pump_returns_payload_on_backpressure_and_cancellation() {
 fn capability_event_pump_shutdown_returns_all_pending_payloads() {
     let (worker, _) = client("pump", 1, 2, &["example"], Vec::new());
     let pool = VmCapabilityWorkerPool::new(vec![
-        VmCapabilityWorkerPoolSlot::new(worker, 2).expect("slot"),
+        VmCapabilityWorkerPoolSlot::new(worker, 2).expect("slot")
     ])
     .expect("pool");
     let mut pump = VmCapabilityWorkerEventPump::new(pool);
@@ -666,7 +774,7 @@ fn capability_event_pump_shutdown_returns_all_pending_payloads() {
 fn capability_event_pump_drains_generation_payloads_on_worker_loss() {
     let (worker, _) = client("pump", 1, 2, &["example"], Vec::new());
     let pool = VmCapabilityWorkerPool::new(vec![
-        VmCapabilityWorkerPoolSlot::new(worker, 2).expect("slot"),
+        VmCapabilityWorkerPoolSlot::new(worker, 2).expect("slot")
     ])
     .expect("pool");
     let mut pump = VmCapabilityWorkerEventPump::new(pool);

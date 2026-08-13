@@ -1,8 +1,8 @@
 module=std.js.Dom.HTMLAnchorElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
-source_hash=9243255543253791100
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=4767309452712321361
 interface_hash=11985647481774473402
 interface_doc_hash=11985647481774473402
 deps=0

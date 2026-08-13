@@ -1,0 +1,12 @@
+schema = "terlan.lean-proof-gap.v1"
+feature = "native-boundary contracts"
+lifecycle_status = "closed"
+proof_gap_category = "model_gap"
+gap_reason = "Executable NativeBoundary theorems now prove typed callsite consistency, resource-handle linearity and ownership, async policy, side-effect deny-list soundness, and fail-closed rejection while binding every generated manifest row to VM runtime oracles."
+remediation_owner = "runtime"
+planned_gate = "lean-proof-native-boundary-check"
+deadline_or_exception = "exception:native_boundary@2026-08-31"
+exception_approved_by = "runtime"
+blocker_updated_at = "2026-07-31"
+blocker_hash = "sha256:578322da77ac3c8af1904c4ff1d3a4b138cd253593b51b57326c4cad6641638c"
+covered_manifests = ["docs/runtime/NATIVE_BOUNDARY_GLOSSARY.md", "proofs/lean/native_boundary/promotion-policy.json", "std/NATIVE_BOUNDARY_SECURITY.tsv", "std/summaries/std.data.Json.native_boundary.json", "std/summaries/std.db.Postgres.native_boundary.json", "std/summaries/std.encoding.Base64.native_boundary.json", "std/summaries/std.encoding.Md5.native_boundary.json", "std/summaries/std.http.Cookies.native_boundary.json", "std/summaries/std.http.Request.native_boundary.json", "std/summaries/std.http.Response.native_boundary.json", "std/summaries/std.http.Session.native_boundary.json", "std/summaries/std.http.Sse.native_boundary.json", "std/summaries/std.http.Tls.native_boundary.json", "std/summaries/std.http.WebSocket.native_boundary.json", "std/summaries/std.io.Path.native_boundary.json", "std/summaries/std.native.collections.Vector.native_boundary.json", "std/summaries/std.net.Uri.native_boundary.json", "std/summaries/std.random.Random.native_boundary.json", "std/summaries/std.regex.Regex.native_boundary.json", "std/summaries/terlan_libpq.Driver.native_boundary.json"]

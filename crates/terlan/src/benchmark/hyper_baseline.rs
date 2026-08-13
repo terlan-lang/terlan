@@ -1,6 +1,6 @@
-//! Plain Hyper/Tokio control server without Axum routing or extractors.
-
 #![forbid(unsafe_code)]
+
+//! Plain Hyper/Tokio control server without Axum routing or extractors.
 
 use std::convert::Infallible;
 use std::env;
@@ -12,6 +12,10 @@ use hyper::header::{CACHE_CONTROL, CONTENT_TYPE};
 use hyper::service::service_fn;
 use hyper::{Method, Request, Response, StatusCode};
 use hyper_util::rt::TokioIo;
+
+#[cfg(test)]
+#[path = "hyper_baseline_test.rs"]
+mod test;
 
 fn main() {
     let port = env::args()
@@ -75,6 +79,27 @@ async fn handle(request: Request<Incoming>) -> Result<Response<Full<Bytes>>, Inf
         .await
         .map(|body| body.to_bytes())
         .unwrap_or_default();
+    if method == Method::GET {
+        if let Some((left, right)) = add_route_parameters(&path) {
+            return Ok(text_response(
+                StatusCode::OK,
+                (left + right).to_string().into_bytes(),
+            ));
+        }
+    }
+    if let Some(id) = item_route_parameter(&path) {
+        let response = match method {
+            Method::GET => text_response(StatusCode::OK, format!("item-{id}").into_bytes()),
+            Method::PUT => {
+                let mut output = format!("{id}:").into_bytes();
+                output.extend_from_slice(&body);
+                text_response(StatusCode::OK, output)
+            }
+            Method::DELETE => text_response(StatusCode::NO_CONTENT, Vec::new()),
+            _ => text_response(StatusCode::NOT_FOUND, b"not-found".to_vec()),
+        };
+        return Ok(response);
+    }
     let response = match (method, path.as_str()) {
         (Method::POST, "/api/bench") => {
             let mut output = Vec::with_capacity("generation-one:".len() + body.len());
@@ -98,9 +123,28 @@ async fn handle(request: Request<Incoming>) -> Result<Response<Full<Bytes>>, Inf
         (Method::GET, "/api/static") => {
             text_response(StatusCode::OK, b"static-benchmark-response".to_vec())
         }
+        (Method::POST, "/api/items") => response(
+            StatusCode::CREATED,
+            "text/plain; charset=utf-8",
+            body.to_vec(),
+        ),
         _ => text_response(StatusCode::NOT_FOUND, b"not-found".to_vec()),
     };
     Ok(response)
+}
+
+fn add_route_parameters(path: &str) -> Option<(i64, i64)> {
+    let route = path.strip_prefix("/api/add/")?;
+    let (left, right) = route.split_once('/')?;
+    if right.contains('/') {
+        return None;
+    }
+    Some((left.parse().ok()?, right.parse().ok()?))
+}
+
+fn item_route_parameter(path: &str) -> Option<&str> {
+    let id = path.strip_prefix("/api/items/")?;
+    (!id.is_empty() && !id.contains('/')).then_some(id)
 }
 
 fn header(request: &Request<Incoming>, name: &str) -> String {

@@ -9,14 +9,15 @@ use super::websocket_invocation::AotWebSocketCallbackSession;
 
 use super::{
     finish_router_response, validate_handler_module, validate_handler_route, validate_source_span,
-    vm_request_descriptor, HandlerResponse, WebPackageHandler, WebPackageWebSocket,
+    vm_request_descriptor, HandlerResponse, RouterResponseRuntime, WebPackageHandler,
+    WebPackageWebSocket,
 };
 
 /// Result of source-router admission for one WebSocket upgrade.
 #[derive(Debug)]
 pub(in crate::commands::serve) enum VmWebSocketRouterAdmission {
     /// The materialized graph selected a WebSocket endpoint for the route.
-    Upgrade(AotWebSocketCallbackSession),
+    Upgrade(Box<AotWebSocketCallbackSession>),
     /// Typed middleware terminated the request with a normal HTTP response.
     Respond(HandlerResponse),
 }
@@ -50,10 +51,7 @@ pub(in crate::commands::serve) fn execute_vm_router_websocket_admission_with_pac
     )?;
     match outcome {
         VmHttpRouterOutcome::ShortCircuited(short) => finish_router_response(
-            &vm,
-            &websocket.module,
-            request,
-            package_root,
+            RouterResponseRuntime::new(&vm, &websocket.module, request, package_root),
             output,
             short.response,
             short.route_params,
@@ -80,7 +78,7 @@ pub(in crate::commands::serve) fn execute_vm_router_websocket_admission_with_pac
             };
             let live = crate::runtime::vm::websocket::VmWebSocketLiveSession::open(plan);
             AotWebSocketCallbackSession::open(vm, websocket.module.clone(), live)
-                .map(VmWebSocketRouterAdmission::Upgrade)
+                .map(|session| VmWebSocketRouterAdmission::Upgrade(Box::new(session)))
                 .map(Some)
         }
         VmHttpRouterOutcome::NotFound => Err(format!(

@@ -1,14 +1,13 @@
 "use strict";
 
 const assert = require("assert");
+const childProcess = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
 const EDITORS_ROOT = path.resolve(PACKAGE_ROOT, "..");
 const CANONICAL_ICON = path.join(EDITORS_ROOT, "shared", "icons", "terlan-file.svg");
-const CANONICAL_PNG_ICON_ROOT = path.join(EDITORS_ROOT, "shared", "icons", "png");
-const PNG_ICON_SIZES = [16, 24, 32, 64, 128];
 
 /**
  * Reads one IntelliJ package text file.
@@ -25,39 +24,26 @@ function readText(relativePath) {
 }
 
 /**
- * Reads one IntelliJ package binary file.
- *
- * @param {string} relativePath Path relative to `editors/intellij`.
- * @returns {Buffer} Raw file bytes.
- *
- * @description
- * Loads packaged binary assets for byte-for-byte comparison with shared editor
- * source assets.
- */
-function readBinary(relativePath) {
-  return fs.readFileSync(path.join(PACKAGE_ROOT, relativePath));
-}
-
-/**
- * Verifies the expected IntelliJ scaffold files exist.
+ * Verifies the expected buildable IntelliJ plugin files exist.
  *
  * @returns {void}
  *
  * @description
- * Locks the minimal package layout documented in the 0.0.5 roadmap.
+ * Locks the runtime, build-wrapper, and validation inputs required by the
+ * executable JetBrains LSP integration.
  */
 function testExpectedFilesExist() {
   const files = [
     "README.md",
     "build.gradle.kts",
+    "gradlew",
+    "gradlew.bat",
+    "gradle/wrapper/gradle-wrapper.jar",
+    "gradle/wrapper/gradle-wrapper.properties",
+    "gradle.properties",
     "settings.gradle.kts",
     "src/main/resources/META-INF/plugin.xml",
     "src/main/resources/icons/terlan-file.svg",
-    "src/main/resources/icons/png/terlan-file-16.png",
-    "src/main/resources/icons/png/terlan-file-24.png",
-    "src/main/resources/icons/png/terlan-file-32.png",
-    "src/main/resources/icons/png/terlan-file-64.png",
-    "src/main/resources/icons/png/terlan-file-128.png",
     "src/main/kotlin/org/terlan/intellij/TerlanFileTypes.kt",
     "src/main/kotlin/org/terlan/intellij/TerlanLspServerDescriptor.kt",
   ];
@@ -86,6 +72,22 @@ function testLanguageServerCommand() {
   );
   assert.ok(plugin.includes("terlc lsp --stdio"), "plugin docs must name terlc lsp --stdio");
   assert.ok(!descriptor.includes("terlan-lsp"), "descriptor must not prefer terlan-lsp");
+  assert.ok(
+    descriptor.includes("LspServerSupportProvider"),
+    "IntelliJ must register an executable LSP support provider"
+  );
+  assert.ok(
+    descriptor.includes("ProjectWideLspServerDescriptor"),
+    "IntelliJ must use one project-wide compiler LSP process"
+  );
+  assert.ok(
+    descriptor.includes("ensureServerStarted"),
+    "opening a Terlan file must start the compiler LSP"
+  );
+  assert.ok(
+    plugin.includes("platform.lsp.serverSupportProvider"),
+    "plugin metadata must register the LSP support provider"
+  );
 }
 
 /**
@@ -101,6 +103,8 @@ function testRootMarkers() {
 
   assert.ok(descriptor.includes('"terlan.toml"'), "missing terlan.toml root marker");
   assert.ok(descriptor.includes('".git"'), "missing .git root marker");
+  assert.ok(descriptor.includes("rootMarkers.any"), "root markers must drive root discovery");
+  assert.ok(descriptor.includes("withWorkDirectory"), "LSP process must start in the discovered root");
 }
 
 /**
@@ -117,6 +121,7 @@ function testFiletypeSuffixes() {
   const plugin = readText("src/main/resources/META-INF/plugin.xml");
   const suffixes = [
     ".terl",
+    ".terls",
     ".terli",
     ".terl.html",
     ".terl.md",
@@ -155,26 +160,7 @@ function testCanonicalIconMetadata() {
 }
 
 /**
- * Verifies packaged IntelliJ PNG icons match the shared canonical variants.
- *
- * @returns {void}
- *
- * @description
- * Keeps JetBrains raster icon assets synchronized with the shared editor icon
- * source used by the rest of the editor packages.
- */
-function testPackagedPngIconsMatchCanonicalIcons() {
-  for (const size of PNG_ICON_SIZES) {
-    const packagePath = `src/main/resources/icons/png/terlan-file-${size}.png`;
-    const canonicalPath = path.join(CANONICAL_PNG_ICON_ROOT, `terlan-file-${size}.png`);
-
-    assert.ok(fs.existsSync(canonicalPath), `missing canonical PNG icon ${size}`);
-    assert.ok(readBinary(packagePath).equals(fs.readFileSync(canonicalPath)), `PNG icon ${size} drifted`);
-  }
-}
-
-/**
- * Verifies generated IntelliJ artifacts are absent.
+ * Verifies generated IntelliJ artifacts are not tracked.
  *
  * @returns {void}
  *
@@ -182,12 +168,57 @@ function testPackagedPngIconsMatchCanonicalIcons() {
  * Prevents local Gradle output or plugin archives from entering the checked-in
  * editor package surface.
  */
-function testNoGeneratedArtifacts() {
-  const forbidden = ["build", "out", "terlan-intellij.zip"];
+function testNoGeneratedArtifactsAreTracked() {
+  const repositoryRoot = path.resolve(PACKAGE_ROOT, "..", "..");
+  const tracked = childProcess.execFileSync(
+    "git",
+    ["ls-files", "--", "editors/intellij/build", "editors/intellij/out", "editors/intellij/*.zip"],
+    { cwd: repositoryRoot, encoding: "utf8" }
+  ).trim();
+  assert.strictEqual(tracked, "", `generated IntelliJ artifacts are tracked:\n${tracked}`);
+}
 
-  for (const entry of forbidden) {
-    assert.ok(!fs.existsSync(path.join(PACKAGE_ROOT, entry)), `generated artifact committed: ${entry}`);
+/** Ensures every authored IntelliJ file is a build input or an explicit gate. */
+function testFilesParticipateInBuildOrValidation() {
+  function collect(relativePath = ".") {
+    const generatedDirectories = new Set([
+      ".gradle",
+      ".intellijPlatform",
+      ".kotlin",
+      "build",
+      "out",
+    ]);
+    const files = [];
+    for (const entry of fs.readdirSync(path.join(PACKAGE_ROOT, relativePath), { withFileTypes: true })) {
+      if (entry.isDirectory() && generatedDirectories.has(entry.name)) {
+        continue;
+      }
+      const child = relativePath === "." ? entry.name : path.join(relativePath, entry.name);
+      if (entry.isDirectory()) {
+        files.push(...collect(child));
+      } else {
+        files.push(child.split(path.sep).join("/"));
+      }
+    }
+    return files;
   }
+  const explicitInputs = new Set([
+    "README.md",
+    "build.gradle.kts",
+    "gradlew",
+    "gradlew.bat",
+    "gradle/wrapper/gradle-wrapper.jar",
+    "gradle/wrapper/gradle-wrapper.properties",
+    "gradle.properties",
+    "settings.gradle.kts",
+    "test/package_smoke_test.js",
+  ]);
+  const dormant = collect().filter((file) =>
+    !explicitInputs.has(file)
+      && !file.startsWith("src/main/kotlin/")
+      && !file.startsWith("src/main/resources/")
+  );
+  assert.deepStrictEqual(dormant, [], `dormant IntelliJ package files: ${dormant.join(", ")}`);
 }
 
 testExpectedFilesExist();
@@ -195,7 +226,7 @@ testLanguageServerCommand();
 testRootMarkers();
 testFiletypeSuffixes();
 testCanonicalIconMetadata();
-testPackagedPngIconsMatchCanonicalIcons();
-testNoGeneratedArtifacts();
+testNoGeneratedArtifactsAreTracked();
+testFilesParticipateInBuildOrValidation();
 
 console.log("terlan intellij package smoke tests passed");

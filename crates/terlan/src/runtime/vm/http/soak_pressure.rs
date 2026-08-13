@@ -4,9 +4,11 @@ use super::{
 };
 use crate::runtime::vm::process::VmExitReason;
 
+#[cfg(test)]
 const DISCONNECT_STORM_CLIENTS: usize = 8;
 
 impl VmHttpSoakRuntime {
+    #[cfg(test)]
     pub(super) fn disconnect_storm(&mut self) -> Result<(), String> {
         let mut clients = Vec::with_capacity(DISCONNECT_STORM_CLIENTS);
         for index in 0..DISCONNECT_STORM_CLIENTS {
@@ -79,6 +81,7 @@ impl VmHttpSoakRuntime {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(super) fn saturate_accept_queue(&mut self) -> Result<(), String> {
         let request = format!(
             "GET /static HTTP/1.1\r\nHost: {SOAK_ADDRESS}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
@@ -136,6 +139,7 @@ impl VmHttpSoakRuntime {
         Ok(())
     }
 
+    #[cfg(test)]
     fn record_accept_queue_high_water(&mut self) {
         self.counters.accept_queue_high_water = self
             .counters

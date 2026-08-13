@@ -216,4 +216,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "package_workspace_graph_test.rs"]
+#[cfg(test)]
 mod package_workspace_graph_test;

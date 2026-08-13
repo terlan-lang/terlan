@@ -9,7 +9,7 @@ const REPORT_PATH: &str = "target/quality/vm-http-acme-renewal-report.json";
 
 const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
     (
-        "crates/terlan/src/commands/serve/tls.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
         &[
             "ACME_RENEWAL_INTERVAL",
             "ACME_METADATA_CLOCK_SKEW",
@@ -22,7 +22,7 @@ const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
         ],
     ),
     (
-        "crates/terlan/src/commands/serve/tls/cache.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime/cache.rs",
         &[
             "AcmeCertificateCacheMetadata",
             "renew_after_unix_seconds",
@@ -76,7 +76,7 @@ const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
 
 const REQUIRED_TEST_ANCHORS: &[(&str, &[&str])] = &[
     (
-        "crates/terlan/src/commands/serve/tls_test.rs",
+        "crates/terlan/src/commands/serve/tls/acme_runtime/tls_test.rs",
         &[
             "runtime_tls_config_rejects_future_dated_auto_tls_certificate_cache_metadata",
             "runtime_tls_config_rejects_stale_auto_tls_certificate_cache",
@@ -122,17 +122,6 @@ const REQUIRED_TEST_ANCHORS: &[(&str, &[&str])] = &[
 
 const REQUIRED_GATE_TERMS: &[&str] = &[
     "vm-http-acme-renewal-rotation-check: vm-http-acme-cache-custody-check",
-    "vm_acme_renewal_retry_policy_is_typed_and_deterministic",
-    "vm_acme_renewal_actor_owns_worker_timer_and_shutdown_cleanup",
-    "runtime_tls_config_rejects_staging_mode_auto_tls_certificate_cache",
-    "vm_acme_worker_schedules_renewal_through_vm_timer_table",
-    "vm_acme_worker_denies_stale_challenge_access_after_renewal_scheduled",
-    "vm_acme_worker_records_renewal_telemetry_and_redacted_support_bundle_step",
-    "vm_acme_worker_routes_challenge_after_due_renewal_begins",
-    "vm_acme_worker_captures_deterministic_renewal_cache_tls_handoff_replay",
-    "vm_tls_runtime_enforces_rotation_overlap_window_before_retiring_old_config",
-    "vm_tls_runtime_hot_rotation_keeps_existing_connection_mode_for_old_accepts",
-    "vm_http_acme_renewal_test",
     "vm-http-acme-renewal",
 ];
 
@@ -199,6 +188,7 @@ const TYPED_FAILURE_DIAGNOSTICS: &[&str] = &[
 const REJECTED_RENEWAL_PATHS: &[&str] = &[];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm http acme renewal summary.
 pub struct VmHttpAcmeRenewalSummary {
     pub renewal_schedule_count: usize,
     pub timer_trace_count: usize,
@@ -207,6 +197,7 @@ pub struct VmHttpAcmeRenewalSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm http acme renewal.
 pub fn run_vm_http_acme_renewal(root: &Path) -> QualityResult<VmHttpAcmeRenewalSummary> {
     let mut diagnostics = Vec::new();
     for (relative, anchors) in REQUIRED_FOUNDATION_ANCHORS {
@@ -282,7 +273,7 @@ fn validate_required_terms(
     terms: &[&str],
     label: &str,
 ) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join(relative))
+    let text = super::vm_http_acme_worker::read_split_source(root, relative)
         .map_err(|err| format!("{relative}: failed to read {label}: {err}"))?;
     Ok(terms
         .iter()
@@ -312,4 +303,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_http_acme_renewal_test.rs"]
+#[cfg(test)]
 mod vm_http_acme_renewal_test;

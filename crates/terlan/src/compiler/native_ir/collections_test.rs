@@ -1,9 +1,13 @@
 use crate::runtime::native_image::managed::{
     decode_collection_layout, ManagedCollectionKind, ManagedFieldType, SemanticTypeId,
 };
-use crate::terlan_typeck::CoreType;
+use crate::terlan_syntax::span::Span;
+use crate::terlan_typeck::{
+    CoreEffectSet, CoreExpr, CoreIntrinsicCall, CoreIntrinsicId, CorePrimitiveIntrinsic,
+    CoreTupleTypeElem, CoreType,
+};
 
-use super::managed_collection_layouts;
+use super::{managed_collection_layouts, managed_expression_collection_layouts};
 
 #[test]
 /// Inventories nested schemas once and emits deterministic canonical ordering.
@@ -61,4 +65,35 @@ fn rejects_nonconcrete_collection_slots_and_invalid_arity() {
     assert!(managed_collection_layouts([&malformed])
         .expect_err("invalid map arity")
         .contains("native_ir.collection_arity"));
+}
+
+#[test]
+fn iterator_intrinsics_inventory_their_physical_list_storage() {
+    let pair = CoreType::Tuple(vec![
+        CoreTupleTypeElem::Type(CoreType::String),
+        CoreTupleTypeElem::Type(CoreType::Int),
+    ]);
+    let iterator = CoreExpr::Intrinsic(CoreIntrinsicCall {
+        id: CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapIterator),
+        args: vec![CoreExpr::Var("values".to_string())],
+        return_type: CoreType::Apply {
+            constructor: "Iterator".to_string(),
+            args: vec![pair],
+        },
+        effects: CoreEffectSet {
+            effects: Vec::new(),
+        },
+        span: Span { start: 0, end: 0 },
+    });
+
+    let layouts =
+        managed_expression_collection_layouts([&iterator]).expect("iterator collection inventory");
+    let descriptors = layouts
+        .iter()
+        .map(|layout| decode_collection_layout(layout).expect("iterator storage schema"))
+        .collect::<Vec<_>>();
+
+    assert!(descriptors
+        .iter()
+        .any(|descriptor| descriptor.canonical_type() == "List(Tuple(String,Int))"));
 }

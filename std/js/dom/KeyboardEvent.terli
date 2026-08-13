@@ -125,5 +125,5 @@ pub (value: KeyboardEvent) init_keyboard_event(
     ctrl_key: Bool,
     alt_key: Bool,
     shift_key: Bool,
-    meta_key: Bool
+    meta_key: Bool,
 ): std.core.Unit.

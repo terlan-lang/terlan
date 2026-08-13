@@ -192,6 +192,20 @@ function testOperatorBridgeCoverage() {
   }
 }
 
+/** Verifies word operators stay operators rather than generic control words. */
+function testCanonicalWordOperators() {
+  const grammar = readTextMateGrammar();
+  const operatorRegex = new RegExp(operatorPattern(grammar).match);
+  const controlRegex = new RegExp(
+    keywordPattern(grammar, "keyword.control.terlan").match
+  );
+
+  for (const operator of ["and", "as", "div", "in", "not", "or", "rem"]) {
+    assert.ok(operatorRegex.test(operator), `TextMate word operators missing ${operator}`);
+  }
+  assert.ok(!controlRegex.test("in"), "`in` must be highlighted as an operator");
+}
+
 /**
  * Verifies VS Code's temporary TextMate bridge recognizes canonical binary
  * layout constructors, policies, and descriptors.
@@ -238,6 +252,7 @@ function testTemplateHtmlGrammarEmbedsHtmlAndTerlan() {
 testKeywordBridgeCoverage();
 testInterpolationBridgeCoverage();
 testOperatorBridgeCoverage();
+testCanonicalWordOperators();
 testBinaryLayoutBridgeCoverage();
 testTemplateHtmlGrammarEmbedsHtmlAndTerlan();
 

@@ -28,7 +28,7 @@ pub opaque type GamepadHapticActuator.
  */
 pub (value: GamepadHapticActuator) play_effect(
     type_: GamepadHapticEffectType,
-    params: GamepadEffectParameters
+    params: GamepadEffectParameters,
 ): Promise[GamepadHapticsResult].
 
 /**

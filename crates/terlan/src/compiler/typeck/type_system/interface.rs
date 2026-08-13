@@ -156,7 +156,8 @@ fn unique_global_alias_short_names(global_aliases: &HashMap<String, TypeAlias>) 
     }
     counts
         .into_iter()
-        .filter_map(|(short, count)| (count == 1).then(|| short.to_string()))
+        .filter(|&(_short, count)| count == 1)
+        .map(|(short, _count)| short.to_string())
         .collect()
 }
 

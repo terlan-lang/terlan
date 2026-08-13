@@ -19,6 +19,6 @@ pub generated_binding_surface_contract(): Bool -> true.
 pub read_entries_typechecks(
     receiver: FileSystemDirectoryReader,
     success_callback: FileSystemEntriesCallback,
-    error_callback: ErrorCallback
+    error_callback: ErrorCallback,
 ): std.core.Unit ->
     receiver.read_entries(success_callback, error_callback).

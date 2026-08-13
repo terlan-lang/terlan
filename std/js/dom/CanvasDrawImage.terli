@@ -27,7 +27,7 @@ pub (value: CanvasDrawImage) draw_image(
     dx: JsNumber,
     dy: JsNumber,
     dw: JsNumber,
-    dh: JsNumber
+    dh: JsNumber,
 ): Unit.
 
 pub (value: CanvasDrawImage) draw_image(
@@ -39,5 +39,5 @@ pub (value: CanvasDrawImage) draw_image(
     dx: JsNumber,
     dy: JsNumber,
     dw: JsNumber,
-    dh: JsNumber
+    dh: JsNumber,
 ): Unit.

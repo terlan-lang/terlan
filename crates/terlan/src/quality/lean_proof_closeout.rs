@@ -5,9 +5,11 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
-use crate::QualityResult;
+use super::QualityResult;
 
 const GATE_REPORT: &str = "build/artifacts/lean-proof-gate.json";
+const LANE_REPORT: &str = "build/artifacts/lean-proof-lanes.json";
+const SMOKE_REPORT: &str = "build/artifacts/lean-proof-smoke.json";
 const BASELINE: &str = "build/artifacts/lean-proof-baseline.tsv";
 const TOOLCHAIN: &str = "proofs/lean/lean-toolchain";
 const LAKE_MANIFEST: &str = "proofs/lean/lake-manifest.json";
@@ -18,6 +20,7 @@ const EXPECTED_CLASSES: &[&str] = &[
     "runtime",
     "vm",
     "native-boundary",
+    "parser",
     "wasm",
     "aeneas-bridge",
 ];
@@ -28,10 +31,22 @@ const VALID_STATUSES: &[&str] = &[
     "nondeterministic",
     "delete-candidate",
 ];
+const EXPECTED_LANES: &[&str] = &[
+    "parser",
+    "coreir",
+    "target_profile",
+    "vm_runtime",
+    "native_boundary",
+    "wasm",
+    "distribution",
+    "std_packages",
+];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing lean proof closeout summary.
 pub struct LeanProofCloseoutSummary {
     pub family_count: usize,
+    pub lane_count: usize,
     pub baseline_count: usize,
     pub baseline_hash: String,
     pub gate_report: PathBuf,
@@ -40,6 +55,59 @@ pub struct LeanProofCloseoutSummary {
 #[derive(Debug, Deserialize)]
 struct GateReport {
     families: Vec<FamilyStatus>,
+    lane_matrix_checksum: String,
+    lane_checksums: BTreeMap<String, String>,
+    proof_gap_metrics: ProofGapMetrics,
+}
+
+#[derive(Debug, Deserialize)]
+struct ProofGapMetrics {
+    unresolved_open_count: usize,
+}
+
+#[derive(Debug, Deserialize)]
+struct LaneReport {
+    schema: String,
+    lane_matrix_checksum: String,
+    lanes: Vec<LaneStatus>,
+}
+
+#[derive(Debug, Deserialize)]
+struct LaneStatus {
+    lane: String,
+    severity: String,
+    status: String,
+    coverage_status: String,
+    duration_ms: u64,
+    duration_tolerance_ms: u64,
+    number_of_families: usize,
+    failed_families: Vec<String>,
+    gap_count: usize,
+    nondeterministic_count: usize,
+    reproducibility_failures: usize,
+    smoke_health_score: u8,
+    smoke_policy_minimum: u8,
+    blockers: Vec<String>,
+    checksum: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct SmokeReport {
+    schema: String,
+    policy_minimum: u8,
+    compatibility_status: String,
+    lane_health: BTreeMap<String, u8>,
+    blockers: Vec<serde_json::Value>,
+    results: Vec<SmokeStatus>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SmokeStatus {
+    smoke_id: String,
+    proof_status: String,
+    runtime_status: String,
+    compatibility_status: String,
+    health_score: u8,
 }
 
 #[derive(Debug, Deserialize)]
@@ -61,13 +129,26 @@ struct BaselineRow {
     last_confirmed_hash: String,
 }
 
+/// Runs lean proof closeout.
 pub fn run_lean_proof_closeout(root: &Path) -> QualityResult<LeanProofCloseoutSummary> {
     let mut diagnostics = validate_foundation(root);
     let gate_text = read(root, GATE_REPORT)?;
+    let lane_text = read(root, LANE_REPORT)?;
+    let smoke_text = read(root, SMOKE_REPORT)?;
     let baseline_text = read(root, BASELINE)?;
     let gate = parse_gate_report(&gate_text)?;
+    let lanes = parse_lane_report(&lane_text)?;
+    let smoke = parse_smoke_report(&smoke_text)?;
     let baseline = parse_baseline(&baseline_text)?;
     diagnostics.extend(validate_family_schema(&gate.families));
+    diagnostics.extend(validate_lanes(&gate, &lanes));
+    diagnostics.extend(validate_smoke(&lanes, &smoke));
+    if gate.proof_gap_metrics.unresolved_open_count != 0 {
+        diagnostics.push(format!(
+            "error[lean_proof_closeout_open_gap]: {} unresolved open proof gaps remain",
+            gate.proof_gap_metrics.unresolved_open_count
+        ));
+    }
     diagnostics.extend(validate_baseline(&baseline));
     diagnostics.extend(validate_closeout(&gate.families, &baseline));
     if !diagnostics.is_empty() {
@@ -75,6 +156,7 @@ pub fn run_lean_proof_closeout(root: &Path) -> QualityResult<LeanProofCloseoutSu
     }
     Ok(LeanProofCloseoutSummary {
         family_count: gate.families.len(),
+        lane_count: lanes.lanes.len(),
         baseline_count: baseline.len(),
         baseline_hash: sha256_text(&baseline_text),
         gate_report: root.join(GATE_REPORT),
@@ -119,6 +201,16 @@ fn validate_foundation(root: &Path) -> Vec<String> {
 fn parse_gate_report(text: &str) -> QualityResult<GateReport> {
     serde_json::from_str(text)
         .map_err(|err| format!("error[lean_proof_closeout_report]: invalid gate JSON: {err}"))
+}
+
+fn parse_lane_report(text: &str) -> QualityResult<LaneReport> {
+    serde_json::from_str(text)
+        .map_err(|err| format!("error[lean_proof_closeout_lanes]: invalid lane JSON: {err}"))
+}
+
+fn parse_smoke_report(text: &str) -> QualityResult<SmokeReport> {
+    serde_json::from_str(text)
+        .map_err(|err| format!("error[lean_proof_closeout_smoke]: invalid smoke JSON: {err}"))
 }
 
 fn parse_baseline(text: &str) -> QualityResult<Vec<BaselineRow>> {
@@ -179,6 +271,167 @@ fn validate_family_schema(families: &[FamilyStatus]) -> Vec<String> {
             diagnostics.push(format!(
                 "error[lean_proof_closeout_remediation]: family `{}` status `{}` requires a remediation gate",
                 family.family, family.proof_status
+            ));
+        }
+    }
+    diagnostics
+}
+
+fn validate_lanes(gate: &GateReport, report: &LaneReport) -> Vec<String> {
+    let mut diagnostics = Vec::new();
+    if report.schema != "terlan.lean-proof-lanes.v1" {
+        diagnostics.push(format!(
+            "error[lean_proof_closeout_lanes]: unsupported lane schema `{}`",
+            report.schema
+        ));
+    }
+    if !is_sha256(&report.lane_matrix_checksum)
+        || gate.lane_matrix_checksum != report.lane_matrix_checksum
+    {
+        diagnostics.push(
+            "error[lean_proof_closeout_lane_checksum]: lane matrix checksum is missing or differs between reports"
+                .to_string(),
+        );
+    }
+    let names = report
+        .lanes
+        .iter()
+        .map(|lane| lane.lane.as_str())
+        .collect::<Vec<_>>();
+    if names != EXPECTED_LANES {
+        diagnostics.push(format!(
+            "error[lean_proof_closeout_lanes]: expected ordered lanes `{}`, found `{}`",
+            EXPECTED_LANES.join(","),
+            names.join(",")
+        ));
+    }
+    if gate.lane_checksums.len() != EXPECTED_LANES.len() {
+        diagnostics.push(format!(
+            "error[lean_proof_closeout_lane_checksum]: expected {} gate checksums, found {}",
+            EXPECTED_LANES.len(),
+            gate.lane_checksums.len()
+        ));
+    }
+    for lane in &report.lanes {
+        if lane.severity != "hard" || lane.status != "pass" {
+            diagnostics.push(format!(
+                "error[lean_proof_closeout_lane_status]: lane `{}` is severity `{}` status `{}`",
+                lane.lane, lane.severity, lane.status
+            ));
+        }
+        if !lane.blockers.is_empty() {
+            diagnostics.push(format!(
+                "error[lean_proof_closeout_lane_blocker]: lane `{}` has blockers `{}`",
+                lane.lane,
+                lane.blockers.join(",")
+            ));
+        }
+        if !lane.failed_families.is_empty()
+            || lane.nondeterministic_count != 0
+            || lane.reproducibility_failures != 0
+        {
+            diagnostics.push(format!(
+                "error[lean_proof_closeout_lane_evidence]: lane `{}` has failed={}, nondeterministic={}, reproducibility_failures={}",
+                lane.lane,
+                lane.failed_families.len(),
+                lane.nondeterministic_count,
+                lane.reproducibility_failures
+            ));
+        }
+        if lane.duration_ms == 0 || lane.duration_tolerance_ms == 0 {
+            diagnostics.push(format!(
+                "error[lean_proof_closeout_lane_duration]: lane `{}` lacks a positive duration and tolerance",
+                lane.lane
+            ));
+        }
+        if lane.smoke_policy_minimum != 100 || lane.smoke_health_score < lane.smoke_policy_minimum {
+            diagnostics.push(format!(
+                "error[lean_proof_closeout_smoke]: lane `{}` smoke health {} is below policy {}",
+                lane.lane, lane.smoke_health_score, lane.smoke_policy_minimum
+            ));
+        }
+        match lane.coverage_status.as_str() {
+            "executable_current" if lane.number_of_families == 0 => diagnostics.push(format!(
+                "error[lean_proof_closeout_lane_evidence]: executable lane `{}` has no proof families",
+                lane.lane
+            )),
+            "accepted_gap" if lane.number_of_families != 0 || lane.gap_count == 0 => {
+                diagnostics.push(format!(
+                    "error[lean_proof_closeout_lane_evidence]: accepted-gap lane `{}` has inconsistent family/gap counts",
+                    lane.lane
+                ));
+            }
+            "executable_current" | "accepted_gap" => {}
+            other => diagnostics.push(format!(
+                "error[lean_proof_closeout_lane_evidence]: lane `{}` has unknown coverage `{other}`",
+                lane.lane
+            )),
+        }
+        match gate.lane_checksums.get(&lane.lane) {
+            Some(checksum) if is_sha256(checksum) && checksum == &lane.checksum => {}
+            _ => diagnostics.push(format!(
+                "error[lean_proof_closeout_lane_checksum]: lane `{}` lacks a matching gate checksum",
+                lane.lane
+            )),
+        }
+    }
+    diagnostics
+}
+
+fn validate_smoke(lanes: &LaneReport, smoke: &SmokeReport) -> Vec<String> {
+    let mut diagnostics = Vec::new();
+    if smoke.schema != "terlan.lean-proof-smoke.v1"
+        || smoke.compatibility_status != "pass"
+        || smoke.policy_minimum != 100
+    {
+        diagnostics.push(
+            "error[lean_proof_closeout_smoke]: smoke schema, compatibility, or policy is not release-clean"
+                .to_string(),
+        );
+    }
+    if !smoke.blockers.is_empty() {
+        diagnostics.push(format!(
+            "error[lean_proof_closeout_smoke]: {} proof/runtime blockers remain",
+            smoke.blockers.len()
+        ));
+    }
+    let expected = EXPECTED_LANES
+        .iter()
+        .map(|lane| (*lane).to_string())
+        .collect::<BTreeSet<_>>();
+    let actual = smoke.lane_health.keys().cloned().collect::<BTreeSet<_>>();
+    if actual != expected {
+        diagnostics.push(
+            "error[lean_proof_closeout_smoke]: smoke report does not score every ordered lane"
+                .to_string(),
+        );
+    }
+    for lane in &lanes.lanes {
+        match smoke.lane_health.get(&lane.lane) {
+            Some(score)
+                if *score >= smoke.policy_minimum && *score == lane.smoke_health_score => {}
+            _ => diagnostics.push(format!(
+                "error[lean_proof_closeout_smoke]: lane `{}` smoke evidence differs between reports",
+                lane.lane
+            )),
+        }
+    }
+    let mut ids = BTreeSet::new();
+    if smoke.results.is_empty() {
+        diagnostics.push(
+            "error[lean_proof_closeout_smoke]: at least one semantic smoke is required".to_string(),
+        );
+    }
+    for result in &smoke.results {
+        if !ids.insert(result.smoke_id.as_str())
+            || result.proof_status != "pass"
+            || result.runtime_status != "pass"
+            || result.compatibility_status != "stable"
+            || result.health_score < smoke.policy_minimum
+        {
+            diagnostics.push(format!(
+                "error[lean_proof_closeout_smoke]: smoke `{}` is duplicate, divergent, or below policy",
+                result.smoke_id
             ));
         }
     }
@@ -300,4 +553,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "lean_proof_closeout_test.rs"]
+#[cfg(test)]
 mod lean_proof_closeout_test;

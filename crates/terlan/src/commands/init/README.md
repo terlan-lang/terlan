@@ -8,7 +8,6 @@ This directory owns `terlc init`, the release project scaffolder.
 - Use the default Terlan VM project layout unless another profile is selected.
 - Support `--profile web` for the smallest browser-plus-handler project shape.
 - Support `--profile static` for the smallest static-site project shape.
-- Support `--profile mobile` for the smallest mobile-shell project shape.
 - Refuse to overwrite existing project files.
 - Keep generated source target-neutral with an explicit
   `std.io.Console.{println}` import.
@@ -27,7 +26,6 @@ The command accepts exactly one new project name/path and an optional profile:
 terlc init hello
 terlc init hello-web --profile web
 terlc init docs-site --profile static
-terlc init mobile-app --profile mobile
 ```
 
 The command creates that directory and writes the scaffold inside it. Existing
@@ -129,27 +127,6 @@ The generated `Site.terl` can be passed to `terlc static emit` and previewed
 with `terlc static serve`, which renders into `_build/web`, serves the
 generated directory, and watches source changes.
 
-The mobile profile reuses the current web scaffold and adds a mobile shell
-source module plus project-owned shell metadata:
-
-```text
-mobile-app/
-  terlan.toml
-  docker-compose.yml
-  assets/
-  mobile/shell.toml
-  templates/page.terl.html
-  src/mobile_app/Main.terl
-  src/mobile_app/Web.terl
-  src/mobile_app/Http.terl
-  src/mobile_app/Mobile.terl
-  tests/mobile_app/MainTest.terl
-```
-
-The profile does not advertise a `mobile.shell` build command yet. It keeps
-the generated project on implemented commands while the target-profile planning
-slice defines mobile build artifacts.
-
 ## Integration Points
 
 - `main.rs`: routes the `init` verb here.
@@ -166,6 +143,5 @@ slice defines mobile build artifacts.
 ## Testing Notes
 
 - Unit tests cover argument parsing, profile selection, invalid names, file
-  generation, web-profile files, static-profile files, mobile-profile files,
-  next steps, and
+  generation, web-profile files, static-profile files, next steps, and
   overwrite refusal.

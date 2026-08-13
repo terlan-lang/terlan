@@ -11,7 +11,7 @@ use crate::terlan_hir::{
 };
 use crate::terlan_syntax::{
     parse_interface_module_as_syntax_output, parse_module_as_syntax_output,
-    SyntaxDeclarationPayload, SyntaxExprOutput, SyntaxModuleOutput,
+    parse_script_as_syntax_output, SyntaxDeclarationPayload, SyntaxExprOutput, SyntaxModuleOutput,
 };
 use crate::terlan_typeck::{expand_syntax_includes, expand_syntax_macros_with_interfaces};
 
@@ -194,6 +194,7 @@ const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
     include_str!("../../../std/summaries/std.core.Functional.typi"),
     include_str!("../../../std/summaries/std.core.GuardResult.typi"),
     include_str!("../../../std/summaries/std.core.Int.typi"),
+    include_str!("../../../std/summaries/std.core.Memory.typi"),
     include_str!("../../../std/summaries/std.core.Object.typi"),
     include_str!("../../../std/summaries/std.binary.Binary.typi"),
     include_str!("../../../std/summaries/std.collections.Enumerable.typi"),
@@ -204,7 +205,9 @@ const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
     include_str!("../../../std/summaries/std.collections.List.typi"),
     include_str!("../../../std/summaries/std.collections.Map.typi"),
     include_str!("../../../std/summaries/std.data.Json.typi"),
+    include_str!("../../../std/summaries/std.data.Toml.typi"),
     include_str!("../../../std/summaries/std.db.Postgres.typi"),
+    include_str!("../../../std/summaries/std.crypto.Hash.typi"),
     include_str!("../../../std/summaries/std.encoding.Base64.typi"),
     include_str!("../../../std/summaries/std.encoding.Md5.typi"),
     include_str!("../../../std/summaries/std.http.typi"),
@@ -231,6 +234,8 @@ const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
     include_str!("../../../std/summaries/std.core.Unit.typi"),
     include_str!("../../../std/summaries/std.core.typi"),
     include_str!("../../../std/summaries/std.io.Console.typi"),
+    include_str!("../../../std/summaries/std.io.Archive.typi"),
+    include_str!("../../../std/summaries/std.io.Directory.typi"),
     include_str!("../../../std/summaries/std.io.File.typi"),
     include_str!("../../../std/summaries/std.io.Path.typi"),
     include_str!("../../../std/summaries/std.io.typi"),
@@ -243,13 +248,20 @@ const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
     include_str!("../../../std/summaries/std.js.String.typi"),
     include_str!("../../../std/summaries/std.net.Uri.typi"),
     include_str!("../../../std/summaries/std.sync.Resource.typi"),
+    include_str!("../../../std/summaries/std.system.Arguments.typi"),
+    include_str!("../../../std/summaries/std.system.Environment.typi"),
+    include_str!("../../../std/summaries/std.system.Process.typi"),
+    include_str!("../../../std/summaries/std.system.Platform.typi"),
     include_str!("../../../std/summaries/std.template.Template.typi"),
     include_str!("../../../std/summaries/std.test.Gen.typi"),
     include_str!("../../../std/summaries/std.test.Shrink.typi"),
     include_str!("../../../std/summaries/std.test.Test.typi"),
     include_str!("../../../std/summaries/std.time.typi"),
+    include_str!("../../../std/summaries/std.time.Clock.typi"),
+    include_str!("../../../std/summaries/std.time.Date.typi"),
     include_str!("../../../std/summaries/std.time.Duration.typi"),
     include_str!("../../../std/summaries/std.time.Instant.typi"),
+    include_str!("../../../std/summaries/std.vcs.Git.typi"),
     include_str!("../../../std/summaries/std.wasm.Abi.typi"),
 ];
 
@@ -422,9 +434,61 @@ pub(crate) fn parse_source_as_syntax_output(
 ) -> crate::terlan_syntax::ebnf::EbnfCompileResult<crate::terlan_syntax::SyntaxModuleOutput> {
     if path.ends_with(".terli") {
         parse_interface_module_as_syntax_output(source)
+    } else if path.ends_with(".terls") {
+        parse_script_as_syntax_output(source, &script_module_name(Path::new(path)))
     } else {
         parse_module_as_syntax_output(source)
     }
+}
+
+/// Derives the compiler-owned module identity for a `.terls` source path.
+///
+/// Paths below a `scripts` directory retain that suffix, so
+/// `scripts/release/Seal.terls` becomes `scripts.release.Seal`. Standalone
+/// scripts use the stable `script.<stem>` namespace. No absolute build-root
+/// component enters the generated identity.
+pub(crate) fn script_module_name(path: &Path) -> String {
+    let components = path
+        .components()
+        .filter_map(|component| component.as_os_str().to_str())
+        .collect::<Vec<_>>();
+    let script_root = components
+        .iter()
+        .rposition(|component| *component == "scripts");
+    let selected = script_root.map_or_else(
+        || components.last().into_iter().copied().collect::<Vec<_>>(),
+        |index| components[index..].to_vec(),
+    );
+    let mut segments = selected
+        .iter()
+        .enumerate()
+        .map(|(index, component)| {
+            let raw = if index + 1 == selected.len() {
+                component.strip_suffix(".terls").unwrap_or(component)
+            } else {
+                component
+            };
+            let normalized = raw
+                .chars()
+                .map(|character| {
+                    if character.is_ascii_alphanumeric() || character == '_' {
+                        character
+                    } else {
+                        '_'
+                    }
+                })
+                .collect::<String>();
+            if normalized.is_empty() {
+                "Script".to_string()
+            } else {
+                normalized
+            }
+        })
+        .collect::<Vec<_>>();
+    if script_root.is_none() {
+        segments.insert(0, "script".to_string());
+    }
+    segments.join(".")
 }
 
 /// Runs the strict formal compile path for a selected backend profile.
@@ -732,6 +796,36 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
                 return result;
             }
         }
+        if let Err(message) = core.binding_identities.validate() {
+            let message = message.to_string();
+            crate::support::emit_diagnostic("type_error", &message, path, 0, 0, diagnostic_format);
+            result.core_diagnostics.push(PhaseManifestDiagnostic {
+                code: "binding_identity_evidence",
+                severity: "error",
+                message,
+                path: path.to_string(),
+                span_start: 0,
+                span_end: 0,
+                ..Default::default()
+            });
+            result.exit_code = ExitCode::from(1);
+            return result;
+        }
+        if let Err(message) = crate::terlan_typeck::validate_core_termination_evidence(&core) {
+            let message = message.to_string();
+            crate::support::emit_diagnostic("type_error", &message, path, 0, 0, diagnostic_format);
+            result.core_diagnostics.push(PhaseManifestDiagnostic {
+                code: "termination_evidence",
+                severity: "error",
+                message,
+                path: path.to_string(),
+                span_start: 0,
+                span_end: 0,
+                ..Default::default()
+            });
+            result.exit_code = ExitCode::from(1);
+            return result;
+        }
         let target_profile_violations =
             target_profile_checks_with_options(&core, target_profile, target_profile_options);
         if !target_profile_violations.is_empty() {
@@ -864,4 +958,5 @@ fn compile_result_to_artifacts(
 
 #[cfg(test)]
 #[path = "formal_pipeline_test.rs"]
+#[cfg(test)]
 mod formal_pipeline_test;

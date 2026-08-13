@@ -70,11 +70,11 @@ Router.sse Router.websocket Sse.endpoint_with_keep_alive WebSocket.endpoint
 "#,
         )?;
         self.write(
-            "tools/check_angular_ts_terlan_integration.py",
+            "scripts/self_validation/AngularTsIntegrationTest.terl",
             r#"
-validate_external_sse_runtime_contract validate_external_sse_declaration_contract
+external_sse_runtime_holds external_declarations_holds
 RealtimeProtocolEventDetail RealtimeProtocolMessage
-angular-ts namespace generation boundary passed
+selected_angular_ts_integration_holds
 "#,
         )?;
         self.write(
@@ -145,17 +145,11 @@ impl Drop for TestRepo {
 }
 
 const COMPLETE_MAKEFILE: &str = r#"
-vm-live-template-client-protocol-check: vm-live-template-stream-check
-	$(MAKE) angular-ts-terlan-integration-check
-	$(MAKE) angular-ts-namespace-generation-check
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::live_template_protocol::live_template_protocol_test::vm_live_template_protocol_manifest_lists_required_events_and_schema_hash -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::live_template_protocol::live_template_protocol_test::vm_live_template_protocol_generates_angular_ts_browser_runtime_module -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::live_template_protocol::live_template_protocol_test::vm_live_template_protocol_validates_generated_js_protocol_binding -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::live_template_protocol::live_template_protocol_test::vm_live_template_protocol_validates_generated_wasm_protocol_binding -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::live_template_protocol::live_template_protocol_test::vm_live_template_protocol_accepts_mixed_version_rolling_deploy_compatibility -- --exact
-	bash scripts/run_exact_cargo_test.sh -p terlan --bin terlan-vm runtime::vm::model_sync::model_sync_test::vm_model_sync_replays_dom_patches_against_typed_template_bindings -- --exact
-	$(RUST_TEST) --locked -p terlan --bin terlan-quality vm_live_template_client_protocol_test
-	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-live-template-client-protocol
+vm-live-template-client-protocol-check: \
+	vm-live-template-stream-check \
+	angular-ts-terlan-integration-check \
+	angular-ts-namespace-generation-check
+	$(CARGO) run -p terlan --bin terlan-quality --features quality-tools --quiet -- vm-live-template-client-protocol
 "#;
 
 #[test]
@@ -209,10 +203,10 @@ fn vm_live_template_client_protocol_rejects_missing_angular_anchor() {
     repo.write_complete_fixture().expect("write fixture");
     let path = repo
         .root()
-        .join("tools/check_angular_ts_terlan_integration.py");
+        .join("scripts/self_validation/AngularTsIntegrationTest.terl");
     let source = fs::read_to_string(&path).expect("angular checker");
     repo.write(
-        "tools/check_angular_ts_terlan_integration.py",
+        "scripts/self_validation/AngularTsIntegrationTest.terl",
         &source.replace("RealtimeProtocolMessage", ""),
     )
     .expect("rewrite angular checker");
@@ -372,7 +366,7 @@ fn vm_live_template_client_protocol_rejects_missing_make_gate_term() {
     repo.write_complete_fixture().expect("write fixture");
     repo.write(
         "Makefile",
-        &COMPLETE_MAKEFILE.replace("$(MAKE) angular-ts-namespace-generation-check", ""),
+        &COMPLETE_MAKEFILE.replace("angular-ts-namespace-generation-check", ""),
     )
     .expect("rewrite makefile");
 

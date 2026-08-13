@@ -67,7 +67,7 @@ pub secure_connection_start_typechecks(receiver: PerformanceResourceTiming): DOM
     receiver.secure_connection_start().
 
 pub server_timing_typechecks(
-    receiver: PerformanceResourceTiming
+    receiver: PerformanceResourceTiming,
 ): std.js.Array[PerformanceServerTiming] ->
     receiver.server_timing().
 

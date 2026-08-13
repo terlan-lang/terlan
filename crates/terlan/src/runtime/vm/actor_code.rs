@@ -1,12 +1,10 @@
 //! Shard-local image generation ownership for actor execution.
 
-use super::super::code_server::{
-    VmCodeBinding, VmCodeServerEvent, VmModuleArtifact, VmModuleGenerationSnapshot,
-};
-use super::{VmActorRuntime, VmProcessId};
+use super::*;
 
 impl VmActorRuntime {
     /// Publishes one image generation into this actor runtime only.
+    #[cfg(test)]
     pub(crate) fn publish_image_generation(
         &mut self,
         module: impl Into<String>,
@@ -16,6 +14,7 @@ impl VmActorRuntime {
     }
 
     /// Binds or moves one live local actor to this shard's active generation.
+    #[cfg(test)]
     pub(crate) fn switch_actor_to_active_image(
         &mut self,
         actor: VmProcessId,
@@ -26,6 +25,7 @@ impl VmActorRuntime {
     }
 
     /// Returns deterministic image-generation rows owned by this shard.
+    #[cfg(test)]
     pub(crate) fn image_generation_snapshots(&self) -> Vec<VmModuleGenerationSnapshot> {
         self.code_server.snapshots()
     }

@@ -1,0 +1,109 @@
+module tests.language.VmServiceActorTest.
+
+import std.test.Test.{assert_equal}.
+import std.vm.Process.{ActorMessage}.
+import std.vm.{Agent, GenServer, Message, Process, Task}.
+
+import type std.vm.Agent.{Agent, AgentCommand, AgentReply}.
+import type std.vm.GenServer.{GenServerCommand, ServerRef}.
+import type std.vm.Message.
+import type std.vm.Process.{Entry, Process}.
+import type std.vm.Task.{Task, TaskCommand}.
+
+pub spawn_36(): Unit ->
+    let reply_message = Process.receive[Process[Int]]();
+    let reply_to = Message.unwrap[Process[Int]](reply_message);
+    let value = Message.wrap[Int](73);
+    Process.send[Int](reply_to, value);
+    Unit.
+
+pub spawn_service(): Process[Process[Int]] ->
+    let entry = Process.entry[Process[Int]](36);
+    Process.spawn[Process[Int]](entry).
+
+pub spawn_37(): Unit ->
+    Agent.serve[Int](0).
+
+pub spawn_38(): Unit ->
+    GenServer.serve[Int](0).
+
+pub spawn_39(): Unit ->
+    Task.serve[Int](42).
+
+pub spawn_40(): Unit ->
+    let _trigger = Process.receive[Int]();
+    Process.fail(Process.exit_reason(40)).
+
+pub queue_updates(agent: Agent[Int], value: Int, last: Int): Unit ->
+    if {
+        value > last -> Unit;
+        true -> let _queued = Agent.update[Int](agent, value);
+        queue_updates(agent, value + 1, last)
+    }.
+
+@test
+pub spawned_actor_parks_until_parent_sends(): Bool ->
+    let child = spawn_service();
+    let reply_to = Process.current[Int]();
+    let reply_message = Message.wrap[Process[Int]](reply_to);
+    Process.send[Process[Int]](child, reply_message);
+    let response = Process.receive[Int]();
+    let value = Message.unwrap[Int](response);
+    (assert_equal(73, value); true).
+
+@test
+pub agent_service_orders_state_and_discards_stale_replies(): Bool ->
+    let entry = Process.entry[AgentCommand[Int]](37);
+    let process = Process.spawn[AgentCommand[Int]](entry);
+    let agent = Agent.start[Int](process, 10);
+    let reply_to = Process.current[AgentReply[Int]]();
+    Agent.request_get[Int](agent, 999, reply_to);
+    let initial = Agent.get[Int](agent, 1);
+    let _cast = Agent.cast[Int](agent, 11);
+    let _queued = queue_updates(agent, 12, 42);
+    let after_pressure = Agent.get[Int](agent, 2);
+    let old = Agent.get_and_update[Int](agent, 3, 43);
+    let final_value = Agent.get[Int](agent, 4);
+    (Agent.stop[Int](agent, 5); assert_equal(10, initial)
+    and assert_equal(42, after_pressure)
+    and assert_equal(42, old)
+    and assert_equal(43, final_value)).
+
+@test
+pub gen_server_init_call_cast_timeout_terminate_and_policy_wrappers_execute(): Bool ->
+    let rejected = not GenServer.init_succeeded(false);
+    let accepted = GenServer.init_succeeded(true);
+    let entry = Process.entry[GenServerCommand[Int]](38);
+    let process = Process.spawn[GenServerCommand[Int]](entry);
+    let server = GenServer.start[Int](process, 0);
+    let _monitored = GenServer.monitor[Int](server);
+    let _linked = GenServer.relate_peer[Int](server);
+    let initial = GenServer.call[Int](server, 1, 10);
+    let _cast = GenServer.cast[Int](server, 20);
+    let _timeout = GenServer.timeout(1);
+    let after_cast = GenServer.call[Int](server, 2, 21);
+    let final_state = GenServer.stop[Int](server, 3);
+    rejected
+        and accepted
+        and assert_equal(0, initial)
+        and assert_equal(20, after_cast)
+        and assert_equal(21, final_state).
+
+@test
+pub task_result_monitor_and_cancel_execute_from_terlan(): Bool ->
+    let entry = Process.entry[TaskCommand[Int]](39);
+    let process = Process.spawn[TaskCommand[Int]](entry);
+    let task = Task.start[Int](process, 0);
+    let _monitored = Task.monitor[Int](task);
+    let value = Task.result[Int](task, 1);
+    let _cancelled = Task.cancel[Int](task);
+    assert_equal(42, value).
+
+@test
+pub monitored_child_crash_does_not_crash_the_watcher(): Bool ->
+    let entry = Process.entry[Int](40);
+    let process = Process.spawn[Int](entry);
+    let _monitor = Process.monitor[Int](process);
+    let _sent = Process.send[Int](process, Message.wrap[Int](1));
+    let _yielded = Process.yield_now();
+    true.

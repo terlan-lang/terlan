@@ -9,18 +9,27 @@ use super::{
     NativeConstructorLayouts, NativeExpr, NativeType,
 };
 
+/// Checked receiver identity of one managed field projection.
+pub(super) struct ManagedFieldAccess<'a> {
+    pub(super) base: &'a CoreExpr,
+    pub(super) record_name: Option<&'a str>,
+    pub(super) field: &'a str,
+}
+
 /// Lowers one checked named field read through the bounded managed-operation ABI.
-#[allow(clippy::too_many_arguments)]
 pub(super) fn lower_managed_field_access(
-    base: &CoreExpr,
-    record_name: Option<&str>,
-    field: &str,
+    access: ManagedFieldAccess<'_>,
     params: &HashMap<String, usize>,
     param_types: &HashMap<String, NativeType>,
     functions: &HashMap<(String, usize), usize>,
     function_types: &HashMap<(String, usize), NativeType>,
     constructors: &NativeConstructorLayouts,
 ) -> Result<NativeExpr, String> {
+    let ManagedFieldAccess {
+        base,
+        record_name,
+        field,
+    } = access;
     let base_type =
         infer_native_type_for_lowering(base, param_types, function_types, constructors)?
             .ok_or_else(|| {

@@ -25,6 +25,7 @@ impl VmTimerTransfer {
     }
 
     /// Returns the number of active timers retained by this transfer.
+    #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
         self.timers.len()
     }

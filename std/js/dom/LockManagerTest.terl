@@ -24,7 +24,7 @@ pub query_typechecks(receiver: LockManager): Promise[LockManagerSnapshot] ->
 pub request_typechecks(
     receiver: LockManager,
     name: JsString,
-    callback: LockGrantedCallback[T]
+    callback: LockGrantedCallback[T],
 ): Promise[T] ->
     receiver.request(name, callback).
 
@@ -32,6 +32,6 @@ pub request_typechecks(
     receiver: LockManager,
     name: JsString,
     options: LockOptions,
-    callback: LockGrantedCallback[T]
+    callback: LockGrantedCallback[T],
 ): Promise[T] ->
     receiver.request(name, options, callback).

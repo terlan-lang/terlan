@@ -1,0 +1,11 @@
+module self_validation_process_context.
+
+import std.core.Option.{None, Some}.
+import std.io.Console.{println}.
+import std.system.Arguments.{get}.
+
+pub main(): Unit ->
+    case get(0) {
+        Some(value) -> println(value);
+        None -> println("missing")
+    }.

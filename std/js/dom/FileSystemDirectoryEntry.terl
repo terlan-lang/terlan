@@ -39,7 +39,7 @@ pub (value: FileSystemDirectoryEntry) get_directory(
     path: Option[JsString],
     options: FileSystemFlags,
     success_callback: FileSystemEntryCallback,
-    error_callback: ErrorCallback
+    error_callback: ErrorCallback,
 ): Unit ->
     native.
 
@@ -52,6 +52,6 @@ pub (value: FileSystemDirectoryEntry) get_file(
     path: Option[JsString],
     options: FileSystemFlags,
     success_callback: FileSystemEntryCallback,
-    error_callback: ErrorCallback
+    error_callback: ErrorCallback,
 ): Unit ->
     native.

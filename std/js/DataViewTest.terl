@@ -30,14 +30,14 @@ pub byte_offset_typechecks(receiver: DataView[TArrayBuffer]): JsNumber ->
 pub get_float32_typechecks(
     receiver: DataView[TArrayBuffer],
     byte_offset: JsNumber,
-    little_endian: Bool
+    little_endian: Bool,
 ): JsNumber ->
     receiver.get_float32(byte_offset, little_endian).
 
 pub get_float64_typechecks(
     receiver: DataView[TArrayBuffer],
     byte_offset: JsNumber,
-    little_endian: Bool
+    little_endian: Bool,
 ): JsNumber ->
     receiver.get_float64(byte_offset, little_endian).
 
@@ -47,14 +47,14 @@ pub get_int8_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber)
 pub get_int16_typechecks(
     receiver: DataView[TArrayBuffer],
     byte_offset: JsNumber,
-    little_endian: Bool
+    little_endian: Bool,
 ): JsNumber ->
     receiver.get_int16(byte_offset, little_endian).
 
 pub get_int32_typechecks(
     receiver: DataView[TArrayBuffer],
     byte_offset: JsNumber,
-    little_endian: Bool
+    little_endian: Bool,
 ): JsNumber ->
     receiver.get_int32(byte_offset, little_endian).
 
@@ -64,14 +64,14 @@ pub get_uint8_typechecks(receiver: DataView[TArrayBuffer], byte_offset: JsNumber
 pub get_uint16_typechecks(
     receiver: DataView[TArrayBuffer],
     byte_offset: JsNumber,
-    little_endian: Bool
+    little_endian: Bool,
 ): JsNumber ->
     receiver.get_uint16(byte_offset, little_endian).
 
 pub get_uint32_typechecks(
     receiver: DataView[TArrayBuffer],
     byte_offset: JsNumber,
-    little_endian: Bool
+    little_endian: Bool,
 ): JsNumber ->
     receiver.get_uint32(byte_offset, little_endian).
 
@@ -79,7 +79,7 @@ pub set_float32_typechecks(
     receiver: DataView[TArrayBuffer],
     byte_offset: JsNumber,
     value: JsNumber,
-    little_endian: Bool
+    little_endian: Bool,
 ): Unit ->
     receiver.set_float32(byte_offset, value, little_endian).
 
@@ -87,14 +87,14 @@ pub set_float64_typechecks(
     receiver: DataView[TArrayBuffer],
     byte_offset: JsNumber,
     value: JsNumber,
-    little_endian: Bool
+    little_endian: Bool,
 ): Unit ->
     receiver.set_float64(byte_offset, value, little_endian).
 
 pub set_int8_typechecks(
     receiver: DataView[TArrayBuffer],
     byte_offset: JsNumber,
-    value: JsNumber
+    value: JsNumber,
 ): Unit ->
     receiver.set_int8(byte_offset, value).
 
@@ -102,7 +102,7 @@ pub set_int16_typechecks(
     receiver: DataView[TArrayBuffer],
     byte_offset: JsNumber,
     value: JsNumber,
-    little_endian: Bool
+    little_endian: Bool,
 ): Unit ->
     receiver.set_int16(byte_offset, value, little_endian).
 
@@ -110,14 +110,14 @@ pub set_int32_typechecks(
     receiver: DataView[TArrayBuffer],
     byte_offset: JsNumber,
     value: JsNumber,
-    little_endian: Bool
+    little_endian: Bool,
 ): Unit ->
     receiver.set_int32(byte_offset, value, little_endian).
 
 pub set_uint8_typechecks(
     receiver: DataView[TArrayBuffer],
     byte_offset: JsNumber,
-    value: JsNumber
+    value: JsNumber,
 ): Unit ->
     receiver.set_uint8(byte_offset, value).
 
@@ -125,7 +125,7 @@ pub set_uint16_typechecks(
     receiver: DataView[TArrayBuffer],
     byte_offset: JsNumber,
     value: JsNumber,
-    little_endian: Bool
+    little_endian: Bool,
 ): Unit ->
     receiver.set_uint16(byte_offset, value, little_endian).
 
@@ -133,6 +133,6 @@ pub set_uint32_typechecks(
     receiver: DataView[TArrayBuffer],
     byte_offset: JsNumber,
     value: JsNumber,
-    little_endian: Bool
+    little_endian: Bool,
 ): Unit ->
     receiver.set_uint32(byte_offset, value, little_endian).

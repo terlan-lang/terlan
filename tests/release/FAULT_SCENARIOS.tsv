@@ -1,0 +1,12 @@
+id	fault	expected	diagnostic	classification	cleanup	owner
+vm-process-failure	invalid-image	reject	tvm-image-error	terminal	temporary-removed	vm
+supervisor-restart	shard-owner-exit	restart	vm-supervisor-restart	retryable	actor-resources-reclaimed	vm
+timer-timeout	bounded-operation-timeout	timeout	vm-timeout	terminal	timer-removed	vm
+worker-failure	invalid-worker-option	reject	capability-worker-args	terminal	worker-exited	native-boundary
+stale-handle	invalid-resource-generation	reject	stale-handle	terminal	handle-closed	native-boundary
+http-disconnect	client-closes-early	recover	http-client-disconnect	retryable	socket-closed	http
+http-slow-client	read-deadline	timeout	http-read-timeout	terminal	socket-closed	http
+http-malformed	invalid-request-head	reject	http-parse-error	terminal	socket-closed	http
+package-resolution	missing-package	reject	package-resolution-error	terminal	temporary-removed	packages
+database-unavailable	connection-refused	reject	database-unavailable	retryable	handle-closed	database
+partial-mirror	missing-artifact	reject	staged-artifact-missing	terminal	mirror-unchanged	release

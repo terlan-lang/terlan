@@ -222,4 +222,5 @@ pub fn fragment(uri: &Uri) -> Option<String> {
 
 #[cfg(test)]
 #[path = "uri_test.rs"]
+#[cfg(test)]
 mod uri_test;

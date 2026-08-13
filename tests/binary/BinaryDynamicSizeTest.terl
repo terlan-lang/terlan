@@ -4,18 +4,18 @@ import std.test.Test.{assert_equal}.
 import std.vm.BitString.{from_bytes}.
 import std.vm.Bytes.{from_list}.
 
-import type std.vm.Bytes.{Bytes}.
+import type std.vm.Bytes.
 
 pub word_counted_payload_length(frame: Bytes): Int ->
     let word_count = frame.read_uint_be(0, 32);
-    (word_count - 1) * 4.
+    word_count - 1 * 4.
 
 pub word_counted_payload(frame: Bytes): Bytes ->
     frame.slice(4, word_counted_payload_length(frame)).
 
 pub word_counted_payload_with_word_size(frame: Bytes, word_size: Int): Bytes ->
     let word_count = frame.read_uint_be(0, word_size * 8);
-    frame.slice(word_size, (word_count - 1) * word_size).
+    frame.slice(word_size, word_count - 1 * word_size).
 
 pub word_counted_remaining(frame: Bytes): Bytes ->
     let payload_length = word_counted_payload_length(frame);
@@ -41,7 +41,7 @@ pub computed_size_uses_lexically_scoped_runtime_values(): Bool ->
     let frame = from_list([0, 0, 0, 2, 116, 101, 114, 108]);
     assert_equal(
         [116, 101, 114, 108],
-        word_counted_payload_with_word_size(frame, word_size).to_list()
+        word_counted_payload_with_word_size(frame, word_size).to_list(),
     ).
 
 @test

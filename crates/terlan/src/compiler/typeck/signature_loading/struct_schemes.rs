@@ -56,7 +56,7 @@ pub(in super::super) fn collect_imported_struct_schemes(
 /// Collects generic struct fields and implication bounds as one reusable scheme.
 pub(in super::super) fn collect_syntax_struct_schemes(
     module: &SyntaxModuleOutput,
-    alias_names: &HashSet<String>,
+    environment: TypeResolutionEnvironment<'_>,
 ) -> HashMap<String, StructScheme> {
     let mut out = HashMap::new();
 
@@ -84,15 +84,23 @@ pub(in super::super) fn collect_syntax_struct_schemes(
             .map(|field| {
                 let ty = parse_type_expr(
                     &field.annotation.text,
-                    alias_names,
+                    environment.alias_names,
                     &mut vars,
                     &mut next_var,
                 )
                 .unwrap_or(Type::Dynamic);
+                let ty = expand_imported_aliases_except_named(
+                    &ty,
+                    environment.imported_type_aliases,
+                    environment.imported_type_names,
+                    environment.local_aliases,
+                );
+                let ty = qualify_type_names(&ty, environment.imported_type_names);
                 (field.name.clone(), ty)
             })
             .collect();
-        let bounds = parse_structural_implication_bounds(generic_params, &vars, alias_names);
+        let bounds =
+            parse_structural_implication_bounds(generic_params, &vars, environment.alias_names);
 
         out.insert(
             name.clone(),

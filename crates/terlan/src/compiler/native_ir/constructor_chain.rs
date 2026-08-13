@@ -106,9 +106,17 @@ fn rewrite_children(expr: &mut CoreExpr, ordinal: &mut usize) {
         | CoreExpr::UnaryOp { operand: base, .. }
         | CoreExpr::Lam { body: base, .. } => rewrite(base, ordinal),
         CoreExpr::Let { bindings, body } => {
-            bindings
-                .iter_mut()
-                .for_each(|binding| rewrite(&mut binding.value, ordinal));
+            for binding in bindings {
+                if let CorePattern::Var(name) = &binding.pattern {
+                    if let Some(existing) = name
+                        .strip_prefix("$native_constructor_chain_")
+                        .and_then(|value| value.parse::<usize>().ok())
+                    {
+                        *ordinal = (*ordinal).max(existing.saturating_add(1));
+                    }
+                }
+                rewrite(&mut binding.value, ordinal);
+            }
             rewrite(body, ordinal);
         }
         CoreExpr::If { clauses } => clauses.iter_mut().for_each(|clause| {

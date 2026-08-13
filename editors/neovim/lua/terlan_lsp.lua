@@ -17,6 +17,7 @@ M.root_markers = { "terlan.toml", ".git" }
 M.tree_sitter_language = "terlan"
 M.filetypes = {
   "terlan",
+  "terlan-script",
   "terlan-interface",
   "terlan-template-html",
   "terlan-template-markdown",

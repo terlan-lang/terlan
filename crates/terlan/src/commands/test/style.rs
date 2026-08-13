@@ -110,4 +110,5 @@ fn color_enabled(choice: ColorChoice) -> bool {
 
 #[cfg(test)]
 #[path = "style_test.rs"]
+#[cfg(test)]
 mod style_test;

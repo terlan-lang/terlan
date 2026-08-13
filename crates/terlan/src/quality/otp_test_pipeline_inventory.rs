@@ -34,7 +34,7 @@ const REQUIRED_INVENTORY_PATHS: &[&str] = &[
     ".github/workflows/release.yml",
     "crates/terlan/cli.mk",
     "std/stdlib.mk",
-    "std/scripts/check_native_artifacts.py",
+    "scripts/self_validation/NativeArtifactsTest.terl",
     "crates/terlan/src/commands/emit_native_metadata",
     "scripts/check_release_boundary.sh",
     "crates/terlan/src/commands/build/build_test/tests",
@@ -44,7 +44,6 @@ const REQUIRED_INVENTORY_PATHS: &[&str] = &[
     "crates/terlan/src/commands/build/build_test/tests/executable_vm_artifact_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/import_constructor_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/js_target_diagnostics_test.rs",
-    "crates/terlan/src/commands/build/build_test/tests/mobile_build_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/project_layout_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/shape_js_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/std_runtime_test.rs",
@@ -55,7 +54,7 @@ const REQUIRED_INVENTORY_PATHS: &[&str] = &[
     "crates/terlan/src/commands/repl",
     "crates/terlan/src/commands/serve",
     "crates/terlan/src/validation/target_profile",
-    "tools/check_http_runtime_stack.py",
+    "scripts/self_validation/HttpRuntimeStackTest.terl",
 ];
 
 const CLOSED_DEFAULT_RELEASE_ROWS: &[&str] = &[
@@ -67,7 +66,6 @@ const CLOSED_DEFAULT_RELEASE_ROWS: &[&str] = &[
     "crates/terlan/src/commands/build/build_test/tests/executable_vm_artifact_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/import_constructor_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/js_target_diagnostics_test.rs",
-    "crates/terlan/src/commands/build/build_test/tests/mobile_build_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/project_layout_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/shape_js_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/std_runtime_test.rs",
@@ -88,7 +86,6 @@ const VM_DEFAULT_FIXTURE_FREE_PATHS: &[&str] = &[
     "crates/terlan/src/commands/build/build_test/tests/executable_vm_artifact_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/import_constructor_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/js_target_diagnostics_test.rs",
-    "crates/terlan/src/commands/build/build_test/tests/mobile_build_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/project_layout_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/shape_js_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/std_runtime_test.rs",
@@ -105,10 +102,10 @@ const SELECTED_SURFACES: &[&str] = &[
     "std/scripts/run_release_tests.sh",
     "std/scripts/check_negative_api_tests.sh",
     "std/scripts/check_io_negative_api_tests.sh",
-    "std/scripts/check_native_artifacts.py",
+    "scripts/self_validation/NativeArtifactsTest.terl",
     "crates/terlan/src/commands/emit_native_metadata",
     "scripts/check_release_boundary.sh",
-    "tools/check_http_runtime_stack.py",
+    "scripts/self_validation/HttpRuntimeStackTest.terl",
 ];
 
 const OTP_MARKERS: &[&str] = &[
@@ -374,4 +371,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "otp_test_pipeline_inventory_test.rs"]
+#[cfg(test)]
 mod otp_test_pipeline_inventory_test;

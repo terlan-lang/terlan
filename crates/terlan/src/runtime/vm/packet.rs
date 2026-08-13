@@ -1,7 +1,3 @@
-#![allow(dead_code)]
-
-//! Fixed-format packet length extraction for VM-owned byte streams.
-
 mod packet_decode;
 
 pub(crate) use packet_decode::{
@@ -212,8 +208,10 @@ fn read_be_u32(bytes: &[u8]) -> Option<u32> {
 
 #[cfg(test)]
 #[path = "packet_test.rs"]
+#[cfg(test)]
 mod packet_test;
 
 #[cfg(test)]
 #[path = "packet_decode_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod packet_decode_beam_suite_parity_test;

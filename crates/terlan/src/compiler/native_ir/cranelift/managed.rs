@@ -68,17 +68,35 @@ impl ManagedLayouts {
     }
 }
 
+/// One admitted aggregate allocation emitted into generated code.
+pub(super) struct ManagedAllocation<'a> {
+    pub(super) encoded_layout: &'a Arc<[u8]>,
+    pub(super) fields: &'a [Value],
+}
+
+/// VM-owned state required by the generated managed allocator callback.
+pub(super) struct ManagedAllocationRuntime {
+    pub(super) context: Value,
+    pub(super) allocator: Value,
+}
+
 /// Emits one checked call to the VM-owned managed aggregate allocator.
 pub(super) fn emit_managed_allocation(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
     layouts: &ManagedLayouts,
-    encoded_layout: &Arc<[u8]>,
-    fields: &[Value],
-    runtime_context: Value,
-    allocator: Value,
+    allocation: ManagedAllocation<'_>,
+    runtime: ManagedAllocationRuntime,
     error_block: Block,
 ) -> Result<Value, String> {
+    let ManagedAllocation {
+        encoded_layout,
+        fields,
+    } = allocation;
+    let ManagedAllocationRuntime {
+        context: runtime_context,
+        allocator,
+    } = runtime;
     let pointer = module.target_config().pointer_type();
     let allocator_missing =
         builder
@@ -225,6 +243,17 @@ fn collect_layouts(expr: &NativeExpr, layouts: &mut Vec<Arc<[u8]>>) {
         NativeExpr::InvokeClosure { callee, args, .. } => {
             collect_layouts(callee, layouts);
             args.iter()
+                .for_each(|argument| collect_layouts(argument, layouts));
+        }
+        NativeExpr::InvokeClosureThen {
+            callee,
+            args,
+            values,
+            ..
+        } => {
+            collect_layouts(callee, layouts);
+            args.iter()
+                .chain(values)
                 .for_each(|argument| collect_layouts(argument, layouts));
         }
         NativeExpr::CallThen { args, values, .. } => {

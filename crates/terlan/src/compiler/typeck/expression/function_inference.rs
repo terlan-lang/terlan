@@ -5,7 +5,7 @@ mod explicit_type_args;
 mod trait_bounds;
 
 pub(super) use alias_bounds::check_type_alias_implication_bounds;
-use explicit_type_args::bind_explicit_call_type_args;
+use explicit_type_args::{bind_explicit_call_type_args, parse_explicit_call_type_arg};
 pub(crate) use trait_bounds::{
     alias_name_for_type, canonicalize_trait_lookup_types, check_function_bounds,
     check_function_call_bounds, collect_trait_bound_impl_type_args,
@@ -62,8 +62,15 @@ pub(crate) fn infer_function_with_explicit_type_args(
     ctx: &ExprInferContext<'_>,
     subst: &mut HashMap<TypeVarId, Type>,
 ) -> Result<Type, String> {
-    let instantiated =
-        instantiate_function_scheme_from(scheme, next_function_type_var(args, subst));
+    let explicit_type_var_floor = type_args
+        .iter()
+        .filter_map(|type_arg| parse_explicit_call_type_arg(type_arg, ctx).ok())
+        .filter_map(|ty| max_type_var(&ty))
+        .max()
+        .map(|id| id + 1)
+        .unwrap_or(0);
+    let first_var = next_function_type_var(args, subst).max(explicit_type_var_floor);
+    let instantiated = instantiate_function_scheme_from(scheme, first_var);
     bind_explicit_call_type_args(&instantiated, function_name, type_args, ctx, subst)?;
     infer_instantiated_function_with_bounds(&instantiated, function_name, args, ctx, subst)
 }
@@ -119,9 +126,7 @@ pub(crate) fn infer_instantiated_function_with_bounds(
         }
     }
 
-    if let Err(message) = check_function_call_bounds(scheme, function_name, args, ctx, subst) {
-        return Err(message);
-    }
+    check_function_call_bounds(scheme, function_name, args, ctx, subst)?;
 
     Ok(instantiate_type(&scheme.ret, subst))
 }

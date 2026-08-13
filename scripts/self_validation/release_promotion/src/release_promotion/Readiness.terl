@@ -1,0 +1,213 @@
+/**
+ * Validates that one sealed release candidate owns all local closeout evidence.
+ */
+module release_promotion.Readiness.
+
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{eprintln}.
+import std.io.{Directory, File}.
+
+import type std.data.Json.
+import type std.data.Json.RequiredFieldRow.
+
+required_reports(): List[{String, String}] ->
+    [
+        {
+            "target/quality/release-example-projects-report.json",
+            "terlan.release-example-projects-report.v1",
+        },
+        {
+            "target/quality/release-project-upgrade-matrix-report.json",
+            "terlan.release-project-upgrade-matrix-report.v1",
+        },
+        {
+            "target/quality/release-reference-app-suite-report.json",
+            "terlan.release-reference-app-suite-report.v1",
+        },
+        {
+            "target/quality/release-diagnostic-catalog-report.json",
+            "terlan.release-diagnostic-catalog-report.v1",
+        },
+        {
+            "target/quality/release-compatibility-baseline-report.json",
+            "terlan.release-compatibility-baseline-report.v1",
+        },
+        {
+            "target/quality/release-notes-accuracy-report.json",
+            "terlan.release-notes-accuracy-report.v1",
+        },
+        {
+            "target/quality/release-supply-chain-provenance-report.json",
+            "terlan.release-supply-chain-provenance-report.v1",
+        },
+        {
+            "target/quality/release-security-hardening-report.json",
+            "terlan.release-security-hardening-report.v1",
+        },
+        {
+            "target/quality/release-support-bundle-report.json",
+            "terlan.release-support-bundle-report.v1",
+        },
+        {
+            "target/quality/release-performance-baseline-report.json",
+            "terlan.release-performance-baseline-report.v1",
+        },
+        {
+            "target/quality/release-adversarial-corpus-report.json",
+            "terlan.release-adversarial-corpus-report.v1",
+        },
+        {
+            "target/quality/release-mutation-check-report.json",
+            "terlan.release-mutation-check-report.v1",
+        },
+        {
+            "target/quality/release-fault-injection-report.json",
+            "terlan.release-fault-injection-report.v1",
+        },
+        {
+            "target/quality/vm-release-artifact-matrix-report.json",
+            "terlan.vm-release-artifact-matrix-report.v1",
+        },
+        {
+            "target/quality/vm-multicore-release-closeout.json",
+            "terlan.vm-multicore-release-closeout.v3",
+        },
+    ].
+
+child(parent: String, relative: String): String ->
+    if {
+        String.ends_with(parent, "/") -> String.append(parent, relative);
+        true -> String.concat([parent, "/", relative])
+    }.
+
+text(root: String, relative: String): String ->
+    case File.read_text(child(root, relative)) {
+        Ok(value) -> value;
+        Err(_reason) -> ""
+    }.
+
+reports_valid(root: String, rows: List[{String, String}]): Bool ->
+    case rows {
+        [] -> true;
+        [{path, schema} | rest] ->
+            let source = text(root, path);
+            source != ""
+                and String.contains(source, schema)
+                and String.contains(source, "\"decision\": \"pass\"")
+                and reports_valid(root, rest)
+    }.
+
+report_paths(rows: List[{String, String}], output: Json): Json ->
+    case rows {
+        [] -> output;
+        [{path, _schema} | rest] -> report_paths(rest, output.push(Json.string(path)))
+    }.
+
+string_field(document: Json, name: String): String ->
+    let {
+        Ok(value) <- document.get(name);
+        Ok(text) <- value.as_string()
+    } else {
+        _ -> ""
+    };
+    text.
+
+seal_digest(candidate: Json): String ->
+    case candidate.get("seal") {
+        Ok(seal) -> string_field(seal, "digest");
+        Err(_reason) -> ""
+    }.
+
+archive_row(rows: List[RequiredFieldRow]): {String, String} ->
+    case rows {
+        [] -> {"", ""};
+        [row | rest] ->
+            case Json.required_field_row_strings(row) {
+                [path, digest] ->
+                    if {
+                        String.ends_with(path, ".tar.gz") or String.ends_with(path, ".zip") -> {path, digest};
+                        true -> archive_row(rest)
+                    };
+                _ -> archive_row(rest)
+            }
+    }.
+
+candidate_archive(candidate: Json): {String, String} ->
+    let {
+        Ok(artifacts) <- candidate.get("artifacts");
+        Ok(rows) <- Json.required_field_rows(artifacts, ["path", "sha256"], [], [])
+    } else {
+        _ -> {"", ""}
+    };
+    archive_row(rows).
+
+metadata_identity(root: String): String ->
+    case Json.parse(text(root, "dist/terlan-release.json")) {
+        Ok(document) -> string_field(document, "release_candidate_id");
+        Err(_reason) -> ""
+    }.
+
+cross_hashes_hold(root: String, path: String, digest: String): Bool ->
+    let raw =
+        if {
+            String.starts_with(digest, "sha256:") -> digest.utf8_slice(7, digest.byte_size() - 7);
+            true -> digest
+        };
+    case Hash.sha256_file(child(root, path)) {
+        Ok(actual) ->
+            actual == raw
+                and String.contains(text(root, "target/quality/release-supply-chain-provenance-report.json"), raw)
+                and String.contains(text(root, "target/quality/vm-release-artifact-matrix-report.json"), raw);
+        Err(_reason) -> false
+    }.
+
+write_report(root: String, candidate: Json, archive: String, digest: String): Bool ->
+    let report =
+        Json.object()
+            .put("schema", Json.string("terlan.release-readiness-attestation.v1"))
+            .put("decision", Json.string("pass"))
+            .put("version", Json.string(string_field(candidate, "version")))
+            .put("candidate_seal", Json.string(seal_digest(candidate)))
+            .put("release_candidate_id", Json.string(metadata_identity(root)))
+            .put("artifact", Json.string(archive))
+            .put("artifact_sha256", Json.string(digest))
+            .put("required_reports", report_paths(required_reports(), Json.array()))
+            .put("offline", Json.bool(true))
+            .put("publication_required", Json.bool(false));
+    let {
+        Ok(Unit) <- Directory.create_all(child(root, "target/quality"));
+        Ok(rendered) <- Json.stringify_pretty(report);
+        Ok(Unit) <-
+            File.write_text(
+                child(root, "target/quality/release-readiness-attestation-report.json"),
+                String.append(rendered, "\n"),
+            )
+    } else {
+        _ -> false
+    };
+    true.
+
+/**
+ * Binds all required local reports and candidate surfaces to one seal.
+ */
+pub attest(root: String, candidate: Json): Bool ->
+    let rows = required_reports();
+    let {archive, digest} = candidate_archive(candidate);
+    if {
+        string_field(candidate, "schema") != "terlan.release-candidate.v1" -> failure("schema", "candidate schema is not terlan.release-candidate.v1");
+        string_field(candidate, "version") != "0.0.7" -> failure("version", "candidate version is not 0.0.7");
+        seal_digest(candidate) == "" -> failure("seal", "candidate seal is missing");
+        metadata_identity(root) == "" -> failure("identity", "release candidate identity is missing");
+        archive == "" or digest == "" -> failure("artifact", "sealed archive row is missing");
+        not reports_valid(root, rows) -> failure("reports", "a required release report is missing, stale, or failing");
+        not cross_hashes_hold(root, archive, digest) -> failure("hash", "archive, supply-chain, and matrix hashes do not agree");
+        true -> write_report(root, candidate, archive, digest)
+    }.
+
+failure(code: String, message: String): Bool ->
+    let _printed = eprintln(String.concat(["error[release_readiness.", code, "]: ", message]));
+    false.

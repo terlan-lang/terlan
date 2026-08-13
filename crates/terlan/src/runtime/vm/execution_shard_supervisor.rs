@@ -1,5 +1,7 @@
 //! Supervisor-owned lifecycle for one native execution shard.
 
+use std::collections::VecDeque;
+
 use super::native_image_diagnostics::{
     VmNativeGenerationReferenceSnapshot, VmNativeImageDiagnosticMetadata,
 };
@@ -9,8 +11,10 @@ use super::{
         VmShardOperationCommit,
     },
     execution_shard_protocol::{VmExecutionShardId, VmSealedShardImage, VmShardEpoch},
-    supervision::VmRestartBackoffSchedule,
+    restart_backoff::VmRestartBackoffSchedule,
 };
+
+const MAX_CRASH_HISTORY: usize = 64;
 
 /// Protocol version understood by the supervisor and execution shard.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -156,6 +160,7 @@ pub(crate) enum VmShardSupervisorError {
     /// Restart deadline addition exceeded the monotonic tick range.
     RestartDeadlineOverflow,
     /// A restart was requested before the backoff deadline.
+    #[cfg(test)]
     RestartBackoffActive {
         /// Earliest allowed restart tick.
         deadline_tick: u64,
@@ -199,6 +204,8 @@ pub(crate) struct VmExecutionShardSupervisor {
     restart_deadline_tick: Option<u64>,
     /// Most recent crash observed by this supervisor.
     last_crash: Option<VmShardCrashReport>,
+    /// Bounded ordered crash/restart evidence retained for inspection.
+    crash_history: VecDeque<VmShardCrashReport>,
     /// Terminal process-stop outcome when no restart is pending.
     termination: Option<VmShardTermination>,
 }
@@ -219,6 +226,7 @@ impl VmExecutionShardSupervisor {
             restart_count: 0,
             restart_deadline_tick: None,
             last_crash: None,
+            crash_history: VecDeque::new(),
             termination: None,
         }
     }
@@ -269,6 +277,11 @@ impl VmExecutionShardSupervisor {
     #[cfg(test)]
     pub(crate) const fn last_crash(&self) -> Option<&VmShardCrashReport> {
         self.last_crash.as_ref()
+    }
+
+    /// Returns bounded crash history in observation order.
+    pub(crate) fn crash_history(&self) -> impl Iterator<Item = &VmShardCrashReport> {
+        self.crash_history.iter()
     }
 
     /// Returns terminal stop mode, when the shard stopped without restart.
@@ -515,13 +528,14 @@ impl VmExecutionShardSupervisor {
         if reason.trim().is_empty() {
             return Err(VmShardSupervisorError::EmptyCrashReason);
         }
-        self.last_crash = Some(VmShardCrashReport {
+        let report = VmShardCrashReport {
             shard_id: self.shard_id.clone(),
             epoch: Some(epoch),
             reason,
             observed_tick,
             native_image: self.crash_image_metadata(references),
-        });
+        };
+        self.record_crash(report);
         self.restart_deadline_tick = None;
         self.phase = VmShardPhase::Quarantined;
         Ok(())
@@ -612,7 +626,7 @@ impl VmExecutionShardSupervisor {
         };
         if self.restart_count >= self.policy.restart_budget {
             self.restart_count = restart_count;
-            self.last_crash = Some(report);
+            self.record_crash(report);
             self.restart_deadline_tick = None;
             self.phase = VmShardPhase::Quarantined;
             return Ok(());
@@ -625,10 +639,18 @@ impl VmExecutionShardSupervisor {
             .checked_add(delay)
             .ok_or(VmShardSupervisorError::RestartDeadlineOverflow)?;
         self.restart_count = restart_count;
-        self.last_crash = Some(report);
+        self.record_crash(report);
         self.restart_deadline_tick = Some(deadline);
         self.phase = VmShardPhase::RestartBackoff;
         Ok(())
+    }
+
+    fn record_crash(&mut self, report: VmShardCrashReport) {
+        if self.crash_history.len() == MAX_CRASH_HISTORY {
+            self.crash_history.pop_front();
+        }
+        self.crash_history.push_back(report.clone());
+        self.last_crash = Some(report);
     }
 
     /// Builds diagnostic metadata from the currently admitted sealed image.
@@ -651,6 +673,7 @@ impl VmExecutionShardSupervisor {
     }
 
     /// Starts a fresh negotiation after the restart deadline has elapsed.
+    #[cfg(test)]
     pub(crate) fn restart_when_due(&mut self, now_tick: u64) -> Result<(), VmShardSupervisorError> {
         self.require_phase(VmShardPhase::RestartBackoff, "restart_when_due")?;
         let deadline_tick = self
@@ -743,10 +766,13 @@ fn require_advancing(
 
 #[cfg(test)]
 #[path = "execution_shard_fault_injection_test.rs"]
+#[cfg(test)]
 mod execution_shard_fault_injection_test;
 #[cfg(test)]
 #[path = "execution_shard_supervisor_test.rs"]
+#[cfg(test)]
 mod execution_shard_supervisor_test;
 #[cfg(test)]
 #[path = "execution_shard_test_support.rs"]
+#[cfg(test)]
 mod execution_shard_test_support;

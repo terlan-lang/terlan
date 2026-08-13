@@ -1,0 +1,15 @@
+[package]
+name = "angular-ts-terlan-wasm"
+version = "0.1.0"
+namespace = "terlan.angular.wasm"
+
+[build]
+source_roots = ["src"]
+artifact = "wasm-browser"
+
+[target.wasm]
+profile = "browser"
+exports = ["terlan.angular.wasm.App.title", "terlan.angular.wasm.App.remaining", "terlan.angular.wasm.App.status"]
+bridge = "generated-js"
+capabilities = ["browser.console", "browser.scope"]
+validation_engine = "browser-playwright"

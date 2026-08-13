@@ -3,6 +3,7 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::mpsc;
 use std::sync::{Arc, Barrier};
 use std::time::Instant;
 
@@ -133,9 +134,10 @@ fn measure_width(
         let barrier = Arc::new(Barrier::new(width));
         let active = Arc::new(AtomicUsize::new(0));
         let maximum = Arc::new(AtomicUsize::new(0));
-        let started = Instant::now();
-        let results = std::thread::scope(|scope| {
-            routes
+        let (results, elapsed) = std::thread::scope(|scope| {
+            let (ready_tx, ready_rx) = mpsc::channel();
+            let launch = Arc::new(Barrier::new(width + 1));
+            let joins = routes
                 .iter()
                 .copied()
                 .enumerate()
@@ -144,8 +146,14 @@ fn measure_width(
                     let barrier = Arc::clone(&barrier);
                     let active = Arc::clone(&active);
                     let maximum = Arc::clone(&maximum);
+                    let launch = Arc::clone(&launch);
+                    let ready_tx = ready_tx.clone();
                     let seed = cpu_seed(sample, lane);
                     Ok(scope.spawn(move || {
+                        ready_tx.send(()).map_err(|_| {
+                            "CPU-bound benchmark launch coordinator closed".to_string()
+                        })?;
+                        launch.wait();
                         owner
                             .probe_execution_with_args(
                                 route,
@@ -158,19 +166,24 @@ fn measure_width(
                             .map(|(value, thread)| (seed, value, thread))
                     }))
                 })
-                .collect::<Result<Vec<_>, String>>()
-                .map(|joins| {
-                    joins
-                        .into_iter()
-                        .map(|join| {
-                            join.join().map_err(|_| {
-                                "CPU-bound benchmark client thread panicked".to_string()
-                            })?
-                        })
-                        .collect::<Result<Vec<_>, String>>()
+                .collect::<Result<Vec<_>, String>>()?;
+            drop(ready_tx);
+            for _ in 0..width {
+                ready_rx.recv().map_err(|_| {
+                    "CPU-bound benchmark client did not reach the launch barrier".to_string()
+                })?;
+            }
+            let started = Instant::now();
+            launch.wait();
+            let results = joins
+                .into_iter()
+                .map(|join| {
+                    join.join()
+                        .map_err(|_| "CPU-bound benchmark client thread panicked".to_string())?
                 })
-        });
-        let elapsed = started.elapsed().as_nanos();
+                .collect::<Result<Vec<_>, String>>()?;
+            Ok::<_, String>((results, started.elapsed().as_nanos()))
+        })?;
         if sample >= WARMUP_SAMPLE_COUNT {
             durations.push(elapsed);
         }
@@ -178,7 +191,7 @@ fn measure_width(
         for route in &routes {
             generation.release_actor_route(route.scheduler().index());
         }
-        for (seed, value, owner_thread) in results?? {
+        for (seed, value, owner_thread) in results {
             let expected = cpu_result(seed);
             if value != ReplValue::Int(expected) {
                 return Err(format!(

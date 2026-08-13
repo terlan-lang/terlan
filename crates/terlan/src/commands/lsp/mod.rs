@@ -22,7 +22,7 @@ pub(crate) fn run(args: &[String]) -> ExitCode {
         println!("terlc lsp --stdio");
         println!("Starts the Terlan language server over stdio transport.");
         println!(
-            "Current implementation is a lightweight placeholder; protocol handlers are coming next."
+            "Provides compiler diagnostics, navigation, completion, semantic tokens, code actions, and formatting."
         );
         return ExitCode::SUCCESS;
     }
@@ -57,4 +57,5 @@ fn run_editor_lsp_stdio_server() -> ExitCode {
 
 #[cfg(test)]
 #[path = "mod_test.rs"]
+#[cfg(test)]
 mod mod_test;

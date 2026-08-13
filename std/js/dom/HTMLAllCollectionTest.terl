@@ -22,12 +22,12 @@ pub length_typechecks(receiver: HTMLAllCollection): std.js.Number.JsNumber ->
 
 pub item_typechecks(
     receiver: HTMLAllCollection,
-    name_or_index: JsString
+    name_or_index: JsString,
 ): Option[Element | HTMLCollection] ->
     receiver.item(name_or_index).
 
 pub named_item_typechecks(
     receiver: HTMLAllCollection,
-    name: JsString
+    name: JsString,
 ): Option[Element | HTMLCollection] ->
     receiver.named_item(name).

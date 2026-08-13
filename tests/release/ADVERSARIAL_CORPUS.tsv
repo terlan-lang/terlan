@@ -1,0 +1,7 @@
+id	area	risk	expected	owner	minimized
+parser-invalid-branch	parser	syntax-ambiguity	parse_error	compiler	yes
+type-missing-import	typechecker	type-system-soundness	type_error	compiler	yes
+image-invalid-header	image-protocol	vm-safety	image-rejected	vm	yes
+worker-invalid-option	worker-protocol	security-boundary	argument-rejected	native-boundary	yes
+http-invalid-config	http-input	resource-exhaustion	config-rejected	http	yes
+native-invalid-descriptor	native-descriptor	package-boundary	descriptor-rejected	bindings	yes

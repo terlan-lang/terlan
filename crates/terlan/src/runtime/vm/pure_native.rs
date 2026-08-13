@@ -9,6 +9,7 @@ mod thread_neutral;
 
 #[cfg(test)]
 #[path = "pure_native/multicore_model_test.rs"]
+#[cfg(test)]
 mod multicore_model_test;
 
 use std::path::Path;
@@ -16,8 +17,10 @@ use std::sync::Arc;
 
 use crate::runtime::native_image::control::TvmControlFrame;
 use crate::runtime::native_image::managed::ManagedExecutionRuntime;
+#[cfg(test)]
+use crate::runtime::native_image::TvmExecutableDescriptor;
 use crate::runtime::native_image::{
-    TvmBoundaryType, TvmContinuationDescriptor, TvmExecutableDescriptor, TvmExportDescriptor,
+    TvmBoundaryType, TvmContinuationDescriptor, TvmExportDescriptor,
 };
 use crate::runtime::vm::execution_shard_protocol::VmSealedShardImage;
 use crate::runtime::vm::process::{VmManagedMailboxToken, VmMessage, VmProcessSource};
@@ -28,16 +31,16 @@ pub(crate) use crate::runtime::vm::native_image_diagnostics::{
     VmNativeGenerationReferenceClass, VmNativeGenerationReferenceSnapshot,
 };
 pub(crate) use direct_backend::DirectNativeBackend;
-#[allow(unused_imports)] // Step types are used by terlan-vm, not every embedding binary.
-pub(crate) use execution::{
-    dispatch_transition_operation, validate_transition_arguments, PureNativeCapabilityRequest,
-    PureNativeExecution,
-};
+#[cfg(test)]
+pub(crate) use execution::{dispatch_transition_operation, validate_transition_arguments};
+pub(crate) use execution::{PureNativeCapabilityRequest, PureNativeExecution};
+pub(crate) use execution_runtime::PendingNativeCompletionFrame;
 pub(crate) use execution_runtime::{NativeContinuationClaim, PureNativeExecutionRuntime};
-#[allow(unused_imports)] // Tick remains available to focused epoch-ingress tests.
+#[cfg(test)]
+pub(crate) use execution_shard::PureNativeActorImportFailure;
 pub(crate) use execution_shard::{
-    PureNativeActorImportFailure, PureNativeActorTransfer, PureNativeCapabilityWait,
-    PureNativeExecutionImage, PureNativeExecutionShard, PureNativeTimerTick, PureNativeTimerWait,
+    PureNativeActorTransfer, PureNativeCapabilityWait, PureNativeExecutionImage,
+    PureNativeExecutionShard, PureNativeTimerWait,
 };
 pub(crate) use io_wakeup::{PureNativeIoWait, PureNativeIoWake};
 pub(crate) use thread_neutral::PureNativeSuspension;
@@ -91,15 +94,23 @@ impl<'a> PureNativeExecutionContext<'a> {
         continuation_id: u64,
         injected_type: Option<TvmBoundaryType>,
         managed: Option<crate::runtime::native_image::managed::PendingManagedCaptures>,
+        completions: Vec<PendingNativeCompletionFrame>,
     ) -> Result<(), String> {
         let owner_id = self.owner_id();
-        self.runtime.park_continuation(
+        self.runtime.park_continuation_with_completions(
             owner_id,
             request_id,
             continuation_id,
             injected_type,
             managed,
+            completions,
         )
+    }
+
+    /// Collects this actor after its transition arguments have been decoded.
+    pub(crate) fn collect_parked_owner_at_safepoint(&mut self) -> Result<(), String> {
+        let owner_id = self.owner_id();
+        self.runtime.collect_parked_owner_at_safepoint(owner_id)
     }
 
     /// Claims generated continuation state only with exact owner authority.
@@ -111,6 +122,22 @@ impl<'a> PureNativeExecutionContext<'a> {
         let owner_id = self.owner_id();
         self.runtime
             .claim_continuation(owner_id, request_id, continuation_id)
+    }
+
+    /// Retains the scheduler program for one independently spawned actor.
+    pub(crate) fn park_resident_suspension(
+        &mut self,
+        suspension: PureNativeSuspension,
+    ) -> Result<(), String> {
+        self.runtime.park_resident_suspension(suspension)
+    }
+
+    /// Claims one independently spawned actor program for execution.
+    pub(crate) fn take_resident_suspension(
+        &mut self,
+        owner_id: u64,
+    ) -> Option<PureNativeSuspension> {
+        self.runtime.take_resident_suspension(owner_id)
     }
 
     /// Releases all mutable state owned by this context's actor.
@@ -530,7 +557,6 @@ impl PureNativeBoundary {
     }
 
     /// Gracefully terminates the active native backend.
-    #[allow(dead_code)] // Used by the standalone terlan-vm binary, not terlc.
     pub(crate) fn shutdown(&mut self) -> Result<(), String> {
         let Some(mut backend) = self.backend.take() else {
             return Ok(());
@@ -540,7 +566,6 @@ impl PureNativeBoundary {
 }
 
 /// Resolves the complete callable surface from one admitted native image.
-#[allow(dead_code)] // Used by the standalone terlan-vm binary, not terlc.
 fn exports_from_descriptor_parts(
     exports: &[TvmExportDescriptor],
 ) -> Result<Vec<PureNativeExportSpec>, String> {
@@ -589,9 +614,27 @@ fn exports_from_descriptor_parts(
         .collect()
 }
 
+#[cfg(test)]
 fn validate_continuation(
     continuation: &TvmContinuationDescriptor,
     result_type: &TvmBoundaryType,
+    values: &[i64],
+) -> Result<(), String> {
+    validate_continuation_shape(continuation, Some(result_type), values)
+}
+
+/// Validates parked captures while allowing an intermediate continuation to
+/// return its own descriptor-declared type before VM completion-frame unwind.
+fn validate_continuation_captures(
+    continuation: &TvmContinuationDescriptor,
+    values: &[i64],
+) -> Result<(), String> {
+    validate_continuation_shape(continuation, None, values)
+}
+
+fn validate_continuation_shape(
+    continuation: &TvmContinuationDescriptor,
+    final_result: Option<&TvmBoundaryType>,
     values: &[i64],
 ) -> Result<(), String> {
     let transport_parameters = continuation
@@ -610,11 +653,14 @@ fn validate_continuation(
     if !transport_parameters
         .iter()
         .all(|ty| is_transport_scalar_type(ty))
-        || continuation.results.as_slice() != std::slice::from_ref(result_type)
+        || continuation.results.len() != 1
+        || final_result.is_some_and(|result_type| {
+            continuation.results.as_slice() != std::slice::from_ref(result_type)
+        })
     {
         return Err(format!(
-            "error[pure_native_continuation_type]: continuation {} does not match the declared resume signature",
-            continuation.id
+            "error[pure_native_continuation_type]: continuation {} does not match the declared resume signature: parameters={:?}, results={:?}, final_result={final_result:?}",
+            continuation.id, continuation.parameters, continuation.results,
         ));
     }
     for (index, (boundary_type, value)) in transport_parameters.into_iter().zip(values).enumerate()
@@ -629,6 +675,12 @@ fn validate_continuation(
             TvmBoundaryType::Bool if !matches!(value, 0 | 1) => {
                 return Err(format!(
                     "error[pure_native_continuation_type]: continuation {} Bool value {index} is {value}, expected 0 or 1",
+                    continuation.id
+                ));
+            }
+            TvmBoundaryType::Atom if u32::try_from(*value).is_err() => {
+                return Err(format!(
+                    "error[pure_native_continuation_type]: continuation {} Atom value {index} is {value}, expected an unsigned 32-bit atom index",
                     continuation.id
                 ));
             }
@@ -652,11 +704,12 @@ fn is_transport_scalar_type(boundary_type: &TvmBoundaryType) -> bool {
             | TvmBoundaryType::Int
             | TvmBoundaryType::Float
             | TvmBoundaryType::Bool
+            | TvmBoundaryType::Atom
     )
 }
 
 /// Projects the frozen descriptor export table into the exact call contract.
-#[allow(dead_code)] // Used by the standalone terlan-vm binary, not terlc.
+#[cfg(test)]
 fn exports_from_descriptor(
     descriptor: &TvmExecutableDescriptor,
 ) -> Result<Vec<PureNativeExportSpec>, String> {
@@ -698,9 +751,33 @@ fn validate_arguments(export: &PureNativeExportSpec, args: &[ReplValue]) -> Resu
                 _ => false,
             })
     {
+        let actual = args
+            .iter()
+            .map(|argument| match argument {
+                ReplValue::Unit => "Unit",
+                ReplValue::Int(_) => "Int",
+                ReplValue::Float(_) => "Float",
+                ReplValue::Bool(_) => "Bool",
+                ReplValue::Atom(_) => "Atom",
+                ReplValue::String(_) | ReplValue::StringBytes(_) => "String",
+                ReplValue::Bytes(_) => "Bytes",
+                ReplValue::BitString(_) => "Binary",
+                ReplValue::Tuple(_)
+                | ReplValue::Record { .. }
+                | ReplValue::List(_)
+                | ReplValue::Map(_)
+                | ReplValue::Set(_) => "Managed",
+                #[cfg(test)]
+                ReplValue::MapIndexed(_) => "Managed",
+                #[cfg(test)]
+                ReplValue::RandomGenerator(_) | ReplValue::Type(_) | ReplValue::Iterator { .. } => {
+                    "Unsupported"
+                }
+            })
+            .collect::<Vec<_>>();
         return Err(format!(
-            "error[pure_native_type]: `{}/{}` does not match its declared native ABI",
-            export.function, export.arity
+            "error[pure_native_type]: `{}/{}` does not match its declared native ABI: expected={:?}, actual={actual:?}",
+            export.function, export.arity, export.parameters
         ));
     }
     Ok(())
@@ -800,4 +877,5 @@ fn native_status_error(status: i32) -> String {
 
 #[cfg(test)]
 #[path = "pure_native_transport_test.rs"]
+#[cfg(test)]
 mod pure_native_transport_test;

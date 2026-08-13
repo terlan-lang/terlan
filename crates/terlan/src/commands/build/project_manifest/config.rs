@@ -1,6 +1,6 @@
 use std::path::Path;
 
-#[cfg(feature = "serve-runtime-bin")]
+#[cfg(all(feature = "serve-runtime-bin", not(test)))]
 use serde::Deserialize;
 
 use super::model::{
@@ -9,20 +9,20 @@ use super::model::{
 };
 use super::strings::parse_string;
 
-#[cfg(feature = "serve-runtime-bin")]
+#[cfg(all(feature = "serve-runtime-bin", not(test)))]
 #[derive(Deserialize, Default)]
 struct RuntimeProjectManifest {
     #[serde(default)]
     server: RuntimeServerManifest,
 }
 
-#[cfg(feature = "serve-runtime-bin")]
+#[cfg(all(feature = "serve-runtime-bin", not(test)))]
 #[derive(Deserialize, Default)]
 struct RuntimeServerManifest {
     tls: Option<RuntimeServerTls>,
 }
 
-#[cfg(feature = "serve-runtime-bin")]
+#[cfg(all(feature = "serve-runtime-bin", not(test)))]
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RuntimeServerTls {
@@ -43,7 +43,7 @@ struct RuntimeServerTls {
 ///
 /// The compiler-free serve binary must not retain the build parser or
 /// development-dependency graph merely to configure its transport.
-#[cfg(feature = "serve-runtime-bin")]
+#[cfg(all(feature = "serve-runtime-bin", not(test)))]
 pub(crate) fn read_runtime_server_tls(path: &Path) -> Result<Option<ProjectServerTls>, String> {
     let source = std::fs::read_to_string(path)
         .map_err(|error| format!("cannot read project manifest {}: {error}", path.display()))?;
@@ -80,7 +80,7 @@ pub(crate) fn read_runtime_server_tls(path: &Path) -> Result<Option<ProjectServe
     .finish(path)
 }
 
-#[cfg(feature = "serve-runtime-bin")]
+#[cfg(all(feature = "serve-runtime-bin", not(test)))]
 fn runtime_tls_mode(value: &str, path: &Path) -> Result<ProjectServerTlsMode, String> {
     match value {
         "auto" => Ok(ProjectServerTlsMode::Auto),
@@ -93,7 +93,7 @@ fn runtime_tls_mode(value: &str, path: &Path) -> Result<ProjectServerTlsMode, St
     }
 }
 
-#[cfg(feature = "serve-runtime-bin")]
+#[cfg(all(feature = "serve-runtime-bin", not(test)))]
 fn runtime_tls_provider(value: &str, path: &Path) -> Result<ProjectServerTlsProvider, String> {
     match value {
         "letsencrypt" => Ok(ProjectServerTlsProvider::LetsEncrypt),
@@ -338,7 +338,7 @@ impl ProjectServerTlsBuilder {
     /// - Enforces the declarative ACME mode boundary while leaving provider
     ///   selection optional for the future runtime defaulting layer.
     fn validate_auto_mode(&self, path: &Path) -> Result<(), String> {
-        if self.domains.as_ref().map_or(true, Vec::is_empty) {
+        if self.domains.as_ref().is_none_or(Vec::is_empty) {
             return Err(format!(
                 "{}: project manifest [server.tls] mode auto requires domains",
                 path.display()

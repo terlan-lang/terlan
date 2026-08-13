@@ -2,11 +2,17 @@ use std::path::Path;
 
 use super::lint_source;
 
+#[cfg(test)]
 #[path = "imports_test/redundant_test.rs"]
+#[cfg(test)]
 mod redundant_test;
+#[cfg(test)]
 #[path = "imports_test/selected_default_test.rs"]
+#[cfg(test)]
 mod selected_default_test;
+#[cfg(test)]
 #[path = "imports_test/unused_test.rs"]
+#[cfg(test)]
 mod unused_test;
 
 /// Verifies exact duplicate imports emit a stable import diagnostic.

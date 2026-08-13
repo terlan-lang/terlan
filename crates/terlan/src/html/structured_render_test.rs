@@ -141,8 +141,10 @@ fn structured_template_backends_share_canonical_slot_failures() {
         Err(error) => panic!("run rejection renderer: {error}"),
     };
     assert!(output.status.success());
-    assert_eq!(String::from_utf8_lossy(&output.stdout), rust);
-    assert!(rust.starts_with("error[template_backend_slot_type]: backend.terl.json:1:"));
+    assert_eq!(String::from_utf8_lossy(&output.stdout), rust.context());
+    assert!(rust
+        .context()
+        .starts_with("error[template_backend_slot_type]: backend.terl.json:1:"));
 }
 
 #[test]
@@ -150,13 +152,19 @@ fn structured_template_target_errors_include_interpolation_location() {
     let error = structured_template_telemetry("prefix\n${title}", Path::new("backend.data"))
         .expect_err("unknown target must fail");
     assert_eq!(
-        error,
+        error.domain(),
+        terlan_runtime_abi::ErrorDomain::TemplateRendering
+    );
+    assert_eq!(error.code(), "template_target_unknown");
+    assert_eq!(
+        error.context(),
         "error[template_target_unknown]: backend.data:2:1: unsupported template target suffix"
     );
     let mismatch = structured_template_telemetry("<p>${title}</p>", Path::new("backend.terl.html"))
         .expect_err("HTML target must use the HTML renderer");
+    assert_eq!(mismatch.code(), "template_target_mismatch");
     assert_eq!(
-        mismatch,
+        mismatch.context(),
         "error[template_target_mismatch]: backend.terl.html:1:4: structured renderer cannot render html templates"
     );
     let inferred_mismatch = structured_template_telemetry_for_target(
@@ -165,8 +173,9 @@ fn structured_template_target_errors_include_interpolation_location() {
         ArtifactTemplateTarget::Xml,
     )
     .expect_err("explicit target metadata must match the template suffix");
+    assert_eq!(inferred_mismatch.code(), "template_target_mismatch");
     assert_eq!(
-        inferred_mismatch,
+        inferred_mismatch.context(),
         "error[template_target_mismatch]: backend.terl.json:2:1: expected xml template, inferred json from suffix"
     );
 }

@@ -26,6 +26,6 @@ pub delete_rule_typechecks(receiver: CSSGroupingRule, index: JsNumber): std.core
 pub insert_rule_typechecks(
     receiver: CSSGroupingRule,
     rule: std.js.String.JsString,
-    index: JsNumber
+    index: JsNumber,
 ): JsNumber ->
     receiver.insert_rule(rule, index).

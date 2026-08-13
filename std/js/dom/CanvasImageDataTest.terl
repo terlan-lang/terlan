@@ -22,7 +22,7 @@ pub create_image_data_typechecks(
     receiver: CanvasImageData,
     sw: JsNumber,
     sh: JsNumber,
-    settings: ImageDataSettings
+    settings: ImageDataSettings,
 ): ImageData ->
     receiver.create_image_data(sw, sh, settings).
 
@@ -35,7 +35,7 @@ pub get_image_data_typechecks(
     sy: JsNumber,
     sw: JsNumber,
     sh: JsNumber,
-    settings: ImageDataSettings
+    settings: ImageDataSettings,
 ): ImageData ->
     receiver.get_image_data(sx, sy, sw, sh, settings).
 
@@ -43,7 +43,7 @@ pub put_image_data_typechecks(
     receiver: CanvasImageData,
     image_data: ImageData,
     dx: JsNumber,
-    dy: JsNumber
+    dy: JsNumber,
 ): Unit ->
     receiver.put_image_data(image_data, dx, dy).
 
@@ -55,6 +55,6 @@ pub put_image_data_typechecks(
     dirty_x: JsNumber,
     dirty_y: JsNumber,
     dirty_width: JsNumber,
-    dirty_height: JsNumber
+    dirty_height: JsNumber,
 ): Unit ->
     receiver.put_image_data(image_data, dx, dy, dirty_x, dirty_y, dirty_width, dirty_height).

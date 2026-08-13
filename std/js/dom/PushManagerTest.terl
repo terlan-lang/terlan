@@ -22,12 +22,12 @@ pub get_subscription_typechecks(receiver: PushManager): Promise[Option[PushSubsc
 
 pub permission_state_typechecks(
     receiver: PushManager,
-    options: PushSubscriptionOptionsInit
+    options: PushSubscriptionOptionsInit,
 ): Promise[PermissionState] ->
     receiver.permission_state(options).
 
 pub subscribe_typechecks(
     receiver: PushManager,
-    options: PushSubscriptionOptionsInit
+    options: PushSubscriptionOptionsInit,
 ): Promise[PushSubscription] ->
     receiver.subscribe(options).

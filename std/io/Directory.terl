@@ -1,0 +1,150 @@
+/**
+ * Deterministic portable directory operations for applications and tools.
+ *
+ * Returned paths are UTF-8, target-normalized, and sorted bytewise. Recursive
+ * traversal never follows symbolic links; symlink entries are omitted.
+ */
+module std.io.Directory.
+
+import std.core.Result.{Err}.
+import std.core.Unit.
+
+import type std.core.{Error, Result}.
+
+pub type NotFound.
+
+pub type PermissionDenied.
+
+pub type InvalidPath.
+
+pub type Unknown.
+
+pub type DirectoryErrorCode = NotFound | PermissionDenied | InvalidPath | Unknown.
+
+pub struct DirectoryError includes Error {
+    path: String,
+}.
+
+/**
+ * Deterministic storage usage for one directory tree.
+ *
+ * `logical_file_bytes` sums regular-file lengths. `allocated_bytes` includes
+ * filesystem allocation for regular files, directories, and symbolic-link
+ * entries without following links; targets that do not expose allocation
+ * blocks use logical lengths as the conservative portable approximation.
+ */
+pub struct TreeUsage {
+    logical_file_bytes: Int,
+    allocated_bytes: Int,
+    regular_file_count: Int,
+    directory_count: Int,
+    symbolic_link_count: Int,
+}.
+
+@pure
+pub new(code: Atom, message: String, path: String): DirectoryError ->
+    DirectoryError(code = code, message = message, path = path).
+
+@pure
+pub code(error: DirectoryError): Atom ->
+    error.code.
+
+@pure
+pub message(error: DirectoryError): String ->
+    error.message.
+
+@pure
+pub path(error: DirectoryError): String ->
+    error.path.
+
+/**
+ * Returns the sorted immediate children of `path`.
+ */
+@compiler.intrinsic
+pub entries(path: String): Result[List[String], DirectoryError] ->
+    Err(new(Unknown, "unknown directory error", path)).
+
+/**
+ * Returns sorted regular files below `path` without following symlinks.
+ */
+@compiler.intrinsic
+pub files_recursive(path: String): Result[List[String], DirectoryError] ->
+    Err(new(Unknown, "unknown directory error", path)).
+
+/**
+ * Returns sorted regular files while pruning directories by exact basename.
+ */
+@compiler.intrinsic
+pub files_recursive_excluding(
+    path: String,
+    excluded_directory_names: List[String],
+): Result[List[String], DirectoryError] ->
+    Err(new(Unknown, "unknown directory error", path)).
+
+/**
+ * Finds directories with one exact basename below `path`.
+ *
+ * Returned paths are relative to `path` and sorted bytewise. Exact excluded
+ * ancestor basenames and symbolic links are pruned. A matched directory is
+ * returned but not traversed, which makes this suitable for discovering
+ * independent artifact roots without walking their potentially large trees.
+ */
+@compiler.intrinsic
+pub find_named_recursive_excluding(
+    path: String,
+    name: String,
+    excluded_directory_names: List[String],
+): Result[List[String], DirectoryError] ->
+    Err(new(Unknown, "unknown directory error", path)).
+
+/**
+ * Measures a directory tree without following symbolic links.
+ */
+@compiler.intrinsic
+pub tree_usage(path: String): Result[TreeUsage, DirectoryError] ->
+    Err(new(Unknown, "unknown directory error", path)).
+
+/**
+ * Copies one directory tree into a destination that does not yet exist.
+ * Exact entry basenames in `excluded_entry_names` are pruned, symbolic links
+ * are omitted, regular-file permissions are preserved, and a failed copy
+ * removes the partial destination before returning.
+ */
+@compiler.intrinsic
+pub copy_tree_excluding(
+    source: String,
+    destination: String,
+    excluded_entry_names: List[String],
+): Result[Unit, DirectoryError] ->
+    Err(new(Unknown, "unknown directory error", source)).
+
+/**
+ * Creates a symbolic link at `link_path` pointing to an existing directory.
+ *
+ * The operation never replaces an existing entry. Platforms that cannot
+ * create directory symbolic links return a typed directory error.
+ */
+@compiler.intrinsic
+pub create_symbolic_link(target_directory: String, link_path: String): Result[Unit, DirectoryError] ->
+    Err(new(Unknown, "unknown directory error", link_path)).
+
+/**
+ * Creates `path` and every missing parent.
+ */
+@compiler.intrinsic
+pub create_all(path: String): Result[Unit, DirectoryError] ->
+    Err(new(Unknown, "unknown directory error", path)).
+
+/**
+ * Removes one directory tree without traversing symlink targets.
+ */
+@compiler.intrinsic
+pub remove_all(path: String): Result[Unit, DirectoryError] ->
+    Err(new(Unknown, "unknown directory error", path)).
+
+/**
+ * Atomically creates and returns a unique directory below the host temporary root.
+ */
+@compiler.intrinsic
+pub create_temporary(prefix: String): Result[String, DirectoryError] ->
+    Err(new(Unknown, "unknown directory error", prefix)).

@@ -124,3 +124,36 @@ fn capability_term_budget_rejects_excessive_recursive_work() {
     )];
     assert!(validate_capability_term_budget(&rejected).is_err());
 }
+
+/// Traverses records and lists when finding owned handles and enforcing bounds.
+#[test]
+fn capability_recursive_records_preserve_ownership_and_budget_limits() {
+    let first = CapabilityHandle {
+        id: 3,
+        generation: 4,
+    };
+    let second = CapabilityHandle {
+        id: 8,
+        generation: 9,
+    };
+    let value = CapabilityValue::Record {
+        name: "Nested".to_string(),
+        fields: vec![
+            ("first".to_string(), CapabilityValue::Handle(first)),
+            (
+                "list".to_string(),
+                CapabilityValue::List(vec![CapabilityValue::OptionalHandle(Some(second))]),
+            ),
+        ],
+    };
+    assert_eq!(value.owned_handles(), vec![second, first]);
+    assert!(validate_capability_term_budget(&[value]).is_ok());
+
+    let rejected = CapabilityValue::Record {
+        name: "Oversized".to_string(),
+        fields: (0..MAX_CAPABILITY_TERM_COUNT)
+            .map(|index| (index.to_string(), CapabilityValue::Unit))
+            .collect(),
+    };
+    assert!(validate_capability_term_budget(&[rejected]).is_err());
+}

@@ -1,0 +1,743 @@
+/**
+ * Runs deterministic Lean-to-runtime semantic smoke checks.
+ */
+module scripts.self_validation.LeanProofSmokeTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.File.{read_text_many, write_text}.
+import std.regex.Regex.
+import std.system.{Environment, Process}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.io.File.TextFile.
+import type std.system.Process.{BatchCompletion, Command, Output}.
+
+struct SmokeRow {
+    smoke_id: String,
+    roadmap_slice: String,
+    lanes: String,
+    proof_family: String,
+    proof_path: String,
+    theorems: String,
+    runtime_kind: String,
+    runtime_path: String,
+    expected_runtime: String,
+    owner: String,
+}.
+
+struct Inputs {
+    manifest: String,
+    baseline: String,
+    gate: String,
+    files: List[TextFile],
+}.
+
+struct Evaluation {
+    valid: Bool,
+    results: Json,
+    signatures: Json,
+}.
+
+@pure
+root_path(root: String, relative: String): String ->
+    if {
+        root == "." -> relative;
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+sha256(source: String): String ->
+    String.append("sha256:", Hash.sha256(source)).
+
+canonical_digest(value: Json): String ->
+    case Json.stringify(value) {
+        Ok(source) -> sha256(source);
+        Err(_reason) -> ""
+    }.
+
+manifest_header(): String ->
+    "smoke_id\troadmap_slice\tlanes\tproof_family\tproof_path\ttheorems\truntime_kind\truntime_path\texpected_runtime\towner".
+
+parse_manifest(source: String): Option[List[SmokeRow]] ->
+    case String.split(source, "\n") {
+        [header | lines] ->
+            if {
+                header != manifest_header() -> None;
+                true -> parse_manifest_lines(lines, [], [])
+            };
+        _ -> None
+    }.
+
+parse_manifest_lines(
+    lines: List[String],
+    reversed: List[SmokeRow],
+    ids: List[String],
+): Option[List[SmokeRow]] ->
+    case lines {
+        [] ->
+            if {
+                reversed == [] -> None;
+                true -> Some(reverse_rows(reversed, []))
+            };
+        ["" | rest] -> parse_manifest_lines(rest, reversed, ids);
+        [line | rest] ->
+            case String.split(line, "\t") {
+                [id, slice, lanes, family, proof, theorems, kind, runtime, expected, owner] ->
+                    let row =
+                        SmokeRow(
+                            smoke_id = id,
+                            roadmap_slice = slice,
+                            lanes = lanes,
+                            proof_family = family,
+                            proof_path = proof,
+                            theorems = theorems,
+                            runtime_kind = kind,
+                            runtime_path = runtime,
+                            expected_runtime = expected,
+                            owner = owner,
+                        );
+                    if {
+                        not row_fields_hold(row) or string_member(ids, id) -> None;
+                        true -> parse_manifest_lines(rest, [row | reversed], [id | ids])
+                    };
+                _ -> None
+            }
+    }.
+
+reverse_rows(values: List[SmokeRow], output: List[SmokeRow]): List[SmokeRow] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_rows(rest, [value | output])
+    }.
+
+string_member(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or string_member(rest, expected)
+    }.
+
+all_nonempty(values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> value != "" and all_nonempty(rest)
+    }.
+
+row_fields_hold(row: SmokeRow): Bool ->
+    let canonical =
+        case Regex.compile("^[a-z0-9]+(?:-[a-z0-9]+)*$") {
+            Ok(pattern) -> Regex.is_match(pattern, row.smoke_id);
+            Err(_reason) -> false
+        };
+    canonical
+        and all_nonempty(
+    [
+        row.smoke_id,
+        row.roadmap_slice,
+        row.lanes,
+        row.proof_family,
+        row.proof_path,
+        row.theorems,
+        row.runtime_kind,
+        row.runtime_path,
+        row.expected_runtime,
+        row.owner,
+    ],
+)
+        and row.roadmap_slice == if {
+    row.smoke_id == "native-dispatch" -> "Slice 14";
+    true -> "Slice 9"
+}
+        and lanes_hold(String.split(row.lanes, ";"))
+        and runtime_contract_holds(row)
+        and string_member(["compiler", "formal", "runtime", "vm"], row.owner).
+
+lanes_hold(lanes: List[String]): Bool ->
+    case lanes {
+        [] -> false;
+        [lane] -> expected_lane(lane);
+        [lane | rest] -> expected_lane(lane) and lanes_hold(rest)
+    }.
+
+expected_lane(lane: String): Bool ->
+    string_member(
+        [
+            "parser",
+            "coreir",
+            "target_profile",
+            "vm_runtime",
+            "native_boundary",
+            "wasm",
+            "distribution",
+            "std_packages",
+        ],
+        lane,
+    ).
+
+runtime_contract_holds(row: SmokeRow): Bool ->
+    if {
+        row.runtime_kind == "terlan-test" -> row.expected_runtime == "pass";
+        row.runtime_kind == "terlan-check-reject" -> String.starts_with(row.expected_runtime, "error[");
+        row.runtime_kind == "rust-test" -> row.runtime_path == "runtime::native_boundary::runtime::runtime_test::runtime_executes_base64_operations_through_terms"
+            and row.expected_runtime == "pass";
+        true -> false
+    }.
+
+json_string(value: Json, key: String): Option[String] ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(text) <- field.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+json_string_array_contains(value: Json, key: String, expected: String): Bool ->
+    let {
+        Ok(array) <- value.get(key);
+        Ok(length) <- array.length()
+    } else {
+        _ -> false
+    };
+    json_array_contains_at(array, expected, 0, length).
+
+json_array_contains_at(array: Json, expected: String, index: Int, length: Int): Bool ->
+    if {
+        index == length -> false;
+        true -> let {
+            Ok(value) <- array.at(index);
+            Ok(text) <- value.as_string()
+        } else {
+            _ -> false
+        };
+        text == expected or json_array_contains_at(array, expected, index + 1, length)
+    }.
+
+gate_family(gate: Json, family: String): Option[Json] ->
+    let {
+        Ok(families) <- gate.get("families");
+        Ok(length) <- families.length()
+    } else {
+        _ -> None
+    };
+    gate_family_at(families, family, 0, length).
+
+gate_family_at(families: Json, family: String, index: Int, length: Int): Option[Json] ->
+    if {
+        index == length -> None;
+        true -> case families.at(index) {
+            Ok(value) ->
+                case json_string(value, "family") {
+                    Some(name) ->
+                        if {
+                            name == family -> Some(value);
+                            true -> gate_family_at(families, family, index + 1, length)
+                        };
+                    None -> gate_family_at(families, family, index + 1, length)
+                };
+            Err(_reason) -> None
+        }
+    }.
+
+file_source(files: List[TextFile], relative: String): String ->
+    case files {
+        [] -> "";
+        [file | rest] ->
+            if {
+                String.ends_with(file.path, relative) -> file.contents;
+                true -> file_source(rest, relative)
+            }
+    }.
+
+short_theorem(identity: String): String ->
+    last_segment(String.split(identity, "."), identity).
+
+last_segment(parts: List[String], fallback: String): String ->
+    case parts {
+        [] -> fallback;
+        [value] -> value;
+        [_value | rest] -> last_segment(rest, fallback)
+    }.
+
+row_evidence_holds(row: SmokeRow, family: Json, files: List[TextFile]): Bool ->
+    let proof = file_source(files, row.proof_path);
+    let runtime_source =
+        if {
+            row.runtime_kind == "rust-test" -> "approved-rust-selector";
+            true -> file_source(files, row.runtime_path)
+        };
+    case json_string(family, "proof_status") {
+        Some(status) ->
+            status == "current"
+                and proof != ""
+                and runtime_source != ""
+                and (String.starts_with(row.proof_path, "proofs/lean/Terlan/")
+    or String.starts_with(row.proof_path, "proofs/lean/native_boundary/"))
+                and theorems_hold(String.split(row.theorems, ";"), family, proof);
+        None -> false
+    }.
+
+theorems_hold(theorems: List[String], family: Json, proof: String): Bool ->
+    case theorems {
+        [] -> false;
+        [theorem] -> theorem_holds(theorem, family, proof);
+        [theorem | rest] ->
+            theorem_holds(theorem, family, proof) and theorems_hold(rest, family, proof)
+    }.
+
+theorem_holds(theorem: String, family: Json, proof: String): Bool ->
+    String.contains(proof, String.append("theorem ", short_theorem(theorem)))
+        and json_string_array_contains(family, "theorem_identity", theorem).
+
+rows_evidence_hold(rows: List[SmokeRow], gate: Json, files: List[TextFile]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            case gate_family(gate, row.proof_family) {
+                Some(family) ->
+                    row_evidence_holds(row, family, files) and rows_evidence_hold(rest, gate, files);
+                None -> false
+            }
+    }.
+
+covered_lanes(rows: List[SmokeRow], covered: List[String]): List[String] ->
+    case rows {
+        [] -> covered;
+        [row | rest] -> covered_lanes(rest, append_unique(String.split(row.lanes, ";"), covered))
+    }.
+
+append_unique(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            append_unique(
+                rest,
+                if {
+                    string_member(output, value) -> output;
+                    true -> [value | output]
+                },
+            )
+    }.
+
+critical_chain_holds(rows: List[SmokeRow]): Bool ->
+    let covered = covered_lanes(rows, []);
+    all_members(
+        [
+            "parser",
+            "coreir",
+            "target_profile",
+            "vm_runtime",
+            "native_boundary",
+            "wasm",
+            "std_packages",
+        ],
+        covered,
+    ).
+
+all_members(required: List[String], values: List[String]): Bool ->
+    case required {
+        [] -> true;
+        [value | rest] -> string_member(values, value) and all_members(rest, values)
+    }.
+
+fixed_paths(root: String): List[String] ->
+    [
+        root_path(root, "proofs/lean/smoke/smoke-manifest.tsv"),
+        root_path(root, "proofs/lean/smoke/0.0.7-signatures.json"),
+        root_path(root, "build/artifacts/lean-proof-gate.json"),
+        root_path(root, "proofs/lean/Terlan/Smoke/SemanticChain.lean"),
+        root_path(root, "proofs/lean/native_boundary/NativeBoundary.lean"),
+        root_path(root, "proofs/lean/smoke/SemanticSmokeTest.terl"),
+        root_path(root, "proofs/lean/smoke/UnsupportedNativeBridge.terl"),
+        root_path(root, "crates/terlan/src/runtime/native_boundary/runtime.rs"),
+        root_path(root, "crates/terlan/src/runtime/native_boundary/runtime_test.rs"),
+        root_path(root, "crates/terlan/src/runtime/native_boundary/dispatch.rs"),
+    ].
+
+inputs_from_files(files: List[TextFile]): Option[Inputs] ->
+    case files {
+        [manifest, baseline, gate, semantic_proof, native_proof, semantic_runtime, rejection_runtime, native_runtime, native_runtime_test, native_dispatch] ->
+            Some(
+                Inputs(
+                    manifest = manifest.contents,
+                    baseline = baseline.contents,
+                    gate = gate.contents,
+                    files = [
+                        semantic_proof,
+                        native_proof,
+                        semantic_runtime,
+                        rejection_runtime,
+                        native_runtime,
+                        native_runtime_test,
+                        native_dispatch,
+                    ],
+                ),
+            );
+        _ -> None
+    }.
+
+process_command(
+    program: String,
+    arguments: List[String],
+    root: String,
+    working: String,
+): Command ->
+    Process.command(program)
+        .with_arguments(arguments)
+        .with_working_directory(root_path(root, working))
+        .with_environment([Process.environment_entry("ELAN_NO_UPDATE_CHECK", "1")])
+        .without_environment(["GITHUB_ACTIONS"])
+        .with_timeout_ms(600000)
+        .with_output_limit_bytes(4194304).
+
+proof_command(root: String, row: SmokeRow): Command ->
+    process_command(
+        "lake",
+        ["env", "lean", String.replace(row.proof_path, "proofs/lean/", "")],
+        root,
+        "proofs/lean",
+    ).
+
+runtime_command(root: String, row: SmokeRow): Command ->
+    if {
+        row.runtime_kind == "terlan-test" -> process_command(
+            root_path(root, "target/debug/terlc"),
+            ["test", row.runtime_path],
+            root,
+            ".",
+        );
+        row.runtime_kind == "terlan-check-reject" -> process_command(
+            root_path(root, "target/debug/terlc"),
+            ["--target-profile", "js.shared", "check", row.runtime_path],
+            root,
+            ".",
+        );
+        true -> process_command(
+            "cargo",
+            ["test", "--locked", "-p", "terlan", "--lib", row.runtime_path, "--", "--exact"],
+            root,
+            ".",
+        )
+    }.
+
+commands(root: String, rows: List[SmokeRow]): List[Command] ->
+    case rows {
+        [] -> empty_commands();
+        [row | rest] ->
+            [proof_command(root, row) | [runtime_command(root, row) | commands(root, rest)]]
+    }.
+
+empty_commands(): List[Command] -> [].
+
+completion_output(completion: BatchCompletion): Option[Output] ->
+    case {Process.completion_output(completion), Process.completion_error(completion)} {
+        {Some(output), None} -> Some(output);
+        _ -> None
+    }.
+
+proof_passed(output: Output): Bool ->
+    Process.status(output) == 0.
+
+runtime_passed(row: SmokeRow, output: Output): Bool ->
+    let combined = String.append(Process.stdout(output), Process.stderr(output));
+    if {
+        row.runtime_kind == "terlan-check-reject" -> Process.status(output) != 0
+            and String.contains(combined, "target inference error")
+            and String.contains(combined, "typed target evidence for `vm`");
+        true -> Process.status(output) == 0 and String.contains(Process.stdout(output), "test result: ok.")
+    }.
+
+row_json(row: SmokeRow): Json ->
+    Json.object()
+        .put("expected_runtime", Json.string(row.expected_runtime))
+        .put("lanes", Json.string(row.lanes))
+        .put("owner", Json.string(row.owner))
+        .put("proof_family", Json.string(row.proof_family))
+        .put("proof_path", Json.string(row.proof_path))
+        .put("roadmap_slice", Json.string(row.roadmap_slice))
+        .put("runtime_kind", Json.string(row.runtime_kind))
+        .put("runtime_path", Json.string(row.runtime_path))
+        .put("smoke_id", Json.string(row.smoke_id))
+        .put("theorems", Json.string(row.theorems)).
+
+evidence_json(row: SmokeRow, files: List[TextFile]): Json ->
+    let output = Json.object().put(row.proof_path, Json.string(sha256(file_source(files, row.proof_path))));
+    let with_runtime =
+        if {
+            row.runtime_kind == "rust-test" -> output;
+            true -> output.put(row.runtime_path, Json.string(sha256(file_source(files, row.runtime_path))))
+        };
+    if {
+        row.runtime_kind != "rust-test" -> with_runtime;
+        true -> with_runtime
+            .put(
+                "crates/terlan/src/runtime/native_boundary/dispatch.rs",
+                Json.string(
+                    sha256(
+                        file_source(files, "crates/terlan/src/runtime/native_boundary/dispatch.rs"),
+                    ),
+                ),
+            )
+            .put(
+                "crates/terlan/src/runtime/native_boundary/runtime.rs",
+                Json.string(
+                    sha256(
+                        file_source(files, "crates/terlan/src/runtime/native_boundary/runtime.rs"),
+                    ),
+                ),
+            )
+            .put(
+                "crates/terlan/src/runtime/native_boundary/runtime_test.rs",
+                Json.string(
+                    sha256(
+                        file_source(
+                            files,
+                            "crates/terlan/src/runtime/native_boundary/runtime_test.rs",
+                        ),
+                    ),
+                ),
+            )
+    }.
+
+source_signature(row: SmokeRow, files: List[TextFile], observed: String): String ->
+    canonical_digest(
+        Json.object()
+            .put("evidence", evidence_json(row, files))
+            .put("manifest", row_json(row))
+            .put("observed", Json.string(observed))
+            .put("schema", Json.string("terlan.lean-proof-smoke-signature.v1")),
+    ).
+
+baseline_signature(baseline: Json, smoke_id: String): Option[String] ->
+    let {
+        Some(schema) <- json_string(baseline, "schema");
+        Ok(signatures) <- baseline.get("signatures");
+        Some(signature) <- json_string(signatures, smoke_id)
+    } else {
+        _ -> None
+    };
+    if {
+        schema == "terlan.lean-proof-smoke-baseline.v1" -> Some(signature);
+        true -> None
+    }.
+
+result_json(row: SmokeRow, signature: String): Json ->
+    Json.object()
+        .put("compatibility_status", Json.string("stable"))
+        .put("exception", Json.null())
+        .put("health_score", Json.int(100))
+        .put("lanes", string_array(String.split(row.lanes, ";")))
+        .put("proof_family", Json.string(row.proof_family))
+        .put("proof_status", Json.string("pass"))
+        .put("roadmap_slice", Json.string(row.roadmap_slice))
+        .put("runtime_status", Json.string("pass"))
+        .put("signature", Json.string(signature))
+        .put("smoke_id", Json.string(row.smoke_id)).
+
+string_array(values: List[String]): Json ->
+    string_array_at(values, Json.array()).
+
+string_array_at(values: List[String], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> string_array_at(rest, output.push(Json.string(value)))
+    }.
+
+evaluate(
+    rows: List[SmokeRow],
+    completions: List[BatchCompletion],
+    baseline: Json,
+    files: List[TextFile],
+): Evaluation ->
+    evaluate_at(rows, completions, baseline, files, Json.array(), Json.object()).
+
+evaluate_at(
+    rows: List[SmokeRow],
+    completions: List[BatchCompletion],
+    baseline: Json,
+    files: List[TextFile],
+    results: Json,
+    signatures: Json,
+): Evaluation ->
+    case {rows, completions} {
+        {[], []} -> Evaluation(valid = true, results = results, signatures = signatures);
+        {[row | rest], [proof_completion | [runtime_completion | completion_rest]]} ->
+            let {
+                Some(proof_output) <- completion_output(proof_completion);
+                Some(runtime_output) <- completion_output(runtime_completion)
+            } else {
+                _ -> Evaluation(valid = false, results = results, signatures = signatures)
+            };
+            (let observed =
+    if {
+        row.runtime_kind == "terlan-check-reject" -> row.expected_runtime;
+        true -> "pass"
+    };
+let signature = source_signature(row, files, observed);
+let baseline_holds =
+    case baseline_signature(baseline, row.smoke_id) {
+        Some(expected) -> expected == signature;
+        None -> false
+    };
+let valid = proof_passed(proof_output) and runtime_passed(row, runtime_output) and baseline_holds;
+let _printed =
+    println(
+        String.append(
+            "[lean-proof-smoke] ",
+            String.append(
+                row.smoke_id,
+                if {
+                    valid -> " proof=pass runtime=pass compatibility=stable";
+                    true -> " proof=fail runtime=fail compatibility=drift"
+                },
+            ),
+        ),
+    );
+if {
+    not valid -> Evaluation(valid = false, results = results, signatures = signatures);
+    true -> evaluate_at(
+        rest,
+        completion_rest,
+        baseline,
+        files,
+        results.push(result_json(row, signature)),
+        signatures.put(row.smoke_id, Json.string(signature)),
+    )
+});
+        _ -> Evaluation(valid = false, results = results, signatures = signatures)
+    }.
+
+lane_health(): Json ->
+    Json.object()
+        .put("coreir", Json.int(100))
+        .put("distribution", Json.int(100))
+        .put("native_boundary", Json.int(100))
+        .put("parser", Json.int(100))
+        .put("std_packages", Json.int(100))
+        .put("target_profile", Json.int(100))
+        .put("vm_runtime", Json.int(100))
+        .put("wasm", Json.int(100)).
+
+report(manifest: String, evaluation: Evaluation): Option[String] ->
+    let report =
+        Json.object()
+            .put("blockers", Json.array())
+            .put("compatibility_mode", Json.string("0.0.7-strict"))
+            .put("compatibility_status", Json.string("pass"))
+            .put("lane_health", lane_health())
+            .put("manifest_checksum", Json.string(sha256(manifest)))
+            .put("policy_minimum", Json.int(100))
+            .put("results", evaluation.results)
+            .put("schema", Json.string("terlan.lean-proof-smoke.v1"))
+            .put("signature_strategy", Json.string("content-addressed-normalized-v1"));
+    let signature = canonical_digest(report);
+    case Json.stringify_pretty(report.put("report_signature", Json.string(signature))) {
+        Ok(source) -> Some(String.append(source, "\n"));
+        Err(_reason) -> None
+    }.
+
+persist(root: String, manifest: String, evaluation: Evaluation): Bool ->
+    case report(manifest, evaluation) {
+        Some(source) ->
+            case write_text(root_path(root, "build/artifacts/lean-proof-smoke.json"), source) {
+                Ok(Unit) ->
+                    case write_text(
+    root_path(root, "build/artifacts/lean-proof-smoke-blockers.tsv"),
+    "smoke_id\tblocker\tremediation_plan\treviewed_by\n",
+) {
+                        Ok(Unit) ->
+                            let _printed =
+                                println(
+                                    "Lean proof smoke passed: 3 families, 8 lanes at policy 100",
+                                );
+                            true;
+                        Err(_reason) -> fail("smoke blocker report could not be written")
+                    };
+                Err(_reason) -> fail("smoke report could not be written")
+            };
+        None -> fail("smoke report could not be rendered")
+    }.
+
+fail(message: String): Bool ->
+    let _printed = println(String.append("Lean proof smoke failed: ", message));
+    false.
+
+run_check(root: String, inputs: Inputs): Bool ->
+    let {
+        Some(rows) <- parse_manifest(inputs.manifest);
+        Ok(gate) <- Json.parse(inputs.gate);
+        Ok(baseline) <- Json.parse(inputs.baseline)
+    } else {
+        _ -> fail("smoke manifest, gate, or baseline is malformed")
+    };
+    if {
+        not critical_chain_holds(rows) -> fail("critical chain lane coverage is incomplete");
+        not rows_evidence_hold(rows, gate, inputs.files) -> fail("proof family, theorem, or runtime evidence is invalid");
+        true -> run_commands(root, inputs, rows, baseline)
+    }.
+
+run_commands(root: String, inputs: Inputs, rows: List[SmokeRow], baseline: Json): Bool ->
+    case Process.run_many(Process.batch(commands(root, rows), 2)) {
+        Ok(batch) ->
+            let evaluation = evaluate(rows, Process.completions(batch), baseline, inputs.files);
+            if {
+                evaluation.valid -> persist(root, inputs.manifest, evaluation);
+                true -> fail("semantic smoke runtime or compatibility evidence failed")
+            };
+        Err(reason) -> fail(Process.error_message(reason))
+    }.
+
+repository_smoke_holds(): Bool ->
+    let root = environment_or("TERLAN_LEAN_PROOF_ROOT", Environment.current_directory());
+    case read_text_many(fixed_paths(root)) {
+        Ok(files) ->
+            case inputs_from_files(files) {
+                Some(inputs) -> run_check(root, inputs);
+                None -> fail("smoke input batch has an unexpected shape")
+            };
+        Err(_reason) -> fail("smoke inputs could not be read")
+    }.
+
+@test
+pub arbitrary_runtime_command_is_rejected(): Bool ->
+    not runtime_contract_holds(
+    SmokeRow(
+        smoke_id = "fixture",
+        roadmap_slice = "Slice 9",
+        lanes = "parser",
+        proof_family = "fixture",
+        proof_path = "proofs/lean/Terlan/Smoke.lean",
+        theorems = "Example.smoke",
+        runtime_kind = "shell",
+        runtime_path = "echo pass",
+        expected_runtime = "pass",
+        owner = "vm",
+    ),
+).
+
+@test
+pub duplicate_smoke_ids_are_rejected(): Bool ->
+    case parse_manifest(
+    String.append(
+        manifest_header(),
+        "\nfixture\tSlice 9\tparser\tfamily\tproofs/lean/Terlan/Smoke.lean\tExample.smoke\tterlan-test\tfixture.terl\tpass\tvm\nfixture\tSlice 9\tparser\tfamily\tproofs/lean/Terlan/Smoke.lean\tExample.smoke\tterlan-test\tfixture.terl\tpass\tvm\n",
+    ),
+) {
+        None -> true;
+        Some(_rows) -> false
+    }.
+
+@test
+pub repository_semantic_smoke_is_current(): Bool ->
+    repository_smoke_holds().

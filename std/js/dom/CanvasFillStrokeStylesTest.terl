@@ -19,12 +19,12 @@ import type std.js.String.{JsString}.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub fill_style_typechecks(
-    receiver: CanvasFillStrokeStyles
+    receiver: CanvasFillStrokeStyles,
 ): CanvasGradient | CanvasPattern | JsString ->
     receiver.fill_style().
 
 pub stroke_style_typechecks(
-    receiver: CanvasFillStrokeStyles
+    receiver: CanvasFillStrokeStyles,
 ): CanvasGradient | CanvasPattern | JsString ->
     receiver.stroke_style().
 
@@ -32,7 +32,7 @@ pub create_conic_gradient_typechecks(
     receiver: CanvasFillStrokeStyles,
     start_angle: JsNumber,
     x: JsNumber,
-    y: JsNumber
+    y: JsNumber,
 ): CanvasGradient ->
     receiver.create_conic_gradient(start_angle, x, y).
 
@@ -41,14 +41,14 @@ pub create_linear_gradient_typechecks(
     x0: JsNumber,
     y0: JsNumber,
     x1: JsNumber,
-    y1: JsNumber
+    y1: JsNumber,
 ): CanvasGradient ->
     receiver.create_linear_gradient(x0, y0, x1, y1).
 
 pub create_pattern_typechecks(
     receiver: CanvasFillStrokeStyles,
     image: CanvasImageSource,
-    repetition: Option[JsString]
+    repetition: Option[JsString],
 ): Option[CanvasPattern] ->
     receiver.create_pattern(image, repetition).
 
@@ -59,6 +59,6 @@ pub create_radial_gradient_typechecks(
     r0: JsNumber,
     x1: JsNumber,
     y1: JsNumber,
-    r1: JsNumber
+    r1: JsNumber,
 ): CanvasGradient ->
     receiver.create_radial_gradient(x0, y0, r0, x1, y1, r1).

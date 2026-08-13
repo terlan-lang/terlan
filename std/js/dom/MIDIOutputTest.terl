@@ -21,7 +21,7 @@ pub generated_binding_surface_contract(): Bool -> true.
 pub send_typechecks(
     receiver: MIDIOutput,
     data: std.js.Array[std.js.Number.JsNumber],
-    timestamp: DOMHighResTimeStamp
+    timestamp: DOMHighResTimeStamp,
 ): Unit ->
     receiver.send(data, timestamp).
 
@@ -29,7 +29,7 @@ pub add_event_listener_typechecks(
     receiver: MIDIOutput,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -37,6 +37,6 @@ pub remove_event_listener_typechecks(
     receiver: MIDIOutput,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

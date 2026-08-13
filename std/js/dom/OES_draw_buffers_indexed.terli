@@ -45,7 +45,7 @@ pub (value: OES_draw_buffers_indexed) blend_func_separatei_oes(
     src_rgb: GLenum,
     dst_rgb: GLenum,
     src_alpha: GLenum,
-    dst_alpha: GLenum
+    dst_alpha: GLenum,
 ): Unit.
 
 /**

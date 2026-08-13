@@ -33,6 +33,6 @@ pub init_ui_event_typechecks(
     bubbles_arg: Bool,
     cancelable_arg: Bool,
     view_arg: Option[Window],
-    detail_arg: JsNumber
+    detail_arg: JsNumber,
 ): std.core.Unit ->
     receiver.init_ui_event(type_arg, bubbles_arg, cancelable_arg, view_arg, detail_arg).

@@ -4,7 +4,8 @@
 //! `std.io.Path` contract. It uses Rust `std::path` for target path semantics
 //! and intentionally performs no filesystem IO.
 
-use std::path::{Path as StdPath, PathBuf};
+use std::ffi::OsString;
+use std::path::{Component, Path as StdPath, PathBuf};
 
 /// Lexical path value owned by the NativeBoundary adapter.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -228,6 +229,64 @@ pub fn is_absolute(path: &Path) -> bool {
     path.as_std_path().is_absolute()
 }
 
+/// Lexically normalizes one path without querying the filesystem.
+pub fn normalize(path: &Path) -> Path {
+    Path::from_path_buf(normalized_path(path.as_std_path()))
+}
+
+/// Returns whether normalized `path` begins with normalized `base`.
+pub fn starts_with(path: &Path, base: &Path) -> bool {
+    normalized_path(path.as_std_path()).starts_with(normalized_path(base.as_std_path()))
+}
+
+/// Removes a normalized component prefix without querying the filesystem.
+pub fn strip_prefix(path: &Path, base: &Path) -> Option<Path> {
+    let normalized = normalized_path(path.as_std_path());
+    let normalized_base = normalized_path(base.as_std_path());
+    normalized
+        .strip_prefix(normalized_base)
+        .ok()
+        .map(|relative| Path::from_path_buf(relative.to_path_buf()))
+}
+
+fn normalized_path(path: &StdPath) -> PathBuf {
+    let mut prefix = None::<OsString>;
+    let mut rooted = false;
+    let mut components = Vec::<OsString>::new();
+    for component in path.components() {
+        match component {
+            Component::Prefix(value) => prefix = Some(value.as_os_str().to_os_string()),
+            Component::RootDir => rooted = true,
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if components
+                    .last()
+                    .is_some_and(|value| value.as_os_str() != "..")
+                {
+                    components.pop();
+                } else if !rooted {
+                    components.push(OsString::from(".."));
+                }
+            }
+            Component::Normal(value) => components.push(value.to_os_string()),
+        }
+    }
+    let mut normalized = PathBuf::new();
+    if let Some(prefix) = prefix {
+        normalized.push(prefix);
+    }
+    if rooted {
+        normalized.push(std::path::MAIN_SEPARATOR.to_string());
+    }
+    for component in components {
+        normalized.push(component);
+    }
+    if normalized.as_os_str().is_empty() {
+        normalized.push(".");
+    }
+    normalized
+}
+
 /// Rejects source text containing a null byte.
 ///
 /// Inputs:
@@ -252,4 +311,5 @@ fn reject_null_byte(text: &str) -> Result<(), PathError> {
 
 #[cfg(test)]
 #[path = "path_test.rs"]
+#[cfg(test)]
 mod path_test;

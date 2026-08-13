@@ -1,7 +1,7 @@
 module=std.core.Option
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 source_hash=7280846172422344088
 interface_hash=11539230284316612175
 interface_doc_hash=6433472173749185574

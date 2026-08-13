@@ -62,6 +62,38 @@ pub (left: String) append(right: String): String.
 @pure
 pub (value: String) byte_size(): Int.
 
+/// Returns the Unicode scalar values in a `String`.
+///
+/// Input: one UTF-8 `String` value.
+/// Output: a `List[String]` containing one valid Unicode scalar value per
+/// element, in source order.
+/// Transformation: decodes the complete string using the same text-unit
+/// boundary as `String.length` and `String.reverse`. This gives parsers and
+/// validation tools deterministic character iteration without exposing UTF-8
+/// byte offsets or backend-specific UTF-16 code units.
+///
+/// ```terlan
+/// module string_characters_example.
+///
+/// pub demo(): List[String] ->
+///     "aé🙂".characters().
+/// ```
+
+@pure
+pub (value: String) characters(): List[String].
+
+/// Returns the Unicode scalar numbers in a `String`.
+///
+/// Input: one UTF-8 `String` value.
+/// Output: a `List[Int]` containing one Unicode scalar number per element, in
+/// source order.
+/// Transformation: decodes the string once in the selected backend and stores
+/// scalar integers directly. Repository scanners should prefer this compact
+/// representation over allocating a managed one-character `String` per scalar.
+
+@pure
+pub (value: String) codepoints(): List[Int].
+
 /// Compares two `String` values using the selected stable source ordering.
 ///
 /// Input: two UTF-8 `String` values.
@@ -396,6 +428,36 @@ pub (value: String) trim_start(): String.
 
 @pure
 pub (value: String) uppercase(): String.
+
+/// Reads one byte from the canonical UTF-8 encoding.
+///
+/// The caller must prove `0 <= index < value.byte_size()`. An invalid index is
+/// a loud runtime error. This indexed primitive exists for bounded scanners;
+/// ordinary text logic should use Unicode-scalar operations.
+
+@pure
+pub (value: String) utf8_byte_at(index: Int): Int.
+
+/// Finds the next byte belonging to a caller-supplied ASCII candidate set.
+///
+/// Input: a UTF-8 string, a byte offset in `0..=value.byte_size()`, and a
+/// `String` containing only ASCII candidate bytes. Output: the first matching
+/// byte offset at or after `start`, or `-1` when no candidate remains.
+/// Transformation: scans the existing managed UTF-8 payload without producing
+/// substrings, character lists, or host values. Invalid offsets and non-ASCII
+/// candidate sets fail loudly. Repository lexers should include newline in the
+/// candidate set when they need to preserve line accounting while jumping.
+
+@pure
+pub (value: String) utf8_find_any_byte(start: Int, candidates: String): Int.
+
+/// Copies one byte range whose endpoints are valid UTF-8 scalar boundaries.
+///
+/// Invalid ranges or boundaries are loud runtime errors. Keeping byte slicing
+/// explicit prevents scanners from confusing byte offsets with scalar counts.
+
+@pure
+pub (value: String) utf8_slice(start: Int, length: Int): String.
 
 /// Describes explicit conversion from one type into another type.
 ///

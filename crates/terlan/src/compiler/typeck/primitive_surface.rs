@@ -212,6 +212,12 @@ pub(super) fn primitive_receiver_method_scheme(
             generic_params: Vec::new(),
             bounds: Vec::new(),
         }),
+        ("characters", 0) => Some(FunctionScheme {
+            params: Vec::new(),
+            ret: Type::List(Box::new(Type::Binary)),
+            generic_params: Vec::new(),
+            bounds: Vec::new(),
+        }),
         ("split_once", 1) => Some(FunctionScheme {
             params: vec![binary],
             ret: structural_option_type(Type::Tuple(vec![Type::Binary, Type::Binary])),

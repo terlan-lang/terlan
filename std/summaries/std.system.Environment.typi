@@ -1,0 +1,15 @@
+//! Typed access to immutable host process context admitted to a Terlan VM run.
+
+module std.system.Environment.
+
+/// Returns whether one environment key is present and Unicode representable.
+
+pub contains(key: String): Bool.
+
+/// Returns the current working directory as target-normalized UTF-8 text.
+
+pub current_directory(): String.
+
+/// Returns one Unicode environment value or `None` when absent/non-Unicode.
+
+pub get(key: String): Option[String].

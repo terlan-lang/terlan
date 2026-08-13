@@ -1,8 +1,15 @@
 schema=terlan.core_ir.v1
 module=phase_basic
 source_kind=Module
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 export=add/2
 function=add/2 public=true params=X:Int:core=Int,Y:Int:core=Int return=Int return_core=Int
 function_clause=add/2#0 patterns=Var:text=X:arity=0,Var:text=Y:arity=0 core_patterns=Var(X),Var(Y) pattern_proof=lean-covered,lean-covered pattern_preservation=structural-core-pattern(freshness=runtime-bindings-required;target=Var(X)),structural-core-pattern(freshness=runtime-bindings-required;target=Var(Y)) guard=none body=BinaryOp:core=BinaryOp(+;Var(X), Var(Y)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=BinaryOp(+;Var(X), Var(Y))):proof=lean-covered:op=+:arity=2:children=[Var:core=Var(X):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(X)):proof=lean-covered:text=X:arity=0;Var:core=Var(Y):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(Y)):proof=lean-covered:text=Y:arity=0]
+binding_fingerprint=f20155053e012b31
+binding=aa6dbb7d27d11921 region=7d3552a417ce0a71 name=X kind=Pattern path=function:add/2:function:add:clause:0:head:0
+binding=9fbf917d21320571 region=7d3552a417ce0a71 name=Y kind=Pattern path=function:add/2:function:add:clause:0:head:1
+binding_reference=aa6dbb7d27d11921 name=X path=function:add/2:function:add:clause:0:body:child:0
+binding_reference=9fbf917d21320571 name=Y path=function:add/2:function:add:clause:0:body:child:1
+termination_schema=terlan.core_termination.v1
+termination=add/2 state=Proven reason=NonRecursive actor=NotActor component= measure=
 metadata=functions:1 types:0 constructors:0 proof_readiness:lean-covered proof_expr_lean:3 proof_expr_partial:0 proof_expr_model_required:0 proof_expr_runtime_boundary:0 proof_expr_artifact_only:0 proof_pattern_lean:2 proof_pattern_partial:0 proof_pattern_model_required:0 proof_pattern_runtime_boundary:0 proof_pattern_artifact_only:0 typed_core_expr:3 summary_only_expr:0 typed_core_pattern:2 summary_only_pattern:0 typed_core_type:3 summary_only_type:0 checked_preservation_expr:3 checked_preservation_pattern:2 checked_preservation_expr_structural:3 checked_preservation_pattern_structural:2 checked_preservation_expr_no_runtime_bindings:3 checked_preservation_pattern_no_runtime_bindings:0 checked_preservation_expr_runtime_bindings_required:0 checked_preservation_pattern_runtime_bindings_required:2 resolved_constructor_call_identity:0 resolved_constructor_chain_identity:0 resolved_constructor_pattern_identity:0 unresolved_constructor_call_candidate:0 unresolved_constructor_chain_candidate:0 unresolved_constructor_pattern_candidate:0

@@ -1,8 +1,8 @@
 module=std.range.Range
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=16152337538198587137
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=11279218998599185417
 interface_hash=3952605428572101253
 interface_doc_hash=3221375913119633018
 deps=1

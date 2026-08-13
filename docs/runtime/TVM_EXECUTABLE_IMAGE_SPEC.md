@@ -238,12 +238,16 @@ information MAY use the platform's native debug representation or a detached,
 checksum-bound debug artifact. Release images SHOULD be strippable without
 changing executable behavior or the TVM ABI.
 
-Compiler builds embed `TVMDBG01` source identities in a non-loaded native debug
-section (`.debug_terlan` on ELF, `__terlan` in `__DWARF` on Mach-O, and
-`.debug$T` on PE/COFF). Records identify only emitted native functions and bind
-module/function/arity to the real compiler input path plus UTF-8-safe declaration
-ranges. This section is debugger metadata, not executable IR or an admission
-fallback; stripping it cannot change the canonical descriptor or runtime code.
+Compiler builds embed `TVMDBG05` source identities in a non-loaded native debug
+section (`.debug_terlan` on ELF, `__terlan` in `__DWARF` on Mach-O,
+`.tdbg$D` on COFF, and `.tdbg` on PE). Records identify only emitted native
+functions and bind module/function/arity to the real compiler input path,
+UTF-8-safe declaration ranges, a SHA-256 digest of the exact compiler input,
+generated/template source origin, compiler-generated continuation identities,
+and exact source-expression ranges for resume entries whose spans survive
+lowering. The section never embeds source text. This section is debugger
+metadata, not executable IR or an admission fallback; stripping it cannot
+change the canonical descriptor or runtime code.
 
 ## 5. AOT Execution Model
 
@@ -568,6 +572,28 @@ and branch-selected callees. The internal native ABI carries a caller-owned
 transition-length output separately from the statically bounded capture buffer;
 this reports the selected continuation's exact arity even when sibling callees
 have different capacities.
+
+Tail recursion is compiler-owned before Cranelift. After application-global
+continuation materialization, typed tail-position analysis converts direct
+self recursion to a loop-header backedge and statically resolved mutual
+components to bounded tagged dispatch. Arguments are evaluated before the
+backedge and replace the parameter frame in parallel. Managed parameter slots
+remain precise stack-map roots across safepoints. Terminal suspending edges
+forward the selected transition and resume identity without retaining a caller
+frame. Non-tail calls and calls followed by cleanup remain ordinary calls.
+Native object units for a lowered recursive component must not contain
+relocations to that component's function symbols.
+
+Every recursive tail edge also owns a stable reduction continuation. Generated
+code counts backedges in its current invocation frame and returns a `Yield`
+transition no later than 1,024 edges after entry or resume. The transition
+frame contains the already-evaluated next arguments; its continuation
+descriptor re-enters the selected direct or mutual-recursion target with a
+fresh budget. This is the VM preemption boundary for otherwise busy native
+loops. Cancellation, shutdown, failure delivery, inspection, and peer
+scheduling happen while the exact actor continuation is parked; generated code
+does not poll a host executor or retain a shard lock across the handoff.
+
 The same tail and bounded non-tail rules apply to `Unit`-returning suspending
 functions. This permits an effect-shaped call to yield and then continue in its
 native caller; only caller values live after the Unit call are appended to the

@@ -1,0 +1,9 @@
+module=std.vm.Debugger
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=6312227637337116822
+interface_hash=1867578457100993600
+interface_doc_hash=12723357599240263866
+deps=1
+std.core.Unit=13611133214341763160

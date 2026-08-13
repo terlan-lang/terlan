@@ -116,26 +116,32 @@ impl ManagedClosureDescriptor {
         })
     }
 
+    /// Returns the executable-image generation that owns this callable.
     pub fn generation(&self) -> ManagedClosureImageGeneration {
         self.generation
     }
 
+    /// Returns the callable identifier within the owning image.
     pub fn callable_id(&self) -> u64 {
         self.callable_id
     }
 
+    /// Returns the ordered caller-parameter ABI types.
     pub fn parameters(&self) -> &[TvmBoundaryType] {
         &self.parameters
     }
 
+    /// Returns the ordered result ABI types.
     pub fn results(&self) -> &[TvmBoundaryType] {
         &self.results
     }
 
+    /// Returns the ordered capture ABI types.
     pub fn captures(&self) -> &[TvmBoundaryType] {
         &self.captures
     }
 
+    /// Returns the content-derived managed type identity for this signature.
     pub fn semantic_id(&self) -> SemanticTypeId {
         self.managed_type.semantic_id()
     }

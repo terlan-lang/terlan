@@ -28,9 +28,9 @@ pub first_returns_present_value(): Bool ->
     values.push(1);
     values.push(2);
     case values.first() {
-    Some(value) -> assert_equal(1, value);
-    None -> false
-}.
+        Some(value) -> assert_equal(1, value);
+        None -> false
+    }.
 
 @test
 pub first_returns_none_for_empty_list(): Bool ->
@@ -43,22 +43,26 @@ pub first_returns_none_for_empty_list(): Bool ->
 @test
 pub rest_preserves_empty_and_singleton_boundaries(): Bool ->
     case List.new[Int]().rest() {
-        None ->
-            case List(1).rest() {
-                Some(tail) -> tail.is_empty();
-                None -> false
-            };
+        None -> singleton_tail_is_empty();
         Some(_) -> false
+    }.
+
+singleton_tail_is_empty(): Bool ->
+    case List(1).rest() {
+        Some(tail) -> tail.is_empty();
+        None -> false
     }.
 
 @test
 pub rest_returns_ordered_tail(): Bool ->
     case List(1, 2, 3).rest() {
-        Some(tail) ->
-            case tail.first() {
-                Some(first) -> tail.length() == 2 and first == 2;
-                None -> false
-            };
+        Some(tail) -> ordered_tail_starts_with_two(tail);
+        None -> false
+    }.
+
+ordered_tail_starts_with_two(tail: std.collections.List.List[Int]): Bool ->
+    case tail.first() {
+        Some(first) -> tail.length() == 2 and first == 2;
         None -> false
     }.
 
@@ -68,9 +72,11 @@ pub concat_preserves_order_and_inputs(): Bool ->
     let right = List(3, 4);
     let combined = left.concat(right);
     case combined.first() {
+        None -> false;
         Some(first) ->
-            combined.length() == 4 and first == 1 and left.length() == 2 and right.length() == 2;
-        None -> false
+            let combined_is_ordered = combined.length() == 4 and first == 1;
+            let inputs_are_unchanged = left.length() == 2 and right.length() == 2;
+            combined_is_ordered and inputs_are_unchanged
     }.
 
 @test
@@ -78,14 +84,20 @@ pub subtract_removes_first_occurrence_per_value(): Bool ->
     let values = List(1, 2, 1, 3);
     let result = values.subtract(List(1, 3));
     case {result.first(), values.first()} {
+        {None, _} -> false;
+        {_, None} -> false;
         {Some(result_first), Some(source_first)} ->
-            result.length() == 2 and result_first == 2 and values.length() == 4 and source_first == 1;
-        _ -> false
+            let result_is_expected = result.length() == 2 and result_first == 2;
+            let source_is_unchanged = values.length() == 4 and source_first == 1;
+            result_is_expected and source_is_unchanged
     }.
 
 @test
 pub subtract_ignores_missing_values_and_handles_empty_lists(): Bool ->
-    List(1).subtract(List(2)).length() == 1 and List.new[Int]().subtract(List(1)).is_empty() and List(1).subtract(List.new[Int]()).length() == 1.
+    let missing_value_is_ignored = List(1).subtract(List(2)).length() == 1;
+    let empty_source_stays_empty = List.new[Int]().subtract(List(1)).is_empty();
+    let empty_subtraction_is_identity = List(1).subtract(List.new[Int]()).length() == 1;
+    missing_value_is_ignored and empty_source_stays_empty and empty_subtraction_is_identity.
 
 @test
 pub enumerable_map_transforms_values(): Bool ->

@@ -80,7 +80,10 @@ fn validate_web_package_rejects_sse_route_conflicting_with_http_handler() {
     let error = validate_web_package(&web_root).expect_err("SSE route conflict must fail");
 
     assert!(error.contains("error[serve_package]"), "{error}");
-    assert!(error.contains("SSE route `GET` `/events/:stream` conflicts"), "{error}");
+    assert!(
+        error.contains("SSE route `GET` `/events/:stream` conflicts"),
+        "{error}"
+    );
     fs::remove_dir_all(dir).expect("cleanup");
 }
 
@@ -274,6 +277,7 @@ email = "admin@example.test""#,
         poll_ms: DEFAULT_POLL_MS,
         handler_runtime: ServeHandlerRuntime::Static,
         check_only: false,
+        overrides: super::super::args::ServeCliOverrides::default(),
     })
     .expect_err("auto TLS should fail before listener binding without a certificate cache");
 
@@ -424,3 +428,6 @@ fn reload_sse_response_preserves_live_reload_response_contract() {
         );
     });
 }
+#[cfg(not(feature = "acme-live"))]
+use super::super::args::{ServeHandlerRuntime, DEFAULT_POLL_MS, DEFAULT_SERVE_HOST};
+use super::*;

@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::sync::Mutex;
@@ -18,7 +16,6 @@ mod transfer;
 use mailbox::VmActorMailbox;
 pub(crate) use mailbox::VmMailboxWake;
 #[cfg(test)]
-#[allow(unused_imports)]
 pub(crate) use mailbox::ACTOR_MAILBOX_CAPACITY;
 pub(crate) use migration::VmActorMigrationStamp;
 use state::{
@@ -105,6 +102,7 @@ impl VmActorMutatorToken {
     }
 
     /// Returns the scheduler identity that acquired this token.
+    #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
     pub(crate) fn owner(&self) -> u64 {
         self.owner
     }
@@ -115,7 +113,7 @@ impl VmActorMutatorToken {
     }
 
     /// Duplicates a token so tests can prove stale-generation rejection.
-    #[cfg(test)]
+    #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
     fn duplicate_for_test(&self) -> Self {
         Self {
             handle: self.handle,
@@ -177,8 +175,6 @@ pub(crate) enum VmActorDirectoryError {
     },
     /// A token does not match the actor's current scheduler or generation.
     StaleMutator,
-    /// A mailbox publication does not name a currently reserved actor generation.
-    StalePublication(VmActorPublication),
     /// Scheduler identities must be representable in the packed ownership word.
     InvalidOwner(u64),
     /// A cell cannot be reclaimed while lookups remain pinned.
@@ -316,6 +312,7 @@ impl<T, P> VmActorDirectory<T, P> {
     }
 
     /// Returns the number of resolvable actor cells.
+    #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
         self.actor_slots.len()
     }
@@ -344,6 +341,7 @@ impl<T, P> VmActorDirectory<T, P> {
     }
 
     /// Pins one generation-qualified lookup against reclamation.
+    #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
     pub(crate) fn pin_lookup(
         &self,
         pid: VmProcessId,
@@ -424,19 +422,12 @@ impl<T, P> VmActorDirectory<T, P> {
     }
 
     /// Returns the number of fully published fragments awaiting integration.
+    #[cfg(test)]
     pub(crate) fn pending_publications(
         &self,
         pid: VmProcessId,
     ) -> Result<usize, VmActorDirectoryError> {
         Ok(self.cell(pid)?.mailbox.len())
-    }
-
-    /// Begins the authoritative receiver park handshake.
-    pub(crate) fn prepare_mailbox_park(
-        &self,
-        pid: VmProcessId,
-    ) -> Result<bool, VmActorDirectoryError> {
-        Ok(self.cell(pid)?.mailbox.prepare_park())
     }
 
     /// Marks the mailbox consumer active before actor execution.
@@ -446,6 +437,7 @@ impl<T, P> VmActorDirectory<T, P> {
     }
 
     /// Resolves a pinned handle only when its slot generation remains current.
+    #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
     pub(crate) fn resolve_handle(
         &self,
         handle: VmActorHandle,
@@ -454,6 +446,7 @@ impl<T, P> VmActorDirectory<T, P> {
     }
 
     /// Releases one generation-qualified lookup pin.
+    #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
     pub(crate) fn unpin_lookup(&self, handle: VmActorHandle) -> Result<(), VmActorDirectoryError> {
         let cell = self.cell_for_handle(handle)?;
         cell.lookup_pins
@@ -510,7 +503,7 @@ impl<T, P> VmActorDirectory<T, P> {
         );
         cell.state
             .compare_exchange(before_word, after_word, Ordering::AcqRel, Ordering::Acquire)
-            .map_err(|observed| ownership_race_error(observed))?;
+            .map_err(ownership_race_error)?;
         let token = VmActorMutatorToken {
             handle: cell.handle,
             owner,
@@ -708,6 +701,7 @@ impl<T, P> VmActorDirectory<T, P> {
     }
 
     /// Completes migration with the actor unowned and ready to be queued.
+    #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
     pub(crate) fn finish_migration(
         &mut self,
         pid: VmProcessId,
@@ -819,6 +813,7 @@ impl<T, P> VmActorDirectory<T, P> {
     }
 
     /// Returns the immutable transition log used by replay and diagnostics.
+    #[cfg(test)]
     pub(crate) fn transition_events(&self) -> Vec<VmActorTransitionEvent> {
         self.events
             .lock()
@@ -827,7 +822,7 @@ impl<T, P> VmActorDirectory<T, P> {
     }
 
     /// Replaces the packed state so tests can verify fail-stop corruption handling.
-    #[cfg(test)]
+    #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
     fn corrupt_state_for_test(&self, pid: VmProcessId, word: u64) {
         self.cell(pid)
             .expect("test actor exists")
@@ -860,7 +855,7 @@ impl<T, P> VmActorDirectory<T, P> {
         let after_word = pack_state(next, before.actor_generation, before.owner_generation, 0);
         cell.state
             .compare_exchange(before_word, after_word, Ordering::AcqRel, Ordering::Acquire)
-            .map_err(|observed| ownership_race_error(observed))?;
+            .map_err(ownership_race_error)?;
         let handle = cell.handle;
         self.record_transition(handle, before.lifecycle, next, 0, before.owner_generation);
         Ok(())
@@ -990,9 +985,12 @@ impl<T, P> VmActorDirectory<T, P> {
 }
 
 #[cfg(all(test, not(feature = "multicore-tsan-harness")))]
+#[cfg(test)]
 #[path = "actor_directory_test.rs"]
+#[cfg(test)]
 mod actor_directory_test;
 
 #[cfg(test)]
 #[path = "actor_parallel_messages_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod actor_parallel_messages_beam_suite_parity_test;

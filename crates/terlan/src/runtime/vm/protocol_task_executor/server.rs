@@ -8,6 +8,7 @@ use super::{VmProtocolControl, VmProtocolControlPort};
 
 /// One ready protocol listener and all fixed scheduler threads that own it.
 pub(crate) struct VmProtocolTaskServer {
+    #[cfg(test)]
     address: SocketAddr,
     controls: Vec<Arc<VmProtocolControlPort>>,
     threads: Vec<thread::JoinHandle<Result<(), String>>>,
@@ -17,12 +18,13 @@ pub(crate) struct VmProtocolTaskServer {
 impl VmProtocolTaskServer {
     /// Creates a ready supervisor handle after every owner reports readiness.
     pub(super) fn new(
-        address: SocketAddr,
+        _address: SocketAddr,
         controls: Vec<Arc<VmProtocolControlPort>>,
         threads: Vec<thread::JoinHandle<Result<(), String>>>,
     ) -> Self {
         Self {
-            address,
+            #[cfg(test)]
+            address: _address,
             controls,
             threads,
             stopped: false,
@@ -30,6 +32,7 @@ impl VmProtocolTaskServer {
     }
 
     /// Returns the exact bound listener address advertised by this service.
+    #[cfg(test)]
     pub(crate) const fn local_addr(&self) -> SocketAddr {
         self.address
     }

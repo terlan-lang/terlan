@@ -1,8 +1,10 @@
 module=std.http.Session
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
 source_hash=11523230323410144797
 interface_hash=1964479310767544129
 interface_doc_hash=11739093799175881107
-deps=0
+deps=2
+std.core.Option=11539230284316612175
+std.core.Unit=13611133214341763160

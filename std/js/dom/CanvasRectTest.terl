@@ -23,7 +23,7 @@ pub clear_rect_typechecks(
     x: JsNumber,
     y: JsNumber,
     w: JsNumber,
-    h: JsNumber
+    h: JsNumber,
 ): Unit ->
     receiver.clear_rect(x, y, w, h).
 
@@ -32,7 +32,7 @@ pub fill_rect_typechecks(
     x: JsNumber,
     y: JsNumber,
     w: JsNumber,
-    h: JsNumber
+    h: JsNumber,
 ): Unit ->
     receiver.fill_rect(x, y, w, h).
 
@@ -41,6 +41,6 @@ pub stroke_rect_typechecks(
     x: JsNumber,
     y: JsNumber,
     w: JsNumber,
-    h: JsNumber
+    h: JsNumber,
 ): Unit ->
     receiver.stroke_rect(x, y, w, h).

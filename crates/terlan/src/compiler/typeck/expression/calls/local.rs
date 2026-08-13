@@ -23,14 +23,6 @@ pub(super) fn infer_syntax_local_call(
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
 ) -> Type {
-    if is_removed_implicit_builtin_call(function_name, arg_types.len()) {
-        errors.push(format!(
-            "`{function_name}/{}` is not part of the implicit prelude; import or define it explicitly",
-            arg_types.len()
-        ));
-        return Type::Dynamic;
-    }
-
     if let Some(scheme) = builtin_call(function_name, arg_types.len()) {
         if let Err(message) =
             infer_function_with_bounds(&scheme, Some(function_name), arg_types, ctx, subst)
@@ -154,6 +146,13 @@ pub(super) fn infer_syntax_local_call(
                 }
             }
         }
+    }
+
+    if is_removed_implicit_builtin_call(function_name, arg_types.len()) {
+        errors.push(format!(
+            "`{function_name}/{}` is not part of the implicit prelude; import or define it explicitly",
+            arg_types.len()
+        ));
     }
 
     Type::Dynamic

@@ -1,0 +1,169 @@
+/**
+ * Proves every release-owned std source has deterministic summary artifacts.
+ */
+module scripts.self_validation.SummaryInventory.
+
+import std.collections.{List, Set}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.Console.{println}.
+import std.io.Directory.{entries}.
+import std.io.File.{read_text, read_text_tree_matching}.
+
+import type std.collections.Set.
+import type std.io.File.TextFile.
+
+/**
+ * Returns whether every summary-owning std source has a summary and deps file.
+ */
+pub repository_inventory_holds(root: String): Bool ->
+    let {
+        Ok(summary_paths) <- entries(String.append(root, "/std/summaries"));
+        Ok(test_source) <- read_text(String.append(root, "/std/test/Test.terl"))
+    } else {
+        _ -> false
+    };
+    (let summary_names = Set.from_list(summary_paths);
+source_inventory_holds("std/test/Test.terl", test_source, summary_names)
+    and inventory_pages(root, summary_names, 0)).
+
+inventory_pages(root: String, summary_names: Set[String], offset: Int): Bool ->
+    case read_text_tree_matching(
+    String.append(root, "/std"),
+    ["summaries", "disabled", "__pycache__"],
+    [".terl"],
+    ["Test.terl"],
+    offset,
+    64,
+) {
+        Ok([]) -> true;
+        Ok(files) ->
+            if {
+                files_have_inventory(files, summary_names) -> inventory_pages(root, summary_names, offset + files.length());
+                true -> false
+            };
+        _ -> false
+    }.
+
+files_have_inventory(files: List[TextFile], summary_names: Set[String]): Bool ->
+    case files {
+        [] -> true;
+        [file | rest] ->
+            if {
+                source_requires_summary(file.path) -> source_inventory_holds(file.path, file.contents, summary_names)
+                    and files_have_inventory(rest, summary_names);
+                true -> files_have_inventory(rest, summary_names)
+            }
+    }.
+
+/**
+ * Test modules do not own summaries, except the public std.test.Test module.
+ */
+@pure
+pub source_requires_summary(path: String): Bool ->
+    not String.ends_with(path, "Test.terl") or String.ends_with(path, "/test/Test.terl").
+
+/**
+ * Validates one source declaration against a supplied artifact inventory.
+ */
+@pure
+pub source_inventory_holds(source_path: String, source: String, summary_names: Set[String]): Bool ->
+    case source_module_name(source_path) {
+        "" -> false;
+        module_name ->
+            let declaration = String.append("module ", String.append(module_name, "."));
+            let summary_name = String.append(module_name, ".typi");
+            source_has_declaration(source, declaration)
+                and set_has_name(summary_names, summary_name)
+                and set_has_name(summary_names, String.append(summary_name, ".deps"))
+    }.
+
+@pure
+source_module_name(path: String): String ->
+    String.replace(
+        String.replace(
+            String.replace(
+                String.replace(
+                    String.replace(
+                        String.replace(path, ".terl", ""),
+                        "std/js/dom/web_assembly/",
+                        "std.js.Dom.WebAssembly.",
+                    ),
+                    "std/js/dom/",
+                    "std.js.Dom.",
+                ),
+                "std/js/intl/",
+                "std.js.Intl.",
+            ),
+            "std/native/libpq/generated/src/terlan_libpq/",
+            "terlan_libpq.",
+        ),
+        "/",
+        ".",
+    ).
+
+@pure
+source_has_declaration(source: String, declaration: String): Bool ->
+    source == declaration
+        or String.starts_with(source, String.append(declaration, "\n"))
+        or String.ends_with(source, String.append("\n", declaration))
+        or String.contains(source, String.append("\n", String.append(declaration, "\n"))).
+
+@pure
+set_has_name(names: Set[String], name: String): Bool ->
+    Set.contains(names, name) or Set.contains(names, String.append("std/summaries/", name)).
+
+@test
+pub repository_std_sources_have_summary_inventory(): Bool ->
+    repository_inventory_holds(".").
+
+@test
+pub source_inventory_accepts_canonical_module_and_both_artifacts(): Bool ->
+    source_inventory_holds(
+        "std/example/Value.terl",
+        "/** docs */\nmodule std.example.Value.\n",
+        Set.from_list(["std.example.Value.typi", "std.example.Value.typi.deps"]),
+    ).
+
+@test
+pub source_inventory_rejects_a_missing_module_declaration(): Bool ->
+    not source_inventory_holds(
+    "std/example/Value.terl",
+    "pub value(): Int -> 1.",
+    Set.from_list(["std.example.Value.typi", "std.example.Value.typi.deps"]),
+).
+
+@test
+pub source_inventory_rejects_a_missing_summary(): Bool ->
+    not source_inventory_holds(
+    "std/example/Value.terl",
+    "module std.example.Value.",
+    Set.from_list(["std.example.Value.typi.deps"]),
+).
+
+@test
+pub source_inventory_rejects_missing_summary_dependencies(): Bool ->
+    not source_inventory_holds(
+    "std/example/Value.terl",
+    "module std.example.Value.",
+    Set.from_list(["std.example.Value.typi"]),
+).
+
+@test
+pub only_public_test_module_requires_a_summary(): Bool ->
+    not source_requires_summary("std/io/FileTest.terl")
+        and source_requires_summary("std/test/Test.terl").
+
+pub main(): Unit ->
+    if {
+        repository_inventory_holds(".") -> println("[stdlib-summary-inventory] stdlib modules have summaries");
+        true -> println("[stdlib-summary-inventory] failures")
+    }.
+
+@test
+pub source_inventory_rejects_a_declaration_that_disagrees_with_its_path(): Bool ->
+    not source_inventory_holds(
+    "std/example/Value.terl",
+    "module std.example.Other.",
+    Set.from_list(["std.example.Other.typi", "std.example.Other.typi.deps"]),
+).

@@ -14,10 +14,12 @@ pub(super) fn is_pattern_operation(encoded: &[u8]) -> bool {
     encoded.starts_with(MAGIC)
 }
 
+/// Encodes a managed-reference semantic-type predicate.
 pub fn encode_managed_type_is_operation(semantic: SemanticTypeId) -> Vec<u8> {
     operation(TYPE_IS, semantic, None)
 }
 
+/// Encodes a semantic-type and variant-discriminant predicate.
 pub fn encode_managed_variant_is_operation(semantic: SemanticTypeId, discriminant: u32) -> Vec<u8> {
     operation(VARIANT_IS, semantic, Some(discriminant))
 }

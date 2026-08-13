@@ -220,6 +220,6 @@ pub (value: MouseEvent) init_mouse_event(
     shift_key_arg: Bool,
     meta_key_arg: Bool,
     button_arg: JsNumber,
-    related_target_arg: Option[EventTarget]
+    related_target_arg: Option[EventTarget],
 ): std.core.Unit ->
     native.

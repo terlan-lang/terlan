@@ -1,10 +1,12 @@
+use super::*;
+
 #[derive(Clone, Debug)]
-struct ConstGenericParam {
+pub(super) struct ConstGenericParam {
     name: String,
     kind: String,
 }
 
-fn resolve_const_generic_arguments(
+pub(super) fn resolve_const_generic_arguments(
     module: &mut SyntaxModuleOutput,
     interfaces: &HashMap<String, ModuleInterface>,
     evaluator: &mut Evaluator,
@@ -84,7 +86,7 @@ fn resolve_const_generic_arguments(
     diagnostics
 }
 
-fn visit_declaration_exprs_mut(
+pub(super) fn visit_declaration_exprs_mut(
     payload: &mut SyntaxDeclarationPayload,
     mut visit: impl FnMut(&mut SyntaxExprOutput),
 ) {
@@ -128,8 +130,12 @@ fn visit_declaration_exprs_mut(
                 walk(&mut clause.body, &mut visit);
             }
         }
-        SyntaxDeclarationPayload::Function { params, clauses, .. }
-        | SyntaxDeclarationPayload::Method { params, clauses, .. } => {
+        SyntaxDeclarationPayload::Function {
+            params, clauses, ..
+        }
+        | SyntaxDeclarationPayload::Method {
+            params, clauses, ..
+        } => {
             for param in params {
                 if let Some(default) = &mut param.default {
                     walk(default, &mut visit);
@@ -142,7 +148,9 @@ fn visit_declaration_exprs_mut(
                 walk(&mut clause.body, &mut visit);
             }
         }
-        SyntaxDeclarationPayload::Trait { methods, constants, .. } => {
+        SyntaxDeclarationPayload::Trait {
+            methods, constants, ..
+        } => {
             for constant in constants {
                 if let Some(default) = &mut constant.default {
                     walk(default, &mut visit);
@@ -154,7 +162,9 @@ fn visit_declaration_exprs_mut(
                 }
             }
         }
-        SyntaxDeclarationPayload::TraitImpl { methods, constants, .. } => {
+        SyntaxDeclarationPayload::TraitImpl {
+            methods, constants, ..
+        } => {
             for constant in constants {
                 walk(&mut constant.value, &mut visit);
             }
@@ -178,25 +188,26 @@ fn visit_declaration_exprs_mut(
     }
 }
 
-fn resolve_const_generic_call_type_args(
+pub(super) fn resolve_const_generic_call_type_args(
     expr: &mut SyntaxExprOutput,
     specs: &HashMap<(String, usize), Vec<Option<ConstGenericParam>>>,
     in_scope: &HashMap<String, String>,
     evaluator: &mut Evaluator,
     diagnostics: &mut Vec<ValueLifecycleDiagnostic>,
 ) {
-    if !matches!(expr.kind, SyntaxExprKind::Call | SyntaxExprKind::FunctionCall)
-        || expr.type_args.is_empty()
+    if !matches!(
+        expr.kind,
+        SyntaxExprKind::Call | SyntaxExprKind::FunctionCall
+    ) || expr.type_args.is_empty()
     {
         return;
     }
     let Some(local_name) = expr.children.first().and_then(qualified_expr_name) else {
         return;
     };
-    let name = expr
-        .remote
-        .as_ref()
-        .map_or(local_name.clone(), |module| format!("{module}.{local_name}"));
+    let name = expr.remote.as_ref().map_or(local_name.clone(), |module| {
+        format!("{module}.{local_name}")
+    });
     let arity = expr.children.len().saturating_sub(1);
     let Some(parameters) = specs.get(&(name, arity)) else {
         return;
@@ -230,7 +241,7 @@ fn resolve_const_generic_call_type_args(
     }
 }
 
-fn const_generic_params(params: &[String]) -> Vec<Option<ConstGenericParam>> {
+pub(super) fn const_generic_params(params: &[String]) -> Vec<Option<ConstGenericParam>> {
     params
         .iter()
         .map(|param| {
@@ -244,7 +255,7 @@ fn const_generic_params(params: &[String]) -> Vec<Option<ConstGenericParam>> {
         .collect()
 }
 
-fn declaration_const_params(
+pub(super) fn declaration_const_params(
     payload: &SyntaxDeclarationPayload,
 ) -> HashMap<String, String> {
     let params = match payload {
@@ -263,7 +274,7 @@ fn declaration_const_params(
         .collect()
 }
 
-fn visit_declaration_type_texts_mut(
+pub(super) fn visit_declaration_type_texts_mut(
     payload: &mut SyntaxDeclarationPayload,
     mut visit: impl FnMut(&mut crate::terlan_syntax::SyntaxTypeOutput),
 ) {
@@ -328,9 +339,7 @@ fn visit_declaration_type_texts_mut(
             visit(return_type);
         }
         SyntaxDeclarationPayload::Trait {
-            methods,
-            constants,
-            ..
+            methods, constants, ..
         } => {
             for constant in constants {
                 visit(&mut constant.annotation);
@@ -366,7 +375,7 @@ fn visit_declaration_type_texts_mut(
     }
 }
 
-fn rewrite_const_generic_type_text(
+pub(super) fn rewrite_const_generic_type_text(
     text: &str,
     specs: &HashMap<String, Vec<Option<ConstGenericParam>>>,
     in_scope: &HashMap<String, String>,
@@ -398,13 +407,7 @@ fn rewrite_const_generic_type_text(
         }
         for (arg, parameter) in args.iter_mut().zip(spec) {
             if let Some(parameter) = parameter {
-                *arg = resolve_const_generic_argument(
-                    arg,
-                    parameter,
-                    in_scope,
-                    evaluator,
-                    span,
-                )?;
+                *arg = resolve_const_generic_argument(arg, parameter, in_scope, evaluator, span)?;
             } else {
                 *arg = rewrite_const_generic_type_text(arg, specs, in_scope, evaluator, span)?;
             }
@@ -414,7 +417,12 @@ fn rewrite_const_generic_type_text(
             *arg = rewrite_const_generic_type_text(arg, specs, in_scope, evaluator, span)?;
         }
     }
-    let rebuilt = format!("{}[{}]{}", &text[..open], args.join(", "), &text[close + 1..]);
+    let rebuilt = format!(
+        "{}[{}]{}",
+        &text[..open],
+        args.join(", "),
+        &text[close + 1..]
+    );
     if rebuilt[close.min(rebuilt.len())..].contains('[') {
         rewrite_const_generic_type_text(&rebuilt, specs, in_scope, evaluator, span)
     } else {
@@ -422,7 +430,7 @@ fn rewrite_const_generic_type_text(
     }
 }
 
-fn resolve_const_generic_argument(
+pub(super) fn resolve_const_generic_argument(
     text: &str,
     parameter: &ConstGenericParam,
     in_scope: &HashMap<String, String>,
@@ -447,10 +455,20 @@ fn resolve_const_generic_argument(
             span,
         )
     })?;
-    let expression = parsed.declarations.iter().find_map(|declaration| match &declaration.payload {
-        SyntaxDeclarationPayload::Constant { value, .. } => Some(value),
-        _ => None,
-    }).ok_or_else(|| diagnostic("INVALID_CONST_GENERIC_ARGUMENT", "missing const generic argument", span))?;
+    let expression = parsed
+        .declarations
+        .iter()
+        .find_map(|declaration| match &declaration.payload {
+            SyntaxDeclarationPayload::Constant { value, .. } => Some(value),
+            _ => None,
+        })
+        .ok_or_else(|| {
+            diagnostic(
+                "INVALID_CONST_GENERIC_ARGUMENT",
+                "missing const generic argument",
+                span,
+            )
+        })?;
     if !const_generic_argument_shape_is_allowed(expression, evaluator) {
         return Err(diagnostic(
             "INVALID_CONST_GENERIC_ARGUMENT",
@@ -467,24 +485,39 @@ fn resolve_const_generic_argument(
     }
 }
 
-fn const_generic_argument_shape_is_allowed(expr: &SyntaxExprOutput, evaluator: &Evaluator) -> bool {
+pub(super) fn const_generic_argument_shape_is_allowed(
+    expr: &SyntaxExprOutput,
+    evaluator: &Evaluator,
+) -> bool {
     match expr.kind {
-        SyntaxExprKind::Int | SyntaxExprKind::Float | SyntaxExprKind::Atom | SyntaxExprKind::Binary => true,
+        SyntaxExprKind::Int
+        | SyntaxExprKind::Float
+        | SyntaxExprKind::Atom
+        | SyntaxExprKind::Binary => true,
         SyntaxExprKind::Var if matches!(expr.text.as_deref(), Some("true" | "false")) => true,
-        SyntaxExprKind::Var | SyntaxExprKind::FieldAccess => qualified_expr_name(expr)
-            .is_some_and(|name| evaluator.values.contains_key(&name) || evaluator.definitions.contains_key(&name)),
+        SyntaxExprKind::Var | SyntaxExprKind::FieldAccess => {
+            qualified_expr_name(expr).is_some_and(|name| {
+                evaluator.values.contains_key(&name) || evaluator.definitions.contains_key(&name)
+            })
+        }
         SyntaxExprKind::Call | SyntaxExprKind::FunctionCall => {
             let Some(name) = expr.children.first().and_then(qualified_expr_name) else {
                 return false;
             };
-            evaluator.functions.contains_key(&(name, expr.children.len().saturating_sub(1)))
-                && expr.children.iter().skip(1).all(|arg| const_generic_argument_shape_is_allowed(arg, evaluator))
+            evaluator
+                .functions
+                .contains_key(&(name, expr.children.len().saturating_sub(1)))
+                && expr
+                    .children
+                    .iter()
+                    .skip(1)
+                    .all(|arg| const_generic_argument_shape_is_allowed(arg, evaluator))
         }
         _ => false,
     }
 }
 
-fn const_generic_kind_error(
+pub(super) fn const_generic_kind_error(
     parameter: &ConstGenericParam,
     actual: &str,
     span: EbnfSourceSpan,
@@ -499,7 +532,7 @@ fn const_generic_kind_error(
     )
 }
 
-fn matching_bracket(text: &str, open: usize) -> Option<usize> {
+pub(super) fn matching_bracket(text: &str, open: usize) -> Option<usize> {
     let mut depth = 0usize;
     for (offset, ch) in text[open..].char_indices() {
         match ch {
@@ -516,7 +549,7 @@ fn matching_bracket(text: &str, open: usize) -> Option<usize> {
     None
 }
 
-fn split_top_level_const_args(text: &str) -> Vec<String> {
+pub(super) fn split_top_level_const_args(text: &str) -> Vec<String> {
     let mut args = Vec::new();
     let mut start = 0usize;
     let mut square = 0usize;

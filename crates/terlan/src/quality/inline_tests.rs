@@ -19,7 +19,11 @@ pub(crate) fn has_inline_test_marker(text: &str) -> bool {
         if raw_string_lines[index] {
             continue;
         }
-        if line.trim() != "#[cfg(test)]" {
+        let trimmed = line.trim();
+        if trimmed == "#[test]" || trimmed.starts_with("#[test(") {
+            return true;
+        }
+        if trimmed != "#[cfg(test)]" {
             continue;
         }
         let mut item_index = next_significant_line(&lines, index + 1);

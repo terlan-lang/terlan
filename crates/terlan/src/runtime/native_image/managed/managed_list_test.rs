@@ -212,6 +212,48 @@ fn append_grows_a_full_tree_with_bounded_path_copying() {
 }
 
 #[test]
+fn repeated_prepend_and_append_use_persistent_paths_instead_of_rebuilding_lists() {
+    let descriptor =
+        ManagedListDescriptor::new("List[Int]", ManagedFieldType::Int).expect("descriptor");
+    let mut heap = heap();
+    let mut prepended = heap
+        .list_from_elements(&descriptor, &[])
+        .expect("empty prepend list");
+    let before_prepend = heap.object_count();
+    for value in 0..1024 {
+        prepended = heap
+            .list_prepend(&descriptor, prepended, ManagedFieldValue::Int(value))
+            .expect("persistent prepend");
+    }
+    assert!(
+        heap.object_count() - before_prepend < 10_000,
+        "prepend allocation growth must remain linearithmic"
+    );
+    assert_eq!(
+        heap.list_first(&descriptor, prepended),
+        Ok(Some(ManagedFieldValue::Int(1023)))
+    );
+
+    let mut appended = heap
+        .list_from_elements(&descriptor, &[])
+        .expect("empty append list");
+    let before_append = heap.object_count();
+    for value in 0..1024 {
+        appended = heap
+            .list_append(&descriptor, appended, ManagedFieldValue::Int(value))
+            .expect("persistent append");
+    }
+    assert!(
+        heap.object_count() - before_append < 10_000,
+        "append allocation growth must remain linearithmic"
+    );
+    assert_eq!(
+        heap.list_get(&descriptor, appended, 1023),
+        Ok(ManagedFieldValue::Int(1023))
+    );
+}
+
+#[test]
 fn concat_rebalances_only_the_two_tree_fringes() {
     let descriptor =
         ManagedListDescriptor::new("List[Int]", ManagedFieldType::Int).expect("descriptor");
@@ -477,6 +519,34 @@ fn front_views_are_constant_shape_then_trim_excluded_leaf_retention() {
     )];
     let stats = heap.collect(&mut roots, usize::MAX).expect("collect");
     assert_eq!(stats.objects_after, 1);
+}
+
+#[test]
+fn repeated_head_tail_traversal_path_copies_fringes_in_linear_space() {
+    let descriptor =
+        ManagedListDescriptor::new("List[Int]", ManagedFieldType::Int).expect("descriptor");
+    let mut heap = heap();
+    let mut list = heap
+        .list_from_elements(&descriptor, &ints(2048))
+        .expect("large list");
+    let before = heap.object_count();
+
+    for expected in 0..2048 {
+        assert_eq!(
+            heap.list_first(&descriptor, list),
+            Ok(Some(ManagedFieldValue::Int(expected)))
+        );
+        list = heap
+            .list_rest(&descriptor, list)
+            .unwrap_or_else(|error| panic!("rest after {expected}: {error:?}"))
+            .expect("nonempty input has a rest");
+    }
+
+    assert_eq!(heap.list_length(&descriptor, list), Ok(0));
+    assert!(
+        heap.object_count() - before < 3000,
+        "head/tail traversal must not rebuild every remaining suffix"
+    );
 }
 
 #[test]

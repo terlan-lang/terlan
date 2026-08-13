@@ -64,12 +64,12 @@ pub qp_sum_typechecks(receiver: RTCOutboundRtpStreamStats): JsNumber ->
     receiver.qp_sum().
 
 pub quality_limitation_durations_typechecks(
-    receiver: RTCOutboundRtpStreamStats
+    receiver: RTCOutboundRtpStreamStats,
 ): Record[JsString, JsNumber] ->
     receiver.quality_limitation_durations().
 
 pub quality_limitation_reason_typechecks(
-    receiver: RTCOutboundRtpStreamStats
+    receiver: RTCOutboundRtpStreamStats,
 ): RTCQualityLimitationReason ->
     receiver.quality_limitation_reason().
 

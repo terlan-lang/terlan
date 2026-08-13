@@ -21,7 +21,9 @@ use stability::{
 
 const SOAK_ADDRESS: &str = "http-soak.local";
 const SOAK_BACKLOG_LIMIT: usize = 16;
+#[cfg(test)]
 const HANDLER_TIMEOUT_TICKS: u64 = 8;
+#[cfg(test)]
 const SOAK_STABILITY_POLICY: VmHttpSoakStabilityPolicy = VmHttpSoakStabilityPolicy {
     max_response_memory_high_water_bytes: 4096,
     max_response_memory_retained_bytes: 0,
@@ -29,6 +31,7 @@ const SOAK_STABILITY_POLICY: VmHttpSoakStabilityPolicy = VmHttpSoakStabilityPoli
     max_final_resource_handle_growth: 0,
     max_post_warmup_error_rate_bps: 0,
 };
+#[cfg(test)]
 const CANONICAL_ROUTES: [(&str, &str); 5] = [
     ("static", "/static"),
     ("json", "/json"),
@@ -38,17 +41,20 @@ const CANONICAL_ROUTES: [(&str, &str); 5] = [
 ];
 
 #[derive(Clone, Copy)]
+#[cfg(test)]
 struct VmHttpSoakProfile {
     name: &'static str,
     cycles: usize,
     adversarial_replays: usize,
 }
 
+#[cfg(test)]
 const SHORT_PROFILE: VmHttpSoakProfile = VmHttpSoakProfile {
     name: "short-deterministic",
     cycles: 8,
     adversarial_replays: 1,
 };
+#[cfg(test)]
 const RELEASE_PROFILE: VmHttpSoakProfile = VmHttpSoakProfile {
     name: "release-long",
     cycles: 600,
@@ -95,6 +101,7 @@ pub(crate) struct VmHttpSoakTerminal {
 /// Persisted deterministic short-profile HTTP soak result.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 pub(crate) struct VmHttpSoakReport {
     pub(crate) schema: &'static str,
     pub(crate) profile: &'static str,
@@ -165,15 +172,18 @@ struct VmHttpSoakRuntime {
 }
 
 /// Runs and persists the canonical deterministic short HTTP soak profile.
+#[cfg(test)]
 pub(crate) fn run_short_http_soak(report_path: &Path) -> Result<VmHttpSoakReport, String> {
     run_http_soak(SHORT_PROFILE, report_path)
 }
 
 /// Runs and persists the canonical long HTTP release soak profile.
+#[cfg(test)]
 pub(crate) fn run_release_http_soak(report_path: &Path) -> Result<VmHttpSoakReport, String> {
     run_http_soak(RELEASE_PROFILE, report_path)
 }
 
+#[cfg(test)]
 fn run_http_soak(
     profile: VmHttpSoakProfile,
     report_path: &Path,
@@ -287,6 +297,7 @@ fn run_http_soak(
     Ok(report)
 }
 
+#[cfg(test)]
 impl VmHttpSoakRuntime {
     fn run_adversarial_replay(&mut self, replay: usize) -> Result<(), String> {
         self.capture_phase("route-miss", replay, |runtime| {
@@ -668,6 +679,7 @@ fn drain_client(tcp: &mut VmTcpRuntime, client: VmTcpStream) -> Result<(), Strin
     Ok(())
 }
 
+#[cfg(test)]
 fn resource_snapshot(
     processes: VmProcessTableMetrics,
     tcp: VmTcpRuntimeMetrics,
@@ -701,6 +713,7 @@ fn resource_snapshot(
     }
 }
 
+#[cfg(test)]
 fn rate_bps(errors: usize, requests: usize) -> usize {
     if requests == 0 {
         return 0;
@@ -708,6 +721,7 @@ fn rate_bps(errors: usize, requests: usize) -> usize {
     errors.saturating_mul(10_000) / requests
 }
 
+#[cfg(test)]
 fn ratio_milli(numerator: usize, denominator: usize) -> usize {
     if denominator == 0 {
         return 0;
@@ -715,6 +729,7 @@ fn ratio_milli(numerator: usize, denominator: usize) -> usize {
     numerator.saturating_mul(1_000) / denominator
 }
 
+#[cfg(test)]
 fn write_report(report: &VmHttpSoakReport) -> Result<(), String> {
     let json = serde_json::to_string_pretty(report)
         .map_err(|error| format!("failed to serialize VM HTTP soak report: {error}"))?;

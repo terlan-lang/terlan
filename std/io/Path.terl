@@ -32,7 +32,7 @@ pub opaque type Path.
  * shape without exposing target-specific exception values.
  */
 pub struct PathError includes Error {
-    offset: Int
+    offset: Int,
 }.
 
 /**
@@ -120,4 +120,26 @@ pub (path: Path) parent(): Option[Path] ->
  */
 @compiler.native {std.io.path.is_absolute}
 pub (path: Path) is_absolute(): Bool ->
+    native.
+
+/**
+ * Removes lexical `.` segments and resolves lexical `..` segments without
+ * accessing the filesystem.
+ */
+@compiler.native {std.io.path.normalize}
+pub (path: Path) normalize(): Path ->
+    native.
+
+/**
+ * Returns whether this normalized path begins with every component of `base`.
+ */
+@compiler.native {std.io.path.starts_with}
+pub (path: Path) starts_with(base: Path): Bool ->
+    native.
+
+/**
+ * Removes a normalized component prefix when present.
+ */
+@compiler.native {std.io.path.strip_prefix}
+pub (path: Path) strip_prefix(base: Path): Option[Path] ->
     native.

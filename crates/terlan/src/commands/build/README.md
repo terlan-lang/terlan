@@ -53,7 +53,7 @@ not a debug map and not a package-manager lockfile. It records the package name,
 version, selected target, selected artifact mode, executable artifact metadata,
 declared source roots, and normalized dependency metadata from `terlan.toml`.
 Downstream tools can consume this file to distinguish package shape from VM,
-JavaScript, mobile, Wasm, and future target-specific artifact metadata.
+JavaScript, Wasm, and future target-specific artifact metadata.
 The directory slice recursively scans package-rooted source layouts for `.terl`
 files, validates that source-root-relative paths match declared module names,
 then emits VM artifacts by default.
@@ -77,21 +77,6 @@ cycles are rejected. Target-scoped external dependency metadata for
 current builds reject those entries with stable diagnostics before artifact
 emission. Fetching, linking, or packaging those dependencies here would make
 `terlc build <project>` look more complete than it is.
-
-`terlc build --target mobile.android` and `terlc build --target mobile.ios` are
-currently planning targets. They emit `_build/mobile/<platform>/plan.json` with
-the selected source path and mobile shell planning fields, and they
-intentionally do not invoke Erlang emission, JavaScript bundling, Gradle, Apple
-build tooling, or native shell tooling yet. When `_build/web` already exists,
-the mobile planner copies it into
-`_build/mobile/<platform>/shell-inputs/web` and records that relative shell
-input path in the mobile plan. The planner also emits first-slice shell
-metadata under `_build/mobile/<platform>/metadata`: route configuration,
-bridge manifest, explicit native service capability resource manifest, native
-shell config, and source identity metadata. The compiler-owned native shell
-layout generators are written under
-`_build/mobile/<platform>/shell` as a build artifact smoke target, without
-invoking native build tools.
 
 Manifest-backed source roots are package-namespace-rooted. For a package named
 `app`, a source file under `src/app/Main.terl` declares `module app.Main.`. A
@@ -137,17 +122,6 @@ source must not call Erlang `io` directly.
 - For JS browser builds, emit `_build/web/manifest.json` with copied assets,
   static responses, dynamic VM handler routes, and source metadata that
   `terlc serve` can use for request logs and development errors.
-- For Android and iOS mobile builds, emit a mobile shell planning manifest
-  without routing through Erlang, JS, or native shell build tools, and package
-  any existing browser output as a native shell input.
-- Emit mobile route, bridge, native capability resource, native shell, and
-  source identity metadata files with stable paths that later source collection
-  can populate.
-- Emit Android and iOS shell skeletons from compiler-owned layout generators so
-  build tests can smoke-check native project shape.
-- Keep ordinary `js.browser` builds web-only; they must not emit mobile shell
-  artifacts unless the user selected a mobile target.
-
 ## File Layout
 
 - `mod.rs` routes build command execution and coordinates target-specific
@@ -158,8 +132,6 @@ source must not call Erlang `io` directly.
 - `package_git.rs` owns explicit immutable Git fetching, deterministic
   `terlan.lock` generation, cache provenance/checksum validation, and
   network-free build resolution.
-- `mobile.rs` owns first-slice mobile shell build planning for
-  `--target mobile.android` and `--target mobile.ios`.
 - `target_gate.rs` owns build-target compatibility checks for native packages
   and target-specific std imports.
 - `project_manifest.rs` parses `terlan.toml`, assigns TOML keys to typed

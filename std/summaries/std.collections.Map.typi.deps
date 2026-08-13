@@ -1,9 +1,12 @@
 module=std.collections.Map
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=9898113385303637933
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=11569720159728895826
 interface_hash=2527233270990770488
 interface_doc_hash=731663819489328564
-deps=1
+deps=4
+std.collections.Iterator=12304855843837514477
+std.collections.List=5599785960849014878
 std.core.Option=11539230284316612175
+std.core.Unit=13611133214341763160

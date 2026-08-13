@@ -1,0 +1,150 @@
+/**
+ * Shared installed-release discovery and checksum validation for Terlan gates.
+ */
+module docs_static_release_parity.Artifact.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.io.{Archive, Path}.
+import std.system.{Environment, Platform}.
+
+import type std.core.Option.
+
+/**
+ * Current-host release artifact and installed binary naming contract.
+ */
+pub struct ReleasePlatform {
+    operating_system: String,
+    architecture: String,
+    artifact_name: String,
+    compiler_binary_name: String,
+    lsp_binary_name: String,
+}.
+
+pub operating_system(platform: ReleasePlatform): String ->
+    platform.operating_system.
+
+pub architecture(platform: ReleasePlatform): String ->
+    platform.architecture.
+
+pub artifact_name(platform: ReleasePlatform): String ->
+    platform.artifact_name.
+
+pub compiler_binary_name(platform: ReleasePlatform): String ->
+    platform.compiler_binary_name.
+
+pub lsp_binary_name(platform: ReleasePlatform): String ->
+    platform.lsp_binary_name.
+
+environment_or_host(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+normalize_os(raw: String): Option[String] ->
+    let value = String.lowercase(String.trim(raw));
+    if {
+        value == "linux" -> Some("linux");
+        value == "darwin" or value == "macos" or value == "mac" -> Some("macos");
+        value == "windows" or value == "win32" or value == "mingw" or value == "msys" -> Some("windows");
+        true -> None
+    }.
+
+normalize_arch(raw: String): Option[String] ->
+    let value = String.lowercase(String.trim(raw));
+    if {
+        value == "x86_64" or value == "amd64" -> Some("x86_64");
+        value == "aarch64" or value == "arm64" -> Some("aarch64");
+        true -> None
+    }.
+
+/**
+ * Detects the release artifact selected by explicit overrides or host identity.
+ */
+pub detect(): Option[ReleasePlatform] ->
+    let host = Platform.current();
+    let raw_os = environment_or_host("TERLAN_RELEASE_OS", host.operating_system);
+    let raw_arch = environment_or_host("TERLAN_RELEASE_ARCH", host.architecture);
+    case {normalize_os(raw_os), normalize_arch(raw_arch)} {
+        {Some(os), Some(arch)} ->
+            let suffix =
+                if {
+                    os == "windows" -> ".zip";
+                    true -> ".tar.gz"
+                };
+            let prefix =
+                if {
+                    os == "windows" -> "terlc-windows-";
+                    true -> String.append("terlc-", String.append(os, "-"))
+                };
+            Some(
+                ReleasePlatform(
+                    operating_system = os,
+                    architecture = arch,
+                    artifact_name = String.append(prefix, String.append(arch, suffix)),
+                    compiler_binary_name = if {
+                        os == "windows" -> "terlc.exe";
+                        true -> "terlc"
+                    },
+                    lsp_binary_name = if {
+                        os == "windows" -> "terlan-lsp.exe";
+                        true -> "terlan-lsp"
+                    },
+                ),
+            );
+        _ -> None
+    }.
+
+pub child(parent: String, name: String): String ->
+    if {
+        String.ends_with(parent, "/") -> String.append(parent, name);
+        true -> String.append(parent, String.append("/", name))
+    }.
+
+safe_payload_path(root: String, relative: String): Option[String] ->
+    case {Path.from_string(root), Path.from_string(relative)} {
+        {Ok(root_path), Ok(relative_path)} ->
+            if {
+                relative_path.is_absolute() -> None;
+                true -> case root_path.join(relative) {
+                    Ok(joined) ->
+                        if {
+                            joined.normalize().starts_with(root_path.normalize()) -> Some(joined.normalize().to_string());
+                            true -> None
+                        };
+                    Err(_reason) -> None
+                }
+            };
+        _ -> None
+    }.
+
+/**
+ * Verifies every payload row in an extracted release's canonical checksum file.
+ */
+pub verify_payload_checksums(installed: String): Bool ->
+    case Hash.verify_sha256_manifest(installed, child(installed, "SHA256SUMS")) {
+        Ok(verified) -> verified;
+        Err(_reason) -> false
+    }.
+
+/**
+ * Extracts one release artifact into a fresh destination and verifies its payload.
+ */
+pub extract_and_verify(artifact: String, installed: String): Bool ->
+    case Archive.extract(artifact, installed) {
+        Ok(_unit) -> verify_payload_checksums(installed);
+        Err(_reason) -> false
+    }.
+
+@test
+pub release_platform_aliases_are_normalized(): Bool ->
+    normalize_os("Darwin") == Some("macos")
+        and normalize_arch("AMD64") == Some("x86_64")
+        and normalize_os("plan9") == None.
+
+@test
+pub checksum_paths_cannot_escape_the_install_root(): Bool ->
+    safe_payload_path("/tmp/installed", "../outside") == None.

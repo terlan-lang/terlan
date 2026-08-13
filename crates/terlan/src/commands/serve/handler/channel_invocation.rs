@@ -1,5 +1,3 @@
-#![cfg_attr(not(test), allow(dead_code))]
-
 //! Shared native invocation ownership for VM HTTP channel callbacks.
 
 use std::fmt::Debug;
@@ -10,16 +8,26 @@ use crate::commands::serve::handler_cache::invocation::{
 };
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
 use crate::runtime::vm::native_callable::VmNativeCallableRef;
-use crate::runtime::vm::pure_native::{PureNativeIoWait, PureNativeIoWake};
+use crate::runtime::vm::pure_native::PureNativeIoWait;
+#[cfg(test)]
+use crate::runtime::vm::pure_native::PureNativeIoWake;
 use crate::runtime::vm::ReplValue;
 
 /// Observable completion state after dispatching or resuming one channel callback.
-#[derive(Debug)]
 pub(in crate::commands::serve) enum AotChannelCallbackState {
     /// Callback returned without retaining generated execution state.
     Complete(ReplValue),
     /// Callback parked on one exact typed VM I/O wait.
     Waiting(PureNativeIoWait),
+}
+
+impl Debug for AotChannelCallbackState {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Complete(value) => formatter.debug_tuple("Complete").field(value).finish(),
+            Self::Waiting(wait) => formatter.debug_tuple("Waiting").field(wait).finish(),
+        }
+    }
 }
 
 /// Channel-neutral linear owner for generated callback invocation state.
@@ -54,16 +62,19 @@ where
     }
 
     /// Returns callback events that completed without retained execution state.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn completed_events(&self) -> &[Event] {
         &self.completed_events
     }
 
     /// Returns whether generated callback state is currently parked.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn is_waiting(&self) -> bool {
         self.pending.is_some()
     }
 
     /// Returns the exact typed wait retained by the parked callback, if any.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn pending_wait(
         &self,
     ) -> Result<Option<PureNativeIoWait>, String> {
@@ -103,6 +114,7 @@ where
     }
 
     /// Resumes the exact parked callback from one typed VM I/O wake.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn resume(
         &mut self,
         wake: PureNativeIoWake,
@@ -123,6 +135,7 @@ where
     }
 
     /// Cancels and releases currently parked callback state, if present.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn cancel_pending(
         &mut self,
         reason: String,
@@ -135,6 +148,7 @@ where
     }
 
     /// Accepts a terminal callback only when it released generated state.
+    #[cfg(test)]
     pub(in crate::commands::serve) fn finish_terminal(
         &mut self,
         event: Event,

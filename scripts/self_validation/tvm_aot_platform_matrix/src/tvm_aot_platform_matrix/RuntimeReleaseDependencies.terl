@@ -1,0 +1,416 @@
+/**
+ * Validates that release runtime crates are both direct dependencies and
+ * resolved in the committed Cargo lockfile.
+ */
+module tvm_aot_platform_matrix.RuntimeReleaseDependencies.
+
+import std.collections.List.{concat, length}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.io.Console.{eprintln, println}.
+import std.io.File.{read_text}.
+import tvm_aot_platform_matrix.ReleasePayload.{child}.
+
+import type std.core.Option.
+
+struct Requirement {
+    name: String,
+    feature: String,
+    reason: String,
+}.
+
+requirements(): List[Requirement] ->
+    [
+        Requirement(
+            name = "terlan-libpq",
+            feature = "postgres",
+            reason = "generated libpq C ABI with VM-owned std.db.Postgres pooling",
+        ),
+        Requirement(name = "rustls", feature = "https", reason = "live HTTPS serving"),
+        Requirement(
+            name = "instant-acme",
+            feature = "https",
+            reason = "public ACME certificate management",
+        ),
+        Requirement(
+            name = "rcgen",
+            feature = "https",
+            reason = "internal/local CA certificate generation",
+        ),
+        Requirement(
+            name = "cookie",
+            feature = "http-runtime-hardening",
+            reason = "std.http.Cookies parsing and Set-Cookie serialization",
+        ),
+        Requirement(
+            name = "mime_guess",
+            feature = "http-runtime-hardening",
+            reason = "static asset content-type detection",
+        ),
+        Requirement(
+            name = "notify",
+            feature = "http-runtime-hardening",
+            reason = "live-reload asset watching",
+        ),
+    ].
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[runtime_release_dependency]: ", message));
+    false.
+
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+add_unique(values: List[String], value: String): List[String] ->
+    if {
+        value == "" or contains(values, value) -> values;
+        true -> [value | values]
+    }.
+
+quoted_after(text: String, marker: String): Option[String] ->
+    let {
+        Some({_before, rest}) <- String.split_once(text, marker);
+        Some({value, _after}) <- String.split_once(rest, "\"")
+    } else {
+        _ -> None
+    };
+    Some(value).
+
+lockfile_names_at(lines: List[String], names: List[String]): List[String] ->
+    case lines {
+        [] -> names;
+        [line | rest] ->
+            case quoted_after(String.trim(line), "name = \"") {
+                Some(name) -> lockfile_names_at(rest, add_unique(names, name));
+                None -> lockfile_names_at(rest, names)
+            }
+    }.
+
+pub lockfile_names(text: String): List[String] ->
+    lockfile_names_at(String.split(text, "\n"), []).
+
+section_name(line: String): Option[String] ->
+    let value = String.trim(line);
+    if {
+        String.starts_with(value, "[")
+            and String.ends_with(value, "]")
+            and String.byte_size(value) >= 2 -> Some(String.utf8_slice(value, 1, String.byte_size(value) - 2));
+        true -> None
+    }.
+
+strip_quotes(value: String): String ->
+    if {
+        String.starts_with(value, "\"")
+            and String.ends_with(value, "\"")
+            and String.byte_size(value) >= 2 -> String.utf8_slice(value, 1, String.byte_size(value) - 2);
+        true -> value
+    }.
+
+table_dependency_name(table: String): Option[String] ->
+    if {
+        String.starts_with(table, "dependencies.") -> Some(strip_quotes(String.utf8_slice(table, 13, String.byte_size(table) - 13)));
+        true -> case String.split_once(table, ".dependencies.") {
+            Some({_prefix, name}) -> Some(strip_quotes(name));
+            None -> None
+        }
+    }.
+
+is_dependency_assignment_section(table: String): Bool ->
+    table == "dependencies" or String.ends_with(table, ".dependencies").
+
+assignment_name(line: String): Option[String] ->
+    case String.split_once(line, "=") {
+        Some({name, _value}) ->
+            let normalized = String.trim(name);
+            if {
+                normalized == "" -> None;
+                true -> Some(normalized)
+            };
+        None -> None
+    }.
+
+package_alias(line: String): Option[String] ->
+    quoted_after(line, "package = \"").
+
+manifest_body_line(
+    line: String,
+    assignments: Bool,
+    dependency_table: Bool,
+    names: List[String],
+): List[String] ->
+    let value = String.trim(line);
+    if {
+        value == "" or String.starts_with(value, "#") -> names;
+        assignments -> case assignment_name(value) {
+            None -> names;
+            Some(name) ->
+                case package_alias(value) {
+                    Some(package) -> add_unique(add_unique(names, name), package);
+                    None -> add_unique(names, name)
+                }
+        };
+        dependency_table -> case package_alias(value) {
+            Some(package) -> add_unique(names, package);
+            None -> names
+        };
+        true -> names
+    }.
+
+manifest_names_at(
+    lines: List[String],
+    assignments: Bool,
+    dependency_table: Bool,
+    names: List[String],
+): List[String] ->
+    case lines {
+        [] -> names;
+        [line | rest] ->
+            case section_name(line) {
+                Some(table) ->
+                    case table_dependency_name(table) {
+                        Some(name) -> manifest_names_at(rest, false, true, add_unique(names, name));
+                        None ->
+                            manifest_names_at(
+                                rest,
+                                is_dependency_assignment_section(table),
+                                false,
+                                names,
+                            )
+                    };
+                None ->
+                    manifest_names_at(
+                        rest,
+                        assignments,
+                        dependency_table,
+                        manifest_body_line(line, assignments, dependency_table, names),
+                    )
+            }
+    }.
+
+pub manifest_names(text: String): List[String] ->
+    manifest_names_at(String.split(text, "\n"), false, false, []).
+
+missing_at(
+    requirements: List[Requirement],
+    names: List[String],
+    result: List[Requirement],
+): List[Requirement] ->
+    case requirements {
+        [] -> result;
+        [requirement | rest] ->
+            if {
+                contains(names, requirement.name) -> missing_at(rest, names, result);
+                true -> missing_at(
+                    rest,
+                    names,
+                    concat(result, [requirement | std.collections.List.new[Requirement]()]),
+                )
+            }
+    }.
+
+missing(requirements: List[Requirement], names: List[String]): List[Requirement] ->
+    missing_at(requirements, names, []).
+
+feature_names_at(values: List[Requirement], result: List[String]): List[String] ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            if {
+                contains(result, value.feature) -> feature_names_at(rest, result);
+                true -> feature_names_at(rest, concat(result, [value.feature]))
+            }
+    }.
+
+join(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value] -> value;
+        [value | rest] -> String.concat([value, ", ", join(rest)])
+    }.
+
+requirement_names_at(values: List[Requirement], result: List[String]): List[String] ->
+    case values {
+        [] -> result;
+        [value | rest] -> requirement_names_at(rest, concat(result, [value.name]))
+    }.
+
+requirement_names(values: List[Requirement]): List[String] ->
+    requirement_names_at(values, []).
+
+lockfile_diagnostics_at(values: List[Requirement], result: List[String]): List[String] ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            let diagnostic =
+                String.concat(
+                    [
+                        "runtime-release-dependency-check missing: ",
+                        value.name,
+                        " for ",
+                        value.reason,
+                        "; dependency must be resolved in Cargo.lock.",
+                    ],
+                );
+            lockfile_diagnostics_at(rest, concat(result, [diagnostic]))
+    }.
+
+lockfile_diagnostics(values: List[Requirement]): List[String] ->
+    lockfile_diagnostics_at(values, []).
+
+manifest_diagnostics_at(values: List[Requirement], result: List[String]): List[String] ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            let diagnostic =
+                String.concat(
+                    [
+                        "runtime-release-dependency-check missing: ",
+                        value.name,
+                        " is not declared directly in crates/terlan/Cargo.toml for ",
+                        value.reason,
+                        ".",
+                    ],
+                );
+            manifest_diagnostics_at(rest, concat(result, [diagnostic]))
+    }.
+
+manifest_diagnostics(values: List[Requirement]): List[String] ->
+    manifest_diagnostics_at(values, []).
+
+join_lines(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value] -> value;
+        [value | rest] -> String.concat([value, "\n", join_lines(rest)])
+    }.
+
+diagnostics(lockfile_missing: List[Requirement], manifest_missing: List[Requirement]): String ->
+    let all_missing = concat(lockfile_missing, manifest_missing);
+    let common =
+        [
+            String.concat(
+                [
+                    "runtime-release-dependency-check open feature gates: ",
+                    join(feature_names_at(all_missing, [])),
+                    ".",
+                ],
+            ),
+        ];
+    let manifest_action =
+        if {
+            manifest_missing == [] -> std.collections.List.new[String]();
+            true -> [
+                String.concat(
+                    [
+                        "runtime-release-dependency-check next action: add ",
+                        join(requirement_names(manifest_missing)),
+                        " directly to crates/terlan/Cargo.toml.",
+                    ],
+                ),
+            ]
+        };
+    let lockfile_action =
+        if {
+            lockfile_missing == [] -> std.collections.List.new[String]();
+            true -> [
+                String.concat(
+                    [
+                        "runtime-release-dependency-check next action: resolve ",
+                        join(requirement_names(lockfile_missing)),
+                        " into Cargo.lock with the selected crate versions.",
+                    ],
+                ),
+            ]
+        };
+    join_lines(
+        concat(
+            lockfile_diagnostics(lockfile_missing),
+            concat(
+                manifest_diagnostics(manifest_missing),
+                concat(common, concat(manifest_action, lockfile_action)),
+            ),
+        ),
+    ).
+
+sources_valid(lockfile: String, manifest: String): Bool ->
+    let lockfile_missing = missing(requirements(), lockfile_names(lockfile));
+    let manifest_missing = missing(requirements(), manifest_names(manifest));
+    lockfile_missing == [] and manifest_missing == [].
+
+report_missing(lockfile: String, manifest: String): Bool ->
+    let lockfile_missing = missing(requirements(), lockfile_names(lockfile));
+    let manifest_missing = missing(requirements(), manifest_names(manifest));
+    let rendered = diagnostics(lockfile_missing, manifest_missing);
+    let message =
+        String.concat(
+            [
+                rendered,
+                "\nruntime-release-dependency-check failed: resolve the missing runtime dependency contract rows listed above.",
+            ],
+        );
+    failure(message).
+
+pub check(root: String): Bool ->
+    let {
+        Ok(lockfile) <- read_text(child(root, "Cargo.lock"));
+        Ok(manifest) <- read_text(child(root, "crates/terlan/Cargo.toml"))
+    } else {
+        _ -> failure("cannot read Cargo.lock and crates/terlan/Cargo.toml")
+    };
+    if {
+        sources_valid(lockfile, manifest) -> true;
+        true -> report_missing(lockfile, manifest)
+    }.
+
+complete_lockfile_at(values: List[Requirement], result: String): String ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            let row = String.concat(["[[package]]\nname = \"", value.name, "\"\nversion = \"0.0.0\"\n"]);
+            complete_lockfile_at(rest, String.append(result, row))
+    }.
+
+complete_lockfile(values: List[Requirement]): String ->
+    complete_lockfile_at(values, "").
+
+complete_manifest_at(values: List[Requirement], result: String): String ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            let row = String.concat([value.name, " = \"0.0.0\"\n"]);
+            complete_manifest_at(rest, String.append(result, row))
+    }.
+
+complete_manifest(values: List[Requirement]): String ->
+    complete_manifest_at(values, "").
+
+pub self_test(): Bool ->
+    let complete_lock = complete_lockfile(requirements());
+    let complete_manifest_text = String.append("[dependencies]\n", complete_manifest(requirements()));
+    let aliases =
+        manifest_names(
+            "[dependencies]\npostgres_pool = { package = \"terlan-libpq\", version = \"0.0.0\" }\n",
+        );
+    let tables =
+        manifest_names(
+            "[dependencies.postgres_pool]\npackage = \"terlan-libpq\"\nversion = \"0.0.0\"\n",
+        );
+    let targets =
+        manifest_names(
+            "[target.'cfg(unix)'.dependencies]\nnotify = \"0.0.0\"\n\n[target.'cfg(unix)'.dependencies.cookie_impl]\npackage = \"cookie\"\n",
+        );
+    if {
+        not sources_valid(complete_lock, complete_manifest_text) -> failure("complete dependency fixture was rejected");
+        not contains(aliases, "postgres_pool") or not contains(aliases, "terlan-libpq") -> failure("inline package aliases were not parsed");
+        not contains(tables, "postgres_pool") or not contains(tables, "terlan-libpq") -> failure("table package aliases were not parsed");
+        not contains(targets, "notify")
+            or not contains(targets, "cookie_impl")
+            or not contains(targets, "cookie") -> failure("target dependency tables were not parsed");
+        length(missing(requirements(), ["terlan-libpq", "rustls"])) != 5 -> failure("partial lockfile fixture did not expose five missing crates");
+        contains(requirement_names(requirements()), "refinery") -> failure("obsolete refinery dependency returned to the VM-owned migration contract");
+        true -> true
+    }.

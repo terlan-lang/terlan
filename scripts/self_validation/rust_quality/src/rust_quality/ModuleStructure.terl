@@ -1,0 +1,875 @@
+/**
+ * Enforces semantic Rust module names, forbids textual handwritten source
+ * composition, and keeps the CQ-5 documentation/test debt baselines empty.
+ */
+module rust_quality.ModuleStructure.
+
+import rust_quality.SourceInventory.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.io.Console.{eprintln, println}.
+import std.io.File.
+
+import type rust_quality.SourceInventory.{RustSource, SourceDiscovery}.
+import type std.core.Option.
+
+pub struct Finding {
+    path: String,
+    line: Int,
+    message: String,
+}.
+
+struct FindingLoad {
+    valid: Bool,
+    findings: List[Finding],
+    message: String,
+}.
+
+struct ScanState {
+    index: Int,
+    line: Int,
+    mode: Int,
+    block_depth: Int,
+    raw_hashes: Int,
+    findings: List[Finding],
+}.
+
+@pure
+blank_finding(): Finding ->
+    Finding(path = "", line = 0, message = "").
+
+@pure
+pub render(finding: Finding): String ->
+    let location =
+        if {
+            finding.line == 0 -> finding.path;
+            true -> String.concat([finding.path, ":", Int.to_string(finding.line)])
+        };
+    String.concat([location, ": ", finding.message]).
+
+@pure
+is_digit(byte: Int): Bool ->
+    byte >= 48 and byte <= 57.
+
+@pure
+digits_at(value: String, index: Int): Bool ->
+    if {
+        index == value.byte_size() -> true;
+        not is_digit(value.utf8_byte_at(index)) -> false;
+        true -> digits_at(value, index + 1)
+    }.
+
+@pure
+is_digits(value: String): Bool ->
+    value != "" and digits_at(value, 0).
+
+@pure
+keyword(value: String): Bool ->
+    value == "part"
+        or value == "fragment"
+        or value == "segment"
+        or value == "slice"
+        or value == "chunk".
+
+@pure
+suffix_after(value: String, prefix: String): String ->
+    value.utf8_slice(prefix.byte_size(), value.byte_size() - prefix.byte_size()).
+
+@pure
+keyword_with_digits(token: String): Bool ->
+    case ["part", "fragment", "segment", "slice", "chunk"] {
+        values -> keyword_with_digits_at(token, values)
+    }.
+
+@pure
+keyword_with_digits_at(token: String, values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            if {
+                String.starts_with(token, value) and is_digits(suffix_after(token, value)) -> true;
+                true -> keyword_with_digits_at(token, rest)
+            }
+    }.
+
+@pure
+chronological_tokens(tokens: List[String]): Bool ->
+    case tokens {
+        [] -> false;
+        [token | tail] ->
+            case tail {
+                [] -> keyword_with_digits(token);
+                [next | rest] ->
+                    keyword_with_digits(token)
+                        or keyword(token) and is_digits(next)
+                        or chronological_tokens([next | rest])
+            }
+    }.
+
+@pure
+last_token(tokens: List[String], current: String): String ->
+    case tokens {
+        [] -> current;
+        [token | rest] -> last_token(rest, token)
+    }.
+
+@pure
+stem(name: String): String ->
+    if {
+        String.ends_with(name, ".rs") -> name.utf8_slice(0, name.byte_size() - 3);
+        true -> name
+    }.
+
+@pure
+pub fragment_reason(path: String): Option[String] ->
+    let normalized = String.replace(stem(SourceInventory.basename(path)), "-", "_");
+    let tokens = String.split(normalized, "_");
+    if {
+        chronological_tokens(tokens) -> Some("chronological fragment filename");
+        is_digits(last_token(tokens, "")) and last_token(tokens, "").byte_size() >= 3 -> Some("numeric-suffix module filename");
+        true -> None
+    }.
+
+@pure
+byte_is(value: String, index: Int, expected: Int): Bool ->
+    index >= 0 and index < value.byte_size() and value.utf8_byte_at(index) == expected.
+
+@pure
+retain_int(value: Int): Int ->
+    value.
+
+@pure
+retain_bool(value: Bool): Bool ->
+    value.
+
+@pure
+raw_hashes_at(value: String, index: Int, hashes: Int): Int ->
+    if {
+        index == value.byte_size() -> -1;
+        byte_is(value, index, 35) -> retain_int(raw_hashes_at(value, index + 1, hashes + 1));
+        byte_is(value, index, 34) -> hashes;
+        true -> -1
+    }.
+
+@pure
+raw_open_hashes(value: String, index: Int): Int ->
+    if {
+        not byte_is(value, index, 114) -> -1;
+        true -> raw_hashes_at(value, index + 1, 0)
+    }.
+
+@pure
+hashes_match_at(value: String, index: Int, remaining: Int): Bool ->
+    if {
+        remaining == 0 -> true;
+        not byte_is(value, index, 35) -> false;
+        true -> retain_bool(hashes_match_at(value, index + 1, remaining - 1))
+    }.
+
+@pure
+raw_close(value: String, index: Int, hashes: Int): Bool ->
+    byte_is(value, index, 34) and hashes_match_at(value, index + 1, hashes).
+
+@pure
+include_keyword_at(value: String, index: Int): Bool ->
+    byte_is(value, index, 105)
+        and byte_is(value, index + 1, 110)
+        and byte_is(value, index + 2, 99)
+        and byte_is(value, index + 3, 108)
+        and byte_is(value, index + 4, 117)
+        and byte_is(value, index + 5, 100)
+        and byte_is(value, index + 6, 101)
+        and byte_is(value, index + 7, 33).
+
+@pure
+statement_end(value: String, index: Int, maximum: Int): Int ->
+    if {
+        index == value.byte_size() or index == maximum -> index;
+        byte_is(value, index, 59) -> index;
+        true -> retain_int(statement_end(value, index + 1, maximum))
+    }.
+
+@pure
+out_dir_at(value: String, index: Int): Bool ->
+    byte_is(value, index, 79)
+        and byte_is(value, index + 1, 85)
+        and byte_is(value, index + 2, 84)
+        and byte_is(value, index + 3, 95)
+        and byte_is(value, index + 4, 68)
+        and byte_is(value, index + 5, 73)
+        and byte_is(value, index + 6, 82).
+
+@pure
+contains_out_dir_at(value: String, index: Int, maximum: Int): Bool ->
+    if {
+        index >= maximum -> false;
+        out_dir_at(value, index) -> true;
+        true -> retain_bool(contains_out_dir_at(value, index + 1, maximum))
+    }.
+
+@pure
+include_is_generated(value: String, index: Int): Bool ->
+    let maximum =
+        if {
+            index + 500 < value.byte_size() -> index + 500;
+            true -> value.byte_size()
+        };
+    let tail = statement_end(value, index, maximum);
+    contains_out_dir_at(value, index, tail).
+
+@pure
+scan_candidates(mode: Int): String ->
+    if {
+        mode == 0 -> "/\"'ri\n";
+        mode == 1 -> "\n";
+        mode == 2 -> "/*\n";
+        mode == 3 -> "\\\"\n";
+        mode == 4 -> "\\'\n";
+        mode == 5 -> "\"\n";
+        true -> ""
+    }.
+
+@pure
+next_scan_index(value: String, index: Int, mode: Int): Int ->
+    if {
+        mode == 6 -> index;
+        true -> value.utf8_find_any_byte(index, scan_candidates(mode))
+    }.
+
+@pure
+retain_scan_state(state: ScanState): ScanState ->
+    state.
+
+@pure
+scan_page_at(
+    path: String,
+    value: String,
+    index: Int,
+    line: Int,
+    mode: Int,
+    block_depth: Int,
+    raw_hashes: Int,
+    findings: List[Finding],
+    remaining: Int,
+): ScanState ->
+    if {
+        index == value.byte_size() -> ScanState(
+            index = index,
+            line = line,
+            mode = mode,
+            block_depth = block_depth,
+            raw_hashes = raw_hashes,
+            findings = findings,
+        );
+        remaining > 0 -> let next_index = next_scan_index(value, index, mode);
+        if {
+            next_index < 0 -> ScanState(
+                index = value.byte_size(),
+                line = line,
+                mode = mode,
+                block_depth = block_depth,
+                raw_hashes = raw_hashes,
+                findings = findings,
+            );
+            next_index != index -> retain_scan_state(
+                scan_page_at(
+                    path,
+                    value,
+                    next_index,
+                    line,
+                    mode,
+                    block_depth,
+                    raw_hashes,
+                    findings,
+                    remaining - 1,
+                ),
+            );
+            true -> if {
+                mode == 1 -> if {
+                    byte_is(value, index, 10) -> retain_scan_state(
+                        scan_page_at(
+                            path,
+                            value,
+                            index + 1,
+                            line + 1,
+                            0,
+                            0,
+                            0,
+                            findings,
+                            remaining - 1,
+                        ),
+                    );
+                    true -> retain_scan_state(
+                        scan_page_at(path, value, index + 1, line, 1, 0, 0, findings, remaining - 1),
+                    )
+                };
+                mode == 2 -> if {
+                    byte_is(value, index, 47) and byte_is(value, index + 1, 42) -> retain_scan_state(
+                        scan_page_at(
+                            path,
+                            value,
+                            index + 2,
+                            line,
+                            2,
+                            block_depth + 1,
+                            0,
+                            findings,
+                            remaining - 1,
+                        ),
+                    );
+                    byte_is(value, index, 42) and byte_is(value, index + 1, 47) -> let next_depth = block_depth - 1;
+                    retain_scan_state(
+                        scan_page_at(
+                            path,
+                            value,
+                            index + 2,
+                            line,
+                            if {
+                                next_depth == 0 -> 0;
+                                true -> 2
+                            },
+                            next_depth,
+                            0,
+                            findings,
+                            remaining - 1,
+                        ),
+                    );
+                    byte_is(value, index, 10) -> retain_scan_state(
+                        scan_page_at(
+                            path,
+                            value,
+                            index + 1,
+                            line + 1,
+                            2,
+                            block_depth,
+                            0,
+                            findings,
+                            remaining - 1,
+                        ),
+                    );
+                    true -> retain_scan_state(
+                        scan_page_at(
+                            path,
+                            value,
+                            index + 1,
+                            line,
+                            2,
+                            block_depth,
+                            0,
+                            findings,
+                            remaining - 1,
+                        ),
+                    )
+                };
+                mode == 3 or mode == 4 -> if {
+                    byte_is(value, index, 92) and index + 1 < value.byte_size() -> retain_scan_state(
+                        scan_page_at(
+                            path,
+                            value,
+                            index + 2,
+                            if {
+                                byte_is(value, index + 1, 10) -> line + 1;
+                                true -> line
+                            },
+                            mode,
+                            0,
+                            0,
+                            findings,
+                            remaining - 1,
+                        ),
+                    );
+                    mode == 3 and byte_is(value, index, 34) -> retain_scan_state(
+                        scan_page_at(path, value, index + 1, line, 0, 0, 0, findings, remaining - 1),
+                    );
+                    mode == 4 and byte_is(value, index, 39) -> retain_scan_state(
+                        scan_page_at(path, value, index + 1, line, 0, 0, 0, findings, remaining - 1),
+                    );
+                    byte_is(value, index, 10) -> retain_scan_state(
+                        scan_page_at(
+                            path,
+                            value,
+                            index + 1,
+                            line + 1,
+                            mode,
+                            0,
+                            0,
+                            findings,
+                            remaining - 1,
+                        ),
+                    );
+                    true -> retain_scan_state(
+                        scan_page_at(
+                            path,
+                            value,
+                            index + 1,
+                            line,
+                            mode,
+                            0,
+                            0,
+                            findings,
+                            remaining - 1,
+                        ),
+                    )
+                };
+                mode == 5 -> if {
+                    raw_close(value, index, raw_hashes) -> retain_scan_state(
+                        scan_page_at(
+                            path,
+                            value,
+                            index + raw_hashes + 1,
+                            line,
+                            0,
+                            0,
+                            0,
+                            findings,
+                            remaining - 1,
+                        ),
+                    );
+                    byte_is(value, index, 10) -> retain_scan_state(
+                        scan_page_at(
+                            path,
+                            value,
+                            index + 1,
+                            line + 1,
+                            5,
+                            0,
+                            raw_hashes,
+                            findings,
+                            remaining - 1,
+                        ),
+                    );
+                    true -> retain_scan_state(
+                        scan_page_at(
+                            path,
+                            value,
+                            index + 1,
+                            line,
+                            5,
+                            0,
+                            raw_hashes,
+                            findings,
+                            remaining - 1,
+                        ),
+                    )
+                };
+                mode == 6 -> if {
+                    byte_is(value, index, 32)
+                        or byte_is(value, index, 9)
+                        or byte_is(value, index, 13) -> retain_scan_state(
+                        scan_page_at(
+                            path,
+                            value,
+                            index + 1,
+                            line,
+                            6,
+                            block_depth,
+                            raw_hashes,
+                            findings,
+                            remaining - 1,
+                        ),
+                    );
+                    byte_is(value, index, 10) -> retain_scan_state(
+                        scan_page_at(
+                            path,
+                            value,
+                            index + 1,
+                            line + 1,
+                            6,
+                            block_depth,
+                            raw_hashes,
+                            findings,
+                            remaining - 1,
+                        ),
+                    );
+                    byte_is(value, index, 40) -> if {
+                        include_is_generated(value, block_depth) -> retain_scan_state(
+                            scan_page_at(
+                                path,
+                                value,
+                                index + 1,
+                                line,
+                                0,
+                                0,
+                                0,
+                                findings,
+                                remaining - 1,
+                            ),
+                        );
+                        true -> retain_scan_state(
+                            scan_page_at(
+                                path,
+                                value,
+                                index + 1,
+                                line,
+                                0,
+                                0,
+                                0,
+                                List.concat(
+                                    findings,
+                                    List[Finding](
+                                        Finding(
+                                            path = path,
+                                            line = raw_hashes,
+                                            message = "textually includes handwritten Rust source",
+                                        ),
+                                    ),
+                                ),
+                                remaining - 1,
+                            ),
+                        )
+                    };
+                    true -> retain_scan_state(
+                        scan_page_at(path, value, index, line, 0, 0, 0, findings, remaining - 1),
+                    )
+                };
+                byte_is(value, index, 47) and byte_is(value, index + 1, 47) -> retain_scan_state(
+                    scan_page_at(path, value, index + 2, line, 1, 0, 0, findings, remaining - 1),
+                );
+                byte_is(value, index, 47) and byte_is(value, index + 1, 42) -> retain_scan_state(
+                    scan_page_at(path, value, index + 2, line, 2, 1, 0, findings, remaining - 1),
+                );
+                byte_is(value, index, 34) -> retain_scan_state(
+                    scan_page_at(path, value, index + 1, line, 3, 0, 0, findings, remaining - 1),
+                );
+                byte_is(value, index, 39) -> retain_scan_state(
+                    scan_page_at(path, value, index + 1, line, 4, 0, 0, findings, remaining - 1),
+                );
+                raw_open_hashes(value, index) >= 0 -> let hashes = raw_open_hashes(value, index);
+                retain_scan_state(
+                    scan_page_at(
+                        path,
+                        value,
+                        index + hashes + 2,
+                        line,
+                        5,
+                        0,
+                        hashes,
+                        findings,
+                        remaining - 1,
+                    ),
+                );
+                include_keyword_at(value, index) -> retain_scan_state(
+                    scan_page_at(
+                        path,
+                        value,
+                        index + 8,
+                        line,
+                        6,
+                        index,
+                        line,
+                        findings,
+                        remaining - 1,
+                    ),
+                );
+                byte_is(value, index, 10) -> retain_scan_state(
+                    scan_page_at(path, value, index + 1, line + 1, 0, 0, 0, findings, remaining - 1),
+                );
+                true -> retain_scan_state(
+                    scan_page_at(path, value, index + 1, line, 0, 0, 0, findings, remaining - 1),
+                )
+            }
+        };
+        true -> ScanState(
+            index = index,
+            line = line,
+            mode = mode,
+            block_depth = block_depth,
+            raw_hashes = raw_hashes,
+            findings = findings,
+        )
+    }.
+
+@pure
+retain_findings(findings: List[Finding]): List[Finding] ->
+    findings.
+
+@pure
+scan_pages_at(
+    path: String,
+    value: String,
+    state: ScanState,
+    pages_remaining: Int,
+): List[Finding] ->
+    if {
+        state.index == value.byte_size() -> state.findings;
+        pages_remaining > 0 -> let next =
+            scan_page_at(
+                path,
+                value,
+                state.index,
+                state.line,
+                state.mode,
+                state.block_depth,
+                state.raw_hashes,
+                state.findings,
+                256,
+            );
+        retain_findings(scan_pages_at(path, value, next, pages_remaining - 1));
+        true -> state.findings
+    }.
+
+@pure
+filename_finding(path: String, findings: List[Finding]): List[Finding] ->
+    case fragment_reason(path) {
+        Some(reason) -> [Finding(path = path, line = 0, message = reason) | findings];
+        None -> findings
+    }.
+
+@pure
+pub scan_source(path: String, contents: String): List[Finding] ->
+    let findings = List.new[Finding]();
+    if {
+        SourceInventory.looks_generated(path, contents) -> findings;
+        true -> scan_pages_at(
+            path,
+            contents,
+            ScanState(
+                index = 0,
+                line = 1,
+                mode = 0,
+                block_depth = 0,
+                raw_hashes = 0,
+                findings = filename_finding(path, findings),
+            ),
+            contents.byte_size() + 1,
+        )
+    }.
+
+@pure
+scan_sources(
+    sources: List[RustSource],
+    output: List[Finding],
+    suffix: List[Finding],
+): List[Finding] ->
+    case sources {
+        [] -> List.concat(output, suffix);
+        [source | rest] ->
+            let source_findings = scan_source(source.path, source.contents);
+            let combined = List.concat(output, source_findings);
+            scan_sources(rest, combined, suffix)
+    }.
+
+@pure
+pub baseline_findings(path: String, source: String, label: String): List[Finding] ->
+    SourceInventory.reverse(
+        baseline_lines(path, String.split(source, "\n"), label, 1, List.new[Finding]()),
+    ).
+
+@pure
+baseline_lines(
+    path: String,
+    lines: List[String],
+    label: String,
+    line: Int,
+    output: List[Finding],
+): List[Finding] ->
+    case lines {
+        [] -> output;
+        [value | rest] ->
+            let normalized = String.trim(value);
+            if {
+                normalized != "" and not String.starts_with(String.trim_start(value), "#") -> baseline_lines(
+                    path,
+                    rest,
+                    label,
+                    line + 1,
+                    [Finding(path = path, line = line, message = String.concat(["CQ-5 requires zero ", label, " debt"])) | output],
+                );
+                true -> baseline_lines(path, rest, label, line + 1, output)
+            }
+    }.
+
+load_baseline(root: String, relative: String, label: String): List[Finding] ->
+    case File.read_text(SourceInventory.child(root, relative)) {
+        Ok(source) -> baseline_findings(relative, source, label);
+        Err(_reason) ->
+            [
+                Finding(
+                    path = relative,
+                    line = 0,
+                    message = String.concat(["missing CQ-5 zero-", label, "-debt baseline"]),
+                ),
+            ]
+    }.
+
+scan_batches(
+    root: String,
+    paths: List[String],
+    output: List[Finding],
+    suffix: List[Finding],
+): FindingLoad ->
+    case paths {
+        [] -> FindingLoad(valid = true, findings = List.concat(output, suffix), message = "");
+        _ ->
+            let batch = SourceInventory.load_next(root, paths);
+            if {
+                not batch.valid -> FindingLoad(valid = false, findings = List.new[Finding](), message = batch.message);
+                true -> scan_batches(
+                    root,
+                    batch.remaining,
+                    scan_sources(batch.sources, output, List.new[Finding]()),
+                    suffix,
+                )
+            }
+    }.
+
+all_findings(root: String, discovered: SourceDiscovery): FindingLoad ->
+    let inline = load_baseline(root, "tools/quality/rust_inline_test_baseline.txt", "inline test-module");
+    let baselines =
+        List.concat(
+            inline,
+            load_baseline(root, "tools/quality/rustdoc_missing_baseline.tsv", "Rustdoc"),
+        );
+    scan_batches(root, discovered.paths, List.new[Finding](), baselines).
+
+print_findings(findings: List[Finding]): Bool ->
+    case findings {
+        [] -> false;
+        [finding | rest] ->
+            let _printed = eprintln(String.concat(["  - ", render(finding)]));
+            print_findings(rest)
+    }.
+
+pub check(root: String): Bool ->
+    let discovered = SourceInventory.discover(root);
+    if {
+        not discovered.valid -> let _printed = eprintln(String.concat(["Rust module structure check failed: ", discovered.message]));
+        false;
+        true -> let loaded = all_findings(root, discovered);
+        if {
+            not loaded.valid -> let _printed = eprintln(String.concat(["Rust module structure check failed: ", loaded.message]));
+            false;
+            List.length(loaded.findings) == 0 -> let _printed = println("Rust module structure check passed");
+            true;
+            true -> let _printed =
+                eprintln(
+                    String.concat(
+                        [
+                            "Rust module structure check failed with ",
+                            Int.to_string(List.length(loaded.findings)),
+                            " finding(s):",
+                        ],
+                    ),
+                );
+            print_findings(loaded.findings)
+        }
+    }.
+
+@pure
+contains_message(findings: List[Finding], expected: String): Bool ->
+    case findings {
+        [] -> false;
+        [finding | rest] ->
+            String.contains(finding.message, expected) or contains_message(rest, expected)
+    }.
+
+expect(name: String, condition: Bool): Bool ->
+    if {
+        condition -> true;
+        true -> let _printed = eprintln(String.concat(["error[rust_quality.module_structure.self_test]: ", name]));
+        false
+    }.
+
+pub self_test(): Bool ->
+    let part =
+        contains_message(
+            scan_source("src/worker_part_001.rs", "fn worker() {}\n"),
+            "chronological fragment filename",
+        );
+    let segment =
+        contains_message(
+            scan_source("src/worker_segment-12.rs", "fn worker() {}\n"),
+            "chronological fragment filename",
+        );
+    let numeric =
+        contains_message(
+            scan_source("src/worker_001.rs", "fn worker() {}\n"),
+            "numeric-suffix module filename",
+        );
+    let literal =
+        contains_message(
+            scan_source("src/worker.rs", "include!(\"worker_logic.rs\");\n"),
+            "textually includes handwritten Rust",
+        );
+    let computed =
+        contains_message(
+            scan_source("src/worker.rs", "include!(concat!(\"worker_\", \"logic.rs\"));\n"),
+            "textually includes handwritten Rust",
+        );
+    let after_raw =
+        contains_message(
+            scan_source(
+                "src/worker.rs",
+                "const SOURCE: &str = r#\"module fixture.\\n\"#;\ninclude!(\"worker_logic.rs\");\n",
+            ),
+            "textually includes handwritten Rust",
+        );
+    let after_unicode =
+        contains_message(
+            scan_source(
+                "src/worker.rs",
+                "const NAME: &str = \"λ🔥\";\ninclude!(\"worker_logic.rs\");\n",
+            ),
+            "textually includes handwritten Rust",
+        );
+    let ignored =
+        List.length(
+    scan_source(
+        "src/worker.rs",
+        "// include!(\"comment.rs\");\nconst TEXT: &str = \"include!(\\\"string.rs\\\")\";\n",
+    ),
+) == 0;
+    let semantic = List.length(scan_source("src/worker/protocol.rs", "mod recovery;\nmod request_dispatch;\n")) == 0;
+    let generated =
+        List.length(
+    scan_source(
+        "src/generated/abi_part_001.rs",
+        "// @generated by tools/emit_abi.py\ninclude!(\"abi_part_002.rs\");\n",
+    ),
+) == 0;
+    let out_dir =
+        List.length(
+    scan_source(
+        "src/generated_abi.rs",
+        "include!(concat!(env!(\"OUT_DIR\"), \"/generated_abi.rs\"));\n",
+    ),
+) == 0;
+    let inline_debt =
+        contains_message(
+            baseline_findings(
+                "tools/quality/rust_inline_test_baseline.txt",
+                "# reviewed debt\ncrates/terlan/src/runtime.rs\n",
+                "inline test-module",
+            ),
+            "zero inline test-module debt",
+        );
+    let rustdoc_debt =
+        contains_message(
+            baseline_findings(
+                "tools/quality/rustdoc_missing_baseline.tsv",
+                "# reviewed debt\nsrc/lib.rs\tstruct\tApi\tpub struct Api\n",
+                "Rustdoc",
+            ),
+            "zero Rustdoc debt",
+        );
+    let comments =
+        List.length(
+    baseline_findings("tools/quality/rustdoc_missing_baseline.tsv", "# no debt\n", "Rustdoc"),
+) == 0;
+    expect("numbered part", part)
+        and expect("renamed segment", segment)
+        and expect("numeric suffix", numeric)
+        and expect("literal include", literal)
+        and expect("computed include", computed)
+        and expect("include after raw string", after_raw)
+        and expect("include after Unicode", after_unicode)
+        and expect("comment/string includes", ignored)
+        and expect("semantic modules", semantic)
+        and expect("generated source", generated)
+        and expect("OUT_DIR include", out_dir)
+        and expect("inline debt", inline_debt)
+        and expect("rustdoc debt", rustdoc_debt)
+        and expect("comment-only baseline", comments).

@@ -44,7 +44,7 @@ Important invariants:
 - PNG variants remain generated from the shared icon design and must preserve
   expected square dimensions.
 - Editor packages do not define unrelated Terlan file icons.
-- Editor packages register the same `.terl`, `.terli`, and `.terl.*` template
+- Editor packages register the same `.terl`, `.terls`, `.terli`, and `.terl.*` template
   suffix family.
 - Editor packages use `terlc lsp --stdio` as their default compiler-owned
   language-server command.

@@ -398,4 +398,5 @@ fn validate_release_manifest(release_manifest: &str) -> Vec<String> {
 
 #[cfg(test)]
 #[path = "binary_descriptor_contract_test.rs"]
+#[cfg(test)]
 mod binary_descriptor_contract_test;

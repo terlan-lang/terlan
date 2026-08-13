@@ -485,11 +485,11 @@ fn constants_are_rejected_in_non_value_metadata_and_annotations() {
 }
 
 #[test]
-fn evaluator_limits_and_runtime_capabilities_fail_closed() {
+fn totality_and_runtime_capabilities_fail_closed() {
     let cases = [
         (
             "const recurse(value: Int): Int -> recurse(value).\nconst BAD: Int = recurse(1).",
-            "CONST_EVALUATOR_EXHAUSTED",
+            "CONST_TOTALITY_UNPROVEN",
         ),
         (
             "const SECRET: String = env(\"TERLAN_SECRET\").",

@@ -363,14 +363,14 @@ function resolveRunTargetPath(workspace, activeEditor, pathExists) {
  *
  * @param {string | undefined} filePath Active document path.
  * @param {string | undefined} projectPath Resolved Terlan package root.
- * @returns {boolean} True for `.terl` files below the package `scripts` tree.
+ * @returns {boolean} True for `.terls` files below the package `scripts` tree.
  *
  * @description
  * Lets the general run action execute an active project script directly while
  * ordinary package source files continue to launch the package entrypoint.
  */
 function isProjectScriptFilePath(filePath, projectPath) {
-  if (!filePath || !projectPath || !String(filePath).endsWith(".terl")) {
+  if (!filePath || !projectPath || !String(filePath).endsWith(".terls")) {
     return false;
   }
   const relative = path.relative(path.resolve(projectPath), path.resolve(filePath));

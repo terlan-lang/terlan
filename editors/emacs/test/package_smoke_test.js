@@ -83,6 +83,7 @@ function testFiletypeSuffixes() {
   const mode = readText("terlan-mode.el");
   const suffixes = [
     String.raw`\\.terl\\'`,
+    String.raw`\\.terls\\'`,
     String.raw`\\.terli\\'`,
     String.raw`\\.terl\\.html\\'`,
     String.raw`\\.terl\\.md\\'`,

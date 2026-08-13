@@ -6,4 +6,5 @@ crates/terlan/src/runtime/vm/package_transport.rs	transport-registry	vm-packages
 crates/terlan/src/runtime/vm/tcp.rs	transport-registry	vm-io	TCP listener and stream registries are lookup by numeric handle; scheduling order must be explicit.
 crates/terlan/src/runtime/vm/tls.rs	lookup-table	vm-tls	TLS plan registries are lookup by name/listener; exported plan order must be sorted if exposed.
 crates/terlan/src/runtime/vm/udp.rs	transport-registry	vm-io	UDP socket and address registries are lookup tables; receive ordering lives in explicit queues.
-crates/terlan/src/runtime/vm/websocket.rs	transport-registry	vm-http	WebSocket sessions are lookup by session id; broadcast and close order must be explicit.
+crates/terlan/src/runtime/vm/websocket.rs	transport-registry	vm-http	WebSocket session registry imports remain owned by the named state module.
+crates/terlan/src/runtime/vm/websocket/state.rs	transport-registry	vm-http	WebSocket sessions are lookup by session id; broadcast and close order must be explicit.

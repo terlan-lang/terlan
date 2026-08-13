@@ -1,0 +1,10 @@
+{
+  "benchmarks": [
+    {"name": "compiler-startup", "maximum_p99_ns": 5000000000, "owner": "compiler"},
+    {"name": "parse-typecheck", "maximum_p99_ns": 10000000000, "owner": "compiler"},
+    {"name": "aot-lower-build", "maximum_p99_ns": 30000000000, "owner": "aot"},
+    {"name": "collections-map", "maximum_p99_ns": 30000000000, "owner": "vm"}
+  ],
+  "policy": "No accepted regression may omit an owner and explanation.",
+  "schema": "terlan.release-performance-baseline.v1"
+}

@@ -25,8 +25,12 @@ import type std.data.Json.{Json, JsonError}.
  */
 @test
 pub generated_strings_roundtrip_through_json_text(): Bool ->
-    for_all(elements(["Ada", "Grace", "Linus"]), (text) -> let encoded = with_default(Json.stringify(Json.string(text)), "");
-    case Json.parse(encoded) {
-        Ok(value) -> assert_equal(text, with_default(value.as_string(), ""));
-        Err(_reason) -> false
-    }).
+    for_all(
+        elements(["Ada", "Grace", "Linus"]),
+        (text) ->
+            let encoded = with_default(Json.stringify(Json.string(text)), "");
+            case Json.parse(encoded) {
+                Ok(value) -> assert_equal(text, with_default(value.as_string(), ""));
+                Err(_reason) -> false
+            },
+    ).

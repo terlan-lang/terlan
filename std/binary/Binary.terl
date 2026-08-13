@@ -61,7 +61,7 @@ pub type DescriptorKind = UIntSegment | IntSegment | BytesSegment | BitsSegment 
 pub struct BinaryDescriptor {
     kind: DescriptorKind,
     width: Int,
-    terminal: Bool
+    terminal: Bool,
 }.
 
 /**
@@ -122,7 +122,7 @@ pub type EndianPolicy = BigEndian | LittleEndian.
  */
 pub struct ProtocolField {
     name: String,
-    descriptor: BinaryDescriptor
+    descriptor: BinaryDescriptor,
 }.
 
 /**
@@ -145,7 +145,7 @@ pub struct ProtocolShape {
     name: String,
     endian: EndianPolicy,
     fields: List[ProtocolField],
-    terminal_rest: Bool
+    terminal_rest: Bool,
 }.
 
 /**
@@ -164,7 +164,7 @@ pub constructor ProtocolShape {
  */
 pub struct ProtocolShapeAlias {
     name: String,
-    target: String
+    target: String,
 }.
 
 /**
@@ -184,7 +184,7 @@ pub constructor ProtocolShapeAlias {
 pub struct ProtocolShapeSet {
     name: String,
     shapes: List[ProtocolShape],
-    aliases: List[ProtocolShapeAlias]
+    aliases: List[ProtocolShapeAlias],
 }.
 
 /**
@@ -207,7 +207,9 @@ pub type DecodedValue = Int | std.vm.BitString.BitString | std.vm.Bytes.Bytes.
  * whether one machine word is an integer or a managed VM handle.
  */
 pub type DecodedIntFieldTag = Atom["decoded_int_field"].
+
 pub type DecodedBitsFieldTag = Atom["decoded_bits_field"].
+
 pub type DecodedBytesFieldTag = Atom["decoded_bytes_field"].
 
 /**
@@ -263,28 +265,25 @@ pub decoded_protocol_value(decoded: DecodedProtocol, name: String): Option[Decod
 /**
  * Finds one decoded value without discarding declaration order.
  */
-pub decode_protocol_value(
-    fields: List[DecodedField],
-    name: String
-): Option[DecodedValue] ->
+pub decode_protocol_value(fields: List[DecodedField], name: String): Option[DecodedValue] ->
     case fields {
         [] -> None;
         [field | rest] ->
             case field {
                 {DecodedIntFieldTag, field_name, value} ->
                     if {
-                    field_name == name -> Some(value);
-                    true -> decode_protocol_value(rest, name)
+                        field_name == name -> Some(value);
+                        true -> decode_protocol_value(rest, name)
                     };
                 {DecodedBitsFieldTag, field_name, value} ->
                     if {
-                    field_name == name -> Some(value);
-                    true -> decode_protocol_value(rest, name)
+                        field_name == name -> Some(value);
+                        true -> decode_protocol_value(rest, name)
                     };
                 {DecodedBytesFieldTag, field_name, value} ->
                     if {
-                    field_name == name -> Some(value);
-                    true -> decode_protocol_value(rest, name)
+                        field_name == name -> Some(value);
+                        true -> decode_protocol_value(rest, name)
                     }
             }
     }.
@@ -298,18 +297,15 @@ pub decoded_protocol_int_value(decoded: DecodedProtocol, name: String): Option[I
 /**
  * Finds one tagged integer without interpreting managed handles as scalars.
  */
-pub decode_protocol_int_value(
-    fields: List[DecodedField],
-    name: String
-): Option[Int] ->
+pub decode_protocol_int_value(fields: List[DecodedField], name: String): Option[Int] ->
     case fields {
         [] -> None;
         [field | rest] ->
             case field {
                 {DecodedIntFieldTag, field_name, value} ->
                     if {
-                    field_name == name -> Some(value);
-                    true -> decode_protocol_int_value(rest, name)
+                        field_name == name -> Some(value);
+                        true -> decode_protocol_int_value(rest, name)
                     };
                 _ -> decode_protocol_int_value(rest, name)
             }
@@ -320,7 +316,7 @@ pub decode_protocol_int_value(
  */
 pub decoded_protocol_bits_value(
     decoded: DecodedProtocol,
-    name: String
+    name: String,
 ): Option[std.vm.BitString.BitString] ->
     decode_protocol_bits_value(decoded_protocol_fields(decoded), name).
 
@@ -329,7 +325,7 @@ pub decoded_protocol_bits_value(
  */
 pub decode_protocol_bits_value(
     fields: List[DecodedField],
-    name: String
+    name: String,
 ): Option[std.vm.BitString.BitString] ->
     case fields {
         [] -> None;
@@ -337,8 +333,8 @@ pub decode_protocol_bits_value(
             case field {
                 {DecodedBitsFieldTag, field_name, value} ->
                     if {
-                    field_name == name -> Some(value);
-                    true -> decode_protocol_bits_value(rest, name)
+                        field_name == name -> Some(value);
+                        true -> decode_protocol_bits_value(rest, name)
                     };
                 _ -> decode_protocol_bits_value(rest, name)
             }
@@ -347,10 +343,7 @@ pub decode_protocol_bits_value(
 /**
  * Returns one named immutable byte field when its runtime tag matches.
  */
-pub decoded_protocol_bytes_value(
-    decoded: DecodedProtocol,
-    name: String
-): Option[std.vm.Bytes.Bytes] ->
+pub decoded_protocol_bytes_value(decoded: DecodedProtocol, name: String): Option[std.vm.Bytes.Bytes] ->
     decode_protocol_bytes_value(decoded_protocol_fields(decoded), name).
 
 /**
@@ -358,7 +351,7 @@ pub decoded_protocol_bytes_value(
  */
 pub decode_protocol_bytes_value(
     fields: List[DecodedField],
-    name: String
+    name: String,
 ): Option[std.vm.Bytes.Bytes] ->
     case fields {
         [] -> None;
@@ -366,8 +359,8 @@ pub decode_protocol_bytes_value(
             case field {
                 {DecodedBytesFieldTag, field_name, value} ->
                     if {
-                    field_name == name -> Some(value);
-                    true -> decode_protocol_bytes_value(rest, name)
+                        field_name == name -> Some(value);
+                        true -> decode_protocol_bytes_value(rest, name)
                     };
                 _ -> decode_protocol_bytes_value(rest, name)
             }
@@ -548,7 +541,7 @@ pub protocol_shape(
     name: String,
     endian: EndianPolicy,
     fields: List[ProtocolField],
-    terminal_rest: Bool
+    terminal_rest: Bool,
 ): ProtocolShape ->
     ProtocolShape(name, endian, fields, terminal_rest).
 
@@ -612,7 +605,7 @@ pub protocol_shape_alias_target(alias: ProtocolShapeAlias): String ->
 pub protocol_shape_set(
     name: String,
     shapes: List[ProtocolShape],
-    aliases: List[ProtocolShapeAlias]
+    aliases: List[ProtocolShapeAlias],
 ): Result[ProtocolShapeSet, BinaryDecodeError] ->
     validate_protocol_shape_set(ProtocolShapeSet(name, shapes, aliases)).
 
@@ -640,12 +633,16 @@ pub protocol_shape_set_aliases(set: ProtocolShapeSet): List[ProtocolShapeAlias] 
 pub validate_protocol_shape_set(set: ProtocolShapeSet): Result[ProtocolShapeSet, BinaryDecodeError] ->
     let shapes = protocol_shape_set_shapes(set);
     if {
-    protocol_shape_set_name(set).is_empty() -> Err(InvalidShapeSet);
-    shapes.is_empty() -> Err(InvalidShapeSet);
-    true -> case validate_protocol_shapes(shapes, Map.new[String, Bool]()) {
+        protocol_shape_set_name(set).is_empty() -> Err(InvalidShapeSet);
+        shapes.is_empty() -> Err(InvalidShapeSet);
+        true -> case validate_protocol_shapes(shapes, Map.new[String, Bool]()) {
             Err(reason) -> Err(reason);
             Ok(shape_names) ->
-                case validate_protocol_shape_aliases(protocol_shape_set_aliases(set), shape_names, Map.new[String, Bool]()) {
+                case validate_protocol_shape_aliases(
+    protocol_shape_set_aliases(set),
+    shape_names,
+    Map.new[String, Bool](),
+) {
                     Err(reason) -> Err(reason);
                     Ok(_alias_names) -> Ok(set)
                 }
@@ -657,15 +654,15 @@ pub validate_protocol_shape_set(set: ProtocolShapeSet): Result[ProtocolShapeSet,
  */
 pub validate_protocol_shapes(
     shapes: List[ProtocolShape],
-    names: Map[String, Bool]
+    names: Map[String, Bool],
 ): Result[Map[String, Bool], BinaryDecodeError] ->
     case shapes {
         [] -> Ok(names);
         [shape | next] ->
             let name = protocol_shape_name(shape);
             if {
-            names.contains_key(name) -> Err(DuplicateShape);
-            true -> case validate_protocol_shape(shape) {
+                names.contains_key(name) -> Err(DuplicateShape);
+                true -> case validate_protocol_shape(shape) {
                     Err(reason) -> Err(reason);
                     Ok(_shape) ->
                         let _put = names.put(name, true);
@@ -680,7 +677,7 @@ pub validate_protocol_shapes(
 pub validate_protocol_shape_aliases(
     aliases: List[ProtocolShapeAlias],
     shape_names: Map[String, Bool],
-    alias_names: Map[String, Bool]
+    alias_names: Map[String, Bool],
 ): Result[Map[String, Bool], BinaryDecodeError] ->
     case aliases {
         [] -> Ok(alias_names);
@@ -688,10 +685,10 @@ pub validate_protocol_shape_aliases(
             let name = protocol_shape_alias_name(alias);
             let target = protocol_shape_alias_target(alias);
             if {
-            name.is_empty() or target.is_empty() -> Err(InvalidShapeAlias);
-            shape_names.contains_key(name) or alias_names.contains_key(name) -> Err(DuplicateShape);
-            shape_names.contains_key(target) == false -> Err(UnknownShape);
-            true -> let _put = alias_names.put(name, true);
+                name.is_empty() or target.is_empty() -> Err(InvalidShapeAlias);
+                shape_names.contains_key(name) or alias_names.contains_key(name) -> Err(DuplicateShape);
+                shape_names.contains_key(target) == false -> Err(UnknownShape);
+                true -> let _put = alias_names.put(name, true);
                 validate_protocol_shape_aliases(next, shape_names, alias_names)
             }
     }.
@@ -701,13 +698,18 @@ pub validate_protocol_shape_aliases(
  */
 pub protocol_shape_set_resolve(
     set: ProtocolShapeSet,
-    name: String
+    name: String,
 ): Result[ProtocolShape, BinaryDecodeError] ->
     case validate_protocol_shape_set(set) {
         Err(reason) -> Err(reason);
         Ok(validated) ->
             let shapes = protocol_shape_set_shapes(validated);
-            resolve_direct_protocol_shape(shapes, shapes, protocol_shape_set_aliases(validated), name)
+            resolve_direct_protocol_shape(
+                shapes,
+                shapes,
+                protocol_shape_set_aliases(validated),
+                name,
+            )
     }.
 
 /**
@@ -717,14 +719,14 @@ pub resolve_direct_protocol_shape(
     shapes: List[ProtocolShape],
     all_shapes: List[ProtocolShape],
     aliases: List[ProtocolShapeAlias],
-    name: String
+    name: String,
 ): Result[ProtocolShape, BinaryDecodeError] ->
     case shapes {
         [] -> resolve_protocol_shape_alias(aliases, all_shapes, name);
         [shape | next] ->
             if {
-            protocol_shape_name(shape) == name -> Ok(shape);
-            true -> resolve_direct_protocol_shape(next, all_shapes, aliases, name)
+                protocol_shape_name(shape) == name -> Ok(shape);
+                true -> resolve_direct_protocol_shape(next, all_shapes, aliases, name)
             }
     }.
 
@@ -734,14 +736,14 @@ pub resolve_direct_protocol_shape(
 pub resolve_protocol_shape_alias(
     aliases: List[ProtocolShapeAlias],
     shapes: List[ProtocolShape],
-    name: String
+    name: String,
 ): Result[ProtocolShape, BinaryDecodeError] ->
     case aliases {
         [] -> Err(UnknownShape);
         [alias | next] ->
             if {
-            protocol_shape_alias_name(alias) == name -> resolve_named_protocol_shape(shapes, protocol_shape_alias_target(alias));
-            true -> resolve_protocol_shape_alias(next, shapes, name)
+                protocol_shape_alias_name(alias) == name -> resolve_named_protocol_shape(shapes, protocol_shape_alias_target(alias));
+                true -> resolve_protocol_shape_alias(next, shapes, name)
             }
     }.
 
@@ -750,14 +752,14 @@ pub resolve_protocol_shape_alias(
  */
 pub resolve_named_protocol_shape(
     shapes: List[ProtocolShape],
-    name: String
+    name: String,
 ): Result[ProtocolShape, BinaryDecodeError] ->
     case shapes {
         [] -> Err(UnknownShape);
         [shape | next] ->
             if {
-            protocol_shape_name(shape) == name -> Ok(shape);
-            true -> resolve_named_protocol_shape(next, name)
+                protocol_shape_name(shape) == name -> Ok(shape);
+                true -> resolve_named_protocol_shape(next, name)
             }
     }.
 
@@ -771,7 +773,7 @@ pub resolve_named_protocol_shape(
 pub protocol_shape_set_decode(
     set: ProtocolShapeSet,
     name: String,
-    payload: std.vm.Bytes.Bytes
+    payload: std.vm.Bytes.Bytes,
 ): Result[DecodedProtocol, BinaryDecodeError] ->
     case protocol_shape_set_resolve(set, name) {
         Err(reason) -> Err(reason);
@@ -784,7 +786,7 @@ pub protocol_shape_set_decode(
 pub protocol_shape_set_encode_exact(
     set: ProtocolShapeSet,
     name: String,
-    value: DecodedProtocol
+    value: DecodedProtocol,
 ): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
     case protocol_shape_set_resolve(set, name) {
         Err(reason) -> Err(binary_construct_error(reason));
@@ -797,7 +799,7 @@ pub protocol_shape_set_encode_exact(
 pub protocol_shape_set_encode_prefix(
     set: ProtocolShapeSet,
     name: String,
-    value: DecodedProtocol
+    value: DecodedProtocol,
 ): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
     case protocol_shape_set_resolve(set, name) {
         Err(reason) -> Err(binary_construct_error(reason));
@@ -817,15 +819,15 @@ pub validate_descriptor(descriptor: BinaryDescriptor): Result[BinaryDescriptor, 
     case descriptor_kind(descriptor) {
         RestSegment ->
             if {
-            descriptor_width(descriptor) != 0 -> Err(InvalidWidth);
-            descriptor_is_terminal(descriptor) == false -> Err(RestNotTerminal);
-            true -> Ok(descriptor)
+                descriptor_width(descriptor) != 0 -> Err(InvalidWidth);
+                descriptor_is_terminal(descriptor) == false -> Err(RestNotTerminal);
+                true -> Ok(descriptor)
             };
         _ ->
             if {
-            descriptor_width(descriptor) <= 0 -> Err(InvalidWidth);
-            descriptor_is_terminal(descriptor) -> Err(RestNotTerminal);
-            true -> Ok(descriptor)
+                descriptor_width(descriptor) <= 0 -> Err(InvalidWidth);
+                descriptor_is_terminal(descriptor) -> Err(RestNotTerminal);
+                true -> Ok(descriptor)
             }
     }.
 
@@ -841,14 +843,14 @@ pub validate_descriptor(descriptor: BinaryDescriptor): Result[BinaryDescriptor, 
 pub validate_protocol_shape(shape: ProtocolShape): Result[ProtocolShape, BinaryDecodeError] ->
     let fields = protocol_shape_fields(shape);
     if {
-    protocol_shape_name(shape).is_empty() -> Err(UnknownDescriptor);
-    fields.is_empty() -> Err(UnknownDescriptor);
-    true -> case validate_protocol_fields(fields, Map.new[String, Bool](), false) {
+        protocol_shape_name(shape).is_empty() -> Err(UnknownDescriptor);
+        fields.is_empty() -> Err(UnknownDescriptor);
+        true -> case validate_protocol_fields(fields, Map.new[String, Bool](), false) {
             Ok(has_rest) ->
                 if {
-                protocol_shape_has_terminal_rest(shape) == has_rest -> Ok(shape);
-                protocol_shape_has_terminal_rest(shape) -> Err(UnknownDescriptor);
-                true -> Err(RestNotTerminal)
+                    protocol_shape_has_terminal_rest(shape) == has_rest -> Ok(shape);
+                    protocol_shape_has_terminal_rest(shape) -> Err(UnknownDescriptor);
+                    true -> Err(RestNotTerminal)
                 };
             Err(reason) -> Err(reason)
         }
@@ -860,11 +862,24 @@ pub validate_protocol_shape(shape: ProtocolShape): Result[ProtocolShape, BinaryD
 pub validate_protocol_fields(
     fields: List[ProtocolField],
     seen: Map[String, Bool],
-    has_rest: Bool
+    has_rest: Bool,
 ): Result[Bool, BinaryDecodeError] ->
     case fields {
         [] -> Ok(has_rest);
-        [field | next] -> validate_protocol_field(next, field, seen, has_rest)
+        [field | next] ->
+            let name = protocol_field_name(field);
+            let descriptor = protocol_field_descriptor(field);
+            if {
+                seen.contains_key(name) -> Err(DuplicateField);
+                descriptor_is_terminal(descriptor) and has_rest -> Err(MultipleRest);
+                has_rest -> Err(RestNotTerminal);
+                true -> case validate_descriptor(descriptor) {
+                    Err(reason) -> Err(reason);
+                    Ok(_descriptor) ->
+                        let _put = seen.put(name, true);
+                        validate_protocol_fields(next, seen, descriptor_is_terminal(descriptor))
+                }
+            }
     }.
 
 /**
@@ -874,15 +889,15 @@ pub validate_protocol_field(
     next: List[ProtocolField],
     field: ProtocolField,
     seen: Map[String, Bool],
-    has_rest: Bool
+    has_rest: Bool,
 ): Result[Bool, BinaryDecodeError] ->
     let name = protocol_field_name(field);
     let descriptor = protocol_field_descriptor(field);
     if {
-    seen.contains_key(name) -> Err(DuplicateField);
-    descriptor_is_terminal(descriptor) and has_rest -> Err(MultipleRest);
-    has_rest -> Err(RestNotTerminal);
-    true -> validate_protocol_field_descriptor(next, name, descriptor, seen)
+        seen.contains_key(name) -> Err(DuplicateField);
+        descriptor_is_terminal(descriptor) and has_rest -> Err(MultipleRest);
+        has_rest -> Err(RestNotTerminal);
+        true -> validate_protocol_field_descriptor(next, name, descriptor, seen)
     }.
 
 /**
@@ -892,7 +907,7 @@ pub validate_protocol_field_descriptor(
     next: List[ProtocolField],
     name: String,
     descriptor: BinaryDescriptor,
-    seen: Map[String, Bool]
+    seen: Map[String, Bool],
 ): Result[Bool, BinaryDecodeError] ->
     case validate_descriptor(descriptor) {
         Ok(_descriptor) -> validate_remaining_protocol_fields(next, name, descriptor, seen);
@@ -906,7 +921,7 @@ pub validate_remaining_protocol_fields(
     next: List[ProtocolField],
     name: String,
     descriptor: BinaryDescriptor,
-    seen: Map[String, Bool]
+    seen: Map[String, Bool],
 ): Result[Bool, BinaryDecodeError] ->
     let _put = seen.put(name, true);
     validate_protocol_fields(next, seen, descriptor_is_terminal(descriptor)).
@@ -915,13 +930,39 @@ pub validate_remaining_protocol_fields(
  * Returns a golden TCP-like fixed header shape.
  */
 pub tcp_header_shape(): ProtocolShape ->
-    protocol_shape("tcp_header", BigEndian, List(protocol_field("source_port", make_uint(16)), protocol_field("destination_port", make_uint(16)), protocol_field("sequence_number", make_uint(32)), protocol_field("ack_number", make_uint(32)), protocol_field("data_offset", make_uint(4)), protocol_field("reserved", make_bit_span(4)), protocol_field("flags", make_uint(8)), protocol_field("window_size", make_uint(16)), protocol_field("checksum", make_uint(16)), protocol_field("urgent_pointer", make_uint(16))), false).
+    protocol_shape(
+        "tcp_header",
+        BigEndian,
+        List(
+            protocol_field("source_port", make_uint(16)),
+            protocol_field("destination_port", make_uint(16)),
+            protocol_field("sequence_number", make_uint(32)),
+            protocol_field("ack_number", make_uint(32)),
+            protocol_field("data_offset", make_uint(4)),
+            protocol_field("reserved", make_bit_span(4)),
+            protocol_field("flags", make_uint(8)),
+            protocol_field("window_size", make_uint(16)),
+            protocol_field("checksum", make_uint(16)),
+            protocol_field("urgent_pointer", make_uint(16)),
+        ),
+        false,
+    ).
 
 /**
  * Returns a golden compact frame shape with a terminal payload.
  */
 pub compact_frame_shape(): ProtocolShape ->
-    protocol_shape("compact_frame", BigEndian, List(protocol_field("version", make_uint(4)), protocol_field("kind", make_uint(4)), protocol_field("length", make_uint(16)), protocol_field("payload", make_rest())), true).
+    protocol_shape(
+        "compact_frame",
+        BigEndian,
+        List(
+            protocol_field("version", make_uint(4)),
+            protocol_field("kind", make_uint(4)),
+            protocol_field("length", make_uint(16)),
+            protocol_field("payload", make_rest()),
+        ),
+        true,
+    ).
 
 /**
  * Reserves exact descriptor-directed binary decoding.
@@ -942,10 +983,7 @@ pub decode_exact(descriptor: BinaryDescriptor, payload: T): Result[T, BinaryDeco
  * Transformation: keeps future partial-decode callers on the same typed error
  * surface as exact decoding.
  */
-pub decode_prefix(
-    descriptor: BinaryDescriptor,
-    payload: T
-): Result[T, BinaryDecodeError] ->
+pub decode_prefix(descriptor: BinaryDescriptor, payload: T): Result[T, BinaryDecodeError] ->
     Err(UnsupportedRuntime).
 
 /**
@@ -969,7 +1007,7 @@ pub construct(descriptor: BinaryDescriptor, value: T): Result[T, BinaryConstruct
  */
 pub compose_header_body(
     header: ProtocolShape,
-    body: ProtocolShape
+    body: ProtocolShape,
 ): Result[ProtocolShape, BinaryConstructError] ->
     case validate_protocol_shape(header) {
         Err(reason) -> Err(binary_construct_error(reason));
@@ -987,13 +1025,18 @@ pub compose_header_body(
  */
 pub split_header_body(
     payload: std.vm.Bytes.Bytes,
-    header_length: Int
+    header_length: Int,
 ): Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError] ->
     let payload_length = payload.length();
     if {
-    header_length < 0 -> Err(InvalidWidth);
-    header_length > payload_length -> Err(TruncatedPayload);
-    true -> Ok({payload.slice(0, header_length), payload.slice(header_length, payload_length - header_length)})
+        header_length < 0 -> Err(InvalidWidth);
+        header_length > payload_length -> Err(TruncatedPayload);
+        true -> Ok(
+            {
+                payload.slice(0, header_length),
+                payload.slice(header_length, payload_length - header_length),
+            },
+        )
     }.
 
 /**
@@ -1008,15 +1051,47 @@ pub split_header_body(
  */
 pub split_protocol_header(
     shape: ProtocolShape,
-    payload: std.vm.Bytes.Bytes
+    payload: std.vm.Bytes.Bytes,
 ): Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError] ->
     case validate_protocol_shape(shape) {
         Err(reason) -> Err(reason);
-        Ok(validated) ->
-            let bits = protocol_shape_fixed_bits(protocol_shape_fields(validated), 0);
+        Ok(validated) -> split_protocol_header_fields(protocol_shape_fields(validated), 0, payload)
+    }.
+
+/**
+ * Advances fixed-prefix accounting as one tail-position continuation chain.
+ */
+pub split_protocol_header_fields(
+    fields: List[ProtocolField],
+    total: Int,
+    payload: std.vm.Bytes.Bytes,
+): Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError] ->
+    case fields {
+        [] ->
             if {
-            bits / 8 * 8 != bits -> Err(InvalidAlignment);
-            true -> split_header_body(payload, bits / 8)
+                total / 8 * 8 != total -> Err(InvalidAlignment);
+                true -> split_header_body(payload, total / 8)
+            };
+        [field | next] ->
+            let descriptor = protocol_field_descriptor(field);
+            case descriptor_kind(descriptor) {
+                RestSegment ->
+                    if {
+                        total / 8 * 8 != total -> Err(InvalidAlignment);
+                        true -> split_header_body(payload, total / 8)
+                    };
+                BytesSegment ->
+                    split_protocol_header_fields(
+                        next,
+                        total + descriptor_width(descriptor) * 8,
+                        payload,
+                    );
+                _ ->
+                    split_protocol_header_fields(
+                        next,
+                        total + descriptor_width(descriptor),
+                        payload,
+                    )
             }
     }.
 
@@ -1031,15 +1106,8 @@ pub protocol_shape_fixed_bits(fields: List[ProtocolField], total: Int): Int ->
             case descriptor_kind(descriptor) {
                 RestSegment -> total;
                 BytesSegment ->
-                    protocol_shape_fixed_bits(
-                        next,
-                        total + descriptor_width(descriptor) * 8
-                    );
-                _ ->
-                    protocol_shape_fixed_bits(
-                        next,
-                        total + descriptor_width(descriptor)
-                    )
+                    protocol_shape_fixed_bits(next, total + descriptor_width(descriptor) * 8);
+                _ -> protocol_shape_fixed_bits(next, total + descriptor_width(descriptor))
             }
     }.
 
@@ -1048,15 +1116,15 @@ pub protocol_shape_fixed_bits(fields: List[ProtocolField], total: Int): Int ->
  */
 pub compose_valid_header_body(
     header: ProtocolShape,
-    body: ProtocolShape
+    body: ProtocolShape,
 ): Result[ProtocolShape, BinaryConstructError] ->
     case validate_protocol_shape(body) {
         Err(reason) -> Err(binary_construct_error(reason));
         Ok(_body) ->
             if {
-            protocol_shape_has_terminal_rest(header) -> Err(RestNotTerminal);
-            protocol_shape_endian(header) != protocol_shape_endian(body) -> Err(UnknownDescriptor);
-            true -> Ok(composed_protocol_shape(header, body))
+                protocol_shape_has_terminal_rest(header) -> Err(RestNotTerminal);
+                protocol_shape_endian(header) != protocol_shape_endian(body) -> Err(UnknownDescriptor);
+                true -> Ok(composed_protocol_shape(header, body))
             }
     }.
 
@@ -1065,16 +1133,56 @@ pub compose_valid_header_body(
  */
 pub composed_protocol_shape(header: ProtocolShape, body: ProtocolShape): ProtocolShape ->
     let fields = List.new[ProtocolField]();
-    let header_fields = copy_protocol_fields(protocol_shape_fields(header), fields);
-    let combined_fields = copy_protocol_fields(protocol_shape_fields(body), header_fields);
-    protocol_shape(protocol_shape_name(header) + "_" + protocol_shape_name(body), protocol_shape_endian(header), combined_fields, protocol_shape_has_terminal_rest(body)).
+    compose_protocol_header_fields(
+        protocol_shape_fields(header),
+        protocol_shape_fields(body),
+        fields,
+        protocol_shape_name(header) + "_" + protocol_shape_name(body),
+        protocol_shape_endian(header),
+        protocol_shape_has_terminal_rest(body),
+    ).
+
+/**
+ * Copies header fields before tail-calling the body-field continuation.
+ */
+pub compose_protocol_header_fields(
+    header: List[ProtocolField],
+    body: List[ProtocolField],
+    output: List[ProtocolField],
+    name: String,
+    endian: EndianPolicy,
+    terminal_rest: Bool,
+): ProtocolShape ->
+    case header {
+        [] -> compose_protocol_body_fields(body, output, name, endian, terminal_rest);
+        [field | next] ->
+            let _pushed = output.push(field);
+            compose_protocol_header_fields(next, body, output, name, endian, terminal_rest)
+    }.
+
+/**
+ * Copies body fields and constructs the final shape in tail position.
+ */
+pub compose_protocol_body_fields(
+    body: List[ProtocolField],
+    output: List[ProtocolField],
+    name: String,
+    endian: EndianPolicy,
+    terminal_rest: Bool,
+): ProtocolShape ->
+    case body {
+        [] -> protocol_shape(name, endian, output, terminal_rest);
+        [field | next] ->
+            let _pushed = output.push(field);
+            compose_protocol_body_fields(next, output, name, endian, terminal_rest)
+    }.
 
 /**
  * Copies protocol fields into a fresh ordered list.
  */
 pub copy_protocol_fields(
     fields: List[ProtocolField],
-    output: List[ProtocolField]
+    output: List[ProtocolField],
 ): List[ProtocolField] ->
     case fields {
         [] -> output;
@@ -1114,7 +1222,7 @@ pub binary_construct_error(reason: BinaryDecodeError): BinaryConstructError ->
  */
 pub decode_fixed_header(
     shape: ProtocolShape,
-    payload: std.vm.Bytes.Bytes
+    payload: std.vm.Bytes.Bytes,
 ): Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError] ->
     split_protocol_header(shape, payload).
 
@@ -1130,12 +1238,18 @@ pub decode_fixed_header(
  */
 pub decode_prefixed_body(
     shape: ProtocolShape,
-    payload: std.vm.Bytes.Bytes
+    payload: std.vm.Bytes.Bytes,
 ): Result[DecodedProtocol, BinaryDecodeError] ->
     case validate_protocol_shape(shape) {
         Err(reason) -> Err(reason);
         Ok(validated) ->
-            decode_protocol_fields(protocol_shape_fields(validated), protocol_shape_endian(validated), payload, 0, List.new[DecodedField]())
+            decode_protocol_fields(
+                protocol_shape_fields(validated),
+                protocol_shape_endian(validated),
+                payload,
+                0,
+                List.new[DecodedField](),
+            )
     }.
 
 /**
@@ -1146,22 +1260,64 @@ pub decode_protocol_fields(
     endian: EndianPolicy,
     payload: std.vm.Bytes.Bytes,
     bit_offset: Int,
-    decoded: List[DecodedField]
+    decoded: List[DecodedField],
 ): Result[DecodedProtocol, BinaryDecodeError] ->
     case fields {
         [] -> decode_protocol_tail(payload, bit_offset, decoded);
         [field | next] ->
             let descriptor = protocol_field_descriptor(field);
             let name = protocol_field_name(field);
+            let width = descriptor_width(descriptor);
+            let payload_bits = payload.length() * 8;
             case descriptor_kind(descriptor) {
                 UIntSegment ->
-                    decode_protocol_integer(next, endian, payload, bit_offset, decoded, name, descriptor_width(descriptor), false);
+                    if {
+                        width < 1 or width > 63 -> Err(InvalidWidth);
+                        width > payload_bits or bit_offset > payload_bits - width -> Err(TruncatedPayload);
+                        true -> let value =
+                            case endian {
+                                BigEndian -> payload.read_uint_be(bit_offset, width);
+                                LittleEndian -> payload.read_uint_le(bit_offset, width)
+                            };
+                        let _pushed = decoded.push(decoded_int_field(name, value));
+                        decode_protocol_fields(next, endian, payload, bit_offset + width, decoded)
+                    };
                 IntSegment ->
-                    decode_protocol_integer(next, endian, payload, bit_offset, decoded, name, descriptor_width(descriptor), true);
+                    if {
+                        width < 1 or width > 63 -> Err(InvalidWidth);
+                        width > payload_bits or bit_offset > payload_bits - width -> Err(TruncatedPayload);
+                        true -> let value =
+                            case endian {
+                                BigEndian -> payload.read_int_be(bit_offset, width);
+                                LittleEndian -> payload.read_int_le(bit_offset, width)
+                            };
+                        let _pushed = decoded.push(decoded_int_field(name, value));
+                        decode_protocol_fields(next, endian, payload, bit_offset + width, decoded)
+                    };
                 BytesSegment ->
-                    decode_protocol_bytes(next, endian, payload, bit_offset, decoded, name, descriptor_width(descriptor));
+                    if {
+                        bit_offset / 8 * 8 != bit_offset -> Err(InvalidAlignment);
+                        width < 1 -> Err(InvalidWidth);
+                        bit_offset / 8 > payload.length()
+                            or width > payload.length() - bit_offset / 8 -> Err(TruncatedPayload);
+                        true -> let value = payload.slice(bit_offset / 8, width);
+                        let _pushed = decoded.push(decoded_bytes_field(name, value));
+                        decode_protocol_fields(
+                            next,
+                            endian,
+                            payload,
+                            bit_offset + width * 8,
+                            decoded,
+                        )
+                    };
                 BitsSegment ->
-                    decode_protocol_bits(next, endian, payload, bit_offset, decoded, name, descriptor_width(descriptor));
+                    if {
+                        width < 1 -> Err(InvalidWidth);
+                        width > payload_bits or bit_offset > payload_bits - width -> Err(TruncatedPayload);
+                        true -> let value = BitString.from_bytes(payload, payload_bits).slice(bit_offset, width);
+                        let _pushed = decoded.push(decoded_bits_field(name, value));
+                        decode_protocol_fields(next, endian, payload, bit_offset + width, decoded)
+                    };
                 RestSegment -> decode_protocol_tail(payload, bit_offset, decoded)
             }
     }.
@@ -1176,13 +1332,13 @@ pub decode_protocol_bits(
     bit_offset: Int,
     decoded: List[DecodedField],
     name: String,
-    width: Int
+    width: Int,
 ): Result[DecodedProtocol, BinaryDecodeError] ->
     let payload_bits = payload.length() * 8;
     if {
-    width < 1 -> Err(InvalidWidth);
-    width > payload_bits or bit_offset > payload_bits - width -> Err(TruncatedPayload);
-    true -> let value = BitString.from_bytes(payload, payload_bits).slice(bit_offset, width);
+        width < 1 -> Err(InvalidWidth);
+        width > payload_bits or bit_offset > payload_bits - width -> Err(TruncatedPayload);
+        true -> let value = BitString.from_bytes(payload, payload_bits).slice(bit_offset, width);
         let _pushed = decoded.push(decoded_bits_field(name, value));
         decode_protocol_fields(next, endian, payload, bit_offset + width, decoded)
     }.
@@ -1198,13 +1354,13 @@ pub decode_protocol_integer(
     decoded: List[DecodedField],
     name: String,
     width: Int,
-    signed: Bool
+    signed: Bool,
 ): Result[DecodedProtocol, BinaryDecodeError] ->
     let payload_bits = payload.length() * 8;
     if {
-    width < 1 or width > 63 -> Err(InvalidWidth);
-    width > payload_bits or bit_offset > payload_bits - width -> Err(TruncatedPayload);
-    true -> let value =
+        width < 1 or width > 63 -> Err(InvalidWidth);
+        width > payload_bits or bit_offset > payload_bits - width -> Err(TruncatedPayload);
+        true -> let value =
             case {signed, endian} {
                 {false, BigEndian} -> payload.read_uint_be(bit_offset, width);
                 {false, LittleEndian} -> payload.read_uint_le(bit_offset, width);
@@ -1225,14 +1381,14 @@ pub decode_protocol_bytes(
     bit_offset: Int,
     decoded: List[DecodedField],
     name: String,
-    width: Int
+    width: Int,
 ): Result[DecodedProtocol, BinaryDecodeError] ->
     let byte_offset = bit_offset / 8;
     if {
-    byte_offset * 8 != bit_offset -> Err(InvalidAlignment);
-    width < 1 -> Err(InvalidWidth);
-    byte_offset > payload.length() or width > payload.length() - byte_offset -> Err(TruncatedPayload);
-    true -> let value = payload.slice(byte_offset, width);
+        byte_offset * 8 != bit_offset -> Err(InvalidAlignment);
+        width < 1 -> Err(InvalidWidth);
+        byte_offset > payload.length() or width > payload.length() - byte_offset -> Err(TruncatedPayload);
+        true -> let value = payload.slice(byte_offset, width);
         let _pushed = decoded.push(decoded_bytes_field(name, value));
         decode_protocol_fields(next, endian, payload, bit_offset + width * 8, decoded)
     }.
@@ -1243,13 +1399,13 @@ pub decode_protocol_bytes(
 pub decode_protocol_tail(
     payload: std.vm.Bytes.Bytes,
     bit_offset: Int,
-    decoded: List[DecodedField]
+    decoded: List[DecodedField],
 ): Result[DecodedProtocol, BinaryDecodeError] ->
     let byte_offset = bit_offset / 8;
     if {
-    byte_offset * 8 != bit_offset -> Err(InvalidAlignment);
-    byte_offset > payload.length() -> Err(TruncatedPayload);
-    true -> Ok(decoded_protocol(decoded, payload.slice(byte_offset, payload.length() - byte_offset)))
+        byte_offset * 8 != bit_offset -> Err(InvalidAlignment);
+        byte_offset > payload.length() -> Err(TruncatedPayload);
+        true -> Ok(decoded_protocol(decoded, payload.slice(byte_offset, payload.length() - byte_offset)))
     }.
 
 /**
@@ -1263,7 +1419,7 @@ pub decode_protocol_tail(
  */
 pub encode_exact(
     shape: ProtocolShape,
-    value: DecodedProtocol
+    value: DecodedProtocol,
 ): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
     encode_protocol(shape, value, true).
 
@@ -1277,7 +1433,7 @@ pub encode_exact(
  */
 pub encode_prefix(
     shape: ProtocolShape,
-    value: DecodedProtocol
+    value: DecodedProtocol,
 ): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
     encode_protocol(shape, value, false).
 
@@ -1287,7 +1443,7 @@ pub encode_prefix(
 pub encode_protocol(
     shape: ProtocolShape,
     value: DecodedProtocol,
-    include_rest: Bool
+    include_rest: Bool,
 ): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
     case validate_protocol_shape(shape) {
         Err(reason) -> Err(binary_construct_error(reason));
@@ -1298,7 +1454,7 @@ pub encode_protocol(
                 protocol_shape_endian(validated),
                 value,
                 empty,
-                include_rest
+                include_rest,
             )
     }.
 
@@ -1310,7 +1466,7 @@ pub encode_protocol_fields(
     endian: EndianPolicy,
     decoded: DecodedProtocol,
     encoded: std.vm.BitString.BitString,
-    include_rest: Bool
+    include_rest: Bool,
 ): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
     case fields {
         [] -> finish_protocol_encoding(encoded);
@@ -1319,47 +1475,145 @@ pub encode_protocol_fields(
             let name = protocol_field_name(field);
             case descriptor_kind(descriptor) {
                 UIntSegment ->
-                    encode_protocol_uint(
-                        next,
-                        endian,
-                        decoded,
-                        encoded,
-                        include_rest,
-                        name,
-                        descriptor_width(descriptor)
-                    );
+                    case encode_protocol_uint_value(endian, decoded, encoded, name, descriptor_width(descriptor)) {
+                        Err(reason) -> Err(reason);
+                        Ok(next_encoded) ->
+                            encode_protocol_fields(
+                                next,
+                                endian,
+                                decoded,
+                                next_encoded,
+                                include_rest,
+                            )
+                    };
                 IntSegment ->
-                    encode_protocol_int(
-                        next,
-                        endian,
-                        decoded,
-                        encoded,
-                        include_rest,
-                        name,
-                        descriptor_width(descriptor)
-                    );
+                    case encode_protocol_int_value(endian, decoded, encoded, name, descriptor_width(descriptor)) {
+                        Err(reason) -> Err(reason);
+                        Ok(next_encoded) ->
+                            encode_protocol_fields(
+                                next,
+                                endian,
+                                decoded,
+                                next_encoded,
+                                include_rest,
+                            )
+                    };
                 BytesSegment ->
-                    encode_protocol_bytes(
-                        next,
-                        endian,
-                        decoded,
-                        encoded,
-                        include_rest,
-                        name,
-                        descriptor_width(descriptor)
-                    );
+                    case encode_protocol_bytes_value(decoded, encoded, name, descriptor_width(descriptor)) {
+                        Err(reason) -> Err(reason);
+                        Ok(next_encoded) ->
+                            encode_protocol_fields(
+                                next,
+                                endian,
+                                decoded,
+                                next_encoded,
+                                include_rest,
+                            )
+                    };
                 BitsSegment ->
-                    encode_protocol_bits(
-                        next,
-                        endian,
-                        decoded,
-                        encoded,
-                        include_rest,
-                        name,
-                        descriptor_width(descriptor)
-                    );
-                RestSegment ->
-                    encode_protocol_rest(decoded, encoded, include_rest)
+                    case encode_protocol_bits_value(decoded, encoded, name, descriptor_width(descriptor)) {
+                        Err(reason) -> Err(reason);
+                        Ok(next_encoded) ->
+                            encode_protocol_fields(
+                                next,
+                                endian,
+                                decoded,
+                                next_encoded,
+                                include_rest,
+                            )
+                    };
+                RestSegment -> encode_protocol_rest(decoded, encoded, include_rest)
+            }
+    }.
+
+/**
+ * Validates and appends one unsigned field without recursing over the shape.
+ */
+pub encode_protocol_uint_value(
+    endian: EndianPolicy,
+    decoded: DecodedProtocol,
+    encoded: std.vm.BitString.BitString,
+    name: String,
+    width: Int,
+): Result[std.vm.BitString.BitString, BinaryConstructError] ->
+    case decoded_protocol_int_value(decoded, name) {
+        None -> Err(UnknownDescriptor);
+        Some(value) ->
+            if {
+                width < 1 or width > 63 -> Err(InvalidWidth);
+                value < 0 -> Err(InvalidWidth);
+                width < 63 and value >= power_of_two(width) -> Err(InvalidWidth);
+                true -> let field =
+                    case endian {
+                        BigEndian -> BitString.from_uint_be(value, width);
+                        LittleEndian -> BitString.from_uint_le(value, width)
+                    };
+                Ok(encoded.concat(field))
+            }
+    }.
+
+/**
+ * Validates and appends one signed field without recursing over the shape.
+ */
+pub encode_protocol_int_value(
+    endian: EndianPolicy,
+    decoded: DecodedProtocol,
+    encoded: std.vm.BitString.BitString,
+    name: String,
+    width: Int,
+): Result[std.vm.BitString.BitString, BinaryConstructError] ->
+    case decoded_protocol_int_value(decoded, name) {
+        None -> Err(UnknownDescriptor);
+        Some(value) ->
+            if {
+                width < 1 or width > 63 -> Err(InvalidWidth);
+                true -> let limit = power_of_two(width - 1);
+                if {
+                    value < -limit or value >= limit -> Err(InvalidWidth);
+                    true -> let field =
+                        case endian {
+                            BigEndian -> BitString.from_int_be(value, width);
+                            LittleEndian -> BitString.from_int_le(value, width)
+                        };
+                    Ok(encoded.concat(field))
+                }
+            }
+    }.
+
+/**
+ * Validates and appends one fixed byte field without recursing over the shape.
+ */
+pub encode_protocol_bytes_value(
+    decoded: DecodedProtocol,
+    encoded: std.vm.BitString.BitString,
+    name: String,
+    width: Int,
+): Result[std.vm.BitString.BitString, BinaryConstructError] ->
+    case decoded_protocol_bytes_value(decoded, name) {
+        None -> Err(UnknownDescriptor);
+        Some(value) ->
+            if {
+                width < 1 or value.length() != width -> Err(InvalidWidth);
+                encoded.is_byte_aligned() == false -> Err(InvalidAlignment);
+                true -> Ok(encoded.concat(BitString.from_bytes(value, width * 8)))
+            }
+    }.
+
+/**
+ * Validates and appends one exact bit field without recursing over the shape.
+ */
+pub encode_protocol_bits_value(
+    decoded: DecodedProtocol,
+    encoded: std.vm.BitString.BitString,
+    name: String,
+    width: Int,
+): Result[std.vm.BitString.BitString, BinaryConstructError] ->
+    case decoded_protocol_bits_value(decoded, name) {
+        None -> Err(UnknownDescriptor);
+        Some(value) ->
+            if {
+                width < 1 or value.bit_length() != width -> Err(InvalidWidth);
+                true -> Ok(encoded.concat(value))
             }
     }.
 
@@ -1373,17 +1627,16 @@ pub encode_protocol_uint(
     encoded: std.vm.BitString.BitString,
     include_rest: Bool,
     name: String,
-    width: Int
+    width: Int,
 ): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
     case decoded_protocol_int_value(decoded, name) {
         None -> Err(UnknownDescriptor);
         Some(value) ->
             if {
-            width < 1 or width > 63 -> Err(InvalidWidth);
-            value < 0 -> Err(InvalidWidth);
-            width < 63 and value >= power_of_two(width) -> Err(InvalidWidth);
-            true ->
-                let field =
+                width < 1 or width > 63 -> Err(InvalidWidth);
+                value < 0 -> Err(InvalidWidth);
+                width < 63 and value >= power_of_two(width) -> Err(InvalidWidth);
+                true -> let field =
                     case endian {
                         BigEndian -> BitString.from_uint_be(value, width);
                         LittleEndian -> BitString.from_uint_le(value, width)
@@ -1402,24 +1655,28 @@ pub encode_protocol_int(
     encoded: std.vm.BitString.BitString,
     include_rest: Bool,
     name: String,
-    width: Int
+    width: Int,
 ): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
     case decoded_protocol_int_value(decoded, name) {
         None -> Err(UnknownDescriptor);
         Some(value) ->
             if {
-            width < 1 or width > 63 -> Err(InvalidWidth);
-            true ->
-                let limit = power_of_two(width - 1);
+                width < 1 or width > 63 -> Err(InvalidWidth);
+                true -> let limit = power_of_two(width - 1);
                 if {
-                value < -limit or value >= limit -> Err(InvalidWidth);
-                true ->
-                    let field =
+                    value < -limit or value >= limit -> Err(InvalidWidth);
+                    true -> let field =
                         case endian {
                             BigEndian -> BitString.from_int_be(value, width);
                             LittleEndian -> BitString.from_int_le(value, width)
                         };
-                    encode_protocol_fields(next, endian, decoded, encoded.concat(field), include_rest)
+                    encode_protocol_fields(
+                        next,
+                        endian,
+                        decoded,
+                        encoded.concat(field),
+                        include_rest,
+                    )
                 }
             }
     }.
@@ -1434,16 +1691,15 @@ pub encode_protocol_bytes(
     encoded: std.vm.BitString.BitString,
     include_rest: Bool,
     name: String,
-    width: Int
+    width: Int,
 ): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
     case decoded_protocol_bytes_value(decoded, name) {
         None -> Err(UnknownDescriptor);
         Some(value) ->
             if {
-            width < 1 or value.length() != width -> Err(InvalidWidth);
-            encoded.is_byte_aligned() == false -> Err(InvalidAlignment);
-            true ->
-                let field = BitString.from_bytes(value, width * 8);
+                width < 1 or value.length() != width -> Err(InvalidWidth);
+                encoded.is_byte_aligned() == false -> Err(InvalidAlignment);
+                true -> let field = BitString.from_bytes(value, width * 8);
                 encode_protocol_fields(next, endian, decoded, encoded.concat(field), include_rest)
             }
     }.
@@ -1458,15 +1714,14 @@ pub encode_protocol_bits(
     encoded: std.vm.BitString.BitString,
     include_rest: Bool,
     name: String,
-    width: Int
+    width: Int,
 ): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
     case decoded_protocol_bits_value(decoded, name) {
         None -> Err(UnknownDescriptor);
         Some(value) ->
             if {
-            width < 1 or value.bit_length() != width -> Err(InvalidWidth);
-            true ->
-                encode_protocol_fields(next, endian, decoded, encoded.concat(value), include_rest)
+                width < 1 or value.bit_length() != width -> Err(InvalidWidth);
+                true -> encode_protocol_fields(next, endian, decoded, encoded.concat(value), include_rest)
             }
     }.
 
@@ -1476,24 +1731,23 @@ pub encode_protocol_bits(
 pub encode_protocol_rest(
     decoded: DecodedProtocol,
     encoded: std.vm.BitString.BitString,
-    include_rest: Bool
+    include_rest: Bool,
 ): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
     if {
-    encoded.is_byte_aligned() == false -> Err(InvalidAlignment);
-    include_rest ->
-        Ok(Bytes.concat(encoded.to_bytes(), decoded_protocol_remaining_bytes(decoded)));
-    true -> Ok(encoded.to_bytes())
+        encoded.is_byte_aligned() == false -> Err(InvalidAlignment);
+        include_rest -> Ok(Bytes.concat(encoded.to_bytes(), decoded_protocol_remaining_bytes(decoded)));
+        true -> Ok(encoded.to_bytes())
     }.
 
 /**
  * Converts a completed byte-aligned bit accumulator to immutable bytes.
  */
 pub finish_protocol_encoding(
-    encoded: std.vm.BitString.BitString
+    encoded: std.vm.BitString.BitString,
 ): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
     if {
-    encoded.is_byte_aligned() -> Ok(encoded.to_bytes());
-    true -> Err(InvalidAlignment)
+        encoded.is_byte_aligned() -> Ok(encoded.to_bytes());
+        true -> Err(InvalidAlignment)
     }.
 
 /**
@@ -1501,6 +1755,6 @@ pub finish_protocol_encoding(
  */
 pub power_of_two(exponent: Int): Int ->
     if {
-    exponent <= 0 -> 1;
-    true -> 2 * power_of_two(exponent - 1)
+        exponent <= 0 -> 1;
+        true -> 2 * power_of_two(exponent - 1)
     }.

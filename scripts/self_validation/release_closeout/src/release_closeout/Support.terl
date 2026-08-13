@@ -1,0 +1,320 @@
+/**
+ * Shared source-isolated installed-candidate release validation support.
+ */
+module release_closeout.Support.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{eprintln}.
+import std.io.{Archive, Directory, File}.
+import std.system.{Environment, Platform, Process}.
+import std.time.Clock.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.system.Process.{EnvironmentEntry, Output}.
+
+pub struct Candidate {
+    temporary: String,
+    installed: String,
+    workspace: String,
+    compiler: String,
+    vm: String,
+    worker: String,
+    lsp: String,
+    version: String,
+    process_path: String,
+}.
+
+pub struct CommandResult {
+    label: String,
+    command: String,
+    status: Int,
+    stdout: String,
+    stderr: String,
+    wall_time_ns: Int,
+}.
+
+pub repository_root(): String ->
+    case Environment.get("TERLAN_RELEASE_CLOSEOUT_ROOT") {
+        Some(value) -> value;
+        None -> Environment.current_directory()
+    }.
+
+@pure
+pub child(parent: String, relative: String): String ->
+    if {
+        String.ends_with(parent, "/") -> String.append(parent, relative);
+        true -> String.append(parent, String.append("/", relative))
+    }.
+
+pub fail(code: String, message: String): Bool ->
+    let _printed = eprintln(String.concat(["error[release_closeout.", code, "]: ", message]));
+    false.
+
+platform_artifact(): Option[{String, String, String}] ->
+    let host = Platform.current();
+    let os =
+        if {
+            host.operating_system == "linux" -> "linux";
+            host.operating_system == "macos" or host.operating_system == "darwin" -> "macos";
+            host.operating_system == "windows" -> "windows";
+            true -> ""
+        };
+    let arch =
+        if {
+            host.architecture == "x86_64" or host.architecture == "amd64" -> "x86_64";
+            host.architecture == "aarch64" or host.architecture == "arm64" -> "aarch64";
+            true -> ""
+        };
+    if {
+        os == "" or arch == "" -> None;
+        os == "windows" -> Some({String.concat(["terlc-windows-", arch, ".zip"]), ".exe", ";"});
+        true -> Some({String.concat(["terlc-", os, "-", arch, ".tar.gz"]), "", ":"})
+    }.
+
+/**
+ * Returns the installed release archive name for the current host.
+ */
+pub release_artifact_name(): Option[String] ->
+    case platform_artifact() {
+        Some({name, _suffix, _separator}) -> Some(name);
+        None -> None
+    }.
+
+version_from_lines(lines: List[String]): String ->
+    case lines {
+        [] -> "";
+        [line | rest] ->
+            let trimmed = String.trim(line);
+            if {
+                String.starts_with(trimmed, "version = \"") -> case String.split(trimmed, "\"") {
+                    [_prefix, version, _suffix] -> version;
+                    _ -> ""
+                };
+                true -> version_from_lines(rest)
+            }
+    }.
+
+workspace_version(root: String): String ->
+    case File.read_text(child(root, "Cargo.toml")) {
+        Ok(source) -> version_from_lines(String.split(source, "\n"));
+        Err(_reason) -> ""
+    }.
+
+pub prepare(root: String, label: String): Option[Candidate] ->
+    let {
+        Some({artifact_name, suffix, path_separator}) <- platform_artifact();
+        Ok(temporary) <- Directory.create_temporary(String.concat(["terlan-release-", label, "."]));
+        Ok(Unit) <-
+            Archive.extract(
+                child(root, String.append("dist/", artifact_name)),
+                child(temporary, "installed"),
+            );
+        Ok(Unit) <- Directory.create_all(child(temporary, "workspace"));
+        Ok(Unit) <- Directory.create_all(child(temporary, "home"))
+    } else {
+        _ ->
+            let _failed = fail("candidate", "cannot extract the current installed release candidate");
+            None
+    };
+    (let installed = child(temporary, "installed");
+let compiler = child(installed, String.append("terlc", suffix));
+let vm = child(installed, String.append("terlan-vm", suffix));
+let worker = child(installed, String.append("terlan-native-worker", suffix));
+let lsp = child(installed, String.append("terlan-lsp", suffix));
+let version = workspace_version(root);
+let inherited_path =
+    case Environment.get("PATH") {
+        Some(value) -> value;
+        None -> ""
+    };
+if {
+    version == ""
+        or not File.exists(compiler)
+        or not File.exists(vm)
+        or not File.exists(worker)
+        or not File.exists(lsp) -> let _failed = fail("candidate", "installed candidate identity or executable inventory is incomplete");
+    let _removed = Directory.remove_all(temporary);
+    None;
+    true -> Some(
+        Candidate(
+            temporary = temporary,
+            installed = installed,
+            workspace = child(temporary, "workspace"),
+            compiler = compiler,
+            vm = vm,
+            worker = worker,
+            lsp = lsp,
+            version = version,
+            process_path = String.append(installed, String.append(path_separator, inherited_path)),
+        ),
+    )
+}).
+
+environment(candidate: Candidate): List[EnvironmentEntry] ->
+    [
+        Process.environment_entry("PATH", candidate.process_path),
+        Process.environment_entry("HOME", child(candidate.temporary, "home")),
+    ].
+
+join_arguments(arguments: List[String], output: String): String ->
+    case arguments {
+        [] -> output;
+        [argument | rest] ->
+            let next =
+                if {
+                    output == "" -> argument;
+                    true -> String.concat([output, " ", argument])
+                };
+            join_arguments(rest, next)
+    }.
+
+pub run(
+    candidate: Candidate,
+    label: String,
+    program: String,
+    arguments: List[String],
+    working_directory: String,
+): CommandResult ->
+    let command =
+        Process.command(program)
+            .with_arguments(arguments)
+            .with_working_directory(working_directory)
+            .with_environment(environment(candidate))
+            .without_environment(
+                [
+                    "TERLAN_REPOSITORY_ROOT",
+                    "TERLAN_STDLIB_ROOT",
+                    "TERLAN_PACKAGE_ROOT",
+                    "TERLC",
+                    "CARGO_TARGET_DIR",
+                ],
+            )
+            .with_timeout_ms(300000)
+            .with_output_limit_bytes(16777216);
+    let started = Clock.monotonic_time_ns();
+    case Process.run(command) {
+        Ok(output) ->
+            CommandResult(
+                label = label,
+                command = String.concat([program, " ", join_arguments(arguments, "")]),
+                status = Process.status(output),
+                stdout = Process.stdout(output),
+                stderr = Process.stderr(output),
+                wall_time_ns = Clock.monotonic_time_ns() - started,
+            );
+        Err(reason) ->
+            CommandResult(
+                label = label,
+                command = String.concat([program, " ", join_arguments(arguments, "")]),
+                status = -1,
+                stdout = "",
+                stderr = Process.error_message(reason),
+                wall_time_ns = Clock.monotonic_time_ns() - started,
+            )
+    }.
+
+pub succeeded(result: CommandResult): Bool ->
+    result.status == 0.
+
+pub clean_output(value: String, repository: String, temporary: String): String ->
+    String.replace(String.replace(value, repository, "<repository>"), temporary, "<temporary>").
+
+pub command_json(result: CommandResult, repository: String, temporary: String): Json ->
+    Json.object()
+        .put("label", Json.string(result.label))
+        .put("command", Json.string(clean_output(result.command, repository, temporary)))
+        .put("status", Json.int(result.status))
+        .put("stdout", Json.string(clean_output(result.stdout, repository, temporary)))
+        .put("stderr", Json.string(clean_output(result.stderr, repository, temporary)))
+        .put("wall_time_ns", Json.int(result.wall_time_ns)).
+
+commands_json_loop(
+    results: List[CommandResult],
+    repository: String,
+    temporary: String,
+    accumulator: Json,
+): Json ->
+    case results {
+        [] -> accumulator;
+        [result | rest] ->
+            commands_json_loop(
+                rest,
+                repository,
+                temporary,
+                accumulator.push(command_json(result, repository, temporary)),
+            )
+    }.
+
+pub commands_json(results: List[CommandResult], repository: String, temporary: String): Json ->
+    commands_json_loop(results, repository, temporary, Json.array()).
+
+string_array_loop(values: List[String], accumulator: Json): Json ->
+    case values {
+        [] -> accumulator;
+        [value | rest] -> string_array_loop(rest, accumulator.push(Json.string(value)))
+    }.
+
+/**
+ * Converts owned strings into a JSON array without retaining native handles.
+ */
+pub string_array(values: List[String]): Json ->
+    string_array_loop(values, Json.array()).
+
+pub all_succeeded(results: List[CommandResult]): Bool ->
+    case results {
+        [] -> true;
+        [result | rest] -> succeeded(result) and all_succeeded(rest)
+    }.
+
+pub write_files(rows: List[{String, String}]): Bool ->
+    case rows {
+        [] -> true;
+        [{path, contents} | rest] ->
+            case File.write_text(path, contents) {
+                Ok(Unit) -> write_files(rest);
+                Err(_reason) -> false
+            }
+    }.
+
+pub write_report(root: String, name: String, report: Json): Bool ->
+    let {
+        Ok(Unit) <- Directory.create_all(child(root, "target/quality"));
+        Ok(rendered) <- Json.stringify_pretty(report);
+        Ok(Unit) <-
+            File.write_text(
+                child(root, String.append("target/quality/", name)),
+                String.append(rendered, "\n"),
+            )
+    } else {
+        _ -> fail("report", String.concat(["cannot write ", name]))
+    };
+    true.
+
+pub tree_hash(path: String): String ->
+    case Hash.sha256_tree(path) {
+        Ok(value) -> value;
+        Err(_reason) -> ""
+    }.
+
+pub cleanup(candidate: Candidate, valid: Bool): Bool ->
+    case Directory.remove_all(candidate.temporary) {
+        Ok(Unit) -> valid;
+        Err(_reason) -> fail("cleanup", "temporary installed-candidate workspace was not removed")
+    }.
+
+pub candidate_identity_holds(candidate: Candidate): Bool ->
+    let compiler = run(candidate, "compiler-version", "terlc", ["--version"], candidate.workspace);
+    let vm = run(candidate, "vm-version", "terlan-vm", ["--version"], candidate.workspace);
+    let worker = run(candidate, "worker-version", "terlan-native-worker", ["--version"], candidate.workspace);
+    succeeded(compiler)
+        and succeeded(vm)
+        and succeeded(worker)
+        and String.trim(compiler.stdout) == String.concat(["terlc ", candidate.version])
+        and String.trim(vm.stdout) == String.concat(["terlan-vm ", candidate.version])
+        and String.trim(worker.stdout) == String.concat(["terlan-native-worker ", candidate.version]).

@@ -1,0 +1,122 @@
+/**
+ * Validates repository Markdown whitespace through the sealed AOT tool.
+ */
+module rust_quality.DocsLight.
+
+import rust_quality.{CargoMetadata, SourceInventory}.
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.io.Console.{eprintln, println}.
+import std.io.{Directory, File}.
+
+import type std.io.File.TextFile.
+
+@pure
+markdown_paths(root: String, paths: List[String], output: List[String]): List[String] ->
+    case paths {
+        [] -> CargoMetadata.sort_unique(output);
+        [path | rest] ->
+            markdown_paths(
+                root,
+                rest,
+                if {
+                    String.ends_with(path, ".md") -> [path | output];
+                    true -> output
+                },
+            )
+    }.
+
+@pure
+trailing_whitespace(lines: List[String], line_number: Int, path: String): List[String] ->
+    trailing_whitespace_at(lines, line_number, path, List.new[String]()).
+
+@pure
+trailing_whitespace_at(
+    lines: List[String],
+    line_number: Int,
+    path: String,
+    diagnostics: List[String],
+): List[String] ->
+    case lines {
+        [] -> diagnostics;
+        [line | rest] ->
+            trailing_whitespace_at(
+                rest,
+                line_number + 1,
+                path,
+                if {
+                    String.trim_end(line) == line -> diagnostics;
+                    true -> [String.concat([path, ":", Int.to_string(line_number), ": trailing whitespace"]) | diagnostics]
+                },
+            )
+    }.
+
+@pure
+file_diagnostics(files: List[TextFile], diagnostics: List[String]): List[String] ->
+    case files {
+        [] -> diagnostics;
+        [file | rest] ->
+            let path = File.text_file_path(file);
+            let contents = File.text_file_contents(file);
+            let tabs =
+                if {
+                    String.contains(contents, "\t") -> [String.append(path, ": contains tab characters") | diagnostics];
+                    true -> diagnostics
+                };
+            file_diagnostics(
+                rest,
+                List.concat(trailing_whitespace(String.split(contents, "\n"), 1, path), tabs),
+            )
+    }.
+
+print_diagnostics(values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            let _printed = eprintln(String.append("  - ", value));
+            print_diagnostics(rest)
+    }.
+
+pub check(root: String): Bool ->
+    case Directory.files_recursive_excluding(SourceInventory.child(root, "docs"), []) {
+        Err(reason) ->
+            let _printed = eprintln(Directory.message(reason));
+            false;
+        Ok(files) ->
+            let paths =
+                markdown_paths(
+                    root,
+                    files,
+                    [
+                        SourceInventory.child(root, "README.md"),
+                        SourceInventory.child(root, "CHANGELOG.md"),
+                        SourceInventory.child(root, ".github/WORKFLOWS.md"),
+                    ],
+                );
+            case File.read_text_many(paths) {
+                Err(reason) ->
+                    let _printed = eprintln(File.message(reason));
+                    false;
+                Ok(sources) ->
+                    let diagnostics = file_diagnostics(sources, List.new[String]());
+                    if {
+                        List.length(diagnostics) > 0 -> let _printed = eprintln("docs-light failures:");
+                        print_diagnostics(diagnostics);
+                        true -> let _printed =
+                            println(
+                                String.concat(
+                                    [
+                                        "docs-light checked ",
+                                        Int.to_string(List.length(paths)),
+                                        " markdown files.",
+                                    ],
+                                ),
+                            );
+                        true
+                    }
+            }
+    }.
+
+pub self_test(): Bool ->
+    List.length(trailing_whitespace(["ok", "bad ", "tab\t"], 1, "fixture.md")) == 2.

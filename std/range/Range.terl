@@ -25,7 +25,7 @@ pub struct Range {
     start: Int,
     stop: Int,
     step: Int,
-    inclusive: Bool
+    inclusive: Bool,
 }.
 
 /**
@@ -100,8 +100,8 @@ pub contains(range: Range, value: Int): Bool ->
         true -> false;
         false ->
             if {
-            range.step > 0 -> contains_forward(range, value);
-            true -> contains_backward(range, value)
+                range.step > 0 -> contains_forward(range, value);
+                true -> contains_backward(range, value)
             }
     }.
 
@@ -148,64 +148,64 @@ pub iterator(range: Range): std.collections.Iterator.Iterator[Int] ->
 
 default_step(start: Int, stop: Int): Int ->
     if {
-    start <= stop -> 1;
-    true -> -1
+        start <= stop -> 1;
+        true -> -1
     }.
 
 contains_forward(range: Range, value: Int): Bool ->
     if {
-    value < range.start -> false;
-    after_forward(range, value) -> false;
-    true -> aligned_forward(range.start, value, range.step)
+        value < range.start -> false;
+        after_forward(range, value) -> false;
+        true -> aligned_forward(range.start, value, range.step)
     }.
 
 contains_backward(range: Range, value: Int): Bool ->
     if {
-    value > range.start -> false;
-    after_backward(range, value) -> false;
-    true -> aligned_backward(range.start, value, range.step)
+        value > range.start -> false;
+        after_backward(range, value) -> false;
+        true -> aligned_backward(range.start, value, range.step)
     }.
 
 aligned_forward(current: Int, target: Int, step: Int): Bool ->
     if {
-    current == target -> true;
-    current > target -> false;
-    true -> aligned_forward(current + step, target, step)
+        current == target -> true;
+        current > target -> false;
+        true -> aligned_forward(current + step, target, step)
     }.
 
 aligned_backward(current: Int, target: Int, step: Int): Bool ->
     if {
-    current == target -> true;
-    current < target -> false;
-    true -> aligned_backward(current + step, target, step)
+        current == target -> true;
+        current < target -> false;
+        true -> aligned_backward(current + step, target, step)
     }.
 
 count_values(range: Range, current: Int, count: Int): Int ->
     if {
-    after_stop(range, current) -> count;
-    true -> count_values(range, current + range.step, count + 1)
+        after_stop(range, current) -> count;
+        true -> count_values(range, current + range.step, count + 1)
     }.
 
 list_values(range: Range, current: Int): List[Int] ->
     if {
-    after_stop(range, current) -> [];
-    true -> [current | list_values(range, current + range.step)]
+        after_stop(range, current) -> [];
+        true -> [current | list_values(range, current + range.step)]
     }.
 
 after_stop(range: Range, value: Int): Bool ->
     if {
-    range.step > 0 -> after_forward(range, value);
-    true -> after_backward(range, value)
+        range.step > 0 -> after_forward(range, value);
+        true -> after_backward(range, value)
     }.
 
 after_forward(range: Range, value: Int): Bool ->
     if {
-    range.inclusive -> value > range.stop;
-    true -> value >= range.stop
+        range.inclusive -> value > range.stop;
+        true -> value >= range.stop
     }.
 
 after_backward(range: Range, value: Int): Bool ->
     if {
-    range.inclusive -> value < range.stop;
-    true -> value <= range.stop
+        range.inclusive -> value < range.stop;
+        true -> value <= range.stop
     }.

@@ -5,7 +5,8 @@ use std::process::ExitCode;
 use crate::terlan_syntax::{
     cached_canonical_terlan_syntax_contract_artifact,
     cached_canonical_terlan_syntax_contract_artifact_json,
-    check_syntax_contract_artifact_against_current, SyntaxContractArtifactCheck,
+    check_syntax_contract_artifact_against_current, validate_ebnf_source, EbnfCompileError,
+    SyntaxContractArtifactCheck,
 };
 
 /// Executes the `syntax-contract` CLI command.
@@ -26,6 +27,7 @@ pub(crate) fn run(args: &[String]) -> ExitCode {
             run_syntax_contract_emit(mode, out_path)
         }
         Ok(SyntaxContractCommand::Check { path }) => run_syntax_contract_check(&path),
+        Ok(SyntaxContractCommand::Validate { path, strict }) => run_ebnf_validation(&path, strict),
         Err(SyntaxContractCommandParseError) => {
             crate::print_usage();
             ExitCode::from(2)
@@ -70,6 +72,10 @@ pub(crate) enum SyntaxContractCommand {
     Check {
         path: PathBuf,
     },
+    Validate {
+        path: PathBuf,
+        strict: bool,
+    },
 }
 
 /// Marker error for invalid `syntax-contract` arguments.
@@ -103,6 +109,19 @@ pub(crate) struct SyntaxContractCommandParseError;
 pub(crate) fn parse_syntax_contract_command(
     args: &[String],
 ) -> Result<SyntaxContractCommand, SyntaxContractCommandParseError> {
+    if args.first().map(String::as_str) == Some("--validate") {
+        return match args {
+            [_, path] => Ok(SyntaxContractCommand::Validate {
+                path: PathBuf::from(path),
+                strict: true,
+            }),
+            [_, path, flag] if flag == "--no-strict" => Ok(SyntaxContractCommand::Validate {
+                path: PathBuf::from(path),
+                strict: false,
+            }),
+            _ => Err(SyntaxContractCommandParseError),
+        };
+    }
     let mut mode = SyntaxContractOutputMode::ArtifactJson;
     let mut out_path = None;
     let mut check_path = None;
@@ -143,6 +162,46 @@ pub(crate) fn parse_syntax_contract_command(
         Ok(SyntaxContractCommand::Check { path })
     } else {
         Ok(SyntaxContractCommand::Emit { mode, out_path })
+    }
+}
+
+fn run_ebnf_validation(path: &Path, strict: bool) -> ExitCode {
+    let source = match fs::read_to_string(path) {
+        Ok(source) => source,
+        Err(error) => {
+            eprintln!("failed to read EBNF source {}: {error}", path.display());
+            return ExitCode::from(2);
+        }
+    };
+    match validate_ebnf_source(&source, strict) {
+        Ok(report) => {
+            let valid = report.is_valid();
+            match serde_json::to_string(&report) {
+                Ok(json) => println!("{json}"),
+                Err(error) => {
+                    eprintln!("failed to serialize EBNF validation report: {error}");
+                    return ExitCode::from(2);
+                }
+            }
+            if valid {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
+        }
+        Err(EbnfCompileError::Parse(message, span)) => {
+            println!(
+                "{{\"schema\":\"terlan.ebnf-validation-error.v1\",\"message\":{},\"start\":{},\"end\":{}}}",
+                serde_json::to_string(&message).unwrap_or_else(|_| "\"parse error\"".to_string()),
+                span.start,
+                span.end
+            );
+            ExitCode::from(1)
+        }
+        Err(EbnfCompileError::Serialize(message)) => {
+            eprintln!("failed to validate EBNF source: {message}");
+            ExitCode::from(2)
+        }
     }
 }
 
@@ -280,4 +339,5 @@ fn syntax_contract_load_error(message: String) -> String {
 
 #[cfg(test)]
 #[path = "mod_test.rs"]
+#[cfg(test)]
 mod mod_test;

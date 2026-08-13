@@ -33,10 +33,14 @@ pub generated_bools_equal_is_reflexive(): Bool ->
  */
 @test
 pub generated_bools_predicates_classify_domain(): Bool ->
-    for_all(booleans(), (value) -> case value {
-        true -> is_true(value) and is_false(value) == false;
-        false -> is_false(value) and is_true(value) == false
-    }).
+    for_all(
+        booleans(),
+        (value) ->
+            case value {
+                true -> is_true(value) and is_false(value) == false;
+                false -> is_false(value) and is_true(value) == false
+            },
+    ).
 
 /**
  * Verifies comparing a generated boolean value to itself returns equality.

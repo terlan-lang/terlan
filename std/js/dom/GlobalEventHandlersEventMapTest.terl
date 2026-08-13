@@ -251,7 +251,7 @@ pub scrollend_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
     receiver.scrollend().
 
 pub securitypolicyviolation_typechecks(
-    receiver: GlobalEventHandlersEventMap
+    receiver: GlobalEventHandlersEventMap,
 ): SecurityPolicyViolationEvent ->
     receiver.securitypolicyviolation().
 

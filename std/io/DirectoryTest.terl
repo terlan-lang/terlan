@@ -1,0 +1,207 @@
+module std.io.DirectoryTest.
+
+import std.core.Result.{Err, Ok}.
+import std.core.Unit.
+import std.io.Directory.{InvalidPath, NotFound, code, copy_tree_excluding, create_all, create_symbolic_link, create_temporary, entries, files_recursive, files_recursive_excluding, find_named_recursive_excluding, remove_all, tree_usage}.
+import std.io.File.{read_text, write_text}.
+import std.test.Test.{assert_equal}.
+
+@test
+pub entries_returns_sorted_children(): Bool ->
+    let create = create_all("target/terlan-directory-entries-success");
+    let second = write_text("target/terlan-directory-entries-success/b.txt", "second");
+    let first = write_text("target/terlan-directory-entries-success/a.txt", "first");
+    let entries_result = entries("target/terlan-directory-entries-success");
+    case {create, first, second, entries_result} {
+        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(paths)} ->
+            assert_equal(
+                [
+                    "target/terlan-directory-entries-success/a.txt",
+                    "target/terlan-directory-entries-success/b.txt",
+                ],
+                paths,
+            );
+        _ -> false
+    }.
+
+@test
+pub missing_directory_is_typed_error(): Bool ->
+    case entries("target/terlan-missing-directory") {
+        Err(reason) -> assert_equal(NotFound, code(reason));
+        _ -> false
+    }.
+
+@test
+pub traversal_is_sorted_and_recursive(): Bool ->
+    let create = create_all("target/terlan-directory-test/nested");
+    let second = write_text("target/terlan-directory-test/z.txt", "z");
+    let first = write_text("target/terlan-directory-test/nested/a.txt", "a");
+    let files = files_recursive("target/terlan-directory-test");
+    case {create, second, first, files} {
+        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(paths)} ->
+            assert_equal(
+                ["target/terlan-directory-test/nested/a.txt", "target/terlan-directory-test/z.txt"],
+                paths,
+            );
+        _ -> false
+    }.
+
+@test
+pub traversal_prunes_exact_directory_names(): Bool ->
+    let create_kept = create_all("target/terlan-directory-exclusion/kept");
+    let create_pruned = create_all("target/terlan-directory-exclusion/cache");
+    let kept = write_text("target/terlan-directory-exclusion/kept/a.txt", "a");
+    let pruned = write_text("target/terlan-directory-exclusion/cache/b.txt", "b");
+    let files = files_recursive_excluding("target/terlan-directory-exclusion", ["cache"]);
+    let removed = remove_all("target/terlan-directory-exclusion");
+    case {create_kept, create_pruned, kept, pruned, files, removed} {
+        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok(paths), Ok(Unit)} ->
+            assert_equal(["target/terlan-directory-exclusion/kept/a.txt"], paths);
+        _ -> false
+    }.
+
+@test
+pub named_directory_search_is_relative_pruned_and_sorted(): Bool ->
+    let root = "target/terlan-directory-named-search";
+    let _old = remove_all(root);
+    let first = create_all("target/terlan-directory-named-search/alpha/target/nested/target");
+    let second = create_all("target/terlan-directory-named-search/target");
+    let excluded = create_all("target/terlan-directory-named-search/cache/target");
+    case {first, second, excluded} {
+        {Ok(Unit), Ok(Unit), Ok(Unit)} -> named_directory_results_hold(root);
+        _ -> false
+    }.
+
+named_directory_results_hold(root: String): Bool ->
+    case find_named_recursive_excluding(root, "target", ["cache"]) {
+        Ok(paths) ->
+            let valid = assert_equal(["alpha/target", "target"], paths);
+            let removed = remove_all(root);
+            case removed {
+                Ok(Unit) -> valid;
+                _ -> false
+            };
+        _ -> false
+    }.
+
+@test
+pub tree_usage_reports_logical_bytes_and_entry_counts(): Bool ->
+    let root = "target/terlan-directory-tree-usage";
+    let _old = remove_all(root);
+    let created = create_all("target/terlan-directory-tree-usage/nested");
+    let first = write_text("target/terlan-directory-tree-usage/first.txt", "abc");
+    let second = write_text("target/terlan-directory-tree-usage/nested/second.txt", "de");
+    let measured = tree_usage(root);
+    let removed = remove_all(root);
+    case {created, first, second, measured, removed} {
+        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(usage), Ok(Unit)} ->
+            usage.logical_file_bytes == 5
+                and usage.allocated_bytes >= 5
+                and usage.regular_file_count == 2
+                and usage.directory_count == 2;
+        _ -> false
+    }.
+
+@test
+pub tree_copy_preserves_files_and_prunes_exact_entry_names(): Bool ->
+    let source = "target/terlan-directory-copy-source";
+    let destination = "target/terlan-directory-copy-destination";
+    let _old_source = remove_all(source);
+    let _old_destination = remove_all(destination);
+    let kept_directory = create_all("target/terlan-directory-copy-source/kept");
+    let ignored_directory = create_all("target/terlan-directory-copy-source/cache");
+    let kept = write_text("target/terlan-directory-copy-source/kept/a.txt", "kept");
+    let ignored = write_text("target/terlan-directory-copy-source/cache/b.txt", "ignored");
+    case {kept_directory, ignored_directory, kept, ignored} {
+        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit)} -> copied_tree_holds(source, destination);
+        _ -> false
+    }.
+
+copied_tree_holds(source: String, destination: String): Bool ->
+    case copy_tree_excluding(source, destination, ["cache"]) {
+        Ok(Unit) ->
+            let paths = files_recursive(destination);
+            let contents = read_text("target/terlan-directory-copy-destination/kept/a.txt");
+            let removed_source = remove_all(source);
+            let removed_destination = remove_all(destination);
+            case {paths, contents, removed_source, removed_destination} {
+                {Ok([path]), Ok("kept"), Ok(Unit), Ok(Unit)} ->
+                    path == "target/terlan-directory-copy-destination/kept/a.txt";
+                _ -> false
+            };
+        _ -> false
+    }.
+
+@test
+pub tree_copy_rejects_an_existing_destination(): Bool ->
+    let source = "target/terlan-directory-copy-existing-source";
+    let destination = "target/terlan-directory-copy-existing-destination";
+    let _old_source = remove_all(source);
+    let _old_destination = remove_all(destination);
+    let source_created = create_all(source);
+    let destination_created = create_all(destination);
+    case {source_created, destination_created} {
+        {Ok(Unit), Ok(Unit)} ->
+            let copied = copy_tree_excluding(source, destination, []);
+            let source_removed = remove_all(source);
+            let destination_removed = remove_all(destination);
+            case {copied, source_removed, destination_removed} {
+                {Err(reason), Ok(Unit), Ok(Unit)} -> assert_equal(InvalidPath, code(reason));
+                _ -> false
+            };
+        _ -> false
+    }.
+
+@test
+pub directory_symbolic_link_exposes_target_contents_without_copying(): Bool ->
+    let root = "target/terlan-directory-symbolic-link";
+    let target = "target/terlan-directory-symbolic-link/source";
+    let link = "target/terlan-directory-symbolic-link/linked";
+    let _old = remove_all(root);
+    let created = create_all(target);
+    let written = write_text("target/terlan-directory-symbolic-link/source/value.txt", "linked");
+    let linked = create_symbolic_link(target, link);
+    let contents = read_text("target/terlan-directory-symbolic-link/linked/value.txt");
+    let removed = remove_all(root);
+    case {created, written, linked, contents, removed} {
+        {Ok(Unit), Ok(Unit), Ok(Unit), Ok("linked"), Ok(Unit)} -> true;
+        _ -> false
+    }.
+
+@test
+pub remove_all_removes_tree(): Bool ->
+    let removed = remove_all("target/terlan-directory-test");
+    case removed {
+        Ok(Unit) -> true;
+        _ -> false
+    }.
+
+@test
+pub temporary_directory_is_unique_and_removable(): Bool ->
+    case create_temporary("terlan-directory-test") {
+        Ok(first) -> second_temporary_directory_holds(first);
+        _ -> false
+    }.
+
+second_temporary_directory_holds(first: String): Bool ->
+    case create_temporary("terlan-directory-test") {
+        Ok(second) ->
+            let distinct = first != second;
+            let first_removed = remove_succeeds(first);
+            let second_removed = remove_succeeds(second);
+            distinct and first_removed and second_removed;
+        _ -> remove_succeeds(first) and false
+    }.
+
+remove_succeeds(path: String): Bool ->
+    case remove_all(path) {
+        Ok(Unit) -> true;
+        _ -> false
+    }.
+
+@test
+pub temporary_directory_rejects_path_components(): Bool ->
+    case create_temporary("invalid/prefix") {
+        Err(reason) -> assert_equal(InvalidPath, code(reason));
+        _ -> false
+    }.

@@ -100,26 +100,29 @@ fn canonical_inequality_is_one_token() {
     assert_eq!(tokens[1].text, "!=");
 }
 
-/// Verifies that symbolic boolean operators tokenize as boolean operators.
+/// Verifies that symbolic Boolean aliases are rejected.
 ///
 /// Inputs:
 /// - A source fragment containing `&&` and `||`.
 ///
 /// Output:
-/// - Test passes when `&&` emits `TokenKind::And` and `||` emits
-///   `TokenKind::Or`.
+/// - Test passes when both symbolic aliases fail lexing.
 ///
 /// Transformation:
-/// - Runs the lexer over a short boolean expression and inspects the
-///   operator tokens, guarding against treating `||` as a list/type pipe.
+/// - Locks `and` and `or` as the only canonical Boolean operator spellings.
 #[test]
-fn symbolic_boolean_operators_are_boolean_tokens() {
-    let tokens = lex("a && b || c").expect("lexer should parse symbolic boolean operators");
+fn symbolic_boolean_operators_are_rejected() {
+    let and_errors = lex("a && b").expect_err("&& must be rejected");
+    let or_errors = lex("a || b").expect_err("|| must be rejected");
 
-    assert_eq!(tokens[1].kind, TokenKind::And);
-    assert_eq!(tokens[1].text, "&&");
-    assert_eq!(tokens[3].kind, TokenKind::Or);
-    assert_eq!(tokens[3].text, "||");
+    assert_eq!(
+        and_errors[0].message,
+        "symbolic Boolean operators are not supported; use `and`"
+    );
+    assert_eq!(
+        or_errors[0].message,
+        "symbolic Boolean operators are not supported; use `or`"
+    );
 }
 
 /// Verifies scientific Float spellings remain one typed token.

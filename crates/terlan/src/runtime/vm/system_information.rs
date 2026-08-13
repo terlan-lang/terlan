@@ -1,7 +1,9 @@
+#[cfg(test)]
 use super::process_environment::VmRuntimeEnvironmentSnapshot;
 
 /// Portable, immutable identity and capacity information for one VM runtime.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmSystemInformationSnapshot {
     pub(crate) schema: &'static str,
     pub(crate) runtime_name: &'static str,
@@ -19,6 +21,7 @@ pub(crate) struct VmSystemInformationSnapshot {
     pub(crate) active_timer_count: usize,
 }
 
+#[cfg(test)]
 impl VmSystemInformationSnapshot {
     /// Projects an owned runtime environment snapshot onto the stable system
     /// information surface. Exited process records remain separately visible

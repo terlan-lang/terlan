@@ -216,4 +216,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_ownership_classification_test.rs"]
+#[cfg(test)]
 mod vm_ownership_classification_test;

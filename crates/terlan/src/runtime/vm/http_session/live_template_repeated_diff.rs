@@ -1,18 +1,16 @@
+use super::*;
+#[cfg(test)]
 use std::collections::BTreeSet;
-
-use super::{
-    validate_live_template_patch_payload, ReplValue, VmHttpSession,
-    VmHttpSessionLiveTemplateSourceSpan, VmHttpSessionLiveTemplateStateFanout,
-    VmHttpSessionRuntime,
-};
 
 /// One stable-keyed value rendered inside a repeated live-template fragment.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmHttpSessionLiveTemplateRepeatedBinding {
     pub(crate) key: String,
     pub(crate) value: ReplValue,
 }
 
+#[cfg(test)]
 impl VmHttpSessionLiveTemplateRepeatedBinding {
     pub(crate) fn new(key: impl Into<String>, value: ReplValue) -> Self {
         Self {
@@ -24,6 +22,7 @@ impl VmHttpSessionLiveTemplateRepeatedBinding {
 
 /// One rendered stable-keyed fragment after typed interpolation.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmHttpSessionLiveTemplateRenderedFragment {
     pub(crate) key: String,
     pub(crate) content: String,
@@ -31,6 +30,7 @@ pub(crate) struct VmHttpSessionLiveTemplateRenderedFragment {
 
 /// Deterministic operation applied to a repeated fragment list.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmHttpSessionLiveTemplateRepeatedPatch {
     Insert {
         index: usize,
@@ -55,6 +55,7 @@ pub(crate) enum VmHttpSessionLiveTemplateRepeatedPatch {
 
 /// Stable patch plan and final rendered fragment order.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmHttpSessionLiveTemplateRepeatedDiff {
     pub(crate) operations: Vec<VmHttpSessionLiveTemplateRepeatedPatch>,
     pub(crate) rendered_fragments: Vec<VmHttpSessionLiveTemplateRenderedFragment>,
@@ -62,25 +63,61 @@ pub(crate) struct VmHttpSessionLiveTemplateRepeatedDiff {
 
 /// Actor fanout paired with the repeated-fragment diff that produced it.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmHttpSessionLiveTemplateRepeatedFanout {
     pub(crate) diff: VmHttpSessionLiveTemplateRepeatedDiff,
     pub(crate) fanout: VmHttpSessionLiveTemplateStateFanout,
 }
 
+#[derive(Clone, Copy)]
+#[cfg(test)]
+pub(crate) struct VmHttpSessionLiveTemplateRepeatedUpdate<'a> {
+    pub(crate) session: &'a VmHttpSession,
+    pub(crate) expected_version: u64,
+    pub(crate) patch_event: &'a str,
+    pub(crate) source: &'a VmHttpSessionLiveTemplateSourceSpan,
+    pub(crate) previous: &'a [VmHttpSessionLiveTemplateRepeatedBinding],
+    pub(crate) current: &'a [VmHttpSessionLiveTemplateRepeatedBinding],
+}
+
+#[cfg(test)]
+impl<'a> VmHttpSessionLiveTemplateRepeatedUpdate<'a> {
+    pub(crate) fn new(
+        session: &'a VmHttpSession,
+        expected_version: u64,
+        patch_event: &'a str,
+        source: &'a VmHttpSessionLiveTemplateSourceSpan,
+        previous: &'a [VmHttpSessionLiveTemplateRepeatedBinding],
+        current: &'a [VmHttpSessionLiveTemplateRepeatedBinding],
+    ) -> Self {
+        Self {
+            session,
+            expected_version,
+            patch_event,
+            source,
+            previous,
+            current,
+        }
+    }
+}
+
 impl VmHttpSessionRuntime {
     /// Renders and fans out one deterministic repeated-fragment state transition.
-    #[allow(clippy::too_many_arguments)]
+    #[cfg(test)]
     pub(crate) fn fanout_live_template_repeated_state_update(
         &mut self,
-        session: &VmHttpSession,
-        expected_version: u64,
-        patch_event: &str,
-        source: &VmHttpSessionLiveTemplateSourceSpan,
-        previous: &[VmHttpSessionLiveTemplateRepeatedBinding],
-        current: &[VmHttpSessionLiveTemplateRepeatedBinding],
+        request: VmHttpSessionLiveTemplateRepeatedUpdate<'_>,
         render: impl FnMut(&ReplValue) -> Result<String, String>,
         update: impl FnOnce(&mut Self, &VmHttpSession) -> Result<(), String>,
     ) -> Result<VmHttpSessionLiveTemplateRepeatedFanout, String> {
+        let VmHttpSessionLiveTemplateRepeatedUpdate {
+            session,
+            expected_version,
+            patch_event,
+            source,
+            previous,
+            current,
+        } = request;
         let diff = build_live_template_repeated_diff(previous, current, source, render)?;
         let patch_payload = repeated_diff_payload(&diff)?;
         let fanout = self.fanout_live_template_state_update(
@@ -95,6 +132,7 @@ impl VmHttpSessionRuntime {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn build_live_template_repeated_diff(
     previous: &[VmHttpSessionLiveTemplateRepeatedBinding],
     current: &[VmHttpSessionLiveTemplateRepeatedBinding],
@@ -158,6 +196,7 @@ pub(crate) fn build_live_template_repeated_diff(
     })
 }
 
+#[cfg(test)]
 fn validate_repeated_bindings(
     side: &str,
     bindings: &[VmHttpSessionLiveTemplateRepeatedBinding],
@@ -185,6 +224,7 @@ fn validate_repeated_bindings(
     Ok(())
 }
 
+#[cfg(test)]
 fn render_repeated_bindings(
     bindings: &[VmHttpSessionLiveTemplateRepeatedBinding],
     source: &VmHttpSessionLiveTemplateSourceSpan,
@@ -207,6 +247,7 @@ fn render_repeated_bindings(
         .collect()
 }
 
+#[cfg(test)]
 fn repeated_diff_payload(
     diff: &VmHttpSessionLiveTemplateRepeatedDiff,
 ) -> Result<ReplValue, String> {
@@ -221,6 +262,7 @@ fn repeated_diff_payload(
     ]))
 }
 
+#[cfg(test)]
 fn repeated_patch_value(
     patch: &VmHttpSessionLiveTemplateRepeatedPatch,
 ) -> Result<ReplValue, String> {
@@ -260,11 +302,13 @@ fn repeated_patch_value(
     Ok(value)
 }
 
+#[cfg(test)]
 fn index_to_int(index: usize) -> Result<i64, String> {
     i64::try_from(index)
         .map_err(|_| "HTTP live-template repeated fragment index overflowed Int".to_string())
 }
 
+#[cfg(test)]
 fn repeated_diff_error(
     source: &VmHttpSessionLiveTemplateSourceSpan,
     detail: impl std::fmt::Display,

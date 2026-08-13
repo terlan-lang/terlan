@@ -55,7 +55,7 @@ pub(super) fn snapshot() -> ProcessSnapshot {
             };
             if cpus
                 .as_ref()
-                .map_or(true, |allowed| allowed.contains(&sample.processor))
+                .is_none_or(|allowed| allowed.contains(&sample.processor))
             {
                 processes.insert(pid, sample);
             }

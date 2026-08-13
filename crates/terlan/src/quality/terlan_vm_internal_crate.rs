@@ -158,4 +158,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "terlan_vm_internal_crate_test.rs"]
+#[cfg(test)]
 mod terlan_vm_internal_crate_test;

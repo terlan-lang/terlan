@@ -17,7 +17,7 @@ import type std.js.Dom.AuthenticatorSelectionCriteria.
 pub generated_binding_surface_contract(): Bool -> true.
 
 pub authenticator_attachment_typechecks(
-    receiver: AuthenticatorSelectionCriteria
+    receiver: AuthenticatorSelectionCriteria,
 ): AuthenticatorAttachment ->
     receiver.authenticator_attachment().
 
@@ -28,6 +28,6 @@ pub resident_key_typechecks(receiver: AuthenticatorSelectionCriteria): ResidentK
     receiver.resident_key().
 
 pub user_verification_typechecks(
-    receiver: AuthenticatorSelectionCriteria
+    receiver: AuthenticatorSelectionCriteria,
 ): UserVerificationRequirement ->
     receiver.user_verification().

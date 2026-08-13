@@ -1561,6 +1561,6 @@ pub set_property_typechecks(
     receiver: CSSStyleDeclaration,
     property: JsString,
     value: Option[JsString],
-    priority: JsString
+    priority: JsString,
 ): std.core.Unit ->
     receiver.set_property(property, value, priority).

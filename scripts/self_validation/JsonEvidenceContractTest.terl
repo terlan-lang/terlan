@@ -1,0 +1,50 @@
+/**
+ * Validates required identities in a well-formed repository JSON report.
+ */
+module scripts.self_validation.JsonEvidenceContractTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.File.{read_text}.
+import std.system.Environment.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+@pure
+fragments_hold(text: String, fragments: List[String]): Bool ->
+    case fragments {
+        [] -> true;
+        [fragment | rest] ->
+            if {
+                fragment == "" -> fragments_hold(text, rest);
+                String.contains(text, fragment) -> fragments_hold(text, rest);
+                true -> false
+            }
+    }.
+
+json_evidence_holds(path: String, required: String): Bool ->
+    let {
+        Ok(text) <- read_text(path);
+        Ok(_document) <- Json.parse(text)
+    } else {
+        _ -> false
+    };
+    fragments_hold(text, String.split(required, ";;")).
+
+@test
+pub selected_json_evidence_holds(): Bool ->
+    json_evidence_holds(
+        environment_or("TERLAN_JSON_EVIDENCE_PATH", ""),
+        environment_or("TERLAN_JSON_EVIDENCE_REQUIRED", ""),
+    ).
+
+@test
+pub missing_required_fragment_is_rejected(): Bool ->
+    fragments_hold("{\"name\":\"present\"}", ["present"])
+        and not fragments_hold("{\"name\":\"present\"}", ["missing"]).

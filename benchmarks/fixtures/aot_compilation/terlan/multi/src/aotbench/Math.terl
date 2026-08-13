@@ -1,4 +1,3 @@
 module aotbench.Math.
 
-pub value(): Int ->
-    7.
+pub value(): Int -> 7.

@@ -53,11 +53,11 @@ pub (value: OscillatorNode) set_periodic_wave(periodic_wave: PeriodicWave): Unit
 pub (value: OscillatorNode) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit.
 
 pub (value: OscillatorNode) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit.

@@ -221,6 +221,7 @@ const REJECTED_DEPLOYMENT_PATHS: &[&str] = &[
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Data describing vm web deployment profile summary.
 pub struct VmWebDeploymentProfileSummary {
     pub profile_matrix_count: usize,
     pub proxy_fixture_count: usize,
@@ -229,6 +230,7 @@ pub struct VmWebDeploymentProfileSummary {
     pub report_path: PathBuf,
 }
 
+/// Runs vm web deployment profile.
 pub fn run_vm_web_deployment_profile(root: &Path) -> QualityResult<VmWebDeploymentProfileSummary> {
     let mut diagnostics = Vec::new();
     diagnostics.extend(validate_required_terms(
@@ -396,6 +398,7 @@ fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
         .collect())
 }
 
+/// Validates no placeholder report entries.
 pub fn validate_no_placeholder_report_entries(label: &str, entries: &[&str]) -> Vec<String> {
     entries
         .iter()
@@ -424,4 +427,5 @@ fn render_failure(label: &str, diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "vm_web_deployment_profile_test.rs"]
+#[cfg(test)]
 mod vm_web_deployment_profile_test;

@@ -84,4 +84,5 @@ pub fn release_credit(current: u64, released: u64) -> Option<u64> {
 
 #[cfg(test)]
 #[path = "credit_test.rs"]
+#[cfg(test)]
 mod credit_test;

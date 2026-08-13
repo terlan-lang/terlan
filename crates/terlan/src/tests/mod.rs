@@ -21,22 +21,37 @@ fn fixture(path: &Path, contents: &str) -> String {
     file.to_string_lossy().to_string()
 }
 
+#[cfg(test)]
 mod check_constructor_error_manifest_test;
+#[cfg(test)]
 mod check_constructor_identity_manifest_test;
+#[cfg(test)]
 mod check_incremental_test;
+#[cfg(test)]
 mod check_language_feature_rejection_test;
+#[cfg(test)]
 mod check_phase_manifest_smoke_test;
+#[cfg(test)]
 mod check_phase_test;
+#[cfg(test)]
 mod check_std_vm_test;
+#[cfg(test)]
 mod check_target_profile_gate_test;
+#[cfg(test)]
 mod check_target_profile_progression_test;
-mod command_transition_test;
+#[cfg(test)]
 mod debug_cli_test;
+#[cfg(test)]
 mod doc_test;
+#[cfg(test)]
 mod emit_js_test;
+#[cfg(test)]
 mod help_test;
+#[cfg(test)]
 mod interface_test;
+#[cfg(test)]
 mod static_site_test;
+#[cfg(test)]
 mod target_profile_test;
 
 /// Phase-contract fixture descriptor used by compiler pipeline tests.

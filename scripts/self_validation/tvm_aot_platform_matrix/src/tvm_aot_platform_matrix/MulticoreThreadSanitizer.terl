@@ -1,0 +1,508 @@
+/**
+ * Runs and validates the pinned multicore VM ThreadSanitizer lane.
+ */
+module tvm_aot_platform_matrix.MulticoreThreadSanitizer.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.{sha256_file}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.{create_all}.
+import std.io.File.{delete, read_text}.
+import std.system.{Environment, Platform, Process}.
+import std.vcs.Git.{clean, revision, sha256, source_tree_identity}.
+import tvm_aot_platform_matrix.Core.{child, current_provenance_input, is_sha256, json_bool, json_int, json_string, json_value, load_json, official_repository, provenance, write_json}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.system.Process.{EnvironmentEntry, Output}.
+
+pub schema(): String -> "terlan.vm-multicore-thread-sanitizer.v1".
+
+stress_schema(): String -> "terlan.vm-multicore-memory-model.v1".
+
+pub toolchain(): String -> "1.96.0".
+
+pub target(): String -> "x86_64-unknown-linux-gnutsan".
+
+build_script_target(): String -> "x86_64-unknown-linux-gnu".
+
+pub test_name(): String ->
+    "multicore_tsan_harness_test::bounded_seeded_multicore_memory_model_has_deadlock_watchdog".
+
+harness_binary(): String -> "terlan-multicore-tsan-harness".
+
+harness_feature(): String -> "multicore-tsan-harness".
+
+pub seed_count(): Int -> 8.
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[vm.multicore.tsan]: ", message));
+    false.
+
+json_clone(value: Json): Option[Json] ->
+    let {
+        Ok(source) <- Json.stringify(value);
+        Ok(copy) <- Json.parse(source)
+    } else {
+        _ -> None
+    };
+    Some(copy).
+
+configured(
+    root: String,
+    program: String,
+    arguments: List[String],
+    environment: List[EnvironmentEntry],
+): std.system.Process.Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_environment(
+                Process.with_working_directory(
+                    Process.with_arguments(Process.command(program), arguments),
+                    root,
+                ),
+                environment,
+            ),
+            600000,
+        ),
+        16777216,
+    ).
+
+run_command(
+    root: String,
+    program: String,
+    arguments: List[String],
+    environment: List[EnvironmentEntry],
+): Option[Output] ->
+    case Process.run(configured(root, program, arguments, environment)) {
+        Err(reason) ->
+            let _failed = failure(Process.error_message(reason));
+            None;
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> Some(output);
+                true -> let _failed =
+                    failure(
+                        String.concat(
+                            [program, " failed:\n", Process.stdout(output), Process.stderr(output)],
+                        ),
+                    );
+                None
+            }
+    }.
+
+command_output(root: String, program: String, arguments: List[String]): Option[String] ->
+    case run_command(root, program, arguments, []) {
+        Some(output) -> Some(String.trim(Process.stdout(output)));
+        None -> None
+    }.
+
+string_member(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or string_member(rest, expected)
+    }.
+
+json_string_at(values: Json, index: Int): Option[String] ->
+    let {
+        Ok(value) <- values.at(index);
+        Ok(text) <- value.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+unique_strings(values: Json, index: Int, seen: List[String]): Bool ->
+    if {
+        index == seed_count() -> true;
+        true -> case json_string_at(values, index) {
+            None -> false;
+            Some(value) ->
+                not string_member(seen, value) and unique_strings(values, index + 1, [value | seen])
+        }
+    }.
+
+pub validate_stress_report(report: Json): Bool ->
+    let {
+        Some(report_schema) <- json_string(report, "schema");
+        Some(decision) <- json_string(report, "decision");
+        Some(seeds) <- json_value(report, "seeds");
+        Ok(count) <- seeds.length();
+        Some(watchdog) <- json_int(report, "watchdog_timeout_millis")
+    } else {
+        _ -> false
+    };
+    if {
+        report_schema != stress_schema() -> false;
+        decision != "pass" -> false;
+        count != seed_count() -> false;
+        watchdog != 15000 -> false;
+        true -> unique_strings(seeds, 0, [])
+    }.
+
+ci_fields_valid(report: Json, revision_value: String): Bool ->
+    let {
+        Some(source_clean) <- json_bool(report, "source_tree_clean");
+        Some(environment) <- json_string(report, "execution_environment");
+        Some(repository) <- json_string(report, "repository");
+        Some(commit) <- json_string(report, "commit_sha");
+        Some(_run_id) <- json_int(report, "run_id");
+        Some(_run_attempt) <- json_int(report, "run_attempt")
+    } else {
+        _ -> false
+    };
+    source_clean
+        and environment == "github-actions"
+        and repository == official_repository()
+        and commit == revision_value.
+
+pub validate_report(report: Json, require_ci: Bool): Bool ->
+    let {
+        Some(report_schema) <- json_string(report, "schema");
+        Some(decision) <- json_string(report, "decision");
+        Some(host) <- json_string(report, "host");
+        Some(report_toolchain) <- json_string(report, "toolchain");
+        Some(rustc) <- json_string(report, "rustc");
+        Some(instrumented_target) <- json_string(report, "instrumented_target");
+        Some(report_test_name) <- json_string(report, "test_name");
+        Some(report_seed_count) <- json_int(report, "seed_count");
+        Some(stress_digest) <- json_string(report, "stress_report_sha256");
+        Some(source_revision) <- json_string(report, "source_revision");
+        Some(_source_clean) <- json_bool(report, "source_tree_clean");
+        Some(source_digest) <- json_string(report, "source_tree_sha256")
+    } else {
+        _ -> false
+    };
+    if {
+        report_schema != schema() or decision != "pass" -> false;
+        host != "linux-x86_64" or report_toolchain != toolchain() -> false;
+        instrumented_target != target() or report_test_name != test_name() -> false;
+        report_seed_count != seed_count() -> false;
+        not String.starts_with(rustc, String.concat(["rustc ", toolchain(), " "])) -> false;
+        String.length(source_revision) != 40 -> false;
+        not is_sha256(stress_digest) or not is_sha256(source_digest) -> false;
+        require_ci -> ci_fields_valid(report, source_revision);
+        true -> true
+    }.
+
+fragments_present(source: String, fragments: List[String]): Bool ->
+    case fragments {
+        [] -> true;
+        [fragment | rest] -> source.contains(fragment) and fragments_present(source, rest)
+    }.
+
+make_contract_valid(makefile: String): Bool ->
+    fragments_present(
+        makefile,
+        [
+            "vm-multicore-memory-model-check:",
+            "vm-multicore-thread-sanitizer-check:",
+            "$(TERLAN_TVM_PLATFORM_MATRIX) multicore-tsan-run",
+        ],
+    ).
+
+manifest_contract_valid(manifest: String): Bool ->
+    fragments_present(
+        manifest,
+        [
+            String.concat(["name = \"", harness_binary(), "\""]),
+            String.concat(["required-features = [\"", harness_feature(), "\"]"]),
+            String.concat([harness_feature(), " = [\"native-codegen\"]"]),
+        ],
+    ).
+
+harness_contract_valid(harness: String): Bool ->
+    fragments_present(
+        harness,
+        [
+            "link_multicore_sanitizer_surface",
+            "run_multicore_sanitizer_stress",
+            "run_multicore_sanitizer_seed",
+            "bounded_seeded_multicore_memory_model_has_deadlock_watchdog",
+            "seeded_multicore_memory_model_child",
+        ],
+    ).
+
+runtime_contract_valid(vm_module: String): Bool ->
+    fragments_present(
+        vm_module,
+        [
+            "actor_directory::VmActorDirectory",
+            "fixed_scheduler_control::VmFixedSchedulerControl",
+            "process::VmProcessId",
+            "scheduler_topology::VmSchedulerTopology",
+        ],
+    ).
+
+workflow_contract_valid(workflow: String): Bool ->
+    fragments_present(
+        workflow,
+        [
+            String.concat(
+                ["rustup toolchain install ", toolchain(), " --profile minimal --target ", target()],
+            ),
+            "make vm-multicore-thread-sanitizer-check",
+            "vm-multicore-thread-sanitizer-report.json",
+        ],
+    ).
+
+pub contract_files_valid(root: String): Bool ->
+    let {
+        Ok(makefile) <- read_text(child(root, "Makefile"));
+        Ok(manifest) <- read_text(child(root, "crates/terlan/Cargo.toml"));
+        Ok(harness) <- read_text(child(root, "crates/terlan/src/quality/multicore_tsan_harness.rs"));
+        Ok(harness_tests) <- read_text(child(root, "crates/terlan/src/quality/multicore_tsan_harness_test.rs"));
+        Ok(vm_module) <- read_text(child(root, "crates/terlan/src/runtime/vm.rs"));
+        Ok(ci) <- read_text(child(root, ".github/workflows/ci.yml"));
+        Ok(release) <- read_text(child(root, ".github/workflows/release.yml"))
+    } else {
+        _ -> false
+    };
+    (let harness_contract = String.append(harness, harness_tests);
+if {
+    not make_contract_valid(makefile) -> false;
+    not manifest_contract_valid(manifest) -> false;
+    not harness_contract_valid(harness_contract) -> false;
+    not runtime_contract_valid(vm_module) -> false;
+    not workflow_contract_valid(ci) -> false;
+    true -> workflow_contract_valid(release)
+}).
+
+put_optional_provenance(mut report: Json, evidence: Json): Json ->
+    case json_string(evidence, "execution_environment") {
+        Some("local") -> report.put("execution_environment", Json.string("local"));
+        Some("github-actions") ->
+            let {
+                Some(repository) <- json_string(evidence, "repository");
+                Some(workflow_ref) <- json_string(evidence, "workflow_ref");
+                Some(run_id) <- json_int(evidence, "run_id");
+                Some(run_attempt) <- json_int(evidence, "run_attempt");
+                Some(commit) <- json_string(evidence, "commit_sha")
+            } else {
+                _ -> report
+            };
+            report
+                .put("execution_environment", Json.string("github-actions"))
+                .put("repository", Json.string(repository))
+                .put("workflow_ref", Json.string(workflow_ref))
+                .put("run_id", Json.int(run_id))
+                .put("run_attempt", Json.int(run_attempt))
+                .put("commit_sha", Json.string(commit));
+        _ -> report
+    }.
+
+report_toolchain_fields(rustc: String): Json ->
+    Json.object()
+        .put("schema", Json.string(schema()))
+        .put("decision", Json.string("pass"))
+        .put("host", Json.string("linux-x86_64"))
+        .put("toolchain", Json.string(toolchain()))
+        .put("rustc", Json.string(rustc))
+        .put("instrumented_target", Json.string(target()))
+        .put("test_name", Json.string(test_name()))
+        .put("seed_count", Json.int(seed_count())).
+
+report_source_fields(
+    mut report: Json,
+    stress_digest: String,
+    source_revision: String,
+    source_clean: Bool,
+    source_digest: String,
+): Json ->
+    report
+        .put("stress_report_sha256", Json.string(stress_digest))
+        .put("source_revision", Json.string(source_revision))
+        .put("source_tree_clean", Json.bool(source_clean))
+        .put("source_tree_sha256", Json.string(source_digest)).
+
+report_body(
+    rustc: String,
+    stress_digest: String,
+    source_revision: String,
+    source_clean: Bool,
+    source_digest: String,
+): Json ->
+    report_source_fields(
+        report_toolchain_fields(rustc),
+        stress_digest,
+        source_revision,
+        source_clean,
+        source_digest,
+    ).
+
+finish_run(root: String, stress_path: String, rustc: String): Bool ->
+    let {
+        Some(stress) <- load_json(stress_path);
+        Ok(stress_digest) <- sha256_file(stress_path);
+        Ok(identity) <- source_tree_identity(root);
+        Some(execution) <- provenance(revision(identity), current_provenance_input())
+    } else {
+        _ -> false
+    };
+    (let report =
+    put_optional_provenance(
+        report_body(rustc, stress_digest, revision(identity), clean(identity), sha256(identity)),
+        execution,
+    );
+let require_ci =
+    case Environment.get("GITHUB_ACTIONS") {
+        Some(value) -> String.lowercase(String.trim(value)) == "true";
+        None -> false
+    };
+if {
+    not validate_stress_report(stress) -> failure("stress evidence is invalid");
+    not validate_report(report, require_ci) -> failure("generated sanitizer report is invalid");
+    true -> case create_all(child(root, "target/quality")) {
+        Err(_reason) -> failure("cannot create quality report directory");
+        Ok(_unit) ->
+            if {
+                not write_json(child(root, "target/quality/vm-multicore-thread-sanitizer-report.json"), report) -> false;
+                true -> let _printed =
+                    println(
+                        String.concat(
+                            [
+                                "VM multicore ThreadSanitizer passed: Rust ",
+                                toolchain(),
+                                " ",
+                                target(),
+                            ],
+                        ),
+                    );
+                true
+            }
+    }
+}).
+
+run_supported(root: String): Bool ->
+    let {
+        Some(installed) <-
+            command_output(
+                root,
+                "rustup",
+                ["target", "list", "--installed", "--toolchain", toolchain()],
+            );
+        Some(rustc) <-
+            command_output(
+                root,
+                "rustc",
+                [String.append("+", toolchain()), "--version", "--verbose"],
+            )
+    } else {
+        _ -> false
+    };
+    (let stress_path = child(root, "target/quality/vm-multicore-memory-model-tsan.json");
+let _deleted = delete(stress_path);
+if {
+    not string_member(String.split(installed, "\n"), target()) -> failure("pinned ThreadSanitizer target is not installed");
+    not String.starts_with(rustc, String.concat(["rustc ", toolchain(), " "])) -> failure("pinned Rust compiler is unavailable");
+    true -> case run_command(
+    root,
+    "cargo",
+    [
+        String.append("+", toolchain()),
+        "test",
+        "--locked",
+        "-p",
+        "terlan",
+        "--no-default-features",
+        "--features",
+        harness_feature(),
+        "--bin",
+        harness_binary(),
+        "--target",
+        build_script_target(),
+        test_name(),
+        "--",
+        "--exact",
+        "--nocapture",
+    ],
+    [
+        Process.environment_entry("CARGO_TARGET_DIR", child(root, "target/gnutsan")),
+        Process.environment_entry("RUSTC_WRAPPER", child(root, "scripts/rustc_gnutsan_wrapper.sh")),
+        Process.environment_entry("TERLAN_VM_MULTICORE_STRESS_OUTPUT", stress_path),
+        Process.environment_entry("TSAN_OPTIONS", "halt_on_error=1 exitcode=66"),
+    ],
+) {
+        None -> false;
+        Some(_output) -> finish_run(root, stress_path, rustc)
+    }
+}).
+
+pub run(): Bool ->
+    let root = Environment.current_directory();
+    let host = Platform.current();
+    if {
+        host.operating_system != "linux" or host.architecture != "x86_64" -> failure("requires Linux x86-64");
+        true -> run_supported(root)
+    }.
+
+base_report(): Json ->
+    report_body(
+        String.concat(["rustc ", toolchain(), " (pinned)\nbinary: rustc"]),
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        true,
+        "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    )
+        .put("execution_environment", Json.string("github-actions"))
+        .put("repository", Json.string(official_repository()))
+        .put(
+            "workflow_ref",
+            Json.string("terlan-lang/terlan/.github/workflows/ci.yml@refs/heads/main"),
+        )
+        .put("run_id", Json.int(7))
+        .put("run_attempt", Json.int(1))
+        .put("commit_sha", Json.string("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")).
+
+mutation_rejected(report: Json, field: String, value: Json): Bool ->
+    case json_clone(report) {
+        None -> false;
+        Some(copy) -> not validate_report(copy.put(field, value), true)
+    }.
+
+core_mutations_rejected(report: Json): Bool ->
+    if {
+        not mutation_rejected(report, "toolchain", Json.string("stable")) -> false;
+        not mutation_rejected(report, "instrumented_target", Json.string("x86_64-unknown-linux-gnu")) -> false;
+        not mutation_rejected(report, "decision", Json.string("skipped")) -> false;
+        true -> mutation_rejected(report, "seed_count", Json.int(0))
+    }.
+
+identity_mutations_rejected(report: Json): Bool ->
+    if {
+        not mutation_rejected(report, "repository", Json.string("fork/terlan")) -> false;
+        not mutation_rejected(report, "run_id", Json.bool(false)) -> false;
+        not mutation_rejected(report, "source_tree_clean", Json.bool(false)) -> false;
+        true -> mutation_rejected(report, "source_tree_sha256", Json.string("not-a-digest"))
+    }.
+
+pub self_test(): Bool ->
+    let seeds =
+        Json.array()
+            .push(Json.string("0x0000000000000000"))
+            .push(Json.string("0x0000000000000001"))
+            .push(Json.string("0x0000000000000002"))
+            .push(Json.string("0x0000000000000003"))
+            .push(Json.string("0x0000000000000004"))
+            .push(Json.string("0x0000000000000005"))
+            .push(Json.string("0x0000000000000006"))
+            .push(Json.string("0x0000000000000007"));
+    let stress =
+        Json.object()
+            .put("schema", Json.string(stress_schema()))
+            .put("decision", Json.string("pass"))
+            .put("seeds", seeds)
+            .put("watchdog_timeout_millis", Json.int(15000));
+    let valid = base_report();
+    if {
+        not validate_stress_report(stress) -> failure("valid stress fixture was rejected");
+        not validate_report(valid, true) -> failure("valid sanitizer fixture was rejected");
+        not core_mutations_rejected(valid) -> failure("invalid sanitizer contract fields were accepted");
+        not identity_mutations_rejected(valid) -> failure("invalid sanitizer identity was accepted");
+        not contract_files_valid(Environment.current_directory()) -> failure("repository sanitizer contract drifted");
+        true -> let _printed = println("VM multicore ThreadSanitizer self-test passed");
+        true
+    }.

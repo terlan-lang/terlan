@@ -1,3 +1,10 @@
+use std::collections::HashMap;
+
+use super::super::*;
+use super::public_function_interface;
+use crate::terlan_hir::resolve_syntax_module_output_with_interfaces;
+use crate::terlan_syntax::parse_module_as_syntax_output;
+
 /// Verifies struct field context resolves imported module-member function values.
 ///
 /// Inputs:

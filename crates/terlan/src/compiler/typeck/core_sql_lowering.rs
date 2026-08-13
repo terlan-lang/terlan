@@ -36,6 +36,7 @@ pub fn sql_query_core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreEx
             .as_diagnostic_label()
             .to_string(),
         cardinality: plan.cardinality.as_diagnostic_label().to_string(),
+        result_core_type: crate::terlan_typeck::core_type_from_text(&plan.result_type)?,
         result_type: plan.result_type,
         projection_fields: plan.projection_fields.unwrap_or_default(),
     })

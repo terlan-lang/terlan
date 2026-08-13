@@ -27,7 +27,7 @@ pub text_length_typechecks(receiver: SVGTextContentElement): SVGAnimatedLength -
 
 pub get_char_num_at_position_typechecks(
     receiver: SVGTextContentElement,
-    point: DOMPointInit
+    point: DOMPointInit,
 ): JsNumber ->
     receiver.get_char_num_at_position(point).
 
@@ -36,7 +36,7 @@ pub get_computed_text_length_typechecks(receiver: SVGTextContentElement): JsNumb
 
 pub get_end_position_of_char_typechecks(
     receiver: SVGTextContentElement,
-    charnum: JsNumber
+    charnum: JsNumber,
 ): DOMPoint ->
     receiver.get_end_position_of_char(charnum).
 
@@ -51,21 +51,21 @@ pub get_rotation_of_char_typechecks(receiver: SVGTextContentElement, charnum: Js
 
 pub get_start_position_of_char_typechecks(
     receiver: SVGTextContentElement,
-    charnum: JsNumber
+    charnum: JsNumber,
 ): DOMPoint ->
     receiver.get_start_position_of_char(charnum).
 
 pub get_sub_string_length_typechecks(
     receiver: SVGTextContentElement,
     charnum: JsNumber,
-    nchars: JsNumber
+    nchars: JsNumber,
 ): JsNumber ->
     receiver.get_sub_string_length(charnum, nchars).
 
 pub select_sub_string_typechecks(
     receiver: SVGTextContentElement,
     charnum: JsNumber,
-    nchars: JsNumber
+    nchars: JsNumber,
 ): Unit ->
     receiver.select_sub_string(charnum, nchars).
 
@@ -73,7 +73,7 @@ pub add_event_listener_typechecks(
     receiver: SVGTextContentElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -81,6 +81,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGTextContentElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

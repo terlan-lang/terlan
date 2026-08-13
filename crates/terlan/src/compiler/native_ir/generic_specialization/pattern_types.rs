@@ -4,11 +4,23 @@ use std::collections::HashMap;
 
 use crate::terlan_typeck::{CorePattern, CoreTupleTypeElem, CoreType};
 
+#[cfg(test)]
+#[path = "pattern_types_test.rs"]
+mod tests;
+
 pub(super) fn bind_pattern_types(
     pattern: &CorePattern,
     ty: &CoreType,
     variables: &mut HashMap<String, CoreType>,
 ) {
+    let ty = match ty {
+        CoreType::Apply { constructor, args }
+            if constructor.rsplit('.').next() == Some("Message") && args.len() == 1 =>
+        {
+            &args[0]
+        }
+        _ => ty,
+    };
     match pattern {
         CorePattern::Var(name) => {
             variables.insert(name.clone(), ty.clone());
@@ -17,9 +29,11 @@ pub(super) fn bind_pattern_types(
             variables.insert(alias.clone(), ty.clone());
             bind_pattern_types(pattern, ty, variables);
         }
-        CorePattern::Constructor { name, args, .. } if name.rsplit('.').next() == Some("Some") => {
-            if let (Some(element), [pattern]) = (applied_element(ty, "Option"), args.as_slice()) {
-                bind_pattern_types(pattern, element, variables);
+        CorePattern::Constructor { name, args, .. } => {
+            if let Some(argument_types) = constructor_argument_types(ty, name) {
+                for (pattern, argument_type) in args.iter().zip(argument_types) {
+                    bind_pattern_types(pattern, argument_type, variables);
+                }
             }
         }
         CorePattern::Tuple(patterns) | CorePattern::List(patterns) => {
@@ -133,6 +147,97 @@ fn applied_element<'a>(ty: &'a CoreType, name: &str) -> Option<&'a CoreType> {
         }
         _ => None,
     }
+}
+
+/// Returns one payload from a two-parameter `Result` application.
+fn applied_result_element(ty: &CoreType, index: usize) -> Option<&CoreType> {
+    match ty {
+        CoreType::Apply { constructor, args }
+            if constructor.rsplit('.').next() == Some("Result") && args.len() == 2 =>
+        {
+            args.get(index)
+        }
+        _ => None,
+    }
+}
+
+/// Resolves a unary constructor payload from generic or expanded alias types.
+fn constructor_payload_type<'a>(ty: &'a CoreType, name: &str) -> Option<&'a CoreType> {
+    let constructor = name.rsplit('.').next()?;
+    let applied = match constructor {
+        "Some" => applied_element(ty, "Option"),
+        "Ok" => applied_result_element(ty, 0),
+        "Err" => applied_result_element(ty, 1),
+        _ => None,
+    };
+    applied.or_else(|| {
+        let expected_tag = match constructor {
+            "Some" => "some",
+            "Ok" => "ok",
+            "Err" => "error",
+            _ => return None,
+        };
+        let CoreType::Union(variants) = ty else {
+            return None;
+        };
+        variants.iter().find_map(|variant| {
+            let CoreType::Tuple(elements) = variant else {
+                return None;
+            };
+            let tag = tuple_element_type(elements.first()?)?;
+            let payload = tuple_element_type(elements.get(1)?)?;
+            matches!(tag, CoreType::AtomLiteral(actual) if actual == expected_tag)
+                .then_some(payload)
+        })
+    })
+}
+
+/// Resolves all payload fields carried by one tagged constructor pattern.
+fn constructor_argument_types<'a>(ty: &'a CoreType, name: &str) -> Option<Vec<&'a CoreType>> {
+    if let Some(payload) = constructor_payload_type(ty, name) {
+        return Some(vec![payload]);
+    }
+    let expected_tag = constructor_tag(name.rsplit('.').next()?);
+    let variants = match ty {
+        CoreType::Union(variants) => variants.as_slice(),
+        other => std::slice::from_ref(other),
+    };
+    variants.iter().find_map(|variant| {
+        let CoreType::Tuple(elements) = variant else {
+            return None;
+        };
+        let tag = tuple_element_type(elements.first()?)?;
+        if !matches!(tag, CoreType::AtomLiteral(actual) if actual == &expected_tag) {
+            return None;
+        }
+        elements
+            .iter()
+            .skip(1)
+            .map(tuple_element_type)
+            .collect::<Option<Vec<_>>>()
+    })
+}
+
+fn constructor_tag(name: &str) -> String {
+    let mut tag = String::new();
+    for (index, character) in name.chars().enumerate() {
+        if character.is_uppercase() {
+            if index != 0 {
+                tag.push('_');
+            }
+            tag.extend(character.to_lowercase());
+        } else {
+            tag.push(character);
+        }
+    }
+    tag
+}
+
+/// Returns the type carried by one positional or named tuple element.
+fn tuple_element_type(element: &CoreTupleTypeElem) -> Option<&CoreType> {
+    Some(match element {
+        CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. } => ty,
+    })
 }
 
 fn list_element_type(ty: &CoreType) -> Option<&CoreType> {

@@ -267,6 +267,23 @@ fn maps_record_shape_to_named_tuple_type() {
     assert!(mapped.skipped.is_empty());
 }
 
+/// Verifies external object keys are normalized before entering generated
+/// Terlan record syntax.
+#[test]
+fn maps_symbolic_record_field_to_legal_terlan_identifier() {
+    let mapped = map_ts_type_to_terlan(&TsTypeRef::Record(vec![TsRecordField {
+        name: "$id".to_string(),
+        optional: false,
+        ty: TsTypeRef::Primitive(TsPrimitiveType::Number),
+    }]));
+
+    assert_eq!(
+        mapped.terlan_type.as_deref(),
+        Some("{id: std.js.Number.JsNumber}")
+    );
+    assert!(mapped.skipped.is_empty());
+}
+
 /// Verifies TypeScript callback shapes are skipped conservatively.
 ///
 /// Inputs:

@@ -23,11 +23,11 @@ pub cred_props_typechecks(receiver: AuthenticationExtensionsClientInputsJSON): s
     receiver.cred_props().
 
 pub large_blob_typechecks(
-    receiver: AuthenticationExtensionsClientInputsJSON
+    receiver: AuthenticationExtensionsClientInputsJSON,
 ): AuthenticationExtensionsLargeBlobInputsJSON ->
     receiver.large_blob().
 
 pub prf_typechecks(
-    receiver: AuthenticationExtensionsClientInputsJSON
+    receiver: AuthenticationExtensionsClientInputsJSON,
 ): AuthenticationExtensionsPRFInputsJSON ->
     receiver.prf().

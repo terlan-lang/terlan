@@ -25,7 +25,7 @@ pub arc_typechecks(
     radius: JsNumber,
     start_angle: JsNumber,
     end_angle: JsNumber,
-    counterclockwise: Bool
+    counterclockwise: Bool,
 ): Unit ->
     receiver.arc(x, y, radius, start_angle, end_angle, counterclockwise).
 
@@ -35,7 +35,7 @@ pub arc_to_typechecks(
     y1: JsNumber,
     x2: JsNumber,
     y2: JsNumber,
-    radius: JsNumber
+    radius: JsNumber,
 ): Unit ->
     receiver.arc_to(x1, y1, x2, y2, radius).
 
@@ -46,7 +46,7 @@ pub bezier_curve_to_typechecks(
     cp2x: JsNumber,
     cp2y: JsNumber,
     x: JsNumber,
-    y: JsNumber
+    y: JsNumber,
 ): Unit ->
     receiver.bezier_curve_to(cp1x, cp1y, cp2x, cp2y, x, y).
 
@@ -62,7 +62,7 @@ pub ellipse_typechecks(
     rotation: JsNumber,
     start_angle: JsNumber,
     end_angle: JsNumber,
-    counterclockwise: Bool
+    counterclockwise: Bool,
 ): Unit ->
     receiver.ellipse(x, y, radius_x, radius_y, rotation, start_angle, end_angle, counterclockwise).
 
@@ -77,7 +77,7 @@ pub quadratic_curve_to_typechecks(
     cpx: JsNumber,
     cpy: JsNumber,
     x: JsNumber,
-    y: JsNumber
+    y: JsNumber,
 ): Unit ->
     receiver.quadratic_curve_to(cpx, cpy, x, y).
 

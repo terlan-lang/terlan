@@ -30,7 +30,6 @@ pub(crate) struct VmLogicalNodeBootstrap<P: Send + 'static> {
     router: Arc<VmNodeTransportRouter<P>>,
     server: Option<VmProtocolTaskServer>,
     epmd: VmSharedEpmdState,
-    connection: ConnectionId,
 }
 
 impl<P: Send + 'static> VmLogicalNodeBootstrap<P> {
@@ -78,23 +77,22 @@ impl<P: Send + 'static> VmLogicalNodeBootstrap<P> {
             lifecycle
                 .register(&mut state, connection)
                 .map_err(render_lifecycle("register"))?;
-            Ok(connection)
+            Ok(())
         })();
 
-        let connection = match startup {
-            Ok(connection) => connection,
+        match startup {
+            Ok(()) => {}
             Err(error) => {
                 router.close_admission();
                 let cleanup = server.stop().err();
                 return Err(append_cleanup(error, cleanup));
             }
-        };
+        }
         Ok(Self {
             lifecycle,
             router,
             server: Some(server),
             epmd,
-            connection,
         })
     }
 
@@ -106,10 +104,6 @@ impl<P: Send + 'static> VmLogicalNodeBootstrap<P> {
             .local_addr()
     }
 
-    /// Returns the exact EPMD connection identity owned by this supervisor.
-    pub(crate) const fn registration_connection(&self) -> ConnectionId {
-        self.connection
-    }
 
     /// Returns the current logical-node lifecycle phase.
     pub(crate) const fn phase(&self) -> VmLogicalNodePhase {

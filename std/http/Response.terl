@@ -88,7 +88,7 @@ pub struct SecurityHeaders {
     frame_options: FrameOptions,
     referrer_policy: ReferrerPolicy,
     hsts_max_age: Int,
-    hsts_include_subdomains: Bool
+    hsts_include_subdomains: Bool,
 }.
 
 /**
@@ -102,7 +102,13 @@ pub struct SecurityHeaders {
  */
 pub constructor SecurityHeaders {
     (content_type_options: Bool, frame_options: FrameOptions, referrer_policy: ReferrerPolicy, hsts_max_age: Int, hsts_include_subdomains: Bool): SecurityHeaders ->
-        SecurityHeaders {content_type_options: content_type_options, frame_options: frame_options, referrer_policy: referrer_policy, hsts_max_age: hsts_max_age, hsts_include_subdomains: hsts_include_subdomains}
+        SecurityHeaders {
+            content_type_options: content_type_options,
+            frame_options: frame_options,
+            referrer_policy: referrer_policy,
+            hsts_max_age: hsts_max_age,
+            hsts_include_subdomains: hsts_include_subdomains,
+        }
 }.
 
 /**
@@ -114,7 +120,13 @@ pub constructor SecurityHeaders {
  * on non-TLS development origins.
  */
 pub default_security_headers(): SecurityHeaders ->
-    SecurityHeaders {content_type_options: true, frame_options: Deny, referrer_policy: StrictOriginWhenCrossOrigin, hsts_max_age: 0, hsts_include_subdomains: false}.
+    SecurityHeaders {
+        content_type_options: true,
+        frame_options: Deny,
+        referrer_policy: StrictOriginWhenCrossOrigin,
+        hsts_max_age: 0,
+        hsts_include_subdomains: false,
+    }.
 
 /**
  * Returns the production security-header policy.
@@ -125,7 +137,13 @@ pub default_security_headers(): SecurityHeaders ->
  * composed through handlers and future route manifests.
  */
 pub production_security_headers(): SecurityHeaders ->
-    SecurityHeaders {content_type_options: true, frame_options: Deny, referrer_policy: StrictOriginWhenCrossOrigin, hsts_max_age: 31536000, hsts_include_subdomains: true}.
+    SecurityHeaders {
+        content_type_options: true,
+        frame_options: Deny,
+        referrer_policy: StrictOriginWhenCrossOrigin,
+        hsts_max_age: 31536000,
+        hsts_include_subdomains: true,
+    }.
 
 /**
  * Response represents one HTTP response returned by a Terlan handler.
@@ -238,7 +256,7 @@ pub stream(
     status: Int,
     content_type: String,
     chunk_size: Int,
-    max_pending_writes: Int
+    max_pending_writes: Int,
 ): Response ->
     native.
 
@@ -405,7 +423,7 @@ pub (mut response: Response) cookie(
     value: String,
     path: String = "/",
     http_only: Bool = false,
-    secure: Bool = false
+    secure: Bool = false,
 ): Unit ->
     response
     |> set_cookie_header(set_header(name, value, path, http_only, secure)).
@@ -424,7 +442,7 @@ pub (mut response: Response) with_cookie(
     value: String,
     path: String = "/",
     http_only: Bool = false,
-    secure: Bool = false
+    secure: Bool = false,
 ): Response ->
     response
     |> cookie(name, value, path, http_only, secure).
@@ -450,10 +468,23 @@ pub (mut response: Response) cookie_with_options(
     expires: String = "",
     http_only: Bool = false,
     secure: Bool = false,
-    same_site: String = ""
+    same_site: String = "",
 ): Unit ->
     response
-    |> set_cookie_header(set_header_with_options(name, value, path, domain, max_age, include_max_age, expires, http_only, secure, same_site)).
+    |> set_cookie_header(
+    set_header_with_options(
+        name,
+        value,
+        path,
+        domain,
+        max_age,
+        include_max_age,
+        expires,
+        http_only,
+        secure,
+        same_site,
+    ),
+).
 
 /**
  * Returns a response after adding a validated `Set-Cookie` header with the
@@ -476,10 +507,21 @@ pub (mut response: Response) with_cookie_options(
     expires: String = "",
     http_only: Bool = false,
     secure: Bool = false,
-    same_site: String = ""
+    same_site: String = "",
 ): Response ->
     response
-    |> cookie_with_options(name, value, path, domain, max_age, include_max_age, expires, http_only, secure, same_site).
+    |> cookie_with_options(
+    name,
+    value,
+    path,
+    domain,
+    max_age,
+    include_max_age,
+    expires,
+    http_only,
+    secure,
+    same_site,
+).
 
 /**
  * Adds a validated cookie deletion header.

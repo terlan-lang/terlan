@@ -37,7 +37,7 @@ pub is_point_in_path_typechecks(
     receiver: CanvasDrawPath,
     x: JsNumber,
     y: JsNumber,
-    fill_rule: CanvasFillRule
+    fill_rule: CanvasFillRule,
 ): Bool ->
     receiver.is_point_in_path(x, y, fill_rule).
 
@@ -46,7 +46,7 @@ pub is_point_in_path_typechecks(
     path: Path2D,
     x: JsNumber,
     y: JsNumber,
-    fill_rule: CanvasFillRule
+    fill_rule: CanvasFillRule,
 ): Bool ->
     receiver.is_point_in_path(path, x, y, fill_rule).
 
@@ -57,7 +57,7 @@ pub is_point_in_stroke_typechecks(
     receiver: CanvasDrawPath,
     path: Path2D,
     x: JsNumber,
-    y: JsNumber
+    y: JsNumber,
 ): Bool ->
     receiver.is_point_in_stroke(path, x, y).
 

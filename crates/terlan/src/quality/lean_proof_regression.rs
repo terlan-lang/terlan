@@ -6,6 +6,7 @@ use serde::Serialize;
 use time::OffsetDateTime;
 
 use crate::terlan_quality::lean_proof_track::lean_proof_gap::{parse_gap_manifest, GAP_PATH};
+use crate::terlan_quality::support::parse_tsv_rows;
 use crate::terlan_quality::{render_failure, QualityResult};
 
 const BASELINE_PATH: &str = "docs/compiler/LEAN_PROOF_METRICS.tsv";
@@ -111,7 +112,7 @@ fn read_text(root: &Path, relative: &str) -> QualityResult<String> {
 }
 
 fn parse_metrics(text: &str) -> QualityResult<Vec<MetricRow>> {
-    parse_tsv(text, BASELINE_HEADER, BASELINE_PATH)?
+    parse_tsv_rows(text, BASELINE_HEADER, BASELINE_PATH)?
         .into_iter()
         .map(|columns| {
             Ok(MetricRow {
@@ -129,7 +130,7 @@ fn parse_metrics(text: &str) -> QualityResult<Vec<MetricRow>> {
 }
 
 fn parse_inventory(text: &str) -> QualityResult<Vec<(String, String)>> {
-    Ok(parse_tsv(text, INVENTORY_HEADER, INVENTORY_PATH)?
+    Ok(parse_tsv_rows(text, INVENTORY_HEADER, INVENTORY_PATH)?
         .into_iter()
         .map(|columns| (columns[1].clone(), columns[2].clone()))
         .collect())
@@ -143,7 +144,7 @@ fn parse_gaps(text: &str) -> QualityResult<Vec<String>> {
 }
 
 fn parse_policy(text: &str) -> QualityResult<Policy> {
-    let rows = parse_tsv(text, POLICY_HEADER, POLICY_PATH)?;
+    let rows = parse_tsv_rows(text, POLICY_HEADER, POLICY_PATH)?;
     let values = rows
         .into_iter()
         .map(|columns| (columns[0].clone(), columns[1].clone()))
@@ -166,35 +167,6 @@ fn required_policy<'a>(values: &'a BTreeMap<String, String>, key: &str) -> Quali
         .get(key)
         .map(String::as_str)
         .ok_or_else(|| format!("{POLICY_PATH}: missing policy `{key}`"))
-}
-
-fn parse_tsv(text: &str, header: &str, path: &str) -> QualityResult<Vec<Vec<String>>> {
-    let mut lines = text.lines();
-    let Some(actual_header) = lines.next() else {
-        return Err(format!("{path}: missing header"));
-    };
-    if actual_header != header {
-        return Err(format!(
-            "{path}: expected header `{header}`, found `{actual_header}`"
-        ));
-    }
-    let expected_columns = header.split('\t').count();
-    let mut rows = Vec::new();
-    for (index, line) in lines.enumerate() {
-        if line.trim().is_empty() {
-            continue;
-        }
-        let columns = line.split('\t').map(str::to_string).collect::<Vec<_>>();
-        if columns.len() != expected_columns {
-            return Err(format!(
-                "{path}: row {} has {} columns, expected {expected_columns}",
-                index + 2,
-                columns.len()
-            ));
-        }
-        rows.push(columns);
-    }
-    Ok(rows)
 }
 
 fn parse_u64(text: &str, path: &str) -> QualityResult<u64> {
@@ -372,4 +344,5 @@ fn today_utc() -> String {
 
 #[cfg(test)]
 #[path = "lean_proof_regression_test.rs"]
+#[cfg(test)]
 mod lean_proof_regression_test;

@@ -1,6 +1,6 @@
 //! Scalar `Case` elimination before NativeIR admission.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crate::terlan_typeck::{
     CoreCaseClause, CoreExpr, CoreFunction, CoreIfClause, CoreLetBinding, CoreModule, CorePattern,
@@ -25,6 +25,8 @@ struct ScalarPatternPlan {
 struct ScalarCaseLowerer {
     /// Next compiler-generated scrutinee identity.
     scrutinee_ordinal: u64,
+    /// Checked local return types used to preserve structured case joins.
+    function_core_types: HashMap<(String, usize), CoreType>,
 }
 
 /// Eliminates supported scalar `Case` expressions from one CoreIR module.
@@ -33,8 +35,20 @@ struct ScalarCaseLowerer {
 /// clauses become existing `If` control flow, while pattern captures are
 /// introduced independently around guards and selected bodies.
 pub(super) fn lower_scalar_cases(core: &mut CoreModule) -> Result<(), String> {
+    let mut function_core_types = HashMap::new();
+    for function in &core.functions {
+        let Some(return_type) = &function.core_return_type else {
+            continue;
+        };
+        function_core_types.insert((function.name.clone(), function.arity), return_type.clone());
+        function_core_types.insert(
+            (format!("{}.{}", core.module, function.name), function.arity),
+            return_type.clone(),
+        );
+    }
     let mut lowerer = ScalarCaseLowerer {
         scrutinee_ordinal: 0,
+        function_core_types,
     };
     for function in &mut core.functions {
         lowerer.normalize_function_head(function)?;
@@ -142,6 +156,103 @@ impl ScalarCaseLowerer {
                 let normalized = self.normalize_let_bindings(bindings, body, case_depth)?;
                 return self.rewrite(&normalized, case_depth);
             }
+
+            // A retained structured case is control flow, not an eager scalar
+            // value. Carry the lexical continuation into every selected arm
+            // so a suspending arm can compose with transitions that follow
+            // the binding. This is the CoreIR form of bind associativity:
+            //
+            //     let value = case subject { pattern -> selected };
+            //     continuation(value)
+            //
+            // becomes:
+            //
+            //     case subject {
+            //         pattern -> let value = selected; continuation(value)
+            //     }
+            //
+            // Only the selected arm executes, so source evaluation order and
+            // cleanup behavior are preserved. Scalar cases have already been
+            // eliminated into `If`; this route therefore owns the structured
+            // constructor/record/list cases retained for NativeIR lowering.
+            let rewritten_bindings = bindings
+                .iter()
+                .map(|binding| {
+                    Ok(CoreLetBinding {
+                        pattern: binding.pattern.clone(),
+                        value: self.rewrite(&binding.value, case_depth)?,
+                    })
+                })
+                .collect::<Result<Vec<_>, String>>()?;
+            let rewritten_body = self.rewrite(body, case_depth)?;
+            if let Some(binding_index) = rewritten_bindings
+                .iter()
+                .position(|binding| matches!(binding.value, CoreExpr::Case { .. }))
+            {
+                let selected_binding = &rewritten_bindings[binding_index];
+                let identity_continuation = binding_index + 1 == rewritten_bindings.len()
+                    && matches!(
+                        (&selected_binding.pattern, &rewritten_body),
+                        (CorePattern::Var(binding), CoreExpr::Var(result)) if binding == result
+                    );
+                if !identity_continuation {
+                    if case_depth >= MAX_SCALAR_CASE_DEPTH {
+                        return Err(format!(
+                            "error[native_ir.case_continuation_depth]: structured case continuation nesting exceeds {MAX_SCALAR_CASE_DEPTH} expressions"
+                        ));
+                    }
+                    let CoreExpr::Case {
+                        scrutinee,
+                        mut clauses,
+                    } = selected_binding.value.clone()
+                    else {
+                        unreachable!("structured case binding selected by match predicate")
+                    };
+                    let result_core_type = super::structured_case::core_expr_type(
+                        &CoreExpr::Case {
+                            scrutinee: scrutinee.clone(),
+                            clauses: clauses.clone(),
+                        },
+                        &HashMap::new(),
+                        &self.function_core_types,
+                    );
+                    let remaining = rewritten_bindings[binding_index + 1..].to_vec();
+                    for clause in &mut clauses {
+                        let mut continuation_bindings = Vec::with_capacity(1 + remaining.len());
+                        continuation_bindings.push(CoreLetBinding {
+                            pattern: selected_binding.pattern.clone(),
+                            value: result_core_type.as_ref().map_or_else(
+                                || clause.body.clone(),
+                                |target_type| {
+                                    contextualize_control_result(clause.body.clone(), target_type)
+                                },
+                            ),
+                        });
+                        continuation_bindings.extend(remaining.clone());
+                        clause.body = self.rewrite(
+                            &CoreExpr::Let {
+                                bindings: continuation_bindings,
+                                body: Box::new(rewritten_body.clone()),
+                            },
+                            case_depth + 1,
+                        )?;
+                    }
+                    let distributed = CoreExpr::Case { scrutinee, clauses };
+                    let prefix = rewritten_bindings[..binding_index].to_vec();
+                    return Ok(if prefix.is_empty() {
+                        distributed
+                    } else {
+                        CoreExpr::Let {
+                            bindings: prefix,
+                            body: Box::new(distributed),
+                        }
+                    });
+                }
+            }
+            return Ok(CoreExpr::Let {
+                bindings: rewritten_bindings,
+                body: Box::new(rewritten_body),
+            });
         }
         if let CoreExpr::Lam { params, body } = expr {
             if params
@@ -190,7 +301,7 @@ impl ScalarCaseLowerer {
             let left = self.rewrite(left, case_depth)?;
             let right = self.rewrite(right, case_depth)?;
             if expression_contains_case(&left) || expression_contains_case(&right) {
-                if matches!(operator.as_str(), "and" | "&&") {
+                if operator == "and" {
                     return Ok(CoreExpr::If {
                         clauses: vec![
                             CoreIfClause {
@@ -204,7 +315,7 @@ impl ScalarCaseLowerer {
                         ],
                     });
                 }
-                if matches!(operator.as_str(), "or" | "||") {
+                if operator == "or" {
                     return Ok(CoreExpr::If {
                         clauses: vec![
                             CoreIfClause {
@@ -517,6 +628,52 @@ impl ScalarCaseLowerer {
     }
 }
 
+/// Pushes a checked result type to terminal control values.
+///
+/// Keeping `If`, `Case`, and `Let` as the outer node lets suspension-region
+/// discovery see calls inside their selected branches. It also preserves
+/// effectful prefixes such as diagnostic logging before a nullary `None`
+/// result instead of replacing the entire wrapper during typed allocation.
+fn contextualize_control_result(expr: CoreExpr, target_type: &CoreType) -> CoreExpr {
+    match expr {
+        CoreExpr::If { clauses } => CoreExpr::If {
+            clauses: clauses
+                .into_iter()
+                .map(|clause| crate::terlan_typeck::CoreIfClause {
+                    condition: clause.condition,
+                    body: contextualize_control_result(clause.body, target_type),
+                })
+                .collect(),
+        },
+        CoreExpr::Case { scrutinee, clauses } => CoreExpr::Case {
+            scrutinee,
+            clauses: clauses
+                .into_iter()
+                .map(|clause| crate::terlan_typeck::CoreCaseClause {
+                    pattern: clause.pattern,
+                    guard: clause.guard,
+                    body: contextualize_control_result(clause.body, target_type),
+                })
+                .collect(),
+        },
+        CoreExpr::Let { bindings, body } => CoreExpr::Let {
+            bindings,
+            body: Box::new(contextualize_control_result(*body, target_type)),
+        },
+        CoreExpr::Cast {
+            expr,
+            target_type: existing,
+        } if existing == *target_type => CoreExpr::Cast {
+            expr,
+            target_type: existing,
+        },
+        other => CoreExpr::Cast {
+            expr: Box::new(other),
+            target_type: target_type.clone(),
+        },
+    }
+}
+
 fn scalar_pattern(pattern: &CorePattern) -> bool {
     match pattern {
         CorePattern::Wildcard
@@ -561,9 +718,16 @@ fn scalar_pattern_plan(
             predicate: None,
             bindings: Vec::new(),
         }),
-        CorePattern::Var(value) if matches!(value.as_str(), "true" | "false" | "Unit") => {
+        CorePattern::Var(value) if matches!(value.as_str(), "true" | "false" | "Unit" | "unit") => {
             Ok(ScalarPatternPlan {
-                predicate: Some(scalar_equality(temporary, CoreExpr::Var(value.clone()))),
+                predicate: Some(scalar_equality(
+                    temporary,
+                    CoreExpr::Var(if value == "unit" {
+                        "Unit".to_string()
+                    } else {
+                        value.clone()
+                    }),
+                )),
                 bindings: Vec::new(),
             })
         }
@@ -603,9 +767,18 @@ fn scalar_pattern_plan(
             }),
             bindings: Vec::new(),
         }),
-        CorePattern::Atom(value) if matches!(value.as_str(), "true" | "false" | "Unit") => {
+        CorePattern::Atom(value)
+            if matches!(value.as_str(), "true" | "false" | "Unit" | "unit") =>
+        {
             Ok(ScalarPatternPlan {
-                predicate: Some(scalar_equality(temporary, CoreExpr::Atom(value.clone()))),
+                predicate: Some(scalar_equality(
+                    temporary,
+                    CoreExpr::Atom(if value == "unit" {
+                        "Unit".to_string()
+                    } else {
+                        value.clone()
+                    }),
+                )),
                 bindings: Vec::new(),
             })
         }

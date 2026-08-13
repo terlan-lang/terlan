@@ -8,9 +8,9 @@ use crate::terlan_quality::{render_failure, QualityResult};
 const EXACT_SELECTOR_SOURCES: &[&str] = &["crates/terlan/cli.mk", "Makefile"];
 
 const REQUIRED_EXACT_SELECTORS: &[&str] = &[
-    "runtime::vm::http::http_test::vm_http_roundtrips_request_and_response_over_vm_tcp_streams",
-    "commands::serve::serve_test::vm_stream_request_executes_dynamic_handler_without_hyper",
-    "commands::serve::serve_test::vm_stream_request_returns_websocket_upgrade_handshake_without_hyper",
+    "runtime::vm::http::http_test::transport_fixtures::vm_http_roundtrips_request_and_response_over_vm_tcp_streams",
+    "commands::serve::serve_test::dynamic_dispatch::vm_stream_request_executes_dynamic_handler_without_hyper",
+    "commands::serve::serve_test::upgrades_and_acme::vm_stream_request_returns_websocket_upgrade_handshake_without_hyper",
 ];
 
 /// Summary produced by the CLI exact-selector check.
@@ -59,6 +59,7 @@ pub fn run_cli_exact_selectors(root: &Path) -> QualityResult<CliExactSelectorSum
     }
     let tests = cargo_test_names(root)?;
     let mut missing = stale_selectors(&selectors, &tests);
+    missing.extend(stale_grouped_filters(&grouped_filters, &tests));
     missing.extend(missing_required_test_coverage(&selectors, &grouped_filters));
 
     if !missing.is_empty() {
@@ -75,15 +76,48 @@ pub(crate) fn extract_grouped_test_filters(makefile_text: &str) -> Vec<String> {
     makefile_text
         .lines()
         .filter(|line| line.contains("RUST_TEST"))
-        .filter_map(|line| {
-            let tokens = line.split_whitespace().collect::<Vec<_>>();
-            let bin = tokens.iter().position(|token| *token == "--bin")?;
-            tokens
-                .get(bin + 2)
-                .filter(|filter| filter.contains("::"))
-                .map(|filter| (*filter).to_string())
-        })
+        .filter_map(cargo_test_filter_from_make_recipe)
         .collect()
+}
+
+fn cargo_test_filter_from_make_recipe(line: &str) -> Option<String> {
+    const OPTIONS_WITH_VALUE: &[&str] = &[
+        "-p",
+        "--package",
+        "--features",
+        "--bin",
+        "--test",
+        "--target",
+        "--manifest-path",
+        "--jobs",
+        "-j",
+        "--profile",
+    ];
+
+    let tokens = line.split_whitespace().collect::<Vec<_>>();
+    if !tokens.contains(&"--lib") || tokens.contains(&"--test") {
+        return None;
+    }
+    let mut index = tokens
+        .iter()
+        .position(|token| token.contains("RUST_TEST)"))?
+        + 1;
+    while index < tokens.len() {
+        let token = tokens[index];
+        if matches!(token, "--" | "\\") {
+            return None;
+        }
+        if OPTIONS_WITH_VALUE.contains(&token) {
+            index += 2;
+            continue;
+        }
+        if token.starts_with('-') || token.contains('=') {
+            index += 1;
+            continue;
+        }
+        return Some(token.to_string());
+    }
+    None
 }
 
 /// Extracts exact-test selectors from CLI Makefile text.
@@ -130,10 +164,23 @@ fn exact_selector_from_make_recipe(line: &str) -> Option<String> {
 /// - Set of fully qualified test names reported by Cargo.
 ///
 /// Transformation:
-/// - Runs `cargo test -p terlan -- --list`.
+/// - Lists the canonical library test owner with the feature-isolated editor,
+///   quality, and benchmark modules enabled.
 /// - Parses the standard test-list output into exact-selector names.
 fn cargo_test_names(root: &Path) -> QualityResult<BTreeSet<String>> {
-    cargo_test_names_for_args(root, &["test", "-p", "terlan", "--", "--list"])
+    cargo_test_names_for_args(
+        root,
+        &[
+            "test",
+            "-p",
+            "terlan",
+            "--lib",
+            "--features",
+            "editor-lsp,quality-tools,benchmark-tools",
+            "--",
+            "--list",
+        ],
+    )
 }
 
 fn cargo_test_names_for_args(root: &Path, args: &[&str]) -> QualityResult<BTreeSet<String>> {
@@ -196,6 +243,17 @@ pub(crate) fn stale_selectors(selectors: &[String], tests: &BTreeSet<String>) ->
         .collect()
 }
 
+/// Returns grouped Cargo filters that no longer select a canonical library test.
+pub(crate) fn stale_grouped_filters(filters: &[String], tests: &BTreeSet<String>) -> Vec<String> {
+    let mut seen = BTreeSet::new();
+    filters
+        .iter()
+        .filter(|filter| seen.insert((*filter).clone()))
+        .filter(|filter| !tests.iter().any(|test| test.contains(filter.as_str())))
+        .map(|filter| format!("stale grouped test filter `{filter}`"))
+        .collect()
+}
+
 /// Returns required tests not covered by exact selectors or grouped filters.
 pub(crate) fn missing_required_test_coverage(
     selectors: &[String],
@@ -211,7 +269,7 @@ pub(crate) fn missing_required_test_coverage(
             !present.contains(**selector)
                 && !grouped_filters
                     .iter()
-                    .any(|filter| selector.starts_with(filter))
+                    .any(|filter| selector.contains(filter))
         })
         .map(|selector| format!("Makefile: missing required exact selector `{selector}`"))
         .collect()
@@ -219,4 +277,5 @@ pub(crate) fn missing_required_test_coverage(
 
 #[cfg(test)]
 #[path = "cli_exact_selectors_test.rs"]
+#[cfg(test)]
 mod cli_exact_selectors_test;

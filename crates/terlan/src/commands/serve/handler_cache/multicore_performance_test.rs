@@ -20,14 +20,20 @@ use crate::runtime::vm::ReplValue;
 use super::handler_cache_test_support::compile_native_handler_fixture;
 use super::AotHandlerGeneration;
 
+#[cfg(test)]
 #[path = "multicore_performance_test/cpu_actor.rs"]
 mod cpu_actor;
+#[cfg(test)]
 #[path = "multicore_performance_test/mixed_tail.rs"]
 mod mixed_tail;
+#[cfg(test)]
 #[path = "multicore_performance_test/policy.rs"]
 mod policy;
+#[cfg(test)]
 #[path = "multicore_performance_test/policy_test.rs"]
+#[cfg(test)]
 mod policy_test;
+#[cfg(test)]
 #[path = "multicore_performance_test/workloads.rs"]
 mod workloads;
 

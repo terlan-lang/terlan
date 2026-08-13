@@ -323,10 +323,30 @@ fn encode_field(
 
 fn encode_decoded_value(value: VmPostgresDecodedValue) -> String {
     match value {
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::Null => "n:".to_string(),
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::Int(value) => format!("i:{value}"),
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::Bool(value) => format!("b:{value}"),
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::String(value) => format!("s:{}", encode_text(&value)),
+        #[cfg(any(
+            test,
+            all(feature = "postgres-libpq", not(feature = "serve-runtime-bin"))
+        ))]
         VmPostgresDecodedValue::Json(value) => format!("j:{}", encode_text(&value)),
     }
 }
@@ -347,4 +367,5 @@ fn encode_text(value: &str) -> String {
 
 #[cfg(test)]
 #[path = "sql_runtime_test.rs"]
+#[cfg(test)]
 mod sql_runtime_test;

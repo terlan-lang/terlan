@@ -1,8 +1,5 @@
 use crate::terlan_typeck::CoreModule;
 
-#[cfg(test)]
-use crate::terlan_typeck::{CoreExpr, CoreExprSummary, CorePattern};
-
 /// Diagnostic code emitted when unresolved constructor metadata reaches target
 /// profile validation.
 ///
@@ -53,6 +50,7 @@ mod std_runtime;
 mod summary_shape;
 
 use core_traversal::{validate_core_expr_summary, validate_core_pattern};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use inference::{
     explicit_target_profile_override_error, infer_target_profile_from_typed_evidence,
     TargetInference, TargetInferenceInput,

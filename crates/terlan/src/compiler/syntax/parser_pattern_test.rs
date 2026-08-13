@@ -196,8 +196,8 @@ mod tests {
         };
         assert!(matches!(
             &clauses[0].pattern,
-            crate::terlan_syntax::parse_tree::Pattern::Tuple(items)
-                if matches!(items.as_slice(), [crate::terlan_syntax::parse_tree::Pattern::Atom(name)] if name == "None")
+            crate::terlan_syntax::parse_tree::Pattern::NullaryConstructorCall(name)
+                if name == "None"
         ));
     }
 

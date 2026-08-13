@@ -127,8 +127,8 @@ pub int_range(min: Int, max: Int): Gen[Int] ->
 pub range_of(start: Int, stop: Int): Gen[std.range.Range.Range] ->
     let step =
         if {
-        start <= stop -> 1;
-        true -> -1
+            start <= stop -> 1;
+            true -> -1
         };
     {Atom["gen"], [Range(start, stop, step, true), Range(start, stop, step, false)]}.
 
@@ -220,8 +220,8 @@ pub filter(generator: Gen[T], predicate: (T) -> Assertion): Gen[T] ->
 pub discard_report(generator: Gen[T], max_discards: Int, predicate: (T) -> Assertion): DiscardReport ->
     let discarded = discard_count(sample(generator), predicate);
     if {
-    discarded <= max_discards -> {true, discarded, "ok"};
-    true -> {false, discarded, "discard limit exceeded"}
+        discarded <= max_discards -> {true, discarded, "ok"};
+        true -> {false, discarded, "discard limit exceeded"}
     }.
 
 /**
@@ -235,16 +235,16 @@ pub discard_report(generator: Gen[T], max_discards: Int, predicate: (T) -> Asser
 pub discard_ratio_report(
     generator: Gen[T],
     max_discard_percent: Int,
-    predicate: (T) -> Assertion
+    predicate: (T) -> Assertion,
 ): DiscardReport ->
     let values = sample(generator);
     let discarded = discard_count(values, predicate);
     let total = count_values(values);
     if {
-    total <= 0 -> {true, discarded, "ok"};
-    max_discard_percent < 0 -> {false, discarded, "discard ratio exceeded"};
-    discarded * 100 <= total * max_discard_percent -> {true, discarded, "ok"};
-    true -> {false, discarded, "discard ratio exceeded"}
+        total <= 0 -> {true, discarded, "ok"};
+        max_discard_percent < 0 -> {false, discarded, "discard ratio exceeded"};
+        discarded * 100 <= total * max_discard_percent -> {true, discarded, "ok"};
+        true -> {false, discarded, "discard ratio exceeded"}
     }.
 
 /**
@@ -280,8 +280,8 @@ pub sized(size: Int, builder: (Int) -> Gen[T]): Gen[T] ->
  */
 pub recursive(depth: Int, base: Gen[T], step: (Gen[T]) -> Gen[T]): Gen[T] ->
     if {
-    depth <= 0 -> base;
-    true -> recursive(depth - 1, step(base), step)
+        depth <= 0 -> base;
+        true -> recursive(depth - 1, step(base), step)
     }.
 
 /**
@@ -365,7 +365,10 @@ pub map_of(keys: Gen[K], values: Gen[V]): Gen[std.collections.Map.Map[K, V]] ->
  * map-backed `std.core.Object` surface.
  */
 pub object_of(keys: Gen[String], values: Gen[V]): Gen[Object[V]] ->
-    {Atom["gen"], [std.core.Object.new[V](), from_entries(pair_values(sample(keys), sample(values)))]}.
+    {
+        Atom["gen"],
+        [std.core.Object.new[V](), from_entries(pair_values(sample(keys), sample(values)))],
+    }.
 
 /**
  * Returns all generated samples.
@@ -428,10 +431,10 @@ pub step_report(generator: Gen[T], max_steps: Int, property: (T) -> Assertion): 
     let passed = each(selected, property);
     let total = count_values(values);
     if {
-    passed == false -> {false, executed, "property failed"};
-    max_steps < 0 -> {false, executed, "step limit exceeded"};
-    total <= max_steps -> {true, executed, "ok"};
-    true -> {false, executed, "step limit exceeded"}
+        passed == false -> {false, executed, "property failed"};
+        max_steps < 0 -> {false, executed, "step limit exceeded"};
+        total <= max_steps -> {true, executed, "ok"};
+        true -> {false, executed, "step limit exceeded"}
     }.
 
 /**
@@ -458,7 +461,7 @@ pub shrink_failure(generator: Gen[T], property: (T) -> Assertion, shrinker: (T) 
 pub shrink_report(
     generator: Gen[T],
     property: (T) -> Assertion,
-    shrinker: (T) -> List[T]
+    shrinker: (T) -> List[T],
 ): PropertyShrinkReport[T] ->
     shrink_report_values(sample(generator), property, shrinker).
 
@@ -506,8 +509,8 @@ pub label(name: String, property: Assertion): PropertyObservation ->
  */
 pub classify(condition: Bool, name: String, property: Assertion): PropertyObservation ->
     if {
-    condition -> {property, [name]};
-    true -> {property, List.new[String]()}
+        condition -> {property, [name]};
+        true -> {property, List.new[String]()}
     }.
 
 /**
@@ -531,8 +534,8 @@ pub collect(value: String, property: Assertion): PropertyObservation ->
  */
 pub cover(required: Int, observed: Int, name: String, property: Assertion): PropertyObservation ->
     if {
-    observed >= required -> {property, [name]};
-    true -> {false, [name]}
+        observed >= required -> {property, [name]};
+        true -> {false, [name]}
     }.
 
 /**
@@ -555,8 +558,8 @@ pub reproduction_command(seed: Int): String ->
  */
 pub implies(condition: Bool, property: Assertion): Assertion ->
     if {
-    condition -> property;
-    true -> true
+        condition -> property;
+        true -> true
     }.
 
 /**
@@ -569,8 +572,8 @@ pub implies(condition: Bool, property: Assertion): Assertion ->
  */
 pub expect_failure(property: Assertion): Assertion ->
     if {
-    property -> false;
-    true -> true
+        property -> false;
+        true -> true
     }.
 
 /**
@@ -583,8 +586,8 @@ pub expect_failure(property: Assertion): Assertion ->
  */
 pub int_range_values(current: Int, max: Int): List[Int] ->
     if {
-    current > max -> [];
-    true -> [current | int_range_values(current + 1, max)]
+        current > max -> [];
+        true -> [current | int_range_values(current + 1, max)]
     }.
 
 /**
@@ -612,8 +615,8 @@ pub frequency_values(weighted: List[{Int, Gen[T]}]): List[T] ->
  */
 pub repeat_samples(count: Int, values: List[T]): List[T] ->
     if {
-    count <= 0 -> [];
-    true -> append(values, repeat_samples(count - 1, values))
+        count <= 0 -> [];
+        true -> append(values, repeat_samples(count - 1, values))
     }.
 
 /**
@@ -626,8 +629,8 @@ pub repeat_samples(count: Int, values: List[T]): List[T] ->
  */
 pub replay_values(seed: Int, values: List[T]): List[T] ->
     if {
-    seed <= 0 -> values;
-    true -> case values {
+        seed <= 0 -> values;
+        true -> case values {
             [] -> [];
             [head | tail] -> replay_values(seed - 1, append(tail, [head]))
         }
@@ -646,8 +649,8 @@ pub filter_values(values: List[T], predicate: (T) -> Assertion): List[T] ->
         [] -> [];
         [head | tail] ->
             if {
-            predicate(head) -> [head | filter_values(tail, predicate)];
-            true -> filter_values(tail, predicate)
+                predicate(head) -> [head | filter_values(tail, predicate)];
+                true -> filter_values(tail, predicate)
             }
     }.
 
@@ -663,8 +666,8 @@ pub discard_count(values: List[T], predicate: (T) -> Assertion): Int ->
         [] -> 0;
         [head | tail] ->
             if {
-            predicate(head) -> discard_count(tail, predicate);
-            true -> 1 + discard_count(tail, predicate)
+                predicate(head) -> discard_count(tail, predicate);
+                true -> 1 + discard_count(tail, predicate)
             }
     }.
 
@@ -692,8 +695,8 @@ pub count_values(values: List[T]): Int ->
  */
 pub take_values(max: Int, values: List[T]): List[T] ->
     if {
-    max <= 0 -> [];
-    true -> case values {
+        max <= 0 -> [];
+        true -> case values {
             [] -> [];
             [head | tail] -> [head | take_values(max - 1, tail)]
         }
@@ -724,14 +727,14 @@ pub map_values(values: List[A], mapper: (A) -> B): List[B] ->
 pub shrink_failure_values(
     values: List[T],
     property: (T) -> Assertion,
-    shrinker: (T) -> List[T]
+    shrinker: (T) -> List[T],
 ): List[T] ->
     case values {
         [] -> [];
         [head | tail] ->
             if {
-            property(head) -> shrink_failure_values(tail, property, shrinker);
-            true -> filter_values(shrinker(head), (candidate) -> property(candidate) == false)
+                property(head) -> shrink_failure_values(tail, property, shrinker);
+                true -> filter_values(shrinker(head), (candidate) -> property(candidate) == false)
             }
     }.
 
@@ -746,14 +749,14 @@ pub shrink_failure_values(
 pub shrink_report_values(
     values: List[T],
     property: (T) -> Assertion,
-    shrinker: (T) -> List[T]
+    shrinker: (T) -> List[T],
 ): PropertyShrinkReport[T] ->
     case values {
         [] -> {true, None, List.new[T]()};
         [head | tail] ->
             if {
-            property(head) -> shrink_report_values(tail, property, shrinker);
-            true -> let path = filter_values(shrinker(head), (candidate) -> property(candidate) == false);
+                property(head) -> shrink_report_values(tail, property, shrinker);
+                true -> let path = filter_values(shrinker(head), (candidate) -> property(candidate) == false);
                 let minimal = last_or_default(head, path);
                 {false, Some(minimal), path}
             }

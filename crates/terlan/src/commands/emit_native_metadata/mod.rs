@@ -75,4 +75,5 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
 
 #[cfg(test)]
 #[path = "emit_native_metadata_test.rs"]
+#[cfg(test)]
 mod emit_native_metadata_test;

@@ -137,7 +137,7 @@ fn qualified_call_member_at<'a>(
             break;
         }
     }
-    if member_end == member_start || line[member_end..].chars().next() != Some('(') {
+    if member_end == member_start || !line[member_end..].starts_with('(') {
         return None;
     }
 

@@ -1,4 +1,6 @@
-fn visit_children(
+use super::*;
+
+pub(super) fn visit_children(
     expr: &mut CoreExpr,
     variables: &HashMap<String, CoreType>,
     functions: &FunctionTypes,
@@ -73,7 +75,11 @@ fn visit_children(
     }
 }
 
-fn bind_pattern(pattern: &CorePattern, ty: &CoreType, variables: &mut HashMap<String, CoreType>) {
+pub(super) fn bind_pattern(
+    pattern: &CorePattern,
+    ty: &CoreType,
+    variables: &mut HashMap<String, CoreType>,
+) {
     match pattern {
         CorePattern::Var(name) => {
             variables.insert(name.clone(), ty.clone());
@@ -156,7 +162,7 @@ fn bind_pattern(pattern: &CorePattern, ty: &CoreType, variables: &mut HashMap<St
     }
 }
 
-fn pattern_atom(pattern: &CorePattern) -> Option<&str> {
+pub(super) fn pattern_atom(pattern: &CorePattern) -> Option<&str> {
     match pattern {
         CorePattern::Atom(atom) => Some(atom),
         CorePattern::Alias { pattern, .. } => pattern_atom(pattern),
@@ -164,7 +170,7 @@ fn pattern_atom(pattern: &CorePattern) -> Option<&str> {
     }
 }
 
-fn tagged_union_tuple<'a>(
+pub(super) fn tagged_union_tuple<'a>(
     ty: &'a CoreType,
     tag: &str,
 ) -> Option<&'a [crate::terlan_typeck::CoreTupleTypeElem]> {
@@ -181,7 +187,7 @@ fn tagged_union_tuple<'a>(
     })
 }
 
-fn list_element(ty: &CoreType) -> Option<&CoreType> {
+pub(super) fn list_element(ty: &CoreType) -> Option<&CoreType> {
     match ty {
         CoreType::List(element) => Some(element),
         CoreType::Apply { constructor, args }
@@ -193,7 +199,7 @@ fn list_element(ty: &CoreType) -> Option<&CoreType> {
     }
 }
 
-fn iterator_element(ty: &CoreType) -> Option<&CoreType> {
+pub(super) fn iterator_element(ty: &CoreType) -> Option<&CoreType> {
     match ty {
         CoreType::Apply { constructor, args }
             if constructor.rsplit('.').next() == Some("Iterator") && args.len() == 1 =>
@@ -204,7 +210,7 @@ fn iterator_element(ty: &CoreType) -> Option<&CoreType> {
     }
 }
 
-fn function_signature<'a>(
+pub(super) fn function_signature<'a>(
     functions: &'a FunctionTypes,
     module: &str,
     function: &str,
@@ -219,7 +225,7 @@ fn function_signature<'a>(
         })
 }
 
-fn function_return_type(
+pub(super) fn function_return_type(
     functions: &FunctionTypes,
     module: &str,
     function: &str,
@@ -228,7 +234,7 @@ fn function_return_type(
     function_signature(functions, module, function, arity).map(|signature| signature.result.clone())
 }
 
-fn is_bytes(ty: &CoreType) -> bool {
+pub(super) fn is_bytes(ty: &CoreType) -> bool {
     matches!(
         ty,
         CoreType::Named(name)
@@ -239,7 +245,7 @@ fn is_bytes(ty: &CoreType) -> bool {
     )
 }
 
-fn is_bitstring(ty: &CoreType) -> bool {
+pub(super) fn is_bitstring(ty: &CoreType) -> bool {
     match ty {
         CoreType::Binary => true,
         CoreType::Named(name) => {

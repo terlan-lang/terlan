@@ -1,0 +1,9 @@
+module=std.data.Toml
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=3168177787796337862
+interface_hash=18391256122375956796
+interface_doc_hash=9416430841627803179
+deps=1
+std.data.Json=11845223858831339284

@@ -1,0 +1,191 @@
+{
+  "design_candidates": [
+    {
+      "decision": "selected",
+      "name": "feature-isolated facade",
+      "reason": "Removes textual source duplication immediately while preserving crate-private compiler/runtime boundaries and excludes LSP, quality, and benchmark modules from focused product builds."
+    },
+    {
+      "decision": "deferred",
+      "name": "runtime implementation crate",
+      "reason": "No source duplication remains after facade ownership; extraction would expose a broad unstable private surface and increase compiler/runtime edit invalidation."
+    },
+    {
+      "decision": "deferred",
+      "name": "compiler protocol crate",
+      "reason": "The current artifact types cross syntax, type checking, NativeIR, and image admission; a premature split would create conversion mirrors instead of one dependency-inward owner."
+    },
+    {
+      "decision": "selected",
+      "name": "AST quality audit crate",
+      "reason": "The syn and quote dependency load is unrelated to product builds and the extracted tool owns an acyclic read-only report boundary."
+    },
+    {
+      "decision": "selected",
+      "name": "runtime ABI contract crate",
+      "reason": "BoundaryError and TvmBoundaryType are stable dependency-inward AOT contracts shared by generated code and the VM without exposing mutable runtime implementation."
+    }
+  ],
+  "feature_isolation": {
+    "benchmark": "benchmark-tools",
+    "lsp": "editor-lsp",
+    "quality": "quality-tools"
+  },
+  "measurements": [
+    {
+      "command": "cargo check --locked -p terlan --bin terlc --target-dir ./target/cq3-timings/facade",
+      "edit_mode": "clean-target",
+      "edited_file": "crates/terlan/src/lib.rs",
+      "scenario": "facade-clean-terlc",
+      "wall_time_ms": 37513
+    },
+    {
+      "command": "cargo check --locked -p terlan --bin terlc --target-dir ./target/cq3-timings/facade",
+      "edit_mode": "mtime-only",
+      "edited_file": "crates/terlan/src/compiler/syntax/parser/expressions.rs",
+      "scenario": "facade-parser-incremental",
+      "wall_time_ms": 4589
+    },
+    {
+      "command": "cargo check --locked -p terlan --bin terlc --target-dir ./target/cq3-timings/facade",
+      "edit_mode": "mtime-only",
+      "edited_file": "crates/terlan/src/runtime/vm/timer.rs",
+      "scenario": "facade-runtime-incremental",
+      "wall_time_ms": 4637
+    },
+    {
+      "command": "cargo check --locked -p terlan-rust-boundary-audit --target-dir ./target/cq3-timings/audit",
+      "edit_mode": "clean-target",
+      "edited_file": "tools/rust_boundary_audit/src/main.rs",
+      "scenario": "quality-audit-clean",
+      "wall_time_ms": 1495
+    },
+    {
+      "command": "cargo check --locked -p terlan-rust-boundary-audit --target-dir ./target/cq3-timings/audit",
+      "edit_mode": "mtime-only",
+      "edited_file": "tools/rust_boundary_audit/src/main.rs",
+      "scenario": "quality-audit-incremental",
+      "wall_time_ms": 139
+    }
+  ],
+  "ownership": [
+    {
+      "depends_inward_on": [],
+      "owner": "terlan::compiler",
+      "responsibility": "compiler"
+    },
+    {
+      "depends_inward_on": [
+        "compiler artifact contracts"
+      ],
+      "owner": "terlan-runtime-abi plus terlan::runtime::vm protocol modules",
+      "responsibility": "runtime protocol"
+    },
+    {
+      "depends_inward_on": [
+        "runtime protocol"
+      ],
+      "owner": "terlan::runtime::vm",
+      "responsibility": "runtime implementation"
+    },
+    {
+      "depends_inward_on": [
+        "compiler",
+        "runtime implementation"
+      ],
+      "owner": "terlan::commands with thin binary entrypoints",
+      "responsibility": "CLI"
+    },
+    {
+      "depends_inward_on": [
+        "compiler"
+      ],
+      "owner": "terlan::lsp behind editor-lsp",
+      "responsibility": "LSP"
+    },
+    {
+      "depends_inward_on": [
+        "compiler",
+        "runtime implementation"
+      ],
+      "owner": "terlan::quality behind quality-tools and terlan-rust-boundary-audit",
+      "responsibility": "quality"
+    },
+    {
+      "depends_inward_on": [
+        "compiler",
+        "runtime implementation"
+      ],
+      "owner": "terlan::benchmark behind benchmark-tools",
+      "responsibility": "benchmark"
+    }
+  ],
+  "packages": [
+    {
+      "name": "terlan",
+      "responsibility": "Own the single shipped Terlan compiler, AOT runtime, VM, and feature-isolated product tooling.",
+      "top_level_feature_modules": [
+        "backends",
+        "benchmark",
+        "commands",
+        "compiler",
+        "formal_pipeline",
+        "html",
+        "lsp",
+        "native_worker",
+        "quality",
+        "runtime",
+        "support",
+        "validation",
+        "vm"
+      ]
+    },
+    {
+      "name": "terlan-archive",
+      "responsibility": "Own deterministic archive creation and extraction primitives shared by release tooling.",
+      "top_level_feature_modules": [
+        "lib"
+      ]
+    },
+    {
+      "name": "terlan-runtime-abi",
+      "responsibility": "Own stable typed AOT image transition and failure contracts shared across Terlan runtime boundaries.",
+      "top_level_feature_modules": [
+        "boundary_error",
+        "boundary_type"
+      ]
+    },
+    {
+      "name": "terlan-test-orchestrator",
+      "responsibility": "Own standard-library-only Rust test phase orchestration without inheriting Terlan product dependencies.",
+      "top_level_feature_modules": [
+        "main"
+      ]
+    },
+    {
+      "name": "terlan-libpq",
+      "responsibility": "Own the generated Rust resource wrapper for the reviewed libpq C ABI.",
+      "top_level_feature_modules": [
+        "ffi"
+      ]
+    },
+    {
+      "name": "terlan-rust-boundary-audit",
+      "responsibility": "Own AST-based Rust canonical-type and build-boundary quality analysis without loading parser dependencies into Terlan products.",
+      "top_level_feature_modules": [
+        "type_inventory"
+      ]
+    }
+  ],
+  "product": {
+    "commands": [
+      "terlc",
+      "terlan-vm",
+      "terlan-lsp",
+      "terlan-native-worker"
+    ],
+    "installation_contract": "one Terlan version and one shipped VM product",
+    "version_owner": "Cargo.toml [workspace.package]"
+  },
+  "schema_version": 1
+}

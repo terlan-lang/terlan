@@ -1,0 +1,70 @@
+{
+  "accepted_digest": "sha256:d706463751fb7f3f0e2057ba2b4d3086ee4b4488c8d5a8501f08a19821b3751c",
+  "accepted_snapshot": "proofs/lean/feature_binding/lean-proof-accepted-snapshot.tsv",
+  "added_rows": [],
+  "coverage_status_delta": [
+    {
+      "current": "proof_current",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "previous": "slice_blocked",
+      "slice_id": "Slice 11"
+    },
+    {
+      "current": "proof_current",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "previous": "slice_blocked",
+      "slice_id": "Slice 12"
+    },
+    {
+      "current": "proof_current",
+      "feature_class": "parser",
+      "owner": "compiler",
+      "previous": "slice_blocked",
+      "slice_id": "Slice 13"
+    },
+    {
+      "current": "proof_current",
+      "feature_class": "native_boundary",
+      "owner": "runtime",
+      "previous": "slice_blocked",
+      "slice_id": "Slice 14"
+    }
+  ],
+  "current_digest": "sha256:ca2af562abca370b18bbb1764326009582c23259d4b21517157a8fc8f1d71204",
+  "new_blockers": [],
+  "owner_delta": [],
+  "removed_rows": [],
+  "resolved_blockers": [
+    {
+      "current": "none",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "previous": "sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad",
+      "slice_id": "Slice 11"
+    },
+    {
+      "current": "none",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "previous": "sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad",
+      "slice_id": "Slice 12"
+    },
+    {
+      "current": "none",
+      "feature_class": "parser",
+      "owner": "compiler",
+      "previous": "sha256:df2da39fc660249f45cadeacd0c2357b57cf33f5b1654d3b38c79bff73d33a9b",
+      "slice_id": "Slice 13"
+    },
+    {
+      "current": "none",
+      "feature_class": "native_boundary",
+      "owner": "runtime",
+      "previous": "sha256:2ae438bc493644aab24567e38b0eb788a19572a2cbb53c5e06778b383c273f19",
+      "slice_id": "Slice 14"
+    }
+  ],
+  "schema": "terlan.lean-proof-binding-diff.v1"
+}

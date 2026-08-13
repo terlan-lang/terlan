@@ -1,0 +1,225 @@
+/**
+ * Proves release entrypoints remain owned by the published repository root.
+ */
+module scripts.self_validation.SingleRootContract.
+
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.File.{read_text}.
+
+import type std.collections.List.
+
+repository_contract_holds(root: String): Bool ->
+    let makefile = read_text(child(root, "Makefile"));
+    let ci = read_text(child(root, ".github/workflows/ci.yml"));
+    let release = read_text(child(root, ".github/workflows/release.yml"));
+    case {makefile, ci, release} {
+        {Ok(makefile_text), Ok(ci_text), Ok(release_text)} ->
+            contract_holds(makefile_text, ci_text, release_text);
+        _ -> false
+    }.
+
+@pure
+contract_holds(makefile: String, ci: String, release: String): Bool ->
+    makefile_holds(makefile)
+        and workflow_holds(ci)
+        and workflow_holds(release)
+        and contains_all(ci, ["run: make release-candidate-check"])
+        and contains_all(
+    release,
+    ["run: make vm-multicore-release-check", "run: make tvm-aot-release-closeout-check"],
+).
+
+@pure
+makefile_holds(makefile: String): Bool ->
+    targets_declared(
+    makefile,
+    [
+        "check",
+        "test",
+        "publish-preflight",
+        "release-candidate-check",
+        "release-artifact-current",
+        "release-artifact-linux",
+        "release-boundary-check",
+        "installer-contract-check",
+    ],
+)
+        and contains_all(
+    makefile,
+    [
+        "check: rust-test-suite terlan-self-validation-bootstrap",
+        "$(MAKE) --no-print-directory check-gates",
+        "publish-preflight: release-candidate-check",
+        "COVERAGE_MIN ?= 84.20",
+        "COVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm",
+    ],
+)
+        and make_variable_contains(makefile, "CHECK_GATES", "terlan-self-validation-inventory-check")
+        and make_variable_contains(makefile, "CHECK_GATES", "terlan-self-validation-capabilities-check")
+        and make_variable_contains(makefile, "CHECK_GATES", "runtime-aot-only-check")
+        and make_variable_contains(makefile, "CHECK_GATES", "no-vmir-interpreter-check").
+
+@pure
+workflow_holds(workflow: String): Bool ->
+    String.contains(workflow, "uses: actions/checkout@v4")
+        and not contains_any(
+    workflow,
+    [
+        "working-directory: ..",
+        "run: cd ..",
+        "run: cd terlan",
+        "make -C ..",
+        "--file ../Makefile",
+        "--file=../Makefile",
+    ],
+).
+
+@pure
+targets_declared(makefile: String, targets: List[String]): Bool ->
+    case targets {
+        [] -> true;
+        [target | rest] ->
+            target_declared(String.split(makefile, "\n"), String.append(target, ":"))
+                and targets_declared(makefile, rest)
+    }.
+
+@pure
+target_declared(lines: List[String], prefix: String): Bool ->
+    case lines {
+        [] -> false;
+        [line | rest] ->
+            if {
+                String.starts_with(line, prefix) -> true;
+                true -> target_declared(rest, prefix)
+            }
+    }.
+
+@pure
+make_variable_contains(makefile: String, variable: String, value: String): Bool ->
+    find_make_variable(String.split(makefile, "\n"), String.append(variable, " :="), value).
+
+@pure
+find_make_variable(lines: List[String], prefix: String, value: String): Bool ->
+    case lines {
+        [] -> false;
+        [line | rest] ->
+            if {
+                String.starts_with(line, prefix) -> variable_value_lines_contain([line | rest], value);
+                true -> find_make_variable(rest, prefix, value)
+            }
+    }.
+
+@pure
+variable_value_lines_contain(lines: List[String], value: String): Bool ->
+    case lines {
+        [] -> false;
+        [line | rest] ->
+            if {
+                line_has_make_token(line, value) -> true;
+                String.ends_with(String.trim_end(line), "\\") -> variable_value_lines_contain(rest, value);
+                true -> false
+            }
+    }.
+
+@pure
+line_has_make_token(line: String, value: String): Bool ->
+    tokens_contain(
+        String.split(String.replace(String.replace(line, "\t", " "), "\\", " "), " "),
+        value,
+    ).
+
+@pure
+tokens_contain(tokens: List[String], value: String): Bool ->
+    case tokens {
+        [] -> false;
+        [token | rest] ->
+            if {
+                token == value -> true;
+                true -> tokens_contain(rest, value)
+            }
+    }.
+
+@pure
+contains_all(text: String, needles: List[String]): Bool ->
+    case needles {
+        [] -> true;
+        [needle | rest] -> String.contains(text, needle) and contains_all(text, rest)
+    }.
+
+@pure
+contains_any(text: String, needles: List[String]): Bool ->
+    case needles {
+        [] -> false;
+        [needle | rest] ->
+            if {
+                String.contains(text, needle) -> true;
+                true -> contains_any(text, rest)
+            }
+    }.
+
+@pure
+child(root: String, path: String): String ->
+    if {
+        root == "." -> path;
+        String.ends_with(root, "/") -> String.append(root, path);
+        true -> String.append(root, String.append("/", path))
+    }.
+
+@pure
+valid_makefile(): String ->
+    String.append(
+        "COVERAGE_MIN ?= 84.20\nCOVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm\n",
+        String.append(
+            "CHECK_GATES := \\\n\tterlan-self-validation-inventory-check \\\n\tterlan-self-validation-capabilities-check \\\n\truntime-aot-only-check \\\n\tno-vmir-interpreter-check\n",
+            "check: rust-test-suite terlan-self-validation-bootstrap\n\t$(MAKE) --no-print-directory check-gates\ntest: cli-test\npublish-preflight: release-candidate-check\nrelease-candidate-check:\nrelease-artifact-current:\nrelease-artifact-linux:\nrelease-boundary-check:\ninstaller-contract-check:\n",
+        ),
+    ).
+
+@pure
+valid_ci_workflow(): String ->
+    "steps:\n  - uses: actions/checkout@v4\n  - run: make release-candidate-check\n".
+
+@pure
+valid_release_workflow(): String ->
+    "steps:\n  - uses: actions/checkout@v4\n  - uses: actions/download-artifact@v4\n  - run: make vm-multicore-release-check\n  - run: make tvm-aot-release-closeout-check\n".
+
+@test
+pub repository_release_entrypoints_are_single_rooted(): Bool ->
+    repository_contract_holds(".").
+
+@test
+pub artifact_transfer_between_release_jobs_is_accepted(): Bool ->
+    contract_holds(valid_makefile(), valid_ci_workflow(), valid_release_workflow()).
+
+@test
+pub missing_canonical_check_gate_is_rejected(): Bool ->
+    not contract_holds(
+    String.replace(valid_makefile(), "\truntime-aot-only-check \\\n", ""),
+    valid_ci_workflow(),
+    valid_release_workflow(),
+).
+
+@test
+pub commented_make_target_cannot_satisfy_the_contract(): Bool ->
+    not contract_holds(
+    String.replace(valid_makefile(), "release-artifact-linux:", "# release-artifact-linux:"),
+    valid_ci_workflow(),
+    valid_release_workflow(),
+).
+
+@test
+pub parent_working_directory_escape_is_rejected(): Bool ->
+    not contract_holds(
+    valid_makefile(),
+    String.append(valid_ci_workflow(), "  working-directory: ..\n"),
+    valid_release_workflow(),
+).
+
+@test
+pub nested_scratch_checkout_escape_is_rejected(): Bool ->
+    not contract_holds(
+    valid_makefile(),
+    valid_ci_workflow(),
+    String.append(valid_release_workflow(), "  - run: cd terlan\n"),
+).

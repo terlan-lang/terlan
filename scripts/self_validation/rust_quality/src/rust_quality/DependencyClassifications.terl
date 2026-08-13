@@ -1,0 +1,266 @@
+/**
+ * Reviewed ownership for resolved duplicate dependency families.
+ */
+module rust_quality.DependencyClassifications.
+
+import rust_quality.{CargoMetadata, SourceInventory}.
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.File.
+
+pub struct Duplicate {
+    name: String,
+    versions: List[String],
+}.
+
+pub struct Classification {
+    name: String,
+    versions: String,
+    classification: String,
+    owner: String,
+    rationale: String,
+    milestone: String,
+}.
+
+pub struct ClassificationResult {
+    valid: Bool,
+    rows: List[Classification],
+    diagnostics: List[String],
+    message: String,
+}.
+
+@pure
+pub result_valid(value: ClassificationResult): Bool ->
+    value.valid.
+
+@pure
+pub result_rows(value: ClassificationResult): List[Classification] ->
+    value.rows.
+
+@pure
+pub result_diagnostics(value: ClassificationResult): List[String] ->
+    value.diagnostics.
+
+@pure
+pub result_message(value: ClassificationResult): String ->
+    value.message.
+
+@pure
+pub duplicate_name(value: Duplicate): String ->
+    value.name.
+
+@pure
+pub duplicate_versions(value: Duplicate): List[String] ->
+    value.versions.
+
+@pure
+pub classification_name(value: Classification): String ->
+    value.name.
+
+@pure
+pub classification_versions(value: Classification): String ->
+    value.versions.
+
+@pure
+pub classification_kind(value: Classification): String ->
+    value.classification.
+
+@pure
+pub classification_owner(value: Classification): String ->
+    value.owner.
+
+@pure
+pub classification_rationale(value: Classification): String ->
+    value.rationale.
+
+@pure
+pub classification_milestone(value: Classification): String ->
+    value.milestone.
+
+@pure
+pub duplicate(name: String, versions: List[String]): Duplicate ->
+    Duplicate(name = name, versions = versions).
+
+@pure
+join_versions_at(values: List[String], output: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            join_versions_at(
+                rest,
+                if {
+                    output == "" -> value;
+                    true -> String.concat([output, ",", value])
+                },
+            )
+    }.
+
+@pure
+join_versions(values: List[String]): String ->
+    join_versions_at(values, "").
+
+@pure
+parse_rows(
+    lines: List[String],
+    rows: List[Classification],
+    diagnostics: List[String],
+): ClassificationResult ->
+    case lines {
+        [] ->
+            ClassificationResult(
+                valid = true,
+                rows = SourceInventory.reverse(rows),
+                diagnostics = SourceInventory.reverse(diagnostics),
+                message = "",
+            );
+        [line | rest] ->
+            if {
+                line == "" -> parse_rows(rest, rows, diagnostics);
+                true -> case String.split(line, "\t") {
+                    [name, versions, classification, owner, rationale, milestone] ->
+                        parse_rows(
+                            rest,
+                            [Classification(
+    name = name,
+    versions = versions,
+    classification = classification,
+    owner = owner,
+    rationale = rationale,
+    milestone = milestone,
+) | rows],
+                            diagnostics,
+                        );
+                    _ ->
+                        parse_rows(
+                            rest,
+                            rows,
+                            ["docs/quality/RUST_DUPLICATE_DEPENDENCY_CLASSIFICATION.tsv: expected six TSV fields" | diagnostics],
+                        )
+                }
+            }
+    }.
+
+@pure
+parse(source: String): ClassificationResult ->
+    case String.split(source, "\n") {
+        [] ->
+            ClassificationResult(
+                valid = false,
+                rows = [],
+                diagnostics = [],
+                message = "duplicate dependency classification is empty",
+            );
+        [header | rest] ->
+            if {
+                header != "name\tversions\tclassification\towner\trationale\tmilestone" -> ClassificationResult(
+                    valid = false,
+                    rows = [],
+                    diagnostics = [],
+                    message = "docs/quality/RUST_DUPLICATE_DEPENDENCY_CLASSIFICATION.tsv: invalid header",
+                );
+                true -> parse_rows(rest, List.new[Classification](), List.new[String]())
+            }
+    }.
+
+@pure
+names(rows: List[Classification]): List[String] ->
+    case rows {
+        [] -> List.new[String]();
+        [row | rest] -> [row.name | names(rest)]
+    }.
+
+@pure
+supported(value: String): Bool ->
+    value == "transitive-upgrade-blocked"
+        or value == "platform-compatibility"
+        or value == "directly-actionable".
+
+@pure
+row_diagnostics(rows: List[Classification], output: List[String]): List[String] ->
+    case rows {
+        [] -> output;
+        [row | rest] ->
+            let classification_diagnostics =
+                if {
+                    supported(row.classification) -> output;
+                    true -> [String.concat([row.name, ": unsupported duplicate classification `", row.classification, "`"]) | output]
+                };
+            let ownership_diagnostics =
+                if {
+                    row.owner != "" and row.rationale != "" -> classification_diagnostics;
+                    true -> [String.concat([row.name, ": duplicate classification needs owner and rationale"]) | classification_diagnostics]
+                };
+            let milestone_diagnostics =
+                if {
+                    row.milestone == "0.0.8" -> ownership_diagnostics;
+                    true -> [String.concat([row.name, ": duplicate classification must expire at 0.0.8"]) | ownership_diagnostics]
+                };
+            row_diagnostics(rest, milestone_diagnostics)
+    }.
+
+@pure
+graph_matches(duplicates: List[Duplicate], rows: List[Classification]): Bool ->
+    case {duplicates, rows} {
+        {[], []} -> true;
+        {[duplicate | duplicate_rest], [row | row_rest]} ->
+            duplicate.name == row.name
+                and join_versions(duplicate.versions) == row.versions
+                and graph_matches(duplicate_rest, row_rest);
+        _ -> false
+    }.
+
+@pure
+validate(duplicates: List[Duplicate], parsed: ClassificationResult): ClassificationResult ->
+    let row_names = names(parsed.rows);
+    let sorted = CargoMetadata.sort_unique(row_names);
+    let order_diagnostics =
+        if {
+            row_names == sorted -> parsed.diagnostics;
+            true -> ["duplicate dependency classifications must be sorted by name" | parsed.diagnostics]
+        };
+    let unique_diagnostics =
+        if {
+            List.length(row_names) == List.length(sorted) -> order_diagnostics;
+            true -> ["duplicate dependency classifications must be unique" | order_diagnostics]
+        };
+    let graph_diagnostics =
+        if {
+            graph_matches(duplicates, parsed.rows) -> unique_diagnostics;
+            true -> ["duplicate dependency classification does not match the resolved graph" | unique_diagnostics]
+        };
+    ClassificationResult(
+        valid = true,
+        rows = parsed.rows,
+        diagnostics = SourceInventory.reverse(row_diagnostics(parsed.rows, graph_diagnostics)),
+        message = "",
+    ).
+
+pub check(root: String, duplicates: List[Duplicate]): ClassificationResult ->
+    case File.read_text(
+    SourceInventory.child(root, "docs/quality/RUST_DUPLICATE_DEPENDENCY_CLASSIFICATION.tsv"),
+) {
+        Err(reason) ->
+            ClassificationResult(
+                valid = false,
+                rows = [],
+                diagnostics = [],
+                message = File.message(reason),
+            );
+        Ok(source) ->
+            let parsed = parse(source);
+            if {
+                not parsed.valid -> parsed;
+                true -> validate(duplicates, parsed)
+            }
+    }.
+
+pub self_test(): Bool ->
+    let parsed =
+        parse(
+            "name\tversions\tclassification\towner\trationale\tmilestone\na\t1,2\tdirectly-actionable\towner\trationale\t0.0.8\n",
+        );
+    let checked = validate([Duplicate(name = "a", versions = ["1", "2"])], parsed);
+    checked.valid
+        and List.length(checked.diagnostics) == 0
+        and not graph_matches([Duplicate(name = "a", versions = ["1", "3"])], checked.rows).

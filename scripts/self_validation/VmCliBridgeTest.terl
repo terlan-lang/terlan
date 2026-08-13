@@ -1,0 +1,186 @@
+/**
+ * Validates compiler/VM CLI bridges without shell-owned control flow.
+ */
+module scripts.self_validation.VmCliBridgeTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.Console.{eprintln}.
+import std.io.Directory.
+import std.io.File.{write_text}.
+import std.system.{Environment, Process}.
+
+import type std.core.Option.
+
+child(parent: String, name: String): String ->
+    if {
+        String.ends_with(parent, "/") -> String.append(parent, name);
+        true -> String.append(parent, String.append("/", name))
+    }.
+
+report(label: String, passed: Bool): Bool ->
+    if {
+        passed -> true;
+        true -> let _reported = eprintln(String.append("[vm-cli-bridge] failed: ", label));
+        false
+    }.
+
+repository_root(): String ->
+    Environment.current_directory().
+
+run_output(program: String, arguments: List[String], root: String): Option[String] ->
+    let command =
+        Process.with_output_limit_bytes(
+            Process.with_timeout_ms(
+                Process.with_working_directory(
+                    Process.with_arguments(Process.command(program), arguments),
+                    root,
+                ),
+                60000,
+            ),
+            1048576,
+        );
+    case Process.run(command) {
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> Some(String.trim(Process.stdout(output)));
+                true -> let _reported =
+                    eprintln(
+                        String.append(
+                            "[vm-cli-bridge] child failed: ",
+                            String.append(program, String.append("\n", Process.stderr(output))),
+                        ),
+                    );
+                None
+            };
+        Err(reason) ->
+            let _reported =
+                eprintln(
+                    String.append(
+                        "[vm-cli-bridge] child launch failed: ",
+                        String.append(program, String.append(": ", Process.error_message(reason))),
+                    ),
+                );
+            None
+    }.
+
+reset_directory(path: String): Bool ->
+    let _removed = Directory.remove_all(path);
+    case Directory.create_all(path) {
+        Ok(_unit) -> true;
+        Err(_reason) -> false
+    }.
+
+write_package(work: String, source: String): Bool ->
+    let source_root = child(work, "src/app");
+    let {
+        Ok(_created) <- Directory.create_all(source_root);
+        Ok(_manifest) <-
+            write_text(
+                child(work, "terlan.toml"),
+                "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n",
+            );
+        Ok(_source) <- write_text(child(source_root, "Main.terl"), source)
+    } else {
+        _ -> false
+    };
+    true.
+
+compiler_output(root: String, work: String): Option[String] ->
+    run_output(
+        child(root, "target/debug/terlc"),
+        ["--out-dir", child(work, "_build"), "run", work],
+        root,
+    ).
+
+vm_image_output(root: String, work: String): Option[String] ->
+    let output = child(work, "vm-build");
+    let {
+        Some(_built) <-
+            run_output(
+                child(root, "target/debug/terlc"),
+                ["build", work, "--target", "terlan-vm", "--out-dir", output],
+                root,
+            );
+        Some(result) <-
+            run_output(
+                child(root, "target/debug/terlan-vm"),
+                ["run", child(output, "vm/app_Main.tvm")],
+                root,
+            )
+    } else {
+        _ -> None
+    };
+    Some(result).
+
+standalone_source(): String ->
+    "module app.Main.\n\nimport std.io.Console.{println}.\n\npub main(): Unit ->\n    println(\"hello from terlan-vm\").\n".
+
+bridge_source(): String ->
+    "module app.Main.\n\nimport std.io.Console.{println}.\n\npub main(): Unit ->\n    println(\"hello from Terlan VM bridge\").\n".
+
+intrinsic_source(): String ->
+    "module app.Main.\n\npub main(): Unit ->\n    std.io.Console.println(std.core.Bool.to_string(std.core.Int.to_string(42) == \"42\" and \"abc\".contains(\"b\") and \"abc\".length() == 3)).\n".
+
+runtime_source(): String ->
+    "module app.Main.\n\nimport std.core.Result.{Err, Ok}.\n\npub main(): Unit ->\n    let path = \"/tmp/terlan-vm-runtime-bridge-check.txt\";\n    let write = std.io.File.write_text(path, \"hello\");\n    let present = std.io.File.exists(path);\n    let wrote = case write { Ok(_) -> true; Err(_) -> false };\n    std.io.Console.println(std.core.Bool.to_string(wrote and present)).\n".
+
+@test
+pub standalone_vm_runs_source_artifact(): Bool ->
+    let root = repository_root();
+    let work = "/tmp/terlan_vm_artifact_check";
+    let prepared = reset_directory(work) and write_package(work, standalone_source());
+    let passed =
+        case vm_image_output(root, work) {
+            Some(output) -> prepared and output == "hello from terlan-vm";
+            None -> false
+        };
+    let _cleaned = Directory.remove_all(work);
+    passed.
+
+bridge_output_holds(root: String): Bool ->
+    let work = "/tmp/terlan_vm_compiler_bridge_check";
+    let prepared = reset_directory(work) and write_package(work, bridge_source());
+    let {
+        Some(compiler) <- compiler_output(root, work);
+        Some(vm) <- vm_image_output(root, work)
+    } else {
+        _ -> false
+    };
+    prepared and compiler == "hello from Terlan VM bridge" and vm == compiler.
+
+intrinsic_output_holds(root: String): Bool ->
+    let work = "/tmp/terlan_vm_intrinsic_bridge_check";
+    let prepared = reset_directory(work) and write_package(work, intrinsic_source());
+    case compiler_output(root, work) {
+        Some(output) -> prepared and output == "true";
+        None -> false
+    }.
+
+runtime_output_holds(root: String): Bool ->
+    let work = "/tmp/terlan_vm_runtime_bridge_check";
+    let prepared = reset_directory(work) and write_package(work, runtime_source());
+    case compiler_output(root, work) {
+        Some(output) -> prepared and output == "true";
+        None -> false
+    }.
+
+@test
+pub compiler_bridge_covers_output_intrinsics_and_runtime(): Bool ->
+    let root = repository_root();
+    let bridge = report("compiler and sealed VM output parity", bridge_output_holds(root));
+    let intrinsic =
+        if {
+            bridge -> report("scalar intrinsic execution", intrinsic_output_holds(root));
+            true -> false
+        };
+    let runtime =
+        if {
+            intrinsic -> report("runtime intrinsic execution", runtime_output_holds(root));
+            true -> false
+        };
+    let _bridge = Directory.remove_all("/tmp/terlan_vm_compiler_bridge_check");
+    let _intrinsic = Directory.remove_all("/tmp/terlan_vm_intrinsic_bridge_check");
+    let _runtime = Directory.remove_all("/tmp/terlan_vm_runtime_bridge_check");
+    bridge and intrinsic and runtime.

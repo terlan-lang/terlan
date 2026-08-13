@@ -265,7 +265,7 @@ pub(super) fn format_template_decl(template: &TemplateDecl) -> String {
     }
 
     out.push_str(" {\n");
-    for (index, prop) in template.props.iter().enumerate() {
+    for prop in &template.props {
         out.push_str("    ");
         out.push_str(&prop.name);
         out.push_str(": ");
@@ -274,9 +274,7 @@ pub(super) fn format_template_decl(template: &TemplateDecl) -> String {
             out.push_str(" = ");
             out.push_str(&format_expr(default, 0));
         }
-        if index + 1 < template.props.len() {
-            out.push(',');
-        }
+        out.push(',');
         out.push('\n');
     }
     out.push_str("}.");

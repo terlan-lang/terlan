@@ -36,6 +36,14 @@
       "classification": "test-only"
     },
     {
+      "name": "benchmark-tools",
+      "classification": "tooling-only"
+    },
+    {
+      "name": "quality-tools",
+      "classification": "tooling-only"
+    },
+    {
       "name": "serve-runtime-bin",
       "classification": "optional"
     }

@@ -1,0 +1,50 @@
+//! Typed Git repository identity for deterministic build and release tooling.
+
+module std.vcs.Git.
+
+/// Stable failure returned when a repository cannot be identified.
+
+pub struct GitError {
+}.
+
+/// One full revision and the exact tracked/untracked source-tree digest.
+
+pub struct SourceTreeIdentity {
+    revision: String,
+    clean: Bool,
+    sha256: String
+}.
+
+/// Stable code used for every source-tree identity failure.
+
+pub type SourceTreeIdentityFailed =
+    Atom["source_tree_identity_failed"].
+
+/// Returns whether tracked and nonignored untracked state is empty.
+
+@pure
+pub clean(identity: SourceTreeIdentity): Bool.
+
+/// Returns the stable Git error code.
+
+@pure
+pub error_code(error: GitError): Atom.
+
+/// Returns the Git failure diagnostic.
+
+@pure
+pub error_message(error: GitError): String.
+
+/// Returns the full lowercase checked-out revision.
+
+@pure
+pub revision(identity: SourceTreeIdentity): String.
+
+/// Returns the domain-separated byte-exact source-tree digest.
+
+@pure
+pub sha256(identity: SourceTreeIdentity): String.
+
+/// Returns the checked-out revision and byte-exact local source-tree identity.
+
+pub source_tree_identity(root: String): Result[SourceTreeIdentity, GitError].

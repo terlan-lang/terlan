@@ -292,6 +292,28 @@ fn allocation_enforces_layout_reference_map_and_hard_limit() {
 }
 
 #[test]
+fn collection_threshold_grows_with_the_surviving_live_set() {
+    let owner = actor(14);
+    let mut heap = ActorHeap::new(owner, HeapLimits::new(128, 4096).expect("adaptive limits"))
+        .expect("actor heap");
+    let live = heap
+        .allocate::<u64>(descriptor("example.Live", 256, vec![]), &[1; 256], &[])
+        .expect("live object");
+    assert!(heap.should_collect());
+    let mut roots = [ManagedRoot::new(
+        owner,
+        RootLocation::ActorState { slot: 0 },
+        live.erase(),
+    )];
+    heap.collect(&mut roots, 4096).expect("collect live object");
+    assert!(!heap.should_collect());
+
+    heap.allocate::<u64>(descriptor("example.Garbage", 256, vec![]), &[2; 256], &[])
+        .expect("growth after collection");
+    assert!(heap.should_collect());
+}
+
+#[test]
 fn direct_heap_initialization_rolls_back_failed_payloads() {
     let owner = actor(16);
     let mut heap = ActorHeap::new(owner, limits()).expect("actor heap");

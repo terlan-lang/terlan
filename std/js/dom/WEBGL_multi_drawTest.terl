@@ -28,9 +28,19 @@ pub multi_draw_arrays_instanced_webgl_typechecks(
     counts_offset: JsNumber,
     instance_counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
     instance_counts_offset: JsNumber,
-    drawcount: GLsizei
+    drawcount: GLsizei,
 ): Unit ->
-    receiver.multi_draw_arrays_instanced_webgl(mode, firsts_list, firsts_offset, counts_list, counts_offset, instance_counts_list, instance_counts_offset, drawcount).
+    receiver
+        .multi_draw_arrays_instanced_webgl(
+            mode,
+            firsts_list,
+            firsts_offset,
+            counts_list,
+            counts_offset,
+            instance_counts_list,
+            instance_counts_offset,
+            drawcount,
+        ).
 
 pub multi_draw_arrays_webgl_typechecks(
     receiver: WEBGL_multi_draw,
@@ -39,9 +49,17 @@ pub multi_draw_arrays_webgl_typechecks(
     firsts_offset: JsNumber,
     counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
     counts_offset: JsNumber,
-    drawcount: GLsizei
+    drawcount: GLsizei,
 ): Unit ->
-    receiver.multi_draw_arrays_webgl(mode, firsts_list, firsts_offset, counts_list, counts_offset, drawcount).
+    receiver
+        .multi_draw_arrays_webgl(
+            mode,
+            firsts_list,
+            firsts_offset,
+            counts_list,
+            counts_offset,
+            drawcount,
+        ).
 
 pub multi_draw_elements_instanced_webgl_typechecks(
     receiver: WEBGL_multi_draw,
@@ -53,9 +71,20 @@ pub multi_draw_elements_instanced_webgl_typechecks(
     offsets_offset: JsNumber,
     instance_counts_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
     instance_counts_offset: JsNumber,
-    drawcount: GLsizei
+    drawcount: GLsizei,
 ): Unit ->
-    receiver.multi_draw_elements_instanced_webgl(mode, counts_list, counts_offset, type_, offsets_list, offsets_offset, instance_counts_list, instance_counts_offset, drawcount).
+    receiver
+        .multi_draw_elements_instanced_webgl(
+            mode,
+            counts_list,
+            counts_offset,
+            type_,
+            offsets_list,
+            offsets_offset,
+            instance_counts_list,
+            instance_counts_offset,
+            drawcount,
+        ).
 
 pub multi_draw_elements_webgl_typechecks(
     receiver: WEBGL_multi_draw,
@@ -65,6 +94,15 @@ pub multi_draw_elements_webgl_typechecks(
     type_: GLenum,
     offsets_list: Int32Array[ArrayBufferLike] | Array[GLsizei],
     offsets_offset: JsNumber,
-    drawcount: GLsizei
+    drawcount: GLsizei,
 ): Unit ->
-    receiver.multi_draw_elements_webgl(mode, counts_list, counts_offset, type_, offsets_list, offsets_offset, drawcount).
+    receiver
+        .multi_draw_elements_webgl(
+            mode,
+            counts_list,
+            counts_offset,
+            type_,
+            offsets_list,
+            offsets_offset,
+            drawcount,
+        ).

@@ -35,7 +35,7 @@ pub accepts_connection(value: Connection): Connection ->
 pub transaction_connection_execute(
     connection: Connection,
     sql: String,
-    params: List[Json]
+    params: List[Json],
 ): Result[Int, Error] ->
     execute(connection, sql, params).
 

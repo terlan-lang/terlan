@@ -810,7 +810,15 @@ pub tag_count(tags: Boxed[Binary]): Int ->
         &imported_aliases,
         &aliases,
     );
-    let struct_fields = collect_syntax_struct_fields(&module, &alias_names);
+    let struct_fields = collect_syntax_struct_fields(
+        &module,
+        TypeResolutionEnvironment {
+            alias_names: &alias_names,
+            imported_type_names: &imported_names,
+            imported_type_aliases: &imported_aliases,
+            local_aliases: &aliases,
+        },
+    );
     let template_schemes = collect_syntax_template_schemes(&module, &alias_names);
     let resolved = resolve_syntax_module_output(&module).module;
     let trait_signatures = collect_syntax_trait_signatures(&module, &resolved);

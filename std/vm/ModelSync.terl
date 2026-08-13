@@ -245,7 +245,7 @@ pub capability(name: String): Capability ->
 pub adapter_contract(
     name: String,
     storage_family: String,
-    capabilities: List[Capability]
+    capabilities: List[Capability],
 ): AdapterContract ->
     native.
 

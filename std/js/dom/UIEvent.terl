@@ -58,6 +58,6 @@ pub (value: UIEvent) init_ui_event(
     bubbles_arg: Bool,
     cancelable_arg: Bool,
     view_arg: Option[Window],
-    detail_arg: JsNumber
+    detail_arg: JsNumber,
 ): std.core.Unit ->
     native.

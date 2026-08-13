@@ -1,6 +1,6 @@
 use super::super::persistent_actor_store::{
-    VmPersistentActorEvent, VmPersistentActorId, VmPersistentActorReplay, VmPersistentActorSchema,
-    VmPersistentActorSnapshot,
+    VmPersistentActorDurability, VmPersistentActorEvent, VmPersistentActorId,
+    VmPersistentActorReplay, VmPersistentActorSchema, VmPersistentActorSnapshot,
 };
 use super::super::ReplValue;
 use super::{
@@ -27,13 +27,7 @@ fn vm_persistent_actor_compaction_accepts_equivalent_snapshot_and_suffix() {
         snapshot: compacted,
         retained_events: Vec::new(),
     };
-    let equivalence = VmPersistentActorReplayEquivalence {
-        final_state: ReplValue::Int(4),
-        final_mailbox_checkpoint: vec![ReplValue::String("pending".to_string())],
-        final_timer_checkpoint: vec![100],
-        final_resource_handles: vec!["db.primary".to_string()],
-        final_sequence: 4,
-    };
+    let equivalence = VmPersistentActorReplayEquivalence::from_snapshot(&candidate.snapshot);
     let policy = VmPersistentActorRetentionPolicy::new(4);
 
     let plan = plan_persistent_actor_compaction(&before, &equivalence, &candidate, &policy)
@@ -338,8 +332,6 @@ fn replay(actor: &str, schema_name: &str, schema_version: u64) -> VmPersistentAc
         ],
     }
 }
-
-#[allow(clippy::too_many_arguments)]
 fn snapshot(
     actor: &str,
     schema_name: &str,
@@ -358,8 +350,10 @@ fn snapshot(
         state,
         mailbox_checkpoint,
         timer_checkpoint,
-        resource_handles,
-        last_event_sequence,
+        VmPersistentActorDurability {
+            resource_handles: resource_handles,
+            last_event_sequence: last_event_sequence,
+        },
     )
     .expect("snapshot should be valid")
 }

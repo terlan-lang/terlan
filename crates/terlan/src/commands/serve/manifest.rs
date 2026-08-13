@@ -8,7 +8,7 @@ use std::sync::{Arc, OnceLock, RwLock};
 use serde::Deserialize;
 
 use crate::commands::build::project_manifest::{self, ProjectServerTls, ProjectServerTlsMode};
-#[cfg(not(feature = "serve-runtime-bin"))]
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 use crate::commands::dev_dependencies;
 
 use super::handler::{
@@ -53,8 +53,8 @@ struct LocalWebMetadata {
 pub(super) struct WebPackageManifest {
     schema: String,
     target_profile: String,
+    #[cfg(test)]
     #[serde(default = "default_build_id")]
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(super) build_id: String,
     index: String,
     assets: Vec<WebPackageAsset>,
@@ -83,6 +83,7 @@ pub(super) struct WebPackageManifest {
 /// Transformation:
 /// - Supplies a stable local-development fallback when a manifest predates the
 ///   explicit build id field.
+#[cfg(test)]
 fn default_build_id() -> String {
     "unknown".to_string()
 }
@@ -268,7 +269,7 @@ fn validate_adjacent_project_manifest(web_root: &Path) -> Result<(), String> {
         if let (Some(project_root), Some(tls)) = (path.parent(), tls.as_ref()) {
             validate_manual_tls_file_references(project_root, tls)?;
         }
-        #[cfg(not(feature = "serve-runtime-bin"))]
+        #[cfg(any(test, not(feature = "serve-runtime-bin")))]
         if let Some(project_root) = path.parent() {
             dev_dependencies::validate_project_compose(project_root)?;
         }
@@ -492,12 +493,12 @@ pub(super) fn web_package_tls_config(
     Ok(Some((project_root, tls)))
 }
 
-#[cfg(feature = "serve-runtime-bin")]
+#[cfg(all(feature = "serve-runtime-bin", not(test)))]
 fn read_project_tls(path: &Path) -> Result<Option<ProjectServerTls>, String> {
     project_manifest::read_runtime_server_tls(path)
 }
 
-#[cfg(not(feature = "serve-runtime-bin"))]
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 fn read_project_tls(path: &Path) -> Result<Option<ProjectServerTls>, String> {
     project_manifest::read_project_manifest(path).map(|manifest| manifest.server_tls)
 }
@@ -711,9 +712,7 @@ pub(super) fn manifest_static_file_from_manifest(
     request_path: &str,
 ) -> Option<std::path::PathBuf> {
     let request_relative = request_path.trim_start_matches('/');
-    let manifest_relative = if request_relative.is_empty() {
-        Some(manifest.index.clone())
-    } else if request_relative == manifest.index {
+    let manifest_relative = if request_relative.is_empty() || request_relative == manifest.index {
         Some(manifest.index.clone())
     } else {
         manifest
@@ -953,4 +952,5 @@ fn validate_manifest_route_namespace(
 
 #[cfg(test)]
 #[path = "manifest_test.rs"]
+#[cfg(test)]
 mod manifest_test;

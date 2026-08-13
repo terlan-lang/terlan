@@ -92,8 +92,7 @@ pub(crate) fn qualify_syntax_type_text(
                 }
             }
             let name = &text[start..index];
-            let already_qualified = text[..start].chars().next_back() == Some('.')
-                || text[index..].chars().next() == Some('.');
+            let already_qualified = text[..start].ends_with('.') || text[index..].starts_with('.');
             if !already_qualified {
                 if let Some(target) = imported_type_refs.get(name) {
                     qualified.push_str(target);

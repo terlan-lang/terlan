@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 use serde_json::json;
 
-use crate::QualityResult;
+use super::QualityResult;
 
 const REPORT_PATH: &str = "target/quality/native-no-std-target-feasibility-report.json";
 const DIAGNOSTIC_CODE: &str = "native_target_unsupported_feature";
@@ -457,4 +457,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "native_no_std_target_feasibility_test.rs"]
+#[cfg(test)]
 mod native_no_std_target_feasibility_test;

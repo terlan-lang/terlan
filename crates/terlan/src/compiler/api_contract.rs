@@ -565,4 +565,5 @@ fn openapi_operation_id(route: &ApiRoute) -> String {
 
 #[cfg(test)]
 #[path = "api_contract_test.rs"]
+#[cfg(test)]
 mod api_contract_test;

@@ -1,0 +1,100 @@
+{
+  "backlog_scorecard_by_feature_class": [
+    {
+      "feature_class": "coreir",
+      "regression_guarded": 1,
+      "total": 1,
+      "unresolved": 0
+    }
+  ],
+  "counterexamples": [
+    {
+      "blocker_plan": "lean-proof-counterexample-check",
+      "classification": "soundness_gap",
+      "feature_class": "coreir",
+      "lane_id": "coreir",
+      "owner": "compiler",
+      "proof_family_id": "typed-coreir-preservation",
+      "proof_status": "stale",
+      "reproducibility_evidence": {
+        "command": "terlc check proofs/lean/counterexamples/fixtures/terlc/typed-coreir-return-type-preservation.terl",
+        "exit_code": 1,
+        "matched_stderr": [
+          "error[type_mismatch]",
+          "expected: Binary",
+          "found:    Int"
+        ],
+        "oracle_verdict": "expected_failure_observed",
+        "source_digest": "sha256:91bf3eaa96a37e6a70097dbf752438fe3dc43fdd3444fe3c07816a3242288e4d",
+        "theorem_id": "typed-coreir-return-type-preservation"
+      },
+      "resolution_status": "regression_guarded",
+      "severity": "high",
+      "theorem_id": "typed-coreir-return-type-preservation"
+    }
+  ],
+  "owner_to_backlog_delta": [
+    {
+      "baseline_unresolved": 0,
+      "current_unresolved": 0,
+      "delta": 0,
+      "owner": "compiler"
+    },
+    {
+      "baseline_unresolved": 0,
+      "current_unresolved": 0,
+      "delta": 0,
+      "owner": "formal"
+    },
+    {
+      "baseline_unresolved": 0,
+      "current_unresolved": 0,
+      "delta": 0,
+      "owner": "runtime"
+    },
+    {
+      "baseline_unresolved": 0,
+      "current_unresolved": 0,
+      "delta": 0,
+      "owner": "vm"
+    }
+  ],
+  "schema": "terlan.lean-proof-counterexamples-report.v1",
+  "triage_policy": {
+    "lane_limits": {
+      "coreir": {
+        "max_unresolved": 2
+      },
+      "native_boundary": {
+        "max_unresolved": 1
+      },
+      "parser": {
+        "max_unresolved": 2
+      },
+      "std_packages": {
+        "max_unresolved": 4
+      },
+      "vm_runtime": {
+        "max_unresolved": 1
+      },
+      "wasm": {
+        "max_unresolved": 2
+      }
+    },
+    "priorities": {
+      "high": {
+        "max_unresolved_per_lane": 0,
+        "rerun_window_hours": 4
+      },
+      "low": {
+        "max_unresolved_per_lane": 8,
+        "rerun_window_hours": 168
+      },
+      "medium": {
+        "max_unresolved_per_lane": 2,
+        "rerun_window_hours": 24
+      }
+    }
+  },
+  "verdict": "pass"
+}

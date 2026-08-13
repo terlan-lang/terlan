@@ -272,4 +272,5 @@ fn check_readmes(
 
 #[cfg(test)]
 #[path = "module_readmes_test.rs"]
+#[cfg(test)]
 mod module_readmes_test;

@@ -1,0 +1,24 @@
+{
+  "artifact_class_maximum_bytes": {
+    "coverage": 12884901888,
+    "debug_build_scripts": 4294967296,
+    "debug_dependencies": 17179869184,
+    "debug_incremental": 8589934592,
+    "release": 8589934592
+  },
+  "executable_maximum_bytes": {
+    "debug": 2147483648,
+    "release": 134217728
+  },
+  "lane_maximum_wall_time_ms": {
+    "clean_debug": 900000,
+    "coverage": 900000,
+    "implementation_edit": 180000,
+    "no_op_warm": 60000,
+    "public_interface_edit": 180000,
+    "release": 900000
+  },
+  "maximum_total_target_bytes": 36507222016,
+  "ratchet_policy": "Lower checked ceilings after three comparable canonical measurements remain below 80 percent of the current limit; increases require a reviewed artifact-class rationale.",
+  "schema_version": 1
+}

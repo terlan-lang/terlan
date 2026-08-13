@@ -10,10 +10,7 @@ pub repeated_lets_preserve_order_and_scope(): Bool ->
     let result = first * second;
     assert_equal(10, result).
 
-pub resolve(
-    first: Result[Int, String],
-    second: Result[Int, String]
-): Result[Int, String] ->
+pub resolve(first: Result[Int, String], second: Result[Int, String]): Result[Int, String] ->
     let {
         Ok(left) <- first;
         Ok(right) <- second

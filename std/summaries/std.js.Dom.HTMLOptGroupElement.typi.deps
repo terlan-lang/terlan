@@ -1,8 +1,8 @@
 module=std.js.Dom.HTMLOptGroupElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:abc10419c157e76d
-source_hash=432847198021113922
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=2990538395256426738
 interface_hash=8362236054699742499
 interface_doc_hash=8362236054699742499
 deps=0

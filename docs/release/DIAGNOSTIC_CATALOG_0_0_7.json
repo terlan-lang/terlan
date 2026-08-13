@@ -1,0 +1,18 @@
+{
+  "diagnostics": [
+    {
+      "id": "module_layout_error",
+      "remediation": "Move the source file to the declared module path or update the module declaration."
+    },
+    {
+      "id": "parse_error",
+      "remediation": "Correct the source span identified by the parser diagnostic."
+    },
+    {
+      "id": "type_error",
+      "remediation": "Correct the reported type or import mismatch at the identified source span."
+    }
+  ],
+  "schema": "terlan.diagnostic-catalog.v1",
+  "version": "0.0.7"
+}

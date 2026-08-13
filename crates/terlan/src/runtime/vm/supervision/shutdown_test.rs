@@ -1,5 +1,6 @@
 use super::{
-    VmSupervisionShutdownCompletion, VmSupervisionShutdownQueue, VmSupervisionShutdownStart,
+    VmInternalSupervisionShutdownStart, VmSupervisionShutdownCompletion,
+    VmSupervisionShutdownQueue, VmSupervisionShutdownRequest,
 };
 use crate::runtime::vm::{
     process::{VmExitReason, VmProcessSource, VmProcessState, VmProcessTable},
@@ -37,13 +38,10 @@ fn supervision_shutdown_waits_for_clean_exit_and_cancels_deadline() {
             &mut supervision,
             &mut timers,
             &mut processes,
-            supervisor,
-            "worker",
-            VmExitReason::Killed,
-            100,
+            VmSupervisionShutdownRequest::new(supervisor, "worker", VmExitReason::Killed, 100),
         )
         .expect("begin shutdown");
-    let VmSupervisionShutdownStart::Waiting(scheduled) = start else {
+    let VmInternalSupervisionShutdownStart::Waiting(scheduled) = start else {
         panic!("configured timeout should defer replacement");
     };
     assert_eq!(scheduled.pid, child);
@@ -126,15 +124,12 @@ fn supervision_shutdown_distinguishes_in_budget_and_overdue_child_termination() 
                 &mut supervision,
                 &mut timers,
                 &mut processes,
-                supervisor,
-                child_id,
-                VmExitReason::Killed,
-                100,
+                VmSupervisionShutdownRequest::new(supervisor, child_id, VmExitReason::Killed, 100),
             )
             .expect("begin child shutdown");
         assert!(matches!(
             start,
-            VmSupervisionShutdownStart::Waiting(ref scheduled)
+            VmInternalSupervisionShutdownStart::Waiting(ref scheduled)
                 if scheduled.child_id == child_id && scheduled.deadline_tick == 120
         ));
     }
@@ -220,10 +215,7 @@ fn supervision_shutdown_deadline_forces_typed_exit_and_restarts_child() {
             &mut supervision,
             &mut timers,
             &mut processes,
-            supervisor,
-            "worker",
-            VmExitReason::Killed,
-            100,
+            VmSupervisionShutdownRequest::new(supervisor, "worker", VmExitReason::Killed, 100),
         )
         .expect("begin shutdown");
     let foreign_owner = processes.spawn_root(VmProcessSource::new("app.Timer", "wait", 0));
@@ -293,10 +285,7 @@ fn supervision_shutdown_normal_exit_honors_transient_restart_class() {
             &mut supervision,
             &mut timers,
             &mut processes,
-            supervisor,
-            "worker",
-            VmExitReason::Killed,
-            100,
+            VmSupervisionShutdownRequest::new(supervisor, "worker", VmExitReason::Killed, 100),
         )
         .expect("begin shutdown");
     processes
@@ -342,10 +331,12 @@ fn supervision_shutdown_rejects_duplicate_and_deadline_overflow_atomically() {
             &mut supervision,
             &mut timers,
             &mut processes,
-            supervisor,
-            "worker",
-            VmExitReason::Killed,
-            u64::MAX - 5,
+            VmSupervisionShutdownRequest::new(
+                supervisor,
+                "worker",
+                VmExitReason::Killed,
+                u64::MAX - 5,
+            ),
         )
         .expect_err("deadline should overflow");
     assert_eq!(
@@ -361,10 +352,7 @@ fn supervision_shutdown_rejects_duplicate_and_deadline_overflow_atomically() {
             &mut supervision,
             &mut timers,
             &mut processes,
-            supervisor,
-            "worker",
-            VmExitReason::Killed,
-            100,
+            VmSupervisionShutdownRequest::new(supervisor, "worker", VmExitReason::Killed, 100),
         )
         .expect("begin shutdown");
     let duplicate = shutdowns
@@ -372,10 +360,7 @@ fn supervision_shutdown_rejects_duplicate_and_deadline_overflow_atomically() {
             &mut supervision,
             &mut timers,
             &mut processes,
-            supervisor,
-            "worker",
-            VmExitReason::Killed,
-            101,
+            VmSupervisionShutdownRequest::new(supervisor, "worker", VmExitReason::Killed, 101),
         )
         .expect_err("duplicate should fail");
     assert_eq!(

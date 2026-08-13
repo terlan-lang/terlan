@@ -19,7 +19,7 @@ pub opaque type NumberFormatConstructor.
 
 pub (value: NumberFormatConstructor) supported_locales_of(
     locales: Array[JsString] | JsString,
-    options: NumberFormatOptions
+    options: NumberFormatOptions,
 ): Array[JsString] ->
     native.
 

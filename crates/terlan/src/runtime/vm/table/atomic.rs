@@ -1,9 +1,9 @@
-#![allow(dead_code)]
-
+#[cfg(test)]
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// Integer interpretation used by a VM-owned atomic array.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmAtomicKind {
     Signed,
     Unsigned,
@@ -11,6 +11,7 @@ pub(crate) enum VmAtomicKind {
 
 /// Typed value returned by a VM-owned atomic array.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmAtomicValue {
     Signed(i64),
     Unsigned(u64),
@@ -18,6 +19,7 @@ pub(crate) enum VmAtomicValue {
 
 /// Stable validation failures for VM-owned atomic operations.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmAtomicError {
     EmptyArray,
     IndexOutOfBounds { index: usize, len: usize },
@@ -27,6 +29,7 @@ pub(crate) enum VmAtomicError {
 
 /// Result of a compare-and-exchange operation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum VmCompareExchange {
     Exchanged,
     Mismatch(VmAtomicValue),
@@ -39,11 +42,13 @@ pub(crate) enum VmCompareExchange {
 /// 64-bit boundary. Sequentially consistent operations give VM processes one
 /// deterministic global order without exposing host pointer or ERTS details.
 #[derive(Debug)]
+#[cfg(test)]
 pub(crate) struct VmAtomicArray {
     kind: VmAtomicKind,
     cells: Box<[AtomicU64]>,
 }
 
+#[cfg(test)]
 impl VmAtomicArray {
     pub(crate) fn new(len: usize, kind: VmAtomicKind) -> Result<Self, VmAtomicError> {
         if len == 0 {
@@ -176,6 +181,7 @@ impl VmAtomicArray {
     }
 }
 
+#[cfg(test)]
 fn delta_bits(delta: i128) -> Result<u64, VmAtomicError> {
     if delta < i64::MIN as i128 || delta > u64::MAX as i128 {
         return Err(VmAtomicError::DeltaOutOfRange);
@@ -185,4 +191,5 @@ fn delta_bits(delta: i128) -> Result<u64, VmAtomicError> {
 
 #[cfg(test)]
 #[path = "atomic_beam_suite_parity_test.rs"]
+#[cfg(test)]
 mod atomic_beam_suite_parity_test;

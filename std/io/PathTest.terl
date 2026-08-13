@@ -69,15 +69,16 @@ pub parse_and_to_string_roundtrip_relative_path(): Bool ->
 
 @test
 pub join_and_components_are_lexical(): Bool ->
-    case Path.from_string("src") {
-        Ok(base) ->
-            case base.join("main.terl") {
-                Ok(joined) ->
-                    assert_equal("src/main.terl", joined.to_string()) and option_equals(joined.file_name(), "main.terl") and option_equals(joined.extension(), "terl") and option_path_to_string_equals(joined.parent(), "src");
-                Err(_reason) -> false
-            };
-        Err(_reason) -> false
-    }.
+    let {
+        Ok(base) <- Path.from_string("src");
+        Ok(joined) <- base.join("main.terl")
+    } else {
+        _ -> false
+    };
+    assert_equal("src/main.terl", joined.to_string())
+        and option_equals(joined.file_name(), "main.terl")
+        and option_equals(joined.extension(), "terl")
+        and option_path_to_string_equals(joined.parent(), "src").
 
 @test
 pub absolute_paths_are_classified_without_io(): Bool ->
@@ -91,4 +92,24 @@ pub relative_paths_are_not_absolute(): Bool ->
     case Path.from_string("tmp/terlan") {
         Ok(path) -> assert_equal(false, path.is_absolute());
         Err(_reason) -> false
+    }.
+
+@test
+pub normalization_and_component_prefixes_are_lexical(): Bool ->
+    case {Path.from_string("/tmp/site/api/../index.html"), Path.from_string("/tmp/site")} {
+        {Ok(path), Ok(root)} ->
+            assert_equal("/tmp/site/index.html", path.normalize().to_string())
+                and path.normalize().starts_with(root.normalize())
+                and case path.normalize().strip_prefix(root.normalize()) {
+    Some(relative) -> relative.to_string() == "index.html";
+    None -> false
+};
+        _ -> false
+    }.
+
+@test
+pub normalization_rejects_false_textual_prefixes(): Bool ->
+    case {Path.from_string("/tmp/site-other/index.html"), Path.from_string("/tmp/site")} {
+        {Ok(path), Ok(root)} -> not path.normalize().starts_with(root.normalize());
+        _ -> false
     }.

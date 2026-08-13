@@ -36,7 +36,7 @@ pub transaction_typechecks(receiver: IDBObjectStore): IDBTransaction ->
 
 pub count_typechecks(
     receiver: IDBObjectStore,
-    query: IDBKeyRange | IDBValidKey
+    query: IDBKeyRange | IDBValidKey,
 ): IDBRequest[JsNumber] ->
     receiver.count(query).
 
@@ -44,7 +44,7 @@ pub create_index_typechecks(
     receiver: IDBObjectStore,
     name: JsString,
     key_path: Array[JsString] | JsString,
-    options: IDBIndexParameters
+    options: IDBIndexParameters,
 ): IDBIndex ->
     receiver.create_index(name, key_path, options).
 
@@ -54,13 +54,13 @@ pub delete_index_typechecks(receiver: IDBObjectStore, name: JsString): std.core.
 pub get_all_keys_typechecks(
     receiver: IDBObjectStore,
     query: Option[IDBKeyRange | IDBValidKey],
-    count: JsNumber
+    count: JsNumber,
 ): IDBRequest[Array[IDBValidKey]] ->
     receiver.get_all_keys(query, count).
 
 pub get_key_typechecks(
     receiver: IDBObjectStore,
-    query: IDBKeyRange | IDBValidKey
+    query: IDBKeyRange | IDBValidKey,
 ): IDBRequest[Option[IDBValidKey]] ->
     receiver.get_key(query).
 
@@ -70,13 +70,13 @@ pub index_typechecks(receiver: IDBObjectStore, name: JsString): IDBIndex ->
 pub open_cursor_typechecks(
     receiver: IDBObjectStore,
     query: Option[IDBKeyRange | IDBValidKey],
-    direction: IDBCursorDirection
+    direction: IDBCursorDirection,
 ): IDBRequest[Option[IDBCursorWithValue]] ->
     receiver.open_cursor(query, direction).
 
 pub open_key_cursor_typechecks(
     receiver: IDBObjectStore,
     query: Option[IDBKeyRange | IDBValidKey],
-    direction: IDBCursorDirection
+    direction: IDBCursorDirection,
 ): IDBRequest[Option[IDBCursor]] ->
     receiver.open_key_cursor(query, direction).

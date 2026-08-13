@@ -766,4 +766,5 @@ fn print_api_usage() {
 
 #[cfg(test)]
 #[path = "mod_test.rs"]
+#[cfg(test)]
 mod mod_test;

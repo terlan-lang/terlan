@@ -20,6 +20,6 @@ pub eval_typechecks(receiver: AuthenticationExtensionsPRFInputs): Authentication
     receiver.eval().
 
 pub eval_by_credential_typechecks(
-    receiver: AuthenticationExtensionsPRFInputs
+    receiver: AuthenticationExtensionsPRFInputs,
 ): Record[std.js.String.JsString, AuthenticationExtensionsPRFValues] ->
     receiver.eval_by_credential().

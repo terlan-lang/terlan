@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::BTreeSet;
 use std::fs;
 use std::io::{self, Write};
@@ -155,6 +153,8 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
         return crate::commands::wasm_runtime::run(&cmd.args);
     }
 
+    let (cmd, program_arguments) = split_program_arguments(cmd);
+
     let run_target = match validate_run_args(&cmd.args) {
         Ok(target) => target,
         Err(message) => {
@@ -177,8 +177,10 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
     }
 
     let result = match run_target {
-        RunTarget::TerlanVm if source_is_directory => run_built_executable(&state),
-        RunTarget::TerlanVm => run_built_native_image(&state, &source_path),
+        RunTarget::TerlanVm if source_is_directory => {
+            run_built_executable(&state, &program_arguments)
+        }
+        RunTarget::TerlanVm => run_built_native_image(&state, &source_path, &program_arguments),
     };
 
     match result {
@@ -188,6 +190,20 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
             ExitCode::from(1)
         }
     }
+}
+
+/// Separates compiler/run arguments from arguments owned by the Terlan program.
+///
+/// The first `--` is the stable boundary. Values after it are never parsed by
+/// `terlc` or forwarded to `terlc build`; they are passed unchanged as UTF-8
+/// process arguments to the VM application context.
+fn split_program_arguments(mut cmd: CliCommand) -> (CliCommand, Vec<String>) {
+    let Some(boundary) = cmd.args.iter().position(|argument| argument == "--") else {
+        return (cmd, Vec::new());
+    };
+    let program_arguments = cmd.args.split_off(boundary + 1);
+    cmd.args.pop();
+    (cmd, program_arguments)
 }
 
 /// Expands `terlc run script <name>` into a direct script source path.
@@ -365,12 +381,14 @@ fn infer_run_target_profile(
                 source.display()
             )
         })?;
-        let syntax = crate::terlan_syntax::parse_module_as_syntax_output(&text).map_err(|err| {
-            format!(
-                "terlc run target inference failed to parse {}: {err:?}",
-                source.display()
-            )
-        })?;
+        let syntax =
+            crate::formal_pipeline::parse_source_as_syntax_output(&source.to_string_lossy(), &text)
+                .map_err(|err| {
+                    format!(
+                        "terlc run target inference failed to parse {}: {err:?}",
+                        source.display()
+                    )
+                })?;
         syntax_outputs.push(syntax);
     }
 
@@ -454,10 +472,14 @@ fn run_args_contain_target(args: &[String]) -> bool {
 /// - Resolves `terlan-package-build.json`, loads the executable path, executes
 ///   the launcher, mirrors child output, and converts the child status into a
 ///   CLI exit code.
-fn run_built_executable(state: &CliState) -> Result<ExitCode, String> {
+fn run_built_executable(
+    state: &CliState,
+    program_arguments: &[String],
+) -> Result<ExitCode, String> {
     let metadata = load_run_metadata(&state.out_dir)?;
     let executable = executable_path_from_metadata(&state.out_dir, &metadata)?;
     let mut command = Command::new(&executable);
+    command.args(program_arguments);
     command.env(
         "TERLAN_SQL_RUNTIME_HELPER",
         std::env::current_exe().map_err(|err| format!("failed to resolve current terlc: {err}"))?,
@@ -484,9 +506,13 @@ fn run_built_executable(state: &CliState) -> Result<ExitCode, String> {
 /// - Finds the single `.tvm` image under `_build/vm` and delegates
 ///   execution to the bundled `terlan-vm` binary with any verified package
 ///   artifact bindings recorded in build metadata.
-fn run_built_native_image(state: &CliState, source_path: &Path) -> Result<ExitCode, String> {
+fn run_built_native_image(
+    state: &CliState,
+    source_path: &Path,
+    program_arguments: &[String],
+) -> Result<ExitCode, String> {
     let runner = terlan_vm_runner_path()?;
-    run_built_native_image_with_runner(state, &runner, source_path)
+    run_built_native_image_with_runner(state, &runner, source_path, program_arguments)
 }
 
 /// Runs the emitted native image with an explicit runner and package environment.
@@ -494,10 +520,19 @@ fn run_built_native_image_with_runner(
     state: &CliState,
     runner: &Path,
     source_path: &Path,
+    program_arguments: &[String],
 ) -> Result<ExitCode, String> {
     let artifact = find_native_image_for_source(&state.out_dir, source_path)?;
     let mut command = Command::new(runner);
     command.arg("run").arg(&artifact);
+    if source_path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        == Some("terls")
+    {
+        command.arg("--script-eval");
+    }
+    command.arg("--").args(program_arguments);
     let metadata_path = state.out_dir.join(BUILD_PACKAGE_METADATA_FILE);
     if metadata_path.is_file() {
         let metadata = load_run_metadata(&state.out_dir)?;
@@ -518,7 +553,11 @@ fn find_native_image_for_source(out_dir: &Path, source_path: &Path) -> Result<Pa
             source_path.display()
         )
     })?;
-    let syntax = crate::terlan_syntax::parse_module_as_syntax_output(&source).map_err(|err| {
+    let syntax = crate::formal_pipeline::parse_source_as_syntax_output(
+        &source_path.to_string_lossy(),
+        &source,
+    )
+    .map_err(|err| {
         format!(
             "failed to parse run source `{}`: {err:?}",
             source_path.display()
@@ -861,4 +900,5 @@ fn exit_code_from_output(output: &Output) -> ExitCode {
 
 #[cfg(test)]
 #[path = "run_test.rs"]
+#[cfg(test)]
 mod run_test;

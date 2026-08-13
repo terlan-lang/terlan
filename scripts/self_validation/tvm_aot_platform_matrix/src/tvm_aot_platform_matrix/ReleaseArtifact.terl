@@ -1,0 +1,83 @@
+/**
+ * Typed command boundary for deterministic Terlan release artifacts.
+ */
+module tvm_aot_platform_matrix.ReleaseArtifact.
+
+import std.core.Option.{None, Some}.
+import std.core.String.
+import std.io.Console.{eprintln, println}.
+import std.system.Environment.
+import tvm_aot_platform_matrix.ReleaseArtifactMatrix.{adversarial as adversarial_release, run as run_release_matrix}.
+import tvm_aot_platform_matrix.ReleaseInstallerSmoke.{smoke as smoke_installer}.
+import tvm_aot_platform_matrix.ReleaseMetadata.{print as print_metadata}.
+import tvm_aot_platform_matrix.ReleasePackage.{package as package_release}.
+import tvm_aot_platform_matrix.ReleasePayload.{self_test as payload_self_test}.
+import tvm_aot_platform_matrix.ReleasePlatform.{description, detect, self_test as platform_self_test}.
+import tvm_aot_platform_matrix.ReleaseSmoke.{smoke as smoke_release}.
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[release_artifact]: ", message));
+    false.
+
+/**
+ * Prints the current release naming contract.
+ */
+pub describe(): Bool ->
+    case detect() {
+        Some(platform) ->
+            let _printed = println(description(platform));
+            true;
+        None -> failure("unsupported release host or override")
+    }.
+
+/**
+ * Runs pure platform and payload framing contract probes.
+ */
+pub self_test(): Bool ->
+    platform_self_test() and payload_self_test().
+
+/**
+ * Returns the repository root admitted to the current tool process.
+ */
+pub repository_root(): String ->
+    case Environment.get("TERLAN_RELEASE_ROOT") {
+        Some(root) -> root;
+        None -> Environment.current_directory()
+    }.
+
+/**
+ * Builds the complete deterministic release artifact for the current platform.
+ */
+pub package(): Bool ->
+    package_release(repository_root()).
+
+/**
+ * Prints canonical release metadata without requiring release binaries.
+ */
+pub metadata(): Bool ->
+    print_metadata(repository_root()).
+
+/**
+ * Validates the complete current-platform release archive.
+ */
+pub smoke(): Bool ->
+    smoke_release(repository_root()).
+
+/**
+ * Validates the public installer against a local release mirror.
+ */
+pub installer_smoke(): Bool ->
+    let root = repository_root();
+    smoke_installer(root).
+
+/**
+ * Writes the six-target release artifact matrix report.
+ */
+pub matrix(): Bool ->
+    run_release_matrix(repository_root()).
+
+/**
+ * Runs hostile release packaging contract probes.
+ */
+pub adversarial(): Bool ->
+    adversarial_release().

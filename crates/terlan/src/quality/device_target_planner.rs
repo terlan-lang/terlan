@@ -573,4 +573,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "device_target_planner_test.rs"]
+#[cfg(test)]
 mod device_target_planner_test;

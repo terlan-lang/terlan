@@ -59,21 +59,31 @@ pub internal_helper_typechecks(): Config ->
 pub auto_config_has_defaults(value: Dynamic): Bool ->
     case value {
         {mode: mode, domains: domains, email: Some(email), primary_provider: Some(_primary), fallback_provider: Some(_fallback), cert: None, key: None, trust_local: trust_local} ->
-            mode == Auto and domains == ["example.com"] and email == "admin@example.com" and trust_local == false;
+            mode == Auto
+                and domains == ["example.com"]
+                and email == "admin@example.com"
+                and trust_local == false;
         _ -> false
     }.
 
 pub manual_config_has_certificates(value: Dynamic): Bool ->
     case value {
         {mode: mode, domains: domains, email: None, primary_provider: None, fallback_provider: None, cert: Some(cert), key: Some(key), trust_local: trust_local} ->
-            mode == Manual and domains == [] and cert == "certs/dev.pem" and key == "certs/dev-key.pem" and trust_local == false;
+            mode == Manual
+                and domains == []
+                and cert == "certs/dev.pem"
+                and key == "certs/dev-key.pem"
+                and trust_local == false;
         _ -> false
     }.
 
 pub internal_config_has_local_trust(value: Dynamic): Bool ->
     case value {
         {mode: mode, domains: domains, server_name: Some(server_name), trust_local: trust_local} ->
-            mode == Internal and domains == [] and server_name == "localhost" and trust_local == true;
+            mode == Internal
+                and domains == []
+                and server_name == "localhost"
+                and trust_local == true;
         _ -> false
     }.
 
@@ -83,4 +93,5 @@ pub tls_auto_config_records_acme_defaults(): Bool ->
 
 @test
 pub tls_manual_and_internal_configs_record_mode_specific_fields(): Bool ->
-    assert(manual_config_has_certificates(manual_helper_typechecks())) and assert(internal_config_has_local_trust(internal_helper_typechecks())).
+    assert(manual_config_has_certificates(manual_helper_typechecks()))
+        and assert(internal_config_has_local_trust(internal_helper_typechecks())).

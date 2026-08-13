@@ -1,71 +1,91 @@
-//! Terlan VM supervisor contract.
-//!
-//! `std.vm.Supervisor` models supervised runtime ownership for runtime-targeted
-//! services and native bridges. It is deliberately expressed as ordinary types
-//! and traits so supervision stays outside the Terlan grammar.
+//! Typed supervision policy composed over VM-owned lifecycle mechanics.
 
 module std.vm.Supervisor.
 
-/// ChildSpec describes a supervised child declaration.
-///
-/// Input: child process or resource type `P`.
-/// Output: an opaque child specification.
-/// Transformation: carries target-owned child startup metadata without exposing
-/// runtime-specific tuple formats to Terlan source.
+/// Typed child declaration consumed by VM-owned supervision admission.
 
-pub opaque type ChildSpec[P].
+pub type ChildSpec[P] =
+    {Atom["supervisor_child"], id: Int, value: P, restart_class: RestartClass, order: Int, initial_backoff: Int, maximum_backoff: Int, shutdown_timeout: Int}.
 
-/// Supervisor represents a runtime supervision owner.
-///
-/// Input: no type parameters.
-/// Output: an opaque supervisor handle.
-/// Transformation: hides runtime supervision tree identity behind a typed target
-/// capability surface.
+pub type ChildSpecTag =
+    Atom["supervisor_child"].
 
-pub opaque type Supervisor.
+pub type OneForAll =
+    Atom["one_for_all"].
 
-/// Builds a child specification for a supervised value.
-///
-/// Input: one process or resource value of type `P`.
-/// Output: `ChildSpec[P]`.
-/// Transformation: asks the selected VM runtime adapter to describe how the value
-/// should enter supervision without exposing backend tuple formats.
+pub type OneForOne =
+    Atom["one_for_one"].
 
-pub child_spec[P](value: P): ChildSpec[P].
+pub type Permanent =
+    Atom["permanent"].
 
-/// Starts a supervisor process.
-///
-/// Input: no arguments.
-/// Output: `Result[Supervisor, Error]`.
-/// Transformation: asks the selected VM runtime adapter to create a supervisor owner
-/// before child specifications are started through the receiver-method surface.
+pub type RestForOne =
+    Atom["rest_for_one"].
 
-pub start(): Result[Supervisor, Error].
+pub type RestartClass =
+    Permanent
+  | Transient
+  | Temporary.
 
-/// Starts a child under a supervisor.
-///
-/// Input: one `Supervisor` receiver and one child specification.
-/// Output: `Result[P, Error]`.
-/// Transformation: delegates startup to the target supervisor and normalizes
-/// startup failure into the standard typed error channel.
+pub type RestartStrategy =
+    OneForOne
+  | OneForAll
+  | RestForOne.
 
-pub (supervisor: Supervisor) start[P](spec: ChildSpec[P]): Result[P, Error].
+/// Immutable policy identity for one VM-owned supervisor node.
 
-/// Stops a supervised child.
-///
-/// Input: one mutable `Supervisor` receiver and one supervised child value.
-/// Output: `Unit`.
-/// Transformation: asks the target supervisor to stop the child while hiding
-/// runtime shutdown and unlink details from Terlan source.
+pub type Supervisor =
+    {Atom["supervisor"], name: Int, strategy: RestartStrategy, restart_limit: Int, restart_window: Int}.
 
-pub (mut supervisor: Supervisor) stop[P](value: P): Unit.
+pub type SupervisorTag =
+    Atom["supervisor"].
 
-/// Supervised defines how a runtime value enters and leaves supervision.
-///
-/// Input: child process or resource type `P`.
-/// Output: a trait requiring child specification, start, and stop operations.
-/// Transformation: gives selected VM runtime adapters a stable contract that can
-/// be checked before native resources are connected to supervision.
+pub type Temporary =
+    Atom["temporary"].
+
+pub type Transient =
+    Atom["transient"].
+
+@pure
+pub cap_backoff(delay: Int, maximum: Int): Int.
+
+/// Builds a typed child declaration without exposing a host tuple protocol.
+
+pub child_spec[P](id: Int, value: P, restart_class: RestartClass, order: Int, initial_backoff: Int, maximum_backoff: Int, shutdown_timeout: Int): ChildSpec[P].
+
+/// Computes capped exponential backoff for a one-based restart attempt.
+
+@pure
+pub restart_backoff(initial: Int, maximum: Int, attempt: Int): Int.
+
+/// Builds one source-owned policy value; the VM owns its mutable graph.
+
+pub root(name: Int, strategy: RestartStrategy, restart_limit: Int, restart_window: Int): Supervisor.
+
+@pure
+pub scale_backoff(delay: Int, attempt: Int): Int.
+
+/// Selects one child under one-for-one, one-for-all, or rest-for-one.
+
+@pure
+pub selects_child(strategy: RestartStrategy, failed_order: Int, candidate_order: Int): Bool.
+
+/// Selects whether a child class restarts for a normal or abnormal exit.
+
+@pure
+pub should_restart(restart_class: RestartClass, abnormal: Bool): Bool.
+
+/// Decides whether an ordered shutdown deadline has expired.
+
+@pure
+pub shutdown_expired(start_tick: Int, timeout: Int, now_tick: Int): Bool.
+
+/// Enforces a finite restart-intensity budget before escalation.
+
+@pure
+pub within_intensity(restart_count: Int, restart_limit: Int): Bool.
+
+/// Contract implemented by values that expose their own hard lifecycle primitives.
 
 pub trait Supervised[P] {
     child_spec(value: P): ChildSpec[P].

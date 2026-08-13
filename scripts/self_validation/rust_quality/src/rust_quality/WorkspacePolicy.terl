@@ -1,0 +1,951 @@
+/**
+ * Enforces one workspace-owned Rust package, dependency, formatter, and lint
+ * policy using typed TOML and the shared Rust allowance lexer.
+ */
+module rust_quality.WorkspacePolicy.
+
+import rust_quality.{RustAllowances, SourceInventory}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.{Json, Toml}.
+import std.io.Console.{eprintln, println}.
+import std.io.{Directory, File}.
+
+import type rust_quality.RustAllowances.Allowance.
+import type rust_quality.SourceInventory.{RustSource, SourceDiscovery}.
+import type std.core.{Option, Result}.
+import type std.data.Json.
+import type std.io.File.TextFile.
+
+struct Manifest {
+    relative: String,
+    member: String,
+    document: Json,
+}.
+
+struct ManifestLoad {
+    valid: Bool,
+    manifests: List[Manifest],
+    message: String,
+}.
+
+struct Owner {
+    name: String,
+    label: String,
+}.
+
+struct MemberValidation {
+    diagnostics: List[String],
+    owners: List[Owner],
+    crate_roots: List[String],
+}.
+
+struct ScanResult {
+    valid: Bool,
+    diagnostics: List[String],
+    message: String,
+}.
+
+@pure
+package_keys(): List[String] ->
+    ["version", "edition", "rust-version", "license", "authors", "repository"].
+
+@pure
+dependency_tables(): List[String] -> ["dependencies", "dev-dependencies", "build-dependencies"].
+
+@pure
+insert_string(value: String, values: List[String]): List[String] ->
+    case values {
+        [] -> List[String](value);
+        [head | rest] ->
+            if {
+                String.compare(value, head) == Lt -> [value | values];
+                true -> [head | insert_string(value, rest)]
+            }
+    }.
+
+@pure
+sort_strings(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> sort_strings(rest, insert_string(value, output))
+    }.
+
+@pure
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+@pure
+parent_at(path: String, index: Int): String ->
+    if {
+        index < 0 -> "";
+        path.utf8_byte_at(index) == 47 -> path.utf8_slice(0, index);
+        true -> parent_at(path, index - 1)
+    }.
+
+@pure
+parent(path: String): String ->
+    parent_at(path, path.byte_size() - 1).
+
+@pure
+relative(root: String, path: String): String ->
+    let prefix = String.append(root, "/");
+    if {
+        String.starts_with(path, prefix) -> path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size());
+        true -> path
+    }.
+
+@pure
+json_get(value: Json, key: String): Option[Json] ->
+    case Json.get(value, key) {
+        Ok(child) -> Some(child);
+        Err(_reason) -> None
+    }.
+
+@pure
+json_bool(value: Json, key: String): Option[Bool] ->
+    let {
+        Some(child) <- json_get(value, key);
+        Ok(selected) <- Json.as_bool(child)
+    } else {
+        _ -> None
+    };
+    Some(selected).
+
+@pure
+json_string(value: Json, key: String): Option[String] ->
+    let {
+        Some(child) <- json_get(value, key);
+        Ok(selected) <- Json.as_string(child)
+    } else {
+        _ -> None
+    };
+    Some(selected).
+
+@pure
+object_nonempty(value: Json, key: String): Bool ->
+    let {
+        Some(child) <- json_get(value, key);
+        Ok(count) <- Json.object_length(child)
+    } else {
+        _ -> false
+    };
+    count > 0.
+
+@pure
+string_array_at(value: Json, index: Int, count: Int, output: List[String]): List[String] ->
+    if {
+        index == count -> sort_strings(output, List.new[String]());
+        true -> let {
+            Ok(child) <- Json.at(value, index);
+            Ok(selected) <- Json.as_string(child)
+        } else {
+            _ -> string_array_at(value, index + 1, count, output)
+        };
+        string_array_at(value, index + 1, count, [selected | output])
+    }.
+
+@pure
+string_array(value: Json, key: String): List[String] ->
+    let {
+        Some(array) <- json_get(value, key);
+        Ok(count) <- Json.length(array)
+    } else {
+        _ -> List.new[String]()
+    };
+    string_array_at(array, 0, count, List.new[String]()).
+
+@pure
+manifest_paths(root: String, members: List[String]): List[String] ->
+    case members {
+        [] -> List.new[String]();
+        [member | rest] ->
+            [SourceInventory.child(root, String.concat([member, "/Cargo.toml"])) | manifest_paths(root, rest)]
+    }.
+
+parse_manifests(root: String, files: List[TextFile], output: List[Manifest]): ManifestLoad ->
+    case files {
+        [] -> ManifestLoad(valid = true, manifests = SourceInventory.reverse(output), message = "");
+        [file | rest] ->
+            let path = relative(root, File.text_file_path(file));
+            case Toml.parse(File.text_file_contents(file)) {
+                Err(reason) ->
+                    ManifestLoad(
+                        valid = false,
+                        manifests = List.new[Manifest](),
+                        message = String.concat([path, ": ", Toml.error_message(reason)]),
+                    );
+                Ok(document) ->
+                    let member = parent(path);
+                    let manifest = Manifest(relative = path, member = member, document = document);
+                    let next = [manifest | output];
+                    parse_manifests(root, rest, next)
+            }
+    }.
+
+load_manifests(root: String, members: List[String]): ManifestLoad ->
+    case File.read_text_many(manifest_paths(root, members)) {
+        Err(reason) ->
+            ManifestLoad(
+                valid = false,
+                manifests = List.new[Manifest](),
+                message = File.message(reason),
+            );
+        Ok(files) -> parse_manifests(root, files, List.new[Manifest]())
+    }.
+
+@pure
+workspace_package_diagnostics(document: Json, diagnostics: List[String]): List[String] ->
+    case json_get(document, "workspace") {
+        None -> ["Cargo.toml: [workspace.package] is missing" | diagnostics];
+        Some(workspace) ->
+            let with_package =
+                case json_get(workspace, "package") {
+                    None -> missing_workspace_keys(package_keys(), diagnostics);
+                    Some(package) ->
+                        missing_object_keys(
+                            package_keys(),
+                            package,
+                            "Cargo.toml: [workspace.package] is missing `",
+                            diagnostics,
+                        )
+                };
+            let with_rust =
+                if {
+                    object_nonempty(workspace, "lints") -> case json_get(workspace, "lints") {
+                        Some(lints) ->
+                            if {
+                                object_nonempty(lints, "rust") -> with_package;
+                                true -> ["Cargo.toml: [workspace.lints.rust] is missing" | with_package]
+                            };
+                        None -> ["Cargo.toml: [workspace.lints.rust] is missing" | with_package]
+                    };
+                    true -> ["Cargo.toml: [workspace.lints.rust] is missing" | with_package]
+                };
+            case json_get(workspace, "lints") {
+                Some(lints) ->
+                    if {
+                        object_nonempty(lints, "clippy") -> with_rust;
+                        true -> ["Cargo.toml: [workspace.lints.clippy] is missing" | with_rust]
+                    };
+                None -> ["Cargo.toml: [workspace.lints.clippy] is missing" | with_rust]
+            }
+    }.
+
+@pure
+missing_workspace_keys(keys: List[String], diagnostics: List[String]): List[String] ->
+    case keys {
+        [] -> diagnostics;
+        [key | rest] ->
+            missing_workspace_keys(
+                rest,
+                [String.concat(["Cargo.toml: [workspace.package] is missing `", key, "`"]) | diagnostics],
+            )
+    }.
+
+@pure
+missing_object_keys(
+    keys: List[String],
+    object: Json,
+    prefix: String,
+    diagnostics: List[String],
+): List[String] ->
+    case keys {
+        [] -> diagnostics;
+        [key | rest] ->
+            let next =
+                case json_get(object, key) {
+                    Some(_value) -> diagnostics;
+                    None -> [String.concat([prefix, key, "`"]) | diagnostics]
+                };
+            missing_object_keys(rest, object, prefix, next)
+    }.
+
+@pure
+policy_file(name: String): Bool ->
+    contains(
+        [
+            "rust-toolchain",
+            "rust-toolchain.toml",
+            "rustfmt.toml",
+            ".rustfmt.toml",
+            "clippy.toml",
+            ".clippy.toml",
+        ],
+        name,
+    ).
+
+policy_paths(root: String): SourceDiscovery ->
+    SourceInventory.discover_visible(
+        root,
+        [
+            "*.rs",
+            "rust-toolchain",
+            "rust-toolchain.toml",
+            "rustfmt.toml",
+            ".rustfmt.toml",
+            "clippy.toml",
+            ".clippy.toml",
+        ],
+    ).
+
+@pure
+nested_policy_diagnostics(paths: List[String], diagnostics: List[String]): List[String] ->
+    case paths {
+        [] -> diagnostics;
+        [path | rest] ->
+            let next =
+                if {
+                    String.contains(path, "/") and policy_file(SourceInventory.basename(path)) -> [String.concat([path, ": nested Rust policy file; policy belongs at workspace root"]) | diagnostics];
+                    true -> diagnostics
+                };
+            nested_policy_diagnostics(rest, next)
+    }.
+
+@pure
+workspace_dependency_names(document: Json): List[String] ->
+    let {
+        Some(workspace) <- json_get(document, "workspace");
+        Some(dependencies) <- json_get(workspace, "dependencies");
+        Ok(keys) <- Json.keys(dependencies)
+    } else {
+        _ -> List.new[String]()
+    };
+    sort_strings(keys, List.new[String]()).
+
+@pure
+workspace_true(value: Json): Bool ->
+    case json_bool(value, "workspace") {
+        Some(true) -> true;
+        _ -> false
+    }.
+
+@pure
+has_version(value: Json): Bool ->
+    let {
+        Err(_reason) <- Json.as_string(value);
+        None <- json_get(value, "version")
+    } else {
+        _ -> true
+    };
+    false.
+
+@pure
+member_package_diagnostics(manifest: Manifest, diagnostics: List[String]): List[String] ->
+    case json_get(manifest.document, "package") {
+        None -> missing_member_keys(package_keys(), manifest.relative, diagnostics);
+        Some(package) ->
+            member_workspace_key_diagnostics(
+                package_keys(),
+                manifest.relative,
+                package,
+                diagnostics,
+            )
+    }.
+
+@pure
+missing_member_keys(keys: List[String], path: String, diagnostics: List[String]): List[String] ->
+    case keys {
+        [] -> diagnostics;
+        [key | rest] ->
+            missing_member_keys(
+                rest,
+                path,
+                [String.concat([path, ": package `", key, "` must use `", key, ".workspace = true`"]) | diagnostics],
+            )
+    }.
+
+@pure
+member_workspace_key_diagnostics(
+    keys: List[String],
+    path: String,
+    package: Json,
+    diagnostics: List[String],
+): List[String] ->
+    case keys {
+        [] -> diagnostics;
+        [key | rest] ->
+            let valid =
+                case json_get(package, key) {
+                    Some(value) -> workspace_true(value);
+                    None -> false
+                };
+            let next =
+                if {
+                    valid -> diagnostics;
+                    true -> [String.concat([path, ": package `", key, "` must use `", key, ".workspace = true`"]) | diagnostics]
+                };
+            member_workspace_key_diagnostics(rest, path, package, next)
+    }.
+
+@pure
+member_lint_diagnostics(manifest: Manifest, diagnostics: List[String]): List[String] ->
+    let valid =
+        (let {
+    Some(lints) <- json_get(manifest.document, "lints");
+    Some(true) <- json_bool(lints, "workspace")
+} else {
+    _ -> false
+};
+true);
+    if {
+        valid -> diagnostics;
+        true -> [String.concat([manifest.relative, ": lint policy must be exactly `[lints] workspace = true`"]) | diagnostics]
+    }.
+
+@pure
+target_roots(manifest: Manifest, files: List[String]): List[String] ->
+    let library = String.concat([manifest.member, "/src/lib.rs"]);
+    let main = String.concat([manifest.member, "/src/main.rs"]);
+    let roots =
+        if {
+            contains(files, library) -> List[String](library);
+            true -> List.new[String]()
+        };
+    case json_get(manifest.document, "bin") {
+        Some(bins) -> bin_roots(bins, manifest.member, 0, roots);
+        None ->
+            if {
+                contains(files, main) -> insert_string(main, roots);
+                true -> roots
+            }
+    }.
+
+@pure
+bin_roots(bins: Json, member: String, index: Int, roots: List[String]): List[String] ->
+    case Json.length(bins) {
+        Err(_reason) -> roots;
+        Ok(count) ->
+            if {
+                index == count -> roots;
+                true -> let next =
+                    (let {
+    Ok(bin) <- Json.at(bins, index);
+    Some(path) <- json_string(bin, "path")
+} else {
+    _ -> roots
+};
+insert_string(String.concat([member, "/", path]), roots));
+                bin_roots(bins, member, index + 1, next)
+            }
+    }.
+
+@pure
+dependency_rows(
+    table: Json,
+    names: List[String],
+    manifest: String,
+    table_name: String,
+    roots: List[String],
+    owners: List[Owner],
+    diagnostics: List[String],
+): MemberValidation ->
+    case names {
+        [] ->
+            MemberValidation(
+                diagnostics = diagnostics,
+                owners = owners,
+                crate_roots = List.new[String](),
+            );
+        [name | rest] ->
+            case json_get(table, name) {
+                None ->
+                    dependency_rows(table, rest, manifest, table_name, roots, owners, diagnostics);
+                Some(spec) ->
+                    let versioned = has_version(spec);
+                    let inherited = workspace_true(spec);
+                    let at_root = contains(roots, name);
+                    let duplicate = versioned and at_root;
+                    let missing_root = inherited and not at_root;
+                    let label = String.concat([manifest, " [", table_name, "]"]);
+                    let next_owners =
+                        if {
+                            versioned -> [Owner(name = name, label = label) | owners];
+                            true -> owners
+                        };
+                    let next_diagnostics =
+                        if {
+                            duplicate -> [String.concat([manifest, ": `", name, "` duplicates a workspace dependency version"]) | diagnostics];
+                            missing_root -> [String.concat([manifest, ": `", name, ".workspace = true` has no root dependency"]) | diagnostics];
+                            true -> diagnostics
+                        };
+                    dependency_rows(
+                        table,
+                        rest,
+                        manifest,
+                        table_name,
+                        roots,
+                        next_owners,
+                        next_diagnostics,
+                    )
+            }
+    }.
+
+@pure
+member_dependencies(
+    manifest: Manifest,
+    tables: List[String],
+    roots: List[String],
+    owners: List[Owner],
+    diagnostics: List[String],
+): MemberValidation ->
+    case tables {
+        [] ->
+            MemberValidation(
+                diagnostics = diagnostics,
+                owners = owners,
+                crate_roots = List.new[String](),
+            );
+        [table_name | rest] ->
+            let {
+                Some(table) <- json_get(manifest.document, table_name);
+                Ok(names) <- Json.keys(table)
+            } else {
+                _ -> member_dependencies(manifest, rest, roots, owners, diagnostics)
+            };
+            (let checked =
+    dependency_rows(
+        table,
+        sort_strings(names, List.new[String]()),
+        manifest.relative,
+        table_name,
+        roots,
+        owners,
+        diagnostics,
+    );
+member_dependencies(manifest, rest, roots, checked.owners, checked.diagnostics))
+    }.
+
+@pure
+validate_members(
+    manifests: List[Manifest],
+    files: List[String],
+    roots: List[String],
+    diagnostics: List[String],
+    owners: List[Owner],
+    crate_roots: List[String],
+): MemberValidation ->
+    case manifests {
+        [] ->
+            MemberValidation(diagnostics = diagnostics, owners = owners, crate_roots = crate_roots);
+        [manifest | rest] ->
+            let packaged = member_package_diagnostics(manifest, diagnostics);
+            let linted = member_lint_diagnostics(manifest, packaged);
+            let dependencies = member_dependencies(manifest, dependency_tables(), roots, owners, linted);
+            validate_members(
+                rest,
+                files,
+                roots,
+                dependencies.diagnostics,
+                dependencies.owners,
+                List.concat(crate_roots, target_roots(manifest, files)),
+            )
+    }.
+
+@pure
+owner_count(name: String, owners: List[Owner]): Int ->
+    case owners {
+        [] -> 0;
+        [owner | rest] ->
+            if {
+    owner.name == name -> 1;
+    true -> 0
+} + owner_count(name, rest)
+    }.
+
+@pure
+owner_labels(name: String, owners: List[Owner], output: List[String]): List[String] ->
+    case owners {
+        [] -> output;
+        [owner | rest] ->
+            if {
+                owner.name == name -> owner_labels(name, rest, [owner.label | output]);
+                true -> owner_labels(name, rest, output)
+            }
+    }.
+
+@pure
+join(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> join_at(rest, value)
+    }.
+
+@pure
+join_at(values: List[String], output: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] -> join_at(rest, String.concat([output, ", ", value]))
+    }.
+
+@pure
+duplicate_owner_diagnostics(
+    owners: List[Owner],
+    seen: List[String],
+    diagnostics: List[String],
+): List[String] ->
+    case owners {
+        [] -> diagnostics;
+        [owner | rest] ->
+            let next =
+                if {
+                    contains(seen, owner.name) or owner_count(owner.name, owners) <= 1 -> diagnostics;
+                    true -> [String.concat(
+    [
+        "Cargo.toml: dependency `",
+        owner.name,
+        "` repeats member-selected versions in ",
+        join(owner_labels(owner.name, owners, List.new[String]())),
+    ],
+) | diagnostics]
+                };
+            duplicate_owner_diagnostics(rest, [owner.name | seen], next)
+    }.
+
+@pure
+broad_clippy(lints: String): Bool ->
+    contains_any_lint(
+        String.split(lints, ","),
+        [
+            "clippy::all",
+            "clippy::pedantic",
+            "clippy::nursery",
+            "clippy::restriction",
+            "clippy::cargo",
+            "clippy::warnings",
+        ],
+    ).
+
+@pure
+contains_any_lint(lints: List[String], forbidden: List[String]): Bool ->
+    case lints {
+        [] -> false;
+        [lint | rest] -> contains(forbidden, lint) or contains_any_lint(rest, forbidden)
+    }.
+
+@pure
+crate_root_allowance(value: Allowance): Bool ->
+    String.starts_with(value.source_line, "#![allow")
+        and (String.contains(value.lints, "dead_code") or String.contains(value.lints, "unused_imports")).
+
+@pure
+scan_source_policy(
+    source: RustSource,
+    crate_roots: List[String],
+    diagnostics: List[String],
+): List[String] ->
+    scan_allowances(
+        RustAllowances.scan_source(source.path, source.contents),
+        source.path,
+        contains(crate_roots, source.path),
+        diagnostics,
+    ).
+
+@pure
+scan_allowances(
+    values: List[Allowance],
+    path: String,
+    crate_root: Bool,
+    diagnostics: List[String],
+): List[String] ->
+    case values {
+        [] -> diagnostics;
+        [value | rest] ->
+            let with_root =
+                if {
+                    crate_root and crate_root_allowance(value) -> [String.concat([path, ": crate-root dead_code/unused_imports allowance is forbidden"]) | diagnostics];
+                    true -> diagnostics
+                };
+            let with_clippy =
+                if {
+                    broad_clippy(value.lints) -> [String.concat([path, ": broad Clippy category allowance is forbidden"]) | with_root];
+                    true -> with_root
+                };
+            scan_allowances(rest, path, crate_root, with_clippy)
+    }.
+
+scan_rust_batches(
+    root: String,
+    paths: List[String],
+    crate_roots: List[String],
+    diagnostics: List[String],
+): ScanResult ->
+    case paths {
+        [] -> ScanResult(valid = true, diagnostics = diagnostics, message = "");
+        _ ->
+            let batch = SourceInventory.load_next(root, paths);
+            if {
+                not batch.valid -> ScanResult(valid = false, diagnostics = diagnostics, message = batch.message);
+                true -> scan_rust_batches(
+                    root,
+                    batch.remaining,
+                    crate_roots,
+                    scan_sources_policy(batch.sources, crate_roots, diagnostics),
+                )
+            }
+    }.
+
+@pure
+scan_sources_policy(
+    sources: List[RustSource],
+    crate_roots: List[String],
+    diagnostics: List[String],
+): List[String] ->
+    case sources {
+        [] -> diagnostics;
+        [source | rest] ->
+            scan_sources_policy(
+                rest,
+                crate_roots,
+                scan_source_policy(source, crate_roots, diagnostics),
+            )
+    }.
+
+@pure
+rust_paths(paths: List[String], output: List[String]): List[String] ->
+    case paths {
+        [] -> SourceInventory.reverse(output);
+        [path | rest] ->
+            if {
+                String.ends_with(path, ".rs") -> rust_paths(rest, [path | output]);
+                true -> rust_paths(rest, output)
+            }
+    }.
+
+print_diagnostics(values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            let _printed = eprintln(String.concat(["  - ", value]));
+            print_diagnostics(rest)
+    }.
+
+pub check(root: String): Bool ->
+    case File.read_text(SourceInventory.child(root, "Cargo.toml")) {
+        Err(_reason) ->
+            let _printed = eprintln("[rust-workspace-policy] failure: Cargo.toml: missing workspace manifest");
+            false;
+        Ok(source) ->
+            case Toml.parse(source) {
+                Err(reason) ->
+                    let _printed =
+                        eprintln(
+                            String.concat(
+                                [
+                                    "[rust-workspace-policy] failure: Cargo.toml: ",
+                                    Toml.error_message(reason),
+                                ],
+                            ),
+                        );
+                    false;
+                Ok(document) ->
+                    let discovered = policy_paths(root);
+                    if {
+                        not discovered.valid -> let _printed =
+                            eprintln(
+                                String.concat(
+                                    ["[rust-workspace-policy] failure: ", discovered.message],
+                                ),
+                            );
+                        false;
+                        true -> let files = discovered.paths;
+                        let members =
+                            case json_get(document, "workspace") {
+                                Some(workspace) -> string_array(workspace, "members");
+                                None -> List.new[String]()
+                            };
+                        let loaded = load_manifests(root, members);
+                        if {
+                            not loaded.valid -> let _printed =
+                                eprintln(
+                                    String.concat(
+                                        ["[rust-workspace-policy] failure: ", loaded.message],
+                                    ),
+                                );
+                            false;
+                            true -> let base =
+                                nested_policy_diagnostics(
+                                    files,
+                                    workspace_package_diagnostics(document, List.new[String]()),
+                                );
+                            let member =
+                                validate_members(
+                                    loaded.manifests,
+                                    files,
+                                    workspace_dependency_names(document),
+                                    base,
+                                    List.new[Owner](),
+                                    List.new[String](),
+                                );
+                            let duplicate =
+                                duplicate_owner_diagnostics(
+                                    member.owners,
+                                    List.new[String](),
+                                    member.diagnostics,
+                                );
+                            let scanned =
+                                scan_rust_batches(
+                                    root,
+                                    rust_paths(files, List.new[String]()),
+                                    member.crate_roots,
+                                    duplicate,
+                                );
+                            if {
+                                not scanned.valid -> let _printed =
+                                    eprintln(
+                                        String.concat(
+                                            ["[rust-workspace-policy] failure: ", scanned.message],
+                                        ),
+                                    );
+                                false;
+                                List.length(scanned.diagnostics) == 0 -> let _printed =
+                                    println(
+                                        "[rust-workspace-policy] root package, dependency, formatting, and lint policy verified.",
+                                    );
+                                true;
+                                true -> let _printed = eprintln("[rust-workspace-policy] failures:");
+                                print_diagnostics(SourceInventory.reverse(scanned.diagnostics))
+                            }
+                        }
+                    }
+            }
+    }.
+
+pub self_test(): Bool ->
+    let broad = RustAllowances.scan_source("crates/example/src/lib.rs", "#![allow(clippy::all)]\n");
+    let crate_root =
+        RustAllowances.scan_source(
+            "crates/example/src/lib.rs",
+            "#![allow(dead_code, unused_imports)]\n",
+        );
+    let nested = nested_policy_diagnostics(["crates/example/rustfmt.toml"], List.new[String]());
+    let broad_holds =
+        case broad {
+            [value | _rest] -> broad_clippy(value.lints);
+            [] -> false
+        };
+    let crate_root_holds =
+        case crate_root {
+            [value | _rest] -> crate_root_allowance(value);
+            [] -> false
+        };
+    if {
+        not broad_holds -> let _printed =
+            eprintln(
+                "error[rust_quality.workspace_policy.self_test.clippy]: broad Clippy allowance accepted",
+            );
+        false;
+        not crate_root_holds -> let _printed =
+            eprintln(
+                "error[rust_quality.workspace_policy.self_test.crate_root]: crate-root allowance accepted",
+            );
+        false;
+        List.length(nested) != 1 -> let _printed =
+            eprintln(
+                "error[rust_quality.workspace_policy.self_test.nested]: nested policy accepted",
+            );
+        false;
+        true -> let _printed = println("Rust workspace-policy self-test passed");
+        true
+    }.
+
+@pure
+root_fixture(): String ->
+    "[workspace]\nmembers = [\"crates/example\"]\n\n[workspace.package]\nversion = \"0.0.7\"\nedition = \"2021\"\nrust-version = \"1.96\"\nlicense = \"Apache-2.0\"\nauthors = [\"Terlan contributors\"]\nrepository = \"https://example.invalid/terlan\"\n\n[workspace.dependencies]\nshared = \"1\"\n\n[workspace.lints.rust]\nwarnings = \"deny\"\n\n[workspace.lints.clippy]\nall = { level = \"warn\", priority = -1 }\n".
+
+@pure
+member_fixture(): String ->
+    "[package]\nname = \"example\"\nversion.workspace = true\nedition.workspace = true\nrust-version.workspace = true\nlicense.workspace = true\nauthors.workspace = true\nrepository.workspace = true\n\n[lints]\nworkspace = true\n\n[dependencies]\nshared.workspace = true\n".
+
+@pure
+fixture_manifest(document: Json): Manifest ->
+    Manifest(relative = "crates/example/Cargo.toml", member = "crates/example", document = document).
+
+pub manifest_self_test(): Bool ->
+    let {
+        Ok(root) <- Toml.parse(root_fixture());
+        Ok(member) <- Toml.parse(member_fixture())
+    } else {
+        _ ->
+            let _printed =
+                eprintln(
+                    "error[rust_quality.workspace_policy.manifest_self_test.parse]: fixture TOML failed to parse",
+                );
+            false
+    };
+    (let root_diagnostics = workspace_package_diagnostics(root, List.new[String]());
+let member_diagnostics =
+    validate_members(
+        List[Manifest](fixture_manifest(member)),
+        ["crates/example/src/lib.rs"],
+        workspace_dependency_names(root),
+        List.new[String](),
+        List.new[Owner](),
+        List.new[String](),
+    );
+if {
+    List.length(root_diagnostics) != 0 -> let _printed =
+        eprintln(
+            "error[rust_quality.workspace_policy.manifest_self_test.root]: central workspace policy rejected",
+        );
+    false;
+    List.length(member_diagnostics.diagnostics) != 0 -> let _printed =
+        eprintln(
+            "error[rust_quality.workspace_policy.manifest_self_test.member]: inherited member policy rejected",
+        );
+    false;
+    true -> let _printed = println("Rust workspace manifest self-test passed");
+    true
+}).
+
+pub member_adversarial_self_test(): Bool ->
+    let invalid_lints =
+        String.replace(
+            member_fixture(),
+            "[lints]\nworkspace = true",
+            "[lints.rust]\nwarnings = \"deny\"",
+        );
+    let duplicate_dependency = String.replace(member_fixture(), "shared.workspace = true", "shared = \"1\"");
+    let {
+        Ok(root) <- Toml.parse(root_fixture());
+        Ok(invalid) <- Toml.parse(invalid_lints);
+        Ok(duplicate) <- Toml.parse(duplicate_dependency)
+    } else {
+        _ ->
+            let _printed =
+                eprintln(
+                    "error[rust_quality.workspace_policy.member_self_test.parse]: fixture TOML failed to parse",
+                );
+            false
+    };
+    (let invalid_manifest = fixture_manifest(invalid);
+let duplicate_manifest = fixture_manifest(duplicate);
+let lint_diagnostics = member_lint_diagnostics(invalid_manifest, List.new[String]());
+let dependency_diagnostics =
+    member_dependencies(
+        duplicate_manifest,
+        dependency_tables(),
+        workspace_dependency_names(root),
+        List.new[Owner](),
+        List.new[String](),
+    );
+if {
+    List.length(lint_diagnostics) != 1 -> let _printed =
+        eprintln(
+            "error[rust_quality.workspace_policy.member_self_test.lints]: member-owned lints accepted",
+        );
+    false;
+    List.length(dependency_diagnostics.diagnostics) != 1 -> let _printed =
+        eprintln(
+            "error[rust_quality.workspace_policy.member_self_test.dependency]: duplicate dependency accepted",
+        );
+    false;
+    true -> let _printed = println("Rust workspace member adversarial self-test passed");
+    true
+}).

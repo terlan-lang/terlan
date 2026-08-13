@@ -1,0 +1,31 @@
+schema = "terlan.lean-proof-counterexample-policy.v1"
+
+[priorities.high]
+rerun_window_hours = 4
+max_unresolved_per_lane = 0
+
+[priorities.medium]
+rerun_window_hours = 24
+max_unresolved_per_lane = 2
+
+[priorities.low]
+rerun_window_hours = 168
+max_unresolved_per_lane = 8
+
+[lanes.coreir]
+max_unresolved = 2
+
+[lanes.native_boundary]
+max_unresolved = 1
+
+[lanes.parser]
+max_unresolved = 2
+
+[lanes.std_packages]
+max_unresolved = 4
+
+[lanes.vm_runtime]
+max_unresolved = 1
+
+[lanes.wasm]
+max_unresolved = 2

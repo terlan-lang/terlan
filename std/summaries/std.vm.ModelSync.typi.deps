@@ -1,8 +1,8 @@
 module=std.vm.ModelSync
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:37fa28741815edd0
-source_hash=10606236867679337098
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=981003520722514568
 interface_hash=1920880032904555210
 interface_doc_hash=16218831501822966701
 deps=1

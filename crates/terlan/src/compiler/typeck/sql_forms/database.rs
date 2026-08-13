@@ -262,4 +262,5 @@ fn postgres_identifier_name(identifier: &Ident) -> String {
 
 #[cfg(test)]
 #[path = "database_test.rs"]
+#[cfg(test)]
 mod database_test;

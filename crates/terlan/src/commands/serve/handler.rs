@@ -43,9 +43,10 @@ pub(super) use manifest_lookup::{
     manifest_file_response_for_request, manifest_handler_for_request,
     manifest_static_response_for_request,
 };
-use request_materialization::vm_request_descriptor_owned;
+use request_materialization::vm_source_request_tuple_owned;
 use response_bridge::validate_response_header;
 pub(super) use response_bridge::{static_response_header_tuples, HandlerBody, HandlerResponse};
+use route::route_param_argument;
 #[cfg(test)]
 use route::select_handler_for_request;
 pub(super) use route::{
@@ -81,8 +82,8 @@ pub(in crate::commands::serve) use websocket_invocation::AotWebSocketCallbackSes
 /// Transformation:
 /// - Exposes only immutable identity fields needed by `terlc serve` logging
 ///   without making the matched route internals public.
-#[cfg(test)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg(test)]
 pub(super) struct HandlerLogIdentity<'a> {
     pub(super) method: &'a str,
     pub(super) route: &'a str,
@@ -113,47 +114,6 @@ pub(super) fn handler_log_identity(matched: &MatchedWebPackageHandler) -> Handle
         arity: matched.handler.arity,
         source: matched.handler.source.as_ref(),
     }
-}
-
-/// Executes one manifest-selected handler with package file-serving context.
-///
-/// Inputs:
-/// - `vm`: runtime with project modules already loaded.
-/// - `matched`: route matcher output containing handler identity and params.
-/// - `request`: native HTTP request snapshot.
-/// - `package_root`: generated web package root used by `Response.file`.
-/// - `output`: sink for handler console effects.
-///
-/// Output:
-/// - Handler response accepted by the local HTTP writer.
-/// - Stable serve-handler error when the VM result is malformed or the file
-///   response path is unsafe or unreadable.
-///
-/// Transformation:
-/// - Runs the handler through the same VM argument bridge as normal dynamic
-///   handlers, then resolves file responses through the package-root boundary.
-#[cfg_attr(not(test), allow(dead_code))]
-#[allow(dead_code)] // Retained for callers without a projected request shape.
-pub(super) fn execute_vm_handler_with_package_root(
-    vm: &AotHandlerRuntime,
-    matched: &MatchedWebPackageHandler,
-    request: native_http::Request,
-    package_root: &Path,
-    output: &mut dyn FnMut(&str),
-) -> Result<HandlerResponse, String> {
-    let projection = vm.request_projection(
-        &matched.handler.module,
-        &matched.handler.function,
-        matched.handler.arity,
-    );
-    execute_vm_handler_with_package_root_projected(
-        vm,
-        matched,
-        request,
-        projection,
-        package_root,
-        output,
-    )
 }
 
 /// Executes with the exact request projection already selected by the active
@@ -251,10 +211,7 @@ fn execute_vm_router_with_package_root(
             Err(error) => {
                 let response = execute_router_recovery(vm, module, &router, error, output)?;
                 return finish_router_response(
-                    vm,
-                    module,
-                    request,
-                    package_root,
+                    RouterResponseRuntime::new(vm, module, request, package_root),
                     output,
                     response,
                     Vec::new(),
@@ -306,11 +263,8 @@ fn execute_vm_router_with_package_root(
                     ));
                 }
                 return finish_router_response_with_recovery(
-                    vm,
-                    module,
+                    RouterResponseRuntime::new(vm, module, request, package_root),
                     &router,
-                    request,
-                    package_root,
                     output,
                     prepared.value.clone(),
                     route_params,
@@ -324,7 +278,10 @@ fn execute_vm_router_with_package_root(
                     dispatch
                         .route_params
                         .iter()
-                        .map(|(_, value)| ReplValue::String(value.clone())),
+                        .map(|(name, value)| {
+                            route_param_argument(&dispatch.route_pattern, name, value)
+                        })
+                        .collect::<Result<Vec<_>, _>>()?,
                 );
             }
             if args.len() != arity {
@@ -350,11 +307,8 @@ fn execute_vm_router_with_package_root(
         }
     };
     finish_router_response_with_recovery(
-        vm,
-        module,
+        RouterResponseRuntime::new(vm, module, request, package_root),
         &router,
-        request,
-        package_root,
         output,
         response,
         route_params,
@@ -363,22 +317,40 @@ fn execute_vm_router_with_package_root(
     .map(Some)
 }
 
+#[derive(Clone, Copy)]
+pub(super) struct RouterResponseRuntime<'a> {
+    vm: &'a AotHandlerRuntime,
+    module: &'a str,
+    request: &'a native_http::Request,
+    package_root: &'a Path,
+}
+
+impl<'a> RouterResponseRuntime<'a> {
+    pub(super) fn new(
+        vm: &'a AotHandlerRuntime,
+        module: &'a str,
+        request: &'a native_http::Request,
+        package_root: &'a Path,
+    ) -> Self {
+        Self {
+            vm,
+            module,
+            request,
+            package_root,
+        }
+    }
+}
+
 fn finish_router_response_with_recovery(
-    vm: &AotHandlerRuntime,
-    module: &str,
+    runtime: RouterResponseRuntime<'_>,
     router: &crate::runtime::vm::http_router::VmHttpRouter,
-    request: &native_http::Request,
-    package_root: &Path,
     output: &mut dyn FnMut(&str),
     response: ReplValue,
     route_params: Vec<(String, String)>,
     response_middleware: Vec<ReplValue>,
 ) -> Result<HandlerResponse, String> {
     match finish_router_response(
-        vm,
-        module,
-        request,
-        package_root,
+        runtime,
         output,
         response,
         route_params.clone(),
@@ -386,17 +358,9 @@ fn finish_router_response_with_recovery(
     ) {
         Ok(response) => Ok(response),
         Err(error) => {
-            let recovered = execute_router_recovery(vm, module, router, error, output)?;
-            finish_router_response(
-                vm,
-                module,
-                request,
-                package_root,
-                output,
-                recovered,
-                route_params,
-                Vec::new(),
-            )
+            let recovered =
+                execute_router_recovery(runtime.vm, runtime.module, router, error, output)?;
+            finish_router_response(runtime, output, recovered, route_params, Vec::new())
         }
     }
 }
@@ -412,7 +376,7 @@ pub(super) fn execute_router_recovery(
         return Err(error);
     };
     let http_error = ReplValue::Record {
-        name: "Named(HttpError)".to_string(),
+        name: "HttpError".to_string(),
         fields: vec![
             (
                 "code".to_string(),
@@ -431,26 +395,23 @@ pub(super) fn execute_router_recovery(
 }
 
 fn finish_router_response(
-    vm: &AotHandlerRuntime,
-    module: &str,
-    request: &native_http::Request,
-    package_root: &Path,
+    runtime: RouterResponseRuntime<'_>,
     output: &mut dyn FnMut(&str),
     mut response: ReplValue,
     route_params: Vec<(String, String)>,
     response_middleware: Vec<ReplValue>,
 ) -> Result<HandlerResponse, String> {
-    let response_request = vm_request_descriptor(request, &route_params);
+    let response_request = vm_request_descriptor(runtime.request, &route_params);
     for middleware in response_middleware.iter().rev() {
-        response = vm.execute_callable(
-            module,
+        response = runtime.vm.execute_callable(
+            runtime.module,
             middleware,
             vec![response_request.clone(), response],
             output,
         )?;
         validate_response_middleware_result(&response)?;
     }
-    HandlerResponse::from_vm_response_with_package_root(&response, package_root)
+    HandlerResponse::from_vm_response_with_package_root(&response, runtime.package_root)
 }
 
 fn static_response_vm_value(response: &WebPackageStaticResponse) -> ReplValue {
@@ -503,14 +464,15 @@ fn execute_vm_handler_response(
             output,
         );
     }
-    let request = vm_request_descriptor_owned(request.into_parts(), projection);
+    let request = vm_source_request_tuple_owned(request.into_parts());
     let mut args = vec![request];
     if matched.handler.arity > 1 {
         args.extend(
             matched
                 .params
                 .iter()
-                .map(|(_, value)| ReplValue::String(value.clone())),
+                .map(|(name, value)| route_param_argument(&matched.handler.route, name, value))
+                .collect::<Result<Vec<_>, _>>()?,
         );
     }
     if args.len() != matched.handler.arity {

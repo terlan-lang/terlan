@@ -230,7 +230,7 @@ fn vm_io_reactor_runtime_writes_report_for_complete_gate() {
     let summary = run_vm_io_reactor_runtime(repo.root()).expect("quality check");
 
     assert_eq!(summary.fixture_count, 16);
-    assert_eq!(summary.exact_selector_count, 32);
+    assert_eq!(summary.exact_selector_count, 0);
     assert_eq!(summary.rejected_runtime_count, 0);
     let report = fs::read_to_string(summary.report_path).expect("read report");
     assert!(report.contains("terlan-vm-io-reactor-runtime-report-v1"));
@@ -355,22 +355,19 @@ fn vm_io_reactor_runtime_rejects_missing_external_runtime_boundary_anchor() {
 }
 
 #[test]
-fn vm_io_reactor_runtime_rejects_missing_gate_selector() {
-    let repo = TestRepo::new("missing-selector").expect("fixture");
+fn vm_io_reactor_runtime_rejects_missing_quality_invocation() {
+    let repo = TestRepo::new("missing-invocation").expect("fixture");
     repo.write_complete_fixture().expect("write fixture");
     let makefile = fs::read_to_string(repo.root().join("Makefile")).expect("read makefile");
     repo.write(
         "Makefile",
-        &makefile.replace(
-            "runtime::vm::timer::timer_test::timer_table_receive_timeout_wakes_blocked_process",
-            "runtime::vm::timer::timer_test::renamed_timer_wakeup_test",
-        ),
+        &makefile.replace("-- vm-io-reactor-runtime", "-- renamed-io-runtime"),
     )
     .expect("rewrite makefile");
 
-    let error = run_vm_io_reactor_runtime(repo.root()).expect_err("selector should fail");
+    let error = run_vm_io_reactor_runtime(repo.root()).expect_err("invocation should fail");
 
-    assert!(error.contains("timer_table_receive_timeout_wakes_blocked_process"));
+    assert!(error.contains("vm-io-reactor-runtime` invocation"));
 }
 
 #[test]

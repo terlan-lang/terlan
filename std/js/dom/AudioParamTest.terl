@@ -41,14 +41,14 @@ pub cancel_scheduled_values_typechecks(receiver: AudioParam, cancel_time: JsNumb
 pub exponential_ramp_to_value_at_time_typechecks(
     receiver: AudioParam,
     value: JsNumber,
-    end_time: JsNumber
+    end_time: JsNumber,
 ): AudioParam ->
     receiver.exponential_ramp_to_value_at_time(value, end_time).
 
 pub linear_ramp_to_value_at_time_typechecks(
     receiver: AudioParam,
     value: JsNumber,
-    end_time: JsNumber
+    end_time: JsNumber,
 ): AudioParam ->
     receiver.linear_ramp_to_value_at_time(value, end_time).
 
@@ -56,14 +56,14 @@ pub set_target_at_time_typechecks(
     receiver: AudioParam,
     target_: JsNumber,
     start_time: JsNumber,
-    time_constant: JsNumber
+    time_constant: JsNumber,
 ): AudioParam ->
     receiver.set_target_at_time(target_, start_time, time_constant).
 
 pub set_value_at_time_typechecks(
     receiver: AudioParam,
     value: JsNumber,
-    start_time: JsNumber
+    start_time: JsNumber,
 ): AudioParam ->
     receiver.set_value_at_time(value, start_time).
 
@@ -71,6 +71,6 @@ pub set_value_curve_at_time_typechecks(
     receiver: AudioParam,
     values: Float32Array | std.js.Array[JsNumber],
     start_time: JsNumber,
-    duration: JsNumber
+    duration: JsNumber,
 ): AudioParam ->
     receiver.set_value_curve_at_time(values, start_time, duration).

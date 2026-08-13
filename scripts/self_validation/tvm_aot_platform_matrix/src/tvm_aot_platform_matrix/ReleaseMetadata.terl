@@ -1,0 +1,187 @@
+/**
+ * Canonical release metadata, payload digests, and candidate identity.
+ */
+module tvm_aot_platform_matrix.ReleaseMetadata.
+
+import std.collections.List.{length}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.File.
+import tvm_aot_platform_matrix.{ReleasePayload, ReleasePlatform}.
+
+import type std.core.Option.
+import type std.data.Json.
+import type tvm_aot_platform_matrix.ReleasePayload.Payload.
+import type tvm_aot_platform_matrix.ReleasePlatform.
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("error[release_artifact.metadata]: ", message));
+    false.
+
+json_strings(values: List[String], result: Json): Json ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            let _pushed = result.push(Json.string(value));
+            json_strings(rest, result)
+    }.
+
+binary_descriptor(name: String, path: String): Json ->
+    Json.object().put("name", Json.string(name)).put("path", Json.string(path)).
+
+binary_descriptors(platform: ReleasePlatform): Json ->
+    let result = Json.array();
+    let _compiler = result.push(binary_descriptor("terlc", ReleasePlatform.compiler(platform)));
+    let _vm = result.push(binary_descriptor("terlan-vm", ReleasePlatform.vm(platform)));
+    let _worker =
+        result
+            .push(
+                binary_descriptor("terlan-native-worker", ReleasePlatform.native_worker(platform)),
+            );
+    result.push(binary_descriptor("terlan-lsp", ReleasePlatform.lsp(platform))).
+
+binary_hashes(values: List[Payload], result: Json): Option[Json] ->
+    case values {
+        [] -> Some(result);
+        [value | rest] ->
+            case Hash.sha256_file(ReleasePayload.source(value)) {
+                Err(_reason) -> None;
+                Ok(digest) ->
+                    let _inserted = result.put(ReleasePayload.archive(value), Json.string(digest));
+                    binary_hashes(rest, result)
+            }
+    }.
+
+candidate_id(version: String, revision: String, triple: String): String ->
+    Hash.sha256_nul_separated([version, revision, triple]).
+
+payload_hashes(values: List[Payload]): Option[Json] ->
+    let {
+        Some(stdlib) <- ReleasePayload.tree_hash(values, "share/terlan/std/");
+        Some(editor) <- ReleasePayload.tree_hash(values, "share/terlan/editors/");
+        Some(tree_sitter) <- ReleasePayload.tree_hash(values, "share/terlan/tree-sitter-terlan/");
+        Some(docs) <- ReleasePayload.tree_hash(values, "share/terlan/docs/")
+    } else {
+        _ -> None
+    };
+    Some(
+        Json.object()
+            .put("stdlib", Json.string(stdlib))
+            .put("editor", Json.string(editor))
+            .put("tree_sitter", Json.string(tree_sitter))
+            .put("docs", Json.string(docs)),
+    ).
+
+put_identity(metadata: Json, platform: ReleasePlatform, version: String, revision: String): Json ->
+    let triple = ReleasePlatform.target_triple(platform);
+    metadata
+        .put("schema", Json.string("terlan.release-artifact.v1"))
+        .put("package", Json.string("terlan"))
+        .put("version", Json.string(version))
+        .put("target_triple", Json.string(triple))
+        .put("os", Json.string(ReleasePlatform.operating_system(platform)))
+        .put("arch", Json.string(ReleasePlatform.architecture(platform)))
+        .put("source_revision", Json.string(revision))
+        .put("release_candidate_id", Json.string(candidate_id(version, revision, triple))).
+
+put_build_contract(
+    metadata: Json,
+    platform: ReleasePlatform,
+    version: String,
+    features: List[String],
+): Json ->
+    metadata
+        .put("profile", Json.string("release"))
+        .put("cargo_package", Json.string("terlan"))
+        .put("cargo_features", json_strings(features, Json.array()))
+        .put("crate_versions", Json.object().put("terlan", Json.string(version)))
+        .put("binaries", binary_descriptors(platform)).
+
+put_payload_contract(
+    metadata: Json,
+    payloads: List[Payload],
+    hashes: Json,
+    binary_hash_values: Json,
+): Json ->
+    metadata
+        .put("binary_hashes", binary_hash_values)
+        .put("payload_hashes", hashes)
+        .put("payload_file_count", Json.int(length(payloads))).
+
+base_value(
+    root: String,
+    platform: ReleasePlatform,
+    payloads: List[Payload],
+    binaries: List[Payload],
+): Option[Json] ->
+    let {
+        Some(version) <- ReleasePlatform.cargo_version(root);
+        Some(features) <- ReleasePlatform.release_features(root);
+        Some(hashes) <- payload_hashes(payloads);
+        Some(binary_hash_values) <- binary_hashes(binaries, Json.object())
+    } else {
+        _ -> None
+    };
+    (let revision = ReleasePlatform.source_revision(root); let identity = put_identity(Json.object(), platform, version, revision); let build = put_build_contract(identity, platform, version, features); Some(put_payload_contract(build, payloads, hashes, binary_hash_values))).
+
+/**
+ * Constructs exact release metadata without a compiled native self-test.
+ */
+pub value(
+    root: String,
+    platform: ReleasePlatform,
+    payloads: List[Payload],
+    binaries: List[Payload],
+): Option[Json] ->
+    base_value(root, platform, payloads, binaries).
+
+/**
+ * Attaches serialized native self-test metadata only after every suspending
+ * file digest has completed. The serialized boundary prevents an owner-bound
+ * `Json` handle from crossing an AOT continuation.
+ */
+pub value_with_native(
+    root: String,
+    platform: ReleasePlatform,
+    payloads: List[Payload],
+    binaries: List[Payload],
+    native_json: String,
+): Option[Json] ->
+    let {
+        Some(metadata) <- base_value(root, platform, payloads, binaries);
+        Ok(native) <- Json.parse(native_json)
+    } else {
+        _ -> None
+    };
+    Some(metadata.put("native_self_test", native)).
+
+/**
+ * Writes canonical release metadata into `dist`.
+ */
+pub write(root: String, value: Json): Option[String] ->
+    let path = ReleasePayload.child(ReleasePayload.child(root, "dist"), "terlan-release.json");
+    let {
+        Ok(rendered) <- Json.stringify_pretty(value);
+        Ok(Unit) <- File.write_text(path, String.append(rendered, "\n"))
+    } else {
+        _ -> None
+    };
+    Some(path).
+
+/**
+ * Prints exact release metadata without requiring compiled binaries.
+ */
+pub print(root: String): Bool ->
+    let {
+        Some(platform) <- ReleasePlatform.detect();
+        Some(payloads) <- ReleasePayload.all(root);
+        Some(metadata) <- value(root, platform, payloads, []);
+        Ok(rendered) <- Json.stringify_pretty(metadata)
+    } else {
+        _ -> failure("cannot describe release metadata")
+    };
+    (let _printed = println(rendered); true).

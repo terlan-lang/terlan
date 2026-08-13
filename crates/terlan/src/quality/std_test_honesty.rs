@@ -251,7 +251,7 @@ fn literal_bool_or_trivial_bool_conjunction(expr: &SyntaxExprOutput) -> Option<b
 
 /// Returns whether a binary operator is a boolean conjunction spelling.
 fn is_boolean_conjunction(operator: Option<&str>) -> bool {
-    matches!(operator, Some("&&") | Some("and"))
+    operator == Some("and")
 }
 
 /// Returns whether an expression is `assert(true)`.
@@ -437,4 +437,5 @@ fn expr_name(expr: &SyntaxExprOutput) -> Option<&str> {
 
 #[cfg(test)]
 #[path = "std_test_honesty_test.rs"]
+#[cfg(test)]
 mod std_test_honesty_test;

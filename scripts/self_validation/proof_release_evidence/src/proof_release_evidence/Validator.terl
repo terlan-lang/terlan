@@ -1,0 +1,569 @@
+/**
+ * Structural, freshness, baseline, and adversarial validation for proof evidence.
+ */
+module proof_release_evidence.Validator.
+
+import proof_release_evidence.{Builder, Support}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+
+import type std.core.Option.
+import type std.data.Json.
+
+pub struct Validation {
+    valid: Bool,
+    code: String,
+    message: String,
+}.
+
+pub struct Check {
+    valid: Bool,
+    code: String,
+    message: String,
+    document: Json,
+}.
+
+accept(): Validation ->
+    Validation(valid = true, code = "pass", message = "").
+
+reject(code: String, message: String): Validation ->
+    Validation(valid = false, code = code, message = message).
+
+failed_check(code: String, message: String): Check ->
+    Check(valid = false, code = code, message = message, document = Json.null()).
+
+passed_check(document: Json): Check ->
+    Check(valid = true, code = "pass", message = "", document = document).
+
+required_member(value: Json, field: String): Option[Json] ->
+    Support.json_member(value, field).
+
+pub expected_candidate_id(document: Json): Option[String] ->
+    let {
+        Some(candidate) <- required_member(document, "candidate");
+        Some(materials) <- required_member(document, "candidate_materials");
+        Some(release) <- Support.json_string(candidate, "release");
+        Some(rustc) <- Support.json_string(candidate, "rustc_version");
+        Some(target) <- Support.json_string(candidate, "compiler_target");
+        Some(profile) <- Support.json_string(candidate, "target_profile");
+        Some(features) <- required_member(candidate, "feature_set")
+    } else {
+        _ -> None
+    };
+    Support.json_digest(
+        Json.object()
+            .put("release", Json.string(release))
+            .put("rustc_version", Json.string(rustc))
+            .put("compiler_target", Json.string(target))
+            .put("target_profile", Json.string(profile))
+            .put("feature_set", features)
+            .put("materials", materials),
+    ).
+
+validate_materials(root: String, values: Json): Validation ->
+    case values.length() {
+        Ok(count) -> validate_materials_at(root, values, 0, count, []);
+        Err(_reason) -> reject("corrupt_schema", "candidate_materials must be an array")
+    }.
+
+validate_materials_at(
+    root: String,
+    values: Json,
+    index: Int,
+    count: Int,
+    seen: List[String],
+): Validation ->
+    if {
+        index >= count -> accept();
+        true -> case values.at(index) {
+            Ok(value) ->
+                let {
+                    Some(path) <- Support.json_string(value, "path");
+                    Some(digest) <- Support.json_string(value, "sha256")
+                } else {
+                    _ -> reject("corrupt_schema", "candidate material has an invalid shape")
+                };
+                if {
+                    Support.contains_string(seen, path) -> reject("duplicate_event", String.append("duplicate candidate material: ", path));
+                    String.starts_with(path, "/") or String.contains(path, "../") -> reject(
+                        "stale_input",
+                        String.append("candidate material path is unsafe: ", path),
+                    );
+                    true -> case Support.file_digest(root, path) {
+                        Some(actual) ->
+                            if {
+                                actual != digest -> reject(
+                                    "stale_input",
+                                    String.append("candidate material is stale: ", path),
+                                );
+                                true -> validate_materials_at(root, values, index + 1, count, [path | seen])
+                            };
+                        None ->
+                            reject(
+                                "stale_input",
+                                String.append("candidate material is missing: ", path),
+                            )
+                    }
+                };
+            Err(_reason) -> reject("corrupt_schema", "candidate material is unreadable")
+        }
+    }.
+
+proof_families(proofs: Json): Option[List[String]] ->
+    case proofs.length() {
+        Ok(count) -> proof_families_at(proofs, 0, count, []);
+        Err(_reason) -> None
+    }.
+
+proof_families_at(
+    proofs: Json,
+    index: Int,
+    count: Int,
+    collected: List[String],
+): Option[List[String]] ->
+    if {
+        index >= count -> Some(Support.reverse_strings(collected));
+        true -> let {
+            Ok(proof) <- proofs.at(index);
+            Some(family) <- Support.json_string(proof, "family")
+        } else {
+            _ -> None
+        };
+        proof_families_at(proofs, index + 1, count, [family | collected])
+    }.
+
+validate_proofs(root: String, proofs: Json): Validation ->
+    case proofs.length() {
+        Ok(count) -> validate_proofs_at(root, proofs, 0, count);
+        Err(_reason) -> reject("missing_proof", "proofs must be an array")
+    }.
+
+validate_proofs_at(root: String, proofs: Json, index: Int, count: Int): Validation ->
+    if {
+        index >= count -> accept();
+        true -> case proofs.at(index) {
+            Ok(proof) ->
+                let {
+                    Some(path) <- Support.json_string(proof, "proof_path");
+                    Some(digest) <- Support.json_string(proof, "proof_digest");
+                    Some(theorems) <- required_member(proof, "theorem_ids")
+                } else {
+                    _ -> reject("missing_proof", "proof record is incomplete")
+                };
+                case {Support.file_digest(root, path), theorems.length()} {
+                    {Some(actual), Ok(theorem_count)} ->
+                        if {
+                            actual != digest -> reject("stale_input", String.append("proof is stale: ", path));
+                            theorem_count == 0 -> reject(
+                                "missing_proof",
+                                String.append("proof has no theorem IDs: ", path),
+                            );
+                            true -> validate_proofs_at(root, proofs, index + 1, count)
+                        };
+                    _ -> reject("missing_proof", String.append("proof is missing: ", path))
+                };
+            Err(_reason) -> reject("missing_proof", "proof record is unreadable")
+        }
+    }.
+
+validate_compiler_inputs(root: String, values: Json): Validation ->
+    case values.length() {
+        Ok(count) -> validate_compiler_inputs_at(root, values, 0, count);
+        Err(_reason) -> reject("corrupt_schema", "compiler_inputs must be an array")
+    }.
+
+validate_compiler_inputs_at(root: String, values: Json, index: Int, count: Int): Validation ->
+    if {
+        index >= count -> accept();
+        true -> case values.at(index) {
+            Ok(value) ->
+                let {
+                    Some(path) <- Support.json_string(value, "path");
+                    Some(digest) <- Support.json_string(value, "sha256")
+                } else {
+                    _ -> reject("corrupt_schema", "compiler input is malformed")
+                };
+                case Support.file_digest(root, path) {
+                    Some(actual) ->
+                        if {
+                            actual != digest -> reject("stale_input", String.append("compiler input is stale: ", path));
+                            true -> validate_compiler_inputs_at(root, values, index + 1, count)
+                        };
+                    None ->
+                        reject("stale_input", String.append("compiler input is missing: ", path))
+                };
+            Err(_reason) -> reject("corrupt_schema", "compiler input is unreadable")
+        }
+    }.
+
+pub record_trace(record: Json): Option[String] ->
+    let {
+        Some(slice_id) <- Support.json_string(record, "slice_id");
+        Some(feature_class) <- Support.json_string(record, "feature_class");
+        Some(owner) <- Support.json_string(record, "owner");
+        Some(lane_id) <- Support.json_string(record, "lane_id");
+        Some(coverage) <- Support.json_string(record, "coverage_status");
+        Some(proof_ids) <- required_member(record, "proof_ids");
+        Some(proofs) <- required_member(record, "proofs");
+        Some(inputs) <- required_member(record, "compiler_inputs");
+        Some(runtime_lane) <- Support.json_string(record, "runtime_lane");
+        Some(std_lane) <- Support.json_string(record, "std_lane")
+    } else {
+        _ -> None
+    };
+    Support.json_digest(
+        Json.object()
+            .put("slice_id", Json.string(slice_id))
+            .put("feature_class", Json.string(feature_class))
+            .put("owner", Json.string(owner))
+            .put("lane_id", Json.string(lane_id))
+            .put("coverage_status", Json.string(coverage))
+            .put("proof_ids", proof_ids)
+            .put("proofs", proofs)
+            .put("compiler_inputs", inputs)
+            .put("runtime_lane", Json.string(runtime_lane))
+            .put("std_lane", Json.string(std_lane)),
+    ).
+
+slice_number(slice_id: String): Option[Int] ->
+    case String.split_once(slice_id, "Slice ") {
+        Some({_prefix, number}) -> Int.from_string(number);
+        None -> None
+    }.
+
+lane_mapping(config: Json, field: String, lane: String): Option[String] ->
+    case required_member(config, field) {
+        Some(values) -> Support.json_string(values, lane);
+        None -> None
+    }.
+
+validate_records(root: String, records: Json, config: Json): Validation ->
+    case records.length() {
+        Ok(count) ->
+            if {
+                count == 0 -> reject("missing_proof", "evidence has no slice records");
+                true -> validate_records_at(root, records, config, 0, count, [], 0)
+            };
+        Err(_reason) -> reject("corrupt_schema", "records must be an array")
+    }.
+
+validate_records_at(
+    root: String,
+    records: Json,
+    config: Json,
+    index: Int,
+    count: Int,
+    seen: List[String],
+    previous: Int,
+): Validation ->
+    if {
+        index >= count -> accept();
+        true -> case records.at(index) {
+            Ok(record) ->
+                let {
+                    Some(slice_id) <- Support.json_string(record, "slice_id");
+                    Some(number) <- slice_number(slice_id);
+                    Some(lane_id) <- Support.json_string(record, "lane_id");
+                    Some(runtime_lane) <- Support.json_string(record, "runtime_lane");
+                    Some(std_lane) <- Support.json_string(record, "std_lane");
+                    Some(expected_runtime) <- lane_mapping(config, "runtime_lane_map", lane_id);
+                    Some(expected_std) <- lane_mapping(config, "std_lane_map", lane_id);
+                    Some(proof_ids_value) <- required_member(record, "proof_ids");
+                    Some(proof_ids) <- Support.json_array_strings(proof_ids_value);
+                    Some(proofs) <- required_member(record, "proofs");
+                    Some(families) <- proof_families(proofs);
+                    Some(inputs) <- required_member(record, "compiler_inputs");
+                    Some(expected_trace) <- record_trace(record);
+                    Some(observed_trace) <- Support.json_string(record, "trace_id")
+                } else {
+                    _ -> reject("corrupt_schema", "slice record is malformed")
+                };
+                if {
+                    Support.contains_string(seen, slice_id) -> reject("duplicate_event", String.append("duplicate slice record: ", slice_id));
+                    index > 0 and number <= previous -> reject("nondeterministic_order", "slice records are not canonically ordered");
+                    Support.string_count(proof_ids) == 0
+                        or not Support.same_strings(proof_ids, families)
+                        or not Support.same_strings(proof_ids, Support.sort_strings(Support.unique_strings(proof_ids))) -> reject("missing_proof", String.append("proof IDs disagree for ", slice_id));
+                    runtime_lane != expected_runtime or std_lane != expected_std -> reject(
+                        "mismatched_runtime_lane",
+                        String.append("runtime/std lane correlation drifted for ", slice_id),
+                    );
+                    observed_trace != expected_trace -> reject("stale_trace", String.append("trace identity is stale for ", slice_id));
+                    true -> let proofs_valid = validate_proofs(root, proofs);
+                    let inputs_valid = validate_compiler_inputs(root, inputs);
+                    if {
+                        not proofs_valid.valid -> proofs_valid;
+                        not inputs_valid.valid -> inputs_valid;
+                        true -> validate_records_at(
+                            root,
+                            records,
+                            config,
+                            index + 1,
+                            count,
+                            [slice_id | seen],
+                            number,
+                        )
+                    }
+                };
+            Err(_reason) -> reject("corrupt_schema", "slice record is unreadable")
+        }
+    }.
+
+validate_replay(document: Json, config: Json): Validation ->
+    let {
+        Some(replay) <- required_member(document, "replay_corpus");
+        Some(expected_value) <- required_member(config, "replay_families");
+        Some(expected) <- Support.json_array_strings(expected_value)
+    } else {
+        _ -> reject("missing_proof", "minimal replay corpus is missing")
+    };
+    case proof_families(replay) {
+        Some(families) ->
+            if {
+                Support.string_count(families) == 0 or not Support.same_strings(families, expected) -> reject("missing_proof", "minimal replay corpus differs from its lock");
+                true -> accept()
+            };
+        None -> reject("missing_proof", "minimal replay corpus is malformed")
+    }.
+
+pub validate(root: String, document: Json): Validation ->
+    let {
+        Some(schema) <- Support.json_string(document, "schema");
+        Some(format_version) <- Support.json_int(document, "format_version");
+        Some(candidate) <- required_member(document, "candidate");
+        Some(materials) <- required_member(document, "candidate_materials");
+        Some(records) <- required_member(document, "records");
+        Some(candidate_id) <- Support.json_string(candidate, "candidate_id");
+        Some(expected_id) <- expected_candidate_id(document);
+        Some(config) <- Support.load_json(root, "proofs/lean/release_evidence/release-mode.json")
+    } else {
+        _ -> reject("corrupt_schema", "candidate, records, and materials are required")
+    };
+    if {
+        schema != "terlan.proof-release-evidence.v1" -> reject("corrupt_schema", "proof release evidence has the wrong schema");
+        format_version != 1 -> reject("corrupt_schema", "format_version must be 1");
+        candidate_id != expected_id -> reject("candidate_mismatch", "candidate identity does not match materials");
+        true -> let materials_valid = validate_materials(root, materials);
+        let records_valid = validate_records(root, records, config);
+        let replay_valid = validate_replay(document, config);
+        if {
+            not materials_valid.valid -> materials_valid;
+            not records_valid.valid -> records_valid;
+            true -> replay_valid
+        }
+    }.
+
+normalized_document(document: Json): Option[Json] ->
+    let {
+        Some(schema) <- Support.json_string(document, "schema");
+        Some(version) <- Support.json_int(document, "format_version");
+        Some(candidate) <- required_member(document, "candidate");
+        Some(candidate_id) <- Support.json_string(candidate, "candidate_id");
+        Some(release) <- Support.json_string(candidate, "release");
+        Some(rustc) <- Support.json_string(candidate, "rustc_version");
+        Some(target) <- Support.json_string(candidate, "compiler_target");
+        Some(profile) <- Support.json_string(candidate, "target_profile");
+        Some(features) <- required_member(candidate, "feature_set");
+        Some(materials) <- required_member(document, "candidate_materials");
+        Some(records) <- required_member(document, "records");
+        Some(replay) <- required_member(document, "replay_corpus");
+        Some(runtime) <- required_member(document, "runtime_evidence")
+    } else {
+        _ -> None
+    };
+    Some(
+        Json.object()
+            .put("schema", Json.string(schema))
+            .put("format_version", Json.int(version))
+            .put(
+                "candidate",
+                Json.object()
+                    .put("candidate_id", Json.string(candidate_id))
+                    .put("release", Json.string(release))
+                    .put("rustc_version", Json.string(rustc))
+                    .put("compiler_target", Json.string(target))
+                    .put("target_profile", Json.string(profile))
+                    .put("feature_set", features),
+            )
+            .put("candidate_materials", materials)
+            .put("records", records)
+            .put("replay_corpus", replay)
+            .put("runtime_evidence", runtime),
+    ).
+
+pub normalized_digest(document: Json): Option[String] ->
+    case normalized_document(document) {
+        Some(normalized) -> Support.json_digest(normalized);
+        None -> None
+    }.
+
+slice_traces(records: Json): Option[Json] ->
+    case records.length() {
+        Ok(count) -> slice_traces_at(records, 0, count, Json.object());
+        Err(_reason) -> None
+    }.
+
+slice_traces_at(records: Json, index: Int, count: Int, result: Json): Option[Json] ->
+    if {
+        index >= count -> Some(result);
+        true -> case records.at(index) {
+            Ok(record) ->
+                let {
+                    Some(slice_id) <- Support.json_string(record, "slice_id");
+                    Some(trace) <- Support.json_string(record, "trace_id")
+                } else {
+                    _ -> None
+                };
+                (let _put = result.put(slice_id, Json.string(trace)); slice_traces_at(records, index + 1, count, result));
+            Err(_reason) -> None
+        }
+    }.
+
+pub baseline_payload(document: Json): Option[Json] ->
+    let {
+        Some(candidate) <- required_member(document, "candidate");
+        Some(candidate_id) <- Support.json_string(candidate, "candidate_id");
+        Some(digest) <- normalized_digest(document);
+        Some(records) <- required_member(document, "records");
+        Some(traces) <- slice_traces(records)
+    } else {
+        _ -> None
+    };
+    Some(
+        Json.object()
+            .put("schema", Json.string("terlan.proof-release-evidence-baseline.v1"))
+            .put("candidate_id", Json.string(candidate_id))
+            .put("normalized_digest", Json.string(digest))
+            .put("slice_traces", traces),
+    ).
+
+changed_trace_keys(
+    keys: List[String],
+    prior: Json,
+    current: Json,
+    collected: List[String],
+): List[String] ->
+    case keys {
+        [] -> Support.reverse_strings(collected);
+        [key | rest] ->
+            case {Support.json_string(prior, key), Support.json_string(current, key)} {
+                {Some(left), Some(right)} ->
+                    changed_trace_keys(
+                        rest,
+                        prior,
+                        current,
+                        if {
+                            left != right -> [key | collected];
+                            true -> collected
+                        },
+                    );
+                _ -> changed_trace_keys(rest, prior, current, collected)
+            }
+    }.
+
+subtract_strings(left: List[String], right: List[String], collected: List[String]): List[String] ->
+    case left {
+        [] -> Support.reverse_strings(collected);
+        [value | rest] ->
+            subtract_strings(
+                rest,
+                right,
+                if {
+                    Support.contains_string(right, value) -> collected;
+                    true -> [value | collected]
+                },
+            )
+    }.
+
+compare_baseline(root: String, document: Json): Validation ->
+    let {
+        Some(baseline) <- Support.load_json(root, "proofs/lean/release_evidence/baseline.json");
+        Some(current) <- baseline_payload(document);
+        Some(prior_candidate) <- Support.json_string(baseline, "candidate_id");
+        Some(current_candidate) <- Support.json_string(current, "candidate_id");
+        Some(prior_digest) <- Support.json_string(baseline, "normalized_digest");
+        Some(current_digest) <- Support.json_string(current, "normalized_digest");
+        Some(prior_traces) <- required_member(baseline, "slice_traces");
+        Some(current_traces) <- required_member(current, "slice_traces")
+    } else {
+        _ -> reject("corrupt_schema", "proof release baseline is malformed")
+    };
+    case {prior_traces.keys(), current_traces.keys()} {
+        {Ok(prior_keys), Ok(current_keys)} ->
+            let shared = shared_strings(prior_keys, current_keys, []);
+            let diff =
+                Json.object()
+                    .put("schema", Json.string("terlan.proof-release-evidence-diff.v1"))
+                    .put("baseline_candidate_id", Json.string(prior_candidate))
+                    .put("current_candidate_id", Json.string(current_candidate))
+                    .put(
+                        "added_slices",
+                        Support.json_string_array(subtract_strings(current_keys, prior_keys, [])),
+                    )
+                    .put(
+                        "removed_slices",
+                        Support.json_string_array(subtract_strings(prior_keys, current_keys, [])),
+                    )
+                    .put(
+                        "changed_slices",
+                        Support.json_string_array(
+                            changed_trace_keys(shared, prior_traces, current_traces, []),
+                        ),
+                    )
+                    .put("normalized_match", Json.bool(prior_digest == current_digest));
+            if {
+                not Support.write_json(root, "build/artifacts/proof-release-evidence-diff.json", diff) -> reject("corrupt_artifact", "proof evidence diff could not be written");
+                prior_digest != current_digest -> reject("baseline_mismatch", "proof evidence differs from its baseline");
+                true -> accept()
+            };
+        _ -> reject("corrupt_schema", "baseline slice traces are malformed")
+    }.
+
+shared_strings(left: List[String], right: List[String], collected: List[String]): List[String] ->
+    case left {
+        [] -> Support.reverse_strings(collected);
+        [value | rest] ->
+            shared_strings(
+                rest,
+                right,
+                if {
+                    Support.contains_string(right, value) -> [value | collected];
+                    true -> collected
+                },
+            )
+    }.
+
+pub check(root: String): Check ->
+    let built = Builder.build(root);
+    if {
+        not built.valid -> failed_check(built.code, built.message);
+        true -> let validation = validate(root, built.evidence);
+        if {
+            not validation.valid -> failed_check(validation.code, validation.message);
+            true -> let baseline = compare_baseline(root, built.evidence);
+            if {
+                not baseline.valid -> failed_check(baseline.code, baseline.message);
+                not Support.write_json(root, "build/artifacts/proof-release-evidence.json", built.evidence) -> failed_check("corrupt_artifact", "proof release evidence could not be written");
+                true -> passed_check(built.evidence)
+            }
+        }
+    }.
+
+pub record_baseline(root: String): Check ->
+    let built = Builder.build(root);
+    if {
+        not built.valid -> failed_check(built.code, built.message);
+        true -> let validation = validate(root, built.evidence);
+        case baseline_payload(built.evidence) {
+            Some(baseline) ->
+                if {
+                    not validation.valid -> failed_check(validation.code, validation.message);
+                    not Support.write_json(root, "proofs/lean/release_evidence/baseline.json", baseline) -> failed_check("corrupt_artifact", "baseline could not be written");
+                    not Support.write_json(root, "build/artifacts/proof-release-evidence.json", built.evidence) -> failed_check("corrupt_artifact", "evidence could not be written");
+                    true -> passed_check(built.evidence)
+                };
+            None -> failed_check("corrupt_artifact", "baseline could not be constructed")
+        }
+    }.

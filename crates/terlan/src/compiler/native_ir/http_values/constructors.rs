@@ -54,8 +54,10 @@ fn install_error_constructor(layouts: &mut NativeConstructorLayouts) -> Result<(
     layouts.insert(
         (ERROR_CONSTRUCTOR.to_string(), 3),
         NativeConstructorLayout {
+            parameter_core_types: vec![None; 3],
             parameters: vec![NativeType::Atom, NativeType::StringRef, NativeType::Int],
             result: NativeType::ManagedRef(descriptor.managed().semantic_id()),
+            result_core_type: None,
             encoded_layout: Arc::from(
                 encode_aggregate_layout(&descriptor)
                     .map_err(|error| format!("error[native_ir.http_error_abi]: {error}"))?,
@@ -75,11 +77,14 @@ fn install_response_constructors(layouts: &mut NativeConstructorLayouts) -> Resu
         );
         let result = NativeType::ManagedRef(descriptor.managed().semantic_id());
         let arity = parameters.len();
+        let parameter_core_types = vec![None; arity];
         layouts.insert(
             (response_constructor(name), arity),
             NativeConstructorLayout {
+                parameter_core_types,
                 parameters,
                 result,
+                result_core_type: None,
                 descriptor,
                 encoded_layout,
             },
@@ -94,6 +99,7 @@ fn install_security_constructor(layouts: &mut NativeConstructorLayouts) -> Resul
     layouts.insert(
         (SECURITY_CONSTRUCTOR.to_string(), 5),
         NativeConstructorLayout {
+            parameter_core_types: vec![None; 5],
             parameters: vec![
                 NativeType::Bool,
                 NativeType::Int,
@@ -102,6 +108,7 @@ fn install_security_constructor(layouts: &mut NativeConstructorLayouts) -> Resul
                 NativeType::Bool,
             ],
             result: NativeType::ManagedRef(descriptor.managed().semantic_id()),
+            result_core_type: None,
             encoded_layout: Arc::from(
                 encode_aggregate_layout(&descriptor)
                     .map_err(|error| format!("error[native_ir.http_security_abi]: {error}"))?,
@@ -151,11 +158,14 @@ fn install_middleware_result_constructors(
     ];
     for (variant, descriptor, parameters) in variants {
         let identity = format!("{ROUTER_MODULE}.{variant}");
+        let parameter_core_types = vec![None; parameters.len()];
         layouts.insert(
             (identity, parameters.len()),
             NativeConstructorLayout {
+                parameter_core_types,
                 parameters,
                 result: NativeType::ManagedRef(descriptor.managed().semantic_id()),
+                result_core_type: None,
                 encoded_layout: Arc::from(
                     encode_aggregate_layout(&descriptor).map_err(|error| {
                         format!("error[native_ir.http_middleware_abi]: {error}")

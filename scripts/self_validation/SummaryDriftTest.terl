@@ -1,0 +1,424 @@
+/**
+ * Verifies regenerated std interfaces match committed release summaries.
+ */
+module scripts.self_validation.SummaryDriftTest.
+
+import std.collections.Set.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.io.Console.{println}.
+import std.io.Directory.{create_temporary, entries, remove_all}.
+import std.io.File.{read_text_directory, read_text_many}.
+import std.system.{Environment, Process}.
+
+import type std.collections.Set.
+import type std.io.File.TextFile.
+
+struct ArtifactCheck {
+    relative: String,
+    generated: String,
+    committed: String,
+    present: Bool,
+}.
+
+struct ArtifactPlan {
+    checks: List[ArtifactCheck],
+    read_paths: List[String],
+    generated_names: Set[String],
+    generated_count: Int,
+}.
+
+@pure
+child(root: String, relative: String): String ->
+    if {
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.append(root, String.append("/", relative))
+    }.
+
+environment_or(name: String, fallback: String): String ->
+    case Environment.get(name) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+selected_root(): String ->
+    environment_or("TERLAN_SUMMARY_DRIFT_ROOT", Environment.current_directory()).
+
+selected_compiler(root: String): String ->
+    environment_or("TERLAN_SUMMARY_DRIFT_TERLC", child(root, "target/debug/terlc")).
+
+selected_generator(root: String): String ->
+    environment_or(
+        "TERLAN_SUMMARY_DRIFT_GENERATOR",
+        child(root, "scripts/self_validation/BuildInterfacesTest.terl"),
+    ).
+
+@pure
+pub is_summary_artifact(path: String): Bool ->
+    String.ends_with(path, ".typi") or String.ends_with(path, ".typi.deps").
+
+@pure
+package_summary(name: String): Bool ->
+    name == "std.core.typi"
+        or name == "std.http.typi"
+        or name == "std.io.typi"
+        or name == "std.time.typi".
+
+@pure
+last_component(path: String): String ->
+    last_string(String.split(path, "/"), "").
+
+@pure
+last_string(parts: List[String], current: String): String ->
+    case parts {
+        [] -> current;
+        [part | rest] -> last_string(rest, part)
+    }.
+
+@pure
+reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_at(values, []).
+
+@pure
+reverse_strings_at(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings_at(rest, [value | reversed])
+    }.
+
+@pure
+reverse_checks(values: List[ArtifactCheck]): List[ArtifactCheck] ->
+    reverse_checks_at(values, []).
+
+@pure
+reverse_checks_at(
+    values: List[ArtifactCheck],
+    reversed: List[ArtifactCheck],
+): List[ArtifactCheck] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_checks_at(rest, [value | reversed])
+    }.
+
+@pure
+leading_contains(lines: List[String], pattern: String, remaining: Int): Bool ->
+    if {
+        remaining == 0 -> false;
+        true -> case lines {
+            [] -> false;
+            [line | rest] ->
+                String.contains(line, pattern) or leading_contains(rest, pattern, remaining - 1)
+        }
+    }.
+
+@pure
+pub generated_js_header(contents: String): Bool ->
+    let lines = String.split(contents, "\n");
+    leading_contains(lines, "@generated true", 12)
+        and leading_contains(lines, "@generator-profile typescript-standard-js-dom", 12).
+
+generated_js_summary_names(files: List[TextFile]): Set[String] ->
+    Set.from_list(generated_js_summary_names_at(files, [])).
+
+@pure
+generated_js_summary_names_at(files: List[TextFile], names: List[String]): List[String] ->
+    case files {
+        [] -> names;
+        [file | rest] ->
+            let name = last_component(file.path);
+            if {
+                String.starts_with(name, "std.js.")
+                    and String.ends_with(name, ".typi")
+                    and generated_js_header(file.contents) -> generated_js_summary_names_at(rest, [name | names]);
+                true -> generated_js_summary_names_at(rest, names)
+            }
+    }.
+
+committed_summary_names(files: List[TextFile]): Set[String] ->
+    Set.from_list(committed_summary_names_at(files, [])).
+
+@pure
+committed_summary_names_at(files: List[TextFile], names: List[String]): List[String] ->
+    case files {
+        [] -> names;
+        [file | rest] ->
+            let name = last_component(file.path);
+            if {
+                is_summary_artifact(name) -> committed_summary_names_at(rest, [name | names]);
+                true -> committed_summary_names_at(rest, names)
+            }
+    }.
+
+@pure
+generated_summary_paths(paths: List[String]): List[String] ->
+    reverse_strings(generated_summary_paths_at(paths, [])).
+
+@pure
+generated_summary_paths_at(paths: List[String], selected: List[String]): List[String] ->
+    case paths {
+        [] -> selected;
+        [path | rest] ->
+            if {
+                is_summary_artifact(path) -> generated_summary_paths_at(rest, [path | selected]);
+                true -> generated_summary_paths_at(rest, selected)
+            }
+    }.
+
+build_plan(root: String, generated: List[String], committed_names: Set[String]): ArtifactPlan ->
+    build_plan_at(root, generated, committed_names, [], [], [], 0).
+
+build_plan_at(
+    root: String,
+    generated: List[String],
+    committed_names: Set[String],
+    checks: List[ArtifactCheck],
+    read_paths: List[String],
+    names: List[String],
+    count: Int,
+): ArtifactPlan ->
+    case generated {
+        [] ->
+            ArtifactPlan(
+                checks = reverse_checks(checks),
+                read_paths = reverse_strings(read_paths),
+                generated_names = Set.from_list(names),
+                generated_count = count,
+            );
+        [path | rest] ->
+            let name = last_component(path);
+            let relative = String.append("std/summaries/", name);
+            let committed = child(root, relative);
+            let present = Set.contains(committed_names, name);
+            let next_paths =
+                if {
+                    present -> [committed | [path | read_paths]];
+                    true -> read_paths
+                };
+            build_plan_at(
+                root,
+                rest,
+                committed_names,
+                [ArtifactCheck(relative = relative, generated = path, committed = committed, present = present) | checks],
+                next_paths,
+                [name | names],
+                count + 1,
+            )
+    }.
+
+generation_command(
+    root: String,
+    compiler: String,
+    generator: String,
+    output: String,
+): std.system.Process.Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_environment(
+                Process.with_working_directory(
+                    Process.with_arguments(
+                        Process.command(compiler),
+                        ["test", generator, "--name", "repository_std_interfaces_build"],
+                    ),
+                    root,
+                ),
+                [
+                    Process.environment_entry("CARGO_TERM_COLOR", "never"),
+                    Process.environment_entry("TERLAN_BUILD_INTERFACES_ROOT", root),
+                    Process.environment_entry("TERLAN_BUILD_INTERFACES_OUT_DIR", output),
+                    Process.environment_entry("TERLAN_BUILD_INTERFACES_TERLC", compiler),
+                ],
+            ),
+            600000,
+        ),
+        16777216,
+    ).
+
+pub validate(root: String, compiler: String, generator: String): Bool ->
+    case create_temporary("terlan-std-summary-drift-") {
+        Err(_reason) -> report(["temporary summary workspace creation failed"]);
+        Ok(workspace) -> run_generation(root, compiler, generator, workspace)
+    }.
+
+run_generation(root: String, compiler: String, generator: String, workspace: String): Bool ->
+    case Process.run(generation_command(root, compiler, generator, workspace)) {
+        Err(reason) -> generation_failed(workspace, Process.error_message(reason));
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> discover_generated(root, workspace);
+                true -> generation_failed(
+                    workspace,
+                    String.trim_end(String.append(Process.stdout(output), Process.stderr(output))),
+                )
+            }
+    }.
+
+generation_failed(workspace: String, message: String): Bool ->
+    case remove_all(workspace) {
+        Ok(Unit) ->
+            let _header = println("[stdlib-summary-drift] generation failed:");
+            let _message = println(message);
+            false;
+        Err(_reason) ->
+            let _header = println("[stdlib-summary-drift] generation failed:");
+            let _message = println(String.append(message, "\ntemporary workspace cleanup also failed"));
+            false
+    }.
+
+discover_generated(root: String, workspace: String): Bool ->
+    case entries(workspace) {
+        Err(_reason) -> finish(workspace, 0, ["generated summary discovery failed"]);
+        Ok(paths) -> read_committed(root, workspace, generated_summary_paths(paths))
+    }.
+
+read_committed(root: String, workspace: String, generated: List[String]): Bool ->
+    case read_text_directory(child(root, "std/summaries")) {
+        Err(_reason) -> finish(workspace, 0, ["committed summary read failed"]);
+        Ok(committed_files) -> prepare_comparison(root, workspace, generated, committed_files)
+    }.
+
+prepare_comparison(
+    root: String,
+    workspace: String,
+    generated: List[String],
+    committed_files: List[TextFile],
+): Bool ->
+    let committed_names = committed_summary_names(committed_files);
+    let plan = build_plan(root, generated, committed_names);
+    case read_text_many(plan.read_paths) {
+        Err(_reason) -> finish(workspace, plan.generated_count, ["summary comparison read failed"]);
+        Ok(files) ->
+            let compared = compare_checks(plan.checks, files, []);
+            let js_names = generated_js_summary_names(committed_files);
+            let diagnostics =
+                stale_committed_diagnostics(
+                    committed_files,
+                    plan.generated_names,
+                    js_names,
+                    compared,
+                );
+            finish(workspace, plan.generated_count, diagnostics)
+    }.
+
+@pure
+compare_checks(
+    checks: List[ArtifactCheck],
+    files: List[TextFile],
+    diagnostics: List[String],
+): List[String] ->
+    case checks {
+        [] -> diagnostics;
+        [check | rest] ->
+            if {
+                not check.present -> compare_checks(
+                    rest,
+                    files,
+                    [String.append(check.relative, ": missing committed generated summary") | diagnostics],
+                );
+                true -> case files {
+                    [generated | [committed | file_rest]] ->
+                        let next =
+                            if {
+                                generated.contents == committed.contents -> diagnostics;
+                                true -> [String.append(check.relative, ": committed summary is stale; run make stdlib-build-interfaces") | diagnostics]
+                            };
+                        compare_checks(rest, file_rest, next);
+                    _ -> ["std/summaries: summary batch result count mismatch" | diagnostics]
+                }
+            }
+    }.
+
+generated_js_artifact(name: String, generated_js_names: Set[String]): Bool ->
+    if {
+        not String.starts_with(name, "std.js.") -> false;
+        String.ends_with(name, ".typi") -> Set.contains(generated_js_names, name);
+        String.ends_with(name, ".typi.deps") -> Set.contains(generated_js_names, String.replace(name, ".typi.deps", ".typi"));
+        true -> false
+    }.
+
+stale_committed_diagnostics(
+    files: List[TextFile],
+    generated_names: Set[String],
+    generated_js_names: Set[String],
+    diagnostics: List[String],
+): List[String] ->
+    case files {
+        [] -> diagnostics;
+        [file | rest] ->
+            let name = last_component(file.path);
+            let next =
+                if {
+                    not is_summary_artifact(name) -> diagnostics;
+                    package_summary(name) -> diagnostics;
+                    generated_js_artifact(name, generated_js_names) -> diagnostics;
+                    Set.contains(generated_names, name) -> diagnostics;
+                    true -> [String.append(
+    String.append("std/summaries/", name),
+    ": committed summary was not regenerated from std source",
+) | diagnostics]
+                };
+            stale_committed_diagnostics(rest, generated_names, generated_js_names, next)
+    }.
+
+finish(workspace: String, count: Int, diagnostics: List[String]): Bool ->
+    case remove_all(workspace) {
+        Ok(Unit) -> report_result(count, diagnostics);
+        Err(_reason) -> report_result(count, ["temporary workspace cleanup failed" | diagnostics])
+    }.
+
+report_result(count: Int, diagnostics: List[String]): Bool ->
+    case diagnostics {
+        [] ->
+            let _printed =
+                println(
+                    String.append(
+                        "[stdlib-summary-drift] ",
+                        String.append(
+                            Int.to_string(count),
+                            " generated summaries match committed artifacts.",
+                        ),
+                    ),
+                );
+            true;
+        _ -> report(reverse_strings(diagnostics))
+    }.
+
+report(diagnostics: List[String]): Bool ->
+    let _header = println("[stdlib-summary-drift] failures:");
+    print_diagnostics(diagnostics).
+
+print_diagnostics(diagnostics: List[String]): Bool ->
+    case diagnostics {
+        [] -> false;
+        [entry | rest] ->
+            let _printed = println(String.append("  - ", entry));
+            print_diagnostics(rest)
+    }.
+
+@test
+pub summary_artifact_classification_is_exact(): Bool ->
+    is_summary_artifact("std.core.String.typi")
+        and is_summary_artifact("std.core.String.typi.deps")
+        and not is_summary_artifact("std.core.String.native_boundary.json").
+
+@test
+pub generated_js_header_is_bounded_and_requires_both_markers(): Bool ->
+    let accepted = "/**\n * @generated true\n * @generator-profile typescript-standard-js-dom\n */";
+    let missing_profile = "/**\n * @generated true\n */";
+    let late = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n@generated true\n@generator-profile typescript-standard-js-dom";
+    generated_js_header(accepted)
+        and not generated_js_header(missing_profile)
+        and not generated_js_header(late).
+
+@test
+pub repository_summaries_have_no_drift(): Bool ->
+    let root = selected_root();
+    let compiler = selected_compiler(root);
+    let generator = selected_generator(root);
+    validate(root, compiler, generator).
+
+pub main(): Unit ->
+    if {
+        repository_summaries_have_no_drift() -> Unit;
+        true -> println("[stdlib-summary-drift] validation failed")
+    }.

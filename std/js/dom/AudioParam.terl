@@ -112,6 +112,6 @@ pub (value: AudioParam) set_value_at_time(value: JsNumber, start_time: JsNumber)
 pub (value: AudioParam) set_value_curve_at_time(
     values: Float32Array | std.js.Array[JsNumber],
     start_time: JsNumber,
-    duration: JsNumber
+    duration: JsNumber,
 ): AudioParam ->
     native.

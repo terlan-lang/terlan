@@ -40,7 +40,12 @@ pub(super) fn format_html_block(name: &str, nodes: &[HtmlNode], indent: usize) -
 fn format_html_node(node: &HtmlNode, indent: usize) -> String {
     let spacing = "    ".repeat(indent);
     match node {
-        HtmlNode::Text(text) => format!("{}{}", spacing, text),
+        // Parsed text nodes are already trimmed. The HTML parser deliberately
+        // preserves an unsupported raw block as one fallback text node,
+        // however, and that node can retain boundary newlines. Trim those
+        // boundaries here so repeated formatting cannot accumulate blank
+        // lines around a preserved raw block.
+        HtmlNode::Text(text) => format!("{}{}", spacing, text.trim()),
         HtmlNode::Expr(expr) => format!("{}{{{}}}", spacing, format_expr(expr, indent)),
         HtmlNode::NamedSlot(slot) => {
             let mut out = format!("{}@{} {{\n", spacing, slot.name);

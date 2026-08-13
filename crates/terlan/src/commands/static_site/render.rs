@@ -314,12 +314,14 @@ fn render_syntax_static_template_node(
                 render_syntax_static_template_component(
                     module,
                     templates,
-                    template_name,
-                    template_props,
-                    component_name,
-                    component_props,
-                    values,
-                    element,
+                    StaticTemplateComponent {
+                        parent_name: template_name,
+                        parent_props: template_props,
+                        component_name,
+                        component_props,
+                        parent_values: values,
+                        element,
+                    },
                     out,
                 )?;
                 return Ok(());
@@ -363,6 +365,15 @@ fn render_syntax_static_template_node(
     Ok(())
 }
 
+struct StaticTemplateComponent<'a> {
+    parent_name: &'a str,
+    parent_props: &'a [SyntaxTemplatePropOutput],
+    component_name: &'a str,
+    component_props: &'a [SyntaxTemplatePropOutput],
+    parent_values: &'a BTreeMap<String, StaticTemplateValue>,
+    element: &'a crate::terlan_html::HtmlElement,
+}
+
 /// Renders a component used inside an external static template.
 ///
 /// Inputs:
@@ -385,14 +396,17 @@ fn render_syntax_static_template_node(
 fn render_syntax_static_template_component(
     module: &SyntaxModuleOutput,
     templates: &BTreeMap<String, crate::terlan_html::HtmlTemplate>,
-    parent_name: &str,
-    parent_props: &[SyntaxTemplatePropOutput],
-    component_name: &str,
-    component_props: &[SyntaxTemplatePropOutput],
-    parent_values: &BTreeMap<String, StaticTemplateValue>,
-    element: &crate::terlan_html::HtmlElement,
+    component: StaticTemplateComponent<'_>,
     out: &mut String,
 ) -> Result<(), StaticSyntaxRenderError> {
+    let StaticTemplateComponent {
+        parent_name,
+        parent_props,
+        component_name,
+        component_props,
+        parent_values,
+        element,
+    } = component;
     let component_template = templates.get(component_name).ok_or_else(|| {
         StaticSyntaxRenderError::Invalid(format!(
             "missing parsed static template `{}`",
@@ -851,8 +865,10 @@ fn render_syntax_static_inline_template_component_children(
 
 #[cfg(test)]
 #[path = "render_test.rs"]
+#[cfg(test)]
 mod render_test;
 
 #[cfg(test)]
 #[path = "render_attribute_test.rs"]
+#[cfg(test)]
 mod render_attribute_test;

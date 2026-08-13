@@ -152,4 +152,5 @@ fn render_failure(diagnostics: &[String]) -> String {
 
 #[cfg(test)]
 #[path = "native_binding_generator_contract_test.rs"]
+#[cfg(test)]
 mod native_binding_generator_contract_test;

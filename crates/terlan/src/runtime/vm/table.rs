@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 #[path = "table/atomic.rs"]
 pub(crate) mod atomic;
 #[path = "table/counter.rs"]
@@ -39,7 +37,9 @@ impl VmTableId {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmTableAccess {
     OwnerOnly,
+    #[cfg(test)]
     PublicRead,
+    #[cfg(test)]
     PublicReadWrite,
 }
 
@@ -62,6 +62,7 @@ pub(crate) struct VmTableRecord {
 
 /// Read-only table row for runtime inspection.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(any(test, feature = "benchmark-tools"))]
 pub(crate) struct VmTableSnapshot {
     pub(crate) id: VmTableId,
     pub(crate) owner: VmProcessId,
@@ -184,6 +185,7 @@ impl VmTableStore {
     }
 
     /// Exports table entries when read policy allows it.
+    #[cfg(test)]
     pub(crate) fn entries(
         &self,
         processes: &VmProcessTable,
@@ -195,6 +197,7 @@ impl VmTableStore {
     }
 
     /// Returns the first entry in deterministic insertion order.
+    #[cfg(test)]
     pub(crate) fn first_entry(
         &self,
         processes: &VmProcessTable,
@@ -206,6 +209,7 @@ impl VmTableStore {
     }
 
     /// Returns the last entry in deterministic insertion order.
+    #[cfg(test)]
     pub(crate) fn last_entry(
         &self,
         processes: &VmProcessTable,
@@ -217,6 +221,7 @@ impl VmTableStore {
     }
 
     /// Returns the entry after an existing key in insertion order.
+    #[cfg(test)]
     pub(crate) fn next_entry(
         &self,
         processes: &VmProcessTable,
@@ -230,6 +235,7 @@ impl VmTableStore {
     }
 
     /// Returns the entry before an existing key in insertion order.
+    #[cfg(test)]
     pub(crate) fn previous_entry(
         &self,
         processes: &VmProcessTable,
@@ -287,6 +293,7 @@ impl VmTableStore {
     }
 
     /// Returns live table rows for runtime inspection.
+    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn snapshots(&self) -> Vec<VmTableSnapshot> {
         self.tables
             .iter()
@@ -327,6 +334,7 @@ impl VmTableStore {
     }
 }
 
+#[cfg(test)]
 fn table_entry_position(
     record: &VmTableRecord,
     table: VmTableId,
@@ -367,9 +375,19 @@ fn ensure_read_access(record: &VmTableRecord, requester: VmProcessId) -> Result<
 
 fn ensure_write_access(record: &VmTableRecord, requester: VmProcessId) -> Result<(), String> {
     match record.access {
+        #[cfg(test)]
         VmTableAccess::PublicReadWrite => Ok(()),
-        VmTableAccess::OwnerOnly | VmTableAccess::PublicRead if requester == record.owner => Ok(()),
-        VmTableAccess::OwnerOnly | VmTableAccess::PublicRead => Err(table_access_diagnostic(
+        VmTableAccess::OwnerOnly if requester == record.owner => Ok(()),
+        #[cfg(test)]
+        VmTableAccess::PublicRead if requester == record.owner => Ok(()),
+        VmTableAccess::OwnerOnly => Err(table_access_diagnostic(
+            record.id,
+            record.owner,
+            requester,
+            "write",
+        )),
+        #[cfg(test)]
+        VmTableAccess::PublicRead => Err(table_access_diagnostic(
             record.id,
             record.owner,
             requester,
@@ -398,4 +416,5 @@ fn stale_table_diagnostic(table: VmTableId) -> String {
 
 #[cfg(test)]
 #[path = "table_test.rs"]
+#[cfg(test)]
 mod table_test;

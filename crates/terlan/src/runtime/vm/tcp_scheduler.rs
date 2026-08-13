@@ -1,13 +1,13 @@
-#![allow(dead_code)]
-
+use super::tcp::VmTcpWake;
+#[cfg(test)]
 use super::{
     process::{VmProcessId, VmProcessTable},
     scheduler::VmScheduler,
-    tcp::VmTcpWake,
 };
 
 #[cfg(test)]
 #[path = "tcp_scheduler_test.rs"]
+#[cfg(test)]
 mod tcp_scheduler_test;
 
 /// Summary of scheduler wakeups produced by VM TCP readiness events.
@@ -22,6 +22,7 @@ mod tcp_scheduler_test;
 /// - Keeps TCP resource readiness independent from scheduler queue internals
 ///   while still making the runtime handoff executable and testable.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct VmTcpWakeReport {
     pub(crate) accept_wakeups: usize,
     pub(crate) read_wakeups: usize,
@@ -41,6 +42,7 @@ pub(crate) struct VmTcpWakeReport {
 /// Transformation:
 /// - Wakes the target VM process for each valid TCP readiness event without
 ///   letting TCP own scheduler queue semantics.
+#[cfg(test)]
 pub(crate) fn apply_tcp_wakeups(
     processes: &mut VmProcessTable,
     scheduler: &mut VmScheduler,
@@ -66,6 +68,7 @@ pub(crate) fn apply_tcp_wakeups(
 
 impl VmTcpWake {
     /// Returns the process targeted by this readiness wake intent.
+    #[cfg(test)]
     fn process(self) -> VmProcessId {
         match self {
             VmTcpWake::Accept { process, .. }

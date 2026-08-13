@@ -33,7 +33,7 @@ pub close_typechecks(receiver: IDBDatabase): Unit ->
 pub create_object_store_typechecks(
     receiver: IDBDatabase,
     name: JsString,
-    options: IDBObjectStoreParameters
+    options: IDBObjectStoreParameters,
 ): IDBObjectStore ->
     receiver.create_object_store(name, options).
 
@@ -44,7 +44,7 @@ pub transaction_typechecks(
     receiver: IDBDatabase,
     store_names: std.js.Array[JsString] | JsString,
     mode: IDBTransactionMode,
-    options: IDBTransactionOptions
+    options: IDBTransactionOptions,
 ): IDBTransaction ->
     receiver.transaction(store_names, mode, options).
 
@@ -52,7 +52,7 @@ pub add_event_listener_typechecks(
     receiver: IDBDatabase,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool
+    options: AddEventListenerOptions | Bool,
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -60,6 +60,6 @@ pub remove_event_listener_typechecks(
     receiver: IDBDatabase,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool
+    options: EventListenerOptions | Bool,
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

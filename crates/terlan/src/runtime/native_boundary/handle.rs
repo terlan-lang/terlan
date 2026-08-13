@@ -82,4 +82,5 @@ pub fn next_generation(generation: u64) -> Option<u64> {
 
 #[cfg(test)]
 #[path = "handle_test.rs"]
+#[cfg(test)]
 mod handle_test;

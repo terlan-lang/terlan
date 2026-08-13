@@ -62,6 +62,29 @@ fn grouped_let_else_does_not_expose_success_bindings_to_fallback() {
 }
 
 #[test]
+fn grouped_let_else_boolean_literal_pattern_is_not_a_success_binding() {
+    let source = "module let_else_bool_literal.\n\
+                  pub type Ok[T] = {Atom[\"ok\"], value: T}.\n\
+                  pub type Err[E] = {Atom[\"error\"], reason: E}.\n\
+                  pub type Result[T, E] = Ok[T] | Err[E].\n\
+                  pub rejects_false(input: Result[Bool, String]): Bool ->\n\
+                      let {\n\
+                          Ok(false) <- input\n\
+                      } else {\n\
+                          _ -> false\n\
+                      };\n\
+                      true.\n";
+    let diagnostics = check_syntax_output(source);
+
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| !matches!(diagnostic.severity, DiagSeverity::Error)),
+        "diagnostics: {diagnostics:?}"
+    );
+}
+
+#[test]
 fn grouped_let_else_lowers_left_to_right_to_nested_cases() {
     let source = result_source(
         "let {\n\
