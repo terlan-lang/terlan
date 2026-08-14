@@ -124,7 +124,7 @@ native-codegen = [
 postgres-libpq = ["dep:terlan-libpq"]
 
 [dependencies]
-ammonia = "4.1.2"
+ammonia = "4.1.4"
 axum = { version = "0.8.9", optional = true }
 base64.workspace = true
 basic-toml = "0.1.10"
@@ -162,12 +162,11 @@ notify = "8"
 object = { version = "=0.39.1", default-features = false, features = ["read", "write", "std"] }
 openapiv3 = "2.2.0"
 percent-encoding = "2.3.2"
-quick-xml = "0.39.4"
+quick-xml = "0.41.0"
 rcgen = "0.13"
 rand = "0.9.4"
 regex = "1"
 rustls = "0.23"
-rustls-pemfile = "2"
 rustls-webpki = "0.103.13"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { workspace = true, features = ["unbounded_depth"] }
@@ -189,10 +188,10 @@ url = "2.5.8"
 docker-compose-types = "0.24.0"
 wasm-encoder = "0.252.0"
 wasmparser = "0.252.0"
-yaml-rust = "0.4.5"
-ratatui = "0.29.0"
+yaml-rust = { package = "yaml-rust2", version = "0.11.0" }
 
 [dev-dependencies]
+ratatui = { version = "0.30.2", default-features = false, features = ["std"] }
 tar.workspace = true
 tokio = { workspace = true, features = ["io-util", "macros", "time"] }
 zstd.workspace = true

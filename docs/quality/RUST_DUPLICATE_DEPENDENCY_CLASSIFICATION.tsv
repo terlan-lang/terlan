@@ -1,6 +1,5 @@
 name	versions	classification	owner	rationale	milestone
 block-buffer	0.10.4,0.12.1	transitive-upgrade-blocked	dependency-health	sha1 and sha2 currently select different digest generations	0.0.8
-compact_str	0.8.2,0.9.1	transitive-upgrade-blocked	dependency-health	ratatui and oxc currently select different compact_str generations	0.0.8
 cpufeatures	0.2.17,0.3.0	transitive-upgrade-blocked	dependency-health	sha1 and sha2 currently select different cpufeatures generations	0.0.8
 crypto-common	0.1.7,0.2.2	transitive-upgrade-blocked	dependency-health	digest generations require their matching crypto-common generation	0.0.8
 darling	0.20.11,0.23.0	transitive-upgrade-blocked	dependency-health	derive_builder and bon/instability currently select different darling generations	0.0.8
@@ -10,14 +9,12 @@ digest	0.10.7,0.11.3	transitive-upgrade-blocked	dependency-health	sha1 and sha2 
 foldhash	0.1.5,0.2.0	transitive-upgrade-blocked	dependency-health	hashbrown generations require different foldhash generations	0.0.8
 getrandom	0.2.17,0.3.4,0.4.3	transitive-upgrade-blocked	dependency-health	ring and workspace consumers currently span three getrandom APIs	0.0.8
 hashbrown	0.15.5,0.16.1,0.17.1	transitive-upgrade-blocked	dependency-health	gimli and transitive collections currently span three hashbrown generations	0.0.8
-itertools	0.13.0,0.14.0	transitive-upgrade-blocked	dependency-health	ratatui and oxc currently select different itertools generations	0.0.8
 linux-raw-sys	0.12.1,0.4.15	platform-compatibility	dependency-health	rustix generations retain matching Linux syscall bindings	0.0.8
 object	0.37.3,0.39.1	transitive-upgrade-blocked	dependency-health	psm build tooling retains object 0.37 while AOT uses object 0.39	0.0.8
 r-efi	5.3.0,6.0.0	platform-compatibility	dependency-health	getrandom generations retain matching UEFI bindings	0.0.8
 rustix	0.38.44,1.1.4	platform-compatibility	dependency-health	transitive consumers currently support different rustix APIs	0.0.8
 thiserror	1.0.69,2.0.18	transitive-upgrade-blocked	dependency-health	instant-acme retains thiserror 1 while newer protocol dependencies use 2	0.0.8
 thiserror-impl	1.0.69,2.0.18	transitive-upgrade-blocked	dependency-health	thiserror generations require their matching derive implementation	0.0.8
-unicode-width	0.1.14,0.2.0	transitive-upgrade-blocked	dependency-health	unicode-truncate retains 0.1 while terminal and diagnostic dependencies use 0.2	0.0.8
 windows-sys	0.52.0,0.59.0,0.60.2,0.61.2	platform-compatibility	dependency-health	cross-platform transitive dependencies retain several supported Windows API generations	0.0.8
 windows-targets	0.52.6,0.53.5	platform-compatibility	dependency-health	windows-sys generations require their matching target metadata	0.0.8
 windows_aarch64_gnullvm	0.52.6,0.53.1	platform-compatibility	dependency-health	windows-targets generations require matching architecture packages	0.0.8

@@ -1,0 +1,15 @@
+name: Audit Rust dependencies
+description: Run the exact supported cargo-audit version against Cargo.lock.
+
+runs:
+  using: composite
+  steps:
+    - name: Install exact cargo-audit
+      shell: bash
+      run: cargo install cargo-audit --version 0.22.2 --locked --force
+
+    - name: Reject vulnerable, unsound, and unmaintained dependencies
+      shell: bash
+      run: |
+        cargo audit --version | grep -F 'cargo-audit 0.22.2'
+        cargo audit --deny warnings

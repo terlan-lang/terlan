@@ -1,8 +1,0 @@
-module html_events.
-
-pub type Msg =
-    save
-  | cancel.
-
-pub view(): Html[Msg].
-

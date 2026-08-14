@@ -73,6 +73,11 @@ pub(super) fn render_safe_wrapper(
             "List[Float]" => "&[f64]",
             "List[Bool]" => "&[bool]",
             "Bytes" => "&[u8]",
+            value if list_binding_type(manifest, value).is_some() => {
+                let (_, inner) = list_binding_type(manifest, value).expect("matched resource list");
+                rust_args.push(format!("{}: &[&{}]", argument.name, inner.name));
+                continue;
+            }
             value if owner_name == Some(value) && inside_impl => "&Self",
             value if binding_type(manifest, value).is_some() => {
                 rust_args.push(format!("{}: &{value}", argument.name));
@@ -238,14 +243,18 @@ pub(super) fn render_safe_wrapper(
             }
             continue;
         }
-        if parameter.input_array.is_some() {
-            let byte_input = parameter
-                .input_array
-                .as_ref()
-                .is_some_and(|array| array.bytes);
+        if let Some(input_array) = &parameter.input_array {
+            let byte_input = input_array.bytes;
+            let resource_input = input_array.element_type.is_some();
             if base == "uint8_t" && !byte_input {
                 rendered.push_str(&format!(
                     "{indent}    let {}_bytes = {}.iter().copied().map(u8::from).collect::<Vec<_>>();\n",
+                    parameter.name, parameter.name
+                ));
+            }
+            if resource_input {
+                rendered.push_str(&format!(
+                    "{indent}    let {}_handles = {}.iter().map(|value| value.raw.as_ptr() as usize as u64).collect::<Vec<_>>();\n",
                     parameter.name, parameter.name
                 ));
             }
@@ -255,6 +264,8 @@ pub(super) fn render_safe_wrapper(
             ));
             if base == "uint8_t" && !byte_input {
                 call_args.push(format!("{}_bytes.as_ptr()", parameter.name));
+            } else if resource_input {
+                call_args.push(format!("{}_handles.as_ptr()", parameter.name));
             } else {
                 call_args.push(format!("{}.as_ptr()", parameter.name));
             }

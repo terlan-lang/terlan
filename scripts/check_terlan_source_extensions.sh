@@ -3,6 +3,8 @@ set -euo pipefail
 
 bad=0
 scan_roots=()
+matches="$(mktemp)"
+trap 'rm -f "$matches"' EXIT
 
 # Adds a path to the stale-reference scan when it exists in the current
 # checkout.
@@ -47,13 +49,11 @@ if [[ "${#scan_roots[@]}" -gt 0 ]] && grep -RInE '\.tl\b|\.tli\b|\.tn\b|\.tni\b|
   --exclude-dir=otp \
   --exclude-dir=.git \
   --exclude=check_terlan_source_extensions.sh \
-  "${scan_roots[@]}" >/tmp/terlan-source-extension-check.matches; then
-  cat /tmp/terlan-source-extension-check.matches >&2
+  "${scan_roots[@]}" >"$matches"; then
+  cat "$matches" >&2
   printf 'source extension check failed: stale .tl/.tli/.tn/.tni/.ter source-extension reference remains.\n' >&2
   bad=1
 fi
-
-rm -f /tmp/terlan-source-extension-check.matches
 
 if [[ "$bad" -ne 0 ]]; then
   exit 1

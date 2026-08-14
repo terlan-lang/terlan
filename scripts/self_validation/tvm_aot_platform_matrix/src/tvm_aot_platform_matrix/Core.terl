@@ -703,9 +703,9 @@ pub workflow_text_valid(workflow: String): Bool ->
                 "Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append",
                 "cargo test --locked --no-default-features --features native-codegen -p terlan --bin terlan-vm",
                 "retention-days: 90",
-                "uses: actions/checkout@v4",
-                "uses: actions/upload-artifact@v4",
-                "uses: actions/download-artifact@v4",
+                "uses: actions/checkout@",
+                "uses: actions/upload-artifact@",
+                "uses: actions/download-artifact@",
             ],
         )
     }.
@@ -734,10 +734,9 @@ pub workflow_contract(): Bool ->
     if {
         not workflow_text_valid(ci) or not workflow_text_valid(release) -> failure("workflow", "native platform matrix workflow drifted");
         not ci_trigger_valid(ci) -> failure("workflow", "CI trigger contract drifted");
-        occurrences(ci, "      - \"docs/release/evidence/**\"") != 2
-            or occurrences(ci, "      - \"docs/roadmap/**\"") != 2 -> failure("workflow", "CI path filters drifted");
+        occurrences(ci, "      - \"docs/**\"") != 2 -> failure("workflow", "CI path filters drifted");
         not makefile.contains("tvm-aot-roadmap-reconciliation-check:") -> failure("workflow", "roadmap reconciliation gate is missing");
-        not release.contains("      - \"v*\"\n") -> failure("workflow", "release tag trigger is missing");
+        release.contains("    tags:\n") -> failure("workflow", "release validation must not rerun after tagging");
         not release.contains("run: make tvm-aot-release-closeout-check") -> failure("workflow", "release closeout gate is missing");
         not evidence_present(release, release_evidence()) -> failure("workflow", "release evidence retention is incomplete");
         true -> true

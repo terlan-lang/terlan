@@ -718,10 +718,23 @@ pub(super) fn validate_c_parameter_shape(
             || direction != CParameterDirection::Input
             || ownership != CParameterOwnership::BorrowedCall
             || !resolved.trim().starts_with("const ")
-            || !matches!(c_pointer_base(&resolved), "int64_t" | "double" | "uint8_t"))
+            || !matches!(
+                c_pointer_base(&resolved),
+                "int64_t" | "double" | "uint8_t" | "uint64_t"
+            )
+            || (c_pointer_base(&resolved) == "uint64_t"
+                && parameter
+                    .input_array
+                    .as_ref()
+                    .is_none_or(|array| array.element_type.is_none()))
+            || (c_pointer_base(&resolved) != "uint64_t"
+                && parameter
+                    .input_array
+                    .as_ref()
+                    .is_some_and(|array| array.element_type.is_some())))
     {
         return Err(format!(
-            "error[native_bindgen.c_input_array_contract]: `{}` must be a borrowed const int64_t, double, or uint8_t input pointer",
+            "error[native_bindgen.c_input_array_contract]: `{}` must be a borrowed const primitive input pointer or a typed const uint64_t handle array",
             parameter.name
         ));
     }
@@ -730,6 +743,7 @@ pub(super) fn validate_c_parameter_shape(
             || parameter.owned_string.is_some()
             || parameter.owned_array.is_some()
             || parameter.owned_string_array.is_some()
+            || parameter.owned_handle_array.is_some()
             || parameter.fixed.is_some())
     {
         return Err(format!(
@@ -835,6 +849,7 @@ pub(super) fn validate_c_input_arrays(
 }
 
 pub(super) fn validate_input_array_binding(
+    manifest: &CAbiBindingManifest,
     function: &CAbiBindingFunction,
     symbol: &CSymbol,
     aliases: &BTreeMap<String, String>,
@@ -855,18 +870,43 @@ pub(super) fn validate_input_array_binding(
                 )
             })?;
         let resolved = resolve_c_type(&parameter.c_type, aliases)?;
+        let array = parameter
+            .input_array
+            .as_ref()
+            .expect("filtered input array");
+        if array.bytes && array.element_type.is_some() {
+            return Err(format!(
+                "error[native_bindgen.c_input_array_contract]: `{}` cannot combine bytes and opaque-resource element metadata",
+                parameter.name
+            ));
+        }
         let expected = match c_pointer_base(&resolved) {
             "int64_t" => "List[Int]",
             "double" => "List[Float]",
-            "uint8_t"
-                if parameter
-                    .input_array
-                    .as_ref()
-                    .is_some_and(|array| array.bytes) =>
-            {
-                "Bytes"
-            }
+            "uint8_t" if array.bytes => "Bytes",
             "uint8_t" => "List[Bool]",
+            "uint64_t" => {
+                let element_type = array.element_type.as_deref().ok_or_else(|| {
+                    format!(
+                        "error[native_bindgen.c_input_array_contract]: `{}` requires an opaque-resource element_type",
+                        parameter.name
+                    )
+                })?;
+                if binding_type(manifest, element_type).is_none() {
+                    return Err(format!(
+                        "error[native_bindgen.c_input_array_contract]: `{}` names unknown opaque-resource element type `{element_type}`",
+                        parameter.name
+                    ));
+                }
+                let expected = format!("List[{element_type}]");
+                if argument.ty != expected {
+                    return Err(format!(
+                        "error[native_bindgen.c_input_array_contract]: `{}` requires `{expected}` for `{}`",
+                        parameter.name, function.name
+                    ));
+                }
+                continue;
+            }
             base => {
                 return Err(format!(
                     "error[native_bindgen.c_input_array_contract]: `{}` uses unsupported input element type `{base}`",

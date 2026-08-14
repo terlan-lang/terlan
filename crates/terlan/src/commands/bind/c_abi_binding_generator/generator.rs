@@ -72,7 +72,24 @@ struct CAbiRustExtension {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     support_sources: Vec<String>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    dependencies: BTreeMap<String, String>,
+    dependencies: BTreeMap<String, CAbiRustDependency>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+enum CAbiRustDependency {
+    Version(String),
+    Detailed {
+        version: String,
+        #[serde(default)]
+        features: Vec<String>,
+        #[serde(default = "default_true")]
+        default_features: bool,
+    },
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn is_false(value: &bool) -> bool {
@@ -301,6 +318,8 @@ struct CInputArray {
     length_parameter: String,
     #[serde(default)]
     bytes: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    element_type: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -828,7 +847,7 @@ fn validate_manifest<'a>(
                     &metadata.aliases,
                 )?;
             } else {
-                validate_input_array_binding(function, symbol, &metadata.aliases)?;
+                validate_input_array_binding(manifest, function, symbol, &metadata.aliases)?;
                 validate_owned_string_binding(function, symbol)?;
                 validate_owned_array_binding(function, symbol)?;
                 validate_owned_string_array_binding(function, symbol)?;

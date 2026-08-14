@@ -95,6 +95,7 @@ enum Arg {
     Ints(Vec<i64>),
     Floats(Vec<f64>),
     Bools(Vec<bool>),
+    Handles(Vec<HandleArg>),
     EmptyList,
     Handle(HandleArg),
 }
@@ -825,28 +826,42 @@ fn parse_arg(value: &str) -> Result<Arg, String> {
             .collect::<Result<Vec<_>, _>>()
             .map(Arg::Bools);
     }
+    if let Some(value) = value.strip_prefix("lh:") {
+        if value.is_empty() {
+            return Ok(Arg::Handles(Vec::new()));
+        }
+        return value
+            .split(',')
+            .map(parse_handle_arg)
+            .collect::<Result<Vec<_>, _>>()
+            .map(Arg::Handles);
+    }
     if let Some(value) = value.strip_prefix("h:") {
-        let fields = value.split(':').collect::<Vec<_>>();
-        let [owner, id, generation, type_name] = fields.as_slice() else {
-            return Err(protocol_error("invalid_argument", "malformed handle"));
-        };
-        return Ok(Arg::Handle(HandleArg {
-            owner: decode_text(owner)?,
-            id: id.parse().map_err(|error: std::num::ParseIntError| {
-                protocol_error("invalid_argument", &error.to_string())
-            })?,
-            generation: generation
-                .parse()
-                .map_err(|error: std::num::ParseIntError| {
-                    protocol_error("invalid_argument", &error.to_string())
-                })?,
-            type_name: decode_text(type_name)?,
-        }));
+        return parse_handle_arg(value).map(Arg::Handle);
     }
     Err(protocol_error(
         "invalid_argument",
         "unsupported argument encoding",
     ))
+}
+
+fn parse_handle_arg(value: &str) -> Result<HandleArg, String> {
+    let fields = value.split(':').collect::<Vec<_>>();
+    let [owner, id, generation, type_name] = fields.as_slice() else {
+        return Err(protocol_error("invalid_argument", "malformed handle"));
+    };
+    Ok(HandleArg {
+        owner: decode_text(owner)?,
+        id: id.parse().map_err(|error: std::num::ParseIntError| {
+            protocol_error("invalid_argument", &error.to_string())
+        })?,
+        generation: generation
+            .parse()
+            .map_err(|error: std::num::ParseIntError| {
+                protocol_error("invalid_argument", &error.to_string())
+            })?,
+        type_name: decode_text(type_name)?,
+    })
 }
 
 fn decode_text(value: &str) -> Result<String, String> {
@@ -880,6 +895,14 @@ fn arg_bools(value: &Arg) -> &[bool] {
     }
 }
 
+fn arg_handles(value: &Arg) -> &[HandleArg] {
+    match value {
+        Arg::Handles(values) => values.as_slice(),
+        Arg::EmptyList => &[],
+        _ => unreachable!("generated argument pattern admits only resource lists"),
+    }
+}
+
 fn validate_decoded_arg_shape(value: &Arg) {
     match value {
         Arg::Int(value) => {
@@ -905,6 +928,9 @@ fn validate_decoded_arg_shape(value: &Arg) {
         }
         Arg::Bools(_) => {
             let _ = arg_bools(value);
+        }
+        Arg::Handles(_) => {
+            let _ = arg_handles(value);
         }
         Arg::EmptyList => {}
         Arg::Handle(value) => {

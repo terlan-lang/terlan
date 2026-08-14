@@ -1,4 +1,0 @@
-module html_static.
-
-pub view(): Html[none].
-

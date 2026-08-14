@@ -32,8 +32,8 @@ rust-locked-binary-check:
 	$(CARGO) check --locked --workspace --bins --all-features
 
 rust-clippy-check:
-	$(CARGO) clippy --locked --workspace --bins
-	$(CARGO) clippy --locked --workspace --bins --all-features
+	$(CARGO) clippy --locked --workspace --bins -- -D warnings
+	$(CARGO) clippy --locked --workspace --bins --all-features -- -D warnings
 
 rust-lint-allowance-check: terlan-rust-quality-bootstrap
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \

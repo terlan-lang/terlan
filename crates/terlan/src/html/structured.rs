@@ -2,6 +2,7 @@ use std::path::Path;
 
 use quick_xml::events::{BytesRef, BytesStart, Event};
 use quick_xml::reader::Reader;
+use quick_xml::XmlVersion;
 use serde_json::Value;
 use yaml_rust::YamlLoader;
 
@@ -152,7 +153,7 @@ fn validate_xml_attributes(
     for attribute in attributes {
         let attribute = attribute.map_err(|error| invalid_xml(path, error))?;
         attribute
-            .unescape_value()
+            .normalized_value(XmlVersion::Implicit1_0)
             .map_err(|error| invalid_xml(path, error))?;
     }
     Ok(())

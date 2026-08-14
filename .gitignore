@@ -5,7 +5,7 @@
 /dist/
 /_build/
 **/_build/
-/scripts/self_validation/**/.terlan/
+**/.terlan/
 **/.gradle/
 **/node_modules/
 /editors/intellij/.intellijPlatform/

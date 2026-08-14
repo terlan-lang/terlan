@@ -7,21 +7,31 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "rust-toolchain.toml"
+      - "rustfmt.toml"
+      - ".gitignore"
+      - "benchmarks/**"
+      - "build/**"
       - "crates/**"
+      - "mk/**"
+      - "proofs/**"
       - "std/**"
       - "editors/**"
       - "tree-sitter-terlan/**"
       - "tests/**"
-      - "docs/grammar/**"
-      - "docs/release/evidence/**"
-      - "docs/roadmap/**"
+      - "docs/**"
       - "tools/**"
       - "scripts/**"
       - "install.sh"
       - "install.ps1"
       - "Makefile"
       - ".github/workflows/ci.yml"
+      - ".github/workflows/docs.yml"
       - ".github/workflows/release.yml"
+      - ".github/workflows/security.yml"
+      - ".github/actions/**"
+      - ".github/actionlint.yml"
+      - ".github/dependabot.yml"
+      - ".github/WORKFLOWS.md"
   push:
     branches:
       - main
@@ -30,36 +40,93 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "rust-toolchain.toml"
+      - "rustfmt.toml"
+      - ".gitignore"
+      - "benchmarks/**"
+      - "build/**"
       - "crates/**"
+      - "mk/**"
+      - "proofs/**"
       - "std/**"
       - "editors/**"
       - "tree-sitter-terlan/**"
       - "tests/**"
-      - "docs/grammar/**"
-      - "docs/release/evidence/**"
-      - "docs/roadmap/**"
+      - "docs/**"
       - "tools/**"
       - "scripts/**"
       - "install.sh"
       - "install.ps1"
       - "Makefile"
       - ".github/workflows/ci.yml"
+      - ".github/workflows/docs.yml"
       - ".github/workflows/release.yml"
+      - ".github/workflows/security.yml"
+      - ".github/actions/**"
+      - ".github/actionlint.yml"
+      - ".github/dependabot.yml"
+      - ".github/WORKFLOWS.md"
 
 permissions:
   contents: read
 
+concurrency:
+  group: compiler-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  accelerator-cpu-contract:
-    name: Accelerator CPU-only contract
+  dependency-audit:
+    name: Rust dependency security audit
     runs-on: ubuntu-24.04
+    if: ${{ !startsWith(github.head_ref || github.ref_name, 'release-validation/') }}
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Install Rust toolchain
-        run: rustup toolchain install stable --profile minimal
+        uses: ./.github/actions/setup-rust
+
+      - name: Audit locked dependencies
+        uses: ./.github/actions/security-audit
+
+  workflow-contract:
+    name: Workflow syntax and release contract
+    runs-on: ubuntu-24.04
+    if: ${{ !startsWith(github.head_ref || github.ref_name, 'release-validation/') }}
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Validate build and release contracts
+        run: bash scripts/check_build_release_contract.sh
+
+      - name: Validate workflow syntax
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml
+
+  accelerator-cpu-contract:
+    name: Accelerator CPU-only contract
+    runs-on: ubuntu-24.04
+    if: ${{ !startsWith(github.head_ref || github.ref_name, 'release-validation/') }}
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        uses: ./.github/actions/setup-rust
+
+      - name: Install native build dependencies
+        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
 
       - name: Prove accelerator support is absent from the CPU language and runtime boundary
         run: make accelerator-hard-contract-check
@@ -70,6 +137,8 @@ jobs:
   direct-aot-platform:
     name: Direct AOT (${{ matrix.target }})
     runs-on: ${{ matrix.runner }}
+    if: ${{ !startsWith(github.head_ref || github.ref_name, 'release-validation/') }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -89,11 +158,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Install Linux native dependencies
         if: startsWith(matrix.target, 'linux-')
-        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config
+        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
 
       - name: Install macOS native dependencies
         if: startsWith(matrix.target, 'macos-')
@@ -111,7 +182,7 @@ jobs:
           } else {
             "x64-windows"
           }
-          choco install pkgconfiglite --yes --no-progress
+          choco install make pkgconfiglite --yes --no-progress
           & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install "libpq:$triplet"
           $installed = Join-Path $env:VCPKG_INSTALLATION_ROOT "installed\$triplet"
           $installedBin = Join-Path $installed "bin"
@@ -121,7 +192,7 @@ jobs:
             Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Install Rust toolchain
-        run: rustup toolchain install stable --profile minimal
+        uses: ./.github/actions/setup-rust
 
       - name: Validate target-native AOT consumers
         run: make tvm-aot-platform-target-check
@@ -132,7 +203,7 @@ jobs:
         run: cargo test --locked --no-default-features --features native-codegen -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test -- --nocapture
 
       - name: Upload target execution attestation
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tvm-aot-platform-${{ matrix.target }}
           path: target/quality/tvm-aot-platform/${{ matrix.target }}.json
@@ -142,13 +213,23 @@ jobs:
     name: Direct AOT platform matrix
     runs-on: ubuntu-24.04
     needs: direct-aot-platform
+    if: ${{ !startsWith(github.head_ref || github.ref_name, 'release-validation/') }}
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install native build dependencies
+        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
+
+      - name: Install Rust toolchain
+        uses: ./.github/actions/setup-rust
 
       - name: Download target execution attestations
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: tvm-aot-platform-*
           path: target/quality/tvm-aot-platform-input
@@ -160,7 +241,7 @@ jobs:
           TERLAN_TVM_PLATFORM_REPORT_ROOT: target/quality/tvm-aot-platform-input
 
       - name: Upload aggregate evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tvm-aot-platform-matrix
           path: target/quality/tvm-aot-platform-matrix-report.json
@@ -170,19 +251,30 @@ jobs:
   aot-thread-sanitizer:
     name: Direct AOT ThreadSanitizer
     runs-on: ubuntu-24.04
+    if: ${{ !startsWith(github.head_ref || github.ref_name, 'release-validation/') }}
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install native build dependencies
+        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
 
       - name: Install pinned Rust ThreadSanitizer toolchain
-        run: rustup toolchain install nightly-2026-07-16 --profile minimal --component rust-src
+        run: |
+          rustup toolchain install nightly-2026-07-16 --profile minimal --component rust-src
+
+      - name: Install workspace Rust toolchain and cache Cargo inputs
+        uses: ./.github/actions/setup-rust
 
       - name: Validate thread-neutral AOT runtime
         run: make tvm-aot-thread-sanitizer-check
 
       - name: Upload ThreadSanitizer evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tvm-aot-thread-sanitizer
           path: target/quality/tvm-aot-thread-sanitizer-report.json
@@ -192,19 +284,28 @@ jobs:
   multicore-thread-sanitizer:
     name: VM multicore ThreadSanitizer
     runs-on: ubuntu-24.04
+    if: ${{ !startsWith(github.head_ref || github.ref_name, 'release-validation/') }}
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install native build dependencies
+        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
 
       - name: Install pinned Rust ThreadSanitizer target
-        run: rustup toolchain install 1.96.0 --profile minimal --target x86_64-unknown-linux-gnutsan
+        uses: ./.github/actions/setup-rust
+        with:
+          targets: x86_64-unknown-linux-gnutsan
 
       - name: Validate multicore VM memory safety
         run: make vm-multicore-thread-sanitizer-check
 
       - name: Upload multicore ThreadSanitizer evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: vm-multicore-thread-sanitizer
           path: |
@@ -213,20 +314,26 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-  # Non-AOT feature jobs are intentionally paused during the hard AOT cutover.
-  # cpp-metadata-extractor:
-  #   ...
-
   check:
     name: Compiler check and test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    if: ${{ !startsWith(github.head_ref || github.ref_name, 'release-validation/') }}
+    timeout-minutes: 120
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install native build dependencies
+        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
 
       - name: Install Rust toolchain
-        run: rustup toolchain install stable --profile minimal
+        uses: ./.github/actions/setup-rust
+
+      - name: Measure canonical build artifacts before bootstrapping validators
+        run: make build-artifact-budget-record
 
       - name: Validate MC-9 evidence contract
         run: make vm-multicore-mc9-evidence-contract-check
@@ -236,7 +343,7 @@ jobs:
 
       - name: Upload failure evidence
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: compiler-ci-failure-${{ github.run_id }}
           path: |

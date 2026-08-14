@@ -6,6 +6,7 @@ fn render_multi_helper_match_arm(
     symbol: &CSymbol,
 ) -> Result<String, String> {
     let is_resource = |name: &str| binding_type(manifest, name).is_some();
+    let resource_list = |name: &str| list_binding_type(manifest, name);
     let patterns = function
         .args
         .iter()
@@ -25,6 +26,10 @@ fn render_multi_helper_match_arm(
             )),
             "List[Bool]" => Ok(format!(
                 "{} @ (Arg::Bools(_) | Arg::EmptyList)",
+                argument.name
+            )),
+            value if resource_list(value).is_some() => Ok(format!(
+                "{} @ (Arg::Handles(_) | Arg::EmptyList)",
                 argument.name
             )),
             value if is_resource(value) => Ok(format!("Arg::Handle({})", argument.name)),
@@ -48,6 +53,37 @@ fn render_multi_helper_match_arm(
             format!("*{}", argument.name)
         }
     };
+    let argument_binding = |argument: &CAbiBindingArg| {
+        if resource_list(&argument.ty).is_some() {
+            format!("value_{}.as_slice()", argument.name)
+        } else if is_resource(&argument.ty) {
+            format!("value_{}", argument.name)
+        } else {
+            primitive_binding(argument)
+        }
+    };
+    let immutable_resource_borrows = |arguments: &[CAbiBindingArg]| {
+        arguments
+            .iter()
+            .map(|argument| {
+                if is_resource(&argument.ty) {
+                    let accessor = format!("live_{}", argument.ty.to_ascii_lowercase());
+                    format!(
+                        "                let value_{} = match self.{accessor}({}) {{\n                    Ok(value) => value,\n                    Err(error) => return error,\n                }};\n",
+                        argument.name, argument.name
+                    )
+                } else if let Some((_, inner)) = resource_list(&argument.ty) {
+                    let accessor = format!("live_{}", inner.name.to_ascii_lowercase());
+                    format!(
+                        "                let value_{} = {{\n                    let mut values = Vec::new();\n                    for handle in arg_handles({}) {{\n                        let value = match self.{accessor}(handle) {{\n                            Ok(value) => value,\n                            Err(error) => return error,\n                        }};\n                        values.push(value);\n                    }}\n                    values\n                }};\n",
+                        argument.name, argument.name
+                    )
+                } else {
+                    String::new()
+                }
+            })
+            .collect::<String>()
+    };
     let fallible = symbol.error_model == Some(CErrorModel::StatusCode);
     let mut arm = format!(
         "            {:?} => {{\n                let [{}] = request.args.as_slice() else {{\n                    return protocol_error(\"invalid_arguments\", {:?});\n                }};\n",
@@ -66,9 +102,10 @@ fn render_multi_helper_match_arm(
             let bindings = function
                 .args
                 .iter()
-                .map(primitive_binding)
+                .map(argument_binding)
                 .collect::<Vec<_>>()
                 .join(", ");
+            let borrows = immutable_resource_borrows(&function.args);
             if !fallible {
                 return Err(format!(
                     "error[native_bindgen.unsupported_wrapper_shape]: constructor `{}` must report status",
@@ -77,7 +114,7 @@ fn render_multi_helper_match_arm(
             }
             let qualified = qualified_type_name(manifest, &output_ty.name)?;
             arm.push_str(&format!(
-                "                let value = match {}::{}({bindings}) {{\n                    Ok(value) => value,\n                    Err(error) => return native_error(&error),\n                }};\n                let (id, generation) = match self.store_handle(HandleValue::{}(value)) {{\n                    Ok(handle) => handle,\n                    Err(error) => return error,\n                }};\n                format!(\"ok_handle {{}} {{id}} {{generation}} {{}}\", STANDARD.encode(self.owner.as_bytes()), STANDARD.encode({qualified:?}))\n",
+                "{borrows}                let value = match {}::{}({bindings}) {{\n                    Ok(value) => value,\n                    Err(error) => return native_error(&error),\n                }};\n                let (id, generation) = match self.store_handle(HandleValue::{}(value)) {{\n                    Ok(handle) => handle,\n                    Err(error) => return error,\n                }};\n                format!(\"ok_handle {{}} {{id}} {{generation}} {{}}\", STANDARD.encode(self.owner.as_bytes()), STANDARD.encode({qualified:?}))\n",
                 output_ty.name, function.name, output_ty.name
             ));
         }
@@ -170,13 +207,7 @@ fn render_multi_helper_match_arm(
                 .args
                 .iter()
                 .skip(1)
-                .map(|argument| {
-                    if is_resource(&argument.ty) {
-                        format!("value_{}", argument.name)
-                    } else {
-                        primitive_binding(argument)
-                    }
-                })
+                .map(argument_binding)
                 .collect::<Vec<_>>()
                 .join(", ");
             let receiver = &handle_arguments[0].name;
@@ -245,10 +276,26 @@ fn render_multi_helper_match_arm(
             let bindings = function
                 .args
                 .iter()
-                .map(primitive_binding)
+                .map(argument_binding)
                 .collect::<Vec<_>>()
                 .join(", ");
+            let borrows = immutable_resource_borrows(&function.args);
             let call = format!("{}({bindings})", function.name);
+            if let Some((_, output_ty)) = binding_type(manifest, &function.returns) {
+                if !fallible {
+                    return Err(format!(
+                        "error[native_bindgen.unsupported_wrapper_shape]: handle-returning free function `{}` must be fallible",
+                        function.name
+                    ));
+                }
+                let qualified = qualified_type_name(manifest, &output_ty.name)?;
+                arm.push_str(&format!(
+                    "{borrows}                let value = match {call} {{\n                    Ok(value) => value,\n                    Err(error) => return native_error(&error),\n                }};\n                let (id, generation) = match self.store_handle(HandleValue::{}(value)) {{\n                    Ok(handle) => handle,\n                    Err(error) => return error,\n                }};\n                format!(\"ok_handle {{}} {{id}} {{generation}} {{}}\", STANDARD.encode(self.owner.as_bytes()), STANDARD.encode({qualified:?}))\n",
+                    output_ty.name
+                ));
+                arm.push_str("            }\n");
+                return Ok(arm);
+            }
             let success = match (function.returns.as_str(), fallible) {
                 ("Int", false) => format!("format!(\"ok_int {{}}\", {call})"),
                 ("Float", false) => format!("format!(\"ok_float {{}}\", {call})"),
@@ -268,7 +315,7 @@ fn render_multi_helper_match_arm(
                 ("Unit", true) => format!("match {call} {{ Ok(()) => \"ok_unit\".to_string(), Err(error) => native_error(&error) }}"),
                 (value, _) => return Err(format!("error[native_bindgen.unsupported_terlan_type]: helper return `{value}`")),
             };
-            arm.push_str(&format!("                {success}\n"));
+            arm.push_str(&format!("{borrows}                {success}\n"));
         }
         CAbiFunctionRole::Dispose => {
             let handle = function.args.first().ok_or_else(|| {
@@ -504,6 +551,7 @@ enum Arg {
     Ints(Vec<i64>),
     Floats(Vec<f64>),
     Bools(Vec<bool>),
+    Handles(Vec<HandleArg>),
     EmptyList,
     Handle(HandleArg),
 }
@@ -721,19 +769,33 @@ fn parse_arg(value: &str) -> Result<Arg, String> {
             .collect::<Result<Vec<_>, _>>()
             .map(Arg::Bools);
     }
+    if let Some(value) = value.strip_prefix("lh:") {
+        if value.is_empty() {
+            return Ok(Arg::Handles(Vec::new()));
+        }
+        return value
+            .split(',')
+            .map(parse_handle_arg)
+            .collect::<Result<Vec<_>, _>>()
+            .map(Arg::Handles);
+    }
     if let Some(value) = value.strip_prefix("h:") {
-        let fields = value.split(':').collect::<Vec<_>>();
-        let [owner, id, generation, type_name] = fields.as_slice() else {
-            return Err(protocol_error("invalid_argument", "malformed handle"));
-        };
-        return Ok(Arg::Handle(HandleArg {
-            owner: decode_text(owner)?,
-            id: id.parse().map_err(|error: std::num::ParseIntError| protocol_error("invalid_argument", &error.to_string()))?,
-            generation: generation.parse().map_err(|error: std::num::ParseIntError| protocol_error("invalid_argument", &error.to_string()))?,
-            type_name: decode_text(type_name)?,
-        }));
+        return parse_handle_arg(value).map(Arg::Handle);
     }
     Err(protocol_error("invalid_argument", "unsupported argument encoding"))
+}
+
+fn parse_handle_arg(value: &str) -> Result<HandleArg, String> {
+    let fields = value.split(':').collect::<Vec<_>>();
+    let [owner, id, generation, type_name] = fields.as_slice() else {
+        return Err(protocol_error("invalid_argument", "malformed handle"));
+    };
+    Ok(HandleArg {
+        owner: decode_text(owner)?,
+        id: id.parse().map_err(|error: std::num::ParseIntError| protocol_error("invalid_argument", &error.to_string()))?,
+        generation: generation.parse().map_err(|error: std::num::ParseIntError| protocol_error("invalid_argument", &error.to_string()))?,
+        type_name: decode_text(type_name)?,
+    })
 }
 
 fn decode_text(value: &str) -> Result<String, String> {
@@ -768,6 +830,14 @@ fn arg_bools(value: &Arg) -> &[bool] {
     }
 }
 
+fn arg_handles(value: &Arg) -> &[HandleArg] {
+    match value {
+        Arg::Handles(values) => values.as_slice(),
+        Arg::EmptyList => &[],
+        _ => unreachable!("generated argument pattern admits only resource lists"),
+    }
+}
+
 fn validate_decoded_arg_shape(value: &Arg) {
     match value {
         Arg::Int(value) => { let _ = value; }
@@ -778,6 +848,7 @@ fn validate_decoded_arg_shape(value: &Arg) {
         Arg::Ints(_) => { let _ = arg_ints(value); }
         Arg::Floats(_) => { let _ = arg_floats(value); }
         Arg::Bools(_) => { let _ = arg_bools(value); }
+        Arg::Handles(_) => { let _ = arg_handles(value); }
         Arg::EmptyList => {}
         Arg::Handle(value) => { let _ = value; }
     }

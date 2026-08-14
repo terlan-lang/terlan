@@ -5,7 +5,7 @@ module installer_contract.Main.
 
 import installer_contract.ReleaseArtifact.
 import std.collections.List.
-import std.core.Option.{Some}.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.crypto.Hash.
@@ -390,45 +390,114 @@ write_fixture_files(
     rollback: Bool,
 ): Bool ->
     case files {
-        [] -> create_fixture_archive(root, workspace, stage, release, item, remaining, rollback);
+        [] ->
+            finalize_fixture_archive(
+                root,
+                workspace,
+                stage,
+                release,
+                item,
+                compiler_exit,
+                remaining,
+                rollback,
+            );
         [file | rest] ->
             let path = child(stage, file.relative);
             case write_text(path, file.contents) {
                 Ok(Unit) ->
-                    if {
-                        file.executable -> case set_executable(path, true) {
-                            Ok(Unit) ->
-                                write_fixture_files(
-                                    root,
-                                    workspace,
-                                    stage,
-                                    release,
-                                    item,
-                                    compiler_exit,
-                                    rest,
-                                    remaining,
-                                    rollback,
-                                );
-                            Err(_reason) ->
-                                cleanup(
-                                    workspace,
-                                    fail(String.append("could not mark executable ", file.relative)),
-                                )
-                        };
-                        true -> write_fixture_files(
-                            root,
-                            workspace,
-                            stage,
-                            release,
-                            item,
-                            compiler_exit,
-                            rest,
-                            remaining,
-                            rollback,
-                        )
-                    };
+                    continue_fixture_file(
+                        root,
+                        workspace,
+                        stage,
+                        release,
+                        item,
+                        compiler_exit,
+                        path,
+                        file,
+                        rest,
+                        remaining,
+                        rollback,
+                    );
                 Err(_reason) ->
                     cleanup(workspace, fail(String.append("could not write ", file.relative)))
+            }
+    }.
+
+finalize_fixture_archive(
+    root: String,
+    workspace: String,
+    stage: String,
+    release: String,
+    item: InstallerCase,
+    compiler_exit: Int,
+    remaining: List[InstallerCase],
+    rollback: Bool,
+): Bool ->
+    if {
+        not write_internal_checksums(stage, fixture_files(compiler_exit)) -> cleanup(workspace, fail("could not write internal fixture checksums"));
+        true -> create_fixture_archive(root, workspace, stage, release, item, remaining, rollback)
+    }.
+
+continue_fixture_file(
+    root: String,
+    workspace: String,
+    stage: String,
+    release: String,
+    item: InstallerCase,
+    compiler_exit: Int,
+    path: String,
+    file: FixtureFile,
+    rest: List[FixtureFile],
+    remaining: List[InstallerCase],
+    rollback: Bool,
+): Bool ->
+    case set_executable(path, file.executable) {
+        Ok(Unit) ->
+            write_fixture_files(
+                root,
+                workspace,
+                stage,
+                release,
+                item,
+                compiler_exit,
+                rest,
+                remaining,
+                rollback,
+            );
+        Err(_reason) ->
+            cleanup(
+                workspace,
+                fail(String.append("could not set executable policy for ", file.relative)),
+            )
+    }.
+
+write_internal_checksums(stage: String, files: List[FixtureFile]): Bool ->
+    case internal_checksum_rows(stage, files, "") {
+        None -> false;
+        Some(rows) -> write_internal_checksum_text(stage, rows)
+    }.
+
+write_internal_checksum_text(stage: String, rows: String): Bool ->
+    case write_text(child(stage, "SHA256SUMS"), rows) {
+        Err(_reason) -> false;
+        Ok(Unit) -> true
+    }.
+
+internal_checksum_rows(stage: String, files: List[FixtureFile], output: String): Option[String] ->
+    case files {
+        [] -> Some(output);
+        [file | rest] ->
+            if {
+                file.relative == "SHA256SUMS" -> internal_checksum_rows(stage, rest, output);
+                true -> case Hash.sha256_file(child(stage, file.relative)) {
+                    Err(_reason) -> None;
+                    Ok(digest) ->
+                        internal_checksum_rows(
+                            stage,
+                            rest,
+                            String.concat([output, digest, "  ", file.relative, "\n"]),
+                        )
+                }
             }
     }.
 
@@ -716,39 +785,58 @@ write_bad_fixture_files(
     files: List[FixtureFile],
 ): Bool ->
     case files {
-        [] -> create_bad_rollback_archive(root, workspace, stage, release, item, install, baseline);
+        [] ->
+            finalize_bad_fixture_archive(root, workspace, stage, release, item, install, baseline);
         [file | rest] ->
             let path = child(stage, file.relative);
             case write_text(path, file.contents) {
                 Ok(Unit) ->
-                    if {
-                        file.executable -> case set_executable(path, true) {
-                            Ok(Unit) ->
-                                write_bad_fixture_files(
-                                    root,
-                                    workspace,
-                                    stage,
-                                    release,
-                                    item,
-                                    install,
-                                    baseline,
-                                    rest,
-                                );
-                            _ -> cleanup(workspace, false)
-                        };
-                        true -> write_bad_fixture_files(
-                            root,
-                            workspace,
-                            stage,
-                            release,
-                            item,
-                            install,
-                            baseline,
-                            rest,
-                        )
-                    };
-                _ -> cleanup(workspace, false)
+                    continue_bad_fixture_file(
+                        root,
+                        workspace,
+                        stage,
+                        release,
+                        item,
+                        install,
+                        baseline,
+                        path,
+                        file,
+                        rest,
+                    );
+                Err(_reason) -> cleanup(workspace, false)
             }
+    }.
+
+finalize_bad_fixture_archive(
+    root: String,
+    workspace: String,
+    stage: String,
+    release: String,
+    item: InstallerCase,
+    install: String,
+    baseline: String,
+): Bool ->
+    if {
+        not write_internal_checksums(stage, fixture_files(9)) -> cleanup(workspace, false);
+        true -> create_bad_rollback_archive(root, workspace, stage, release, item, install, baseline)
+    }.
+
+continue_bad_fixture_file(
+    root: String,
+    workspace: String,
+    stage: String,
+    release: String,
+    item: InstallerCase,
+    install: String,
+    baseline: String,
+    path: String,
+    file: FixtureFile,
+    rest: List[FixtureFile],
+): Bool ->
+    case set_executable(path, file.executable) {
+        Ok(Unit) ->
+            write_bad_fixture_files(root, workspace, stage, release, item, install, baseline, rest);
+        Err(_reason) -> cleanup(workspace, false)
     }.
 
 create_bad_rollback_archive(
@@ -829,9 +917,22 @@ pub windows_installer_retains_the_required_static_contract(): Bool ->
                     "Version = \"v0.0.7\"",
                     "terlc-windows-$terlanArch.zip",
                     "Invoke-WebRequest",
+                    "Invoke-TerlanDownload",
+                    "TimeoutSec 600",
+                    "SecurityProtocolType]::Tls12",
+                    "release URL must use https:// or file://",
+                    "invalid SHA-256 file",
                     "Expand-Archive",
                     "TERLAN_INSTALL_DRY_RUN",
                     "Get-FileHash",
+                    "System.IO.Compression.ZipFile",
+                    "release artifact contains a symbolic link",
+                    "release artifact contains a duplicate path",
+                    "release artifact contains a special filesystem entry",
+                    "SHA256SUMS contains an unsafe path",
+                    "SHA256SUMS contains a duplicate path",
+                    "internal checksum verification failed",
+                    "must not be a filesystem root",
                     "\"Arm64\"",
                     "shareSource",
                     "terlc.exe",

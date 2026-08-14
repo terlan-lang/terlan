@@ -118,11 +118,25 @@ pub(super) fn validate_rust_extension(
             ));
         }
     }
-    for (name, version) in &extension.dependencies {
+    for (name, dependency) in &extension.dependencies {
         validate_cargo_package_name(name)?;
+        let (version, features) = match dependency {
+            CAbiRustDependency::Version(version) => (version, &[][..]),
+            CAbiRustDependency::Detailed {
+                version, features, ..
+            } => (version, features.as_slice()),
+        };
         if !is_pinned_cargo_version(version) {
             return Err(format!(
                 "C ABI package Rust dependency `{name}` must use an exact stable x.y.z version; found `{version}`"
+            ));
+        }
+        if features
+            .iter()
+            .any(|feature| feature.is_empty() || feature.chars().any(char::is_whitespace))
+        {
+            return Err(format!(
+                "C ABI package Rust dependency `{name}` contains an invalid Cargo feature"
             ));
         }
     }

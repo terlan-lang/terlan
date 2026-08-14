@@ -1,9 +1,0 @@
-module html_lists.
-
-pub type User =
-    {name, Text}.
-
-pub body(Users: List[User]): Html[none].
-
-pub user_name(User: User): Text.
-

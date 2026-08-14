@@ -1,0 +1,44 @@
+name: Set up pinned Rust
+description: Install the requested Rust toolchain and cache immutable Cargo inputs.
+
+inputs:
+  toolchain:
+    description: Exact Rust toolchain version.
+    required: false
+    default: 1.96.0
+  targets:
+    description: Comma-separated rustup targets.
+    required: false
+    default: ""
+  components:
+    description: Comma-separated rustup components.
+    required: false
+    default: rustfmt,clippy,rust-src,llvm-tools-preview
+
+runs:
+  using: composite
+  steps:
+    - name: Cache Cargo registry inputs
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: |
+          ~/.cargo/registry/index
+          ~/.cargo/registry/cache
+          ~/.cargo/git/db
+        key: terlan-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock') }}
+
+    - name: Install exact Rust toolchain
+      shell: bash
+      env:
+        TERLAN_RUST_TOOLCHAIN: ${{ inputs.toolchain }}
+        TERLAN_RUST_TARGETS: ${{ inputs.targets }}
+        TERLAN_RUST_COMPONENTS: ${{ inputs.components }}
+      run: |
+        arguments=(toolchain install "$TERLAN_RUST_TOOLCHAIN" --profile minimal)
+        if [[ -n "$TERLAN_RUST_TARGETS" ]]; then
+          arguments+=(--target "$TERLAN_RUST_TARGETS")
+        fi
+        if [[ -n "$TERLAN_RUST_COMPONENTS" ]]; then
+          arguments+=(--component "$TERLAN_RUST_COMPONENTS")
+        fi
+        rustup "${arguments[@]}"

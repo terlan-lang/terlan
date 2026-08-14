@@ -5,6 +5,35 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$ProgressPreference = "SilentlyContinue"
+if ($PSVersionTable.PSEdition -eq "Desktop") {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+}
+
+function Invoke-TerlanDownload {
+    param(
+        [Parameter(Mandatory = $true)][string]$Uri,
+        [Parameter(Mandatory = $true)][string]$Destination
+    )
+
+    $parsed = [System.Uri]$Uri
+    if ($parsed.IsFile) {
+        Copy-Item -Path $parsed.LocalPath -Destination $Destination -Force
+        return
+    }
+    for ($attempt = 1; $attempt -le 4; $attempt++) {
+        try {
+            Invoke-WebRequest -Uri $Uri -OutFile $Destination -TimeoutSec 600 -UseBasicParsing
+            return
+        }
+        catch {
+            if ($attempt -eq 4) {
+                throw
+            }
+            Start-Sleep -Seconds (2 * $attempt)
+        }
+    }
+}
 
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = "v0.0.7"
@@ -12,6 +41,16 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
 
 if ([string]::IsNullOrWhiteSpace($InstallDir)) {
     $InstallDir = Join-Path $env:LOCALAPPDATA "Programs\Terlan\bin"
+}
+
+if ($Version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:[-.][0-9A-Za-z.-]+)?$') {
+    throw "invalid Terlan release version: $Version"
+}
+
+$InstallDir = [System.IO.Path]::GetFullPath($InstallDir)
+$installRoot = [System.IO.Path]::GetPathRoot($InstallDir)
+if ($InstallDir.TrimEnd('\') -eq $installRoot.TrimEnd('\')) {
+    throw "TERLAN_INSTALL_DIR must not be a filesystem root: $InstallDir"
 }
 
 $releaseBaseUrl = $env:TERLAN_RELEASE_BASE_URL
@@ -38,6 +77,10 @@ switch ($architecture.ToString()) {
 
 $artifact = "terlc-windows-$terlanArch.zip"
 $url = "$releaseBaseUrl/$Version/$artifact"
+$releaseUri = [System.Uri]$url
+if ($releaseUri.Scheme -notin @("https", "file")) {
+    throw "release URL must use https:// or file://: $url"
+}
 
 if ($DryRun -or $env:TERLAN_INSTALL_DRY_RUN -eq "1") {
     "version=$Version"
@@ -55,19 +98,41 @@ New-Item -ItemType Directory -Path $tmpDir | Out-Null
 try {
     $archive = Join-Path $tmpDir $artifact
     $checksumFile = "$archive.sha256"
-    if ($url.StartsWith("file://")) {
-        $localArtifact = ([System.Uri]$url).LocalPath
-        Copy-Item -Path $localArtifact -Destination $archive -Force
-        Copy-Item -Path "$localArtifact.sha256" -Destination $checksumFile -Force
+    Invoke-TerlanDownload -Uri $url -Destination $archive
+    Invoke-TerlanDownload -Uri "$url.sha256" -Destination $checksumFile
+    $checksumRows = @(Get-Content $checksumFile)
+    if ($checksumRows.Count -ne 1 -or $checksumRows[0] -notmatch '^([0-9a-fA-F]{64})  ([^/\\]+)$' -or $Matches[2] -ne $artifact) {
+        throw "invalid SHA-256 file for $artifact"
     }
-    else {
-        Invoke-WebRequest -Uri $url -OutFile $archive
-        Invoke-WebRequest -Uri "$url.sha256" -OutFile $checksumFile
-    }
-    $expectedChecksum = ((Get-Content $checksumFile -Raw).Trim() -split '\s+')[0].ToLowerInvariant()
+    $expectedChecksum = $Matches[1].ToLowerInvariant()
     $actualChecksum = (Get-FileHash -Path $archive -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($actualChecksum -ne $expectedChecksum) {
         throw "checksum verification failed for $artifact"
+    }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archiveHandle = [System.IO.Compression.ZipFile]::OpenRead($archive)
+    try {
+        $destinationRoot = [System.IO.Path]::GetFullPath($tmpDir).TrimEnd('\') + '\'
+        $archivePaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        foreach ($entry in $archiveHandle.Entries) {
+            $destination = [System.IO.Path]::GetFullPath((Join-Path $tmpDir $entry.FullName))
+            if (-not $destination.StartsWith($destinationRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw "release artifact contains an unsafe path: $($entry.FullName)"
+            }
+            if (-not $archivePaths.Add($destination)) {
+                throw "release artifact contains a duplicate path: $($entry.FullName)"
+            }
+            $unixFileType = (($entry.ExternalAttributes -shr 16) -band 0xF000)
+            if ($unixFileType -eq 0xA000) {
+                throw "release artifact contains a symbolic link: $($entry.FullName)"
+            }
+            if ($unixFileType -notin @(0, 0x4000, 0x8000)) {
+                throw "release artifact contains a special filesystem entry: $($entry.FullName)"
+            }
+        }
+    }
+    finally {
+        $archiveHandle.Dispose()
     }
     Expand-Archive -Path $archive -DestinationPath $tmpDir -Force
 
@@ -92,6 +157,37 @@ try {
         if (-not (Test-Path (Join-Path $shareSource $required))) {
             throw "release artifact $artifact did not contain share/terlan/$required"
         }
+    }
+    $internalChecksums = Join-Path $tmpDir "SHA256SUMS"
+    if (-not (Test-Path $internalChecksums -PathType Leaf)) {
+        throw "release artifact $artifact did not contain SHA256SUMS"
+    }
+    $checksumPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    $checksumCount = 0
+    foreach ($line in Get-Content $internalChecksums) {
+        if ($line -notmatch '^([0-9a-fA-F]{64})  (.+)$') {
+            throw "release artifact contains an invalid SHA256SUMS row"
+        }
+        $relative = $Matches[2].Replace('/', [System.IO.Path]::DirectorySeparatorChar)
+        $candidate = [System.IO.Path]::GetFullPath((Join-Path $tmpDir $relative))
+        $root = [System.IO.Path]::GetFullPath($tmpDir).TrimEnd('\') + '\'
+        if (-not $candidate.StartsWith($root, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "SHA256SUMS contains an unsafe path: $relative"
+        }
+        if (-not (Test-Path $candidate -PathType Leaf)) {
+            throw "SHA256SUMS references a missing file: $relative"
+        }
+        if (-not $checksumPaths.Add($relative)) {
+            throw "SHA256SUMS contains a duplicate path: $relative"
+        }
+        $internalActual = (Get-FileHash -Path $candidate -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($internalActual -ne $Matches[1].ToLowerInvariant()) {
+            throw "internal checksum verification failed for $relative"
+        }
+        $checksumCount++
+    }
+    if ($checksumCount -eq 0) {
+        throw "release artifact contains an empty SHA256SUMS manifest"
     }
 
     $prefix = Split-Path -Parent $InstallDir

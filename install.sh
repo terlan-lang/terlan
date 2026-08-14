@@ -8,6 +8,44 @@ RELEASE_BASE_URL="${TERLAN_RELEASE_BASE_URL:-https://github.com/terlan-lang/terl
 DETECTED_OS="${TERLAN_INSTALL_OS:-$(uname -s)}"
 DETECTED_ARCH="${TERLAN_INSTALL_ARCH:-$(uname -m)}"
 
+if ! printf '%s\n' "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$'; then
+  echo "invalid Terlan release version: $VERSION" >&2
+  exit 1
+fi
+
+case "$INSTALL_DIR" in
+  /*) ;;
+  *)
+    echo "TERLAN_INSTALL_DIR must be an absolute path: $INSTALL_DIR" >&2
+    exit 1
+    ;;
+esac
+case "$SHARE_DIR" in
+  /*) ;;
+  *)
+    echo "TERLAN_INSTALL_SHARE_DIR must be an absolute path: $SHARE_DIR" >&2
+    exit 1
+    ;;
+esac
+for destination in "$INSTALL_DIR" "$SHARE_DIR"; do
+  case "$destination" in
+    *//*|*/|*/./*|*/.|*/../*|*/..)
+      echo "installer destinations must not contain redundant or parent path segments: $destination" >&2
+      exit 1
+      ;;
+  esac
+done
+if [ "$INSTALL_DIR" = "/" ] || [ "$SHARE_DIR" = "/" ] || [ "$INSTALL_DIR" = "$SHARE_DIR" ]; then
+  echo "installer destinations must be distinct, non-root directories" >&2
+  exit 1
+fi
+case "$INSTALL_DIR/" in
+  "$SHARE_DIR/"*)
+    echo "TERLAN_INSTALL_SHARE_DIR must not contain TERLAN_INSTALL_DIR" >&2
+    exit 1
+    ;;
+esac
+
 case "$DETECTED_OS" in
   Linux)
     TERLAN_OS="linux"
@@ -49,7 +87,6 @@ if [ "${TERLAN_INSTALL_DRY_RUN:-0}" = "1" ]; then
   exit 0
 fi
 
-TMP_DIR="$(mktemp -d)"
 USE_SUDO=0
 if ! mkdir -p "$INSTALL_DIR" "$SHARE_DIR" 2>/dev/null; then
   USE_SUDO=1
@@ -61,6 +98,20 @@ as_root() {
     "$@"
   fi
 }
+as_root mkdir -p "$INSTALL_DIR" "$SHARE_DIR"
+INSTALL_DIR="$(cd "$INSTALL_DIR" && pwd -P)"
+SHARE_DIR="$(cd "$SHARE_DIR" && pwd -P)"
+if [ "$INSTALL_DIR" = "/" ] || [ "$SHARE_DIR" = "/" ] || [ "$INSTALL_DIR" = "$SHARE_DIR" ]; then
+  echo "resolved installer destinations must be distinct, non-root directories" >&2
+  exit 1
+fi
+case "$INSTALL_DIR/" in
+  "$SHARE_DIR/"*)
+    echo "resolved TERLAN_INSTALL_SHARE_DIR must not contain TERLAN_INSTALL_DIR" >&2
+    exit 1
+    ;;
+esac
+TMP_DIR="$(mktemp -d)"
 INSTALL_STARTED=0
 HAD_COMPILER=0
 HAD_VM=0
@@ -89,14 +140,59 @@ finish() {
 trap finish EXIT INT TERM
 
 cd "$TMP_DIR"
-curl -fL "$URL" -o "$ARTIFACT"
-curl -fL "$URL.sha256" -o "$ARTIFACT.sha256"
+fetch() {
+  case "$1" in
+    https://*)
+      curl --fail --location --proto '=https' --tlsv1.2 \
+        --retry 4 --retry-all-errors --connect-timeout 15 --max-time 600 \
+        "$1" -o "$2"
+      ;;
+    file://*)
+      curl --fail --location "$1" -o "$2"
+      ;;
+    *)
+      echo "release URL must use https:// or file://: $1" >&2
+      exit 1
+      ;;
+  esac
+}
+fetch "$URL" "$ARTIFACT"
+fetch "$URL.sha256" "$ARTIFACT.sha256"
+expected_checksum="$({
+  awk -v expected="$ARTIFACT" '
+    NF == 2 && length($1) == 64 && $2 == expected && NR == 1 { digest = $1 }
+    END { if (NR == 1 && digest != "") print digest; else exit 1 }
+  ' "$ARTIFACT.sha256"
+} || true)"
+case "$expected_checksum" in
+  *[!0-9a-fA-F]*|'')
+    echo "invalid SHA-256 file for $ARTIFACT" >&2
+    exit 1
+    ;;
+esac
+if [ "${#expected_checksum}" -ne 64 ]; then
+  echo "invalid SHA-256 length for $ARTIFACT" >&2
+  exit 1
+fi
+expected_checksum="$(printf '%s' "$expected_checksum" | tr 'A-F' 'a-f')"
 if command -v sha256sum >/dev/null 2>&1; then
-  sha256sum -c "$ARTIFACT.sha256"
+  actual_checksum="$(sha256sum "$ARTIFACT" | awk '{ print $1 }')"
 elif command -v shasum >/dev/null 2>&1; then
-  shasum -a 256 -c "$ARTIFACT.sha256"
+  actual_checksum="$(shasum -a 256 "$ARTIFACT" | awk '{ print $1 }')"
 else
   echo "installer requires sha256sum or shasum to verify $ARTIFACT" >&2
+  exit 1
+fi
+if [ "$actual_checksum" != "$expected_checksum" ]; then
+  echo "checksum verification failed for $ARTIFACT" >&2
+  exit 1
+fi
+if tar -tzf "$ARTIFACT" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
+  echo "release artifact contains an unsafe path: $ARTIFACT" >&2
+  exit 1
+fi
+if tar -tvzf "$ARTIFACT" | awk 'substr($1, 1, 1) != "-" && substr($1, 1, 1) != "d" { found = 1 } END { exit !found }'; then
+  echo "release artifact contains a link or special filesystem entry: $ARTIFACT" >&2
   exit 1
 fi
 tar -xzf "$ARTIFACT"
@@ -122,6 +218,57 @@ for required in share/terlan/std share/terlan/editors/vscode share/terlan/tree-s
     exit 1
   fi
 done
+internal_paths="$TMP_DIR/internal-checksum-paths"
+: > "$internal_paths"
+internal_count=0
+while IFS= read -r row || [ -n "$row" ]; do
+  digest=${row%%  *}
+  relative=${row#*  }
+  if [ "$digest" = "$row" ] || [ "$relative" = "$row" ]; then
+    echo "release artifact contains an invalid SHA256SUMS row" >&2
+    exit 1
+  fi
+  case "$digest" in
+    *[!0-9a-fA-F]*|'')
+      echo "release artifact contains an invalid SHA256SUMS digest" >&2
+      exit 1
+      ;;
+  esac
+  if [ "${#digest}" -ne 64 ]; then
+    echo "release artifact contains an invalid SHA256SUMS digest length" >&2
+    exit 1
+  fi
+  case "$relative" in
+    ''|/*|../*|*/../*|*/..|..|*\\*)
+      echo "SHA256SUMS contains an unsafe path: $relative" >&2
+      exit 1
+      ;;
+  esac
+  if [ ! -f "$relative" ] || [ -L "$relative" ]; then
+    echo "SHA256SUMS references a missing or unsafe file: $relative" >&2
+    exit 1
+  fi
+  if command -v sha256sum >/dev/null 2>&1; then
+    internal_actual="$(sha256sum "$relative" | awk '{ print $1 }')"
+  else
+    internal_actual="$(shasum -a 256 "$relative" | awk '{ print $1 }')"
+  fi
+  digest="$(printf '%s' "$digest" | tr 'A-F' 'a-f')"
+  if [ "$internal_actual" != "$digest" ]; then
+    echo "internal checksum verification failed for $relative" >&2
+    exit 1
+  fi
+  printf '%s\n' "$relative" >> "$internal_paths"
+  internal_count=$((internal_count + 1))
+done < SHA256SUMS
+if [ "$internal_count" -eq 0 ]; then
+  echo "release artifact contains an empty SHA256SUMS manifest" >&2
+  exit 1
+fi
+if [ -n "$(LC_ALL=C sort "$internal_paths" | uniq -d)" ]; then
+  echo "release artifact contains duplicate SHA256SUMS paths" >&2
+  exit 1
+fi
 
 mkdir -p "$TMP_DIR/backup"
 if [ -f "$INSTALL_DIR/terlc" ]; then cp "$INSTALL_DIR/terlc" "$TMP_DIR/backup/terlc"; HAD_COMPILER=1; fi

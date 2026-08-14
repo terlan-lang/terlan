@@ -392,16 +392,18 @@ pub(super) fn acme_directory_url(provider: ProjectServerTlsProvider) -> &'static
 /// - Non-empty DER certificate chain for rustls.
 ///
 /// Transformation:
-/// - Delegates PEM parsing to `rustls-pemfile` and converts parse/IO failures
-///   into stable serve diagnostics.
+/// - Delegates PEM parsing to the maintained rustls PKI type parser and
+///   converts parse/IO failures into stable serve diagnostics.
 pub(super) fn load_certificate_chain(path: &Path) -> Result<Vec<CertificateDer<'static>>, String> {
-    let file = fs::File::open(path).map_err(|err| {
+    use rustls::pki_types::pem::PemObject;
+
+    let pem = fs::read(path).map_err(|err| {
         format!(
             "error[serve_tls]: failed to open TLS certificate `{}`: {err}",
             path.display()
         )
     })?;
-    let certificates = rustls_pemfile::certs(&mut BufReader::new(file))
+    let certificates = CertificateDer::pem_slice_iter(&pem)
         .collect::<Result<Vec<_>, _>>()
         .map_err(|err| {
             format!(
@@ -428,28 +430,32 @@ pub(super) fn load_certificate_chain(path: &Path) -> Result<Vec<CertificateDer<'
 ///
 /// Transformation:
 /// - Accepts the first supported PKCS#8, PKCS#1, or SEC1 key returned by
-///   `rustls-pemfile`, preserving encrypted-key rejection as a user-facing
-///   runtime diagnostic.
+///   the maintained rustls PKI parser, preserving encrypted-key rejection as a
+///   user-facing runtime diagnostic.
 pub(super) fn load_private_key(path: &Path) -> Result<PrivateKeyDer<'static>, String> {
-    let file = fs::File::open(path).map_err(|err| {
+    use rustls::pki_types::pem::PemObject;
+
+    let pem = fs::read(path).map_err(|err| {
         format!(
             "error[serve_tls]: failed to open TLS private key `{}`: {err}",
             path.display()
         )
     })?;
-    rustls_pemfile::private_key(&mut BufReader::new(file))
-        .map_err(|err| {
-            format!(
-                "error[serve_tls]: failed to parse TLS private key `{}`: {err}",
-                path.display()
-            )
-        })?
-        .ok_or_else(|| {
-            format!(
-                "error[serve_tls]: TLS private key `{}` did not contain a supported unencrypted PEM key",
-                path.display()
-            )
-        })
+    if !pem
+        .windows(b"-----BEGIN".len())
+        .any(|bytes| bytes == b"-----BEGIN")
+    {
+        return Err(format!(
+            "error[serve_tls]: TLS private key `{}` did not contain a supported unencrypted PEM key",
+            path.display()
+        ));
+    }
+    PrivateKeyDer::from_pem_slice(&pem).map_err(|err| {
+        format!(
+            "error[serve_tls]: failed to parse TLS private key `{}`: {err}",
+            path.display()
+        )
+    })
 }
 
 /// Builds a rustls server config.

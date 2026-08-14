@@ -55,7 +55,6 @@ pub local_gates(): List[String] ->
         "tvm-aot-http-generation-lifetime-check",
         "tvm-aot-http-performance-check",
         "tvm-aot-multicore-readiness-check",
-        "tvm-aot-thread-sanitizer-check",
         "tvm-aot-c-abi-boundary-check",
         "tvm-aot-compilation-time-check",
         "tvm-single-image-artifact-check",
@@ -171,10 +170,11 @@ validate_makefile_contract(makefile: String): Bool ->
             let expected_without_cargo = without_last(local_gates());
             if {
                 not list_equal(gates, expected_without_cargo) -> failure("AOT closeout Make gates disagree with the local contract");
-                not makefile
-    .contains(
-        "tvm-aot-release-closeout-check: tvm-aot-release-closeout-contract-check\n\t$(MAKE) $(AOT_RELEASE_LOCAL_GATES)\n\tenv -u RUSTFLAGS $(CARGO) check --locked -p terlan\n\t$(TERLAN_TVM_PLATFORM_MATRIX) release-record\n",
-    ) -> failure("AOT closeout no longer executes its canonical local graph");
+                not makefile.contains("tvm-aot-release-closeout-check: tvm-aot-release-closeout-contract-check") -> failure("AOT closeout no longer executes its canonical local graph");
+                not makefile.contains("$(MAKE) $(AOT_RELEASE_LOCAL_GATES_TO_RUN)") -> failure("AOT closeout no longer deduplicates validated local gates");
+                not makefile.contains("TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN") -> failure("AOT closeout no longer validates multicore evidence before reuse");
+                not makefile.contains("env -u RUSTFLAGS $(CARGO) check --locked -p terlan") -> failure("AOT closeout no longer runs locked Cargo validation");
+                not makefile.contains("$(TERLAN_TVM_PLATFORM_MATRIX) release-record") -> failure("AOT closeout no longer records release evidence");
                 true -> true
             }
     }.

@@ -6,10 +6,13 @@
 TERLC := $(CARGO) run -p terlan --bin terlc --
 EXACT_CARGO_TEST ?= bash scripts/run_exact_cargo_test.sh
 TERLC_EXACT_TEST := $(EXACT_CARGO_TEST) -p terlan --lib
-BROWSER_PACKAGE_PREFLIGHT_DIR ?= /tmp/terlan-0-0-5-browser-preflight
-STATIC_PROFILE_PREFLIGHT_DIR ?= /tmp/terlan_static_preflight
-STATIC_DOCS_PREFLIGHT_DIR ?= /tmp/terlan_static_docs_preflight
-WEB_PROFILE_PREFLIGHT_DIR ?= /tmp/terlan_web_profile_preflight
+TERLAN_TEST_WORKSPACE_ROOT ?= target/test-workspaces
+BROWSER_PACKAGE_PREFLIGHT_DIR ?= $(TERLAN_TEST_WORKSPACE_ROOT)/browser-package-preflight
+STATIC_PROFILE_PREFLIGHT_DIR ?= $(TERLAN_TEST_WORKSPACE_ROOT)/static-profile-preflight
+STATIC_DOCS_PREFLIGHT_DIR ?= $(TERLAN_TEST_WORKSPACE_ROOT)/static-docs-preflight
+WEB_PROFILE_PREFLIGHT_DIR ?= $(TERLAN_TEST_WORKSPACE_ROOT)/web-profile-preflight
+CLI_BUILD_EXECUTABLE_CHECK_DIR ?= $(TERLAN_TEST_WORKSPACE_ROOT)/terlc-build-executable
+CLI_BUILD_EXECUTABLE_HANDOFF_DIR ?= $(TERLAN_TEST_WORKSPACE_ROOT)/terlc-build-executable-handoff
 
 .PHONY: cli-help cli-check cli-build cli-test cli-test-fast cli-test-full cli-test-release cli-release-artifact-current cli-release-artifact-linux cli-clean vm-artifact-check cli-terlc-build-executable-check cli-terlan-vm-compiler-bridge-check browser-package-preflight js-stdlib-smoke-check static-profile-preflight static-docs-check web-profile-preflight serve-static-smoke serve-web-smoke static-command-check http-router-check http-observability-check http-tls-check http-acme-live-check web-compose-check template-contract-check artifact-template-check typed-template-interpolation-check typed-template-interpolation-vm-check typed-template-interpolation-js-check typed-template-interpolation-tooling-check typed-template-interpolation-backend-check function-language-surface-check repeated-let-syntax-check comprehension-guards-check flexible-shape-guards-check private-field-check db-command-check terlc-debugger-check terlc-debugger-selector-inventory native-boundary-postgres-check native-boundary-http-cookie-check native-boundary-postgres-docker-check repl-check sql-form-check sql-runtime-check api-schema-check runtime-release-dependency-check terlan-format-check formatter-pipe-canonicalization-check terlan-lint-style-check terlan-grouped-binding-check terlan-function-reference-check formal-cli-phase-contract-gate formal-cli-build-gate formal-cli-js-gate formal-cli-rust-gate formal-cli-doc-gate formal-cli-a0-50-template-frontend-gate formal-cli-a0-54-constructor-contract-gate formal-cli-a0-55-function-clause-contract-gate formal-cli-a0-56-primary-expression-contract-gate formal-cli-a0-57-keyword-expression-contract-gate formal-cli-a0-58-calls-and-references-contract-gate formal-cli-a0-59-data-form-contract-gate formal-cli-a0-60-pattern-contract-gate formal-cli-a0-61-lexical-and-name-contract-gate formal-cli-a0-62-template-boundary-contract-gate formal-incremental-gate formal-phase-gate formal-directory-phase-gate
 
@@ -437,7 +440,7 @@ cli-release-artifact-linux:
 
 cli-clean:
 	$(CARGO) clean
-	rm -rf dist
+	bash scripts/clean_build_outputs.sh
 
 vm-artifact-check:
 	$(CARGO) build --locked --bin terlan-vm
@@ -445,16 +448,15 @@ vm-artifact-check:
 		--name standalone_vm_runs_source_artifact
 
 cli-terlc-build-executable-check:
-	rm -rf /tmp/terlc_build_executable_check
-	mkdir -p /tmp/terlc_build_executable_check/src/app
-	printf '%s\n' '[package]' 'name = "app"' 'version = "0.0.1"' '' '[build]' 'source_roots = ["src"]' 'artifact = "terlan-vm"' > /tmp/terlc_build_executable_check/terlan.toml
-	printf '%s\n' 'module app.Main.' '' 'import std.io.Console.{println}.' '' 'pub main(): Unit ->' '    println("hello from terlc build executable").' > /tmp/terlc_build_executable_check/src/app/Main.terl
-	target/debug/terlc --out-dir /tmp/terlc_build_executable_check/_build build /tmp/terlc_build_executable_check
-	test -x /tmp/terlc_build_executable_check/_build/bin/app
-	test -x /tmp/terlc_build_executable_check/_build/bin/terlan-vm
-	rm -rf /tmp/terlc_build_executable_handoff
-	cp -a /tmp/terlc_build_executable_check/_build /tmp/terlc_build_executable_handoff
-	build_output="$$(env -u TERLAN_VM_RUNNER PATH=/usr/bin:/bin /tmp/terlc_build_executable_handoff/bin/app)"; \
+	rm -rf $(CLI_BUILD_EXECUTABLE_CHECK_DIR) $(CLI_BUILD_EXECUTABLE_HANDOFF_DIR)
+	mkdir -p $(CLI_BUILD_EXECUTABLE_CHECK_DIR)/src/app
+	printf '%s\n' '[package]' 'name = "app"' 'version = "0.0.1"' '' '[build]' 'source_roots = ["src"]' 'artifact = "terlan-vm"' > $(CLI_BUILD_EXECUTABLE_CHECK_DIR)/terlan.toml
+	printf '%s\n' 'module app.Main.' '' 'import std.io.Console.{println}.' '' 'pub main(): Unit ->' '    println("hello from terlc build executable").' > $(CLI_BUILD_EXECUTABLE_CHECK_DIR)/src/app/Main.terl
+	target/debug/terlc --out-dir $(CLI_BUILD_EXECUTABLE_CHECK_DIR)/_build build $(CLI_BUILD_EXECUTABLE_CHECK_DIR)
+	test -x $(CLI_BUILD_EXECUTABLE_CHECK_DIR)/_build/bin/app
+	test -x $(CLI_BUILD_EXECUTABLE_CHECK_DIR)/_build/bin/terlan-vm
+	cp -a $(CLI_BUILD_EXECUTABLE_CHECK_DIR)/_build $(CLI_BUILD_EXECUTABLE_HANDOFF_DIR)
+	build_output="$$(env -u TERLAN_VM_RUNNER PATH=/usr/bin:/bin $(CLI_BUILD_EXECUTABLE_HANDOFF_DIR)/bin/app)"; \
 	if [ "$$build_output" != "hello from terlc build executable" ]; then \
 		printf '%s\n' "terlc build executable check failed"; \
 		printf '%s\n' "$$build_output"; \

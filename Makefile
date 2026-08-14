@@ -1,8 +1,11 @@
-CARGO := cargo
+CARGO := cargo --locked
 RUST_TEST := $(CARGO) test
 EXACT_CARGO_TEST := bash scripts/run_exact_cargo_test.sh
 TERLAN_BOOTSTRAP_COMPILER := target/debug/terlc
 TERLAN_BOOTSTRAP_VM := target/debug/terlan-vm
+TERLAN_TYPED_VALIDATOR_BUILD := bash scripts/build_typed_validator.sh
+TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT := target/self-validation/typed-validator-common.inputs.sha256
+TERLAN_TYPED_VALIDATOR_COMMON_INPUTS := $(TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT)
 TERLAN_SELF_VALIDATION_IMAGE := _build/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm
 TERLAN_MAKE_RECIPE_DIR := target/self-validation/make-recipe-thinness
 TERLAN_MAKE_RECIPE_IMAGE := $(TERLAN_MAKE_RECIPE_DIR)/vm/scripts_self_validation_MakeRecipeThinness.tvm
@@ -142,12 +145,16 @@ SHELL := bash
 
 .PHONY: tvm-native-image-format-check tvm-direct-aot-backend-check tvm-aot-application-closure-check tvm-aot-case-lowering-check tvm-aot-higher-order-specialization-check tvm-aot-lowering-coverage-check tvm-aot-managed-continuation-check tvm-aot-owned-closure-representation-check tvm-aot-static-callable-check tvm-aot-thread-neutral-continuation-check tvm-aot-typed-lifecycle-check tvm-aot-typed-mailbox-check tvm-managed-memory-check tvm-native-image-loader-check tvm-aot-consumer-check tvm-aot-test-consumer-check tvm-aot-repl-consumer-check tvm-aot-debugger-consumer-check tvm-aot-hot-reload-consumer-check tvm-aot-package-install-consumer-check tvm-aot-support-crash-metadata-check tvm-aot-platform-target-check tvm-aot-platform-matrix-check tvm-aot-http-managed-cycle-check tvm-aot-http-request-accessor-check tvm-aot-http-response-mutation-check tvm-aot-http-typed-metadata-check tvm-aot-http-router-callable-check tvm-aot-http-managed-error-check tvm-aot-http-template-check tvm-aot-http-template-render-plan-check tvm-aot-http-template-expression-check tvm-aot-http-body-json-check tvm-aot-http-session-check tvm-aot-http-managed-boundary-check tvm-aot-http-channel-plan-check tvm-aot-http-persistent-shard-check tvm-aot-http-native-invocation-check tvm-aot-http-websocket-invocation-check tvm-aot-http-sse-invocation-check tvm-aot-http-generation-lifetime-check tvm-aot-http-channel-transport-check tvm-aot-http-cleanup-check tvm-aot-http-lifecycle-inventory-check tvm-aot-http-checked-coreir-reference-record tvm-aot-http-performance-check tvm-single-image-artifact-check tvm-aot-runtime-transition-check tvm-aot-runtime-transition-focused-check tvm-aot-compilation-benchmark-check tvm-aot-compilation-time-check tvm-aot-capability-worker-check
 
-.PHONY: docs-light-check
+.PHONY: docs-light-check rust-security-audit-check
 docs-light-check: terlan-rust-quality-bootstrap
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
 		$(TERLAN_RUST_QUALITY) docs-light-self-test
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
 		$(TERLAN_RUST_QUALITY) docs-light-check
+
+rust-security-audit-check:
+	@cargo audit --version | grep -F 'cargo-audit 0.22.2'
+	cargo audit --deny warnings
 .PHONY: tvm-aot-application-conformance-check tvm-aot-c-abi-boundary-check tvm-aot-closure-dispatch-check tvm-aot-crash-injection-check tvm-aot-image-lifetime-check tvm-aot-multicore-readiness-check tvm-aot-thread-sanitizer-check
 .PHONY: std-vm-parity-matrix-check otp-stdlib-port-check otp-stdlib-migration-evidence-check vm-distribution-suite-parity-check vm-multicore-invariant-inventory-check terlan-self-validation-inventory-check terlan-self-validation-capabilities-check terlan-self-validation-clean-checkout-check terlan-self-validation-check editor-release-parity-check docs-static-release-parity-check
 .PHONY: tvm-aot-managed-field-projection-check tvm-aot-platform-matrix-contract-check tvm-aot-thread-sanitizer-contract-check tvm-aot-roadmap-reconciliation-check tvm-aot-release-closeout-contract-check tvm-aot-release-closeout-check
@@ -491,7 +498,7 @@ CHECK_GATES := \
 # validation artifact. Every aggregate gate waits for this boundary, including
 # under parallel Make execution, and later recipes execute the sealed image
 # directly instead of recompiling its source through `terlc run`.
-.PHONY: terlan-compiler-bootstrap terlan-self-validation-bootstrap terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap
+.PHONY: terlan-compiler-bootstrap terlan-typed-validator-fingerprint terlan-self-validation-bootstrap terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap
 terlan-compiler-bootstrap:
 ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -x $(TERLAN_BOOTSTRAP_COMPILER)
@@ -500,11 +507,20 @@ else
 	$(CARGO) build --locked -p terlan --bin terlc --bin terlan-vm
 endif
 
+terlan-typed-validator-fingerprint: terlan-compiler-bootstrap
+	$(TERLAN_TYPED_VALIDATOR_BUILD) fingerprint \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT) \
+		$(TERLAN_BOOTSTRAP_COMPILER) std
+
+terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-release-promotion-bootstrap terlan-release-closeout-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap: terlan-typed-validator-fingerprint
+
 terlan-semantic-kernel-bootstrap: terlan-compiler-bootstrap
 ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_SEMANTIC_KERNEL_IMAGE)
 else
-	$(TERLAN_BOOTSTRAP_COMPILER) build \
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_SEMANTIC_KERNEL_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/proof_release_evidence -- \
+		$(TERLAN_BOOTSTRAP_COMPILER) build \
 		scripts/self_validation/proof_release_evidence/scripts/SemanticKernels.terls \
 		--target terlan-vm --out-dir $(TERLAN_SEMANTIC_KERNEL_DIR)
 	test -s $(TERLAN_SEMANTIC_KERNEL_IMAGE)
@@ -514,7 +530,9 @@ terlan-ebnf-validator-bootstrap: terlan-compiler-bootstrap
 ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_EBNF_VALIDATOR_IMAGE)
 else
-	$(TERLAN_BOOTSTRAP_COMPILER) build \
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_EBNF_VALIDATOR_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/EbnfValidator.terls -- \
+		$(TERLAN_BOOTSTRAP_COMPILER) build \
 		scripts/self_validation/EbnfValidator.terls \
 		--target terlan-vm --out-dir $(TERLAN_EBNF_VALIDATOR_DIR)
 	test -s $(TERLAN_EBNF_VALIDATOR_IMAGE)
@@ -524,7 +542,9 @@ terlan-shared-helper-bootstrap: terlan-compiler-bootstrap
 ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_SHARED_HELPER_IMAGE)
 else
-	$(TERLAN_BOOTSTRAP_COMPILER) build \
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_SHARED_HELPER_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/SharedHelperCheck.terls -- \
+		$(TERLAN_BOOTSTRAP_COMPILER) build \
 		scripts/self_validation/SharedHelperCheck.terls \
 		--target terlan-vm --out-dir $(TERLAN_SHARED_HELPER_DIR)
 	test -s $(TERLAN_SHARED_HELPER_IMAGE)
@@ -534,7 +554,9 @@ terlan-external-package-matrix-bootstrap: terlan-compiler-bootstrap
 ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_EXTERNAL_PACKAGE_MATRIX_IMAGE)
 else
-	$(TERLAN_BOOTSTRAP_COMPILER) build \
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_EXTERNAL_PACKAGE_MATRIX_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/ExternalPackageExecutionMatrix.terls -- \
+		$(TERLAN_BOOTSTRAP_COMPILER) build \
 		scripts/self_validation/ExternalPackageExecutionMatrix.terls \
 		--target terlan-vm --out-dir $(TERLAN_EXTERNAL_PACKAGE_MATRIX_DIR)
 	test -s $(TERLAN_EXTERNAL_PACKAGE_MATRIX_IMAGE)
@@ -544,7 +566,9 @@ terlan-tvm-package-consumer-bootstrap: terlan-compiler-bootstrap
 ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_TVM_PACKAGE_CONSUMER_IMAGE)
 else
-	$(TERLAN_BOOTSTRAP_COMPILER) build \
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_TVM_PACKAGE_CONSUMER_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/TvmPackageInstallConsumer.terls -- \
+		$(TERLAN_BOOTSTRAP_COMPILER) build \
 		scripts/self_validation/TvmPackageInstallConsumer.terls \
 		--target terlan-vm --out-dir $(TERLAN_TVM_PACKAGE_CONSUMER_DIR)
 	test -s $(TERLAN_TVM_PACKAGE_CONSUMER_IMAGE)
@@ -554,7 +578,9 @@ terlan-tvm-platform-matrix-bootstrap: terlan-compiler-bootstrap terlan-tvm-packa
 ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)
 else
-	$(TERLAN_BOOTSTRAP_COMPILER) build \
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/tvm_aot_platform_matrix -- \
+		$(TERLAN_BOOTSTRAP_COMPILER) build \
 		scripts/self_validation/tvm_aot_platform_matrix/scripts/TvmAotPlatformMatrix.terls \
 		--target terlan-vm --out-dir $(TERLAN_TVM_PLATFORM_MATRIX_DIR)
 	test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)
@@ -564,7 +590,9 @@ terlan-rust-quality-bootstrap: terlan-compiler-bootstrap
 ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_RUST_QUALITY_IMAGE)
 else
-	$(TERLAN_BOOTSTRAP_COMPILER) build \
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_RUST_QUALITY_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/rust_quality -- \
+		$(TERLAN_BOOTSTRAP_COMPILER) build \
 		scripts/self_validation/rust_quality/scripts/RustQuality.terls \
 		--target terlan-vm --out-dir $(TERLAN_RUST_QUALITY_DIR)
 	test -s $(TERLAN_RUST_QUALITY_IMAGE)
@@ -574,7 +602,9 @@ terlan-release-promotion-bootstrap: terlan-compiler-bootstrap
 ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_RELEASE_PROMOTION_IMAGE)
 else
-	$(TERLAN_BOOTSTRAP_COMPILER) build \
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_RELEASE_PROMOTION_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/release_promotion -- \
+		$(TERLAN_BOOTSTRAP_COMPILER) build \
 		scripts/self_validation/release_promotion/scripts/ReleasePromotion.terls \
 		--target terlan-vm --out-dir $(TERLAN_RELEASE_PROMOTION_DIR)
 	test -s $(TERLAN_RELEASE_PROMOTION_IMAGE)
@@ -586,7 +616,9 @@ ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_RELEASE_CLOSEOUT_IMAGE)
 else
 	$(MAKE) vm-release-artifact-matrix-check
-	$(TERLAN_BOOTSTRAP_COMPILER) build \
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_RELEASE_CLOSEOUT_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/release_closeout -- \
+		$(TERLAN_BOOTSTRAP_COMPILER) build \
 		scripts/self_validation/release_closeout/scripts/ReleaseCloseout.terls \
 		--target terlan-vm --out-dir $(TERLAN_RELEASE_CLOSEOUT_DIR)
 	test -s $(TERLAN_RELEASE_CLOSEOUT_IMAGE)
@@ -723,7 +755,7 @@ release-staged-distribution-verification-check: release-readiness-attestation-ch
 
 # Focused transitive dependant of readiness. This verifies the newly sealed
 # candidate from existing artifacts and reports; it does not own their tests.
-release-staged-distribution-verification-refresh: release-readiness-attestation-refresh
+release-staged-distribution-verification-refresh: release-readiness-attestation-refresh | terlan-tvm-platform-matrix-bootstrap
 	test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_RELEASE_PROMOTION) verify --version 0.0.7
@@ -738,7 +770,9 @@ terlan-web-manifest-preflight-bootstrap: terlan-compiler-bootstrap
 ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_WEB_MANIFEST_PREFLIGHT_IMAGE)
 else
-	$(TERLAN_BOOTSTRAP_COMPILER) build \
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_WEB_MANIFEST_PREFLIGHT_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/WebManifestPreflight.terls -- \
+		$(TERLAN_BOOTSTRAP_COMPILER) build \
 		scripts/self_validation/WebManifestPreflight.terls \
 		--target terlan-vm --out-dir $(TERLAN_WEB_MANIFEST_PREFLIGHT_DIR)
 	test -s $(TERLAN_WEB_MANIFEST_PREFLIGHT_IMAGE)
@@ -748,7 +782,9 @@ terlan-self-validation-checkout-bootstrap: terlan-compiler-bootstrap
 ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_SELF_VALIDATION_CHECKOUT_IMAGE)
 else
-	$(TERLAN_BOOTSTRAP_COMPILER) build \
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_SELF_VALIDATION_CHECKOUT_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/SelfValidationCheckout.terls -- \
+		$(TERLAN_BOOTSTRAP_COMPILER) build \
 		scripts/self_validation/SelfValidationCheckout.terls \
 		--target terlan-vm --out-dir $(TERLAN_SELF_VALIDATION_CHECKOUT_DIR)
 	test -s $(TERLAN_SELF_VALIDATION_CHECKOUT_IMAGE)
@@ -760,14 +796,20 @@ ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_MAKE_RECIPE_IMAGE)
 	test -s $(TERLAN_PROOF_RELEASE_IMAGE)
 else
-	$(TERLAN_BOOTSTRAP_COMPILER) build \
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_SELF_VALIDATION_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/BuildArtifactBudgetTest.terl -- \
+		$(TERLAN_BOOTSTRAP_COMPILER) build \
 		scripts/self_validation/BuildArtifactBudgetTest.terl
 	test -s $(TERLAN_SELF_VALIDATION_IMAGE)
-	$(TERLAN_BOOTSTRAP_COMPILER) build \
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_MAKE_RECIPE_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/MakeRecipeThinness.terls -- \
+		$(TERLAN_BOOTSTRAP_COMPILER) build \
 		scripts/self_validation/MakeRecipeThinness.terls \
 		--target terlan-vm --out-dir $(TERLAN_MAKE_RECIPE_DIR)
 	test -s $(TERLAN_MAKE_RECIPE_IMAGE)
-	$(TERLAN_BOOTSTRAP_COMPILER) build \
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_PROOF_RELEASE_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/proof_release_evidence -- \
+		$(TERLAN_BOOTSTRAP_COMPILER) build \
 		scripts/self_validation/proof_release_evidence/scripts/ProofReleaseEvidence.terls \
 		--target terlan-vm --out-dir $(TERLAN_PROOF_RELEASE_DIR)
 	test -s $(TERLAN_PROOF_RELEASE_IMAGE)
@@ -982,7 +1024,7 @@ validate-ebnf: | terlan-ebnf-validator-bootstrap
 workspace-version-check:
 	bash scripts/check_workspace_version_inheritance.sh
 
-release-version-metadata-check:
+release-version-metadata-check: | terlan-compiler-bootstrap
 	TERLAN_RELEASE_VERSION="$(VERSION)" \
 	TERLAN_RELEASE_CHANNEL=dev \
 		target/debug/terlc test scripts/self_validation/ReleaseVersionChannelTest.terl
@@ -990,7 +1032,7 @@ release-version-metadata-check:
 release-version-channel-check:
 	$(MAKE) --no-print-directory release-version-metadata-check
 
-release-version-bump:
+release-version-bump: | terlan-compiler-bootstrap
 	TERLAN_RELEASE_VERSION="$(VERSION)" \
 	TERLAN_RELEASE_VERSION_WRITE=1 \
 	TERLAN_RELEASE_CHANNEL=dev \
@@ -1000,6 +1042,7 @@ source-extension-check:
 	bash scripts/check_terlan_source_extensions.sh
 
 release-boundary-check:
+	bash scripts/check_build_release_contract.sh
 	bash scripts/check_release_boundary.sh
 
 single-root-contract-check:
@@ -1103,7 +1146,7 @@ release-code-hygiene-check: \
 	$(CARGO) run -p terlan --bin terlan-quality --features quality-tools --quiet -- release-code-hygiene
 
 
-installer-contract-check:
+installer-contract-check: | terlan-compiler-bootstrap
 	target/debug/terlc test scripts/self_validation/installer_contract
 
 vm-release-install-validation-check:
@@ -1671,7 +1714,7 @@ wasm-contract-discovery-check:
 oxc-boundary-check:
 	$(CARGO) run -p terlan --bin terlan-quality --features quality-tools --quiet -- oxc-boundary
 
-adversarial-check:
+adversarial-check: | terlan-tvm-platform-matrix-bootstrap
 	$(RUST_TEST) --locked -p terlan --lib adversarial -- --nocapture
 	$(TERLAN_TVM_PLATFORM_MATRIX) release-artifact-adversarial
 
@@ -1798,7 +1841,7 @@ tvm-aot-multicore-readiness-check: tvm-aot-thread-neutral-continuation-check
 		exit 1; \
 	fi
 
-tvm-aot-thread-sanitizer-check:
+tvm-aot-thread-sanitizer-check: | terlan-tvm-platform-matrix-bootstrap
 	$(TERLAN_TVM_PLATFORM_MATRIX) tsan-self-test
 	@if rustup toolchain list | grep -Eq '^nightly-2026-07-16-'; then \
 		$(TERLAN_TVM_PLATFORM_MATRIX) tsan-run; \
@@ -1835,7 +1878,6 @@ AOT_RELEASE_LOCAL_GATES := \
 	tvm-aot-http-generation-lifetime-check \
 	tvm-aot-http-performance-check \
 	tvm-aot-multicore-readiness-check \
-	tvm-aot-thread-sanitizer-check \
 	tvm-aot-c-abi-boundary-check \
 	tvm-aot-compilation-time-check \
 	tvm-single-image-artifact-check \
@@ -1843,6 +1885,18 @@ AOT_RELEASE_LOCAL_GATES := \
 	no-vmir-interpreter-check \
 	rust-quality-check \
 	roadmap-gate-integrity-check
+
+AOT_RELEASE_MULTICORE_REUSED_GATES := \
+	tvm-aot-runtime-transition-check \
+	tvm-managed-memory-check \
+	rust-quality-check \
+	roadmap-gate-integrity-check
+
+ifeq ($(TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN),1)
+AOT_RELEASE_LOCAL_GATES_TO_RUN := $(filter-out $(AOT_RELEASE_MULTICORE_REUSED_GATES),$(AOT_RELEASE_LOCAL_GATES))
+else
+AOT_RELEASE_LOCAL_GATES_TO_RUN := $(AOT_RELEASE_LOCAL_GATES)
+endif
 
 tvm-aot-roadmap-reconciliation-check: | terlan-tvm-platform-matrix-bootstrap
 	$(TERLAN_TVM_PLATFORM_MATRIX) roadmap-self-test
@@ -1852,7 +1906,13 @@ tvm-aot-release-closeout-contract-check: tvm-aot-thread-sanitizer-contract-check
 	$(TERLAN_TVM_PLATFORM_MATRIX) release-self-test
 
 tvm-aot-release-closeout-check: tvm-aot-release-closeout-contract-check
-	$(MAKE) $(AOT_RELEASE_LOCAL_GATES)
+	@if test "$(TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN)" = 1; then \
+		test -s target/quality/vm-multicore-release-closeout.json; \
+		rg -q '"decision": "pass"' target/quality/vm-multicore-release-closeout.json; \
+		revision=$$(git rev-parse HEAD); \
+		rg -q "\"source_revision\": \"$$revision\"" target/quality/vm-multicore-release-closeout.json; \
+	fi
+	$(MAKE) $(AOT_RELEASE_LOCAL_GATES_TO_RUN)
 	env -u RUSTFLAGS $(CARGO) check --locked -p terlan
 	$(TERLAN_TVM_PLATFORM_MATRIX) release-record
 
@@ -3066,7 +3126,8 @@ vm-in-memory-stream-check:
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::framing::framing_test::vm_framing_fixture_rejects_bounded_buffer_overflow -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::framing::framing_test::vm_framing_fixture_reports_backpressure_from_peer_inbox -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::framing::framing_test::vm_framing_fixture_reports_closed_reader_stream -- --exact
-	$(CARGO) run -p terlan --bin terlan-vm --quiet -- benchmark-in-memory-framing --iterations 100 --payload-bytes 128 >/tmp/terlan-vm-in-memory-framing-benchmark.json
+	mkdir -p target/quality
+	$(CARGO) run -p terlan --bin terlan-vm --quiet -- benchmark-in-memory-framing --iterations 100 --payload-bytes 128 >target/quality/terlan-vm-in-memory-framing-benchmark.json
 
 vm-tcp-framing-check: vm-in-memory-stream-check
 
@@ -3465,7 +3526,7 @@ vm-multicore-memory-model-check:
 	@rg -q '"watchdog_timeout_millis": 15000' target/quality/vm-multicore-memory-model.json
 	@test "$$(rg -c '0x[0-9a-f]{16}' target/quality/vm-multicore-memory-model.json)" -eq 8
 
-vm-multicore-thread-sanitizer-contract-check:
+vm-multicore-thread-sanitizer-contract-check: | terlan-tvm-platform-matrix-bootstrap
 	$(TERLAN_TVM_PLATFORM_MATRIX) multicore-tsan-self-test
 
 vm-multicore-thread-sanitizer-check: vm-multicore-memory-model-check vm-multicore-thread-sanitizer-contract-check
@@ -3479,7 +3540,7 @@ vm-multicore-thread-sanitizer-check: vm-multicore-memory-model-check vm-multicor
 	fi
 	@test ! -f target/quality/vm-multicore-thread-sanitizer-report.json || rg -q '"source_tree_sha256":' target/quality/vm-multicore-thread-sanitizer-report.json
 
-vm-multicore-mc9-evidence-contract-check:
+vm-multicore-mc9-evidence-contract-check: | terlan-tvm-platform-matrix-bootstrap
 	$(TERLAN_TVM_PLATFORM_MATRIX) multicore-mc9-self-test
 
 vm-multicore-mc9-evidence-check: vm-multicore-mc9-evidence-contract-check
@@ -3524,7 +3585,7 @@ VM_MULTICORE_RELEASE_LOCAL_GATES := \
 	rust-quality-check \
 	roadmap-gate-integrity-check
 
-vm-multicore-release-contract-check:
+vm-multicore-release-contract-check: | terlan-tvm-platform-matrix-bootstrap
 	$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-self-test
 
 vm-multicore-release-check: vm-multicore-release-contract-check
@@ -4585,7 +4646,7 @@ release-artifact-smoke: | terlan-tvm-platform-matrix-bootstrap
 release-artifact-installer-smoke: | terlan-tvm-platform-matrix-bootstrap
 	$(TERLAN_TVM_PLATFORM_MATRIX) release-artifact-installer-smoke
 
-publish-preflight: release-candidate-check
+publish-preflight:
 	@echo "Preparing Terlan $(VERSION) publication preflight"
 	@if [ -n "$$(git status --porcelain)" ]; then \
 		changed_count=$$(git status --porcelain | wc -l | tr -d ' '); \
@@ -4599,33 +4660,6 @@ publish-preflight: release-candidate-check
 		echo "next step: review and commit the release contents, then rerun make publish VERSION=$(VERSION)"; \
 		exit 1; \
 	fi
-	@branch=$$(git branch --show-current); \
-	if [ "$$branch" != "main" ]; then \
-		echo "publication must run from main; current branch is $$branch"; \
-		exit 1; \
-	fi
-	$(MAKE) --no-print-directory release-version-metadata-check VERSION="$(VERSION)"
-	@if git rev-parse -q --verify "refs/tags/v$(VERSION)" >/dev/null; then \
-		tag_sha=$$(git rev-parse "refs/tags/v$(VERSION)"); \
-		head_sha=$$(git rev-parse HEAD); \
-		if [ "$$tag_sha" != "$$head_sha" ]; then \
-			echo "local tag v$(VERSION) already exists at $$tag_sha, not HEAD $$head_sha"; \
-			exit 1; \
-		fi; \
-		echo "local tag v$(VERSION) already exists at HEAD; continuing"; \
-	fi
-	@if remote_tag_line=$$(git ls-remote --tags origin "refs/tags/v$(VERSION)" 2>/dev/null) && [ -n "$$remote_tag_line" ]; then \
-		remote_tag_sha=$$(printf '%s\n' "$$remote_tag_line" | awk '{ print $$1 }' | head -1); \
-		head_sha=$$(git rev-parse HEAD); \
-		if [ "$$remote_tag_sha" != "$$head_sha" ]; then \
-			echo "remote tag v$(VERSION) already exists at $$remote_tag_sha, not HEAD $$head_sha"; \
-			exit 1; \
-		fi; \
-		echo "remote tag v$(VERSION) already exists at HEAD; release upload can be retried"; \
-	fi
-	$(MAKE) release-artifact-current
-
-publish: publish-preflight
 	@command -v gh >/dev/null 2>&1 || { \
 		echo "publish requires GitHub CLI: install gh and run gh auth login"; \
 		exit 127; \
@@ -4634,8 +4668,66 @@ publish: publish-preflight
 		echo "publish requires authenticated GitHub CLI: run gh auth login"; \
 		exit 1; \
 	}
+	@branch=$$(git branch --show-current); \
+	if [ "$$branch" != "main" ]; then \
+		echo "publication must run from main; current branch is $$branch"; \
+		exit 1; \
+	fi
+	$(MAKE) --no-print-directory release-version-metadata-check VERSION="$(VERSION)"
+	@git fetch --quiet origin main; \
+	if ! git merge-base --is-ancestor origin/main HEAD; then \
+		echo "origin/main is not an ancestor of HEAD; publication would require a non-fast-forward push"; \
+		exit 1; \
+	fi
+	@if ! git rev-parse -q --verify "refs/tags/v$(VERSION)" >/dev/null \
+		&& git ls-remote --exit-code --tags origin "refs/tags/v$(VERSION)" >/dev/null 2>&1; then \
+		git fetch --quiet origin "refs/tags/v$(VERSION):refs/tags/v$(VERSION)"; \
+	fi
+	@if git rev-parse -q --verify "refs/tags/v$(VERSION)" >/dev/null; then \
+		tag_type=$$(git cat-file -t "refs/tags/v$(VERSION)"); \
+		if [ "$$tag_type" != tag ]; then \
+			echo "local tag v$(VERSION) must be annotated; found $$tag_type"; \
+			exit 1; \
+		fi; \
+		tag_sha=$$(git rev-parse "refs/tags/v$(VERSION)^{commit}"); \
+		head_sha=$$(git rev-parse HEAD); \
+		if [ "$$tag_sha" != "$$head_sha" ]; then \
+			echo "local tag v$(VERSION) already exists at $$tag_sha, not HEAD $$head_sha"; \
+			exit 1; \
+		fi; \
+		echo "local tag v$(VERSION) already exists at HEAD; continuing"; \
+	fi
+	@if remote_tag_line=$$(git ls-remote --tags origin "refs/tags/v$(VERSION)" 2>/dev/null) && [ -n "$$remote_tag_line" ]; then \
+		remote_tag_object_sha=$$(printf '%s\n' "$$remote_tag_line" | awk 'NR == 1 { print $$1 }'); \
+		remote_tag_sha=$$(git ls-remote --tags origin "refs/tags/v$(VERSION)^{}" 2>/dev/null | awk 'NR == 1 { print $$1 }'); \
+		if [ -z "$$remote_tag_sha" ]; then \
+			echo "remote tag v$(VERSION) must be annotated"; \
+			exit 1; \
+		fi; \
+		local_tag_object_sha=$$(git rev-parse "refs/tags/v$(VERSION)"); \
+		if [ "$$remote_tag_object_sha" != "$$local_tag_object_sha" ]; then \
+			echo "local and remote annotated tag objects differ for v$(VERSION)"; \
+			exit 1; \
+		fi; \
+		head_sha=$$(git rev-parse HEAD); \
+		if [ "$$remote_tag_sha" != "$$head_sha" ]; then \
+			echo "remote tag v$(VERSION) already exists at $$remote_tag_sha, not HEAD $$head_sha"; \
+			exit 1; \
+		fi; \
+		echo "remote tag v$(VERSION) already exists at HEAD; release upload can be retried"; \
+	fi
+	bash scripts/download_validated_release_artifacts.sh "$$(git rev-parse HEAD)"
+	$(MAKE) release-boundary-check
+	$(MAKE) source-extension-check
+	$(MAKE) terlan-release-promotion-bootstrap
+	TERLAN_RELEASE_ROOT="$(CURDIR)" \
+		$(TERLAN_RELEASE_PROMOTION) seal --version "$(VERSION)"
+	$(MAKE) release-staged-distribution-verification-refresh
+	$(MAKE) release-0-0-7-preflight
+
+publish: publish-preflight
 	@if ! git rev-parse -q --verify "refs/tags/v$(VERSION)" >/dev/null; then \
-		git tag "v$(VERSION)"; \
+		git tag --annotate "v$(VERSION)" --message "Terlan v$(VERSION)"; \
 	fi
 	git push origin main
 	git push origin "v$(VERSION)"

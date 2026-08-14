@@ -121,6 +121,31 @@ if {
     }.
 
 @pure
+release_assets(archives: List[String], output: List[String]): List[String] ->
+    case archives {
+        [] -> sort_unique(output);
+        [archive | rest] ->
+            release_assets(rest, [String.append(archive, ".sha256") | [archive | output]])
+    }.
+
+checksum_sidecars_hold(root: String, archives: List[String]): Bool ->
+    case archives {
+        [] -> true;
+        [archive | rest] ->
+            let digest = file_digest(child(root, archive));
+            if {
+                not digest.valid -> false;
+                true -> case File.read_text(child(root, String.append(archive, ".sha256"))) {
+                    Err(_reason) -> false;
+                    Ok(source) ->
+                        let raw = digest.value.utf8_slice(7, digest.value.byte_size() - 7);
+                        String.lowercase(String.trim(source)) == String.concat([raw, "  ", basename(archive)])
+                            and checksum_sidecars_hold(root, rest)
+                }
+            }
+    }.
+
+@pure
 direct_dist_path(path: String): Bool ->
     if {
         not String.starts_with(path, "dist/") -> false;
@@ -370,9 +395,10 @@ build_payload(
         };
     if {
         List.length(archives) == 0 -> document_failure("no release archives found under dist");
+        not checksum_sidecars_hold(root, archives) -> document_failure("release archive checksum sidecars are missing, malformed, or stale");
         not File.exists(child(root, vm)) -> document_failure(String.append("release VM binary is missing: ", vm));
         not File.exists(child(root, worker)) -> document_failure(String.append("release native worker is missing: ", worker));
-        true -> let artifacts = file_rows(root, archives, true, Json.array());
+        true -> let artifacts = file_rows(root, release_assets(archives, List.new[String]()), true, Json.array());
         let benchmarks =
             file_rows(
                 root,
@@ -641,6 +667,9 @@ contract_text(makefile: String, publisher: String): Bool ->
         and String.contains(publisher, "verify")
         and String.contains(publisher, "list")
         and String.contains(publisher, "digest")
+        and String.contains(publisher, "--draft --verify-tag")
+        and String.contains(publisher, "--draft=false")
+        and String.contains(publisher, "uploaded asset set does not exactly match the sealed candidate")
         and not String.contains(publisher, "find dist").
 
 create_fixture(root: String): Bool ->
@@ -693,6 +722,10 @@ write_fixture_files(root: String): Bool ->
             "{\"schema\":\"terlan.release-self-test.v1\",\"decision\":\"pass\"}\n",
         },
         {"dist/terlc-linux-x86_64.tar.gz", "archive"},
+        {
+            "dist/terlc-linux-x86_64.tar.gz.sha256",
+            "0eb3e36bfb24dcd9bb1d1bece1531216b59539a8fde17ee80224af0653c92aa3  terlc-linux-x86_64.tar.gz\n",
+        },
         {"dist/terlan-vm", "vm"},
         {"dist/terlan-native-worker", "native-worker"},
     ],
@@ -805,12 +838,12 @@ self_test(root: String, report: Bool): Bool ->
             let contract =
                 contract_text(
                     "release-promotion-pipeline-check:\n\t$(TERLAN_RELEASE_PROMOTION) seal\nrelease-promotion-dry-run:\n\t$(TERLAN_RELEASE_PROMOTION) dry-run\n",
-                    "scripts_ReleasePromotion.tvm verify list digest",
+                    "scripts_ReleasePromotion.tvm verify list digest --draft --verify-tag --draft=false uploaded asset set does not exactly match the sealed candidate",
                 );
             created
                 and sealed
                 and verified.valid
-                and paths == ["dist/terlc-linux-x86_64.tar.gz"]
+                and paths == ["dist/terlc-linux-x86_64.tar.gz", "dist/terlc-linux-x86_64.tar.gz.sha256"]
                 and changed
                 and restored
                 and extra

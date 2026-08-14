@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
-use std::io::{BufReader, Cursor, ErrorKind, Read, Write};
+use std::io::{Cursor, ErrorKind, Read, Write};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -667,15 +667,17 @@ fn build_internal_server_config_from_der(
     })
 }
 
-/// Loads a PEM certificate chain through rustls-pemfile.
+/// Loads a PEM certificate chain through the maintained rustls PKI parser.
 fn load_certificate_chain(path: &Path) -> Result<Vec<CertificateDer<'static>>, String> {
-    let file = fs::File::open(path).map_err(|err| {
+    use rustls::pki_types::pem::PemObject;
+
+    let pem = fs::read(path).map_err(|err| {
         format!(
             "VM TLS failed to open certificate `{}`: {err}",
             path.display()
         )
     })?;
-    let certificates = rustls_pemfile::certs(&mut BufReader::new(file))
+    let certificates = CertificateDer::pem_slice_iter(&pem)
         .collect::<Result<Vec<_>, _>>()
         .map_err(|err| {
             format!(
@@ -692,27 +694,31 @@ fn load_certificate_chain(path: &Path) -> Result<Vec<CertificateDer<'static>>, S
     Ok(certificates)
 }
 
-/// Loads the first supported PEM private key through rustls-pemfile.
+/// Loads the first supported PEM private key through the rustls PKI parser.
 fn load_private_key(path: &Path) -> Result<PrivateKeyDer<'static>, String> {
-    let file = fs::File::open(path).map_err(|err| {
+    use rustls::pki_types::pem::PemObject;
+
+    let pem = fs::read(path).map_err(|err| {
         format!(
             "VM TLS failed to open private key `{}`: {err}",
             path.display()
         )
     })?;
-    rustls_pemfile::private_key(&mut BufReader::new(file))
-        .map_err(|err| {
-            format!(
-                "VM TLS failed to parse private key `{}`: {err}",
-                path.display()
-            )
-        })?
-        .ok_or_else(|| {
-            format!(
-                "VM TLS private key `{}` did not contain a supported unencrypted PEM key",
-                path.display()
-            )
-        })
+    if !pem
+        .windows(b"-----BEGIN".len())
+        .any(|bytes| bytes == b"-----BEGIN")
+    {
+        return Err(format!(
+            "VM TLS private key `{}` did not contain a supported unencrypted PEM key",
+            path.display()
+        ));
+    }
+    PrivateKeyDer::from_pem_slice(&pem).map_err(|err| {
+        format!(
+            "VM TLS failed to parse private key `{}`: {err}",
+            path.display()
+        )
+    })
 }
 
 /// Builds a rustls server config with safe protocol defaults.

@@ -4,12 +4,12 @@
     "milestone": "0.0.8",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "70fddaeba2ac4370b4e88142ebbc67c5873937168bf808457ea9a1743e6f4c45",
+  "compilation_input_sha256": "0e5acf7313791991d11f89d7da019fc82168b027d5914f3af6bcaf44e1f688b5",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 56,
     "maximum_resolved_duplicate_families": 30,
     "milestone": "0.0.8",
-    "non_optional_normal_dependencies": 56,
+    "non_optional_normal_dependencies": 54,
     "package": "terlan",
     "target_non_optional_normal_dependencies": 50,
     "target_resolved_duplicate_families": 24
@@ -290,14 +290,6 @@
     {
       "classification": "transitive-upgrade-blocked",
       "milestone": "0.0.8",
-      "name": "compact_str",
-      "owner": "dependency-health",
-      "rationale": "ratatui and oxc currently select different compact_str generations",
-      "versions": "0.8.2,0.9.1"
-    },
-    {
-      "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
       "name": "cpufeatures",
       "owner": "dependency-health",
       "rationale": "sha1 and sha2 currently select different cpufeatures generations",
@@ -368,14 +360,6 @@
       "versions": "0.15.5,0.16.1,0.17.1"
     },
     {
-      "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
-      "name": "itertools",
-      "owner": "dependency-health",
-      "rationale": "ratatui and oxc currently select different itertools generations",
-      "versions": "0.13.0,0.14.0"
-    },
-    {
       "classification": "platform-compatibility",
       "milestone": "0.0.8",
       "name": "linux-raw-sys",
@@ -422,14 +406,6 @@
       "owner": "dependency-health",
       "rationale": "thiserror generations require their matching derive implementation",
       "versions": "1.0.69,2.0.18"
-    },
-    {
-      "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
-      "name": "unicode-width",
-      "owner": "dependency-health",
-      "rationale": "unicode-truncate retains 0.1 while terminal and diagnostic dependencies use 0.2",
-      "versions": "0.1.14,0.2.0"
     },
     {
       "classification": "platform-compatibility",
@@ -636,7 +612,7 @@
     },
     {
       "name": "commands",
-      "physical_lines": 117594,
+      "physical_lines": 117702,
       "rust_files": 303
     },
     {
@@ -656,7 +632,7 @@
     },
     {
       "name": "html",
-      "physical_lines": 5310,
+      "physical_lines": 5311,
       "rust_files": 13
     },
     {
@@ -711,7 +687,7 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 138572,
+      "physical_lines": 138578,
       "rust_files": 400
     },
     {
@@ -741,13 +717,6 @@
       "versions": [
         "0.10.4",
         "0.12.1"
-      ]
-    },
-    {
-      "name": "compact_str",
-      "versions": [
-        "0.8.2",
-        "0.9.1"
       ]
     },
     {
@@ -816,13 +785,6 @@
       ]
     },
     {
-      "name": "itertools",
-      "versions": [
-        "0.13.0",
-        "0.14.0"
-      ]
-    },
-    {
       "name": "linux-raw-sys",
       "versions": [
         "0.12.1",
@@ -862,13 +824,6 @@
       "versions": [
         "1.0.69",
         "2.0.18"
-      ]
-    },
-    {
-      "name": "unicode-width",
-      "versions": [
-        "0.1.14",
-        "0.2.0"
       ]
     },
     {
@@ -1005,7 +960,7 @@
     },
     {
       "name": "commands",
-      "physical_lines": 36425,
+      "physical_lines": 36426,
       "rust_files": 152
     },
     {
@@ -1090,6 +1045,15 @@
           "features": [],
           "kind": "build",
           "name": "sha2",
+          "optional": false
+        },
+        {
+          "default_features": false,
+          "features": [
+            "std"
+          ],
+          "kind": "dev",
+          "name": "ratatui",
           "optional": false
         },
         {
@@ -1425,13 +1389,6 @@
           "default_features": true,
           "features": [],
           "kind": "normal",
-          "name": "ratatui",
-          "optional": false
-        },
-        {
-          "default_features": true,
-          "features": [],
-          "kind": "normal",
           "name": "rcgen",
           "optional": false
         },
@@ -1447,13 +1404,6 @@
           "features": [],
           "kind": "normal",
           "name": "rustls",
-          "optional": false
-        },
-        {
-          "default_features": true,
-          "features": [],
-          "kind": "normal",
-          "name": "rustls-pemfile",
           "optional": false
         },
         {

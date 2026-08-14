@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Verifies that the published repository does not contain local caches, logs,
-# scratch outputs, or internal planning artifacts that are not release-owned.
+# Verifies that the source release does not track local caches, logs, or scratch
+# outputs. Internal documentation is allowed in the source repository; the
+# staged public-documentation manifest owns exclusion from installed artifacts.
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
@@ -11,9 +12,9 @@ if [[ ! -f Cargo.toml || ! -d crates/terlan ]]; then
   exit 1
 fi
 
-scratch_file_pattern='(^|/)(__pycache__)(/|$)|\.pyc$|\.pyo$|\.log$|\.tmp$|\.beam$|^std/summaries/.*\.(erl|hrl)$'
-internal_tree_pattern='^(\.agents/|\.codex/|scratch/|gen/|proofs/lean/\.lake/|docs/roadmap/|docs/internal/|roadmap/)'
-internal_file_pattern='(^|/)(ROADMAP|CHECKPOINT|BASELINE|BOOTSTRAP|TODO)[^/]*\.md$|^\.github/README\.md$'
+scratch_file_pattern='(^|/)(__pycache__|\.terlan)(/|$)|\.pyc$|\.pyo$|\.log$|\.tmp$|\.beam$|^std/summaries/.*\.(erl|hrl)$'
+internal_tree_pattern='^(\.agents/|\.codex/|scratch/|gen/|proofs/lean/\.lake/)'
+internal_file_pattern='^\.github/README\.md$'
 
 tracked_scratch="$(
   git ls-files \
@@ -52,31 +53,8 @@ if [[ -n "$stale_release_surface" ]]; then
 fi
 
 working_scratch="$(
-  find . \
-    -path './.git' -prune -o \
-    -path './target' -prune -o \
-    -path './dist' -prune -o \
-    \( \
-      -path '*/__pycache__/*' \
-      -o -name '*.pyc' \
-      -o -name '*.pyo' \
-      -o -name '*.log' \
-      -o -name '*.tmp' \
-      -o -name '*.beam' \
-      -o -path './std/summaries/*.erl' \
-      -o -path './std/summaries/*.hrl' \
-      -o -path './scripts/check_0_0_[0-3]*' \
-      -o -path './scratch/*' \
-      -o -path './gen/*' \
-      -o -path './proofs/lean/.lake' \
-      -o -path './proofs/lean/.lake/*' \
-      -o -path './docs/roadmap/*' \
-      -o -path './docs/internal/*' \
-      -o -path './roadmap/*' \
-      -o -path './.github/README.md' \
-    \) \
-    -print \
-    | sed 's#^\./##' \
+  git ls-files --others --exclude-standard \
+    | grep -E "$scratch_file_pattern|$internal_tree_pattern|$internal_file_pattern|^scripts/check_0_0_[0-3]" \
     || true
 )"
 

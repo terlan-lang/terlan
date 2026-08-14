@@ -65,8 +65,30 @@ pub(super) fn render_rust_adapter_cargo(manifest: &CAbiBindingManifest) -> Strin
         .and_then(|link| link.pkg_config.as_ref())
         .is_some();
     if let Some(extension) = &manifest.package.rust_extension {
-        for (name, version) in &extension.dependencies {
-            cargo.push_str(&format!("{}\n", dependency(name, version)));
+        for (name, specification) in &extension.dependencies {
+            let rendered = match specification {
+                CAbiRustDependency::Version(version) => dependency(name, version),
+                CAbiRustDependency::Detailed { version, .. }
+                    if manifest.package.workspace_member =>
+                {
+                    dependency(name, version)
+                }
+                CAbiRustDependency::Detailed {
+                    version,
+                    features,
+                    default_features,
+                } => {
+                    let features = features
+                        .iter()
+                        .map(|feature| format!("{feature:?}"))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    format!(
+                        "{name} = {{ version = {version:?}, default-features = {default_features}, features = [{features}] }}"
+                    )
+                }
+            };
+            cargo.push_str(&format!("{rendered}\n"));
         }
     }
     if !manifest.c_metadata.sources.is_empty() || uses_pkg_config {

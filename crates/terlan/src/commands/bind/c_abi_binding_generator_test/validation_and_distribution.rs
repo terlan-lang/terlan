@@ -738,6 +738,19 @@ pub(super) fn multiple_opaque_resources_generate_typed_owners_and_cross_resource
             ]
         }));
         symbols.push(serde_json::json!({
+            "id": "function.native_boundary_from_model",
+            "c_name": "terlan_c_native_boundary_from_model",
+            "kind": "function",
+            "status": "bind",
+            "returns": "int32_t",
+            "error_model": "status_code",
+            "success_code": 0,
+            "parameters": [
+                {"name": "model", "c_type": "const TerlanCNativeModel *", "direction": "input", "ownership": "borrowed_call"},
+                {"name": "out_boundary", "c_type": "TerlanCNativeBoundary **", "direction": "output", "ownership": "transfer_full"}
+            ]
+        }));
+        symbols.push(serde_json::json!({
             "id": "function.native_model_destroy",
             "c_name": "terlan_c_native_model_destroy",
             "kind": "function",
@@ -771,6 +784,18 @@ pub(super) fn multiple_opaque_resources_generate_typed_owners_and_cross_resource
             "blocking": "blocking",
             "resource": "opaque_handle",
             "documentation": "Loads a reusable native model.",
+            "generated_smoke": "package_owned"
+        }));
+        functions.push(serde_json::json!({
+            "name": "from_model",
+            "operation": "c_abi_fixture.native_boundary.from_model",
+            "c_symbol": "function.native_boundary_from_model",
+            "role": "constructor",
+            "args": [{"name": "model", "ty": "NativeModel"}],
+            "returns": "NativeBoundary",
+            "blocking": "fast",
+            "resource": "opaque_handle",
+            "documentation": "Constructs a boundary from a separately owned model.",
             "generated_smoke": "package_owned"
         }));
         let apply_model = serde_json::json!({
@@ -821,6 +846,7 @@ pub(super) fn multiple_opaque_resources_generate_typed_owners_and_cross_resource
     assert!(adapter.contains("impl Drop for NativeModel"));
     assert!(adapter.contains("pub fn load_model(path: &str)"));
     assert!(adapter.contains("pub fn apply_model(&mut self, boundary: &NativeBoundary)"));
+    assert!(adapter.contains("pub fn from_model(model: &NativeModel)"));
 
     let helper = fs::read_to_string(out_dir.join("native/rust/src/bin/native_boundary_helper.rs"))
         .expect("helper");
@@ -828,6 +854,8 @@ pub(super) fn multiple_opaque_resources_generate_typed_owners_and_cross_resource
     assert!(helper.contains("NativeBoundary(NativeBoundary)"));
     assert!(helper.contains("NativeModel(NativeModel)"));
     assert!(helper.contains("fn live_nativemodel_mut("));
+    assert!(helper.contains("let value_model = match self.live_nativemodel(model)"));
+    assert!(helper.contains("NativeBoundary::from_model(value_model)"));
     assert!(helper.contains("c_abi_fixture.NativeBoundary.NativeModel"));
     assert!(helper.contains("HandleValue::NativeModel(value)"));
     assert!(helper.contains("#![forbid(unsafe_code)]"));

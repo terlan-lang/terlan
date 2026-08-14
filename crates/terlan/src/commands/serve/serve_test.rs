@@ -13,7 +13,8 @@ pub(super) use std::sync::{Arc, Mutex};
 
 pub(super) use super::request_dispatch::*;
 pub(super) use super::response_rendering::*;
-pub(super) use super::server_lifecycle::*;
+#[cfg(not(feature = "acme-live"))]
+pub(super) use super::server_lifecycle::serve_web_package;
 #[cfg(test)]
 #[path = "serve_test/arguments_and_fixtures.rs"]
 mod arguments_and_fixtures;

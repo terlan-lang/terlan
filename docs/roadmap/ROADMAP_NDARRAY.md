@@ -951,7 +951,7 @@ Gate: `make terlan-ndarray-release-check`.
 
 ### ND8 - Canonical Dtypes, Storage, Indexing, And Views
 
-Status: Required for 0.0.7.
+Status: Complete.
 
 - [x] Replace per-array raw ownership with one reference-counted storage owner,
   byte offset, shape, and element strides; retain deterministic final release.
@@ -1070,45 +1070,45 @@ Gate: `make linear-algebra-check`.
 
 ### ND14 - Serialization, Arrow, And Memory Mapping
 
-Status: Required for 0.0.7.
+Status: Complete.
 
-- [ ] Implement bounded deterministic `.npy` read/write for every admitted
+- [x] Implement bounded deterministic `.npy` read/write for every admitted
   scalar dtype, shape, byte order, and contiguous materialization policy.
-- [ ] Implement package-owned raw-byte serialization with version, dtype,
+- [x] Implement package-owned raw-byte serialization with version, dtype,
   shape, integrity, and maximum-size validation.
-- [ ] Implement read-only and read-write memory-mapped CPU arrays through a
+- [x] Implement read-only and read-write memory-mapped CPU arrays through a
   maintained mapping library with explicit flush and lifetime behavior.
-- [ ] Implement Arrow C Data import/export for compatible primitive arrays,
+- [x] Implement Arrow C Data import/export for compatible primitive arrays,
   including offsets, validity, ownership callbacks, and exact null policy.
-- [ ] Prove malformed headers, truncated data, path failures, oversized inputs,
+- [x] Prove malformed headers, truncated data, path failures, oversized inputs,
   endian mismatch, callback failure, and partial construction release.
-- [ ] Inventory this milestone after its gate passes and update ND15.
+- [x] Inventory this milestone after its gate passes and update ND15.
 
 Gate: `make serialization-arrow-check`.
 
 ### ND15 - Advanced Indexing, Ordering, Searching, And Set Operations
 
-Status: Required for 0.0.7.
+Status: Complete.
 
 - [x] Implement axis-based `take`, `nonzero`, `flatnonzero`, `argwhere`, and
   flattened `count_nonzero` over arbitrary-rank contiguous and strided arrays.
-- [ ] Complete multidimensional integer-array and Boolean-mask indexing,
+- [x] Complete multidimensional integer-array and Boolean-mask indexing,
   assignment, `take_along_axis`, `put`, `put_along_axis`, and `compress`.
 - [x] Implement stable `sort`, `argsort`, `searchsorted`, and flattened
   `count_nonzero` with one shared complex, signed-zero, infinity, and NaN-last
   ordering contract.
-- [ ] Complete selectable unstable sorting, `partition`, `argpartition`,
+- [x] Complete selectable unstable sorting, `partition`, `argpartition`,
   axis-aware `count_nonzero`, sorter-aware `searchsorted`, and lexicographic
   multi-key ordering.
-- [ ] Implement `unique` with optional index, inverse, and count outputs plus
+- [x] Implement `unique` with optional index, inverse, and count outputs plus
   intersect, union, difference, membership, and exclusive-or set operations.
 - [x] Add the generated multi-resource return contract required by `nonzero`,
   `unique`, split families, and other operations that atomically return more
   than one owned array.
-- [ ] Validate parity against version-pinned NumPy fixtures for empty inputs,
+- [x] Validate parity against version-pinned NumPy fixtures for empty inputs,
   duplicate values, repeated indexes, negative indexes, masks, non-contiguous
   views, all dtypes, and partial-allocation cleanup.
-- [ ] Inventory this milestone after its gate passes and update ND16.
+- [x] Inventory this milestone after its gate passes and update ND16.
 
 Gate: `make indexing-ordering-set-check`.
 
@@ -1116,19 +1116,19 @@ Gate: `make indexing-ordering-set-check`.
 
 Status: Required for 0.0.7.
 
-- [ ] Implement median, quantile, percentile, covariance, correlation,
+- [x] Implement median, quantile, percentile, covariance, correlation,
   weighted average, peak-to-peak range, NaN-aware reductions, and cumulative
   sum/product with explicit interpolation and degrees-of-freedom policies.
-- [ ] Implement histogram, histogram-bin edges, multidimensional histogram,
+- [x] Implement histogram, histogram-bin edges, multidimensional histogram,
   bincount, digitize, gradient, difference, unwrap, interpolation, and
   trapezoidal integration over arbitrary strided arrays.
-- [ ] Complete bitwise operations, shifts, gcd/lcm, sign-bit and floating-point
+- [x] Complete bitwise operations, shifts, gcd/lcm, sign-bit and floating-point
   decomposition, angle conversion, tolerance comparison, and missing
   transcendental ufunc families.
-- [ ] Freeze warning/error behavior for empty slices, non-finite values,
+- [x] Freeze warning/error behavior for empty slices, non-finite values,
   invalid bins, zero weights, integer overflow, duplicate coordinates, and
   interpolation outside the admitted domain.
-- [ ] Inventory this milestone after its gate passes and update ND17.
+- [x] Inventory this milestone after its gate passes and update ND17.
 
 Gate: `make statistics-numerical-check`.
 
@@ -1136,14 +1136,14 @@ Gate: `make statistics-numerical-check`.
 
 Status: Required for 0.0.7.
 
-- [ ] Integrate a maintained CPU FFT provider and implement one-dimensional,
+- [x] Integrate a maintained CPU FFT provider and implement one-dimensional,
   multidimensional, real, Hermitian, inverse, frequency-bin, and shift APIs
   with NumPy-compatible axes and normalization modes.
-- [ ] Reuse array storage, dtype, stride, materialization, and workspace
+- [x] Reuse array storage, dtype, stride, materialization, and workspace
   ownership contracts without exposing provider plans or pointers publicly.
-- [ ] Validate prime, composite, odd, even, empty, batched, non-contiguous,
+- [x] Validate prime, composite, odd, even, empty, batched, non-contiguous,
   Float32/64, and Complex64/128 fixtures against version-pinned NumPy output.
-- [ ] Inventory this milestone after its gate passes and update ND18.
+- [x] Inventory this milestone after its gate passes and update ND18.
 
 Gate: `make fft-check`.
 
@@ -1151,15 +1151,15 @@ Gate: `make fft-check`.
 
 Status: Required for 0.0.7.
 
-- [ ] Implement polynomial evaluation, roots, fitting, arithmetic,
+- [x] Implement polynomial evaluation, roots, fitting, arithmetic,
   differentiation, integration, basis conversion, and companion matrices for
   the admitted numerical dtypes.
-- [ ] Implement tensor contraction, Einstein summation, Kronecker product,
+- [x] Implement tensor contraction, Einstein summation, Kronecker product,
   outer/inner products, cross product, and generalized dot operations using
   maintained kernels where applicable.
-- [ ] Freeze coefficient ordering, domain/window mapping, rank diagnostics,
+- [x] Freeze coefficient ordering, domain/window mapping, rank diagnostics,
   complex behavior, and ill-conditioned fit errors against NumPy fixtures.
-- [ ] Inventory this milestone after its gate passes and update ND19.
+- [x] Inventory this milestone after its gate passes and update ND19.
 
 Gate: `make polynomial-numerical-algebra-check`.
 
@@ -1167,20 +1167,20 @@ Gate: `make polynomial-numerical-algebra-check`.
 
 Status: Required for 0.0.7.
 
-- [ ] Extend the package-neutral array resource contract to CPU and admitted
+- [x] Extend the package-neutral array resource contract to CPU and admitted
   accelerator storage without exposing pointers or backend handles.
-- [ ] Implement optional CUDA-native construction, transfer, elementwise,
+- [x] Implement optional CUDA-native construction, transfer, elementwise,
   reduction, composition, and linear-algebra paths through `terlan-cuda` while
   keeping the CPU package independently installable.
-- [ ] Implement stream-correct DLPack import/export and direct PyTorch/OpenCV
+- [x] Implement stream-correct DLPack import/export and direct PyTorch/OpenCV
   exchange where device, dtype, layout, and ownership are compatible.
-- [ ] Keep unsupported devices typed and ensure CPU-only installation never
+- [x] Keep unsupported devices typed and ensure CPU-only installation never
   links or downloads CUDA.
-- [ ] Run the complete public API matrix on contiguous CPU, non-contiguous CPU,
+- [x] Run the complete public API matrix on contiguous CPU, non-contiguous CPU,
   and every admitted device backend; record behavioral parity and typed skips.
-- [ ] Publish and pin immutable package revisions, run fresh offline consumers,
+- [x] Publish and pin immutable package revisions, run fresh offline consumers,
   and regenerate all evidence twice.
-- [ ] Inventory the complete ndarray surface against this roadmap and reject
+- [x] Inventory the complete ndarray surface against this roadmap and reject
   release while any required 0.0.7 checkbox remains open.
 
 Gate: `make feature-complete-release-check`.

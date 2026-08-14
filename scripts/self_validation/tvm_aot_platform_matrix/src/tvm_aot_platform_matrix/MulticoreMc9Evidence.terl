@@ -781,6 +781,8 @@ contract_files_valid(root: String): Bool ->
         and release.contains("runs-on: [self-hosted, linux, x64, terlan-linux-x86_64-multicore-v1]")
         and release.contains("TERLAN_VM_MULTICORE_DEDICATED_RUNNER: terlan-linux-x86_64-multicore-v1")
         and release.contains("TERLAN_BENCH_BACKGROUND_LOAD: controlled")
+        and release.contains("multicore-runner-watchdog:")
+        and release.contains("cancelWorkflowRun")
         and release.contains("make vm-multicore-release-check")
         and release.contains("vm-multicore-mc9-evidence.json").
 
