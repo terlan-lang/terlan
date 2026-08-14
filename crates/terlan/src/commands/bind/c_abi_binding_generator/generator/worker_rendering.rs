@@ -1,5 +1,13 @@
 use super::*;
 
+mod argument_rendering;
+mod dispatch_rendering;
+use argument_rendering::{
+    render_argument_binding, render_immutable_resource_borrows,
+    render_immutable_resource_list_borrows,
+};
+use dispatch_rendering::{render_dispatch_calls, render_dispatch_modules};
+
 fn render_multi_helper_match_arm(
     manifest: &CAbiBindingManifest,
     function: &CAbiBindingFunction,
@@ -38,52 +46,6 @@ fn render_multi_helper_match_arm(
             )),
         })
         .collect::<Result<Vec<_>, String>>()?;
-    let primitive_binding = |argument: &CAbiBindingArg| {
-        if argument.ty == "List[Int]" {
-            format!("arg_ints({})", argument.name)
-        } else if argument.ty == "List[Float]" {
-            format!("arg_floats({})", argument.name)
-        } else if argument.ty == "List[Bool]" {
-            format!("arg_bools({})", argument.name)
-        } else if argument.ty == "String" {
-            format!("{}.as_str()", argument.name)
-        } else if argument.ty == "Bytes" {
-            format!("{}.as_slice()", argument.name)
-        } else {
-            format!("*{}", argument.name)
-        }
-    };
-    let argument_binding = |argument: &CAbiBindingArg| {
-        if resource_list(&argument.ty).is_some() {
-            format!("value_{}.as_slice()", argument.name)
-        } else if is_resource(&argument.ty) {
-            format!("value_{}", argument.name)
-        } else {
-            primitive_binding(argument)
-        }
-    };
-    let immutable_resource_borrows = |arguments: &[CAbiBindingArg]| {
-        arguments
-            .iter()
-            .map(|argument| {
-                if is_resource(&argument.ty) {
-                    let accessor = format!("live_{}", argument.ty.to_ascii_lowercase());
-                    format!(
-                        "                let value_{} = match self.{accessor}({}) {{\n                    Ok(value) => value,\n                    Err(error) => return error,\n                }};\n",
-                        argument.name, argument.name
-                    )
-                } else if let Some((_, inner)) = resource_list(&argument.ty) {
-                    let accessor = format!("live_{}", inner.name.to_ascii_lowercase());
-                    format!(
-                        "                let value_{} = {{\n                    let mut values = Vec::new();\n                    for handle in arg_handles({}) {{\n                        let value = match self.{accessor}(handle) {{\n                            Ok(value) => value,\n                            Err(error) => return error,\n                        }};\n                        values.push(value);\n                    }}\n                    values\n                }};\n",
-                        argument.name, argument.name
-                    )
-                } else {
-                    String::new()
-                }
-            })
-            .collect::<String>()
-    };
     let fallible = symbol.error_model == Some(CErrorModel::StatusCode);
     let mut arm = format!(
         "            {:?} => {{\n                let [{}] = request.args.as_slice() else {{\n                    return protocol_error(\"invalid_arguments\", {:?});\n                }};\n",
@@ -102,10 +64,10 @@ fn render_multi_helper_match_arm(
             let bindings = function
                 .args
                 .iter()
-                .map(argument_binding)
+                .map(|argument| render_argument_binding(manifest, argument))
                 .collect::<Vec<_>>()
                 .join(", ");
-            let borrows = immutable_resource_borrows(&function.args);
+            let borrows = render_immutable_resource_borrows(manifest, &function.args);
             if !fallible {
                 return Err(format!(
                     "error[native_bindgen.unsupported_wrapper_shape]: constructor `{}` must report status",
@@ -203,11 +165,26 @@ fn render_multi_helper_match_arm(
                     ));
                 }
             }
+            if function.role == CAbiFunctionRole::MutableMethod
+                && function
+                    .args
+                    .iter()
+                    .any(|argument| resource_list(&argument.ty).is_some())
+            {
+                return Err(format!(
+                    "error[native_bindgen.unsupported_wrapper_shape]: mutable method `{}` cannot borrow a resource list",
+                    function.name
+                ));
+            }
+            borrows.push_str(&render_immutable_resource_list_borrows(
+                manifest,
+                &function.args,
+            ));
             let method_arguments = function
                 .args
                 .iter()
                 .skip(1)
-                .map(argument_binding)
+                .map(|argument| render_argument_binding(manifest, argument))
                 .collect::<Vec<_>>()
                 .join(", ");
             let receiver = &handle_arguments[0].name;
@@ -276,10 +253,10 @@ fn render_multi_helper_match_arm(
             let bindings = function
                 .args
                 .iter()
-                .map(argument_binding)
+                .map(|argument| render_argument_binding(manifest, argument))
                 .collect::<Vec<_>>()
                 .join(", ");
-            let borrows = immutable_resource_borrows(&function.args);
+            let borrows = render_immutable_resource_borrows(manifest, &function.args);
             let call = format!("{}({bindings})", function.name);
             if let Some((_, output_ty)) = binding_type(manifest, &function.returns) {
                 if !fallible {
@@ -880,40 +857,8 @@ fn protocol_error(code: &str, message: &str) -> String {
     } else {
         ""
     };
-    let mut dispatch_modules = (0..dispatch_chunks.len())
-        .map(|index| {
-            format!(
-                "#[path = \"native_boundary_helper/dispatch_{index}.rs\"]\nmod native_boundary_dispatch_{index};"
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-    if !dispatch_modules.is_empty() {
-        dispatch_modules.push_str("\n\n");
-    }
-    let dispatch_calls = if dispatch_chunks.is_empty() {
-        format!(
-            "        match request.operation.as_str() {{\n{inline_match_arms}\n            _ => protocol_error(\"unknown_operation\", &request.operation),\n        }}"
-        )
-    } else {
-        let mut calls = functions
-            .chunks(32)
-            .enumerate()
-            .map(|(index, chunk_functions)| {
-                let operations = chunk_functions
-                    .iter()
-                    .map(|function| format!("{:?}", function.operation))
-                    .collect::<Vec<_>>()
-                    .join(" | ");
-                format!(
-                    "        if matches!(request.operation.as_str(), {operations}) {{\n            return self.execute_chunk_{index}(request);\n        }}"
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
-        calls.push_str("\n        protocol_error(\"unknown_operation\", &request.operation)");
-        calls
-    };
+    let dispatch_modules = render_dispatch_modules(dispatch_chunks.len());
+    let dispatch_calls = render_dispatch_calls(&functions, &dispatch_chunks, &inline_match_arms);
     let root = template
         .replace("@CRATE@", &crate_ident)
         .replace("@IMPORTS@", &imports.join(", "))

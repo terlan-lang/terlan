@@ -67,8 +67,8 @@ rust-build-graph-timings-record: rust-build-graph-timings-self-test
 
 rust-code-quality-adversarial-check:
 	target/debug/terlc test scripts/self_validation/RustCodeQualityAdversarialTest.terl
-	$(CARGO) test --locked -p terlan --lib --features quality-tools rustdoc_rejects_
-	$(CARGO) test --locked -p terlan --lib --features quality-tools rust_quality_rejects_
+	$(RUST_TEST) --locked -p terlan --lib --features quality-tools rustdoc_rejects_
+	$(RUST_TEST) --locked -p terlan --lib --features quality-tools rust_quality_rejects_
 
 rust-code-quality-preflight-check: \
 	rust-workspace-policy-check \
@@ -119,7 +119,7 @@ rust-warnings-check:
 	RUSTFLAGS='-D warnings' $(CARGO) check --locked -p terlan --bins
 
 rust-quality-check: dormant-runtime-code-check vm-deterministic-hashmap-check
-	$(CARGO) run --locked -p terlan --bin terlan-quality --features quality-tools --quiet -- rust-quality
+	$(TERLAN_QUALITY) rust-quality
 
 rust-structure-timings-self-test: terlan-rust-quality-bootstrap
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
@@ -227,7 +227,10 @@ rust-build-graph-boundary-check: \
 			$(TERLAN_RUST_QUALITY) build-graph-boundary-check
 
 .PHONY: build-artifact-budget-record build-artifact-budget-self-test build-artifact-budget-check
-build-artifact-budget-record: rust-build-graph-boundary-check package-build-artifact-isolation-check terlan-self-validation-bootstrap
+# Measurement must precede every test-owning/package gate because it performs a
+# clean build and then `cargo clean`. Package isolation is still enforced by the
+# consumer below, after the canonical suite has established shared evidence.
+build-artifact-budget-record: rust-build-graph-boundary-check terlan-self-validation-bootstrap
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
 		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SELF_VALIDATION_IMAGE) -- --measure
 	TERLAN_CARGO_ARTIFACT_RETENTION_MODE=clean-check \

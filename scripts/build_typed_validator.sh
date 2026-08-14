@@ -42,14 +42,8 @@ emit_input_hashes() {
   done
 }
 
-write_common_fingerprint() {
-  local output manifest fingerprint
-  output="${1:-}"
-  shift || true
-  if [[ -z "$output" || "$#" -eq 0 ]]; then
-    echo "usage: scripts/build_typed_validator.sh fingerprint <output> <input>..." >&2
-    return 2
-  fi
+common_fingerprint() {
+  local manifest
   manifest="$(mktemp)"
   trap 'rm -f "$manifest"' RETURN
   {
@@ -57,7 +51,18 @@ write_common_fingerprint() {
     printf 'cache-implementation=%s\n' "$(sha256_file "${BASH_SOURCE[0]}")"
     emit_input_hashes "$@"
   } > "$manifest"
-  fingerprint="$(sha256_file "$manifest")"
+  sha256_file "$manifest"
+}
+
+write_common_fingerprint() {
+  local output fingerprint
+  output="${1:-}"
+  shift || true
+  if [[ -z "$output" || "$#" -eq 0 ]]; then
+    echo "usage: scripts/build_typed_validator.sh fingerprint <output> <input>..." >&2
+    return 2
+  fi
+  fingerprint="$(common_fingerprint "$@")"
   if [[ -f "$output" && "$(cat "$output")" == "$fingerprint" ]]; then
     echo "reusing typed validator common fingerprint: $output"
     return 0
@@ -65,6 +70,27 @@ write_common_fingerprint() {
   mkdir -p "$(dirname "$output")"
   printf '%s\n' "$fingerprint" > "$output"
   echo "refreshed typed validator common fingerprint: $output"
+}
+
+check_common_fingerprint() {
+  local output expected actual
+  output="${1:-}"
+  shift || true
+  if [[ -z "$output" || "$#" -eq 0 ]]; then
+    echo "usage: scripts/build_typed_validator.sh fingerprint-check <output> <input>..." >&2
+    return 2
+  fi
+  if [[ ! -f "$output" ]]; then
+    echo "typed validator common fingerprint is missing: $output" >&2
+    return 1
+  fi
+  expected="$(cat "$output")"
+  actual="$(common_fingerprint "$@")"
+  if [[ "$actual" != "$expected" ]]; then
+    echo "typed validator common fingerprint is stale: $output" >&2
+    return 1
+  fi
+  echo "verified typed validator common fingerprint: $output"
 }
 
 run_self_test() {
@@ -94,10 +120,15 @@ run_self_test() {
     echo "typed validator common fingerprint changed without an input change" >&2
     return 1
   fi
+  "$0" fingerprint-check "$common" "$source"
 
   "$0" "$output" "$source" -- "$builder" "$counter" "$source" "$output"
   "$0" "$output" "$source" -- "$builder" "$counter" "$source" "$output"
   printf 'module fixture.Changed.\n' > "$source"
+  if "$0" fingerprint-check "$common" "$source" >/dev/null 2>&1; then
+    echo "typed validator fingerprint check accepted changed input" >&2
+    return 1
+  fi
   "$0" fingerprint "$common" "$source"
   if [[ "$(cat "$common")" == "$first_common" ]]; then
     echo "typed validator common fingerprint ignored an input change" >&2
@@ -118,6 +149,11 @@ fi
 if [[ "${1:-}" == "fingerprint" ]]; then
   shift
   write_common_fingerprint "$@"
+  exit
+fi
+if [[ "${1:-}" == "fingerprint-check" ]]; then
+  shift
+  check_common_fingerprint "$@"
   exit
 fi
 

@@ -332,9 +332,6 @@ jobs:
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust
 
-      - name: Measure canonical build artifacts before bootstrapping validators
-        run: make build-artifact-budget-record
-
       - name: Validate MC-9 evidence contract
         run: make vm-multicore-mc9-evidence-contract-check
 

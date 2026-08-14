@@ -117,10 +117,10 @@ This requires the Rust 1.96.0 `x86_64-unknown-linux-gnutsan` target locally,
 runs the controlled performance policy, records local source state, and seals
 the two revision-matched reports.
 
-The compiler check job first measures the canonical artifact budget from a
-clean Cargo output tree, then bootstraps validators and runs the reduced AOT
-release-candidate gate on the same runner. This preserves measurement honesty
-without paying for a second runner setup or transferring a large build tree:
+The release-candidate entry point first measures the canonical artifact budget
+from a clean Cargo output tree, then bootstraps validators and runs the reduced
+AOT gate on the same runner. CI and local validation use this same entry point,
+so neither path can omit or duplicate the destructive pre-build measurement:
 
 ```sh
 make release-candidate-check
@@ -168,6 +168,26 @@ fingerprint with each validator package. Unchanged images are reused, while any
 compiler, standard-library, validator-source, command, or cache-implementation
 change invalidates the exact image. Repository-wide `.terlan/` compiler caches
 are ignored and rejected if tracked.
+
+After its clean artifact measurement, the release-candidate entry point runs the
+canonical Rust suite before spawning the reusable gate graph. That child graph
+replaces already-proven Rust selectors with no-ops, so a release cycle cannot
+silently rerun hundreds of exact tests.
+Quality, editor, and benchmark library tests share one union feature profile,
+reducing the canonical suite to the default profile plus one validation profile.
+The same orchestrator owns ignored, evidence-producing integration contracts,
+including the generated C++ package proof, so later gates consume reports
+without replaying tests or accidentally suppressing their producers.
+Make recipes invoke freshness-checked prebuilt `terlc`, `terlan-quality`, and
+`terlan-benchmark` executables instead of repeatedly paying Cargo metadata and
+feature-resolution startup through `cargo run`. The build/release contract
+expands the release plan and rejects regressions to duplicate Cargo test or
+`cargo run` execution. Tree-sitter validation bootstraps its exact locked npm
+dependency on demand and keeps npm, home, and parser caches under `target/tmp`,
+so clean checkouts and cleanup use the same reproducible path.
+Nested reusable-gate invocations verify the sealed compiler fingerprint instead
+of refreshing it; a compiler change after validator bootstrap is therefore a
+loud stale-evidence failure.
 
 `make clean` removes Cargo outputs and every repository-owned generated tree:
 release archives, AOT and `_build` caches, proof/editor outputs, generated

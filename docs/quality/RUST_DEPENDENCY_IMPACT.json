@@ -4,7 +4,7 @@
     "milestone": "0.0.8",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "0e5acf7313791991d11f89d7da019fc82168b027d5914f3af6bcaf44e1f688b5",
+  "compilation_input_sha256": "779d3a791b0643994e555831e4289bb43753b819c40ba21e47137063cf7cac61",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 56,
     "maximum_resolved_duplicate_families": 30,
@@ -75,6 +75,11 @@
     },
     {
       "domain": "root:accelerator_contract",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "root:cli_dispatch",
       "reference_sites": 0,
       "source_domains": []
     },
@@ -207,6 +212,11 @@
       "dependent_count": 0,
       "dependent_domains": [],
       "domain": "root:accelerator_contract"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "root:cli_dispatch"
     },
     {
       "dependent_count": 0,
@@ -612,8 +622,8 @@
     },
     {
       "name": "commands",
-      "physical_lines": 117702,
-      "rust_files": 303
+      "physical_lines": 118128,
+      "rust_files": 309
     },
     {
       "name": "compiler",
@@ -656,6 +666,11 @@
       "rust_files": 1
     },
     {
+      "name": "root:cli_dispatch",
+      "physical_lines": 108,
+      "rust_files": 1
+    },
+    {
       "name": "root:cli_usage",
       "physical_lines": 60,
       "rust_files": 1
@@ -672,7 +687,7 @@
     },
     {
       "name": "root:lib",
-      "physical_lines": 987,
+      "physical_lines": 897,
       "rust_files": 1
     },
     {
@@ -1015,7 +1030,7 @@
     },
     {
       "name": "tests",
-      "physical_lines": 10308,
+      "physical_lines": 10316,
       "rust_files": 25
     },
     {

@@ -25,3 +25,5 @@ use evaluation::{
 #[cfg(test)]
 use interactive::parse_repl_command_args;
 pub(crate) use interactive::run;
+#[cfg(test)]
+pub(crate) use interactive::run_with_input;

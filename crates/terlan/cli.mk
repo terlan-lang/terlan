@@ -3,7 +3,10 @@
 # This file is included by the root Makefile. Target names remain public from the
 # repository root, but CLI-specific recipes live with the CLI crate.
 
-TERLC := $(CARGO) run -p terlan --bin terlc --
+TERLAN_PREBUILT_BINARY := bash scripts/run_prebuilt_terlan_binary.sh
+TERLC := $(TERLAN_PREBUILT_BINARY) terlc none --
+TERLAN_QUALITY := $(TERLAN_PREBUILT_BINARY) terlan-quality quality-tools --
+TERLAN_BENCHMARK := $(TERLAN_PREBUILT_BINARY) terlan-benchmark benchmark-tools --
 EXACT_CARGO_TEST ?= bash scripts/run_exact_cargo_test.sh
 TERLC_EXACT_TEST := $(EXACT_CARGO_TEST) -p terlan --lib
 TERLAN_TEST_WORKSPACE_ROOT ?= target/test-workspaces
@@ -128,7 +131,7 @@ formatter-pipe-canonicalization-check:
 	$(RUST_TEST) -p terlan --lib compiler::typeck::expression_test::assignment_templates_and_html::syntax_output_infers_pipe_forward_into_imported_module_member_call
 
 terlc-debugger-check: terlan-vm-run-command-check terlan-vm-test-command-check vm-diagnostics-quality-check
-	$(CARGO) run -p terlan --bin terlan-quality --features quality-tools --quiet -- source-map-debug-info
+	$(TERLAN_QUALITY) source-map-debug-info
 
 terlc-debugger-selector-inventory:
 	$(TERLC_EXACT_TEST) \
@@ -701,8 +704,8 @@ repeated-let-syntax-check: tree-sitter-cli-check
 comprehension-guards-check: compiler-purity-metadata-check tree-sitter-cli-check
 	$(TERLC) test std/core/GuardResultTest.terl
 	$(TERLC_EXACT_TEST) formal_pipeline::formal_pipeline_test::persistence_and_effect_interfaces::embedded_std_interfaces_include_core_guard_result_contract -- --exact
-	$(CARGO) test -p terlan --lib comprehension
-	$(CARGO) test -p terlan --lib --features editor-lsp comprehension
+	$(RUST_TEST) -p terlan --lib comprehension
+	$(RUST_TEST) -p terlan --lib --features editor-lsp comprehension
 	$(TERLC) test tests/language/ComprehensionGuardsTest.terl
 	@if output=$$($(TERLC) test tests/language/EffectfulComprehensionFailureTest.terl --name propagates_typed_guard_failure 2>&1); then \
 		echo "expected typed guard failure" >&2; exit 1; \
@@ -749,9 +752,9 @@ private-field-check:
 
 db-command-check:
 	target/debug/terlc test scripts/self_validation/DbCommandBoundaryTest.terl
-	$(CARGO) test -p terlan --lib commands::db::
-	$(CARGO) test -p terlan --lib runtime::vm::postgres
-	$(CARGO) test -p terlan --lib source_postgres
+	$(RUST_TEST) -p terlan --lib commands::db::
+	$(RUST_TEST) -p terlan --lib runtime::vm::postgres
+	$(RUST_TEST) -p terlan --lib source_postgres
 
 native-boundary-postgres-check:
 	$(TERLC_EXACT_TEST) runtime::native::postgres_test::config_defaults_are_stable -- --exact

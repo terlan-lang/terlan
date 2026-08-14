@@ -11,6 +11,15 @@ and release work.
 ## Validation Throughput And Evidence Reuse
 
 - [ ] V8-1: make exhaustive validation fast without weakening release evidence.
+  - Pulled-forward foundation: 0.0.7 now enters the canonical Rust suite once,
+    reuses one union feature profile for quality/editor/benchmark test harnesses,
+    executes freshness-checked prebuilt workspace tools instead of repeated
+    `cargo run`, owns ignored evidence producers in that suite, measures clean
+    artifacts before it, verifies sealed validator fingerprints afterward, and
+    statically rejects Cargo-test replay in the release plan. Locked Tree-sitter
+    dependencies and Node caches are now repository-owned and self-bootstrapping.
+    The remaining requirements below own cross-tier orchestration, complete AOT
+    and native-link reuse, lifecycle cleanup, and measured ratcheting.
   - Split Rust validation into explicitly inventoried fast unit, integration,
     AOT/native-link, concurrency/timeout, performance, and controlled-host
     tiers. Every test belongs to exactly one tier, and the release aggregate

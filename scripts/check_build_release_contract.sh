@@ -18,6 +18,7 @@ required_files=(
   .github/workflows/security.yml
   scripts/check_release_boundary.sh
   scripts/build_typed_validator.sh
+  scripts/run_prebuilt_terlan_binary.sh
   scripts/clean_build_outputs.sh
   scripts/check_release_artifact_set.sh
   scripts/download_validated_release_artifacts.sh
@@ -38,6 +39,30 @@ grep -Fq '$(CARGO) clippy --locked --workspace --bins -- -D warnings' mk/code-qu
   || fail "default Clippy validation does not reject every compiler warning"
 grep -Fq '$(CARGO) clippy --locked --workspace --bins --all-features -- -D warnings' mk/code-quality.mk \
   || fail "all-feature Clippy validation does not reject every compiler warning"
+grep -Fq $'release-candidate-check: build-artifact-budget-record\n\t$(MAKE) check' Makefile \
+  || fail "release-candidate validation must measure clean artifacts before the canonical suite"
+grep -Fq 'VALIDATION_FEATURES: &str = "quality-tools,editor-lsp,benchmark-tools"' \
+  crates/terlan-test-orchestrator/src/main.rs \
+  || fail "feature-gated Rust validation does not share one compiled feature profile"
+if grep -REn '\$\(CARGO\) run( --locked)? -p terlan --bin (terlc|terlan-quality|terlan-benchmark)' \
+  Makefile crates/terlan/cli.mk editors/editor.mk mk std/stdlib.mk; then
+  fail "Make recipes must execute freshness-checked prebuilt Terlan binaries"
+fi
+
+release_plan="$(mktemp)"
+trap 'rm -f "$release_plan"' EXIT
+make -n release-candidate-check > "$release_plan"
+orchestrator_runs="$(grep -c 'target/debug/terlan-test-orchestrator' "$release_plan" || true)"
+[[ "$orchestrator_runs" -eq 1 ]] \
+  || fail "release candidate must execute exactly one canonical Rust test orchestrator"
+replayed_cargo_tests="$({
+  grep -Ec '(^|[[:space:]])cargo( --locked)? test([[:space:]]|$)' "$release_plan" || true
+})"
+[[ "$replayed_cargo_tests" -eq 0 ]] \
+  || fail "release candidate replays $replayed_cargo_tests Cargo test commands after the canonical suite"
+if grep -q 'run_exact_cargo_test.sh' "$release_plan"; then
+  fail "release candidate replays exact Cargo tests after the canonical suite"
+fi
 
 action_yaml_files=(.github/workflows/*.yml .github/actions/*/action.yml)
 
@@ -83,9 +108,13 @@ if grep -RFn 'rustup toolchain install stable' .github/workflows; then
   fail "workflows must not float the workspace Rust toolchain"
 fi
 if grep -REn '(>[[:space:]]*/tmp/|rm -rf[[:space:]]+/tmp/|DIR[[:space:]]*\?=[[:space:]]*/tmp/)' \
-  Makefile crates/terlan/cli.mk mk; then
+  Makefile crates/terlan/cli.mk editors/editor.mk mk std/stdlib.mk; then
   fail "Make recipes must keep owned temporary build trees under target/"
 fi
+grep -Fq 'npm ci --prefix tree-sitter-terlan --no-audit --no-fund' editors/editor.mk \
+  || fail "Tree-sitter validation must bootstrap exact locked package dependencies"
+grep -Fq 'NPM_PACK_CACHE ?= $(CURDIR)/target/tmp/npm-cache' editors/editor.mk \
+  || fail "Node package caches must remain in the repository-owned build tree"
 
 release_workflow="$(cat .github/workflows/release.yml)"
 [[ "$release_workflow" != *'tags:'* ]] \
@@ -126,8 +155,8 @@ for producer in platform thread-sanitizer multicore-thread-sanitizer multicore-p
 done
 
 ci_workflow="$(cat .github/workflows/ci.yml)"
-[[ "$ci_workflow" == *'make build-artifact-budget-record'* ]] \
-  || fail "compiler CI is missing the canonical artifact-budget producer"
+[[ "$ci_workflow" != *'make build-artifact-budget-record'* ]] \
+  || fail "compiler CI must not duplicate the release candidate's artifact-budget producer"
 [[ "$ci_workflow" == *'github.com/rhysd/actionlint/cmd/actionlint@v1.7.12'* ]] \
   || fail "compiler CI does not execute the workflow syntax validator"
 [[ "$ci_workflow" == *"github.head_ref || github.ref_name, 'release-validation/'"* ]] \
@@ -142,17 +171,14 @@ security_action="$(cat .github/actions/security-audit/action.yml)"
 [[ "$security_action" == *'cargo install cargo-audit --version 0.22.2 --locked --force'* \
   && "$security_action" != *'~/.cargo/bin/cargo-audit'* ]] \
   || fail "dependency audit must build the exact locked tool instead of trusting a cached executable"
-budget_line="$(grep -n 'make build-artifact-budget-record' .github/workflows/ci.yml | cut -d: -f1)"
-candidate_line="$(grep -n 'make release-candidate-check' .github/workflows/ci.yml | cut -d: -f1)"
-[[ "$budget_line" -lt "$candidate_line" ]] \
-  || fail "artifact measurement must run before validators create build outputs"
-
 makefile="$(cat Makefile)"
 typed_validator_build_count="$(grep -c '\$(TERLAN_TYPED_VALIDATOR_BUILD) \$(TERLAN_' Makefile)"
 [[ "$typed_validator_build_count" -eq 14 ]] \
   || fail "every typed validation image must use the content-addressed build wrapper"
 [[ "$makefile" == *'$(TERLAN_TYPED_VALIDATOR_BUILD) fingerprint'* ]] \
   || fail "typed validation images rehash shared compiler inputs independently"
+[[ "$makefile" == *'$(TERLAN_TYPED_VALIDATOR_BUILD) fingerprint-check'* ]] \
+  || fail "reused typed validation images do not reject a changed compiler fingerprint"
 for target in \
   tvm-aot-thread-sanitizer-check \
   release-staged-distribution-verification-refresh \

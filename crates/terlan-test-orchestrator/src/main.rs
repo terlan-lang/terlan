@@ -14,6 +14,7 @@ mod test_orchestrator_test;
 // fixture's compiler, so the canonical evidence run is serial by default.
 const DEFAULT_TEST_THREADS: usize = 1;
 const RELEASE_COVERAGE_OWNS_TERLC_ENV: &str = "TERLAN_RELEASE_COVERAGE_OWNS_TERLC_TESTS";
+const VALIDATION_FEATURES: &str = "quality-tools,editor-lsp,benchmark-tools";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct TestPhase {
@@ -88,10 +89,12 @@ fn test_path() -> String {
 
 fn test_phases(coverage_owns_terlc: bool) -> Vec<TestPhase> {
     let mut phases = vec![
-        phase_with_feature_filter("quality", "quality-tools", "quality::"),
-        phase_with_feature_filter("LSP", "editor-lsp", "lsp::"),
-        phase_with_feature_filter("benchmark harness", "benchmark-tools", "benchmark::"),
+        phase_with_feature_filter("quality", "quality::"),
+        phase_with_feature_filter("LSP", "lsp::"),
+        phase_with_feature_filter("benchmark harness", "benchmark::"),
+        phase_with_feature_filter("cross-feature integration", "comprehension"),
         workspace_support_phase(),
+        generated_cpp_package_phase(),
         ignored_std_collection_phase(),
     ];
     if !coverage_owns_terlc {
@@ -107,19 +110,11 @@ fn terlan_library_phase() -> TestPhase {
     }
 }
 
-fn phase_with_feature_filter(
-    name: &'static str,
-    feature: &'static str,
-    filter: &'static str,
-) -> TestPhase {
-    terlan_feature_phase(name, feature, filter)
+fn phase_with_feature_filter(name: &'static str, filter: &'static str) -> TestPhase {
+    terlan_feature_phase(name, filter)
 }
 
-fn terlan_feature_phase(
-    name: &'static str,
-    feature: &'static str,
-    filter: &'static str,
-) -> TestPhase {
+fn terlan_feature_phase(name: &'static str, filter: &'static str) -> TestPhase {
     TestPhase {
         name,
         args: vec![
@@ -129,7 +124,7 @@ fn terlan_feature_phase(
             "terlan",
             "--lib",
             "--features",
-            feature,
+            VALIDATION_FEATURES,
             filter,
             "--",
         ],
@@ -146,6 +141,23 @@ fn workspace_support_phase() -> TestPhase {
             "--exclude",
             "terlan",
             "--",
+        ],
+    }
+}
+
+fn generated_cpp_package_phase() -> TestPhase {
+    TestPhase {
+        name: "generated C++ package evidence",
+        args: vec![
+            "test",
+            "--locked",
+            "-p",
+            "terlan",
+            "--lib",
+            "commands::bind::cpp_package_consumer_test::generated_cpp_git_package_executes_and_rejects_stale_handles",
+            "--",
+            "--ignored",
+            "--exact",
         ],
     }
 }

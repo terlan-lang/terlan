@@ -168,8 +168,12 @@ fn run_cli_routes_debug_command_after_json_diagnostic_flag() {
 ///   fast before entering the interactive prompt.
 #[test]
 fn run_cli_routes_repl_debug_to_vm_surface() {
+    let mut input = std::io::Cursor::new(Vec::<u8>::new());
     assert_eq!(
-        run_cli(vec!["repl".to_string(), "--debug".to_string()]),
+        run_cli_with_repl(
+            vec!["repl".to_string(), "--debug".to_string()],
+            |cmd, state| commands::repl::run_with_input(cmd, state, &mut input, false),
+        ),
         ExitCode::SUCCESS
     );
 }
@@ -187,13 +191,17 @@ fn run_cli_routes_repl_debug_to_vm_surface() {
 ///   integrations can depend on the same machine-readable debugger event.
 #[test]
 fn run_cli_routes_repl_debug_after_json_diagnostic_flag() {
+    let mut input = std::io::Cursor::new(Vec::<u8>::new());
     assert_eq!(
-        run_cli(vec![
-            "--diagnostic-format".to_string(),
-            "json".to_string(),
-            "repl".to_string(),
-            "--debug".to_string(),
-        ]),
+        run_cli_with_repl(
+            vec![
+                "--diagnostic-format".to_string(),
+                "json".to_string(),
+                "repl".to_string(),
+                "--debug".to_string(),
+            ],
+            |cmd, state| commands::repl::run_with_input(cmd, state, &mut input, false),
+        ),
         ExitCode::SUCCESS
     );
 }

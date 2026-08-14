@@ -1,7 +1,7 @@
 use std::collections::hash_map::DefaultHasher;
 use std::fs;
 use std::hash::Hasher;
-use std::io::{IsTerminal, Write};
+use std::io::{BufRead, IsTerminal, Write};
 use std::process::ExitCode;
 use std::time::UNIX_EPOCH;
 
@@ -312,6 +312,23 @@ fn redraw_repl_line(prompt: &str, buffer: &str, cursor: usize) -> Result<(), Str
 /// - Creates a temporary REPL module, optionally loads seed declarations, then
 ///   reads interactive commands and expressions until the session exits.
 pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
+    let stdin = std::io::stdin();
+    let input_is_terminal = stdin.is_terminal();
+    run_with_input(cmd, state, &mut stdin.lock(), input_is_terminal)
+}
+
+/// Executes the REPL against an explicit input stream.
+///
+/// Keeping input ownership at this boundary prevents CLI tests and embedding
+/// callers from depending on ambient process stdin. Production still passes a
+/// locked stdin stream and separately reports terminal capability so line
+/// editing remains a VM-owned CLI concern.
+pub(crate) fn run_with_input(
+    cmd: CliCommand,
+    state: CliState,
+    input: &mut dyn BufRead,
+    input_is_terminal: bool,
+) -> ExitCode {
     match cmd.args.as_slice() {
         args if is_repl_help_args(args) => {
             print_repl_help();
@@ -372,11 +389,10 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                 emit_repl_debug_mode(state.diagnostic_format, true);
             }
 
-            let stdin = std::io::stdin();
             let mut stdout = std::io::stdout();
             let interactive_line_editing =
                 !matches!(state.diagnostic_format, DiagnosticFormat::Json)
-                    && stdin.is_terminal()
+                    && input_is_terminal
                     && stdout.is_terminal();
             let mut line_history = Vec::new();
             let mut line = String::new();
@@ -414,7 +430,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                     }
 
                     line.clear();
-                    match stdin.read_line(&mut line) {
+                    match input.read_line(&mut line) {
                         Ok(0) => {
                             if let Err(err) = fs::remove_dir_all(&temp_dir) {
                                 eprintln!("failed to clean REPL temp directory: {err}");
