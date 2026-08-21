@@ -11,5 +11,5 @@ runs:
     - name: Reject vulnerable, unsound, and unmaintained dependencies
       shell: bash
       run: |
-        cargo audit --version | grep -F 'cargo-audit 0.22.2'
-        cargo audit --deny warnings
+        cargo-audit --version | grep -Fx 'cargo-audit 0.22.2'
+        cargo-audit audit --deny warnings

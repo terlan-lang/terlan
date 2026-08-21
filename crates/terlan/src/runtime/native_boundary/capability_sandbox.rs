@@ -97,15 +97,19 @@ fn unsupported_backend(host: CapabilitySandboxHost, reason: &str) -> String {
 }
 
 /// Worker-visible private working directory inside the sandbox.
+#[cfg(target_os = "linux")]
 pub(crate) const SANDBOX_WORK_DIR: &str = "/work";
 
 /// Worker-visible temporary directory inside the sandbox.
+#[cfg(target_os = "linux")]
 pub(crate) const SANDBOX_TEMP_DIR: &str = "/tmp";
 
 /// Deterministic locale admitted into the scrubbed worker environment.
+#[cfg(target_os = "linux")]
 pub(crate) const SANDBOX_LOCALE: &str = "C.UTF-8";
 
 /// Hard resource limits shared by the VM launcher and worker attestation.
+#[cfg(target_os = "linux")]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct CapabilitySandboxLimits {
     /// Maximum virtual address space in bytes.
@@ -120,6 +124,7 @@ pub(crate) struct CapabilitySandboxLimits {
     pub(crate) processes: u64,
 }
 
+#[cfg(target_os = "linux")]
 impl CapabilitySandboxLimits {
     /// Returns the fixed resource envelope for the first Linux profile.
     pub(crate) const fn linux_default() -> Self {

@@ -5,21 +5,28 @@ use std::process::Command;
 #[cfg(target_os = "linux")]
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use crate::terlan_native_boundary::capability_sandbox::CapabilitySandboxProfile;
+#[cfg(target_os = "linux")]
 use crate::terlan_native_boundary::capability_sandbox::{
-    CapabilitySandboxLimits, CapabilitySandboxProfile, SANDBOX_LOCALE, SANDBOX_TEMP_DIR,
-    SANDBOX_WORK_DIR,
+    CapabilitySandboxLimits, SANDBOX_LOCALE, SANDBOX_TEMP_DIR, SANDBOX_WORK_DIR,
 };
 
+#[cfg(target_os = "linux")]
 const BUBBLEWRAP_PATH: &str = "/usr/bin/bwrap";
+#[cfg(target_os = "linux")]
 const PRLIMIT_PATH: &str = "/usr/bin/prlimit";
+#[cfg(target_os = "linux")]
 const POSIX_SHELL_PATH: &str = "/bin/sh";
+#[cfg(target_os = "linux")]
 const SANDBOX_WORKER_PATH: &str = "/run/terlan/worker";
+#[cfg(target_os = "linux")]
 const CLOSE_INHERITED_DESCRIPTORS: &str = concat!(
     "for fd_path in /proc/self/fd/*; do ",
     "fd=${fd_path##*/}; ",
     "case \"$fd\" in 0|1|2) ;; *[!0-9]*) exit 125 ;; *) eval \"exec ${fd}>&-\" ;; esac; ",
     "done; exec \"$@\"",
 );
+#[cfg(target_os = "linux")]
 const MAX_SANDBOX_DIR_ATTEMPTS: u64 = 64;
 #[cfg(target_os = "linux")]
 static NEXT_SANDBOX_DIR: AtomicU64 = AtomicU64::new(1);
@@ -143,6 +150,7 @@ pub(super) fn linux_worker_command(
 }
 
 /// Appends fixed hard resource bounds understood by `prlimit`.
+#[cfg(target_os = "linux")]
 fn append_resource_limits(command: &mut Command, limits: CapabilitySandboxLimits) {
     command
         .arg(limit_arg("as", limits.address_space_bytes))
@@ -154,6 +162,7 @@ fn append_resource_limits(command: &mut Command, limits: CapabilitySandboxLimits
 }
 
 /// Appends namespace, capability, session, and environment isolation.
+#[cfg(target_os = "linux")]
 fn append_namespace_policy(command: &mut Command, capabilities: &[String]) {
     command
         .arg("--unshare-user-try")
@@ -186,6 +195,7 @@ fn append_namespace_policy(command: &mut Command, capabilities: &[String]) {
 }
 
 /// Appends a read-only system view and one private writable directory.
+#[cfg(target_os = "linux")]
 fn append_filesystem_policy(command: &mut Command, executable: &Path, work_dir: &Path) {
     command
         .arg("--ro-bind")
@@ -240,11 +250,13 @@ fn append_filesystem_policy(command: &mut Command, executable: &Path, work_dir: 
 }
 
 /// Formats one equal soft/hard `prlimit` argument.
+#[cfg(target_os = "linux")]
 fn limit_arg(name: &str, value: u64) -> String {
     format!("--{name}={value}:{value}")
 }
 
 /// Rejects absent tooling and worker paths before process creation.
+#[cfg(target_os = "linux")]
 fn require_regular_file(path: &Path, label: &str) -> Result<(), String> {
     if path.is_file() {
         Ok(())

@@ -176,8 +176,8 @@ docs-light-check: terlan-rust-quality-bootstrap
 		$(TERLAN_RUST_QUALITY) docs-light-check
 
 rust-security-audit-check:
-	@$(CARGO) audit --version | grep -F 'cargo-audit 0.22.2'
-	$(CARGO) audit --deny warnings
+	@cargo-audit --version | grep -Fx 'cargo-audit 0.22.2'
+	cargo-audit audit --deny warnings
 .PHONY: tvm-aot-application-conformance-check tvm-aot-c-abi-boundary-check tvm-aot-closure-dispatch-check tvm-aot-crash-injection-check tvm-aot-image-lifetime-check tvm-aot-multicore-readiness-check tvm-aot-thread-sanitizer-check
 .PHONY: std-vm-parity-matrix-check otp-stdlib-port-check vm-distribution-suite-parity-check vm-multicore-invariant-inventory-check terlan-self-validation-inventory-check terlan-self-validation-capabilities-check terlan-self-validation-clean-checkout-check terlan-self-validation-check editor-release-parity-check docs-static-release-parity-check
 .PHONY: tvm-aot-managed-field-projection-check tvm-aot-platform-matrix-contract-check tvm-aot-thread-sanitizer-contract-check tvm-aot-release-closeout-contract-check tvm-aot-release-closeout-check
