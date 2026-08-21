@@ -1,5 +1,6 @@
 //! Local native-image admission and shard identity helpers.
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -12,15 +13,16 @@ use crate::runtime::vm::execution_shard_supervisor::{
 use crate::runtime::vm::process::VmProcessSource;
 use crate::runtime::vm::restart_backoff::VmRestartBackoffSchedule;
 
-use super::super::{
-    PureNativeBoundary, PureNativeExecutionRuntime, VmNativeGenerationReferenceSnapshot,
-};
+use super::super::VmNativeGenerationReferenceSnapshot;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+use super::super::{PureNativeBoundary, PureNativeExecutionRuntime};
 
 const LOCAL_SHARD_PROTOCOL_VERSION: u16 = 1;
 const LOCAL_SHARD_RESTART_BUDGET: u32 = 3;
 const LOCAL_SHARD_RESTART_INITIAL_TICKS: u64 = 10;
 const LOCAL_SHARD_RESTART_MAX_TICKS: u64 = 1_000;
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(super) fn load_image_components(
     path: &Path,
 ) -> Result<(PureNativeBoundary, PureNativeExecutionRuntime), String> {

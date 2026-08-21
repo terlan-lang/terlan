@@ -4,7 +4,7 @@ Terlan package commands are deterministic release-artifact workflows. They run
 from installed release artifacts in clean temporary workspaces and preserve user files
 unless an explicit write action is requested.
 
-The package CLI surface is:
+The implemented Registry dependency surface is:
 
 - `terlc package add`
 - `terlc package remove`
@@ -14,12 +14,19 @@ The package CLI surface is:
 - `terlc package publish --dry-run`
 - `terlc package cache clean --check`
 
-Every package command validates or updates manifests and lockfiles
-deterministically. Text output and JSON output describe the same operation and
-diagnostics. Network access is disabled unless the command explicitly requests a
-live registry.
+Every implemented Registry command validates or updates manifests and
+lockfiles deterministically. Live resolution requires an explicit Registry
+origin and trust pin; offline resolution is explicit and reads only the
+verified cache.
 
-`package tree` and `package audit` report:
+`package tree` reports the locked Registry graph. `terlc package audit` checks
+the lockfile's Registry provenance, duplicate versions, and content-addressed
+archive cache without modifying the workspace. Text output is intended for
+people, while JSON output is deterministic for CI consumers. Network access is disabled
+for this command; commands that access a live registry require an
+explicit Registry origin and trust pin. A future signed advisory source can
+extend the audit without weakening these local integrity checks.
+Registry lock entries retain:
 
 - target constraints
 - capabilities

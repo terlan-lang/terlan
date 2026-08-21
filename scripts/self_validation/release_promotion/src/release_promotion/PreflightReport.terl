@@ -38,9 +38,9 @@ support_abi(document: Json): Json ->
         .put("native_ir_abi", Json.string("terlan-native-v2"))
         .put("native_boundary_adapter_abi", Json.int(1)).
 
-support_document(candidate_seal: String): Json ->
+support_document(version: String, candidate_seal: String): Json ->
     support_abi(support_identity(candidate_seal))
-        .put("release_version", Json.string("0.0.7"))
+        .put("release_version", Json.string(version))
         .put(
             "deployment_baseline",
             Json.string("linux-x86_64; platform attestations required elsewhere"),
@@ -52,33 +52,17 @@ support_document(candidate_seal: String): Json ->
             ),
         ).
 
-final_identity(candidate_seal: String, metadata_bound: Bool): Json ->
+final_identity(version: String, candidate_seal: String, metadata_bound: Bool): Json ->
     Json.object()
-        .put("schema", Json.string("terlan.release-0-0-7-preflight.v1"))
+        .put("schema", Json.string("terlan.release-preflight.v1"))
         .put("decision", Json.string("pass"))
+        .put("release_version", Json.string(version))
         .put("candidate_seal", Json.string(candidate_seal))
         .put("release_metadata_bound", Json.bool(metadata_bound)).
 
-final_counts(
-    document: Json,
-    total: Int,
-    local: Int,
-    platform: Int,
-    controlled: Int,
-    experimental: Int,
-    retired: Int,
-): Json ->
+final_documentation(document: Json, docs_digest: String, outcome_report_count: Int): Json ->
     document
-        .put("closure_gate_count", Json.int(total))
-        .put("required_local", Json.int(local))
-        .put("required_platform", Json.int(platform))
-        .put("required_controlled_host", Json.int(controlled))
-        .put("experimental", Json.int(experimental))
-        .put("retired", Json.int(retired)).
-
-final_documentation(document: Json, docs_digest: String): Json ->
-    document
-        .put("outcome_report_count", Json.int(17))
+        .put("outcome_report_count", Json.int(outcome_report_count))
         .put("documentation_manifest", Json.string("docs/release/PUBLISHABLE_DOCUMENTATION.tsv"))
         .put("documentation_manifest_sha256", Json.string(docs_digest)).
 
@@ -89,79 +73,55 @@ final_policy(document: Json): Json ->
         .put("candidate_build_count", Json.int(1))
         .put("candidate_seal_count", Json.int(1))
         .put("evidence_strategy", Json.string("candidate-bound-composition-v1"))
-        .put("evidence_refresh_command", Json.string("make release-0-0-7-evidence-refresh"))
+        .put("evidence_refresh_command", Json.string("make release-evidence-refresh"))
         .put("preflight_replays_completed_gates", Json.bool(false))
         .put("same_process_required", Json.bool(false))
         .put("selective_invalidation_required", Json.bool(true)).
 
 final_document(
+    version: String,
     candidate_seal: String,
     metadata_bound: Bool,
     docs_digest: String,
-    total: Int,
-    local: Int,
-    platform: Int,
-    controlled: Int,
-    experimental: Int,
-    retired: Int,
+    outcome_report_count: Int,
 ): Json ->
     final_policy(
         final_documentation(
-            final_counts(
-                final_identity(candidate_seal, metadata_bound),
-                total,
-                local,
-                platform,
-                controlled,
-                experimental,
-                retired,
-            ),
+            final_identity(version, candidate_seal, metadata_bound),
             docs_digest,
+            outcome_report_count,
         ),
     ).
 
 /**
  * Writes both final reports after all validation has succeeded.
  */
-pub write(
-    root: String,
-    candidate_seal: String,
-    total: Int,
-    local: Int,
-    platform: Int,
-    controlled: Int,
-    experimental: Int,
-    retired: Int,
-): Bool ->
+pub write(root: String, version: String, candidate_seal: String, outcome_report_count: Int): Bool ->
     let docs_manifest = "docs/release/PUBLISHABLE_DOCUMENTATION.tsv";
     let {
         Ok(docs_digest) <- Hash.sha256_file(child(root, docs_manifest));
-        Ok(support_rendered) <- Json.stringify_pretty(support_document(candidate_seal));
+        Ok(support_rendered) <- Json.stringify_pretty(support_document(version, candidate_seal));
         Ok(Unit) <-
             File.write_text(
-                child(root, "target/quality/release-0-0-7-support-manifest.json"),
+                child(root, "target/quality/release-support-manifest.json"),
                 String.append(support_rendered, "\n"),
             );
         Ok(final_rendered) <-
             Json.stringify_pretty(
                 final_document(
+                    version,
                     candidate_seal,
                     String.contains(
                         text(root, "dist/terlan-release.json"),
-                        "\"version\": \"0.0.7\"",
+                        String.concat(["\"version\": \"", version, "\""]),
                     ),
                     docs_digest,
-                    total,
-                    local,
-                    platform,
-                    controlled,
-                    experimental,
-                    retired,
+                    outcome_report_count,
                 ),
             );
         Ok(Unit) <-
             File.write_text(
-                child(root, "target/quality/release-0-0-7-preflight-report.json"),
+                child(root, "target/quality/release-preflight-report.json"),
                 String.append(final_rendered, "\n"),
             )
     } else {

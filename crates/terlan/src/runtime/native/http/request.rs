@@ -6,6 +6,7 @@ pub struct Request {
     method: String,
     path: String,
     body: String,
+    body_file_path: String,
     params: Vec<(String, String)>,
     query_string: String,
     query: Vec<(String, String)>,
@@ -33,6 +34,7 @@ pub(crate) struct RequestParts {
     pub(crate) method: String,
     pub(crate) path: String,
     pub(crate) body: String,
+    pub(crate) body_file_path: String,
     pub(crate) params: Vec<(String, String)>,
     pub(crate) query_string: String,
     pub(crate) query: Vec<(String, String)>,
@@ -47,6 +49,7 @@ impl Request {
             method: self.method,
             path: self.path,
             body: self.body,
+            body_file_path: self.body_file_path,
             params: self.params,
             query_string: self.query_string,
             query: self.query,
@@ -196,6 +199,7 @@ impl Request {
             method: method.into(),
             path: path.into(),
             body: body.into(),
+            body_file_path: String::new(),
             params,
             query_string,
             query,
@@ -244,6 +248,17 @@ impl Request {
     /// - Reads the body field without allocation or mutation.
     pub fn body(&self) -> &str {
         &self.body
+    }
+
+    /// Attaches the runtime-owned temporary file containing a binary body.
+    pub(crate) fn with_body_file_path(mut self, path: impl Into<String>) -> Self {
+        self.body_file_path = path.into();
+        self
+    }
+
+    /// Returns the temporary binary-body path, or an empty string for text.
+    pub fn body_file_path(&self) -> &str {
+        &self.body_file_path
     }
 
     /// Returns the first decoded route parameter value for a name.

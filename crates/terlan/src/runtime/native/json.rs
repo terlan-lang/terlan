@@ -387,6 +387,36 @@ pub fn put(json: &mut Json, key: &str, value: Json) -> Result<(), JsonError> {
     }
 }
 
+/// Removes one existing member from a JSON object.
+///
+/// Inputs:
+/// - `json`: mutable JSON object.
+/// - `key`: member name to remove.
+///
+/// Output:
+/// - `Ok(())` after removal.
+/// - `Err(JsonError)` for non-object values or absent keys.
+///
+/// Transformation:
+/// - Mutates only the selected object and returns stable typed diagnostics.
+pub fn remove(json: &mut Json, key: &str) -> Result<(), JsonError> {
+    let Some(object) = json.value.as_object_mut() else {
+        return Err(JsonError::new(
+            "json.not_object",
+            "JSON value is not an object.",
+            0,
+        ));
+    };
+    if object.remove(key).is_none() {
+        return Err(JsonError::new(
+            "json.missing_key",
+            format!("JSON object has no member `{key}`"),
+            0,
+        ));
+    }
+    Ok(())
+}
+
 /// Renders a native JSON value to compact JSON text.
 ///
 /// Inputs:

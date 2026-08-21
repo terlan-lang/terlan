@@ -29,6 +29,7 @@ pub(crate) struct StaticRoute {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct StaticMarkdownRoute {
     pub(crate) path: String,
+    pub(crate) aliases: Vec<String>,
     pub(crate) alias: String,
     pub(crate) title: Option<String>,
     pub(crate) layout: Option<String>,
@@ -130,8 +131,17 @@ pub(crate) fn discover_markdown_static_routes(
     for input in inputs {
         let path = markdown_static_route_path(input)?;
         static_route_output_path(&path)?;
+        for alias_path in &input.metadata.aliases {
+            static_route_output_path(alias_path).map_err(|message| {
+                format!(
+                    "invalid static Markdown alias for `{}`: {}",
+                    input.alias, message
+                )
+            })?;
+        }
         routes.push(StaticMarkdownRoute {
             path,
+            aliases: input.metadata.aliases.clone(),
             alias: input.alias.clone(),
             title: input
                 .metadata
@@ -662,7 +672,8 @@ fn strip_optional_trailing_dot(parts: &[String]) -> &[String] {
 fn reject_duplicate_static_routes(routes: &[StaticRoute]) -> Result<(), String> {
     let mut seen = BTreeSet::new();
     for route in routes {
-        if !seen.insert(route.path.clone()) {
+        let output_path = static_route_output_path(&route.path)?;
+        if !seen.insert(output_path) {
             return Err(format!("duplicate static route `{}`", route.path));
         }
     }
@@ -683,8 +694,20 @@ fn reject_duplicate_static_routes(routes: &[StaticRoute]) -> Result<(), String> 
 fn reject_duplicate_markdown_static_routes(routes: &[StaticMarkdownRoute]) -> Result<(), String> {
     let mut seen = BTreeSet::new();
     for route in routes {
-        if !seen.insert(route.path.clone()) {
+        let output_path = static_route_output_path(&route.path)?;
+        if !seen.insert(output_path) {
             return Err(format!("duplicate static Markdown route `{}`", route.path));
+        }
+    }
+    for route in routes {
+        for alias_path in &route.aliases {
+            let output_path = static_route_output_path(alias_path)?;
+            if !seen.insert(output_path) {
+                return Err(format!(
+                    "static Markdown alias `{}` for `{}` collides with another Markdown route or alias",
+                    alias_path, route.alias
+                ));
+            }
         }
     }
     Ok(())
@@ -709,13 +732,54 @@ pub(crate) fn reject_static_route_path_collisions(
 ) -> Result<(), String> {
     let explicit_paths = routes
         .iter()
-        .map(|route| route.path.as_str())
-        .collect::<BTreeSet<_>>();
+        .map(|route| static_route_output_path(&route.path))
+        .collect::<Result<BTreeSet<_>, _>>()?;
     for route in markdown_routes {
-        if explicit_paths.contains(route.path.as_str()) {
+        if explicit_paths.contains(&static_route_output_path(&route.path)?) {
             return Err(format!(
                 "static route `{}` is also produced by Markdown import `{}`",
                 route.path, route.alias
+            ));
+        }
+        for alias_path in &route.aliases {
+            if explicit_paths.contains(&static_route_output_path(alias_path)?) {
+                return Err(format!(
+                    "static route `{}` is also declared as an alias by Markdown import `{}`",
+                    alias_path, route.alias
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Rejects collisions between generated docs pages and declared site routes.
+pub(crate) fn reject_generated_static_route_path_collisions(
+    routes: &[StaticRoute],
+    markdown_routes: &[StaticMarkdownRoute],
+    generated_routes: &[String],
+) -> Result<(), String> {
+    let mut occupied = BTreeSet::new();
+    for route in routes {
+        occupied.insert(static_route_output_path(&route.path)?);
+    }
+    for route in markdown_routes {
+        occupied.insert(static_route_output_path(&route.path)?);
+        for alias in &route.aliases {
+            occupied.insert(static_route_output_path(alias)?);
+        }
+    }
+    let mut generated = BTreeSet::new();
+    for route in generated_routes {
+        let output = static_route_output_path(route)?;
+        if occupied.contains(&output) {
+            return Err(format!(
+                "generated documentation route `{route}` collides with a declared site route"
+            ));
+        }
+        if !generated.insert(output) {
+            return Err(format!(
+                "generated documentation route `{route}` collides with another generated route"
             ));
         }
     }
@@ -829,6 +893,40 @@ pub(crate) fn static_route_output_path(route_path: &str) -> Result<PathBuf, Stri
     }
     output.push("index.html");
     Ok(output)
+}
+
+/// Renders a static redirect document for a Markdown route alias.
+///
+/// Inputs:
+/// - `canonical_path`: validated canonical Markdown route.
+/// - `title`: optional page title used in the accessible fallback link.
+///
+/// Output:
+/// - Complete HTML document whose refresh, canonical link, and body link all
+///   resolve through the site's injected base path.
+///
+/// Transformation:
+/// - Converts the canonical route to a base-relative public URL and escapes
+///   both attribute and text contexts before rendering the redirect shell.
+pub(crate) fn render_static_markdown_alias_html(
+    canonical_path: &str,
+    title: Option<&str>,
+) -> String {
+    let canonical_url = static_route_public_url(canonical_path);
+    let escaped_url = crate::terlan_html::escape_html_attr(&canonical_url);
+    let link_text = crate::terlan_html::escape_html_text(title.unwrap_or("the canonical page"));
+    format!(
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"robots\" content=\"noindex\"><meta http-equiv=\"refresh\" content=\"0; url={escaped_url}\"><link rel=\"canonical\" href=\"{escaped_url}\"><title>Redirecting</title></head><body><p>This page moved to <a href=\"{escaped_url}\">{link_text}</a>.</p></body></html>"
+    )
+}
+
+/// Converts a validated route path to a base-relative public URL.
+pub(crate) fn static_route_public_url(route_path: &str) -> String {
+    if route_path == "/" {
+        ".".to_string()
+    } else {
+        format!("{}/", route_path.trim_matches('/'))
+    }
 }
 
 /// Returns whether a type annotation is an accepted static HTML route type.

@@ -88,6 +88,7 @@ pub fn encode_bytes_read_int_le_operation(list_semantic: SemanticTypeId) -> Vec<
     operation(READ_INT_LE, list_semantic, false)
 }
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(super) fn bytes_operation_result_is_reference(encoded: &[u8]) -> bool {
     encoded.get(7) == Some(&1)
 }

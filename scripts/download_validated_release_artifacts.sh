@@ -48,7 +48,8 @@ download_dir="$(mktemp -d)"
 extract_dir="$(mktemp -d)"
 trap 'rm -rf "$download_dir" "$extract_dir"' EXIT
 gh run download "$run_id" --name release-distribution --dir "$download_dir"
-bash scripts/check_release_artifact_set.sh "$download_dir"
+make --no-print-directory release-artifact-set-check \
+  RELEASE_ARTIFACT_SET_ROOT="$download_dir"
 for artifact in "$download_dir"/terlc-*; do
   gh attestation verify "$artifact" \
     --repo "$repository" \
@@ -122,6 +123,8 @@ done
 for executable in terlc terlan-vm terlan-native-worker terlan-lsp; do
   install -m 0755 "$extract_dir/$executable" "dist/$executable"
 done
-bash scripts/check_release_artifact_set.sh dist --with-local-payload
+make --no-print-directory release-artifact-set-check \
+  RELEASE_ARTIFACT_SET_ROOT=dist \
+  RELEASE_ARTIFACT_SET_LOCAL_PAYLOAD=1
 
 echo "downloaded validated release artifacts from run $run_id for $revision"

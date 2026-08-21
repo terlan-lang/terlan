@@ -15,6 +15,7 @@
 # Format:
 # module_prefix<TAB>capability<TAB>blocking_policy<TAB>cancellation_policy<TAB>timeout_policy<TAB>worker_placement<TAB>resource_policy<TAB>error_policy<TAB>notes
 module_prefix	capability	blocking_policy	cancellation_policy	timeout_policy	worker_placement	resource_policy	error_policy	notes
+std.crypto.Ed25519	crypto.signature.verify	nonblocking	not-required	none	direct	value-only	typed-result	Ed25519 verification is a bounded pure-value transformation over admitted payload text and never exposes key material or native resources.
 std.crypto.Hash	crypto.hash	nonblocking	not-required	none	direct	value-only	typed-result	SHA-256 byte and framed-field operations are bounded value transformations and return VM-owned digest text.
 std.data.Json	json	nonblocking	not-required	none	direct	value-only	typed-result	Serde JSON value operations do not carry native resources.
 std.data.Toml	structured-data.parse	nonblocking	not-required	none	direct	value-only	typed-result	TOML parsing produces an existing VM-owned JSON value and carries no parser or host resource.
@@ -22,6 +23,7 @@ std.encoding.Base64	encoding	nonblocking	not-required	none	direct	value-only	typ
 std.encoding.Md5	encoding	nonblocking	not-required	none	direct	value-only	typed-result	MD5 digest operations are bounded compatibility transformations and must not be treated as secure hashing.
 std.io.Path	filesystem.path	nonblocking	not-required	none	direct	value-only	typed-result	Path APIs transform path values and do not open files.
 std.net.Uri	network.parse	nonblocking	not-required	none	direct	value-only	typed-result	URI APIs parse and inspect value data only.
+std.package.Registry	package.registry	nonblocking	not-required	none	direct	value-only	typed-result	Registry publication parsing applies the compiler-owned strict protocol model and shared bounded admission policy, returning only VM-owned primitive metadata.
 std.random.Random	random	nonblocking	not-required	none	direct	value-only	typed-result	Random APIs use maintained Rust RNG crates and return explicit VM-owned generator state.
 std.regex.Regex	text.regex	nonblocking	not-required	none	direct	value-only	typed-result	Regex APIs use the maintained Rust regex engine and return opaque VM-owned regex values.
 std.system.Arguments	system.arguments	nonblocking	not-required	none	direct	value-only	typed-result	Argument inspection reads immutable process-start metadata and returns VM-owned values.

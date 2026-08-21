@@ -12,11 +12,14 @@ Release runs must stop at first failure by default, support an explicit
 collect-all mode, and print the exact resume command for the next unchecked gate
 without re-running completed gates.
 
-`make release-0-0-7-evidence-refresh` owns expensive evidence production.
+`make release-evidence-refresh` owns expensive evidence production.
 Evidence refresh and preflight are separate commands:
-`make release-0-0-7-preflight` performs candidate-bound composition and final
+`make release-preflight` performs candidate-bound composition and final
 integration validation, and preflight never executes completed gates. A late
 failure therefore cannot replay the entire successful prefix.
+
+`make release-check` is the version-neutral end-to-end entry point and resolves
+the candidate version from workspace metadata.
 
 ## Cache Semantics
 

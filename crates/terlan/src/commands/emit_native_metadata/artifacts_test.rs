@@ -70,6 +70,10 @@ fn hash_std_source() -> &'static str {
     include_str!("../../../../../std/crypto/Hash.terl")
 }
 
+fn ed25519_std_source() -> &'static str {
+    include_str!("../../../../../std/crypto/Ed25519.terl")
+}
+
 fn platform_std_source() -> &'static str {
     include_str!("../../../../../std/system/Platform.terl")
 }
@@ -284,7 +288,7 @@ fn compiler_native_metadata_extracts_std_json_operations() {
     assert_eq!(metadata.native_module, "std_data_json_native_boundary");
     assert_eq!(metadata.scheduler, "normal");
     assert_eq!(metadata.native_policy, NativePolicy::NativeBoundaryOptional);
-    assert_eq!(metadata.functions.len(), 32);
+    assert_eq!(metadata.functions.len(), 33);
     assert!(metadata.functions.contains(&NativeFunctionSignature {
         name: "parse".to_string(),
         arity: 1,
@@ -368,12 +372,12 @@ pub html(value: Html, status: Int = 200): Response ->\n\
 ///   operation inventory expected by `std/RUST_BACKED_MANIFEST.tsv`.
 #[test]
 fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
-    let cases: [(&str, &str, &str, usize, &[(&str, usize, &str)]); 11] = [
+    let cases: [(&str, &str, &str, usize, &[(&str, usize, &str)]); 12] = [
         (
             "std.data.Json",
             json_std_source(),
             "std_data_json_native_boundary",
-            32,
+            33,
             &[
                 ("null", 0, "std.data.json.null"),
                 ("bool", 1, "std.data.json.bool"),
@@ -386,6 +390,7 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
                 ("extend", 2, "std.data.json.array_extend"),
                 ("set", 3, "std.data.json.array_set"),
                 ("put", 3, "std.data.json.object_put"),
+                ("remove", 2, "std.data.json.object_remove"),
                 ("parse", 1, "std.data.json.parse"),
                 ("stringify", 1, "std.data.json.stringify"),
                 ("stringify_pretty", 1, "std.data.json.stringify_pretty"),
@@ -444,6 +449,13 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
                     "std.crypto.hash.sha256_nul_separated",
                 ),
             ],
+        ),
+        (
+            "std.crypto.Ed25519",
+            ed25519_std_source(),
+            "std_crypto_ed25519_native_boundary",
+            1,
+            &[("verify", 3, "std.crypto.ed25519.verify")],
         ),
         (
             "std.system.Platform",
@@ -535,7 +547,7 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
             "std.http.Request",
             http_request_std_source(),
             "std_http_request_native_boundary",
-            10,
+            11,
             &[
                 ("method", 1, "std.http.request.method"),
                 ("path", 1, "std.http.request.path"),
@@ -546,6 +558,7 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
                 ("cookie", 2, "std.http.request.cookie"),
                 ("cookies", 1, "std.http.request.cookies"),
                 ("body_text", 1, "std.http.request.body_text"),
+                ("body_file_path", 1, "std.http.request.body_file_path"),
                 ("body_json", 1, "std.http.request.body_json"),
             ],
         ),

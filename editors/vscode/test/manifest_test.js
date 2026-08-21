@@ -309,6 +309,19 @@ function testGrammarContributions() {
     "text.html.basic": "html",
     "source.terlan.embedded": "terlan"
   });
+
+  const markdownGrammar = manifest.contributes.grammars.find(
+    (grammar) => grammar.language === "terlan-template-markdown"
+  );
+  assert.ok(markdownGrammar, "missing Terlan Markdown template grammar");
+  assert.strictEqual(
+    markdownGrammar.path,
+    "./syntaxes/terlan-template-markdown.tmLanguage.json"
+  );
+  assert.deepStrictEqual(markdownGrammar.embeddedLanguages, {
+    "text.html.markdown": "markdown",
+    "source.terlan.embedded": "terlan"
+  });
 }
 
 /**

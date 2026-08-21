@@ -72,32 +72,28 @@ pub(super) fn deep_expression_diagnostics(path: &Path, source: &str) -> Vec<Lint
 
 /// Builds diagnostics for linear nested cases that repeat one fallback.
 pub(super) fn grouped_binding_diagnostics(path: &Path, source: &str) -> Vec<LintDiagnostic> {
-    let Ok(module) = parse_lint_source(path, source) else {
-        return Vec::new();
-    };
-
-    let mut diagnostics = Vec::new();
-    for declaration in module.declarations {
-        match declaration.payload {
-            SyntaxDeclarationPayload::Function { clauses, .. }
-            | SyntaxDeclarationPayload::Method { clauses, .. } => {
-                for clause in clauses {
-                    collect_grouped_binding_diagnostics(
-                        path,
-                        source,
-                        &clause.body,
-                        &mut diagnostics,
-                    );
-                }
-            }
-            _ => {}
-        }
-    }
-    diagnostics
+    selected_binding_diagnostics(path, source, true, false)
 }
 
 /// Builds diagnostics for lambdas that only forward their parameters.
 pub(super) fn function_reference_diagnostics(path: &Path, source: &str) -> Vec<LintDiagnostic> {
+    selected_binding_diagnostics(path, source, false, true)
+}
+
+/// Builds grouped-binding and forwarding-lambda diagnostics from one parse.
+pub(super) fn grouped_binding_and_function_reference_diagnostics(
+    path: &Path,
+    source: &str,
+) -> Vec<LintDiagnostic> {
+    selected_binding_diagnostics(path, source, true, true)
+}
+
+fn selected_binding_diagnostics(
+    path: &Path,
+    source: &str,
+    grouped_binding: bool,
+    function_reference: bool,
+) -> Vec<LintDiagnostic> {
     let Ok(module) = parse_lint_source(path, source) else {
         return Vec::new();
     };
@@ -108,12 +104,22 @@ pub(super) fn function_reference_diagnostics(path: &Path, source: &str) -> Vec<L
             SyntaxDeclarationPayload::Function { clauses, .. }
             | SyntaxDeclarationPayload::Method { clauses, .. } => {
                 for clause in clauses {
-                    collect_function_reference_diagnostics(
-                        path,
-                        source,
-                        &clause.body,
-                        &mut diagnostics,
-                    );
+                    if grouped_binding {
+                        collect_grouped_binding_diagnostics(
+                            path,
+                            source,
+                            &clause.body,
+                            &mut diagnostics,
+                        );
+                    }
+                    if function_reference {
+                        collect_function_reference_diagnostics(
+                            path,
+                            source,
+                            &clause.body,
+                            &mut diagnostics,
+                        );
+                    }
                 }
             }
             _ => {}

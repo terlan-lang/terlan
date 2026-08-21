@@ -11,10 +11,12 @@ use crate::CliState;
 
 use super::super::{write_build_file, BuildOneError};
 use super::native_cache::{is_sha256, load_verified_entry, sha256_hex};
-use super::native_image::{CompiledNativeApplicationImage, DIRECT_AOT_BACKEND};
+use super::native_image::{
+    native_linker_cache_identity, CompiledNativeApplicationImage, DIRECT_AOT_BACKEND,
+};
 use super::output_cleanup;
 
-const REUSE_SCHEMA: &str = "terlan-native-reuse-v2";
+const REUSE_SCHEMA: &str = "terlan-native-reuse-v3";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct NativeReuseStamp {
@@ -24,6 +26,7 @@ struct NativeReuseStamp {
     policy: String,
     target: String,
     adapter_abi: String,
+    linker_policy: String,
 }
 
 /// Reuses one dependency-free native image without reading serialized VMIR.
@@ -66,11 +69,13 @@ pub(super) fn reuse_dependency_free_native_image(
     let adapter_abi = NativeAdapterAbiContract::current()
         .cache_identity(&target.triple, &target.calling_convention)
         .map_err(|error| BuildOneError::Message(error.into()))?;
+    let linker_policy = native_linker_cache_identity()?;
     if stamp.source_sha256 != source_identity(&canonical_source, &source_text, policy)
         || stamp.image_name != format!("{module_stem}.tvm")
         || stamp.policy != policy.cache_identity()
         || stamp.target != target.triple
         || stamp.adapter_abi != adapter_abi
+        || stamp.linker_policy != linker_policy
     {
         return Ok(false);
     }
@@ -138,6 +143,7 @@ pub(super) fn write_native_reuse_stamp(
     let adapter_abi = NativeAdapterAbiContract::current()
         .cache_identity(&target.triple, &target.calling_convention)
         .map_err(|error| BuildOneError::Message(error.into()))?;
+    let linker_policy = native_linker_cache_identity()?.to_string();
     let stamp = render_stamp(&NativeReuseStamp {
         source_sha256: source_identity(&canonical_source, source_text, policy),
         image_name: image.image_name.clone(),
@@ -145,6 +151,7 @@ pub(super) fn write_native_reuse_stamp(
         policy: policy.cache_identity().to_string(),
         target: target.triple,
         adapter_abi,
+        linker_policy,
     })
     .map_err(BuildOneError::Message)?;
     let cache_root = native_cache_root(state);
@@ -182,6 +189,7 @@ fn parse_stamp(text: &str) -> Option<NativeReuseStamp> {
     let policy = lines.next()?.strip_prefix("policy ")?.to_string();
     let target = lines.next()?.strip_prefix("target ")?.to_string();
     let adapter_abi = lines.next()?.strip_prefix("adapter-abi ")?.to_string();
+    let linker_policy = lines.next()?.strip_prefix("linker-policy ")?.to_string();
     let binding_sha256 = lines.next()?.strip_prefix("binding-sha256 ")?;
     if lines.next().is_some()
         || !is_sha256(&source_sha256)
@@ -190,6 +198,7 @@ fn parse_stamp(text: &str) -> Option<NativeReuseStamp> {
         || !is_identity_text(&policy)
         || !is_identity_text(&target)
         || !is_identity_text(&adapter_abi)
+        || !is_identity_text(&linker_policy)
         || binding_sha256
             != stamp_binding(
                 &source_sha256,
@@ -198,6 +207,7 @@ fn parse_stamp(text: &str) -> Option<NativeReuseStamp> {
                 &policy,
                 &target,
                 &adapter_abi,
+                &linker_policy,
             )
     {
         return None;
@@ -209,6 +219,7 @@ fn parse_stamp(text: &str) -> Option<NativeReuseStamp> {
         policy,
         target,
         adapter_abi,
+        linker_policy,
     })
 }
 
@@ -220,6 +231,7 @@ fn render_stamp(stamp: &NativeReuseStamp) -> Result<String, String> {
         || !is_identity_text(&stamp.policy)
         || !is_identity_text(&stamp.target)
         || !is_identity_text(&stamp.adapter_abi)
+        || !is_identity_text(&stamp.linker_policy)
     {
         return Err("error[tvm.cache.reuse_stamp]: native reuse identity is not canonical".into());
     }
@@ -230,15 +242,17 @@ fn render_stamp(stamp: &NativeReuseStamp) -> Result<String, String> {
         &stamp.policy,
         &stamp.target,
         &stamp.adapter_abi,
+        &stamp.linker_policy,
     );
     Ok(format!(
-        "{REUSE_SCHEMA}\nsource-sha256 {}\nimage {}\ninput-sha256 {}\npolicy {}\ntarget {}\nadapter-abi {}\nbinding-sha256 {binding}\n",
+        "{REUSE_SCHEMA}\nsource-sha256 {}\nimage {}\ninput-sha256 {}\npolicy {}\ntarget {}\nadapter-abi {}\nlinker-policy {}\nbinding-sha256 {binding}\n",
         stamp.source_sha256,
         stamp.image_name,
         stamp.input_sha256,
         stamp.policy,
         stamp.target,
         stamp.adapter_abi,
+        stamp.linker_policy,
     ))
 }
 
@@ -250,10 +264,11 @@ fn stamp_binding(
     policy: &str,
     target: &str,
     adapter_abi: &str,
+    linker_policy: &str,
 ) -> String {
     sha256_hex(
         format!(
-            "{REUSE_SCHEMA}\0{source_sha256}\0{image_name}\0{input_sha256}\0{policy}\0{target}\0{adapter_abi}"
+            "{REUSE_SCHEMA}\0{source_sha256}\0{image_name}\0{input_sha256}\0{policy}\0{target}\0{adapter_abi}\0{linker_policy}"
         )
         .as_bytes(),
     )

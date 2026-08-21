@@ -6,10 +6,8 @@ use crate::validation::native_policy::NativePolicy;
 use crate::validation::target_profile::{TargetProfile, TargetProfileCheckOptions};
 use crate::CliState;
 
-use super::execution::{
-    run_js_tests, run_terlan_vm_tests, TestArgs, TestProjectContext,
-    TEST_SOURCE_PATTERN_DESCRIPTION,
-};
+use super::arguments::{TestArgs, TEST_SOURCE_PATTERN_DESCRIPTION};
+use super::execution::{run_js_tests, run_terlan_vm_tests, TestProjectContext};
 
 /// Validates all JavaScript test modules below one directory.
 ///
@@ -58,8 +56,9 @@ pub(super) fn run_js_test_directory(
     for file in files {
         let file_args = TestArgs {
             path: file.to_string_lossy().into_owned(),
+            additional_paths: Vec::new(),
             target: args.target,
-            test_name: args.test_name.clone(),
+            test_names: args.test_names.clone(),
             benchmark: args.benchmark,
             benchmark_warmup: args.benchmark_warmup,
             benchmark_samples: args.benchmark_samples,
@@ -122,8 +121,9 @@ pub(super) fn run_terlan_vm_test_directory(args: &TestArgs, state: CliState) -> 
     for file in files {
         let file_args = TestArgs {
             path: file.to_string_lossy().into_owned(),
+            additional_paths: Vec::new(),
             target: args.target,
-            test_name: args.test_name.clone(),
+            test_names: args.test_names.clone(),
             benchmark: args.benchmark,
             benchmark_warmup: args.benchmark_warmup,
             benchmark_samples: args.benchmark_samples,

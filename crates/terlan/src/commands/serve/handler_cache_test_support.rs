@@ -3,7 +3,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use crate::compiler::router::AotRouterPlan;
+use crate::runtime::vm::aot_metadata::AotRouterPlan;
 use crate::support::test_fs;
 use crate::{ColorChoice, DiagnosticFormat};
 

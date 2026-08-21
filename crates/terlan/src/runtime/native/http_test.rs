@@ -44,6 +44,14 @@ fn request_from_parts_preserves_method_path_and_body() {
     assert_eq!(body_text(&request), r#"{"name":"Ada"}"#);
 }
 
+/// Verifies the native accessor exposes only the server-owned upload path.
+#[test]
+fn body_file_path_reads_temporary_upload_path() {
+    let request = Request::new("").with_body_file_path("/tmp/terlan-upload");
+
+    assert_eq!(body_file_path(&request), "/tmp/terlan-upload");
+}
+
 /// Verifies request construction preserves decoded route/query/cookie metadata.
 ///
 /// Inputs:

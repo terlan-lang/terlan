@@ -1,0 +1,46 @@
+[package]
+name = "terlan-registry"
+version = "0.1.0"
+namespace = "terlan.registry"
+
+[build]
+source_roots = ["src"]
+artifact = "terlan-vm"
+
+[web.assets]
+directory = "assets"
+public_path = "/assets"
+inline_limit = 2048
+
+[deploy]
+environment = ["PORT", "DATABASE_URL", "OBJECT_STORAGE_ENDPOINT"]
+secrets = ["DATABASE_URL"]
+migrations = ["priv/migrations/001_packages.sql"]
+outbound_network = ["objects.example.test:443"]
+rollback = "migration-compatible"
+
+[deploy.health]
+path = "/health"
+interval_secs = 10
+timeout_secs = 2
+
+[deploy.resources]
+cpu_millis = 500
+memory_mb = 512
+processes = 2
+
+[native.rust]
+crate = "terlan_registry_native"
+path = "native"
+helper = "terlan-registry-native"
+helper_env = "TERLAN_REGISTRY_NATIVE_HELPER_PATH"
+features = ["postgres"]
+
+[dependencies]
+registry_protocol = { path = "../registry-protocol" }
+
+[target.js.dependencies]
+angular_ts = { npm = "@angular-wave/angular.ts", version = "0.32.0" }
+
+[target.rust.dependencies]
+postgres = { cargo = "tokio-postgres", version = "0.7.13", features = ["runtime"] }

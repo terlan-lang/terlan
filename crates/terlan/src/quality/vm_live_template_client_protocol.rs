@@ -74,7 +74,7 @@ const REQUIRED_PROTOCOL_MANIFEST_ANCHORS: &[&str] = &[
     "validateTerlanLiveTemplateEvent",
     "connectTerlanLiveTemplateSse",
     "terlan-vm-live-template-protocol-v1",
-    "angular-wave/angular.ts",
+    "@angular-wave/angular.ts",
 ];
 
 const REQUIRED_PROTOCOL_MANIFEST_TEST_ANCHORS: &[&str] = &[
@@ -336,7 +336,7 @@ pub fn run_vm_live_template_client_protocol(
         },
         "angularTsBoundary": {
             "required": true,
-            "source": "angular-wave/angular.ts",
+            "source": "@angular-wave/angular.ts",
             "validatedBy": [
                 "angular-ts-terlan-integration-check",
                 "angular-ts-namespace-generation-check"

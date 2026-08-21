@@ -670,6 +670,26 @@ pub(super) fn bridge_dispatches_json_mutable_receiver_operations() {
         ),
         Ok(NativeBoundaryBridgeValue::Handle(_))
     ));
+    assert_eq!(
+        dispatch_with_resources(
+            &mut store,
+            "std.data.json.object_remove",
+            &[
+                NativeBoundaryBridgeValue::Handle(object),
+                NativeBoundaryBridgeValue::Text(String::from("name")),
+            ],
+        ),
+        Ok(NativeBoundaryBridgeValue::Handle(object))
+    );
+    assert!(dispatch_with_resources(
+        &mut store,
+        "std.data.json.get",
+        &[
+            NativeBoundaryBridgeValue::Handle(object),
+            NativeBoundaryBridgeValue::Text(String::from("name")),
+        ],
+    )
+    .is_err());
 }
 
 /// Validates Base64 dispatch over standard encode/decode operations.

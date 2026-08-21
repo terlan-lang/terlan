@@ -1,0 +1,25 @@
+//! Bounded portable structured-log fields.
+//!
+//! The constructors expose only scalar values. `std.core.Secret` deliberately
+//! has no constructor here, so secret handles cannot become log fields through
+//! the typed API. The runtime repeats name, count, and size validation at the
+//! host ABI boundary.
+
+module std.log.Field.
+
+pub struct Field {
+    name: String,
+    kind: Atom,
+    text: String,
+    int: Int,
+    float: Float,
+    bool: Bool
+}.
+
+pub bool(name: String, value: Bool): Field.
+
+pub float(name: String, value: Float): Field.
+
+pub int(name: String, value: Int): Field.
+
+pub string(name: String, value: String): Field.

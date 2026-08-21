@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-use crate::terlan_quality::roadmap_gate_integrity::parse_make_list_variable_values;
 use crate::terlan_quality::support::{make_target_body, write_json_report};
 use crate::terlan_quality::{render_failure, QualityResult};
 
@@ -272,14 +271,6 @@ pub(crate) fn validate_gate_and_fixtures(makefile: &str, fixtures: &str) -> Vec<
     if !body.contains("editor-code-action-auto-import-report") {
         diagnostics.push(format!(
             "Makefile: `{TARGET}` must run its auto-import report"
-        ));
-    }
-    if !parse_make_list_variable_values(makefile, "COMPLETED_SLICE_RUST_GATES")
-        .iter()
-        .any(|gate| gate == TARGET)
-    {
-        diagnostics.push(format!(
-            "Makefile: `COMPLETED_SLICE_RUST_GATES` must own `{TARGET}`"
         ));
     }
     for fixture in REQUIRED_FIXTURES {

@@ -106,6 +106,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust
+        with:
+          components: ""
 
       - name: Audit locked dependencies
         uses: ./.github/actions/security-audit
@@ -175,6 +177,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust
+        with:
+          components: ""
 
       - name: Validate target-native AOT consumers
         run: make tvm-aot-platform-target-check
@@ -221,6 +225,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust
+        with:
+          components: ""
 
       - name: Download target execution attestations
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -259,6 +265,8 @@ jobs:
 
       - name: Install workspace Rust toolchain
         uses: ./.github/actions/setup-rust
+        with:
+          components: ""
 
       - name: Install pinned Rust ThreadSanitizer toolchain
         run: rustup toolchain install nightly-2026-07-16 --profile minimal --component rust-src
@@ -293,6 +301,7 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           targets: x86_64-unknown-linux-gnutsan
+          components: ""
 
       - name: Validate multicore VM memory safety
         run: make vm-multicore-thread-sanitizer-check
@@ -329,6 +338,8 @@ jobs:
 
       - name: Install pinned Rust toolchain
         uses: ./.github/actions/setup-rust
+        with:
+          components: ""
 
       - name: Enforce multicore performance policy
         run: make vm-multicore-performance-check
@@ -364,6 +375,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust
+        with:
+          components: ""
 
       - name: Download multicore ThreadSanitizer evidence
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -446,7 +459,7 @@ jobs:
           merge-multiple: true
 
       - name: Validate the complete release artifact set
-        run: bash scripts/check_release_artifact_set.sh target/release-distribution
+        run: make release-artifact-set-check RELEASE_ARTIFACT_SET_ROOT=target/release-distribution
 
       - name: Validate complete multicore release
         run: make vm-multicore-release-check

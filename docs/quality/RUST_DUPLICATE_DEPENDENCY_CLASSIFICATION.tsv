@@ -1,4 +1,5 @@
 name	versions	classification	owner	rationale	milestone
+bitflags	1.3.2,2.13.1	transitive-upgrade-blocked	dependency-health	Foundations compatibility dependencies and current workspace crates select different bitflags APIs	0.0.8
 block-buffer	0.10.4,0.12.1	transitive-upgrade-blocked	dependency-health	sha1 and sha2 currently select different digest generations	0.0.8
 cpufeatures	0.2.17,0.3.0	transitive-upgrade-blocked	dependency-health	sha1 and sha2 currently select different cpufeatures generations	0.0.8
 crypto-common	0.1.7,0.2.2	transitive-upgrade-blocked	dependency-health	digest generations require their matching crypto-common generation	0.0.8
@@ -6,13 +7,20 @@ darling	0.20.11,0.23.0	transitive-upgrade-blocked	dependency-health	derive_build
 darling_core	0.20.11,0.23.0	transitive-upgrade-blocked	dependency-health	darling generations require their matching core generation	0.0.8
 darling_macro	0.20.11,0.23.0	transitive-upgrade-blocked	dependency-health	darling generations require their matching macro generation	0.0.8
 digest	0.10.7,0.11.3	transitive-upgrade-blocked	dependency-health	sha1 and sha2 currently select different digest generations	0.0.8
+erased-serde	0.3.31,0.4.10	transitive-upgrade-blocked	dependency-health	Foundations and its slog adapter currently select different erased-serde APIs	0.0.8
 foldhash	0.1.5,0.2.0	transitive-upgrade-blocked	dependency-health	hashbrown generations require different foldhash generations	0.0.8
 getrandom	0.2.17,0.3.4,0.4.3	transitive-upgrade-blocked	dependency-health	ring and workspace consumers currently span three getrandom APIs	0.0.8
-hashbrown	0.15.5,0.16.1,0.17.1	transitive-upgrade-blocked	dependency-health	gimli and transitive collections currently span three hashbrown generations	0.0.8
+gimli	0.32.3,0.33.0	transitive-upgrade-blocked	dependency-health	Foundations tracing backtraces and Cranelift currently select adjacent gimli generations	0.0.8
+hashbrown	0.12.3,0.14.5,0.15.5,0.16.1,0.17.1	transitive-upgrade-blocked	dependency-health	Foundations, parser, and code-generation dependencies span supported hashbrown generations	0.0.8
+indexmap	1.9.3,2.14.0	transitive-upgrade-blocked	dependency-health	Foundations schema dependencies retain indexmap 1 while workspace consumers use indexmap 2	0.0.8
 linux-raw-sys	0.12.1,0.4.15	platform-compatibility	dependency-health	rustix generations retain matching Linux syscall bindings	0.0.8
 object	0.37.3,0.39.1	transitive-upgrade-blocked	dependency-health	psm build tooling retains object 0.37 while AOT uses object 0.39	0.0.8
 r-efi	5.3.0,6.0.0	platform-compatibility	dependency-health	getrandom generations retain matching UEFI bindings	0.0.8
+rand	0.10.2,0.9.5	transitive-upgrade-blocked	dependency-health	Foundations tracing and workspace consumers currently select adjacent rand APIs	0.0.8
+rand_core	0.10.1,0.9.5	transitive-upgrade-blocked	dependency-health	rand generations require their matching rand_core generation	0.0.8
 rustix	0.38.44,1.1.4	platform-compatibility	dependency-health	transitive consumers currently support different rustix APIs	0.0.8
+schemars	0.9.0,1.2.2	transitive-upgrade-blocked	dependency-health	Foundations settings dependencies currently span two schema APIs	0.0.8
+syn	1.0.109,2.0.119,3.0.3	transitive-upgrade-blocked	dependency-health	Foundations and workspace procedural macros currently span three syn APIs	0.0.8
 thiserror	1.0.69,2.0.18	transitive-upgrade-blocked	dependency-health	instant-acme retains thiserror 1 while newer protocol dependencies use 2	0.0.8
 thiserror-impl	1.0.69,2.0.18	transitive-upgrade-blocked	dependency-health	thiserror generations require their matching derive implementation	0.0.8
 windows-sys	0.52.0,0.59.0,0.60.2,0.61.2	platform-compatibility	dependency-health	cross-platform transitive dependencies retain several supported Windows API generations	0.0.8

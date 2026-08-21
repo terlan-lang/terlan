@@ -492,10 +492,16 @@ fn emit_suspending_body(
 
             builder.switch_to_block(wrap_yield);
             if resumes.is_empty() {
-                return Err(
-                    "error[cranelift.call_then]: suspending call has no resume identities"
-                        .to_string(),
-                );
+                // An empty closed profile proves that this specialization has
+                // no legal parked continuation. The shared recursive ABI may
+                // still classify its callee as suspension-capable because a
+                // different component entry can park. Trap an impossible
+                // transition loudly without manufacturing a compatibility
+                // resume identity.
+                let failure = builder.ins().iconst(types::I32, i64::from(status::FAILURE));
+                let error_args = [BlockArg::Value(failure)];
+                builder.ins().jump(error_block, &error_args);
+                return Ok(());
             }
             for (index, resume) in resumes.iter().enumerate() {
                 let matched = builder.create_block();

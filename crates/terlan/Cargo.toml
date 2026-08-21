@@ -24,6 +24,11 @@ path = "src/serve_runtime/main.rs"
 required-features = ["serve-runtime-bin"]
 
 [[bin]]
+name = "terlan-serve-runtime-trusted"
+path = "src/serve_runtime/trusted_main.rs"
+required-features = ["native-codegen", "postgres-libpq"]
+
+[[bin]]
 name = "terlan-native-worker"
 path = "src/native_worker/main.rs"
 
@@ -106,8 +111,10 @@ path = "src/benchmark/http_paired_benchmark.rs"
 required-features = ["benchmark-tools"]
 
 [features]
-default = ["native-codegen", "postgres-libpq"]
-serve-runtime-bin = []
+default = ["native-codegen", "postgres-libpq", "registry-network", "service-foundation"]
+serve-runtime-bin = ["service-foundation"]
+registry-network = ["dep:ureq"]
+service-foundation = ["dep:terlan-service-foundation"]
 acme-live = ["dep:tokio"]
 editor-lsp = ["dep:tower-lsp", "dep:tokio", "tokio/io-std"]
 axum-baseline = ["dep:axum", "dep:hyper-util", "dep:tokio", "tokio/macros", "tokio/net", "tokio/rt-multi-thread"]
@@ -115,6 +122,8 @@ benchmark-tools = []
 multicore-tsan-harness = ["native-codegen"]
 quality-tools = ["dep:shell-words"]
 native-codegen = [
+  "registry-network",
+  "service-foundation",
   "dep:cranelift-codegen",
   "dep:cranelift-frontend",
   "dep:cranelift-module",
@@ -168,27 +177,31 @@ rand = "0.9.4"
 regex = "1"
 rustls = "0.23"
 rustls-webpki = "0.103.13"
-serde = { version = "1.0", features = ["derive"] }
+semver = "1.0.28"
+serde.workspace = true
 serde_json = { workspace = true, features = ["unbounded_depth"] }
 serde_yaml = "0.9.34"
 sha2.workspace = true
 shell-words = { version = "1.1.1", optional = true }
 socket2 = { version = "0.6.1", features = ["all"] }
 smallvec = "1.15.2"
+spdx = "=0.13.5"
 sqlparser = "=0.60.0"
 target-lexicon = "0.13.5"
 terlan-archive.workspace = true
+terl-docs.workspace = true
 terlan-runtime-abi.workspace = true
+terlan-service-foundation = { workspace = true, optional = true }
 terlan-libpq = { path = "../../std/native/libpq/generated/native/rust", optional = true }
 time = { version = "0.3", features = ["formatting", "parsing"] }
 tokio = { workspace = true, features = ["rt"], optional = true }
 tower-lsp = { version = "0.20", optional = true }
 tungstenite = "0.28"
+ureq = { version = "=3.1.4", default-features = false, features = ["rustls"], optional = true }
 url = "2.5.8"
 docker-compose-types = "0.24.0"
 wasm-encoder = "0.252.0"
 wasmparser = "0.252.0"
-yaml-rust = { package = "yaml-rust2", version = "0.11.0" }
 
 [dev-dependencies]
 ratatui = { version = "0.30.2", default-features = false, features = ["std"] }

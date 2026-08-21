@@ -21,10 +21,8 @@ specification and main roadmap win.
 
 ## Execution Rules
 
-1. Before selecting MC-1, verify Slices 100 and 101A through 101F in
-   [`ROADMAP_0_0_7.md`](ROADMAP_0_0_7.md) remain checked and rerun
-   `make tvm-aot-roadmap-reconciliation-check`. If AOT reconciliation fails,
-   stop and repair the AOT boundary; do not begin multicore implementation.
+1. Before selecting MC-1, run `make runtime-aot-only-check`. If the direct-AOT
+   boundary fails, stop and repair it before multicore implementation.
 2. After activation, work only on the first unchecked top-level multicore item,
    scanning from the start of this file. Do not skip or reprioritize it.
 3. A top-level item includes every nested requirement, positive and adversarial
@@ -1379,11 +1377,8 @@ and progress evidence.
     - [x] Parse the main and multicore fenced gate inventories in declaration
       order and require the mini-roadmap sequence to appear as one exact
       contiguous block in the main roadmap.
-    - [x] Reject missing, reordered, interleaved, empty, or duplicate
-      cross-roadmap gate inventories through the existing
-      `make roadmap-gate-integrity-check`.
-    - [x] Update the validated main-roadmap inventory to 196 planned gates,
-      65 unchecked slices, and 516 Make targets.
+    - [x] Record the ordered multicore closeout sequence in the executable Make
+      aggregate instead of making roadmap prose part of the build graph.
   - Next executable slice: obtain revision-matched MC-9 performance and
     ThreadSanitizer evidence locally or in CI, then run
     `make vm-multicore-release-check`.
@@ -1391,8 +1386,7 @@ and progress evidence.
     after this mini-roadmap's full Completion Boundary passes.
   - Run `make vm-multicore-release-check` from a clean reproducible
     environment.
-  - Run `make check`, `make rust-quality-check`,
-    `make roadmap-gate-integrity-check`, and the required 0.0.7 release
+  - Run `make check`, `make rust-quality-check`, and the required 0.0.7 release
     preflight after the focused composition passes.
   - Record host topology, CPU quota, scheduler configuration, toolchain, AOT
     image, invariant revision, race/stress seeds, sanitizer evidence, scaling
@@ -1423,7 +1417,6 @@ make vm-scheduler-fairness-check
 make tvm-aot-runtime-transition-check
 make tvm-managed-memory-check
 make rust-quality-check
-make roadmap-gate-integrity-check
 make check
 make vm-multicore-release-check
 ```

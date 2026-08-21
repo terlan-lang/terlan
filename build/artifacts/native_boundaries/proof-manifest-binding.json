@@ -1,6 +1,14 @@
 {
-  "binding_digest": "sha256:11f8bd8c4816bd6197942397a02d126dfa08cc5222678c1f2b2fe56d0a827aeb",
+  "binding_digest": "sha256:bc226a2cc5123f5f1e7a47cf6ac4fded02025c8940e07679510ef7cfa2882f96",
   "manifests": [
+    {
+      "manifest_digest": "sha256:6fa537b804b34192dda202a502ec4ceefa18d404e297331f3341f8215a283494",
+      "path": "build/artifacts/native_boundaries/std.crypto.Ed25519.native_boundary.json",
+      "row_digests": [
+        "sha256:dc02a608f169d5577ff1c1561923b5e33ec623bbecc29fee73ce9f16ff827df8"
+      ],
+      "source_digest": "sha256:22d0ea6f3e889065c297675b80315160d1efb024e74ab2cc4cd97ee2636e4ff6"
+    },
     {
       "manifest_digest": "sha256:66b0de47b9ed46d548a2cb3d991bb288e53439dfc3bd568ed4fd26a653ebdd51",
       "path": "build/artifacts/native_boundaries/std.crypto.Hash.native_boundary.json",
@@ -13,7 +21,7 @@
       "source_digest": "sha256:b5d8b7dbaa3e909dff21292be401335cc0f0f82fcad1526b71b3be175df14bee"
     },
     {
-      "manifest_digest": "sha256:23f308206403c0cffcac60d6a13d9f4935788928039999d650ebe494a3b2d643",
+      "manifest_digest": "sha256:e58053ca995ed356c482defd1a350fc59a3ed29694684ee0b5bf49f93ef964ce",
       "path": "build/artifacts/native_boundaries/std.data.Json.native_boundary.json",
       "row_digests": [
         "sha256:80e0330e211e329acd740773eb504c2cdba7e428af72ec54c038c6f37a5e5b9a",
@@ -27,6 +35,7 @@
         "sha256:e3a9d9b7690c29b2090d12f76bd868aae907c03698b898d9486c82dc622fd6cd",
         "sha256:25818ad5d5bca138db2dbd1a1f544ea724af8e46beecb5b9c98ac5e06a2a5939",
         "sha256:7b81584f1443458f67d9d8c16f2015da6409f558a09d446e20a65384872037b9",
+        "sha256:004ee4b806bd42f391a9f949191593688c9c62fbca55f96eead5a50bb41a2668",
         "sha256:330ae79b6b846620d6a8aa667013fd677ba966e459c318a3d582206240592dba",
         "sha256:152441a10141021b931a9c41efc7b3d2b218d8396143298e3d6af61459110777",
         "sha256:812bb0f81ee91b8a75ea9e852f37e8c8b0724996ff47b5dbb337ccd5318b1ee2",
@@ -49,7 +58,7 @@
         "sha256:a6ea2ffda14051cb8a3d6d87cd7881b8e42199ac178e6876f53b2388a04072d3",
         "sha256:55068f1c4042aba9cf7c50e04c65e4ef529da49b082739df33d185cc7777b4fc"
       ],
-      "source_digest": "sha256:c9109fd15f986b80735e5308a14720013f867143a111479cca66a7e363b82a1f"
+      "source_digest": "sha256:2358a2a8bee94478af70542f864ba58e2df6358820617df5ad322e211d35e85a"
     },
     {
       "manifest_digest": "sha256:ffa55bcdfbe325ddb039aee89d2a2ca0d08f93f7bff8d660356781c41ad458a0",
@@ -112,7 +121,7 @@
       "source_digest": "sha256:28ea65dc610edbf1993ee077deb1e0fcac9285070c61b0b00934341b5f0de8f1"
     },
     {
-      "manifest_digest": "sha256:cfda7e70aab8caf6a7952eef537131dba083924a205245fa65ce5a7c06f7d45c",
+      "manifest_digest": "sha256:752e563464cd0542bbd00f9d62ad3f05f8f683e39950838a2c27e25978e9d75d",
       "path": "build/artifacts/native_boundaries/std.http.Request.native_boundary.json",
       "row_digests": [
         "sha256:dc326cd39a21b6ad92e2f1610c2f91c2c45cb4c11266ade48742971372b25593",
@@ -124,9 +133,10 @@
         "sha256:d579a7cf3424b47a4a03d4f76e46679d49b192160b350874182d2590c04fdb53",
         "sha256:e9805a28f91deb86c912f591c928774f16d777ed264dbb9c55ea9af6ade54189",
         "sha256:514e14064694861045a63976f98db20bd405e5dc3486ac57f4bb0865747f5459",
+        "sha256:1213d96c8b370c8a229777c277d32e6f25a86f16696599168ac3058a17f44311",
         "sha256:95f2681b2da1c07193221824b064bc7af993358dd1c122d63b249a8dd2c06775"
       ],
-      "source_digest": "sha256:323c26d9787f5c7770c0d45d5d1993f9436b0c8f0bf3a1b1e32e4480efd6942a"
+      "source_digest": "sha256:1f477142e7531e02397fed595c19df68a1ae3fe424459e3a4063fd5d5e35214a"
     },
     {
       "manifest_digest": "sha256:e9867b868101c07d0c8db167889625b4218f21870fb906fd49a9f5c4bc2f01df",
@@ -243,6 +253,14 @@
         "sha256:954331d38f28a5bdc3cdd4773e5e4acd2d5e5715960492097665e8b858f889cb"
       ],
       "source_digest": "sha256:6d941c8ea6b8560c8be1cff7c88060480406123ecda02dc8d14ee80d0b34f28c"
+    },
+    {
+      "manifest_digest": "sha256:4a8442fac1355911366d2fa79b103158d3acff125d40ab79e6adb1066f89eef8",
+      "path": "build/artifacts/native_boundaries/std.package.Registry.native_boundary.json",
+      "row_digests": [
+        "sha256:987150c2513fb122ec0748a74d06fc6b516f1920147591788ea2bb5dd78ddbd4"
+      ],
+      "source_digest": "sha256:85e71bc95c42134e59f771237bb0a42f0e529e0f81bb931df66118275eea5096"
     },
     {
       "manifest_digest": "sha256:2b873a2f2d0738422afb7c7c0fd3e092eb426c5de18ff706a72ad6114989655a",

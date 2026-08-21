@@ -104,6 +104,14 @@ single_native(source: String, crate_name: String, stem: String): Adapter ->
 @pure
 pub adapter(module_name: String): Adapter ->
     case module_name {
+        "std.crypto.Ed25519" ->
+            Adapter(
+                known = true,
+                source = "std/crypto/Ed25519.terl",
+                expected_crate = "rustls",
+                implementation_paths = [native_path("ed25519.rs")],
+                test_paths = [native_path("ed25519_test.rs")],
+            );
         "std.crypto.Hash" -> single_native("std/crypto/Hash.terl", "sha2", "hash");
         "std.data.Json" -> single_native("std/data/Json.terl", "serde_json", "json");
         "std.data.Toml" -> single_native("std/data/Toml.terl", "basic-toml", "toml");
@@ -113,6 +121,14 @@ pub adapter(module_name: String): Adapter ->
         "std.net.Uri" -> single_native("std/net/Uri.terl", "url", "uri");
         "std.random.Random" -> single_native("std/random/Random.terl", "rand_chacha", "random");
         "std.regex.Regex" -> single_native("std/regex/Regex.terl", "regex", "regex");
+        "std.package.Registry" ->
+            Adapter(
+                known = true,
+                source = "std/package/Registry.terl",
+                expected_crate = "terlan",
+                implementation_paths = ["crates/terlan/src/runtime/native_boundary/dispatch/package_registry.rs"],
+                test_paths = ["crates/terlan/src/runtime/native_boundary/dispatch/package_registry_test.rs"],
+            );
         "std.system.Platform" ->
             single_native("std/system/Platform.terl", "std::env::consts", "platform");
         "std.http.Request" -> single_native("std/http/Request.terl", "std::http", "http");

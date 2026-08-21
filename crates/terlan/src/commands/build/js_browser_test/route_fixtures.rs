@@ -426,10 +426,12 @@ pub(super) fn discover_web_route_manifest_extracts_websocket_metadata() {
         WebRouteSourceArtifact {
             module: "app.RoomProtocol".to_string(),
             source_path: protocol_path.display().to_string(),
+            manifest_path: None,
         },
         WebRouteSourceArtifact {
             module: "app.WebSocket".to_string(),
             source_path: websocket_path.display().to_string(),
+            manifest_path: None,
         },
     ];
 
@@ -466,6 +468,7 @@ pub router(): Router ->
     let sources = vec![WebRouteSourceArtifact {
         module: "app.Events".to_string(),
         source_path: source_path.display().to_string(),
+        manifest_path: None,
     }];
 
     let rows = discover_web_route_manifest_from_sources(&sources).expect("route manifest");

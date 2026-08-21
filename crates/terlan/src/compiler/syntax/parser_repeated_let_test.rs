@@ -1,4 +1,4 @@
-use crate::terlan_syntax::parse_tree::{Decl, Expr};
+use crate::terlan_syntax::parse_tree::{Decl, Expr, Pattern};
 use crate::terlan_syntax::{
     parse_module, COMMA_GROUPED_LET_BINDING_DIAGNOSTIC, REPEATED_LET_BINDING_DIAGNOSTIC,
 };
@@ -29,6 +29,37 @@ pub total(price: Int, tax: Int): Int ->
     assert_eq!(bindings.len(), 2);
     assert!(else_clauses.is_empty());
     assert!(matches!(body.as_deref(), Some(Expr::Var(name)) if name == "total"));
+}
+
+#[test]
+fn non_finite_float_spellings_remain_let_binding_identifiers() {
+    let source = r#"
+module non_finite_identifier_bindings.
+
+pub retain(value: Int): Int ->
+    let infinity = value;
+    let inf = infinity;
+    let nan = inf;
+    let nanoseconds = nan;
+    let infimum = nanoseconds;
+    infimum.
+"#;
+
+    let module = parse_module(source).expect("identifier bindings should parse");
+    let Decl::Function(function) = &module.declarations[0] else {
+        panic!("expected function declaration");
+    };
+    let Expr::Let { bindings, .. } = &function.clauses[0].body else {
+        panic!("expected let expression");
+    };
+    let names = bindings
+        .iter()
+        .map(|binding| match &binding.pattern {
+            Pattern::Var(name) => name.as_str(),
+            pattern => panic!("expected variable pattern, found {pattern:?}"),
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(names, ["infinity", "inf", "nan", "nanoseconds", "infimum"]);
 }
 
 #[test]

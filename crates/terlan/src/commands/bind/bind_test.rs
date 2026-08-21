@@ -155,6 +155,26 @@ fn parse_bind_js_dom_args_requires_out_dir() {
     assert_eq!(err, "terlc bind js-dom requires --out <dir>");
 }
 
+/// Verifies the compiler-managed Angular.ts binding command accepts only its
+/// deterministic output location.
+#[test]
+fn parse_bind_angular_ts_args_accepts_required_output() {
+    let parsed =
+        parse_bind_angular_ts_args(&["--out".to_string(), "generated-angular-ts".to_string()])
+            .expect("bind angular-ts args should parse");
+
+    assert_eq!(parsed.out_dir, PathBuf::from("generated-angular-ts"));
+}
+
+/// Verifies the Angular.ts binding command cannot silently choose an output
+/// directory on behalf of a caller.
+#[test]
+fn parse_bind_angular_ts_args_requires_out_dir() {
+    let err = parse_bind_angular_ts_args(&[]).expect_err("missing out dir should fail");
+
+    assert_eq!(err, "terlc bind angular-ts requires --out <dir>");
+}
+
 /// Verifies valid native binding arguments parse into the manifest-backed shape.
 ///
 /// Inputs:

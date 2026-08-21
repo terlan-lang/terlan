@@ -34,11 +34,6 @@ contract. Native boundary behavior keeps:
 - async isolation
 - typed failure propagation
 
-`SafeNative` is the old NIF-era name for the Terlan native boundary. It remains
-valid only in historical 0.0.6 material, compatibility notes, and temporary
-migration aliases. New 0.0.7 docs and APIs should use native boundary,
-`NativeBoundary`, `NativeModule`, `NativeResource`, and `HostCapability`.
-
 ## Gate
 
 The contract is guarded by:

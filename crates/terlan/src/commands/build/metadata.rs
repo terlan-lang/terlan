@@ -98,6 +98,8 @@ pub(super) struct BuildPackageDependency {
     pub(super) version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) features: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) integrity: Option<String>,
 }
 
 /// Serializable target package-adapter metadata inside build metadata.
@@ -135,6 +137,10 @@ pub(super) struct BuildPackageExecutable {
     pub(super) image: String,
     pub(super) runtime: String,
     pub(super) native_worker: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) service_runtime: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) web_root: Option<String>,
 }
 
 /// Serializable native runtime metadata inside build metadata.
@@ -278,6 +284,7 @@ pub(super) struct ProjectNativeRustDependency {
 pub(super) enum ProjectDependencyOrigin {
     Path,
     Git,
+    Registry,
 }
 
 impl ProjectDependencyOrigin {
@@ -285,6 +292,7 @@ impl ProjectDependencyOrigin {
         match self {
             Self::Path => "local dependency",
             Self::Git => "Git dependency",
+            Self::Registry => "Registry dependency",
         }
     }
 }
@@ -602,6 +610,7 @@ fn build_package_dependency_metadata(
             package: None,
             version: None,
             features: None,
+            integrity: None,
         },
         project_manifest::ProjectDependencySource::Git { url, rev } => BuildPackageDependency {
             alias: dependency.alias.clone(),
@@ -613,23 +622,42 @@ fn build_package_dependency_metadata(
             package: None,
             version: None,
             features: None,
+            integrity: None,
         },
-        project_manifest::ProjectDependencySource::Npm { package, version } => {
+        project_manifest::ProjectDependencySource::Registry { registry, version } => {
             BuildPackageDependency {
                 alias: dependency.alias.clone(),
                 scope: package_dependency_scope(&dependency.scope).to_string(),
-                source: "npm".to_string(),
+                source: "registry".to_string(),
                 path: None,
-                url: None,
+                url: Some(registry.clone()),
                 rev: None,
-                package: Some(package.clone()),
+                package: Some(dependency.alias.clone()),
                 version: Some(version.clone()),
                 features: None,
+                integrity: None,
             }
         }
+        project_manifest::ProjectDependencySource::Npm {
+            package,
+            version,
+            integrity,
+        } => BuildPackageDependency {
+            alias: dependency.alias.clone(),
+            scope: package_dependency_scope(&dependency.scope).to_string(),
+            source: "npm".to_string(),
+            path: None,
+            url: None,
+            rev: None,
+            package: Some(package.clone()),
+            version: Some(version.clone()),
+            features: None,
+            integrity: integrity.clone(),
+        },
         project_manifest::ProjectDependencySource::Cargo {
             package,
             version,
+            integrity,
             features,
         } => BuildPackageDependency {
             alias: dependency.alias.clone(),
@@ -641,6 +669,7 @@ fn build_package_dependency_metadata(
             package: Some(package.clone()),
             version: Some(version.clone()),
             features: (!features.is_empty()).then(|| features.clone()),
+            integrity: integrity.clone(),
         },
     }
 }

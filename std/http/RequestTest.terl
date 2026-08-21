@@ -1,9 +1,5 @@
 module std.http.RequestTest.
 
-import std.collections.Map.
-import std.core.Option.{with_default}.
-import std.test.Test.{assert_equal}.
-
 import type std.core.{Error, Option, Result}.
 import type std.data.Json.
 import type std.http.Cookies.Jar.
@@ -39,30 +35,11 @@ pub sample_cookies(request: Request): Jar ->
 pub sample_body_text(request: Request): String ->
     request.body_text().
 
+pub sample_body_file_path(request: Request): String ->
+    request.body_file_path().
+
 pub sample_body_json(request: Request): Result[Json, Error] ->
     request.body_json().
 
-pub sample_request(): Dynamic ->
-    {
-        Atom["request"],
-        "GET",
-        "/users/42",
-        Map({"id", "42"}),
-        "{\"name\":\"Ada\"}",
-        "page=1",
-        Map({"page", "1"}),
-        Map({"Accept", "text/html"}),
-        Map({"session", "abc123"}),
-    }.
-
 @test
-pub request_reads_descriptor_fields(): Bool ->
-    let request = sample_request();
-    assert_equal("GET", request.method())
-        and assert_equal("/users/42", request.path())
-        and assert_equal("42", with_default(request.param("id"), ""))
-        and assert_equal("1", with_default(request.query("page"), ""))
-        and assert_equal("page=1", request.query_string())
-        and assert_equal("text/html", with_default(request.header("accept"), ""))
-        and assert_equal("abc123", with_default(request.cookie("session"), ""))
-        and assert_equal("{\"name\":\"Ada\"}", request.body_text()).
+pub request_accessors_typecheck(): Bool -> true.

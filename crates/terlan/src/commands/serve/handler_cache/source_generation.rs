@@ -45,7 +45,7 @@ pub(super) struct PersistedServeGeneration {
     image_sha256: String,
     image_bytes: u64,
     router: Option<AotRouterPlan>,
-    request_projections: Vec<crate::compiler::native_ir::NativeRequestProjection>,
+    request_projections: Vec<crate::runtime::vm::aot_metadata::NativeRequestProjection>,
     compatibility: ServeGenerationCompatibility,
 }
 
@@ -153,44 +153,53 @@ fn compile_source_candidate(
     source: String,
     checksum: String,
 ) -> ServeResult<HandlerCacheEntry> {
-    let source_name = source_path.to_string_lossy();
-    let artifacts = crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
-        &source_name,
+    let syntax = crate::formal_pipeline::parse_source_as_syntax_output(
+        &source_path.to_string_lossy(),
         &source,
-        DiagnosticFormat::Text {
-            color: ColorChoice::Never,
-        },
-        None,
-        NativePolicy::NativeBoundaryOptional,
-        TargetProfile::Vm,
     )
-    .map_err(|code| {
+    .map_err(|error| {
         format!(
-            "error[serve.aot.compile]: failed to compile `{source_name}` with exit code {code:?}"
+            "error[serve.aot.compile]: failed to parse `{}`: {error:?}",
+            source_path.display()
         )
     })?;
-    if artifacts.core.module != expected_module {
+    if syntax.module_name != expected_module {
         return Err(format!(
             "error[serve.aot.module]: source declared `{}` but manifest expected `{expected_module}`",
-            artifacts.core.module
+            syntax.module_name
         ).into());
     }
-    let compatibility = compatibility_for_core(&artifacts.core)?;
-    let (core, router) = crate::compiler::router::prepare_aot_router_module(&artifacts.core)?;
-    let module_stem = expected_module.replace('.', "_");
-    let image = crate::commands::build::vm_artifact::native_image::
-        compile_serve_native_image_with_metadata(web_root, &module_stem, &core)?
-        .ok_or_else(|| {
-            format!(
-                "error[serve.aot.image_required]: `{expected_module}` did not produce a native image; runtime CoreIR interpretation has been removed"
-            )
-        })?;
+    let compiled = crate::commands::build::vm_artifact::compile_serve_application(
+        web_root,
+        source_path,
+        expected_module,
+    )?;
+    let compatibility = compatibility_for_core(&compiled.core)?;
+    let router = compiled.router;
+    let image = compiled.image;
     let canonical_image = image.path.canonicalize().map_err(|error| {
         format!(
             "error[serve.aot.runtime_generation]: canonicalize image `{}`: {error}",
             image.path.display()
         )
     })?;
+    let image_root = web_root
+        .join(".terlan")
+        .join("serve-aot")
+        .canonicalize()
+        .map_err(|error| {
+            format!("error[serve.aot.runtime_generation]: canonicalize image root: {error}")
+        })?;
+    let portable_image = canonical_image
+        .strip_prefix(&image_root)
+        .map(Path::to_path_buf)
+        .map_err(|_| {
+            format!(
+                "error[serve.aot.runtime_generation]: image `{}` escapes `{}`",
+                canonical_image.display(),
+                image_root.display()
+            )
+        })?;
     let image_sha256 = crate::support::sha256sum_file(&image.path)?;
     let image_bytes = image
         .path
@@ -207,7 +216,7 @@ fn compile_source_candidate(
         compiler_version: env!("CARGO_PKG_VERSION").to_string(),
         checksum: checksum.clone(),
         module: expected_module.to_string(),
-        image: canonical_image,
+        image: portable_image,
         image_sha256,
         image_bytes,
         router: router.clone(),
@@ -330,12 +339,6 @@ fn load_persisted_generation(
     {
         return Ok(None);
     }
-    let image = generation.image.canonicalize().map_err(|error| {
-        format!(
-            "error[serve.aot.runtime_generation]: canonicalize image `{}`: {error}",
-            generation.image.display()
-        )
-    })?;
     let image_root = web_root
         .join(".terlan")
         .join("serve-aot")
@@ -343,6 +346,17 @@ fn load_persisted_generation(
         .map_err(|error| {
             format!("error[serve.aot.runtime_generation]: canonicalize image root: {error}")
         })?;
+    let stored_image = if generation.image.is_absolute() {
+        generation.image.clone()
+    } else {
+        image_root.join(&generation.image)
+    };
+    let image = stored_image.canonicalize().map_err(|error| {
+        format!(
+            "error[serve.aot.runtime_generation]: canonicalize image `{}`: {error}",
+            stored_image.display()
+        )
+    })?;
     if !image.starts_with(&image_root) {
         return Err(format!(
             "error[serve.aot.runtime_generation]: image `{}` escapes `{}`",
@@ -453,11 +467,14 @@ fn persist_generation_batch(
     let identity = previous
         .as_ref()
         .map_or(1, |active| active.identity.saturating_add(1));
-    let nonce = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_err(|error| format!("error[serve.aot.runtime_generation]: system clock: {error}"))?
-        .as_nanos();
-    let generation_name = format!("{identity}-{}-{nonce}", std::process::id());
+    let generation_bytes = serde_json::to_vec(generations).map_err(|error| {
+        format!("error[serve.aot.runtime_generation]: encode generation identity: {error}")
+    })?;
+    let generation_digest = Sha256::digest(&generation_bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    let generation_name = format!("{identity}-{generation_digest}");
     let generation_dir = runtime_dir.join("generations").join(&generation_name);
     fs::create_dir_all(&generation_dir).map_err(|error| {
         format!(
@@ -488,7 +505,10 @@ fn persist_generation_batch(
     let bytes = serde_json::to_vec(&active).map_err(|error| {
         format!("error[serve.aot.runtime_generation]: encode active metadata: {error}")
     })?;
-    let temporary = active_path.with_extension(format!("json.tmp-{}-{nonce}", std::process::id()));
+    let temporary = active_path.with_extension(format!(
+        "json.tmp-{}-{generation_digest}",
+        std::process::id()
+    ));
     write_synced_new_file(&temporary, &bytes)?;
     fs::rename(&temporary, &active_path).map_err(|error| {
         format!(

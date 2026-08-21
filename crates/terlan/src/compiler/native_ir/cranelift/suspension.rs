@@ -122,6 +122,16 @@ pub(super) fn suspension_value_count(body: &NativeExpr, function_counts: &[usize
             function,
             resumes,
             completion_function,
+            ..
+        } if resumes.is_empty() => function_counts.get(*function).copied().unwrap_or(0).max(
+            completion_function
+                .and_then(|function| function_counts.get(function).copied())
+                .unwrap_or(0),
+        ),
+        NativeExpr::CallThen {
+            function,
+            resumes,
+            completion_function,
             values,
             ..
         } => resumes
@@ -147,6 +157,13 @@ pub(super) fn suspension_value_count(body: &NativeExpr, function_counts: &[usize
                     .saturating_add(values.len())
                     .saturating_add(2),
             ),
+        NativeExpr::InvokeClosureThen {
+            resumes,
+            completion_function,
+            ..
+        } if resumes.is_empty() => completion_function
+            .and_then(|function| function_counts.get(function).copied())
+            .unwrap_or(0),
         NativeExpr::InvokeClosureThen {
             resumes,
             completion_function,
@@ -194,6 +211,27 @@ pub(super) fn is_suspending(body: &NativeExpr, function_suspending: &[bool]) -> 
                 || function_suspending.get(*function).copied().unwrap_or(false)
         }
         NativeExpr::ContinuationTailCall { .. } => false,
+        NativeExpr::Call { function, .. } => {
+            function_suspending.get(*function).copied().unwrap_or(false)
+        }
+        NativeExpr::CallThen {
+            function,
+            resumes,
+            completion_function,
+            ..
+        } if resumes.is_empty() => {
+            function_suspending.get(*function).copied().unwrap_or(false)
+                || completion_function
+                    .and_then(|function| function_suspending.get(function).copied())
+                    .unwrap_or(false)
+        }
+        NativeExpr::InvokeClosureThen {
+            resumes,
+            completion_function,
+            ..
+        } if resumes.is_empty() => completion_function
+            .and_then(|function| function_suspending.get(function).copied())
+            .unwrap_or(false),
         NativeExpr::CallThen { .. } | NativeExpr::InvokeClosureThen { .. } => true,
         NativeExpr::InvokeClosure { .. } => true,
         NativeExpr::Let { body, .. } => is_suspending(body, function_suspending),

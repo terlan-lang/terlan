@@ -1,10 +1,11 @@
 //! Read-only debugger projections owned by one mutable execution shard.
 
-use crate::runtime::vm::process::{VmProcessId, VmProcessSource};
+use crate::runtime::vm::execution_shard_epoch::{VmShardOperationKind, VmShardReplayPolicy};
+use crate::runtime::vm::process::{VmExitReason, VmProcessId, VmProcessSource};
 use crate::runtime::vm::ReplValue;
 use terlan_runtime_abi::{BoundaryError, ErrorDomain};
 
-use super::super::{PureNativeExecutionContext, PureNativeSuspension};
+use super::super::{PureNativeExecution, PureNativeExecutionContext, PureNativeSuspension};
 use super::PureNativeExecutionShard;
 
 fn debugger_projection_error(rendered: impl Into<String>) -> BoundaryError {
@@ -16,6 +17,48 @@ fn debugger_projection_error(rendered: impl Into<String>) -> BoundaryError {
 }
 
 impl PureNativeExecutionShard {
+    /// Applies a debugger-selected `skip`/`use Unit` restart to a stopped call.
+    pub(crate) fn resume_debug_restart(
+        &mut self,
+        owner: VmProcessId,
+        suspension: PureNativeSuspension,
+    ) -> Result<PureNativeExecution, String> {
+        self.require_routable("resume_debug_restart")?;
+        if suspension.owner_id() != owner.as_u64() {
+            return Err(format!(
+                "error[pure_native_debug_restart_owner]: actor {} cannot resume owner {}",
+                owner.as_u64(),
+                suspension.owner_id()
+            ));
+        }
+        let operation = self.begin_internal_epoch_operation(
+            "resume_debug_restart",
+            VmShardOperationKind::ContinuationResume,
+            VmShardReplayPolicy::AtMostOnce,
+        )?;
+        let execution = {
+            let mut context = PureNativeExecutionContext::new(owner, &mut self.execution);
+            self.boundary
+                .resume_debug_restart_for_actor(&mut self.actors, &mut context, suspension)
+        };
+        let execution = match execution {
+            Ok(execution) => execution,
+            Err(error) => {
+                let _ = self.supervisor.abort_internal_operation(operation);
+                let cleanup = self.finish_owner(owner, VmExitReason::Error(error.clone()));
+                return match cleanup {
+                    Ok(()) => Err(error),
+                    Err(cleanup_error) => Err(format!(
+                        "{error}; error[execution_shard.cleanup]: {cleanup_error}"
+                    )),
+                };
+            }
+        };
+        self.record_completion(owner, &execution);
+        self.commit_internal_epoch_operation(operation)?;
+        Ok(execution)
+    }
+
     /// Captures deterministic process rows for debugger inspection.
     pub(crate) fn debugger_process_snapshots(
         &self,

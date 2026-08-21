@@ -65,6 +65,55 @@ fn c_abi_wrapper_supports_borrowed_opaque_resource_input_arrays() {
 }
 
 #[test]
+fn c_abi_wrapper_supports_resource_lists_on_mutable_methods_without_unsafe_code() {
+    let manifest = write_fixture_variant("mutable_resource_input_arrays", |metadata| {
+        symbol_mut(metadata, "function.native_boundary_add")["parameters"][1] = serde_json::json!({
+            "name": "boundaries",
+            "c_type": "const uint64_t *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "input_array": {
+                "length_parameter": "boundary_count",
+                "element_type": "NativeBoundary"
+            }
+        });
+        symbol_mut(metadata, "function.native_boundary_add")["parameters"]
+            .as_array_mut()
+            .expect("parameters")
+            .push(serde_json::json!({
+                "name": "boundary_count",
+                "c_type": "int64_t",
+                "direction": "input",
+                "ownership": "value"
+            }));
+        metadata["modules"][0]["functions"][2]["args"][1] =
+            serde_json::json!({"name": "boundaries", "ty": "List[NativeBoundary]"});
+        metadata["modules"][0]["functions"][2]["generated_smoke"] =
+            serde_json::Value::String("package_owned".to_string());
+    });
+    let out_dir = temp_dir("mutable_resource_input_arrays_output");
+
+    generate_c_abi_bindings(&manifest, &out_dir)
+        .expect("generate mutable resource input array wrapper");
+    let adapter = fs::read_to_string(out_dir.join("native/rust/src/lib.rs")).expect("adapter");
+    assert!(adapter.contains(
+        "pub fn add(&mut self, boundaries: &[&NativeBoundary]) -> Result<(), CAbiError>"
+    ));
+    let helper = fs::read_to_string(out_dir.join("native/rust/src/bin/native_boundary_helper.rs"))
+        .expect("helper");
+    assert!(helper.contains("#![forbid(unsafe_code)]"));
+    assert!(!helper.contains("unsafe {"));
+    assert!(helper.contains("mutable resource calls cannot borrow the receiver"));
+    assert!(helper.contains("self.handles.remove(&boundary.id)"));
+    assert!(helper.contains("let call_result = value_boundary.add(value_boundaries.as_slice())"));
+    assert!(helper.contains("self.handles.insert(boundary.id, entry_boundary)"));
+    assert!(helper.contains("match call_result"));
+
+    fs::remove_dir_all(manifest.parent().expect("variant parent")).expect("remove variant");
+    fs::remove_dir_all(out_dir).expect("remove output");
+}
+
+#[test]
 fn c_abi_resource_input_arrays_require_known_matching_resource_types() {
     let manifest = write_fixture_variant("unknown_resource_input_array", |metadata| {
         symbol_mut(metadata, "function.native_boundary_add")["parameters"][1] = serde_json::json!({

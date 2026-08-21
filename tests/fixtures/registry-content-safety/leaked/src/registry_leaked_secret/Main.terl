@@ -1,0 +1,4 @@
+module registry_leaked_secret.Main.
+
+// Deliberately fake GitHub-shaped token used to prove redacted rejection.
+private fixture_token(): String -> "ghp_abcdefghijklmnopqrstuvwxyzABCDEFGHIJ".

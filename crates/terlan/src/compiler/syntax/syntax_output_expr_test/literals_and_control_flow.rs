@@ -1,5 +1,17 @@
 use super::super::*;
 
+/// Verifies integral-valued Float nodes retain Float syntax across interfaces.
+#[test]
+pub(super) fn syntax_output_preserves_integral_float_identity() {
+    let expression =
+        parse_expr_as_syntax_output("[0.0, 1000.0]").expect("syntax output float list");
+
+    assert_eq!(expression.kind, SyntaxExprKind::List);
+    assert_eq!(expression.children[0].kind, SyntaxExprKind::Float);
+    assert_eq!(expression.children[0].text.as_deref(), Some("0.0"));
+    assert_eq!(expression.children[1].text.as_deref(), Some("1000.0"));
+}
+
 #[test]
 pub(super) fn syntax_output_ignores_typed_sql_dollar_quoted_interpolation_text() {
     let output = parse_module_as_syntax_output(

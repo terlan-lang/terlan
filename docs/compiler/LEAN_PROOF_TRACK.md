@@ -59,7 +59,7 @@ The gate is `make lean-proof-track-check`.
   `error[lean_proof_closeout_*]` identifiers.
 - A current baseline class records every current family digest as a sorted,
   unique semicolon-separated SHA-256 set.
-- `release-0-0-7-preflight` and `publish-preflight` require Lean proof closeout.
+- `release-preflight` and `publish-preflight` require Lean proof closeout.
 - A proof gap row must name the missing feature, lifecycle status, category,
   reason, remediation owner, planned gate, deadline or exception, blocker
   update date, blocker hash, and the concrete manifest or spec files covered

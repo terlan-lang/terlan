@@ -15,10 +15,21 @@ use crate::terlan_native_boundary::resource::{ResourceKind, ResourceStore};
 /// Returns whether an operation belongs to the closed direct-safe adapter set.
 pub(super) fn supports(operation: &str) -> bool {
     operation.starts_with("std.data.json.")
+        || operation.starts_with("std.encoding.base64.")
         || operation == "std.data.toml.parse"
+        || operation == "std.package.registry.parse_publish_request"
+        || operation == "std.package.registry.parse_yank_request"
+        || operation == "std.package.registry.archive_inventory_valid"
+        || operation == "std.package.registry.sign_resource"
+        || operation == "std.package.registry.canonical_payload"
+        || operation == "std.package.registry.root_payload"
+        || operation == "std.package.registry.signing_seed_valid"
+        || operation == "std.package.registry.build_signed_resource"
+        || operation == "std.package.registry.dependency_candidates_valid"
         || operation.starts_with("std.regex.regex.")
         || operation.starts_with("std.io.path.")
         || operation == "std.http.request.body_json"
+        || operation == "std.http.request.body_file_path"
         || operation == "std.http.request.body_text"
         || operation == "std.http.request.method"
         || operation == "std.http.request.path"
@@ -49,6 +60,7 @@ pub(super) fn supports(operation: &str) -> bool {
         || operation == "std.crypto.hash.sha256_domain_framed"
         || operation == "std.crypto.hash.sha256_nul_separated"
         || operation == "std.crypto.hash.sha256_bytes"
+        || operation == "std.crypto.ed25519.verify"
         || operation == "std.system.platform.current"
 }
 
@@ -93,6 +105,21 @@ pub(super) fn call(
 fn typed_result_error_name(operation: &str) -> Option<&'static str> {
     if operation == "std.data.toml.parse" {
         return Some("TomlError");
+    }
+    if matches!(
+        operation,
+        "std.package.registry.parse_publish_request" | "std.package.registry.parse_yank_request"
+    ) {
+        return Some("RegistryProtocolError");
+    }
+    if matches!(
+        operation,
+        "std.encoding.base64.decode"
+            | "std.encoding.base64.decode_url"
+            | "std.encoding.base64.decode_bytes"
+            | "std.encoding.base64.decode_url_bytes"
+    ) {
+        return Some("Base64Error");
     }
     if matches!(
         operation,

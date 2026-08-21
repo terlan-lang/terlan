@@ -76,6 +76,22 @@ first_python_artifact(paths: List[String]): Option[String] ->
             }
     }.
 
+host_self_validation_artifact(path: String): Bool ->
+    let normalized = String.replace(path, "\\", "/");
+    (String.contains(normalized, "/scripts/self_validation/")
+    or String.starts_with(normalized, "scripts/self_validation/"))
+        and (String.ends_with(normalized, ".py") or String.ends_with(normalized, ".sh")).
+
+first_host_self_validation_artifact(paths: List[String]): Option[String] ->
+    case paths {
+        [] -> None;
+        [path | rest] ->
+            if {
+                host_self_validation_artifact(path) -> Some(path);
+                true -> first_host_self_validation_artifact(rest)
+            }
+    }.
+
 python_command(contents: String): Bool ->
     let normalized = String.lowercase(contents);
     String.contains(normalized, "python3")
@@ -114,33 +130,45 @@ scan(checkout: String): Bool ->
     case Directory.files_recursive_excluding(checkout, []) {
         Err(reason) -> failure(Directory.message(reason));
         Ok(paths) ->
-            case first_python_artifact(paths) {
+            case first_host_self_validation_artifact(paths) {
                 Some(path) ->
-                    failure(String.append("Python artifact remains in clean checkout: ", path));
+                    failure(
+                        String.append(
+                            "host-language script remains in Terlan self-validation: ",
+                            path,
+                        ),
+                    );
                 None ->
-                    case File.read_text_many(collect_command_surfaces(paths, List.new[String]())) {
-                        Err(reason) -> failure(File.message(reason));
-                        Ok(files) ->
-                            case first_python_command(files) {
-                                Some(path) ->
-                                    failure(
-                                        String.append(
-                                            "Python command remains in clean checkout: ",
-                                            path,
-                                        ),
-                                    );
-                                None ->
-                                    let _printed =
-                                        println(
-                                            String.concat(
-                                                [
-                                                    "clean source checkout qualified ",
-                                                    Int.to_string(List.length(paths)),
-                                                    " files without Python",
-                                                ],
-                                            ),
-                                        );
-                                    true
+                    case first_python_artifact(paths) {
+                        Some(path) ->
+                            failure(
+                                String.append("Python artifact remains in clean checkout: ", path),
+                            );
+                        None ->
+                            case File.read_text_many(collect_command_surfaces(paths, List.new[String]())) {
+                                Err(reason) -> failure(File.message(reason));
+                                Ok(files) ->
+                                    case first_python_command(files) {
+                                        Some(path) ->
+                                            failure(
+                                                String.append(
+                                                    "Python command remains in clean checkout: ",
+                                                    path,
+                                                ),
+                                            );
+                                        None ->
+                                            let _printed =
+                                                println(
+                                                    String.concat(
+                                                        [
+                                                            "clean source checkout qualified ",
+                                                            Int.to_string(List.length(paths)),
+                                                            " files without Python and with Terlan-owned self-validation",
+                                                        ],
+                                                    ),
+                                                );
+                                            true
+                                    }
                             }
                     }
             }

@@ -13,6 +13,8 @@ fn parse_serve_static_args_preserves_shared_server_settings() {
         "--source-dir".to_string(),
         "src".to_string(),
         "--validate-output".to_string(),
+        "--docs".to_string(),
+        "--preview".to_string(),
         "--base-path".to_string(),
         "/terlan".to_string(),
         "--check".to_string(),
@@ -26,6 +28,9 @@ fn parse_serve_static_args_preserves_shared_server_settings() {
     assert_eq!(parsed.source_dir, Some(PathBuf::from("src")));
     assert!(parsed.check_only);
     assert!(parsed.emit_args.validate_output);
+    assert!(parsed.emit_args.docs);
+    assert!(parsed.emit_args.preview);
+    assert_eq!(parsed.emit_args.publish_through, None);
     assert_eq!(parsed.emit_args.base_path.as_deref(), Some("/terlan/"));
 }
 
@@ -265,6 +270,7 @@ fn formal_static_emit_renders_html_blocks_from_syntax_output() {
         fs::read_to_string(out_dir.join("page.html")).expect("read static html"),
         "<main class=\"home\"><h1>Hello</h1></main>"
     );
+    assert!(!out_dir.join("search-index.json").exists());
 }
 
 /// Verifies static emit can write project-prefix-compatible HTML.
@@ -467,7 +473,9 @@ fn formal_static_emit_renders_markdown_html_from_syntax_output() {
 
     assert_eq!(exit, ExitCode::SUCCESS);
     let html = fs::read_to_string(out_dir.join("post.html")).expect("read markdown html");
-    assert!(html.contains("<h1>Welcome</h1>"));
+    assert!(html.contains(
+        "<h1><a href=\"#welcome\" aria-hidden=\"true\" tabindex=\"-1\" class=\"anchor\" id=\"welcome\"></a>Welcome</h1>"
+    ));
     assert!(html.contains("<strong>Markdown</strong>"));
 }
 
@@ -513,8 +521,138 @@ fn formal_static_emit_writes_markdown_content_routes() {
     assert_eq!(exit, ExitCode::SUCCESS);
     let html =
         fs::read_to_string(out_dir.join("install/index.html")).expect("read Markdown route html");
-    assert!(html.contains("<h1>Install</h1>"));
+    assert!(html.contains(
+        "<h1><a href=\"#install\" aria-hidden=\"true\" tabindex=\"-1\" class=\"anchor\" id=\"install\"></a>Install</h1>"
+    ));
     assert!(html.contains("<code>terlc</code>"));
+}
+
+/// Verifies static emit produces the first `terl-docs` search and blog slice.
+///
+/// Inputs:
+/// - A dated blog Markdown import with documentation metadata.
+///
+/// Output:
+/// - Versioned search/blog/navigation indexes and the dependency-free browser
+///   client.
+///
+/// Transformation:
+/// - Exercises page metadata, route discovery, text extraction, deterministic
+///   artifact encoding, and output writes through the public static command.
+#[test]
+fn formal_static_emit_writes_docs_search_and_blog_artifacts() {
+    let dir = make_temp_dir("formal_static_docs_artifacts");
+    fs::create_dir_all(dir.join("content/blog")).expect("create blog content");
+    fs::write(
+        dir.join("content/blog/release.terl.md"),
+        "@page { title = \"Release\", description = \"Terlan release notes\", section = \"News\", kind = \"blog\", date = \"2026-08-15\" }\n\n# Release\n\nThe runtime is faster.\n",
+    )
+    .expect("write blog Markdown");
+    let path = fixture(
+        &dir,
+        "module site.\n\nimport markdown \"./content/blog/release.terl.md\" as Release.\n",
+    );
+    let out_dir = dir.join("public");
+
+    let exit = run_emit_static(
+        CliCommand {
+            verb: Some("emit-static".into()),
+            args: vec![path, "--docs".into(), "--as-of".into(), "2026-08-16".into()],
+        },
+        CliState {
+            out_dir: out_dir.clone(),
+            ..Default::default()
+        },
+    );
+
+    assert_eq!(exit, ExitCode::SUCCESS);
+    let search: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(out_dir.join("search-index.json")).expect("read search index"),
+    )
+    .expect("decode search index");
+    let blog: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(out_dir.join("blog-index.json")).expect("read blog index"),
+    )
+    .expect("decode blog index");
+    let navigation: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(out_dir.join("navigation.json")).expect("read navigation index"),
+    )
+    .expect("decode navigation index");
+
+    assert_eq!(search["version"], 1);
+    assert_eq!(search["documents"][0]["url"], "blog/release/");
+    assert_eq!(
+        search["documents"][0]["content"],
+        "Release The runtime is faster."
+    );
+    assert_eq!(blog["posts"][0]["published_at"], "2026-08-15");
+    assert_eq!(navigation["items"][0]["url"], "blog/release/");
+    assert_eq!(
+        fs::read_to_string(out_dir.join("assets/terl-docs/search.js"))
+            .expect("read standard search client"),
+        terl_docs::SEARCH_CLIENT_JS
+    );
+}
+
+#[test]
+fn formal_static_emit_renders_generated_blog_collections_through_typed_layout() {
+    let dir = make_temp_dir("formal_static_blog_collections");
+    fs::create_dir_all(dir.join("content/blog")).expect("create blog content");
+    fs::create_dir_all(dir.join("templates")).expect("create templates");
+    fs::write(
+        dir.join("templates/page.terl.html"),
+        "<!doctype html><html><head><title>${title}</title></head><body><main><h1>${title}</h1>${children}</main></body></html>",
+    )
+    .expect("write page layout");
+    fs::write(
+        dir.join("content/blog/index.terl.md"),
+        "@page { title = \"Blog\", kind = \"page\", layout = \"PageLayout\", weight = 10 }\n\nBlog home.\n",
+    )
+    .expect("write blog root");
+    fs::write(
+        dir.join("content/blog/release.terl.md"),
+        "@page { title = \"Release\", kind = \"blog\", date = \"2026-08-15\", parent = \"/blog\", weight = 10, summary = \"Release summary.\", authors = [\"Terlan team\"], tags = [\"compiler\"], layout = \"PageLayout\" }\n\nRelease body.\n",
+    )
+    .expect("write blog post");
+    let path = fixture(
+        &dir,
+        "module site.\n\nimport std.template.Template.\n\ntemplate PageLayout from \"./templates/page.terl.html\" { title: String }.\n\nimport markdown \"./content/blog/index.terl.md\" as Blog.\nimport markdown \"./content/blog/release.terl.md\" as Release.\n",
+    );
+    let out_dir = dir.join("public");
+
+    let exit = run_emit_static(
+        CliCommand {
+            verb: Some("emit-static".into()),
+            args: vec![
+                path,
+                "--docs".into(),
+                "--as-of".into(),
+                "2026-08-16".into(),
+                "--base-path".into(),
+                "/".into(),
+                "--validate-output".into(),
+            ],
+        },
+        CliState {
+            out_dir: out_dir.clone(),
+            ..Default::default()
+        },
+    );
+
+    assert_eq!(exit, ExitCode::SUCCESS);
+    let archive =
+        fs::read_to_string(out_dir.join("blog/archive/index.html")).expect("generated archive");
+    assert!(archive.contains("<h1>Blog&#32;archive</h1>"));
+    assert!(archive.contains("Release summary."));
+    assert!(out_dir.join("blog/tags/compiler/index.html").is_file());
+    assert!(out_dir
+        .join("blog/authors/terlan-team/index.html")
+        .is_file());
+    let collections: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(out_dir.join("blog-collections.json")).expect("collection manifest"),
+    )
+    .expect("decode collection manifest");
+    assert_eq!(collections["version"], 1);
 }
 
 /// Verifies static emit renders Markdown content through a page layout.
@@ -568,7 +706,7 @@ fn formal_static_emit_renders_markdown_content_layout() {
         fs::read_to_string(out_dir.join("install/index.html")).expect("read layout route html");
     assert_eq!(
         html,
-        "<main><h1>Install</h1><section><h2>Steps</h2>\n<p>Run <code>terlc</code>.</p>\n</section></main>"
+        "<main><h1>Install</h1><section><h2><a href=\"#steps\" aria-hidden=\"true\" tabindex=\"-1\" class=\"anchor\" id=\"steps\"></a>Steps</h2>\n<p>Run <code>terlc</code>.</p>\n</section></main>"
     );
 }
 

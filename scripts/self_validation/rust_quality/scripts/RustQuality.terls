@@ -4,7 +4,7 @@
  * Terlan AOT image.
  */
 import rust_quality.SourceInventory.{repository_root, self_test as inventory_self_test}.
-import rust_quality.{ApiBoundary, BuildGraphBoundary, BuildGraphPolicy, BuildGraphTimings, CanonicalTypes, CargoMetadata, CodeQualityCloseout, CompilationInputs, DependencyClassifications, DependencyImpact, DependencyImpactCargo, DependencyImpactGraph, DependencyImpactSource, DocsLight, FileHeadroom, LintAllowances, ModuleStructure, StructureTimingRegression, StructureTimings, WorkspacePolicy}.
+import rust_quality.{ApiBoundary, BuildGraphBoundary, BuildGraphPolicy, BuildGraphTimings, CanonicalTypes, CargoMetadata, CompilationInputs, DependencyClassifications, DependencyImpact, DependencyImpactCargo, DependencyImpactGraph, DependencyImpactSource, DocsLight, FileHeadroom, LintAllowances, ModuleStructure, StructureTimingRegression, StructureTimings, WorkspacePolicy}.
 import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.{Int, String, Unit}.
@@ -46,8 +46,6 @@ entry(): Bool ->
         Some("structure-timing-regression-measure") ->
             let root = repository_root();
             StructureTimingRegression.measure(root);
-        Some("code-quality-closeout-self-test") -> CodeQualityCloseout.self_test();
-        Some("code-quality-closeout-check") -> CodeQualityCloseout.check(repository_root());
         Some("docs-light-self-test") -> DocsLight.self_test();
         Some("docs-light-check") -> DocsLight.check(repository_root());
         Some("build-graph-boundary-self-test") -> BuildGraphBoundary.self_test();

@@ -44,13 +44,31 @@ pub(super) fn expr_calls_are_local(expr: &CoreExpr, identities: &[(&str, usize)]
                 .any(|(name, arity)| *name == function && *arity == args.len())
                 && args.iter().all(|arg| expr_calls_are_local(arg, identities))
         }
-        CoreExpr::ConstructorCall { args, .. }
+        CoreExpr::RemoteCall { args, .. }
+        | CoreExpr::ConstructorCall { args, .. }
         | CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => {
             args.iter().all(|arg| expr_calls_are_local(arg, identities))
         }
-        CoreExpr::RecordConstruct { fields, .. } => fields
+        CoreExpr::FunctionCall { callee, args } => {
+            expr_calls_are_local(callee, identities)
+                && args.iter().all(|arg| expr_calls_are_local(arg, identities))
+        }
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => items
+            .iter()
+            .all(|item| expr_calls_are_local(item, identities)),
+        CoreExpr::ListCons { head, tail }
+        | CoreExpr::Index {
+            base: head,
+            index: tail,
+        } => expr_calls_are_local(head, identities) && expr_calls_are_local(tail, identities),
+        CoreExpr::Map(fields) => fields
             .iter()
             .all(|field| expr_calls_are_local(&field.value, identities)),
+        CoreExpr::RecordConstruct { fields, .. } | CoreExpr::TemplateInstantiate { fields, .. } => {
+            fields
+                .iter()
+                .all(|field| expr_calls_are_local(&field.value, identities))
+        }
         CoreExpr::RecordUpdate { base, fields, .. } => {
             expr_calls_are_local(base, identities)
                 && fields
@@ -62,6 +80,28 @@ pub(super) fn expr_calls_are_local(expr: &CoreExpr, identities: &[(&str, usize)]
         }
         CoreExpr::FieldAccess { base, .. } | CoreExpr::RecordAccess { base, .. } => {
             expr_calls_are_local(base, identities)
+        }
+        CoreExpr::ConstructorChain { args, record, .. } => {
+            args.iter().all(|arg| expr_calls_are_local(arg, identities))
+                && expr_calls_are_local(record, identities)
+        }
+        CoreExpr::MutableReceiverCall { receiver, args, .. } => {
+            expr_calls_are_local(receiver, identities)
+                && args.iter().all(|arg| expr_calls_are_local(arg, identities))
+        }
+        CoreExpr::ListComprehension {
+            expr,
+            generators,
+            guards,
+            ..
+        } => {
+            expr_calls_are_local(expr, identities)
+                && generators
+                    .iter()
+                    .all(|generator| expr_calls_are_local(&generator.source, identities))
+                && guards
+                    .iter()
+                    .all(|guard| expr_calls_are_local(guard, identities))
         }
         CoreExpr::BinaryOp { left, right, .. } => {
             expr_calls_are_local(left, identities) && expr_calls_are_local(right, identities)
@@ -86,6 +126,28 @@ pub(super) fn expr_calls_are_local(expr: &CoreExpr, identities: &[(&str, usize)]
                         && expr_calls_are_local(&clause.body, identities)
                 })
         }
+        CoreExpr::Try {
+            body,
+            of_clauses,
+            catch_clauses,
+            after_clause,
+        } => {
+            expr_calls_are_local(body, identities)
+                && of_clauses.iter().chain(catch_clauses).all(|clause| {
+                    clause
+                        .guard
+                        .as_ref()
+                        .is_none_or(|guard| expr_calls_are_local(guard, identities))
+                        && expr_calls_are_local(&clause.body, identities)
+                })
+                && after_clause.as_ref().is_none_or(|after| {
+                    expr_calls_are_local(&after.trigger, identities)
+                        && expr_calls_are_local(&after.body, identities)
+                })
+        }
+        CoreExpr::SqlQuery { parameters, .. } => parameters
+            .iter()
+            .all(|parameter| expr_calls_are_local(parameter, identities)),
         _ => true,
     }
 }
@@ -103,13 +165,27 @@ pub(super) fn expr_calls_suspending(
                     .any(|arg| expr_calls_suspending(arg, suspending))
         }
         CoreExpr::FunctionCall { .. } => true,
-        CoreExpr::ConstructorCall { args, .. }
+        CoreExpr::RemoteCall { args, .. }
+        | CoreExpr::ConstructorCall { args, .. }
         | CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => args
             .iter()
             .any(|arg| expr_calls_suspending(arg, suspending)),
-        CoreExpr::RecordConstruct { fields, .. } => fields
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => items
+            .iter()
+            .any(|item| expr_calls_suspending(item, suspending)),
+        CoreExpr::ListCons { head, tail }
+        | CoreExpr::Index {
+            base: head,
+            index: tail,
+        } => expr_calls_suspending(head, suspending) || expr_calls_suspending(tail, suspending),
+        CoreExpr::Map(fields) => fields
             .iter()
             .any(|field| expr_calls_suspending(&field.value, suspending)),
+        CoreExpr::RecordConstruct { fields, .. } | CoreExpr::TemplateInstantiate { fields, .. } => {
+            fields
+                .iter()
+                .any(|field| expr_calls_suspending(&field.value, suspending))
+        }
         CoreExpr::RecordUpdate { base, fields, .. } => {
             expr_calls_suspending(base, suspending)
                 || fields
@@ -118,6 +194,31 @@ pub(super) fn expr_calls_suspending(
         }
         CoreExpr::FieldAccess { base, .. } | CoreExpr::RecordAccess { base, .. } => {
             expr_calls_suspending(base, suspending)
+        }
+        CoreExpr::ConstructorChain { args, record, .. } => {
+            args.iter()
+                .any(|arg| expr_calls_suspending(arg, suspending))
+                || expr_calls_suspending(record, suspending)
+        }
+        CoreExpr::MutableReceiverCall { receiver, args, .. } => {
+            expr_calls_suspending(receiver, suspending)
+                || args
+                    .iter()
+                    .any(|arg| expr_calls_suspending(arg, suspending))
+        }
+        CoreExpr::ListComprehension {
+            expr,
+            generators,
+            guards,
+            ..
+        } => {
+            expr_calls_suspending(expr, suspending)
+                || generators
+                    .iter()
+                    .any(|generator| expr_calls_suspending(&generator.source, suspending))
+                || guards
+                    .iter()
+                    .any(|guard| expr_calls_suspending(guard, suspending))
         }
         CoreExpr::UnaryOp { operand, .. } | CoreExpr::Cast { expr: operand, .. } => {
             expr_calls_suspending(operand, suspending)
@@ -145,6 +246,28 @@ pub(super) fn expr_calls_suspending(
                         || expr_calls_suspending(&clause.body, suspending)
                 })
         }
+        CoreExpr::Try {
+            body,
+            of_clauses,
+            catch_clauses,
+            after_clause,
+        } => {
+            expr_calls_suspending(body, suspending)
+                || of_clauses.iter().chain(catch_clauses).any(|clause| {
+                    clause
+                        .guard
+                        .as_ref()
+                        .is_some_and(|guard| expr_calls_suspending(guard, suspending))
+                        || expr_calls_suspending(&clause.body, suspending)
+                })
+                || after_clause.as_ref().is_some_and(|after| {
+                    expr_calls_suspending(&after.trigger, suspending)
+                        || expr_calls_suspending(&after.body, suspending)
+                })
+        }
+        CoreExpr::SqlQuery { parameters, .. } => parameters
+            .iter()
+            .any(|parameter| expr_calls_suspending(parameter, suspending)),
         _ => false,
     }
 }

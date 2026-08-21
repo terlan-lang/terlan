@@ -141,3 +141,24 @@ fn template_html_uses_compiler_managed_string_representation() {
         "Template.Html must not acquire a native capability-handle layout"
     );
 }
+
+#[test]
+fn http_request_uses_compiler_managed_tuple_representation() {
+    let syntax =
+        parse_module_as_syntax_output("module std.http.Request.\n\npub opaque type Request.\n")
+            .expect("parse request facade");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+    let mut core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    super::super::nominal_identity::qualify_local_nominal_types(&mut core);
+
+    let aliases = native_package_aliases(std::slice::from_ref(&core));
+    assert!(!aliases.contains_key("std.http.Request.Request"));
+    assert!(
+        native_handle_layouts(&core)
+            .expect("request layouts")
+            .is_empty(),
+        "Request must not acquire a native capability-handle layout"
+    );
+}

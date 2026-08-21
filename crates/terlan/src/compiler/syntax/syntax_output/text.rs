@@ -1,4 +1,5 @@
 use super::SyntaxTypeOutput;
+use crate::terlan_syntax::formatter::literals::format_float_literal;
 use crate::terlan_syntax::parse_tree::{BinaryOp, Expr, Pattern, TypeExpr, UnaryOp};
 use crate::terlan_syntax::quoted_string_literal;
 
@@ -10,7 +11,7 @@ use crate::terlan_syntax::quoted_string_literal;
 pub(super) fn expr_to_output_text(expr: &Expr) -> String {
     match expr {
         Expr::Int(value) => value.to_string(),
-        Expr::Float(value) => value.to_string(),
+        Expr::Float(value) => format_float_literal(*value),
         Expr::Atom(name) | Expr::AtomLiteral(name) | Expr::Var(name) => name.clone(),
         Expr::Binary(value) => value.clone(),
         Expr::Tuple(items) => format!(
@@ -226,7 +227,7 @@ fn pattern_to_output_text(pattern: &Pattern) -> String {
         Pattern::Wildcard => "_".to_string(),
         Pattern::Var(name) => name.clone(),
         Pattern::Int(value) => value.to_string(),
-        Pattern::Float(value) => value.to_string(),
+        Pattern::Float(value) => format_float_literal(*value),
         Pattern::String(value) => quoted_string_literal(value),
         Pattern::StringSegments(segments) => {
             let mut payload = String::new();

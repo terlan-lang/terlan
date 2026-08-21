@@ -26,9 +26,9 @@ pub use termination::{
     CoreRecursiveCallEvidence, CoreTerminationEvidence, CoreTerminationReason,
     CoreTerminationState,
 };
-use types::core_type_contract_text;
 pub(crate) use types::{
-    atom_type_literal_payload, core_type_from_body_variants, core_type_from_text,
+    atom_type_literal_payload, core_type_contract_text, core_type_from_body_variants,
+    core_type_from_text,
 };
 pub use types::{CoreMapTypeField, CoreStructTypeField, CoreTupleTypeElem, CoreType};
 

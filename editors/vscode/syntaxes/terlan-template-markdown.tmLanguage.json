@@ -1,0 +1,75 @@
+{
+  "name": "Terlan Markdown Template",
+  "scopeName": "text.html.markdown.terlan",
+  "patterns": [
+    {
+      "include": "#terlan-header-annotation"
+    },
+    {
+      "include": "#terlan-header-import"
+    },
+    {
+      "include": "#terlan-interpolation"
+    },
+    {
+      "include": "text.html.markdown"
+    }
+  ],
+  "repository": {
+    "terlan-header-annotation": {
+      "patterns": [
+        {
+          "name": "meta.annotation.terlan-template-markdown",
+          "begin": "^\\s*(?=@[A-Za-z_][A-Za-z0-9_.]*\\s*\\{)",
+          "end": "\\}\\s*$",
+          "contentName": "source.terlan.embedded",
+          "patterns": [
+            {
+              "include": "source.terlan"
+            }
+          ]
+        }
+      ]
+    },
+    "terlan-header-import": {
+      "patterns": [
+        {
+          "name": "meta.import.terlan-template-markdown",
+          "begin": "^\\s*(?=import\\b)",
+          "end": "$",
+          "contentName": "source.terlan.embedded",
+          "patterns": [
+            {
+              "include": "source.terlan"
+            }
+          ]
+        }
+      ]
+    },
+    "terlan-interpolation": {
+      "patterns": [
+        {
+          "name": "meta.interpolation.terlan-template-markdown",
+          "begin": "\\$\\{",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.section.embedded.begin.terlan"
+            }
+          },
+          "end": "\\}",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.embedded.end.terlan"
+            }
+          },
+          "contentName": "source.terlan.embedded",
+          "patterns": [
+            {
+              "include": "source.terlan"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

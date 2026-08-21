@@ -1,5 +1,6 @@
 use super::command::static_check_args;
 use super::*;
+use std::time::UNIX_EPOCH;
 
 /// Verifies static check arguments force one-shot validation mode.
 ///
@@ -49,6 +50,45 @@ fn static_check_args_preserves_existing_flags() {
             "--check".to_string()
         ]
     );
+}
+
+#[test]
+fn static_preview_requires_docs_mode() {
+    let emit_error =
+        parse_emit_static_args(&["src/site/Site.terl".to_string(), "--preview".to_string()])
+            .expect_err("emit preview without docs should fail");
+    assert_eq!(emit_error, "--preview requires --docs");
+
+    let serve_error =
+        parse_serve_static_args(&["src/site/Site.terl".to_string(), "--preview".to_string()])
+            .expect_err("serve preview without docs should fail");
+    assert_eq!(serve_error, "--preview requires --docs");
+}
+
+#[test]
+fn static_production_docs_require_valid_explicit_cutoff() {
+    let missing = parse_emit_static_args(&["src/site/Site.terl".to_string(), "--docs".to_string()])
+        .expect_err("production docs without cutoff should fail");
+    assert!(missing.contains("require --as-of YYYY-MM-DD"));
+
+    let invalid = parse_emit_static_args(&[
+        "src/site/Site.terl".to_string(),
+        "--docs".to_string(),
+        "--as-of".to_string(),
+        "2026-02-30".to_string(),
+    ])
+    .expect_err("invalid cutoff should fail");
+    assert!(invalid.contains("invalid publication cutoff"));
+
+    let conflicting = parse_emit_static_args(&[
+        "src/site/Site.terl".to_string(),
+        "--docs".to_string(),
+        "--preview".to_string(),
+        "--as-of".to_string(),
+        "2026-08-16".to_string(),
+    ])
+    .expect_err("preview with cutoff should fail");
+    assert_eq!(conflicting, "--as-of cannot be combined with --preview");
 }
 
 /// Verifies the public static check wrapper renders once and exits.

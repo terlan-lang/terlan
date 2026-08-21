@@ -7,8 +7,7 @@ use super::*;
 /// Verifies the lint style profile gate accepts a complete fixture.
 ///
 /// Inputs:
-/// - Temporary compiler doc, Makefile, and roadmap files with required
-///   markers.
+/// - Temporary compiler doc and Makefile with required markers.
 ///
 /// Output:
 /// - Summary counts for required rule families and seed rule IDs.
@@ -213,7 +212,7 @@ fn lint_style_profile_rejects_missing_fix_marker_vocabulary() {
     fs::remove_dir_all(root).expect("remove fixture");
 }
 
-/// Verifies roadmap and Make hooks are required.
+/// Verifies Make hooks are required.
 ///
 /// Inputs:
 /// - Complete profile with a Makefile missing one target.
@@ -222,7 +221,7 @@ fn lint_style_profile_rejects_missing_fix_marker_vocabulary() {
 /// - Diagnostic naming the missing executable target.
 ///
 /// Transformation:
-/// - Keeps roadmap lint requirements executable instead of prose-only.
+/// - Keeps lint requirements executable instead of prose-only.
 #[test]
 fn lint_style_profile_rejects_missing_make_target() {
     let root = temp_repo("lint_style_profile_missing_make");
@@ -300,7 +299,6 @@ fn temp_repo(name: &str) -> PathBuf {
     outer.push(format!("terlan_quality_{name}_{nanos}"));
     let root = outer.join("terlan");
     fs::create_dir_all(root.join("docs/compiler")).expect("create compiler docs");
-    fs::create_dir_all(outer.join("docs/roadmap")).expect("create roadmap docs");
     root
 }
 
@@ -323,16 +321,6 @@ fn write_fixture(root: &Path, profile: &str) {
         .join("\n"),
     )
     .expect("write Makefile");
-    fs::write(
-        root.join(ROADMAP_PATH),
-        [
-            "- Gate: add `make terlan-lint-style-profile-check`.",
-            "- Gate: add `make terlan-lint-pipe-canonicalization-check`.",
-            "",
-        ]
-        .join("\n"),
-    )
-    .expect("write roadmap");
 }
 
 fn fixture_profile() -> &'static str {

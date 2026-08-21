@@ -1,0 +1,17 @@
+//! Typed references to authoritative Terlan configuration and secrets.
+
+module std.service.Config.
+
+/// SecretRef has no display or structured-field conversion surface.
+
+pub struct SecretRef {
+    name: String
+}.
+
+pub struct ValueRef[T] {
+    name: String
+}.
+
+pub secret(name: String): SecretRef.
+
+pub value(name: String): ValueRef[String].

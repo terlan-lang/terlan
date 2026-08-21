@@ -51,8 +51,7 @@ pub(super) fn run_wasm_tests(args: &TestArgs, state: CliState) -> ExitCode {
             Err(exit_code) => return exit_code,
         };
     let tests = match discover_tests(&compiled.syntax_output).and_then(|tests| {
-        select_tests(tests, args.test_name.as_deref(), path, TestKind::Test)
-            .map_err(|error| vec![error])
+        select_tests(tests, &args.test_names, path, TestKind::Test).map_err(|error| vec![error])
     }) {
         Ok(tests) => tests,
         Err(messages) => {

@@ -112,7 +112,7 @@
       "dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
       "family": "wasm-bridge",
       "first_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
-      "proof_digest": "sha256:8801c7dccbcd7dbdb2c3fd61c751add78e18198194fb82dda221322d8b4aba62",
+      "proof_digest": "sha256:5a1da1db8155385d9ab89aa09baf519ae208525d146dd4e123b8c9a9279712c2",
       "proof_path": "proofs/lean/wasm_bridge/WasmBridge.lean",
       "second_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
       "verdict": "pass"

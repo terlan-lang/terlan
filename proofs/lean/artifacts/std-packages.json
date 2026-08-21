@@ -13,7 +13,7 @@
   ],
   "family": "std-packages",
   "manifest_fingerprints": {
-    "std/data/Json.terl": "sha256:74f2f288ffbb57ad9e5de296dcb39192139338227cdb028f960c68dcb0e2d179"
+    "std/data/Json.terl": "sha256:a5cc3e8785ba284a805d7ed09bc14f9d06ab284353a7a03f5a81723bd2562c3c"
   },
   "output_signature": {
     "exit_class": "success",

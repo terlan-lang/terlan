@@ -371,7 +371,7 @@ impl Backend {
         let Ok(module) = document.parse_syntax() else {
             return Vec::new();
         };
-        let interfaces = OpenDocuments::interfaces_for_uri(uri);
+        let interfaces = OpenDocuments::imported_interfaces_for_uri(uri, &module);
 
         let mut hints = Vec::new();
         let mut line_start_byte = 0usize;

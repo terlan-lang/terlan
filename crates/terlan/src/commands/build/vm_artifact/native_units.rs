@@ -11,7 +11,8 @@ use crate::compiler::native_ir::{
 use super::super::BuildOneError;
 use super::native_cache;
 use super::native_image::{
-    DIRECT_AOT_BACKEND, DIRECT_AOT_CACHE_SCHEMA, DIRECT_AOT_CODEGEN_REVISION,
+    DIRECT_AOT_BACKEND, DIRECT_AOT_BUILD_POLICY, DIRECT_AOT_CACHE_SCHEMA,
+    DIRECT_AOT_CODEGEN_REVISION,
 };
 use super::parallel_compile::{bounded_worker_limit, run_indexed_bounded, ParallelTaskError};
 
@@ -106,7 +107,7 @@ fn prepare_native_object_unit(
     } = context;
     let native = &natives[module_index];
     let input = format!(
-        "{}\0{DIRECT_AOT_BACKEND}\0{DIRECT_AOT_CACHE_SCHEMA}\0{DIRECT_AOT_CODEGEN_REVISION}\0{NATIVE_UNIT_SCHEMA}\0{}\0{target}\0{abi}\0{implementation}\0{}",
+        "{}\0{DIRECT_AOT_BACKEND}\0{DIRECT_AOT_CACHE_SCHEMA}\0{DIRECT_AOT_CODEGEN_REVISION}\0{DIRECT_AOT_BUILD_POLICY}\0{NATIVE_UNIT_SCHEMA}\0{}\0{target}\0{abi}\0{implementation}\0{}",
         env!("CARGO_PKG_VERSION"),
         policy.cache_identity(),
         native.fingerprint_sha256()

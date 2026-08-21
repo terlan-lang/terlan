@@ -1,0 +1,24 @@
+module std.package.RegistryTest.
+
+import std.core.Result.{Err}.
+import std.package.Registry.
+import std.test.Test.{assert_equal}.
+
+import type std.package.Registry.{PublishRequestProjection, RegistryProtocolError}.
+
+pub accepts_projection(value: PublishRequestProjection): PublishRequestProjection ->
+    value.
+
+pub accepts_protocol_error(value: RegistryProtocolError): RegistryProtocolError ->
+    value.
+
+@test
+pub malformed_publication_metadata_is_rejected(): Bool ->
+    case Registry.parse_publish_request("{\"schema\":\"unknown\"}") {
+        Err(error) ->
+            assert_equal(
+                Atom["registry.publish_json"],
+                Registry.error_code(accepts_protocol_error(error)),
+            );
+        _ -> false
+    }.

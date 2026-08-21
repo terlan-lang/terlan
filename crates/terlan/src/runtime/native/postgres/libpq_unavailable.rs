@@ -9,8 +9,10 @@ use super::PostgresError;
 /// Placeholder that prevents command code from silently creating an in-process
 /// database readiness loop in the AOT serve runtime.
 #[derive(Clone, Debug)]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) struct DriverReadinessPoller;
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 impl DriverReadinessPoller {
     #[cfg(test)]
     pub(crate) fn new() -> Result<Self, PostgresError> {

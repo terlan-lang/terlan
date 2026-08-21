@@ -131,6 +131,50 @@ pub(super) fn validate_binding_roles(manifest: &CAbiBindingManifest) -> Result<(
             return Err(format!("duplicate C ABI opaque handle type `{}`", ty.name));
         }
     }
+    let mut public_signatures = BTreeSet::new();
+    let mut adapter_functions = BTreeSet::new();
+    for module in &manifest.modules {
+        for function in &module.functions {
+            if !public_signatures.insert((
+                module.module.as_str(),
+                function.name.as_str(),
+                function
+                    .args
+                    .iter()
+                    .map(|argument| argument.ty.as_str())
+                    .collect::<Vec<_>>(),
+            )) {
+                let parameters = function
+                    .args
+                    .iter()
+                    .map(|argument| argument.ty.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                return Err(format!(
+                    "error[native_bindgen.terlan_overload_collision]: duplicate public binding `{}.{}({})`",
+                    module.module,
+                    function.name,
+                    parameters
+                ));
+            }
+            let scope = match function.role {
+                CAbiFunctionRole::Constructor => function.returns.as_str(),
+                CAbiFunctionRole::ImmutableMethod
+                | CAbiFunctionRole::MutableMethod
+                | CAbiFunctionRole::Dispose => function
+                    .args
+                    .first()
+                    .map_or("__missing_resource__", |argument| argument.ty.as_str()),
+                CAbiFunctionRole::FreeFunction => "__free_function__",
+            };
+            if !adapter_functions.insert((scope, function.adapter_name())) {
+                return Err(format!(
+                    "error[native_bindgen.adapter_name_collision]: duplicate Rust adapter `{scope}.{}`",
+                    function.adapter_name()
+                ));
+            }
+        }
+    }
     let constructor_count = manifest
         .modules
         .iter()
@@ -177,6 +221,40 @@ pub(super) fn validate_binding_roles(manifest: &CAbiBindingManifest) -> Result<(
                 "C ABI opaque handle type `{}` requires exactly one `dispose` function; found {disposers}",
                 ty.name
             ));
+        }
+    }
+    Ok(())
+}
+
+/// Validates source-level defaults attached to one generated Terlan function.
+///
+/// Defaults are emitted only in the Terlan declaration. Native adapters retain
+/// the complete ABI argument list because Terlan lowers omitted trailing values
+/// before crossing the native boundary.
+pub(super) fn validate_argument_defaults(function: &CAbiBindingFunction) -> Result<(), String> {
+    let mut saw_default = false;
+    for argument in &function.args {
+        match argument.default.as_deref() {
+            Some(default) => {
+                if default.trim().is_empty()
+                    || default.contains('\0')
+                    || default.contains('\n')
+                    || default.contains('\r')
+                {
+                    return Err(format!(
+                        "error[native_bindgen.terlan_default_argument]: `{}.{}` requires a non-empty single-line default expression",
+                        function.name, argument.name
+                    ));
+                }
+                saw_default = true;
+            }
+            None if saw_default => {
+                return Err(format!(
+                    "error[native_bindgen.terlan_default_argument]: required argument `{}.{}` cannot follow a default argument",
+                    function.name, argument.name
+                ));
+            }
+            None => {}
         }
     }
     Ok(())
@@ -702,7 +780,14 @@ pub(super) fn render_module_source(
         "/**\n * {}\n */\n\nmodule {}.\n\n",
         module.documentation, module.module
     );
-    for (owner, types) in referenced_opaque_imports(manifest, module) {
+    let mut imports = referenced_opaque_imports(manifest, module);
+    for import in &module.imports {
+        imports
+            .entry(import.module.clone())
+            .or_default()
+            .extend(import.names.iter().cloned());
+    }
+    for (owner, types) in imports {
         source.push_str(&format!(
             "import {}.{{{}}}.\n",
             owner,
@@ -719,8 +804,9 @@ pub(super) fn render_module_source(
         ));
     }
     for function in &module.functions {
+        let visibility = if function.is_public() { "pub " } else { "" };
         source.push_str(&format!(
-            "/** {} */\n@compiler.native {{{}}}\npub {}({}): {} -> native.\n\n",
+            "/** {} */\n@compiler.native {{{}}}\n{visibility}{}({}): {} -> native.\n",
             function.documentation,
             function.operation,
             function.name,
@@ -736,7 +822,11 @@ pub(super) fn render_module_docs(
     symbols: &BTreeMap<&str, &CSymbol>,
 ) -> String {
     let mut docs = format!("# {}\n\n{}\n\n", module.module, module.documentation);
-    for function in &module.functions {
+    for function in module
+        .functions
+        .iter()
+        .filter(|function| function.is_public())
+    {
         docs.push_str(&format!(
             "## `{}`\n\n{}\n\n",
             function.name, function.documentation

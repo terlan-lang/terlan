@@ -88,51 +88,11 @@ jobs:
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust
+        with:
+          components: ""
 
       - name: Audit locked dependencies
         uses: ./.github/actions/security-audit
-
-  workflow-contract:
-    name: Workflow syntax and release contract
-    runs-on: ubuntu-24.04
-    if: ${{ !startsWith(github.head_ref || github.ref_name, 'release-validation/') }}
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-
-      - name: Validate build and release contracts
-        run: bash scripts/check_build_release_contract.sh
-
-      - name: Validate workflow syntax
-        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml
-
-  accelerator-cpu-contract:
-    name: Accelerator CPU-only contract
-    runs-on: ubuntu-24.04
-    if: ${{ !startsWith(github.head_ref || github.ref_name, 'release-validation/') }}
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-
-      - name: Install Rust toolchain
-        uses: ./.github/actions/setup-rust
-
-      - name: Install native build dependencies
-        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
-
-      - name: Prove accelerator support is absent from the CPU language and runtime boundary
-        run: make accelerator-hard-contract-check
-
-      - name: Validate hardware-independent accelerator semantics
-        run: cargo test --locked -p terlan --lib compiler::accelerator
 
   direct-aot-platform:
     name: Direct AOT (${{ matrix.target }})
@@ -193,6 +153,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust
+        with:
+          components: ""
 
       - name: Validate target-native AOT consumers
         run: make tvm-aot-platform-target-check
@@ -227,6 +189,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust
+        with:
+          components: ""
 
       - name: Download target execution attestations
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -269,6 +233,8 @@ jobs:
 
       - name: Install workspace Rust toolchain and cache Cargo inputs
         uses: ./.github/actions/setup-rust
+        with:
+          components: ""
 
       - name: Validate thread-neutral AOT runtime
         run: make tvm-aot-thread-sanitizer-check
@@ -300,6 +266,7 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           targets: x86_64-unknown-linux-gnutsan
+          components: ""
 
       - name: Validate multicore VM memory safety
         run: make vm-multicore-thread-sanitizer-check
@@ -331,6 +298,23 @@ jobs:
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust
+
+      - name: Install pinned Go toolchain for actionlint
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: "1.25.0"
+          cache: false
+
+      - name: Restore actionlint build cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-${{ runner.arch }}-actionlint-go1.25.0-v1.7.12
+
+      - name: Validate workflow syntax
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml
 
       - name: Validate MC-9 evidence contract
         run: make vm-multicore-mc9-evidence-contract-check

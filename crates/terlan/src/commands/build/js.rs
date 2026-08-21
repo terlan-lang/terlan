@@ -113,7 +113,7 @@ fn run_js_directory_build(
             eprintln!("{}", message);
             return ExitCode::from(1);
         }
-        let browser_static_assets = match manifest
+        let mut browser_static_assets = match manifest
             .web_assets
             .as_ref()
             .map(|assets| browser_static_assets_from_manifest(dir, assets))
@@ -125,6 +125,19 @@ fn run_js_directory_build(
                 return ExitCode::from(1);
             }
         };
+        if let Some(assets) = browser_static_assets.as_mut() {
+            assets.angular_ts = manifest.dependencies.iter().any(|dependency| {
+                matches!(
+                    (&dependency.scope, &dependency.source),
+                    (
+                        super::project_manifest::ProjectDependencyScope::Target(
+                            super::project_manifest::ProjectTarget::Js
+                        ),
+                        super::project_manifest::ProjectDependencySource::Npm { package, version, .. }
+                    ) if super::web_toolchain::is_managed_js_dependency(package, version)
+                )
+            });
+        }
         let roots = match resolve_project_build_roots(dir, &manifest) {
             Ok(roots) => roots,
             Err(message) => {

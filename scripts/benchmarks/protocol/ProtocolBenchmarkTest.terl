@@ -1062,8 +1062,12 @@ row_json(row: BenchmarkRow): Json ->
 
 put_float(mut value: Json, key: String, number: Float): Unit ->
     case Json.float(number) {
-        Ok(json) -> value.put(key, json);
-        Err(_reason) -> value.put(key, Json.null())
+        Ok(json) ->
+            let _put = value.put(key, json);
+            Unit;
+        Err(_reason) ->
+            let _put = value.put(key, Json.null());
+            Unit
     }.
 
 rows_json(rows: List[BenchmarkRow]): Json ->
@@ -1560,7 +1564,7 @@ persist_current_encoded(
 ): Bool ->
     let {
         Ok(_unit) <- create_all("target/quality");
-        Ok(_unit) <- write_text(current_json_path(), encoded)
+        Ok(_unit_2) <- write_text(current_json_path(), encoded)
     } else {
         _ -> false
     };
@@ -1579,8 +1583,8 @@ write_current_tsv(report: Json, rows: List[BenchmarkRow], blessing: Bool, encode
 persist_baseline(report: Json, rows: List[BenchmarkRow], encoded: String): Bool ->
     let {
         Ok(_unit) <- create_all(report_directory());
-        Ok(_unit) <- write_text(baseline_json_path(), encoded);
-        Ok(_unit) <- write_text(baseline_tsv_path(), rows_tsv(rows))
+        Ok(_unit_2) <- write_text(baseline_json_path(), encoded);
+        Ok(_unit_3) <- write_text(baseline_tsv_path(), rows_tsv(rows))
     } else {
         _ -> false
     };

@@ -4,7 +4,6 @@ use quick_xml::events::{BytesRef, BytesStart, Event};
 use quick_xml::reader::Reader;
 use quick_xml::XmlVersion;
 use serde_json::Value;
-use yaml_rust::YamlLoader;
 
 use crate::terlan_html::{
     artifact_template_target_from_path, parse_template, ArtifactTemplateTarget, HtmlDiagnostic,
@@ -255,7 +254,8 @@ pub fn validate_toml_template_structure(
 ///
 /// Transformation:
 /// - Replaces interpolation islands with YAML-compatible placeholder values and
-///   delegates structure validation to `yaml-rust`.
+///   delegates structure validation to the repository's canonical Serde YAML
+///   parser.
 pub fn validate_yaml_template_structure(
     source: impl AsRef<str>,
     path: impl AsRef<Path>,
@@ -267,7 +267,7 @@ pub fn validate_yaml_template_structure(
         "YAML template interpolation",
         "__terlan_interpolation__",
     )?;
-    YamlLoader::load_from_str(&masked)
+    serde_yaml::from_str::<Value>(&masked)
         .map(|_| ())
         .map_err(|error| {
             vec![HtmlDiagnostic::new(

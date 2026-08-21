@@ -16,6 +16,7 @@ fn fixture(name: &str) -> (PathBuf, ServeArgs) {
         host: DEFAULT_SERVE_HOST.to_string(),
         port: DEFAULT_SERVE_PORT,
         poll_ms: DEFAULT_POLL_MS,
+        max_body_bytes: crate::commands::serve::args::DEFAULT_MAX_BODY_BYTES,
         handler_runtime: ServeHandlerRuntime::Static,
         check_only: true,
         overrides: ServeCliOverrides::default(),

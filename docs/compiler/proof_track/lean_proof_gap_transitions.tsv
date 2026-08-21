@@ -4,25 +4,25 @@ EBNF syntax preservation	open	triaged	2026-07-16	sha256:df2da39fc660249f45cadeac
 EBNF syntax preservation	triaged	blocked	2026-07-16	sha256:df2da39fc660249f45cadeacd0c2357b57cf33f5b1654d3b38c79bff73d33a9b	Recorded the current Lean model synchronization blocker.
 typed CoreIR preservation	none	open	2026-07-16	sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad	Registered the complete CoreIR preservation obligation.
 typed CoreIR preservation	open	triaged	2026-07-16	sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad	Assigned compiler ownership and the core typing gate.
-typed CoreIR preservation	triaged	blocked	2026-07-16	sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad	Recorded the unproved non-arithmetic CoreIR surface.
+typed CoreIR preservation	triaged	blocked	2026-07-16	sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866	Recorded the unproved non-arithmetic CoreIR surface.
 target-profile inference	none	open	2026-07-16	sha256:0dad85e0772ed5fd51a2876b627485a629c5ef6379b14cdad305fe27593ede83	Registered the target-inference proof obligation.
 target-profile inference	open	triaged	2026-07-16	sha256:0dad85e0772ed5fd51a2876b627485a629c5ef6379b14cdad305fe27593ede83	Assigned compiler ownership and the target inference gate.
-target-profile inference	triaged	blocked	2026-07-16	sha256:0dad85e0772ed5fd51a2876b627485a629c5ef6379b14cdad305fe27593ede83	Recorded the missing Lean theorem coverage.
+target-profile inference	triaged	blocked	2026-07-16	sha256:fa6ec58b1087164ac5a593eef10f74894aa4a8c055ce84e476e06b9111613ba5	Recorded the missing Lean theorem coverage.
 VM execution subset	none	open	2026-07-16	sha256:8917ce1bed441d5bc25165b893123a26cfd0b51ef1bb06fc16429bfc3f70af9c	Registered the VM execution semantics proof obligation.
 VM execution subset	open	triaged	2026-07-16	sha256:8917ce1bed441d5bc25165b893123a26cfd0b51ef1bb06fc16429bfc3f70af9c	Assigned VM ownership and the runtime semantics gate.
-VM execution subset	triaged	blocked	2026-07-16	sha256:8917ce1bed441d5bc25165b893123a26cfd0b51ef1bb06fc16429bfc3f70af9c	Recorded the expanding VM semantics blocker.
+VM execution subset	triaged	blocked	2026-07-16	sha256:1e3fff408b73ba8eabc55dedb0030ecf5e926b966de6bed1b2ee23933c34691e	Recorded the expanding VM semantics blocker.
 pattern and operator coverage	none	open	2026-07-16	sha256:1c617a60247e2c22c467f788bccdc4897005699f6f1a76a640a2a9cbf5514fbe	Registered the pattern and operator proof obligation.
 pattern and operator coverage	open	triaged	2026-07-16	sha256:1c617a60247e2c22c467f788bccdc4897005699f6f1a76a640a2a9cbf5514fbe	Assigned compiler ownership and executable coverage gates.
-pattern and operator coverage	triaged	blocked	2026-07-16	sha256:1c617a60247e2c22c467f788bccdc4897005699f6f1a76a640a2a9cbf5514fbe	Recorded the missing Lean coverage beyond shape implications.
+pattern and operator coverage	triaged	blocked	2026-07-16	sha256:bed380256d1407b8eb14fe40ec680fe813e982c478551f9a0d9da6e9de36a4e0	Recorded the missing Lean coverage beyond shape implications.
 native-boundary contracts	none	open	2026-07-16	sha256:2ae438bc493644aab24567e38b0eb788a19572a2cbb53c5e06778b383c273f19	Registered the native-boundary refinement obligation.
 native-boundary contracts	open	triaged	2026-07-16	sha256:2ae438bc493644aab24567e38b0eb788a19572a2cbb53c5e06778b383c273f19	Assigned runtime ownership and the native security gate.
 native-boundary contracts	triaged	blocked	2026-07-16	sha256:2ae438bc493644aab24567e38b0eb788a19572a2cbb53c5e06778b383c273f19	Recorded the missing Aeneas refinement to the Rust implementation.
 Wasm CoreIR lowering	none	open	2026-07-16	sha256:23ade72fb112c88fa06225a712fc4dac3f6cf5fff322d7ea65ff41339c03d335	Registered the Wasm lowering proof obligation.
 Wasm CoreIR lowering	open	triaged	2026-07-16	sha256:23ade72fb112c88fa06225a712fc4dac3f6cf5fff322d7ea65ff41339c03d335	Assigned compiler ownership and the Wasm lowering gate.
-Wasm CoreIR lowering	triaged	blocked	2026-07-16	sha256:23ade72fb112c88fa06225a712fc4dac3f6cf5fff322d7ea65ff41339c03d335	Recorded that no Lean-backed lowering artifact exists yet.
+Wasm CoreIR lowering	triaged	blocked	2026-07-16	sha256:1160175bccd5eecee82ffc8327174a7dba9607e774e11fd6b9ee57dcfcb8d8fe	Recorded that no Lean-backed lowering artifact exists yet.
 Aeneas Rust verification bridge	none	open	2026-07-16	sha256:330f4a20d8f32af9ba8117b095a7fc31c010c10964fab7aeebe77180385f147c	Registered the Rust-to-Terlan proof bridge obligation.
 Aeneas Rust verification bridge	open	triaged	2026-07-16	sha256:330f4a20d8f32af9ba8117b095a7fc31c010c10964fab7aeebe77180385f147c	Assigned formal verification ownership and the proof-track gate.
-Aeneas Rust verification bridge	triaged	blocked	2026-07-16	sha256:330f4a20d8f32af9ba8117b095a7fc31c010c10964fab7aeebe77180385f147c	Recorded the missing explicit bridge artifact.
+Aeneas Rust verification bridge	triaged	blocked	2026-07-16	sha256:cd14744dabc05aa34c65b911e457cc23b43d2fe3d86bf124c1564cee8dfba2f1	Recorded the missing explicit bridge artifact.
 EBNF syntax preservation	blocked	remediated	2026-07-31	sha256:809baa8bc19f5a7f9cd9894522fc426eb19e9e86e96d65fa0e75ceb431b2c4b9	Added executable parser-shape theorems and canonical grammar fingerprint binding.
 EBNF syntax preservation	remediated	closed	2026-07-31	sha256:809baa8bc19f5a7f9cd9894522fc426eb19e9e86e96d65fa0e75ceb431b2c4b9	Replayed the parser-shape proof and connected it to the release closeout gate.
 native-boundary contracts	blocked	remediated	2026-07-31	sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2	Added executable NativeBoundary theorems, typed manifest-row bindings, and fail-closed VM runtime oracles.

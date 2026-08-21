@@ -314,8 +314,8 @@ quality_reports_at(root: String, paths: List[String], output: List[String]): Lis
                         and item != "target/quality/release-promotion-pipeline-report.json"
                         and item != "target/quality/release-readiness-attestation-report.json"
                         and item != "target/quality/release-staged-distribution-verification-report.json"
-                        and item != "target/quality/release-0-0-7-support-manifest.json"
-                        and item != "target/quality/release-0-0-7-preflight-report.json" -> [item | output];
+                        and item != "target/quality/release-support-manifest.json"
+                        and item != "target/quality/release-preflight-report.json" -> [item | output];
                     true -> output
                 },
             )
@@ -890,13 +890,13 @@ pub entry(): Bool ->
         "preflight" ->
             let candidate = verify(root, version);
             if {
-                candidate.valid and Preflight.run(root, seal_digest(candidate.document)) -> let _printed = println("release 0.0.7 offline preflight passed");
+                candidate.valid and Preflight.run(root, version, seal_digest(candidate.document)) -> let _printed = println(String.concat(["release ", version, " offline preflight passed"]));
                 true;
                 true -> fail(candidate.message)
             };
         "preflight-self-test" ->
             if {
-                Preflight.self_test() -> let _printed = println("release 0.0.7 preflight adversarial self-tests passed");
+                Preflight.self_test() -> let _printed = println("release preflight adversarial self-tests passed");
                 true;
                 true -> false
             };

@@ -1,6 +1,7 @@
 //! Scheduler-owned execution control for live debugger sessions.
 
 /// Maximum number of runnable slices one debugger command may authorize.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) const VM_DEBUGGER_MAX_STEP_SLICES: u64 = 1_024;
 
 /// Live execution state owned by one fixed scheduler.
@@ -9,13 +10,16 @@ pub(crate) enum VmDebuggerExecutionState {
     /// Runnable actor slices receive normal scheduler service.
     Running,
     /// Runnable actor slices remain queued while owner commands still run.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     Paused,
     /// Only the retained number of debugger-authorized slices may run.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     Stepping,
 }
 
 /// One command sent to the scheduler that exclusively owns runnable mutation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) enum VmDebuggerControlCommand {
     /// Stops future runnable slices after the current owner command completes.
     Pause,
@@ -30,6 +34,7 @@ pub(crate) enum VmDebuggerControlCommand {
 
 /// Immutable debugger execution state returned by the scheduler owner.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) struct VmDebuggerControlSnapshot {
     /// Current scheduler-owned execution mode.
     pub(crate) state: VmDebuggerExecutionState,
@@ -50,6 +55,7 @@ pub(crate) enum VmDebuggerSlicePermit {
 #[derive(Debug)]
 pub(crate) struct VmDebuggerScheduleControl {
     state: VmDebuggerExecutionState,
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     remaining_step_slices: u64,
 }
 
@@ -58,11 +64,13 @@ impl VmDebuggerScheduleControl {
     pub(crate) const fn running() -> Self {
         Self {
             state: VmDebuggerExecutionState::Running,
+            #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
             remaining_step_slices: 0,
         }
     }
 
     /// Applies one owner-thread command and returns the resulting state.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn apply(
         &mut self,
         command: VmDebuggerControlCommand,
@@ -105,7 +113,9 @@ impl VmDebuggerScheduleControl {
     pub(crate) fn claim_runnable_slice(&mut self) -> Option<VmDebuggerSlicePermit> {
         match self.state {
             VmDebuggerExecutionState::Running => Some(VmDebuggerSlicePermit::Running),
+            #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
             VmDebuggerExecutionState::Paused => None,
+            #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
             VmDebuggerExecutionState::Stepping => {
                 let remaining = self
                     .remaining_step_slices
@@ -124,12 +134,15 @@ impl VmDebuggerScheduleControl {
     pub(crate) const fn can_service_runnable(&self) -> bool {
         match self.state {
             VmDebuggerExecutionState::Running => true,
+            #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
             VmDebuggerExecutionState::Paused => false,
+            #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
             VmDebuggerExecutionState::Stepping => self.remaining_step_slices > 0,
         }
     }
 
     /// Returns immutable scheduler-owned debugger state.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) const fn snapshot(&self) -> VmDebuggerControlSnapshot {
         VmDebuggerControlSnapshot {
             state: self.state,

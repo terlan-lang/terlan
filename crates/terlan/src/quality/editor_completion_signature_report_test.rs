@@ -13,11 +13,7 @@ fn editor_completion_signature_report_writes_expected_artifact() {
     let root = temp_root("editor-completion-signature-report-ok");
     fs::create_dir_all(root.join("editors")).expect("create editors dir");
     fs::create_dir_all(root.join("crates/terlan/src/lsp")).expect("create lsp dir");
-    fs::write(
-        root.join("Makefile"),
-        "COMPLETED_SLICE_RUST_GATES := editor-completion-signature-check\ninclude editors/editor.mk\n",
-    )
-    .expect("write Makefile");
+    fs::write(root.join("Makefile"), "include editors/editor.mk\n").expect("write Makefile");
     fs::write(
         root.join("editors/editor.mk"),
         "editor-completion-signature-check:\n\tterlan-quality editor-completion-signature-report\n",
@@ -102,8 +98,8 @@ fn editor_completion_signature_report_rejects_placeholder_report_entries() {
 
 #[test]
 fn editor_completion_signature_report_rejects_missing_selector() {
-    let body = "COMPLETED_SLICE_RUST_GATES := editor-completion-signature-check\n\
-editor-completion-signature-check:\n\tterlan-quality editor-completion-signature-report\n";
+    let body =
+        "editor-completion-signature-check:\n\tterlan-quality editor-completion-signature-report\n";
     let fixtures = format!("fn {}() {{}}\n", REQUIRED_SELECTORS[0].fixture);
 
     let diagnostics = validate_gate_and_fixtures(body, &fixtures);

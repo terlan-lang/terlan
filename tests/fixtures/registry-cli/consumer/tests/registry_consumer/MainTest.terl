@@ -1,0 +1,6 @@
+module registry_consumer.MainTest.
+
+import registry_consumer.Main.
+
+@test
+pub resolves_registry_dependency(): Bool -> Main.value() == 42.

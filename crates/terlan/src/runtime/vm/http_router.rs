@@ -514,7 +514,7 @@ fn normalize_router_path(path: impl AsRef<str>) -> Result<String, String> {
 
 fn validate_route_pattern(path: &str) -> Result<(), String> {
     for segment in path_segments(path) {
-        if let Some(name) = route_param_name(segment) {
+        if let Some((name, _suffix)) = route_param_parts(segment) {
             if !valid_route_param_name(name) {
                 return Err(format!(
                     "VM HTTP route path `{path}` has invalid parameter `{name}`"
@@ -534,11 +534,16 @@ fn match_route_params(pattern: &str, path: &str) -> Option<Vec<(String, String)>
 
     let mut params = Vec::new();
     for (pattern_segment, path_segment) in pattern_segments.iter().zip(path_segments.iter()) {
-        if let Some(name) = route_param_name(pattern_segment) {
-            if path_segment.is_empty() {
+        if let Some((name, suffix)) = route_param_parts(pattern_segment) {
+            let captured = if suffix.is_empty() {
+                *path_segment
+            } else {
+                path_segment.strip_suffix(suffix)?
+            };
+            if captured.is_empty() {
                 return None;
             }
-            params.push((name.to_string(), (*path_segment).to_string()));
+            params.push((name.to_string(), captured.to_string()));
         } else if pattern_segment != path_segment {
             return None;
         }
@@ -550,8 +555,9 @@ fn route_shape(path: &str) -> String {
     let mut shape = String::new();
     for segment in path_segments(path) {
         shape.push('/');
-        if route_param_name(segment).is_some() {
+        if let Some((_name, suffix)) = route_param_parts(segment) {
             shape.push(':');
+            shape.push_str(suffix);
         } else {
             shape.push_str(segment);
         }
@@ -563,14 +569,15 @@ fn route_shape(path: &str) -> String {
     }
 }
 
-fn route_param_name(segment: &str) -> Option<&str> {
-    if let Some(name) = segment.strip_prefix(':') {
-        return (!name.is_empty()).then_some(name);
+fn route_param_parts(segment: &str) -> Option<(&str, &str)> {
+    if let Some((name, suffix)) = crate::web_route::colon_route_param_segment(segment) {
+        return Some((name, suffix));
     }
     segment
         .strip_prefix('{')
         .and_then(|name| name.strip_suffix('}'))
         .filter(|name| !name.is_empty())
+        .map(|name| (name, ""))
 }
 
 fn valid_route_param_name(name: &str) -> bool {

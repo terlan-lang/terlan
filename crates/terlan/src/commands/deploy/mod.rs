@@ -11,9 +11,28 @@ use crate::commands::build::project_manifest::{
 };
 use crate::{CliCommand, CliState};
 
+mod semantic;
+
+use semantic::{build_semantic_deploy_plan, render_semantic_deploy_plan};
+
 const PROJECT_MANIFEST_FILE: &str = "terlan.toml";
 const DEPLOY_PLAN_SCHEMA: &str = "terlan-cloud-deploy-plan-v1";
+const SEMANTIC_DEPLOY_PLAN_SCHEMA: &str = "terlan-cloud-deploy-plan-v2";
 const DEPLOY_PLAN_FILE: &str = "deploy-plan.json";
+const DEPLOY_PLAN_INSPECTION_FILE: &str = "deploy-plan.txt";
+
+/// Produces the semantic deploy plan as a deterministic JSON value for other
+/// compiler-owned artifact emitters.
+///
+/// Release-bundle generation reuses this function so build and deploy cannot
+/// drift into separate route, capability, migration, or source contracts.
+pub(crate) fn semantic_deploy_plan_value(
+    project_dir: &Path,
+    manifest: &ProjectManifest,
+) -> Result<serde_json::Value, String> {
+    serde_json::to_value(build_semantic_deploy_plan(project_dir, manifest)?)
+        .map_err(|error| format!("cannot serialize semantic deploy plan: {error}"))
+}
 
 /// Runs the hidden experimental deploy command group.
 ///
@@ -40,7 +59,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
             print_deploy_usage();
             ExitCode::SUCCESS
         }
-        DeployArgs::Plan(args) => match write_deploy_plan(&args.project_dir, &state.out_dir) {
+        DeployArgs::Plan(args) => match write_deploy_plan(&args, &state.out_dir) {
             Ok(path) => {
                 println!("wrote {}", path.display());
                 ExitCode::SUCCESS
@@ -88,6 +107,13 @@ enum DeployArgs {
 /// - Defaults omitted project directories to the current working directory.
 struct DeployPlanArgs {
     project_dir: PathBuf,
+    schema: DeployPlanSchema,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DeployPlanSchema {
+    V1,
+    V2,
 }
 
 /// Parses hidden deploy command arguments.
@@ -124,18 +150,49 @@ fn parse_deploy_args(args: &[String]) -> DeployArgs {
 /// - Accepts one optional project directory and rejects additional operands to
 ///   keep the cloud plan contract deterministic.
 fn parse_deploy_plan_args(args: &[String]) -> DeployArgs {
-    match args {
-        [] => DeployArgs::Plan(DeployPlanArgs {
-            project_dir: PathBuf::from("."),
-        }),
-        [flag] if matches!(flag.as_str(), "--help" | "-h") => DeployArgs::Help,
-        [project_dir] => DeployArgs::Plan(DeployPlanArgs {
-            project_dir: PathBuf::from(project_dir),
-        }),
-        _ => {
-            DeployArgs::Error("terlc deploy plan accepts at most one project directory".to_string())
+    let mut project_dir = None;
+    let mut schema = DeployPlanSchema::V2;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--help" | "-h" => return DeployArgs::Help,
+            "--schema" => {
+                let Some(value) = args.get(index + 1) else {
+                    return DeployArgs::Error(
+                        "terlc deploy plan --schema requires v1 or v2".to_string(),
+                    );
+                };
+                schema = match value.as_str() {
+                    "v1" => DeployPlanSchema::V1,
+                    "v2" => DeployPlanSchema::V2,
+                    other => {
+                        return DeployArgs::Error(format!(
+                            "unsupported deploy plan schema `{other}`; supported schemas: v1, v2"
+                        ))
+                    }
+                };
+                index += 2;
+            }
+            value if value.starts_with('-') => {
+                return DeployArgs::Error(format!(
+                    "unexpected terlc deploy plan argument: {value}"
+                ));
+            }
+            value => {
+                if project_dir.is_some() {
+                    return DeployArgs::Error(
+                        "terlc deploy plan accepts at most one project directory".to_string(),
+                    );
+                }
+                project_dir = Some(PathBuf::from(value));
+                index += 1;
+            }
         }
     }
+    DeployArgs::Plan(DeployPlanArgs {
+        project_dir: project_dir.unwrap_or_else(|| PathBuf::from(".")),
+        schema,
+    })
 }
 
 /// Prints hidden deploy command usage.
@@ -150,7 +207,7 @@ fn parse_deploy_plan_args(args: &[String]) -> DeployArgs {
 /// - Keeps experimental help reachable only after the hidden command is known,
 ///   while excluding it from top-level public help.
 fn print_deploy_usage() {
-    println!("terlc --experimental deploy plan [project-dir] [--out-dir <dir>]");
+    println!("terlc --experimental deploy plan [project-dir] [--schema v1|v2] [--out-dir <dir>]");
 }
 
 /// Writes a deterministic Terlan Cloud deploy plan artifact.
@@ -165,10 +222,9 @@ fn print_deploy_usage() {
 /// Transformation:
 /// - Reads the existing project manifest parser output, projects it into a
 ///   cloud-facing schema, and writes `_build/cloud/deploy-plan.json`.
-fn write_deploy_plan(project_dir: &Path, out_dir: &Path) -> Result<PathBuf, String> {
-    let manifest_path = project_dir.join(PROJECT_MANIFEST_FILE);
+fn write_deploy_plan(args: &DeployPlanArgs, out_dir: &Path) -> Result<PathBuf, String> {
+    let manifest_path = args.project_dir.join(PROJECT_MANIFEST_FILE);
     let manifest = read_project_manifest(&manifest_path)?;
-    let plan = build_deploy_plan(&manifest)?;
     let cloud_dir = out_dir.join("cloud");
     fs::create_dir_all(&cloud_dir).map_err(|err| {
         format!(
@@ -177,10 +233,33 @@ fn write_deploy_plan(project_dir: &Path, out_dir: &Path) -> Result<PathBuf, Stri
         )
     })?;
     let output_path = cloud_dir.join(DEPLOY_PLAN_FILE);
-    let json = serde_json::to_string_pretty(&plan)
-        .map_err(|err| format!("cannot serialize deploy plan: {err}"))?;
+    let (json, inspection) = match args.schema {
+        DeployPlanSchema::V1 => (
+            serde_json::to_string_pretty(&build_deploy_plan(&manifest)?)
+                .map_err(|err| format!("cannot serialize deploy plan: {err}"))?,
+            None,
+        ),
+        DeployPlanSchema::V2 => {
+            let plan = build_semantic_deploy_plan(&args.project_dir, &manifest)?;
+            let inspection = render_semantic_deploy_plan(&plan);
+            (
+                serde_json::to_string_pretty(&plan)
+                    .map_err(|err| format!("cannot serialize deploy plan: {err}"))?,
+                Some(inspection),
+            )
+        }
+    };
     fs::write(&output_path, format!("{json}\n"))
         .map_err(|err| format!("cannot write deploy plan {}: {err}", output_path.display()))?;
+    if let Some(inspection) = inspection {
+        let inspection_path = cloud_dir.join(DEPLOY_PLAN_INSPECTION_FILE);
+        fs::write(&inspection_path, inspection).map_err(|err| {
+            format!(
+                "cannot write deploy plan inspection {}: {err}",
+                inspection_path.display()
+            )
+        })?;
+    }
     Ok(output_path)
 }
 
@@ -293,6 +372,10 @@ fn deploy_capabilities(manifest: &ProjectManifest) -> Vec<&'static str> {
     if manifest.server_tls.is_some() {
         capabilities.push("http.tls");
     }
+    if manifest.native_rust.is_some() {
+        capabilities.push("native.rust");
+        capabilities.push("native.helper-process");
+    }
     for dependency in &manifest.dependencies {
         match dependency.scope {
             ProjectDependencyScope::Local => capabilities.push("dependency.local"),
@@ -347,17 +430,30 @@ fn plan_dependency(dependency: &ProjectDependency) -> DeployPlanDependency {
                 url: url.clone(),
                 rev: rev.clone(),
             },
-            ProjectDependencySource::Npm { package, version } => DeployPlanDependencySource::Npm {
+            ProjectDependencySource::Registry { registry, version } => {
+                DeployPlanDependencySource::Registry {
+                    registry: registry.clone(),
+                    version: version.clone(),
+                }
+            }
+            ProjectDependencySource::Npm {
+                package,
+                version,
+                integrity,
+            } => DeployPlanDependencySource::Npm {
                 package: package.clone(),
                 version: version.clone(),
+                integrity: integrity.clone(),
             },
             ProjectDependencySource::Cargo {
                 package,
                 version,
+                integrity,
                 features,
             } => DeployPlanDependencySource::Cargo {
                 package: package.clone(),
                 version: version.clone(),
+                integrity: integrity.clone(),
                 features: features.clone(),
             },
         },
@@ -515,12 +611,21 @@ enum DeployPlanDependencySource {
     Path { path: String },
     #[serde(rename = "git")]
     Git { url: String, rev: String },
+    #[serde(rename = "registry")]
+    Registry { registry: String, version: String },
     #[serde(rename = "npm")]
-    Npm { package: String, version: String },
+    Npm {
+        package: String,
+        version: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        integrity: Option<String>,
+    },
     #[serde(rename = "cargo")]
     Cargo {
         package: String,
         version: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        integrity: Option<String>,
         features: Vec<String>,
     },
 }

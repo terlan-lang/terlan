@@ -1,3 +1,7 @@
+pub(crate) use crate::commands::serve::tls_contract::{
+    ProjectServerTls, ProjectServerTlsMode, ProjectServerTlsProvider,
+};
+
 /// Parsed Terlan project manifest.
 ///
 /// Inputs:
@@ -22,7 +26,48 @@ pub(crate) struct ProjectManifest {
     pub(crate) server_tls: Option<ProjectServerTls>,
     pub(crate) native_rust: Option<ProjectNativeRust>,
     pub(crate) accelerator: Option<ProjectAccelerator>,
+    pub(crate) deployment: Option<ProjectDeployment>,
     pub(crate) dependencies: Vec<ProjectDependency>,
+}
+
+/// Cloud-portable deployment intent from `[deploy]` and its child sections.
+///
+/// This metadata names runtime inputs and limits but never contains environment
+/// or secret values. Compiler-derived release, route, handler, and source
+/// identities remain outside this user-authored structure.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ProjectDeployment {
+    pub(crate) environment: Vec<String>,
+    pub(crate) secrets: Vec<String>,
+    pub(crate) migrations: Vec<String>,
+    pub(crate) outbound_network: Vec<String>,
+    pub(crate) rollback: ProjectRollbackCompatibility,
+    pub(crate) health: Option<ProjectDeployHealth>,
+    pub(crate) resources: Option<ProjectDeployResources>,
+}
+
+/// HTTP health-check intent for the single native service profile.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ProjectDeployHealth {
+    pub(crate) path: String,
+    pub(crate) interval_secs: u64,
+    pub(crate) timeout_secs: u64,
+}
+
+/// Portable runtime resource hints, not provider instance selections.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ProjectDeployResources {
+    pub(crate) cpu_millis: u64,
+    pub(crate) memory_mb: u64,
+    pub(crate) processes: u64,
+}
+
+/// Rollback admission policy carried into the Cloud release contract.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ProjectRollbackCompatibility {
+    Stateless,
+    MigrationCompatible,
+    Manual,
 }
 
 /// Versioned package-relative accelerator descriptor reference.
@@ -250,32 +295,6 @@ pub(crate) enum ProjectServerProfile {
     Production,
 }
 
-/// Parsed Terlan-owned HTTP server TLS configuration from `[server.tls]`.
-///
-/// Inputs:
-/// - Produced from user-authored `terlan.toml`.
-///
-/// Output:
-/// - Stable TLS configuration metadata for local server/runtime validation.
-///
-/// Transformation:
-/// - Narrows declarative TLS settings to the roadmap-approved modes without
-///   loading certificates, contacting ACME providers, or starting a server.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ProjectServerTls {
-    pub(crate) mode: ProjectServerTlsMode,
-    pub(crate) domains: Vec<String>,
-    pub(crate) email: Option<String>,
-    pub(crate) primary_provider: Option<ProjectServerTlsProvider>,
-    pub(crate) fallback_provider: Option<ProjectServerTlsProvider>,
-    pub(crate) cert: Option<String>,
-    pub(crate) key: Option<String>,
-    pub(crate) passphrase_env: Option<String>,
-    pub(crate) ca: Option<String>,
-    pub(crate) server_name: Option<String>,
-    pub(crate) trust_local: Option<bool>,
-}
-
 /// Parsed Rust native helper metadata from `[native.rust]`.
 ///
 /// Inputs:
@@ -294,41 +313,6 @@ pub(crate) struct ProjectNativeRust {
     pub(crate) helper: String,
     pub(crate) helper_env: String,
     pub(crate) features: Vec<String>,
-}
-
-/// Supported TLS configuration modes.
-///
-/// Inputs:
-/// - Produced from `[server.tls] mode`.
-///
-/// Output:
-/// - Typed TLS mode for runtime/server validation.
-///
-/// Transformation:
-/// - Keeps automatic ACME, manual certificate, and internal development CA
-///   modes explicit so later runtime code can validate capabilities by mode.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ProjectServerTlsMode {
-    Auto,
-    Manual,
-    Internal,
-}
-
-/// Supported automatic TLS ACME providers.
-///
-/// Inputs:
-/// - Produced from `[server.tls] primary_provider` or `fallback_provider`.
-///
-/// Output:
-/// - Typed provider marker for future ACME runtime integration.
-///
-/// Transformation:
-/// - Narrows provider names to the documented Let's Encrypt / ZeroSSL pair
-///   without binding the compiler to one ACME implementation yet.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ProjectServerTlsProvider {
-    LetsEncrypt,
-    ZeroSsl,
 }
 
 /// Parsed project dependency metadata.
@@ -405,13 +389,19 @@ pub(crate) enum ProjectDependencySource {
         url: String,
         rev: String,
     },
+    Registry {
+        registry: String,
+        version: String,
+    },
     Npm {
         package: String,
         version: String,
+        integrity: Option<String>,
     },
     Cargo {
         package: String,
         version: String,
+        integrity: Option<String>,
         features: Vec<String>,
     },
 }

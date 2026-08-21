@@ -11,9 +11,12 @@ and live-reload support.
   arguments.
 - Compile source modules through the formal compiler phases.
 - Render static entrypoints and routes into HTML files.
+- Emit validated Markdown route aliases as canonical redirect pages.
 - Copy file/CSS imports with include/exclude filtering.
 - Inject an optional static base path for project-prefix hosts such as GitHub
   Pages.
+- Generate `terl-docs` navigation, search, and blog artifacts when `--docs` is
+  enabled.
 - Serve generated files over HTTP and broadcast live-reload events.
 - Validate static generation through a check-only serve path for CI.
 
@@ -56,8 +59,9 @@ The main flow is:
 1. Parse command-local arguments and asset filters.
 2. Compile the source module through compiler phases.
 3. Discover static entrypoints and routes from syntax output.
-4. Render HTML, copy assets, and optionally validate output.
-5. Optionally inject `<base href="...">` when `--base-path` is supplied.
+4. Render HTML, copy assets, and qualify in-page links when a base path is used.
+5. Optionally inject `<base href="...">`, then validate HTML, CSS, local link
+   targets, and fragments across the completed output tree.
 6. For dev serving, serve output files and broadcast reloads after changes.
 
 Important invariants:
@@ -66,7 +70,23 @@ Important invariants:
 - `static check` must never start the server or watcher.
 - Asset filters apply to both full normalized paths and filenames.
 - `--base-path` is normalized to a slash-prefixed, slash-terminated path and is
-  applied only to generated HTML, not copied assets.
+  applied only to generated HTML, not copied assets. Fragment-only links are
+  qualified with their current route before the base tag is injected.
+- Markdown `@page.aliases` paths are validated like canonical routes and may
+  not collide with another canonical route, alias, or handler route.
+- `--docs` is opt-in and writes deterministic navigation/search/blog indexes,
+  supplies trusted navigation and table-of-contents fragments to typed
+  Markdown layouts, and emits the namespaced browser search client without
+  changing ordinary static builds.
+- `--preview` requires `--docs` and includes draft Markdown pages in HTML and
+  documentation artifacts; production rebuilds remove stale draft page and
+  alias outputs from the target directory.
+- Production `--docs` builds require an explicit `--as-of YYYY-MM-DD` cutoff;
+  later blog posts are excluded like drafts. Preview mode includes scheduled
+  posts and is intentionally mutually exclusive with `--as-of`.
+- A typed `/blog` layout enables generated archive, tag, and author routes.
+  Generated routes share the declared-route collision boundary, and their
+  manifest drives stale-page removal when publication visibility changes.
 - Request paths reject traversal-like segments.
 - HTML responses receive a reload script unless already present.
 
@@ -109,7 +129,8 @@ server thread, reload client list, and polling loop.
   escaping helpers shared by inline and external template renderers.
 - `routes`: owns static route discovery and validation for formal syntax-output
   modules.
-- Static output validation: checks generated HTML and copied CSS assets.
+- Static output validation: checks generated HTML, copied CSS assets, and all
+  generated local anchor/file/fragment targets.
 - `terlan_syntax`: syntax output supplies imports, entrypoints, routes, and
   template data.
 

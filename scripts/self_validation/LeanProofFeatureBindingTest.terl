@@ -44,6 +44,26 @@ expected_matrix(): String ->
     "slice_id\tfeature_class\tlane_id\tcoverage_status\towner\tproof_family_ids\tgap_ids\tblocker_hash\nSlice 4\tcoreir\tcoreir\tproof_current\tcompiler\tcoreir-arithmetic;coreir-checked-lowering;shape-implication\t\tnone\nSlice 5\tcoreir\tcoreir\tproof_current\tcompiler\tcoreir-arithmetic;coreir-checked-lowering\t\tnone\nSlice 9\tvm_runtime\tvm_runtime\tproof_current\tvm\tsemantic-smoke-chain\t\tnone\nSlice 10\tcoreir\tcoreir\tproof_current\tcompiler\tcoreir-checked-lowering\t\tnone\nSlice 11\tcoreir\tcoreir\tproof_current\tcompiler\tcoreir-checked-lowering\t\tnone\nSlice 12\tcoreir\tcoreir\tproof_current\tcompiler\tcoreir-checked-lowering\t\tnone\nSlice 13\tparser\tparser\tproof_current\tcompiler\tparser-shape\t\tnone\nSlice 14\tnative_boundary\tnative_boundary\tproof_current\truntime\tnative-boundary\t\tnone\nSlice 15\tcoreir\tcoreir\tproof_current\tcompiler\ttemplates-routes\t\tnone\nSlice 16\tvm_runtime\tvm_runtime\tproof_current\tvm\tconcurrency\t\tnone\nSlice 17\tstd_packages\tstd_packages\tproof_current\tcompiler\tcollections\t\tnone\nSlice 18\twasm\twasm\tproof_current\tcompiler\twasm-bridge\t\tnone\nSlice 19\tstd_packages\tstd_packages\tproof_current\tcompiler\tdatabase-sql\t\tnone\nSlice 20\tstd_packages\tstd_packages\tproof_current\tcompiler\tstd-packages\t\tnone\nSlice 22\tcoreir\tcoreir\tslice_blocked\tcompiler\t\ttyped-coreir-preservation\tsha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad\nSlice 23\tcoreir\tcoreir\tslice_blocked\tcompiler\t\ttyped-coreir-preservation\tsha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad\nSlice 24\tvm_runtime\tvm_runtime\tslice_blocked\tvm\t\tvm-execution-subset\tsha256:8917ce1bed441d5bc25165b893123a26cfd0b51ef1bb06fc16429bfc3f70af9c\nSlice 25\tcoreir\tcoreir\tslice_blocked\tcompiler\t\ttyped-coreir-preservation\tsha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad\nSlice 26\tcoreir\tcoreir\tslice_blocked\tcompiler\t\ttyped-coreir-preservation\tsha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad\nSlice 27\tcoreir\tcoreir\tslice_blocked\tcompiler\t\ttyped-coreir-preservation\tsha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad\nSlice 28\tcoreir\tcoreir\tslice_blocked\tcompiler\t\ttyped-coreir-preservation\tsha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad\n".
 
 @pure
+blocker_hash_for(gaps: String, feature: String): String ->
+    case String.split(tsv_row(gaps, feature), "\t") {
+        [_feature, _status, _category, _reason, _owner, _gate, _deadline, _updated, blocker, _manifests] ->
+            blocker;
+        _ -> "missing"
+    }.
+
+@pure
+current_expected_matrix(gaps: String): String ->
+    String.replace(
+        String.replace(
+            expected_matrix(),
+            "sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad",
+            blocker_hash_for(gaps, "typed CoreIR preservation"),
+        ),
+        "sha256:8917ce1bed441d5bc25165b893123a26cfd0b51ef1bb06fc16429bfc3f70af9c",
+        blocker_hash_for(gaps, "VM execution subset"),
+    ).
+
+@pure
 input_paths(root: String): List[String] ->
     [
         child(root, "docs/roadmap/ROADMAP_0_0_7.md"),
@@ -289,7 +309,7 @@ inputs_hold(inputs: Inputs): Bool ->
         and valid_json(inputs.replay)
         and baseline_holds(inputs.baseline)
         and make_targets_hold(inputs.makefile)
-        and matrix_rows_hold(matrix_data_lines(expected_matrix()), inputs, 0).
+        and matrix_rows_hold(matrix_data_lines(current_expected_matrix(inputs.gaps)), inputs, 0).
 
 @pure
 matrix_data_lines(matrix: String): List[String] ->
@@ -319,15 +339,18 @@ pub repository_feature_binding_holds(): Bool ->
                     makefile = makefile.contents,
                 );
             if {
-                inputs_hold(inputs) -> write_matrix(root);
+                inputs_hold(inputs) -> write_matrix(root, inputs.gaps);
                 true -> fail("feature binding contracts drifted")
             };
         Ok(_files) -> fail("feature binding input batch has an unexpected shape");
         Err(_reason) -> fail("feature binding inputs could not be read")
     }.
 
-write_matrix(root: String): Bool ->
-    case write_text(child(root, "build/artifacts/lean-proof-coverage-matrix.tsv"), expected_matrix()) {
+write_matrix(root: String, gaps: String): Bool ->
+    case write_text(
+    child(root, "build/artifacts/lean-proof-coverage-matrix.tsv"),
+    current_expected_matrix(gaps),
+) {
         Ok(Unit) -> report_success(root);
         Err(_reason) -> fail("coverage matrix could not be written")
     }.

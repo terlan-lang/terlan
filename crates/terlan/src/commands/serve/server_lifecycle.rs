@@ -2,6 +2,15 @@ use super::request_dispatch::*;
 use super::response_rendering::*;
 use super::*;
 
+mod entry;
+mod vm_stream;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use entry::run;
+pub(crate) use entry::run_serve_runtime;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+use vm_stream::{bind_std_listener, serve_bound_directory_vm_plain};
+use vm_stream::{serve_web_package_vm_plain, serve_web_package_vm_tls};
+
 thread_local! {
     static SUSPENDABLE_ROUTE_DECISION: RefCell<Option<SuspendableRouteDecision>> =
         const { RefCell::new(None) };
@@ -14,6 +23,10 @@ pub(super) struct SuspendableRouteDecision {
     path: String,
     suspending: bool,
 }
+
+/// Runtime-owned temporary path attached only to file-backed request bodies.
+#[derive(Clone, Debug)]
+pub(super) struct RequestBodyFilePath(pub(super) String);
 
 /// Boxed body type used by the Hyper development server.
 #[cfg(test)]
@@ -88,31 +101,12 @@ pub(super) const RELOAD_ENDPOINT: &str = "/__terlan/reload";
 /// - Keeps the detached runtime thread internal while exposing enough metadata
 ///   for callers such as `serve-static` to report the local URL.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) struct DirectoryServerHandle {
     pub(crate) local_addr: String,
 }
 
-/// Executes the `terlc serve` command.
-///
-/// Inputs:
-/// - `cmd`: parsed CLI command with command-local arguments.
-/// - `state`: global CLI state carrying the default output directory.
-///
-/// Output:
-/// - CLI exit code representing package validation or server startup success.
-///
-/// Transformation:
-/// - Parses command-local flags, validates the browser package, returns early
-///   for `--check`, or starts the local file-serving HTTP loop.
-pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
-    let mut args = match parse_serve_args(&cmd.args, &state) {
-        Ok(args) => args,
-        Err(message) => {
-            eprintln!("{message}");
-            return ExitCode::from(2);
-        }
-    };
-
+pub(super) fn run_parsed(mut args: ServeArgs) -> ExitCode {
     if let Err(message) = validate_web_package(&args.web_root) {
         eprintln!("{message}");
         return ExitCode::from(1);
@@ -131,6 +125,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
     args.host.clone_from(&effective_config.host);
     args.port = effective_config.port;
     args.poll_ms = effective_config.poll_ms;
+    args.max_body_bytes = effective_config.max_body_bytes;
     if let Err(message) = config::write_effective_serve_config(&effective_config, &args.web_root) {
         eprintln!("{message}");
         return ExitCode::from(1);
@@ -438,7 +433,7 @@ pub(super) fn validate_dynamic_handler_source_path(
 /// - Moves handler compile/load cost from the first matching HTTP request to
 ///   `terlc serve --check` or server startup, while retaining source metadata
 ///   invalidation for later edits.
-pub(super) fn prewarm_dynamic_handler_sources(web_root: &Path) -> Result<(), String> {
+pub(crate) fn prewarm_dynamic_handler_sources(web_root: &Path) -> Result<(), String> {
     let manifest = manifest::read_web_manifest(web_root).map_err(|message| {
         format!(
             "error[serve_package]: cannot read browser package manifest `{}`: {message}",
@@ -507,7 +502,7 @@ pub(super) fn execute_dynamic_vm_handler_with_runtime(
     request: crate::terlan_native::http::Request,
     projection: crate::runtime::native::http::RequestFieldProjection,
 ) -> Result<handler::HandlerResponse, String> {
-    let mut output = |_line: &str| {};
+    let mut output = crate::service_foundation::emit_program_output;
     if let Some(response) =
         execute_vm_router_handler_with_package_root(vm, matched, &request, web_root, &mut output)?
     {
@@ -551,7 +546,7 @@ pub(super) async fn handle_suspendable_vm_stream_request(
         return Ok(None);
     };
     let runtime = cached_vm_handler_runtime_for_request(web_root, &matched.handler)?;
-    let suspending = runtime.vm().request_handler_may_suspend(
+    let suspending = runtime.vm().direct_request_handler_may_suspend(
         &matched.handler.module,
         &matched.handler.function,
         matched.handler.arity,
@@ -568,7 +563,19 @@ pub(super) async fn handle_suspendable_vm_stream_request(
     if !suspending {
         return Ok(None);
     }
-    let projection = runtime.vm().request_projection(
+    if !runtime.vm().direct_router_handler_is_safe(
+        method,
+        request_path,
+        &matched.handler.module,
+        &matched.handler.function,
+        matched.handler.arity,
+    ) {
+        return Err(
+            "error[serve.aot.async_router]: suspendable handlers with router middleware or recovery are not yet supported"
+                .into(),
+        );
+    }
+    let projection = runtime.vm().direct_request_projection(
         &matched.handler.module,
         &matched.handler.function,
         matched.handler.arity,
@@ -628,6 +635,18 @@ pub(super) async fn handle_suspendable_vm_stream_request(
             headers: projected_headers,
             cookies: projected_cookies,
         },
+    )
+    .with_body_file_path(
+        if projection.requires(crate::runtime::native::http::RequestFieldProjection::BODY_FILE_PATH)
+        {
+            request
+                .extensions()
+                .get::<RequestBodyFilePath>()
+                .map(|path| path.0.clone())
+                .unwrap_or_default()
+        } else {
+            String::new()
+        },
     );
     let response = execute_suspendable_vm_handler_with_package_root_projected(
         runtime.vm(),
@@ -638,6 +657,41 @@ pub(super) async fn handle_suspendable_vm_stream_request(
     )
     .await?;
     serve_vm_stream_handler_response(response, method == "HEAD").map(Some)
+}
+
+/// Returns whether an exact dynamic handler observes only the file-backed body
+/// projection. Complete or mixed projections retain the text boundary.
+pub(super) fn request_requires_file_body(
+    web_root: &Path,
+    method: &str,
+    path: &str,
+) -> Result<bool, String> {
+    let Some(MatchedWebPackageRoute::Handler(matched)) =
+        manifest_route_for_request(web_root, method, path)
+    else {
+        return Ok(false);
+    };
+    let runtime = cached_vm_handler_runtime_for_request(web_root, &matched.handler)?;
+    if !runtime.vm().direct_router_handler_is_safe(
+        method,
+        path,
+        &matched.handler.module,
+        &matched.handler.function,
+        matched.handler.arity,
+    ) {
+        return Ok(false);
+    }
+    let projection = runtime.vm().direct_request_projection(
+        &matched.handler.module,
+        &matched.handler.function,
+        matched.handler.arity,
+    );
+    Ok(matches!(
+        projection,
+        crate::runtime::native::http::RequestFieldProjection::Fields(_)
+    ) && projection
+        .requires(crate::runtime::native::http::RequestFieldProjection::BODY_FILE_PATH)
+        && !projection.requires(crate::runtime::native::http::RequestFieldProjection::BODY))
 }
 
 /// Executes middleware for a compiler-folded static route through its source router.
@@ -657,7 +711,7 @@ pub(super) fn execute_static_vm_router(
         handler,
         params: Vec::new(),
     };
-    let mut output = |_line: &str| {};
+    let mut output = crate::service_foundation::emit_program_output;
     execute_vm_router_static_response_with_package_root(
         runtime.vm(),
         &matched,
@@ -681,7 +735,7 @@ pub(super) fn execute_websocket_vm_router(
         "error[serve_runtime]: websocket router owner requires an adjacent project root".to_string()
     })?;
     let runtime = cached_vm_handler_for_manifest(web_root, &project_root, &handler)?;
-    let mut output = |_line: &str| {};
+    let mut output = crate::service_foundation::emit_program_output;
     execute_vm_router_websocket_admission_with_package_root(
         runtime,
         websocket,
@@ -702,7 +756,7 @@ pub(super) fn execute_sse_vm_router(
         "error[serve_runtime]: SSE router owner requires an adjacent project root".to_string()
     })?;
     let runtime = cached_vm_handler_for_manifest(web_root, &project_root, &handler)?;
-    let mut output = |_line: &str| {};
+    let mut output = crate::service_foundation::emit_program_output;
     execute_vm_router_sse_admission_with_package_root(
         runtime,
         endpoint,
@@ -788,6 +842,7 @@ pub(super) fn serve_web_package(args: &ServeArgs) -> Result<(), String> {
 ///   caller, transfers it to the VM-stream plain HTTP server on a background
 ///   thread, and serves the directory through the same route graph as
 ///   `terlc serve`.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) fn spawn_directory_server(
     web_root: PathBuf,
     host: String,
@@ -805,9 +860,13 @@ pub(crate) fn spawn_directory_server(
 
     thread::spawn(move || {
         let _ = startup_tx.send(Ok(thread_addr));
-        if let Err(message) =
-            serve_bound_directory_vm_plain(listener, web_root, poll_ms, log_prefix)
-        {
+        if let Err(message) = serve_bound_directory_vm_plain(
+            listener,
+            web_root,
+            poll_ms,
+            args::DEFAULT_MAX_BODY_BYTES,
+            log_prefix,
+        ) {
             eprintln!("{message}");
         }
     });
@@ -819,139 +878,4 @@ pub(crate) fn spawn_directory_server(
             "error[serve_runtime]: failed to receive server startup status: {err}"
         )),
     }
-}
-
-/// Binds a standard TCP listener for VM stream serving.
-///
-/// Inputs:
-/// - `host`: bind host.
-/// - `port`: bind port.
-///
-/// Output:
-/// - Nonblocking standard TCP listener.
-///
-/// Transformation:
-/// - Performs synchronous bind validation before the VM stream accept loop is
-///   spawned, so callers receive startup failures directly.
-pub(super) fn bind_std_listener(host: &str, port: u16) -> Result<std_net::TcpListener, String> {
-    crate::runtime::vm::protocol_task_executor::bind_protocol_listener(host, port)
-}
-
-/// Serves one plain HTTP web package through VM-owned HTTP stream handling.
-///
-/// Inputs:
-/// - `args`: parsed serve arguments for a package without TLS metadata.
-///
-/// Output:
-/// - `Ok(())` only if the listener loop exits without accept errors.
-///
-/// Transformation:
-/// - Binds the existing standard listener path and feeds accepted sockets into
-///   the VM HTTP stream adapter, avoiding a separate host async accept loop for the
-///   no-TLS production path.
-pub(super) fn serve_web_package_vm_plain(args: &ServeArgs) -> Result<(), String> {
-    let listener = bind_std_listener(&args.host, args.port)?;
-    serve_bound_directory_vm_plain(listener, args.web_root.clone(), args.poll_ms, "terlc serve")
-}
-
-/// Serves one TLS web package through VM HTTP streams over maintained rustls.
-///
-/// Inputs:
-/// - `args`: parsed serve arguments for a package with TLS metadata.
-/// - `tls_config`: loaded rustls server configuration.
-///
-/// Output:
-/// - `Ok(())` only if the listener loop exits without accept errors.
-///
-/// Transformation:
-/// - Binds the existing standard listener path and wraps each accepted stream
-///   in a blocking `rustls::ServerConnection`, keeping TLS mechanics in
-///   maintained rustls while routing HTTP bytes through the VM stream adapter.
-pub(super) fn serve_web_package_vm_tls(
-    args: &ServeArgs,
-    tls_config: Option<RuntimeTlsConfig>,
-) -> Result<(), String> {
-    let Some(tls_config) = tls_config else {
-        return serve_web_package_vm_plain(args);
-    };
-    let listener = bind_std_listener(&args.host, args.port)?;
-    serve_bound_directory_vm_stream(
-        listener,
-        args.web_root.clone(),
-        args.poll_ms,
-        "terlc serve",
-        Some(tls_config),
-    )
-}
-
-/// Serves one bound directory listener through plain VM HTTP streams.
-///
-/// Inputs:
-/// - `listener`: bound standard listener.
-/// - `web_root`: directory to serve.
-/// - `poll_ms`: reload polling interval.
-/// - `log_prefix`: command prefix for diagnostics.
-///
-/// Output:
-/// - `Ok(())` only if the listener loop exits without accept errors.
-///
-/// Transformation:
-/// - Registers the listener with topology-sized owner-thread readiness loops.
-///   Each accepted socket remains nonblocking and reactor-local through finite
-///   request reads and response writes.
-pub(super) fn serve_bound_directory_vm_plain(
-    listener: std_net::TcpListener,
-    web_root: PathBuf,
-    poll_ms: u64,
-    log_prefix: &str,
-) -> Result<(), String> {
-    serve_bound_directory_vm_stream(listener, web_root, poll_ms, log_prefix, None)
-}
-
-/// Serves one bound directory listener through VM HTTP streams.
-///
-/// Inputs:
-/// - `listener`: bound standard listener.
-/// - `web_root`: directory to serve.
-/// - `poll_ms`: reload polling interval.
-/// - `log_prefix`: command prefix for diagnostics.
-/// - `tls_config`: optional rustls server configuration.
-///
-/// Output:
-/// - `Ok(())` only if the listener loop exits without accept errors.
-///
-/// Transformation:
-/// - Routes finite plain HTTP through the socket-readiness reactors. TLS remains
-///   isolated in a bounded blocking transport executor until maintained rustls
-///   is driven directly by readiness state.
-pub(super) fn serve_bound_directory_vm_stream(
-    listener: std_net::TcpListener,
-    web_root: PathBuf,
-    poll_ms: u64,
-    log_prefix: &str,
-    tls_config: Option<RuntimeTlsConfig>,
-) -> Result<(), String> {
-    let local_addr = listener
-        .local_addr()
-        .map(|addr| addr.to_string())
-        .unwrap_or_else(|_| "unknown".to_string());
-    eprintln!("{log_prefix}: serving {}", web_root.display());
-    let scheme = if tls_config.is_some() {
-        "https"
-    } else {
-        "http"
-    };
-    eprintln!("{log_prefix}: {scheme}://{local_addr}");
-    eprintln!("{log_prefix}: reload stream {RELOAD_ENDPOINT}");
-    eprintln!(
-        "{log_prefix}: reload watcher {}",
-        ReloadWatchBackend::selected().name()
-    );
-
-    let reload_hub = Arc::new(Mutex::new(Vec::new()));
-    spawn_reload_watcher(web_root.clone(), poll_ms, Arc::clone(&reload_hub));
-    if let Some(tls_config) = tls_config {
-        return hyper_server::serve_tls(listener, web_root, tls_config.server_config);
-    }
-    hyper_server::serve(listener, web_root)
 }

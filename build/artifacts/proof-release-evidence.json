@@ -1,23 +1,23 @@
 {
   "candidate": {
-    "candidate_id": "sha256:cdce9f362f8866b47bc9ee265368425c21d00e22a318a9682c704c1c82dccf10",
+    "candidate_id": "sha256:2118c3869a34ecbbe7578ed73c333ac360098a4781903d7c9cbe4afc696d511d",
     "compiler_target": "x86_64-unknown-linux-gnu",
     "feature_set": [
       "quality-tools"
     ],
     "release": "0.0.7",
     "rustc_version": "rustc 1.96.0 (ac68faa20 2026-05-25)",
-    "source_revision": "69bb9cf8b76e20e3f80c8354880f2d94e05af0c6",
+    "source_revision": "11c63bf4ae73db3328244b157567517aff9382ec",
     "target_profile": "native"
   },
   "candidate_materials": [
     {
       "path": "Cargo.lock",
-      "sha256": "sha256:409dd8c2b68ba5f9b1d0f7b6bbf855deb85d89dc89db3beac5a3a80e03e6d3d9"
+      "sha256": "sha256:17b6a4ebe6115dac90649e74dced05d41c3696e506053f2ac0d7dc11f644c15c"
     },
     {
       "path": "Cargo.toml",
-      "sha256": "sha256:3d09ea42cd25c4f0d5367e53b9821aa48c21f65c50e0a39bc743493d1edd1f8d"
+      "sha256": "sha256:74f0c024576157e14a47369f0aa477759e324e5bcf0e3690526cc60c217f24a9"
     },
     {
       "path": "crates/terlan/src/backends/wasm/README.md",
@@ -25,7 +25,7 @@
     },
     {
       "path": "crates/terlan/src/compiler/syntax/syntax_output.rs",
-      "sha256": "sha256:5651f5c025b4d0e0830d5d144f1c8f354ff425dcd339d9b66bddc58daeca88b1"
+      "sha256": "sha256:83533c50863b78c10999675d14fe2af78b0cfc9776dec2c01541e1f76ee6731d"
     },
     {
       "path": "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop",
@@ -33,7 +33,7 @@
     },
     {
       "path": "crates/terlan/src/runtime/native_boundary/dispatch.rs",
-      "sha256": "sha256:b111c69e230e5b21a9385fd5fea5918cb14c6b1c269d956bbba2280a4764b6d5"
+      "sha256": "sha256:82671c775987ae75d53f6f2c605e300da30b66a18e3861333942243aab2c159d"
     },
     {
       "path": "crates/terlan/src/runtime/native_boundary/metadata.rs",
@@ -93,7 +93,7 @@
     },
     {
       "path": "proofs/lean/ci/lean-proof-artifacts.tsv",
-      "sha256": "sha256:62afe69638b411750403ed39eb5af023297cdb7f05ad8f4433e98000ad862a18"
+      "sha256": "sha256:61ffcc07e8010cab9ab6ae1fc178ea2817fa8c909e2b55cc46f89ba6ba49d7af"
     },
     {
       "path": "proofs/lean/collections/Collections.lean",
@@ -109,7 +109,7 @@
     },
     {
       "path": "proofs/lean/feature_binding/lean_feature_slice_index.json",
-      "sha256": "sha256:bfd30f623ab420d144458d05cca1b4c6ce8010ca43084d9a1210597057c2461a"
+      "sha256": "sha256:8ec3e580eb464bda25ae07ce7030e3a0228b2e628402c12760dccaf0a3ef6a9f"
     },
     {
       "path": "proofs/lean/native_boundary/NativeBoundary.lean",
@@ -153,7 +153,7 @@
     },
     {
       "path": "proofs/lean/wasm_bridge/WasmBridge.lean",
-      "sha256": "sha256:8801c7dccbcd7dbdb2c3fd61c751add78e18198194fb82dda221322d8b4aba62"
+      "sha256": "sha256:5a1da1db8155385d9ab89aa09baf519ae208525d146dd4e123b8c9a9279712c2"
     },
     {
       "path": "scripts/self_validation/LeanProofNativeBoundaryTest.terl",
@@ -165,7 +165,7 @@
     },
     {
       "path": "scripts/self_validation/proof_release_evidence/scripts/SemanticKernels.terls",
-      "sha256": "sha256:c0357faeef58395287e1451ee35b6f4a7cdbd93a3a25d76a34143731ff57a5fc"
+      "sha256": "sha256:0439a3c7615ea3183280786890ad8c0798bc062a6443fe5ba9fa4b90560bed7c"
     },
     {
       "path": "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Builder.terl",
@@ -193,15 +193,27 @@
     },
     {
       "path": "std/NATIVE_BOUNDARY_SECURITY.tsv",
-      "sha256": "sha256:15d2e7bd0d1382d7a472a48f368c70e0f0a5d17364b8bc94b4ffcd2fc8b8f288"
+      "sha256": "sha256:e9e964667b994cbeaaa348bf6885a1c638637713275713decdfdf4d0c2f23f83"
     },
     {
       "path": "std/data/Json.terl",
-      "sha256": "sha256:74f2f288ffbb57ad9e5de296dcb39192139338227cdb028f960c68dcb0e2d179"
+      "sha256": "sha256:a5cc3e8785ba284a805d7ed09bc14f9d06ab284353a7a03f5a81723bd2562c3c"
+    },
+    {
+      "path": "std/summaries/std.crypto.Ed25519.native_boundary.json",
+      "sha256": "sha256:22d0ea6f3e889065c297675b80315160d1efb024e74ab2cc4cd97ee2636e4ff6"
+    },
+    {
+      "path": "std/summaries/std.crypto.Hash.native_boundary.json",
+      "sha256": "sha256:b5d8b7dbaa3e909dff21292be401335cc0f0f82fcad1526b71b3be175df14bee"
     },
     {
       "path": "std/summaries/std.data.Json.native_boundary.json",
-      "sha256": "sha256:c9109fd15f986b80735e5308a14720013f867143a111479cca66a7e363b82a1f"
+      "sha256": "sha256:2358a2a8bee94478af70542f864ba58e2df6358820617df5ad322e211d35e85a"
+    },
+    {
+      "path": "std/summaries/std.data.Toml.native_boundary.json",
+      "sha256": "sha256:2970f08316b6a9219d528189ce089b15d5aa27c43f478e0ea6183404f3fcf84c"
     },
     {
       "path": "std/summaries/std.db.Postgres.native_boundary.json",
@@ -221,7 +233,7 @@
     },
     {
       "path": "std/summaries/std.http.Request.native_boundary.json",
-      "sha256": "sha256:323c26d9787f5c7770c0d45d5d1993f9436b0c8f0bf3a1b1e32e4480efd6942a"
+      "sha256": "sha256:1f477142e7531e02397fed595c19df68a1ae3fe424459e3a4063fd5d5e35214a"
     },
     {
       "path": "std/summaries/std.http.Response.native_boundary.json",
@@ -256,12 +268,28 @@
       "sha256": "sha256:6d941c8ea6b8560c8be1cff7c88060480406123ecda02dc8d14ee80d0b34f28c"
     },
     {
+      "path": "std/summaries/std.package.Registry.native_boundary.json",
+      "sha256": "sha256:85e71bc95c42134e59f771237bb0a42f0e529e0f81bb931df66118275eea5096"
+    },
+    {
       "path": "std/summaries/std.random.Random.native_boundary.json",
       "sha256": "sha256:9451fb64ab3406594238513d8386a91c6af850883c590fc90c77c961803b0043"
     },
     {
       "path": "std/summaries/std.regex.Regex.native_boundary.json",
       "sha256": "sha256:950a432165be5a17eb1445d0929b0d2377c20d6b29e189bf90466d7e01850eda"
+    },
+    {
+      "path": "std/summaries/std.system.Arguments.native_boundary.json",
+      "sha256": "sha256:daad841493325e5338f909dd67dcc35b9e069f71e82b04ba8a0e3be2baa8b09c"
+    },
+    {
+      "path": "std/summaries/std.system.Environment.native_boundary.json",
+      "sha256": "sha256:5b571bd57dd72cace3924ea121fe4503029cfce8f18b04fa5f14fb8aa441abed"
+    },
+    {
+      "path": "std/summaries/std.system.Platform.native_boundary.json",
+      "sha256": "sha256:7f89b4490e2199caf68cee17bc41f6c518317b18fd04fa9279cc76f722ed4c96"
     },
     {
       "path": "std/summaries/terlan_libpq.Driver.native_boundary.json",
@@ -575,7 +603,7 @@
       "compiler_inputs": [
         {
           "path": "crates/terlan/src/compiler/syntax/syntax_output.rs",
-          "sha256": "sha256:5651f5c025b4d0e0830d5d144f1c8f354ff425dcd339d9b66bddc58daeca88b1"
+          "sha256": "sha256:83533c50863b78c10999675d14fe2af78b0cfc9776dec2c01541e1f76ee6731d"
         },
         {
           "path": "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop",
@@ -622,13 +650,13 @@
       "runtime_lane": "vm-core",
       "slice_id": "Slice 13",
       "std_lane": "unit",
-      "trace_id": "sha256:599f6122b20d0fb164ae4f7d4f25133013af9874fad95ac4303bc8580ecca9a7"
+      "trace_id": "sha256:f6a9f514537e6a543c3d84196d06be2608a32fc8fb22baca34673a821ebaf8c7"
     },
     {
       "compiler_inputs": [
         {
           "path": "crates/terlan/src/runtime/native_boundary/dispatch.rs",
-          "sha256": "sha256:b111c69e230e5b21a9385fd5fea5918cb14c6b1c269d956bbba2280a4764b6d5"
+          "sha256": "sha256:82671c775987ae75d53f6f2c605e300da30b66a18e3861333942243aab2c159d"
         },
         {
           "path": "crates/terlan/src/runtime/native_boundary/metadata.rs",
@@ -652,11 +680,23 @@
         },
         {
           "path": "std/NATIVE_BOUNDARY_SECURITY.tsv",
-          "sha256": "sha256:15d2e7bd0d1382d7a472a48f368c70e0f0a5d17364b8bc94b4ffcd2fc8b8f288"
+          "sha256": "sha256:e9e964667b994cbeaaa348bf6885a1c638637713275713decdfdf4d0c2f23f83"
+        },
+        {
+          "path": "std/summaries/std.crypto.Ed25519.native_boundary.json",
+          "sha256": "sha256:22d0ea6f3e889065c297675b80315160d1efb024e74ab2cc4cd97ee2636e4ff6"
+        },
+        {
+          "path": "std/summaries/std.crypto.Hash.native_boundary.json",
+          "sha256": "sha256:b5d8b7dbaa3e909dff21292be401335cc0f0f82fcad1526b71b3be175df14bee"
         },
         {
           "path": "std/summaries/std.data.Json.native_boundary.json",
-          "sha256": "sha256:c9109fd15f986b80735e5308a14720013f867143a111479cca66a7e363b82a1f"
+          "sha256": "sha256:2358a2a8bee94478af70542f864ba58e2df6358820617df5ad322e211d35e85a"
+        },
+        {
+          "path": "std/summaries/std.data.Toml.native_boundary.json",
+          "sha256": "sha256:2970f08316b6a9219d528189ce089b15d5aa27c43f478e0ea6183404f3fcf84c"
         },
         {
           "path": "std/summaries/std.db.Postgres.native_boundary.json",
@@ -676,7 +716,7 @@
         },
         {
           "path": "std/summaries/std.http.Request.native_boundary.json",
-          "sha256": "sha256:323c26d9787f5c7770c0d45d5d1993f9436b0c8f0bf3a1b1e32e4480efd6942a"
+          "sha256": "sha256:1f477142e7531e02397fed595c19df68a1ae3fe424459e3a4063fd5d5e35214a"
         },
         {
           "path": "std/summaries/std.http.Response.native_boundary.json",
@@ -711,12 +751,28 @@
           "sha256": "sha256:6d941c8ea6b8560c8be1cff7c88060480406123ecda02dc8d14ee80d0b34f28c"
         },
         {
+          "path": "std/summaries/std.package.Registry.native_boundary.json",
+          "sha256": "sha256:85e71bc95c42134e59f771237bb0a42f0e529e0f81bb931df66118275eea5096"
+        },
+        {
           "path": "std/summaries/std.random.Random.native_boundary.json",
           "sha256": "sha256:9451fb64ab3406594238513d8386a91c6af850883c590fc90c77c961803b0043"
         },
         {
           "path": "std/summaries/std.regex.Regex.native_boundary.json",
           "sha256": "sha256:950a432165be5a17eb1445d0929b0d2377c20d6b29e189bf90466d7e01850eda"
+        },
+        {
+          "path": "std/summaries/std.system.Arguments.native_boundary.json",
+          "sha256": "sha256:daad841493325e5338f909dd67dcc35b9e069f71e82b04ba8a0e3be2baa8b09c"
+        },
+        {
+          "path": "std/summaries/std.system.Environment.native_boundary.json",
+          "sha256": "sha256:5b571bd57dd72cace3924ea121fe4503029cfce8f18b04fa5f14fb8aa441abed"
+        },
+        {
+          "path": "std/summaries/std.system.Platform.native_boundary.json",
+          "sha256": "sha256:7f89b4490e2199caf68cee17bc41f6c518317b18fd04fa9279cc76f722ed4c96"
         },
         {
           "path": "std/summaries/terlan_libpq.Driver.native_boundary.json",
@@ -764,7 +820,7 @@
       "runtime_lane": "vm",
       "slice_id": "Slice 14",
       "std_lane": "integration",
-      "trace_id": "sha256:49b84bbd807c09264f8a285fbfadf431736f012e4a1765c28eb897b88370887d"
+      "trace_id": "sha256:9e5614550b3777c3fb2aa3e93c574ce846642ec2c11a71504f23d5676405e9d5"
     },
     {
       "compiler_inputs": [
@@ -885,7 +941,7 @@
       "proofs": [
         {
           "family": "wasm-bridge",
-          "proof_digest": "sha256:8801c7dccbcd7dbdb2c3fd61c751add78e18198194fb82dda221322d8b4aba62",
+          "proof_digest": "sha256:5a1da1db8155385d9ab89aa09baf519ae208525d146dd4e123b8c9a9279712c2",
           "proof_path": "proofs/lean/wasm_bridge/WasmBridge.lean",
           "theorem_ids": [
             "Terlan.WasmBridge.portableSignaturePreservesArity",
@@ -899,7 +955,7 @@
       "runtime_lane": "vm-core",
       "slice_id": "Slice 18",
       "std_lane": "stdlib-release",
-      "trace_id": "sha256:b974d83f08659c0eb7563f784a3f36a29e7f82cb61cf8a324b8054bb7fd23416"
+      "trace_id": "sha256:b8ef1582d0cbc999062aac568a89529dd7c6c494b2ba5cc2104f718cfd9337fe"
     },
     {
       "compiler_inputs": [
@@ -939,7 +995,7 @@
       "compiler_inputs": [
         {
           "path": "std/data/Json.terl",
-          "sha256": "sha256:74f2f288ffbb57ad9e5de296dcb39192139338227cdb028f960c68dcb0e2d179"
+          "sha256": "sha256:a5cc3e8785ba284a805d7ed09bc14f9d06ab284353a7a03f5a81723bd2562c3c"
         }
       ],
       "coverage_status": "proof_current",
@@ -967,7 +1023,7 @@
       "runtime_lane": "vm",
       "slice_id": "Slice 20",
       "std_lane": "stdlib-release",
-      "trace_id": "sha256:d4c5386d13ed38f57b84122f5724da4d27448572aa5e5b69225f1438cc9da0ba"
+      "trace_id": "sha256:583aa782c56091dc868dfa196d1f153203dc77e82e7cdabfb14c9295309be877"
     }
   ],
   "replay_corpus": [
@@ -1018,26 +1074,26 @@
     },
     {
       "family": "wasm-bridge",
-      "proof_digest": "sha256:8801c7dccbcd7dbdb2c3fd61c751add78e18198194fb82dda221322d8b4aba62",
+      "proof_digest": "sha256:5a1da1db8155385d9ab89aa09baf519ae208525d146dd4e123b8c9a9279712c2",
       "verdict": "pass"
     }
   ],
   "runtime_evidence": {
     "lane_statuses": [
       {
-        "checksum": "sha256:2912155b66e6daab43973be84b3e32634250bf4c05ddd4cdd5f50e8b9bcea41a",
+        "checksum": "sha256:1105051c6450d2b5a5a06579327418e061d2555c77b15479db78345377a6a6ab",
         "coverage_status": "executable_current",
         "lane": "coreir",
         "status": "pass"
       },
       {
-        "checksum": "sha256:55d6565f0c7600961f7892d869fbb96dcee85fb19bf3145fc2d76330816e86ed",
+        "checksum": "sha256:ab457a5cca69080d5933a97f1178aff9bfe5feb1d6ca08831bd5ec8d47397f45",
         "coverage_status": "accepted_gap",
         "lane": "distribution",
         "status": "pass"
       },
       {
-        "checksum": "sha256:ef5eb0198db953852c56032e3225e919278290872710fc865bef4c7baad69354",
+        "checksum": "sha256:65aa59cdf597ca5ac48cdd3d7738e05f6cdc6dfab0c9f22eaa479d1d3f9feca2",
         "coverage_status": "executable_current",
         "lane": "native_boundary",
         "status": "pass"
@@ -1049,25 +1105,25 @@
         "status": "pass"
       },
       {
-        "checksum": "sha256:7920fe2a37a8f8b210ec8b2c33168c377a5a80d6717aff9c4646efb1c2b02981",
+        "checksum": "sha256:dbe515908922ae3942cab88374df2cce2dd67fa4a79678834f7e19aa94ed415b",
         "coverage_status": "accepted_gap",
         "lane": "std_packages",
         "status": "pass"
       },
       {
-        "checksum": "sha256:cd25cd95774b5ba5aa1f7e34e63869972daa5bd68afaddf18a664c7054e04ffe",
+        "checksum": "sha256:a6863ca1c89805c74ca45a8d3a490e54dd2c4bf1354fabc64e03bf93c31b275d",
         "coverage_status": "executable_current",
         "lane": "target_profile",
         "status": "pass"
       },
       {
-        "checksum": "sha256:8be25d16a2249af6a85272c5229b9009fe61d1e43a527e241ef352efad3a33a5",
+        "checksum": "sha256:6dcf1691335ed34f4393ae5eae7ef349eee6ebcbd977a6f2cb67cba31dde1df8",
         "coverage_status": "executable_current",
         "lane": "vm_runtime",
         "status": "pass"
       },
       {
-        "checksum": "sha256:0a36bf59ab4812259c3e186bc8681248a133d94a42da2be3790c044fbdc3f64f",
+        "checksum": "sha256:4e14d316e2d3c4269c8a4901e2764f8c1e2f881329d305fad627765d1eb76900",
         "coverage_status": "executable_current",
         "lane": "wasm",
         "status": "pass"
@@ -1139,7 +1195,7 @@
       },
       {
         "family": "wasm-bridge",
-        "proof_digest": "sha256:8801c7dccbcd7dbdb2c3fd61c751add78e18198194fb82dda221322d8b4aba62",
+        "proof_digest": "sha256:5a1da1db8155385d9ab89aa09baf519ae208525d146dd4e123b8c9a9279712c2",
         "runtime_oracle": [
           "target/debug/terlc",
           "test",

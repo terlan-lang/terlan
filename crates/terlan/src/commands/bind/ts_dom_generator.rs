@@ -60,6 +60,22 @@ pub(super) fn generate_js_dom_bindings(
     write_generated_files(out_dir, &files)
 }
 
+/// Generates bindings from compiler-constructed, already pinned input
+/// metadata. Managed package targets use this path so applications do not own
+/// a declaration manifest.
+pub(super) fn generate_js_dom_bindings_from_manifest(
+    repo_root: &Path,
+    manifest_path: &Path,
+    out_dir: &Path,
+    manifest: TsInputManifest,
+) -> Result<(), String> {
+    super::ts_input_manifest::validate_ts_input_manifest(repo_root, &manifest)?;
+    let declarations = parse_manifest_inputs(repo_root, &manifest)?;
+    let mapping = map_ts_declarations_to_dom_modules(&declarations);
+    let files = generated_files(&manifest, manifest_path, &mapping)?;
+    write_generated_files(out_dir, &files)
+}
+
 /// Parses all TypeScript declaration inputs from a validated manifest.
 ///
 /// Inputs:

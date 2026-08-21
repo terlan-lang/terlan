@@ -4,29 +4,12 @@ use crate::runtime::native::http::RequestFieldProjection;
 use crate::runtime::native_image::managed::{
     decode_aggregate_field_projection, scalar_string_projection_rewrite, SemanticTypeId,
 };
+use crate::runtime::vm::aot_metadata::NativeRequestProjection;
 use crate::terlan_typeck::CoreType;
 
 use super::{NativeExpr, NativeFunction, NativeModule, NativeType};
 
 const SCALAR_REQUEST_INGRESS_PREFIX: &str = "__terlan_http_scalar_ingress_";
-
-/// One export-specific Request projection carried beside a compiled image.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub(crate) struct NativeRequestProjection {
-    pub(crate) module: String,
-    pub(crate) function: String,
-    pub(crate) arity: usize,
-    pub(crate) fields: RequestFieldProjection,
-    /// Compiler-generated entry accepting the sole observed scalar field.
-    #[serde(default)]
-    pub(crate) scalar_entry: Option<String>,
-    /// Exact Request field accepted by `scalar_entry`.
-    #[serde(default)]
-    pub(crate) scalar_field: Option<usize>,
-    /// Fixed-point proof that this source export can park its actor.
-    #[serde(default)]
-    pub(crate) suspending: bool,
-}
 
 /// Computes Request projections for public exports whose first ordinary
 /// parameter is the opaque `std.http.Request` managed value.
@@ -34,12 +17,11 @@ pub(crate) fn native_request_projections(modules: &[NativeModule]) -> Vec<Native
     let Some(request_semantic) = request_semantic() else {
         return Vec::new();
     };
+    let suspending = application_suspension_profile(modules);
     modules
         .iter()
-        .flat_map(|module| {
-            let suspending = super::suspension::suspension_profile(module)
-                .map(|(suspending, _)| suspending)
-                .unwrap_or_else(|_| vec![true; module.functions.len()]);
+        .zip(suspending)
+        .flat_map(|(module, suspending)| {
             module
                 .functions
                 .iter()
@@ -57,6 +39,37 @@ pub(crate) fn native_request_projections(modules: &[NativeModule]) -> Vec<Native
                         }
                     })
                 })
+        })
+        .collect()
+}
+
+/// Computes suspension over the application-global function index space used
+/// by NativeIR calls, then partitions the proof back into module order.
+fn application_suspension_profile(modules: &[NativeModule]) -> Vec<Vec<bool>> {
+    let function_count = modules
+        .iter()
+        .map(|module| module.functions.len())
+        .sum::<usize>();
+    let mut suspending = vec![false; function_count];
+    for _ in 0..=function_count {
+        let next = modules
+            .iter()
+            .flat_map(|module| module.functions.iter())
+            .map(|function| super::suspension::is_suspending(&function.body, &suspending))
+            .collect::<Vec<_>>();
+        if next == suspending {
+            break;
+        }
+        suspending = next;
+    }
+    let mut offset = 0_usize;
+    modules
+        .iter()
+        .map(|module| {
+            let end = offset + module.functions.len();
+            let profile = suspending[offset..end].to_vec();
+            offset = end;
+            profile
         })
         .collect()
 }
@@ -146,6 +159,7 @@ fn sole_scalar_string_field(projection: RequestFieldProjection) -> Option<usize>
             | RequestFieldProjection::PATH
             | RequestFieldProjection::BODY
             | RequestFieldProjection::QUERY_STRING
+            | RequestFieldProjection::BODY_FILE_PATH
     )
     .then_some(field)
 }
@@ -395,7 +409,7 @@ impl Analysis {
                     argument_origins.as_slice(),
                 ) {
                     if semantic == self.request_semantic {
-                        if (RequestFieldProjection::METHOD..=RequestFieldProjection::COOKIE_JAR)
+                        if (RequestFieldProjection::METHOD..=RequestFieldProjection::BODY_FILE_PATH)
                             .contains(&field)
                         {
                             self.fields.include(field);
@@ -505,7 +519,7 @@ impl Analysis {
             | NativeExpr::Float(_)
             | NativeExpr::Bool(_)
             | NativeExpr::AtomLiteral(_)
-            | NativeExpr::StringLiteral { .. } => Origin::Other,
+            | NativeExpr::ManagedLiteral { .. } => Origin::Other,
         }
     }
 

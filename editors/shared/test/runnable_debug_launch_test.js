@@ -583,7 +583,7 @@ function testTerminalReuseContract() {
  */
 function testDebugLaunchFallbackContract() {
   const manifest = readJson("editors/vscode/package.json");
-  const cliDispatchSource = readText("crates/terlan/src/lib.rs");
+  const cliDispatchSource = readText("crates/terlan/src/cli_dispatch.rs");
   const usageSource = readText("crates/terlan/src/cli_usage.rs");
   const debugSource = readText("crates/terlan/src/commands/debug/mod.rs");
 

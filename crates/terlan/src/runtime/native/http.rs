@@ -478,6 +478,11 @@ pub fn body_text(request: &Request) -> String {
     request.body().to_string()
 }
 
+/// Returns the server-owned temporary path for a binary request body.
+pub fn body_file_path(request: &Request) -> String {
+    request.body_file_path().to_string()
+}
+
 /// Returns the HTTP method from a request wrapper.
 ///
 /// Inputs:

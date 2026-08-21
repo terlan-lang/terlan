@@ -1,0 +1,14 @@
+{
+  "name": "@terlan/web-toolchain",
+  "version": "0.0.7",
+  "private": true,
+  "description": "Compiler-owned browser build toolchain for Terlan",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "dependencies": {
+    "@angular-wave/angular.ts": "0.32.0",
+    "@rsbuild/core": "2.1.13",
+    "@rspack/core": "2.1.10"
+  }
+}

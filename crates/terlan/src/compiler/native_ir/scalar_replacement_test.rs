@@ -196,6 +196,33 @@ fn direct_aggregate_use_blocks_scalar_replacement() {
     );
 }
 
+/// Rolls back tentative projection aliases when a later read needs the whole
+/// aggregate, so no unbound compiler-generated locals escape the rewrite.
+#[test]
+fn projection_before_direct_aggregate_use_blocks_the_entire_rewrite() {
+    let expression = CoreExpr::Let {
+        bindings: vec![
+            CoreLetBinding {
+                pattern: CorePattern::Var("pair".to_owned()),
+                value: pair(CoreExpr::Int(1), CoreExpr::Int(2)),
+            },
+            CoreLetBinding {
+                pattern: CorePattern::Var("left".to_owned()),
+                value: field("pair", "left"),
+            },
+        ],
+        body: Box::new(CoreExpr::Tuple(vec![
+            CoreExpr::Var("left".to_owned()),
+            CoreExpr::Var("pair".to_owned()),
+        ])),
+    };
+
+    assert_eq!(
+        scalar_replace_fixed_aggregates(&expression, &layouts()),
+        expression
+    );
+}
+
 /// Preserves allocation when a projection does not exist in the descriptor.
 #[test]
 fn unknown_projection_blocks_scalar_replacement() {

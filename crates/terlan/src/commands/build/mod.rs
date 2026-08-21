@@ -56,7 +56,31 @@ mod package_git;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod package_layout;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod package_publish;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod package_publish_live;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod package_registry_audit;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod package_registry_commands;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod package_registry_error;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod package_registry_mirror;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod package_registry_resolver;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod package_registry_solver;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod package_registry_transport;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod package_registry_trust;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod package_registry_yank;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod project_roots;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod release_bundle;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod source_roots;
 #[cfg(test)]
@@ -73,6 +97,8 @@ mod vm_launcher;
 pub(crate) mod wasm_artifact;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod wasm_model;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) mod web_toolchain;
 
 pub(crate) mod project_manifest;
 

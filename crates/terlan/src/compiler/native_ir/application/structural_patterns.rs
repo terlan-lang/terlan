@@ -28,6 +28,18 @@ pub(super) fn scalar_replace(cores: &mut [CoreModule]) -> Result<(), super::supe
                     &core.module,
                     &mut layouts,
                 )?;
+                super::super::constructors::install_structural_type_layouts(
+                    cores.iter().flat_map(|core| {
+                        core.functions.iter().flat_map(|function| {
+                            function
+                                .params
+                                .iter()
+                                .filter_map(|parameter| parameter.core_ty.as_ref())
+                                .chain(function.core_return_type.iter())
+                        })
+                    }),
+                    &mut layouts,
+                )?;
                 Ok((core.module.clone(), layouts))
             })
         })

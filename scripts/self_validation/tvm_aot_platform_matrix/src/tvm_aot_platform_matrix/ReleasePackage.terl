@@ -87,18 +87,24 @@ run_command(root: String, program: String, arguments: List[String]): Option[Outp
     }.
 
 copy_binary(source: String, destination: String): Bool ->
-    case File.copy(source, destination) {
-        Err(_reason) ->
-            failure("binary", String.append("cannot copy `", String.append(source, "`")));
-        Ok(Unit) ->
-            case File.set_executable(destination, true) {
-                Ok(Unit) -> true;
-                Err(_reason) ->
-                    failure(
-                        "binary",
-                        String.append("cannot mark executable `", String.append(destination, "`")),
-                    )
-            }
+    if {
+        not remove_file(destination) -> failure("binary", String.append("cannot replace `", String.append(destination, "`")));
+        true -> case File.copy(source, destination) {
+            Err(_reason) ->
+                failure("binary", String.append("cannot copy `", String.append(source, "`")));
+            Ok(Unit) ->
+                case File.set_executable(destination, true) {
+                    Ok(Unit) -> true;
+                    Err(_reason) ->
+                        failure(
+                            "binary",
+                            String.append(
+                                "cannot mark executable `",
+                                String.append(destination, "`"),
+                            ),
+                        )
+                }
+        }
     }.
 
 copy_release_binaries(root: String, platform: ReleasePlatform): Option[ReleaseBinaries] ->
@@ -246,10 +252,13 @@ build_self_test(
     };
     case only_tvm(discovered, []) {
         [image] ->
-            case File.copy(image, packaged) {
-                Ok(Unit) -> inspect_self_test(root, platform, binaries, packaged);
-                Err(_reason) ->
-                    self_test_failure("self_test", "cannot copy release native self-test")
+            if {
+                not remove_file(packaged) -> self_test_failure("self_test", "cannot replace release native self-test");
+                true -> case File.copy(image, packaged) {
+                    Ok(Unit) -> inspect_self_test(root, platform, binaries, packaged);
+                    Err(_reason) ->
+                        self_test_failure("self_test", "cannot copy release native self-test")
+                }
             };
         images ->
             self_test_failure(

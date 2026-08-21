@@ -56,6 +56,11 @@
       "operation": "std.data.json.object_put"
     },
     {
+      "arity": 2,
+      "name": "remove",
+      "operation": "std.data.json.object_remove"
+    },
+    {
       "arity": 1,
       "name": "parse",
       "operation": "std.data.json.parse"

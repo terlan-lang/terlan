@@ -241,11 +241,20 @@ workflow_contract_valid(workflow: String): Bool ->
     fragments_present(
         workflow,
         [
-            String.concat(
-                ["rustup toolchain install ", toolchain(), " --profile minimal --target ", target()],
-            ),
+            "uses: ./.github/actions/setup-rust",
+            String.concat(["targets: ", target()]),
             "make vm-multicore-thread-sanitizer-check",
             "vm-multicore-thread-sanitizer-report.json",
+        ],
+    ).
+
+setup_rust_contract_valid(action: String): Bool ->
+    fragments_present(
+        action,
+        [
+            String.concat(["default: ", toolchain()]),
+            "arguments=(toolchain install \"$TERLAN_RUST_TOOLCHAIN\" --profile minimal)",
+            "arguments+=(--target \"$TERLAN_RUST_TARGETS\")",
         ],
     ).
 
@@ -256,6 +265,7 @@ pub contract_files_valid(root: String): Bool ->
         Ok(harness) <- read_text(child(root, "crates/terlan/src/quality/multicore_tsan_harness.rs"));
         Ok(harness_tests) <- read_text(child(root, "crates/terlan/src/quality/multicore_tsan_harness_test.rs"));
         Ok(vm_module) <- read_text(child(root, "crates/terlan/src/runtime/vm.rs"));
+        Ok(setup_rust) <- read_text(child(root, ".github/actions/setup-rust/action.yml"));
         Ok(ci) <- read_text(child(root, ".github/workflows/ci.yml"));
         Ok(release) <- read_text(child(root, ".github/workflows/release.yml"))
     } else {
@@ -267,6 +277,7 @@ if {
     not manifest_contract_valid(manifest) -> false;
     not harness_contract_valid(harness_contract) -> false;
     not runtime_contract_valid(vm_module) -> false;
+    not setup_rust_contract_valid(setup_rust) -> false;
     not workflow_contract_valid(ci) -> false;
     true -> workflow_contract_valid(release)
 }).

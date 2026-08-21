@@ -129,7 +129,7 @@ pub(super) fn native_package_aliases(cores: &[CoreModule]) -> HashMap<String, (S
 fn is_compiler_managed_value_facade(canonical: &str) -> bool {
     matches!(
         canonical,
-        "std.template.Template.Html" | "std.http.Response.Response"
+        "std.template.Template.Html" | "std.http.Request.Request" | "std.http.Response.Response"
     )
 }
 

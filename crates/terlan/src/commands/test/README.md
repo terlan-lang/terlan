@@ -10,7 +10,7 @@ command must not invent a host-side test model that bypasses CoreIR.
 
 - Parse command-local test flags such as `--target terlan-vm`, `--target js`,
   `--target wasm`,
-  `--name <test_function>`, `--emit-test-manifest <path>`, and
+  repeated `--name <test_function>` selectors, `--emit-test-manifest <path>`, and
   `--emit-test-result-manifest <path>`.
 - Select VM-native `@benchmark` declarations with `--bench`, with optional
   `--warmup <count>` and `--samples <positive-count>` controls.
@@ -43,19 +43,22 @@ same manifest/result artifact shape as runtime runners. It does not execute
 browser, worker, Node, or Oxc runtime code yet, and its output marks tests as
 `ok (validated)`.
 
-The command accepts either no path, one test file, or one test directory. With
-no path, `terlc test` uses the project `tests` directory. Directory runs
-discover `*Test.terl` files recursively in deterministic order. `--name`
-selects one exact `@test` function after discovery; this is the compiler-backed
-contract used by editor integrations for individual test runs. Manifest output
-flags are single-file only until an aggregate manifest format is promoted.
+The command accepts no path or one or more explicit test files and directories.
+With no path, `terlc test` uses the project `tests` directory. Each directory
+discovers `*Test.terl` files recursively in deterministic order. A multi-path
+request retains a separate dependency session and compilation result per path
+while amortizing compiler process startup; failure in one path does not prevent
+the remaining paths from reporting their results. Repeated `--name` flags
+select an exact `@test` subset after discovery and compile one shared source and
+native application closure. Manifest output flags require exactly one path
+until an aggregate manifest format is promoted.
 `--bench` changes the selection category to `@benchmark`; benchmarks are not
 run by ordinary test commands and currently execute only on `terlan-vm`.
 
 The main flow is:
 
-1. Parse the optional source path and optional target selector.
-2. Compile the source through formal syntax, HIR, typecheck, and CoreIR phases.
+1. Parse the optional source paths and optional target selector.
+2. Compile each source through formal syntax, HIR, typecheck, and CoreIR phases.
 3. Validate annotated test declarations.
 4. Optionally emit a source-level test discovery manifest for release gates and
    runner integrations.

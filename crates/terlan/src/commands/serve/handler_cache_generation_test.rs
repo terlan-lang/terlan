@@ -133,7 +133,7 @@ fn developer_reload_is_atomic_compatible_and_failed_edit_safe() {
     fs::create_dir_all(&web_root).expect("create web root");
     fs::write(
         root.join("terlan.toml"),
-        "[package]\nname = \"reload-test\"\nversion = \"0.0.1\"\n",
+        "[package]\nname = \"app\"\nversion = \"0.0.1\"\n",
     )
     .expect("write project manifest");
     write_reload_manifest(&web_root);
@@ -306,10 +306,18 @@ fn persisted_generation_rejects_tampered_native_image() {
     let generation: serde_json::Value =
         serde_json::from_slice(&fs::read(&generation_path).expect("read persisted generation"))
             .expect("decode persisted generation");
-    let image = generation["image"]
+    let stored_image = generation["image"]
         .as_str()
         .map(std::path::PathBuf::from)
         .expect("persisted image path");
+    let image = if stored_image.is_absolute() {
+        stored_image
+    } else {
+        web_root
+            .join(".terlan")
+            .join("serve-aot")
+            .join(stored_image)
+    };
     let mut bytes = fs::read(&image).expect("read persisted native image");
     bytes.push(0);
     fs::write(&image, bytes).expect("tamper persisted native image");

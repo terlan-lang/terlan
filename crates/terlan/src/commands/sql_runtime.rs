@@ -175,7 +175,8 @@ impl SqlRuntimeOperation {
 /// Builds the Postgres configuration from process environment.
 ///
 /// Inputs:
-/// - `TERLAN_DATABASE_URL`, or the `POSTGRES_*` environment variable set.
+/// - `TERLAN_DATABASE_URL`, `DATABASE_URL`, or the `POSTGRES_*` environment
+///   variable set.
 ///
 /// Output:
 /// - Validated NativeBoundary Postgres config.
@@ -187,14 +188,20 @@ fn database_config() -> Result<postgres::Config, String> {
     if let Ok(url) = env::var("TERLAN_DATABASE_URL") {
         return validated_database_config(url);
     }
-    let host = env::var("POSTGRES_HOST")
-        .map_err(|_| "TERLAN_DATABASE_URL or POSTGRES_HOST must be set".to_string())?;
-    let user = env::var("POSTGRES_USER")
-        .map_err(|_| "TERLAN_DATABASE_URL or POSTGRES_USER must be set".to_string())?;
-    let password = env::var("POSTGRES_PASSWORD")
-        .map_err(|_| "TERLAN_DATABASE_URL or POSTGRES_PASSWORD must be set".to_string())?;
+    if let Ok(url) = env::var("DATABASE_URL") {
+        return validated_database_config(url);
+    }
+    let host = env::var("POSTGRES_HOST").map_err(|_| {
+        "TERLAN_DATABASE_URL, DATABASE_URL, or POSTGRES_HOST must be set".to_string()
+    })?;
+    let user = env::var("POSTGRES_USER").map_err(|_| {
+        "TERLAN_DATABASE_URL, DATABASE_URL, or POSTGRES_USER must be set".to_string()
+    })?;
+    let password = env::var("POSTGRES_PASSWORD").map_err(|_| {
+        "TERLAN_DATABASE_URL, DATABASE_URL, or POSTGRES_PASSWORD must be set".to_string()
+    })?;
     let database = env::var("POSTGRES_DB")
-        .map_err(|_| "TERLAN_DATABASE_URL or POSTGRES_DB must be set".to_string())?;
+        .map_err(|_| "TERLAN_DATABASE_URL, DATABASE_URL, or POSTGRES_DB must be set".to_string())?;
     let port = env::var("POSTGRES_PORT").unwrap_or_else(|_| "5432".to_string());
     validated_database_config(format!(
         "postgres://{user}:{password}@{host}:{port}/{database}"

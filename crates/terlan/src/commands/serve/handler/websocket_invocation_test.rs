@@ -4,8 +4,8 @@ use std::fs;
 use std::sync::Arc;
 
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
-use crate::compiler::router::AotRouterRouteTarget;
 use crate::runtime::native_image::TvmBoundaryType;
+use crate::runtime::vm::aot_metadata::AotRouterRouteTarget;
 use crate::runtime::vm::websocket::{VmWebSocketFrame, VmWebSocketLiveSession};
 use crate::runtime::vm::ReplValue;
 use crate::support::test_fs;

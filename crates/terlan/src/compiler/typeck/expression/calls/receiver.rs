@@ -5,7 +5,8 @@ use super::*;
 /// Inputs:
 /// - `expr`: syntax-output call expression whose callee may be field access.
 /// - `arg_types`: inferred non-receiver argument types.
-/// - `locals`, `ctx`, `subst`, and `errors`: active inference context.
+/// - `receiver_type`: receiver inferred once by shared call dispatch.
+/// - `ctx`, `subst`, and `errors`: active inference context.
 ///
 /// Output:
 /// - `Some(Type)` for a resolved local receiver method or a method-shaped call
@@ -21,7 +22,7 @@ use super::*;
 pub(super) fn infer_syntax_receiver_method_call(
     expr: &SyntaxExprOutput,
     arg_types: &[Type],
-    locals: &HashMap<String, Type>,
+    receiver_type: &Type,
     ctx: &ExprInferContext,
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
@@ -32,8 +33,6 @@ pub(super) fn infer_syntax_receiver_method_call(
     }
     let method = callee.text.as_deref()?;
     let candidates = receiver_method_candidates_accepting_call(ctx, method, arg_types.len())?;
-    let receiver = callee.children.first()?;
-    let receiver_type = infer_syntax_expr(receiver, locals, ctx, subst, errors);
 
     let mut bound_error = None;
     for candidate in &candidates {
@@ -63,7 +62,7 @@ pub(super) fn infer_syntax_receiver_method_call(
         match infer_receiver_method_candidate(
             candidate,
             Some(method),
-            &receiver_type,
+            receiver_type,
             &effective_arg_types,
             ctx,
             &mut trial_subst,
@@ -89,7 +88,7 @@ pub(super) fn infer_syntax_receiver_method_call(
     }
 
     if let Some(ty) =
-        infer_trait_receiver_method_call(method, &receiver_type, arg_types, ctx, subst, errors)
+        infer_trait_receiver_method_call(method, receiver_type, arg_types, ctx, subst, errors)
     {
         return Some(ty);
     }
@@ -103,7 +102,7 @@ pub(super) fn infer_syntax_receiver_method_call(
         "no receiver method `{}` / {} for {}; candidates: {}",
         method,
         arg_types.len(),
-        pretty_type(&receiver_type),
+        pretty_type(receiver_type),
         candidate_types
     ));
     Some(Type::Dynamic)
@@ -114,7 +113,8 @@ pub(super) fn infer_syntax_receiver_method_call(
 /// Inputs:
 /// - `expr`: syntax-output call expression whose callee may be field access.
 /// - `arg_types`: inferred non-receiver argument types.
-/// - `locals`, `ctx`, `subst`, and `errors`: active inference context.
+/// - `receiver_type`: receiver inferred once by shared call dispatch.
+/// - `ctx`, `subst`, and `errors`: active inference context.
 ///
 /// Output:
 /// - `Some(Type)` when `receiver.method(args...)` resolves to a trait method
@@ -128,7 +128,7 @@ pub(super) fn infer_syntax_receiver_method_call(
 pub(super) fn infer_syntax_trait_receiver_method_call(
     expr: &SyntaxExprOutput,
     arg_types: &[Type],
-    locals: &HashMap<String, Type>,
+    receiver_type: &Type,
     ctx: &ExprInferContext,
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
@@ -138,10 +138,8 @@ pub(super) fn infer_syntax_trait_receiver_method_call(
         return None;
     }
     let method = callee.text.as_deref()?;
-    let receiver = callee.children.first()?;
-    let receiver_type = infer_syntax_expr(receiver, locals, ctx, subst, errors);
 
-    infer_trait_receiver_method_call(method, &receiver_type, arg_types, ctx, subst, errors)
+    infer_trait_receiver_method_call(method, receiver_type, arg_types, ctx, subst, errors)
 }
 
 /// Resolves a receiver-call shape against visible trait method candidates.
@@ -365,7 +363,8 @@ pub(super) fn complete_defaulted_receiver_call_arg_types(
 /// Inputs:
 /// - `expr`: syntax-output call expression whose callee may be field access.
 /// - `arg_types`: inferred non-receiver argument types.
-/// - `locals`, `ctx`, `subst`, and `errors`: active inference context.
+/// - `receiver_type`: receiver inferred once by shared call dispatch.
+/// - `ctx`, `subst`, and `errors`: active inference context.
 ///
 /// Output:
 /// - `Some(Type)` for supported primitive receiver calls.
@@ -378,7 +377,7 @@ pub(super) fn complete_defaulted_receiver_call_arg_types(
 pub(super) fn infer_syntax_primitive_receiver_method_call(
     expr: &SyntaxExprOutput,
     arg_types: &[Type],
-    locals: &HashMap<String, Type>,
+    receiver_type: &Type,
     ctx: &ExprInferContext,
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
@@ -388,11 +387,9 @@ pub(super) fn infer_syntax_primitive_receiver_method_call(
         return None;
     }
     let method = callee.text.as_deref()?;
-    let receiver = callee.children.first()?;
-    let receiver_type = infer_syntax_expr(receiver, locals, ctx, subst, errors);
-    let scheme = primitive_receiver_method_scheme(&receiver_type, method, arg_types.len())?;
+    let scheme = primitive_receiver_method_scheme(receiver_type, method, arg_types.len())?;
     let param_names =
-        primitive_receiver_method_param_names(&receiver_type, method, arg_types.len())?;
+        primitive_receiver_method_param_names(receiver_type, method, arg_types.len())?;
     if !validate_named_call_args(method, &expr.arg_names, &param_names, errors) {
         return Some(Type::Dynamic);
     }

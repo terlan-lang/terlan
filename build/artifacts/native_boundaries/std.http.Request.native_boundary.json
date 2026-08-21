@@ -118,6 +118,18 @@
       ],
       "arity": 1,
       "async_policy": "direct-nonblocking",
+      "identity": "std.http.Request.body_file_path/1",
+      "name": "body_file_path",
+      "operation": "std.http.request.body_file_path",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:1213d96c8b370c8a229777c277d32e6f25a86f16696599168ac3058a17f44311"
+    },
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
       "identity": "std.http.Request.body_json/1",
       "name": "body_json",
       "operation": "std.http.request.body_json",
@@ -125,7 +137,7 @@
       "row_digest": "sha256:95f2681b2da1c07193221824b064bc7af993358dd1c122d63b249a8dd2c06775"
     }
   ],
-  "manifest_digest": "sha256:cfda7e70aab8caf6a7952eef537131dba083924a205245fa65ce5a7c06f7d45c",
+  "manifest_digest": "sha256:752e563464cd0542bbd00f9d62ad3f05f8f683e39950838a2c27e25978e9d75d",
   "module": "std_http_request_native_boundary",
   "native_policy": "native_boundary_optional",
   "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
@@ -143,7 +155,7 @@
     "timeout_policy": "none",
     "worker_placement": "direct"
   },
-  "source_digest": "sha256:323c26d9787f5c7770c0d45d5d1993f9436b0c8f0bf3a1b1e32e4480efd6942a",
+  "source_digest": "sha256:1f477142e7531e02397fed595c19df68a1ae3fe424459e3a4063fd5d5e35214a",
   "source_module": "std.http.Request",
   "source_path": "std/summaries/std.http.Request.native_boundary.json"
 }

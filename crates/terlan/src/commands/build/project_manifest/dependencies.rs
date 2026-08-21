@@ -198,8 +198,13 @@ pub(super) fn parse_dependency_source(
     match scope {
         ProjectDependencyScope::Local => parse_local_dependency_source(fields, path, line_no),
         ProjectDependencyScope::Target(ProjectTarget::Js) => {
-            parse_registry_dependency_source("npm", fields, path, line_no)
-                .map(|(package, version)| ProjectDependencySource::Npm { package, version })
+            parse_external_registry_dependency_source("npm", fields, path, line_no).map(
+                |(package, version, integrity)| ProjectDependencySource::Npm {
+                    package,
+                    version,
+                    integrity,
+                },
+            )
         }
         ProjectDependencyScope::Target(ProjectTarget::Rust) => {
             parse_cargo_dependency_source(fields, path, line_no)
@@ -231,8 +236,13 @@ pub(super) fn parse_local_dependency_source(
     if fields.len() == 2 && fields.contains_key("git") && fields.contains_key("rev") {
         return parse_git_dependency_source(fields, path, line_no);
     }
+    if fields.len() == 2 && fields.contains_key("registry") && fields.contains_key("version") {
+        let (registry, version) =
+            parse_registry_dependency_source("registry", fields, path, line_no)?;
+        return Ok(ProjectDependencySource::Registry { registry, version });
+    }
     Err(format!(
-        "{}:{}: [dependencies] entries must use {{ path = \"...\" }} or {{ git = \"...\", rev = \"...\" }}",
+        "{}:{}: [dependencies] entries must use {{ path = \"...\" }}, {{ git = \"...\", rev = \"...\" }}, or {{ registry = \"...\", version = \"...\" }}",
         path.display(),
         line_no
     ))
@@ -338,6 +348,41 @@ pub(super) fn parse_registry_dependency_source(
     Ok((package, version))
 }
 
+/// Parses an exact target-ecosystem dependency plus optional lock integrity.
+pub(super) fn parse_external_registry_dependency_source(
+    source_key: &str,
+    fields: &BTreeMap<String, ProjectManifestInlineValue>,
+    path: &Path,
+    line_no: usize,
+) -> Result<(String, String, Option<String>), String> {
+    let has_required = fields.contains_key(source_key) && fields.contains_key("version");
+    let has_only_allowed = fields
+        .keys()
+        .all(|key| matches!(key.as_str(), "npm" | "version" | "integrity"));
+    if !has_required || !has_only_allowed {
+        return Err(format!(
+            "{}:{}: target dependency entries must use {{ {} = \"...\", version = \"...\" }} with optional integrity = \"sha256:<digest>\"",
+            path.display(),
+            line_no,
+            source_key
+        ));
+    }
+    let package = expect_inline_string_field(fields, source_key, path, line_no)?;
+    let version = expect_inline_string_field(fields, "version", path, line_no)?;
+    let integrity = fields
+        .contains_key("integrity")
+        .then(|| expect_inline_string_field(fields, "integrity", path, line_no))
+        .transpose()?;
+    if package.trim().is_empty() || version.trim().is_empty() {
+        return Err(format!(
+            "{}:{}: target dependency package and version cannot be empty",
+            path.display(),
+            line_no
+        ));
+    }
+    Ok((package, version, integrity))
+}
+
 /// Parses Rust Cargo dependency source fields.
 ///
 /// Inputs:
@@ -360,7 +405,7 @@ pub(super) fn parse_cargo_dependency_source(
     let has_required = fields.contains_key("cargo") && fields.contains_key("version");
     let has_only_allowed = fields
         .keys()
-        .all(|key| matches!(key.as_str(), "cargo" | "version" | "features"));
+        .all(|key| matches!(key.as_str(), "cargo" | "version" | "integrity" | "features"));
     if !has_required || !has_only_allowed {
         return Err(format!(
             "{}:{}: target rust dependency entries must use {{ cargo = \"...\", version = \"...\" }} with optional features = [\"...\"]",
@@ -370,6 +415,10 @@ pub(super) fn parse_cargo_dependency_source(
     }
     let package = expect_inline_string_field(fields, "cargo", path, line_no)?;
     let version = expect_inline_string_field(fields, "version", path, line_no)?;
+    let integrity = fields
+        .contains_key("integrity")
+        .then(|| expect_inline_string_field(fields, "integrity", path, line_no))
+        .transpose()?;
     let features = if fields.contains_key("features") {
         expect_inline_string_array_field(fields, "features", path, line_no)?
     } else {
@@ -392,6 +441,7 @@ pub(super) fn parse_cargo_dependency_source(
     Ok(ProjectDependencySource::Cargo {
         package,
         version,
+        integrity,
         features,
     })
 }

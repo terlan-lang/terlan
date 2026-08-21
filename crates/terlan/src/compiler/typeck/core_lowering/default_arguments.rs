@@ -56,18 +56,33 @@ pub(super) fn materialize_default_call_arguments(
 fn collect_signatures(module: &SyntaxModuleOutput, resolved: &ResolvedModule) -> SignatureMap {
     let mut signatures = SignatureMap::new();
     for declaration in &module.declarations {
-        let SyntaxDeclarationPayload::Function { name, params, .. } = &declaration.payload else {
-            continue;
+        let (name, parameters) = match &declaration.payload {
+            SyntaxDeclarationPayload::Function { name, params, .. } => (
+                name,
+                params
+                    .iter()
+                    .map(|param| DefaultParameter {
+                        name: param.name.clone(),
+                        default: param.default.clone(),
+                    })
+                    .collect(),
+            ),
+            SyntaxDeclarationPayload::Struct { name, fields, .. } => (
+                name,
+                fields
+                    .iter()
+                    .map(|field| DefaultParameter {
+                        name: field.name.clone(),
+                        default: field.default.clone(),
+                    })
+                    .collect(),
+            ),
+            _ => continue,
         };
-        signatures.entry((None, name.clone())).or_default().push(
-            params
-                .iter()
-                .map(|param| DefaultParameter {
-                    name: param.name.clone(),
-                    default: param.default.clone(),
-                })
-                .collect(),
-        );
+        signatures
+            .entry((None, name.clone()))
+            .or_default()
+            .push(parameters);
     }
     for (module_name, interface) in &resolved.interface_map {
         for signature in interface

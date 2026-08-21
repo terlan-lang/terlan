@@ -1,0 +1,7 @@
+module registry_consumer.Main.
+
+import registry_math.Math.
+
+pub value(): Int -> Math.answer().
+
+pub main(): Int -> value().

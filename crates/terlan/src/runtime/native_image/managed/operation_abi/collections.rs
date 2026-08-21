@@ -6,7 +6,6 @@ use super::super::{
 };
 use super::{field_value, reference_word};
 use crate::runtime::native_image::managed::ManagedLayoutRegistry;
-
 const MAGIC: &[u8; 4] = b"TVMC";
 const VERSION: u16 = 1;
 const HEADER_BYTES: usize = 8;
@@ -275,6 +274,7 @@ pub fn encode_set_iterator_operation(
     multi_semantic_operation(SET_ITERATOR, &[set_semantic, list_semantic])
 }
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(super) fn collection_operation_result_is_reference(encoded: &[u8]) -> bool {
     encoded.get(7) == Some(&1)
         || matches!(

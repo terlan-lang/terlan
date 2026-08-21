@@ -1,22 +1,25 @@
 //! Compiler-owned native image construction independent from JSON artifacts.
 
 use std::collections::HashSet;
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::OnceLock;
 
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+use crate::compiler::native_ir::native_request_projections;
 use crate::compiler::native_ir::{
     emit_native_application_dispatch_object_with_policy,
     emit_native_application_object_with_policy, install_native_request_projection_exports,
     NativeCodegenPolicy, NativeModule, DISPATCH_SYMBOL, IMAGE_ENTRY_SYMBOL,
 };
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
-use crate::compiler::native_ir::{native_request_projections, NativeRequestProjection};
 use crate::runtime::native_boundary::adapter_abi::NativeAdapterAbiContract;
 use crate::runtime::native_image::{
     descriptor_object_for_native_with_debug, host_tvm_target, inspect_tvm_image, seal_tvm_image,
 };
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+use crate::runtime::vm::aot_metadata::NativeRequestProjection;
 use crate::terlan_typeck::CoreModule;
 
 use super::super::{write_build_file, BuildOneError};
@@ -28,6 +31,7 @@ use super::{native_cache, output_cleanup};
 pub(super) const DIRECT_AOT_BACKEND: &str = "cranelift-0.133.1";
 pub(super) const DIRECT_AOT_CACHE_SCHEMA: &str = "terlan-native-codegen-v4";
 pub(super) const DIRECT_AOT_CODEGEN_REVISION: &str = env!("TERLAN_NATIVE_CODEGEN_REVISION_SHA256");
+pub(super) const DIRECT_AOT_BUILD_POLICY: &str = env!("TERLAN_NATIVE_BUILD_POLICY_SHA256");
 
 /// One compiler-owned native application image independent from transitional
 /// per-module artifact envelopes.
@@ -64,8 +68,18 @@ struct NativeImageBuildInput<'a> {
     cached_image_path: &'a Path,
     native_dir: &'a Path,
     native_cache_root: &'a Path,
+    linker_policy: &'a NativeLinkerPolicy,
     policy: NativeCodegenPolicy,
 }
+
+#[derive(Clone, Debug)]
+struct NativeLinkerPolicy {
+    program: OsString,
+    bundled_windows_linker: bool,
+    cache_identity: String,
+}
+
+static NATIVE_LINKER_POLICY: OnceLock<Result<NativeLinkerPolicy, String>> = OnceLock::new();
 
 struct NativeApplicationCompileRequest<'a> {
     vm_dir: &'a Path,
@@ -175,6 +189,7 @@ fn compile_native_application_image_with_identity(
     let image_name = format!("{image_stem}.tvm");
     let image_path = vm_dir.join(&image_name);
     let target = host_tvm_target().map_err(|error| BuildOneError::Message(error.into()))?;
+    let linker_policy = native_linker_policy()?;
     let adapter_cache_identity = NativeAdapterAbiContract::current()
         .cache_identity(&target.triple, &target.calling_convention)
         .map_err(|error| BuildOneError::Message(error.into()))?;
@@ -184,7 +199,7 @@ fn compile_native_application_image_with_identity(
         .collect::<Vec<_>>()
         .join("\0");
     let cache_input = format!(
-        "{}\0{DIRECT_AOT_BACKEND}\0{DIRECT_AOT_CACHE_SCHEMA}\0{DIRECT_AOT_CODEGEN_REVISION}\0tvm-image-format-1\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}",
+        "{}\0{DIRECT_AOT_BACKEND}\0{DIRECT_AOT_CACHE_SCHEMA}\0{DIRECT_AOT_CODEGEN_REVISION}\0{DIRECT_AOT_BUILD_POLICY}\0tvm-image-format-1\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}",
         env!("CARGO_PKG_VERSION"),
         application_identity,
         policy.cache_identity(),
@@ -193,6 +208,7 @@ fn compile_native_application_image_with_identity(
         target.operating_system,
         target.calling_convention,
         adapter_cache_identity,
+        linker_policy.cache_identity,
         fingerprint,
         native_cache::sha256_hex(&debug_metadata)
     );
@@ -239,6 +255,11 @@ fn compile_native_application_image_with_identity(
         if let Some(image) = load_cached_image() {
             image
         } else {
+            if std::env::var("TERLAN_NATIVE_CACHE_MISS_POLICY").as_deref() == Ok("error") {
+                return Err(BuildOneError::Message(format!(
+                    "error[tvm.cache.unexpected_miss]: validation forbids rebuilding native cache entry `{input_sha256}`"
+                )));
+            }
             compile_and_publish_image(NativeImageBuildInput {
                 application_identity: &application_identity,
                 package: &package,
@@ -254,6 +275,7 @@ fn compile_native_application_image_with_identity(
                 cached_image_path: &cached_image_path,
                 native_dir: &native_dir,
                 native_cache_root,
+                linker_policy,
                 policy,
             })?
         }
@@ -380,13 +402,14 @@ pub(crate) fn compile_serve_native_image(
     .map_err(build_error_message)
 }
 
-/// Compiles one live serve generation and retains export-specific Request
-/// projection proofs for admission into the matching runtime generation.
+/// Compiles a live-serve image from the complete application closure while
+/// retaining Request projection metadata for the route-owning module.
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
-pub(crate) fn compile_serve_native_image_with_metadata(
+pub(super) fn compile_serve_native_application_image_with_metadata(
     web_root: &Path,
     module_stem: &str,
-    core: &CoreModule,
+    cores: &[&CoreModule],
+    debug_inputs: &[NativeDebugInput<'_>],
 ) -> Result<Option<CompiledServeNativeImage>, String> {
     let workspace = web_root.join(".terlan").join("serve-aot");
     let vm_dir = workspace.join("vm");
@@ -397,8 +420,8 @@ pub(crate) fn compile_serve_native_image_with_metadata(
         &vm_dir,
         &native_cache_root,
         module_stem,
-        &[core],
-        &[],
+        cores,
+        debug_inputs,
         NativeCodegenPolicy::Serve,
         true,
     )
@@ -528,6 +551,7 @@ fn compile_and_publish_image(input: NativeImageBuildInput<'_>) -> Result<Vec<u8>
         input.object_path,
         input.descriptor_object_path,
         linked_image.path(),
+        input.linker_policy,
         input.policy,
     )?;
     let mut image = fs::read(linked_image.path()).map_err(|error| {
@@ -564,15 +588,10 @@ fn link_native_image(
     object_path: &Path,
     descriptor_object_path: &Path,
     image_path: &Path,
+    linker_policy: &NativeLinkerPolicy,
     policy: NativeCodegenPolicy,
 ) -> Result<(), BuildOneError> {
-    let (linker, bundled_windows_linker) =
-        if let Some(linker) = std::env::var_os("TERLAN_NATIVE_LINKER") {
-            (linker, false)
-        } else {
-            default_native_linker()?
-        };
-    let mut command = Command::new(&linker);
+    let mut command = Command::new(&linker_policy.program);
     if cfg!(target_os = "macos") {
         command
             .arg("-dynamiclib")
@@ -587,7 +606,7 @@ fn link_native_image(
             .arg(object_path)
             .arg(descriptor_object_path);
     } else if cfg!(target_os = "windows") {
-        if bundled_windows_linker {
+        if linker_policy.bundled_windows_linker {
             command.arg("-flavor").arg("link");
         }
         command
@@ -622,7 +641,7 @@ fn link_native_image(
     let output = command.output().map_err(|error| {
         BuildOneError::Message(format!(
             "failed to start native linker `{}`: {error}",
-            Path::new(&linker).display()
+            Path::new(&linker_policy.program).display()
         ))
     })?;
     if !output.status.success() {
@@ -633,6 +652,83 @@ fn link_native_image(
         )));
     }
     Ok(())
+}
+
+/// Resolves and fingerprints the exact linker admitted by this compiler process.
+///
+/// A linker override is a code-generation input: accepting an image produced by
+/// a different linker would turn a warm cache hit into untracked environment
+/// dependence. The binary digest is computed once per compiler process.
+fn native_linker_policy() -> Result<&'static NativeLinkerPolicy, BuildOneError> {
+    NATIVE_LINKER_POLICY
+        .get_or_init(|| {
+            let (program, bundled_windows_linker) =
+                if let Some(linker) = std::env::var_os("TERLAN_NATIVE_LINKER") {
+                    (linker, false)
+                } else {
+                    let (linker, bundled) = default_native_linker().map_err(build_error_message)?;
+                    (linker, bundled)
+                };
+            let resolved = resolve_linker_program(&program).ok_or_else(|| {
+                format!(
+                    "error[tvm.cache.linker_identity]: cannot resolve native linker `{}`",
+                    Path::new(&program).display()
+                )
+            })?;
+            let bytes = fs::read(&resolved).map_err(|error| {
+                format!(
+                    "error[tvm.cache.linker_identity]: cannot read native linker `{}`: {error}",
+                    resolved.display()
+                )
+            })?;
+            let cache_identity = native_cache::sha256_hex(
+                format!(
+                    "terlan-native-linker-v1\0{}\0{}",
+                    bundled_windows_linker,
+                    native_cache::sha256_hex(&bytes)
+                )
+                .as_bytes(),
+            );
+            Ok(NativeLinkerPolicy {
+                program: resolved.into_os_string(),
+                bundled_windows_linker,
+                cache_identity,
+            })
+        })
+        .as_ref()
+        .map_err(|error| BuildOneError::Message(error.clone()))
+}
+
+pub(super) fn native_linker_cache_identity() -> Result<&'static str, BuildOneError> {
+    native_linker_policy().map(|policy| policy.cache_identity.as_str())
+}
+
+fn resolve_linker_program(program: &OsStr) -> Option<PathBuf> {
+    let path = Path::new(program);
+    if path.components().count() > 1 {
+        return fs::canonicalize(path)
+            .ok()
+            .filter(|candidate| candidate.is_file());
+    }
+    let search_path = std::env::var_os("PATH")?;
+    for directory in std::env::split_paths(&search_path) {
+        let candidate = directory.join(path);
+        if let Ok(resolved) = fs::canonicalize(&candidate) {
+            if resolved.is_file() {
+                return Some(resolved);
+            }
+        }
+        #[cfg(windows)]
+        if candidate.extension().is_none() {
+            let executable = candidate.with_extension("exe");
+            if let Ok(resolved) = fs::canonicalize(&executable) {
+                if resolved.is_file() {
+                    return Some(resolved);
+                }
+            }
+        }
+    }
+    None
 }
 
 /// Resolves the host linker without relying on ambiguous platform `PATH`

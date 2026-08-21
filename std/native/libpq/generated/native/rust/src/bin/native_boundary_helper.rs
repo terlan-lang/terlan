@@ -57,6 +57,7 @@ struct Worker {
     free_ids: Vec<u64>,
     generations: HashMap<u64, u64>,
     handles: HashMap<u64, HandleEntry>,
+    request_handles: HashMap<u64, HandleArg>,
 }
 
 struct HandleEntry {
@@ -116,6 +117,7 @@ impl Worker {
             free_ids: Vec::new(),
             generations: HashMap::new(),
             handles: HashMap::new(),
+            request_handles: HashMap::new(),
         })
     }
 
@@ -167,11 +169,18 @@ impl Worker {
             );
         }
         self.last_request_id = Some(request_id);
-        let request = match parse_request(line) {
+        let resolved = match resolve_request_references(line, &self.request_handles) {
+            Ok(resolved) => resolved,
+            Err(error) => return format!("reply {request_id} 1 {error}"),
+        };
+        let request = match parse_request(&resolved) {
             Ok(request) => request,
             Err(error) => return format!("reply {request_id} 1 {error}"),
         };
         let payload = self.execute(request);
+        if let Some(handle) = response_handle(&payload) {
+            self.request_handles.insert(request_id, handle);
+        }
         format!("reply {request_id} 1 {payload}")
     }
 
@@ -743,6 +752,57 @@ fn parse_request(line: &str) -> Result<Request, String> {
         validate_decoded_arg_shape(argument);
     }
     Ok(Request { operation, args })
+}
+
+fn resolve_request_references(
+    line: &str,
+    request_handles: &HashMap<u64, HandleArg>,
+) -> Result<String, String> {
+    line.split_whitespace()
+        .map(|field| {
+            let Some(reference) = field.strip_prefix("r:") else {
+                return Ok(field.to_string());
+            };
+            let parts = reference.split(':').collect::<Vec<_>>();
+            let (request_id, overridden_type) = match parts.as_slice() {
+                [request_id] => (*request_id, None),
+                [request_id, type_name] => (*request_id, Some(*type_name)),
+                _ => {
+                    return Err(protocol_error(
+                        "invalid_handle_reference",
+                        "malformed prior-request handle reference",
+                    ));
+                }
+            };
+            let request_id = request_id
+                .parse::<u64>()
+                .map_err(|error| protocol_error("invalid_handle_reference", &error.to_string()))?;
+            let handle = request_handles.get(&request_id).ok_or_else(|| {
+                protocol_error(
+                    "unknown_handle_reference",
+                    "prior request did not return a handle",
+                )
+            })?;
+            let type_name = overridden_type
+                .map(str::to_string)
+                .unwrap_or_else(|| STANDARD.encode(handle.type_name.as_bytes()));
+            Ok(format!(
+                "h:{}:{}:{}:{type_name}",
+                STANDARD.encode(handle.owner.as_bytes()),
+                handle.id,
+                handle.generation,
+            ))
+        })
+        .collect::<Result<Vec<_>, _>>()
+        .map(|fields| fields.join(" "))
+}
+
+fn response_handle(payload: &str) -> Option<HandleArg> {
+    let fields = payload.split_whitespace().collect::<Vec<_>>();
+    let ["ok_handle", owner, id, generation, type_name] = fields.as_slice() else {
+        return None;
+    };
+    parse_handle_arg(&format!("{owner}:{id}:{generation}:{type_name}")).ok()
 }
 
 fn parse_arg(value: &str) -> Result<Arg, String> {

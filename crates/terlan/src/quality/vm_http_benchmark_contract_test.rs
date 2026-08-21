@@ -100,7 +100,9 @@ vm-http-runtime-attribution-check: vm-http-benchmark-comparability-check
 vm-http-vs-axum-check: tvm-http-paired-performance-check
 	TERLAN_VM_BENCHMARK_GATE=vm-http-vs-axum-check target/debug/terlc test scripts/self_validation/VmBenchmarkFamilyPlanTest.terl
 
-release-0-0-7-preflight: vm-http-runtime-attribution-check release-version-channel-check
+RELEASE_EVIDENCE_GATES := \
+	vm-http-runtime-attribution-check \
+	release-version-channel-check
 "#;
 
 #[test]
@@ -180,15 +182,12 @@ fn attribution_contract_rejects_release_order_drift() {
     repo.write_complete_fixture().expect("write fixture");
     repo.write(
         "Makefile",
-        &COMPLETE_MAKEFILE.replace(
-            "release-0-0-7-preflight: vm-http-runtime-attribution-check ",
-            "release-0-0-7-preflight: ",
-        ),
+        &COMPLETE_MAKEFILE.replace("\tvm-http-runtime-attribution-check \\", ""),
     )
     .expect("rewrite Makefile");
 
     let error = run_vm_http_runtime_attribution_contract(repo.root()).expect_err("must fail");
-    assert!(error.contains("release-0-0-7-preflight"));
+    assert!(error.contains("RELEASE_EVIDENCE_GATES"));
 }
 
 #[test]

@@ -316,8 +316,27 @@ pub option_of(generator: Gen[T]): Gen[Option[T]] ->
  * Transformation: provides deterministic Result generation without hidden
  * randomness.
  */
-pub result_of(ok_generator: Gen[T], err_generator: Gen[E]): Gen[Result[T, E]] ->
-    {Atom["gen"], append(ok_values(sample(ok_generator)), err_values(sample(err_generator)))}.
+pub result_of[T, E](ok_generator: Gen[T], err_generator: Gen[E]): Gen[Result[T, E]] ->
+    {Atom["gen"], result_values[T, E](sample(ok_generator), sample(err_generator))}.
+
+/**
+ * Wraps success and error samples as one result list.
+ *
+ * Input: success payloads and error payloads.
+ * Output: all `Ok` values followed by all `Err` values.
+ * Transformation: carries both generic payload types through every recursive
+ * edge so AOT monomorphization never depends on an unconstrained result-only
+ * type parameter.
+ */
+pub result_values[T, E](ok_payloads: List[T], err_payloads: List[E]): List[Result[T, E]] ->
+    case ok_payloads {
+        [head | tail] -> [ok_value[T, E](head) | result_values[T, E](tail, err_payloads)];
+        [] ->
+            case err_payloads {
+                [head | tail] -> [err_value[T, E](head) | result_values[T, E](ok_payloads, tail)];
+                [] -> []
+            }
+    }.
 
 /**
  * Builds a list generator from one element generator.
@@ -845,7 +864,7 @@ pub err_values(values: List[E]): List[Result[T, E]] ->
  * Output: `Ok(value)` as `Result[T, E]`.
  * Transformation: gives generic list construction an explicit result type.
  */
-pub ok_value(value: T): Result[T, E] ->
+pub ok_value[T, E](value: T): Result[T, E] ->
     Ok(value).
 
 /**
@@ -855,7 +874,7 @@ pub ok_value(value: T): Result[T, E] ->
  * Output: `Err(value)` as `Result[T, E]`.
  * Transformation: gives generic list construction an explicit result type.
  */
-pub err_value(value: E): Result[T, E] ->
+pub err_value[T, E](value: E): Result[T, E] ->
     Err(value).
 
 /**

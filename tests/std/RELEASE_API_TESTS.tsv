@@ -6,8 +6,7 @@
 # - Public zero-argument test functions annotated with @test.
 #
 # Output:
-# - A tab-separated manifest consumed by std/scripts/check_release_api_tests.sh
-#   and std/scripts/ReleaseManifestTest.terl.
+# - A tab-separated manifest consumed by the typed stdlib validators.
 #
 # Transformation:
 # - Maps each release-matrix API obligation to the exact Terlan @test function
@@ -480,6 +479,7 @@ std.core.String.split_once.true	std/core/StringTest.terl	split_once_returns_firs
 std.core.String.split_once.false	std/core/StringTest.terl	split_once_rejects_missing_separator
 std.crypto.Hash.sha256.empty	std/crypto/HashTest.terl	sha256_matches_empty_vector
 std.crypto.Hash.sha256.ascii	std/crypto/HashTest.terl	sha256_matches_ascii_vector
+std.crypto.Ed25519.invalid_material	std/crypto/Ed25519Test.terl	invalid_material_fails_closed
 std.crypto.Hash.sha256_domain_framed	std/crypto/HashTest.terl	domain_framed_hash_preserves_the_unframed_domain
 std.data.Json.Json	std/data/JsonTest.terl	parse_object_get_reads_member_values
 std.data.Json.JsonError	std/data/JsonTest.terl	parse_object_get_reads_member_values
@@ -611,6 +611,29 @@ std.regex.Regex.named_capture	std/regex/RegexTest.terl	captures_read_positional_
 std.regex.Regex.replace	std/regex/RegexTest.terl	replace_updates_all_matches
 std.regex.Regex.split	std/regex/RegexTest.terl	split_returns_segments
 std.regex.Regex.escape	std/regex/RegexTest.terl	escape_treats_metacharacters_as_literal_text
+std.package.Registry.PublishRequestProjection	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.RegistryProtocolError	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.parse_publish_request	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.error_code	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.error_message	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.error_offset	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.publisher_key_id	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.request_id	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.package_name	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.version	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.repository_url	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.description	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.license_expression	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.archive_sha256	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.archive_bytes	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.documentation_sha256	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.documentation_bytes	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.built_with	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.requires_terlan	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.source_identity_kind	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.source_identity	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.source_identity_verification	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
+std.package.Registry.PublishRequestProjection.provenance_sha256	std/package/RegistryTest.terl	malformed_publication_metadata_is_rejected
 std.db.Postgres.Pool	std/db/PostgresTest.terl	connect_rejects_invalid_url_scheme
 std.db.Postgres.Connection	std/db/PostgresTest.terl	connect_rejects_invalid_url_scheme
 std.db.Postgres.Row	std/db/PostgresTest.terl	connect_rejects_invalid_url_scheme
@@ -640,17 +663,18 @@ std.http.Cookies.delete_header	std/http/CookiesTest.terl	cookie_header_builders_
 std.http.Error.new.code	std/http/ErrorTest.terl	new_populates_http_error_code
 std.http.Error.new.message	std/http/ErrorTest.terl	new_populates_http_error_message
 std.http.Error.new.status	std/http/ErrorTest.terl	new_populates_http_error_status
-std.http.Request.Request	std/http/RequestTest.terl	request_reads_descriptor_fields
-std.http.Request.method	std/http/RequestTest.terl	request_reads_descriptor_fields
-std.http.Request.path	std/http/RequestTest.terl	request_reads_descriptor_fields
-std.http.Request.param	std/http/RequestTest.terl	request_reads_descriptor_fields
-std.http.Request.query	std/http/RequestTest.terl	request_reads_descriptor_fields
-std.http.Request.query_string	std/http/RequestTest.terl	request_reads_descriptor_fields
-std.http.Request.header	std/http/RequestTest.terl	request_reads_descriptor_fields
-std.http.Request.cookie	std/http/RequestTest.terl	request_reads_descriptor_fields
-std.http.Request.cookies	std/http/RequestTest.terl	request_reads_descriptor_fields
-std.http.Request.body_text	std/http/RequestTest.terl	request_reads_descriptor_fields
-std.http.Request.body_json	std/http/RequestTest.terl	request_reads_descriptor_fields
+std.http.Request.Request	std/http/RequestTest.terl	request_accessors_typecheck
+std.http.Request.method	std/http/RequestTest.terl	request_accessors_typecheck
+std.http.Request.path	std/http/RequestTest.terl	request_accessors_typecheck
+std.http.Request.param	std/http/RequestTest.terl	request_accessors_typecheck
+std.http.Request.query	std/http/RequestTest.terl	request_accessors_typecheck
+std.http.Request.query_string	std/http/RequestTest.terl	request_accessors_typecheck
+std.http.Request.header	std/http/RequestTest.terl	request_accessors_typecheck
+std.http.Request.cookie	std/http/RequestTest.terl	request_accessors_typecheck
+std.http.Request.cookies	std/http/RequestTest.terl	request_accessors_typecheck
+std.http.Request.body_text	std/http/RequestTest.terl	request_accessors_typecheck
+std.http.Request.body_file_path	std/http/RequestTest.terl	request_accessors_typecheck
+std.http.Request.body_json	std/http/RequestTest.terl	request_accessors_typecheck
 std.http.Response.Response	std/http/ResponseTest.terl	response_builders_create_descriptors
 std.http.Response.json	std/http/ResponseTest.terl	response_builders_create_descriptors
 std.http.Response.text	std/http/ResponseTest.terl	response_builders_create_descriptors

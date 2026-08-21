@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use crate::terlan_hir::{
-    load_interfaces_from_file_set, resolve_syntax_module_output_with_interfaces, ModuleInterface,
+    load_imported_interfaces_from_file_set, resolve_syntax_module_output_with_interfaces,
+    ModuleInterface,
 };
 use crate::terlan_html::{
     scan_template_interpolations, validate_artifact_template_structure, HtmlDiagnostic, HtmlSpan,
@@ -400,7 +401,7 @@ impl OpenDocuments {
                     .map_err(Self::parser_error);
                     match parse_result {
                         Ok(module) => {
-                            let interfaces = Self::interfaces_for_uri(&uri);
+                            let interfaces = Self::imported_interfaces_for_uri(&uri, &module);
                             let resolved =
                                 resolve_syntax_module_output_with_interfaces(&module, &interfaces)
                                     .module;
@@ -528,21 +529,14 @@ impl OpenDocuments {
         }
     }
 
-    /// Loads visible interface summaries for a document URI.
-    ///
-    /// Inputs:
-    /// - `uri`: document URI being parsed.
-    ///
-    /// Output:
-    /// - Interface map loaded from the surrounding file set.
-    ///
-    /// Transformation:
-    /// - Converts file URIs to paths and delegates summary discovery to HIR;
-    ///   non-file URIs use an empty interface map.
-    pub(crate) fn interfaces_for_uri(uri: &Url) -> HashMap<String, ModuleInterface> {
+    /// Loads the exact local/imported interface closure needed by one module.
+    pub(crate) fn imported_interfaces_for_uri(
+        uri: &Url,
+        module: &crate::terlan_syntax::SyntaxModuleOutput,
+    ) -> HashMap<String, ModuleInterface> {
         uri.to_file_path()
             .ok()
-            .map(|path| load_interfaces_from_file_set(&path.to_string_lossy()))
+            .map(|path| load_imported_interfaces_from_file_set(&path.to_string_lossy(), module))
             .unwrap_or_default()
     }
 

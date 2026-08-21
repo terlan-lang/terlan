@@ -10,7 +10,7 @@ pub(super) fn write_vm_http_benchmark_package(workspace: &Path) -> Result<PathBu
         .map_err(|error| format!("failed to create VM HTTP source directory: {error}"))?;
     fs::write(
         workspace.join("terlan.toml"),
-        "[package]\nname = \"vm_http_bench\"\nversion = \"0.0.7\"\n",
+        "[package]\nname = \"vm_http_bench\"\nversion = \"0.0.7\"\nnamespace = \"app\"\n",
     )
     .map_err(|error| format!("failed to write VM HTTP terlan.toml: {error}"))?;
     fs::write(web_root.join("index.html"), "<!doctype html>\n")

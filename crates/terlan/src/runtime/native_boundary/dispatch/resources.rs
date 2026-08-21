@@ -184,6 +184,9 @@ fn execute_resource_dispatch(
     if operation == "std.data.json.object_put" {
         return dispatch_json_object_put_with_resources(store, operation, args);
     }
+    if operation == "std.data.json.object_remove" {
+        return dispatch_json_object_remove_with_resources(store, operation, args);
+    }
     if operation == "std.http.cookies.set" {
         return dispatch_cookie_set_with_resources(store, operation, args);
     }
@@ -292,6 +295,22 @@ fn dispatch_json_object_put_with_resources(
         store.json_mut(receiver).map_err(dispatch_resource_error)?,
         key,
         value,
+    )
+    .map_err(super::args::dispatch_json_error)?;
+    Ok(NativeBoundaryBridgeValue::Handle(receiver))
+}
+
+/// Removes one JSON object member while the resource remains VM-owned.
+fn dispatch_json_object_remove_with_resources(
+    store: &mut ResourceStore,
+    operation: &str,
+    args: &[NativeBoundaryBridgeValue],
+) -> Result<NativeBoundaryBridgeValue, DispatchError> {
+    let receiver = expect_bridge_handle(operation, args, 0)?;
+    let key = expect_bridge_text(operation, args, 1)?;
+    crate::terlan_native::json::remove(
+        store.json_mut(receiver).map_err(dispatch_resource_error)?,
+        key,
     )
     .map_err(super::args::dispatch_json_error)?;
     Ok(NativeBoundaryBridgeValue::Handle(receiver))

@@ -26,7 +26,9 @@ pub(crate) fn native_application_abi_fingerprint(
 fn native_application_abi_fingerprint_untyped(natives: &[NativeModule]) -> Result<String, String> {
     validate_callable_shapes(natives)?;
     let application_native = flattened_application("abi", natives);
-    let (suspending, transition_counts) = suspension_profile(&application_native)?;
+    let (suspending, mut transition_counts) = suspension_profile(&application_native)?;
+    let tail_components = super::super::tail_position::mutual_tail_components(natives);
+    normalize_tail_component_profiles(&suspending, &mut transition_counts, &tail_components)?;
     let functions = application_functions(natives);
     let externally_resumable =
         super::super::continuation_sharing::externally_resumable_continuation_ids(natives);

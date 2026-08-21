@@ -1,0 +1,3 @@
+module registry_math.Math.
+
+pub answer(): Int -> 42.

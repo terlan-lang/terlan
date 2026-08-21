@@ -10,6 +10,8 @@ const OWNER_PROCESS_ID: u64 = 7;
 
 #[test]
 fn supports_http_and_uri_operations() {
+    assert!(supports("std.encoding.base64.encode"));
+    assert!(supports("std.encoding.base64.decode"));
     assert!(supports("std.http.request.body_json"));
     assert!(supports("std.http.request.body_text"));
     assert!(supports("std.http.request.param"));
@@ -21,6 +23,8 @@ fn supports_http_and_uri_operations() {
     assert!(supports("std.http.cookies.delete_header"));
     assert!(supports("std.net.uri.parse"));
     assert!(supports("std.net.uri.to_string"));
+    assert!(supports("std.package.registry.parse_publish_request"));
+    assert!(supports("std.package.registry.parse_yank_request"));
 
     assert!(!supports("std.http.cookies.set"));
     assert!(!supports("std.http.request.unknown"));
@@ -30,6 +34,11 @@ fn supports_http_and_uri_operations() {
 
 #[test]
 fn typed_result_error_names_cover_new_http_and_uri_paths() {
+    assert_eq!(
+        typed_result_error_name("std.encoding.base64.decode"),
+        Some("Base64Error")
+    );
+    assert_eq!(typed_result_error_name("std.encoding.base64.encode"), None);
     assert_eq!(
         typed_result_error_name("std.http.request.body_json"),
         Some("HttpError")
@@ -54,8 +63,56 @@ fn typed_result_error_names_cover_new_http_and_uri_paths() {
         typed_result_error_name("std.data.json.parse"),
         Some("JsonError")
     );
+    assert_eq!(
+        typed_result_error_name("std.package.registry.parse_publish_request"),
+        Some("RegistryProtocolError")
+    );
+    assert_eq!(
+        typed_result_error_name("std.package.registry.parse_yank_request"),
+        Some("RegistryProtocolError")
+    );
     assert!(typed_result_error_name("std.io.path.join").is_some());
     assert_eq!(typed_result_error_name("std.http.response.text"), None);
+}
+
+#[test]
+fn call_supports_direct_base64_without_a_std_package_helper() {
+    let mut resources = ResourceStore::new();
+    let encoded = call(
+        &mut resources,
+        OWNER_PROCESS_ID,
+        &PureNativeCapabilityRequest {
+            capability: "package-native".to_string(),
+            operation: "std.encoding.base64.encode".to_string(),
+            arguments: Vec::new(),
+            package_arguments: Some(vec![ReplValue::String("Terlan".to_string())]),
+            result_type: TvmBoundaryType::String,
+        },
+    )
+    .expect("base64 encode succeeded");
+    assert_eq!(encoded, ReplValue::String("VGVybGFu".to_string()));
+
+    let invalid = call(
+        &mut resources,
+        OWNER_PROCESS_ID,
+        &PureNativeCapabilityRequest {
+            capability: "package-native".to_string(),
+            operation: "std.encoding.base64.decode".to_string(),
+            arguments: Vec::new(),
+            package_arguments: Some(vec![ReplValue::String("%%%".to_string())]),
+            result_type: TvmBoundaryType::String,
+        },
+    )
+    .expect("base64 typed error returned");
+    assert!(matches!(
+        invalid,
+        ReplValue::Record { name, fields } if name == "Err"
+            && matches!(
+                fields.as_slice(),
+                [(field, ReplValue::Record { name, .. })]
+                    if field == "reason" && name == "Base64Error"
+            )
+    ));
 }
 
 #[test]

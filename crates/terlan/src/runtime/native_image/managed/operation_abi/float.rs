@@ -35,6 +35,7 @@ pub(super) fn is_float_operation(encoded: &[u8]) -> bool {
     encoded.starts_with(MAGIC)
 }
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(super) fn float_operation_result_is_reference(encoded: &[u8]) -> bool {
     encoded.get(6).copied() != Some(LOG)
 }

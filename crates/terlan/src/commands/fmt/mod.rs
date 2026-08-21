@@ -25,30 +25,43 @@ use crate::terlan_syntax::{
 ///   rewrites an explicitly requested single file, or rewrites directory-mode
 ///   files in place.
 pub(crate) fn run(args: &[String]) -> ExitCode {
-    let (mode, path) = match args {
-        [path] => (FormatMode::WriteOrPrint, path),
-        [flag, path] if flag == "--write" => (FormatMode::Write, path),
-        [flag, path] if flag == "--check" => (FormatMode::Check, path),
+    let (mode, paths) = match args {
+        [path] => (FormatMode::WriteOrPrint, std::slice::from_ref(path)),
+        [flag, paths @ ..] if flag == "--write" && !paths.is_empty() => (FormatMode::Write, paths),
+        [flag, paths @ ..] if flag == "--check" && !paths.is_empty() => (FormatMode::Check, paths),
         [flag, path] if flag == "--migrate-repeated-lets" => {
-            (FormatMode::MigrateRepeatedLets, path)
+            (FormatMode::MigrateRepeatedLets, std::slice::from_ref(path))
         }
         _ => {
-            eprintln!("missing or extra path argument");
+            eprintln!("missing path argument or unsupported path count");
             crate::print_usage();
             return ExitCode::from(2);
         }
     };
 
     if mode == FormatMode::MigrateRepeatedLets {
-        return migrate_repeated_lets_path(Path::new(path));
+        return migrate_repeated_lets_path(Path::new(&paths[0]));
     }
 
-    if path.is_empty() {
-        eprintln!("missing or extra path argument");
+    if paths.iter().any(String::is_empty) {
+        eprintln!("missing path argument or unsupported path count");
         crate::print_usage();
         return ExitCode::from(2);
     }
 
+    for path in paths {
+        let result = format_path(path, mode);
+        if result != ExitCode::SUCCESS {
+            return result;
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+/// Formats one command input while the caller retains ownership of a shared
+/// formatter process. Aggregate check/write invocations use this boundary to
+/// avoid reparsing command options and restarting the compiler for every root.
+fn format_path(path: &str, mode: FormatMode) -> ExitCode {
     let path_ref = Path::new(path);
     if path_ref.is_dir() {
         return format_directory(path_ref, mode);

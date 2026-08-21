@@ -98,6 +98,7 @@ pub(super) fn validate_transition_continuation(
     Ok(validate_continuation_captures(&captures, values)?)
 }
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(super) fn transition_capture_types(
     continuation: &TvmContinuationDescriptor,
     operation: &TvmTransitionOperation,

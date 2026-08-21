@@ -11,6 +11,7 @@ fn stamp() -> NativeReuseStamp {
         policy: "development-v1".to_string(),
         target: "x86_64-unknown-linux-gnu".to_string(),
         adapter_abi: "public-adapter-abi-1:test".to_string(),
+        linker_policy: "linker-policy-1".to_string(),
     }
 }
 
@@ -38,6 +39,10 @@ fn native_reuse_stamp_rejects_poisoned_source_image_target_abi_and_policy_fields
         (
             "ABI",
             text.replacen("public-adapter-abi-1:test", "public-adapter-abi-2:test", 1),
+        ),
+        (
+            "linker policy",
+            text.replacen("linker-policy-1", "linker-policy-2", 1),
         ),
     ] {
         assert!(parse_stamp(&poisoned).is_none(), "accepted poisoned {name}");

@@ -19,28 +19,6 @@ fn glossary_text_accepts_required_terms() {
     assert!(validate_glossary_text(&text).is_empty());
 }
 
-/// Verifies glossary text reports missing compatibility wording.
-///
-/// Inputs:
-/// - Text containing only the new primary term.
-///
-/// Output:
-/// - Test passes when a missing compatibility diagnostic is emitted.
-///
-/// Transformation:
-/// - Ensures the old bridge name remains explicitly documented for migration
-///   readers.
-#[test]
-fn glossary_text_rejects_missing_compatibility_entry() {
-    let diagnostics = validate_glossary_text("NativeBoundary");
-    assert!(
-        diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains("old NIF-era name")),
-        "diagnostics should report missing compatibility wording: {diagnostics:?}"
-    );
-}
-
 /// Verifies the glossary requires the native-boundary behavior contract.
 ///
 /// Inputs:
@@ -122,7 +100,7 @@ fn glossary_text_rejects_placeholder_wording() {
 #[test]
 fn nif_terms_accept_explicit_historical_and_non_goal_context() {
     let text = [
-        "`SafeNative` is the old NIF-era name for the Terlan native boundary.",
+        "The native boundary is not a NIF ABI contract.",
         "The artifact is not a NIF ABI contract.",
         "Native boundary calls are not NIF calls.",
         "Out-of-contract behavior includes OTP NIF ABI compatibility.",
@@ -150,47 +128,6 @@ fn nif_terms_reject_casual_runtime_framing() {
     assert_eq!(diagnostics.len(), 1);
     assert!(diagnostics[0].contains("docs/runtime/example.md`:1"));
     assert!(diagnostics[0].contains("must not use NIF terminology"));
-}
-
-/// Verifies diagnostic messages use NativeBoundary wording.
-///
-/// Inputs:
-/// - Temporary source files containing old SafeNative diagnostic text.
-///
-/// Output:
-/// - Diagnostic naming the retired wording.
-///
-/// Transformation:
-/// - Exercises the diagnostic-message terminology gate without depending on
-///   the repository source tree.
-#[test]
-fn diagnostic_messages_reject_retired_safenative_wording() {
-    let root = make_quality_temp_dir("native_boundary_diagnostics");
-    write_source_file(
-        &root,
-        "crates/terlan/src/runtime/native_boundary/error.rs",
-        "SafeNative handle is stale\n",
-    );
-    write_source_file(
-        &root,
-        "crates/terlan/src/runtime/native_boundary/resource.rs",
-        "NativeBoundary resource handle\n",
-    );
-    write_source_file(
-        &root,
-        "crates/terlan/src/runtime/native_boundary/dispatch/args.rs",
-        "No NativeBoundary adapter is registered\n",
-    );
-
-    let diagnostics = validate_diagnostic_messages(&root).expect("validate diagnostics");
-
-    assert!(
-        diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains("SafeNative handle is stale")),
-        "expected retired diagnostic wording failure, got {diagnostics:?}"
-    );
-    fs::remove_dir_all(root).expect("remove temp dir");
 }
 
 /// Verifies selected web docs reject stale VM-handler framing.

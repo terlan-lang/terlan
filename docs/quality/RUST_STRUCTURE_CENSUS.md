@@ -179,12 +179,14 @@ Every median remains better than the CQ-6 reference:
 | Full test compile | 82,780 | 69,150 | 0.8353 |
 
 Direct-AOT coverage retains its twelve isolated integration-test binaries;
-merging them would conflate process and environment ownership across harnesses.
+ABI-1 evidence adds one dedicated deterministic producer, for thirteen total
+integration-test targets. Merging them would conflate process and environment
+ownership across harnesses.
 The workspace test profile instead emits line-table-only debug information,
 which preserves line-number backtraces while reducing full-test compile time by
 20.0% relative to CQ-6. The checked dependency-impact report records 24 source
 domains, 29 cross-domain reference edges, zero workspace dependency cycles,
-and a no-growth ceiling of twelve integration-test targets.
+and a no-growth ceiling of thirteen integration-test targets.
 
 All five reviewed duplicate-helper groups were extracted into canonical
 quality and syntax support modules, leaving the duplicate-helper baseline

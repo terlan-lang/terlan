@@ -21,6 +21,7 @@ mod binding_identity_test;
 #[path = "const_eval_test.rs"]
 #[cfg(test)]
 mod const_eval_test;
+mod phase_timings;
 mod types;
 
 pub(crate) use types::StructFieldVisibility;
@@ -313,6 +314,7 @@ fn type_check_syntax_module_with_inputs<'a>(
     resolved: &ResolvedModule,
     inputs: TypeCheckInputs<'a>,
 ) -> Vec<Diagnostic> {
+    let mut timings = phase_timings::TypeCheckTimings::new();
     let mut diagnostics = resolved
         .diagnostics
         .iter()
@@ -391,6 +393,7 @@ fn type_check_syntax_module_with_inputs<'a>(
         trait_lookup_cache: &trait_lookup_cache,
         effectful_calls: EffectfulCallFacts::default(),
     };
+    timings.mark("context");
 
     diagnostics.extend(check_syntax_constructor_param_defaults(
         inputs.syntax_function_module,
@@ -398,6 +401,7 @@ fn type_check_syntax_module_with_inputs<'a>(
         &aliases,
         &expr_ctx,
     ));
+    timings.mark("constructor-defaults");
     diagnostics.extend(check_syntax_module_functions(
         inputs.syntax_function_module,
         declarations::SyntaxDeclarationCheckEnvironment {
@@ -411,6 +415,7 @@ fn type_check_syntax_module_with_inputs<'a>(
             expr_ctx: &expr_ctx,
         },
     ));
+    timings.mark("function-bodies");
 
     diagnostics
 }
@@ -431,11 +436,15 @@ pub(crate) fn type_check_syntax_module_output_with_database_schema(
     resolved: &ResolvedModule,
     database_schema: Option<&crate::database_schema::DatabaseSchemaSnapshot>,
 ) -> Vec<Diagnostic> {
+    let mut timings = phase_timings::TypeCheckTimings::new();
     let (binding_module, _) =
         expand_syntax_macros_with_interfaces(module.clone(), &resolved.interface_map);
+    timings.mark("macro-copy");
     let (prepared, mut diagnostics) =
         prepare_syntax_constants_with_interfaces(module, &resolved.interface_map);
+    timings.mark("constant-preparation");
     let mut binding_diagnostics = analyze_syntax_bindings(&binding_module).diagnostics();
+    timings.mark("binding-analysis");
     binding_diagnostics.append(&mut diagnostics);
     diagnostics = binding_diagnostics;
     diagnostics.extend(type_check_prepared_syntax_module_output(
@@ -443,6 +452,7 @@ pub(crate) fn type_check_syntax_module_output_with_database_schema(
         resolved,
         database_schema,
     ));
+    timings.mark("prepared-module");
     diagnostics
 }
 
@@ -482,6 +492,7 @@ fn type_check_prepared_syntax_module_output(
     resolved: &ResolvedModule,
     database_schema: Option<&crate::database_schema::DatabaseSchemaSnapshot>,
 ) -> Vec<Diagnostic> {
+    let mut timings = phase_timings::TypeCheckTimings::new();
     let local_aliases = collect_syntax_type_aliases(module);
     let imported_aliases = imported_type_aliases(resolved);
     let imported_names = imported_type_names(resolved);
@@ -509,6 +520,7 @@ fn type_check_prepared_syntax_module_output(
         &aliases,
     );
     let receiver_method_diagnostics = check_syntax_receiver_methods(module, &local_type_names);
+    timings.mark("aliases-and-traits");
 
     let mut diagnostics = collect_syntax_unsupported_raw_declaration_diagnostics(module);
     diagnostics.extend(check_syntax_negative_trait_impls(
@@ -522,6 +534,7 @@ fn type_check_prepared_syntax_module_output(
         resolved,
         &alias_names,
     ));
+    timings.mark("declaration-contracts");
 
     let struct_environment = TypeResolutionEnvironment {
         alias_names: &alias_names,
@@ -535,6 +548,7 @@ fn type_check_prepared_syntax_module_output(
     struct_schemes.extend(collect_syntax_struct_schemes(module, struct_environment));
     let mut struct_field_visibility = collect_imported_struct_field_visibility(resolved);
     struct_field_visibility.extend(collect_syntax_struct_field_visibility(module));
+    timings.mark("struct-environment");
 
     let inputs = TypeCheckInputs {
         database_schema,
@@ -576,8 +590,10 @@ fn type_check_prepared_syntax_module_output(
         trait_signatures,
         trait_method_calls,
     };
+    timings.mark("callable-environment");
     diagnostics.extend(receiver_method_diagnostics);
     diagnostics.extend(type_check_syntax_module_with_inputs(resolved, inputs));
+    timings.mark("callable-checks");
 
     diagnostics
 }

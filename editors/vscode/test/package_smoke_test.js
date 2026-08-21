@@ -275,6 +275,7 @@ function testPackageFileSelection() {
     "icons/terlan-file-icon-theme.json",
     "language-configuration.json",
     "syntaxes/terlan-template-html.tmLanguage.json",
+    "syntaxes/terlan-template-markdown.tmLanguage.json",
     "syntaxes/terlan.tmLanguage.json",
     "src/client_config.js",
     "src/extension.js",

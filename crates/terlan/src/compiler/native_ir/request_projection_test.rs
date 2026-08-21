@@ -75,6 +75,16 @@ fn exact_accessors_produce_a_narrow_field_set() {
 }
 
 #[test]
+fn file_body_accessor_is_a_narrow_non_text_projection() {
+    let fields = projection(project(
+        RequestFieldProjection::BODY_FILE_PATH,
+        NativeExpr::Param(0),
+    ));
+    assert!(fields.requires(RequestFieldProjection::BODY_FILE_PATH));
+    assert!(!fields.requires(RequestFieldProjection::BODY));
+}
+
+#[test]
 fn fused_projected_string_operation_retains_a_narrow_field_set() {
     let fields = projection(NativeExpr::ManagedOperation {
         encoded: Arc::from(
@@ -161,6 +171,54 @@ fn suspension_proof_is_persisted_with_request_projection() {
     assert_eq!(
         projection.fields,
         RequestFieldProjection::Fields(1 << RequestFieldProjection::BODY)
+    );
+}
+
+#[test]
+fn suspension_proof_follows_application_global_cross_module_calls() {
+    let caller = module(NativeExpr::TailCall {
+        function: 1,
+        args: vec![project(
+            RequestFieldProjection::BODY_FILE_PATH,
+            NativeExpr::Param(0),
+        )],
+        yield_continuation_id: None,
+    });
+    let callee = NativeModule {
+        name: "app.Storage".to_string(),
+        functions: vec![NativeFunction {
+            export_id: 2,
+            name: "store".to_string(),
+            public: false,
+            arity: 1,
+            source_module: "app.Storage".to_string(),
+            source_function: "store".to_string(),
+            source_arity: 1,
+            callable_captures: Vec::new(),
+            params: vec![NativeType::StringRef],
+            return_type: NativeType::Int,
+            body: NativeExpr::Suspend {
+                operation: NativeTransitionOperation::Capability,
+                arguments: vec![NativeExpr::Int(1)],
+                continuation_id: 9,
+                values: Vec::new(),
+            },
+        }],
+        continuations: Vec::new(),
+        managed_layouts: Vec::new(),
+        managed_collections: Vec::new(),
+        atoms: Vec::new(),
+    };
+
+    let projection = native_request_projections(&[caller, callee])
+        .into_iter()
+        .find(|projection| projection.function == "handle")
+        .expect("caller request projection");
+
+    assert!(projection.suspending);
+    assert_eq!(
+        projection.fields,
+        RequestFieldProjection::Fields(1 << RequestFieldProjection::BODY_FILE_PATH)
     );
 }
 

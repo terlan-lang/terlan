@@ -62,6 +62,7 @@ pub fn encode_binary_pattern_extract_operation(
     )
 }
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(super) fn binary_pattern_result_is_reference(encoded: &[u8]) -> bool {
     encoded.get(7) == Some(&1)
 }

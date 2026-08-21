@@ -144,7 +144,7 @@ pub(super) fn pattern_plan(
             Ok(PatternPlan {
                 predicate: NativeExpr::ManagedOperation {
                     encoded: Arc::from(encode_string_equal_operation()),
-                    args: vec![value, NativeExpr::StringLiteral { encoded: encoded.into() }],
+                    args: vec![value, NativeExpr::ManagedLiteral { encoded: encoded.into() }],
                 },
                 bindings: vec![],
             })

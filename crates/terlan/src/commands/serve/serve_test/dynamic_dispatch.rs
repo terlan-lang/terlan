@@ -110,7 +110,7 @@ pub(super) fn hyper_request_handler_executes_dynamic_handler_with_vm_runtime() {
         fs::create_dir_all(web_root.join("assets/js/modules")).expect("create package dirs");
         fs::write(
             project_root.join("terlan.toml"),
-            "[package]\nname = \"serve_vm_demo\"\nversion = \"0.0.7\"\n",
+            "[package]\nname = \"serve_vm_demo\"\nversion = \"0.0.7\"\nnamespace = \"app\"\n",
         )
         .expect("write project manifest");
         fs::write(web_root.join("index.html"), "<!doctype html>\n").expect("write index");
@@ -250,7 +250,7 @@ pub(super) fn vm_stream_request_executes_dynamic_handler_without_hyper() {
     fs::create_dir_all(web_root.join("assets/js/modules")).expect("create package dirs");
     fs::write(
         project_root.join("terlan.toml"),
-        "[package]\nname = \"serve_vm_stream_demo\"\nversion = \"0.0.7\"\n",
+        "[package]\nname = \"serve_vm_stream_demo\"\nversion = \"0.0.7\"\nnamespace = \"app\"\n",
     )
     .expect("write project manifest");
     fs::write(web_root.join("index.html"), "<!doctype html>\n").expect("write index");
@@ -340,7 +340,7 @@ pub(super) fn vm_stream_request_activates_materialized_router_middleware_without
     fs::create_dir_all(web_root.join("assets/js/modules")).expect("create package dirs");
     fs::write(
         project_root.join("terlan.toml"),
-        "[package]\nname = \"serve_vm_router_middleware\"\nversion = \"0.0.7\"\n",
+        "[package]\nname = \"serve_vm_router_middleware\"\nversion = \"0.0.7\"\nnamespace = \"app\"\n",
     )
     .expect("write project manifest");
     fs::write(web_root.join("index.html"), "<!doctype html>\n").expect("write index");
@@ -817,7 +817,7 @@ pub(super) fn vm_stream_request_passes_route_params_to_dynamic_handler_without_h
     fs::create_dir_all(web_root.join("assets/js/modules")).expect("create package dirs");
     fs::write(
         project_root.join("terlan.toml"),
-        "[package]\nname = \"serve_vm_stream_params_demo\"\nversion = \"0.0.7\"\n",
+        "[package]\nname = \"serve_vm_stream_params_demo\"\nversion = \"0.0.7\"\nnamespace = \"app\"\n",
     )
     .expect("write project manifest");
     fs::write(web_root.join("index.html"), "<!doctype html>\n").expect("write index");

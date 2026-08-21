@@ -1,0 +1,23 @@
+module std.service.ServiceFoundationTest.
+
+import std.log.Field.{bool, int, string}.
+import std.log.Log.{event}.
+import std.service.Config.{secret, value}.
+import std.service.Context.{current}.
+import std.service.Lifecycle.{health}.
+import std.service.Metrics.{declared_counter, record}.
+import std.service.Trace.{begin, finish}.
+
+pub contract_surface_compiles(): Bool ->
+    let request = current();
+    let config = value("registry.public_url");
+    let signing_key = secret("registry.signing_key");
+    let state = health();
+    let requests = declared_counter("http_requests", ["route_id", "status_class"], 64);
+    event(
+        "registry request",
+        [string("route_id", "package"), int("status", 200), bool("cached", false)],
+    );
+    record(requests, 1.0, ["package", "2xx"]);
+    let span = begin("registry.publish");
+    (finish(span); true).

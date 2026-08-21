@@ -5,7 +5,7 @@ use serde_json::json;
 
 use crate::terlan_quality::QualityResult;
 
-use super::roadmap_gate_integrity::parse_make_list_variable_values;
+use super::makefile_list::parse_make_list_variable_values;
 
 const RELEASE_GATE_SHARD_RESUME_DOC: &str = "docs/release/RELEASE_GATE_SHARD_RESUME.md";
 const MAKEFILE: &str = "Makefile";
@@ -228,6 +228,46 @@ fn make_target<'a>(makefile: &'a str, name: &str) -> Option<MakeTarget<'a>> {
     None
 }
 
+fn logical_recipe_commands(recipe: &[&str]) -> Vec<String> {
+    let mut commands = Vec::new();
+    let mut current = String::new();
+    for line in recipe {
+        let continued = line.ends_with('\\');
+        let fragment = line.trim_end_matches('\\').trim();
+        if !current.is_empty() && !fragment.is_empty() {
+            current.push(' ');
+        }
+        current.push_str(fragment);
+        if !continued {
+            commands.push(std::mem::take(&mut current));
+        }
+    }
+    if !current.is_empty() {
+        commands.push(current);
+    }
+    commands
+}
+
+fn token_occurrences(target: &MakeTarget<'_>, token: &str) -> usize {
+    target
+        .prerequisites
+        .iter()
+        .filter(|prerequisite| **prerequisite == token)
+        .count()
+        + logical_recipe_commands(&target.recipe)
+            .iter()
+            .flat_map(|command| command.split_whitespace())
+            .filter(|word| *word == token)
+            .count()
+}
+
+fn make_recipe_invokes(commands: &[String], target: &str) -> bool {
+    commands.iter().any(|command| {
+        command.split_whitespace().any(|word| word == "$(MAKE)")
+            && command.split_whitespace().any(|word| word == target)
+    })
+}
+
 fn validate_release_makefile(makefile: &str) -> Vec<String> {
     let mut diagnostics = Vec::new();
     for &(target_name, prerequisite) in RELEASE_GATE_CHAIN {
@@ -251,38 +291,52 @@ fn validate_release_makefile(makefile: &str) -> Vec<String> {
         diagnostics.push(format!("{MAKEFILE}: missing target `check`"));
         return diagnostics;
     };
-    for prerequisite in ["rust-test-suite", "terlan-self-validation-bootstrap"] {
-        if !check.prerequisites.contains(&prerequisite) {
+    for owner in ["rust-test-suite", "terlan-self-validation-bootstrap"] {
+        if token_occurrences(&check, owner) != 1 {
             diagnostics.push(format!(
-                "{MAKEFILE}: `check` must build `{prerequisite}` exactly once before its validation cycle"
+                "{MAKEFILE}: `check` must build `{owner}` exactly once before its validation cycle"
             ));
         }
     }
+    let check_commands = logical_recipe_commands(&check.recipe);
+    let validation_command = check_commands.iter().find(|command| {
+        command.split_whitespace().any(|word| word == "$(MAKE)")
+            && command.split_whitespace().any(|word| word == "check-gates")
+    });
     for required_fragment in [
         "TERLAN_RUST_SUITE_ALREADY_RUN=1",
         "TERLAN_VALIDATION_BOOTSTRAPPED=1",
-        "$(MAKE) --no-print-directory check-gates",
     ] {
-        if !check
-            .recipe
-            .iter()
-            .any(|line| line.contains(required_fragment))
-        {
+        if !validation_command.is_some_and(|command| command.contains(required_fragment)) {
             diagnostics.push(format!(
                 "{MAKEFILE}: `check` must propagate `{required_fragment}` to the owned validation cycle"
             ));
         }
     }
+    if validation_command.is_none() {
+        diagnostics.push(format!(
+            "{MAKEFILE}: `check` must propagate `$(MAKE) --no-print-directory check-gates` to the owned validation cycle"
+        ));
+    }
     let final_gate = "release-failure-reproduction-check";
-    let refresh_name = "release-0-0-7-evidence-refresh";
+    let refresh_name = "release-evidence-refresh";
     match make_target(makefile, refresh_name) {
         None => diagnostics.push(format!("{MAKEFILE}: missing target `{refresh_name}`")),
-        Some(refresh) if !refresh.prerequisites.contains(&final_gate) => {
-            diagnostics.push(format!(
-                "{MAKEFILE}: `{refresh_name}` must own the release-only `{final_gate}` chain"
-            ));
+        Some(refresh) => {
+            let release_evidence_gates =
+                parse_make_list_variable_values(makefile, "RELEASE_EVIDENCE_GATES");
+            let refresh_commands = logical_recipe_commands(&refresh.recipe);
+            let owns_directly = refresh.prerequisites.contains(&final_gate)
+                || make_recipe_invokes(&refresh_commands, final_gate);
+            let owns_through_manifest =
+                release_evidence_gates.iter().any(|gate| gate == final_gate)
+                    && make_recipe_invokes(&refresh_commands, "$(RELEASE_EVIDENCE_GATES)");
+            if !owns_directly && !owns_through_manifest {
+                diagnostics.push(format!(
+                    "{MAKEFILE}: `{refresh_name}` must own the release-only `{final_gate}` chain"
+                ));
+            }
         }
-        Some(_) => {}
     }
     let check_gates = parse_make_list_variable_values(makefile, "CHECK_GATES");
     if check_gates.iter().any(|gate| gate == final_gate) {
@@ -292,10 +346,7 @@ fn validate_release_makefile(makefile: &str) -> Vec<String> {
     }
     for &(target_name, _) in RELEASE_GATE_CHAIN {
         if target_name != "release-failure-reproduction-check"
-            && check
-                .recipe
-                .iter()
-                .any(|line| *line == format!("$(MAKE) {target_name}"))
+            && make_recipe_invokes(&check_commands, target_name)
         {
             diagnostics.push(format!(
                 "{MAKEFILE}: `check` redundantly invokes prerequisite `{target_name}`"
@@ -322,7 +373,7 @@ fn validate_release_makefile(makefile: &str) -> Vec<String> {
         }
     }
 
-    let preflight_name = "release-0-0-7-preflight";
+    let preflight_name = "release-preflight";
     match make_target(makefile, preflight_name) {
         None => diagnostics.push(format!("{MAKEFILE}: missing target `{preflight_name}`")),
         Some(preflight) => {
@@ -414,8 +465,8 @@ fn write_report(report_path: &Path) -> QualityResult<()> {
             "collect-all mode"
         ],
         "evidence_composition": "candidate-bound composition",
-        "evidence_refresh_command": "make release-0-0-7-evidence-refresh",
-        "preflight_command": "make release-0-0-7-preflight",
+        "evidence_refresh_command": "make release-evidence-refresh",
+        "preflight_command": "make release-preflight",
         "preflight_replays_completed_gates": false
     });
     let text = serde_json::to_string_pretty(&report)

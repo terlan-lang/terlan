@@ -2,12 +2,12 @@ use std::path::Path;
 #[cfg(test)]
 use std::path::PathBuf;
 
-use crate::commands::web_route::{is_identifier, route_param_names, validate_route_pattern};
 use crate::runtime::vm::http_router::{
     validate_response_middleware_result, VmHttpRouteMethod, VmHttpRouteTarget, VmHttpRouterOutcome,
 };
 use crate::runtime::vm::{ReplValue, VmHttpCallResult};
 use crate::terlan_native::http as native_http;
+use crate::web_route::{is_identifier, route_param_names, validate_route_pattern};
 
 use super::handler_cache::AotHandlerRuntime;
 #[cfg(test)]
@@ -506,6 +506,7 @@ fn vm_request_descriptor(request: &native_http::Request, params: &[(String, Stri
         string_map(request.header_pairs()),
         cookies.clone(),
         ReplValue::Tuple(vec![cookies, ReplValue::List(Vec::new())]),
+        ReplValue::String(request.body_file_path().to_string()),
     ])
 }
 
@@ -813,7 +814,8 @@ fn validate_handler_method(method: &str) -> Result<(), String> {
 ///   dynamic routes cannot escape into package file lookup semantics.
 fn validate_handler_route(route: &str) -> Result<(), String> {
     if route == "*" {
-        return validate_route_pattern(route);
+        validate_route_pattern(route)?;
+        return Ok(());
     }
     if !route.starts_with('/') || route.contains('\\') || route.contains('\0') {
         return Err(format!(

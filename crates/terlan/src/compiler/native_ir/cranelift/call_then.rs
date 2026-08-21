@@ -42,9 +42,6 @@ pub(super) fn return_from_synchronous_completion(
         pointer: transition_pointer,
         len_pointer: transition_len_pointer,
     } = transition;
-    let transition_len_pointer = transition_len_pointer.ok_or_else(|| {
-        "error[cranelift.call_then]: completion transition length output is unavailable".to_string()
-    })?;
     let NativeFunctionCatalog {
         ids: function_ids,
         parameter_types,
@@ -126,7 +123,10 @@ pub(super) fn return_from_synchronous_completion(
         .copied()
         .unwrap_or(false)
     {
-        completion_args.push(transition_len_pointer);
+        completion_args.push(transition_len_pointer.ok_or_else(|| {
+            "error[cranelift.call_then]: completion transition length output is unavailable"
+                .to_string()
+        })?);
     }
     if component_target.is_some() {
         completion_args.push(builder.ins().iconst(types::I64, completion_function as i64));

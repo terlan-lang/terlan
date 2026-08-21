@@ -8,11 +8,11 @@ use crate::terlan_hir::{
 use crate::terlan_syntax::parse_module_as_syntax_output;
 use crate::terlan_typeck::{
     lower_syntax_module_output_to_core, type_check_syntax_module_output, CoreConstructorDecl,
-    CoreExpr, CoreParam, CoreType,
+    CoreExpr, CoreParam, CoreTupleTypeElem, CoreType,
 };
 
 use super::constructor_chain::lower_constructor_chains;
-use super::constructors::native_constructor_layouts;
+use super::constructors::{install_structural_type_layouts, native_constructor_layouts};
 use super::expression::lower_expr_with_constructors;
 use super::native_object_test_support::{
     assert_managed_native_object_invocations, NativeObjectInvocation,
@@ -48,6 +48,23 @@ pub selected(): Bool ->
     assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
     let core = lower_syntax_module_output_to_core(&syntax, &resolved);
     let modules = NativeModule::lower_application(&[&core]).expect("lower constructor return");
+    let option_layouts = modules
+        .iter()
+        .flat_map(|module| &module.managed_layouts)
+        .map(|layout| {
+            crate::runtime::native_image::managed::decode_aggregate_layout(layout)
+                .expect("decode Option[String] layout")
+        })
+        .filter(|layout| matches!(layout.variant_name(), Some("None" | "Some")))
+        .collect::<Vec<_>>();
+    assert!(!option_layouts.is_empty());
+    assert!(
+        option_layouts
+            .iter()
+            .all(|layout| layout.canonical_type() == "Apply(Option;String)"),
+        "constructors={:#?}; layouts={option_layouts:#?}",
+        core.constructors
+    );
     let export_id = modules
         .iter()
         .flat_map(|module| &module.functions)
@@ -286,6 +303,48 @@ fn constructor_lowering_rejects_a_field_that_disagrees_with_checked_layout() {
     );
     assert!(error.contains("expected Int"), "{error}");
     assert!(error.contains("found Bool"), "{error}");
+}
+
+#[test]
+fn structural_string_option_uses_the_intrinsic_semantic_identity() {
+    let option = CoreType::Union(vec![
+        CoreType::AtomLiteral("none".to_string()),
+        CoreType::Tuple(vec![
+            CoreTupleTypeElem::Type(CoreType::AtomLiteral("some".to_string())),
+            CoreTupleTypeElem::Type(CoreType::String),
+        ]),
+    ]);
+    let mut layouts = HashMap::new();
+
+    install_structural_type_layouts([&option], &mut layouts)
+        .expect("install structural Option[String] layouts");
+
+    let variants = layouts
+        .iter()
+        .filter(|((identity, _), _)| identity.starts_with("$structural.Apply(Option;String)."))
+        .map(|(_, layout)| layout)
+        .collect::<Vec<_>>();
+    assert_eq!(variants.len(), 2);
+    assert!(variants.iter().all(|layout| {
+        layout.descriptor.canonical_type() == "Apply(Option;String)"
+            && layout.result == NativeType::ManagedRef(layout.descriptor.managed().semantic_id())
+    }));
+
+    let inventoried = super::aggregate_types::managed_aggregate_layouts([&option])
+        .expect("inventory structural Option[String] layouts")
+        .into_iter()
+        .map(|layout| {
+            crate::runtime::native_image::managed::decode_aggregate_layout(&layout)
+                .expect("decode inventoried Option[String] layout")
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(inventoried.len(), 2);
+    assert!(inventoried
+        .iter()
+        .all(|layout| layout.canonical_type() == "Apply(Option;String)"));
+    assert!(inventoried.iter().any(|layout| {
+        layout.variant_name() == Some("Some") && layout.fields()[0].name() == Some("value")
+    }));
 }
 
 #[test]

@@ -242,19 +242,21 @@ fn replace_let(
             continue;
         }
         let mut rewritten_tail = bindings[index + 1..].to_vec();
+        let mut rewritten_body = body.clone();
         let mut outcome = ProjectionOutcome::default();
         substitute_tail(
             name,
             &named_aliases,
             indexed_aliases,
             &mut rewritten_tail,
-            &mut body,
+            &mut rewritten_body,
             &mut outcome,
         );
         if outcome.direct_use || outcome.projections == 0 {
             index += 1;
             continue;
         }
+        body = rewritten_body;
         let replacement = layout
             .arguments
             .into_iter()

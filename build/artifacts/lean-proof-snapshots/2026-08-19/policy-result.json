@@ -1,0 +1,16 @@
+{
+  "policy": {
+    "coverage_regression_tolerance": 0,
+    "critical_feature_classes": [
+      "coreir",
+      "native_boundary",
+      "vm_runtime"
+    ],
+    "max_new_blockers_per_cycle": 0,
+    "owner_change_window": 7,
+    "unresolved_warning_ttl_days": 14
+  },
+  "policy_digest": "sha256:9a269de4f63760a05eacde8f71f29537255f70638dc3fe5db9de490f07c91314",
+  "schema": "terlan.lean-proof-policy-result.v1",
+  "status": "pass"
+}

@@ -36,8 +36,52 @@ pub(super) fn write_browser_manifest(
     error_handler: Option<WebErrorHandlerArtifact>,
     incremental: bool,
 ) -> Result<(), String> {
+    write_web_manifest(
+        web_root,
+        contract.profile_name,
+        Some("../js/manifest.json"),
+        assets,
+        routes,
+        error_handler,
+        incremental,
+    )
+}
+
+/// Writes the route manifest for a native VM service package.
+pub(super) fn write_vm_service_manifest(
+    web_root: &Path,
+    routes: WebRouteManifestRows,
+    error_handler: Option<WebErrorHandlerArtifact>,
+    incremental: bool,
+) -> Result<(), String> {
+    write_web_manifest(
+        web_root,
+        "vm",
+        None,
+        Vec::new(),
+        routes,
+        error_handler,
+        incremental,
+    )
+}
+
+fn write_web_manifest(
+    web_root: &Path,
+    target_profile: &'static str,
+    source_js_manifest: Option<&'static str>,
+    assets: Vec<WebAssetArtifact>,
+    routes: WebRouteManifestRows,
+    error_handler: Option<WebErrorHandlerArtifact>,
+    incremental: bool,
+) -> Result<(), String> {
     validate_unique_web_asset_paths(&assets)?;
-    let build_id = web_build_id(contract, &assets, &routes, error_handler.as_ref());
+    let build_id = web_build_id(
+        target_profile,
+        source_js_manifest,
+        &assets,
+        &routes,
+        error_handler.as_ref(),
+    );
     let WebRouteManifestRows {
         handlers,
         websockets,
@@ -47,9 +91,9 @@ pub(super) fn write_browser_manifest(
     } = routes;
     let manifest = WebBuildManifest {
         schema: "terlan-web-build-v1",
-        target_profile: contract.profile_name,
+        target_profile,
         build_id,
-        source_js_manifest: "../js/manifest.json",
+        source_js_manifest,
         index: "index.html",
         assets,
         handlers,
@@ -100,7 +144,8 @@ fn validate_unique_web_asset_paths(assets: &[WebAssetArtifact]) -> Result<(), St
 ///   fingerprint helper. The id intentionally excludes timestamps and absolute
 ///   paths so local logs can correlate requests to reproducible build output.
 fn web_build_id(
-    contract: JsTargetContract,
+    target_profile: &str,
+    source_js_manifest: Option<&str>,
     assets: &[WebAssetArtifact],
     routes: &WebRouteManifestRows,
     error_handler: Option<&WebErrorHandlerArtifact>,
@@ -115,9 +160,13 @@ fn web_build_id(
     let mut text = String::new();
     text.push_str("schema=terlan-web-build-v1\n");
     text.push_str("target_profile=");
-    text.push_str(contract.profile_name);
+    text.push_str(target_profile);
     text.push('\n');
-    text.push_str("source_js_manifest=../js/manifest.json\n");
+    if let Some(source_js_manifest) = source_js_manifest {
+        text.push_str("source_js_manifest=");
+        text.push_str(source_js_manifest);
+        text.push('\n');
+    }
     text.push_str("index=index.html\n");
     for asset in assets {
         text.push_str("asset=");
@@ -231,7 +280,8 @@ struct WebBuildManifest {
     schema: &'static str,
     target_profile: &'static str,
     build_id: String,
-    source_js_manifest: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source_js_manifest: Option<&'static str>,
     index: &'static str,
     assets: Vec<WebAssetArtifact>,
     handlers: Vec<WebHandlerArtifact>,

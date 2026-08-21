@@ -26,8 +26,28 @@ fn validate_web_package_rejects_non_browser_target_profile() {
 
     let err = validate_web_package(&web_root).expect_err("non-browser target profile should fail");
 
-    assert!(err.contains("browser package target profile must be `js.browser`"));
+    assert!(err.contains("web package target profile must be `js.browser` or `vm`"));
     assert!(err.contains("js.shared"));
+    fs::remove_dir_all(dir).expect("cleanup");
+}
+
+#[test]
+fn validate_web_package_accepts_vm_service_target_profile() {
+    let dir = temp_dir("vm_service_target_profile");
+    let web_root = dir.join("web");
+    write_valid_package(&web_root);
+    let manifest = fs::read_to_string(web_root.join("manifest.json")).expect("read manifest");
+    fs::write(
+        web_root.join("manifest.json"),
+        manifest.replace(
+            "\"target_profile\": \"js.browser\"",
+            "\"target_profile\": \"vm\"",
+        ),
+    )
+    .expect("write VM service manifest");
+
+    validate_web_package(&web_root).expect("valid VM service package");
+
     fs::remove_dir_all(dir).expect("cleanup");
 }
 
@@ -275,6 +295,7 @@ email = "admin@example.test""#,
         host: DEFAULT_SERVE_HOST.to_string(),
         port: 0,
         poll_ms: DEFAULT_POLL_MS,
+        max_body_bytes: crate::commands::serve::args::DEFAULT_MAX_BODY_BYTES,
         handler_runtime: ServeHandlerRuntime::Static,
         check_only: false,
         overrides: super::super::args::ServeCliOverrides::default(),
@@ -366,6 +387,34 @@ fn build_http_response_appends_validated_dynamic_headers() {
 
     assert_eq!(response.headers()["set-cookie"], "session=abc; HttpOnly");
     assert_eq!(response.headers()["x-terlan"], "yes");
+}
+
+#[test]
+fn build_http_response_preserves_application_cache_policy() {
+    let response = build_http_response(
+        200,
+        "application/json",
+        &[(
+            "Cache-Control".to_string(),
+            "public, max-age=60".to_string(),
+        )],
+        b"{}",
+        false,
+    )
+    .expect("cache policy should build");
+
+    assert_eq!(
+        response
+            .headers()
+            .get_all(http::header::CACHE_CONTROL)
+            .iter()
+            .count(),
+        1
+    );
+    assert_eq!(
+        response.headers()[http::header::CACHE_CONTROL],
+        "public, max-age=60"
+    );
 }
 
 #[test]

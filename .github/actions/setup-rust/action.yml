@@ -11,9 +11,9 @@ inputs:
     required: false
     default: ""
   components:
-    description: Comma-separated rustup components.
+    description: Comma-separated rustup components required by the workflow.
     required: false
-    default: rustfmt,clippy,rust-src,llvm-tools-preview
+    default: rustfmt,clippy
 
 runs:
   using: composite
@@ -26,6 +26,8 @@ runs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
         key: terlan-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock') }}
+        restore-keys: |
+          terlan-cargo-v1-${{ runner.os }}-${{ runner.arch }}-
 
     - name: Install exact Rust toolchain
       shell: bash

@@ -27,6 +27,60 @@ fn protocol_errors_are_hyper_responses() {
 }
 
 #[test]
+fn declared_and_chunked_bodies_are_bounded() {
+    let mut headers = http::HeaderMap::new();
+    headers.insert(http::header::CONTENT_LENGTH, "5".parse().unwrap());
+    assert!(declared_body_exceeds_limit(&headers, 4));
+    assert!(!declared_body_exceeds_limit(&headers, 5));
+
+    let accepted = block_on(collect_bounded_body(
+        http_body_util::Full::new(Bytes::from_static(b"1234")),
+        4,
+    ))
+    .expect("body at limit");
+    assert_eq!(accepted, b"1234");
+    assert_eq!(
+        block_on(collect_bounded_body(
+            http_body_util::Full::new(Bytes::from_static(b"12345")),
+            4,
+        )),
+        Err(BodyReadError::TooLarge)
+    );
+}
+
+#[test]
+fn binary_body_spool_is_create_new_bounded_and_removed_on_drop() {
+    let root = temp_web_root();
+    let temporary = block_on(spool_bounded_body_to_root(
+        http_body_util::Full::new(Bytes::from_static(&[0, 159, 146, 150, 255])),
+        5,
+        &root,
+    ))
+    .expect("spool binary body");
+    assert_eq!(
+        std::fs::read(&temporary.path).expect("read spooled body"),
+        [0, 159, 146, 150, 255]
+    );
+    let path = temporary.path.clone();
+    drop(temporary);
+    assert!(!path.exists());
+
+    assert!(matches!(
+        block_on(spool_bounded_body_to_root(
+            http_body_util::Full::new(Bytes::from_static(b"123456")),
+            5,
+            &root,
+        )),
+        Err(BodyReadError::TooLarge)
+    ));
+    assert!(std::fs::read_dir(&root)
+        .expect("read upload root")
+        .next()
+        .is_none());
+    std::fs::remove_dir_all(root).expect("remove upload root");
+}
+
+#[test]
 fn web_root_is_copied_once_per_permanent_protocol_owner() {
     let first = Arc::new(PathBuf::from("/tmp/terlan-owner-a"));
     let first_local = owner_local_web_root(&first);
@@ -49,7 +103,11 @@ fn vm_owned_tls_serves_http2_selected_by_rustls_alpn() {
             .expect("bind protocol listener");
     let mut server = start_protocol_tasks_with_topology(
         listener,
-        tls_factory(root.clone(), server_config),
+        tls_factory(
+            root.clone(),
+            server_config,
+            crate::commands::serve::args::DEFAULT_MAX_BODY_BYTES,
+        ),
         VmSchedulerTopology::new(1).expect("single test scheduler"),
     )
     .expect("start VM TLS protocol server");

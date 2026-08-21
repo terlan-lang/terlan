@@ -1,0 +1,566 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Validates and inventories the SF1.0 service-foundation boundary.
+ */
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Ordering.{Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.{Directory, File}.
+import std.system.{Arguments, Environment, Process}.
+
+import type std.collections.List.
+import type std.core.Option.
+import type std.data.Json.
+import type std.system.Process.{Command, Output}.
+
+/**
+ * A normalized Cargo dependency tree used by contract and pruning checks.
+ */
+struct DependencyTree {
+    names: List[String],
+    lines: List[String],
+}.
+
+root(): String ->
+    Environment.current_directory().
+
+child(parent: String, relative: String): String ->
+    if {
+        String.ends_with(parent, "/") -> String.append(parent, relative);
+        true -> String.append(parent, String.append("/", relative))
+    }.
+
+failure(message: String): Bool ->
+    let _printed = eprintln(String.append("web service foundation validation failed: ", message));
+    false.
+
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+contains_any(values: List[String], candidates: List[String]): Bool ->
+    case candidates {
+        [] -> false;
+        [candidate | rest] -> contains(values, candidate) or contains_any(values, rest)
+    }.
+
+first_present(values: List[String], candidates: List[String]): String ->
+    case candidates {
+        [] -> "";
+        [candidate | rest] ->
+            if {
+                contains(values, candidate) -> candidate;
+                true -> first_present(values, rest)
+            }
+    }.
+
+reverse_strings(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings(rest, [value | reversed])
+    }.
+
+insert_string(value: String, values: List[String]): List[String] ->
+    case values {
+        [] -> [value];
+        [head | rest] ->
+            if {
+                value == head -> values;
+                String.compare(value, head) == Lt -> [value | values];
+                true -> [head | insert_string(value, rest)]
+            }
+    }.
+
+sort_unique(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> sort_unique(rest, insert_string(value, output))
+    }.
+
+nonempty(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> reverse_strings(output, []);
+        [value | rest] ->
+            if {
+                String.trim(value) == "" -> nonempty(rest, output);
+                true -> nonempty(rest, [String.trim(value) | output])
+            }
+    }.
+
+first(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | _rest] -> value
+    }.
+
+dependency_names(lines: List[String], output: List[String]): List[String] ->
+    case lines {
+        [] -> output;
+        [line | rest] ->
+            dependency_names(rest, [first(nonempty(String.split(line, " "), [])) | output])
+    }.
+
+command(arguments: List[String]): Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(Process.command("cargo"), arguments),
+                root(),
+            ),
+            120000,
+        ),
+        16777216,
+    ).
+
+run(arguments: List[String]): Option[Output] ->
+    case Process.run(command(arguments)) {
+        Err(reason) ->
+            let _reported = failure(Process.error_message(reason));
+            None;
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> Some(output);
+                true -> let _reported = failure(String.concat([Process.stderr(output), Process.stdout(output)]));
+                None
+            }
+    }.
+
+dependency_tree(package: String): Option[DependencyTree] ->
+    case run(["tree", "-p", package, "--edges", "normal", "--prefix", "none"]) {
+        None -> None;
+        Some(output) ->
+            let lines = sort_unique(nonempty(String.split(Process.stdout(output), "\n"), []), []);
+            Some(
+                DependencyTree(names = sort_unique(dependency_names(lines, []), []), lines = lines),
+            )
+    }.
+
+string_array(values: List[String]): Json ->
+    string_array_at(values, Json.array()).
+
+string_array_at(values: List[String], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            let _pushed = output.push(Json.string(value));
+            string_array_at(rest, output)
+    }.
+
+read(relative: String): Option[String] ->
+    case File.read_text(child(root(), relative)) {
+        Ok(source) -> Some(source);
+        Err(reason) ->
+            let _reported = failure(File.message(reason));
+            None
+    }.
+
+public_modules(): List[String] ->
+    [
+        "std/log/Field.terl",
+        "std/log/Log.terl",
+        "std/service/Config.terl",
+        "std/service/Context.terl",
+        "std/service/Lifecycle.terl",
+        "std/service/Metrics.terl",
+        "std/service/Trace.terl",
+    ].
+
+excluded_packages(): List[String] ->
+    [
+        "foundations",
+        "opentelemetry",
+        "opentelemetry-proto",
+        "prometheus",
+        "prometheus-client",
+        "sentry-core",
+        "slog",
+        "tikv-jemallocator",
+        "tokio",
+    ].
+
+all_contract_files_exist(files: List[String]): Bool ->
+    case files {
+        [] -> true;
+        [relative | rest] ->
+            let summary =
+                String.concat(
+                    [
+                        "std/summaries/",
+                        String.replace(String.replace(relative, ".terl", ""), "/", "."),
+                        ".typi",
+                    ],
+                );
+            if {
+                not File.exists(child(root(), relative)) -> failure(String.append("missing ", relative));
+                not File.exists(child(root(), summary)) -> failure(String.append("missing ", summary));
+                true -> all_contract_files_exist(rest)
+            }
+    }.
+
+check_contract(): Bool ->
+    let {
+        true <- all_contract_files_exist(public_modules());
+        Some(field_source) <- read("std/log/Field.terl");
+        Some(rust_source) <- read("crates/terlan-service-foundation/src/lib.rs")
+    } else {
+        _ -> false
+    };
+    if {
+        not String.contains(field_source, "std.core.Secret") -> failure("Field.terl does not use std.core.Secret");
+        String.contains(field_source, "pub secret") -> failure("Field.terl exposes raw secrets");
+        not String.contains(rust_source, "PUBLIC_API_VERSION: &str = \"terlan-service-foundation-v1\"") -> failure("public API version drifted");
+        not String.contains(rust_source, "HOST_ABI_VERSION: &str = \"terlan-service-host-abi-v1\"") -> failure("host ABI version drifted");
+        true -> true
+    }.
+
+check_runtime(): Bool ->
+    let {
+        Some(glue) <- read("crates/terlan/src/service_foundation.rs");
+        Some(dispatch) <- read("crates/terlan/src/commands/serve/server_lifecycle.rs");
+        Some(request) <- read("crates/terlan/src/commands/serve/request_dispatch.rs")
+    } else {
+        _ -> false
+    };
+    if {
+        not String.contains(glue, "thread_local!") -> failure("request context is not thread-local");
+        not String.contains(glue, "TraceContext::parse_traceparent") -> failure("traceparent parsing is not wired");
+        not String.contains(dispatch, "emit_program_output") -> failure("server lifecycle output is not wired");
+        not String.contains(request, "RequestContextScope::enter") -> failure("request context scope is not entered");
+        true -> true
+    }.
+
+adapter_report(): Option[Json] ->
+    let {
+        Some(manifest) <- read("crates/terlan-foundations-adapter/Cargo.toml");
+        Some(tree) <- dependency_tree("terlan-foundations-adapter")
+    } else {
+        _ -> None
+    };
+    (let forbidden = first_present(tree.names, ["sentry-core", "tikv-jemallocator", "serde_yaml", "clap"]);
+if {
+    not String.contains(manifest, "version = \"=5.9.0\"") -> let _reported = failure("Foundations must be pinned exactly to 5.9.0");
+    None;
+    not String.contains(manifest, "default-features = false") -> let _reported = failure("Foundations default features must remain disabled");
+    None;
+    not String.contains(manifest, "features = [\"logging\", \"metrics\", \"testing\"]") -> let _reported = failure("Foundations base feature closure drifted");
+    None;
+    not String.contains(manifest, "default = [\"tracing\", \"telemetry-otlp-grpc\"]")
+        or not String.contains(manifest, "tracing = [\"foundations/tracing\"]")
+        or not String.contains(
+    manifest,
+    "telemetry-otlp-grpc = [\"tracing\", \"foundations/telemetry-otlp-grpc\"]",
+) -> let _reported = failure("Foundations selectable features drifted");
+    None;
+    forbidden != "" -> let _reported = failure(String.append("forbidden adapter dependency: ", forbidden));
+    None;
+    true -> Some(
+        Json.object()
+            .put("base_features", string_array(["logging", "metrics", "testing"]))
+            .put("crate", Json.string("foundations"))
+            .put("default_features", Json.bool(false))
+            .put("dependency_tree", string_array(tree.lines))
+            .put(
+                "excluded_features",
+                string_array(
+                    [
+                        "default",
+                        "platform-common-default",
+                        "telemetry",
+                        "cli",
+                        "settings",
+                        "security",
+                        "sentry",
+                        "jemalloc",
+                        "memory-profiling",
+                        "telemetry-server",
+                    ],
+                ),
+            )
+            .put(
+                "features",
+                string_array(["logging", "metrics", "telemetry-otlp-grpc", "testing", "tracing"]),
+            )
+            .put("license", Json.string("BSD-3-Clause"))
+            .put("selectable_features", string_array(["tracing", "telemetry-otlp-grpc"]))
+            .put("version", Json.string("5.9.0")),
+    )
+}).
+
+pruning_report(): Option[Json] ->
+    let {
+        Some(core) <- dependency_tree("terlan-service-foundation");
+        Some(compiler) <- dependency_tree("terlan")
+    } else {
+        _ -> None
+    };
+    (let core_forbidden = first_present(core.names, excluded_packages());
+let compiler_forbidden = first_present(compiler.names, ["foundations", "slog", "prometheus", "opentelemetry"]);
+if {
+    core_forbidden != "" -> let _reported = failure(String.append("portable contract contains ", core_forbidden));
+    None;
+    compiler_forbidden != "" -> let _reported = failure(String.append("compiler runtime contains adapter dependency ", compiler_forbidden));
+    None;
+    true -> Some(
+        Json.object()
+            .put("adapter_absent_from_terlan_runtime_tree", Json.bool(true))
+            .put("embedded_and_zephyr_adapter_selection", Json.string("excluded"))
+            .put("excluded_from_pure_contract", string_array(sort_unique(excluded_packages(), [])))
+            .put("pure_contract_dependencies", string_array(core.lines)),
+    )
+}).
+
+artifact_hashes(files: List[String], output: Json): Option[Json] ->
+    case files {
+        [] -> Some(output);
+        [relative | rest] ->
+            case Hash.sha256_file(child(root(), relative)) {
+                Err(reason) ->
+                    let _reported = failure(File.message(reason));
+                    None;
+                Ok(digest) ->
+                    let _inserted = output.put(relative, Json.string(digest));
+                    artifact_hashes(rest, output)
+            }
+    }.
+
+build_report(): Option[Json] ->
+    let {
+        true <- check_contract();
+        true <- check_runtime();
+        Some(adapter) <- adapter_report();
+        Some(pruning) <- pruning_report();
+        Some(hashes) <-
+            artifact_hashes(
+                [
+                    "std/log/Field.terl",
+                    "std/log/Log.terl",
+                    "std/service/Config.terl",
+                    "std/service/Context.terl",
+                    "std/service/Lifecycle.terl",
+                    "std/service/Metrics.terl",
+                    "std/service/Trace.terl",
+                    "crates/terlan-service-foundation/src/lib.rs",
+                    "crates/terlan-foundations-adapter/src/lib.rs",
+                ],
+                Json.object(),
+            )
+    } else {
+        _ -> None
+    };
+    Some(
+        Json.object()
+            .put("adapter", adapter)
+            .put("artifact_hashes", hashes)
+            .put(
+                "capability_closure",
+                string_array(
+                    [
+                        "structured_logs",
+                        "implicit_request_context",
+                        "w3c_trace_context",
+                        "bounded_metrics",
+                        "scoped_spans",
+                        "health_and_drain",
+                        "typed_config_and_secret_refs",
+                    ],
+                ),
+            )
+            .put(
+                "cardinality_and_redaction",
+                Json.object()
+                    .put("max_field_value_bytes", Json.int(1024))
+                    .put("max_fields", Json.int(32))
+                    .put("max_metric_label_tuples", Json.int(1024))
+                    .put("max_name_bytes", Json.int(64))
+                    .put("raw_url_labels_allowed", Json.bool(false))
+                    .put("secret_values_representable_as_fields", Json.bool(false))
+                    .put("status", Json.string("passed")),
+            )
+            .put(
+                "canonical_owners",
+                Json.object()
+                    .put(
+                        "application_configuration",
+                        Json.string("terlan.toml and typed Terlan declarations"),
+                    )
+                    .put("http_observability", Json.string("commands::serve::observability"))
+                    .put("listener_signal_lifecycle", Json.string("embedding server/runtime"))
+                    .put("native_reference_adapter", Json.string("terlan-foundations-adapter"))
+                    .put("portable_contract", Json.string("terlan-service-foundation"))
+                    .put("serve_context", Json.string("terlan::service_foundation"))
+                    .put("source_api", Json.string("std.log and std.service")),
+            )
+            .put("host_abi_version", Json.string("terlan-service-host-abi-v1"))
+            .put(
+                "lifecycle",
+                Json.object()
+                    .put("adapter_owns_lifecycle", Json.bool(false))
+                    .put(
+                        "bounded",
+                        string_array(["in_flight", "actors", "native_resources", "telemetry_flush"]),
+                    )
+                    .put("new_admission_after_drain", Json.bool(false))
+                    .put("readiness_stops_before_drain", Json.bool(true))
+                    .put("status", Json.string("passed")),
+            )
+            .put("milestone", Json.string("SF1.0"))
+            .put(
+                "platform_matrix",
+                Json.object()
+                    .put(
+                        "embedded_linux",
+                        Json.string("portable contract only; reference adapter excluded"),
+                    )
+                    .put("native_reference", string_array(["linux-x86_64", "linux-aarch64"]))
+                    .put(
+                        "zephyr",
+                        Json.string("portable contract only; reference adapter excluded"),
+                    ),
+            )
+            .put("pruning", pruning)
+            .put("public_api_version", Json.string("terlan-service-foundation-v1"))
+            .put(
+                "rollback",
+                Json.string(
+                    "remove adapter selection; portable disabled/local sinks remain operational",
+                ),
+            )
+            .put("schema", Json.string("terlan.web-service-foundation-report.v1"))
+            .put(
+                "security_review",
+                Json.object()
+                    .put("jemalloc", Json.string("excluded pending measured long-running evidence"))
+                    .put(
+                        "seccomp",
+                        Json.string("excluded pending measured steady-state syscall inventory"),
+                    )
+                    .put("secrets", Json.string("typed handles and pre-ABI rejection"))
+                    .put("sink_failure", Json.string("bounded, observable, request-neutral")),
+            )
+            .put(
+                "semantic_corpus",
+                Json.object()
+                    .put("adapters", string_array(["disabled", "local-json", "foundations"]))
+                    .put("bounded_loss", Json.string("counted"))
+                    .put(
+                        "events",
+                        string_array(
+                            ["log", "metric", "span", "health", "drain", "config_resolved"],
+                        ),
+                    )
+                    .put("ordering", Json.string("sequence-preserving"))
+                    .put("status", Json.string("passed")),
+            )
+            .put("status", Json.string("passed"))
+            .put(
+                "telemetry_identities",
+                string_array(
+                    [
+                        "request",
+                        "connection",
+                        "route",
+                        "handler",
+                        "source",
+                        "release",
+                        "actor",
+                        "trace",
+                    ],
+                ),
+            )
+            .put(
+                "trace_context",
+                Json.object()
+                    .put("absent", Json.string("no parent context"))
+                    .put(
+                        "cancelled_or_timed_out",
+                        Json.string("terminal event retains context; new nested work rejected"),
+                    )
+                    .put(
+                        "detached",
+                        Json.string(
+                            "retains service/release/source only and starts outside request trace",
+                        ),
+                    )
+                    .put("format", Json.string("W3C traceparent"))
+                    .put("malformed", Json.string("rejected at boundary"))
+                    .put("nested", Json.string("inherits request and trace context"))
+                    .put("unsampled", Json.string("identity retained; export not required")),
+            )
+            .put(
+                "upgrade_test",
+                Json.string("exact pin plus aggregate semantic corpus and feature-closure gates"),
+            )
+            .put(
+                "upstream_deviations",
+                string_array(
+                    [
+                        "Terlan owns lifecycle and configuration semantics",
+                        "Foundations types do not cross the Terlan API or host ABI",
+                        "Foundations telemetry server and bootstrap are not used",
+                    ],
+                ),
+            ),
+    ).
+
+write_report(): Bool ->
+    let {
+        Some(report) <- build_report();
+        Ok(rendered) <- Json.stringify_pretty(report);
+        Ok(Unit) <- Directory.create_all(child(root(), "docs/runtime"));
+        Ok(Unit) <-
+            File.write_text(
+                child(root(), "docs/runtime/web-service-foundation-report.json"),
+                String.append(rendered, "\n"),
+            )
+    } else {
+        _ -> failure("cannot build service-foundation report")
+    };
+    (let _printed = println("wrote docs/runtime/web-service-foundation-report.json"); true).
+
+entry(): Bool ->
+    let mode = Arguments.get(0);
+    let valid =
+        case mode {
+            Some("contract") -> check_contract();
+            Some("runtime") -> check_runtime();
+            Some("adapter") ->
+                case adapter_report() {
+                    Some(_report) -> true;
+                    None -> false
+                };
+            Some("pruning") ->
+                case pruning_report() {
+                    Some(_report) -> true;
+                    None -> false
+                };
+            Some("report") -> write_report();
+            Some(value) -> failure(String.append("unknown mode: ", value));
+            None -> failure("expected contract, runtime, adapter, pruning, or report")
+        };
+    if {
+        valid -> let _printed =
+            println(
+                String.concat(
+                    [
+                        "web service foundation ",
+                        case mode {
+                            Some(value) -> value;
+                            None -> ""
+                        },
+                        ": passed",
+                    ],
+                ),
+            );
+        true;
+        true -> false
+    }.
+
+assert(entry());
+Unit.

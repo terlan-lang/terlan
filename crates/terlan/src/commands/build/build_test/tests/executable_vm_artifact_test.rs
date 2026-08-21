@@ -1,5 +1,51 @@
 use super::*;
 
+/// Verifies a native Terlan service launcher targets its bundled HTTP runtime.
+///
+/// Inputs:
+/// - A package-local launcher path.
+///
+/// Output:
+/// - Test passes when the launcher maps the platform port, enables trusted
+///   service capabilities by default, and executes the adjacent runtime over
+///   the packaged web root.
+///
+/// Transformation:
+/// - Writes the portable service entrypoint without requiring a compiler or a
+///   live HTTP listener.
+#[test]
+fn vm_service_launcher_executes_bundled_service_runtime() {
+    let dir = make_temp_dir("vm_service_launcher");
+    let launcher = dir.join("bin/app");
+
+    write_vm_service_launcher(&launcher, false).expect("write VM service launcher");
+
+    let contents = fs::read_to_string(&launcher).expect("read VM service launcher");
+    if cfg!(windows) {
+        assert!(contents.contains("TERLAN_SERVE_PORT=%PORT%"));
+        assert!(contents.contains("TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES=1"));
+        assert!(contents.contains("terlan-serve-runtime.exe"));
+        assert!(contents.contains("..\\web"));
+    } else {
+        assert!(contents.contains("export TERLAN_SERVE_PORT=$PORT"));
+        assert!(contents.contains(
+            "export TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES=${TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES:-1}"
+        ));
+        assert!(contents.contains("exec \"$SCRIPT_DIR/terlan-serve-runtime\""));
+        assert!(contents.contains("\"$SCRIPT_DIR/../web\""));
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        let mode = fs::metadata(&launcher)
+            .expect("service launcher metadata")
+            .permissions()
+            .mode();
+        assert_ne!(mode & 0o111, 0, "service launcher should be executable");
+    }
+}
+
 /// Verifies executable VM artifact packages require an executable entrypoint.
 ///
 /// Inputs:

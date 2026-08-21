@@ -67,6 +67,19 @@ fn native_security_headers_are_not_claimed_by_transport_framing() {
     }
 }
 
+/// Verifies cache policy is selected by the application rather than rejected
+/// as HTTP framing metadata.
+#[test]
+fn native_cache_control_header_crosses_the_response_bridge() {
+    assert_eq!(
+        validate_response_header("Cache-Control", "public, max-age=60"),
+        Ok((
+            "Cache-Control".to_string(),
+            "public, max-age=60".to_string()
+        ))
+    );
+}
+
 /// Verifies native text, HTML, and JSON responses preserve media and body semantics.
 #[test]
 fn native_body_responses_decode_from_uniform_managed_layout() {

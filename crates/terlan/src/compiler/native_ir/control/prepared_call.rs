@@ -146,12 +146,15 @@ pub(super) fn lower_prepared_call(
                     parameters: parameter_types.clone(),
                     result: result_type,
                 };
-                let targets = dynamic_profiles.get(&signature).ok_or_else(|| {
-                    format!(
-                        "error[native_ir.dynamic_call_profile]: closure `{}` has no suspension profile",
-                        callee.contract_text()
-                    )
-                })?;
+                // Start an unresolved closed-world callback as provisionally
+                // synchronous. Once its lifted targets are lowered, later
+                // fixed-point phases replace this empty set with their exact
+                // suspension profiles. Final target validation rejects any
+                // callable that never acquires a closed profile.
+                let targets = dynamic_profiles
+                    .get(&signature)
+                    .map(Vec::as_slice)
+                    .unwrap_or_default();
                 let profiles = targets
                     .iter()
                     .map(|target| (Some(target.export_id), &target.profile))
@@ -166,6 +169,7 @@ pub(super) fn lower_prepared_call(
                 )
             }
         };
+    contextualize_comparison_prefix(&mut region, result_core_type.as_ref());
     let call_ordinal = *ordinal;
     *ordinal = ordinal.saturating_add(1);
     let completion_id = stable_composed_completion_id(module, function, arity, call_ordinal);
@@ -434,4 +438,41 @@ pub(super) fn lower_prepared_call(
         },
         continuations,
     ))
+}
+
+/// Gives an eagerly evaluated comparison operand the exact result type of the
+/// suspension-capable operand. Transparent constructor literals otherwise
+/// infer only their narrow tuple variant and acquire a different managed
+/// semantic from the declared union returned by the call.
+fn contextualize_comparison_prefix(region: &mut CallRegion, result_type: Option<&CoreType>) {
+    let Some(result_type) = result_type else {
+        return;
+    };
+    let CoreExpr::BinaryOp {
+        operator,
+        left,
+        right,
+    } = &region.resume
+    else {
+        return;
+    };
+    if !matches!(operator.as_str(), "==" | "!=")
+        || !matches!(right.as_ref(), CoreExpr::Var(name) if name == &region.result_name)
+    {
+        return;
+    }
+    let CoreExpr::Var(prefix_name) = left.as_ref() else {
+        return;
+    };
+    let Some(binding) = region.prefix.iter_mut().find(|binding| {
+        matches!(&binding.pattern, crate::terlan_typeck::CorePattern::Var(name) if name == prefix_name)
+    }) else {
+        return;
+    };
+    if !matches!(binding.value, CoreExpr::Cast { .. }) {
+        binding.value = CoreExpr::Cast {
+            expr: Box::new(binding.value.clone()),
+            target_type: result_type.clone(),
+        };
+    }
 }

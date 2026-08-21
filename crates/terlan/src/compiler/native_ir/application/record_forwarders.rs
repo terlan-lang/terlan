@@ -1,4 +1,4 @@
-//! Closed-image inlining for exact record-constructor forwarders.
+//! Closed-image inlining for exact, evaluation-preserving forwarders.
 
 use std::collections::HashMap;
 
@@ -10,12 +10,18 @@ struct RecordForwarder {
     record: String,
 }
 
+#[derive(Clone)]
+enum DirectForwarder {
+    Identity,
+    Record(RecordForwarder),
+}
+
 pub(super) fn inline_record_forwarders(cores: &mut [CoreModule]) {
     let forwarders = cores
         .iter()
         .flat_map(|core| {
             core.functions.iter().filter_map(move |function| {
-                record_forwarder(function).map(|forwarder| {
+                direct_forwarder(function).map(|forwarder| {
                     (
                         (core.module.clone(), function.name.clone(), function.arity),
                         forwarder,
@@ -39,6 +45,33 @@ pub(super) fn inline_record_forwarders(cores: &mut [CoreModule]) {
             }
         }
     }
+}
+
+fn direct_forwarder(function: &CoreFunction) -> Option<DirectForwarder> {
+    identity_forwarder(function)
+        .then_some(DirectForwarder::Identity)
+        .or_else(|| record_forwarder(function).map(DirectForwarder::Record))
+}
+
+/// An exact unary identity wrapper may be erased without changing argument
+/// evaluation. Besides avoiding a redundant native call, doing so exposes the
+/// wrapped call's true tail position to termination and suspension analysis.
+fn identity_forwarder(function: &CoreFunction) -> bool {
+    let [parameter] = function.params.as_slice() else {
+        return false;
+    };
+    let [clause] = function.clauses.as_slice() else {
+        return false;
+    };
+    clause.guard.is_none()
+        && matches!(
+            clause.core_patterns.as_slice(),
+            [Some(CorePattern::Var(name))] if name == &parameter.name
+        )
+        && matches!(
+            clause.body.core_expr.as_ref(),
+            Some(CoreExpr::Var(name)) if name == &parameter.name
+        )
 }
 
 fn record_forwarder(function: &CoreFunction) -> Option<RecordForwarder> {
@@ -82,7 +115,7 @@ fn record_forwarder(function: &CoreFunction) -> Option<RecordForwarder> {
 fn rewrite(
     expr: &mut CoreExpr,
     module: &str,
-    forwarders: &HashMap<(String, String, usize), RecordForwarder>,
+    forwarders: &HashMap<(String, String, usize), DirectForwarder>,
 ) {
     match expr {
         CoreExpr::Call { function, args } => {
@@ -97,19 +130,25 @@ fn rewrite(
                 return;
             };
             let values = std::mem::take(args);
-            *expr = CoreExpr::RecordConstruct {
-                name: forwarder.record.clone(),
-                fields: forwarder
-                    .fields
-                    .iter()
-                    .cloned()
-                    .zip(values)
-                    .map(|((key, required), value)| CoreRecordExprField {
-                        key,
-                        required,
-                        value,
-                    })
-                    .collect(),
+            *expr = match forwarder {
+                DirectForwarder::Identity => values
+                    .into_iter()
+                    .next()
+                    .expect("identity forwarders have exactly one argument"),
+                DirectForwarder::Record(forwarder) => CoreExpr::RecordConstruct {
+                    name: forwarder.record.clone(),
+                    fields: forwarder
+                        .fields
+                        .iter()
+                        .cloned()
+                        .zip(values)
+                        .map(|((key, required), value)| CoreRecordExprField {
+                            key,
+                            required,
+                            value,
+                        })
+                        .collect(),
+                },
             };
         }
         CoreExpr::RemoteCall { args, .. } | CoreExpr::ConstructorCall { args, .. } => {
@@ -229,7 +268,7 @@ fn rewrite(
 fn rewrite_many(
     expressions: &mut [CoreExpr],
     module: &str,
-    forwarders: &HashMap<(String, String, usize), RecordForwarder>,
+    forwarders: &HashMap<(String, String, usize), DirectForwarder>,
 ) {
     for expression in expressions {
         rewrite(expression, module, forwarders);

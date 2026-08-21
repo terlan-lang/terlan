@@ -85,9 +85,11 @@ const REQUIRED_CLI_MK_TERMS: &[&str] = &[
 const REQUIRED_MAKEFILE_TERMS: &[&str] = &[
     ".SHELLFLAGS := -eo pipefail -c",
     "publish-preflight:",
-    "$(MAKE) check",
+    "$(MAKE) release-preflight RELEASE_VERSION=\"$(VERSION)\"",
+    "release-check: release-evidence-refresh",
+    "$(MAKE) --no-print-directory release-preflight RELEASE_VERSION=\"$(RELEASE_VERSION)\"",
     "test-release:",
-    "$(MAKE) release-artifact-current",
+    "release-artifact-current:",
     "vm-release-install-validation-check",
     "tvm-aot-package-install-consumer-check",
 ];
@@ -260,7 +262,6 @@ fn validate_editor_package_versions(
     let paths = [
         "editors/vscode/package.json",
         "editors/vscode/package-lock.json",
-        "editors/vscode/node_modules/.package-lock.json",
     ];
     let mut diagnostics = Vec::new();
     for path in paths {

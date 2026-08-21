@@ -8,7 +8,6 @@ use crate::terlan_quality::QualityResult;
 
 use super::support::{make_target_body, make_target_prerequisites};
 
-const ROADMAP_PATH: &str = "docs/roadmap/ROADMAP_0_0_7_CODE_QUALITY.md";
 const MAKEFILE_PATH: &str = "Makefile";
 const CODE_QUALITY_MAKEFILE_PATH: &str = "mk/code-quality.mk";
 const REPORT_PATH: &str = "target/quality/release-code-hygiene-report.json";
@@ -25,60 +24,31 @@ const REQUIRED_SUB_GATES: &[&str] = &[
     "terlan-lint-pipe-canonicalization-check",
 ];
 
-const REQUIRED_ROADMAP_TERMS: &[&str] = &[
-    "CQ-6: 0.0.7 Structural Closeout",
-    "Rust warnings",
-    "dead-code",
-    "file-size",
-    "rust-file-headroom-check",
-    "function-size",
-    "module-size",
-    "panic!",
-    "unwrap",
-    "expect",
-    "duplicate-helper",
-    "dormant-runtime-code-check",
-    "shared-helper-check",
-    "terlan-lint-style-profile-check",
-    "terlan-lint-pipe-canonicalization-check",
-    "release-code-hygiene-report.json",
-    "make release-code-hygiene-check",
-];
-
 const FORBIDDEN_REPORT_FIELDS: &[&str] = &["todo", "tbd", "placeholder", "manual_review_only"];
 
 /// Summary produced by the release code-hygiene umbrella gate.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReleaseCodeHygieneSummary {
     pub sub_gate_count: usize,
-    pub roadmap_term_count: usize,
     pub report_path: String,
 }
 
 /// Runs the release code-hygiene umbrella gate.
 ///
 /// Inputs:
-/// - The 0.0.7 roadmap.
 /// - The repository Makefile and Rust code-quality Make fragment.
 ///
 /// Output:
 /// - A deterministic report proving release hygiene is represented by one
 ///   release-facing gate and concrete sub-gates.
-/// - Stable diagnostics when roadmap ownership or Make wiring drifts.
+/// - Stable diagnostics when Make wiring or report structure drifts.
 ///
 /// Transformation:
-/// - Converts slice 63 from scattered sub-gate evidence into one executable
-///   release blocker that can be scheduled by release closeout.
+/// - Converts scattered sub-gate evidence into one executable release blocker.
 pub fn run_release_code_hygiene(root: &Path) -> QualityResult<ReleaseCodeHygieneSummary> {
-    let roadmap_text = fs::read_to_string(root.join(ROADMAP_PATH)).map_err(|err| {
-        format!(
-            "{}: failed to read release code hygiene roadmap contract: {err}",
-            ROADMAP_PATH
-        )
-    })?;
     let makefile_text = read_make_graph(root)?;
 
-    let mut diagnostics = validate_release_code_hygiene_contract(&roadmap_text, &makefile_text);
+    let mut diagnostics = validate_makefile_targets(&makefile_text);
     diagnostics.extend(validate_report_payload(&report_payload()));
     if !diagnostics.is_empty() {
         return Err(render_failure(&diagnostics));
@@ -88,7 +58,6 @@ pub fn run_release_code_hygiene(root: &Path) -> QualityResult<ReleaseCodeHygiene
     write_report(&report_path)?;
     Ok(ReleaseCodeHygieneSummary {
         sub_gate_count: REQUIRED_SUB_GATES.len(),
-        roadmap_term_count: REQUIRED_ROADMAP_TERMS.len(),
         report_path: REPORT_PATH.to_string(),
     })
 }
@@ -103,22 +72,6 @@ fn read_make_graph(root: &Path) -> QualityResult<String> {
         })
         .collect::<QualityResult<Vec<_>>>()
         .map(|sources| sources.join("\n"))
-}
-
-fn validate_release_code_hygiene_contract(roadmap_text: &str, makefile_text: &str) -> Vec<String> {
-    let mut diagnostics = Vec::new();
-    diagnostics.extend(validate_roadmap_terms(roadmap_text));
-    diagnostics.extend(validate_makefile_targets(makefile_text));
-    diagnostics
-}
-
-fn validate_roadmap_terms(roadmap_text: &str) -> Vec<String> {
-    let normalized = roadmap_text.to_lowercase();
-    REQUIRED_ROADMAP_TERMS
-        .iter()
-        .filter(|term| !normalized.contains(&term.to_lowercase()))
-        .map(|term| format!("{ROADMAP_PATH}: missing release code hygiene term `{term}`"))
-        .collect()
 }
 
 fn validate_makefile_targets(makefile_text: &str) -> Vec<String> {

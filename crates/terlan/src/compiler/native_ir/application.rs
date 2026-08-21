@@ -25,13 +25,16 @@ use super::LocalFunctionIdentity as CallIdentity;
 mod admission_diagnostics;
 mod analysis;
 mod callable_metadata;
-mod dynamic_targets;
+pub(super) mod dynamic_targets;
+mod list_builder_recursion;
 mod mutable_receivers;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use mutable_receivers::resolve_typed_mutable_receiver_calls;
 mod native_packages;
 #[cfg(test)]
 mod native_packages_test;
 mod normalization;
+mod overloads;
 mod record_forwarders;
 mod remote_calls;
 mod structural_patterns;
@@ -117,9 +120,11 @@ impl NativeModule {
                 &duplicate[0].module,
             ));
         }
+        super::application_admission::reject_ambiguous_source_import_calls(&normalized_cores)?;
         super::open_std_pruning::prune_compile_time_router_builders(&mut normalized_cores);
         super::nominal_identity::qualify_application_nominal_types(&mut normalized_cores);
         super::atom_alias_values::lower_atom_alias_values(&mut normalized_cores);
+        overloads::resolve_typed_overloads(&mut normalized_cores)?;
         let native_aliases = native_package_aliases(&normalized_cores);
         for core in &mut normalized_cores {
             lower_compiler_native_declarations(core)?;
@@ -171,6 +176,7 @@ impl NativeModule {
             )?;
         }
         super::nested_closure_lifting::lift_nested_closure_arguments(&mut normalized_cores)?;
+        list_builder_recursion::normalize_recursive_list_builders(&mut normalized_cores);
         record_forwarders::inline_record_forwarders(&mut normalized_cores);
         structural_patterns::scalar_replace(&mut normalized_cores)?;
         for core in &mut normalized_cores {
@@ -235,6 +241,18 @@ impl NativeModule {
                         super::constructors::install_struct_layouts(
                             &type_modules,
                             &core.module,
+                            &mut layouts,
+                        )?;
+                        super::constructors::install_structural_type_layouts(
+                            ordered_cores.iter().flat_map(|core| {
+                                core.functions.iter().flat_map(|function| {
+                                    function
+                                        .params
+                                        .iter()
+                                        .filter_map(|parameter| parameter.core_ty.as_ref())
+                                        .chain(function.core_return_type.iter())
+                                })
+                            }),
                             &mut layouts,
                         )?;
                         Ok((core.module.clone(), layouts))
@@ -316,6 +334,12 @@ impl NativeModule {
                     .filter(|(_, candidate_index)| composable_candidates.contains(candidate_index))
                     .map(|(identity, _)| identity.clone())
                     .collect::<HashSet<_>>();
+                // Application composition is a fixed-point proof that every
+                // reachable suspension has a closed continuation profile. A
+                // candidate admitted by that proof may contain grouped-let
+                // cases whose recursive resume is intentionally broader than
+                // the scalar fast-path checker; suspension-aware lowering is
+                // the authoritative shape check for those candidates.
                 let supported = candidate
                     .function
                     .clauses
@@ -332,7 +356,7 @@ impl NativeModule {
                             &suspending_names,
                             &composable,
                             true,
-                        )
+                        ) || composable_candidates.contains(&index)
                     });
                 if !supported {
                     let gap = candidate

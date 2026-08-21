@@ -1,0 +1,14 @@
+Release: terlan-registry@0.1.0
+Target: terlan-vm (terlan-vm)
+Services:
+  - terlan-registry: terlan.registry.Main.main/0 x2
+    health: /health every 10s, timeout 2s
+Routes:
+  - GET /health -> terlan.registry.Http.health/1 (src/terlan/registry/Http.terl)
+  - GET /packages/:name -> terlan.registry.Http.package/1 (src/terlan/registry/Http.terl)
+Configuration: 3 environment names, 1 secret references
+Migrations: 1
+Native packages: 1
+Resources: cpu=500m memory=512MB processes=2
+Outbound network: 1 declaration(s)
+Rollback: migration-compatible

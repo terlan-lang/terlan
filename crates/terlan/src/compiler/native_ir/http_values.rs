@@ -292,6 +292,13 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
                 args: Vec::new(),
             })
         }
+        CoreExpr::Atom(tag) if features.router && tag == "continue" => {
+            Ok(CoreExpr::ConstructorCall {
+                constructor: format!("{ROUTER_MODULE}.Continue"),
+                constructor_identity: Some(format!("{ROUTER_MODULE}.Continue")),
+                args: Vec::new(),
+            })
+        }
         CoreExpr::RemoteCall {
             module,
             function,
@@ -340,6 +347,11 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
             module,
             function,
             args,
+        } if features.request && module == REQUEST_MODULE => request_accessor(&function, args),
+        CoreExpr::RemoteCall {
+            module,
+            function,
+            args,
         } if module == RESPONSE_MODULE && response_method_arity(&function, args.len()) => {
             response_receiver_call(&function, args)
         }
@@ -367,6 +379,13 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
                 return response_receiver_call(name, args);
             }
             response_call(name, args)
+        }
+        CoreExpr::Call { function, args } if function.starts_with(REQUEST_MODULE) => {
+            let name = function
+                .strip_prefix(REQUEST_MODULE)
+                .and_then(|value| value.strip_prefix('.'))
+                .unwrap_or(&function);
+            request_accessor(name, args)
         }
         CoreExpr::Call { function, args }
             if matches!(
@@ -483,7 +502,13 @@ fn request_accessor(function: &str, args: Vec<CoreExpr>) -> Result<CoreExpr, Str
     let supported = matches!(
         (function, args.len()),
         (
-            "method" | "path" | "query_string" | "body_text" | "body_json" | "cookies",
+            "method"
+                | "path"
+                | "query_string"
+                | "body_text"
+                | "body_file_path"
+                | "body_json"
+                | "cookies",
             1
         ) | ("param" | "query" | "header" | "cookie", 2)
     );
@@ -529,7 +554,9 @@ pub(super) fn managed_http_operation_type(expr: &CoreExpr) -> Option<NativeType>
         ("string_concat", arity) if arity >= 2 => Some(NativeType::StringRef),
         ("string_prepend_literal", 2) => Some(NativeType::StringRef),
         ("json_payload", 1) => Some(NativeType::StringRef),
-        ("method" | "path" | "query_string" | "body_text", 1) => Some(NativeType::StringRef),
+        ("method" | "path" | "query_string" | "body_text" | "body_file_path", 1) => {
+            Some(NativeType::StringRef)
+        }
         ("param" | "query" | "header" | "cookie", 2) => {
             semantic(STRING_OPTION).ok().map(NativeType::ManagedRef)
         }
@@ -794,6 +821,7 @@ pub(super) fn lower_managed_http_operation(
         "header" => (7, true),
         "cookie" => (8, true),
         "cookies" => (9, false),
+        "body_file_path" => (10, false),
         _ => {
             return Err(format!(
                 "error[native_ir.http_request_accessor]: unsupported Request.{function} operation"

@@ -1,5 +1,3 @@
-use super::*;
-
 pub(super) fn render_dispatch_modules(chunk_count: usize) -> String {
     let mut modules = (0..chunk_count)
         .map(|index| {
@@ -16,26 +14,18 @@ pub(super) fn render_dispatch_modules(chunk_count: usize) -> String {
 }
 
 pub(super) fn render_dispatch_calls(
-    functions: &[&CAbiBindingFunction],
-    dispatch_chunks: &[String],
+    dispatch_chunk_count: usize,
     inline_match_arms: &str,
 ) -> String {
-    if dispatch_chunks.is_empty() {
+    if dispatch_chunk_count == 0 {
         return format!(
             "        match request.operation.as_str() {{\n{inline_match_arms}\n            _ => protocol_error(\"unknown_operation\", &request.operation),\n        }}"
         );
     }
-    let mut calls = functions
-        .chunks(32)
-        .enumerate()
-        .map(|(index, chunk_functions)| {
-            let operations = chunk_functions
-                .iter()
-                .map(|function| format!("{:?}", function.operation))
-                .collect::<Vec<_>>()
-                .join(" | ");
+    let mut calls = (0..dispatch_chunk_count)
+        .map(|index| {
             format!(
-                "        if matches!(request.operation.as_str(), {operations}) {{\n            return self.execute_chunk_{index}(request);\n        }}"
+                "        if native_boundary_dispatch_{index}::accepts_chunk_{index}(request.operation.as_str()) {{\n            return self.execute_chunk_{index}(request);\n        }}"
             )
         })
         .collect::<Vec<_>>()

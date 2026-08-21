@@ -97,3 +97,22 @@ fn iterator_intrinsics_inventory_their_physical_list_storage() {
         .iter()
         .any(|descriptor| descriptor.canonical_type() == "List(Tuple(String,Int))"));
 }
+
+#[test]
+fn inventories_checked_list_literals_with_variable_members() {
+    let expression = CoreExpr::List(vec![
+        CoreExpr::Binary("prefix".to_string()),
+        CoreExpr::Var("body".to_string()),
+    ]);
+
+    let layouts = managed_expression_collection_layouts([&expression])
+        .expect("mixed literal collection inventory");
+    let descriptors = layouts
+        .iter()
+        .map(|layout| decode_collection_layout(layout).expect("mixed list schema"))
+        .collect::<Vec<_>>();
+
+    assert!(descriptors
+        .iter()
+        .any(|descriptor| descriptor.canonical_type() == "List(String)"));
+}

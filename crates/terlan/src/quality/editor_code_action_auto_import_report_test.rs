@@ -13,11 +13,7 @@ fn editor_code_action_auto_import_report_writes_expected_artifact() {
     let root = temp_root("editor-code-action-auto-import-report-ok");
     fs::create_dir_all(root.join("editors")).expect("create editors dir");
     fs::create_dir_all(root.join("crates/terlan/src/lsp")).expect("create lsp dir");
-    fs::write(
-        root.join("Makefile"),
-        format!("COMPLETED_SLICE_RUST_GATES := {TARGET}\ninclude editors/editor.mk\n"),
-    )
-    .expect("write Makefile");
+    fs::write(root.join("Makefile"), "include editors/editor.mk\n").expect("write Makefile");
     fs::write(root.join("editors/editor.mk"), editor_gate_body()).expect("write editor makefile");
     fs::write(
         root.join("crates/terlan/src/lsp/import_actions_test.rs"),

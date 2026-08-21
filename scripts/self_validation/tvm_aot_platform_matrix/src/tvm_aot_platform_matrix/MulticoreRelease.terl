@@ -41,7 +41,6 @@ pub local_gates(): List[String] ->
         "tvm-aot-runtime-transition-check",
         "tvm-managed-memory-check",
         "rust-quality-check",
-        "roadmap-gate-integrity-check",
     ].
 
 failure(message: String): Bool ->

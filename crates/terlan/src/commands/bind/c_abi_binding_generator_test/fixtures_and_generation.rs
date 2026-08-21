@@ -208,17 +208,213 @@ pub(super) fn structured_c_metadata_generates_real_ffi_package() {
     assert!(helper.contains("take((MAX_ADAPTER_FRAME_BYTES + 1) as u64)"));
     assert!(helper.contains("last_request_id"));
     assert!(helper.contains("request_not_monotonic"));
+    assert!(helper.contains("request_handles"));
+    assert!(helper.contains("unknown_handle_reference"));
 
     let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
         .expect("Terlan module");
     assert!(source.contains("pub opaque type NativeBoundary."));
     assert!(source.contains("@compiler.native {c_abi_fixture.native_boundary.new}"));
+    assert!(!source.contains("-> native.\n\n/**"));
     assert!(!source.contains("std.native"));
     let consumer = fs::read_to_string(out_dir.join("tests/c_abi_fixture/NativeBoundaryTest.terl"))
         .expect("generated consumer");
     assert!(consumer.contains("observed_clone_value == observed_returned_source_value"));
     assert!(!consumer.contains("observed_unsqueeze_value == observed_returned_source_value"));
 
+    fs::remove_dir_all(out_dir).expect("remove generated outputs");
+}
+
+/// Verifies native manifests can expose Terlan trailing defaults without
+/// changing the complete native ABI signature.
+#[test]
+pub(super) fn structured_c_metadata_preserves_terlan_argument_defaults() {
+    let manifest = write_fixture_variant("terlan_argument_defaults", |metadata| {
+        let function = metadata["modules"][0]["functions"]
+            .as_array_mut()
+            .expect("functions")
+            .iter_mut()
+            .find(|function| function["name"] == "unsqueeze")
+            .expect("unsqueeze function");
+        function["adapter_name"] = Value::String("unsqueeze_at".to_string());
+        function["args"][1]["default"] = Value::String("0".to_string());
+    });
+    let out_dir = temp_dir("terlan_argument_defaults_output");
+
+    generate_c_abi_bindings(&manifest, &out_dir).expect("generate defaulted C ABI package");
+
+    let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
+        .expect("Terlan module");
+    assert!(source.contains("dimension: Int = 0"));
+    let adapter =
+        fs::read_to_string(out_dir.join("native/rust/src/lib.rs")).expect("native adapter");
+    assert!(adapter.contains("pub fn unsqueeze_at(&self, dimension: i64)"));
+    assert!(!adapter.contains("pub fn unsqueeze(&self, dimension: i64)"));
+    let helper = fs::read_to_string(out_dir.join("native/rust/src/bin/native_boundary_helper.rs"))
+        .expect("native helper");
+    assert!(helper.contains(".unsqueeze_at("));
+
+    fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
+    fs::remove_dir_all(out_dir).expect("remove generated outputs");
+}
+
+/// Verifies package-authored Terlan declarations are merged into the emitted
+/// module and retained by the normalized distribution manifest.
+#[test]
+pub(super) fn package_owned_terlan_module_extension_is_generated() {
+    let manifest = write_fixture_variant("terlan_module_extension", |metadata| {
+        metadata["package"]["terlan_module_extensions"] = serde_json::json!({
+            "c_abi_fixture.NativeBoundary": "native_boundary_extension.terl"
+        });
+    });
+    fs::write(
+        manifest
+            .parent()
+            .expect("variant root")
+            .join("native_boundary_extension.terl"),
+        "/** Reports whether the package extension is active. */\npub extension_probe(): Bool ->\n    true.\n",
+    )
+    .expect("write Terlan module extension");
+    let out_dir = temp_dir("terlan_module_extension_output");
+
+    generate_c_abi_bindings(&manifest, &out_dir).expect("generate extended C ABI package");
+
+    let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
+        .expect("extended Terlan module");
+    assert!(source.contains("pub extension_probe(): Bool ->"));
+    assert!(source.contains("true."));
+    let normalized = fs::read_to_string(out_dir.join("bindings/native-binding-manifest.json"))
+        .expect("normalized binding manifest");
+    assert!(normalized.contains("native_boundary_extension.terl"));
+
+    fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
+    fs::remove_dir_all(out_dir).expect("remove generated output");
+}
+
+/// Verifies Terlan module extensions cannot target unknown modules, escape the
+/// package, use non-Terlan files, or bypass generated-source syntax validation.
+#[test]
+pub(super) fn package_owned_terlan_module_extension_rejects_invalid_inputs() {
+    let unknown = write_fixture_variant("terlan_extension_unknown", |metadata| {
+        metadata["package"]["terlan_module_extensions"] = serde_json::json!({
+            "c_abi_fixture.Unknown": "unknown.terl"
+        });
+    });
+    let error = generate_c_abi_bindings(&unknown, &temp_dir("terlan_extension_unknown_output"))
+        .expect_err("unknown extension module must fail");
+    assert!(error.contains("unknown module"), "{error}");
+    fs::remove_dir_all(unknown.parent().expect("variant root")).expect("remove variant");
+
+    let escaping = write_fixture_variant("terlan_extension_escape", |metadata| {
+        metadata["package"]["terlan_module_extensions"] = serde_json::json!({
+            "c_abi_fixture.NativeBoundary": "../escape.terl"
+        });
+    });
+    let error = generate_c_abi_bindings(&escaping, &temp_dir("terlan_extension_escape_output"))
+        .expect_err("escaping extension source must fail");
+    assert!(error.contains("must be a package-relative file"), "{error}");
+    fs::remove_dir_all(escaping.parent().expect("variant root")).expect("remove variant");
+
+    let wrong_extension = write_fixture_variant("terlan_extension_wrong_type", |metadata| {
+        metadata["package"]["terlan_module_extensions"] = serde_json::json!({
+            "c_abi_fixture.NativeBoundary": "extension.txt"
+        });
+    });
+    fs::write(
+        wrong_extension
+            .parent()
+            .expect("variant root")
+            .join("extension.txt"),
+        "pub extension_probe(): Bool -> true.\n",
+    )
+    .expect("write wrong extension type");
+    let error = generate_c_abi_bindings(
+        &wrong_extension,
+        &temp_dir("terlan_extension_wrong_type_output"),
+    )
+    .expect_err("non-Terlan extension source must fail");
+    assert!(error.contains("must be a Terlan source file"), "{error}");
+    fs::remove_dir_all(wrong_extension.parent().expect("variant root")).expect("remove variant");
+
+    let malformed = write_fixture_variant("terlan_extension_malformed", |metadata| {
+        metadata["package"]["terlan_module_extensions"] = serde_json::json!({
+            "c_abi_fixture.NativeBoundary": "malformed.terl"
+        });
+    });
+    fs::write(
+        malformed
+            .parent()
+            .expect("variant root")
+            .join("malformed.terl"),
+        "pub malformed(: Bool -> true.\n",
+    )
+    .expect("write malformed Terlan extension");
+    let error = generate_c_abi_bindings(&malformed, &temp_dir("terlan_extension_malformed_output"))
+        .expect_err("malformed Terlan extension must fail");
+    assert!(
+        error.contains("failed to validate generated Terlan module"),
+        "{error}"
+    );
+    fs::remove_dir_all(malformed.parent().expect("variant root")).expect("remove variant");
+}
+
+#[test]
+pub(super) fn large_c_surfaces_shard_ffi_and_free_function_adapters() {
+    let manifest = write_fixture_variant("large_surface", |metadata| {
+        let free_function = metadata["modules"][0]["functions"]
+            .as_array()
+            .expect("functions")
+            .iter()
+            .find(|function| function["name"] == "live_count")
+            .expect("free function")
+            .clone();
+        let free_symbol = metadata["c_metadata"]["symbols"]
+            .as_array()
+            .expect("symbols")
+            .iter()
+            .find(|symbol| symbol["id"] == "function.native_boundary_live_count")
+            .expect("free symbol")
+            .clone();
+
+        for index in 0..60 {
+            let mut function = free_function.clone();
+            function["name"] = format!("large_value_{index}").into();
+            function["operation"] =
+                format!("c_abi_fixture.native_boundary.large_value_{index}").into();
+            function["c_symbol"] = format!("function.large_value_{index}").into();
+            metadata["modules"][0]["functions"]
+                .as_array_mut()
+                .expect("functions")
+                .push(function);
+
+            let mut symbol = free_symbol.clone();
+            symbol["id"] = format!("function.large_value_{index}").into();
+            symbol["c_name"] = format!("terlan_c_large_value_{index}").into();
+            metadata["c_metadata"]["symbols"]
+                .as_array_mut()
+                .expect("symbols")
+                .push(symbol);
+        }
+    });
+    let out_dir = temp_dir("large_surface_output");
+
+    generate_c_abi_bindings(&manifest, &out_dir).expect("generate large C ABI package");
+
+    let source_dir = out_dir.join("native/rust/src");
+    let root = fs::read_to_string(source_dir.join("lib.rs")).expect("adapter root");
+    assert!(root.lines().count() < 1_000);
+    assert!(root.contains("include!(\"generated_ffi_0.rs\")"));
+    assert!(root.contains("include!(\"generated_free_adapter_0.rs\")"));
+    assert!(!root.contains("pub fn terlan_c_large_value_59"));
+    assert!(!root.contains("pub fn large_value_59"));
+
+    let ffi = fs::read_to_string(source_dir.join("generated_ffi_1.rs")).expect("FFI shard");
+    assert!(ffi.contains("pub fn terlan_c_large_value_59"));
+    let adapters = fs::read_to_string(source_dir.join("generated_free_adapter_2.rs"))
+        .expect("free adapter shard");
+    assert!(adapters.contains("pub fn large_value_59"));
+
+    fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
     fs::remove_dir_all(out_dir).expect("remove generated outputs");
 }
 
@@ -644,6 +840,59 @@ pub(super) fn direct_c_wrapper_maps_multiple_handle_inputs_and_scalar_conversion
     let consumer = fs::read_to_string(out_dir.join("tests/c_abi_fixture/NativeBoundaryTest.terl"))
         .expect("generated consumer");
     assert!(!consumer.contains("returned_subtract"));
+
+    fs::remove_dir_all(manifest.parent().expect("variant parent")).expect("remove variant");
+    fs::remove_dir_all(out_dir).expect("remove output");
+}
+
+#[test]
+pub(super) fn direct_c_constructor_names_each_borrowed_handle_argument() {
+    let manifest = write_fixture_variant("direct_handle_constructor", |metadata| {
+        metadata["c_metadata"]["symbols"]
+            .as_array_mut()
+            .expect("symbols")
+            .push(serde_json::json!({
+                "id": "function.native_boundary_blend",
+                "c_name": "terlan_c_native_boundary_blend",
+                "kind": "function",
+                "status": "bind",
+                "returns": "int32_t",
+                "error_model": "status_code",
+                "success_code": 0,
+                "parameters": [
+                    {"name": "start", "c_type": "const TerlanCNativeBoundary *", "direction": "input", "ownership": "borrowed_call"},
+                    {"name": "stop", "c_type": "const TerlanCNativeBoundary *", "direction": "input", "ownership": "borrowed_call"},
+                    {"name": "out_boundary", "c_type": "TerlanCNativeBoundary **", "direction": "output", "ownership": "transfer_full"}
+                ]
+            }));
+        metadata["modules"][0]["functions"]
+            .as_array_mut()
+            .expect("functions")
+            .push(serde_json::json!({
+                "name": "blend",
+                "operation": "c_abi_fixture.native_boundary.blend",
+                "c_symbol": "function.native_boundary_blend",
+                "role": "constructor",
+                "args": [
+                    {"name": "start", "ty": "NativeBoundary"},
+                    {"name": "stop", "ty": "NativeBoundary"}
+                ],
+                "returns": "NativeBoundary",
+                "blocking": "fast",
+                "resource": "opaque_handle",
+                "documentation": "Exercises named resource inputs on an associated constructor."
+            }));
+    });
+    let out_dir = temp_dir("direct_handle_constructor_output");
+
+    generate_c_abi_bindings(&manifest, &out_dir).expect("generate resource constructor");
+    let adapter = fs::read_to_string(out_dir.join("native/rust/src/lib.rs")).expect("adapter");
+    assert!(adapter.contains("pub fn blend(start: &Self, stop: &Self) -> Result<Self, CAbiError>"));
+    assert!(contains_ignoring_whitespace(
+        &adapter,
+        "ffi::terlan_c_native_boundary_blend(start.raw.as_ptr(), stop.raw.as_ptr(), &mut raw)"
+    ));
+    assert!(!adapter.contains("terlan_c_native_boundary_blend(self.raw.as_ptr()"));
 
     fs::remove_dir_all(manifest.parent().expect("variant parent")).expect("remove variant");
     fs::remove_dir_all(out_dir).expect("remove output");

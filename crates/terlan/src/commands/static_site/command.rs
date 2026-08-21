@@ -104,13 +104,13 @@ fn static_check_args_impl(args: &[String]) -> Vec<String> {
 ///   to the existing static-site runners.
 fn print_static_usage() {
     println!(
-        "terlc static emit <file.terl> [--out-dir <dir>] [--validate-output] [--base-path <path>] [--asset-include <pattern>] [--asset-exclude <pattern>]"
+        "terlc static emit <file.terl> [--out-dir <dir>] [--validate-output] [--docs (--as-of <YYYY-MM-DD>|--preview)] [--base-path <path>] [--asset-include <pattern>] [--asset-exclude <pattern>]"
     );
     println!(
-        "terlc static serve <file.terl> [--out-dir <dir>] [--host <host>] [--port <port>] [--poll-ms <ms>] [--source-dir <dir>] [--validate-output] [--base-path <path>]"
+        "terlc static serve <file.terl> [--out-dir <dir>] [--host <host>] [--port <port>] [--poll-ms <ms>] [--source-dir <dir>] [--validate-output] [--docs (--as-of <YYYY-MM-DD>|--preview)] [--base-path <path>]"
     );
     println!(
-        "terlc static check <file.terl> [--out-dir <dir>] [--base-path <path>] [--asset-include <pattern>] [--asset-exclude <pattern>]"
+        "terlc static check <file.terl> [--out-dir <dir>] [--docs (--as-of <YYYY-MM-DD>|--preview)] [--base-path <path>] [--asset-include <pattern>] [--asset-exclude <pattern>]"
     );
 }
 

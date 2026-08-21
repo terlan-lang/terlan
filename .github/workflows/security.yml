@@ -26,6 +26,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust
+        with:
+          components: ""
 
       - name: Audit locked dependencies
         uses: ./.github/actions/security-audit

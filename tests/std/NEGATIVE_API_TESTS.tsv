@@ -7,7 +7,7 @@
 #
 # Output:
 # - A tab-separated manifest consumed by
-#   std/scripts/check_negative_api_tests.sh.
+#   scripts/self_validation/StdlibValidation.terls.
 #
 # Transformation:
 # - Maps each constrained release API obligation to the invalid Terlan fixture

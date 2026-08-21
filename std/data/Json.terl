@@ -306,6 +306,19 @@ pub (mut json: Json) put(key: String, value: Json): Json ->
     native.
 
 /**
+ * Removes one existing member from a JSON object.
+ *
+ * Input: a mutable JSON object receiver and one UTF-8 member key.
+ * Output: the same JSON object for fluent mutation.
+ * Transformation: removes exactly one existing member without exposing the
+ * backend object representation; a non-object receiver or missing key fails
+ * through the native JSON error boundary.
+ */
+@compiler.native {std.data.json.object_remove}
+pub (mut json: Json) remove(key: String): Json ->
+    native.
+
+/**
  * Parses text into a JSON value.
  *
  * Input: one UTF-8 string containing JSON source text.

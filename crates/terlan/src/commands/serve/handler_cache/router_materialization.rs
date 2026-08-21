@@ -1,6 +1,6 @@
 //! Compiler router metadata admission into the VM dispatch model.
 
-use crate::compiler::router::{AotRouterCallable, AotRouterPlan, AotRouterRouteTarget};
+use crate::runtime::vm::aot_metadata::{AotRouterCallable, AotRouterPlan, AotRouterRouteTarget};
 use crate::runtime::vm::http_router::{
     VmHttpCompiledCallableRef, VmHttpRouteMethod, VmHttpRouteTarget, VmHttpRouter,
 };

@@ -44,6 +44,28 @@ function readTemplateHtmlGrammar() {
 }
 
 /**
+ * Reads the Markdown-backed Terlan template TextMate grammar.
+ *
+ * @returns {*} Parsed TextMate grammar JSON.
+ *
+ * @description
+ * Loads the compound grammar so `.terl.md` keeps Markdown highlighting while
+ * Terlan header annotations, imports, and interpolation remain language-aware.
+ */
+function readTemplateMarkdownGrammar() {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(
+        EXTENSION_ROOT,
+        "syntaxes",
+        "terlan-template-markdown.tmLanguage.json"
+      ),
+      "utf8"
+    )
+  );
+}
+
+/**
  * Reads the Tree-sitter highlight query file.
  *
  * @returns {string} Highlight query source.
@@ -249,11 +271,28 @@ function testTemplateHtmlGrammarEmbedsHtmlAndTerlan() {
   assert.deepStrictEqual(interpolation.patterns, [{ include: "source.terlan" }]);
 }
 
+/** Verifies `.terl.md` highlighting composes Markdown with Terlan islands. */
+function testTemplateMarkdownGrammarEmbedsMarkdownAndTerlan() {
+  const grammar = readTemplateMarkdownGrammar();
+  const includes = grammar.patterns.map((pattern) => pattern.include);
+  const header = grammar.repository["terlan-header-annotation"].patterns[0];
+  const interpolation = grammar.repository["terlan-interpolation"].patterns[0];
+
+  assert.strictEqual(grammar.scopeName, "text.html.markdown.terlan");
+  assert.ok(includes.includes("text.html.markdown"));
+  assert.strictEqual(header.contentName, "source.terlan.embedded");
+  assert.deepStrictEqual(header.patterns, [{ include: "source.terlan" }]);
+  assert.strictEqual(interpolation.begin, "\\$\\{");
+  assert.strictEqual(interpolation.contentName, "source.terlan.embedded");
+  assert.deepStrictEqual(interpolation.patterns, [{ include: "source.terlan" }]);
+}
+
 testKeywordBridgeCoverage();
 testInterpolationBridgeCoverage();
 testOperatorBridgeCoverage();
 testCanonicalWordOperators();
 testBinaryLayoutBridgeCoverage();
 testTemplateHtmlGrammarEmbedsHtmlAndTerlan();
+testTemplateMarkdownGrammarEmbedsMarkdownAndTerlan();
 
 console.log("terlan vscode TextMate bridge tests passed");

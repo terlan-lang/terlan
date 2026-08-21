@@ -1,31 +1,36 @@
-use std::collections::{hash_map::DefaultHasher, BTreeMap};
+use std::collections::BTreeMap;
 use std::fs;
-use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::thread;
-use std::time::{Duration, UNIX_EPOCH};
-
-use crate::terlan_syntax::{SyntaxImportKind, SyntaxModuleOutput};
+use std::time::Duration;
 
 use crate::commands::artifacts::{
-    collect_syntax_asset_imports_matching, collect_syntax_markdown_frontend_inputs,
-    collect_syntax_template_inputs,
+    collect_syntax_markdown_frontend_inputs, collect_syntax_template_inputs,
 };
 use crate::validation::static_output::{
-    validate_static_css_output_files, validate_static_html_output,
+    validate_static_css_output_files, validate_static_html_output, validate_static_internal_links,
 };
 use crate::validation::target_profile::TargetProfileCheckOptions;
 use crate::{CliCommand, CliState};
 
+mod asset_copy;
 mod command;
+mod directory_fingerprint;
+mod docs_artifacts;
 mod filters;
 mod render;
 mod render_lookup;
 mod render_markdown;
 mod render_values;
 mod routes;
+use asset_copy::copy_syntax_static_asset_imports;
 pub(crate) use command::run;
+use directory_fingerprint::{canonicalize_optional, directory_fingerprint};
+use docs_artifacts::{
+    build_docs_artifacts, resolve_docs_browser_runtime, write_blog_collection_pages,
+    write_docs_artifacts, DocsBrowserRuntime,
+};
 pub(crate) use filters::AssetFilters;
 pub(crate) use render::{render_syntax_static_entrypoint, StaticSyntaxRenderError};
 pub(crate) use render_markdown::render_syntax_static_markdown_layout;
@@ -40,7 +45,7 @@ pub(crate) use crate::template_inputs::TEMPLATE_CHILDREN_SLOT;
 /// - Produced by `parse_emit_static_args`.
 ///
 /// Output:
-/// - Source file path, validation mode, and asset filters.
+/// - Source file path, validation/docs modes, and asset filters.
 ///
 /// Transformation:
 /// - Carries normalized static emit settings into command execution.
@@ -48,6 +53,9 @@ pub(crate) use crate::template_inputs::TEMPLATE_CHILDREN_SLOT;
 pub(crate) struct EmitStaticArgs {
     pub(crate) file: String,
     pub(crate) validate_output: bool,
+    pub(crate) docs: bool,
+    pub(crate) preview: bool,
+    pub(crate) publish_through: Option<String>,
     pub(crate) asset_filters: AssetFilters,
     pub(crate) base_path: Option<String>,
 }
@@ -83,11 +91,14 @@ pub(crate) struct ServeStaticArgs {
 /// - Parsed static emit settings or an error message.
 ///
 /// Transformation:
-/// - Scans one file argument plus `--validate-output`, `--base-path`,
+/// - Scans one file argument plus `--validate-output`, `--docs`, `--preview`, `--base-path`,
 ///   `--asset-include`, and `--asset-exclude` flags.
 pub(crate) fn parse_emit_static_args(args: &[String]) -> Result<EmitStaticArgs, String> {
     let mut file = None;
     let mut validate_output = false;
+    let mut docs = false;
+    let mut preview = false;
+    let mut publish_through = None;
     let mut includes = Vec::new();
     let mut excludes = Vec::new();
     let mut base_path = None;
@@ -98,6 +109,21 @@ pub(crate) fn parse_emit_static_args(args: &[String]) -> Result<EmitStaticArgs, 
             "--validate-output" => {
                 validate_output = true;
                 index += 1;
+            }
+            "--docs" => {
+                docs = true;
+                index += 1;
+            }
+            "--preview" => {
+                preview = true;
+                index += 1;
+            }
+            "--as-of" => {
+                let Some(value) = args.get(index + 1) else {
+                    return Err("--as-of requires a YYYY-MM-DD date".to_string());
+                };
+                publish_through = Some(value.clone());
+                index += 2;
             }
             "--base-path" => {
                 let Some(value) = args.get(index + 1) else {
@@ -135,13 +161,44 @@ pub(crate) fn parse_emit_static_args(args: &[String]) -> Result<EmitStaticArgs, 
     let Some(file) = file else {
         return Err("static emit expects exactly one file argument".to_string());
     };
+    if preview && !docs {
+        return Err("--preview requires --docs".to_string());
+    }
+    validate_docs_publication_options(docs, preview, publish_through.as_deref())?;
 
     Ok(EmitStaticArgs {
         file,
         validate_output,
+        docs,
+        preview,
+        publish_through,
         asset_filters: AssetFilters { includes, excludes },
         base_path,
     })
+}
+
+/// Validates documentation publication-mode CLI options.
+fn validate_docs_publication_options(
+    docs: bool,
+    preview: bool,
+    publish_through: Option<&str>,
+) -> Result<(), String> {
+    if !docs && publish_through.is_some() {
+        return Err("--as-of requires --docs".to_string());
+    }
+    if preview && publish_through.is_some() {
+        return Err("--as-of cannot be combined with --preview".to_string());
+    }
+    if docs && !preview {
+        let Some(publish_through) = publish_through else {
+            return Err(
+                "production --docs builds require --as-of YYYY-MM-DD for reproducibility"
+                    .to_string(),
+            );
+        };
+        terl_docs::ContentBuildPolicy::production(publish_through).map(|_| ())?;
+    }
+    Ok(())
 }
 
 /// Normalizes a static-site base path for generated HTML.
@@ -280,6 +337,58 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
         .iter()
         .map(|input| (input.alias.clone(), input.document.clone()))
         .collect::<BTreeMap<_, _>>();
+    let docs_artifacts = if args.docs {
+        let policy = if args.preview {
+            terl_docs::ContentBuildPolicy::preview()
+        } else {
+            match terl_docs::ContentBuildPolicy::production(
+                args.publish_through
+                    .as_deref()
+                    .expect("production docs arguments were validated"),
+            ) {
+                Ok(policy) => policy,
+                Err(message) => {
+                    eprintln!("{message}");
+                    return ExitCode::from(1);
+                }
+            }
+        };
+        match build_docs_artifacts(&markdown_routes, &markdown_inputs, &policy) {
+            Ok(artifacts) => Some(artifacts),
+            Err(message) => {
+                eprintln!("{message}");
+                return ExitCode::from(1);
+            }
+        }
+    } else {
+        None
+    };
+    let docs_browser_runtime = if args.docs {
+        match resolve_docs_browser_runtime(Path::new(path)) {
+            Ok(runtime) => runtime,
+            Err(message) => {
+                eprintln!("{message}");
+                return ExitCode::from(1);
+            }
+        }
+    } else {
+        DocsBrowserRuntime::Standard
+    };
+    if let Some(artifacts) = &docs_artifacts {
+        let generated_routes = artifacts
+            .blog_collection_pages()
+            .iter()
+            .map(|page| page.route.clone())
+            .collect::<Vec<_>>();
+        if let Err(message) = reject_generated_static_route_path_collisions(
+            &routes,
+            &markdown_routes,
+            &generated_routes,
+        ) {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    }
 
     if let Err(err) = fs::create_dir_all(&state.out_dir) {
         eprintln!(
@@ -316,6 +425,10 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
             }
         };
         if let Some(base_path) = &args.base_path {
+            html = crate::terlan_html::qualify_html_fragment_links(
+                &html,
+                &format!("{entrypoint}.html"),
+            );
             html = crate::terlan_html::inject_html_base_path(&html, base_path);
         }
         let target = state.out_dir.join(format!("{}.html", entrypoint));
@@ -349,6 +462,10 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
             }
         };
         if let Some(base_path) = &args.base_path {
+            html = crate::terlan_html::qualify_html_fragment_links(
+                &html,
+                &static_route_public_url(&route.path),
+            );
             html = crate::terlan_html::inject_html_base_path(&html, base_path);
         }
         let relative_target = match static_route_output_path(&route.path) {
@@ -385,7 +502,32 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
         }
     }
 
-    for route in markdown_routes {
+    for route in &markdown_routes {
+        if docs_artifacts
+            .as_ref()
+            .is_some_and(|artifacts| !artifacts.includes_route(&route.path))
+        {
+            for hidden_path in std::iter::once(&route.path).chain(route.aliases.iter()) {
+                let hidden_target = match static_route_output_path(hidden_path) {
+                    Ok(path) => state.out_dir.join(path),
+                    Err(message) => {
+                        eprintln!("{message}");
+                        return ExitCode::from(1);
+                    }
+                };
+                if hidden_target.is_file() {
+                    if let Err(error) = fs::remove_file(&hidden_target) {
+                        eprintln!(
+                            "failed to remove hidden static Markdown output `{}`: {}",
+                            hidden_target.display(),
+                            error
+                        );
+                        return ExitCode::from(1);
+                    }
+                }
+            }
+            continue;
+        }
         let Some(document) = markdown_imports.get(&route.alias) else {
             eprintln!(
                 "static Markdown route `{}` references unknown Markdown import `{}`",
@@ -394,12 +536,16 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
             return ExitCode::from(1);
         };
         let mut html = if let Some(layout) = &route.layout {
+            let page_navigation = docs_artifacts
+                .as_ref()
+                .and_then(|artifacts| artifacts.page_navigation(&route.path));
             match render_syntax_static_markdown_layout(
                 &syntax_output,
                 &templates,
                 layout,
                 route.title.as_deref(),
                 document,
+                page_navigation,
             ) {
                 Ok(html) => html,
                 Err(StaticSyntaxRenderError::Invalid(message)) => {
@@ -411,6 +557,10 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
             document.rendered_html.clone()
         };
         if let Some(base_path) = &args.base_path {
+            html = crate::terlan_html::qualify_html_fragment_links(
+                &html,
+                &static_route_public_url(&route.path),
+            );
             html = crate::terlan_html::inject_html_base_path(&html, base_path);
         }
         let relative_target = match static_route_output_path(&route.path) {
@@ -445,11 +595,76 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
             );
             return ExitCode::from(1);
         }
+
+        for alias_path in &route.aliases {
+            let mut alias_html =
+                render_static_markdown_alias_html(&route.path, route.title.as_deref());
+            if let Some(base_path) = &args.base_path {
+                alias_html = crate::terlan_html::inject_html_base_path(&alias_html, base_path);
+            }
+            let alias_target = match static_route_output_path(alias_path) {
+                Ok(path) => state.out_dir.join(path),
+                Err(message) => {
+                    eprintln!("{message}");
+                    return ExitCode::from(1);
+                }
+            };
+            if let Some(parent) = alias_target.parent() {
+                if let Err(err) = fs::create_dir_all(parent) {
+                    eprintln!(
+                        "failed to create static Markdown alias output directory `{}`: {}",
+                        parent.display(),
+                        err
+                    );
+                    return ExitCode::from(1);
+                }
+            }
+            if args.validate_output {
+                if let Err(message) = validate_static_html_output(&alias_html, &alias_target) {
+                    eprintln!("{message}");
+                    return ExitCode::from(1);
+                }
+            }
+            if let Err(err) = fs::write(&alias_target, alias_html.as_bytes()) {
+                eprintln!(
+                    "failed to write static Markdown alias output `{}`: {}",
+                    alias_target.display(),
+                    err
+                );
+                return ExitCode::from(1);
+            }
+        }
+    }
+
+    if let Some(docs_artifacts) = &docs_artifacts {
+        if let Err(message) = write_blog_collection_pages(
+            &state.out_dir,
+            docs_artifacts,
+            &syntax_output,
+            &templates,
+            args.base_path.as_deref(),
+            args.validate_output,
+        ) {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+        if let Err(message) =
+            write_docs_artifacts(&state.out_dir, docs_artifacts, docs_browser_runtime)
+        {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
     }
 
     if args.validate_output {
         if let Err(message) = validate_static_css_output_files(&copied_css_outputs) {
             eprintln!("{}", message);
+            return ExitCode::from(1);
+        }
+        if let Err(message) =
+            validate_static_internal_links(&state.out_dir, args.base_path.as_deref())
+        {
+            eprintln!("{message}");
             return ExitCode::from(1);
         }
     }
@@ -466,7 +681,7 @@ pub(crate) fn run_emit_static(cmd: CliCommand, state: CliState) -> ExitCode {
 /// - Parsed dev-server settings or an error message.
 ///
 /// Transformation:
-/// - Scans bind, polling, source-dir, check-only, validation, base-path,
+/// - Scans bind, polling, source-dir, check-only, validation, docs, preview, base-path,
 ///   asset-filter, and single file arguments.
 pub(crate) fn parse_serve_static_args(args: &[String]) -> Result<ServeStaticArgs, String> {
     let mut file = None;
@@ -476,6 +691,9 @@ pub(crate) fn parse_serve_static_args(args: &[String]) -> Result<ServeStaticArgs
     let mut source_dir = None;
     let mut check_only = false;
     let mut validate_output = false;
+    let mut docs = false;
+    let mut preview = false;
+    let mut publish_through = None;
     let mut includes = Vec::new();
     let mut excludes = Vec::new();
     let mut base_path = None;
@@ -522,6 +740,21 @@ pub(crate) fn parse_serve_static_args(args: &[String]) -> Result<ServeStaticArgs
                 validate_output = true;
                 index += 1;
             }
+            "--docs" => {
+                docs = true;
+                index += 1;
+            }
+            "--preview" => {
+                preview = true;
+                index += 1;
+            }
+            "--as-of" => {
+                let Some(value) = args.get(index + 1) else {
+                    return Err("--as-of requires a YYYY-MM-DD date".to_string());
+                };
+                publish_through = Some(value.clone());
+                index += 2;
+            }
             "--base-path" => {
                 let Some(value) = args.get(index + 1) else {
                     return Err("--base-path requires a path".to_string());
@@ -562,11 +795,18 @@ pub(crate) fn parse_serve_static_args(args: &[String]) -> Result<ServeStaticArgs
     let Some(file) = file else {
         return Err("static serve expects exactly one file argument".to_string());
     };
+    if preview && !docs {
+        return Err("--preview requires --docs".to_string());
+    }
+    validate_docs_publication_options(docs, preview, publish_through.as_deref())?;
 
     let asset_filters = AssetFilters { includes, excludes };
     let emit_args = EmitStaticArgs {
         file: file.clone(),
         validate_output,
+        docs,
+        preview,
+        publish_through,
         asset_filters,
         base_path,
     };
@@ -677,6 +917,16 @@ fn run_emit_static_with_args(args: &EmitStaticArgs, state: CliState) -> ExitCode
     if args.validate_output {
         cmd_args.push("--validate-output".to_string());
     }
+    if args.docs {
+        cmd_args.push("--docs".to_string());
+    }
+    if args.preview {
+        cmd_args.push("--preview".to_string());
+    }
+    if let Some(publish_through) = &args.publish_through {
+        cmd_args.push("--as-of".to_string());
+        cmd_args.push(publish_through.clone());
+    }
     if let Some(base_path) = &args.base_path {
         cmd_args.push("--base-path".to_string());
         cmd_args.push(base_path.clone());
@@ -699,172 +949,6 @@ fn run_emit_static_with_args(args: &EmitStaticArgs, state: CliState) -> ExitCode
     )
 }
 
-/// Canonicalizes a path when possible.
-///
-/// Inputs:
-/// - `path`: path to canonicalize.
-///
-/// Output:
-/// - Canonical path or `None` when canonicalization fails.
-///
-/// Transformation:
-/// - Converts filesystem errors into an optional result for exclusion checks.
-fn canonicalize_optional(path: &Path) -> Option<PathBuf> {
-    fs::canonicalize(path).ok()
-}
-
-/// Computes a coarse fingerprint for a directory tree.
-///
-/// Inputs:
-/// - `root`: directory to fingerprint.
-/// - `exclude`: optional canonical directory subtree to ignore.
-///
-/// Output:
-/// - Hash of paths, file lengths, and modification times.
-///
-/// Transformation:
-/// - Recursively collects files, sorts paths, and hashes metadata.
-pub(crate) fn directory_fingerprint(root: &Path, exclude: Option<&Path>) -> u64 {
-    let mut files = Vec::new();
-    collect_directory_files(root, exclude, &mut files);
-    files.sort();
-
-    let mut hasher = DefaultHasher::new();
-    root.hash(&mut hasher);
-    for path in files {
-        path.hash(&mut hasher);
-        if let Ok(metadata) = fs::metadata(&path) {
-            metadata.len().hash(&mut hasher);
-            if let Ok(modified) = metadata.modified() {
-                if let Ok(duration) = modified.duration_since(UNIX_EPOCH) {
-                    duration.as_nanos().hash(&mut hasher);
-                }
-            }
-        }
-    }
-    hasher.finish()
-}
-
-/// Collects files under a directory for fingerprinting.
-///
-/// Inputs:
-/// - `root`: directory to scan.
-/// - `exclude`: optional canonical subtree to ignore.
-/// - `files`: output accumulator.
-///
-/// Output:
-/// - No return value; mutates `files`.
-///
-/// Transformation:
-/// - Recursively descends directories and records regular files.
-fn collect_directory_files(root: &Path, exclude: Option<&Path>, files: &mut Vec<PathBuf>) {
-    let Ok(entries) = fs::read_dir(root) else {
-        return;
-    };
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if exclude.is_some_and(|exclude| {
-            fs::canonicalize(&path)
-                .map(|canonical| canonical.starts_with(exclude))
-                .unwrap_or(false)
-        }) {
-            continue;
-        }
-        let Ok(metadata) = entry.metadata() else {
-            continue;
-        };
-        if metadata.is_dir() {
-            collect_directory_files(&path, exclude, files);
-        } else if metadata.is_file() {
-            files.push(path);
-        }
-    }
-}
-
-/// Copies file and CSS imports for static output.
-///
-/// Inputs:
-/// - `module`: syntax output containing import declarations.
-/// - `source_path`: source file path used to resolve relative imports.
-/// - `out_dir`: static output directory.
-/// - `filters`: asset include/exclude filters.
-///
-/// Output:
-/// - Copied CSS output paths or an error message.
-///
-/// Transformation:
-/// - Loads and validates shared syntax asset imports, filters them, copies them
-///   into the output directory, and tracks copied CSS files for validation.
-fn copy_syntax_static_asset_imports(
-    module: &SyntaxModuleOutput,
-    source_path: &Path,
-    out_dir: &Path,
-    filters: &AssetFilters,
-) -> Result<Vec<PathBuf>, String> {
-    let mut copied_css_outputs = Vec::new();
-    let imports = collect_syntax_asset_imports_matching(module, source_path, |kind, path| {
-        matches!(kind, SyntaxImportKind::File | SyntaxImportKind::Css) && filters.allows(path)
-    })?;
-
-    for import in imports {
-        let Some(file_name) = import.resolved_path.file_name() else {
-            return Err(format!(
-                "static asset import `{}` has no filename",
-                import.resolved_path.display()
-            ));
-        };
-        let target = out_dir.join(file_name);
-        fs::copy(&import.resolved_path, &target).map_err(|err| {
-            format!(
-                "failed to copy static asset `{}` to `{}`: {}",
-                import.resolved_path.display(),
-                target.display(),
-                err
-            )
-        })?;
-        if crate::terlan_html::is_terlan_artifact_template_path(&import.resolved_path) {
-            let source = std::str::from_utf8(&import.bytes).map_err(|error| {
-                format!(
-                    "error[template_backend_encoding]: {}: {error}",
-                    import.resolved_path.display()
-                )
-            })?;
-            let telemetry =
-                crate::terlan_html::structured_template_telemetry(source, &import.resolved_path)?;
-            let file_name = target
-                .file_name()
-                .and_then(|name| name.to_str())
-                .ok_or_else(|| {
-                    format!(
-                        "error[template_backend_telemetry_path]: {} has no UTF-8 filename",
-                        target.display()
-                    )
-                })?;
-            let telemetry_path = target.with_file_name(format!("{file_name}.telemetry.json"));
-            let telemetry_json = serde_json::to_vec_pretty(&telemetry).map_err(|error| {
-                format!(
-                    "error[template_backend_telemetry_encode]: {}: {error}",
-                    import.resolved_path.display()
-                )
-            })?;
-            fs::write(&telemetry_path, telemetry_json).map_err(|error| {
-                format!(
-                    "error[template_backend_telemetry_write]: {}: {error}",
-                    telemetry_path.display()
-                )
-            })?;
-        }
-        if import.kind == SyntaxImportKind::Css {
-            copied_css_outputs.push(target);
-        }
-    }
-
-    copied_css_outputs.sort();
-    Ok(copied_css_outputs)
-}
-
-#[cfg(test)]
 #[path = "mod_test.rs"]
 #[cfg(test)]
 mod mod_test;

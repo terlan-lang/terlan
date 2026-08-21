@@ -1,28 +1,28 @@
 {
-  "manifest_count": 22,
-  "manifest_row_count": 180,
+  "manifest_count": 24,
+  "manifest_row_count": 184,
   "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
-  "report_signature": "sha256:35cb85aa3443a56f177680323d4a8dca214c2f56240c7ad01b9e3e502c57b0de",
+  "report_signature": "sha256:a9b9697fc086b3d919e35e55beea48209809404ead633732b5a7ae562fd2928e",
   "runtime_oracles": [
     {
       "observed": "pass",
       "selector": "runtime::native_boundary::runtime::runtime_test::runtime_executes_base64_operations_through_terms",
-      "signature": "sha256:f6153fff68a641f1ab6f3ed504a5044c24269534ba2f73f2c9ba0df3eab9f663"
+      "signature": "sha256:09827303e74c519f2d59f0f88abd951cef63c46caf3171826e3d48db4db3645f"
     },
     {
       "observed": "pass",
       "selector": "runtime::native_boundary::runtime::runtime_test::runtime_rejects_cross_process_resource_access",
-      "signature": "sha256:6bb46bbb0214e0fb3ea2cdb6128e5d69d3882d9a5f2c7fb755582fb82273531e"
+      "signature": "sha256:b70715181aa6e1fd54da63d7cff790fffbfcb2290a5fc86245e4b395ff0cbaeb"
     },
     {
       "observed": "pass",
       "selector": "runtime::native_boundary::runtime::runtime_test::runtime_enforces_postgres_capability_before_adapter_execution",
-      "signature": "sha256:0dabef9d916cf0aee42139726f003b1877199e1d24a4409c0feb3907693cc42d"
+      "signature": "sha256:ef239569f9a8b025b668e92026e0bff9124c5da5e5eb94ab18f4074a701f355a"
     },
     {
       "observed": "pass",
       "selector": "runtime::native_boundary::runtime::runtime_test::runtime_rejects_malformed_payload_with_typed_error",
-      "signature": "sha256:fce54267dca6261e1114a6448309f484cb6f86ed23e08ffaf7e53f03e8301bc4"
+      "signature": "sha256:3477bd764fbaef0e33a921d7d938373b08afb28556df323fd76dbf91e61c34d1"
     }
   ],
   "schema": "terlan.native-boundary-proof-runtime-oracles.v1",

@@ -1,0 +1,153 @@
+{
+  "records": [
+    {
+      "blocker_hash": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "slice_id": "Slice 4"
+    },
+    {
+      "blocker_hash": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "slice_id": "Slice 5"
+    },
+    {
+      "blocker_hash": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "vm_runtime",
+      "owner": "vm",
+      "slice_id": "Slice 9"
+    },
+    {
+      "blocker_hash": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "slice_id": "Slice 10"
+    },
+    {
+      "blocker_hash": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "slice_id": "Slice 11"
+    },
+    {
+      "blocker_hash": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "slice_id": "Slice 12"
+    },
+    {
+      "blocker_hash": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "parser",
+      "owner": "compiler",
+      "slice_id": "Slice 13"
+    },
+    {
+      "blocker_hash": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "native_boundary",
+      "owner": "runtime",
+      "slice_id": "Slice 14"
+    },
+    {
+      "blocker_hash": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "slice_id": "Slice 15"
+    },
+    {
+      "blocker_hash": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "vm_runtime",
+      "owner": "vm",
+      "slice_id": "Slice 16"
+    },
+    {
+      "blocker_hash": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "std_packages",
+      "owner": "compiler",
+      "slice_id": "Slice 17"
+    },
+    {
+      "blocker_hash": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "wasm",
+      "owner": "compiler",
+      "slice_id": "Slice 18"
+    },
+    {
+      "blocker_hash": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "std_packages",
+      "owner": "compiler",
+      "slice_id": "Slice 19"
+    },
+    {
+      "blocker_hash": "none",
+      "coverage_status": "proof_current",
+      "feature_class": "std_packages",
+      "owner": "compiler",
+      "slice_id": "Slice 20"
+    },
+    {
+      "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
+      "coverage_status": "slice_blocked",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "slice_id": "Slice 22"
+    },
+    {
+      "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
+      "coverage_status": "slice_blocked",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "slice_id": "Slice 23"
+    },
+    {
+      "blocker_hash": "sha256:1e3fff408b73ba8eabc55dedb0030ecf5e926b966de6bed1b2ee23933c34691e",
+      "coverage_status": "slice_blocked",
+      "feature_class": "vm_runtime",
+      "owner": "vm",
+      "slice_id": "Slice 24"
+    },
+    {
+      "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
+      "coverage_status": "slice_blocked",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "slice_id": "Slice 25"
+    },
+    {
+      "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
+      "coverage_status": "slice_blocked",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "slice_id": "Slice 26"
+    },
+    {
+      "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
+      "coverage_status": "slice_blocked",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "slice_id": "Slice 27"
+    },
+    {
+      "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
+      "coverage_status": "slice_blocked",
+      "feature_class": "coreir",
+      "owner": "compiler",
+      "slice_id": "Slice 28"
+    }
+  ],
+  "schema": "terlan.lean-proof-snapshot.v1",
+  "source": "proofs/lean/feature_binding/lean_feature_slice_index.json"
+}

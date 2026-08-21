@@ -7,7 +7,7 @@ The integration boundary is explicit:
 - `src/terlan/angular/Todo.terl` is generated Terlan source.
 - `src/terlan/angular/TodoSummary.terl.html` proves typed template slots are
   checked and emitted with the app module.
-- `angular-wave/angular.ts` is the default browser runtime for generated
+- `@angular-wave/angular.ts` is the default browser runtime for generated
   client-side behavior. Do not hand-roll DOM/SSE client libraries in the
   Terlan integration.
 - HTTP/1.x live template updates use AngularTS `$sse`/`createSseService` over

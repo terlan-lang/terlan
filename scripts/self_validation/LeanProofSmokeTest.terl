@@ -599,7 +599,10 @@ let _printed =
                 row.smoke_id,
                 if {
                     valid -> " proof=pass runtime=pass compatibility=stable";
-                    true -> " proof=fail runtime=fail compatibility=drift"
+                    true -> String.append(
+                        " proof=fail runtime=fail compatibility=drift computed_signature=",
+                        signature,
+                    )
                 },
             ),
         ),

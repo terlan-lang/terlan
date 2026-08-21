@@ -21,7 +21,10 @@
   "scripts": {
     "check:main": "node -c src/client_config.js && node -c src/run_command.js && node -c src/template_links.js && node -c src/extension.js",
     "pack:dry-run": "npm pack --dry-run --json",
-    "test": "node test/client_config_test.js && node test/run_command_test.js && node test/template_links_test.js && node test/manifest_test.js && node test/package_smoke_test.js && node test/diagnostics_smoke_test.js && node test/textmate_bridge_test.js",
+    "test": "npm run test:core && npm run test:diagnostics && npm run test:textmate",
+    "test:core": "node test/client_config_test.js && node test/run_command_test.js && node test/template_links_test.js && node test/manifest_test.js && node test/package_smoke_test.js",
+    "test:diagnostics": "node test/diagnostics_smoke_test.js",
+    "test:textmate": "node test/textmate_bridge_test.js",
     "test:all": "npm run check && npm test",
     "check": "node -c src/client_config.js && node -c src/run_command.js && node -c src/template_links.js && node -c src/extension.js && node -c test/client_config_test.js && node -c test/run_command_test.js && node -c test/template_links_test.js && node -c test/manifest_test.js && node -c test/package_smoke_test.js && node -c test/diagnostics_smoke_test.js && node -c test/pack_dry_run_test.js && node -c test/textmate_bridge_test.js"
   },
@@ -472,7 +475,11 @@
       {
         "language": "terlan-template-markdown",
         "scopeName": "text.html.markdown.terlan",
-        "path": "./syntaxes/terlan.tmLanguage.json"
+        "path": "./syntaxes/terlan-template-markdown.tmLanguage.json",
+        "embeddedLanguages": {
+          "text.html.markdown": "markdown",
+          "source.terlan.embedded": "terlan"
+        }
       },
       {
         "language": "terlan-template-json",

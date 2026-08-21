@@ -105,7 +105,7 @@ fn terlan_consumer_executes_descriptor_bearing_tvm_image() {
         .arg("--out-dir")
         .arg(&output_dir)
         .env("RUSTC", root.join("rustc-must-not-run"))
-        .env("TERLAN_NATIVE_LINKER", root.join("linker-must-not-run"))
+        .env("TERLAN_NATIVE_CACHE_MISS_POLICY", "error")
         .output()
         .expect("start cached terlc build");
     assert!(

@@ -55,6 +55,7 @@ fn is_managed_string_expr_with_bindings<'a>(
                     | "path"
                     | "query_string"
                     | "body_text"
+                    | "body_file_path"
                     | "cookie_set_header"
                     | "cookie_set_options_header"
                     | "cookie_delete_header"

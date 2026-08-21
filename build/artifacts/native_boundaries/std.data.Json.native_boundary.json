@@ -134,6 +134,19 @@
     },
     {
       "argument_types": [
+        "NativeBoundaryTerm",
+        "NativeBoundaryTerm"
+      ],
+      "arity": 2,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.data.Json.remove/2",
+      "name": "remove",
+      "operation": "std.data.json.object_remove",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:004ee4b806bd42f391a9f949191593688c9c62fbca55f96eead5a50bb41a2668"
+    },
+    {
+      "argument_types": [
         "NativeBoundaryTerm"
       ],
       "arity": 1,
@@ -409,7 +422,7 @@
       "row_digest": "sha256:55068f1c4042aba9cf7c50e04c65e4ef529da49b082739df33d185cc7777b4fc"
     }
   ],
-  "manifest_digest": "sha256:23f308206403c0cffcac60d6a13d9f4935788928039999d650ebe494a3b2d643",
+  "manifest_digest": "sha256:e58053ca995ed356c482defd1a350fc59a3ed29694684ee0b5bf49f93ef964ce",
   "module": "std_data_json_native_boundary",
   "native_policy": "native_boundary_optional",
   "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
@@ -427,7 +440,7 @@
     "timeout_policy": "none",
     "worker_placement": "direct"
   },
-  "source_digest": "sha256:c9109fd15f986b80735e5308a14720013f867143a111479cca66a7e363b82a1f",
+  "source_digest": "sha256:2358a2a8bee94478af70542f864ba58e2df6358820617df5ad322e211d35e85a",
   "source_module": "std.data.Json",
   "source_path": "std/summaries/std.data.Json.native_boundary.json"
 }

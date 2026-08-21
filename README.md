@@ -266,7 +266,6 @@ make wasm-coreir-lowering-check
 make vm-performance-baseline-check
 make vm-coverage-100-check
 make vm-coverage-source-lines-check
-make roadmap-gate-integrity-check
 ```
 
 Broader local validation:
@@ -275,8 +274,9 @@ Broader local validation:
 make check
 ```
 
-Roadmap items are expected to name executable gates. Completed roadmap material
-should be collapsed into baselines so the active roadmap stays useful.
+Release correctness is defined by semantic validation aggregates and their
+candidate-bound evidence. Roadmaps describe planning history and are not build
+inputs.
 
 ## Documentation
 

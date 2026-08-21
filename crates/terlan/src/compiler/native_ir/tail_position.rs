@@ -559,7 +559,7 @@ fn collect_resume_ids(expr: &NativeExpr, identities: &mut HashSet<u64>) {
         | NativeExpr::Float(_)
         | NativeExpr::Bool(_)
         | NativeExpr::AtomLiteral(_)
-        | NativeExpr::StringLiteral { .. }
+        | NativeExpr::ManagedLiteral { .. }
         | NativeExpr::Param(_) => {}
     }
 }
@@ -670,7 +670,7 @@ fn attach_reduction_yields(
         | NativeExpr::Float(_)
         | NativeExpr::Bool(_)
         | NativeExpr::AtomLiteral(_)
-        | NativeExpr::StringLiteral { .. }
+        | NativeExpr::ManagedLiteral { .. }
         | NativeExpr::Param(_) => {}
     }
 }

@@ -7,7 +7,7 @@ use crate::terlan_syntax::{
 
 #[cfg(test)]
 use crate::commands::build::js::JsModuleArtifact;
-use crate::commands::web_route::{route_ambiguity_key, route_param_types, validate_route_pattern};
+use crate::web_route::{route_ambiguity_key, route_param_types, validate_route_pattern};
 
 use super::manifest::{
     WebErrorHandlerArtifact, WebFileResponseArtifact, WebHandlerArtifact, WebSocketArtifact,
@@ -434,8 +434,11 @@ fn websocket_from_source(
             source_artifact.module
         )
     })?;
-    validate_route_pattern(&route)
-        .map_err(|message| message.replacen("error[serve_package]", "error[web_router]", 1))?;
+    validate_route_pattern(&route).map_err(|message| {
+        message
+            .to_string()
+            .replacen("error[serve_package]", "error[web_router]", 1)
+    })?;
     if protocol.trim().is_empty() {
         return Err(format!(
             "error[web_router]: websocket `{}` protocol() cannot be empty",

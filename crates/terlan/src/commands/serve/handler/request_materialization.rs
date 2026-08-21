@@ -41,6 +41,11 @@ pub(in crate::commands::serve) fn vm_request_descriptor_owned(
         projected_map(projection, RequestFieldProjection::HEADERS, request.headers),
         direct_cookies,
         ReplValue::Tuple(vec![jar_cookies, ReplValue::List(Vec::new())]),
+        projected_string(
+            projection,
+            RequestFieldProjection::BODY_FILE_PATH,
+            request.body_file_path,
+        ),
     ])
 }
 
@@ -58,6 +63,7 @@ pub(in crate::commands::serve) fn vm_source_request_tuple_owned(
         owned_string_map(request.query),
         owned_string_map(request.headers),
         owned_string_map(request.cookies),
+        ReplValue::String(request.body_file_path),
     ])
 }
 
@@ -71,7 +77,7 @@ pub(in crate::commands::serve) fn replace_vm_request_descriptor(
         *value = vm_request_descriptor_owned(request, projection);
         return;
     };
-    if fields.len() != 10 {
+    if fields.len() != 11 {
         *value = vm_request_descriptor_owned(request, projection);
         return;
     }
@@ -111,6 +117,11 @@ pub(in crate::commands::serve) fn replace_vm_request_descriptor(
         (false, false) => (Vec::new(), Vec::new()),
     };
     replace_string_map(&mut fields[8], direct_entries);
+    fields[10] = projected_string(
+        projection,
+        RequestFieldProjection::BODY_FILE_PATH,
+        request.body_file_path,
+    );
     let ReplValue::Tuple(jar) = &mut fields[9] else {
         fields[9] = ReplValue::Tuple(vec![
             ReplValue::Map(Vec::new()),

@@ -95,6 +95,11 @@ pub(super) fn handle_reply(
                         continuation_id,
                     },
                     super::super::thread_neutral::OwnedNativeTransition {
+                        #[cfg(any(
+                            test,
+                            not(feature = "serve-runtime-bin"),
+                            feature = "native-codegen"
+                        ))]
                         capture_types: transition_capture_types(
                             continuation,
                             &operation,

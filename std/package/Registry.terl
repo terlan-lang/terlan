@@ -1,0 +1,122 @@
+/**
+ * Strict public Terlan Registry protocol boundary.
+ *
+ * This module owns the exact signed publication-request decoder shared by
+ * Terlan tooling and Terlan Registry services. Parsing and admission happen in
+ * one native operation so services do not need to reconstruct security policy
+ * with partial JSON projections.
+ */
+module std.package.Registry.
+
+import type std.core.{Error, Result}.
+
+/**
+ * Registry-owned fields needed to begin one durable publication attempt.
+ */
+pub struct PublishRequestProjection {
+    publisher_key_id: String,
+    request_id: String,
+    package_name: String,
+    version: String,
+    repository_url: String,
+    description: String,
+    license_expression: String,
+    archive_sha256: String,
+    archive_bytes: Int,
+    documentation_sha256: String,
+    documentation_bytes: Int,
+    built_with: String,
+    requires_terlan: String,
+    source_identity_kind: String,
+    source_identity: String,
+    source_identity_verification: String,
+    provenance_sha256: String,
+}.
+
+/**
+ * Stable failure returned for malformed or inadmissible signed metadata.
+ */
+pub struct RegistryProtocolError includes Error {
+    offset: Int,
+}.
+
+/**
+ * Returns the stable protocol error code.
+ */
+pub error_code(error: RegistryProtocolError): Atom ->
+    error.code.
+
+/**
+ * Returns the safe protocol diagnostic.
+ */
+pub error_message(error: RegistryProtocolError): String ->
+    error.message.
+
+/**
+ * Returns the JSON column for syntax failures, or zero for policy failures.
+ */
+pub error_offset(error: RegistryProtocolError): Int ->
+    error.offset.
+
+/**
+ * Strictly decodes and admits an exact version-one publication request.
+ *
+ * Unknown and duplicate fields are rejected by the compiler-owned public
+ * protocol model. The shared Registry admission policy validates immutable
+ * dependency identities, archive limits, artifact provenance, source
+ * identity, compiler compatibility, and documentation-object consistency.
+ */
+@compiler.native {std.package.registry.parse_publish_request}
+pub parse_publish_request(text: String): Result[PublishRequestProjection, RegistryProtocolError] ->
+    native.
+
+pub (value: PublishRequestProjection) publisher_key_id(): String ->
+    value.publisher_key_id.
+
+pub (value: PublishRequestProjection) request_id(): String ->
+    value.request_id.
+
+pub (value: PublishRequestProjection) package_name(): String ->
+    value.package_name.
+
+pub (value: PublishRequestProjection) version(): String ->
+    value.version.
+
+pub (value: PublishRequestProjection) repository_url(): String ->
+    value.repository_url.
+
+pub (value: PublishRequestProjection) description(): String ->
+    value.description.
+
+pub (value: PublishRequestProjection) license_expression(): String ->
+    value.license_expression.
+
+pub (value: PublishRequestProjection) archive_sha256(): String ->
+    value.archive_sha256.
+
+pub (value: PublishRequestProjection) archive_bytes(): Int ->
+    value.archive_bytes.
+
+pub (value: PublishRequestProjection) documentation_sha256(): String ->
+    value.documentation_sha256.
+
+pub (value: PublishRequestProjection) documentation_bytes(): Int ->
+    value.documentation_bytes.
+
+pub (value: PublishRequestProjection) built_with(): String ->
+    value.built_with.
+
+pub (value: PublishRequestProjection) requires_terlan(): String ->
+    value.requires_terlan.
+
+pub (value: PublishRequestProjection) source_identity_kind(): String ->
+    value.source_identity_kind.
+
+pub (value: PublishRequestProjection) source_identity(): String ->
+    value.source_identity.
+
+pub (value: PublishRequestProjection) source_identity_verification(): String ->
+    value.source_identity_verification.
+
+pub (value: PublishRequestProjection) provenance_sha256(): String ->
+    value.provenance_sha256.

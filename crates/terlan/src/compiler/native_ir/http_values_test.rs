@@ -105,6 +105,26 @@ fn response_builders_lower_to_fused_managed_operations() {
     ));
 }
 
+#[test]
+fn middleware_continue_atom_lowers_to_the_compiler_owned_constructor() {
+    let mut core = http_core();
+    core.imports.push(CoreImport {
+        module: "std.http.Router".to_string(),
+        kind: CoreImportKind::Module,
+    });
+    *body(&mut core) = CoreExpr::Atom("continue".to_string());
+    lower_http_values(&mut core).expect("lower middleware continuation");
+
+    assert_eq!(
+        body(&mut core),
+        &CoreExpr::ConstructorCall {
+            constructor: "std.http.Router.Continue".to_string(),
+            constructor_identity: Some("std.http.Router.Continue".to_string()),
+            args: Vec::new(),
+        }
+    );
+}
+
 /// Verifies every admitted HTTP aggregate and collection has closed metadata.
 #[test]
 fn complete_http_managed_boundary_inventory_is_closed_and_decodable() {
@@ -237,7 +257,7 @@ fn request_accessors_lower_to_checked_managed_operations() {
         assert_eq!(managed_http_operation_type(body(&mut core)), Some(expected));
         let lowered = lower_managed_http_operation(body(&mut core), |argument| match argument {
             CoreExpr::Var(_) => Ok(NativeExpr::Param(0)),
-            CoreExpr::Binary(_) => Ok(NativeExpr::StringLiteral {
+            CoreExpr::Binary(_) => Ok(NativeExpr::ManagedLiteral {
                 encoded: Arc::from(b"test".as_slice()),
             }),
             other => panic!("unexpected operation argument: {other:?}"),
@@ -246,6 +266,39 @@ fn request_accessors_lower_to_checked_managed_operations() {
         .expect("managed operation");
         assert!(matches!(lowered, NativeExpr::ManagedOperation { .. }));
     }
+}
+
+#[test]
+fn module_owned_request_accessor_lowers_to_checked_managed_operation() {
+    let mut core = http_core();
+    *body(&mut core) = CoreExpr::RemoteCall {
+        module: "std.http.Request".to_string(),
+        function: "query_string".to_string(),
+        args: vec![CoreExpr::Var("request".to_string())],
+    };
+
+    lower_http_values(&mut core).expect("lower module-owned request accessor");
+
+    assert_eq!(
+        managed_http_operation_type(body(&mut core)),
+        Some(NativeType::StringRef)
+    );
+}
+
+#[test]
+fn linked_request_accessor_lowers_to_checked_managed_operation() {
+    let mut core = http_core();
+    *body(&mut core) = CoreExpr::Call {
+        function: "std.http.Request.query_string".to_string(),
+        args: vec![CoreExpr::Var("request".to_string())],
+    };
+
+    lower_http_values(&mut core).expect("lower linked request accessor");
+
+    assert_eq!(
+        managed_http_operation_type(body(&mut core)),
+        Some(NativeType::StringRef)
+    );
 }
 
 /// Literal-prefix concatenation is one managed operation with no literal heap allocation.
@@ -516,7 +569,7 @@ fn response_status_headers_and_raw_cookies_lower_to_persistent_operations() {
             lower_managed_http_operation(body(&mut core), |argument| match argument {
                 CoreExpr::Var(_) => Ok(NativeExpr::Param(0)),
                 CoreExpr::Int(value) => Ok(NativeExpr::Int(*value)),
-                CoreExpr::Binary(_) => Ok(NativeExpr::StringLiteral {
+                CoreExpr::Binary(_) => Ok(NativeExpr::ManagedLiteral {
                     encoded: Arc::from(b"value".as_slice()),
                 }),
                 other => panic!("unexpected response operation argument: {other:?}"),
@@ -625,7 +678,7 @@ fn session_calls_lower_to_vm_owned_managed_operations() {
         assert!(matches!(
             lower_managed_http_operation(body(&mut core), |argument| match argument {
                 CoreExpr::Var(_) => Ok(NativeExpr::Param(0)),
-                CoreExpr::Binary(_) => Ok(NativeExpr::StringLiteral {
+                CoreExpr::Binary(_) => Ok(NativeExpr::ManagedLiteral {
                     encoded: Arc::from(b"value".as_slice()),
                 }),
                 other => panic!("unexpected session argument: {other:?}"),

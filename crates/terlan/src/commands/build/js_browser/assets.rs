@@ -219,7 +219,7 @@ pub(super) fn copy_manifest_static_assets(
 ///
 /// Transformation:
 /// - Generates a private Rsbuild config from Terlan's `[web.assets]` contract,
-///   runs the project-local Rsbuild CLI, copies non-code static templates, and
+///   runs the compiler-managed Rsbuild CLI, copies non-code static templates, and
 ///   records the resulting web-root files in the Terlan web manifest. The
 ///   project never sees or owns Rsbuild/Rspack configuration.
 pub(super) fn bundle_manifest_static_assets_with_rsbuild(
@@ -228,8 +228,8 @@ pub(super) fn bundle_manifest_static_assets_with_rsbuild(
     assets: &mut Vec<WebAssetArtifact>,
     incremental: bool,
 ) -> Result<bool, String> {
-    let entry = config.source_dir.join("index.js");
-    if !entry.is_file() {
+    let source_entry = config.source_dir.join("index.js");
+    if !source_entry.is_file() && !config.angular_ts {
         return Ok(false);
     }
     let template = config.source_dir.join("index.html");
@@ -268,6 +268,24 @@ pub(super) fn bundle_manifest_static_assets_with_rsbuild(
             build_root.display()
         )
     })?;
+    let toolchain = super::super::web_toolchain::resolve_managed_web_toolchain()?;
+    let entry = if source_entry.is_file() {
+        source_entry
+    } else {
+        let generated_styles = build_root.join("terlan.angular.styles.generated.css");
+        write_build_file(
+            &generated_styles,
+            render_angular_ts_styles(config)?.as_bytes(),
+            incremental,
+        )?;
+        let generated = build_root.join("terlan.angular.bootstrap.generated.js");
+        write_build_file(
+            &generated,
+            render_angular_ts_bootstrap().as_bytes(),
+            incremental,
+        )?;
+        generated
+    };
     let entry = fs::canonicalize(&entry).map_err(|err| {
         format!(
             "cannot resolve Rsbuild entrypoint {}: {err}",
@@ -303,31 +321,24 @@ pub(super) fn bundle_manifest_static_assets_with_rsbuild(
         config_path.clone()
     } else {
         let config_path = build_root.join("rsbuild.terlan.generated.mjs");
-        let config_text = render_rsbuild_config(&entry, &template, &web_root)?;
+        let config_text = render_rsbuild_config(&entry, &template, &web_root, config.angular_ts)?;
         write_build_file(&config_path, config_text.as_bytes(), incremental)?;
         config_path
     };
 
-    let rsbuild = project_root.join("node_modules/.bin/rsbuild");
-    if !rsbuild.is_file() {
-        return Err(format!(
-            "error[web_rsbuild_missing]: Terlan web asset bundling requires project-local @rsbuild/core; run npm install with @rsbuild/core in devDependencies for {}",
-            project_root.display()
-        ));
+    if config.angular_ts && config.rsbuild_config.is_some() {
+        return Err(
+            "error[web_rsbuild_config]: managed Angular.ts builds require compiler-generated Rspack configuration"
+                .to_string(),
+        );
     }
-    let rsbuild = fs::canonicalize(&rsbuild).map_err(|err| {
-        format!(
-            "error[web_rsbuild_missing]: cannot resolve Rsbuild binary {}: {err}",
-            rsbuild.display()
-        )
-    })?;
     let config_path = fs::canonicalize(&config_path).map_err(|err| {
         format!(
             "error[web_rsbuild_config]: cannot resolve Rsbuild config {}: {err}",
             config_path.display()
         )
     })?;
-    let output = Command::new(&rsbuild)
+    let output = Command::new(&toolchain.rsbuild)
         .arg("build")
         .arg("--config")
         .arg(&config_path)
@@ -335,6 +346,8 @@ pub(super) fn bundle_manifest_static_assets_with_rsbuild(
         .env("TERLAN_RSB_TEMPLATE", &template)
         .env("TERLAN_RSB_WEB_ROOT", &web_root)
         .env("TERLAN_RSB_BUILD_ROOT", &build_root)
+        .env("TERLAN_WEB_TOOLCHAIN_ROOT", &toolchain.root)
+        .env("NODE_PATH", toolchain.root.join("node_modules"))
         .current_dir(project_root)
         .output()
         .map_err(|err| format!("error[web_rsbuild]: failed to start Rsbuild: {err}"))?;
@@ -352,7 +365,12 @@ pub(super) fn bundle_manifest_static_assets_with_rsbuild(
 }
 
 /// Renders the private Rsbuild config used by `terlc build --target js.browser`.
-fn render_rsbuild_config(entry: &Path, template: &Path, web_root: &Path) -> Result<String, String> {
+fn render_rsbuild_config(
+    entry: &Path,
+    template: &Path,
+    web_root: &Path,
+    angular_ts: bool,
+) -> Result<String, String> {
     let build_root = web_root.parent().ok_or_else(|| {
         format!(
             "cannot determine build root for browser package {}",
@@ -367,9 +385,55 @@ fn render_rsbuild_config(entry: &Path, template: &Path, web_root: &Path) -> Resu
         .map_err(|err| format!("cannot serialize Rsbuild template path: {err}"))?;
     let web_root = serde_json::to_string(&web_root)
         .map_err(|err| format!("cannot serialize Rsbuild output path: {err}"))?;
+    let alias = if angular_ts {
+        "  resolve: { alias: { '@angular-wave/angular.ts$': `${process.env.TERLAN_WEB_TOOLCHAIN_ROOT}/node_modules/@angular-wave/angular.ts/dist/angular-ts.esm.js` } },\n"
+            .to_string()
+    } else {
+        String::new()
+    };
     Ok(format!(
-        "export default {{\n  root: {build_root},\n  source: {{ entry: {{ index: {entry} }} }},\n  html: {{ template: {template} }},\n  output: {{\n    distPath: {{ root: {web_root} }},\n    cleanDistPath: false,\n    assetPrefix: '/',\n    filename: {{ js: 'static/[name].js', css: 'static/[name].css', media: 'static/[name][ext]', font: 'static/[name][ext]', image: 'static/[name][ext]' }}\n  }}\n}};\n"
+        "export default {{\n  root: {build_root},\n  source: {{ entry: {{ index: {entry} }} }},\n  html: {{ template: {template} }},\n{alias}  performance: {{ chunkSplit: {{ strategy: 'all-in-one' }} }},\n  output: {{\n    distPath: {{ root: {web_root} }},\n    cleanDistPath: false,\n    assetPrefix: '/',\n    filename: {{ js: 'static/[name].js', css: 'static/[name].css', media: 'static/[name][ext]', font: 'static/[name][ext]', image: 'static/[name][ext]' }}\n  }}\n}};\n"
     ))
+}
+
+/// Emits the compiler-owned Angular.ts bootstrap when a Terlan application
+/// intentionally has no handwritten JavaScript entrypoint.
+fn render_angular_ts_bootstrap() -> &'static str {
+    "import './terlan.angular.styles.generated.css';\nimport { angular } from '@angular-wave/angular.ts';\n\nif (typeof globalThis === 'object') {\n  globalThis.angular = angular;\n}\n\nconst init = () => angular.init(document);\nif (document.readyState === 'loading') {\n  document.addEventListener('DOMContentLoaded', init, { once: true });\n} else {\n  init();\n}\n\nexport { angular };\n"
+}
+
+/// Concatenates manifest-owned styles into one deterministic compiler entry.
+fn render_angular_ts_styles(config: &BrowserStaticAssetConfig) -> Result<String, String> {
+    let mut files = manifest_static_asset_files(&config.source_dir)?
+        .into_iter()
+        .filter(|path| path.extension().and_then(|extension| extension.to_str()) == Some("css"))
+        .collect::<Vec<_>>();
+    files.sort();
+    let mut output = String::new();
+    for source in files {
+        let relative = source.strip_prefix(&config.source_dir).map_err(|err| {
+            format!(
+                "cannot relativize Angular.ts stylesheet {} against {}: {err}",
+                source.display(),
+                config.source_dir.display()
+            )
+        })?;
+        validate_safe_manifest_asset_path(relative, &source)?;
+        let css = fs::read_to_string(&source).map_err(|err| {
+            format!(
+                "cannot read Angular.ts stylesheet {}: {err}",
+                source.display()
+            )
+        })?;
+        output.push_str("/* ");
+        output.push_str(&path_to_manifest_string(relative));
+        output.push_str(" */\n");
+        output.push_str(&css);
+        if !css.ends_with('\n') {
+            output.push('\n');
+        }
+    }
+    Ok(output)
 }
 
 /// Copies non-code files that Rsbuild should not bundle, such as Angular HTML templates.

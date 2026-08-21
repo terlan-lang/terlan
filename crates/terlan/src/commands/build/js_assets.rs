@@ -38,6 +38,7 @@ pub(super) fn browser_static_assets_from_manifest(
             .rsbuild_config
             .as_ref()
             .map(|config| project_dir.join(config)),
+        angular_ts: false,
     })
 }
 

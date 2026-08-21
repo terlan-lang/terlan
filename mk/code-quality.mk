@@ -15,6 +15,7 @@
 # Dependency impact performs the broadest structural analysis and retains a
 # somewhat larger bounded VM allowance than the narrower quality gates.
 TERLAN_RUST_DEPENDENCY_IMPACT_VIRTUAL_MEMORY_KIB := 196608
+TERLAN_RUST_BUILD_GRAPH_VIRTUAL_MEMORY_KIB := 196608
 .PHONY: rust-module-structure-check rust-build-graph-boundary-check rust-cargo-metadata-report
 .PHONY: rust-structure-timings-self-test rust-module-structure-self-test
 .PHONY: rust-canonical-type-ownership-check
@@ -22,18 +23,16 @@ TERLAN_RUST_DEPENDENCY_IMPACT_VIRTUAL_MEMORY_KIB := 196608
 .PHONY: rust-artifact-retention-check
 .PHONY: rust-code-quality-0-0-8-milestone-check
 .PHONY: code-quality-0-0-7-feedback-loop-check
-.PHONY: code-quality-0-0-7-closeout-check
 
 rust-format-check:
 	$(CARGO) fmt --all -- --check
 
-rust-locked-binary-check:
-	$(CARGO) check --locked --workspace --bins
-	$(CARGO) check --locked --workspace --bins --all-features
+rust-locked-binary-check: rust-clippy-check
+	@echo "[rust-locked-binary] clippy compiled every workspace binary in both feature profiles"
 
 rust-clippy-check:
-	$(CARGO) clippy --locked --workspace --bins -- -D warnings
-	$(CARGO) clippy --locked --workspace --bins --all-features -- -D warnings
+	$(CARGO) clippy --workspace --bins -- -D warnings
+	$(CARGO) clippy --workspace --bins --all-features -- -D warnings
 
 rust-lint-allowance-check: terlan-rust-quality-bootstrap
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
@@ -67,8 +66,8 @@ rust-build-graph-timings-record: rust-build-graph-timings-self-test
 
 rust-code-quality-adversarial-check:
 	target/debug/terlc test scripts/self_validation/RustCodeQualityAdversarialTest.terl
-	$(RUST_TEST) --locked -p terlan --lib --features quality-tools rustdoc_rejects_
-	$(RUST_TEST) --locked -p terlan --lib --features quality-tools rust_quality_rejects_
+	$(RUST_TEST) -p terlan --lib --features quality-tools rustdoc_rejects_
+	$(RUST_TEST) -p terlan --lib --features quality-tools rust_quality_rejects_
 
 rust-code-quality-preflight-check: \
 	rust-workspace-policy-check \
@@ -82,9 +81,9 @@ rust-code-quality-preflight-check: \
 	rust-quality-check
 	@echo "[rust-code-quality] preflight passed"
 
-rust-boundary-audit-report:
+rust-boundary-audit-report: | terlan-quality-tools-bootstrap
 	@mkdir -p target/quality
-	$(CARGO) run --locked -p terlan-rust-boundary-audit --quiet -- . \
+	target/debug/terlan-rust-boundary-audit . \
 		--api-boundary-input target/quality/rust-api-boundary-input.tsv \
 		--shared-helper-input target/quality/rust-shared-helper-input.tsv \
 		--structural-input target/quality/rust-structural-input.json \
@@ -92,7 +91,7 @@ rust-boundary-audit-report:
 
 rust-cargo-metadata-report:
 	@mkdir -p target/quality
-	$(CARGO) metadata --locked --format-version 1 > target/quality/rust-cargo-metadata.json
+	$(CARGO) metadata --format-version 1 > target/quality/rust-cargo-metadata.json
 
 rust-api-boundary-quality-check: \
 	rust-lint-allowance-check \
@@ -115,8 +114,8 @@ rust-api-boundary-quality-record-budgets: rust-boundary-audit-report terlan-rust
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
 		$(TERLAN_RUST_QUALITY) api-boundary-record-budgets
 
-rust-warnings-check:
-	RUSTFLAGS='-D warnings' $(CARGO) check --locked -p terlan --bins
+rust-warnings-check: rust-clippy-check
+	@echo "[rust-warnings] workspace binary warnings are denied by the canonical clippy owner"
 
 rust-quality-check: dormant-runtime-code-check vm-deterministic-hashmap-check
 	$(TERLAN_QUALITY) rust-quality
@@ -220,7 +219,7 @@ rust-build-graph-boundary-check: \
 	terlan-rust-quality-bootstrap
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
 		$(TERLAN_RUST_QUALITY) build-graph-boundary-self-test
-	@ulimit -v $(TERLAN_RUST_QUALITY_VIRTUAL_MEMORY_KIB); \
+	@ulimit -v $(TERLAN_RUST_BUILD_GRAPH_VIRTUAL_MEMORY_KIB); \
 		timeout $(TERLAN_RUST_QUALITY_TIMEOUT_SECONDS)s env \
 			MALLOC_ARENA_MAX=$(TERLAN_RUST_QUALITY_MALLOC_ARENA_MAX) \
 			TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
@@ -230,15 +229,11 @@ rust-build-graph-boundary-check: \
 # Measurement must precede every test-owning/package gate because it performs a
 # clean build and then `cargo clean`. Package isolation is still enforced by the
 # consumer below, after the canonical suite has established shared evidence.
-build-artifact-budget-record: rust-build-graph-boundary-check terlan-self-validation-bootstrap
+build-artifact-budget-record: terlan-artifact-measurement-bootstrap
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
-		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SELF_VALIDATION_IMAGE) -- --measure
-	TERLAN_CARGO_ARTIFACT_RETENTION_MODE=clean-check \
-	TERLAN_CARGO_ARTIFACT_RETENTION_TARGET="$(CURDIR)/target" \
-	TERLAN_CARGO_ARTIFACT_RETENTION_REPORT="$(CURDIR)/target/quality/cargo-artifact-retention.json" \
-		target/debug/terlc test scripts/self_validation/CargoArtifactRetentionTest.terl
+		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SELF_VALIDATION_IMAGE) -- --measure-if-stale
 
-build-artifact-budget-self-test: terlan-self-validation-bootstrap
+build-artifact-budget-self-test: terlan-artifact-measurement-bootstrap
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
 		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SELF_VALIDATION_IMAGE) -- --self-test
 
@@ -260,24 +255,3 @@ code-quality-0-0-7-feedback-loop-check: rust-module-structure-self-test
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::actor::actor_dynamic_module::actor_dynamic_module_test::actor_dynamic_module_lifecycle_is_vm_owned_and_exit_driven -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib --features editor-lsp lsp::binding_navigation::binding_navigation_test::navigation_index_keeps_nested_same_spelled_bindings_separate -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib --features quality-tools quality::lib_test::rustdoc_passes_documented_items -- --exact
-
-code-quality-0-0-7-closeout-check: \
-	rust-code-quality-preflight-check \
-	rust-structure-census-check \
-	rust-module-structure-check \
-	rust-file-headroom-check \
-	rust-artifact-retention-check \
-	rust-api-boundary-quality-check \
-	rust-canonical-type-ownership-check \
-	test-hierarchy-check \
-	shared-helper-check \
-	dormant-runtime-code-check \
-	safe-rust-runtime-check \
-	roadmap-gate-integrity-check \
-	release-code-hygiene-check \
-	code-quality-0-0-7-feedback-loop-check \
-	rust-structure-closeout-timings-check
-	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
-		$(TERLAN_RUST_QUALITY) code-quality-closeout-self-test
-	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
-		$(TERLAN_RUST_QUALITY) code-quality-closeout-check

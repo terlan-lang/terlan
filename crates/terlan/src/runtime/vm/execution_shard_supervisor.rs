@@ -280,6 +280,7 @@ impl VmExecutionShardSupervisor {
     }
 
     /// Returns bounded crash history in observation order.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn crash_history(&self) -> impl Iterator<Item = &VmShardCrashReport> {
         self.crash_history.iter()
     }
@@ -323,6 +324,7 @@ impl VmExecutionShardSupervisor {
     }
 
     /// Replaces a fully drained image while preserving the shard identity and epoch fence.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn replace_drained_image(
         &mut self,
         drained_epoch: VmShardEpoch,
@@ -515,6 +517,7 @@ impl VmExecutionShardSupervisor {
     }
 
     /// Quarantines a draining generation with its exact retained lifetime proof.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn quarantine_drain_timeout_with_lifetime(
         &mut self,
         epoch: VmShardEpoch,

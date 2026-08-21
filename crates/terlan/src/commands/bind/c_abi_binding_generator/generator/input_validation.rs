@@ -143,6 +143,63 @@ pub(super) fn validate_rust_extension(
     Ok(())
 }
 
+/// Validates package-contained Terlan extension sources and module ownership.
+pub(super) fn validate_terlan_module_extensions(
+    manifest: &CAbiBindingManifest,
+    input_dir: &Path,
+) -> Result<(), String> {
+    let modules = manifest
+        .modules
+        .iter()
+        .map(|module| module.module.as_str())
+        .collect::<BTreeSet<_>>();
+    let mut sources = BTreeSet::new();
+    for (module, source) in &manifest.package.terlan_module_extensions {
+        if !modules.contains(module.as_str()) {
+            return Err(format!(
+                "C ABI package Terlan extension references unknown module `{module}`"
+            ));
+        }
+        validate_input_path(input_dir, source)?;
+        if Path::new(source)
+            .extension()
+            .and_then(|value| value.to_str())
+            != Some("terl")
+        {
+            return Err(format!(
+                "C ABI package Terlan extension source `{source}` must be a Terlan source file"
+            ));
+        }
+        if !sources.insert(source.as_str()) {
+            return Err(format!(
+                "C ABI package Terlan extension source `{source}` is assigned to multiple modules"
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Appends one package-authored declaration fragment to its generated module.
+pub(super) fn append_terlan_module_extension(
+    module_source: &mut String,
+    package: &CAbiBindingPackage,
+    module: &str,
+    input_dir: &Path,
+) -> Result<(), String> {
+    let Some(extension) = package.terlan_module_extensions.get(module) else {
+        return Ok(());
+    };
+    let extension_source = fs::read_to_string(input_dir.join(extension)).map_err(|error| {
+        format!("failed to read Terlan module extension `{extension}` for `{module}`: {error}")
+    })?;
+    module_source.push('\n');
+    module_source.push_str(&extension_source);
+    if !module_source.ends_with('\n') {
+        module_source.push('\n');
+    }
+    Ok(())
+}
+
 pub(super) fn validate_c_aliases(metadata: &CMetadata) -> Result<(), String> {
     for (name, target) in &metadata.aliases {
         if !is_c_identifier(name) {

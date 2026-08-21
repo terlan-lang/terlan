@@ -449,16 +449,11 @@ fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
                 .to_string(),
         );
     }
-    let canonical_suite_owns_rust_tests = text.contains("COMPLETED_SLICE_RUST_GATES :=")
-        && text.contains("vm-http-handler-scheduler-fairness-check \\")
-        && text.contains("$(COMPLETED_SLICE_RUST_GATES): $(CANONICAL_RUST_SUITE_OWNER)");
-    if !canonical_suite_owns_rust_tests {
-        for selector in REQUIRED_EXACT_SELECTORS {
-            if !text.contains(selector) {
-                diagnostics.push(format!(
-                    "Makefile: missing VM HTTP fairness exact selector `{selector}`"
-                ));
-            }
+    for selector in REQUIRED_EXACT_SELECTORS {
+        if !text.contains(selector) {
+            diagnostics.push(format!(
+                "Makefile: missing VM HTTP fairness exact selector `{selector}`"
+            ));
         }
     }
     for command in BENCHMARK_COMMANDS {

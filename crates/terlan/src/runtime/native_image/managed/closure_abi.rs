@@ -7,6 +7,7 @@ const VERSION: u16 = 1;
 const ENCODED_BYTES: usize = 24;
 
 /// Encodes one admitted callable identity for generated closure allocation.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) fn encode_closure_allocation(callable_id: u64) -> Result<Vec<u8>, ManagedMemoryError> {
     if callable_id == 0 {
         return Err(ManagedMemoryError::InvalidClosure);

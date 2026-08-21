@@ -464,6 +464,32 @@ fn public_nominal_export_is_not_misclassified_as_generic() {
         .any(|function| function.name == "identity"));
 }
 
+/// Verifies a concrete named callback specializes a generic union before a
+/// nullary constructor argument is checked against that union.
+#[test]
+fn named_callback_specializes_nullary_generic_union_arguments() {
+    let syntax = parse_module_as_syntax_output(
+        "module generic_option_compare.\n\n\
+         pub type None.\n\n\
+         pub type Some[T] = {Atom[\"some\"], value: T}.\n\n\
+         pub type Option[T] = None | Some[T].\n\n\
+         compare[T](left: Option[T], right: Option[T], callback: (T, T) -> Int): Int ->\n\
+             case left { None -> 0; Some(value) -> callback(value, value) }.\n\n\
+         compare_int(left: Int, right: Int): Int -> left - right.\n\n\
+         pub run(): Int -> compare(None, None, compare_int).\n",
+    )
+    .expect("parse generic option comparison");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = NativeModule::lower_application(&[&core])
+        .expect("named callback should specialize the option payload type");
+
+    assert!(modules[0]
+        .functions
+        .iter()
+        .any(|function| function.name == "run"));
+}
+
 #[test]
 fn generic_specialization_budget_fails_before_native_linking() {
     let mut source =

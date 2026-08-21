@@ -230,20 +230,43 @@ fn infer_syntax_call_with_arg_types(
     errors: &mut Vec<String>,
 ) -> Type {
     if expr.remote.is_none() {
-        if let Some(ty) =
-            infer_syntax_primitive_receiver_method_call(expr, arg_types, locals, ctx, subst, errors)
-        {
-            return ty;
-        }
-        if let Some(ty) =
-            infer_syntax_receiver_method_call(expr, arg_types, locals, ctx, subst, errors)
-        {
-            return ty;
-        }
-        if let Some(ty) =
-            infer_syntax_trait_receiver_method_call(expr, arg_types, locals, ctx, subst, errors)
-        {
-            return ty;
+        let receiver = expr
+            .children
+            .first()
+            .filter(|callee| matches!(callee.kind, SyntaxExprKind::FieldAccess))
+            .and_then(|callee| callee.children.first());
+        if let Some(receiver) = receiver {
+            let receiver_type = infer_syntax_expr(receiver, locals, ctx, subst, errors);
+            if let Some(ty) = infer_syntax_primitive_receiver_method_call(
+                expr,
+                arg_types,
+                &receiver_type,
+                ctx,
+                subst,
+                errors,
+            ) {
+                return ty;
+            }
+            if let Some(ty) = infer_syntax_receiver_method_call(
+                expr,
+                arg_types,
+                &receiver_type,
+                ctx,
+                subst,
+                errors,
+            ) {
+                return ty;
+            }
+            if let Some(ty) = infer_syntax_trait_receiver_method_call(
+                expr,
+                arg_types,
+                &receiver_type,
+                ctx,
+                subst,
+                errors,
+            ) {
+                return ty;
+            }
         }
     }
 

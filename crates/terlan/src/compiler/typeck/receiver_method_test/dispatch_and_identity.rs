@@ -165,6 +165,33 @@ pub call_bridge(bridge: NativeBridge[String]): String ->\n\
     assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
 }
 
+/// Verifies fluent receiver dispatch infers each receiver subtree once.
+///
+/// A sufficiently long chain makes repeated primitive/local/trait receiver
+/// inference exponential, so this correctness fixture also guards the shared
+/// receiver-type handoff used by builder-style APIs.
+#[test]
+pub(super) fn syntax_output_accepts_long_local_receiver_chain() {
+    let diagnostics = check_syntax_output(
+        "\
+module receiver_dispatch_chain.\n\
+\n\
+pub struct Builder {\n\
+    value: Int\n\
+}.\n\
+\n\
+pub (builder: Builder) keep(): Builder ->\n\
+    builder.\n\
+\n\
+pub value(builder: Builder): Int ->\n\
+    builder.keep().keep().keep().keep().keep().keep().keep().keep().keep().keep()\n\
+        .keep().keep().keep().keep().keep().keep().keep().keep().keep().keep().value.\n\
+",
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
+}
+
 #[test]
 pub(super) fn syntax_output_rejects_duplicate_receiver_method_identity_on_formal_path() {
     let diagnostics = check_syntax_output(

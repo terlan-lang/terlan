@@ -29,6 +29,7 @@ module	std.collections.List	std/collections/List.terl	std/summaries/std.collecti
 module	std.collections.Map	std/collections/Map.terl	std/summaries/std.collections.Map.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.Map.html
 module	std.collections.Set	std/collections/Set.terl	std/summaries/std.collections.Set.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.Set.html
 module	std.crypto.Hash	std/crypto/Hash.terl	std/summaries/std.crypto.Hash.typi	tests/std/RELEASE_API_TESTS.tsv	std.crypto.Hash.html
+module	std.crypto.Ed25519	std/crypto/Ed25519.terl	std/summaries/std.crypto.Ed25519.typi	tests/std/RELEASE_API_TESTS.tsv	std.crypto.Ed25519.html
 module	std.data.Json	std/data/Json.terl	std/summaries/std.data.Json.typi	tests/std/RELEASE_API_TESTS.tsv	std.data.Json.html
 module	std.data.Toml	std/data/Toml.terl	std/summaries/std.data.Toml.typi	tests/std/RELEASE_API_TESTS.tsv	std.data.Toml.html
 module	std.db.Postgres	std/db/Postgres.terl	std/summaries/std.db.Postgres.typi	tests/std/RELEASE_API_TESTS.tsv	std.db.Postgres.html
@@ -92,6 +93,7 @@ module	std.log.Log	std/log/Log.terl	std/summaries/std.log.Log.typi	tests/std/REL
 module	std.net.Uri	std/net/Uri.terl	std/summaries/std.net.Uri.typi	tests/std/RELEASE_API_TESTS.tsv	std.net.Uri.html
 module	std.random.Random	std/random/Random.terl	std/summaries/std.random.Random.typi	tests/std/RELEASE_API_TESTS.tsv	std.random.Random.html
 module	std.regex.Regex	std/regex/Regex.terl	std/summaries/std.regex.Regex.typi	tests/std/RELEASE_API_TESTS.tsv	std.regex.Regex.html
+module	std.package.Registry	std/package/Registry.terl	std/summaries/std.package.Registry.typi	tests/std/RELEASE_API_TESTS.tsv	std.package.Registry.html
 module	std.native.collections.Vector	std/native/collections/Vector.terl	std/summaries/std.native.collections.Vector.typi	tests/std/RELEASE_API_TESTS.tsv	std.native.collections.Vector.html
 module	std.sync.Resource	std/sync/Resource.terl	std/summaries/std.sync.Resource.typi	tests/std/RELEASE_API_TESTS.tsv	std.sync.Resource.html
 module	std.system.Arguments	std/system/Arguments.terl	std/summaries/std.system.Arguments.typi	tests/std/RELEASE_API_TESTS.tsv	std.system.Arguments.html

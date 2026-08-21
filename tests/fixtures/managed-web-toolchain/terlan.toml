@@ -1,0 +1,15 @@
+[package]
+name = "managed-web-toolchain"
+version = "0.1.0"
+namespace = "managed.web"
+
+[build]
+source_roots = ["src"]
+artifact = "terlan-vm"
+
+[web.assets]
+directory = "assets"
+public_path = "/assets"
+
+[target.js.dependencies]
+angular_ts = { npm = "@angular-wave/angular.ts", version = "0.32.0" }

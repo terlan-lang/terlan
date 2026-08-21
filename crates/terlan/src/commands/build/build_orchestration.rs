@@ -1,131 +1,14 @@
 use super::metadata::BuildPackageMetadata;
 use super::*;
 
+mod package_outputs;
 mod source_root_builds;
+mod test_dependencies;
 
+pub(in crate::commands::build) use package_outputs::write_terlan_vm_executable_package_outputs;
+use package_outputs::{root_vm_service_route_sources, write_package_metadata};
 pub(in crate::commands::build) use source_root_builds::*;
-
-/// Resolves dependency and root-package source directories for project tests.
-///
-/// Inputs:
-/// - `project_dir`: directory containing the root package manifest.
-/// - `manifest`: validated root package manifest.
-///
-/// Output:
-/// - Dependency-first source directories using the normal build resolver.
-/// - Stable package-resolution errors for missing roots, cycles, and unfetched
-///   Git dependencies.
-///
-/// Transformation:
-/// - Reuses build dependency resolution so `terlc test` observes the same
-///   package graph as `terlc build` and `terlc run`.
-pub(crate) fn resolve_project_test_dependencies(
-    project_dir: &Path,
-    manifest: &project_manifest::ProjectManifest,
-) -> Result<ResolvedProjectTestDependencies, String> {
-    let roots = resolve_project_build_roots(project_dir, manifest)?;
-    let source_roots = roots
-        .source_roots
-        .into_iter()
-        .map(|root| root.path)
-        .collect();
-    let mut native_helper_environment = roots.native_artifact_environment;
-    let artifact_helpers = native_helper_environment
-        .iter()
-        .map(|(name, _)| name.as_str())
-        .collect::<std::collections::BTreeSet<_>>();
-    let source_dependencies = roots
-        .native_rust_dependencies
-        .iter()
-        .filter(|dependency| !artifact_helpers.contains(dependency.native.helper_env.as_str()))
-        .cloned()
-        .collect::<Vec<_>>();
-    native_helper_environment.extend(build_test_native_helpers(&source_dependencies)?);
-    Ok(ResolvedProjectTestDependencies {
-        source_roots,
-        native_helper_environment,
-    })
-}
-
-/// Dependency context shared by project builds and in-process VM tests.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ResolvedProjectTestDependencies {
-    /// Dependency-first source roots selected by normal package resolution.
-    pub(crate) source_roots: Vec<PathBuf>,
-    /// Verified or freshly built native helper bindings for in-process VM tests.
-    pub(crate) native_helper_environment: Vec<(String, PathBuf)>,
-}
-
-pub(super) fn build_test_native_helpers(
-    dependencies: &[ProjectNativeRustDependency],
-) -> Result<Vec<(String, PathBuf)>, String> {
-    let mut bindings = Vec::with_capacity(dependencies.len());
-    for dependency in dependencies {
-        let native = &dependency.native;
-        if let Some(path) = std::env::var_os(&native.helper_env) {
-            let path = PathBuf::from(path);
-            if !path.is_file() {
-                return Err(format!(
-                    "error[native_helper_unavailable]: native helper environment `{}` points at a missing file: {}",
-                    native.helper_env,
-                    path.display()
-                ));
-            }
-            bindings.push((native.helper_env.clone(), path));
-            continue;
-        }
-        let crate_dir = dependency.package_dir.join(&native.path);
-        let manifest_path = crate_dir.join("Cargo.toml");
-        if !manifest_path.is_file() {
-            return Err(format!(
-                "error[native_helper_unavailable]: native helper `{}` manifest is missing: {}",
-                native.helper,
-                manifest_path.display()
-            ));
-        }
-        let target_dir = std::env::var_os("CARGO_TARGET_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| crate_dir.join("target"));
-        let helper_path = target_dir.join("debug").join(&native.helper);
-        #[cfg(windows)]
-        let helper_path = helper_path.with_extension("exe");
-        if !helper_path.is_file() || !native.features.is_empty() {
-            let mut command = Command::new("cargo");
-            command
-                .arg("build")
-                .arg("--manifest-path")
-                .arg(&manifest_path)
-                .arg("--bin")
-                .arg(&native.helper);
-            if !native.features.is_empty() {
-                command.arg("--features").arg(native.features.join(","));
-            }
-            let output = command.output().map_err(|error| {
-                format!(
-                    "failed to build native helper `{}` for tests: {error}",
-                    native.helper
-                )
-            })?;
-            if !output.status.success() {
-                return Err(format!(
-                    "failed to build native helper `{}` for tests\nstdout:\n{}\nstderr:\n{}",
-                    native.helper,
-                    String::from_utf8_lossy(&output.stdout),
-                    String::from_utf8_lossy(&output.stderr)
-                ));
-            }
-        }
-        if !helper_path.is_file() {
-            return Err(format!(
-                "native helper `{}` was not found after Cargo build at {}",
-                native.helper,
-                helper_path.display()
-            ));
-        }
-        bindings.push((native.helper_env.clone(), helper_path));
-    }
-    Ok(bindings)
-}
+pub(crate) use test_dependencies::resolve_project_test_dependencies;
 
 #[cfg(test)]
 pub(super) const BUILD_DEBUG_MAP_FILE: &str = "terlan-debug-map.json";
@@ -134,8 +17,23 @@ pub(super) const BUILD_PACKAGE_METADATA_SCHEMA: &str = "terlan-package-build-v1"
 pub(super) const TERLAN_PROJECT_MANIFEST_FILE: &str = "terlan.toml";
 
 /// Runs the package-source command surface.
-pub(crate) fn run_package_command(cmd: CliCommand) -> ExitCode {
-    package_git::run(cmd)
+pub(crate) fn run_package_command(cmd: CliCommand, state: CliState) -> ExitCode {
+    match cmd.args.first().map(String::as_str) {
+        Some("protocol") => {
+            crate::package_registry::run_protocol_command(&cmd.args, &state.out_dir)
+        }
+        Some("publish") => package_publish::run(&cmd.args, &state.out_dir),
+        Some("add") => package_registry_commands::run_add(&cmd.args, &state.out_dir),
+        Some("remove") => package_registry_commands::run_remove(&cmd.args, &state.out_dir),
+        Some("resolve") => package_registry_resolver::run(&cmd.args, &state.out_dir),
+        Some("update") => package_registry_resolver::run_update(&cmd.args, &state.out_dir),
+        Some("tree") => package_registry_resolver::run_tree(&cmd.args, &state.out_dir),
+        Some("audit") => {
+            package_registry_audit::run(&cmd.args, &state.out_dir, state.diagnostic_format)
+        }
+        Some("yank") => package_registry_yank::run(&cmd.args),
+        _ => package_git::run(cmd),
+    }
 }
 
 pub(super) type BuildOneArtifactFn = fn(&str, &CliState) -> Result<(), BuildOneError>;
@@ -548,8 +446,21 @@ pub(super) fn run_terlan_vm_file_build(
         .extension()
         .and_then(|extension| extension.to_str())
         == Some("terls");
+    if is_script && !script_requires_project_closure(source_path)? {
+        let file_state = standalone_vm_file_state(state);
+        return vm_artifact::build_one_vm_artifact(
+            &source_path.to_string_lossy(),
+            &file_state,
+            policy,
+        );
+    }
     let Some(project_dir) = owning_project_dir_for_source(source_path) else {
-        return vm_artifact::build_one_vm_artifact(&source_path.to_string_lossy(), state, policy);
+        let file_state = standalone_vm_file_state(state);
+        return vm_artifact::build_one_vm_artifact(
+            &source_path.to_string_lossy(),
+            &file_state,
+            policy,
+        );
     };
     let manifest = project_manifest::read_project_manifest(&project_manifest_path(&project_dir))
         .map_err(BuildOneError::Message)?;
@@ -621,6 +532,63 @@ pub(super) fn run_terlan_vm_file_build(
     Ok(())
 }
 
+/// Gives incremental standalone builds the same compiler-private cache root as
+/// project and directory builds.
+fn standalone_vm_file_state(state: &CliState) -> CliState {
+    let mut file_state = state.clone();
+    if file_state.incremental && file_state.cache_dir.is_none() {
+        file_state.cache_dir = Some(file_state.out_dir.join(".terlan"));
+    }
+    file_state
+}
+
+/// Determines whether a direct Terlan script needs its owning package closure.
+///
+/// Inputs:
+/// - `source_path`: direct `.terls` source selected by `terlc build` or
+///   `terlc run`.
+///
+/// Output:
+/// - `false` when the script has no imports or imports only `std.*` modules.
+/// - `true` when the script imports project modules or source-backed assets.
+/// - A build error when the source cannot be read or parsed.
+///
+/// Transformation:
+/// - Parses the script through the maintained syntax pipeline and classifies
+///   canonical module import identities. This lets repository validation
+///   scripts remain manifest-adjacent without linking the package and its
+///   native dependencies merely because the script lives below that manifest.
+pub(super) fn script_requires_project_closure(source_path: &Path) -> Result<bool, BuildOneError> {
+    let path = source_path.to_string_lossy();
+    let source = crate::support::read_file(&path)
+        .map_err(|error| BuildOneError::Message(error.to_string()))?;
+    let syntax =
+        crate::formal_pipeline::parse_source_as_syntax_output(&path, &source).map_err(|error| {
+            BuildOneError::Message(format!(
+                "terlc build cannot parse script {} for import classification: {error:?}",
+                source_path.display()
+            ))
+        })?;
+    Ok(syntax.declarations.iter().any(|declaration| {
+        let crate::terlan_syntax::SyntaxDeclarationPayload::Import {
+            import_kind,
+            module_name,
+            items,
+            is_selected,
+            ..
+        } = &declaration.payload
+        else {
+            return false;
+        };
+        if *import_kind != crate::terlan_syntax::SyntaxImportKind::Module {
+            return true;
+        }
+        let identity =
+            crate::terlan_syntax::syntax_module_import_identity(module_name, items, *is_selected);
+        identity != "std" && !identity.starts_with("std.")
+    }))
+}
+
 /// Finds the nearest manifest-backed project that contains a source file.
 ///
 /// Inputs:
@@ -634,7 +602,32 @@ pub(super) fn run_terlan_vm_file_build(
 /// - Walks parent directories from the source location toward the filesystem
 ///   root so nested projects take ownership before their ancestors.
 pub(super) fn owning_project_dir_for_source(source_path: &Path) -> Option<PathBuf> {
-    source_path
+    owning_project_dir_for_source_from(source_path, &std::env::current_dir().ok()?)
+}
+
+/// Finds the nearest manifest-backed project relative to an explicit working directory.
+///
+/// Inputs:
+/// - `source_path`: absolute or working-directory-relative source path.
+/// - `current_dir`: directory used to resolve a relative source path.
+///
+/// Output:
+/// - Nearest absolute ancestor directory containing `terlan.toml`.
+/// - `None` when the source has no manifest-backed owner.
+///
+/// Transformation:
+/// - Normalizes relative paths before ancestor traversal so the empty terminal
+///   ancestor of a relative `Path` cannot be returned as a project directory.
+pub(super) fn owning_project_dir_for_source_from(
+    source_path: &Path,
+    current_dir: &Path,
+) -> Option<PathBuf> {
+    let absolute_source = if source_path.is_absolute() {
+        source_path.to_path_buf()
+    } else {
+        current_dir.join(source_path)
+    };
+    absolute_source
         .parent()
         .and_then(|parent| {
             parent
@@ -737,16 +730,45 @@ pub(super) fn run_terlan_vm_directory_build(
             return status;
         }
         if manifest.artifact == project_manifest::ProjectArtifactKind::TerlanVm {
+            let route_sources = match root_vm_service_route_sources(dir, &manifest) {
+                Ok(route_sources) => route_sources,
+                Err(message) => {
+                    eprintln!("{message}");
+                    return ExitCode::from(1);
+                }
+            };
+            let vm_service = !route_sources.is_empty();
+            if vm_service {
+                if let Err(message) = js_browser::write_vm_service_package(
+                    dir,
+                    &state.out_dir,
+                    &manifest.source_roots,
+                    &route_sources,
+                    state.incremental,
+                ) {
+                    eprintln!("{message}");
+                    return ExitCode::from(1);
+                }
+            }
             if let Err(message) = write_terlan_vm_executable_package_outputs(
                 dir,
                 &manifest,
                 &roots.native_rust_dependencies,
                 &roots.native_artifact_environment,
                 roots.accelerator_closure.as_ref(),
+                vm_service,
                 state,
             ) {
                 eprintln!("{message}");
                 return ExitCode::from(1);
+            }
+            if policy == crate::compiler::native_ir::NativeCodegenPolicy::Release {
+                if let Err(message) =
+                    super::release_bundle::write_release_bundle(dir, &manifest, state)
+                {
+                    eprintln!("{message}");
+                    return ExitCode::from(1);
+                }
             }
         } else if manifest.artifact == project_manifest::ProjectArtifactKind::Library {
             let metadata = build_package_metadata_with_artifacts(
@@ -769,73 +791,4 @@ pub(super) fn run_terlan_vm_directory_build(
         package_path: None,
     }];
     run_terlan_vm_source_roots_build(&source_roots, state, policy)
-}
-
-/// Writes launcher and metadata outputs for a VM executable package.
-pub(super) fn write_terlan_vm_executable_package_outputs(
-    project_dir: &Path,
-    manifest: &project_manifest::ProjectManifest,
-    native_rust_dependencies: &[ProjectNativeRustDependency],
-    native_artifact_environment: &[(String, PathBuf)],
-    accelerator_closure: Option<&crate::compiler::accelerator::AcceleratorDependencyClosure>,
-    state: &CliState,
-) -> Result<(), String> {
-    let executable_name = package_executable_name(&manifest.package.name);
-    let executable_relative_path = PathBuf::from("bin").join(&executable_name);
-    let executable_path = state.out_dir.join(&executable_relative_path);
-    let artifact_relative_path =
-        PathBuf::from("vm").join(format!("{}.tvm", executable_vm_artifact_stem(manifest)));
-    let artifact_path = state.out_dir.join(&artifact_relative_path);
-    if !artifact_path.is_file() {
-        return Err(format!(
-            "terlc build executable package `{}` requires entry artifact `{}`; define `{}.Main.main/0` or set [build] artifact = \"library\"",
-            manifest.package.name,
-            artifact_path.display(),
-            source_package_path(&manifest.package).join(".")
-        ));
-    }
-    let entry_module = format!("{}.Main", source_package_path(&manifest.package).join("."));
-    if !vm_image_has_main_entrypoint(&artifact_path, &entry_module)? {
-        return Err(format!(
-            "terlc build executable package `{}` requires public `main/0` in `{}`; define `{}.Main.main/0` or set [build] artifact = \"library\"",
-            manifest.package.name,
-            artifact_path.display(),
-            source_package_path(&manifest.package).join(".")
-        ));
-    }
-    let bundled_runner_path = state.out_dir.join("bin").join(terlan_vm_runner_name());
-    copy_bundled_terlan_vm_runner(&bundled_runner_path)?;
-    let bundled_worker_path = state.out_dir.join("bin").join(terlan_native_worker_name());
-    copy_bundled_terlan_native_worker(&bundled_worker_path)?;
-    write_vm_launcher(&executable_path, &artifact_relative_path, state.incremental)?;
-
-    let mut metadata = build_package_metadata_with_artifacts(
-        project_dir,
-        manifest,
-        native_rust_dependencies,
-        native_artifact_environment,
-        accelerator_closure,
-    );
-    metadata.executable = Some(BuildPackageExecutable {
-        path: path_to_manifest_string(&executable_relative_path),
-        image: path_to_manifest_string(&artifact_relative_path),
-        runtime: path_to_manifest_string(&PathBuf::from("bin").join(terlan_vm_runner_name())),
-        native_worker: path_to_manifest_string(
-            &PathBuf::from("bin").join(terlan_native_worker_name()),
-        ),
-    });
-    write_package_metadata(&metadata, state)?;
-    Ok(())
-}
-
-/// Writes normalized package metadata for executable and library artifacts.
-fn write_package_metadata(metadata: &BuildPackageMetadata, state: &CliState) -> Result<(), String> {
-    let json = serde_json::to_string_pretty(metadata)
-        .map_err(|err| format!("failed to serialize package build metadata: {err}"))?;
-    write_build_file(
-        &state.out_dir.join(BUILD_PACKAGE_METADATA_FILE),
-        format!("{json}\n").as_bytes(),
-        state.incremental,
-    )?;
-    Ok(())
 }

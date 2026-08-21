@@ -14,7 +14,7 @@ use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer, Serve
 use rustls::ServerConfig;
 use webpki::{EndEntityCert, Error as WebPkiError, KeyUsage};
 
-use crate::commands::build::project_manifest::{
+use crate::commands::serve::tls_contract::{
     ProjectServerTls, ProjectServerTlsMode, ProjectServerTlsProvider,
 };
 use crate::runtime::vm::acme_worker::{

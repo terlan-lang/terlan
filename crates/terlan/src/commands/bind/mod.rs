@@ -24,6 +24,12 @@ struct BindJsDomArgs {
     out_dir: PathBuf,
 }
 
+/// Parsed `terlc bind angular-ts` command options.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct BindAngularTsArgs {
+    out_dir: PathBuf,
+}
+
 /// Parsed `terlc bind cpp` command options.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct BindCppArgs {
@@ -51,7 +57,7 @@ mod ts_parser_adapter;
 mod ts_type_mapping;
 
 use polars_probe::{GeneratedFile, POLARS_FILES};
-use ts_dom_generator::generate_js_dom_bindings;
+use ts_dom_generator::{generate_js_dom_bindings, generate_js_dom_bindings_from_manifest};
 
 mod ts_dom_generator;
 use c_abi_binding_generator::generate_c_abi_bindings;
@@ -79,18 +85,85 @@ pub(crate) fn run(cmd: CliCommand) -> ExitCode {
     }
 
     match cmd.args[0].as_str() {
+        "angular-ts" => run_angular_ts(&cmd.args[1..]),
         "c" => run_c(&cmd.args[1..]),
         "cpp" => run_cpp(&cmd.args[1..]),
         "js-dom" => run_js_dom(&cmd.args[1..]),
         "native" => run_native(&cmd.args[1..]),
         other => {
             eprintln!(
-                "unsupported bind target `{other}`; supported targets: c, cpp, js-dom, native"
+                "unsupported bind target `{other}`; supported targets: angular-ts, c, cpp, js-dom, native"
             );
             print_usage();
             ExitCode::from(2)
         }
     }
+}
+
+/// Generates the pinned Angular.ts facade from Terlan's managed package copy.
+fn run_angular_ts(args: &[String]) -> ExitCode {
+    let options = match parse_bind_angular_ts_args(args) {
+        Ok(options) => options,
+        Err(message) => {
+            eprintln!("{message}");
+            print_usage();
+            return ExitCode::from(2);
+        }
+    };
+    match generate_managed_angular_ts_bindings(&options.out_dir) {
+        Ok(()) => {
+            println!(
+                "generated typed Terlan bindings for {}@{} at {}",
+                crate::commands::build::web_toolchain::ANGULAR_TS_PACKAGE,
+                crate::commands::build::web_toolchain::ANGULAR_TS_VERSION,
+                options.out_dir.display()
+            );
+            ExitCode::SUCCESS
+        }
+        Err(message) => {
+            eprintln!("{message}");
+            ExitCode::from(1)
+        }
+    }
+}
+
+fn generate_managed_angular_ts_bindings(out_dir: &Path) -> Result<(), String> {
+    let toolchain = crate::commands::build::web_toolchain::resolve_managed_web_toolchain()?;
+    let relative_input = Path::new("node_modules")
+        .join(crate::commands::build::web_toolchain::ANGULAR_TS_PACKAGE)
+        .join("@types/namespace.d.ts");
+    let sha256 = crate::support::sha256sum_file(&toolchain.angular_types)
+        .map_err(|error| format!("ts_bindgen.angular_types_hash_failed: {error}"))?;
+    let portable_input = relative_input
+        .to_string_lossy()
+        .replace(std::path::MAIN_SEPARATOR, "/");
+    let manifest = ts_input_manifest::TsInputManifest {
+        schema: "terlan.std.js.input-manifest.v1".to_string(),
+        generator: ts_input_manifest::TsInputGenerator {
+            name: "terlc".to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            profile: "angular-ts-namespace".to_string(),
+            oxc_parser: true,
+        },
+        target_profile: "js.browser".to_string(),
+        source_package: ts_input_manifest::TsSourcePackage {
+            name: crate::commands::build::web_toolchain::ANGULAR_TS_PACKAGE.to_string(),
+            version: crate::commands::build::web_toolchain::ANGULAR_TS_VERSION.to_string(),
+            resolution: portable_input.clone(),
+        },
+        inputs: vec![ts_input_manifest::TsInputFile {
+            path: portable_input,
+            sha256,
+            kind: "typescript-declaration".to_string(),
+            namespace: "terlan.angular".to_string(),
+        }],
+    };
+    generate_js_dom_bindings_from_manifest(
+        &toolchain.root,
+        Path::new("terlan-managed/angular-ts-0.32.0.json"),
+        out_dir,
+        manifest,
+    )
 }
 
 /// Executes the TypeScript DOM binding generator surface.
@@ -449,6 +522,37 @@ fn parse_bind_js_dom_args(args: &[String]) -> Result<BindJsDomArgs, String> {
     })
 }
 
+/// Parses the compiler-managed Angular.ts binding output option.
+fn parse_bind_angular_ts_args(args: &[String]) -> Result<BindAngularTsArgs, String> {
+    let mut out_dir = None;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--out" => {
+                if out_dir.is_some() {
+                    return Err("--out can be supplied only once".to_string());
+                }
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| "--out requires a value".to_string())?;
+                if value.trim().is_empty() {
+                    return Err("--out requires a non-empty value".to_string());
+                }
+                out_dir = Some(PathBuf::from(value));
+                index += 2;
+            }
+            other => {
+                return Err(format!(
+                    "unexpected terlc bind angular-ts argument `{other}`"
+                ))
+            }
+        }
+    }
+    Ok(BindAngularTsArgs {
+        out_dir: out_dir.ok_or_else(|| "terlc bind angular-ts requires --out <dir>".to_string())?,
+    })
+}
+
 /// Parses `terlc bind cpp` command-local arguments.
 ///
 /// Inputs:
@@ -566,6 +670,7 @@ fn parse_bind_c_args(args: &[String]) -> Result<BindCArgs, String> {
 /// - Emits static help text without inspecting command state or filesystem
 ///   paths.
 fn print_usage() {
+    eprintln!("terlc bind angular-ts --out <dir>");
     eprintln!("terlc bind native --crate <crate-name> --out <dir>");
     eprintln!("terlc bind js-dom --manifest <path> --out <dir>");
     eprintln!("terlc bind cpp --manifest <path> --out <dir>");

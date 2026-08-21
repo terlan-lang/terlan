@@ -18,6 +18,9 @@ mod field_types;
 pub(super) use field_types::managed_field_type;
 use field_types::native_field_type;
 
+mod structural_registry;
+pub(super) use structural_registry::install_structural_type_layouts;
+
 /// One fixed constructor admitted to managed NativeIR.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct NativeConstructorLayout {
@@ -37,6 +40,20 @@ pub(super) struct NativeConstructorLayout {
 
 /// Constructor identities resolved for one application module.
 pub(super) type NativeConstructorLayouts = HashMap<(String, usize), NativeConstructorLayout>;
+
+/// Normalizes compiler-owned facade fields that have one public managed ABI.
+pub(super) fn canonical_structural_field_name(
+    canonical: &str,
+    variant: &str,
+    index: usize,
+    source_name: Option<&str>,
+) -> Option<String> {
+    if canonical == "Apply(Option;String)" && variant == "Some" && index == 0 {
+        Some("value".to_string())
+    } else {
+        source_name.map(str::to_string)
+    }
+}
 
 /// Recovers the checked semantic type carried by a managed native value.
 ///
@@ -80,10 +97,7 @@ pub(super) fn native_constructor_layouts(
             // record name, so an explicit `pub constructor` must use that
             // same semantic identity instead of hashing `Struct(name;...)`.
             let is_record = matches!(return_core, CoreType::Struct { .. });
-            let canonical = match return_core {
-                CoreType::Struct { name, .. } => name.clone(),
-                _ => return_core.contract_text(),
-            };
+            let canonical = super::expression::managed_semantic_contract(return_core);
             let group = ((*module).to_owned(), canonical.clone());
             let parameters = declaration
                 .params
@@ -154,7 +168,18 @@ pub(super) fn native_constructor_layouts(
                     group_sizes[&group],
                     fields
                         .into_iter()
-                        .map(|(name, ty)| (Some(name), ty))
+                        .enumerate()
+                        .map(|(index, (name, ty))| {
+                            (
+                                canonical_structural_field_name(
+                                    &canonical,
+                                    &declaration.name,
+                                    index,
+                                    Some(&name),
+                                ),
+                                ty,
+                            )
+                        })
                         .collect(),
                 )
             }
@@ -395,7 +420,7 @@ pub(super) fn lower_structural_constructor_call(
     }
     let descriptor = Arc::new(
         ManagedAggregateDescriptor::constructor(
-            &target.contract_text(),
+            &super::expression::managed_semantic_contract(target),
             name,
             discriminant,
             variant_count,
@@ -480,7 +505,7 @@ pub(super) fn lower_structural_record_construct(
 
 type StructuralFields = Vec<(Option<String>, CoreType)>;
 
-fn structural_constructor_fields(
+pub(super) fn structural_constructor_fields(
     name: &str,
     target: &CoreType,
 ) -> Option<(u32, u32, StructuralFields)> {
@@ -620,7 +645,7 @@ pub(super) fn lower_record_construct(
     expr: &CoreExpr,
     layouts: &NativeConstructorLayouts,
     local_base: usize,
-    lower_field: impl Fn(&CoreExpr) -> Result<(NativeExpr, NativeType), String>,
+    lower_field: impl Fn(&CoreExpr, Option<&CoreType>) -> Result<(NativeExpr, NativeType), String>,
 ) -> Result<Option<(NativeExpr, NativeType)>, String> {
     let CoreExpr::RecordConstruct { name, fields } = expr else {
         return Ok(None);
@@ -635,7 +660,14 @@ pub(super) fn lower_record_construct(
                 field.key
             ));
         }
-        let (value, ty) = lower_field(&field.value)?;
+        let expected_core = layout
+            .descriptor
+            .fields()
+            .iter()
+            .position(|expected| expected.name() == Some(field.key.as_str()))
+            .and_then(|index| layout.parameter_core_types.get(index))
+            .and_then(Option::as_ref);
+        let (value, ty) = lower_field(&field.value, expected_core)?;
         let value = rebase_callee_locals(&value, local_base, lowered.len());
         lowered.push((field, (value, ty)));
     }

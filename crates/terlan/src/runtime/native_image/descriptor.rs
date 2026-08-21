@@ -892,10 +892,26 @@ fn validate_managed_layouts(layouts: &[TvmManagedLayoutDescriptor]) -> Result<()
             if !names.insert(variant.variant_name())
                 || !discriminants.insert(variant.discriminant())
             {
-                return Err(
-                    "error[tvm.image.managed_layout_variant]: constructor variants must have unique names and discriminants"
-                        .to_string(),
-                );
+                let layouts = variants
+                    .iter()
+                    .map(|variant| {
+                        format!(
+                            "{:?}:{:?}:fields={:?}",
+                            variant.variant_name(),
+                            variant.discriminant(),
+                            variant
+                                .fields()
+                                .iter()
+                                .map(|field| (field.name(), field.field_type()))
+                                .collect::<Vec<_>>()
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join(",");
+                return Err(format!(
+                    "error[tvm.image.managed_layout_variant]: constructor variants for `{}` must have unique names and discriminants: {layouts}",
+                    first.canonical_type()
+                ));
             }
         }
     }

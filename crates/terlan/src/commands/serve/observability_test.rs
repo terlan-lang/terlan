@@ -1,7 +1,7 @@
 use super::*;
 use crate::commands::serve::args::{
-    ServeArgs, ServeCliOverrides, ServeHandlerRuntime, DEFAULT_POLL_MS, DEFAULT_SERVE_HOST,
-    DEFAULT_SERVE_PORT,
+    ServeArgs, ServeCliOverrides, ServeHandlerRuntime, DEFAULT_MAX_BODY_BYTES, DEFAULT_POLL_MS,
+    DEFAULT_SERVE_HOST, DEFAULT_SERVE_PORT,
 };
 use crate::commands::serve::config::resolve_effective_serve_config_with_env;
 use crate::support::test_fs;
@@ -20,6 +20,7 @@ fn fixture(name: &str) -> (PathBuf, EffectiveServeConfig) {
         host: DEFAULT_SERVE_HOST.to_string(),
         port: DEFAULT_SERVE_PORT,
         poll_ms: DEFAULT_POLL_MS,
+        max_body_bytes: DEFAULT_MAX_BODY_BYTES,
         handler_runtime: ServeHandlerRuntime::Static,
         check_only: true,
         overrides: ServeCliOverrides::default(),

@@ -8,7 +8,6 @@ use crate::terlan_typeck::{core_type_from_text, CoreExpr, CoreModule, CorePatter
 struct ReceiverTarget {
     module: String,
     function: String,
-    arity: usize,
     receiver: CoreType,
     public: bool,
 }
@@ -82,7 +81,6 @@ fn receiver_targets(cores: &[CoreModule]) -> HashMap<(String, usize), Vec<Receiv
                 .push(ReceiverTarget {
                     module: core.module.clone(),
                     function: function.name.clone(),
-                    arity: function.arity,
                     receiver,
                     public: function.public,
                 });
@@ -132,26 +130,9 @@ fn resolve_expr(
             let Some(receiver_type) = infer_core_type(receiver, variables, functions) else {
                 return Ok(());
             };
-            let identity = (method.clone(), args.len() + 1);
-            let mut matches = targets
-                .get(&identity)
-                .into_iter()
-                .flatten()
-                .filter(|target| {
-                    target.receiver == receiver_type && (target.public || target.module == module)
-                })
-                .collect::<Vec<_>>();
-            matches.sort_by(|left, right| {
-                left.module
-                    .cmp(&right.module)
-                    .then_with(|| left.function.cmp(&right.function))
-            });
-            matches.dedup_by(|left, right| {
-                left.module == right.module
-                    && left.function == right.function
-                    && left.arity == right.arity
-            });
-            if let [target] = matches.as_slice() {
+            if let Some(target) =
+                receiver_target(method, args.len() + 1, &receiver_type, module, targets)
+            {
                 let receiver =
                     std::mem::replace(receiver.as_mut(), CoreExpr::Atom("Unit".to_string()));
                 let mut call_args = vec![receiver];
@@ -163,6 +144,27 @@ fn resolve_expr(
                         format!("{}.{}", target.module, target.function)
                     },
                     args: call_args,
+                };
+            }
+        }
+        CoreExpr::RemoteCall {
+            module: receiver_module,
+            function,
+            args,
+        } if receiver_module == "__receiver__" => {
+            for argument in args.iter_mut() {
+                resolve_expr(argument, module, variables, functions, targets)?;
+            }
+            let target = args
+                .first()
+                .and_then(|receiver| infer_core_type(receiver, variables, functions))
+                .and_then(|receiver_type| {
+                    receiver_target(function, args.len(), &receiver_type, module, targets)
+                });
+            if let Some(target) = target {
+                *expr = CoreExpr::Call {
+                    function: callable_identity(target, module),
+                    args: std::mem::take(args),
                 };
             }
         }
@@ -178,11 +180,26 @@ fn resolve_expr(
             }
             resolve_expr(body, module, &locals, functions, targets)?;
         }
-        CoreExpr::Call { args, .. }
-        | CoreExpr::RemoteCall { args, .. }
+        CoreExpr::Call { function, args } => {
+            for argument in args.iter_mut() {
+                resolve_expr(argument, module, variables, functions, targets)?;
+            }
+            if !function.contains('.') {
+                let target = args
+                    .first()
+                    .and_then(|receiver| infer_core_type(receiver, variables, functions))
+                    .and_then(|receiver_type| {
+                        receiver_target(function, args.len(), &receiver_type, module, targets)
+                    });
+                if let Some(target) = target {
+                    *function = callable_identity(target, module);
+                }
+            }
+        }
+        CoreExpr::RemoteCall { args, .. }
         | CoreExpr::ConstructorCall { args, .. }
         | CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => {
-            for argument in args {
+            for argument in args.iter_mut() {
                 resolve_expr(argument, module, variables, functions, targets)?;
             }
         }
@@ -237,11 +254,20 @@ fn resolve_expr(
         }
         CoreExpr::Case { scrutinee, clauses } => {
             resolve_expr(scrutinee, module, variables, functions, targets)?;
+            let scrutinee_type = infer_core_type(scrutinee, variables, functions);
             for clause in clauses {
-                if let Some(guard) = &mut clause.guard {
-                    resolve_expr(guard, module, variables, functions, targets)?;
+                let mut locals = variables.clone();
+                if let Some(scrutinee_type) = &scrutinee_type {
+                    super::super::generic_specialization::bind_pattern_types(
+                        &clause.pattern,
+                        scrutinee_type,
+                        &mut locals,
+                    );
                 }
-                resolve_expr(&mut clause.body, module, variables, functions, targets)?;
+                if let Some(guard) = &mut clause.guard {
+                    resolve_expr(guard, module, &locals, functions, targets)?;
+                }
+                resolve_expr(&mut clause.body, module, &locals, functions, targets)?;
             }
         }
         CoreExpr::Try {
@@ -299,6 +325,72 @@ fn resolve_expr(
         | CoreExpr::RemoteFunRef { .. } => {}
     }
     Ok(())
+}
+
+fn receiver_target<'a>(
+    method: &str,
+    arity: usize,
+    receiver_type: &CoreType,
+    caller_module: &str,
+    targets: &'a HashMap<(String, usize), Vec<ReceiverTarget>>,
+) -> Option<&'a ReceiverTarget> {
+    let identity = (method.to_string(), arity);
+    let mut matches = targets
+        .get(&identity)
+        .into_iter()
+        .flatten()
+        .filter(|target| {
+            receiver_types_match(&target.receiver, receiver_type)
+                && (target.public || target.module == caller_module)
+        });
+    if std::env::var_os("TERLAN_NATIVE_AOT_TRACE").is_some() {
+        eprintln!(
+            "[native-aot receiver] module={caller_module} method={method}/{arity} receiver={} candidates={:?}",
+            receiver_type.contract_text(),
+            targets
+                .get(&identity)
+                .into_iter()
+                .flatten()
+                .map(|target| (
+                    target.module.as_str(),
+                    target.receiver.contract_text(),
+                    target.public,
+                ))
+                .collect::<Vec<_>>(),
+        );
+    }
+    let target = matches.next()?;
+    matches.next().is_none().then_some(target)
+}
+
+fn callable_identity(target: &ReceiverTarget, caller_module: &str) -> String {
+    if target.module == caller_module {
+        target.function.clone()
+    } else {
+        format!("{}.{}", target.module, target.function)
+    }
+}
+
+/// Compares receiver types after nominal qualification and opaque-type
+/// expansion have exposed equivalent short and structural names.
+fn receiver_types_match(expected: &CoreType, actual: &CoreType) -> bool {
+    if expected == actual {
+        return true;
+    }
+    let (Some(expected), Some(actual)) = (nominal_name(expected), nominal_name(actual)) else {
+        return false;
+    };
+    expected == actual
+        || ((!expected.contains('.') || !actual.contains('.'))
+            && expected.rsplit('.').next() == actual.rsplit('.').next())
+}
+
+/// Returns the declared name carried by a nominal or expanded structural type.
+fn nominal_name(ty: &CoreType) -> Option<&str> {
+    match ty {
+        CoreType::Named(name) | CoreType::Struct { name, .. } => Some(name.as_str()),
+        _ => None,
+    }
 }
 
 fn infer_core_type(
@@ -371,3 +463,7 @@ fn common_branch_type(types: impl Iterator<Item = Option<CoreType>>) -> Option<C
         .all(|candidate| candidate.as_ref() == Some(&first))
         .then_some(first)
 }
+
+#[cfg(test)]
+#[path = "mutable_receivers_test.rs"]
+mod tests;

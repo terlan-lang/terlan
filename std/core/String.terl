@@ -711,3 +711,27 @@ pub (value: String) split(on: String): List[String] -> [].
 @compiler.intrinsic
 pub (value: String) split_once(on: String): Option[{String, String}] ->
     None.
+
+/**
+ * Joins ordered string values with one separator between adjacent values.
+ *
+ * Input: a list of strings and the separator inserted between values.
+ * Output: the concatenated string, or the empty string for an empty list.
+ * Transformation: preserves list order and never inserts leading or trailing
+ * separators.
+ */
+pub join(values: List[String], separator: String): String ->
+    case values {
+        [] -> "";
+        [first | rest] -> join_after(first, rest, separator)
+    }.
+
+/**
+ * Completes a string join after the first value has initialized the output.
+ */
+join_after(output: String, values: List[String], separator: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            join_after(std.core.String.concat([output, separator, value]), rest, separator)
+    }.

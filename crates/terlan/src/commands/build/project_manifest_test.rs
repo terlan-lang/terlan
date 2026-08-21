@@ -847,7 +847,7 @@ fn project_manifest_rejects_empty_or_duplicate_publication_metadata() {
 #[test]
 fn project_manifest_parses_dependency_source_metadata() {
     let parsed = parse_project_manifest(
-            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\nlocal_utils = { path = \"../local_utils\" }\nremote_utils = { git = \"https://github.com/terlan-lang/utils\", rev = \"a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4\" }\n\n[target.js.dependencies]\nzod = { npm = \"zod\", version = \"3.25.0\" }\n\n[target.rust.dependencies]\nserde = { cargo = \"serde\", version = \"1.0.0\" }\n",
+            "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\nlocal_utils = { path = \"../local_utils\" }\nremote_utils = { git = \"https://github.com/terlan-lang/utils\", rev = \"a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4\" }\n\n[target.js.dependencies]\nzod = { npm = \"zod\", version = \"3.25.0\", integrity = \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\" }\n\n[target.rust.dependencies]\nserde = { cargo = \"serde\", version = \"1.0.0\", integrity = \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\" }\n",
             &manifest_path(),
         )
         .expect("manifest should parse dependency metadata");
@@ -881,7 +881,11 @@ fn project_manifest_parses_dependency_source_metadata() {
             scope: ProjectDependencyScope::Target(ProjectTarget::Js),
             source: ProjectDependencySource::Npm {
                 package: "zod".to_string(),
-                version: "3.25.0".to_string()
+                version: "3.25.0".to_string(),
+                integrity: Some(
+                    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                        .to_string()
+                )
             },
         }
     );
@@ -893,6 +897,10 @@ fn project_manifest_parses_dependency_source_metadata() {
             source: ProjectDependencySource::Cargo {
                 package: "serde".to_string(),
                 version: "1.0.0".to_string(),
+                integrity: Some(
+                    "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                        .to_string()
+                ),
                 features: Vec::new()
             },
         }
@@ -941,6 +949,7 @@ fn project_manifest_parses_rust_dependency_feature_metadata() {
             source: ProjectDependencySource::Cargo {
                 package: "polars".to_string(),
                 version: "0.54.4".to_string(),
+                integrity: None,
                 features: vec!["lazy".to_string(), "csv".to_string(), "strings".to_string()]
             },
         }
@@ -1064,4 +1073,131 @@ fn project_manifest_rejects_unsupported_section() {
         .expect_err("manifest should reject unsupported section");
 
     assert!(err.contains("unsupported project manifest section `workspace`"));
+}
+
+#[test]
+fn project_manifest_admits_validated_serve_limits_without_owning_runtime_config() {
+    let parsed = parse_project_manifest(
+        "[package]\nname = \"registry\"\nversion = \"0.0.1\"\n\n[serve]\nmax_request_bytes = 67174400\nmax_body_bytes = 67108864\n",
+        &manifest_path(),
+    )
+    .expect("validated serve section");
+    assert_eq!(parsed.package.name, "registry");
+
+    let error = parse_project_manifest(
+        "[package]\nname = \"registry\"\nversion = \"0.0.1\"\n\n[serve]\nunbounded_uploads = true\n",
+        &manifest_path(),
+    )
+    .expect_err("unknown serve key");
+    assert!(error.contains("unsupported [serve] key `unbounded_uploads`"));
+}
+
+#[test]
+fn project_manifest_parses_semantic_deployment_intent_without_values() {
+    let parsed = parse_project_manifest(
+        r#"[package]
+name = "registry"
+version = "0.1.0"
+
+[deploy]
+environment = ["PORT", "DATABASE_URL"]
+secrets = ["DATABASE_URL"]
+migrations = ["priv/migrations/001_initial.sql"]
+outbound_network = ["objects.example.test:443"]
+rollback = "migration-compatible"
+
+[deploy.health]
+path = "/health"
+interval_secs = 15
+timeout_secs = 3
+
+[deploy.resources]
+cpu_millis = 500
+memory_mb = 384
+processes = 2
+"#,
+        &manifest_path(),
+    )
+    .expect("manifest should parse semantic deployment intent");
+
+    assert_eq!(
+        parsed.deployment,
+        Some(ProjectDeployment {
+            environment: vec!["PORT".to_string(), "DATABASE_URL".to_string()],
+            secrets: vec!["DATABASE_URL".to_string()],
+            migrations: vec!["priv/migrations/001_initial.sql".to_string()],
+            outbound_network: vec!["objects.example.test:443".to_string()],
+            rollback: ProjectRollbackCompatibility::MigrationCompatible,
+            health: Some(ProjectDeployHealth {
+                path: "/health".to_string(),
+                interval_secs: 15,
+                timeout_secs: 3,
+            }),
+            resources: Some(ProjectDeployResources {
+                cpu_millis: 500,
+                memory_mb: 384,
+                processes: 2,
+            }),
+        })
+    );
+}
+
+#[test]
+fn project_manifest_rejects_secret_values_and_undeclared_secret_names() {
+    for source in [
+        r#"[package]
+name = "demo"
+version = "0.0.1"
+
+[deploy]
+environment = ["DATABASE_URL"]
+secrets = ["postgres://secret@localhost/db"]
+"#,
+        r#"[package]
+name = "demo"
+version = "0.0.1"
+
+[deploy]
+environment = ["PORT"]
+secrets = ["DATABASE_URL"]
+"#,
+    ] {
+        let error = parse_project_manifest(source, &manifest_path())
+            .expect_err("manifest should reject secret values or undeclared references");
+        assert!(
+            error.contains("POSIX environment-name syntax")
+                || error.contains("must also appear in environment"),
+            "{error}"
+        );
+    }
+}
+
+#[test]
+fn project_manifest_rejects_machine_local_deployment_paths_and_urls() {
+    for (source, expected) in [
+        (
+            r#"[package]
+name = "demo"
+version = "0.0.1"
+
+[deploy]
+migrations = ["/home/operator/migration.sql"]
+"#,
+            "package-relative path",
+        ),
+        (
+            r#"[package]
+name = "demo"
+version = "0.0.1"
+
+[deploy]
+outbound_network = ["https://api.example.test/v1"]
+"#,
+            "host:port",
+        ),
+    ] {
+        let error = parse_project_manifest(source, &manifest_path())
+            .expect_err("manifest should reject machine-local deployment metadata");
+        assert!(error.contains(expected), "{error}");
+    }
 }

@@ -86,10 +86,6 @@ backpressure typed failure propagation VM-owned semantics
         self.write(
             "Makefile",
             r#"
-COMPLETED_SLICE_RUST_GATES := \
-	vm-native-worker-runtime-check
-$(COMPLETED_SLICE_RUST_GATES): $(CANONICAL_RUST_SUITE_OWNER)
-
 vm-native-worker-runtime-check: terlan-vm-artifact-format-check stdlib-native-artifacts-check
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-native-worker-runtime
 "#,

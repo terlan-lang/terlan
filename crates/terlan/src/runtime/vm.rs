@@ -1,6 +1,7 @@
 pub(crate) mod accelerator_operation;
 pub(crate) mod acme_worker;
 pub(crate) mod actor;
+pub(crate) mod aot_metadata;
 pub(crate) mod bitstring;
 #[cfg(test)]
 pub(crate) mod call_count;
@@ -15,7 +16,9 @@ vm_capability_component! {
 }
 #[cfg(test)]
 pub(crate) mod checksum;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod code_server;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod code_server_compiler;
 #[cfg(test)]
 pub(crate) mod coordination;
@@ -95,7 +98,9 @@ pub(crate) mod persistent_actor_store;
 pub(crate) mod persistent_actor_telemetry;
 #[cfg(test)]
 pub(crate) mod persistent_actor_telemetry_aggregation;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod postgres;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod postgres_command;
 pub(crate) mod process;
 pub(crate) mod process_alias;
@@ -107,6 +112,7 @@ pub(crate) mod resource;
 pub(crate) mod restart_backoff;
 pub(crate) mod scheduler;
 pub(crate) mod scheduler_topology;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod source_reload;
 pub(crate) mod sse;
 #[cfg(test)]

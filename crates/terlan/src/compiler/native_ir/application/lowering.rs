@@ -501,6 +501,13 @@ pub(super) fn lower_selected_application(
                                 return None;
                             };
                             profile_inputs.get(function).cloned()
+                        })
+                        .or_else(|| {
+                            super::super::call_composition::is_definitely_non_suspending(
+                                &native.body,
+                                &suspending,
+                            )
+                            .then(ComposedCallProfile::pure)
                         });
                 if let Some(mut profile) = profile {
                     call_profile_gaps.remove(&native_index);

@@ -20,6 +20,7 @@ pub(super) struct OwnedNativeTransition {
     pub(super) operation: TvmTransitionOperation,
     pub(super) arguments: Vec<i64>,
     pub(super) values: Vec<i64>,
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(super) capture_types: Vec<TvmBoundaryType>,
 }
 
@@ -102,11 +103,13 @@ impl PureNativeSuspension {
     ///
     /// Slots remain encoded native values because managed heap ownership stays
     /// with the execution shard; debugger rendering must not dereference them.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn debugger_capture_slots(&self) -> &[i64] {
         &self.transition.values
     }
 
     /// Returns descriptor-directed types in generated capture order.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn debugger_capture_types(&self) -> &[TvmBoundaryType] {
         &self.transition.capture_types
     }

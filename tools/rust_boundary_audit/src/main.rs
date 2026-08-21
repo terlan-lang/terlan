@@ -704,6 +704,59 @@ fn audit(root: &Path, api_boundary_input: Option<&Path>) -> Result<Value, AuditE
     }))
 }
 
+fn run() -> Result<(), AuditError> {
+    let root = env::args()
+        .nth(1)
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."))
+        .canonicalize()
+        .map_err(|error| AuditError::Message(format!("cannot resolve workspace root: {error}")))?;
+    let mut arguments = env::args().skip(2);
+    let mut api_boundary_input = None;
+    let mut shared_helper_input = None;
+    let mut structural_input = None;
+    while let Some(argument) = arguments.next() {
+        let destination = arguments
+            .next()
+            .map(PathBuf::from)
+            .ok_or_else(|| AuditError::Message(format!("{argument} requires a path")))?;
+        match argument.as_str() {
+            "--api-boundary-input" => api_boundary_input = Some(destination),
+            "--shared-helper-input" => shared_helper_input = Some(destination),
+            "--structural-input" => structural_input = Some(destination),
+            _ => {
+                return Err(AuditError::Message(format!(
+                    "unsupported audit argument `{argument}`"
+                )))
+            }
+        }
+    }
+    let report = audit(&root, api_boundary_input.as_deref())?;
+    if let Some(path) = shared_helper_input {
+        write_shared_helper_input(&root, &path)?;
+    }
+    if let Some(path) = structural_input {
+        write_structural_input(&path, &report)?;
+    }
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&report).map_err(|error| {
+            AuditError::Message(format!("cannot serialize report: {error}"))
+        })?
+    );
+    Ok(())
+}
+
+fn main() -> ExitCode {
+    match run() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            eprintln!("Rust boundary AST audit failed: {error}");
+            ExitCode::from(2)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -804,58 +857,5 @@ mod tests {
             .map(|reference| reference.target)
             .collect::<Vec<_>>();
         assert_eq!(targets, ["runtime", "support", "runtime"]);
-    }
-}
-
-fn run() -> Result<(), AuditError> {
-    let root = env::args()
-        .nth(1)
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("."))
-        .canonicalize()
-        .map_err(|error| AuditError::Message(format!("cannot resolve workspace root: {error}")))?;
-    let mut arguments = env::args().skip(2);
-    let mut api_boundary_input = None;
-    let mut shared_helper_input = None;
-    let mut structural_input = None;
-    while let Some(argument) = arguments.next() {
-        let destination = arguments
-            .next()
-            .map(PathBuf::from)
-            .ok_or_else(|| AuditError::Message(format!("{argument} requires a path")))?;
-        match argument.as_str() {
-            "--api-boundary-input" => api_boundary_input = Some(destination),
-            "--shared-helper-input" => shared_helper_input = Some(destination),
-            "--structural-input" => structural_input = Some(destination),
-            _ => {
-                return Err(AuditError::Message(format!(
-                    "unsupported audit argument `{argument}`"
-                )))
-            }
-        }
-    }
-    let report = audit(&root, api_boundary_input.as_deref())?;
-    if let Some(path) = shared_helper_input {
-        write_shared_helper_input(&root, &path)?;
-    }
-    if let Some(path) = structural_input {
-        write_structural_input(&path, &report)?;
-    }
-    println!(
-        "{}",
-        serde_json::to_string_pretty(&report).map_err(|error| {
-            AuditError::Message(format!("cannot serialize report: {error}"))
-        })?
-    );
-    Ok(())
-}
-
-fn main() -> ExitCode {
-    match run() {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(error) => {
-            eprintln!("Rust boundary AST audit failed: {error}");
-            ExitCode::from(2)
-        }
     }
 }

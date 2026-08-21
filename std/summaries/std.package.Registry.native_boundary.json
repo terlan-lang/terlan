@@ -1,0 +1,13 @@
+{
+  "functions": [
+    {
+      "arity": 1,
+      "name": "parse_publish_request",
+      "operation": "std.package.registry.parse_publish_request"
+    }
+  ],
+  "module": "std_package_registry_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.package.Registry"
+}

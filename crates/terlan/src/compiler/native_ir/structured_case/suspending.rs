@@ -6,7 +6,7 @@ use crate::terlan_typeck::CoreExpr;
 
 use super::{
     bind_values, bool_and, core_expr_type, extend_bindings,
-    lowering::{lower_plain, StructuredCaseEnvironment},
+    lowering::{contains_case, lower_containing_case, lower_plain, StructuredCaseEnvironment},
     pattern_plan, validate_bindings, NativeExpr,
 };
 use crate::compiler::native_ir::{
@@ -88,18 +88,29 @@ pub(crate) fn lower_suspending_case(
                 )
             })?;
     let scrutinee_core = core_expr_type(scrutinee, param_core_types, function_core_types);
-    let scrutinee = lower_plain(
-        scrutinee,
-        params,
-        param_types,
-        param_core_types,
-        StructuredCaseEnvironment {
-            functions,
-            function_types,
-            function_core_types,
-            constructors,
-        },
-    )?;
+    let structured_environment = StructuredCaseEnvironment {
+        functions,
+        function_types,
+        function_core_types,
+        constructors,
+    };
+    let scrutinee = if contains_case(scrutinee) {
+        lower_containing_case(
+            scrutinee,
+            params,
+            param_types,
+            param_core_types,
+            structured_environment,
+        )?
+    } else {
+        lower_plain(
+            scrutinee,
+            params,
+            param_types,
+            param_core_types,
+            structured_environment,
+        )?
+    };
     let scrutinee_slot = params
         .values()
         .copied()

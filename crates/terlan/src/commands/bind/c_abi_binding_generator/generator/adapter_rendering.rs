@@ -1,5 +1,12 @@
 use super::*;
 
+const INLINE_OWNED_FUNCTION_LIMIT: usize = 24;
+const OWNED_FUNCTION_CHUNK_SIZE: usize = 24;
+const INLINE_FFI_FUNCTION_LIMIT: usize = 48;
+const FFI_FUNCTION_CHUNK_SIZE: usize = 48;
+const INLINE_FREE_FUNCTION_LIMIT: usize = 24;
+const FREE_FUNCTION_CHUNK_SIZE: usize = 24;
+
 pub(super) fn render_native_boundary_metadata(
     manifest: &CAbiBindingManifest,
 ) -> Result<String, String> {
@@ -18,9 +25,25 @@ pub(super) fn render_native_boundary_metadata(
     );
     for module in &manifest.modules {
         for function in &module.functions {
+            let overloaded = module
+                .functions
+                .iter()
+                .filter(|candidate| candidate.name == function.name)
+                .count()
+                > 1;
+            let public_key = if overloaded {
+                format!(
+                    "{}.{}/{}",
+                    module.module,
+                    function.name,
+                    function.args.len()
+                )
+            } else {
+                format!("{}.{}", module.module, function.name)
+            };
             metadata.push_str(&format!(
                 "[functions.{:?}]\noperation = {:?}\narity = {}\nreturns = {:?}\nblocking = {:?}\nresource = {:?}\n\n",
-                format!("{}.{}", module.module, function.name),
+                public_key,
                 function.operation,
                 function.args.len(),
                 function.returns,
@@ -316,7 +339,9 @@ pub(super) fn is_cpp_adapter_source(source: &str) -> bool {
 
 pub(super) struct RenderedRustAdapter {
     pub(super) root: String,
-    pub(super) chunks: Vec<String>,
+    pub(super) ffi_chunks: Vec<String>,
+    pub(super) owned_chunks: Vec<String>,
+    pub(super) free_chunks: Vec<String>,
 }
 
 pub(super) fn render_rust_ffi_and_adapter(
@@ -357,9 +382,18 @@ pub(super) fn render_rust_ffi_and_adapter(
         })
         .transpose()?;
 
+    let ffi_symbols = symbols
+        .values()
+        .filter(|symbol| {
+            symbol.status == CSymbolStatus::Bind && symbol.kind == CSymbolKind::Function
+        })
+        .copied()
+        .collect::<Vec<_>>();
     let mut source = String::from("#![deny(unsafe_op_in_unsafe_fn)]\n\n");
     source.push_str("pub mod ffi {\n");
-    let mut adapter_chunks = Vec::new();
+    let mut ffi_chunks = Vec::new();
+    let mut owned_chunks = Vec::new();
+    let mut free_chunks = Vec::new();
     for (_, ty) in &types {
         let record = symbols
             .get(ty.c_symbol.as_str())
@@ -370,16 +404,32 @@ pub(super) fn render_rust_ffi_and_adapter(
             record.c_name
         ));
     }
-    source.push_str("    unsafe extern \"C\" {\n");
-    for symbol in symbols.values().filter(|symbol| {
-        symbol.status == CSymbolStatus::Bind && symbol.kind == CSymbolKind::Function
-    }) {
-        source.push_str(&render_raw_ffi_function(
-            symbol,
-            &manifest.c_metadata.aliases,
-        )?);
+    if ffi_symbols.len() <= INLINE_FFI_FUNCTION_LIMIT {
+        source.push_str("    unsafe extern \"C\" {\n");
+        for symbol in &ffi_symbols {
+            source.push_str(&render_raw_ffi_function(
+                symbol,
+                &manifest.c_metadata.aliases,
+            )?);
+        }
+        source.push_str("    }\n");
+    } else {
+        for (chunk_index, symbols) in ffi_symbols.chunks(FFI_FUNCTION_CHUNK_SIZE).enumerate() {
+            let mut chunk = String::from("unsafe extern \"C\" {\n");
+            for symbol in symbols {
+                chunk.push_str(&render_raw_ffi_function(
+                    symbol,
+                    &manifest.c_metadata.aliases,
+                )?);
+            }
+            chunk.push_str("}\n");
+            ffi_chunks.push(chunk);
+            source.push_str(&format!(
+                "    include!(\"generated_ffi_{chunk_index}.rs\");\n"
+            ));
+        }
     }
-    source.push_str("    }\n}\n\n");
+    source.push_str("}\n\n");
     if uses_non_null {
         source.push_str("use std::ptr::NonNull;\n\n");
     }
@@ -492,7 +542,7 @@ pub(super) fn render_rust_ffi_and_adapter(
                     .is_ok_and(|owner| owner.name == ty.name)
             })
             .collect::<Vec<_>>();
-        if owned_functions.len() <= 64 {
+        if owned_functions.len() <= INLINE_OWNED_FUNCTION_LIMIT {
             source.push_str(&format!("impl {} {{\n", ty.name));
             for function in owned_functions {
                 source.push_str(&render_safe_wrapper(
@@ -512,8 +562,8 @@ pub(super) fn render_rust_ffi_and_adapter(
             }
             source.push_str("}\n\n");
         } else {
-            for functions in owned_functions.chunks(32) {
-                let chunk_index = adapter_chunks.len();
+            for functions in owned_functions.chunks(OWNED_FUNCTION_CHUNK_SIZE) {
+                let chunk_index = owned_chunks.len();
                 let mut chunk = format!("use super::*;\n\nimpl {} {{\n", ty.name);
                 for function in functions {
                     chunk.push_str(&render_safe_wrapper(
@@ -532,7 +582,7 @@ pub(super) fn render_rust_ffi_and_adapter(
                     )?);
                 }
                 chunk.push_str("}\n");
-                adapter_chunks.push(chunk);
+                owned_chunks.push(chunk);
                 source.push_str(&format!("mod generated_adapter_{chunk_index};\n"));
             }
             source.push('\n');
@@ -544,27 +594,55 @@ pub(super) fn render_rust_ffi_and_adapter(
             dispose_symbol.success_code.unwrap_or(0)
         ));
     }
-    for function in manifest
+    let free_functions = manifest
         .modules
         .iter()
         .flat_map(|module| &module.functions)
         .filter(|function| function.role == CAbiFunctionRole::FreeFunction)
-    {
-        let rendered = render_safe_wrapper(
-            SafeWrapperRendering {
-                manifest,
-                symbols,
-                aliases: &manifest.c_metadata.aliases,
-            },
-            SafeWrapperTarget {
-                function,
-                symbol: function_symbol(function, symbols)?,
-                record: dispatcher_record,
-                ty: dispatcher_ty,
-                inside_impl: false,
-            },
-        )?;
-        source.push_str(&rendered);
+        .collect::<Vec<_>>();
+    if free_functions.len() <= INLINE_FREE_FUNCTION_LIMIT {
+        for function in free_functions {
+            source.push_str(&render_safe_wrapper(
+                SafeWrapperRendering {
+                    manifest,
+                    symbols,
+                    aliases: &manifest.c_metadata.aliases,
+                },
+                SafeWrapperTarget {
+                    function,
+                    symbol: function_symbol(function, symbols)?,
+                    record: dispatcher_record,
+                    ty: dispatcher_ty,
+                    inside_impl: false,
+                },
+            )?);
+        }
+    } else {
+        for (chunk_index, functions) in free_functions.chunks(FREE_FUNCTION_CHUNK_SIZE).enumerate()
+        {
+            let mut chunk = String::new();
+            for function in functions {
+                chunk.push_str(&render_safe_wrapper(
+                    SafeWrapperRendering {
+                        manifest,
+                        symbols,
+                        aliases: &manifest.c_metadata.aliases,
+                    },
+                    SafeWrapperTarget {
+                        function,
+                        symbol: function_symbol(function, symbols)?,
+                        record: dispatcher_record,
+                        ty: dispatcher_ty,
+                        inside_impl: false,
+                    },
+                )?);
+            }
+            free_chunks.push(chunk);
+            source.push_str(&format!(
+                "include!(\"generated_free_adapter_{chunk_index}.rs\");\n"
+            ));
+        }
+        source.push('\n');
     }
     if uses_status_check {
         source.push_str(
@@ -576,6 +654,8 @@ pub(super) fn render_rust_ffi_and_adapter(
     }
     Ok(RenderedRustAdapter {
         root: source,
-        chunks: adapter_chunks,
+        ffi_chunks,
+        owned_chunks,
+        free_chunks,
     })
 }

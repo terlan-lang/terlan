@@ -193,9 +193,22 @@ fn copy_regular_file(source: &str, destination: &str) -> Result<(), DispatchErro
         )
         .with_path(source));
     }
-    std::fs::copy(source, destination)
-        .map(|_| ())
-        .map_err(|error| dispatch_file_error(OPERATION, destination, error))
+    let mut source_file = std::fs::File::open(source)
+        .map_err(|error| dispatch_file_error(OPERATION, source, error))?;
+    let mut destination_file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(destination)
+        .map_err(|error| dispatch_file_error(OPERATION, destination, error))?;
+    let copied = std::io::copy(&mut source_file, &mut destination_file)
+        .and_then(|_| destination_file.sync_all())
+        .and_then(|_| std::fs::set_permissions(destination, metadata.permissions()));
+    if let Err(error) = copied {
+        drop(destination_file);
+        let _ = std::fs::remove_file(destination);
+        return Err(dispatch_file_error(OPERATION, destination, error));
+    }
+    Ok(())
 }
 
 fn file_size(path: &str) -> Result<NativeBoundaryValue, DispatchError> {

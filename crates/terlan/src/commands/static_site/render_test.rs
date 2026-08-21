@@ -74,6 +74,49 @@ pub home(): Html ->
     assert_eq!(html, "<main>Home</main>");
 }
 
+/// Verifies external templates serialize HTML void elements without closers.
+///
+/// Inputs:
+/// - A page template containing `meta`, `link`, and `input` elements.
+///
+/// Output:
+/// - Rendered HTML with valid void-element serialization.
+///
+/// Transformation:
+/// - Reuses the parser's canonical void-element classification during static
+///   rendering so full document layouts pass output validation.
+#[test]
+fn renders_html_void_elements_without_closing_tags() {
+    let module = syntax_module(
+        r#"
+module site.
+
+template Page from "./templates/page.terl.html" {
+    title: Text
+}.
+
+pub home(): Html ->
+    Page(title = "Home").
+"#,
+    );
+    let html = render_syntax_static_entrypoint(
+        &module,
+        &page_template(
+            "<head><meta charset=\"utf-8\"><link rel=\"stylesheet\" href=\"site.css\"></head><body><input type=\"search\"></body>",
+        ),
+        &BTreeMap::new(),
+        "home",
+    )
+    .expect("render void elements");
+
+    assert_eq!(
+        html,
+        "<head><meta charset=\"utf-8\"><link rel=\"stylesheet\" href=\"site.css\"></head><body><input type=\"search\"></body>"
+    );
+    crate::terlan_html::validate_html_output(&html, "rendered.html")
+        .expect("validate rendered void elements");
+}
+
 /// Verifies static template text slots are escaped as HTML text.
 ///
 /// Inputs:

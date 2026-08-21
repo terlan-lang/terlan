@@ -38,6 +38,7 @@ pub(super) fn check_syntax_module_functions(
     module: &SyntaxModuleOutput,
     environment: SyntaxDeclarationCheckEnvironment<'_>,
 ) -> Vec<Diagnostic> {
+    let mut timings = super::phase_timings::TypeCheckTimings::new();
     let SyntaxDeclarationCheckEnvironment {
         function_signatures,
         constructor_signatures,
@@ -50,6 +51,7 @@ pub(super) fn check_syntax_module_functions(
     } = environment;
     let mut diagnostics = Vec::new();
     let effectful_imported_calls = collect_effectful_imported_calls(expr_ctx);
+    timings.mark("effectful-imports");
     let effectful_local_calls = collect_effectful_local_calls(
         module,
         function_signatures,
@@ -57,6 +59,7 @@ pub(super) fn check_syntax_module_functions(
         expr_ctx.templates,
         &effectful_imported_calls,
     );
+    timings.mark("effectful-locals");
     let mut trait_inheritance_cache = HashMap::new();
     for declaration in &module.declarations {
         if is_compiler_intrinsic_declaration(declaration) {
@@ -328,6 +331,7 @@ pub(super) fn check_syntax_module_functions(
             _ => {}
         }
     }
+    timings.mark("declarations");
     diagnostics
 }
 

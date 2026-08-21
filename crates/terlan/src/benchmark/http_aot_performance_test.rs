@@ -52,6 +52,19 @@ fn repeated_measurement_selects_one_median_throughput_round() {
     );
 }
 
+/// Verifies the generated benchmark package explicitly owns its `app`
+/// namespace so strict project-layout validation accepts the fixture.
+#[test]
+fn generated_http_package_declares_its_source_namespace() {
+    let workspace = create_workspace().expect("workspace");
+    let result = write_package(&workspace, "generation-one", 16);
+    let manifest = fs::read_to_string(workspace.join("terlan.toml")).expect("manifest");
+    let _ = fs::remove_dir_all(&workspace);
+
+    result.expect("package");
+    assert!(manifest.contains("namespace = \"app\""));
+}
+
 /// Verifies comparable complete reports produce a stable comparison.
 #[test]
 fn comparison_accepts_matching_complete_lane_reports() {

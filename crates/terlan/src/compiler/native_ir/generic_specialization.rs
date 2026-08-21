@@ -3,8 +3,7 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::terlan_typeck::{
-    CoreExpr, CoreFunction, CoreMapTypeField, CoreModule, CorePattern, CoreStructTypeField,
-    CoreTupleTypeElem, CoreType,
+    CoreExpr, CoreFunction, CoreModule, CorePattern, CoreTupleTypeElem, CoreType,
 };
 
 const MAX_GENERIC_SPECIALIZATIONS: usize = 128;
@@ -12,14 +11,20 @@ const MAX_GENERIC_SPECIALIZATIONS: usize = 128;
 /// Every callable candidate grouped by its qualified name and arity.
 type CallableTemplates = BTreeMap<(String, usize), Vec<CoreFunction>>;
 
+#[path = "generic_specialization/generic_unification.rs"]
+mod generic_unification;
 #[path = "generic_specialization/inference.rs"]
 mod inference;
 #[path = "generic_specialization/pattern_types.rs"]
 mod pattern_types;
 #[path = "generic_specialization/type_substitution.rs"]
 mod type_substitution;
-use inference::{common_concrete_parameter_types, infer_type, needs_contextual_type};
-use pattern_types::bind_pattern_types;
+use generic_unification::{substitute, unify};
+use inference::{
+    common_concrete_parameter_types, contains_implicit_generic_type, infer_generic_argument_types,
+    infer_type, needs_contextual_type,
+};
+pub(super) use pattern_types::{bind_pattern_types, structural_tuple_variant};
 use type_substitution::substitute_function_types;
 
 pub(super) fn specialize_application_generics_with_budget(
@@ -173,7 +178,36 @@ fn rewrite_expr(
                     infer_generic_argument_types(template, args, variables, templates, module)
                 })
                 .transpose()?;
+            if let Some(argument_types) = &argument_types {
+                for (argument, expected) in args.iter_mut().zip(argument_types) {
+                    apply_contextual_argument_type(argument, expected);
+                }
+            }
             for (index, arg) in args.iter_mut().enumerate() {
+                if let (
+                    CoreExpr::Var(function),
+                    Some(CoreType::Arrow {
+                        params: parameter_types,
+                        ..
+                    }),
+                ) = (
+                    &*arg,
+                    argument_types.as_ref().and_then(|types| types.get(index)),
+                ) {
+                    if !variables.contains_key(function) {
+                        let function = function.clone();
+                        let parameters = (0..parameter_types.len())
+                            .map(|parameter| format!("$native_named_callback_{index}_{parameter}"))
+                            .collect::<Vec<_>>();
+                        *arg = CoreExpr::Lam {
+                            params: parameters.iter().cloned().map(CorePattern::Var).collect(),
+                            body: Box::new(CoreExpr::Call {
+                                function,
+                                args: parameters.into_iter().map(CoreExpr::Var).collect(),
+                            }),
+                        };
+                    }
+                }
                 if let (
                     CoreExpr::Lam { params, body },
                     Some(CoreType::Arrow {
@@ -343,16 +377,9 @@ fn rewrite_expr(
             expr: base,
             target_type,
         } => {
-            let concrete_target = match base.as_ref() {
-                CoreExpr::Call { function, args } => {
-                    generic_template(templates, module, function, args.len())
-                        .filter(|template| {
-                            contains_generic_parameter(target_type, &template.generic_params)
-                        })
-                        .and_then(|_| infer_type(base, variables, templates, module))
-                }
-                _ => None,
-            };
+            let concrete_target = contains_implicit_generic_type(target_type)
+                .then(|| infer_type(base, variables, templates, module))
+                .flatten();
             rewrite_expr(base, variables, templates, cache, generated, module, budget)?;
             if let Some(concrete_target) = concrete_target {
                 *target_type = concrete_target;
@@ -367,7 +394,7 @@ fn rewrite_expr(
         CoreExpr::Let { bindings, body } => {
             let mut locals = variables.clone();
             for binding in bindings {
-                let binding_type = infer_type(&binding.value, &locals, templates, module);
+                let binding_type_before = infer_type(&binding.value, &locals, templates, module);
                 rewrite_expr(
                     &mut binding.value,
                     &locals,
@@ -377,6 +404,8 @@ fn rewrite_expr(
                     module,
                     budget,
                 )?;
+                let binding_type = binding_type_before
+                    .or_else(|| infer_type(&binding.value, &locals, templates, module));
                 if let Some(ty) = binding_type {
                     bind_pattern_types(&binding.pattern, &ty, &mut locals);
                 }
@@ -522,59 +551,23 @@ fn rewrite_expr(
     Ok(())
 }
 
-fn infer_generic_argument_types(
-    template: &CoreFunction,
-    arguments: &[CoreExpr],
-    variables: &HashMap<String, CoreType>,
-    templates: &CallableTemplates,
-    module: &str,
-) -> Result<Vec<CoreType>, String> {
-    let mut substitution = HashMap::new();
-    let mut concrete = Vec::with_capacity(arguments.len());
-    for (index, (parameter, argument)) in template.params.iter().zip(arguments).enumerate() {
-        let expected = parameter.core_ty.as_ref().ok_or_else(|| {
-            "error[native_ir.generic_signature]: generic parameter type is absent".to_string()
-        })?;
-        let contextual_expected = substitute(expected, &template.generic_params, &substitution);
-        let inferred = contextual_literal_type(argument, &contextual_expected)
-            .or_else(|| infer_type(argument, variables, templates, module))
-            .or_else(|| {
-                (!contains_generic_parameter(&contextual_expected, &template.generic_params))
-                    .then_some(contextual_expected)
-            })
-            .ok_or_else(|| {
-                format!(
-                    "error[native_ir.generic_argument]: cannot infer argument {} for `{}/{}` from `{}`",
-                    index + 1,
-                    template.name,
-                    template.arity,
-                    argument.contract_text()
-                )
-            })?;
-        unify(
-            expected,
-            &inferred,
-            &template.generic_params,
-            &mut substitution,
-        )
-        .map_err(|error| {
-            format!(
-                "{error}; while specializing argument {} of `{}/{}` from `{}`",
-                index + 1,
-                template.name,
-                template.arity,
-                argument.contract_text()
-            )
-        })?;
-        concrete.push(inferred);
-    }
-    Ok(concrete)
-}
-
 fn contextual_literal_type(argument: &CoreExpr, expected: &CoreType) -> Option<CoreType> {
     match (argument, expected) {
         (CoreExpr::Binary(_), CoreType::Binary | CoreType::String) => Some(expected.clone()),
         _ => None,
+    }
+}
+
+fn apply_contextual_argument_type(argument: &mut CoreExpr, expected: &CoreType) {
+    if matches!(argument, CoreExpr::Cast { target_type, .. } if target_type == expected) {
+        return;
+    }
+    if needs_contextual_type(argument) || contextual_literal_type(argument, expected).is_some() {
+        let expression = std::mem::replace(argument, CoreExpr::Atom("Unit".to_string()));
+        *argument = CoreExpr::Cast {
+            expr: Box::new(expression),
+            target_type: expected.clone(),
+        };
     }
 }
 
@@ -599,10 +592,25 @@ fn callable_templates<'a>(
     function: &str,
     arity: usize,
 ) -> Option<&'a [CoreFunction]> {
-    let candidates = templates
+    if let Some(candidates) = templates
         .get(&(function.to_string(), arity))
-        .or_else(|| templates.get(&(format!("{module}.{function}"), arity)))?;
-    Some(candidates.as_slice())
+        .or_else(|| templates.get(&(format!("{module}.{function}"), arity)))
+    {
+        return Some(candidates.as_slice());
+    }
+
+    // Checked local function references can survive module normalization in
+    // their source spelling while the callable inventory is fully qualified.
+    // Accept that spelling only when it identifies one callable unambiguously.
+    let suffix = format!(".{function}");
+    let mut matches = templates
+        .iter()
+        .filter(|((candidate, candidate_arity), _)| {
+            *candidate_arity == arity && candidate.ends_with(&suffix)
+        })
+        .map(|(_, candidates)| candidates.as_slice());
+    let candidate = matches.next()?;
+    matches.next().is_none().then_some(candidate)
 }
 
 fn implicit_generic_params(function: &CoreFunction) -> Vec<String> {
@@ -749,197 +757,3 @@ fn contains_generic_parameter(ty: &CoreType, parameters: &[String]) -> bool {
 mod call_qualification;
 
 use call_qualification::qualify_local_calls;
-
-fn unify(
-    template: &CoreType,
-    concrete: &CoreType,
-    generic_params: &[String],
-    substitution: &mut HashMap<String, CoreType>,
-) -> Result<(), String> {
-    if let CoreType::Named(name) = template {
-        if generic_params.iter().any(|parameter| parameter == name) {
-            return match substitution.get(name) {
-                Some(previous) if previous != concrete => Err(format!(
-                    "error[native_ir.generic_unification]: `{name}` has incompatible concrete types"
-                )),
-                Some(_) => Ok(()),
-                None => {
-                    substitution.insert(name.clone(), concrete.clone());
-                    Ok(())
-                }
-            };
-        }
-    }
-    match (template, concrete) {
-        (
-            CoreType::Apply {
-                constructor: a,
-                args: x,
-            },
-            CoreType::Apply {
-                constructor: b,
-                args: y,
-            },
-        ) if a.rsplit('.').next() == b.rsplit('.').next() && x.len() == y.len() => {
-            for (left, right) in x.iter().zip(y) {
-                unify(left, right, generic_params, substitution)?;
-            }
-            Ok(())
-        }
-        (CoreType::List(left), CoreType::List(right)) => {
-            unify(left, right, generic_params, substitution)
-        }
-        (
-            CoreType::Arrow {
-                params: left_params,
-                return_type: left_return,
-            },
-            CoreType::Arrow {
-                params: right_params,
-                return_type: right_return,
-            },
-        ) if left_params.len() == right_params.len() => {
-            for (left, right) in left_params.iter().zip(right_params) {
-                unify(left, right, generic_params, substitution)?;
-            }
-            unify(left_return, right_return, generic_params, substitution)
-        }
-        (CoreType::Tuple(left), CoreType::Tuple(right)) if left.len() == right.len() => {
-            for (left, right) in left.iter().zip(right) {
-                let left = match left {
-                    CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. } => ty,
-                };
-                let right = match right {
-                    CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. } => ty,
-                };
-                unify(left, right, generic_params, substitution)?;
-            }
-            Ok(())
-        }
-        (CoreType::Union(left), CoreType::Union(right)) if left.len() == right.len() => {
-            for (left, right) in left.iter().zip(right) {
-                unify(left, right, generic_params, substitution)?;
-            }
-            Ok(())
-        }
-        (CoreType::Map(left), CoreType::Map(right)) if left.len() == right.len() => {
-            for (left, right) in left.iter().zip(right) {
-                if left.key != right.key || left.operator != right.operator {
-                    return Err(format!(
-                        "error[native_ir.generic_unification]: map field `{}` does not match `{}`",
-                        left.key, right.key
-                    ));
-                }
-                unify(&left.value, &right.value, generic_params, substitution)?;
-            }
-            Ok(())
-        }
-        (
-            CoreType::Struct {
-                name: left_name,
-                fields: left,
-            },
-            CoreType::Struct {
-                name: right_name,
-                fields: right,
-            },
-        ) if left_name == right_name && left.len() == right.len() => {
-            for (left, right) in left.iter().zip(right) {
-                if left.name != right.name || left.is_private != right.is_private {
-                    return Err(format!(
-                        "error[native_ir.generic_unification]: struct field `{}` does not match `{}`",
-                        left.name, right.name
-                    ));
-                }
-                unify(&left.ty, &right.ty, generic_params, substitution)?;
-            }
-            Ok(())
-        }
-        (CoreType::Struct { name, .. }, CoreType::Named(concrete))
-        | (CoreType::Named(concrete), CoreType::Struct { name, .. })
-            if name == concrete =>
-        {
-            Ok(())
-        }
-        _ if template == concrete => Ok(()),
-        _ => Err(format!(
-            "error[native_ir.generic_unification]: `{}` does not match `{}`",
-            template.contract_text(),
-            concrete.contract_text()
-        )),
-    }
-}
-
-fn substitute(
-    ty: &CoreType,
-    generic_params: &[String],
-    values: &HashMap<String, CoreType>,
-) -> CoreType {
-    match ty {
-        CoreType::Named(name) if generic_params.iter().any(|parameter| parameter == name) => {
-            values.get(name).cloned().unwrap_or_else(|| ty.clone())
-        }
-        CoreType::Apply { constructor, args } => CoreType::Apply {
-            constructor: constructor.clone(),
-            args: args
-                .iter()
-                .map(|ty| substitute(ty, generic_params, values))
-                .collect(),
-        },
-        CoreType::List(element) => {
-            CoreType::List(Box::new(substitute(element, generic_params, values)))
-        }
-        CoreType::Tuple(elements) => CoreType::Tuple(
-            elements
-                .iter()
-                .map(|element| match element {
-                    CoreTupleTypeElem::Type(ty) => {
-                        CoreTupleTypeElem::Type(substitute(ty, generic_params, values))
-                    }
-                    CoreTupleTypeElem::Field { name, ty } => CoreTupleTypeElem::Field {
-                        name: name.clone(),
-                        ty: substitute(ty, generic_params, values),
-                    },
-                })
-                .collect(),
-        ),
-        CoreType::Struct { name, fields } => CoreType::Struct {
-            name: name.clone(),
-            fields: fields
-                .iter()
-                .map(|field| CoreStructTypeField {
-                    name: field.name.clone(),
-                    ty: substitute(&field.ty, generic_params, values),
-                    is_private: field.is_private,
-                })
-                .collect(),
-        },
-        CoreType::Map(fields) => CoreType::Map(
-            fields
-                .iter()
-                .map(|field| CoreMapTypeField {
-                    key: field.key.clone(),
-                    operator: field.operator.clone(),
-                    value: substitute(&field.value, generic_params, values),
-                })
-                .collect(),
-        ),
-        CoreType::Arrow {
-            params,
-            return_type,
-        } => CoreType::Arrow {
-            params: params
-                .iter()
-                .map(|ty| substitute(ty, generic_params, values))
-                .collect(),
-            return_type: Box::new(substitute(return_type, generic_params, values)),
-        },
-        CoreType::Union(items) => CoreType::Union(
-            items
-                .iter()
-                .map(|ty| substitute(ty, generic_params, values))
-                .collect(),
-        ),
-        _ => ty.clone(),
-    }
-}

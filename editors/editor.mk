@@ -11,7 +11,7 @@ VSCODE_PACK_REPORT := $(NPM_PACK_OUTPUT_DIR)/terlan-vscode-pack.json
 TREE_SITTER_PACK_REPORT := $(NPM_PACK_OUTPUT_DIR)/terlan-tree-sitter-pack.json
 TREE_SITTER_DEPENDENCY_STAMP := tree-sitter-terlan/node_modules/.terlan-package-lock.stamp
 
-.PHONY: editor-help editor-check lsp-outline-check editor-code-action-auto-import-check editor-completion-signature-check editor-runnable-debug-launch-check editor-semantic-token-icon-check editor-diagnostic-parity-check editor-extension-install-update-check vscode-extension-check tree-sitter-package-check tree-sitter-cli-check neovim-editor-check emacs-editor-check intellij-editor-check shared-editor-icon-check shared-editor-contract-check editor-debugger-surface-check
+.PHONY: editor-help editor-check editor-package-output-directories lsp-outline-check editor-code-action-auto-import-check editor-completion-signature-check editor-runnable-debug-launch-check editor-semantic-token-icon-check editor-diagnostic-parity-check editor-extension-install-update-check vscode-extension-check vscode-extension-core-check vscode-diagnostics-smoke-check vscode-textmate-bridge-check vscode-package-report-check tree-sitter-package-check tree-sitter-package-report-check tree-sitter-cli-check neovim-editor-check emacs-editor-check intellij-editor-check shared-editor-icon-check shared-editor-contract-check editor-debugger-surface-check
 .PHONY: editor-definition-navigation-check
 
 editor-help:
@@ -36,7 +36,7 @@ editor-help:
 editor-check: lsp-outline-check vscode-extension-check tree-sitter-package-check neovim-editor-check emacs-editor-check intellij-editor-check shared-editor-icon-check shared-editor-contract-check editor-runnable-debug-launch-check editor-semantic-token-icon-check editor-diagnostic-parity-check editor-extension-install-update-check editor-debugger-surface-check
 
 lsp-outline-check:
-	$(RUST_TEST) --locked -p terlan --features editor-lsp --lib document_symbol -- --nocapture
+	$(RUST_TEST) -p terlan --features editor-lsp --lib document_symbol -- --nocapture
 
 editor-definition-navigation-check:
 	$(TERLAN_QUALITY) editor-definition-navigation-report
@@ -47,35 +47,42 @@ editor-code-action-auto-import-check:
 editor-completion-signature-check:
 	$(TERLAN_QUALITY) editor-completion-signature-report
 
-editor-runnable-debug-launch-check:
+editor-runnable-debug-launch-check: editor-debugger-surface-check
 	node editors/shared/test/runnable_debug_launch_test.js
-	node editors/shared/test/debugger_surface_test.js
 
-editor-semantic-token-icon-check:
+editor-semantic-token-icon-check: tree-sitter-package-check shared-editor-icon-check vscode-textmate-bridge-check
 	node editors/shared/test/semantic_token_icon_report_test.js
-	node tree-sitter-terlan/test/package_smoke_test.js
-	node editors/vscode/test/textmate_bridge_test.js
-	node editors/shared/test/icon_smoke_test.js
 
-editor-diagnostic-parity-check:
+editor-diagnostic-parity-check: vscode-diagnostics-smoke-check
 	node editors/shared/test/diagnostic_parity_report_test.js
-	node editors/vscode/test/diagnostics_smoke_test.js
 
-editor-extension-install-update-check:
-	mkdir -p $(NPM_PACK_CACHE) $(NPM_PACK_OUTPUT_DIR)
-	cd editors/vscode && npm_config_cache=$(NPM_PACK_CACHE) npm run --silent pack:dry-run >$(VSCODE_PACK_REPORT)
-	node editors/vscode/test/pack_dry_run_test.js $(VSCODE_PACK_REPORT)
-	cd tree-sitter-terlan && npm_config_cache=$(NPM_PACK_CACHE) npm run --silent pack:dry-run >$(TREE_SITTER_PACK_REPORT)
-	node tree-sitter-terlan/test/pack_dry_run_test.js $(TREE_SITTER_PACK_REPORT)
+editor-extension-install-update-check: vscode-package-report-check tree-sitter-package-report-check
 	node editors/shared/test/extension_install_update_report_test.js $(VSCODE_PACK_REPORT) $(TREE_SITTER_PACK_REPORT)
 
-vscode-extension-check:
+editor-package-output-directories:
 	mkdir -p $(NPM_PACK_CACHE) $(NPM_PACK_OUTPUT_DIR)
-	cd editors/vscode && npm_config_cache=$(NPM_PACK_CACHE) npm run check && npm test && npm_config_cache=$(NPM_PACK_CACHE) npm run --silent pack:dry-run >$(VSCODE_PACK_REPORT) && node test/pack_dry_run_test.js $(VSCODE_PACK_REPORT)
 
-tree-sitter-package-check:
-	mkdir -p $(NPM_PACK_CACHE) $(NPM_PACK_OUTPUT_DIR)
-	cd tree-sitter-terlan && npm_config_cache=$(NPM_PACK_CACHE) npm run check && npm_config_cache=$(NPM_PACK_CACHE) npm run --silent pack:dry-run >$(TREE_SITTER_PACK_REPORT) && node test/pack_dry_run_test.js $(TREE_SITTER_PACK_REPORT)
+vscode-package-report-check: | editor-package-output-directories
+	cd editors/vscode && npm_config_cache=$(NPM_PACK_CACHE) npm run --silent pack:dry-run >$(VSCODE_PACK_REPORT)
+	node editors/vscode/test/pack_dry_run_test.js $(VSCODE_PACK_REPORT)
+
+vscode-extension-core-check:
+	cd editors/vscode && npm run check && npm run test:core
+
+vscode-diagnostics-smoke-check:
+	cd editors/vscode && npm run test:diagnostics
+
+vscode-textmate-bridge-check:
+	cd editors/vscode && npm run test:textmate
+
+vscode-extension-check: vscode-package-report-check vscode-extension-core-check vscode-diagnostics-smoke-check vscode-textmate-bridge-check
+
+tree-sitter-package-report-check: | editor-package-output-directories
+	cd tree-sitter-terlan && npm_config_cache=$(NPM_PACK_CACHE) npm run --silent pack:dry-run >$(TREE_SITTER_PACK_REPORT)
+	node tree-sitter-terlan/test/pack_dry_run_test.js $(TREE_SITTER_PACK_REPORT)
+
+tree-sitter-package-check: tree-sitter-package-report-check
+	cd tree-sitter-terlan && npm_config_cache=$(NPM_PACK_CACHE) npm run check
 
 $(TREE_SITTER_DEPENDENCY_STAMP): tree-sitter-terlan/package.json tree-sitter-terlan/package-lock.json
 	mkdir -p $(NPM_PACK_CACHE)
@@ -94,7 +101,7 @@ emacs-editor-check:
 
 intellij-editor-check:
 	node editors/intellij/test/package_smoke_test.js
-	cd editors/intellij && ./gradlew --no-daemon clean compileKotlin buildPlugin verifyPluginProjectConfiguration
+	cd editors/intellij && ./gradlew --no-daemon buildPlugin verifyPluginProjectConfiguration
 
 shared-editor-icon-check:
 	node editors/shared/test/icon_smoke_test.js

@@ -66,7 +66,6 @@ pub(crate) struct ManagedExecutionRuntime {
 }
 
 /// Byte offset read by generated backedges to observe actor-heap pressure.
-///
 /// This is part of the in-process AOT/runtime ABI. Keep the offset assertion
 /// beside the C-layout context so a field reorder fails at compile time.
 pub(crate) const MANAGED_CONTEXT_COLLECTION_REQUESTED_OFFSET: i32 = 0;
@@ -686,6 +685,7 @@ impl ManagedExecutionRuntime {
     }
 
     /// Reconstructs a debugger snapshot without claiming or consuming roots.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn snapshot_continuation_captures(
         &self,
         owner_id: u64,

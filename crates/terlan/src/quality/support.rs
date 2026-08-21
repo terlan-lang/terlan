@@ -1,12 +1,29 @@
 use std::collections::BTreeSet;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+#[cfg(test)]
+use std::path::PathBuf;
+#[cfg(test)]
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 
 use crate::terlan_quality::QualityResult;
 
-const ACTIVE_ROADMAP: &str = "docs/roadmap/ROADMAP_0_0_7.md";
+/// Creates one process- and time-scoped fixture directory for quality tests.
+#[cfg(test)]
+pub(crate) fn make_quality_temp_dir(label: &str) -> PathBuf {
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |duration| duration.as_nanos());
+    let path = std::env::temp_dir().join(format!(
+        "terlan_quality_{label}_{}_{}",
+        std::process::id(),
+        unique
+    ));
+    fs::create_dir_all(&path).expect("create quality fixture directory");
+    path
+}
 
 /// Parses a fixed-width TSV document with one exact header row.
 pub(crate) fn parse_tsv_rows(
@@ -233,29 +250,6 @@ pub(crate) fn annotated_public_test_names(
         }
     }
     names
-}
-
-/// Finds the active roadmap from either the workspace or compiler root.
-pub(crate) fn find_active_roadmap(root: &Path) -> QualityResult<PathBuf> {
-    let root = root
-        .canonicalize()
-        .map_err(|error| format!("failed to canonicalize repository root: {error}"))?;
-    let local = root.join(ACTIVE_ROADMAP);
-    if local.exists() {
-        return Ok(local);
-    }
-    let parent = root
-        .parent()
-        .map(|parent| parent.join(ACTIVE_ROADMAP))
-        .ok_or_else(|| "repository root has no parent for roadmap lookup".to_string())?;
-    if parent.exists() {
-        return Ok(parent);
-    }
-    Err(format!(
-        "missing active roadmap at `{}` or `{}`",
-        local.display(),
-        parent.display()
-    ))
 }
 
 fn public_function_name(line: &str) -> Option<&str> {

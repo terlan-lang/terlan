@@ -48,7 +48,7 @@ artifact_size_report_path(repository: String): String ->
     Support.child(repository, "target/quality/editor-release-parity-artifact-size.json").
 
 artifact_image_relative_path(): String ->
-    "target/self-validation/editor-release-parity/vm/docs_static_release_parity_Main.tvm".
+    "target/self-validation/docs-static-release-parity/vm/docs_static_release_parity_Main.tvm".
 
 artifact_image_path(repository: String): String ->
     Support.child(repository, artifact_image_relative_path()).

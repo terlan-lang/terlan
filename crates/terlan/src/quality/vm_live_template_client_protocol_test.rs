@@ -92,7 +92,7 @@ validate_vm_live_template_js_protocol_binding validate_vm_live_template_wasm_pro
 validate_vm_live_template_rolling_deploy_compatibility
 validate_vm_live_template_protocol_manifest
 terlanLiveTemplateProtocolManifest validateTerlanLiveTemplateEvent connectTerlanLiveTemplateSse
-terlan-vm-live-template-protocol-v1 angular-wave/angular.ts
+terlan-vm-live-template-protocol-v1 @angular-wave/angular.ts
 "#,
         )?;
         self.write(
@@ -192,7 +192,7 @@ fn vm_live_template_client_protocol_writes_report_for_complete_gate() {
     assert!(!report.contains("DOM patch replay against typed template bindings"));
     assert!(report.contains("domPatchBackpressure"));
     assert!(report.contains("vm_sse_dom_patch_backpressure_rejects_slow_browser_patch_queue"));
-    assert!(report.contains("angular-wave/angular.ts"));
+    assert!(report.contains("@angular-wave/angular.ts"));
     assert!(!report.contains("slow DOM patch application backpressure"));
     assert!(!report.to_ascii_lowercase().contains("placeholder"));
 }

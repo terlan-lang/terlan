@@ -437,7 +437,7 @@ impl Backend {
             }
         }
 
-        let interfaces = OpenDocuments::interfaces_for_uri(uri);
+        let interfaces = OpenDocuments::imported_interfaces_for_uri(uri, &module);
         for module_name in Self::target_compatible_completion_imported_modules(&module) {
             if let Some(interface) = interfaces.get(&module_name) {
                 for shape in interface.shapes.values() {
@@ -599,7 +599,7 @@ impl Backend {
         ));
         items.extend(Self::local_impl_method_completion_items(module, type_name));
 
-        let interfaces = OpenDocuments::interfaces_for_uri(uri);
+        let interfaces = OpenDocuments::imported_interfaces_for_uri(uri, module);
         for module_name in Self::target_compatible_completion_imported_modules(module) {
             let Some(interface) = interfaces.get(&module_name) else {
                 continue;

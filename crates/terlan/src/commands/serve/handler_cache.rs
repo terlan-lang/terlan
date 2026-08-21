@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
 
-use crate::compiler::router::AotRouterPlan;
+use crate::runtime::vm::aot_metadata::AotRouterPlan;
 use crate::runtime::vm::fixed_scheduler_control::VmFixedSchedulerControl;
 use crate::runtime::vm::http_router::{VmHttpCompiledCallableRef, VmHttpRouter};
 use crate::runtime::vm::http_session::VmHttpSessionService;
@@ -26,12 +26,6 @@ use crate::runtime::vm::work_stealing::{
 };
 use crate::runtime::vm::ReplValue;
 use crate::support::fingerprint;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
-use crate::validation::native_policy::NativePolicy;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
-use crate::validation::target_profile::TargetProfile;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
-use crate::{ColorChoice, DiagnosticFormat};
 
 use super::handler::WebPackageHandler;
 use super::source_path_from_manifest;

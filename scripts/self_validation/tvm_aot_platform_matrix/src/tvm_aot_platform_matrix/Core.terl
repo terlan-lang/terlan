@@ -735,7 +735,6 @@ pub workflow_contract(): Bool ->
         not workflow_text_valid(ci) or not workflow_text_valid(release) -> failure("workflow", "native platform matrix workflow drifted");
         not ci_trigger_valid(ci) -> failure("workflow", "CI trigger contract drifted");
         occurrences(ci, "      - \"docs/**\"") != 2 -> failure("workflow", "CI path filters drifted");
-        not makefile.contains("tvm-aot-roadmap-reconciliation-check:") -> failure("workflow", "roadmap reconciliation gate is missing");
         release.contains("    tags:\n") -> failure("workflow", "release validation must not rerun after tagging");
         not release.contains("run: make tvm-aot-release-closeout-check") -> failure("workflow", "release closeout gate is missing");
         not evidence_present(release, release_evidence()) -> failure("workflow", "release evidence retention is incomplete");

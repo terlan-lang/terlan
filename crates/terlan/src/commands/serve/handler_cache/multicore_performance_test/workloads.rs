@@ -6,8 +6,8 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use crate::commands::serve::handler::HandlerResponse;
-use crate::compiler::router::AotRouterPlan;
 use crate::runtime::vm::actor::{VmActorReceive, VmActorRuntime};
+use crate::runtime::vm::aot_metadata::AotRouterPlan;
 use crate::runtime::vm::epmd::protocol::Alive2Request;
 use crate::runtime::vm::epmd::state::{ConnectionId, ServerOptions, ServerState};
 use crate::runtime::vm::process::{VmExitReason, VmProcessSource, VmProcessTable};
@@ -378,5 +378,6 @@ pub(super) fn request_value() -> ReplValue {
         empty_map(),
         empty_map(),
         ReplValue::Tuple(vec![empty_map(), ReplValue::List(Vec::new())]),
+        ReplValue::String(String::new()),
     ])
 }

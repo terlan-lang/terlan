@@ -9,10 +9,9 @@ pub(super) use crate::validation::native_policy::NativePolicy;
 pub(super) use crate::validation::target_profile::TargetProfile;
 pub(super) use crate::{CliCommand, CliState};
 
+pub(super) use super::arguments::{parse_test_args, TestTarget};
 pub(super) use super::discovery::is_supported_test_return_type;
-pub(super) use super::execution::{
-    effective_js_test_profile, parse_test_args, remove_compiler_intrinsic_functions, TestTarget,
-};
+pub(super) use super::execution::{effective_js_test_profile, remove_compiler_intrinsic_functions};
 pub(super) use super::manifest::validation_pass_report;
 pub(super) use super::project_context::read_vm_test_project_manifest;
 

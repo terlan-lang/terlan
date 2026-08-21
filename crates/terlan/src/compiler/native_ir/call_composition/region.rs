@@ -271,6 +271,51 @@ where
             }
             None
         }
+        CoreExpr::RecordConstruct { name, fields } if !fields.is_empty() => {
+            for (field_index, field) in fields.iter().enumerate() {
+                let Some(mut region) = composed_call_region_at(
+                    &field.value,
+                    suspending,
+                    is_composable,
+                    result_name,
+                    reserved,
+                ) else {
+                    if expr_calls_suspending(&field.value, suspending)
+                        || contains_process_yield(&field.value)
+                    {
+                        return None;
+                    }
+                    continue;
+                };
+                let mut resumed_fields = fields.clone();
+                let mut evaluated_prefix = Vec::with_capacity(field_index + region.prefix.len());
+                for (index, earlier) in fields[..field_index].iter().enumerate() {
+                    let local = unique_prefix_name(
+                        &format!("$native_record_field_{index}"),
+                        &region,
+                        &evaluated_prefix,
+                        reserved,
+                    );
+                    evaluated_prefix.push(CoreLetBinding {
+                        pattern: CorePattern::Var(local.clone()),
+                        value: earlier.value.clone(),
+                    });
+                    resumed_fields[index].value = CoreExpr::Var(local);
+                }
+                resumed_fields[field_index].value = region.resume.clone();
+                evaluated_prefix.append(&mut region.prefix);
+                region.prefix = evaluated_prefix;
+                return Some(map_region_resumes(region, |resume| {
+                    let mut fields = resumed_fields.clone();
+                    fields[field_index].value = resume;
+                    CoreExpr::RecordConstruct {
+                        name: name.clone(),
+                        fields,
+                    }
+                }));
+            }
+            None
+        }
         CoreExpr::UnaryOp { operator, operand } => {
             let region =
                 composed_call_region_at(operand, suspending, is_composable, result_name, reserved)?;

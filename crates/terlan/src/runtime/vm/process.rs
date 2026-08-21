@@ -14,9 +14,11 @@ mod snapshot;
 pub(crate) mod transfer;
 
 pub(crate) use identity::VmProcessId;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use snapshot::VmMailboxSnapshot;
+pub(crate) use snapshot::VmProcessSnapshot;
 #[cfg(test)]
 pub(crate) use snapshot::VmProcessTableMetrics;
-pub(crate) use snapshot::{VmMailboxMessageSnapshot, VmMailboxSnapshot, VmProcessSnapshot};
 
 /// Local VM process execution state.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -101,6 +103,7 @@ impl VmProcessSource {
     }
 
     /// Attaches an explicit source path to runtime-owned source metadata.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn with_source_path(mut self, source_path: impl Into<String>) -> Self {
         self.source_path = Some(source_path.into());
         self
@@ -330,6 +333,7 @@ impl VmProcess {
     }
 
     /// Marks a runnable process as blocked.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn block(&mut self) {
         if self.state == VmProcessState::Runnable {
             self.state = VmProcessState::Blocked;
@@ -515,38 +519,6 @@ impl VmProcessTable {
             .values()
             .map(|process| self.snapshot_process(process))
             .collect()
-    }
-
-    /// Captures at most `limit` messages without changing selective-receive order.
-    pub(crate) fn mailbox_snapshot(
-        &self,
-        pid: VmProcessId,
-        limit: usize,
-    ) -> Result<VmMailboxSnapshot, VmProcessInspectionError> {
-        let process = self
-            .processes
-            .get(pid)
-            .ok_or(VmProcessInspectionError::MissingProcess(pid))?;
-        let messages = process
-            .mailbox
-            .iter()
-            .take(limit)
-            .map(|message| VmMailboxMessageSnapshot {
-                id: message.id,
-                publication_sequence: message.publication_sequence,
-                sender: message.sender,
-                payload: message.payload.clone(),
-                managed: message.managed_fragment.is_some(),
-                accounted_bytes: message.accounted_bytes,
-                priority: message.priority,
-            })
-            .collect();
-        Ok(VmMailboxSnapshot {
-            process: pid,
-            selective_receive_cursor: 0,
-            messages,
-            omitted_messages: process.mailbox.len().saturating_sub(limit),
-        })
     }
 
     fn snapshot_process(&self, process: &VmProcess) -> VmProcessSnapshot {

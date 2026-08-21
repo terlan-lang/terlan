@@ -35,6 +35,7 @@ mod memory;
 #[path = "operation_abi/pattern.rs"]
 mod pattern;
 #[path = "operation_abi/projection.rs"]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod projection;
 #[path = "operation_abi/session.rs"]
 mod session;
@@ -88,6 +89,7 @@ pub use integer::{
 pub use json::{encode_json_parse_result_operation, encode_result_is_ok_operation};
 pub use memory::{encode_memory_retained_size_operation, encode_memory_shallow_size_operation};
 pub use pattern::{encode_managed_type_is_operation, encode_managed_variant_is_operation};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use projection::{decode_aggregate_field_projection, scalar_string_projection_rewrite};
 pub use session::{
     encode_session_current_operation, encode_session_expire_operation,
@@ -160,6 +162,7 @@ pub fn is_managed_operation(encoded: &[u8]) -> bool {
 }
 
 /// Reports whether one admitted managed ABI payload returns an opaque reference.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) fn managed_abi_result_is_reference(encoded: &[u8]) -> bool {
     if super::is_closure_allocation(encoded) {
         return true;

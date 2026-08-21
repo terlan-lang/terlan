@@ -188,6 +188,7 @@ pub(super) struct ProtocolCapabilityCompletion {
     generation: u64,
     route: VmFixedActorRoute,
     active: bool,
+    local_outcome: Option<NativeBoundaryReplyTerm>,
 }
 
 impl ProtocolCapabilityCompletion {
@@ -197,6 +198,17 @@ impl ProtocolCapabilityCompletion {
         owner: VmProcessId,
         wait: &PureNativeCapabilityWait,
     ) -> Result<Self, String> {
+        if trusted_host_capability(wait) {
+            let outcome = crate::runtime::vm::package_native_helper::
+                dispatch_vm_capability_with_program_arguments(wait.request(), &[])
+                .map_err(String::from)?;
+            return Ok(Self {
+                generation,
+                route,
+                active: false,
+                local_outcome: Some(outcome),
+            });
+        }
         with_current_protocol_resource(
             generation,
             ProtocolCapabilityDispatcher::new,
@@ -210,14 +222,29 @@ impl ProtocolCapabilityCompletion {
             generation,
             route,
             active: true,
+            local_outcome: None,
         })
     }
+}
+
+/// Allows the trusted native-service profile to use application-scoped host
+/// resources. Untrusted edge workloads never enable this path and remain in
+/// the sandboxed capability worker/Wasmtime boundary.
+fn trusted_host_capability(wait: &PureNativeCapabilityWait) -> bool {
+    std::env::var("TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES").as_deref() == Ok("1")
+        && matches!(
+            wait.request().capability.as_str(),
+            "system.environment" | "filesystem" | "postgres" | "package-native"
+        )
 }
 
 impl Future for ProtocolCapabilityCompletion {
     type Output = Result<NativeBoundaryReplyTerm, String>;
 
     fn poll(mut self: Pin<&mut Self>, context: &mut Context<'_>) -> Poll<Self::Output> {
+        if let Some(outcome) = self.local_outcome.take() {
+            return Poll::Ready(Ok(outcome));
+        }
         let outcome = with_existing_current_protocol_resource::<ProtocolCapabilityDispatcher, _>(
             self.generation,
             |dispatcher| dispatcher.poll(self.route, context),

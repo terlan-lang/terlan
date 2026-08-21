@@ -148,11 +148,41 @@
       ]
     },
     {
+      "name": "terlan-foundations-adapter",
+      "responsibility": "Own the optional conversion from portable Terlan service events into Foundations telemetry without owning VM scheduling.",
+      "top_level_feature_modules": [
+        "lib"
+      ]
+    },
+    {
+      "name": "terl-docs",
+      "responsibility": "Own reusable documentation navigation, blog indexing, and browser-search assets outside the compiler and VM crates.",
+      "top_level_feature_modules": [
+        "blog",
+        "lib",
+        "navigation"
+      ]
+    },
+    {
       "name": "terlan-runtime-abi",
       "responsibility": "Own stable typed AOT image transition and failure contracts shared across Terlan runtime boundaries.",
       "top_level_feature_modules": [
         "boundary_error",
         "boundary_type"
+      ]
+    },
+    {
+      "name": "terlan-service-foundation",
+      "responsibility": "Own bounded host-independent service configuration, context, lifecycle, metrics, events, sinks, and structured values.",
+      "top_level_feature_modules": [
+        "config",
+        "context",
+        "corpus",
+        "lib",
+        "lifecycle",
+        "metric",
+        "sink",
+        "value"
       ]
     },
     {

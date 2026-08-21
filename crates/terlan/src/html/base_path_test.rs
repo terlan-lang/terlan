@@ -1,21 +1,25 @@
 use super::*;
 
-/// Verifies root base paths leave generated HTML unchanged.
+/// Verifies explicit root base paths are injected into generated HTML.
 ///
 /// Inputs:
 /// - HTML containing a normal document head.
 /// - Root base path `/`.
 ///
 /// Output:
-/// - Original HTML without a `<base>` tag.
+/// - HTML with an explicit `<base href="/">` tag.
 ///
 /// Transformation:
-/// - Confirms root-hosted static sites avoid unnecessary document mutation.
+/// - Keeps asset resolution stable when navigating into nested root-hosted
+///   routes.
 #[test]
-fn inject_html_base_path_leaves_root_output_unchanged() {
+fn inject_html_base_path_inserts_explicit_root() {
     let html = "<!doctype html><head><title>Home</title></head><body></body>";
 
-    assert_eq!(inject_html_base_path(html, "/"), html);
+    assert_eq!(
+        inject_html_base_path(html, "/"),
+        "<!doctype html><head><base href=\"/\"><title>Home</title></head><body></body>"
+    );
 }
 
 /// Verifies base paths are inserted inside an opening head tag.
@@ -74,5 +78,15 @@ fn inject_html_base_path_prefixes_fragments_without_head() {
     assert_eq!(
         inject_html_base_path("<main>Home</main>", "/docs/"),
         "<base href=\"/docs/\"><main>Home</main>"
+    );
+}
+
+#[test]
+fn qualify_html_fragment_links_preserves_page_local_navigation_with_base() {
+    let html = "<a href=\"#main\">Skip</a><a href='docs/#install'>Install</a>";
+
+    assert_eq!(
+        qualify_html_fragment_links(html, "docs/guide/"),
+        "<a href=\"docs/guide/#main\">Skip</a><a href='docs/#install'>Install</a>"
     );
 }

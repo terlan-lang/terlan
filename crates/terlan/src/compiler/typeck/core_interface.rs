@@ -261,32 +261,74 @@ fn core_type_from_syntax_struct_fields(
 ///   summaries without lowering to any backend call form.
 pub(crate) fn lower_core_functions(interface: &ModuleInterface) -> Vec<CoreFunction> {
     let mut functions = interface
-        .functions
+        .function_overloads
         .iter()
-        .map(|((name, arity), signature)| CoreFunction {
-            name: name.clone(),
-            arity: *arity,
-            public: signature.public,
-            generic_params: signature.generic_params.clone(),
-            native_operation: None,
-            params: signature
-                .params
-                .iter()
-                .map(|param| CoreParam {
-                    name: param.name.clone(),
-                    ty: param.annotation.clone(),
-                    core_ty: core_type_from_text(&param.annotation),
-                })
-                .collect(),
-            return_type: signature.return_type.clone(),
-            core_return_type: core_type_from_text(&signature.return_type),
-            clauses: Vec::new(),
+        .flat_map(|((name, arity), signatures)| {
+            signatures.iter().map(move |signature| CoreFunction {
+                name: name.clone(),
+                arity: *arity,
+                public: signature.public,
+                generic_params: signature.generic_params.clone(),
+                native_operation: None,
+                params: signature
+                    .params
+                    .iter()
+                    .map(|param| CoreParam {
+                        name: param.name.clone(),
+                        ty: param.annotation.clone(),
+                        core_ty: core_type_from_text(&param.annotation),
+                    })
+                    .collect(),
+                return_type: signature.return_type.clone(),
+                core_return_type: core_type_from_text(&signature.return_type),
+                clauses: Vec::new(),
+            })
         })
         .collect::<Vec<_>>();
+    if functions.is_empty() {
+        functions = interface
+            .functions
+            .iter()
+            .map(|((name, arity), signature)| CoreFunction {
+                name: name.clone(),
+                arity: *arity,
+                public: signature.public,
+                generic_params: signature.generic_params.clone(),
+                native_operation: None,
+                params: signature
+                    .params
+                    .iter()
+                    .map(|param| CoreParam {
+                        name: param.name.clone(),
+                        ty: param.annotation.clone(),
+                        core_ty: core_type_from_text(&param.annotation),
+                    })
+                    .collect(),
+                return_type: signature.return_type.clone(),
+                core_return_type: core_type_from_text(&signature.return_type),
+                clauses: Vec::new(),
+            })
+            .collect();
+    }
     functions.sort_by(|left, right| {
         left.name
             .cmp(&right.name)
             .then_with(|| left.arity.cmp(&right.arity))
+            .then_with(|| {
+                left.params
+                    .iter()
+                    .map(|param| param.ty.as_str())
+                    .cmp(right.params.iter().map(|param| param.ty.as_str()))
+            })
+    });
+    functions.dedup_by(|left, right| {
+        left.name == right.name
+            && left.arity == right.arity
+            && left
+                .params
+                .iter()
+                .map(|param| &param.ty)
+                .eq(right.params.iter().map(|param| &param.ty))
     });
     functions
 }

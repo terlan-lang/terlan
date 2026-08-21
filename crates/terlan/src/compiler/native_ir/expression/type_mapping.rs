@@ -1,7 +1,7 @@
 //! Checked CoreIR to fixed NativeIR value-kind mapping.
 
 use crate::runtime::native_image::managed::{ManagedClosureDescriptor, SemanticTypeId};
-use crate::terlan_typeck::{CoreExpr, CoreType};
+use crate::terlan_typeck::{CoreExpr, CoreTupleTypeElem, CoreType};
 
 use super::{scalar_types, NativeType};
 
@@ -28,8 +28,20 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
         {
             Some(NativeType::StringRef)
         }
+        Some(CoreType::Named(name)) if is_http_request_type(name) => {
+            managed_reference_type(&CoreType::Named("Request".to_string()))
+        }
         Some(CoreType::Named(name)) if is_http_response_type(name) => {
             managed_reference_type(&CoreType::Named("Response".to_string()))
+        }
+        Some(core @ CoreType::Union(_)) if is_structural_string_option(core) => {
+            managed_reference_type(&CoreType::Apply {
+                constructor: "Option".to_string(),
+                args: vec![CoreType::String],
+            })
+        }
+        Some(core @ CoreType::Union(_)) if is_structural_http_middleware_result(core) => {
+            managed_reference_type(&CoreType::Named("MiddlewareResult".to_string()))
         }
         Some(CoreType::Binary) => Some(NativeType::BinaryRef),
         Some(CoreType::Arrow {
@@ -120,13 +132,71 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
     }
 }
 
+/// Reports whether a checked nominal type is the HTTP request facade whose
+/// physical managed tuple is owned by direct AOT HTTP lowering.
+fn is_http_request_type(name: &str) -> bool {
+    matches!(name, "Request" | "std.http.Request.Request")
+}
+
 /// Reports whether a checked nominal type is the HTTP response facade whose
 /// physical managed tuple is owned by direct AOT HTTP lowering.
 fn is_http_response_type(name: &str) -> bool {
     matches!(name, "Response" | "std.http.Response.Response")
 }
 
-pub(super) fn core_string_runtime_value(value: &str) -> Result<String, String> {
+/// Recognizes the exact transparent representation of `Option[String]` so
+/// imported aliases and compiler-owned HTTP projections share one ABI identity.
+fn is_structural_string_option(ty: &CoreType) -> bool {
+    let CoreType::Union(variants) = ty else {
+        return false;
+    };
+    variants.len() == 2
+        && variants
+            .iter()
+            .any(|variant| matches!(variant, CoreType::AtomLiteral(tag) if tag == "none"))
+        && variants.iter().any(|variant| {
+            let CoreType::Tuple(elements) = variant else {
+                return false;
+            };
+            let [tag, value] = elements.as_slice() else {
+                return false;
+            };
+            matches!(tuple_element_type(tag), CoreType::AtomLiteral(tag) if tag == "some")
+                && matches!(tuple_element_type(value), CoreType::String)
+        })
+}
+
+/// Recognizes the exact transparent `MiddlewareResult` representation so its
+/// nullary and response-carrying variants use the compiler-owned HTTP ABI.
+fn is_structural_http_middleware_result(ty: &CoreType) -> bool {
+    let CoreType::Union(variants) = ty else {
+        return false;
+    };
+    variants.len() == 2
+        && variants
+            .iter()
+            .any(|variant| matches!(variant, CoreType::AtomLiteral(tag) if tag == "continue"))
+        && variants.iter().any(|variant| {
+            let CoreType::Tuple(elements) = variant else {
+                return false;
+            };
+            let [tag, response] = elements.as_slice() else {
+                return false;
+            };
+            matches!(tuple_element_type(tag), CoreType::AtomLiteral(tag) if tag == "respond")
+                && matches!(tuple_element_type(response), CoreType::Named(name) if is_http_response_type(name))
+        })
+}
+
+fn tuple_element_type(element: &CoreTupleTypeElem) -> &CoreType {
+    match element {
+        CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. } => ty,
+    }
+}
+
+pub(in crate::compiler::native_ir) fn core_string_runtime_value(
+    value: &str,
+) -> Result<String, String> {
     if value.starts_with('"') && value.ends_with('"') {
         serde_json::from_str(value)
             .map_err(|error| format!("error[native_ir.string_literal]: {error}"))
@@ -136,13 +206,29 @@ pub(super) fn core_string_runtime_value(value: &str) -> Result<String, String> {
 }
 
 fn managed_reference_type(core: &CoreType) -> Option<NativeType> {
-    let canonical = match core {
-        CoreType::Struct { name, .. } => name.clone(),
-        _ => core.contract_text(),
-    };
+    let canonical = managed_semantic_contract(core);
     SemanticTypeId::from_canonical(&canonical)
         .ok()
         .map(NativeType::ManagedRef)
+}
+
+/// Returns the canonical managed ABI identity after applying compiler-owned
+/// facade normalization. Constructor descriptors and public signatures must
+/// use this same spelling or a value can have the right native kind but the
+/// wrong heap semantic identity.
+pub(in crate::compiler::native_ir) fn managed_semantic_contract(core: &CoreType) -> String {
+    match core {
+        CoreType::Struct { name, .. } => name.clone(),
+        CoreType::Named(name) if is_http_request_type(name) => "Named(Request)".to_string(),
+        CoreType::Named(name) if is_http_response_type(name) => "Named(Response)".to_string(),
+        core @ CoreType::Union(_) if is_structural_string_option(core) => {
+            "Apply(Option;String)".to_string()
+        }
+        core @ CoreType::Union(_) if is_structural_http_middleware_result(core) => {
+            "Named(MiddlewareResult)".to_string()
+        }
+        _ => core.contract_text(),
+    }
 }
 
 /// Recovers the semantic type of a concrete homogeneous collection literal.
@@ -154,6 +240,24 @@ pub(crate) fn literal_collection_type(expr: &CoreExpr) -> Option<CoreType> {
     let element = item_types.next()??;
     item_types
         .all(|item| item.as_ref() == Some(&element))
+        .then_some(CoreType::List(Box::new(element)))
+}
+
+/// Recovers a checked homogeneous list type when at least one item has a
+/// concrete literal type and the remaining items are typed expressions.
+///
+/// This is intentionally used for native-image metadata inventory only. The
+/// typechecker has already established list homogeneity; inventory merely
+/// needs one concrete witness so lists such as `["prefix", value]` retain
+/// their runtime collection descriptor.
+pub(crate) fn witnessed_collection_type(expr: &CoreExpr) -> Option<CoreType> {
+    let CoreExpr::List(items) = expr else {
+        return None;
+    };
+    let mut known = items.iter().filter_map(literal_value_type);
+    let element = known.next()?;
+    known
+        .all(|item| item == element)
         .then_some(CoreType::List(Box::new(element)))
 }
 

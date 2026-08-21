@@ -104,6 +104,7 @@ impl VmCapabilityWorkerClient {
 
     /// Polls one response for an already parked generated continuation.
     pub(crate) fn poll_parked(&mut self) -> Result<Option<VmCapabilityWorkerCompletion>, String> {
+        #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
         if self.deadlines.pending_len() != 0 {
             return Err("error[capability_worker.lifecycle]: parked polling cannot share a worker with deadline-owned calls".to_string());
         }
@@ -119,6 +120,7 @@ impl VmCapabilityWorkerClient {
                         Ok(Some(VmCapabilityWorkerCompletion::TransportFailed {
                             worker: self.identity.clone(),
                             error,
+                            #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
                             cancelled: Vec::new(),
                         }))
                     }
@@ -128,6 +130,7 @@ impl VmCapabilityWorkerClient {
                 self.close_parked_state();
                 Ok(Some(VmCapabilityWorkerCompletion::TransportClosed {
                     worker: self.identity.clone(),
+                    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
                     cancelled: Vec::new(),
                 }))
             }
@@ -136,6 +139,7 @@ impl VmCapabilityWorkerClient {
                 Ok(Some(VmCapabilityWorkerCompletion::TransportFailed {
                     worker: self.identity.clone(),
                     error,
+                    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
                     cancelled: Vec::new(),
                 }))
             }

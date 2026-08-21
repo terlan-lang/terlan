@@ -3092,7 +3092,7 @@ pivots.
     `vm-timer-deadline-check` gate.
   - Completed progress: parked NativeBoundary requests now use
     `VmNativeBoundaryDeadlineQueue`, which owns the transport-neutral
-    `SafeNativeWorker`, reserves worker credit, blocks the calling VM process,
+    `NativeBoundaryWorker`, reserves worker credit, blocks the calling VM process,
     and installs a process-owned one-shot timer. Completion must cancel the
     timer before worker completion can wake the actor; fired or missed
     deadlines transition the same worker request to its typed timeout state,
@@ -3388,7 +3388,7 @@ pivots.
     and before `vm-memory-heap-pressure-check`.
   - Completed progress: `native-boundary-terminology-check` now runs its
     adversarial terminology tests before the CLI scan, rejects placeholder
-    glossary text, verifies retired SafeNative wording stays out of diagnostics,
+    glossary text, verifies retired NativeBoundary wording stays out of diagnostics,
     and checks 26 golden docs for NativeBoundary terminology drift.
   - Completed progress: the legacy Postgres worker metadata has been replaced by a
     VM-owned `NativeBoundaryWorkerManifest` and complete per-export manifest rows.
@@ -3453,7 +3453,7 @@ pivots.
     `vm-native-boundary-contract-check`; all 12 worker tests pass with warnings
     denied, and Rust file-size, dormant-runtime, deterministic-map, formatter,
     and whitespace quality gates pass.
-  - Completed progress: `SafeNativeWorker` now retains a bounded, ordered
+  - Completed progress: `NativeBoundaryWorker` now retains a bounded, ordered
     production event history for accepted, completed, cancelled, timed-out,
     invalid/stale, and backpressure-rejected request transitions. Every event
     captures post-transition reserved and available credits, and the oldest
@@ -3463,7 +3463,7 @@ pivots.
     watermark, history limit, and lifecycle events. Exact tests cover every
     current lifecycle outcome, deterministic report shape, zero retained credit,
     and bounded-history eviction after 2,200 generated events. Report
-    serialization lives in `runtime/safenative/worker_report.rs`, keeping the
+    serialization lives in `runtime/native_boundary/worker_report.rs`, keeping the
     worker implementation within its 500-line limit. `vm-native-boundary-contract-check`
     requires the report and passes with all 14 worker tests and warnings denied.
   - Completed progress: the term-level NativeBoundary runtime now records
@@ -3477,7 +3477,7 @@ pivots.
     is created, disposed, then rejected on duplicate disposal with
     `resource.stale_handle`, while all credits return to zero. Resource event
     traversal is iterative and history is capped at 1,024 entries. The logic
-    lives in `runtime/safenative/runtime_events.rs`, leaving the existing
+    lives in `runtime/native_boundary/runtime_events.rs`, leaving the existing
     oversized resource store unchanged and keeping `worker.rs` within the
     500-line limit.
     `vm-native-boundary-contract-check`, all 14 worker tests with warnings
@@ -4096,7 +4096,7 @@ pivots.
     reproduces all 7,257 committed artifacts byte-for-byte, and
     `std-source-naming-check` accepts all 4,525 std sources.
   - Completed progress: `make release-generated-artifacts-check` now composes
-    the existing std summary, generated JS binding, SafeNative artifact,
+    the existing std summary, generated JS binding, NativeBoundary artifact,
     std release-manifest, and tree-sitter regeneration/drift gates instead of
     duplicating their domain logic. The canonical
     `docs/release/GENERATED_ARTIFACTS.json` inventory classifies five generated
@@ -5914,10 +5914,10 @@ pivots.
   - Gate: `make vm-native-worker-runtime-check` now follows the native TVM ABI
     and native package artifact gates, never a VMIR extraction gate.
   - Current gate state: `make vm-native-worker-runtime-check` exists and runs
-    the native TVM ABI gate, generated SafeNative worker
-    skeleton selectors, SafeNative worker request-lifecycle selectors for
+    the native TVM ABI gate, generated NativeBoundary worker
+    skeleton selectors, NativeBoundary worker request-lifecycle selectors for
     backpressure, duplicate request ids, mismatched completions, cancellation,
-    timeouts, unknown cancellations, and duplicate dispose cleanup, SafeNative
+    timeouts, unknown cancellations, and duplicate dispose cleanup, NativeBoundary
     runtime selectors for disposed handles, duplicate dispose, and malformed
     payloads, VM resource/cancellation/reduction-accounting selectors, and
     `terlan-quality vm-native-worker-runtime`. It writes
@@ -10336,7 +10336,7 @@ selectors.
     output length and proves failures perform no partial writes;
     `vm-runtime-semantics-check` names and passes the bitstring module. The
     sixth verified port is
-    `terlan-vm/erts/rust/terlan_vm/tests/base64.rs`: the golden SafeNative
+    `terlan-vm/erts/rust/terlan_vm/tests/base64.rs`: the golden NativeBoundary
     adapter reuses the maintained Rust `base64` crate through a byte-oriented
     production path, preserving RFC 4648 vectors, all 256 octets, every short
     padding class, and the 1,025-byte padded-tail boundary. The replacement
@@ -10713,7 +10713,7 @@ selectors.
     coverage, and the canonical `vm-runtime-semantics-check` passes.
     The thirty-fourth verified port is
     `terlan-vm/erts/rust/terlan_vm/tests/md5.rs`: the golden runtime now exposes
-    `std.encoding.Md5.digest/1` through the typed SafeNative boundary using the
+    `std.encoding.Md5.digest/1` through the typed NativeBoundary boundary using the
     maintained RustCrypto `md-5` implementation. RFC 1321 vectors, exact UTF-8
     input, padding boundaries, every two-way split of a deterministic payload,
     safe cloned digest state, and adversarial chunk sizes are executable tests;
@@ -11554,7 +11554,7 @@ selectors.
     The one-hundred-thirteenth verified port is
     `terlan-vm/erts/rust/terlan_vm/tests/beam_native_worker_transport.rs`.
     Terlan replaces the BEAM destination-register and `BeamValue` frame codec
-    with its active SafeNative helper boundary. Reply reads are now capped at
+    with its active NativeBoundary helper boundary. Reply reads are now capped at
     64 KiB and reject oversized, unterminated, and non-UTF-8 input before value
     decoding or VM mutation; existing worker coverage preserves correlated
     request ids and credits, cancellation and late-reply rejection, stale
@@ -11602,7 +11602,7 @@ selectors.
     `Atom["..."]` aliases now retain their canonical Unicode payload through
     CoreIR and VM execution, while bodyless aliases retain deterministic
     type-derived payloads. Parser adversarial tests reject dynamic and empty
-    atom payloads, SafeNative JSON and Postgres boundaries preserve atom-like
+    atom payloads, NativeBoundary JSON and Postgres boundaries preserve atom-like
     external keys as `String`, and standard-library property tests cover atom
     equality and rendering. Atom ids, Latin-1 mode, `BeamValue` tags, and
     Erlang MFA dispatch are retired. `vm-atom-boundary-parity-check` passes
@@ -12135,13 +12135,13 @@ selectors.
     files.
     The next verified terminal port is
     `terlan-vm/erts/rust/terlan_vm/tests/md5.rs`:
-    the maintained RustCrypto-backed SafeNative adapter preserves RFC 1321
+    the maintained RustCrypto-backed NativeBoundary adapter preserves RFC 1321
     vectors, compression-block padding boundaries, every two-way split,
     independent cloned-state finalization, and one-byte through large
     adversarial chunk sizes. The public Terlan table suite also verifies the
     supported UTF-8 text API. `std-test-table-check` now executes both layers.
     C ABI layout and unsafe raw-memory state-copy assertions were intentionally
-    retired because SafeNative owns typed Rust state rather than exposing that
+    retired because NativeBoundary owns typed Rust state rather than exposing that
     representation. The exact-path inventory records checked
     `delete-after-vm-equivalent` evidence and the historical ledger marks the
     fixture deleted. `std-test-table-check` and

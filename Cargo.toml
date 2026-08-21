@@ -3,7 +3,10 @@ resolver = "2"
 members = [
   "crates/terlan",
   "crates/terlan-archive",
+  "crates/terlan-foundations-adapter",
+  "crates/terl-docs",
   "crates/terlan-runtime-abi",
+  "crates/terlan-service-foundation",
   "crates/terlan-test-orchestrator",
   "std/native/libpq/generated/native/rust",
   "tools/rust_boundary_audit",
@@ -26,12 +29,15 @@ polling = "3.11.0"
 proc-macro2 = { version = "1", features = ["span-locations"] }
 quote = "1"
 serde_json = "1"
+serde = { version = "1", features = ["derive"] }
 sha2 = "0.11.0"
 syn = { version = "2", features = ["full", "visit"] }
 tar = "0.4.44"
 tokio = "1"
 terlan-archive = { path = "crates/terlan-archive" }
+terl-docs = { path = "crates/terl-docs" }
 terlan-runtime-abi = { path = "crates/terlan-runtime-abi" }
+terlan-service-foundation = { path = "crates/terlan-service-foundation" }
 zstd = "0.13.3"
 
 [workspace.lints.rust]
@@ -41,5 +47,17 @@ warnings = "deny"
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 
+[profile.dev]
+debug = "line-tables-only"
+
 [profile.test]
 debug = "line-tables-only"
+
+# The compiler-free service runtime is distributed independently from compiler
+# tooling. Whole-graph optimization keeps its always-resident protocol and VM
+# surface within the release text budget without weakening runtime ownership.
+[profile.serve-runtime]
+inherits = "release"
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

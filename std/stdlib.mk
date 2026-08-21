@@ -4,7 +4,7 @@
 # callable from the repository root while stdlib recipes live with stdlib
 # sources and policy documents.
 
-.PHONY: stdlib-help stdlib-check stdlib-release-check stdlib-release-runtime-check stdlib-release-runtime-owned-by-check stdlib-build-interfaces stdlib-doc-format-check stdlib-summary-inventory-check stdlib-summary-drift-check stdlib-embedded-interface-contract-check stdlib-js-bindings-drift-check stdlib-js-review-surface-check stdlib-release-manifest-check stdlib-rust-backed-manifest-check stdlib-native-artifacts-check stdlib-io-negative-api-tests-check stdlib-release-api-tests-check stdlib-negative-api-tests-check stdlib-core-backend-primitive-calls-check stdlib-receiver-methods-check stdlib-release-tests-vm-default-check stdlib-data-check stdlib-db-check stdlib-http-check stdlib-log-check stdlib-sync-check stdlib-release-contracts-check stdlib-release-tests
+.PHONY: stdlib-help stdlib-check stdlib-release-check stdlib-release-runtime-check stdlib-release-runtime-owned-by-check stdlib-build-interfaces stdlib-doc-format-check stdlib-summary-inventory-check stdlib-summary-drift-check stdlib-embedded-interface-contract-check stdlib-js-bindings-drift-check stdlib-js-review-surface-check stdlib-release-manifest-check stdlib-rust-backed-manifest-check stdlib-native-artifacts-check stdlib-validation-self-test stdlib-io-negative-api-tests-check stdlib-release-api-tests-check stdlib-negative-api-tests-check stdlib-core-backend-primitive-calls-check stdlib-receiver-methods-check stdlib-release-tests-vm-default-check stdlib-data-check stdlib-db-check stdlib-http-check stdlib-log-check stdlib-sync-check stdlib-release-contracts-check stdlib-release-tests
 
 stdlib-help:
 	@echo "  make stdlib-check      - verify fast stdlib drift, manifest, and API coverage checks"
@@ -64,7 +64,7 @@ stdlib-summary-drift-check:
 	TERLAN_SUMMARY_DRIFT_GENERATOR="$(CURDIR)/scripts/self_validation/BuildInterfacesTest.terl" \
 		target/debug/terlc test scripts/self_validation/SummaryDriftTest.terl
 
-stdlib-embedded-interface-contract-check: $(CANONICAL_RUST_SUITE_OWNER)
+stdlib-embedded-interface-contract-check:
 	@target/debug/terlc test scripts/self_validation/EmbeddedInterfaceContractsTest.terl
 
 stdlib-js-bindings-drift-check:
@@ -83,32 +83,42 @@ stdlib-release-manifest-check:
 
 stdlib-rust-backed-manifest-check: stdlib-native-artifacts-check
 	@TERLAN_RUST_BACKED_MANIFEST_ROOT="$(CURDIR)" \
-		target/debug/terlc test scripts/self_validation/RustBackedManifestTest.terl
-	@TERLAN_RUST_BACKED_MANIFEST_ROOT="$(CURDIR)" \
-		target/debug/terlc test scripts/self_validation/RustBackedAdapterTest.terl
+		target/debug/terlc test \
+			scripts/self_validation/RustBackedManifestTest.terl \
+			scripts/self_validation/RustBackedAdapterTest.terl
 
 stdlib-native-artifacts-check:
 	@TERLAN_NATIVE_ARTIFACTS_ROOT="$(CURDIR)" \
 	TERLAN_NATIVE_ARTIFACTS_TERLC="$(CURDIR)/target/debug/terlc" \
 		target/debug/terlc test scripts/self_validation/NativeArtifactsTest.terl
 
-stdlib-io-negative-api-tests-check:
-	@bash std/scripts/check_io_negative_api_tests.sh
+stdlib-validation-self-test: | terlan-stdlib-validation-bootstrap
+	@TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
+		$(TERLAN_STDLIB_VALIDATION) self-test
 
-stdlib-release-api-tests-check:
-	@bash std/scripts/check_release_api_tests.sh
+stdlib-io-negative-api-tests-check: | terlan-stdlib-validation-bootstrap
+	@TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
+	TERLAN_STDLIB_VALIDATION_TERLC="$(CURDIR)/target/debug/terlc" \
+		$(TERLAN_STDLIB_VALIDATION) io-negative-api
 
-stdlib-negative-api-tests-check:
-	@bash std/scripts/check_negative_api_tests.sh
+stdlib-release-api-tests-check: stdlib-release-manifest-check
+	@echo "stdlib release API coverage is owned by the typed release manifest validator."
 
-stdlib-core-backend-primitive-calls-check:
-	@bash std/scripts/check_core_backend_primitive_calls.sh
+stdlib-negative-api-tests-check: | terlan-stdlib-validation-bootstrap
+	@TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
+	TERLAN_STDLIB_VALIDATION_TERLC="$(CURDIR)/target/debug/terlc" \
+		$(TERLAN_STDLIB_VALIDATION) negative-api
 
-stdlib-receiver-methods-check:
-	@bash std/scripts/check_receiver_methods.sh
+stdlib-core-backend-primitive-calls-check: | terlan-stdlib-validation-bootstrap
+	@TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
+		$(TERLAN_STDLIB_VALIDATION) core-backend
 
-stdlib-release-tests-vm-default-check:
-	@target/debug/terlc test scripts/self_validation/StdlibReleaseTestsVmDefaultTest.terl
+stdlib-receiver-methods-check: | terlan-stdlib-validation-bootstrap
+	@TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
+		$(TERLAN_STDLIB_VALIDATION) receiver-methods
+
+stdlib-release-tests-vm-default-check: stdlib-validation-self-test
+	@echo "stdlib release VM-default routing is owned by the typed runner."
 
 stdlib-data-check:
 	@$(TERLC) test std/data
@@ -129,5 +139,7 @@ stdlib-sync-check:
 stdlib-release-contracts-check:
 	@$(EXACT_CARGO_TEST) -p terlan --bin terlc compiler::typeck::std_contract_test::syntax_output_accepts_release_core_collection_contracts -- --ignored --exact
 
-stdlib-release-tests:
-	@bash std/scripts/run_release_tests.sh
+stdlib-release-tests: | terlan-stdlib-validation-bootstrap
+	@TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
+	TERLAN_STDLIB_VALIDATION_TERLC="$(CURDIR)/target/debug/terlc" \
+		$(TERLAN_STDLIB_VALIDATION) release-tests

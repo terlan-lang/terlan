@@ -1,0 +1,24 @@
+[package]
+name = "terlan-foundations-adapter"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = ["tracing", "telemetry-otlp-grpc"]
+tracing = ["foundations/tracing"]
+telemetry-otlp-grpc = ["tracing", "foundations/telemetry-otlp-grpc"]
+
+[dependencies]
+foundations = { version = "=5.9.0", default-features = false, features = ["logging", "metrics", "testing"] }
+serde_json.workspace = true
+terlan-service-foundation.workspace = true
+
+[dev-dependencies]
+serde.workspace = true

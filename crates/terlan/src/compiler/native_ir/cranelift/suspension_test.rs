@@ -43,3 +43,32 @@ fn closure_call_then_reserves_the_indirect_transition_frame() {
         TVM_INDIRECT_TRANSITION_WORD_CAPACITY
     );
 }
+
+#[test]
+fn empty_resume_profiles_remain_synchronous() {
+    let direct = NativeExpr::CallThen {
+        function: 1,
+        args: Vec::new(),
+        resumes: Vec::new(),
+        completion_continuation_id: 3,
+        completion_function: Some(2),
+        values: vec![NativeExpr::Unit],
+    };
+    let dynamic = NativeExpr::InvokeClosureThen {
+        callee: Box::new(NativeExpr::Unit),
+        args: Vec::new(),
+        parameter_types: Vec::new(),
+        result_type: NativeType::Unit,
+        resumes: Vec::new(),
+        completion_continuation_id: 5,
+        completion_function: Some(2),
+        values: vec![NativeExpr::Unit],
+    };
+
+    assert!(!is_suspending(&direct, &[false, false, false]));
+    assert!(!is_suspending(&dynamic, &[false, false, false]));
+    assert!(is_suspending(&direct, &[false, false, true]));
+    assert!(is_suspending(&dynamic, &[false, false, true]));
+    assert_eq!(suspension_value_count(&direct, &[0, 0, 4]), 4);
+    assert_eq!(suspension_value_count(&dynamic, &[0, 0, 4]), 4);
+}

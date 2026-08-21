@@ -82,7 +82,7 @@ For structure-only artifact validation:
 2. Delegate `.terl.html` and `.terl.md` to existing template parsers.
 3. Delegate `.terl.json` to `serde_json` after interpolation masking.
 4. Delegate `.terl.toml` to `basic-toml` after interpolation masking.
-5. Delegate `.terl.yaml` / `.terl.yml` to `yaml-rust` after interpolation
+5. Delegate `.terl.yaml` / `.terl.yml` to `serde_yaml` after interpolation
    masking.
 6. Delegate `.terl.xml` to `quick-xml` after interpolation masking.
 7. Validate `.terl.txt` interpolation boundaries while accepting arbitrary

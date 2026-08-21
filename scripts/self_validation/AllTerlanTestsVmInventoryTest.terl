@@ -209,7 +209,7 @@ is_command_implementation(path: String): Bool ->
 is_active_runner(path: String): Bool ->
     path == "Makefile"
         or path == "std/stdlib.mk"
-        or path == "std/scripts/run_release_tests.sh"
+        or path == "scripts/self_validation/StdlibValidation.terls"
         or path == "scripts/run_exact_cargo_test.sh".
 
 @pure
@@ -827,7 +827,7 @@ scan_runner_inventory(root: String, state: ScanState): Bool ->
     [
         "Makefile",
         "scripts/run_exact_cargo_test.sh",
-        "std/scripts/run_release_tests.sh",
+        "scripts/self_validation/StdlibValidation.terls",
         "std/stdlib.mk",
     ],
     state,

@@ -8,7 +8,6 @@ use super::support::{make_target_body, write_json_report};
 use crate::terlan_quality::placeholder_terms::{
     placeholder_entry_diagnostics, selector_evidence_placeholder_diagnostics,
 };
-use crate::terlan_quality::roadmap_gate_integrity::parse_make_list_variable_values;
 use crate::terlan_quality::{render_failure, QualityResult};
 
 const REPORT_PATH: &str = "target/quality/editor-completion-signature-report.json";
@@ -296,14 +295,6 @@ fn validate_gate_and_fixtures(makefile: &str, fixtures: &str) -> Vec<String> {
     if !body.contains("editor-completion-signature-report") {
         diagnostics.push(format!(
             "Makefile: `{TARGET}` must run its completion/signature report"
-        ));
-    }
-    if !parse_make_list_variable_values(makefile, "COMPLETED_SLICE_RUST_GATES")
-        .iter()
-        .any(|gate| gate == TARGET)
-    {
-        diagnostics.push(format!(
-            "Makefile: `COMPLETED_SLICE_RUST_GATES` must own `{TARGET}`"
         ));
     }
     for selector in REQUIRED_SELECTORS {

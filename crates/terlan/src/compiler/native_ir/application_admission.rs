@@ -27,6 +27,39 @@ struct FunctionAbi {
     result: Option<NativeType>,
 }
 
+/// Rejects ambiguous unqualified imports before typed normalization can choose
+/// one provider and erase evidence of the conflicting source-level ABI.
+pub(super) fn reject_ambiguous_source_import_calls(cores: &[CoreModule]) -> Result<(), String> {
+    for caller in cores {
+        for function in &caller.functions {
+            for clause in &function.clauses {
+                for expression in clause
+                    .guard
+                    .as_ref()
+                    .and_then(|guard| guard.core_expr.as_ref())
+                    .into_iter()
+                    .chain(clause.body.core_expr.iter())
+                {
+                    let mut conflict = None;
+                    super::application::dynamic_targets::walk_calls(
+                        expression,
+                        &mut |name, args| {
+                            if conflict.is_none() {
+                                conflict =
+                                    conflicting_call_diagnostic(name, args.len(), caller, cores);
+                            }
+                        },
+                    );
+                    if let Some(conflict) = conflict {
+                        return Err(conflict);
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Rejects an application whose statically reachable call identities are not
 /// closed and unambiguous before NativeIR lowering begins.
 pub(super) fn validate_core_application(
@@ -187,28 +220,53 @@ fn validate_call(
             caller.module
         )),
         [_] => Ok(()),
-        [first, rest @ ..] => {
-            let first_abi = function_abi(first.function);
-            let incompatible = rest
-                .iter()
-                .any(|provider| function_abi(provider.function) != first_abi);
-            let mut identities = providers
-                .iter()
-                .map(|provider| format!("{}.{name}/{arity}", provider.module))
-                .collect::<Vec<_>>();
-            identities.sort();
-            let code = if incompatible {
-                "native_ir.import_abi"
-            } else {
-                "native_ir.ambiguous_import"
-            };
-            Err(format!(
-                "error[{code}]: call `{name}/{arity}` in module `{}` resolves to {}",
-                caller.module,
-                identities.join(", ")
-            ))
-        }
+        [_, ..] => Err(conflicting_call_diagnostic_from_providers(
+            name,
+            arity,
+            caller,
+            &providers,
+        )),
     }
+}
+
+/// Returns the canonical conflict diagnostic when a call has multiple visible
+/// providers, preserving ABI incompatibility separately from plain ambiguity.
+fn conflicting_call_diagnostic(
+    name: &str,
+    arity: usize,
+    caller: &CoreModule,
+    cores: &[CoreModule],
+) -> Option<String> {
+    let providers = call_providers(name, arity, caller, cores);
+    (providers.len() > 1)
+        .then(|| conflicting_call_diagnostic_from_providers(name, arity, caller, &providers))
+}
+
+fn conflicting_call_diagnostic_from_providers(
+    name: &str,
+    arity: usize,
+    caller: &CoreModule,
+    providers: &[Provider<'_>],
+) -> String {
+    let first_abi = function_abi(providers[0].function);
+    let incompatible = providers[1..]
+        .iter()
+        .any(|provider| function_abi(provider.function) != first_abi);
+    let mut identities = providers
+        .iter()
+        .map(|provider| format!("{}.{name}/{arity}", provider.module))
+        .collect::<Vec<_>>();
+    identities.sort();
+    let code = if incompatible {
+        "native_ir.import_abi"
+    } else {
+        "native_ir.ambiguous_import"
+    };
+    format!(
+        "error[{code}]: call `{name}/{arity}` in module `{}` resolves to {}",
+        caller.module,
+        identities.join(", ")
+    )
 }
 
 /// Returns every local or explicitly imported provider for one call identity.
@@ -413,7 +471,7 @@ fn validate_continuation_references(
         | NativeExpr::Float(_)
         | NativeExpr::Bool(_)
         | NativeExpr::AtomLiteral(_)
-        | NativeExpr::StringLiteral { .. }
+        | NativeExpr::ManagedLiteral { .. }
         | NativeExpr::Param(_) => Ok(()),
     }
 }

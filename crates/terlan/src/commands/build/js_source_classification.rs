@@ -72,6 +72,7 @@ pub(super) fn web_route_source_artifact_from_file(
     Ok(Some(WebRouteSourceArtifact {
         module: syntax.module_name.clone(),
         source_path: path.to_string(),
+        manifest_path: None,
     }))
 }
 
@@ -173,8 +174,13 @@ fn imports_std_http_router(syntax: &crate::terlan_syntax::SyntaxModuleOutput) ->
             SyntaxDeclarationPayload::Import {
                 import_kind: SyntaxImportKind::Module,
                 module_name,
+                items,
+                is_selected,
                 ..
             } if module_name == "std.http.Router"
+                || (module_name == "std.http"
+                    && *is_selected
+                    && items.iter().any(|item| item.name == "Router"))
         )
     })
 }
@@ -248,3 +254,7 @@ fn declares_public_function(
         )
     })
 }
+
+#[cfg(test)]
+#[path = "js_source_classification_test.rs"]
+mod tests;

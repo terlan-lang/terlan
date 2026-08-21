@@ -6,7 +6,7 @@
 #
 # Output:
 # - A tab-separated inventory consumed by
-#   std/scripts/check_core_backend_primitive_calls.sh.
+#   scripts/self_validation/StdlibValidation.terls.
 #
 # Transformation:
 # - Records each known backend primitive dependency by source path, enclosing

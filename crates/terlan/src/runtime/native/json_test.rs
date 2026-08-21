@@ -181,6 +181,24 @@ fn array_set_replaces_one_existing_element_and_rejects_missing_indices() {
     assert_eq!(missing.code(), "json.index_out_of_bounds");
 }
 
+#[test]
+fn object_remove_deletes_existing_members_and_rejects_invalid_requests() {
+    let mut value = parsed_fixture(r#"{"name":"Ada","role":"engineer"}"#);
+    remove(&mut value, "role").expect("remove object member");
+    assert_eq!(stringify(&value), Ok(String::from(r#"{"name":"Ada"}"#)));
+
+    let missing = remove(&mut value, "role")
+        .err()
+        .unwrap_or_else(|| JsonError::new("missing", "", 0));
+    assert_eq!(missing.code(), "json.missing_key");
+
+    let mut array = array();
+    let wrong_kind = remove(&mut array, "role")
+        .err()
+        .unwrap_or_else(|| JsonError::new("missing", "", 0));
+    assert_eq!(wrong_kind.code(), "json.not_object");
+}
+
 /// Validates stable parse error conversion.
 ///
 /// Inputs:

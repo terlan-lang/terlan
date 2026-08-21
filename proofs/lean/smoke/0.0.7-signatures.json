@@ -1,7 +1,7 @@
 {
   "schema": "terlan.lean-proof-smoke-baseline.v1",
   "signatures": {
-    "native-dispatch": "sha256:232c4a10429f045c955ef3443fa15337164950f7320a88cf4bf199758d2ef305",
+    "native-dispatch": "sha256:9fca86083201b4d95212267ae1a28fee9aec01586b3c634a957d70da7aaecf8a",
     "semantic-chain": "sha256:5d3e455b407a5074219aeea8001d0061d48eef5bbbf89e5848f5a0719340500f",
     "unsupported-fallback": "sha256:d098e5eb0497631c3b5e661953f5dd226a2a3aadefce4d9bb9c797641cd65fbb"
   }

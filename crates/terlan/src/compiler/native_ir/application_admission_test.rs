@@ -10,10 +10,11 @@ use crate::{
 
 use super::{
     application::normalize_application_remote_calls,
-    application_admission::validate_continuation_graph, NativeContinuation, NativeExpr,
-    NativeFunction, NativeModule, NativeTransitionOperation, NativeType,
+    application_admission::validate_continuation_graph, emit_native_application_object,
+    NativeContinuation, NativeExpr, NativeFunction, NativeModule, NativeTransitionOperation,
+    NativeType,
 };
-use crate::runtime::native_image::managed::SemanticTypeId;
+use crate::runtime::native_image::managed::{decode_aggregate_layout, SemanticTypeId};
 
 /// Lowers one canonical source module into checked CoreIR.
 fn core(source: &str) -> CoreModule {
@@ -275,6 +276,99 @@ fn closed_application_passes_admission_and_graph_validation() {
         .any(|function| function.name == "main"));
 }
 
+/// A public native wrapper may close over a private recursive data-shaping
+/// helper without promoting that helper to the module's public ABI.
+#[test]
+fn public_native_wrapper_closes_over_private_recursive_helper() {
+    let module = core(
+        "module app.PrivateClosure.\n\n\
+         @compiler.native {fixture.consume}\n\
+         consume(_values: List[Int]): Int -> native.\n\n\
+         @compiler.native {fixture.inspect}\n\
+         inspect(_value: Int): Int -> native.\n\n\
+         collect(values: List[Int]): List[Int] ->\n\
+             case values {\n\
+                 [] -> [];\n\
+                 [value | rest] -> [inspect(value) | collect(rest)]\n\
+             }.\n\n\
+         pub main(values: List[Int]): Int -> consume(collect(values)).\n",
+    );
+
+    let native = NativeModule::lower_application(&[&module])
+        .expect("close public wrapper over private recursive helper");
+    let private = native[0]
+        .functions
+        .iter()
+        .find(|function| function.name == "collect")
+        .expect("private helper retained in native image");
+
+    assert!(!private.public);
+    assert!(native[0]
+        .functions
+        .iter()
+        .any(|function| function.name == "main" && function.public));
+    assert!(native[0].functions.iter().any(|function| {
+        function.name.starts_with("$aot_list_builder_collect_")
+            && !function.public
+            && function.source_function == "collect"
+            && function.source_arity == 1
+    }));
+    assert!(native[0].functions.iter().any(|function| {
+        function.name.starts_with("$aot_list_reverse_collect_")
+            && !function.public
+            && function.source_function == "collect"
+            && function.source_arity == 1
+    }));
+    emit_native_application_object("private_recursive_list_helper", &native)
+        .expect("emit public wrapper with private recursive helper");
+}
+
+/// A non-recursive list constructor must compose a recursive list builder in
+/// its tail instead of lowering the builder as an ordinary managed argument.
+#[test]
+fn list_constructor_composes_recursive_builder_tail() {
+    let module = core(
+        "module app.ListBuilderTail.\n\n\
+         collect(values: List[Int]): List[Int] ->\n\
+             case values {\n\
+                 [] -> [];\n\
+                 [value | rest] -> [value | collect(rest)]\n\
+             }.\n\n\
+         decorate(values: List[Int]): List[Int] -> [0 | collect(values)].\n\n\
+         pub main(values: List[Int]): List[Int] -> decorate(values).\n",
+    );
+
+    let native = NativeModule::lower_application(&[&module])
+        .expect("compose a recursive list builder below a list constructor");
+
+    emit_native_application_object("list_constructor_recursive_tail", &native)
+        .expect("emit list constructor with recursive builder tail");
+}
+
+/// Exact unary identity wrappers cannot hide a recursive call's tail position
+/// from application suspension closure.
+#[test]
+fn identity_forwarder_exposes_recursive_suspension_tail_call() {
+    let module = core(
+        "module app.IdentityTail.\n\n\
+         @compiler.native {fixture.inspect}\n\
+         inspect(_value: Int): Int -> native.\n\n\
+         retain(value: Int): Int -> value.\n\n\
+         walk(value: Int): Int ->\n\
+             if {\n\
+                 value == 0 -> inspect(value);\n\
+                 true -> retain(walk(value - 1))\n\
+             }.\n\n\
+         pub main(value: Int): Int -> walk(value).\n",
+    );
+
+    let native = NativeModule::lower_application(&[&module])
+        .expect("identity wrapper preserves recursive suspension closure");
+
+    emit_native_application_object("identity_forwarder_recursive_tail", &native)
+        .expect("emit identity-forwarded recursive application");
+}
+
 /// A short-circuited suspending binding keeps its Boolean continuation type
 /// instead of inheriting the enclosing Unit-returning function type.
 #[test]
@@ -296,6 +390,174 @@ fn suspending_boolean_binding_does_not_inherit_enclosing_unit_type() {
         .functions
         .iter()
         .any(|function| function.name == "main" && function.return_type == NativeType::Unit));
+}
+
+/// A checked Boolean expression that combines two runtime argument calls
+/// retains its continuation result type through managed `Option` equality.
+#[test]
+fn suspending_argument_option_binding_recovers_boolean_type() {
+    let module = core(
+        "module app.ScriptArguments.\n\n\
+         import std.core.Option.{None, Some}.\n\
+         import std.system.Arguments.\n\n\
+         import type std.core.Option.\n\n\
+         pub main(): Bool ->\n\
+             let allowed = Arguments.count() == 1 and Arguments.get(0) == Some(\"--allow\");\n\
+             if {\n\
+                 Arguments.count() > 1 -> false;\n\
+                 Arguments.count() == 1 and not allowed -> false;\n\
+                 true -> true\n\
+             }.\n",
+    );
+
+    let native = NativeModule::lower_application(&[&module])
+        .expect("lower suspending script argument Boolean binding");
+
+    emit_native_application_object("suspending_script_argument_binding", &native)
+        .expect("emit suspending script argument Boolean binding");
+
+    assert!(native[0]
+        .functions
+        .iter()
+        .any(|function| function.name == "main" && function.return_type == NativeType::Bool));
+}
+
+/// Runtime argument capabilities nested in a tuple remain visible to
+/// suspension analysis before structured-case lowering begins.
+#[test]
+fn runtime_argument_tuple_case_uses_the_vm_capability_path() {
+    let module = core(
+        "module app.ScriptArgumentTuple.\n\n\
+         import std.core.Option.{None, Some}.\n\
+         import std.system.Arguments.\n\n\
+         pub main(): Bool ->\n\
+             case {Arguments.count(), Arguments.get(0)} {\n\
+                 {0, None} -> true;\n\
+                 {1, Some(\"--allow\")} -> true;\n\
+                 _ -> false\n\
+             }.\n",
+    );
+
+    let native = NativeModule::lower_application(&[&module])
+        .expect("lower tuple-nested runtime argument capabilities");
+
+    let option_string_layouts = native
+        .iter()
+        .flat_map(|module| &module.managed_layouts)
+        .map(|layout| decode_aggregate_layout(layout).expect("decode managed layout"))
+        .filter(|layout| layout.canonical_type() == "Apply(Option;String)")
+        .collect::<Vec<_>>();
+    assert!(option_string_layouts.len() >= 2);
+    assert!(option_string_layouts
+        .iter()
+        .all(|layout| layout.managed().semantic_id()
+            == SemanticTypeId::from_canonical("Apply(Option;String)")
+                .expect("Option[String] semantic identity")));
+    assert!(option_string_layouts
+        .iter()
+        .any(|layout| layout.variant_name() == Some("None")));
+    assert!(option_string_layouts
+        .iter()
+        .any(|layout| layout.variant_name() == Some("Some")));
+
+    emit_native_application_object("runtime_argument_tuple_case", &native)
+        .expect("emit tuple-nested runtime argument capabilities");
+}
+
+/// A constructor-valued argument dispatch retains its Boolean payload when a
+/// later `let else` destructures the selected `Option` value.
+#[test]
+fn suspending_argument_case_retains_option_boolean_payload_type() {
+    let module = core(
+        "module app.ScriptArgumentCase.\n\n\
+         pub type None = Atom[\"none\"].\n\
+         pub type Some[T] = {Atom[\"some\"], value: T}.\n\
+         pub type Option[T] = None | Some[T].\n\n\
+         @compiler.native {fixture.argument_count}\n\
+         argument_count(): Int -> native.\n\n\
+         @compiler.native {fixture.argument_get}\n\
+         argument_get(_index: Int): Option[String] -> native.\n\n\
+         pub main(): Bool ->\n\
+             let selected = case {argument_count(), argument_get(0)} {\n\
+                 {0, _argument} -> Some(false);\n\
+                 {1, Some(\"--allow\")} -> Some(true);\n\
+                 _ -> None\n\
+             };\n\
+             let {\n\
+                 Some(allowed) <- selected\n\
+             } else {\n\
+                 _ -> false\n\
+             };\n\
+             allowed.\n",
+    );
+
+    let native = NativeModule::lower_application(&[&module])
+        .expect("lower suspending constructor-valued argument case");
+
+    emit_native_application_object("suspending_script_argument_case", &native)
+        .expect("emit suspending constructor-valued argument case");
+}
+
+/// A constructor-valued argument dispatch retains a string captured by the
+/// case pattern when a later `let else` destructures the selected option.
+#[test]
+fn suspending_argument_case_retains_option_string_payload_type() {
+    let module = core(
+        "module app.ScriptStringArgumentCase.\n\n\
+         pub type None = Atom[\"none\"].\n\
+         pub type Some[T] = {Atom[\"some\"], value: T}.\n\
+         pub type Option[T] = None | Some[T].\n\n\
+         @compiler.native {fixture.argument_count}\n\
+         argument_count(): Int -> native.\n\n\
+         @compiler.native {fixture.argument_get}\n\
+         argument_get(_index: Int): Option[String] -> native.\n\n\
+         pub main(): String ->\n\
+             let selected = case {argument_count(), argument_get(0)} {\n\
+                 {1, Some(path)} -> Some(path);\n\
+                 _ -> None\n\
+             };\n\
+             let {\n\
+                 Some(path) <- selected\n\
+             } else {\n\
+                 _ -> \"missing\"\n\
+             };\n\
+             path.\n",
+    );
+
+    let native = NativeModule::lower_application(&[&module])
+        .expect("lower suspending constructor-valued string argument case");
+
+    emit_native_application_object("suspending_script_string_argument_case", &native)
+        .expect("emit suspending constructor-valued string argument case");
+}
+
+/// A recursive validation fold may construct its next state with scalar
+/// control-flow fields instead of forcing callers to split the constructor.
+#[test]
+fn recursive_struct_state_accepts_control_flow_fields() {
+    let module = core(
+        "module app.StructStateFold.\n\n\
+         pub struct State { count: Int, label: String }.\n\n\
+         fold(values: List[Int], state: State): State ->\n\
+             case values {\n\
+                 [] -> state;\n\
+                 [value | rest] -> fold(\n\
+                     rest,\n\
+                     State(\n\
+                         count = state.count + 1,\n\
+                         label = if { value > 0 -> \"positive\"; true -> state.label },\n\
+                     ),\n\
+                 )\n\
+             }.\n\n\
+         pub main(values: List[Int]): State ->\n\
+             fold(values, State(count = 0, label = \"empty\")).\n",
+    );
+
+    let native = NativeModule::lower_application(&[&module])
+        .expect("lower recursive struct state with control-flow field");
+
+    emit_native_application_object("recursive_struct_control_field", &native)
+        .expect("emit recursive struct state with control-flow field");
 }
 
 #[test]

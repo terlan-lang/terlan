@@ -1,0 +1,37 @@
+{
+  "exports": [
+    {
+      "argument_types": [
+        "NativeBoundaryTerm"
+      ],
+      "arity": 1,
+      "async_policy": "direct-nonblocking",
+      "identity": "std.package.Registry.parse_publish_request/1",
+      "name": "parse_publish_request",
+      "operation": "std.package.registry.parse_publish_request",
+      "return_type": "Result<NativeBoundaryTerm, NativeBoundaryError>",
+      "row_digest": "sha256:987150c2513fb122ec0748a74d06fc6b516f1920147591788ea2bb5dd78ddbd4"
+    }
+  ],
+  "manifest_digest": "sha256:4a8442fac1355911366d2fa79b103158d3acff125d40ab79e6adb1066f89eef8",
+  "module": "std_package_registry_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "proof_digest": "sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2",
+  "proof_family": "native-boundary",
+  "scheduler": "normal",
+  "schema": "terlan.native-boundary-proof-manifest.v1",
+  "security_policy": {
+    "blocking_policy": "nonblocking",
+    "cancellation_policy": "not-required",
+    "capability": "package.registry",
+    "error_policy": "typed-result",
+    "module_prefix": "std.package.Registry",
+    "notes": "Registry publication parsing applies the compiler-owned strict protocol model and shared bounded admission policy, returning only VM-owned primitive metadata.",
+    "resource_policy": "value-only",
+    "timeout_policy": "none",
+    "worker_placement": "direct"
+  },
+  "source_digest": "sha256:85e71bc95c42134e59f771237bb0a42f0e529e0f81bb931df66118275eea5096",
+  "source_module": "std.package.Registry",
+  "source_path": "std/summaries/std.package.Registry.native_boundary.json"
+}

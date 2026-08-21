@@ -84,6 +84,7 @@ function assertRequiredRuntimeFiles(fileSet) {
     "icons/png/terlan-file-128.png",
     "icons/terlan-file-icon-theme.json",
     "language-configuration.json",
+    "syntaxes/terlan-template-markdown.tmLanguage.json",
     "syntaxes/terlan.tmLanguage.json",
     "src/client_config.js",
     "src/extension.js"

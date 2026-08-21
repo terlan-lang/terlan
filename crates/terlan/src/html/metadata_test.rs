@@ -3,7 +3,7 @@ use super::*;
 /// Extracts supported `@page` metadata keys.
 ///
 /// Inputs:
-/// - A `.terl.md` source with supported `title`, `route`, and `layout` keys.
+/// - A `.terl.md` source with all supported documentation page keys.
 ///
 /// Output:
 /// - Test passes when every supported key is preserved in typed page metadata.
@@ -14,7 +14,7 @@ use super::*;
 #[test]
 fn extracts_page_metadata_with_supported_keys() {
     let metadata = extract_page_metadata(
-        "@page { title = \"Home\", route = \"/\", layout = \"Layout\" }\n\n# Home",
+        "@page { title = \"Home\", route = \"/\", layout = \"Layout\", description = \"Start here\", section = \"Guides\", nav_title = \"Start\", parent = \"/docs\", weight = 10, kind = \"blog\", date = \"2026-08-15\", aliases = [\"/start\", \"/home\"], summary = \"A concise release summary.\", authors = [\"Anatoly\", \"Terlan team\"], tags = [\"release\", \"compiler\"], draft = true }\n\n# Home",
         "content/index.terl.md",
     )
     .expect("extract page metadata");
@@ -22,6 +22,88 @@ fn extracts_page_metadata_with_supported_keys() {
     assert_eq!(metadata.title.as_deref(), Some("Home"));
     assert_eq!(metadata.route.as_deref(), Some("/"));
     assert_eq!(metadata.layout.as_deref(), Some("Layout"));
+    assert_eq!(metadata.description.as_deref(), Some("Start here"));
+    assert_eq!(metadata.section.as_deref(), Some("Guides"));
+    assert_eq!(metadata.nav_title.as_deref(), Some("Start"));
+    assert_eq!(metadata.parent.as_deref(), Some("/docs"));
+    assert_eq!(metadata.weight, Some(10));
+    assert_eq!(metadata.kind.as_deref(), Some("blog"));
+    assert_eq!(metadata.date.as_deref(), Some("2026-08-15"));
+    assert_eq!(metadata.aliases, vec!["/start", "/home"]);
+    assert_eq!(
+        metadata.summary.as_deref(),
+        Some("A concise release summary.")
+    );
+    assert_eq!(metadata.authors, vec!["Anatoly", "Terlan team"]);
+    assert_eq!(metadata.tags, vec!["release", "compiler"]);
+    assert!(metadata.draft);
+}
+
+#[test]
+fn extracts_multiline_page_aliases() {
+    let metadata = extract_page_metadata(
+        "@page {\n  aliases = [\n    \"/old-guide\",\n    \"/guide/start\"\n  ]\n}\n\n# Guide",
+        "content/guide.terl.md",
+    )
+    .expect("extract aliases");
+
+    assert_eq!(metadata.aliases, vec!["/old-guide", "/guide/start"]);
+}
+
+#[test]
+fn rejects_non_array_page_aliases() {
+    let diagnostics = extract_page_metadata(
+        "@page { aliases = \"/old-guide\" }\n\n# Guide",
+        "content/guide.terl.md",
+    )
+    .expect_err("non-array aliases should fail");
+
+    assert_eq!(
+        diagnostics[0].message,
+        "Terlan @page key `aliases` must be an array of string literals"
+    );
+}
+
+#[test]
+fn rejects_duplicate_page_string_array_values() {
+    let diagnostics = extract_page_metadata(
+        "@page { tags = [\"compiler\", \"compiler\"] }\n\n# Guide",
+        "content/guide.terl.md",
+    )
+    .expect_err("duplicate tag should fail");
+
+    assert_eq!(
+        diagnostics[0].message,
+        "Terlan @page key `tags` contains duplicate value `compiler`"
+    );
+}
+
+#[test]
+fn rejects_non_boolean_page_draft() {
+    let diagnostics = extract_page_metadata(
+        "@page { draft = \"true\" }\n\n# Guide",
+        "content/guide.terl.md",
+    )
+    .expect_err("string draft should fail");
+
+    assert_eq!(
+        diagnostics[0].message,
+        "Terlan @page key `draft` must be a boolean literal"
+    );
+}
+
+#[test]
+fn rejects_non_integer_page_weight() {
+    let diagnostics = extract_page_metadata(
+        "@page { weight = \"first\" }\n\n# Home",
+        "content/index.terl.md",
+    )
+    .expect_err("non-integer weight should fail");
+
+    assert_eq!(
+        diagnostics[0].message,
+        "Terlan @page key `weight` must be a signed 32-bit integer"
+    );
 }
 
 /// Rejects unknown `@page` metadata keys.

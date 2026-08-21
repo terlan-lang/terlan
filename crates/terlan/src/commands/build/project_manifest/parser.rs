@@ -65,6 +65,7 @@ pub(crate) fn read_project_manifest(path: &Path) -> Result<ProjectManifest, Stri
 ///   - optional `[web.assets] rsbuild_config = "rsbuild.config.mjs"`
 ///   - optional `[scripts] seed = "scripts/Seed.terls"`
 ///   - optional `[server] profile = "development" | "test" | "staging" | "production"`
+///   - optional `[serve]` runtime listener and bounded-request overrides
 ///   - optional `[server.tls] mode = "auto" | "manual" | "internal"`
 ///   - optional `[server.tls]` mode-specific certificate, ACME, and internal
 ///     development CA metadata
@@ -109,6 +110,9 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
     let mut native_rust_helper_env = None;
     let mut native_rust_features = None;
     let mut accelerator = ProjectAcceleratorBuilder::default();
+    let mut deployment = ProjectDeploymentBuilder::default();
+    let mut deploy_health = ProjectDeployHealthBuilder::default();
+    let mut deploy_resources = ProjectDeployResourcesBuilder::default();
     let mut dependencies = Vec::new();
 
     for (index, raw_line) in source.lines().enumerate() {
@@ -123,6 +127,9 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
             match section {
                 ProjectManifestSection::TargetWasm => wasm_target_seen = true,
                 ProjectManifestSection::TargetWasi => wasi_target_seen = true,
+                ProjectManifestSection::Deploy => deployment.seen = true,
+                ProjectManifestSection::DeployHealth => deploy_health.seen = true,
+                ProjectManifestSection::DeployResources => deploy_resources.seen = true,
                 _ => {}
             }
             continue;
@@ -251,6 +258,27 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
                     ));
                 }
             },
+            ProjectManifestSection::Serve => match key {
+                "host" | "protocol" | "telemetry" | "log_format" | "certificate_cache" => {
+                    let _ = parse_string(value, path, line_no)?;
+                }
+                "allow_public" => {
+                    let _ = parse_bool(value, path, line_no)?;
+                }
+                "port" | "poll_ms" | "max_connections" | "max_request_bytes" | "max_body_bytes"
+                | "max_header_bytes" | "request_timeout_ms" | "idle_timeout_ms"
+                | "queue_capacity" | "handler_pool_size" | "shutdown_grace_ms" => {
+                    let _ = parse_non_negative_u64(value, path, line_no)?;
+                }
+                _ => {
+                    return Err(format!(
+                        "{}:{}: unsupported [serve] key `{}`",
+                        path.display(),
+                        line_no,
+                        key
+                    ));
+                }
+            },
             ProjectManifestSection::ServerTls => match key {
                 "mode" => {
                     server_tls.mode = Some(parse_server_tls_mode(value, path, line_no)?);
@@ -331,6 +359,74 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
                 _ => {
                     return Err(format!(
                         "{}:{}: unsupported [accelerator] key `{}`",
+                        path.display(),
+                        line_no,
+                        key
+                    ));
+                }
+            },
+            ProjectManifestSection::Deploy => match key {
+                "environment" => {
+                    deployment.environment = Some(parse_string_array(value, path, line_no)?);
+                }
+                "secrets" => {
+                    deployment.secrets = Some(parse_string_array(value, path, line_no)?);
+                }
+                "migrations" => {
+                    deployment.migrations = Some(parse_string_array(value, path, line_no)?);
+                }
+                "outbound_network" => {
+                    deployment.outbound_network = Some(parse_string_array(value, path, line_no)?);
+                }
+                "rollback" => {
+                    deployment.rollback = Some(parse_rollback_compatibility(value, path, line_no)?);
+                }
+                _ => {
+                    return Err(format!(
+                        "{}:{}: unsupported [deploy] key `{}`",
+                        path.display(),
+                        line_no,
+                        key
+                    ));
+                }
+            },
+            ProjectManifestSection::DeployHealth => match key {
+                "path" => {
+                    deploy_health.path = Some(parse_string(value, path, line_no)?);
+                }
+                "interval_secs" => {
+                    deploy_health.interval_secs =
+                        Some(parse_non_negative_u64(value, path, line_no)?);
+                }
+                "timeout_secs" => {
+                    deploy_health.timeout_secs =
+                        Some(parse_non_negative_u64(value, path, line_no)?);
+                }
+                _ => {
+                    return Err(format!(
+                        "{}:{}: unsupported [deploy.health] key `{}`",
+                        path.display(),
+                        line_no,
+                        key
+                    ));
+                }
+            },
+            ProjectManifestSection::DeployResources => match key {
+                "cpu_millis" => {
+                    deploy_resources.cpu_millis =
+                        Some(parse_non_negative_u64(value, path, line_no)?);
+                }
+                "memory_mb" => {
+                    deploy_resources.memory_mb =
+                        Some(parse_non_negative_u64(value, path, line_no)?);
+                }
+                "processes" => {
+                    deploy_resources.processes =
+                        Some(parse_non_negative_u64(value, path, line_no)?);
+                }
+                _ => {
+                    return Err(format!(
+                        "{}:{}: unsupported [deploy.resources] key `{}`",
                         path.display(),
                         line_no,
                         key
@@ -488,6 +584,7 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
         native_rust_features,
     )?;
     let accelerator = accelerator.finish(path)?;
+    let deployment = deployment.finish(deploy_health, deploy_resources, path)?;
 
     Ok(ProjectManifest {
         package: ProjectPackage {
@@ -510,6 +607,7 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
         server_tls,
         native_rust,
         accelerator,
+        deployment,
         dependencies,
     })
 }
@@ -677,9 +775,13 @@ enum ProjectManifestSection {
     WebAssets,
     Scripts,
     Server,
+    Serve,
     ServerTls,
     NativeRust,
     Accelerator,
+    Deploy,
+    DeployHealth,
+    DeployResources,
     Dependencies,
     TargetDependencies(ProjectTarget),
     TargetWasm,
@@ -728,7 +830,7 @@ fn strip_comment(line: &str) -> &str {
 ///
 /// Transformation:
 /// - Accepts exact `[package]`, `[build]`, `[dependencies]`,
-///   `[web.assets]`, `[scripts]`, `[server]`, `[server.tls]`, and
+///   `[web.assets]`, `[scripts]`, `[server]`, `[serve]`, `[server.tls]`, and
 ///   `[target.<name>.dependencies]`
 ///   section headers.
 fn parse_section(
@@ -752,9 +854,13 @@ fn parse_section(
         "web.assets" => Ok(ProjectManifestSection::WebAssets),
         "scripts" => Ok(ProjectManifestSection::Scripts),
         "server" => Ok(ProjectManifestSection::Server),
+        "serve" => Ok(ProjectManifestSection::Serve),
         "server.tls" => Ok(ProjectManifestSection::ServerTls),
         "native.rust" => Ok(ProjectManifestSection::NativeRust),
         "accelerator" => Ok(ProjectManifestSection::Accelerator),
+        "deploy" => Ok(ProjectManifestSection::Deploy),
+        "deploy.health" => Ok(ProjectManifestSection::DeployHealth),
+        "deploy.resources" => Ok(ProjectManifestSection::DeployResources),
         "dependencies" => Ok(ProjectManifestSection::Dependencies),
         "target.wasm" => Ok(ProjectManifestSection::TargetWasm),
         "target.wasi" => Ok(ProjectManifestSection::TargetWasi),

@@ -6,6 +6,33 @@ pub(super) fn run_runtime_and_release_command(
 ) -> Option<ExitCode> {
     let _ = &mut *args;
     let result = match command {
+        Some(command) if Abi1ReleaseGate::from_command(command).is_some() => {
+            let gate = Abi1ReleaseGate::from_command(command).expect("matched ABI 1 command");
+            match run_abi1_release_gate(Path::new("."), gate) {
+                Ok(summary) => {
+                    println!(
+                        "[abi1-{}] {} cases checked; report written to {}.",
+                        summary.gate,
+                        summary.case_count,
+                        summary.report_path.display()
+                    );
+                    ExitCode::SUCCESS
+                }
+                Err(message) => failure(message),
+            }
+        }
+        Some("abi1-pre-freeze") => match run_abi1_pre_freeze(Path::new(".")) {
+            Ok(summary) => {
+                println!(
+                    "[abi1-pre-freeze] {} owners, {} required markers, and {} forbidden shortcuts checked.",
+                    summary.file_count,
+                    summary.required_marker_count,
+                    summary.forbidden_fragment_count
+                );
+                ExitCode::SUCCESS
+            }
+            Err(message) => failure(message),
+        },
         Some("vm-persistent-actor-store") => match run_vm_persistent_actor_store(Path::new(".")) {
             Ok(summary) => {
                 println!(
@@ -648,30 +675,8 @@ pub(super) fn run_runtime_and_release_command(
         Some("release-code-hygiene") => match run_release_code_hygiene(Path::new(".")) {
             Ok(summary) => {
                 println!(
-                    "[release-code-hygiene] {} sub-gates and {} roadmap terms validated; report written to {}.",
-                    summary.sub_gate_count, summary.roadmap_term_count, summary.report_path
-                );
-                ExitCode::SUCCESS
-            }
-            Err(message) => failure(message),
-        },
-        Some("roadmap-gate-integrity") => match run_roadmap_gate_integrity(Path::new(".")) {
-            Ok(summary) => {
-                println!(
-                    "[roadmap-gate-integrity] {} planned gates checked across {} unchecked slices and {} Make targets.",
-                    summary.planned_gate_count,
-                    summary.unchecked_slice_count,
-                    summary.make_target_count
-                );
-                ExitCode::SUCCESS
-            }
-            Err(message) => failure(message),
-        },
-        Some("shape-implications") => match run_shape_implications(Path::new(".")) {
-            Ok(summary) => {
-                println!(
-                    "[shape-implications] {} requirement terms and {} acceptance terms checked.",
-                    summary.required_term_count, summary.acceptance_term_count
+                    "[release-code-hygiene] {} semantic sub-gates validated; report written to {}.",
+                    summary.sub_gate_count, summary.report_path
                 );
                 ExitCode::SUCCESS
             }

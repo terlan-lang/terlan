@@ -216,13 +216,25 @@ pub(super) fn function_signature<'a>(
     function: &str,
     arity: usize,
 ) -> Option<&'a FunctionSignature> {
-    functions
+    if let Some(signature) = functions
         .get(&(module.to_string(), function.to_string(), arity))
         .or_else(|| {
             function.rsplit_once('.').and_then(|(owner, name)| {
                 functions.get(&(owner.to_string(), name.to_string(), arity))
             })
         })
+    {
+        return Some(signature);
+    }
+    let name = function.rsplit('.').next().unwrap_or(function);
+    let mut matches = functions
+        .iter()
+        .filter(|((_, candidate, candidate_arity), _)| {
+            candidate == name && *candidate_arity == arity
+        })
+        .map(|(_, signature)| signature);
+    let signature = matches.next()?;
+    matches.next().is_none().then_some(signature)
 }
 
 pub(super) fn function_return_type(

@@ -479,6 +479,79 @@ fn build_command_accepts_project_manifest_multiple_source_roots_vm_import_closur
     assert!(!out_dir.join("vm/demo_Util.tvm").exists());
 }
 
+/// Verifies relative script paths resolve their owning project to a real directory.
+///
+/// Inputs:
+/// - A manifest-backed temporary project used as the explicit working directory.
+/// - A relative source path below that project.
+///
+/// Output:
+/// - Test passes when project discovery returns the absolute project directory.
+///
+/// Transformation:
+/// - Exercises the relative-path normalization used by direct `.terls` builds.
+#[test]
+fn owning_project_dir_resolves_relative_script_from_working_directory() {
+    let project_dir = make_temp_dir("relative_script_project_owner");
+    let scripts_dir = project_dir.join("scripts");
+    fs::create_dir_all(&scripts_dir).expect("create scripts directory");
+    fs::write(
+        project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+        "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n",
+    )
+    .expect("write project manifest");
+
+    assert_eq!(
+        owning_project_dir_for_source_from(Path::new("scripts/Check.terls"), &project_dir),
+        Some(project_dir)
+    );
+}
+
+/// Verifies standard-library-only scripts remain isolated from package builds.
+///
+/// Inputs:
+/// - A script importing one standard-library module.
+///
+/// Output:
+/// - Test passes when the script does not request its owning project closure.
+///
+/// Transformation:
+/// - Parses the script through the production classifier and checks the
+///   canonical `std.*` import boundary.
+#[test]
+fn standard_library_script_does_not_require_project_closure() {
+    let dir = make_temp_dir("standard_library_script_isolated");
+    let script = dir.join("Check.terls");
+    fs::write(
+        &script,
+        "import std.system.Arguments.\n\nArguments.count() == 0.\n",
+    )
+    .expect("write standard-library script");
+
+    assert!(!script_requires_project_closure(&script).expect("classify standard script"));
+}
+
+/// Verifies scripts importing package modules retain package build context.
+///
+/// Inputs:
+/// - A script importing one project-owned module.
+///
+/// Output:
+/// - Test passes when the script requests its owning project closure.
+///
+/// Transformation:
+/// - Parses the script through the production classifier and checks that a
+///   non-`std` canonical module identity crosses the isolation boundary.
+#[test]
+fn project_module_script_requires_project_closure() {
+    let dir = make_temp_dir("project_module_script_closure");
+    let script = dir.join("Check.terls");
+    fs::write(&script, "import app.Validation.\n\nValidation.check().\n")
+        .expect("write project module script");
+
+    assert!(script_requires_project_closure(&script).expect("classify project script"));
+}
+
 fn native_image_export_names(path: &Path) -> Vec<String> {
     let image = fs::read(path).expect("read native application image");
     let target = crate::runtime::native_image::host_tvm_target().expect("host TVM target");

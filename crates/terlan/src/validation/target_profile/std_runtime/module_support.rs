@@ -220,7 +220,9 @@ fn is_rust_backed_std_module(module: &str) -> bool {
         "std.data.Json"
             | "std.data.Toml"
             | "std.crypto.Hash"
+            | "std.crypto.Ed25519"
             | "std.regex.Regex"
+            | "std.package.Registry"
             | "std.encoding.Base64"
             | "std.encoding.Md5"
             | "std.io.Directory"
@@ -279,7 +281,11 @@ fn target_profile_supports_rust_backed_std_module_with_options(
 
     if matches!(
         module,
-        "std.data.Json" | "std.data.Toml" | "std.regex.Regex"
+        "std.data.Json"
+            | "std.data.Toml"
+            | "std.encoding.Base64"
+            | "std.regex.Regex"
+            | "std.package.Registry"
     ) {
         return matches!(profile, TargetProfile::Vm);
     }
@@ -287,6 +293,7 @@ fn target_profile_supports_rust_backed_std_module_with_options(
     if matches!(
         module,
         "std.crypto.Hash"
+            | "std.crypto.Ed25519"
             | "std.io.Directory"
             | "std.io.Archive"
             | "std.io.Path"

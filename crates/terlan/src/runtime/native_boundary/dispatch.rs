@@ -6,13 +6,14 @@
 //! decoded runtime terms into `NativeBoundaryValue`.
 
 use crate::terlan_native::{
-    base64, hash as native_hash, http, json, md5, path, postgres, regex, toml, uri,
+    base64, hash as native_hash, http, json, path, postgres, regex, toml, uri,
 };
 use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
 
 mod archive;
 mod args;
 mod arity;
+mod crypto;
 mod filesystem;
 mod git;
 #[path = "dispatch/hash.rs"]
@@ -20,6 +21,7 @@ mod hash;
 #[path = "dispatch/json.rs"]
 mod json_dispatch;
 mod manifest;
+mod package_registry;
 mod panic_boundary;
 mod platform_dispatch;
 mod process;
@@ -246,12 +248,15 @@ pub fn dispatch(
     operation: &str,
     args: &[NativeBoundaryValue],
 ) -> Result<NativeBoundaryValue, DispatchError> {
-    validate_arity(operation, args)?;
+    validate_operation_arity(operation, args.len(), unknown_operation)?;
     if operation.starts_with("std.data.json.") {
         return json_dispatch::dispatch(operation, args);
     }
     if operation.starts_with("std.system.platform.") {
         return platform_dispatch::dispatch(operation);
+    }
+    if operation.starts_with("std.package.registry.") {
+        return package_registry::dispatch(operation, args);
     }
     match operation {
         "std.data.toml.parse" => toml::parse(expect_text(operation, args, 0)?)
@@ -343,6 +348,10 @@ pub fn dispatch(
         "std.http.request.body_text" => {
             let request = expect_http_request(operation, args, 0)?;
             Ok(NativeBoundaryValue::Text(http::body_text(request)))
+        }
+        "std.http.request.body_file_path" => {
+            let request = expect_http_request(operation, args, 0)?;
+            Ok(NativeBoundaryValue::Text(http::body_file_path(request)))
         }
         "std.http.request.method" => {
             let request = expect_http_request(operation, args, 0)?;
@@ -513,10 +522,8 @@ pub fn dispatch(
                 .map(NativeBoundaryValue::Bytes)
                 .map_err(dispatch_base64_error)
         }
-        "std.encoding.md5.digest" => {
-            let text = expect_text(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Text(md5::digest(text)))
-        }
+        "std.encoding.md5.digest" => crypto::digest_md5(operation, args),
+        "std.crypto.ed25519.verify" => crypto::verify_ed25519(operation, args),
         "std.crypto.hash.sha256_framed" => {
             let fields = expect_text_list(operation, args, 0)?;
             native_hash::sha256_framed(&fields)
@@ -973,22 +980,6 @@ pub fn dispatch(
         }
         _ => Err(unknown_operation(operation)),
     }
-}
-
-/// Validates argument count for one operation.
-///
-/// Inputs:
-/// - `operation`: compiler-native operation id.
-/// - `args`: neutral runtime values supplied by the bridge.
-///
-/// Output:
-/// - `Ok(())` when arity matches.
-/// - `Err(DispatchError)` for unknown operations or wrong arity.
-///
-/// Transformation:
-/// - Compares supplied argument count with `operation_arity`.
-fn validate_arity(operation: &str, args: &[NativeBoundaryValue]) -> Result<(), DispatchError> {
-    validate_operation_arity(operation, args.len(), unknown_operation)
 }
 
 #[cfg(test)]

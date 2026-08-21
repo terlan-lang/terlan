@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::terlan_syntax::span::Span;
 use crate::terlan_typeck::{
     CoreEffectSet, CoreExpr, CoreIntrinsicCall, CoreIntrinsicId, CoreLetBinding, CorePattern,
-    CoreRuntimeCapability, CoreType,
+    CoreRecordExprField, CoreRuntimeCapability, CoreType,
 };
 
 use super::call_composition::{CallTarget, ComposedContinuationProfile};
@@ -178,6 +178,101 @@ fn nested_composable_suspending_call_arguments_are_sequenced() {
             args: vec![CoreExpr::Var("$native_call_result".to_string())],
         }
     );
+}
+
+#[test]
+fn record_constructor_fields_sequence_composable_calls_left_to_right() {
+    let first = ("package.first".to_string(), 0);
+    let second = ("package.second".to_string(), 0);
+    let expression = CoreExpr::RecordConstruct {
+        name: "package.Pair".to_string(),
+        fields: vec![
+            CoreRecordExprField {
+                key: "left".to_string(),
+                required: true,
+                value: CoreExpr::Call {
+                    function: first.0.clone(),
+                    args: Vec::new(),
+                },
+            },
+            CoreRecordExprField {
+                key: "right".to_string(),
+                required: true,
+                value: CoreExpr::Call {
+                    function: second.0.clone(),
+                    args: Vec::new(),
+                },
+            },
+        ],
+    };
+    let composable = HashSet::from([first.clone(), second.clone()]);
+
+    let region = composed_call_region(
+        &expression,
+        &composable,
+        &|function, arity| composable.contains(&(function.to_string(), arity)),
+        &HashSet::new(),
+    )
+    .expect("record field call must compose");
+
+    assert!(matches!(region.target, CallTarget::Direct(ref name) if name == &first.0));
+    assert!(region.prefix.is_empty());
+    assert!(matches!(
+        region.resume,
+        CoreExpr::RecordConstruct { ref fields, .. }
+            if matches!(&fields[0].value, CoreExpr::Var(name) if name == "$native_call_result")
+                && matches!(&fields[1].value, CoreExpr::Call { function, .. }
+                    if function == &second.0)
+    ));
+}
+
+#[test]
+fn later_record_field_call_captures_earlier_field_once() {
+    let identity = ("package.load".to_string(), 0);
+    let expression = CoreExpr::RecordConstruct {
+        name: "package.Pair".to_string(),
+        fields: vec![
+            CoreRecordExprField {
+                key: "left".to_string(),
+                required: true,
+                value: CoreExpr::Call {
+                    function: "package.pure".to_string(),
+                    args: Vec::new(),
+                },
+            },
+            CoreRecordExprField {
+                key: "right".to_string(),
+                required: true,
+                value: CoreExpr::Call {
+                    function: identity.0.clone(),
+                    args: Vec::new(),
+                },
+            },
+        ],
+    };
+    let suspending = HashSet::from([identity.clone()]);
+
+    let region = composed_call_region(
+        &expression,
+        &suspending,
+        &|function, arity| (function.to_string(), arity) == identity,
+        &HashSet::new(),
+    )
+    .expect("later record field call must compose");
+
+    assert_eq!(region.prefix.len(), 1);
+    assert!(matches!(
+        &region.prefix[0].value,
+        CoreExpr::Call { function, args } if function == "package.pure" && args.is_empty()
+    ));
+    assert!(matches!(
+        region.resume,
+        CoreExpr::RecordConstruct { ref fields, .. }
+            if matches!(&fields[0].value, CoreExpr::Var(name)
+                if name.starts_with("$native_record_field_0"))
+                && matches!(&fields[1].value, CoreExpr::Var(name)
+                    if name == "$native_call_result")
+    ));
 }
 
 #[test]

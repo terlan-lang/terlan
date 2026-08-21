@@ -238,10 +238,16 @@ tree_mutation_detected(): Bool ->
 /**
  * Exercises hostile platform and checksum/provenance inputs without Python.
  */
+@pure
+unsupported_platforms_rejected(): Bool ->
+    case {ReleasePlatform.normalize_os("plan9"), ReleasePlatform.normalize_arch("mips64")} {
+        {None, None} -> true;
+        _ -> false
+    }.
+
 pub adversarial(): Bool ->
     if {
-        ReleasePlatform.normalize_os("plan9") != None -> failure("adversarial", "unsupported OS was accepted");
-        ReleasePlatform.normalize_arch("mips64") != None -> failure("adversarial", "unsupported architecture was accepted");
+        not unsupported_platforms_rejected() -> failure("adversarial", "unsupported OS or architecture was accepted");
         not checksum_corruption_rejected() -> failure("adversarial", "corrupted payload was accepted");
         not tree_mutation_detected() -> failure("adversarial", "payload mutation preserved its digest");
         true -> let _printed = println("Release packaging adversarial checks passed");

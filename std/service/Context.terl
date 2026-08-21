@@ -1,0 +1,40 @@
+/**
+ * Read-only request identity supplied by the active service host.
+ */
+module std.service.Context.
+
+import type std.core.Option.
+
+pub struct Source {
+    module_name: String,
+    function_name: String,
+    file: String,
+    line: Int,
+}.
+
+pub struct Trace {
+    trace_id: String,
+    parent_span_id: String,
+    sampled: Bool,
+}.
+
+pub struct RequestContext {
+    request_id: String,
+    connection_id: String,
+    route_id: String,
+    handler_id: String,
+    release_id: String,
+    actor_id: Option[String],
+    source: Source,
+    trace: Option[Trace],
+}.
+
+/**
+ * Returns request identity when executing under a service host.
+ *
+ * Context is implicit for logs. This accessor is for application decisions
+ * that genuinely require identity and must never be reconstructed from raw
+ * gateway headers.
+ */
+pub current(): Option[RequestContext] ->
+    None.

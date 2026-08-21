@@ -120,7 +120,10 @@ fn parse_ts_input_manifest(manifest_text: &str) -> Result<TsInputManifest, Strin
 /// Transformation:
 /// - Performs deterministic structural checks and verifies that each declared
 ///   input file exists with the recorded SHA-256 hash.
-fn validate_ts_input_manifest(repo_root: &Path, manifest: &TsInputManifest) -> Result<(), String> {
+pub(super) fn validate_ts_input_manifest(
+    repo_root: &Path,
+    manifest: &TsInputManifest,
+) -> Result<(), String> {
     if manifest.schema != TS_INPUT_MANIFEST_SCHEMA {
         return Err(format!(
             "ts_bindgen.input_manifest_schema_mismatch: expected `{TS_INPUT_MANIFEST_SCHEMA}`, found `{}`",

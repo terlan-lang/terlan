@@ -105,7 +105,7 @@ pub(super) fn runtime_with_shards(
 fn compiled_handler() -> (
     std::path::PathBuf,
     std::path::PathBuf,
-    Option<crate::compiler::router::AotRouterPlan>,
+    Option<crate::runtime::vm::aot_metadata::AotRouterPlan>,
 ) {
     let fixture = super::super::handler_cache_test_support::compile_native_handler_fixture(
         "aot_request_owned_invocation",
@@ -1393,6 +1393,7 @@ fn request() -> ReplValue {
         empty_map(),
         empty_map(),
         ReplValue::Tuple(vec![empty_map(), ReplValue::List(Vec::new())]),
+        ReplValue::String(String::new()),
     ])
 }
 

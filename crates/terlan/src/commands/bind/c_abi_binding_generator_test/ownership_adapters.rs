@@ -995,32 +995,21 @@ pub(super) fn compile_and_exercise_generated_c_adapter(
         call(2, "c_abi_fixture.native_boundary.new", " i:5"),
         format!("reply 2 1 ok_handle {owner} 2 1 {handle_type}")
     );
-    call(
-        3,
-        "c_abi_fixture.native_boundary.dispose",
-        &format!(" h:{owner}:2:1:{handle_type}"),
-    );
-    call(
-        4,
-        "c_abi_fixture.native_boundary.matmul",
-        &format!(" h:{owner}:1:1:{handle_type} h:{owner}:2:1:{handle_type}"),
-    );
+    call(3, "c_abi_fixture.native_boundary.dispose", " r:2");
+    call(4, "c_abi_fixture.native_boundary.matmul", " r:1 r:2");
     call(
         5,
         "c_abi_fixture.native_boundary.matmul",
-        &format!(" h:{owner}:1:1:{handle_type} h:{owner}:1:1:{wrong_handle_type}"),
+        &format!(" r:1 r:1:{wrong_handle_type}"),
     );
     assert_eq!(
         call(6, "c_abi_fixture.native_boundary.new", " i:9"),
         format!("reply 6 1 ok_handle {owner} 2 2 {handle_type}")
     );
-    for (request_id, generation) in [(7, 1), (8, 2), (9, 2), (9, 2)] {
-        call(
-            request_id,
-            "c_abi_fixture.native_boundary.dispose",
-            &format!(" h:{owner}:2:{generation}:{handle_type}"),
-        );
-    }
+    call(7, "c_abi_fixture.native_boundary.dispose", " r:2");
+    call(8, "c_abi_fixture.native_boundary.dispose", " r:6");
+    call(9, "c_abi_fixture.native_boundary.dispose", " r:6");
+    call(9, "c_abi_fixture.native_boundary.dispose", " r:6");
     call(
         10,
         "c_abi_fixture.native_boundary.dispose",

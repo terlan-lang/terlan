@@ -5,4 +5,5 @@
 //! at the AOT hard cutover.
 
 #[path = "native_boundary/deadline.rs"]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod deadline;

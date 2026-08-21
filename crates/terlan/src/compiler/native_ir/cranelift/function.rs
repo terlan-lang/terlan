@@ -441,6 +441,7 @@ fn emit_pure_tail_body(
         ids: function_ids,
         parameter_types,
         suspending: function_suspending,
+        managed_returns: function_managed_returns,
         managed_layouts,
         ..
     } = catalog;
@@ -495,6 +496,157 @@ fn emit_pure_tail_body(
                 .ins()
                 .iconst(types::I32, i64::from(status::NO_MATCHING_BRANCH));
             builder.ins().jump(error_block, &[BlockArg::Value(status)]);
+            Ok(())
+        }
+        NativeExpr::CallThen {
+            function,
+            args,
+            resumes,
+            completion_function,
+            values,
+            ..
+        } => {
+            if !resumes.is_empty() || function_suspending.get(*function).copied().unwrap_or(false) {
+                return Err(
+                    "error[cranelift.call_then]: suspending composition entered pure lowering"
+                        .into(),
+                );
+            }
+            let function_id = function_ids.get(*function).copied().ok_or_else(|| {
+                format!("error[cranelift.call_then]: native function {function} is unavailable")
+            })?;
+            let mut call_args = args
+                .iter()
+                .map(|argument| {
+                    emit_expr(
+                        builder,
+                        module,
+                        argument,
+                        params,
+                        function_ids,
+                        managed_layouts,
+                        error_block,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            call_args.splice(0..0, params[..RUNTIME_ARGUMENT_COUNT].iter().copied());
+            let function_ref = declare_image_func_in_func(module, function_id, builder.func);
+            let call = builder.ins().call(function_ref, &call_args);
+            let results = builder.inst_results(call).to_vec();
+            let call_status = results[0];
+            let call_value = results[1];
+            if function_managed_returns
+                .get(*function)
+                .copied()
+                .unwrap_or(false)
+            {
+                builder.declare_value_needs_stack_map(call_value);
+            }
+            let completed = builder.create_block();
+            let succeeded = builder.ins().icmp_imm(
+                cranelift_codegen::ir::condcodes::IntCC::Equal,
+                call_status,
+                i64::from(status::OK),
+            );
+            builder.ins().brif(
+                succeeded,
+                completed,
+                &[],
+                error_block,
+                &[BlockArg::Value(call_status)],
+            );
+            builder.switch_to_block(completed);
+            if completion_function.is_none() {
+                builder.ins().return_(&[call_status, call_value]);
+                return Ok(());
+            }
+            super::call_then::return_from_synchronous_completion(
+                builder,
+                module,
+                super::call_then::SynchronousCompletion {
+                    function: *completion_function,
+                    values,
+                    call_value,
+                },
+                params,
+                NativeTransitionFrame {
+                    pointer: None,
+                    len_pointer: None,
+                },
+                catalog,
+                super::call_then::SynchronousControl { tail, error_block },
+            )?;
+            Ok(())
+        }
+        NativeExpr::InvokeClosureThen {
+            callee,
+            args,
+            parameter_types,
+            result_type,
+            resumes,
+            completion_function,
+            values,
+            ..
+        } => {
+            if !resumes.is_empty()
+                || completion_function.is_some_and(|function| {
+                    function_suspending.get(function).copied().unwrap_or(false)
+                })
+            {
+                return Err(
+                    "error[cranelift.closure_call_then]: suspending composition entered pure lowering"
+                        .into(),
+                );
+            }
+            let (callee, arguments) = super::indirect::emit_operands(callee, args, |operand| {
+                emit_expr(
+                    builder,
+                    module,
+                    operand,
+                    params,
+                    function_ids,
+                    managed_layouts,
+                    error_block,
+                )
+            })?;
+            let call_value = super::indirect::emit_invoke_closure(
+                builder,
+                module,
+                super::indirect::IndirectRuntimeValues {
+                    context: params[0],
+                    allocator: params[1],
+                    resolver: params[2],
+                    lookup: params[3],
+                },
+                super::indirect::IndirectInvocation {
+                    closure: callee,
+                    arguments: &arguments,
+                    parameter_types,
+                    result_type: *result_type,
+                },
+                error_block,
+            )?;
+            if completion_function.is_none() {
+                let ok = builder.ins().iconst(types::I32, i64::from(status::OK));
+                builder.ins().return_(&[ok, call_value]);
+                return Ok(());
+            }
+            super::call_then::return_from_synchronous_completion(
+                builder,
+                module,
+                super::call_then::SynchronousCompletion {
+                    function: *completion_function,
+                    values,
+                    call_value,
+                },
+                params,
+                NativeTransitionFrame {
+                    pointer: None,
+                    len_pointer: None,
+                },
+                catalog,
+                super::call_then::SynchronousControl { tail, error_block },
+            )?;
             Ok(())
         }
         NativeExpr::TailCall { function, args, .. } => {

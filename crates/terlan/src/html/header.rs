@@ -234,6 +234,32 @@ pub(crate) fn template_header_metadata_entry(trimmed: &str) -> Option<(&str, &st
 /// - Scans at outer annotation depth one and returns the balanced object body
 ///   while ignoring braces inside strings.
 pub(crate) fn annotation_object_value_for_key(source: &str, target_key: &str) -> Option<String> {
+    annotation_delimited_value_for_key(source, target_key, '{', '}')
+}
+
+/// Extracts an array value for one top-level annotation key.
+///
+/// Inputs:
+/// - `source`: full annotation source.
+/// - `target_key`: top-level key to find.
+///
+/// Output:
+/// - Source text inside the key's array value.
+///
+/// Transformation:
+/// - Uses the same depth-aware annotation scan as object metadata while
+///   balancing square brackets and ignoring delimiters inside strings.
+pub(crate) fn annotation_array_value_for_key(source: &str, target_key: &str) -> Option<String> {
+    annotation_delimited_value_for_key(source, target_key, '[', ']')
+}
+
+/// Extracts one balanced delimited value from a top-level annotation key.
+fn annotation_delimited_value_for_key(
+    source: &str,
+    target_key: &str,
+    open: char,
+    close: char,
+) -> Option<String> {
     let mut index = 0usize;
     let mut depth = 0isize;
     let mut in_string = false;
@@ -286,7 +312,7 @@ pub(crate) fn annotation_object_value_for_key(source: &str, target_key: &str) ->
                 index += separator.len_utf8();
                 index = skip_ascii_whitespace(source, index);
                 if key == target_key {
-                    return balanced_object_body_at(source, index);
+                    return balanced_delimited_body_at(source, index, open, close);
                 }
             }
             _ => {
@@ -513,20 +539,14 @@ fn template_header_metadata_key(trimmed: &str) -> Option<&str> {
     }
 }
 
-/// Extracts a balanced object body beginning at an opening brace.
-///
-/// Inputs:
-/// - `source`: full annotation source.
-/// - `open_index`: byte index expected to point at `{`.
-///
-/// Output:
-/// - Text inside the balanced object braces.
-///
-/// Transformation:
-/// - Tracks nested braces and strings so compact generic metadata values do not
-///   terminate the object early.
-fn balanced_object_body_at(source: &str, open_index: usize) -> Option<String> {
-    if source[open_index..].chars().next()? != '{' {
+/// Extracts a balanced delimited body beginning at `open_index`.
+fn balanced_delimited_body_at(
+    source: &str,
+    open_index: usize,
+    open: char,
+    close: char,
+) -> Option<String> {
+    if source[open_index..].chars().next()? != open {
         return None;
     }
     let body_start = open_index + 1;
@@ -553,11 +573,11 @@ fn balanced_object_body_at(source: &str, open_index: usize) -> Option<String> {
                 in_string = true;
                 index += ch.len_utf8();
             }
-            '{' => {
+            ch if ch == open => {
                 depth += 1;
                 index += ch.len_utf8();
             }
-            '}' => {
+            ch if ch == close => {
                 depth -= 1;
                 if depth == 0 {
                     return Some(source[body_start..index].to_string());
@@ -608,11 +628,28 @@ fn skip_ascii_whitespace(source: &str, mut index: usize) -> usize {
 /// - `true` when the key is accepted by the first template-header schema.
 ///
 /// Transformation:
-/// - Encodes the v0.0.5 built-in `@page` and `@template` key surface in one
+/// - Encodes the built-in `@page` and `@template` key surface in one
 ///   place for diagnostics.
 fn template_header_key_is_allowed(name: &str, key: &str) -> bool {
     match name {
-        "page" => matches!(key, "title" | "route" | "layout"),
+        "page" => matches!(
+            key,
+            "title"
+                | "route"
+                | "layout"
+                | "description"
+                | "section"
+                | "nav_title"
+                | "parent"
+                | "weight"
+                | "kind"
+                | "date"
+                | "aliases"
+                | "summary"
+                | "authors"
+                | "tags"
+                | "draft"
+        ),
         "template" => matches!(key, "name" | "params"),
         _ => false,
     }

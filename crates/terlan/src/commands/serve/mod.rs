@@ -12,6 +12,7 @@ mod manifest;
 mod observability;
 mod response;
 mod tls;
+pub(crate) mod tls_contract;
 mod watch;
 mod websocket;
 
@@ -22,9 +23,12 @@ use std::path::{Component, Path, PathBuf};
 #[cfg(test)]
 use std::pin::Pin;
 use std::process::ExitCode;
-use std::sync::{mpsc as std_mpsc, Arc, Mutex};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+use std::sync::mpsc as std_mpsc;
+use std::sync::{Arc, Mutex};
 #[cfg(test)]
 use std::task::{Context, Poll};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use std::thread;
 #[cfg(test)]
 use std::time::Instant;
@@ -43,6 +47,7 @@ use std::convert::Infallible;
 use crate::commands::dev_dependencies;
 #[cfg(test)]
 use crate::runtime::vm::http::{handle_http1_in_memory_exchange, write_http1_response};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use crate::{CliCommand, CliState};
 
 /// Typed failure returned by VM serve configuration and lifecycle helpers.
@@ -142,7 +147,6 @@ use logging::{
     log_file_route_result, log_handler_result, log_static_result, log_static_route_result,
     next_request_id, render_dev_error_page, RouteLogEvent,
 };
-#[cfg(test)]
 use manifest::manifest_build_id;
 #[cfg(test)]
 use manifest::manifest_static_file_for_request;
@@ -166,7 +170,9 @@ use websocket::manifest_websocket_for_path;
 use websocket::{websocket_hub, websocket_upgrade_response, WebSocketHub};
 use websocket::{websocket_upgrade_state, WebSocketUpgradeState};
 
-pub(crate) use args::{parse_serve_args, ServeArgs};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use args::parse_serve_args;
+pub(crate) use args::ServeArgs;
 
 mod request_dispatch;
 mod response_rendering;
@@ -176,16 +182,16 @@ use request_dispatch::handle_vm_stream_request;
 #[cfg(test)]
 use request_dispatch::{handle_vm_stream_http1_exchange, VmStreamHttp1Exchange};
 use response_rendering::package_relative_path;
-#[cfg(test)]
-use server_lifecycle::prewarm_dynamic_handler_sources;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use server_lifecycle::prewarm_dynamic_handler_sources;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use server_lifecycle::run;
+pub(crate) use server_lifecycle::run_serve_runtime;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use server_lifecycle::spawn_directory_server;
 #[cfg(test)]
 use server_lifecycle::ServeBody;
-use server_lifecycle::{
-    handle_suspendable_vm_stream_request, source_path_from_manifest, RELOAD_ENDPOINT,
-};
+use server_lifecycle::{source_path_from_manifest, RELOAD_ENDPOINT};
 
 #[cfg(test)]
 #[path = "serve_test.rs"]

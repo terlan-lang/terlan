@@ -87,7 +87,7 @@ pub struct NativeBindingGeneratorContractSummary {
 ///   unsafe native binding shortcuts.
 ///
 /// Transformation:
-/// - Treats the roadmap binding model as a checked golden contract before the
+/// - Treats the binding model as a checked golden contract before the
 ///   generator implementation is expanded.
 pub fn run_native_binding_generator_contract(
     root: &Path,

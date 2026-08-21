@@ -1,0 +1,14 @@
+/**
+ * Executable standard-library validation for deterministic string joining.
+ */
+module std.core.StringJoinTest.
+
+import std.core.String.
+
+@test
+pub separator_is_placed_only_between_values(): Bool ->
+    String.join(["alpha", "beta", "gamma"], ", ") == "alpha, beta, gamma".
+
+@test
+pub empty_and_singleton_lists_are_stable(): Bool ->
+    String.join([], ",") == "" and String.join(["alpha"], ",") == "alpha".

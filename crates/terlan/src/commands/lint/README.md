@@ -5,7 +5,7 @@ surface for Terlan projects.
 
 ## Responsibilities
 
-- Parse lint command inputs and project paths.
+- Parse one or more lint inputs in a single process.
 - Run lint rules over Terlan source files.
 - Emit stable lint diagnostics for CLI and editor consumers.
 - Keep formatting policy separate from lint-only readability guidance.
@@ -21,6 +21,9 @@ surface for Terlan projects.
 
 - Lints must not rewrite files; fixes belong to formatter or codemods.
 - Rule diagnostics must be deterministic across platforms.
+- Overlapping input roots must lint each source file exactly once.
+- Repeated `--only` selectors share source discovery and compatible parser
+  work in one process.
 - Generated files and test fixtures must be classified explicitly.
 
 ## Testing Notes

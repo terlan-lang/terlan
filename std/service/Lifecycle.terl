@@ -1,0 +1,16 @@
+/**
+ * Runtime-owned liveness, readiness, and drain state.
+ */
+module std.service.Lifecycle.
+
+pub struct Health {
+    live: Bool,
+    ready: Bool,
+    draining: Bool,
+}.
+
+/**
+ * Application-visible snapshot; listener and signal ownership remains host-side.
+ */
+pub health(): Health ->
+    Health(live = true, ready = false, draining = false).

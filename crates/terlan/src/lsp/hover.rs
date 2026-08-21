@@ -36,10 +36,9 @@ pub(crate) fn hover_for_position(
     let byte_offset = document.byte_offset_from_position(position)?;
     let identifier = Backend::identifier_at_byte_offset(&document.text, byte_offset)?;
     let module = document.parse_syntax().ok()?;
-    let interfaces = OpenDocuments::interfaces_for_uri(uri);
-    let qualifier = qualifier_before_identifier(&document.text, byte_offset);
-
     let content = local_hover_markdown(&module, &identifier).or_else(|| {
+        let interfaces = OpenDocuments::imported_interfaces_for_uri(uri, &module);
+        let qualifier = qualifier_before_identifier(&document.text, byte_offset);
         interface_hover_markdown(&module, &interfaces, &identifier, qualifier.as_deref())
     })?;
 

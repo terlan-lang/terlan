@@ -7,6 +7,39 @@ use crate::terlan_typeck::{lower_syntax_module_output_to_core, type_check_syntax
 use super::{emit_native_application_object, NativeModule};
 
 #[test]
+fn exhaustive_valued_union_arms_compose_suspending_native_calls() {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module valued_union_suspending_case_source.
+
+pub type Mode: Int = LOWER = 0 | UPPER = 1.
+
+@compiler.native {probe.lower}
+lower(): Int -> native.
+
+@compiler.native {probe.upper}
+upper(): Int -> native.
+
+pub select(mode: Mode): Int ->
+    case mode {
+        Mode.LOWER -> lower();
+        Mode.UPPER -> upper()
+    }.
+"#,
+    )
+    .expect("parse valued-union suspension fixture");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = NativeModule::lower_application(&[&core])
+        .expect("lower exhaustive valued-union suspension application");
+
+    emit_native_application_object("valued_union_suspending_case_source", &modules)
+        .expect("emit valued-union suspension object");
+}
+
+#[test]
 fn suspension_aware_case_continuations_keep_their_hidden_abi_arguments() {
     let syntax = parse_module_as_syntax_output(
         r#"
@@ -276,6 +309,105 @@ pub detect(): Option[Host] ->
 
     emit_native_application_object("suspended_option_struct_source", &modules)
         .expect("emit suspended Option-of-struct object");
+}
+
+/// Verifies a suspending Result continuation can materialize records in both
+/// the success value and the typed error value.
+///
+/// This is the deploy-plan loading shape used by Terlan Cloud: the host read
+/// suspends, success delegates to a parser returning `Result[Plan, Problem]`,
+/// and failure constructs the nominal error record before wrapping it in Err.
+#[test]
+fn suspended_result_can_resume_with_struct_value_and_struct_error() {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module suspended_result_struct_source.
+
+pub type Ok[T] = {Atom["ok"], value: T}.
+pub type Err[E] = {Atom["error"], reason: E}.
+pub type Result[T, E] = Ok[T] | Err[E].
+
+pub type FileRead.
+
+pub struct Problem {
+    code: Atom,
+    message: String,
+    field: String
+}.
+
+pub struct Plan {
+    schema: String
+}.
+
+@compiler.native {probe.read}
+read(path: String): Result[String, String] -> native.
+
+problem(code: Atom, message: String, field: String): Problem ->
+    Problem {code: code, message: message, field: field}.
+
+parse(_text: String): Result[Plan, Problem] ->
+    Ok(Plan {schema: "terlan-cloud-deploy-plan-v1"}).
+
+pub load(path: String): Result[Plan, Problem] ->
+    case read(path) {
+        Ok(text) -> parse(text);
+        Err(reason) -> Err(problem(FileRead, reason, path))
+    }.
+"#,
+    )
+    .expect("parse suspended Result-of-struct fixture");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = NativeModule::lower_application(&[&core])
+        .expect("lower suspended Result-of-struct application");
+
+    emit_native_application_object("suspended_result_struct_source", &modules)
+        .expect("emit suspended Result-of-struct object");
+}
+
+/// Verifies fixed record construction retains the checked type of `None`
+/// fields while lowering a structured result after a suspension.
+#[test]
+fn suspended_result_record_can_materialize_typed_none_fields() {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module suspended_result_option_record_source.
+
+pub type None = Atom["none"].
+pub type Some[T] = {Atom["some"], value: T}.
+pub type Option[T] = None | Some[T].
+pub type Ok[T] = {Atom["ok"], value: T}.
+pub type Err[E] = {Atom["error"], reason: E}.
+pub type Result[T, E] = Ok[T] | Err[E].
+
+pub struct Source {
+    kind: String,
+    path: Option[String],
+    url: Option[String]
+}.
+
+@compiler.native {probe.read}
+read(path: String): Result[String, String] -> native.
+
+pub load(path: String): Result[Source, String] ->
+    case read(path) {
+        Ok(kind) -> Ok(Source {kind: kind, path: None, url: Some("https://example.test")});
+        Err(reason) -> Err(reason)
+    }.
+"#,
+    )
+    .expect("parse suspended typed-None record fixture");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = NativeModule::lower_application(&[&core])
+        .expect("lower suspended typed-None record application");
+
+    emit_native_application_object("suspended_result_option_record_source", &modules)
+        .expect("emit suspended typed-None record object");
 }
 
 /// A managed function parameter remains available to the continuation created

@@ -53,25 +53,16 @@ target vm with native_boundary.
 /// Verifies new native-boundary CLI spellings are canonical parser inputs.
 ///
 /// Inputs:
-/// - New native-boundary policy values and old migration aliases.
+/// - Canonical native-boundary policy values.
 ///
 /// Output:
 /// - Test passes when every supported spelling maps to the expected policy.
 ///
 /// Transformation:
-/// - Locks the 0.0.7 public CLI spelling while preserving temporary alias
-///   compatibility for older scripts.
+/// - Locks the 0.0.7 public CLI spelling.
 #[test]
-fn parses_native_boundary_policy_values_and_migration_aliases() {
+fn parses_native_boundary_policy_values() {
     assert_eq!(NativePolicy::from_cli("pure"), Some(NativePolicy::Pure));
-    assert_eq!(
-        NativePolicy::from_cli("safe_native_optional"),
-        Some(NativePolicy::NativeBoundaryOptional)
-    );
-    assert_eq!(
-        NativePolicy::from_cli("safe_native_required"),
-        Some(NativePolicy::NativeBoundaryRequired)
-    );
     assert_eq!(
         NativePolicy::from_cli("native_boundary_optional"),
         Some(NativePolicy::NativeBoundaryOptional)
@@ -100,13 +91,6 @@ fn pure_policy_error_names_native_boundary_values() {
             .expect_err("native usage should fail under pure policy");
     assert!(error.contains("native_boundary_optional"), "{error}");
     assert!(error.contains("native_boundary_required"), "{error}");
-    assert!(!error.contains("safe_native_optional"), "{error}");
-}
-
-/// Verifies the 0.0.6 target marker remains an input-only compatibility alias.
-#[test]
-fn legacy_safe_native_target_marker_is_still_detected() {
-    assert!(source_uses_native("target vm with safe_native."));
 }
 
 /// Verifies unsafe-native rejection is scoped to declarations.

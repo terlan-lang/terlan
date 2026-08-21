@@ -152,8 +152,8 @@ fn top_level_usage_hides_internal_scratch_commands() {
             "[--http-check METHOD:PATH:STATUS[:CONTAINS[:BODY]]]"
         ),
         concat!(
-            "terlc test [file.terl|dir] [--target terlan-vm|js|wasm] ",
-            "[--name <function>] [--bench [--warmup <count>] [--samples <count>]]"
+            "terlc test [file.terl|dir]... [--target terlan-vm|js|wasm] ",
+            "[--name <function>]... [--bench [--warmup <count>] [--samples <count>]]"
         ),
         "terlc static <emit|serve|check> <file.terl>",
         "terlc doc <file.terl|dir|std> [--format html|markdown|json] [--out-dir <dir>]",
@@ -165,8 +165,9 @@ fn top_level_usage_hides_internal_scratch_commands() {
             "[--script <file.terldbg>] [--json-events]"
         ),
         "terlc repl [--help] [--debug] [<file.terl|project-dir>]",
-        "terlc fmt [--check|--write|--migrate-repeated-lets] <file.terl|file.terli|file.terls|dir>",
-        "terlc lint [--fix] [--only <rule-id>] <file.terl|file.terli|file.terls|dir>",
+        "terlc fmt [--check|--write] <file.terl|file.terli|file.terls|dir>...",
+        "terlc fmt --migrate-repeated-lets <file.terl|dir>",
+        "terlc lint [--fix] [--only <rule-id>]... <file.terl|file.terli|file.terls|dir>...",
         "terlc migrate pattern-head [--write] [--json] <file.terl|file.terli|dir>",
         "terlc version | terlc --version | terlc -V",
         "Global options: --diagnostic-format text|json --color auto|always|never --timings",

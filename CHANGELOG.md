@@ -25,7 +25,7 @@ All notable release-facing changes to Terlan are tracked here.
 - Harden release checks around installer contracts, package artifacts,
   stdlib release tests, generated standard-library surfaces, and editor/LSP
   packaging.
-- Expand VM and SafeNative coverage for CoreIR evaluation, std receiver calls,
+- Expand VM and NativeBoundary coverage for CoreIR evaluation, std receiver calls,
   native vector handling, HTTP/Postgres bridge behavior, and runtime errors.
 - Continue codebase consolidation by extracting tests beside their modules and
   removing obsolete OTP-runtime staging code from the release path.
@@ -42,7 +42,7 @@ All notable release-facing changes to Terlan are tracked here.
   metadata.
 - Add TLS configuration support for manual certificates, local internal TLS,
   and ACME planning with Let's Encrypt defaults and ZeroSSL fallback metadata.
-- Add `std.db.Postgres`, typed SQL form validation, Postgres SafeNative runtime
+- Add `std.db.Postgres`, typed SQL form validation, Postgres NativeBoundary runtime
   coverage, Docker-backed live Postgres checks, and `terlc db` migration
   commands.
 - Expand generated `std.js` coverage from TypeScript standard library inputs,
@@ -52,7 +52,7 @@ All notable release-facing changes to Terlan are tracked here.
 - Add `std.sync.Resource`, `std.log`, `std.template`, `std.http.Router`,
   `std.http.Tls`, and `std.core.Object` release surfaces.
 - Harden user-facing release validation for generated std summaries,
-  SafeNative artifacts, static and web profiles, SQL/runtime boundaries,
+  NativeBoundary artifacts, static and web profiles, SQL/runtime boundaries,
   editor packaging, LSP behavior, and public command coverage.
 
 ## 0.0.4
@@ -90,7 +90,7 @@ All notable release-facing changes to Terlan are tracked here.
   coverage.
 - Expand `std.collections` contracts and tests for `List`, `Map`, `Set`,
   `Iterable`, `Iterator`, `Enumerable`, and indexed access traits.
-- Add SafeNative metadata, runtime-bridge contracts, and native package binding
+- Add NativeBoundary metadata, runtime-bridge contracts, and native package binding
   probes for Rust-backed packages.
 
 ## 0.0.2

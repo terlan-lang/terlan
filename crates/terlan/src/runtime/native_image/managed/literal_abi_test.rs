@@ -29,6 +29,27 @@ fn string_literal_round_trips_through_actor_heap() {
     assert_eq!(heap.read_string(reference).expect("read"), "hello \u{2603}");
 }
 
+/// Verifies typed Binary literals retain Binary rather than String semantics.
+#[test]
+fn binary_literal_round_trips_through_actor_heap() {
+    let encoded = encode_binary_literal(b"hello").expect("encode");
+    let mut heap = heap();
+    let word = heap
+        .allocate_managed_words_abi(&encoded, &[])
+        .expect("allocate");
+    let reference = TvmRef::from_encoded(
+        usize::try_from(word)
+            .ok()
+            .and_then(std::num::NonZeroUsize::new)
+            .expect("reference"),
+    );
+    assert_eq!(
+        heap.read_binary(reference).expect("read").aligned_bytes(),
+        Some(b"hello".as_slice())
+    );
+    assert!(heap.read_string(reference.cast()).is_err());
+}
+
 /// Verifies malformed, oversized, and field-bearing literal calls are rejected.
 #[test]
 fn string_literal_rejects_invalid_abi_inputs() {

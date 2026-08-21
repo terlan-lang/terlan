@@ -57,6 +57,165 @@ struct ArchiveEntry {
     executable: bool,
 }
 
+/// Deterministic `.tar.zst` creation result for an explicit file set.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TarZstdSummary {
+    pub file_count: u32,
+    pub unpacked_bytes: u64,
+}
+
+/// Creates a deterministic zstd-compressed tar from explicit relative files.
+///
+/// Paths must be UTF-8, relative, traversal-free regular files beneath
+/// `source`. Symbolic links, duplicates, more than 4,096 files, paths longer
+/// than 240 bytes, and more than 256 MiB of input are rejected.
+pub fn create_tar_zstd_files(
+    source: &Path,
+    relative_files: &[PathBuf],
+    archive: &Path,
+) -> Result<TarZstdSummary, ArchiveError> {
+    const MAX_FILES: usize = 4_096;
+    const MAX_PATH_BYTES: usize = 240;
+    const MAX_UNPACKED_BYTES: u64 = 256 * 1024 * 1024;
+
+    let archive_name = archive.display().to_string();
+    let source_name = source.display().to_string();
+    if archive.exists() {
+        return Err(error(
+            "archive.destination_exists",
+            &archive_name,
+            &source_name,
+            "archive output already exists",
+        ));
+    }
+    let mut files = relative_files.to_vec();
+    files.sort();
+    files.dedup();
+    if files.len() != relative_files.len() || files.len() > MAX_FILES {
+        return Err(error(
+            "archive.limit",
+            &archive_name,
+            &source_name,
+            "archive contains duplicate paths or exceeds 4096 files",
+        ));
+    }
+
+    let mut entries = Vec::with_capacity(files.len());
+    let mut unpacked_bytes = 0_u64;
+    for relative in files {
+        let valid_components = relative
+            .components()
+            .all(|component| matches!(component, std::path::Component::Normal(_)));
+        let Some(relative_text) = relative.to_str() else {
+            return Err(error(
+                "archive.unsafe_entry",
+                &archive_name,
+                &source_name,
+                "archive paths must be UTF-8",
+            ));
+        };
+        if !valid_components
+            || relative_text.is_empty()
+            || relative_text.len() > MAX_PATH_BYTES
+            || relative_text.contains('\\')
+        {
+            return Err(error(
+                "archive.unsafe_entry",
+                &archive_name,
+                &source_name,
+                "archive path is absolute, traversing, non-portable, or too long",
+            ));
+        }
+        let absolute = source.join(&relative);
+        let metadata = fs::symlink_metadata(&absolute)
+            .map_err(|failure| io_error(&archive_name, &source_name, failure))?;
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            return Err(error(
+                "archive.unsafe_entry",
+                &archive_name,
+                &source_name,
+                "archive inputs must be regular files and may not be links",
+            ));
+        }
+        unpacked_bytes = unpacked_bytes.checked_add(metadata.len()).ok_or_else(|| {
+            error(
+                "archive.limit",
+                &archive_name,
+                &source_name,
+                "archive unpacked byte count overflow",
+            )
+        })?;
+        if unpacked_bytes > MAX_UNPACKED_BYTES {
+            return Err(error(
+                "archive.limit",
+                &archive_name,
+                &source_name,
+                "archive exceeds 256 MiB unpacked",
+            ));
+        }
+        entries.push(ArchiveEntry {
+            absolute,
+            relative,
+            directory: false,
+            executable: metadata_executable(&metadata),
+        });
+    }
+
+    create_parent(archive, &archive_name, &source_name)?;
+    let result = create_tar_zstd(archive, &entries, &archive_name, &source_name);
+    if result.is_err() {
+        let _ = fs::remove_file(archive);
+    }
+    result.map(|()| TarZstdSummary {
+        file_count: entries.len() as u32,
+        unpacked_bytes,
+    })
+}
+
+fn create_tar_zstd(
+    archive_path: &Path,
+    entries: &[ArchiveEntry],
+    archive: &str,
+    source: &str,
+) -> Result<(), ArchiveError> {
+    let output =
+        fs::File::create(archive_path).map_err(|failure| io_error(archive, source, failure))?;
+    let encoder = zstd::stream::write::Encoder::new(output, 19)
+        .map_err(|failure| io_error(archive, source, failure))?;
+    let mut builder = tar::Builder::new(encoder);
+    builder.mode(tar::HeaderMode::Deterministic);
+    for entry in entries {
+        let mut input = fs::File::open(&entry.absolute)
+            .map_err(|failure| io_error(archive, source, failure))?;
+        let mut header = tar::Header::new_gnu();
+        header.set_uid(0);
+        header.set_gid(0);
+        header.set_mtime(0);
+        header.set_entry_type(tar::EntryType::Regular);
+        header.set_size(
+            input
+                .metadata()
+                .map_err(|failure| io_error(archive, source, failure))?
+                .len(),
+        );
+        header.set_mode(if entry.executable { 0o755 } else { 0o644 });
+        header.set_cksum();
+        builder
+            .append_data(&mut header, &entry.relative, &mut input)
+            .map_err(|failure| io_error(archive, source, failure))?;
+    }
+    builder
+        .finish()
+        .map_err(|failure| io_error(archive, source, failure))?;
+    let encoder = builder
+        .into_inner()
+        .map_err(|failure| io_error(archive, source, failure))?;
+    encoder
+        .finish()
+        .map(|_| ())
+        .map_err(|failure| io_error(archive, source, failure))
+}
+
 /// Creates a deterministic `.tar.gz` or `.zip` archive from a real directory.
 ///
 /// Entries are ordered, unsafe symbolic-link inputs are rejected, and a failed
@@ -347,21 +506,69 @@ pub fn extract(archive: &str, destination: &str) -> Result<(), ArchiveError> {
 
 /// Extracts a zstd-compressed tar artifact with path and entry validation.
 ///
-/// Regular files, directories, and relative symbolic links are admitted. All
-/// paths and link targets must remain relative and `unpack_in` provides the
-/// final destination-containment check before filesystem mutation.
+/// Regular files and directories are admitted. Symbolic links, special files,
+/// traversal, oversized paths, excessive entries, and archive bombs are
+/// rejected before their entry is unpacked.
 pub fn extract_tar_zstd(archive: &Path, destination: &Path) -> Result<(), ArchiveError> {
+    const MAX_ARCHIVE_BYTES: u64 = 64 * 1024 * 1024;
+    const MAX_UNPACKED_BYTES: u64 = 256 * 1024 * 1024;
+    const MAX_ENTRIES: u32 = 4_096;
+    const MAX_PATH_BYTES: usize = 240;
+
     let archive_text = archive.to_string_lossy();
     let destination_text = destination.to_string_lossy();
+    if destination.exists() {
+        return Err(error(
+            "archive.destination_exists",
+            &archive_text,
+            &destination_text,
+            "archive destination already exists",
+        ));
+    }
+    let compressed_bytes = fs::metadata(archive)
+        .map_err(|failure| io_error(&archive_text, &destination_text, failure))?
+        .len();
+    if compressed_bytes > MAX_ARCHIVE_BYTES {
+        return Err(error(
+            "archive.limit",
+            &archive_text,
+            &destination_text,
+            "archive exceeds 64 MiB compressed",
+        ));
+    }
     fs::create_dir_all(destination)
         .map_err(|failure| io_error(&archive_text, &destination_text, failure))?;
+    let result = extract_tar_zstd_bounded(
+        archive,
+        destination,
+        &archive_text,
+        &destination_text,
+        MAX_UNPACKED_BYTES,
+        MAX_ENTRIES,
+        MAX_PATH_BYTES,
+    );
+    if result.is_err() {
+        let _ = fs::remove_dir_all(destination);
+    }
+    result
+}
+
+fn extract_tar_zstd_bounded(
+    archive: &Path,
+    destination: &Path,
+    archive_text: &str,
+    destination_text: &str,
+    max_unpacked_bytes: u64,
+    max_entries: u32,
+    max_path_bytes: usize,
+) -> Result<(), ArchiveError> {
     let file = fs::File::open(archive)
-        .map_err(|failure| io_error(&archive_text, &destination_text, failure))?;
+        .map_err(|failure| io_error(archive_text, destination_text, failure))?;
     let decoder = zstd::stream::read::Decoder::new(file).map_err(|failure| {
         error(
             "archive.invalid_archive",
-            &archive_text,
-            &destination_text,
+            archive_text,
+            destination_text,
             format!("invalid zstd stream: {failure}"),
         )
     })?;
@@ -369,17 +576,35 @@ pub fn extract_tar_zstd(archive: &Path, destination: &Path) -> Result<(), Archiv
     let entries = archive_reader.entries().map_err(|failure| {
         error(
             "archive.invalid_archive",
-            &archive_text,
-            &destination_text,
+            archive_text,
+            destination_text,
             format!("invalid tar stream: {failure}"),
         )
     })?;
+    let mut entry_count = 0_u32;
+    let mut unpacked_bytes = 0_u64;
     for entry in entries {
+        entry_count = entry_count.checked_add(1).ok_or_else(|| {
+            error(
+                "archive.limit",
+                archive_text,
+                destination_text,
+                "archive entry count overflow",
+            )
+        })?;
+        if entry_count > max_entries {
+            return Err(error(
+                "archive.limit",
+                archive_text,
+                destination_text,
+                "archive exceeds 4096 entries",
+            ));
+        }
         let mut entry = entry.map_err(|failure| {
             error(
                 "archive.invalid_archive",
-                &archive_text,
-                &destination_text,
+                archive_text,
+                destination_text,
                 format!("invalid tar entry: {failure}"),
             )
         })?;
@@ -388,8 +613,8 @@ pub fn extract_tar_zstd(archive: &Path, destination: &Path) -> Result<(), Archiv
             .map_err(|failure| {
                 error(
                     "archive.unsafe_entry",
-                    &archive_text,
-                    &destination_text,
+                    archive_text,
+                    destination_text,
                     format!("invalid archive path: {failure}"),
                 )
             })?
@@ -397,64 +622,69 @@ pub fn extract_tar_zstd(archive: &Path, destination: &Path) -> Result<(), Archiv
         if !safe_relative_path(&path) {
             return Err(error(
                 "archive.unsafe_entry",
-                &archive_text,
-                &destination_text,
+                archive_text,
+                destination_text,
                 format!("archive entry escapes destination: {}", path.display()),
             ));
         }
-        let entry_type = entry.header().entry_type();
-        if !(entry_type.is_file() || entry_type.is_dir() || entry_type.is_symlink()) {
-            return Err(error(
+        let path_text = path.to_str().ok_or_else(|| {
+            error(
                 "archive.unsafe_entry",
-                &archive_text,
-                &destination_text,
-                format!("unsupported archive entry: {}", path.display()),
+                archive_text,
+                destination_text,
+                "archive path must be UTF-8",
+            )
+        })?;
+        if path_text.len() > max_path_bytes || path_text.contains('\\') {
+            return Err(error(
+                "archive.limit",
+                archive_text,
+                destination_text,
+                "archive path exceeds 240 bytes or is non-portable",
             ));
         }
-        if entry_type.is_symlink() {
-            let target = entry
-                .link_name()
-                .map_err(|failure| {
-                    error(
-                        "archive.unsafe_entry",
-                        &archive_text,
-                        &destination_text,
-                        format!("invalid symbolic-link target: {failure}"),
-                    )
-                })?
-                .map(|target| target.into_owned());
-            let Some(target) = target else {
+        let entry_type = entry.header().entry_type();
+        if !(entry_type.is_file() || entry_type.is_dir()) {
+            return Err(error(
+                "archive.unsafe_entry",
+                archive_text,
+                destination_text,
+                format!(
+                    "archive links and special entries are forbidden: {}",
+                    path.display()
+                ),
+            ));
+        }
+        if entry_type.is_file() {
+            unpacked_bytes = unpacked_bytes.checked_add(entry.size()).ok_or_else(|| {
+                error(
+                    "archive.limit",
+                    archive_text,
+                    destination_text,
+                    "archive unpacked byte count overflow",
+                )
+            })?;
+            if unpacked_bytes > max_unpacked_bytes {
                 return Err(error(
-                    "archive.unsafe_entry",
-                    &archive_text,
-                    &destination_text,
-                    "symbolic link lacks a target",
-                ));
-            };
-            if !safe_relative_path(&target) {
-                return Err(error(
-                    "archive.unsafe_entry",
-                    &archive_text,
-                    &destination_text,
-                    format!(
-                        "symbolic-link target escapes destination: {}",
-                        target.display()
-                    ),
+                    "archive.limit",
+                    archive_text,
+                    destination_text,
+                    "archive exceeds 256 MiB unpacked",
                 ));
             }
         }
         if !entry.unpack_in(destination).map_err(|failure| {
             error(
                 "archive.invalid_archive",
-                &archive_text,
-                &destination_text,
+                archive_text,
+                destination_text,
                 format!("cannot extract archive entry: {failure}"),
             )
         })? {
             return Err(error(
                 "archive.unsafe_entry",
-                &archive_text,
-                &destination_text,
+                archive_text,
+                destination_text,
                 format!("archive entry escapes destination: {}", path.display()),
             ));
         }
@@ -467,7 +697,7 @@ fn safe_relative_path(path: &Path) -> bool {
         && !path.is_absolute()
         && path
             .components()
-            .all(|component| matches!(component, Component::Normal(_) | Component::CurDir))
+            .all(|component| matches!(component, Component::Normal(_)))
 }
 
 fn extract_tar_gzip(
@@ -642,3 +872,7 @@ fn error(
         message: message.into(),
     }
 }
+
+#[cfg(test)]
+#[path = "lib_test.rs"]
+mod tests;

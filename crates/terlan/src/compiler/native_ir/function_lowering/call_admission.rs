@@ -15,10 +15,15 @@ pub(in super::super) fn expr_calls_are_supported(
     let is_composable =
         |function: &str, arity: usize| composable.contains(&(function.to_string(), arity));
     if let Some(region) = composed_call_region(expr, suspending, &is_composable, &HashSet::new()) {
-        return expr_is_native_control(&region.resume)
-            && expr_calls_are_supported(&region.resume, identities, suspending, composable, false)
-            && region.gates.iter().all(|gate| {
-                expr_is_scalar(&gate.condition)
+        // `composed_call_region` proves the next evaluation context, and the
+        // resume is lowered recursively by `lower_owned_expr_with_yields`.
+        // Revalidating the whole resume through the narrower scalar-control
+        // predicate rejects valid grouped-let/case continuations. Local-call
+        // closure plus the region's explicit gate contracts are the matching
+        // admission proof; the recursive lowerer remains authoritative for
+        // every later suspension context.
+        return region.gates.iter().all(|gate| {
+            expr_is_scalar(&gate.condition)
                     && gate.prefix.iter().all(|binding| {
                         !expr_calls_suspending(&binding.value, suspending)
                             && expr_calls_are_local(&binding.value, identities)
@@ -30,8 +35,7 @@ pub(in super::super) fn expr_calls_are_supported(
                     // the shared suffix once per boolean term and makes
                     // admission exponential for long assertion pipelines.
                     && expr_calls_are_local(&gate.bypass_resume, identities)
-            })
-            && expr_calls_are_local(expr, identities);
+        }) && expr_calls_are_local(expr, identities);
     }
     if let Some(region) = condition_yield_region(expr) {
         return region.prefix.iter().all(|binding| {

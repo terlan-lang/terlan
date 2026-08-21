@@ -7,14 +7,13 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
+use super::QualifiedFunctionIdentity as FunctionKey;
 use crate::terlan_typeck::{CoreExportKind, CoreExpr, CoreIntrinsicId, CoreModule, CoreType};
 
 #[cfg(test)]
 #[path = "open_std_pruning_test.rs"]
 #[cfg(test)]
 mod open_std_pruning_test;
-
-type FunctionKey = (String, String, usize);
 
 /// Removes source router builders after the frontend has extracted their static plan.
 ///
@@ -461,7 +460,18 @@ fn collect_calls(
             collect_calls(record, caller, providers, calls);
         }
         CoreExpr::ConstructorCall { args, .. } => collect_many(args, caller, providers, calls),
-        CoreExpr::MutableReceiverCall { receiver, args, .. } => {
+        CoreExpr::MutableReceiverCall {
+            receiver,
+            method,
+            args,
+            ..
+        } => {
+            // Mutable receiver syntax still names an ordinary function. Keep
+            // that provider reachable until the type-directed receiver pass
+            // rewrites the call to its exact qualified target.
+            if let Some(target) = resolve_call(caller, method, args.len() + 1, providers) {
+                calls.insert(target);
+            }
             collect_calls(receiver, caller, providers, calls);
             collect_many(args, caller, providers, calls);
         }
@@ -515,12 +525,35 @@ fn collect_calls(
             collect_calls(left, caller, providers, calls);
             collect_calls(right, caller, providers, calls);
         }
-        CoreExpr::Int(_)
-        | CoreExpr::Float(_)
-        | CoreExpr::Binary(_)
-        | CoreExpr::Atom(_)
-        | CoreExpr::Var(_) => {}
+        CoreExpr::Var(name) => collect_function_value_candidates(caller, name, providers, calls),
+        CoreExpr::Int(_) | CoreExpr::Float(_) | CoreExpr::Binary(_) | CoreExpr::Atom(_) => {}
     }
+}
+
+/// Conservatively retains scoped functions named as values before contextual
+/// callback specialization has resolved their checked arity and signature.
+fn collect_function_value_candidates(
+    caller: &CoreModule,
+    name: &str,
+    providers: &[FunctionKey],
+    calls: &mut HashSet<FunctionKey>,
+) {
+    let imported = caller
+        .imports
+        .iter()
+        .map(|import| import.module.as_str())
+        .collect::<HashSet<_>>();
+    calls.extend(
+        providers
+            .iter()
+            .filter(|(module, function, _)| {
+                function == name
+                    && (module == &caller.module
+                        || imported.contains(module.as_str())
+                        || imported.contains(format!("{module}.{function}").as_str()))
+            })
+            .cloned(),
+    );
 }
 
 fn collect_many(

@@ -1,12 +1,29 @@
 use std::path::Path;
 
 use crate::terlan_html::header::{
-    annotation_object_value_for_key, path_uses_terlan_header, template_header_metadata_entry,
-    template_header_metadata_segments_on_line, walk_template_header,
+    annotation_array_value_for_key, annotation_object_value_for_key, path_uses_terlan_header,
+    template_header_metadata_entry, template_header_metadata_segments_on_line,
+    walk_template_header,
 };
 use crate::terlan_html::HtmlDiagnostic;
 
-const PAGE_ANNOTATION_KEYS: &[&str] = &["title", "route", "layout"];
+const PAGE_ANNOTATION_KEYS: &[&str] = &[
+    "title",
+    "route",
+    "layout",
+    "description",
+    "section",
+    "nav_title",
+    "parent",
+    "weight",
+    "kind",
+    "date",
+    "aliases",
+    "summary",
+    "authors",
+    "tags",
+    "draft",
+];
 const TEMPLATE_ANNOTATION_KEYS: &[&str] = &["name", "params"];
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -20,6 +37,18 @@ pub struct PageMetadata {
     pub title: Option<String>,
     pub route: Option<String>,
     pub layout: Option<String>,
+    pub description: Option<String>,
+    pub section: Option<String>,
+    pub nav_title: Option<String>,
+    pub parent: Option<String>,
+    pub weight: Option<i32>,
+    pub kind: Option<String>,
+    pub date: Option<String>,
+    pub aliases: Vec<String>,
+    pub summary: Option<String>,
+    pub authors: Vec<String>,
+    pub tags: Vec<String>,
+    pub draft: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -58,7 +87,7 @@ pub struct TemplateParamMetadata {
 ///
 /// Transformation:
 /// - Walks the same leading header region as template parsing and validates
-///   imports/annotations before converting top-level `@page` string keys into a
+///   imports/annotations before converting top-level `@page` values into a
 ///   typed metadata struct.
 pub fn extract_page_metadata(
     source: impl AsRef<str>,
@@ -121,11 +150,11 @@ pub fn extract_template_metadata(
 /// - `path`: source path used for diagnostics.
 ///
 /// Output:
-/// - Parsed page metadata or diagnostics for non-string metadata values.
+/// - Parsed page metadata or diagnostics for invalid typed metadata values.
 ///
 /// Transformation:
 /// - Reuses the top-level metadata segment scanner and converts supported
-///   `@page` keys into typed string values.
+///   `@page` keys into typed string and integer values.
 fn page_metadata_from_annotation_lines(
     lines: &[&str],
     path: &Path,
@@ -141,17 +170,148 @@ fn page_metadata_from_annotation_lines(
             };
             validate_template_annotation_key("page", key, PAGE_ANNOTATION_KEYS, path)?;
             validate_unique_template_annotation_key("page", key, &mut seen_keys, path)?;
-            let value = parse_template_header_string_value(value, key, "page", path)?;
             match key {
-                "title" => metadata.title = Some(value),
-                "route" => metadata.route = Some(value),
-                "layout" => metadata.layout = Some(value),
+                "aliases" | "authors" | "tags" => {}
+                "draft" => {
+                    metadata.draft = parse_page_boolean(value, key, path)?;
+                }
+                "weight" => {
+                    metadata.weight = Some(parse_page_weight(value, path)?);
+                }
+                "title" | "route" | "layout" | "description" | "section" | "nav_title"
+                | "parent" | "kind" | "date" | "summary" => {
+                    let value = parse_template_header_string_value(value, key, "page", path)?;
+                    match key {
+                        "title" => metadata.title = Some(value),
+                        "route" => metadata.route = Some(value),
+                        "layout" => metadata.layout = Some(value),
+                        "description" => metadata.description = Some(value),
+                        "section" => metadata.section = Some(value),
+                        "nav_title" => metadata.nav_title = Some(value),
+                        "parent" => metadata.parent = Some(value),
+                        "kind" => metadata.kind = Some(value),
+                        "date" => metadata.date = Some(value),
+                        "summary" => metadata.summary = Some(value),
+                        _ => unreachable!("string page key was schema-validated"),
+                    }
+                }
                 _ => unreachable!("page annotation key was schema-validated"),
             }
         }
     }
 
+    let annotation_source = lines.concat();
+    for key in ["aliases", "authors", "tags"] {
+        if !seen_keys.iter().any(|seen| seen == key) {
+            continue;
+        }
+        let Some(body) = annotation_array_value_for_key(&annotation_source, key) else {
+            return Err(vec![HtmlDiagnostic::new(
+                Some(path.to_path_buf()),
+                format!("Terlan @page key `{key}` must be an array of string literals"),
+            )]);
+        };
+        let values = parse_page_string_array(&body, key, path)?;
+        match key {
+            "aliases" => metadata.aliases = values,
+            "authors" => metadata.authors = values,
+            "tags" => metadata.tags = values,
+            _ => unreachable!("array page key was schema-validated"),
+        }
+    }
+
     Ok(metadata)
+}
+
+/// Parses one string-array page metadata value.
+fn parse_page_string_array(
+    raw: &str,
+    key: &str,
+    path: &Path,
+) -> Result<Vec<String>, Vec<HtmlDiagnostic>> {
+    let mut values = Vec::new();
+    let mut start = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+
+    for (index, ch) in raw.char_indices() {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_string = false;
+            }
+            continue;
+        }
+        match ch {
+            '"' => in_string = true,
+            ',' => {
+                parse_page_string_array_segment(&raw[start..index], key, path, &mut values)?;
+                start = index + ch.len_utf8();
+            }
+            _ => {}
+        }
+    }
+    if in_string {
+        return Err(vec![HtmlDiagnostic::new(
+            Some(path.to_path_buf()),
+            format!("Terlan @page key `{key}` has an unterminated string literal"),
+        )]);
+    }
+    parse_page_string_array_segment(&raw[start..], key, path, &mut values)?;
+    Ok(values)
+}
+
+/// Parses and appends one comma-delimited page string.
+fn parse_page_string_array_segment(
+    raw: &str,
+    key: &str,
+    path: &Path,
+    values: &mut Vec<String>,
+) -> Result<(), Vec<HtmlDiagnostic>> {
+    let raw = raw.trim();
+    if raw.is_empty() {
+        return Ok(());
+    }
+    let value = parse_template_header_string_value(raw, key, "page", path)?;
+    if value.trim().is_empty() {
+        return Err(vec![HtmlDiagnostic::new(
+            Some(path.to_path_buf()),
+            format!("Terlan @page key `{key}` must not contain empty values"),
+        )]);
+    }
+    if values.contains(&value) {
+        return Err(vec![HtmlDiagnostic::new(
+            Some(path.to_path_buf()),
+            format!("Terlan @page key `{key}` contains duplicate value `{value}`"),
+        )]);
+    }
+    values.push(value);
+    Ok(())
+}
+
+/// Parses a literal boolean page metadata value.
+fn parse_page_boolean(raw: &str, key: &str, path: &Path) -> Result<bool, Vec<HtmlDiagnostic>> {
+    match raw.trim() {
+        "true" => Ok(true),
+        "false" => Ok(false),
+        _ => Err(vec![HtmlDiagnostic::new(
+            Some(path.to_path_buf()),
+            format!("Terlan @page key `{key}` must be a boolean literal"),
+        )]),
+    }
+}
+
+/// Parses the signed integer ordering value used by documentation navigation.
+fn parse_page_weight(raw: &str, path: &Path) -> Result<i32, Vec<HtmlDiagnostic>> {
+    raw.trim().parse::<i32>().map_err(|_| {
+        vec![HtmlDiagnostic::new(
+            Some(path.to_path_buf()),
+            "Terlan @page key `weight` must be a signed 32-bit integer",
+        )]
+    })
 }
 
 /// Extracts template metadata from one consumed `@template` annotation.

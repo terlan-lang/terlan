@@ -9,6 +9,12 @@ mod package_native_helper_test;
 mod capability;
 #[path = "package_native_helper/direct_std.rs"]
 mod direct_std;
+#[cfg(any(
+    test,
+    all(not(feature = "serve-runtime-bin"), feature = "postgres-libpq")
+))]
+#[path = "package_native_helper/sql.rs"]
+mod sql;
 #[path = "package_native_helper/support.rs"]
 mod support;
 use support::*;
@@ -36,11 +42,7 @@ use super::{ReplValue, VmRuntimeError, VmRuntimeResult};
 
 const MAX_FRAME_BYTES: usize = 1_048_576;
 
-/// Live package helpers keyed by the compiler-native operation namespace.
-///
-/// A VM image may import several native packages. Keeping one helper per
-/// namespace prevents resource handles and mutable native state from crossing
-/// package process boundaries.
+/// Package helpers isolated by compiler-native operation namespace.
 #[derive(Default)]
 pub(crate) struct VmPackageNativeHelpers {
     helpers: BTreeMap<String, VmPackageNativeHelper>,
@@ -62,6 +64,7 @@ impl VmPackageNativeHelpers {
         }
     }
 
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn from_helper_environment(
         bindings: &[(String, std::path::PathBuf)],
     ) -> VmRuntimeResult<Self> {
@@ -110,7 +113,12 @@ impl VmPackageNativeHelpers {
         if !self.helpers.contains_key(namespace) {
             let helper = match self.helper_paths.get(namespace) {
                 Some(path) => VmPackageNativeHelper::spawn(path)?,
-                None => VmPackageNativeHelper::from_environment(namespace)?,
+                None => VmPackageNativeHelper::from_environment(namespace).map_err(|error| {
+                    format!(
+                        "{error}; error[native_helper_operation]: operation `{}` requires namespace `{namespace}`",
+                        request.operation
+                    )
+                })?,
             };
             self.helpers.insert(namespace.to_string(), helper);
         }
@@ -425,6 +433,7 @@ fn package_helper_environment(namespace: &str) -> VmRuntimeResult<String> {
     ))
 }
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn helper_environment_namespace(environment: &str) -> VmRuntimeResult<String> {
     let namespace = environment
         .strip_prefix("TERLAN_")

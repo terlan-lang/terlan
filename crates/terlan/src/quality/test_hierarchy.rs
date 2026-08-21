@@ -224,7 +224,6 @@ pub(crate) fn is_allowed_script(script: &Path) -> bool {
     let allowed_exact = [
         Path::new("scripts/run_exact_cargo_test.sh"),
         Path::new("scripts/publish_release_from_dist.sh"),
-        Path::new("std/scripts/run_release_tests.sh"),
     ];
     let normalized = repository_relative_script(script);
     if normalized

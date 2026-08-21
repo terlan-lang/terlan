@@ -201,11 +201,11 @@ vm_fixture_holds(source: String): Bool ->
 ).
 
 @pure
-transition_holds(accepted: String, current: String): Bool ->
+proof_binding_holds(accepted: String, current: String): Bool ->
     contains_all(
     accepted,
     [
-        "Slice 12\tcoreir\tcompiler\tslice_blocked",
+        "Slice 12\tcoreir\tcompiler\tproof_current\tnone",
         "slice_id\tfeature_class\towner\tcoverage_status\tblocker_hash",
     ],
 )
@@ -230,7 +230,7 @@ inputs_hold(root: String, inputs: Inputs): Bool ->
         and case_holds(inputs.case_record)
         and inputs.source_fixture == expected_source()
         and vm_fixture_holds(inputs.vm_fixture)
-        and transition_holds(inputs.accepted, inputs.index)
+        and proof_binding_holds(inputs.accepted, inputs.index)
         and baseline_holds(inputs.baseline).
 
 fail(message: String): Bool ->

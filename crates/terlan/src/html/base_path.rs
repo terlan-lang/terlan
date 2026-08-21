@@ -6,18 +6,13 @@
 ///   CLI or project configuration validation.
 ///
 /// Output:
-/// - HTML with a `<base href="...">` tag when `base_path` is not `/`.
+/// - HTML with a `<base href="...">` tag for every explicitly supplied base.
 ///
 /// Transformation:
-/// - Leaves default-root output unchanged, avoids duplicating an existing base
-///   tag, inserts after an opening `<head>` tag when present, and otherwise
-///   prefixes the fragment so static route smoke tests and fragment outputs
-///   still get deterministic project-prefix behavior.
+/// - Avoids duplicating an existing base tag, inserts after an opening `<head>`
+///   tag when present, and otherwise prefixes the fragment so root and project
+///   path builds resolve assets identically from nested routes.
 pub fn inject_html_base_path(html: &str, base_path: &str) -> String {
-    if base_path == "/" {
-        return html.to_string();
-    }
-
     let lower = html.to_ascii_lowercase();
     if lower.contains("<base ") || lower.contains("<base>") {
         return html.to_string();
@@ -33,6 +28,25 @@ pub fn inject_html_base_path(html: &str, base_path: &str) -> String {
     }
 
     format!("{base_tag}{html}")
+}
+
+/// Qualifies fragment-only HTML links against a page's base-relative URL.
+///
+/// Inputs:
+/// - `html`: generated static HTML.
+/// - `page_url`: base-relative public URL for the current page.
+///
+/// Output:
+/// - HTML where `href="#fragment"` and single-quoted equivalents include the
+///   current page URL before the fragment.
+///
+/// Transformation:
+/// - Prevents an injected HTML `<base>` from redirecting local in-page links to
+///   the site root while leaving already-qualified and external links intact.
+pub fn qualify_html_fragment_links(html: &str, page_url: &str) -> String {
+    let escaped_page_url = crate::terlan_html::escape_html_attr(page_url);
+    html.replace("href=\"#", &format!("href=\"{escaped_page_url}#"))
+        .replace("href='#", &format!("href='{escaped_page_url}#"))
 }
 
 /// Finds the byte offset immediately after the first opening `<head>` tag.

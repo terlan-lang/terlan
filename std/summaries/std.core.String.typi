@@ -222,6 +222,15 @@ pub (value: String) from_string(): Option[String].
 @pure
 pub (value: String) is_empty(): Bool.
 
+/// Joins ordered string values with one separator between adjacent values.
+///
+/// Input: a list of strings and the separator inserted between values.
+/// Output: the concatenated string, or the empty string for an empty list.
+/// Transformation: preserves list order and never inserts leading or trailing
+/// separators.
+
+pub join(values: List[String], separator: String): String.
+
 /// Counts user-visible text units in a `String`.
 ///
 /// Input: one UTF-8 `String` value.

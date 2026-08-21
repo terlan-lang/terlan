@@ -1,0 +1,19 @@
+//! Portable scoped-span values with host-owned propagation.
+
+module std.service.Trace.
+
+pub struct Span {
+    name: String,
+    status: Atom
+}.
+
+pub begin(name: String): Span.
+
+@pure
+pub cancel(span: Span): Unit.
+
+@pure
+pub finish(span: Span): Unit.
+
+@pure
+pub time_out(span: Span): Unit.

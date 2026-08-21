@@ -3,9 +3,19 @@ name: Docs CI
 on:
   pull_request:
     paths:
+      - "Cargo.lock"
+      - "Cargo.toml"
       - "README.md"
       - "CHANGELOG.md"
+      - "crates/terl-docs/**"
+      - "crates/terlan/Cargo.toml"
+      - "crates/terlan/src/commands/build/web_toolchain.rs"
+      - "crates/terlan/src/commands/static_site/**"
+      - "crates/terlan/src/html/**"
       - "docs/**"
+      - "sites/terlan.io/**"
+      - "tools/web-toolchain/package.json"
+      - "tools/web-toolchain/package-lock.json"
       - ".github/WORKFLOWS.md"
       - ".github/actions/**"
       - ".github/workflows/docs.yml"
@@ -17,7 +27,6 @@ on:
       - "CHANGELOG.md"
       - "docs/**"
       - ".github/WORKFLOWS.md"
-      - ".github/actions/**"
       - ".github/workflows/docs.yml"
 
 permissions:
@@ -44,6 +53,21 @@ jobs:
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust
+        with:
+          components: ""
+
+      - name: Install Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tools/web-toolchain/package-lock.json
+
+      - name: Install compiler-managed web toolchain
+        run: npm ci --prefix tools/web-toolchain
 
       - name: Markdown hygiene
         run: make docs-light-check
+
+      - name: Build terlan.io at root and project base paths
+        run: sites/terlan.io/scripts/check.sh

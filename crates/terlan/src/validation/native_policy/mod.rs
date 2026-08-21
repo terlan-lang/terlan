@@ -21,17 +21,12 @@ impl NativePolicy {
     /// - `None` for unsupported values.
     ///
     /// Transformation:
-    /// - Accepts the 0.0.7 native-boundary spelling as canonical and keeps the
-    ///   old bridge-name spelling as a temporary migration alias.
+    /// - Accepts only the canonical 0.0.7 native-boundary spellings.
     pub(crate) fn from_cli(value: &str) -> Option<Self> {
         match value {
             "pure" => Some(NativePolicy::Pure),
-            "native_boundary_optional" | "safe_native_optional" => {
-                Some(NativePolicy::NativeBoundaryOptional)
-            }
-            "native_boundary_required" | "safe_native_required" => {
-                Some(NativePolicy::NativeBoundaryRequired)
-            }
+            "native_boundary_optional" => Some(NativePolicy::NativeBoundaryOptional),
+            "native_boundary_required" => Some(NativePolicy::NativeBoundaryRequired),
             _ => None,
         }
     }
@@ -112,7 +107,6 @@ pub(crate) fn validate_native_policy(source: &str, policy: NativePolicy) -> Resu
 ///   checks before deeper compiler phases run.
 pub(crate) fn source_uses_native(source: &str) -> bool {
     source.contains("target vm with native_boundary")
-        || source.contains("target vm with safe_native")
         || source.contains("@compiler.native")
         || source
             .lines()

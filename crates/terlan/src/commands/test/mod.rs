@@ -1,3 +1,4 @@
+mod arguments;
 mod discovery;
 mod execution;
 mod manifest;
@@ -15,8 +16,9 @@ mod test_command_test;
 
 pub(crate) use execution::run;
 
+use arguments::{TestArgs, TEST_SOURCE_PATTERN_DESCRIPTION};
 use discovery::{discover_tests, select_tests, DiscoveredTest};
-use execution::{print_runtime_test_report, TestArgs, TEST_SOURCE_PATTERN_DESCRIPTION};
+use execution::print_runtime_test_report;
 use manifest::{
     write_test_manifest, write_test_result_manifest, TestRunReport, TestRunResult, TestRunStatus,
 };

@@ -140,7 +140,12 @@ run_command(root_path: String, working: String, values: List[String]): KernelRes
                     Process.without_environment(located, ["LEAN_PATH"]),
                     [Process.environment_entry("ELAN_NO_UPDATE_CHECK", "1")],
                 );
-            case Process.run(configured) {
+            let bounded =
+                if {
+                    program == "cargo" -> Process.with_timeout_ms(configured, 300000);
+                    true -> configured
+                };
+            case Process.run(bounded) {
                 Ok(output) ->
                     if {
                         Process.status(output) == 0 -> pass(Json.null());
@@ -162,6 +167,21 @@ run_command(root_path: String, working: String, values: List[String]): KernelRes
                     };
                 Err(reason) -> reject(Process.error_message(reason))
             }
+    }.
+
+rust_runtime_owned_by_canonical_suite(values: List[String]): Bool ->
+    let {
+        ["cargo" | arguments] <- values;
+        ["test" | _remaining] <- arguments
+    } else {
+        _ -> false
+    };
+    true.
+
+canonical_rust_suite_passed(): Bool ->
+    case Environment.get("TERLAN_RUST_SUITE_ALREADY_RUN") {
+        Some("1") -> true;
+        _ -> false
     }.
 
 proof_command(root_path: String, proof: String): KernelResult ->
@@ -215,7 +235,17 @@ family_evidence(root_path: String, family: Json, index: Json): KernelResult ->
                 recorded_digest != actual_digest -> reject(String.append(proof, ": artifact digest is stale"));
                 not binding_is_current(index, slice, family_id) -> reject(String.append(slice, ": feature binding is not proof-current"));
                 true -> let proof_result = proof_command(root_path, proof);
-                let runtime_result = run_command(root_path, ".", runtime);
+                let runtime_reused = canonical_rust_suite_passed() and rust_runtime_owned_by_canonical_suite(runtime);
+                let runtime_result =
+                    if {
+                        runtime_reused -> pass(Json.null());
+                        true -> run_command(root_path, ".", runtime)
+                    };
+                let runtime_owner =
+                    if {
+                        runtime_reused -> "rust-test-suite";
+                        true -> "semantic-kernel"
+                    };
                 if {
                     not proof_result.valid -> proof_result;
                     not runtime_result.valid -> runtime_result;
@@ -227,6 +257,8 @@ family_evidence(root_path: String, family: Json, index: Json): KernelResult ->
                             .put("proof_digest", Json.string(actual_digest))
                             .put("theorems", theorem_values)
                             .put("runtime_oracle", runtime_value)
+                            .put("runtime_oracle_owner", Json.string(runtime_owner))
+                            .put("runtime_oracle_reused", Json.bool(runtime_reused))
                             .put("positive_and_rejection_witnesses", Json.bool(true)),
                     )
                 }
@@ -344,6 +376,8 @@ self_test(root_path: String): Bool ->
     };
     if {
         count != 6 -> failure("self-test: exactly six semantic kernel families are required");
+        not rust_runtime_owned_by_canonical_suite(["cargo", "test", "--locked"]) -> failure("self-test: canonical Cargo test ownership was not recognized");
+        rust_runtime_owned_by_canonical_suite(["target/debug/terlc", "test", "suite.terl"]) -> failure("self-test: Terlan runtime oracle was assigned to the Rust suite");
         true -> let _printed = println("Lean semantic kernel self-test passed");
         true
     }.

@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use crate::CliState;
 
 /// Default host for `terlc serve`.
@@ -10,6 +11,9 @@ pub(crate) const DEFAULT_SERVE_PORT: u16 = 3000;
 
 /// Default live-reload polling interval in milliseconds.
 pub(crate) const DEFAULT_POLL_MS: u64 = 500;
+
+/// Default maximum request-body size accepted by the production HTTP adapter.
+pub(crate) const DEFAULT_MAX_BODY_BYTES: u64 = 8 * 1024 * 1024;
 
 /// Dynamic handler runtime selected for `terlc serve`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,6 +38,7 @@ pub(crate) struct ServeArgs {
     pub(crate) host: String,
     pub(crate) port: u16,
     pub(crate) poll_ms: u64,
+    pub(crate) max_body_bytes: u64,
     pub(crate) handler_runtime: ServeHandlerRuntime,
     pub(crate) check_only: bool,
     pub(crate) overrides: ServeCliOverrides,
@@ -73,7 +78,20 @@ pub(crate) struct ServeCliOverrides {
 /// - Accepts at most one package directory, parses `--host`, `--port`,
 ///   `--poll-ms`, `--handler-runtime`, and `--check`, and preserves unknown
 ///   option failures as stable CLI errors.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) fn parse_serve_args(args: &[String], state: &CliState) -> Result<ServeArgs, String> {
+    parse_serve_args_with_default(args, state.out_dir.join("web"))
+}
+
+/// Parses the compiler-free runtime command with the release package default.
+pub(crate) fn parse_serve_runtime_args(args: &[String]) -> Result<ServeArgs, String> {
+    parse_serve_args_with_default(args, PathBuf::from("_build/web"))
+}
+
+fn parse_serve_args_with_default(
+    args: &[String],
+    default_web_root: PathBuf,
+) -> Result<ServeArgs, String> {
     let mut web_root = None;
     let mut host = DEFAULT_SERVE_HOST.to_string();
     let mut port = DEFAULT_SERVE_PORT;
@@ -199,10 +217,11 @@ pub(crate) fn parse_serve_args(args: &[String], state: &CliState) -> Result<Serv
     }
 
     Ok(ServeArgs {
-        web_root: web_root.unwrap_or_else(|| state.out_dir.join("web")),
+        web_root: web_root.unwrap_or(default_web_root),
         host,
         port,
         poll_ms,
+        max_body_bytes: DEFAULT_MAX_BODY_BYTES,
         handler_runtime,
         check_only,
         overrides,

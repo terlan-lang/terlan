@@ -992,6 +992,7 @@
     {
       "module": "terlan_libpq.Driver",
       "documentation": "Generated stable libpq C ABI boundary for the VM Postgres driver.",
+      "imports": [],
       "types": [
         {
           "name": "Connection",
@@ -1007,13 +1008,17 @@
       "functions": [
         {
           "name": "start",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.connection.start",
           "c_symbol": "function.connection_start",
           "role": "constructor",
           "args": [
             {
               "name": "url",
-              "ty": "String"
+              "ty": "String",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Connection",
@@ -1025,13 +1030,17 @@
         },
         {
           "name": "dispose_connection",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.connection.dispose",
           "c_symbol": "function.connection_destroy",
           "role": "dispose",
           "args": [
             {
               "name": "connection",
-              "ty": "Connection"
+              "ty": "Connection",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Unit",
@@ -1043,13 +1052,17 @@
         },
         {
           "name": "socket",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.connection.socket",
           "c_symbol": "function.connection_socket",
           "role": "immutable_method",
           "args": [
             {
               "name": "connection",
-              "ty": "Connection"
+              "ty": "Connection",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Int",
@@ -1061,13 +1074,17 @@
         },
         {
           "name": "poll_connect",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.connection.poll_connect",
           "c_symbol": "function.connection_poll",
           "role": "mutable_method",
           "args": [
             {
               "name": "connection",
-              "ty": "Connection"
+              "ty": "Connection",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Int",
@@ -1079,13 +1096,17 @@
         },
         {
           "name": "error_length",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.connection.error_length",
           "c_symbol": "function.connection_error_length",
           "role": "mutable_method",
           "args": [
             {
               "name": "connection",
-              "ty": "Connection"
+              "ty": "Connection",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Int",
@@ -1097,13 +1118,17 @@
         },
         {
           "name": "error_bytes",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.connection.error_bytes",
           "c_symbol": "function.connection_error_bytes",
           "role": "mutable_method",
           "args": [
             {
               "name": "connection",
-              "ty": "Connection"
+              "ty": "Connection",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "List[Int]",
@@ -1115,13 +1140,17 @@
         },
         {
           "name": "clear_parameters",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.connection.clear_parameters",
           "c_symbol": "function.connection_clear_parameters",
           "role": "mutable_method",
           "args": [
             {
               "name": "connection",
-              "ty": "Connection"
+              "ty": "Connection",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Unit",
@@ -1133,13 +1162,17 @@
         },
         {
           "name": "push_null",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.connection.push_null",
           "c_symbol": "function.connection_push_null",
           "role": "mutable_method",
           "args": [
             {
               "name": "connection",
-              "ty": "Connection"
+              "ty": "Connection",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Unit",
@@ -1151,17 +1184,23 @@
         },
         {
           "name": "push_text",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.connection.push_text",
           "c_symbol": "function.connection_push_text",
           "role": "mutable_method",
           "args": [
             {
               "name": "connection",
-              "ty": "Connection"
+              "ty": "Connection",
+              "abi_ty": null,
+              "default": null
             },
             {
               "name": "value",
-              "ty": "String"
+              "ty": "String",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Unit",
@@ -1173,17 +1212,23 @@
         },
         {
           "name": "send_query",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.connection.send_query",
           "c_symbol": "function.connection_send_query",
           "role": "mutable_method",
           "args": [
             {
               "name": "connection",
-              "ty": "Connection"
+              "ty": "Connection",
+              "abi_ty": null,
+              "default": null
             },
             {
               "name": "sql",
-              "ty": "String"
+              "ty": "String",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Unit",
@@ -1195,17 +1240,23 @@
         },
         {
           "name": "send_batch",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.connection.send_batch",
           "c_symbol": "function.connection_send_batch",
           "role": "mutable_method",
           "args": [
             {
               "name": "connection",
-              "ty": "Connection"
+              "ty": "Connection",
+              "abi_ty": null,
+              "default": null
             },
             {
               "name": "sql",
-              "ty": "String"
+              "ty": "String",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Unit",
@@ -1217,13 +1268,17 @@
         },
         {
           "name": "consume_input",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.connection.consume_input",
           "c_symbol": "function.connection_consume_input",
           "role": "mutable_method",
           "args": [
             {
               "name": "connection",
-              "ty": "Connection"
+              "ty": "Connection",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Unit",
@@ -1235,13 +1290,17 @@
         },
         {
           "name": "is_busy",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.connection.is_busy",
           "c_symbol": "function.connection_is_busy",
           "role": "immutable_method",
           "args": [
             {
               "name": "connection",
-              "ty": "Connection"
+              "ty": "Connection",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Bool",
@@ -1253,13 +1312,17 @@
         },
         {
           "name": "next_result",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.connection.next_result",
           "c_symbol": "function.connection_next_result",
           "role": "mutable_method",
           "args": [
             {
               "name": "connection",
-              "ty": "Connection"
+              "ty": "Connection",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "QueryResult",
@@ -1271,13 +1334,17 @@
         },
         {
           "name": "abort",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.connection.abort",
           "c_symbol": "function.connection_abort",
           "role": "mutable_method",
           "args": [
             {
               "name": "connection",
-              "ty": "Connection"
+              "ty": "Connection",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Unit",
@@ -1289,13 +1356,17 @@
         },
         {
           "name": "dispose_result",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.result.dispose",
           "c_symbol": "function.result_destroy",
           "role": "dispose",
           "args": [
             {
               "name": "result",
-              "ty": "QueryResult"
+              "ty": "QueryResult",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Unit",
@@ -1307,13 +1378,17 @@
         },
         {
           "name": "status",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.result.status",
           "c_symbol": "function.result_status",
           "role": "immutable_method",
           "args": [
             {
               "name": "result",
-              "ty": "QueryResult"
+              "ty": "QueryResult",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Int",
@@ -1325,13 +1400,17 @@
         },
         {
           "name": "row_count",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.result.row_count",
           "c_symbol": "function.result_row_count",
           "role": "immutable_method",
           "args": [
             {
               "name": "result",
-              "ty": "QueryResult"
+              "ty": "QueryResult",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Int",
@@ -1343,13 +1422,17 @@
         },
         {
           "name": "column_count",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.result.column_count",
           "c_symbol": "function.result_column_count",
           "role": "immutable_method",
           "args": [
             {
               "name": "result",
-              "ty": "QueryResult"
+              "ty": "QueryResult",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Int",
@@ -1361,17 +1444,23 @@
         },
         {
           "name": "select_column_name",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.result.select_column_name",
           "c_symbol": "function.result_select_column_name",
           "role": "mutable_method",
           "args": [
             {
               "name": "result",
-              "ty": "QueryResult"
+              "ty": "QueryResult",
+              "abi_ty": null,
+              "default": null
             },
             {
               "name": "column",
-              "ty": "Int"
+              "ty": "Int",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Unit",
@@ -1383,17 +1472,23 @@
         },
         {
           "name": "column_oid",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.result.column_oid",
           "c_symbol": "function.result_column_oid",
           "role": "immutable_method",
           "args": [
             {
               "name": "result",
-              "ty": "QueryResult"
+              "ty": "QueryResult",
+              "abi_ty": null,
+              "default": null
             },
             {
               "name": "column",
-              "ty": "Int"
+              "ty": "Int",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Int",
@@ -1405,21 +1500,29 @@
         },
         {
           "name": "select_value",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.result.select_value",
           "c_symbol": "function.result_select_value",
           "role": "mutable_method",
           "args": [
             {
               "name": "result",
-              "ty": "QueryResult"
+              "ty": "QueryResult",
+              "abi_ty": null,
+              "default": null
             },
             {
               "name": "row",
-              "ty": "Int"
+              "ty": "Int",
+              "abi_ty": null,
+              "default": null
             },
             {
               "name": "column",
-              "ty": "Int"
+              "ty": "Int",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Unit",
@@ -1431,13 +1534,17 @@
         },
         {
           "name": "value_length",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.result.value_length",
           "c_symbol": "function.result_value_length",
           "role": "immutable_method",
           "args": [
             {
               "name": "result",
-              "ty": "QueryResult"
+              "ty": "QueryResult",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Int",
@@ -1449,13 +1556,17 @@
         },
         {
           "name": "value_bytes",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.result.value_bytes",
           "c_symbol": "function.result_value_bytes",
           "role": "immutable_method",
           "args": [
             {
               "name": "result",
-              "ty": "QueryResult"
+              "ty": "QueryResult",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "List[Int]",
@@ -1467,13 +1578,17 @@
         },
         {
           "name": "value_is_null",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.result.value_is_null",
           "c_symbol": "function.result_value_is_null",
           "role": "immutable_method",
           "args": [
             {
               "name": "result",
-              "ty": "QueryResult"
+              "ty": "QueryResult",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Bool",
@@ -1485,13 +1600,17 @@
         },
         {
           "name": "affected_rows",
+          "adapter_name": null,
+          "visibility": "public",
           "operation": "postgres.libpq.result.affected_rows",
           "c_symbol": "function.result_affected_rows",
           "role": "immutable_method",
           "args": [
             {
               "name": "result",
-              "ty": "QueryResult"
+              "ty": "QueryResult",
+              "abi_ty": null,
+              "default": null
             }
           ],
           "returns": "Int",

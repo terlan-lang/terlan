@@ -35,6 +35,7 @@ pub(super) struct BrowserStaticAssetConfig {
     pub(super) web_path_prefix: PathBuf,
     pub(super) inline_limit: Option<u64>,
     pub(super) rsbuild_config: Option<PathBuf>,
+    pub(super) angular_ts: bool,
 }
 
 /// Source module used only for web route-manifest discovery.
@@ -52,6 +53,7 @@ pub(super) struct BrowserStaticAssetConfig {
 pub(super) struct WebRouteSourceArtifact {
     pub(super) module: String,
     pub(super) source_path: String,
+    pub(super) manifest_path: Option<String>,
 }
 
 impl WebRouteSourceArtifact {
@@ -72,8 +74,209 @@ impl WebRouteSourceArtifact {
         Self {
             module: module.module.clone(),
             source_path: module.source_path.clone(),
+            manifest_path: None,
         }
     }
+}
+
+/// Writes a self-contained route package for a native Terlan VM service.
+///
+/// The package retains the root Terlan sources because the compiler-free serve
+/// runtime uses their checksums to bind persisted AOT handler generations to
+/// the exact source that produced them. No JavaScript artifact is emitted.
+pub(super) fn write_vm_service_package(
+    project_dir: &Path,
+    build_root: &Path,
+    source_roots: &[String],
+    route_sources: &[WebRouteSourceArtifact],
+    incremental: bool,
+) -> Result<PathBuf, String> {
+    let web_root = build_root.join("web");
+    let staging_root = build_root.join("web.staging");
+    remove_generated_web_root(&staging_root)?;
+    fs::create_dir_all(&staging_root).map_err(|error| {
+        format!(
+            "cannot create VM service package directory {}: {error}",
+            staging_root.display()
+        )
+    })?;
+    copy_regular_file(
+        &project_dir.join(super::TERLAN_PROJECT_MANIFEST_FILE),
+        &staging_root.join(super::TERLAN_PROJECT_MANIFEST_FILE),
+    )?;
+    for source_root in source_roots {
+        copy_source_tree(
+            &project_dir.join(source_root),
+            &staging_root.join(source_root),
+        )?;
+    }
+    write_build_file(
+        &staging_root.join("index.html"),
+        b"<!doctype html>\n<html><head><meta charset=\"utf-8\"><title>Terlan service</title></head><body><main>Terlan service</main></body></html>\n",
+        incremental,
+    )?;
+    let routes = discover_web_route_manifest_from_sources(route_sources)?;
+    let error_handler = discover_web_error_handler_from_sources(route_sources)?;
+    manifest::write_vm_service_manifest(&staging_root, routes, error_handler, incremental)?;
+    crate::commands::serve::prewarm_dynamic_handler_sources(&staging_root)?;
+    remove_transient_vm_service_build_state(&staging_root)?;
+    remove_generated_web_root(&web_root)?;
+    fs::rename(&staging_root, &web_root).map_err(|error| {
+        format!(
+            "cannot publish VM service package {}: {error}",
+            web_root.display()
+        )
+    })?;
+    Ok(web_root)
+}
+
+fn remove_transient_vm_service_build_state(web_root: &Path) -> Result<(), String> {
+    let terlan_root = web_root.join(".terlan");
+    for transient in ["serve-build", "serve-compiler"] {
+        remove_generated_web_root(&terlan_root.join(transient))?;
+    }
+    let serve_aot = terlan_root.join("serve-aot");
+    for transient in ["units", "vm"] {
+        remove_generated_web_root(&serve_aot.join(transient))?;
+    }
+    let native_aot = serve_aot.join("native-aot");
+    if native_aot.is_dir() {
+        prune_native_aot_directory(&native_aot)?;
+    }
+    Ok(())
+}
+
+fn prune_native_aot_directory(directory: &Path) -> Result<(), String> {
+    let entries = fs::read_dir(directory)
+        .map_err(|error| {
+            format!(
+                "cannot inspect serve AOT cache {}: {error}",
+                directory.display()
+            )
+        })?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| {
+            format!(
+                "cannot inspect serve AOT cache {}: {error}",
+                directory.display()
+            )
+        })?;
+    for entry in entries {
+        let path = entry.path();
+        let metadata = fs::symlink_metadata(&path).map_err(|error| {
+            format!("cannot inspect serve AOT entry {}: {error}", path.display())
+        })?;
+        if metadata.file_type().is_symlink() {
+            return Err(format!(
+                "serve AOT cache cannot contain symlink {}",
+                path.display()
+            ));
+        }
+        if metadata.is_dir() {
+            prune_native_aot_directory(&path)?;
+            if fs::read_dir(&path)
+                .map_err(|error| {
+                    format!("cannot inspect serve AOT entry {}: {error}", path.display())
+                })?
+                .next()
+                .is_none()
+            {
+                fs::remove_dir(&path).map_err(|error| {
+                    format!(
+                        "cannot remove serve AOT directory {}: {error}",
+                        path.display()
+                    )
+                })?;
+            }
+        } else if metadata.is_file()
+            && path.extension().and_then(|extension| extension.to_str()) != Some("tvm")
+        {
+            fs::remove_file(&path).map_err(|error| {
+                format!(
+                    "cannot remove serve AOT build file {}: {error}",
+                    path.display()
+                )
+            })?;
+        }
+    }
+    Ok(())
+}
+
+fn remove_generated_web_root(path: &Path) -> Result<(), String> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => Err(format!(
+            "refusing to replace generated web package symlink {}",
+            path.display()
+        )),
+        Ok(metadata) if metadata.is_dir() => fs::remove_dir_all(path)
+            .map_err(|error| format!("cannot remove {}: {error}", path.display())),
+        Ok(_) => fs::remove_file(path)
+            .map_err(|error| format!("cannot remove {}: {error}", path.display())),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(format!("cannot inspect {}: {error}", path.display())),
+    }
+}
+
+fn copy_source_tree(source: &Path, destination: &Path) -> Result<(), String> {
+    let metadata = fs::symlink_metadata(source)
+        .map_err(|error| format!("cannot inspect source tree {}: {error}", source.display()))?;
+    if metadata.file_type().is_symlink() {
+        return Err(format!(
+            "VM service source tree cannot contain symlink {}",
+            source.display()
+        ));
+    }
+    if metadata.is_file() {
+        return copy_regular_file(source, destination);
+    }
+    if !metadata.is_dir() {
+        return Err(format!(
+            "VM service source tree contains unsupported entry {}",
+            source.display()
+        ));
+    }
+    fs::create_dir_all(destination).map_err(|error| {
+        format!(
+            "cannot create VM service source directory {}: {error}",
+            destination.display()
+        )
+    })?;
+    let mut entries = fs::read_dir(source)
+        .map_err(|error| format!("cannot inspect source tree {}: {error}", source.display()))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("cannot inspect source tree {}: {error}", source.display()))?;
+    entries.sort_by_key(std::fs::DirEntry::file_name);
+    for entry in entries {
+        copy_source_tree(&entry.path(), &destination.join(entry.file_name()))?;
+    }
+    Ok(())
+}
+
+fn copy_regular_file(source: &Path, destination: &Path) -> Result<(), String> {
+    let metadata = fs::symlink_metadata(source)
+        .map_err(|error| format!("cannot inspect source file {}: {error}", source.display()))?;
+    if !metadata.is_file() || metadata.file_type().is_symlink() {
+        return Err(format!(
+            "VM service package requires a regular source file: {}",
+            source.display()
+        ));
+    }
+    if let Some(parent) = destination.parent() {
+        fs::create_dir_all(parent).map_err(|error| {
+            format!(
+                "cannot create VM service source directory {}: {error}",
+                parent.display()
+            )
+        })?;
+    }
+    fs::copy(source, destination).map_err(|error| {
+        format!(
+            "cannot copy VM service source {} to {}: {error}",
+            source.display(),
+            destination.display()
+        )
+    })?;
+    Ok(())
 }
 
 /// Writes the deterministic browser package artifact for a JS browser build.

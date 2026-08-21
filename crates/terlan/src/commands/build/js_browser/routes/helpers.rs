@@ -41,7 +41,10 @@ pub(super) fn route_source_context<'a>(
     source_text: &'a str,
 ) -> WebRouteSourceContext<'a> {
     WebRouteSourceContext {
-        manifest_path: route_source_manifest_path(&source.source_path),
+        manifest_path: source
+            .manifest_path
+            .clone()
+            .unwrap_or_else(|| route_source_manifest_path(&source.source_path)),
         source_text,
     }
 }

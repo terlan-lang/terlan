@@ -1,0 +1,8 @@
+//! Strict Ed25519 signature verification.
+
+module std.crypto.Ed25519.
+
+/// Verifies a base64-encoded Ed25519 public key and signature over the exact
+/// UTF-8 payload bytes. Invalid inputs and signature mismatches return false.
+
+pub verify(public_key_base64: String, payload: String, signature_base64: String): Bool.

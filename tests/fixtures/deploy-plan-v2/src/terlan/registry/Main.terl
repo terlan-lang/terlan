@@ -1,0 +1,3 @@
+module terlan.registry.Main.
+
+pub main(): Int -> 0.

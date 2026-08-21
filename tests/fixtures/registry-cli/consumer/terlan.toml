@@ -1,0 +1,11 @@
+[package]
+name = "registry_consumer"
+version = "0.1.0"
+namespace = "registry_consumer"
+
+[build]
+source_roots = ["src"]
+artifact = "terlan-vm"
+
+[dependencies]
+registry_math = { registry = "local://terlan", version = "1.0.0" }

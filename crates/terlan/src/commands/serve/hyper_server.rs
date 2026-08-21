@@ -7,6 +7,7 @@ use std::net as std_net;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::task::{Context, Poll};
 
@@ -22,10 +23,13 @@ use crate::runtime::vm::protocol_task_executor::{
     serve_protocol_tasks, VmProtocolTaskFactory, VmReadyTcpStream,
 };
 
+use super::handle_vm_stream_request;
 use super::handler::VmHttpChannelTransport;
+use super::server_lifecycle::{
+    handle_suspendable_vm_stream_request, request_requires_file_body, RequestBodyFilePath,
+};
 #[cfg(test)]
 use super::{channel_transport, handle_vm_stream_http1_exchange};
-use super::{handle_suspendable_vm_stream_request, handle_vm_stream_request};
 
 mod http2;
 mod tls_io;
@@ -36,14 +40,20 @@ thread_local! {
 }
 
 /// Runs Hyper connection futures on the protocol-agnostic VM task executor.
-pub(super) fn serve(listener: std_net::TcpListener, web_root: PathBuf) -> Result<(), String> {
+pub(super) fn serve(
+    listener: std_net::TcpListener,
+    web_root: PathBuf,
+    max_body_bytes: u64,
+) -> Result<(), String> {
     let web_root = Arc::new(web_root);
     let factory: VmProtocolTaskFactory = Arc::new(move |stream, route| {
         let web_root = owner_local_web_root(&web_root);
         let service = service_fn(move |request| {
             let web_root = Rc::clone(&web_root);
             async move {
-                Ok::<_, Infallible>(handle_request(request, web_root.as_ref().as_path()).await)
+                Ok::<_, Infallible>(
+                    handle_request(request, web_root.as_ref().as_path(), max_body_bytes).await,
+                )
             }
         });
         let connection = http1::Builder::new().serve_connection(HyperVmIo::new(stream), service);
@@ -65,13 +75,18 @@ pub(super) fn serve_tls(
     listener: std_net::TcpListener,
     web_root: PathBuf,
     server_config: Arc<rustls::ServerConfig>,
+    max_body_bytes: u64,
 ) -> Result<(), String> {
-    serve_protocol_tasks(listener, tls_factory(web_root, server_config))
+    serve_protocol_tasks(
+        listener,
+        tls_factory(web_root, server_config, max_body_bytes),
+    )
 }
 
 fn tls_factory(
     web_root: PathBuf,
     server_config: Arc<rustls::ServerConfig>,
+    max_body_bytes: u64,
 ) -> VmProtocolTaskFactory {
     let web_root = Arc::new(web_root);
     Arc::new(move |stream, route| {
@@ -91,7 +106,9 @@ fn tls_factory(
             let service = service_fn(move |request| {
                 let web_root = Rc::clone(&web_root);
                 async move {
-                    Ok::<_, Infallible>(handle_request(request, web_root.as_ref().as_path()).await)
+                    Ok::<_, Infallible>(
+                        handle_request(request, web_root.as_ref().as_path(), max_body_bytes).await,
+                    )
                 }
             });
             match protocol {
@@ -120,6 +137,138 @@ fn owner_local_web_root(shared: &Arc<PathBuf>) -> Rc<PathBuf> {
                 .expect("owner-local web root is initialized before cloning"),
         )
     })
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum BodyReadError {
+    TooLarge,
+    Invalid(String),
+    Unavailable(String),
+}
+
+static NEXT_UPLOAD_FILE: AtomicU64 = AtomicU64::new(1);
+
+struct TemporaryBodyFile {
+    path: PathBuf,
+}
+
+impl Drop for TemporaryBodyFile {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
+}
+
+fn declared_body_exceeds_limit(headers: &http::HeaderMap, max_body_bytes: u64) -> bool {
+    headers
+        .get_all(http::header::CONTENT_LENGTH)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .filter_map(|value| value.trim().parse::<u64>().ok())
+        .any(|length| length > max_body_bytes)
+}
+
+async fn collect_bounded_body<B>(mut body: B, max_body_bytes: u64) -> Result<Vec<u8>, BodyReadError>
+where
+    B: http_body::Body<Data = Bytes> + Unpin,
+    B::Error: std::fmt::Display,
+{
+    let mut bytes = Vec::new();
+    while let Some(frame) = body.frame().await {
+        let frame = frame.map_err(|error| BodyReadError::Invalid(error.to_string()))?;
+        let Ok(data) = frame.into_data() else {
+            continue;
+        };
+        let next_length = (bytes.len() as u64)
+            .checked_add(data.len() as u64)
+            .ok_or(BodyReadError::TooLarge)?;
+        if next_length > max_body_bytes {
+            return Err(BodyReadError::TooLarge);
+        }
+        bytes.extend_from_slice(&data);
+    }
+    Ok(bytes)
+}
+
+async fn spool_bounded_body<B>(
+    body: B,
+    max_body_bytes: u64,
+) -> Result<TemporaryBodyFile, BodyReadError>
+where
+    B: http_body::Body<Data = Bytes> + Unpin,
+    B::Error: std::fmt::Display,
+{
+    let configured_root = std::env::var("TERLAN_SERVE_UPLOAD_ROOT").map_err(|_| {
+        BodyReadError::Unavailable(
+            "TERLAN_SERVE_UPLOAD_ROOT is required for file-backed request bodies".into(),
+        )
+    })?;
+    spool_bounded_body_to_root(body, max_body_bytes, Path::new(&configured_root)).await
+}
+
+async fn spool_bounded_body_to_root<B>(
+    mut body: B,
+    max_body_bytes: u64,
+    root: &Path,
+) -> Result<TemporaryBodyFile, BodyReadError>
+where
+    B: http_body::Body<Data = Bytes> + Unpin,
+    B::Error: std::fmt::Display,
+{
+    let root = root.to_path_buf();
+    if !root.is_absolute() {
+        return Err(BodyReadError::Unavailable(
+            "TERLAN_SERVE_UPLOAD_ROOT must be absolute".into(),
+        ));
+    }
+    std::fs::create_dir_all(&root).map_err(|error| {
+        BodyReadError::Unavailable(format!("cannot create upload root: {error}"))
+    })?;
+    let root = std::fs::canonicalize(&root).map_err(|error| {
+        BodyReadError::Unavailable(format!("cannot resolve upload root: {error}"))
+    })?;
+    let (temporary, mut file) = (0..16)
+        .find_map(|_| {
+            let sequence = NEXT_UPLOAD_FILE.fetch_add(1, Ordering::Relaxed);
+            let path = root.join(format!(
+                "terlan-request-body-{}-{sequence}.upload",
+                std::process::id()
+            ));
+            match std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&path)
+            {
+                Ok(file) => Some(Ok((TemporaryBodyFile { path }, file))),
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => None,
+                Err(error) => Some(Err(BodyReadError::Unavailable(format!(
+                    "cannot create request body file: {error}"
+                )))),
+            }
+        })
+        .unwrap_or_else(|| {
+            Err(BodyReadError::Unavailable(
+                "cannot allocate a unique request body file".into(),
+            ))
+        })?;
+    let mut written = 0_u64;
+    while let Some(frame) = body.frame().await {
+        let frame = frame.map_err(|error| BodyReadError::Invalid(error.to_string()))?;
+        let Ok(data) = frame.into_data() else {
+            continue;
+        };
+        written = written
+            .checked_add(data.len() as u64)
+            .ok_or(BodyReadError::TooLarge)?;
+        if written > max_body_bytes {
+            return Err(BodyReadError::TooLarge);
+        }
+        file.write_all(&data)
+            .map_err(|error| BodyReadError::Unavailable(format!("cannot spool body: {error}")))?;
+    }
+    file.flush()
+        .map_err(|error| BodyReadError::Unavailable(format!("cannot flush body: {error}")))?;
+    drop(file);
+    Ok(temporary)
 }
 
 /// Hyper I/O facade; readiness and polling remain owned by the VM executor.
@@ -212,20 +361,56 @@ impl Write for HyperVmIo {
     }
 }
 
-async fn handle_request(request: Request<Incoming>, web_root: &Path) -> Response<Full<Bytes>> {
+async fn handle_request(
+    request: Request<Incoming>,
+    web_root: &Path,
+    max_body_bytes: u64,
+) -> Response<Full<Bytes>> {
+    if declared_body_exceeds_limit(request.headers(), max_body_bytes) {
+        return error_response(413, format!("request body exceeds {max_body_bytes} bytes"));
+    }
+    let file_backed =
+        match request_requires_file_body(web_root, request.method().as_str(), request.uri().path())
+        {
+            Ok(file_backed) => file_backed,
+            Err(error) => return error_response(500, error),
+        };
     let (parts, body) = request.into_parts();
-    let body = match body.collect().await {
-        // `Bytes` can transfer a uniquely owned Hyper receive allocation into
-        // the Vec without copying. The generated Request still receives its
-        // required String, but the common one-frame body no longer pays for a
-        // second buffer and memcpy at the protocol/runtime boundary.
-        Ok(body) => match String::from_utf8(Vec::from(body.to_bytes())) {
-            Ok(body) => body,
-            Err(error) => return error_response(400, format!("invalid UTF-8 body: {error}")),
-        },
-        Err(error) => return error_response(400, format!("invalid request body: {error}")),
+    let (body, temporary) = if file_backed {
+        match spool_bounded_body(body, max_body_bytes).await {
+            Ok(temporary) => (String::new(), Some(temporary)),
+            Err(BodyReadError::TooLarge) => {
+                return error_response(413, format!("request body exceeds {max_body_bytes} bytes"))
+            }
+            Err(BodyReadError::Invalid(error)) => {
+                return error_response(400, format!("invalid request body: {error}"))
+            }
+            Err(BodyReadError::Unavailable(error)) => return error_response(503, error),
+        }
+    } else {
+        match collect_bounded_body(body, max_body_bytes).await {
+            Ok(body) => match String::from_utf8(body) {
+                Ok(body) => (body, None),
+                Err(error) => return error_response(400, format!("invalid UTF-8 body: {error}")),
+            },
+            Err(BodyReadError::TooLarge) => {
+                return error_response(413, format!("request body exceeds {max_body_bytes} bytes"))
+            }
+            Err(BodyReadError::Invalid(error)) => {
+                return error_response(400, format!("invalid request body: {error}"))
+            }
+            Err(BodyReadError::Unavailable(error)) => return error_response(503, error),
+        }
     };
-    let request = Request::from_parts(parts, body);
+    let mut request = Request::from_parts(parts, body);
+    if let Some(temporary) = &temporary {
+        let Some(path) = temporary.path.to_str() else {
+            return error_response(503, "temporary request path is not UTF-8".into());
+        };
+        request
+            .extensions_mut()
+            .insert(RequestBodyFilePath(path.to_string()));
+    }
     match handle_suspendable_vm_stream_request(&request, web_root).await {
         Ok(Some(response)) => {
             let (parts, body) = response.into_parts();

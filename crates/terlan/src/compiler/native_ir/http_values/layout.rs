@@ -36,7 +36,7 @@ pub(super) fn option_string_layouts() -> Result<Vec<Arc<[u8]>>, String> {
             1,
             2,
             vec![(
-                None,
+                Some("value".to_string()),
                 ManagedFieldType::Reference(semantic("std.core.String")?),
             )],
         )
@@ -62,6 +62,7 @@ pub(super) fn request_descriptor() -> Result<Arc<ManagedAggregateDescriptor>, St
             map,
             map,
             ManagedFieldType::Reference(semantic(COOKIE_JAR)?),
+            string,
         ],
     )
     .map(Arc::new)

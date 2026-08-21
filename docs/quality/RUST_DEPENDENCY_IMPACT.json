@@ -4,12 +4,12 @@
     "milestone": "0.0.8",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "779d3a791b0643994e555831e4289bb43753b819c40ba21e47137063cf7cac61",
+  "compilation_input_sha256": "72754ab6135ae64a60ba545ab6b45dd30ae47a55d7e744a32db709a4f75ca036",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 56,
-    "maximum_resolved_duplicate_families": 30,
+    "maximum_resolved_duplicate_families": 34,
     "milestone": "0.0.8",
-    "non_optional_normal_dependencies": 54,
+    "non_optional_normal_dependencies": 56,
     "package": "terlan",
     "target_non_optional_normal_dependencies": 50,
     "target_resolved_duplicate_families": 24
@@ -41,7 +41,7 @@
     },
     {
       "domain": "formal_pipeline",
-      "reference_sites": 45,
+      "reference_sites": 47,
       "source_domains": [
         "commands",
         "lsp",
@@ -67,6 +67,14 @@
       "domain": "native_worker",
       "reference_sites": 0,
       "source_domains": []
+    },
+    {
+      "domain": "package_registry",
+      "reference_sites": 16,
+      "source_domains": [
+        "commands",
+        "runtime"
+      ]
     },
     {
       "domain": "quality",
@@ -109,13 +117,28 @@
       "source_domains": []
     },
     {
+      "domain": "root:service_foundation",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "root:support_runtime",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
       "domain": "root:template_inputs",
       "reference_sites": 0,
       "source_domains": []
     },
     {
+      "domain": "root:web_route",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
       "domain": "runtime",
-      "reference_sites": 71,
+      "reference_sites": 86,
       "source_domains": [
         "commands",
         "compiler"
@@ -128,7 +151,7 @@
     },
     {
       "domain": "support",
-      "reference_sites": 72,
+      "reference_sites": 74,
       "source_domains": [
         "commands",
         "root:formal_pipeline",
@@ -137,7 +160,7 @@
     },
     {
       "domain": "validation",
-      "reference_sites": 11,
+      "reference_sites": 12,
       "source_domains": [
         "commands"
       ]
@@ -204,6 +227,15 @@
       "domain": "native_worker"
     },
     {
+      "dependent_count": 3,
+      "dependent_domains": [
+        "commands",
+        "compiler",
+        "runtime"
+      ],
+      "domain": "package_registry"
+    },
+    {
       "dependent_count": 0,
       "dependent_domains": [],
       "domain": "quality"
@@ -246,7 +278,22 @@
     {
       "dependent_count": 0,
       "dependent_domains": [],
+      "domain": "root:service_foundation"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "root:support_runtime"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
       "domain": "root:template_inputs"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "root:web_route"
     },
     {
       "dependent_count": 2,
@@ -289,6 +336,14 @@
     "maximum_cycles": 0
   },
   "duplicate_dependency_classifications": [
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "bitflags",
+      "owner": "dependency-health",
+      "rationale": "Foundations compatibility dependencies and current workspace crates select different bitflags APIs",
+      "versions": "1.3.2,2.13.1"
+    },
     {
       "classification": "transitive-upgrade-blocked",
       "milestone": "0.0.8",
@@ -348,6 +403,14 @@
     {
       "classification": "transitive-upgrade-blocked",
       "milestone": "0.0.8",
+      "name": "erased-serde",
+      "owner": "dependency-health",
+      "rationale": "Foundations and its slog adapter currently select different erased-serde APIs",
+      "versions": "0.3.31,0.4.10"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
       "name": "foldhash",
       "owner": "dependency-health",
       "rationale": "hashbrown generations require different foldhash generations",
@@ -364,10 +427,26 @@
     {
       "classification": "transitive-upgrade-blocked",
       "milestone": "0.0.8",
+      "name": "gimli",
+      "owner": "dependency-health",
+      "rationale": "Foundations tracing backtraces and Cranelift currently select adjacent gimli generations",
+      "versions": "0.32.3,0.33.0"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
       "name": "hashbrown",
       "owner": "dependency-health",
-      "rationale": "gimli and transitive collections currently span three hashbrown generations",
-      "versions": "0.15.5,0.16.1,0.17.1"
+      "rationale": "Foundations, parser, and code-generation dependencies span supported hashbrown generations",
+      "versions": "0.12.3,0.14.5,0.15.5,0.16.1,0.17.1"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "indexmap",
+      "owner": "dependency-health",
+      "rationale": "Foundations schema dependencies retain indexmap 1 while workspace consumers use indexmap 2",
+      "versions": "1.9.3,2.14.0"
     },
     {
       "classification": "platform-compatibility",
@@ -394,12 +473,44 @@
       "versions": "5.3.0,6.0.0"
     },
     {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "rand",
+      "owner": "dependency-health",
+      "rationale": "Foundations tracing and workspace consumers currently select adjacent rand APIs",
+      "versions": "0.10.2,0.9.5"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "rand_core",
+      "owner": "dependency-health",
+      "rationale": "rand generations require their matching rand_core generation",
+      "versions": "0.10.1,0.9.5"
+    },
+    {
       "classification": "platform-compatibility",
       "milestone": "0.0.8",
       "name": "rustix",
       "owner": "dependency-health",
       "rationale": "transitive consumers currently support different rustix APIs",
       "versions": "0.38.44,1.1.4"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "schemars",
+      "owner": "dependency-health",
+      "rationale": "Foundations settings dependencies currently span two schema APIs",
+      "versions": "0.9.0,1.2.2"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.8",
+      "name": "syn",
+      "owner": "dependency-health",
+      "rationale": "Foundations and workspace procedural macros currently span three syn APIs",
+      "versions": "1.0.109,2.0.119,3.0.3"
     },
     {
       "classification": "transitive-upgrade-blocked",
@@ -536,8 +647,9 @@
     }
   ],
   "integration_test_policy": {
-    "maximum_targets": 12,
+    "maximum_targets": 13,
     "targets": [
+      "abi1_evidence_producers",
       "direct_aot",
       "direct_aot_cache",
       "direct_aot_condition",
@@ -565,27 +677,32 @@
     },
     {
       "from": "commands",
-      "reference_sites": 43,
+      "reference_sites": 45,
       "to": "formal_pipeline"
     },
     {
       "from": "commands",
-      "reference_sites": 57,
+      "reference_sites": 13,
+      "to": "package_registry"
+    },
+    {
+      "from": "commands",
+      "reference_sites": 71,
       "to": "runtime"
     },
     {
       "from": "commands",
-      "reference_sites": 58,
+      "reference_sites": 60,
       "to": "support"
     },
     {
       "from": "commands",
-      "reference_sites": 11,
+      "reference_sites": 12,
       "to": "validation"
     },
     {
       "from": "compiler",
-      "reference_sites": 14,
+      "reference_sites": 15,
       "to": "runtime"
     },
     {
@@ -606,6 +723,11 @@
     {
       "from": "runtime",
       "reference_sites": 3,
+      "to": "package_registry"
+    },
+    {
+      "from": "runtime",
+      "reference_sites": 3,
       "to": "support"
     }
   ],
@@ -622,18 +744,18 @@
     },
     {
       "name": "commands",
-      "physical_lines": 118128,
-      "rust_files": 309
+      "physical_lines": 127130,
+      "rust_files": 333
     },
     {
       "name": "compiler",
-      "physical_lines": 160258,
-      "rust_files": 410
+      "physical_lines": 164619,
+      "rust_files": 416
     },
     {
       "name": "formal_pipeline",
-      "physical_lines": 228,
-      "rust_files": 1
+      "physical_lines": 532,
+      "rust_files": 3
     },
     {
       "name": "formal_pipeline_test",
@@ -642,12 +764,12 @@
     },
     {
       "name": "html",
-      "physical_lines": 5311,
+      "physical_lines": 5695,
       "rust_files": 13
     },
     {
       "name": "lsp",
-      "physical_lines": 16336,
+      "physical_lines": 16331,
       "rust_files": 27
     },
     {
@@ -656,9 +778,14 @@
       "rust_files": 5
     },
     {
+      "name": "package_registry",
+      "physical_lines": 1834,
+      "rust_files": 7
+    },
+    {
       "name": "quality",
-      "physical_lines": 49381,
-      "rust_files": 144
+      "physical_lines": 49038,
+      "rust_files": 145
     },
     {
       "name": "root:accelerator_contract",
@@ -672,7 +799,7 @@
     },
     {
       "name": "root:cli_usage",
-      "physical_lines": 60,
+      "physical_lines": 171,
       "rust_files": 1
     },
     {
@@ -682,12 +809,12 @@
     },
     {
       "name": "root:formal_pipeline",
-      "physical_lines": 962,
+      "physical_lines": 894,
       "rust_files": 1
     },
     {
       "name": "root:lib",
-      "physical_lines": 897,
+      "physical_lines": 825,
       "rust_files": 1
     },
     {
@@ -696,19 +823,34 @@
       "rust_files": 1
     },
     {
+      "name": "root:service_foundation",
+      "physical_lines": 88,
+      "rust_files": 1
+    },
+    {
+      "name": "root:support_runtime",
+      "physical_lines": 75,
+      "rust_files": 1
+    },
+    {
       "name": "root:template_inputs",
       "physical_lines": 304,
       "rust_files": 1
     },
     {
+      "name": "root:web_route",
+      "physical_lines": 330,
+      "rust_files": 1
+    },
+    {
       "name": "runtime",
-      "physical_lines": 138578,
-      "rust_files": 400
+      "physical_lines": 139844,
+      "rust_files": 408
     },
     {
       "name": "serve_runtime",
-      "physical_lines": 8,
-      "rust_files": 1
+      "physical_lines": 16,
+      "rust_files": 2
     },
     {
       "name": "support",
@@ -717,7 +859,7 @@
     },
     {
       "name": "validation",
-      "physical_lines": 8815,
+      "physical_lines": 9068,
       "rust_files": 23
     },
     {
@@ -727,6 +869,13 @@
     }
   ],
   "resolved_dependency_duplicates": [
+    {
+      "name": "bitflags",
+      "versions": [
+        "1.3.2",
+        "2.13.1"
+      ]
+    },
     {
       "name": "block-buffer",
       "versions": [
@@ -777,6 +926,13 @@
       ]
     },
     {
+      "name": "erased-serde",
+      "versions": [
+        "0.3.31",
+        "0.4.10"
+      ]
+    },
+    {
       "name": "foldhash",
       "versions": [
         "0.1.5",
@@ -792,11 +948,27 @@
       ]
     },
     {
+      "name": "gimli",
+      "versions": [
+        "0.32.3",
+        "0.33.0"
+      ]
+    },
+    {
       "name": "hashbrown",
       "versions": [
+        "0.12.3",
+        "0.14.5",
         "0.15.5",
         "0.16.1",
         "0.17.1"
+      ]
+    },
+    {
+      "name": "indexmap",
+      "versions": [
+        "1.9.3",
+        "2.14.0"
       ]
     },
     {
@@ -821,10 +993,39 @@
       ]
     },
     {
+      "name": "rand",
+      "versions": [
+        "0.10.2",
+        "0.9.5"
+      ]
+    },
+    {
+      "name": "rand_core",
+      "versions": [
+        "0.10.1",
+        "0.9.5"
+      ]
+    },
+    {
       "name": "rustix",
       "versions": [
         "0.38.44",
         "1.1.4"
+      ]
+    },
+    {
+      "name": "schemars",
+      "versions": [
+        "0.9.0",
+        "1.2.2"
+      ]
+    },
+    {
+      "name": "syn",
+      "versions": [
+        "1.0.109",
+        "2.0.119",
+        "3.0.3"
       ]
     },
     {
@@ -928,7 +1129,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 3,
+      "reference_sites": 2,
       "to": "compiler"
     },
     {
@@ -938,7 +1139,12 @@
     },
     {
       "from": "commands",
-      "reference_sites": 38,
+      "reference_sites": 2,
+      "to": "package_registry"
+    },
+    {
+      "from": "commands",
+      "reference_sites": 44,
       "to": "runtime"
     },
     {
@@ -948,7 +1154,7 @@
     },
     {
       "from": "compiler",
-      "reference_sites": 9,
+      "reference_sites": 11,
       "to": "runtime"
     },
     {
@@ -975,17 +1181,22 @@
     },
     {
       "name": "commands",
-      "physical_lines": 36426,
-      "rust_files": 152
+      "physical_lines": 39008,
+      "rust_files": 166
     },
     {
       "name": "compiler",
-      "physical_lines": 36676,
-      "rust_files": 159
+      "physical_lines": 37959,
+      "rust_files": 161
+    },
+    {
+      "name": "formal_pipeline",
+      "physical_lines": 49,
+      "rust_files": 1
     },
     {
       "name": "html",
-      "physical_lines": 1688,
+      "physical_lines": 1784,
       "rust_files": 9
     },
     {
@@ -999,9 +1210,14 @@
       "rust_files": 4
     },
     {
+      "name": "package_registry",
+      "physical_lines": 157,
+      "rust_files": 3
+    },
+    {
       "name": "quality",
-      "physical_lines": 27874,
-      "rust_files": 121
+      "physical_lines": 27278,
+      "rust_files": 122
     },
     {
       "name": "root:database_schema_test",
@@ -1014,14 +1230,24 @@
       "rust_files": 1
     },
     {
+      "name": "root:service_foundation_test",
+      "physical_lines": 23,
+      "rust_files": 1
+    },
+    {
       "name": "root:support_test",
       "physical_lines": 148,
       "rust_files": 1
     },
     {
+      "name": "root:web_route_test",
+      "physical_lines": 108,
+      "rust_files": 1
+    },
+    {
       "name": "runtime",
-      "physical_lines": 72856,
-      "rust_files": 300
+      "physical_lines": 73180,
+      "rust_files": 302
     },
     {
       "name": "support",
@@ -1030,12 +1256,12 @@
     },
     {
       "name": "tests",
-      "physical_lines": 10316,
+      "physical_lines": 10455,
       "rust_files": 25
     },
     {
       "name": "validation",
-      "physical_lines": 6924,
+      "physical_lines": 6960,
       "rust_files": 18
     },
     {
@@ -1046,6 +1272,27 @@
   ],
   "workspace_cycles": [],
   "workspace_feature_fanout": [
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [
+            "derive"
+          ],
+          "kind": "normal",
+          "name": "serde",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "serde_json",
+          "optional": false
+        }
+      ],
+      "package": "terl-docs"
+    },
     {
       "dependencies": [
         {
@@ -1430,6 +1677,13 @@
         },
         {
           "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "semver",
+          "optional": false
+        },
+        {
+          "default_features": true,
           "features": [
             "derive"
           ],
@@ -1487,6 +1741,13 @@
           "default_features": true,
           "features": [],
           "kind": "normal",
+          "name": "spdx",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
           "name": "sqlparser",
           "optional": false
         },
@@ -1495,6 +1756,13 @@
           "features": [],
           "kind": "normal",
           "name": "target-lexicon",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terl-docs",
           "optional": false
         },
         {
@@ -1517,6 +1785,13 @@
           "kind": "normal",
           "name": "terlan-runtime-abi",
           "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-service-foundation",
+          "optional": true
         },
         {
           "default_features": true,
@@ -1552,6 +1827,15 @@
           "optional": false
         },
         {
+          "default_features": false,
+          "features": [
+            "rustls"
+          ],
+          "kind": "normal",
+          "name": "ureq",
+          "optional": true
+        },
+        {
           "default_features": true,
           "features": [],
           "kind": "normal",
@@ -1570,13 +1854,6 @@
           "features": [],
           "kind": "normal",
           "name": "wasmparser",
-          "optional": false
-        },
-        {
-          "default_features": true,
-          "features": [],
-          "kind": "normal",
-          "name": "yaml-rust",
           "optional": false
         }
       ],
@@ -1616,6 +1893,45 @@
         }
       ],
       "package": "terlan-archive"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [
+            "derive"
+          ],
+          "kind": "dev",
+          "name": "serde",
+          "optional": false
+        },
+        {
+          "default_features": false,
+          "features": [
+            "logging",
+            "metrics",
+            "testing"
+          ],
+          "kind": "normal",
+          "name": "foundations",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "serde_json",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-service-foundation",
+          "optional": false
+        }
+      ],
+      "package": "terlan-foundations-adapter"
     },
     {
       "dependencies": [
@@ -1707,16 +2023,54 @@
       "package": "terlan-rust-boundary-audit"
     },
     {
-      "dependencies": [],
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [
+            "derive"
+          ],
+          "kind": "normal",
+          "name": "serde",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "serde_json",
+          "optional": false
+        }
+      ],
+      "package": "terlan-service-foundation"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "serde_json",
+          "optional": false
+        }
+      ],
       "package": "terlan-test-orchestrator"
     }
   ],
   "workspace_packages": [
     {
+      "direct_dependencies": [],
+      "name": "terl-docs",
+      "reverse_dependents": [
+        "terlan"
+      ]
+    },
+    {
       "direct_dependencies": [
+        "terl-docs",
         "terlan-archive",
         "terlan-libpq",
-        "terlan-runtime-abi"
+        "terlan-runtime-abi",
+        "terlan-service-foundation"
       ],
       "name": "terlan",
       "reverse_dependents": []
@@ -1727,6 +2081,13 @@
       "reverse_dependents": [
         "terlan"
       ]
+    },
+    {
+      "direct_dependencies": [
+        "terlan-service-foundation"
+      ],
+      "name": "terlan-foundations-adapter",
+      "reverse_dependents": []
     },
     {
       "direct_dependencies": [],
@@ -1746,6 +2107,14 @@
       "direct_dependencies": [],
       "name": "terlan-rust-boundary-audit",
       "reverse_dependents": []
+    },
+    {
+      "direct_dependencies": [],
+      "name": "terlan-service-foundation",
+      "reverse_dependents": [
+        "terlan",
+        "terlan-foundations-adapter"
+      ]
     },
     {
       "direct_dependencies": [],

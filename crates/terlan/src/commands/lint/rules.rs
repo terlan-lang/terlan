@@ -29,7 +29,8 @@ use naming::{
 use pipe::{fix_pipe_candidates, pipe_candidate_diagnostics};
 use readability::{
     boolean_heavy_branch_diagnostics, callback_name_diagnostics, deep_expression_diagnostics,
-    doc_comment_spacing_diagnostics, function_reference_diagnostics, grouped_binding_diagnostics,
+    doc_comment_spacing_diagnostics, function_reference_diagnostics,
+    grouped_binding_and_function_reference_diagnostics, grouped_binding_diagnostics,
     public_docs_diagnostics, redundant_comment_diagnostics, unused_destructure_binding_diagnostics,
 };
 use targets::incompatible_std_target_import_diagnostics;
@@ -172,6 +173,28 @@ pub(super) fn lint_source_only(path: &Path, source: &str, rule_id: &str) -> Vec<
         .into_iter()
         .filter(|diagnostic| diagnostic.rule_id == rule_id)
         .collect()
+}
+
+/// Runs selected rules while sharing parser work between compatible rules.
+pub(super) fn lint_source_only_many(
+    path: &Path,
+    source: &str,
+    rule_ids: &[String],
+) -> Vec<LintDiagnostic> {
+    let grouped = rule_ids.iter().any(|rule_id| rule_id == "TL0009");
+    let function_reference = rule_ids.iter().any(|rule_id| rule_id == "TL0010");
+    let mut diagnostics = if grouped && function_reference {
+        grouped_binding_and_function_reference_diagnostics(path, source)
+    } else {
+        Vec::new()
+    };
+    for rule_id in rule_ids {
+        if grouped && function_reference && matches!(rule_id.as_str(), "TL0009" | "TL0010") {
+            continue;
+        }
+        diagnostics.extend(lint_source_only(path, source, rule_id));
+    }
+    diagnostics
 }
 
 /// Builds a diagnostic for one dense semicolon chain line.

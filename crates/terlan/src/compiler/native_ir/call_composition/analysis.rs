@@ -89,7 +89,7 @@ pub(in crate::compiler::native_ir) fn has_uncomposed_suspending_call(
         | NativeExpr::Float(_)
         | NativeExpr::Bool(_)
         | NativeExpr::AtomLiteral(_)
-        | NativeExpr::StringLiteral { .. }
+        | NativeExpr::ManagedLiteral { .. }
         | NativeExpr::Param(_) => false,
     }
 }
@@ -106,6 +106,8 @@ pub(in crate::compiler::native_ir) fn is_definitely_non_suspending(
 ) -> bool {
     let mut non_suspending = true;
     walk_native_expr(body, &mut |expr| match expr {
+        NativeExpr::CallThen { resumes, .. } if resumes.is_empty() => {}
+        NativeExpr::InvokeClosureThen { resumes, .. } if resumes.is_empty() => {}
         NativeExpr::Suspend { .. }
         | NativeExpr::CallThen { .. }
         | NativeExpr::InvokeClosure { .. }
@@ -512,7 +514,7 @@ pub(in crate::compiler::native_ir) fn walk_native_expr(
         | NativeExpr::Float(_)
         | NativeExpr::Bool(_)
         | NativeExpr::AtomLiteral(_)
-        | NativeExpr::StringLiteral { .. }
+        | NativeExpr::ManagedLiteral { .. }
         | NativeExpr::Param(_) => {}
     }
 }

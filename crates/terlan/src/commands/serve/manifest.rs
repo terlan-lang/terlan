@@ -7,9 +7,11 @@ use std::sync::{Arc, OnceLock, RwLock};
 
 use serde::Deserialize;
 
-use crate::commands::build::project_manifest::{self, ProjectServerTls, ProjectServerTlsMode};
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+use crate::commands::build::project_manifest;
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 use crate::commands::dev_dependencies;
+use crate::commands::serve::tls_contract::{ProjectServerTls, ProjectServerTlsMode};
 
 use super::handler::{
     validate_error_handler, validate_file_response, validate_handler, validate_handler_routes,
@@ -38,22 +40,11 @@ struct LocalWebMetadata {
     project_roots: HashMap<PathBuf, Option<PathBuf>>,
 }
 
-/// Browser package manifest consumed by `terlc serve`.
-///
-/// Inputs:
-/// - Deserialized from `_build/web/manifest.json`.
-///
-/// Output:
-/// - Minimal manifest fields required to validate and serve the package.
-///
-/// Transformation:
-/// - Ignores build-only metadata while preserving schema, index, asset paths,
-///   and handler references needed by the local HTTP server.
+/// Browser manifest consumed by `terlc serve`; build-only metadata is ignored.
 #[derive(Debug, Deserialize)]
 pub(super) struct WebPackageManifest {
     schema: String,
     target_profile: String,
-    #[cfg(test)]
     #[serde(default = "default_build_id")]
     pub(super) build_id: String,
     index: String,
@@ -83,7 +74,6 @@ pub(super) struct WebPackageManifest {
 /// Transformation:
 /// - Supplies a stable local-development fallback when a manifest predates the
 ///   explicit build id field.
-#[cfg(test)]
 fn default_build_id() -> String {
     "unknown".to_string()
 }
@@ -134,9 +124,9 @@ pub(crate) fn validate_web_package(web_root: &Path) -> Result<(), String> {
             manifest.schema
         ));
     }
-    if manifest.target_profile != "js.browser" {
+    if !matches!(manifest.target_profile.as_str(), "js.browser" | "vm") {
         return Err(format!(
-            "error[serve_package]: browser package target profile must be `js.browser`, found `{}`",
+            "error[serve_package]: web package target profile must be `js.browser` or `vm`, found `{}`",
             manifest.target_profile
         ));
     }
@@ -495,7 +485,8 @@ pub(super) fn web_package_tls_config(
 
 #[cfg(all(feature = "serve-runtime-bin", not(test)))]
 fn read_project_tls(path: &Path) -> Result<Option<ProjectServerTls>, String> {
-    project_manifest::read_runtime_server_tls(path)
+    crate::commands::serve::tls_contract::read_runtime_server_tls(path)
+        .map_err(|error| error.to_string())
 }
 
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
@@ -673,7 +664,6 @@ fn load_web_manifest(web_root: &Path) -> Result<WebPackageManifest, String> {
 /// Transformation:
 /// - Keeps request logging best-effort so a manifest read failure does not hide
 ///   the primary request handling diagnostic.
-#[cfg(test)]
 pub(super) fn manifest_build_id(web_root: &Path) -> String {
     read_web_manifest(web_root)
         .map(|manifest| manifest.build_id.clone())
@@ -768,7 +758,7 @@ fn validate_static_response_routes(responses: &[WebPackageStaticResponse]) -> Re
     for response in responses {
         let key = (
             response.method.as_str(),
-            crate::commands::web_route::route_ambiguity_key(&response.route)?,
+            crate::web_route::route_ambiguity_key(&response.route)?,
         );
         if !seen.insert(key) {
             return Err(format!(
@@ -797,7 +787,7 @@ fn validate_file_response_routes(responses: &[WebPackageFileResponse]) -> Result
     for response in responses {
         let key = (
             response.method.as_str(),
-            crate::commands::web_route::route_ambiguity_key(&response.route)?,
+            crate::web_route::route_ambiguity_key(&response.route)?,
         );
         if !seen.insert(key) {
             return Err(format!(
@@ -824,7 +814,7 @@ fn validate_file_response_routes(responses: &[WebPackageFileResponse]) -> Result
 fn validate_websocket_routes(websockets: &[WebPackageWebSocket]) -> Result<(), String> {
     let mut seen = std::collections::BTreeSet::new();
     for websocket in websockets {
-        let key = crate::commands::web_route::route_ambiguity_key(&websocket.route)?;
+        let key = crate::web_route::route_ambiguity_key(&websocket.route)?;
         if !seen.insert(key) {
             return Err(format!(
                 "error[serve_package]: duplicate or ambiguous websocket route `{}`",
@@ -839,7 +829,7 @@ fn validate_websocket_routes(websockets: &[WebPackageWebSocket]) -> Result<(), S
 fn validate_sse_routes(endpoints: &[WebPackageSse]) -> Result<(), String> {
     let mut seen = std::collections::BTreeSet::new();
     for endpoint in endpoints {
-        let key = crate::commands::web_route::route_ambiguity_key(&endpoint.route)?;
+        let key = crate::web_route::route_ambiguity_key(&endpoint.route)?;
         if !seen.insert(key) {
             return Err(format!(
                 "error[serve_package]: duplicate or ambiguous SSE route `{}`",
@@ -876,7 +866,7 @@ fn validate_manifest_route_namespace(
     for handler in handlers {
         let key = (
             handler.method.as_str(),
-            crate::commands::web_route::route_ambiguity_key(&handler.route)?,
+            crate::web_route::route_ambiguity_key(&handler.route)?,
         );
         seen.insert(
             key,
@@ -886,7 +876,7 @@ fn validate_manifest_route_namespace(
     for websocket in websockets {
         let key = (
             "GET",
-            crate::commands::web_route::route_ambiguity_key(&websocket.route)?,
+            crate::web_route::route_ambiguity_key(&websocket.route)?,
         );
         if let Some(existing) = seen.get(&key) {
             return Err(format!(
@@ -899,7 +889,7 @@ fn validate_manifest_route_namespace(
     for endpoint in sse {
         let key = (
             "GET",
-            crate::commands::web_route::route_ambiguity_key(&endpoint.route)?,
+            crate::web_route::route_ambiguity_key(&endpoint.route)?,
         );
         if let Some(existing) = seen.get(&key) {
             return Err(format!(
@@ -912,7 +902,7 @@ fn validate_manifest_route_namespace(
     for response in responses {
         let key = (
             response.method.as_str(),
-            crate::commands::web_route::route_ambiguity_key(&response.route)?,
+            crate::web_route::route_ambiguity_key(&response.route)?,
         );
         if let Some(existing) = seen.get(&key) {
             return Err(format!(
@@ -931,7 +921,7 @@ fn validate_manifest_route_namespace(
     for response in file_responses {
         let key = (
             response.method.as_str(),
-            crate::commands::web_route::route_ambiguity_key(&response.route)?,
+            crate::web_route::route_ambiguity_key(&response.route)?,
         );
         if let Some(existing) = seen.get(&key) {
             return Err(format!(

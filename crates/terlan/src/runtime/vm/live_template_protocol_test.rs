@@ -98,7 +98,7 @@ fn vm_live_template_protocol_generates_angular_ts_browser_runtime_module() {
         .expect("generated Angular.ts runtime module");
 
     assert_eq!(module.path, "generated/terlan/live-template-protocol.mjs");
-    assert!(module.source.contains("angular-wave/angular.ts"));
+    assert!(module.source.contains("@angular-wave/angular.ts"));
     assert!(module.source.contains("terlanLiveTemplateProtocolManifest"));
     assert!(module.source.contains("validateTerlanLiveTemplateEvent"));
     assert!(module.source.contains("connectTerlanLiveTemplateSse"));

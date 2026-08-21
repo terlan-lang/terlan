@@ -7,8 +7,10 @@ use std::sync::Arc;
 use percent_encoding::percent_decode_str;
 use terlan_runtime_abi::{BoundaryError, ErrorDomain};
 
-use crate::commands::web_route::{route_ambiguity_key, route_segments, typed_route_param_segment};
 use crate::runtime::vm::ReplValue;
+use crate::web_route::{
+    colon_route_param_segment, route_ambiguity_key, route_segments, typed_route_param_segment,
+};
 
 use super::{
     WebPackageFileResponse, WebPackageHandler, WebPackageSse, WebPackageStaticResponse,
@@ -424,12 +426,17 @@ fn match_route_pattern(pattern: &str, request_path: &str) -> Option<RoutePattern
             });
         }
         let request_segment = request_segments.get(index)?;
-        if let Some(name) = pattern_segment.strip_prefix(':') {
+        if let Some((name, suffix)) = colon_route_param_segment(pattern_segment) {
+            let captured = if suffix.is_empty() {
+                *request_segment
+            } else {
+                request_segment.strip_suffix(suffix)?
+            };
+            if captured.is_empty() {
+                return None;
+            }
             has_param = true;
-            params.push((
-                name.to_string(),
-                decode_route_param_segment(request_segment)?,
-            ));
+            params.push((name.to_string(), decode_route_param_segment(captured)?));
         } else if let Some((name, type_name)) = typed_route_param_segment(pattern_segment) {
             if !route_param_segment_matches_type(request_segment, type_name) {
                 return None;

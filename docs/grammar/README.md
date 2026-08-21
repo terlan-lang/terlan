@@ -244,7 +244,7 @@ each method on its own continuation line. `case` and `if` arms are indented one
 level inside their structural block, and imports are normalized into a stable
 order.
 
-Run `terlc fmt <path>` to rewrite a directory, or `terlc fmt --check <path>` to
+Run `terlc fmt <path>` to rewrite a directory, or `terlc fmt --check <path>...` to
 verify it without mutation. Formatting is deterministic and idempotent.
 Generated files marked with both `@generated true` and `@do-not-edit true`
 remain owned by their generator and are skipped during recursive formatting.

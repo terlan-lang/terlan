@@ -99,6 +99,7 @@ impl VmTimerEvent {
     }
 
     /// Returns the process that owns this timer event.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) const fn owner(self) -> VmProcessId {
         match self {
             Self::Fired { owner, .. }
@@ -111,6 +112,7 @@ impl VmTimerEvent {
     }
 
     /// Returns the timer kind carried by this event.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) const fn kind(self) -> VmTimerKind {
         match self {
             Self::Fired { kind, .. }
@@ -134,6 +136,7 @@ pub(crate) struct VmTimerSnapshot {
 
 /// Owner-bound authority to cancel one active timer.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) struct VmTimerCancellationToken {
     timer_id: VmTimerId,
     owner: VmProcessId,
@@ -319,6 +322,7 @@ impl VmTimerTable {
     }
 
     /// Returns an owner-bound cancellation token for an active timer.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn cancellation_token(
         &self,
         timer_id: VmTimerId,

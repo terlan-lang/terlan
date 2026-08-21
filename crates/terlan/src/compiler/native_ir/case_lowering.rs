@@ -592,8 +592,9 @@ impl ScalarCaseLowerer {
         let temporary = format!("$native_case_{ordinal}_scrutinee");
         let scrutinee = self.rewrite(scrutinee, case_depth + 1)?;
         let mut lowered_clauses = Vec::with_capacity(clauses.len());
-        for clause in clauses {
+        for (clause_index, clause) in clauses.iter().enumerate() {
             let plan = scalar_pattern_plan(&clause.pattern, &temporary)?;
+            let exhaustive_terminal = clause_index + 1 == clauses.len() && clause.guard.is_none();
             let guard = clause
                 .guard
                 .as_ref()
@@ -601,13 +602,14 @@ impl ScalarCaseLowerer {
                 .transpose()?
                 .unwrap_or_else(|| CoreExpr::Atom("true".to_string()));
             let guarded = bind_pattern_names(&plan.bindings, &temporary, guard);
-            let condition = match plan.predicate {
-                Some(predicate) => CoreExpr::BinaryOp {
+            let condition = match (exhaustive_terminal, plan.predicate) {
+                (true, _) => CoreExpr::Atom("true".to_string()),
+                (false, Some(predicate)) => CoreExpr::BinaryOp {
                     operator: "and".to_string(),
                     left: Box::new(predicate),
                     right: Box::new(guarded),
                 },
-                None => guarded,
+                (false, None) => guarded,
             };
             let body = self.rewrite(&clause.body, case_depth + 1)?;
             lowered_clauses.push(CoreIfClause {

@@ -25,6 +25,14 @@ pub debug(message: String): Unit.
 
 pub error(message: String): Unit.
 
+/// Emits a structured event while preserving the existing level helpers.
+///
+/// Fields are built through `std.log.Field`; the active service host validates
+/// the same bounded scalar set again before accepting the event. The local
+/// console fallback writes the message and never renders secret handles.
+
+pub event(message: String, fields: List[Field]): Unit.
+
 /// Writes an info-level log message.
 ///
 /// Input: one UTF-8 message.

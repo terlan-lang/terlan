@@ -137,6 +137,19 @@ pub (request: Request) body_text(): String ->
     native.
 
 /**
+ * Returns the server-owned temporary file path for a binary request body.
+ *
+ * Input: one `Request` receiver.
+ * Output: an absolute temporary path, or an empty string when the request body
+ * was materialized as UTF-8 text.
+ * Transformation: exposes only the path allocated by the server for this
+ * request; the server removes the file after the handler completes.
+ */
+@compiler.native {std.http.request.body_file_path}
+pub (request: Request) body_file_path(): String ->
+    native.
+
+/**
  * Parses the request body as JSON.
  *
  * Input: one `Request` receiver.

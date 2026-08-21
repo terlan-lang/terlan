@@ -273,6 +273,14 @@ pub(in crate::commands::build) fn copy_bundled_terlan_native_worker(
     copy_bundled_vm_runtime(&source, destination, "terlan native worker")
 }
 
+/// Copies the compiler-paired compiler-free HTTP service runtime.
+pub(in crate::commands::build) fn copy_bundled_terlan_serve_runtime(
+    destination: &Path,
+) -> Result<(), String> {
+    let source = terlan_serve_runtime_source_path()?;
+    copy_bundled_vm_runtime(&source, destination, "Terlan service runtime")
+}
+
 pub(in crate::commands::build) fn copy_bundled_vm_runtime(
     source: &Path,
     destination: &Path,
@@ -311,6 +319,18 @@ pub(in crate::commands::build) fn terlan_native_worker_name() -> &'static str {
 
 pub(in crate::commands::build) fn terlan_native_worker_source_path() -> Result<PathBuf, String> {
     paired_vm_runtime_path("TERLAN_NATIVE_WORKER", terlan_native_worker_name())
+}
+
+pub(in crate::commands::build) fn terlan_serve_runtime_name() -> &'static str {
+    if cfg!(windows) {
+        "terlan-serve-runtime.exe"
+    } else {
+        "terlan-serve-runtime"
+    }
+}
+
+pub(in crate::commands::build) fn terlan_serve_runtime_source_path() -> Result<PathBuf, String> {
+    paired_vm_runtime_path("TERLAN_SERVE_RUNTIME", terlan_serve_runtime_name())
 }
 
 pub(in crate::commands::build) fn paired_vm_runtime_path(
@@ -373,6 +393,28 @@ pub(in crate::commands::build) fn write_vm_launcher(
         format!(
             "#!/usr/bin/env sh\nset -eu\nSCRIPT_DIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nif [ -x \"$SCRIPT_DIR/terlan-vm\" ]; then\n  VM=\"$SCRIPT_DIR/terlan-vm\"\nelif [ -n \"${{TERLAN_VM_RUNNER:-}}\" ]; then\n  VM=$TERLAN_VM_RUNNER\nelse\n  VM=$(command -v terlan-vm)\nfi\nexec \"$VM\" run \"$SCRIPT_DIR/../{artifact}\" -- \"$@\"\n"
         )
+    };
+    write_build_file(executable_path, contents.as_bytes(), incremental)?;
+    set_launcher_executable(executable_path)
+}
+
+/// Writes the launcher for a compiler-free native Terlan HTTP service.
+pub(in crate::commands::build) fn write_vm_service_launcher(
+    executable_path: &Path,
+    incremental: bool,
+) -> Result<(), String> {
+    if let Some(parent) = executable_path.parent() {
+        fs::create_dir_all(parent).map_err(|err| {
+            format!(
+                "failed to create service launcher directory `{}`: {err}",
+                parent.display()
+            )
+        })?;
+    }
+    let contents = if cfg!(windows) {
+        "@echo off\r\nset SCRIPT_DIR=%~dp0\r\nif not defined TERLAN_SERVE_PORT if defined PORT set TERLAN_SERVE_PORT=%PORT%\r\nif not defined TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES set TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES=1\r\n\"%SCRIPT_DIR%terlan-serve-runtime.exe\" \"%SCRIPT_DIR%..\\web\" %*\r\n".to_string()
+    } else {
+        "#!/usr/bin/env sh\nset -eu\nSCRIPT_DIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nif [ -z \"${TERLAN_SERVE_PORT:-}\" ] && [ -n \"${PORT:-}\" ]; then\n  export TERLAN_SERVE_PORT=$PORT\nfi\nexport TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES=${TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES:-1}\nexec \"$SCRIPT_DIR/terlan-serve-runtime\" \"$SCRIPT_DIR/../web\" \"$@\"\n".to_string()
     };
     write_build_file(executable_path, contents.as_bytes(), incremental)?;
     set_launcher_executable(executable_path)

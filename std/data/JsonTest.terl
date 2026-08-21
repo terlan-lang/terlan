@@ -48,6 +48,18 @@ pub object_put_replaces_an_existing_member(): Bool ->
     };
     text == "skipped".
 
+@test
+pub object_remove_deletes_one_existing_member(): Bool ->
+    let value =
+        Json.object()
+            .put("name", Json.string("Ada"))
+            .put("role", Json.string("engineer"))
+            .remove("role");
+    case Json.stringify(value) {
+        Ok(rendered) -> rendered == "{\"name\":\"Ada\"}";
+        Err(_reason) -> false
+    }.
+
 /**
  * Accepts one JSON error value and returns it unchanged.
  *

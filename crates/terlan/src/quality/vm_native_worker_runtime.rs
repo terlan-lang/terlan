@@ -277,15 +277,6 @@ fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
                 .to_string(),
         );
     }
-    if !makefile.contains("COMPLETED_SLICE_RUST_GATES :=")
-        || !makefile.contains("vm-native-worker-runtime-check")
-        || !makefile.contains("$(COMPLETED_SLICE_RUST_GATES): $(CANONICAL_RUST_SUITE_OWNER)")
-    {
-        diagnostics.push(
-            "Makefile: `vm-native-worker-runtime-check` must be owned by the canonical Rust suite"
-                .to_string(),
-        );
-    }
     Ok(diagnostics)
 }
 

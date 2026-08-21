@@ -51,7 +51,7 @@ pub(crate) fn lower_structured_case(
         environment,
     )?))
 }
-fn lower_containing_case(
+pub(super) fn lower_containing_case(
     expr: &CoreExpr,
     params: &HashMap<String, usize>,
     param_types: &HashMap<String, NativeType>,
@@ -289,7 +289,11 @@ fn lower_case(
                 )
             })?;
     let scrutinee_core = core_expr_type(scrutinee, core_types, function_core_types);
-    let scrutinee = lower_plain(scrutinee, params, param_types, core_types, environment)?;
+    let scrutinee = if contains_case(scrutinee) {
+        lower_containing_case(scrutinee, params, param_types, core_types, environment)?
+    } else {
+        lower_plain(scrutinee, params, param_types, core_types, environment)?
+    };
     let scrutinee_slot = params
         .values()
         .copied()

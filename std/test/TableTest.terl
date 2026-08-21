@@ -114,8 +114,7 @@ pub generated_boundary_rows_compare_expected_results(): Bool ->
  */
 @test
 pub typed_expected_error_rows_compare_results(): Bool ->
-    let rows = List(row("negative one", -1, Err("negative")), row("negative two", -2, Err("negative")));
-    each_result(rows, classify_result).
+    each_result(typed_error_rows(), classify_result).
 
 /**
  * Verifies row reports capture the first expected-value mismatch.
@@ -168,6 +167,9 @@ empty_pair_rows(): List[{Int, Binary}] -> [].
 
 boundary_rows(): List[Row[Int, Binary]] ->
     List(row("negative", -1, "negative"), row("zero", 0, "zero"), row("positive", 1, "positive")).
+
+typed_error_rows(): List[Row[Int, Result[Int, Binary]]] ->
+    List(row("negative one", -1, Err("negative")), row("negative two", -2, Err("negative"))).
 
 classify(value: Int): Binary ->
     if {

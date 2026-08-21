@@ -88,6 +88,8 @@ pub(crate) use text::binary_op_text;
 use text::{expr_to_output_text, type_expr_output, unary_op_text};
 pub use types::{SyntaxParamOutput, SyntaxTypeOutput};
 
+use super::formatter::literals::format_float_literal;
+
 use crate::terlan_syntax::{
     ebnf::{EbnfCompileError, EbnfCompileResult, EbnfSourceSpan},
     lexer::lex,
@@ -261,9 +263,11 @@ fn expr_output(expr: &Expr) -> SyntaxExprOutput {
 fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput {
     match expr {
         Expr::Int(value) => expr_leaf_with_span(SyntaxExprKind::Int, Some(value.to_string()), span),
-        Expr::Float(value) => {
-            expr_leaf_with_span(SyntaxExprKind::Float, Some(value.to_string()), span)
-        }
+        Expr::Float(value) => expr_leaf_with_span(
+            SyntaxExprKind::Float,
+            Some(format_float_literal(*value)),
+            span,
+        ),
         Expr::Atom(name) => expr_leaf_with_span(SyntaxExprKind::Atom, Some(name.clone()), span),
         Expr::AtomLiteral(name) => expr_leaf_with_span_and_raw(
             SyntaxExprKind::Atom,

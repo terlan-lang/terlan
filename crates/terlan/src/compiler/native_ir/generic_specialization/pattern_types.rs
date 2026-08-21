@@ -8,7 +8,7 @@ use crate::terlan_typeck::{CorePattern, CoreTupleTypeElem, CoreType};
 #[path = "pattern_types_test.rs"]
 mod tests;
 
-pub(super) fn bind_pattern_types(
+pub(in crate::compiler::native_ir) fn bind_pattern_types(
     pattern: &CorePattern,
     ty: &CoreType,
     variables: &mut HashMap<String, CoreType>,
@@ -86,7 +86,10 @@ pub(super) fn bind_pattern_types(
     }
 }
 
-fn structural_tuple_variant(patterns: &[CorePattern], ty: &CoreType) -> Option<CoreType> {
+pub(in crate::compiler::native_ir) fn structural_tuple_variant(
+    patterns: &[CorePattern],
+    ty: &CoreType,
+) -> Option<CoreType> {
     let CorePattern::Atom(expected) = patterns.first()? else {
         return None;
     };

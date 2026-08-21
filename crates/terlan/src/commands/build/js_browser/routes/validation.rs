@@ -24,16 +24,22 @@ pub(super) fn validate_router_handler_rows(
     signatures: &HashMap<String, RouterHandlerSignature>,
 ) -> Result<(), String> {
     for handler in handlers {
-        validate_route_pattern(&handler.route)
-            .map_err(|message| message.replacen("error[serve_package]", "error[web_router]", 1))?;
+        validate_route_pattern(&handler.route).map_err(|message| {
+            message
+                .to_string()
+                .replacen("error[serve_package]", "error[web_router]", 1)
+        })?;
         let Some(signature) = signatures.get(&handler.function) else {
             return Err(format!(
                 "error[web_router]: handler `{}` referenced by `{}` `{}` is not defined in module `{}`",
                 handler.function, handler.method, handler.route, module_name
             ));
         };
-        let route_params = route_param_types(&handler.route)
-            .map_err(|message| message.replacen("error[serve_package]", "error[web_router]", 1))?;
+        let route_params = route_param_types(&handler.route).map_err(|message| {
+            message
+                .to_string()
+                .replacen("error[serve_package]", "error[web_router]", 1)
+        })?;
         let route_param_count = route_params.len();
         let expected_with_params = 1 + route_param_count;
         if signature.arity != 1 && signature.arity != expected_with_params {
@@ -375,7 +381,9 @@ pub(super) fn validate_discovered_web_routes(rows: &WebRouteManifestRows) -> Res
         let key = (
             method,
             route_ambiguity_key(route).map_err(|message| {
-                message.replacen("error[serve_package]", "error[web_router]", 1)
+                message
+                    .to_string()
+                    .replacen("error[serve_package]", "error[web_router]", 1)
             })?,
         );
         if !seen.insert(key) {

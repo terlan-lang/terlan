@@ -45,6 +45,7 @@ impl PureNativeExecutionShard {
     }
 
     /// Starts an externally controlled debugger call on an existing actor.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn begin_debug_call(
         &mut self,
         owner: VmProcessId,

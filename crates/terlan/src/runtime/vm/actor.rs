@@ -1,4 +1,6 @@
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+use std::collections::VecDeque;
+use std::collections::{BTreeMap, BTreeSet};
 use std::num::NonZeroU64;
 
 #[cfg(test)]
@@ -7,6 +9,7 @@ use super::call_count::{VmCallCountRegistry, VmCallCountSnapshot, VmCallCountSta
 use super::call_memory::{VmCallMemoryRegistry, VmCallMemorySnapshot, VmCallMemoryState};
 #[cfg(test)]
 use super::call_time::{VmCallTimeRegistry, VmCallTimeSnapshot, VmCallTimeState};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use super::code_server::VmCodeServer;
 #[cfg(test)]
 use super::code_server::{
@@ -17,6 +20,7 @@ use super::dynamic_module::{
     VmDynamicModuleDescriptor, VmDynamicModuleLeaseId, VmDynamicModuleLoadOutcome,
     VmDynamicModuleRegistry, VmDynamicModuleSnapshot, VmDynamicModuleUnloadOutcome,
 };
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use super::failure::VmFailureProcessSnapshot;
 use super::failure::VmFailureRuntime;
 use super::fatal_diagnostics::VmFatalDiagnosticBundle;
@@ -29,6 +33,7 @@ use super::memory::{
 use super::meta_trace::VmMetaTraceRegistry;
 #[cfg(test)]
 use super::postgres::VmPostgresInspectionSnapshot;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use super::postgres::{VmPostgresDriverControl, VmPostgresLibpqWorker, VmPostgresRuntime};
 #[cfg(any(test, feature = "benchmark-tools"))]
 use super::process::VmMessage;
@@ -101,6 +106,7 @@ pub(crate) struct VmActorRuntime {
     scheduler: VmScheduler,
     memory: VmMemoryAccountant,
     resources: VmResourceTable,
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     code_server: VmCodeServer,
     #[cfg(test)]
     dynamic_modules: VmDynamicModuleRegistry,
@@ -109,8 +115,11 @@ pub(crate) struct VmActorRuntime {
     native_continuations: BTreeMap<(u64, u64), VmProcessId>,
     native_continuations_by_owner: BTreeMap<VmProcessId, (u64, u64)>,
     explicit_native_suspensions: BTreeSet<VmProcessId>,
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     postgres: VmPostgresRuntime,
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     postgres_driver: VmPostgresLibpqWorker,
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     postgres_controls: VecDeque<VmPostgresDriverControl>,
     #[cfg(test)]
     call_counts: VmCallCountRegistry,
@@ -125,80 +134,7 @@ pub(crate) struct VmActorRuntime {
         Option<crate::runtime::vm::native_image_diagnostics::VmNativeImageDiagnosticMetadata>,
 }
 
-impl Default for VmActorRuntime {
-    fn default() -> Self {
-        Self::with_memory_limits(
-            VmMemoryLimits::new(64 * 1024 * 1024, 256 * 1024 * 1024)
-                .expect("actor runtime memory limits are valid"),
-        )
-    }
-}
-
 impl VmActorRuntime {
-    /// Creates an actor runtime with explicit validated VM memory limits.
-    pub(crate) fn with_memory_limits(limits: VmMemoryLimits) -> Self {
-        Self::with_runtime_identity(limits, "local", 1)
-            .expect("default actor runtime identity is valid")
-    }
-
-    /// Creates an actor runtime with explicit memory and reference identity.
-    pub(crate) fn with_runtime_identity(
-        limits: VmMemoryLimits,
-        node_id: impl Into<String>,
-        epoch: u64,
-    ) -> Result<Self, String> {
-        Self::with_runtime_identity_and_scheduler(limits, node_id, epoch, NonZeroU64::MIN)
-    }
-
-    /// Creates an actor runtime owned by one fixed scheduler identity.
-    pub(crate) fn with_scheduler_owner(owner: NonZeroU64) -> Result<Self, String> {
-        Self::with_runtime_identity_and_scheduler(
-            VmMemoryLimits::new(64 * 1024 * 1024, 256 * 1024 * 1024)?,
-            "local",
-            1,
-            owner,
-        )
-    }
-
-    /// Creates an actor runtime with explicit reference and scheduler identity.
-    fn with_runtime_identity_and_scheduler(
-        limits: VmMemoryLimits,
-        node_id: impl Into<String>,
-        epoch: u64,
-        scheduler_owner: NonZeroU64,
-    ) -> Result<Self, String> {
-        Ok(Self {
-            processes: VmProcessTable::default(),
-            aliases: VmProcessAliasTable::default(),
-            failures: VmFailureRuntime::default(),
-            references: VmReferenceAllocator::new(node_id, epoch)?,
-            scheduler: VmScheduler::with_owner(Default::default(), scheduler_owner),
-            memory: VmMemoryAccountant::new(limits),
-            resources: VmResourceTable::default(),
-            code_server: VmCodeServer::default(),
-            #[cfg(test)]
-            dynamic_modules: VmDynamicModuleRegistry::default(),
-            timers: VmTimerTable::default(),
-            delayed_messages: BTreeMap::new(),
-            native_continuations: BTreeMap::new(),
-            native_continuations_by_owner: BTreeMap::new(),
-            explicit_native_suspensions: BTreeSet::new(),
-            postgres: VmPostgresRuntime::new(1_024),
-            postgres_driver: VmPostgresLibpqWorker::default(),
-            postgres_controls: VecDeque::new(),
-            #[cfg(test)]
-            call_counts: VmCallCountRegistry::default(),
-            #[cfg(test)]
-            call_memory: VmCallMemoryRegistry::default(),
-            #[cfg(test)]
-            call_time: VmCallTimeRegistry::default(),
-            local_trace: VmLocalTraceRegistry::default(),
-            meta_trace: VmMetaTraceRegistry::default(),
-            latest_fatal_diagnostic: None,
-            native_image_diagnostics: None,
-        })
-    }
-
     /// Spawns and schedules a root actor.
     pub(crate) fn spawn_root(&mut self, source: VmProcessSource) -> VmProcessId {
         let pid = self.processes.spawn_root(source);
@@ -245,6 +181,7 @@ impl VmActorRuntime {
     }
 
     /// Updates one stopped actor's compiler-owned debugger location.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn set_debugger_location(
         &mut self,
         pid: VmProcessId,
@@ -600,6 +537,7 @@ impl VmActorRuntime {
     }
 
     /// Returns VM-owned links and monitors for one actor process.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn failure_snapshot(
         &self,
         pid: VmProcessId,
@@ -933,6 +871,7 @@ use error::*;
 #[path = "actor_checkpoint.rs"]
 mod actor_checkpoint;
 #[path = "actor_code.rs"]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod actor_code;
 #[path = "actor_dynamic_module.rs"]
 #[cfg(test)]
@@ -941,6 +880,8 @@ mod actor_dynamic_module;
 mod actor_exit;
 #[path = "actor_heap_limit.rs"]
 mod actor_heap_limit;
+#[path = "actor_initialization.rs"]
+mod actor_initialization;
 #[path = "actor_local_trace.rs"]
 mod actor_local_trace;
 #[path = "actor_meta_trace.rs"]
@@ -948,6 +889,7 @@ mod actor_meta_trace;
 #[path = "actor_native_trace.rs"]
 mod actor_native_trace;
 #[path = "actor_postgres.rs"]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod actor_postgres;
 #[path = "actor_registry.rs"]
 #[cfg(test)]

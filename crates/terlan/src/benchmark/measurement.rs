@@ -740,7 +740,7 @@ pub(super) fn run_vm_http_runtime_baseline(
             "60000",
         ])
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stderr(Stdio::inherit())
         .spawn()
         .map_err(|error| {
             format!(

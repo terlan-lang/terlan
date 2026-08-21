@@ -22,7 +22,7 @@
   },
   "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
   "schema": "terlan.lean-proof-replay.v1",
-  "source_digest": "sha256:8801c7dccbcd7dbdb2c3fd61c751add78e18198194fb82dda221322d8b4aba62",
+  "source_digest": "sha256:5a1da1db8155385d9ab89aa09baf519ae208525d146dd4e123b8c9a9279712c2",
   "theorem_names": [
     "Terlan.WasmBridge.portableSignaturePreservesArity",
     "Terlan.WasmBridge.dynamicSignatureRejected",

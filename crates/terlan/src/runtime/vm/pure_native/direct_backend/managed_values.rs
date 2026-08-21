@@ -57,7 +57,15 @@ impl AllocationMemo {
     }
 }
 
-type ActiveReferences = SmallVec<[u64; INLINE_ACTIVE_REFERENCES]>;
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct ActiveReference {
+    /// Semantic identity governing the current descriptor traversal.
+    semantic: SemanticTypeId,
+    /// Actor-local managed reference being traversed.
+    identity: u64,
+}
+
+type ActiveReferences = SmallVec<[ActiveReference; INLINE_ACTIVE_REFERENCES]>;
 
 /// Allocates one complete public managed graph through an admitted root identity.
 pub(super) fn allocate_public_managed(
@@ -491,7 +499,10 @@ fn materialize_managed(
     active: &mut ActiveReferences,
 ) -> Result<ReplValue, String> {
     consume_budget(depth, budget)?;
-    let identity = reference.encoded_abi_word();
+    let identity = ActiveReference {
+        semantic,
+        identity: reference.encoded_abi_word(),
+    };
     if active.contains(&identity) {
         return Err(
             "error[execution_shard.managed_cycle]: cyclic public managed value".to_string(),

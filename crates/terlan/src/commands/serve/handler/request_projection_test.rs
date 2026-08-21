@@ -16,6 +16,7 @@ fn request() -> Request {
             cookies: vec![("session".to_string(), "abc".to_string())],
         },
     )
+    .with_body_file_path("/tmp/terlan-upload")
 }
 
 #[test]
@@ -28,7 +29,7 @@ fn body_only_projection_keeps_layout_but_omits_unobservable_payloads() {
         panic!("request tuple");
     };
 
-    assert_eq!(fields.len(), 10);
+    assert_eq!(fields.len(), 11);
     assert_eq!(fields[1], ReplValue::String(String::new()));
     assert_eq!(fields[2], ReplValue::String(String::new()));
     assert_eq!(fields[3], ReplValue::Map(Vec::new()));
@@ -44,6 +45,7 @@ fn body_only_projection_keeps_layout_but_omits_unobservable_payloads() {
             ReplValue::List(Vec::new())
         ])
     );
+    assert_eq!(fields[10], ReplValue::String(String::new()));
 }
 
 #[test]
@@ -62,6 +64,26 @@ fn complete_projection_preserves_every_request_field() {
     assert!(matches!(&fields[6], ReplValue::Map(entries) if entries.len() == 1));
     assert!(matches!(&fields[7], ReplValue::Map(entries) if entries.len() == 1));
     assert!(matches!(&fields[8], ReplValue::Map(entries) if entries.len() == 1));
+    assert_eq!(
+        fields[10],
+        ReplValue::String("/tmp/terlan-upload".to_string())
+    );
+}
+
+#[test]
+fn file_body_projection_omits_text_and_preserves_only_runtime_path() {
+    let value = vm_request_descriptor_owned(
+        request().into_parts(),
+        RequestFieldProjection::Fields(1 << RequestFieldProjection::BODY_FILE_PATH),
+    );
+    let ReplValue::Tuple(fields) = value else {
+        panic!("request tuple");
+    };
+    assert_eq!(fields[4], ReplValue::String(String::new()));
+    assert_eq!(
+        fields[10],
+        ReplValue::String("/tmp/terlan-upload".to_string())
+    );
 }
 
 #[test]

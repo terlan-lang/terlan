@@ -12,7 +12,8 @@ use crate::terlan_html::header::template_body_source;
 use crate::terlan_html::interpolation::interpolation_expression_close;
 use crate::terlan_html::{
     template_tag_from_path, HtmlAttr, HtmlAttrValue, HtmlDiagnostic, HtmlElement, HtmlNode,
-    HtmlSlot, HtmlSpan, HtmlTemplate, MarkdownDocument, TERLAN_MARKDOWN_TEMPLATE_SUFFIX,
+    HtmlSlot, HtmlSpan, HtmlTemplate, MarkdownDocument, MarkdownHeading,
+    TERLAN_MARKDOWN_TEMPLATE_SUFFIX,
 };
 
 /// Parses either an HTML or Markdown Terlan template.
@@ -98,23 +99,103 @@ pub fn parse_markdown_template(
 /// Parses Markdown into a document payload.
 ///
 /// Inputs: Markdown source and path. Output: `MarkdownDocument` or diagnostics.
-/// Transformation: preserves raw source, renders HTML, and parses rendered HTML
-/// into nodes.
+/// Transformation: preserves raw source, renders anchored HTML, parses it into
+/// nodes, and extracts stable heading metadata.
 pub fn parse_markdown(
     source: impl AsRef<str>,
     path: impl AsRef<Path>,
 ) -> Result<MarkdownDocument, Vec<HtmlDiagnostic>> {
     let path = path.as_ref();
     let raw_source = template_body_source(source.as_ref(), path)?;
-    let rendered_html = markdown_to_html(&raw_source, &Options::default());
+    let rendered_html = render_markdown_html(&raw_source);
     let nodes = parse_html_nodes(&rendered_html, path)?;
+    let headings = markdown_headings(&nodes);
 
     Ok(MarkdownDocument {
         source_path: Some(path.to_path_buf()),
         raw_source,
         rendered_html,
         nodes,
+        headings,
     })
+}
+
+/// Returns the common Markdown renderer contract used by templates and pages.
+fn markdown_options() -> Options<'static> {
+    let mut options = Options::default();
+    options.extension.header_id_prefix = Some(String::new());
+    options.extension.header_id_prefix_in_href = true;
+    options
+}
+
+/// Renders Markdown with stable, keyboard-safe heading fragment anchors.
+fn render_markdown_html(source: &str) -> String {
+    markdown_to_html(source, &markdown_options()).replace(
+        " aria-hidden=\"true\" class=\"anchor\"",
+        " aria-hidden=\"true\" tabindex=\"-1\" class=\"anchor\"",
+    )
+}
+
+/// Extracts stable heading records from the parsed Markdown HTML tree.
+fn markdown_headings(nodes: &[HtmlNode]) -> Vec<MarkdownHeading> {
+    let mut headings = Vec::new();
+    collect_markdown_headings(nodes, &mut headings);
+    headings
+}
+
+fn collect_markdown_headings(nodes: &[HtmlNode], headings: &mut Vec<MarkdownHeading>) {
+    for node in nodes {
+        let HtmlNode::Element(element) = node else {
+            continue;
+        };
+        if let Some(level) = markdown_heading_level(&element.name) {
+            if let Some(id) = markdown_heading_id(&element.children) {
+                let mut title = String::new();
+                collect_markdown_heading_text(&element.children, &mut title);
+                headings.push(MarkdownHeading {
+                    level,
+                    title: title.split_whitespace().collect::<Vec<_>>().join(" "),
+                    id,
+                });
+            }
+        }
+        collect_markdown_headings(&element.children, headings);
+    }
+}
+
+fn markdown_heading_level(name: &str) -> Option<u8> {
+    let level = name.strip_prefix('h')?.parse::<u8>().ok()?;
+    (1..=6).contains(&level).then_some(level)
+}
+
+fn markdown_heading_id(nodes: &[HtmlNode]) -> Option<String> {
+    nodes.iter().find_map(|node| {
+        let HtmlNode::Element(element) = node else {
+            return None;
+        };
+        if element.name != "a" {
+            return None;
+        }
+        element.attrs.iter().find_map(|attr| {
+            if attr.name != "id" {
+                return None;
+            }
+            match &attr.value {
+                Some(HtmlAttrValue::Text(value)) => Some(value.clone()),
+                _ => None,
+            }
+        })
+    })
+}
+
+fn collect_markdown_heading_text(nodes: &[HtmlNode], title: &mut String) {
+    for node in nodes {
+        match node {
+            HtmlNode::Text(text) => title.push_str(text),
+            HtmlNode::Element(element) => collect_markdown_heading_text(&element.children, title),
+            HtmlNode::Comment(_) | HtmlNode::Doctype(_) | HtmlNode::Slot(_) => {}
+        }
+    }
 }
 
 /// Validates rendered HTML output without treating braces as slots.
@@ -126,6 +207,15 @@ pub fn validate_html_output(
     path: impl AsRef<Path>,
 ) -> Result<(), Vec<HtmlDiagnostic>> {
     parse_html_nodes_without_slots(source, path).map(|_| ())
+}
+
+/// Parses rendered HTML into static nodes for compiler-owned output analysis.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) fn parse_html_output_nodes(
+    source: impl AsRef<str>,
+    path: impl AsRef<Path>,
+) -> Result<Vec<HtmlNode>, Vec<HtmlDiagnostic>> {
+    parse_html_nodes_without_slots(source, path)
 }
 
 /// Validates CSS source with the CSS parser.
@@ -571,7 +661,7 @@ impl TemplateBuilder {
 /// - Compares the tokenizer-normalized element name against the HTML void
 ///   element set so generated output can validate ordinary tags such as
 ///   `<base>`, `<meta>`, and `<link>`.
-fn is_html_void_element(name: &str) -> bool {
+pub(crate) fn is_html_void_element(name: &str) -> bool {
     matches!(
         name,
         "area"

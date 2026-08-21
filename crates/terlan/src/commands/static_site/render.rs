@@ -357,9 +357,11 @@ fn render_syntax_static_template_node(
                     out,
                 )?;
             }
-            out.push_str("</");
-            out.push_str(&element.name);
-            out.push('>');
+            if !crate::terlan_html::is_html_void_element(&element.name) {
+                out.push_str("</");
+                out.push_str(&element.name);
+                out.push('>');
+            }
         }
     }
     Ok(())
@@ -654,9 +656,11 @@ fn render_syntax_static_html_node(
             for child in &element.children {
                 render_syntax_static_html_node(module, templates, markdown_imports, child, out)?;
             }
-            out.push_str("</");
-            out.push_str(&element.name);
-            out.push('>');
+            if !crate::terlan_html::is_html_void_element(&element.name) {
+                out.push_str("</");
+                out.push_str(&element.name);
+                out.push('>');
+            }
         }
         SyntaxHtmlNodeOutput::NamedSlot { slot } => {
             return Err(StaticSyntaxRenderError::Invalid(format!(

@@ -1,0 +1,8 @@
+module=std.log.Field
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+source_hash=3153639019038533364
+interface_hash=8695359200894160610
+interface_doc_hash=4192653105622242442
+deps=0

@@ -370,7 +370,7 @@ pub(in crate::compiler::native_ir) fn refresh_recursive_call_contract(
         | NativeExpr::Float(_)
         | NativeExpr::Bool(_)
         | NativeExpr::AtomLiteral(_)
-        | NativeExpr::StringLiteral { .. }
+        | NativeExpr::ManagedLiteral { .. }
         | NativeExpr::Param(_) => {}
     }
 }

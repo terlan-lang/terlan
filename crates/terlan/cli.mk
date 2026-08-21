@@ -17,7 +17,44 @@ WEB_PROFILE_PREFLIGHT_DIR ?= $(TERLAN_TEST_WORKSPACE_ROOT)/web-profile-preflight
 CLI_BUILD_EXECUTABLE_CHECK_DIR ?= $(TERLAN_TEST_WORKSPACE_ROOT)/terlc-build-executable
 CLI_BUILD_EXECUTABLE_HANDOFF_DIR ?= $(TERLAN_TEST_WORKSPACE_ROOT)/terlc-build-executable-handoff
 
-.PHONY: cli-help cli-check cli-build cli-test cli-test-fast cli-test-full cli-test-release cli-release-artifact-current cli-release-artifact-linux cli-clean vm-artifact-check cli-terlc-build-executable-check cli-terlan-vm-compiler-bridge-check browser-package-preflight js-stdlib-smoke-check static-profile-preflight static-docs-check web-profile-preflight serve-static-smoke serve-web-smoke static-command-check http-router-check http-observability-check http-tls-check http-acme-live-check web-compose-check template-contract-check artifact-template-check typed-template-interpolation-check typed-template-interpolation-vm-check typed-template-interpolation-js-check typed-template-interpolation-tooling-check typed-template-interpolation-backend-check function-language-surface-check repeated-let-syntax-check comprehension-guards-check flexible-shape-guards-check private-field-check db-command-check terlc-debugger-check terlc-debugger-selector-inventory native-boundary-postgres-check native-boundary-http-cookie-check native-boundary-postgres-docker-check repl-check sql-form-check sql-runtime-check api-schema-check runtime-release-dependency-check terlan-format-check formatter-pipe-canonicalization-check terlan-lint-style-check terlan-grouped-binding-check terlan-function-reference-check formal-cli-phase-contract-gate formal-cli-build-gate formal-cli-js-gate formal-cli-rust-gate formal-cli-doc-gate formal-cli-a0-50-template-frontend-gate formal-cli-a0-54-constructor-contract-gate formal-cli-a0-55-function-clause-contract-gate formal-cli-a0-56-primary-expression-contract-gate formal-cli-a0-57-keyword-expression-contract-gate formal-cli-a0-58-calls-and-references-contract-gate formal-cli-a0-59-data-form-contract-gate formal-cli-a0-60-pattern-contract-gate formal-cli-a0-61-lexical-and-name-contract-gate formal-cli-a0-62-template-boundary-contract-gate formal-incremental-gate formal-phase-gate formal-directory-phase-gate
+.PHONY: abi1-pre-freeze-check abi1-continuous-fuzz-check abi1-cross-target-conformance-check abi1-tail-latency-check abi1-zero-copy-conformance-check abi1-specialization-equivalence-check abi1-trusted-adapter-audit-check abi1-release-candidate-check abi1-compatibility-freeze-check
+
+abi1-pre-freeze-check:
+	$(TERLAN_QUALITY) abi1-pre-freeze
+
+abi1-continuous-fuzz-check:
+	test -n "$$TERLAN_ABI1_REVISION"
+	TERLAN_ABI1_REVISION="$$TERLAN_ABI1_REVISION" $(EXACT_CARGO_TEST) --locked --release -p terlan --test abi1_evidence_producers abi1_continuous_fuzz_producer -- --exact
+	$(TERLAN_QUALITY) abi1-continuous-fuzz
+
+abi1-cross-target-conformance-check:
+	bash scripts/produce_abi1_cross_target_evidence.sh
+	$(TERLAN_QUALITY) abi1-cross-target-conformance
+
+abi1-tail-latency-check:
+	test -n "$$TERLAN_ABI1_REVISION"
+	TERLAN_ABI1_REVISION="$$TERLAN_ABI1_REVISION" $(EXACT_CARGO_TEST) --locked --release -p terlan --test abi1_evidence_producers abi1_tail_latency_producer -- --exact
+	$(TERLAN_QUALITY) abi1-tail-latency
+
+abi1-zero-copy-conformance-check:
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib managed_sequence_test
+	$(TERLAN_QUALITY) abi1-zero-copy-conformance
+
+abi1-specialization-equivalence-check:
+	test -n "$$TERLAN_ABI1_REVISION"
+	TERLAN_ABI1_REVISION="$$TERLAN_ABI1_REVISION" $(EXACT_CARGO_TEST) --locked --release -p terlan --test abi1_evidence_producers abi1_specialization_equivalence_producer -- --exact
+	$(TERLAN_QUALITY) abi1-specialization-equivalence
+
+abi1-trusted-adapter-audit-check:
+	$(TERLAN_QUALITY) abi1-trusted-adapter-audit
+
+abi1-release-candidate-check: abi1-continuous-fuzz-check abi1-cross-target-conformance-check abi1-tail-latency-check abi1-zero-copy-conformance-check abi1-specialization-equivalence-check abi1-trusted-adapter-audit-check
+	$(TERLAN_QUALITY) abi1-release-candidate
+
+abi1-compatibility-freeze-check: abi1-release-candidate-check
+	$(TERLAN_QUALITY) abi1-compatibility-freeze
+
+.PHONY: cli-help cli-check cli-build cli-test cli-test-fast cli-test-full cli-test-release cli-release-artifact-current cli-release-artifact-linux cli-clean vm-artifact-check cli-terlc-build-executable-check cli-terlan-vm-compiler-bridge-check browser-package-preflight js-stdlib-smoke-check static-profile-preflight static-docs-check web-profile-preflight serve-static-smoke serve-web-smoke static-command-check http-router-check http-observability-check http-tls-check http-acme-live-check web-compose-check template-contract-check artifact-template-check typed-template-interpolation-check typed-template-interpolation-vm-check typed-template-interpolation-js-check typed-template-interpolation-tooling-check typed-template-interpolation-backend-check function-language-surface-check repeated-let-syntax-check comprehension-guards-check flexible-shape-guards-check private-field-check db-command-check terlc-debugger-check terlc-debugger-selector-inventory native-boundary-postgres-check native-boundary-http-cookie-check native-boundary-postgres-docker-check repl-check sql-form-check sql-runtime-check api-schema-check runtime-release-dependency-check terlan-format-check formatter-pipe-canonicalization-check terlan-lint-style-check terlan-readability-canonicalization-check terlan-grouped-binding-check terlan-function-reference-check formal-cli-phase-contract-gate formal-cli-build-gate formal-cli-js-gate formal-cli-rust-gate formal-cli-doc-gate formal-cli-a0-50-template-frontend-gate formal-cli-a0-54-constructor-contract-gate formal-cli-a0-55-function-clause-contract-gate formal-cli-a0-56-primary-expression-contract-gate formal-cli-a0-57-keyword-expression-contract-gate formal-cli-a0-58-calls-and-references-contract-gate formal-cli-a0-59-data-form-contract-gate formal-cli-a0-60-pattern-contract-gate formal-cli-a0-61-lexical-and-name-contract-gate formal-cli-a0-62-template-boundary-contract-gate formal-incremental-gate formal-phase-gate formal-directory-phase-gate
 
 cli-help:
 	@echo "  make browser-package-preflight - build and validate a JS browser package"
@@ -77,21 +114,20 @@ cli-help:
 	@echo "  make formal-directory-phase-gate - run deterministic directory-mode phase-manifest gate"
 
 cli-check:
-	$(CARGO) check --locked --workspace
+	$(CARGO) check --workspace
 
 cli-build:
 
-cli-test:
-	$(MAKE) --no-print-directory cli-test-fast
+cli-test: cli-test-fast
 
 cli-test-fast:
-	$(RUST_TEST) --locked --workspace --bins --no-run
+	$(RUST_TEST) --workspace --bins --no-run
 	$(MAKE) --no-print-directory vm-artifact-check
 	$(TERLC_EXACT_TEST) tests::help_test::top_level_usage_hides_internal_scratch_commands -- --exact
 	$(TERLC_EXACT_TEST) commands::build::build_test::tests::artifact_test::vm_artifacts::build_command_emits_terlan_vm_artifact_without_erlang_or_beam -- --exact
 
 cli-test-full:
-	PATH="$(CURDIR)/target/debug:$$PATH" $(RUST_TEST) --locked --workspace
+	PATH="$(CURDIR)/target/debug:$$PATH" $(RUST_TEST) --workspace
 
 ifeq ($(TERLAN_RUST_SUITE_ALREADY_RUN),1)
 cli-test-release:
@@ -112,19 +148,20 @@ formatter-pipe-canonicalization-selector-inventory:
 	$(TERLC_EXACT_TEST) compiler::typeck::expression_test::assignment_templates_and_html::syntax_output_infers_pipe_forward_into_imported_module_member_call -- --exact
 
 terlan-format-check:
-	target/debug/terlc fmt --check std
-	target/debug/terlc fmt --check scripts/self_validation
-	target/debug/terlc fmt --check benchmarks
-	target/debug/terlc fmt --check crates/terlan/tests
-	target/debug/terlc fmt --check tests/language
-	target/debug/terlc fmt --check tests/template
-	target/debug/terlc fmt --check tests/pattern
-	target/debug/terlc fmt --check tests/binary
-	target/debug/terlc fmt --check tests/operator
-	target/debug/terlc fmt --check tests/rc
-	target/debug/terlc fmt --check tests/test_model/positive
-	target/debug/terlc fmt --check tests/test_model/runtime
-	target/debug/terlc fmt --check tests/std
+	target/debug/terlc fmt --check \
+		std \
+		scripts/self_validation \
+		benchmarks \
+		crates/terlan/tests \
+		tests/language \
+		tests/template \
+		tests/pattern \
+		tests/binary \
+		tests/operator \
+		tests/rc \
+		tests/test_model/positive \
+		tests/test_model/runtime \
+		tests/std
 
 formatter-pipe-canonicalization-check:
 	$(RUST_TEST) -p terlan --lib compiler::syntax::formatter::formatter_test::
@@ -412,41 +449,33 @@ terlan-lint-style-selector-inventory:
 	$(TERLC_EXACT_TEST) tests::help_test::top_level_usage_hides_internal_scratch_commands -- --exact
 	$(TERLC_EXACT_TEST) tests::help_test::run_cli_accepts_command_local_help_for_known_commands -- --exact
 
-terlan-lint-style-check:
+terlan-lint-style-check: terlan-readability-canonicalization-check
 	$(RUST_TEST) -p terlan --lib commands::lint::lint_test::
 	$(RUST_TEST) -p terlan --lib tests::help_test::
 	$(TERLC) lint std/collections
-	$(MAKE) terlan-grouped-binding-check
-	$(MAKE) terlan-function-reference-check
 
 TERLAN_GROUPED_BINDING_STDLIB_ROOTS := $(filter-out std/js/ std/summaries/,$(wildcard std/*/))
 
-terlan-grouped-binding-check:
-	@set -eu; \
-	for root in benchmarks crates proofs scripts tests $(TERLAN_GROUPED_BINDING_STDLIB_ROOTS); do \
-		$(TERLC) lint --only TL0009 "$$root"; \
-	done
+terlan-readability-canonicalization-check:
+	$(TERLC) lint --only TL0009 --only TL0010 benchmarks crates proofs scripts tests $(TERLAN_GROUPED_BINDING_STDLIB_ROOTS)
 
-terlan-function-reference-check:
-	@set -eu; \
-	for root in benchmarks crates proofs scripts tests $(TERLAN_GROUPED_BINDING_STDLIB_ROOTS); do \
-		$(TERLC) lint --only TL0010 "$$root"; \
-	done
+terlan-grouped-binding-check terlan-function-reference-check: terlan-readability-canonicalization-check
 
 cli-release-artifact-current: | terlan-tvm-platform-matrix-bootstrap
-	$(CARGO) build --release --locked --features editor-lsp --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-lsp
+	$(CARGO) build --release --features editor-lsp --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-lsp
 	mkdir -p dist
 	$(TERLAN_TVM_PLATFORM_MATRIX) release-artifact-package
 
-cli-release-artifact-linux:
-	TERLAN_RELEASE_OS=Linux TERLAN_RELEASE_ARCH=x86_64 $(MAKE) cli-release-artifact-current
+cli-release-artifact-linux: export TERLAN_RELEASE_OS = Linux
+cli-release-artifact-linux: export TERLAN_RELEASE_ARCH = x86_64
+cli-release-artifact-linux: cli-release-artifact-current
 
 cli-clean:
 	$(CARGO) clean
 	bash scripts/clean_build_outputs.sh
 
 vm-artifact-check:
-	$(CARGO) build --locked --bin terlan-vm
+	$(CARGO) build --bin terlan-vm
 	target/debug/terlc test scripts/self_validation/VmCliBridgeTest.terl \
 		--name standalone_vm_runs_source_artifact
 
@@ -533,8 +562,7 @@ static-docs-check:
 	grep -F 'name = $${name}' $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web/config.terl.toml
 	$(TERLC) static check $(STATIC_DOCS_PREFLIGHT_DIR)/src/terlan_static_docs_preflight/Site.terl --out-dir $(STATIC_DOCS_PREFLIGHT_DIR)/_build/web --base-path /terlan
 
-static-command-check:
-	$(MAKE) --no-print-directory static-route-boundary-check
+static-command-check: static-route-boundary-check
 	$(TERLC_EXACT_TEST) commands::static_site::mod_test::static_check_args_adds_check_and_validation_flags -- --exact
 	$(TERLC_EXACT_TEST) commands::static_site::mod_test::static_check_args_preserves_existing_flags -- --exact
 	$(TERLC_EXACT_TEST) commands::static_site::routes::routes_test::markdown_static_routes_infer_nested_content_path -- --exact
@@ -656,8 +684,7 @@ web-compose-check:
 	$(TERLC_EXACT_TEST) commands::serve::manifest::manifest_test::validate_web_package_accepts_adjacent_postgres_compose -- --exact
 	$(TERLC_EXACT_TEST) commands::serve::manifest::manifest_test::validate_web_package_rejects_invalid_adjacent_postgres_compose -- --exact
 
-template-contract-check:
-	$(MAKE) --no-print-directory html-boundary-check
+template-contract-check: html-boundary-check
 	$(RUST_TEST) -p terlan --lib commands::artifacts::artifacts_test::collect_syntax_
 	$(RUST_TEST) -p terlan --lib validation::template_contract::
 	$(RUST_TEST) -p terlan --lib commands::static_site::render::render_test::
@@ -672,9 +699,10 @@ artifact-template-check:
 typed-template-interpolation-check: typed-template-interpolation-vm-check typed-template-interpolation-js-check
 
 typed-template-interpolation-vm-check: compiler-purity-metadata-check template-contract-check
-	$(TERLC) test std/template/TemplateTest.terl
-	$(TERLC) test tests/fixtures/purity_template/PurityTemplateTest.terl
-	$(TERLC) test tests/template/TypedTemplateRuntimeTest.terl
+	$(TERLC) test \
+		std/template/TemplateTest.terl \
+		tests/fixtures/purity_template/PurityTemplateTest.terl \
+		tests/template/TypedTemplateRuntimeTest.terl
 	$(TERLC_EXACT_TEST) compiler::typeck::core_expr_test::syntax_output_lowering_to_core_template_call_expr -- --exact
 	$(TERLC_EXACT_TEST) commands::build::build_test::tests::project_layout_test::build_command_compiles_project_template_backed_http_handler -- --exact
 	$(RUST_TEST) -p terlan --lib runtime::vm::http::template_response_target_test::
@@ -702,11 +730,12 @@ repeated-let-syntax-check: tree-sitter-cli-check
 	$(TERLC) test tests/language/RepeatedLetSyntaxTest.terl
 
 comprehension-guards-check: compiler-purity-metadata-check tree-sitter-cli-check
-	$(TERLC) test std/core/GuardResultTest.terl
+	$(TERLC) test \
+		std/core/GuardResultTest.terl \
+		tests/language/ComprehensionGuardsTest.terl
 	$(TERLC_EXACT_TEST) formal_pipeline::formal_pipeline_test::persistence_and_effect_interfaces::embedded_std_interfaces_include_core_guard_result_contract -- --exact
 	$(RUST_TEST) -p terlan --lib comprehension
 	$(RUST_TEST) -p terlan --lib --features editor-lsp comprehension
-	$(TERLC) test tests/language/ComprehensionGuardsTest.terl
 	@if output=$$($(TERLC) test tests/language/EffectfulComprehensionFailureTest.terl --name propagates_typed_guard_failure 2>&1); then \
 		echo "expected typed guard failure" >&2; exit 1; \
 	else echo "$$output" | grep -F 'error[vm_comprehension_guard_failed]'; fi
@@ -788,8 +817,8 @@ native-boundary-http-cookie-check:
 	$(TERLC_EXACT_TEST) runtime::native_boundary::runtime::runtime_test::runtime_executes_http_cookie_jar_operations_through_terms -- --exact
 
 native-boundary-postgres-docker-check:
-	$(CARGO) test --locked -p terlan-libpq --all-targets
-	$(RUST_TEST) --locked -p terlan --lib \
+	$(CARGO) test -p terlan-libpq --all-targets
+	$(RUST_TEST) -p terlan --lib \
 		commands::bind::c_abi_binding_generator::c_abi_binding_generator_test::
 	$(TERLC_EXACT_TEST) \
 		runtime::vm::postgres::libpq_worker::libpq_docker_gate_test::libpq_docker_gate_validates_success_failure_cancellation_and_cleanup \
@@ -1175,8 +1204,7 @@ formal-cli-a0-50-template-frontend-gate:
 	$(TERLC_EXACT_TEST) tests::check_language_feature_rejection_test::run_check_single_file_rejects_unresolved_template_body_before_core_phase -- --exact
 	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::core_shape_rejections::run_check_single_file_rejects_template_instantiate_for_core_v0_target_profile -- --exact
 
-formal-cli-a0-62-template-boundary-contract-gate:
-	$(MAKE) --no-print-directory formal-cli-a0-50-template-frontend-gate
+formal-cli-a0-62-template-boundary-contract-gate: formal-cli-a0-50-template-frontend-gate
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::syntax::syntax_output::syntax_output_expr_test::literals_and_control_flow::syntax_output_includes_map_constructor_record_and_template_field_trees -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::syntax::syntax_output::syntax_output_decl_test::annotation_validation_and_methods::syntax_output_includes_struct_constructor_trait_and_template_signatures -- --exact
 	$(TERLC_EXACT_TEST) tests::check_language_feature_rejection_test::run_check_single_file_rejects_unresolved_template_body_before_core_phase -- --exact

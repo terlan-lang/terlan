@@ -21,15 +21,19 @@ pub(super) fn render_consumer_test(manifest: &CAbiBindingManifest) -> Result<Str
         );
     }
     let functions = &module.functions;
+    let public_functions = functions
+        .iter()
+        .filter(|function| function.is_public())
+        .collect::<Vec<_>>();
     let handle_type = first_type(manifest)?.name.as_str();
-    let imports = functions
+    let imports = public_functions
         .iter()
         .map(|function| function.name.as_str())
         .collect::<Vec<_>>()
         .join(", ");
     let mut body = format!("    let boundary = {}(40);\n", constructor.name);
     let mut returned_handles = Vec::new();
-    for function in functions {
+    for function in &public_functions {
         if function.generated_smoke == CGeneratedSmokePolicy::PackageOwned {
             continue;
         }
@@ -39,13 +43,17 @@ pub(super) fn render_consumer_test(manifest: &CAbiBindingManifest) -> Result<Str
         ) || function
             .args
             .iter()
-            .any(|argument| matches!(argument.ty.as_str(), "Float" | "Bool"))
+            .any(|argument| matches!(argument.abi_ty(), "Float" | "Bool"))
+            || function
+                .args
+                .iter()
+                .any(|argument| argument.abi_ty.is_some())
             || (function.dispatcher.is_none()
                 && function.returns == handle_type
                 && function
                     .args
                     .iter()
-                    .any(|argument| matches!(argument.ty.as_str(), "Int" | "List[Int]")))
+                    .any(|argument| matches!(argument.abi_ty(), "Int" | "List[Int]")))
         {
             continue;
         }
@@ -73,17 +81,17 @@ pub(super) fn render_consumer_test(manifest: &CAbiBindingManifest) -> Result<Str
             .map(|argument| {
                 if argument.ty == handle_type {
                     Ok(call_handle)
-                } else if argument.ty == "Int" {
+                } else if argument.abi_ty() == "Int" {
                     Ok(if function.dispatcher.is_some() {
                         "-1"
                     } else {
                         "2"
                     })
-                } else if argument.ty == "Float" {
+                } else if argument.abi_ty() == "Float" {
                     Ok("2.5")
-                } else if argument.ty == "Bool" {
+                } else if argument.abi_ty() == "Bool" {
                     Ok("true")
-                } else if argument.ty == "List[Int]" {
+                } else if argument.abi_ty() == "List[Int]" {
                     Ok("[0]")
                 } else {
                     Err(format!(
@@ -136,7 +144,7 @@ pub(super) fn render_consumer_test(manifest: &CAbiBindingManifest) -> Result<Str
             ));
         }
     }
-    for function in functions {
+    for function in &public_functions {
         let Some(symbol) = manifest
             .c_metadata
             .symbols
@@ -307,7 +315,7 @@ pub(super) fn role_function(
         .modules
         .iter()
         .flat_map(|module| &module.functions)
-        .find(|function| function.role == role)
+        .find(|function| function.is_public() && function.role == role)
         .ok_or_else(|| format!("missing `{}` C ABI fixture role", role_name(role)))
 }
 
@@ -333,7 +341,10 @@ pub(super) fn role_name(role: CAbiFunctionRole) -> &'static str {
 
 pub(super) fn render_args(args: &[CAbiBindingArg]) -> String {
     args.iter()
-        .map(|argument| format!("{}: {}", argument.name, argument.ty))
+        .map(|argument| match &argument.default {
+            Some(default) => format!("{}: {} = {}", argument.name, argument.ty, default),
+            None => format!("{}: {}", argument.name, argument.ty),
+        })
         .collect::<Vec<_>>()
         .join(", ")
 }

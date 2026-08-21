@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::terlan_syntax::formatter::literals::format_float_literal;
 use crate::terlan_syntax::parse_tree::{
     BinaryLayoutField, MapField, Pattern, StringPatternSegment,
 };
@@ -95,7 +96,9 @@ pub(crate) fn pattern_output(pattern: &Pattern) -> SyntaxPatternOutput {
         Pattern::Wildcard => pattern_leaf(SyntaxPatternKind::Wildcard, None),
         Pattern::Var(name) => pattern_leaf(SyntaxPatternKind::Var, Some(name.clone())),
         Pattern::Int(value) => pattern_leaf(SyntaxPatternKind::Int, Some(value.to_string())),
-        Pattern::Float(value) => pattern_leaf(SyntaxPatternKind::Float, Some(value.to_string())),
+        Pattern::Float(value) => {
+            pattern_leaf(SyntaxPatternKind::Float, Some(format_float_literal(*value)))
+        }
         Pattern::String(value) => pattern_leaf(SyntaxPatternKind::String, Some(value.clone())),
         Pattern::StringSegments(segments) => pattern_node(
             SyntaxPatternKind::StringPattern,

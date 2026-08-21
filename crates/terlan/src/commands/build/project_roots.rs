@@ -30,7 +30,7 @@ pub(super) fn resolve_project_build_roots(
     reject_unsupported_external_dependencies(manifest)?;
     let root_dir = canonical_project_dir(project_dir)?;
     let git_cache = GitDependencyCache::load_if_present(&root_dir)?;
-    let mut resolver = LocalDependencyResolver::new(git_cache);
+    let mut resolver = LocalDependencyResolver::new(git_cache, root_dir.clone());
     resolver.resolve_package(&root_dir, manifest, None)?;
     let accelerator_closure = if resolver.accelerator_packages.is_empty() {
         None
@@ -70,6 +70,12 @@ pub(super) fn reject_unsupported_external_dependencies(
 ) -> Result<(), String> {
     for dependency in &manifest.dependencies {
         if let Some((target, source, package, version)) = external_dependency_metadata(dependency) {
+            if target == "js"
+                && source == "npm"
+                && super::web_toolchain::is_managed_js_dependency(package, version)
+            {
+                continue;
+            }
             return Err(format!(
                 "terlc build package `{}` declares unsupported {} dependency `{}` from {} package `{}` version `{}`; package-manager integration is not available in A0.42.4",
                 manifest.package.name,
@@ -103,7 +109,9 @@ fn external_dependency_metadata(
     match (&dependency.scope, &dependency.source) {
         (
             project_manifest::ProjectDependencyScope::Target(project_manifest::ProjectTarget::Js),
-            project_manifest::ProjectDependencySource::Npm { package, version },
+            project_manifest::ProjectDependencySource::Npm {
+                package, version, ..
+            },
         ) => Some(("js", "npm", package.as_str(), version.as_str())),
         (
             project_manifest::ProjectDependencyScope::Target(project_manifest::ProjectTarget::Rust),
@@ -134,10 +142,11 @@ struct LocalDependencyResolver {
     native_artifact_environment: Vec<(String, PathBuf)>,
     accelerator_packages: Vec<crate::compiler::accelerator::AcceleratorPackageDescriptor>,
     git_cache: GitDependencyCache,
+    lock_root: PathBuf,
 }
 
 impl LocalDependencyResolver {
-    fn new(git_cache: GitDependencyCache) -> Self {
+    fn new(git_cache: GitDependencyCache, lock_root: PathBuf) -> Self {
         Self {
             visiting: BTreeSet::new(),
             visited: BTreeSet::new(),
@@ -146,6 +155,7 @@ impl LocalDependencyResolver {
             native_artifact_environment: Vec::new(),
             accelerator_packages: Vec::new(),
             git_cache,
+            lock_root,
         }
     }
 
@@ -192,6 +202,15 @@ impl LocalDependencyResolver {
                         .extend(resolved.artifact_environment);
                     (resolved.package_dir, ProjectDependencyOrigin::Git)
                 }
+                project_manifest::ProjectDependencySource::Registry { registry, version } => (
+                    super::package_registry_resolver::resolve_locked_dependency(
+                        &self.lock_root,
+                        &dependency.alias,
+                        registry,
+                        version,
+                    )?,
+                    ProjectDependencyOrigin::Registry,
+                ),
                 project_manifest::ProjectDependencySource::Npm { .. }
                 | project_manifest::ProjectDependencySource::Cargo { .. } => continue,
             };

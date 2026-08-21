@@ -286,7 +286,7 @@ pub(super) fn renders_markdown_to_valid_html_nodes() {
     assert_eq!(document.raw_source, "# Hello\n\n- one\n- two\n");
     assert_eq!(
         document.rendered_html,
-        "<h1>Hello</h1>\n<ul>\n<li>one</li>\n<li>two</li>\n</ul>\n"
+        "<h1><a href=\"#hello\" aria-hidden=\"true\" tabindex=\"-1\" class=\"anchor\" id=\"hello\"></a>Hello</h1>\n<ul>\n<li>one</li>\n<li>two</li>\n</ul>\n"
     );
     assert_eq!(
         document.nodes,
@@ -294,7 +294,35 @@ pub(super) fn renders_markdown_to_valid_html_nodes() {
             HtmlNode::Element(HtmlElement {
                 name: "h1".to_owned(),
                 attrs: vec![],
-                children: vec![HtmlNode::Text("Hello".to_owned())],
+                children: vec![
+                    HtmlNode::Element(HtmlElement {
+                        name: "a".to_owned(),
+                        attrs: vec![
+                            HtmlAttr {
+                                name: "href".to_owned(),
+                                value: Some(HtmlAttrValue::Text("#hello".to_owned())),
+                            },
+                            HtmlAttr {
+                                name: "aria-hidden".to_owned(),
+                                value: Some(HtmlAttrValue::Text("true".to_owned())),
+                            },
+                            HtmlAttr {
+                                name: "tabindex".to_owned(),
+                                value: Some(HtmlAttrValue::Text("-1".to_owned())),
+                            },
+                            HtmlAttr {
+                                name: "class".to_owned(),
+                                value: Some(HtmlAttrValue::Text("anchor".to_owned())),
+                            },
+                            HtmlAttr {
+                                name: "id".to_owned(),
+                                value: Some(HtmlAttrValue::Text("hello".to_owned())),
+                            },
+                        ],
+                        children: vec![],
+                    }),
+                    HtmlNode::Text("Hello".to_owned()),
+                ],
             }),
             HtmlNode::Text("\n".to_owned()),
             HtmlNode::Element(HtmlElement {
@@ -319,6 +347,14 @@ pub(super) fn renders_markdown_to_valid_html_nodes() {
             HtmlNode::Text("\n".to_owned()),
         ]
     );
+    assert_eq!(
+        document.headings,
+        vec![MarkdownHeading {
+            level: 1,
+            title: "Hello".to_owned(),
+            id: "hello".to_owned(),
+        }]
+    );
 }
 
 /// Strips Terlan imports and annotations before Markdown document rendering.
@@ -341,7 +377,10 @@ pub(super) fn renders_terlan_markdown_document_after_header() {
     .unwrap();
 
     assert_eq!(document.raw_source, "# Welcome\n");
-    assert_eq!(document.rendered_html, "<h1>Welcome</h1>\n");
+    assert_eq!(
+        document.rendered_html,
+        "<h1><a href=\"#welcome\" aria-hidden=\"true\" tabindex=\"-1\" class=\"anchor\" id=\"welcome\"></a>Welcome</h1>\n"
+    );
 }
 
 /// Keeps ordinary Markdown files unchanged.
@@ -386,7 +425,7 @@ pub(super) fn validates_markdown_derived_html_output() {
     )
     .unwrap();
 
-    assert!(document.rendered_html.contains("<h1>Links</h1>"));
+    assert!(document.rendered_html.contains("id=\"links\""));
     assert!(document.rendered_html.contains("https://example.com"));
     assert!(!document.rendered_html.contains("javascript:alert"));
     assert!(document.nodes.iter().any(|node| {
@@ -401,4 +440,30 @@ pub(super) fn validates_markdown_derived_html_output() {
             HtmlNode::Element(HtmlElement { name, .. }) if name == "p"
         )
     }));
+}
+
+#[test]
+pub(super) fn assigns_stable_unique_markdown_heading_fragments() {
+    let document = parse_markdown(
+        "## Configure `terlc`\n\n## Configure `terlc`\n",
+        "docs/configure.terl.md",
+    )
+    .unwrap();
+
+    assert_eq!(
+        document.headings,
+        vec![
+            MarkdownHeading {
+                level: 2,
+                title: "Configure terlc".to_owned(),
+                id: "configure-terlc".to_owned(),
+            },
+            MarkdownHeading {
+                level: 2,
+                title: "Configure terlc".to_owned(),
+                id: "configure-terlc-1".to_owned(),
+            },
+        ]
+    );
+    assert_eq!(document.rendered_html.matches("tabindex=\"-1\"").count(), 2);
 }

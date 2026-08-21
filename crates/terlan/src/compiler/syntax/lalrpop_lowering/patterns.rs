@@ -173,8 +173,10 @@ fn lower_leaf_pattern(
     if let Some(value) = parse_int(text) {
         return Ok(Pattern::Int(value));
     }
-    if let Ok(value) = text.parse::<f64>() {
-        return Ok(Pattern::Float(value));
+    if has_float_literal_shape(text) {
+        if let Ok(value) = text.parse::<f64>() {
+            return Ok(Pattern::Float(value));
+        }
     }
     if text.starts_with('"') {
         let value =
@@ -197,6 +199,16 @@ fn lower_leaf_pattern(
     } else {
         Ok(Pattern::Var(text.to_string()))
     }
+}
+
+/// Reports whether pattern text has the lexical shape of a float literal.
+///
+/// Rust accepts names such as `inf`, `infinity`, and `nan` when parsing an
+/// `f64`. Terlan treats those spellings as identifiers, so only source that
+/// begins with a decimal digit and contains a float marker reaches the parser.
+fn has_float_literal_shape(text: &str) -> bool {
+    text.as_bytes().first().is_some_and(u8::is_ascii_digit)
+        && (text.contains('.') || text.contains('e') || text.contains('E'))
 }
 
 /// Reports whether a pattern source slice is canonical `Atom["..."]` syntax.

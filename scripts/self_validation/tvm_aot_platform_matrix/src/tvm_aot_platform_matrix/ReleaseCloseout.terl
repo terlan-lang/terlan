@@ -61,7 +61,6 @@ pub local_gates(): List[String] ->
         "no-tvm-json-runtime-check",
         "no-vmir-interpreter-check",
         "rust-quality-check",
-        "roadmap-gate-integrity-check",
         "cargo-check-locked-terlan",
     ].
 
@@ -582,7 +581,7 @@ pub self_test(): Bool ->
         Err(_error) -> failure("cannot read Makefile");
         Ok(makefile) ->
             let valid_inventory = valid_inventory_fixture();
-            let missing_gate = String.replace(makefile, "\troadmap-gate-integrity-check\n", "");
+            let missing_gate = String.replace(makefile, "\ttvm-single-image-artifact-check \\\n", "");
             let temporary =
                 String.append(
                     valid_inventory,

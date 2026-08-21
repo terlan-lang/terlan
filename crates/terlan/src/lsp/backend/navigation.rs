@@ -436,7 +436,7 @@ impl Backend {
         let receiver_name = Self::receiver_identifier_before_member(text, field_start)?;
         let type_name = Self::parameter_type_for_name(module, &receiver_name)?;
         let (provider_module, provider_type) = Self::selected_import_for_type(module, &type_name)?;
-        let interfaces = OpenDocuments::interfaces_for_uri(uri);
+        let interfaces = OpenDocuments::imported_interfaces_for_uri(uri, module);
         let fields = interfaces
             .get(&provider_module)?
             .struct_fields
@@ -595,7 +595,7 @@ impl Backend {
         module: &SyntaxModuleOutput,
         identifier: &str,
     ) -> Option<Location> {
-        let interfaces = OpenDocuments::interfaces_for_uri(uri);
+        let interfaces = OpenDocuments::imported_interfaces_for_uri(uri, module);
         let current_path = uri.to_file_path().ok()?;
         let current_dir = current_path.parent()?;
 

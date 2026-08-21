@@ -1,0 +1,24 @@
+module terlan_io.Site.
+
+import std.template.Template.
+
+import css "../../vendor/angular.css/angular.css" as AngularStyles.
+import css "../../assets/site.css" as SiteStyles.
+import file "../../assets/CNAME" as CustomDomain.
+
+import markdown "../../content/index.terl.md" as Home.
+import markdown "../../content/docs/index.terl.md" as Documentation.
+import markdown "../../content/docs/getting-started.terl.md" as GettingStarted.
+import markdown "../../content/docs/language.terl.md" as LanguageGuide.
+import markdown "../../content/blog/index.terl.md" as Blog.
+import markdown "../../content/blog/introducing-terlan.terl.md" as IntroducingTerlan.
+import markdown "../../content/blog/search-roadmap.terl.md" as SearchRoadmap.
+import markdown "../../content/blog/compiler-notes.terl.md" as CompilerNotes.
+
+template DocsLayout from "../../templates/docs-layout.terl.html" {
+    title: String,
+    navigation: Template.Html,
+    breadcrumbs: Template.Html,
+    pagination: Template.Html,
+    toc: Template.Html
+}.

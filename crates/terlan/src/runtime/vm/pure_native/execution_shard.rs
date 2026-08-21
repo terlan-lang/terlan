@@ -9,9 +9,9 @@ use crate::runtime::vm::execution_shard_epoch::{
     VmShardEpochOperation, VmShardOperationAdmission, VmShardOperationCommit, VmShardOperationId,
     VmShardOperationKind, VmShardReplayPolicy,
 };
-use crate::runtime::vm::execution_shard_protocol::{
-    VmExecutionShardId, VmSealedShardImage, VmShardEpoch,
-};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+use crate::runtime::vm::execution_shard_protocol::VmSealedShardImage;
+use crate::runtime::vm::execution_shard_protocol::{VmExecutionShardId, VmShardEpoch};
 use crate::runtime::vm::execution_shard_supervisor::VmExecutionShardSupervisor;
 use crate::runtime::vm::http_session::VmHttpSessionService;
 use crate::runtime::vm::multicore_replay::{VmMulticoreEventKind, VmMulticoreReplayCapture};
@@ -44,6 +44,7 @@ mod timer_ingress;
 mod capability_ingress;
 
 #[path = "execution_shard/debugger.rs"]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod debugger;
 
 #[path = "execution_shard/service_actor.rs"]
@@ -55,11 +56,13 @@ mod admission;
 #[path = "execution_shard/http_response.rs"]
 mod http_response;
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+use admission::load_image_components;
 #[cfg(test)]
 use admission::local_protocol_version;
 use admission::{
-    admit_supervisor, allocate_sequence, call_source, lifecycle_error, load_image_components,
-    pending_generation_error, shard_identity,
+    admit_supervisor, allocate_sequence, call_source, lifecycle_error, pending_generation_error,
+    shard_identity,
 };
 use generation_lifetime::PureNativeGenerationTransferTracker;
 use lifecycle_replay::PureNativeShardLifecycleReplay;
@@ -230,6 +233,7 @@ impl PureNativeExecutionShard {
     }
 
     /// Returns whether the admitted image owns one exact export.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn has_export(&self, function: &str, arity: usize) -> bool {
         self.boundary.has_export(function, arity)
     }
@@ -252,48 +256,6 @@ impl PureNativeExecutionShard {
         suspension: PureNativeSuspension,
     ) -> Result<PureNativeExecution, String> {
         self.resume_owned_call(owner, suspension, None)
-    }
-
-    /// Applies a debugger-selected `skip`/`use Unit` restart to a stopped call.
-    pub(crate) fn resume_debug_restart(
-        &mut self,
-        owner: VmProcessId,
-        suspension: PureNativeSuspension,
-    ) -> Result<PureNativeExecution, String> {
-        self.require_routable("resume_debug_restart")?;
-        if suspension.owner_id() != owner.as_u64() {
-            return Err(format!(
-                "error[pure_native_debug_restart_owner]: actor {} cannot resume owner {}",
-                owner.as_u64(),
-                suspension.owner_id()
-            ));
-        }
-        let operation = self.begin_internal_epoch_operation(
-            "resume_debug_restart",
-            VmShardOperationKind::ContinuationResume,
-            VmShardReplayPolicy::AtMostOnce,
-        )?;
-        let execution = {
-            let mut context = PureNativeExecutionContext::new(owner, &mut self.execution);
-            self.boundary
-                .resume_debug_restart_for_actor(&mut self.actors, &mut context, suspension)
-        };
-        let execution = match execution {
-            Ok(execution) => execution,
-            Err(error) => {
-                let _ = self.supervisor.abort_internal_operation(operation);
-                let cleanup = self.finish_owner(owner, VmExitReason::Error(error.clone()));
-                return match cleanup {
-                    Ok(()) => Err(error),
-                    Err(cleanup_error) => Err(format!(
-                        "{error}; error[execution_shard.cleanup]: {cleanup_error}"
-                    )),
-                };
-            }
-        };
-        self.record_completion(owner, &execution);
-        self.commit_internal_epoch_operation(operation)?;
-        Ok(execution)
     }
 
     /// Resumes one parked generated continuation from an exact typed VM I/O wake.
@@ -538,6 +500,7 @@ impl PureNativeExecutionShard {
     }
 
     /// Replaces an idle image through drain, sealed admission, and readiness.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn replace_image(&mut self, path: &Path) -> Result<VmShardEpoch, String> {
         let (candidate_boundary, candidate_execution) = load_image_components(path)?;
         self.reject_duplicate_generation(&candidate_boundary)?;
@@ -554,6 +517,7 @@ impl PureNativeExecutionShard {
     /// current image loaded so accepted continuations can complete. A timeout
     /// quarantines that same loaded generation instead of unloading reachable
     /// native code.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn replace_image_before_deadline(
         &mut self,
         path: &Path,
@@ -599,6 +563,7 @@ impl PureNativeExecutionShard {
     }
 
     /// Replaces this shard with already validated image components.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     fn replace_components(
         &mut self,
         candidate_boundary: PureNativeBoundary,
@@ -623,6 +588,7 @@ impl PureNativeExecutionShard {
     }
 
     /// Prevents one immutable image generation from being republished under a new epoch.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     fn reject_duplicate_generation(&self, candidate: &PureNativeBoundary) -> Result<(), String> {
         if self.boundary.is_same_generation(candidate)? {
             return Err(
@@ -634,6 +600,7 @@ impl PureNativeExecutionShard {
     }
 
     /// Installs validated components after their predecessor has drained.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     fn install_drained_components(
         &mut self,
         current_epoch: VmShardEpoch,
@@ -650,6 +617,7 @@ impl PureNativeExecutionShard {
     }
 
     /// Swaps one quiescent generation while preserving lifecycle ordering.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     fn install_drained_components_with_image(
         &mut self,
         current_epoch: VmShardEpoch,

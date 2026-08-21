@@ -4,10 +4,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::*;
 
-fn complete_roadmap_contract() -> String {
-    REQUIRED_ROADMAP_TERMS.join("\n")
-}
-
 fn complete_makefile_contract() -> String {
     let mut lines = REQUIRED_SUB_GATES
         .iter()
@@ -19,18 +15,16 @@ fn complete_makefile_contract() -> String {
     lines.join("\n\n")
 }
 
-/// Verifies the release code-hygiene gate writes the roadmap-required report.
+/// Verifies the release code-hygiene gate writes its semantic report.
 #[test]
 fn release_code_hygiene_writes_report() {
     let repo = TempRepo::new("release_code_hygiene_writes_report");
-    repo.write(ROADMAP_PATH, &complete_roadmap_contract());
     repo.write(MAKEFILE_PATH, &complete_makefile_contract());
     repo.write(CODE_QUALITY_MAKEFILE_PATH, "# code-quality targets\n");
 
     let summary = run_release_code_hygiene(repo.path()).expect("release code hygiene gate");
 
     assert_eq!(REQUIRED_SUB_GATES.len(), summary.sub_gate_count);
-    assert_eq!(REQUIRED_ROADMAP_TERMS.len(), summary.roadmap_term_count);
     assert_eq!(REPORT_PATH, summary.report_path);
     let report =
         fs::read_to_string(repo.path().join(REPORT_PATH)).expect("read release hygiene report");
@@ -61,20 +55,6 @@ fn release_code_hygiene_reads_split_make_graph() {
     assert!(
         diagnostics.is_empty(),
         "split Make ownership should remain visible: {diagnostics:?}"
-    );
-}
-
-/// Verifies roadmap ownership is required before the umbrella gate can pass.
-#[test]
-fn release_code_hygiene_rejects_missing_roadmap_terms() {
-    let diagnostics =
-        validate_release_code_hygiene_contract("Slice 63: enforce release code hygiene", "");
-
-    assert!(
-        diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains("release-code-hygiene-report.json")),
-        "diagnostics should reject missing roadmap report ownership: {diagnostics:?}"
     );
 }
 
@@ -143,7 +123,7 @@ fn release_code_hygiene_rejects_placeholder_report_payloads() {
     );
 }
 
-/// Verifies the report schema carries every roadmap-required evidence section.
+/// Verifies the report schema carries every required evidence section.
 #[test]
 fn release_code_hygiene_rejects_missing_required_report_evidence_section() {
     let mut report = report_payload();

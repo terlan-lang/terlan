@@ -32,6 +32,7 @@ fn markdown_input(
             raw_source: String::new(),
             rendered_html: String::new(),
             nodes: Vec::new(),
+            headings: Vec::new(),
         },
     }
 }
@@ -86,6 +87,7 @@ fn markdown_static_routes_infer_nested_content_path() {
         routes,
         vec![StaticMarkdownRoute {
             path: "/guides/install".to_string(),
+            aliases: Vec::new(),
             alias: "Install".to_string(),
             title: None,
             layout: None,
@@ -125,12 +127,14 @@ fn markdown_static_routes_infer_index_content_paths() {
         vec![
             StaticMarkdownRoute {
                 path: "/".to_string(),
+                aliases: Vec::new(),
                 alias: "Home".to_string(),
                 title: None,
                 layout: None,
             },
             StaticMarkdownRoute {
                 path: "/guides".to_string(),
+                aliases: Vec::new(),
                 alias: "Guides".to_string(),
                 title: None,
                 layout: None,
@@ -167,6 +171,7 @@ fn markdown_static_routes_infer_generated_relative_content_imports() {
         routes,
         vec![StaticMarkdownRoute {
             path: "/".to_string(),
+            aliases: Vec::new(),
             alias: "Home".to_string(),
             title: None,
             layout: None,
@@ -200,6 +205,7 @@ fn markdown_static_routes_default_title_from_first_heading() {
         routes,
         vec![StaticMarkdownRoute {
             path: "/install".to_string(),
+            aliases: Vec::new(),
             alias: "Install".to_string(),
             title: Some("Install Terlan".to_string()),
             layout: None,
@@ -255,6 +261,7 @@ fn markdown_static_routes_use_page_route_override() {
             title: Some("Install".to_string()),
             route: Some("/install".to_string()),
             layout: Some("docs".to_string()),
+            ..Default::default()
         },
     )])
     .expect("discover Markdown route override");
@@ -263,11 +270,125 @@ fn markdown_static_routes_use_page_route_override() {
         routes,
         vec![StaticMarkdownRoute {
             path: "/install".to_string(),
+            aliases: Vec::new(),
             alias: "Install".to_string(),
             title: Some("Install".to_string()),
             layout: Some("docs".to_string()),
         }]
     );
+}
+
+#[test]
+fn markdown_static_routes_preserve_validated_aliases() {
+    let routes = discover_markdown_static_routes(&[markdown_input(
+        "Install",
+        "content/guides/install.terl.md",
+        crate::terlan_html::PageMetadata {
+            aliases: vec!["/start".to_string(), "/docs/install".to_string()],
+            ..Default::default()
+        },
+    )])
+    .expect("discover Markdown aliases");
+
+    assert_eq!(routes[0].aliases, vec!["/start", "/docs/install"]);
+}
+
+#[test]
+fn markdown_static_routes_reject_alias_collisions() {
+    let error = discover_markdown_static_routes(&[
+        markdown_input(
+            "Install",
+            "content/install.terl.md",
+            crate::terlan_html::PageMetadata {
+                aliases: vec!["/start".to_string()],
+                ..Default::default()
+            },
+        ),
+        markdown_input(
+            "Start",
+            "content/start.terl.md",
+            crate::terlan_html::PageMetadata::default(),
+        ),
+    ])
+    .expect_err("alias collision should fail");
+
+    assert!(error.contains("static Markdown alias `/start`"));
+}
+
+#[test]
+fn markdown_static_routes_reject_normalized_self_aliases() {
+    let error = discover_markdown_static_routes(&[markdown_input(
+        "Install",
+        "content/install.terl.md",
+        crate::terlan_html::PageMetadata {
+            aliases: vec!["/install/".to_string()],
+            ..Default::default()
+        },
+    )])
+    .expect_err("normalized self alias should fail");
+
+    assert!(error.contains("static Markdown alias `/install/`"));
+}
+
+#[test]
+fn markdown_static_routes_reject_alias_handler_collisions() {
+    let markdown_routes = discover_markdown_static_routes(&[markdown_input(
+        "Install",
+        "content/install.terl.md",
+        crate::terlan_html::PageMetadata {
+            aliases: vec!["/start".to_string()],
+            ..Default::default()
+        },
+    )])
+    .expect("discover Markdown aliases");
+    let handler_routes = vec![StaticRoute {
+        path: "/start".to_string(),
+        handler: "start".to_string(),
+    }];
+
+    let error = reject_static_route_path_collisions(&handler_routes, &markdown_routes)
+        .expect_err("handler and Markdown alias collision should fail");
+    assert!(error.contains("also declared as an alias"));
+}
+
+#[test]
+fn generated_docs_routes_reject_declared_route_collisions() {
+    let handler_routes = vec![StaticRoute {
+        path: "/blog/archive".to_string(),
+        handler: "archive".to_string(),
+    }];
+    let error = reject_generated_static_route_path_collisions(
+        &handler_routes,
+        &[],
+        &["/blog/archive".to_string()],
+    )
+    .expect_err("generated route collision should fail");
+
+    assert!(error.contains("generated documentation route `/blog/archive`"));
+}
+
+#[test]
+fn markdown_static_routes_reject_unsafe_alias_paths() {
+    let error = discover_markdown_static_routes(&[markdown_input(
+        "Install",
+        "content/install.terl.md",
+        crate::terlan_html::PageMetadata {
+            aliases: vec!["/docs/../install".to_string()],
+            ..Default::default()
+        },
+    )])
+    .expect_err("unsafe alias should fail");
+
+    assert!(error.contains("invalid static Markdown alias"));
+}
+
+#[test]
+fn markdown_alias_redirect_uses_base_relative_canonical_url() {
+    let html = render_static_markdown_alias_html("/docs/install", Some("Install & Run"));
+
+    assert!(html.contains("content=\"0; url=docs/install/\""));
+    assert!(html.contains("href=\"docs/install/\""));
+    assert!(html.contains("Install&#32;&amp;&#32;Run"));
 }
 
 /// Verifies duplicate content routes are rejected.

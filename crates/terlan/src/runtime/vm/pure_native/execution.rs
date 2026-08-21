@@ -16,6 +16,9 @@ use crate::runtime::vm::scheduler::VmSchedulerClass;
 use crate::runtime::vm::ReplValue;
 use crate::terlan_native_boundary::term::NativeBoundaryTerm;
 
+#[path = "execution/debugger.rs"]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod debugger;
 #[path = "execution/entry.rs"]
 mod entry;
 #[path = "execution/reply.rs"]
@@ -26,9 +29,11 @@ mod support;
 mod transition_validation;
 
 use reply::handle_reply;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+use support::transition_capture_types;
 use support::{
     capability_identity, native_actor_exit_error, repl_value_to_boundary_term,
-    transition_capture_types, validate_capability_arguments, validate_transition_continuation,
+    validate_capability_arguments, validate_transition_continuation,
 };
 pub(crate) use transition_validation::validate_transition_arguments;
 
@@ -54,48 +59,6 @@ pub(crate) enum PureNativeExecution {
 }
 
 impl PureNativeBoundary {
-    /// Materializes one parked capture through its actor-owned heap.
-    pub(crate) fn debugger_decode_capture(
-        &self,
-        context: &PureNativeExecutionContext<'_>,
-        boundary_type: &TvmBoundaryType,
-        value: i64,
-    ) -> Result<ReplValue, String> {
-        self.backend
-            .as_deref()
-            .ok_or_else(|| {
-                "error[pure_native_backend_missing]: no active native execution backend".to_string()
-            })?
-            .decode_transition_value(context, boundary_type, value)
-    }
-
-    /// Resumes a stopped failure/debug continuation through a typed debugger restart.
-    pub(crate) fn resume_debug_restart_for_actor(
-        &mut self,
-        actors: &mut VmActorRuntime,
-        context: &mut PureNativeExecutionContext<'_>,
-        suspension: PureNativeSuspension,
-    ) -> Result<PureNativeExecution, String> {
-        if suspension.owner_id() != context.owner_id() {
-            return Err("error[pure_native_debug_restart_owner]: foreign suspension owner".into());
-        }
-        if !matches!(
-            suspension.operation(),
-            TvmTransitionOperation::Failure | TvmTransitionOperation::Debug
-        ) {
-            return Err(format!(
-                "error[pure_native_debug_restart_operation]: cannot bypass {:?}",
-                suspension.operation()
-            ));
-        }
-        actors.resume_native_continuation(
-            suspension.owner_id(),
-            suspension.request_id(),
-            suspension.continuation_id(),
-        )?;
-        self.finish_transition_resume(actors, context, suspension, Vec::new(), None, None)
-    }
-
     /// Decodes one generated capability suspension without exposing heap words
     /// or worker transport identity outside the owning execution shard.
     pub(crate) fn capability_request_for_actor(
@@ -146,10 +109,15 @@ impl PureNativeBoundary {
                         })
                 })
                 .collect::<Result<Vec<_>, _>>()?;
+            let boundary_arguments = package_arguments
+                .iter()
+                .cloned()
+                .map(repl_value_to_boundary_term)
+                .collect::<Result<Vec<_>, _>>()?;
             return Ok(PureNativeCapabilityRequest {
                 capability: "package-native".to_string(),
                 operation,
-                arguments: Vec::new(),
+                arguments: boundary_arguments,
                 package_arguments: Some(package_arguments),
                 result_type,
             });

@@ -11,6 +11,9 @@ pub(super) use crate::terlan_syntax::parse_module_as_syntax_output;
 pub(super) use crate::terlan_syntax::validate_syntax_contract;
 pub(super) use crate::terlan_syntax::SyntaxSourceKind;
 #[cfg(test)]
+#[path = "lib_test/discovery_loading.rs"]
+mod discovery_loading;
+#[cfg(test)]
 #[path = "lib_test/external_contracts.rs"]
 mod external_contracts;
 #[cfg(test)]

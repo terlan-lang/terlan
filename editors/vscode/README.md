@@ -11,6 +11,8 @@ language configuration, and `terlc lsp --stdio` startup.
 - Treat `.terl.html` templates as HTML-backed editor documents while keeping
   Terlan `${...}` expression highlighting and component links back to Terlan
   template declarations.
+- Treat `.terl.md` templates as Markdown-backed documents while highlighting
+  Terlan header annotations, imports, and `${...}` expression islands.
 - Provide editor comment, bracket, and auto-closing behavior.
 - Provide conservative TextMate highlighting until the Tree-sitter grammar is
   promoted.
@@ -27,6 +29,8 @@ language configuration, and `terlc lsp --stdio` startup.
 - `syntaxes/terlan.tmLanguage.json`: conservative source highlighting.
 - `syntaxes/terlan-template-html.tmLanguage.json`: HTML-backed template
   highlighting with Terlan expression islands.
+- `syntaxes/terlan-template-markdown.tmLanguage.json`: Markdown-backed template
+  highlighting with Terlan header and expression islands.
 - `src/client_config.js`: pure LSP command and document-selector
   configuration helpers.
 - `src/extension.js`: extension activation and LSP startup.

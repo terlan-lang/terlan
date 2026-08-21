@@ -415,7 +415,7 @@ fn continuation_references(expr: &NativeExpr, references: &mut Vec<u64>) {
         | NativeExpr::Float(_)
         | NativeExpr::Bool(_)
         | NativeExpr::AtomLiteral(_)
-        | NativeExpr::StringLiteral { .. }
+        | NativeExpr::ManagedLiteral { .. }
         | NativeExpr::Param(_) => {}
     }
 }
@@ -549,7 +549,7 @@ fn rewrite_continuation_ids(expr: &mut NativeExpr, aliases: &HashMap<u64, u64>) 
         | NativeExpr::Float(_)
         | NativeExpr::Bool(_)
         | NativeExpr::AtomLiteral(_)
-        | NativeExpr::StringLiteral { .. }
+        | NativeExpr::ManagedLiteral { .. }
         | NativeExpr::Param(_) => {}
     }
 }
@@ -753,7 +753,7 @@ fn resolve_calls(
         | NativeExpr::Float(_)
         | NativeExpr::Bool(_)
         | NativeExpr::AtomLiteral(_)
-        | NativeExpr::StringLiteral { .. }
+        | NativeExpr::ManagedLiteral { .. }
         | NativeExpr::Param(_) => {}
     }
     Ok(())

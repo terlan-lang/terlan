@@ -252,7 +252,7 @@
       "blockers": [],
       "family": "wasm-bridge",
       "feature_class": "lowering",
-      "last_executed_digest": "sha256:8801c7dccbcd7dbdb2c3fd61c751add78e18198194fb82dda221322d8b4aba62",
+      "last_executed_digest": "sha256:5a1da1db8155385d9ab89aa09baf519ae208525d146dd4e123b8c9a9279712c2",
       "proof_status": "current",
       "remediation_gates": [],
       "reproducibility_verdict": "pass",
@@ -308,14 +308,14 @@
     "lean"
   ],
   "lane_checksums": {
-    "coreir": "sha256:10ca4cc645ff4170a4addf8dd69ee40708f177e81c9b4f37eb5c3be489b176c0",
-    "distribution": "sha256:eb06bb0eb6d069b25b01c022a2a2eaed8d6670cef3d74e8bf6138e3c69afb71c",
-    "native_boundary": "sha256:62bb69f5d40fc5923287cafb9bbf43942f5ebf70bdb8b6022a7dd17ffa3ff633",
+    "coreir": "sha256:1105051c6450d2b5a5a06579327418e061d2555c77b15479db78345377a6a6ab",
+    "distribution": "sha256:ab457a5cca69080d5933a97f1178aff9bfe5feb1d6ca08831bd5ec8d47397f45",
+    "native_boundary": "sha256:65aa59cdf597ca5ac48cdd3d7738e05f6cdc6dfab0c9f22eaa479d1d3f9feca2",
     "parser": "sha256:9084cd33e37456a7f035b708885c16703dfb2b011af6b878f0a508cade83bcbf",
-    "std_packages": "sha256:4dbda6c03a08392d7aec7131695cef5c725946b909ed9896034cfc46866398cc",
-    "target_profile": "sha256:09ee0a5e9722cf2ad8205cb4cc35fceaa0d5aeb480760e3ec9a55b22fe5f7aee",
-    "vm_runtime": "sha256:ba2542a6f3c80febcaf072c4c6a67e422a8f709d29aeea36f817a01542c8ddaf",
-    "wasm": "sha256:df7a091072dfdc3c2ad0f16e512cb32afcea39f9a54cbba76d2ee46af25b5fb3"
+    "std_packages": "sha256:dbe515908922ae3942cab88374df2cce2dd67fa4a79678834f7e19aa94ed415b",
+    "target_profile": "sha256:a6863ca1c89805c74ca45a8d3a490e54dd2c4bf1354fabc64e03bf93c31b275d",
+    "vm_runtime": "sha256:6dcf1691335ed34f4393ae5eae7ef349eee6ebcbd977a6f2cb67cba31dde1df8",
+    "wasm": "sha256:4e14d316e2d3c4269c8a4901e2764f8c1e2f881329d305fad627765d1eb76900"
   },
   "lane_matrix_checksum": "sha256:994f2f7b4e39fdfb20ba9cae9280ea839420c3d01d0edad2acd1a2e2c9ddb8b0",
   "lean_version": "4.31.0",
@@ -323,54 +323,54 @@
   "proof_gap_metrics": {
     "gap_classification_confidence": 1.0,
     "gap_count": 8,
-    "gap_staleness_days": 29,
+    "gap_staleness_days": 21,
     "gaps": [
       {
         "feature": "EBNF syntax preservation",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 14,
+        "gap_staleness_days": 21,
         "lifecycle_status": "closed"
       },
       {
         "feature": "typed CoreIR preservation",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 29,
+        "gap_staleness_days": 2,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "target-profile inference",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 29,
+        "gap_staleness_days": 2,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "VM execution subset",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 29,
+        "gap_staleness_days": 2,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "pattern and operator coverage",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 29,
+        "gap_staleness_days": 2,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "native-boundary contracts",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 14,
+        "gap_staleness_days": 21,
         "lifecycle_status": "closed"
       },
       {
         "feature": "Wasm CoreIR lowering",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 29,
+        "gap_staleness_days": 2,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "Aeneas Rust verification bridge",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 29,
+        "gap_staleness_days": 2,
         "lifecycle_status": "blocked"
       }
     ],
@@ -492,7 +492,7 @@
       "dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
       "family": "wasm-bridge",
       "first_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
-      "proof_digest": "sha256:8801c7dccbcd7dbdb2c3fd61c751add78e18198194fb82dda221322d8b4aba62",
+      "proof_digest": "sha256:5a1da1db8155385d9ab89aa09baf519ae208525d146dd4e123b8c9a9279712c2",
       "proof_path": "proofs/lean/wasm_bridge/WasmBridge.lean",
       "second_signature": "sha256:56f227ea36fa99d699f5621968c5427520da34e27535247a0a441b6dceecb9f3",
       "verdict": "pass"

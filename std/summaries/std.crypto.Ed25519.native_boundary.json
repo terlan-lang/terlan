@@ -1,0 +1,13 @@
+{
+  "functions": [
+    {
+      "arity": 3,
+      "name": "verify",
+      "operation": "std.crypto.ed25519.verify"
+    }
+  ],
+  "module": "std_crypto_ed25519_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.crypto.Ed25519"
+}

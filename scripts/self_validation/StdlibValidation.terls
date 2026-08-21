@@ -1,0 +1,367 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Owns standard-library policy and release-test orchestration without a shell.
+ */
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.io.Console.{eprintln, println}.
+import std.io.{Directory, File}.
+import std.regex.Regex.
+import std.system.{Arguments, Environment, Process}.
+
+import type std.collections.List.
+import type std.core.Option.
+import type std.io.File.TextFile.
+import type std.regex.Regex.
+import type std.system.Process.{Command, Output}.
+
+struct ApiRow {
+    api_id: String,
+    path: String,
+    expectation: String,
+}.
+
+struct ParsedRows {
+    rows: List[ApiRow],
+    valid: Bool,
+}.
+
+failure(code: String, message: String): Bool ->
+    let _printed = eprintln(String.concat(["error[stdlib_validation.", code, "]: ", message]));
+    false.
+
+root(): String ->
+    case Environment.get("TERLAN_REPOSITORY_ROOT") {
+        Some(value) -> value;
+        None -> Environment.current_directory()
+    }.
+
+compiler(repository: String): String ->
+    case Environment.get("TERLAN_STDLIB_VALIDATION_TERLC") {
+        Some(value) -> value;
+        None -> child(repository, "target/debug/terlc")
+    }.
+
+@pure
+child(parent: String, relative: String): String ->
+    if {
+        parent == "." -> relative;
+        String.ends_with(parent, "/") -> String.append(parent, relative);
+        true -> String.append(parent, String.append("/", relative))
+    }.
+
+@pure
+reverse_strings(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings(rest, [value | reversed])
+    }.
+
+@pure
+reverse_rows(values: List[ApiRow], reversed: List[ApiRow]): List[ApiRow] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_rows(rest, [value | reversed])
+    }.
+
+@pure
+parse_rows(source: String): ParsedRows ->
+    parse_row_lines(String.split(source, "\n"), List.new[ApiRow](), true).
+
+@pure
+parse_row_lines(lines: List[String], rows: List[ApiRow], valid: Bool): ParsedRows ->
+    case lines {
+        [] -> ParsedRows(rows = reverse_rows(rows, List.new[ApiRow]()), valid = valid);
+        [line | rest] ->
+            let trimmed = String.trim(line);
+            if {
+                trimmed == "" or String.starts_with(trimmed, "#") -> parse_row_lines(rest, rows, valid);
+                true -> case String.split(line, "\t") {
+                    [api_id, path, expectation] ->
+                        parse_row_lines(
+                            rest,
+                            [ApiRow(api_id = api_id, path = path, expectation = expectation) | rows],
+                            valid,
+                        );
+                    _ -> parse_row_lines(rest, rows, false)
+                }
+            }
+    }.
+
+load_rows(repository: String, relative: String): Option[List[ApiRow]] ->
+    case File.read_text(child(repository, relative)) {
+        Err(reason) ->
+            let _reported = failure("manifest", File.message(reason));
+            None;
+        Ok(source) ->
+            let parsed = parse_rows(source);
+            if {
+                parsed.valid -> Some(parsed.rows);
+                true -> let _reported = failure("manifest", String.append(relative, " contains a malformed TSV row"));
+                None
+            }
+    }.
+
+@pure
+contains_api(rows: List[ApiRow], expected: String): Bool ->
+    case rows {
+        [] -> false;
+        [row | rest] -> row.api_id == expected or contains_api(rest, expected)
+    }.
+
+bounded_test(repository: String, arguments: List[String]): Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(Process.command(compiler(repository)), arguments),
+                repository,
+            ),
+            120000,
+        ),
+        4194304,
+    ).
+
+combined(output: Output): String ->
+    String.concat([Process.stdout(output), "\n", Process.stderr(output)]).
+
+negative_fixture_path(path: String, io_only: Bool): Bool ->
+    String.starts_with(
+    path,
+    if {
+        io_only -> "tests/std/negative/io/";
+        true -> "tests/std/negative/"
+    },
+)
+        and String.ends_with(path, "Test.terl").
+
+validate_negative_rows(
+    repository: String,
+    rows: List[ApiRow],
+    positive: List[ApiRow],
+    io_only: Bool,
+): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] ->
+            let fixture = child(repository, row.path);
+            if {
+                not negative_fixture_path(row.path, io_only) -> failure("negative.path", String.append("invalid negative fixture path: ", row.path));
+                not File.exists(fixture) -> failure("negative.missing", String.append("missing negative fixture: ", row.path));
+                not contains_api(positive, row.api_id) -> failure(
+                    "negative.coverage",
+                    String.append("no positive release API row for: ", row.api_id),
+                );
+                true -> let _printed = println(String.append("[stdlib-negative-api-test] ", row.path));
+                case Process.run(bounded_test(repository, ["test", row.path])) {
+                    Err(reason) -> failure("negative.process", Process.error_message(reason));
+                    Ok(output) ->
+                        let text = combined(output);
+                        if {
+                            Process.status(output) == 0 -> failure(
+                                "negative.accepted",
+                                String.append("invalid fixture passed: ", row.path),
+                            );
+                            not String.contains(text, row.expectation) -> failure(
+                                "negative.diagnostic",
+                                String.concat(
+                                    [
+                                        row.path,
+                                        " missing expected diagnostic `",
+                                        row.expectation,
+                                        "`",
+                                    ],
+                                ),
+                            );
+                            String.contains(text, "test result: ok.") -> failure(
+                                "negative.summary",
+                                String.append("invalid fixture reported success: ", row.path),
+                            );
+                            true -> validate_negative_rows(repository, rest, positive, io_only)
+                        }
+                }
+            }
+    }.
+
+negative_check(repository: String, manifest: String, io_only: Bool): Bool ->
+    let {
+        Some(rows) <- load_rows(repository, manifest);
+        Some(positive) <- load_rows(repository, "tests/std/RELEASE_API_TESTS.tsv")
+    } else {
+        _ -> false
+    };
+    validate_negative_rows(repository, rows, positive, io_only).
+
+@pure
+is_generated_contract(row: ApiRow): Bool ->
+    String.starts_with(row.api_id, "std.js.") and String.ends_with(row.api_id, ".generated_surface").
+
+@pure
+string_member(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or string_member(rest, expected)
+    }.
+
+@pure
+release_test_paths(rows: List[ApiRow]): List[String] ->
+    reverse_strings(release_test_paths_at(rows, List.new[String]()), List.new[String]()).
+
+@pure
+release_test_paths_at(rows: List[ApiRow], paths: List[String]): List[String] ->
+    case rows {
+        [] -> paths;
+        [row | rest] ->
+            release_test_paths_at(
+                rest,
+                if {
+                    is_generated_contract(row) or string_member(paths, row.path) -> paths;
+                    true -> [row.path | paths]
+                },
+            )
+    }.
+
+run_release_files(repository: String, paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            if {
+                not File.exists(child(repository, path)) -> failure("release.missing", String.append("missing release test: ", path));
+                true -> let arguments =
+                    if {
+                        String.starts_with(path, "std/js/") -> ["test", path, "--target", "js", "--target-profile", "js.browser"];
+                        true -> ["test", path]
+                    };
+                let _printed = println(String.append("[stdlib-release-test] ", path));
+                case Process.run(bounded_test(repository, arguments)) {
+                    Err(reason) -> failure("release.process", Process.error_message(reason));
+                    Ok(output) ->
+                        if {
+                            Process.status(output) == 0 -> run_release_files(repository, rest);
+                            true -> failure("release.failed", String.concat([path, "\n", combined(output)]))
+                        }
+                }
+            }
+    }.
+
+release_tests(repository: String): Bool ->
+    case load_rows(repository, "tests/std/RELEASE_API_TESTS.tsv") {
+        Some(rows) -> run_release_files(repository, release_test_paths(rows));
+        None -> false
+    }.
+
+@pure
+non_comment_source(lines: List[String], output: String): String ->
+    case lines {
+        [] -> output;
+        [line | rest] ->
+            let trimmed = String.trim(line);
+            non_comment_source(
+                rest,
+                if {
+                    String.starts_with(trimmed, "//") -> output;
+                    true -> String.concat([output, line, "\n"])
+                },
+            )
+    }.
+
+backend_calls_absent(files: List[TextFile], pattern: Regex): Bool ->
+    case files {
+        [] -> true;
+        [file | rest] ->
+            if {
+                String.ends_with(File.text_file_path(file), "Test.terl") -> backend_calls_absent(rest, pattern);
+                Regex.is_match(
+                    pattern,
+                    non_comment_source(String.split(File.text_file_contents(file), "\n"), ""),
+                ) -> failure(
+                    "core.backend",
+                    String.append("backend primitive call remains in ", File.text_file_path(file)),
+                );
+                true -> backend_calls_absent(rest, pattern)
+            }
+    }.
+
+core_backend_check(repository: String): Bool ->
+    let manifest = child(repository, "std/core/BACKEND_PRIMITIVE_CALLS.tsv");
+    let Ok(manifest_source) <- File.read_text(manifest) else {
+        Err(_reason) -> failure("core.inventory", "backend primitive inventory is missing")
+    };
+    (let parsed = parse_rows(manifest_source);
+if {
+    not parsed.valid or List.length(parsed.rows) != 0 -> failure("core.inventory", "backend primitive inventory must remain empty");
+    true -> core_backend_sources(repository)
+}).
+
+core_backend_sources(repository: String): Bool ->
+    let {
+        Ok(files) <-
+            File.read_text_tree_matching(
+                child(repository, "std/core"),
+                List.new[String](),
+                [".terl"],
+                List.new[String](),
+                0,
+                4096,
+            );
+        Ok(pattern) <-
+            Regex.compile(
+                "\\b(?:erlang|string|lists|unicode|binary|math|maps)\\.[a-z_][A-Za-z0-9_]*\\s*\\(",
+            )
+    } else {
+        _ -> failure("core.inventory", "cannot scan std.core backend primitive calls")
+    };
+    backend_calls_absent(files, pattern).
+
+receiver_methods_check(repository: String): Bool ->
+    let path = child(repository, "std/core/String.terl");
+    let {
+        Ok(source) <- File.read_text(path);
+        Ok(pattern) <-
+            Regex.compile(
+                "(?m)^\\s*pub\\s+[a-z_][A-Za-z0-9_]*\\s*\\(\\s*[a-z_][A-Za-z0-9_]*\\s*:\\s*String\\s*[,)]",
+            )
+    } else {
+        _ -> failure("receiver.read", "cannot read or scan std/core/String.terl")
+    };
+    if {
+        Regex.is_match(pattern, source) -> failure("receiver.declaration", "public String operation must be a receiver method");
+        true -> true
+    }.
+
+self_test(): Bool ->
+    let parsed = parse_rows("# comment\nstd.core.value\tstd/core/ValueTest.terl\tworks\n");
+    parsed.valid
+        and contains_api(parsed.rows, "std.core.value")
+        and negative_fixture_path("tests/std/negative/io/BadTest.terl", true)
+        and not negative_fixture_path("tests/std/negative/core/BadTest.terl", true)
+        and release_test_paths(
+    [
+        ApiRow(api_id = "std.core.a", path = "std/core/ATest.terl", expectation = "a"),
+        ApiRow(api_id = "std.core.b", path = "std/core/ATest.terl", expectation = "b"),
+        ApiRow(
+            api_id = "std.js.Array.generated_surface",
+            path = "std/js/ArrayTest.terl",
+            expectation = "surface",
+        ),
+    ],
+) == ["std/core/ATest.terl"].
+
+entry(): Bool ->
+    let repository = root();
+    case Arguments.get(0) {
+        Some("negative-api") ->
+            negative_check(repository, "tests/std/NEGATIVE_API_TESTS.tsv", false);
+        Some("io-negative-api") ->
+            negative_check(repository, "tests/std/IO_NEGATIVE_API_TESTS.tsv", true);
+        Some("core-backend") -> core_backend_check(repository);
+        Some("receiver-methods") -> receiver_methods_check(repository);
+        Some("release-tests") -> release_tests(repository);
+        Some("self-test") -> self_test();
+        Some(value) -> failure("arguments", String.append("unknown command: ", value));
+        None -> failure("arguments", "expected a stdlib validation command")
+    }.
+
+assert(entry());
+Unit.

@@ -21,7 +21,9 @@ impl RequestFieldProjection {
     pub(crate) const HEADERS: usize = 7;
     pub(crate) const COOKIES: usize = 8;
     pub(crate) const COOKIE_JAR: usize = 9;
+    pub(crate) const BODY_FILE_PATH: usize = 10;
 
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) const fn empty() -> Self {
         Self::Fields(0)
     }
@@ -33,6 +35,7 @@ impl RequestFieldProjection {
         }
     }
 
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn include(&mut self, field: usize) {
         if let Self::Fields(fields) = self {
             let Some(bit) = 1_u16.checked_shl(field as u32) else {

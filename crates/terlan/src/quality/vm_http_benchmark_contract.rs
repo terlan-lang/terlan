@@ -366,7 +366,7 @@ fn validate_make_ownership(root: &Path) -> QualityResult<Vec<String>> {
         "vm-http-runtime-attribution-check: vm-http-benchmark-comparability-check",
         "vm-http-runtime-attribution-check \\",
         "vm-http-vs-axum-check: tvm-http-paired-performance-check\n",
-        "release-0-0-7-preflight: vm-http-runtime-attribution-check",
+        "RELEASE_EVIDENCE_GATES := \\\n\tvm-http-runtime-attribution-check \\",
     ];
     Ok(required
         .iter()

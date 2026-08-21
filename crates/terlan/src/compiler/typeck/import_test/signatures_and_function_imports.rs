@@ -705,6 +705,43 @@ pub demo(): String ->\n\
     );
 }
 
+/// Verifies imported valued-union defaults preserve one nominal identity.
+///
+/// Inputs:
+/// - A provider interface exporting a represented valued union and a function
+///   whose trailing parameter defaults to one of its arms.
+/// - A consumer importing both declarations and calling the function with the
+///   omitted default and with another qualified arm.
+///
+/// Output:
+/// - Both calls typecheck without a same-name nominal mismatch.
+///
+/// Transformation:
+/// - Resolves parameter annotations, default metadata, and qualified arm
+///   constants through the same provider-owned type identity.
+#[test]
+fn syntax_output_imported_valued_union_default_preserves_nominal_identity() {
+    let interface_source = "\
+module layout_provider.\n\
+pub type MemoryOrder: Int = C = 0 | FORTRAN = 1.\n\
+pub eye(size: Int, order: MemoryOrder = MemoryOrder.C): Int.\n\
+";
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module layout_consumer.\n\
+import layout_provider.{MemoryOrder, eye}.\n\
+pub defaults(): Int -> eye(3).\n\
+pub explicit(): Int -> eye(3, order = MemoryOrder.FORTRAN).\n\
+",
+        interface_source,
+    );
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
 /// Verifies selected imported defaults do not hide missing required params.
 ///
 /// Inputs:

@@ -1,0 +1,13 @@
+[package]
+name = "terlan-io"
+version = "0.0.1"
+
+[build]
+source_roots = ["src"]
+artifact = "terlan-vm"
+
+[web.assets]
+directory = "assets"
+
+[target.js.dependencies]
+angular_ts = { npm = "@angular-wave/angular.ts", version = "0.32.0" }

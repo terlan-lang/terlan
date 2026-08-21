@@ -95,6 +95,18 @@ fn checked_cache_rejects_poisoned_or_missing_implementation_payloads() {
     fixture.remove();
 }
 
+/// Proves a direct incremental file build can publish into a cold cache root.
+#[test]
+fn checked_cache_publisher_creates_missing_cache_root() {
+    let fixture = CheckedCacheFixture::new("cold_cache_root");
+    assert!(!fixture.cache.exists());
+
+    assert!(!fixture.compile_dependency().checked_cache_reused);
+    assert!(fixture.cache.join("app.Dependency.typi.deps").is_file());
+    assert!(fixture.compile_dependency().checked_cache_reused);
+    fixture.remove();
+}
+
 /// Complete two-module checked-cache fixture.
 struct CheckedCacheFixture {
     /// Temporary fixture root removed after each test.

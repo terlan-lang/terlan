@@ -233,18 +233,27 @@ pub(super) fn lower_native_function_with_callables(
         .as_ref()
         .filter(|_| !dynamic_return_contract)
         .or(inferred_dynamic_return.as_ref());
-    let collection_value = collection_values::lower_boundary_collection_value(
-        &core_body,
-        boundary_return_type,
-        &params,
-        &param_types,
-        identities,
-        function_types,
-        constructors,
-    )?;
-    let mut structured_case = if expr_calls_suspending(&core_body, suspending_functions)
-        || contains_process_yield(&core_body)
-    {
+    let has_suspension_context = expr_calls_suspending(&core_body, suspending_functions)
+        || contains_process_yield(&core_body);
+    // Boundary collection lowering is intentionally eager and therefore may
+    // only consume a fully synchronous expression. A suspending call nested
+    // below a list/map/set constructor must first be split into CallThen by
+    // the suspension-aware control lowerer; otherwise the eager collection
+    // path embeds an ordinary NativeExpr::Call in a managed operation.
+    let collection_value = if has_suspension_context {
+        None
+    } else {
+        collection_values::lower_boundary_collection_value(
+            &core_body,
+            boundary_return_type,
+            &params,
+            &param_types,
+            identities,
+            function_types,
+            constructors,
+        )?
+    };
+    let mut structured_case = if has_suspension_context {
         None
     } else {
         structured_case::lower_structured_case(
@@ -278,10 +287,7 @@ pub(super) fn lower_native_function_with_callables(
     )?;
     let opaque_dynamic_boundary = matches!(core_body, CoreExpr::FunctionCall { .. })
         && !suspending_functions.contains(&(function.name.clone(), function.arity));
-    let indirect_invocation = if (expr_calls_suspending(&core_body, suspending_functions)
-        || contains_process_yield(&core_body))
-        && !opaque_dynamic_boundary
-    {
+    let indirect_invocation = if has_suspension_context && !opaque_dynamic_boundary {
         None
     } else {
         closure_invocation::lower_boundary_closure_invocation(
@@ -431,6 +437,9 @@ pub(super) fn lower_native_function_with_callables(
 /// the declaration that supplied its body. Runtime dispatch continues to use
 /// the consumer module and generated symbol independently of this provenance.
 fn source_declaration_identity(module: &str, function: &CoreFunction) -> (String, String, usize) {
+    if let Some((source_function, source_arity)) = generated_list_builder_origin(&function.name) {
+        return (module.to_string(), source_function, source_arity);
+    }
     let origin = function
         .name
         .strip_prefix("$aot_generic_")
@@ -448,6 +457,16 @@ fn source_declaration_identity(module: &str, function: &CoreFunction) -> (String
         }
         _ => (module.to_string(), function.name.clone(), function.arity),
     }
+}
+
+/// Recovers the source owner encoded in a synthesized list-builder symbol.
+fn generated_list_builder_origin(name: &str) -> Option<(String, usize)> {
+    let encoded = name
+        .strip_prefix("$aot_list_builder_")
+        .or_else(|| name.strip_prefix("$aot_list_reverse_"))?;
+    let (source, arity) = encoded.rsplit_once('_')?;
+    let arity = arity.parse().ok()?;
+    (!source.is_empty()).then(|| (source.to_string(), arity))
 }
 
 /// Retains a concrete generic return type at the construction that produces it.
@@ -496,13 +515,30 @@ pub(super) fn contains_process_yield(expr: &CoreExpr) -> bool {
     }
     match expr {
         CoreExpr::Call { args, .. }
+        | CoreExpr::RemoteCall { args, .. }
         | CoreExpr::ConstructorCall { args, .. }
         | CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => {
             args.iter().any(contains_process_yield)
         }
-        CoreExpr::RecordConstruct { fields, .. } => fields
+        CoreExpr::FunctionCall { callee, args } => {
+            contains_process_yield(callee) || args.iter().any(contains_process_yield)
+        }
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+            items.iter().any(contains_process_yield)
+        }
+        CoreExpr::ListCons { head, tail }
+        | CoreExpr::Index {
+            base: head,
+            index: tail,
+        } => contains_process_yield(head) || contains_process_yield(tail),
+        CoreExpr::Map(fields) => fields
             .iter()
             .any(|field| contains_process_yield(&field.value)),
+        CoreExpr::RecordConstruct { fields, .. } | CoreExpr::TemplateInstantiate { fields, .. } => {
+            fields
+                .iter()
+                .any(|field| contains_process_yield(&field.value))
+        }
         CoreExpr::RecordUpdate { base, fields, .. } => {
             contains_process_yield(base)
                 || fields
@@ -511,6 +547,24 @@ pub(super) fn contains_process_yield(expr: &CoreExpr) -> bool {
         }
         CoreExpr::FieldAccess { base, .. } | CoreExpr::RecordAccess { base, .. } => {
             contains_process_yield(base)
+        }
+        CoreExpr::ConstructorChain { args, record, .. } => {
+            args.iter().any(contains_process_yield) || contains_process_yield(record)
+        }
+        CoreExpr::MutableReceiverCall { receiver, args, .. } => {
+            contains_process_yield(receiver) || args.iter().any(contains_process_yield)
+        }
+        CoreExpr::ListComprehension {
+            expr,
+            generators,
+            guards,
+            ..
+        } => {
+            contains_process_yield(expr)
+                || generators
+                    .iter()
+                    .any(|generator| contains_process_yield(&generator.source))
+                || guards.iter().any(contains_process_yield)
         }
         CoreExpr::UnaryOp { operand, .. } | CoreExpr::Cast { expr: operand, .. } => {
             contains_process_yield(operand)
@@ -534,6 +588,22 @@ pub(super) fn contains_process_yield(expr: &CoreExpr) -> bool {
                         || contains_process_yield(&clause.body)
                 })
         }
+        CoreExpr::Try {
+            body,
+            of_clauses,
+            catch_clauses,
+            after_clause,
+        } => {
+            contains_process_yield(body)
+                || of_clauses.iter().chain(catch_clauses).any(|clause| {
+                    clause.guard.as_ref().is_some_and(contains_process_yield)
+                        || contains_process_yield(&clause.body)
+                })
+                || after_clause.as_ref().is_some_and(|after| {
+                    contains_process_yield(&after.trigger) || contains_process_yield(&after.body)
+                })
+        }
+        CoreExpr::SqlQuery { parameters, .. } => parameters.iter().any(contains_process_yield),
         _ => false,
     }
 }
@@ -801,7 +871,9 @@ pub(super) fn expr_is_native_control(expr: &CoreExpr) -> bool {
         CoreExpr::Case { scrutinee, clauses } => {
             !clauses.is_empty()
                 && (expr_is_scalar(scrutinee)
-                    || (contains_process_yield(scrutinee) && expr_is_native_control(scrutinee)))
+                    || (contains_process_yield(scrutinee) && expr_is_native_control(scrutinee))
+                    || (structured_case::contains_case(scrutinee)
+                        && expr_is_native_control(scrutinee)))
                 && clauses.iter().all(|clause| {
                     clause.guard.as_ref().is_none_or(expr_is_native_condition)
                         && expr_is_native_control(&clause.body)

@@ -1,0 +1,32 @@
+module terl_docs.Search.
+
+import std.core.String.{contains}.
+
+/**
+ * Scores one normalized query term against one normalized search document.
+ *
+ * The browser adapter owns Unicode normalization and calls this function once
+ * per term. A zero score means that the term is absent from every searchable
+ * field. Title matches dominate section, description, and body matches.
+ */
+pub score_term(
+    title: String,
+    description: String,
+    section: String,
+    content: String,
+    term: String,
+): Int ->
+    title_score(title, term) + contains_score(section, term, 8) + contains_score(description, term, 5) + contains_score(content, term, 1).
+
+title_score(title: String, term: String): Int ->
+    if {
+        title == term -> 40;
+        contains(title, term) -> 20;
+        true -> 0
+    }.
+
+contains_score(value: String, term: String, weight: Int): Int ->
+    if {
+        contains(value, term) -> weight;
+        true -> 0
+    }.

@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use super::arguments::{parse_test_args, TestArgs, TestTarget, TEST_SOURCE_PATTERN_DESCRIPTION};
 use super::discovery::{discover_tests, select_tests, TestKind};
 use super::manifest::{
     print_validation_pass_report, validation_pass_report, write_test_manifest,
@@ -20,29 +21,6 @@ use crate::terlan_typeck::core_intrinsic_lowering::core_primitive_intrinsic;
 use crate::terlan_typeck::{CoreImportKind, CoreModule};
 use crate::validation::target_profile::TargetProfile;
 use crate::{CliCommand, CliState};
-
-/// Supported backend runner for `terlc test`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum TestTarget {
-    TerlanVm,
-    Js,
-    Wasm,
-}
-
-pub(super) const TEST_SOURCE_PATTERN_DESCRIPTION: &str = "*Test.terl or *_test.terl";
-
-/// Parsed command-local arguments for `terlc test`.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct TestArgs {
-    pub(super) path: String,
-    pub(super) target: TestTarget,
-    pub(super) test_name: Option<String>,
-    pub(super) benchmark: bool,
-    pub(super) benchmark_warmup: usize,
-    pub(super) benchmark_samples: usize,
-    pub(super) emit_test_manifest: Option<PathBuf>,
-    pub(super) emit_test_result_manifest: Option<PathBuf>,
-}
 
 /// Project context discovered for an editor-launched test file.
 ///
@@ -79,8 +57,9 @@ pub(super) struct TestProjectContext {
 ///   test execution failures.
 ///
 /// Transformation:
-/// - Routes one source module through the formal compiler path, discovers
-///   `@test` declarations, and executes them against the selected test target.
+/// - Routes each explicit source module or directory through the formal
+///   compiler path, discovers `@test` declarations, and executes them against
+///   the selected test target without starting another compiler process.
 pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
     let args = match parse_test_args(&cmd.args) {
         Ok(args) => args,
@@ -91,6 +70,26 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
         }
     };
 
+    let paths = std::iter::once(args.path.clone())
+        .chain(args.additional_paths.iter().cloned())
+        .collect::<Vec<_>>();
+    let mut failed = false;
+    for path in paths {
+        let mut path_args = args.clone();
+        path_args.path = path;
+        path_args.additional_paths.clear();
+        if run_path(&path_args, state.clone()) != ExitCode::SUCCESS {
+            failed = true;
+        }
+    }
+    if failed {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+fn run_path(args: &TestArgs, state: CliState) -> ExitCode {
     let dependency_session =
         match dev_dependencies::start_project_dependencies_for_path(Path::new(&args.path)) {
             Ok(session) => Some(session),
@@ -101,148 +100,11 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
         };
 
     let outcome = match args.target {
-        TestTarget::TerlanVm => run_terlan_vm_tests(&args, state),
-        TestTarget::Js => run_js_tests(&args, state),
-        TestTarget::Wasm => run_wasm_tests(&args, state),
+        TestTarget::TerlanVm => run_terlan_vm_tests(args, state),
+        TestTarget::Js => run_js_tests(args, state),
+        TestTarget::Wasm => run_wasm_tests(args, state),
     };
     dev_dependencies::finish_dependency_session(dependency_session, outcome)
-}
-
-/// Parses command-local arguments for `terlc test`.
-///
-/// Inputs:
-/// - `args`: command arguments after `main.rs` has removed global options and
-///   command verb.
-///
-/// Output:
-/// - `Ok(TestArgs)` for zero or one source path, optional
-///   `--target terlan-vm|js`, optional `--name <test>`, optional
-///   `--emit-test-manifest <path>`, and optional `--emit-test-result-manifest
-///   <path>`.
-/// - `Err(message)` for malformed flags, unsupported targets, or wrong arity.
-///
-/// Transformation:
-/// - Walks raw strings, extracts command-local target selection, and rejects
-///   unexpected arguments.
-pub(super) fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
-    let mut path = None;
-    let mut target = TestTarget::TerlanVm;
-    let mut test_name = None;
-    let mut benchmark = false;
-    let mut benchmark_warmup = 1usize;
-    let mut benchmark_samples = 10usize;
-    let mut benchmark_tuning_seen = false;
-    let mut emit_test_manifest = None;
-    let mut emit_test_result_manifest = None;
-    let mut i = 0;
-    while i < args.len() {
-        match args[i].as_str() {
-            "--target" => {
-                let Some(value) = args.get(i + 1) else {
-                    return Err("--target requires a value".to_string());
-                };
-                target = match value.as_str() {
-                    "erlang" => {
-                        return Err(
-                            "test target `erlang` was removed from the public CLI; use `terlan-vm`"
-                                .to_string(),
-                        );
-                    }
-                    "terlan-vm" => TestTarget::TerlanVm,
-                    "js" => TestTarget::Js,
-                    "wasm" | "wasm.core" => TestTarget::Wasm,
-                    other => return Err(format!("unsupported test target: {other}")),
-                };
-                i += 2;
-            }
-            "--name" => {
-                let Some(value) = args.get(i + 1) else {
-                    return Err("--name requires a test function name".to_string());
-                };
-                if test_name.replace(value.clone()).is_some() {
-                    return Err("duplicate --name".to_string());
-                }
-                i += 2;
-            }
-            "--bench" => {
-                if benchmark {
-                    return Err("duplicate --bench".to_string());
-                }
-                benchmark = true;
-                i += 1;
-            }
-            "--warmup" => {
-                let Some(value) = args.get(i + 1) else {
-                    return Err("--warmup requires a non-negative integer".to_string());
-                };
-                benchmark_warmup = value
-                    .parse::<usize>()
-                    .map_err(|_| "--warmup requires a non-negative integer".to_string())?;
-                benchmark_tuning_seen = true;
-                i += 2;
-            }
-            "--samples" => {
-                let Some(value) = args.get(i + 1) else {
-                    return Err("--samples requires a positive integer".to_string());
-                };
-                benchmark_samples = value
-                    .parse::<usize>()
-                    .ok()
-                    .filter(|samples| *samples > 0)
-                    .ok_or_else(|| "--samples requires a positive integer".to_string())?;
-                benchmark_tuning_seen = true;
-                i += 2;
-            }
-            "--emit-test-manifest" => {
-                let Some(value) = args.get(i + 1) else {
-                    return Err("--emit-test-manifest requires a path".to_string());
-                };
-                if emit_test_manifest.replace(PathBuf::from(value)).is_some() {
-                    return Err("duplicate --emit-test-manifest".to_string());
-                }
-                i += 2;
-            }
-            "--emit-test-result-manifest" => {
-                let Some(value) = args.get(i + 1) else {
-                    return Err("--emit-test-result-manifest requires a path".to_string());
-                };
-                if emit_test_result_manifest
-                    .replace(PathBuf::from(value))
-                    .is_some()
-                {
-                    return Err("duplicate --emit-test-result-manifest".to_string());
-                }
-                i += 2;
-            }
-            arg if arg.starts_with("--") => {
-                return Err(format!("unsupported test option: {arg}"));
-            }
-            arg => {
-                if path.replace(arg.to_string()).is_some() {
-                    return Err("missing or extra path argument".to_string());
-                }
-                i += 1;
-            }
-        }
-    }
-
-    if benchmark_tuning_seen && !benchmark {
-        return Err("--warmup and --samples require --bench".to_string());
-    }
-    if benchmark && target != TestTarget::TerlanVm {
-        return Err("@benchmark execution currently requires --target terlan-vm".to_string());
-    }
-
-    Ok(TestArgs {
-        path: path.unwrap_or_else(|| "tests".to_string()),
-        target,
-        test_name,
-        benchmark,
-        benchmark_warmup,
-        benchmark_samples,
-        emit_test_manifest,
-        emit_test_result_manifest,
-    })
 }
 
 /// Validates discovered tests through the JavaScript target compile path.
@@ -326,7 +188,7 @@ pub(super) fn run_js_tests(args: &TestArgs, state: CliState) -> ExitCode {
     } else {
         TestKind::Test
     };
-    let tests = match select_tests(tests, args.test_name.as_deref(), path, kind) {
+    let tests = match select_tests(tests, &args.test_names, path, kind) {
         Ok(tests) => tests,
         Err(message) => {
             eprintln!("{message}");
@@ -442,7 +304,7 @@ pub(super) fn run_terlan_vm_tests(args: &TestArgs, state: CliState) -> ExitCode 
     } else {
         TestKind::Test
     };
-    let tests = match select_tests(tests, args.test_name.as_deref(), path, kind) {
+    let tests = match select_tests(tests, &args.test_names, path, kind) {
         Ok(tests) => tests,
         Err(message) => {
             eprintln!("{message}");

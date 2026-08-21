@@ -2,7 +2,8 @@ use std::fs;
 use std::path::Path;
 use std::process::ExitCode;
 
-use super::{fix_semicolon_chains, lint_source, run, run_lint};
+use super::rules::lint_source_only_many;
+use super::{fix_semicolon_chains, lint_source, run, run_lint, run_lint_selected_many};
 use crate::support::test_fs::{temp_dir, write_file};
 
 #[cfg(test)]
@@ -172,6 +173,31 @@ fn lint_reports_directory_sources_in_sorted_order() {
     assert!(diagnostics[1].path.ends_with("b/B.terl"));
 }
 
+/// Verifies one lint process accepts multiple roots, globally sorts their
+/// diagnostics, and does not scan an overlapping input twice.
+#[test]
+fn lint_reports_multiple_roots_once_in_sorted_order() {
+    let root = temp_dir("lint_command", "multiple_roots");
+    let first = root.join("a/A.terl");
+    let second_root = root.join("b");
+    write_file(
+        &first,
+        "module a.A.\n/** Runs A. */\npub a(): Unit -> a1(); a2().\n",
+    );
+    write_file(
+        &second_root.join("B.terl"),
+        "module b.B.\n/** Runs B. */\npub b(): Unit -> b1(); b2().\n",
+    );
+
+    let diagnostics =
+        run_lint_selected_many(&[second_root, first.clone(), first], false, Some("TL0001"))
+            .expect("lint multiple roots");
+
+    assert_eq!(diagnostics.len(), 2);
+    assert!(diagnostics[0].path.ends_with("a/A.terl"));
+    assert!(diagnostics[1].path.ends_with("b/B.terl"));
+}
+
 /// Verifies `terlc lint --fix` rewrites safe dense chains and exits cleanly.
 #[test]
 fn lint_command_fix_rewrites_safe_chain() {
@@ -275,6 +301,52 @@ fn lint_command_rejects_unknown_only_rule() {
         ]),
         ExitCode::from(2)
     );
+}
+
+/// Verifies repeated selectors are parsed as one rule set before filesystem
+/// validation, rather than rejected as duplicate command options.
+#[test]
+fn lint_command_accepts_multiple_only_rules() {
+    assert_eq!(
+        run(&[
+            "--only".to_string(),
+            "TL0009".to_string(),
+            "--only".to_string(),
+            "TL0010".to_string(),
+            "Missing.terl".to_string(),
+        ]),
+        ExitCode::from(1)
+    );
+}
+
+/// Verifies the canonical readability pair shares parsing without losing
+/// either rule's diagnostics.
+#[test]
+fn lint_selected_readability_rules_report_both_findings() {
+    let diagnostics = lint_source_only_many(
+        Path::new("Sample.terl"),
+        r#"
+module sample.
+resolve(first: Option[Int], second: Option[Int]): Option[Int] ->
+    case first {
+        None -> None;
+        Some(left) -> case second {
+            None -> None;
+            Some(right) -> Some(left + right)
+        }
+    }.
+property(generator: Gen[Int]): Bool ->
+    for_all(generator, (width) -> generated(width)).
+"#,
+        &["TL0009".to_string(), "TL0010".to_string()],
+    );
+
+    assert!(diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.rule_id == "TL0009"));
+    assert!(diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.rule_id == "TL0010"));
 }
 
 /// Verifies literal true assertions in test files emit the fake-test rule.

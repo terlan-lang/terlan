@@ -2,6 +2,7 @@
 
 /// Canonical local function identity used by NativeIR analysis and specialization.
 type LocalFunctionIdentity = (String, usize);
+type QualifiedFunctionIdentity = (String, String, usize);
 
 mod aggregate_types;
 #[cfg(test)]
@@ -335,7 +336,6 @@ pub(crate) use open_std_pruning::{
 pub(crate) use request_projection::install_native_request_projection_exports;
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 pub(crate) use request_projection::native_request_projections;
-pub(crate) use request_projection::NativeRequestProjection;
 use transitions::is_process_transition;
 
 /// Typed internal failure for NativeIR analysis and lowering passes.

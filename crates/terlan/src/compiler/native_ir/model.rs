@@ -78,8 +78,8 @@ pub(crate) enum NativeExpr {
     /// One semantic atom resolved to the image-generation-local compact index
     /// while the native object is emitted.
     AtomLiteral(Arc<str>),
-    /// One immutable UTF-8 literal allocated in the current actor heap.
-    StringLiteral {
+    /// One immutable typed sequence literal allocated in the current actor heap.
+    ManagedLiteral {
         encoded: Arc<[u8]>,
     },
     /// One checked actor-heap operation executed through the bounded managed callback.

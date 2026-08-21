@@ -178,7 +178,8 @@ compilation_suffix(path: String): Bool ->
         or String.ends_with(path, "/Cargo.lock")
         or String.ends_with(path, "/Cargo.toml")
         or String.ends_with(path, "/clippy.toml")
-        or String.ends_with(path, "/rustfmt.toml").
+        or String.ends_with(path, "/rustfmt.toml")
+        or String.ends_with(path, "/rust-toolchain.toml").
 
 compilation_input_hash(repository: String): Option[String] ->
     compilation_input_hash_page(repository, 0, sha256_framed([])).
@@ -200,6 +201,7 @@ compilation_input_hash_page(repository: String, offset: Int, digest: String): Op
                 "Cargo.toml",
                 "clippy.toml",
                 "rustfmt.toml",
+                "rust-toolchain.toml",
             ],
             [],
             offset,
@@ -322,6 +324,24 @@ run_lane(
     let finished_unix = unix_time_ns();
     case output {
         Some(value) ->
+            let status = Process.status(value);
+            let valid = status == 0;
+            let _reported =
+                if {
+                    valid -> true;
+                    true -> let _printed =
+                        eprintln(
+                            String.concat(
+                                [
+                                    "Build artifact lane failed: ",
+                                    name,
+                                    " exited with status ",
+                                    Int.to_string(status),
+                                ],
+                            ),
+                        );
+                    false
+                };
             Lane(
                 name = name,
                 command = command,
@@ -330,9 +350,19 @@ run_lane(
                 finished_unix_ns = finished_unix,
                 wall_time_ms = elapsed_milliseconds(started, finished),
                 invalidated_artifact_count = invalidated_count(Process.stdout(value)),
-                valid = Process.status(value) == 0,
+                valid = valid,
             );
         None ->
+            let _printed =
+                eprintln(
+                    String.concat(
+                        [
+                            "Build artifact lane failed: ",
+                            name,
+                            " did not return bounded process output",
+                        ],
+                    ),
+                );
             Lane(
                 name = name,
                 command = command,
@@ -758,24 +788,31 @@ finish_valid_measurement(
             if {
                 after_hash == input_hash -> let restored = restore_quality(repository, temporary);
                 if {
-                    restored -> build_report(
-                        repository,
-                        policy,
-                        input_hash,
-                        preclean,
-                        started,
-                        clean_finished,
-                        lane_set_list(lane_set),
-                    );
-                    true -> None
+                    restored -> case build_report(
+    repository,
+    policy,
+    input_hash,
+    preclean,
+    started,
+    clean_finished,
+    lane_set_list(lane_set),
+) {
+                        Some(report) -> Some(report);
+                        None -> post_measurement_failure("report assembly failed")
+                    };
+                    true -> post_measurement_failure("quality evidence restoration failed")
                 };
                 true -> let _cleaned = cleanup_failed_measurement(repository, temporary);
-                None
+                post_measurement_failure("compilation inputs changed during measurement")
             };
         None ->
             let _cleaned = cleanup_failed_measurement(repository, temporary);
-            None
+            post_measurement_failure("final compilation input hash failed")
     }.
+
+post_measurement_failure(reason: String): Option[Json] ->
+    let _printed = eprintln(String.concat(["Build artifact post-measurement integrity failed: ", reason]));
+    None.
 
 build_report(
     repository: String,
@@ -909,6 +946,24 @@ profile_fingerprints_match(report: Json, current: Option[Json]): Bool ->
         _ -> false
     }.
 
+toolchain_matches(report: Json, current: Json): Bool ->
+    case json_member(report, "toolchain") {
+        None -> false;
+        Some(recorded) ->
+            optional_strings_equal(json_string(recorded, "cargo"), json_string(current, "cargo"))
+                and optional_strings_equal(json_string(recorded, "rustc"), json_string(current, "rustc"))
+                and optional_strings_equal(
+    json_string(recorded, "target_triple"),
+    json_string(current, "target_triple"),
+)
+    }.
+
+debug_artifacts_exist(repository: String): Bool ->
+    exists(child(repository, "target/debug/terlc"))
+        and exists(child(repository, "target/debug/terlan-vm"))
+        and exists(child(repository, "target/debug/terlan-native-worker"))
+        and exists(child(repository, "target/debug/terlan-test-orchestrator")).
+
 validate(repository: String, report: Json, policy: Json): List[String] ->
     let current_policy_hash = policy_hash(repository);
     let current_hash = compilation_input_hash(repository);
@@ -963,7 +1018,13 @@ validate(repository: String, report: Json, policy: Json): List[String] ->
             not profile_fingerprints_match(report, profile_fingerprints(repository)),
             "profile fingerprints are stale",
         );
-    reverse_strings(tenth).
+    let eleventh =
+        append_finding(
+            tenth,
+            not toolchain_matches(report, toolchain_json(repository)),
+            "toolchain identity is stale",
+        );
+    reverse_strings(eleventh).
 
 validate_classes(report: Json, policy: Json, findings: List[String]): List[String] ->
     let {
@@ -1261,6 +1322,7 @@ pub self_test(repository: String, policy: Json): Bool ->
             let _m = report.put("target_roots", fixed_string_array(["target"]));
             let _n = report.put("unaccounted_target_children", Json.array());
             let _o = report.put("profile_fingerprints", fingerprints);
+            let _p = report.put("toolchain", toolchain_json(repository));
             let first_validation = validate(repository, report, policy);
             let valid = findings_empty(first_validation);
             let _broken = report.put("clean_rebuild", Json.bool(false));
@@ -1365,6 +1427,21 @@ run_measure(repository: String, policy: Json, refresh: Bool): Bool ->
             }
     }.
 
+run_measure_if_stale(repository: String, policy: Json): Bool ->
+    case read_json(report_path(repository)) {
+        Some(report) ->
+            if {
+                same_strings(validate(repository, report, policy), [])
+                    and debug_artifacts_exist(repository) -> let _reused =
+                    println(
+                        "Build artifact budget evidence is current; reusing sealed measurement.",
+                    );
+                true;
+                true -> run_measure(repository, policy, false)
+            };
+        None -> run_measure(repository, policy, false)
+    }.
+
 run_refresh(repository: String, policy: Json): Bool ->
     case read_json(report_path(repository)) {
         None -> fail("Build artifact budget check failed: cannot read report");
@@ -1446,6 +1523,11 @@ run_mode(repository: String, policy: Json): Bool ->
                 true -> fail("Build artifact budget check failed: unsupported argument")
             };
         Some("--measure") -> run_measure_mode(repository, policy);
+        Some("--measure-if-stale") ->
+            if {
+                Arguments.count() == 1 -> run_measure_if_stale(repository, policy);
+                true -> fail("Build artifact budget check failed: unsupported argument")
+            };
         Some("--refresh-policy") -> run_refresh_mode(repository, policy);
         None -> run_existing_check(repository, policy);
         Some(_unsupported) -> fail("Build artifact budget check failed: unsupported argument")

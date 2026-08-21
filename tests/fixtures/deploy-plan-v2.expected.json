@@ -1,0 +1,156 @@
+{
+  "schema": "terlan-cloud-deploy-plan-v2",
+  "generated_by": {
+    "tool": "terlc",
+    "version": "0.0.7",
+    "experimental": true
+  },
+  "release": {
+    "id": "terlan-registry@0.1.0",
+    "package": "terlan-registry",
+    "version": "0.1.0"
+  },
+  "target": {
+    "artifact": "terlan-vm",
+    "runtime": "terlan-vm"
+  },
+  "services": [
+    {
+      "name": "terlan-registry",
+      "runtime": "terlan-vm",
+      "process": {
+        "entrypoint": "terlan.registry.Main.main/0",
+        "count": 2
+      },
+      "health_check": {
+        "path": "/health",
+        "interval_secs": 10,
+        "timeout_secs": 2
+      }
+    }
+  ],
+  "routes": [
+    {
+      "service": "terlan-registry",
+      "method": "GET",
+      "path": "/health",
+      "handler": "terlan.registry.Http.health/1",
+      "source": {
+        "module": "terlan.registry.Http",
+        "path": "src/terlan/registry/Http.terl"
+      }
+    },
+    {
+      "service": "terlan-registry",
+      "method": "GET",
+      "path": "/packages/:name",
+      "handler": "terlan.registry.Http.package/1",
+      "source": {
+        "module": "terlan.registry.Http",
+        "path": "src/terlan/registry/Http.terl"
+      }
+    }
+  ],
+  "capabilities": [
+    "dependency.local",
+    "dependency.target.js",
+    "dependency.target.rust",
+    "native.helper-process",
+    "native.rust",
+    "runtime.terlan-vm",
+    "web.assets"
+  ],
+  "web_assets": {
+    "directory": "assets",
+    "public_path": "/assets",
+    "inline_limit": 2048,
+    "rsbuild_config": null
+  },
+  "server_tls": null,
+  "native_packages": [
+    {
+      "crate_name": "terlan_registry_native",
+      "path": "native",
+      "helper": "terlan-registry-native",
+      "helper_env": "TERLAN_REGISTRY_NATIVE_HELPER_PATH",
+      "features": [
+        "postgres"
+      ]
+    }
+  ],
+  "configuration": {
+    "environment": [
+      "PORT",
+      "DATABASE_URL",
+      "OBJECT_STORAGE_ENDPOINT"
+    ],
+    "secrets": [
+      {
+        "name": "DATABASE_URL",
+        "provider": "environment"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "id": "001_packages",
+      "path": "priv/migrations/001_packages.sql",
+      "sha256": "19ef7337fefdc4ad45280111b700c691264edae36d0b7bd4cfaade82dbf1f53d"
+    }
+  ],
+  "resources": {
+    "cpu_millis": 500,
+    "memory_mb": 512,
+    "processes": 2
+  },
+  "outbound_network": [
+    "objects.example.test:443"
+  ],
+  "sources": [
+    {
+      "module": "terlan.registry.Http",
+      "path": "src/terlan/registry/Http.terl",
+      "sha256": "97003f0640e7fdbcc909052ab7405cd6228c82816e1621f9adf0bf39120aa98d"
+    },
+    {
+      "module": "terlan.registry.Main",
+      "path": "src/terlan/registry/Main.terl",
+      "sha256": "8ba2a159b50095a2f3ab5ebf335dc9c44401dd09d77743b29541fe7c5a2482ac"
+    }
+  ],
+  "rollback": {
+    "policy": "migration-compatible",
+    "automatic": true
+  },
+  "dependencies": [
+    {
+      "alias": "registry_protocol",
+      "scope": "local",
+      "source": {
+        "kind": "path",
+        "path": "../registry-protocol"
+      }
+    },
+    {
+      "alias": "angular_ts",
+      "scope": "target.js",
+      "source": {
+        "kind": "npm",
+        "package": "@angular-wave/angular.ts",
+        "version": "0.32.0"
+      }
+    },
+    {
+      "alias": "postgres",
+      "scope": "target.rust",
+      "source": {
+        "kind": "cargo",
+        "package": "tokio-postgres",
+        "version": "0.7.13",
+        "features": [
+          "runtime"
+        ]
+      }
+    }
+  ]
+}

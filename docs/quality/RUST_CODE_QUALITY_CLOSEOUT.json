@@ -45,11 +45,9 @@
     "shared-helper-check",
     "dormant-runtime-code-check",
     "safe-rust-runtime-check",
-    "roadmap-gate-integrity-check",
     "release-code-hygiene-check",
     "code-quality-0-0-7-feedback-loop-check",
-    "rust-structure-closeout-timings-check",
-    "code-quality-0-0-7-closeout-check"
+    "rust-structure-closeout-timings-check"
   ],
   "metric_baseline_source": "docs/roadmap/ROADMAP_0_0_7_CODE_QUALITY.md CQ-0 completion evidence",
   "metrics": {

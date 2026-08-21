@@ -16,7 +16,6 @@ import tvm_aot_platform_matrix.ReleaseArtifact.{adversarial as adversarial_relea
 import tvm_aot_platform_matrix.ReleaseCloseout.{record_local as record_release, self_test as release_self_test}.
 import tvm_aot_platform_matrix.ReleaseGeneratedArtifacts.{finalize as finalize_release_generated_artifacts, record as record_release_generated_artifacts, self_test as release_generated_artifacts_self_test}.
 import tvm_aot_platform_matrix.ReleaseInstallerSmoke.{staged as verify_staged_distribution}.
-import tvm_aot_platform_matrix.RoadmapReconciliation.{check as reconcile_roadmap, self_test as roadmap_self_test}.
 import tvm_aot_platform_matrix.RuntimeReleaseDependencies.{check as check_runtime_release_dependencies, self_test as runtime_release_dependencies_self_test}.
 import tvm_aot_platform_matrix.SelfTest.{self_test}.
 import tvm_aot_platform_matrix.VmHttpAotConcurrency.{check as check_vm_http_aot_concurrency, self_test as vm_http_aot_concurrency_self_test}.
@@ -33,8 +32,6 @@ entry(): Bool ->
         Some("tsan-self-test") -> tsan_self_test();
         Some("release-record") -> record_release();
         Some("release-self-test") -> release_self_test();
-        Some("roadmap-check") -> reconcile_roadmap();
-        Some("roadmap-self-test") -> roadmap_self_test();
         Some("multicore-tsan-run") -> run_multicore_tsan();
         Some("multicore-tsan-self-test") -> multicore_tsan_self_test();
         Some("multicore-mc9-seal") -> seal_multicore_mc9();
@@ -78,9 +75,7 @@ entry(): Bool ->
             };
         Some(value) -> failure(String.append("unknown command `", String.append(value, "`")));
         None ->
-            failure(
-                "expected a TVM AOT platform, sanitizer, MC-9, release, roadmap, or self-test command",
-            )
+            failure("expected a TVM AOT platform, sanitizer, MC-9, release, or self-test command")
     }.
 
 assert(entry());

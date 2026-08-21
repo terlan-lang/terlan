@@ -7,7 +7,7 @@ use crate::terlan_syntax::{
 use super::render::{
     find_syntax_template_props, render_syntax_static_template_nodes, StaticSyntaxRenderError,
 };
-use super::render_values::StaticTemplateValue;
+use super::render_values::{is_static_template_html_type, StaticTemplateValue};
 use super::TEMPLATE_CHILDREN_SLOT;
 
 /// Renders Markdown content through a static page layout template.
@@ -18,20 +18,42 @@ use super::TEMPLATE_CHILDREN_SLOT;
 /// - `layout`: template name from `@page.layout`.
 /// - `title`: optional page title from `@page.title`.
 /// - `document`: Markdown document whose rendered HTML becomes `children`.
+/// - `page_navigation`: trusted documentation fragments when `--docs` is on.
 ///
 /// Output:
 /// - Layout-rendered HTML, or a static render error.
 ///
 /// Transformation:
 /// - Builds a constrained template value map where `${children}` is Markdown
-///   HTML and declared `title` props receive the page title. Other required
-///   layout props are rejected until page metadata grows typed prop support.
+///   HTML and declared `title` props receive the page title. Documentation
+///   navigation and table-of-contents props receive generator-owned HTML only
+///   in docs mode.
 pub(crate) fn render_syntax_static_markdown_layout(
     module: &SyntaxModuleOutput,
     templates: &BTreeMap<String, crate::terlan_html::HtmlTemplate>,
     layout: &str,
     title: Option<&str>,
     document: &crate::terlan_html::MarkdownDocument,
+    page_navigation: Option<&terl_docs::PageNavigation>,
+) -> Result<String, StaticSyntaxRenderError> {
+    render_syntax_static_html_layout(
+        module,
+        templates,
+        layout,
+        title,
+        &document.rendered_html,
+        page_navigation,
+    )
+}
+
+/// Renders trusted generated HTML through a declared typed page layout.
+pub(crate) fn render_syntax_static_html_layout(
+    module: &SyntaxModuleOutput,
+    templates: &BTreeMap<String, crate::terlan_html::HtmlTemplate>,
+    layout: &str,
+    title: Option<&str>,
+    children: &str,
+    page_navigation: Option<&terl_docs::PageNavigation>,
 ) -> Result<String, StaticSyntaxRenderError> {
     let template_props = find_syntax_template_props(module, layout).ok_or_else(|| {
         StaticSyntaxRenderError::Invalid(format!("unknown static Markdown layout `{}`", layout))
@@ -42,7 +64,7 @@ pub(crate) fn render_syntax_static_markdown_layout(
             layout
         ))
     })?;
-    let values = markdown_layout_values(layout, template_props, title, &document.rendered_html)?;
+    let values = markdown_layout_values(layout, template_props, title, children, page_navigation)?;
 
     render_syntax_static_template_nodes(
         module,
@@ -61,19 +83,21 @@ pub(crate) fn render_syntax_static_markdown_layout(
 /// - `template_props`: declared layout props.
 /// - `title`: optional `@page.title` value.
 /// - `children`: rendered Markdown HTML.
+/// - `page_navigation`: trusted documentation fragments when available.
 ///
 /// Output:
 /// - Static template values for supported layout slots.
 ///
 /// Transformation:
-/// - Always supplies `${children}` as HTML and supplies `title` only when the
-///   layout declares it. Any other declared prop is rejected because content
-///   page metadata does not yet carry arbitrary typed layout props.
+/// - Always supplies `${children}` as HTML, supplies `title` as text, and maps
+///   the four generator-owned navigation fragments to explicitly typed HTML
+///   props. Other declared props remain unsupported.
 fn markdown_layout_values(
     layout: &str,
     template_props: &[SyntaxTemplatePropOutput],
     title: Option<&str>,
     children: &str,
+    page_navigation: Option<&terl_docs::PageNavigation>,
 ) -> Result<BTreeMap<String, StaticTemplateValue>, StaticSyntaxRenderError> {
     let mut values = BTreeMap::new();
     values.insert(
@@ -89,10 +113,29 @@ fn markdown_layout_values(
             );
             continue;
         }
-        return Err(StaticSyntaxRenderError::Invalid(format!(
-            "static Markdown layout `{}` declares unsupported required prop `{}`",
-            layout, prop.name
-        )));
+        let fragment = match prop.name.as_str() {
+            "navigation" => page_navigation.map(|page| page.navigation_html.as_str()),
+            "breadcrumbs" => page_navigation.map(|page| page.breadcrumbs_html.as_str()),
+            "pagination" => page_navigation.map(|page| page.pagination_html.as_str()),
+            "toc" => page_navigation.map(|page| page.toc_html.as_str()),
+            _ => {
+                return Err(StaticSyntaxRenderError::Invalid(format!(
+                    "static Markdown layout `{}` declares unsupported required prop `{}`",
+                    layout, prop.name
+                )))
+            }
+        };
+        if !is_static_template_html_type(&prop.annotation.text) {
+            return Err(StaticSyntaxRenderError::Invalid(format!(
+                "static Markdown layout `{}` prop `{}` must be Html, found `{}`",
+                layout, prop.name, prop.annotation.text
+            )));
+        }
+        values.insert(
+            prop.name.clone(),
+            StaticTemplateValue::Html(fragment.unwrap_or_default().to_string()),
+        );
+        continue;
     }
 
     Ok(values)

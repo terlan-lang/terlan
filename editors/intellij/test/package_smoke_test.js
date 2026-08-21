@@ -172,7 +172,14 @@ function testNoGeneratedArtifactsAreTracked() {
   const repositoryRoot = path.resolve(PACKAGE_ROOT, "..", "..");
   const tracked = childProcess.execFileSync(
     "git",
-    ["ls-files", "--", "editors/intellij/build", "editors/intellij/out", "editors/intellij/*.zip"],
+    [
+      "ls-files",
+      "--",
+      "editors/intellij/bin",
+      "editors/intellij/build",
+      "editors/intellij/out",
+      "editors/intellij/*.zip",
+    ],
     { cwd: repositoryRoot, encoding: "utf8" }
   ).trim();
   assert.strictEqual(tracked, "", `generated IntelliJ artifacts are tracked:\n${tracked}`);
@@ -185,6 +192,7 @@ function testFilesParticipateInBuildOrValidation() {
       ".gradle",
       ".intellijPlatform",
       ".kotlin",
+      "bin",
       "build",
       "out",
     ]);

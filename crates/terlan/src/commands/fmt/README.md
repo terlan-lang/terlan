@@ -13,7 +13,8 @@ Its behavior stays intentionally small:
   compiler-synthesized `main/0` out of formatted source;
 - leave generator-owned files carrying both `@generated true` and
   `@do-not-edit true` untouched in recursive directory mode;
-- check files or directories without mutation via `terlc fmt --check <path>`;
+- check one or more files/directories without mutation via
+  `terlc fmt --check <path>...`;
   every non-canonical path is reported and the command exits unsuccessfully.
 - rewrite one parsed source safely via `terlc fmt --write <file>`; malformed
   input is rejected before the original file is touched.

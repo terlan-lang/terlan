@@ -9,14 +9,32 @@ import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.io.Console.{println}.
 import std.io.Directory.{create_all, create_temporary, entries, remove_all, tree_usage}.
-import std.io.File.{delete, exists, read_text, size, write_text}.
+import std.io.File.{delete, exists, read_text, set_timestamps, size, timestamps, write_text}.
 import std.system.Environment.
+import std.time.Clock.
 
 import type std.collections.List.
 
 pub struct CleanupOutcome {
     reclaimed_bytes: Int,
     removed_count: Int,
+    valid: Bool,
+}.
+
+pub struct CargoTestArtifact {
+    path: String,
+    bytes: Int,
+    modified_unix_ns: Int,
+}.
+
+pub struct ArtifactInventory {
+    artifacts: List[CargoTestArtifact],
+    valid: Bool,
+}.
+
+pub struct ArtifactSummary {
+    bytes: Int,
+    generation_count: Int,
     valid: Bool,
 }.
 
@@ -41,10 +59,37 @@ ephemeral_prefix(target_root: String): String ->
     child(target_root, "terlan-").
 
 @pure
-maximum_incremental_bytes(): Int -> 68719476736.
+maximum_incremental_bytes(): Int -> 17179869184.
 
 @pure
-warning_debug_bytes(): Int -> 137438953472.
+warning_debug_bytes(): Int -> 34359738368.
+
+@pure
+retained_test_executable_generations(): Int -> 2.
+
+@pure
+minimum_test_executable_age_ns(): Int -> 300000000000.
+
+@pure
+workspace_executable_stems(): List[String] ->
+    [
+        "terlan",
+        "terlc",
+        "terlan_vm",
+        "terlan_native_worker",
+        "terlan_quality",
+        "terlan_accelerator_aot_backend",
+        "terlan_accelerator_ir",
+        "terlan_accelerator_placement",
+        "terlan_accelerator_specialized_artifact",
+        "terlan_accelerator_target_admission",
+        "terlan_accelerator_value_contract",
+        "terlan_accelerator_vm_integration",
+    ].
+
+@pure
+executable_prefix(target_root: String, stem: String): String ->
+    child(target_root, String.append("debug/deps/", String.append(stem, "-"))).
 
 usage_bytes(path: String): Int ->
     if {
@@ -70,6 +115,180 @@ reverse_strings_at(values: List[String], reversed: List[String]): List[String] -
         [value | rest] -> reverse_strings_at(rest, [value | reversed])
     }.
 
+@pure
+is_test_executable_path(path: String, prefix: String): Bool ->
+    String.starts_with(path, prefix) and String.length(path) == String.length(prefix) + 16.
+
+@pure
+insert_newest_artifact(
+    artifact: CargoTestArtifact,
+    artifacts: List[CargoTestArtifact],
+): List[CargoTestArtifact] ->
+    case artifacts {
+        [] -> [artifact];
+        [current | rest] ->
+            if {
+                artifact.modified_unix_ns >= current.modified_unix_ns -> [artifact | artifacts];
+                true -> [current | insert_newest_artifact(artifact, rest)]
+            }
+    }.
+
+artifact_inventory_at(
+    paths: List[String],
+    prefix: String,
+    inventory: ArtifactInventory,
+): ArtifactInventory ->
+    case paths {
+        [] -> inventory;
+        [path | rest] ->
+            if {
+                not is_test_executable_path(path, prefix) -> artifact_inventory_at(rest, prefix, inventory);
+                true -> let {
+                    Ok(bytes) <- size(path);
+                    Ok(times) <- timestamps(path)
+                } else {
+                    _ -> ArtifactInventory(artifacts = inventory.artifacts, valid = false)
+                };
+                artifact_inventory_at(
+                    rest,
+                    prefix,
+                    ArtifactInventory(
+                        artifacts = insert_newest_artifact(
+                            CargoTestArtifact(
+                                path = path,
+                                bytes = bytes,
+                                modified_unix_ns = times.modified_unix_ns,
+                            ),
+                            inventory.artifacts,
+                        ),
+                        valid = inventory.valid,
+                    ),
+                )
+            }
+    }.
+
+artifact_inventory(target_root: String, stem: String): ArtifactInventory ->
+    let dependencies = child(target_root, "debug/deps");
+    if {
+        not exists(dependencies) -> ArtifactInventory(artifacts = List.new[CargoTestArtifact](), valid = true);
+        true -> case entries(dependencies) {
+            Err(_reason) ->
+                ArtifactInventory(artifacts = List.new[CargoTestArtifact](), valid = false);
+            Ok(paths) ->
+                artifact_inventory_at(
+                    paths,
+                    executable_prefix(target_root, stem),
+                    ArtifactInventory(artifacts = List.new[CargoTestArtifact](), valid = true),
+                )
+        }
+    }.
+
+@pure
+stale_artifact_findings(
+    artifacts: List[CargoTestArtifact],
+    retained: Int,
+    cutoff_unix_ns: Int,
+    diagnostics: List[String],
+): List[String] ->
+    case artifacts {
+        [] -> diagnostics;
+        [artifact | rest] ->
+            if {
+                retained > 0 -> stale_artifact_findings(rest, retained - 1, cutoff_unix_ns, diagnostics);
+                artifact.modified_unix_ns > cutoff_unix_ns -> stale_artifact_findings(rest, 0, cutoff_unix_ns, diagnostics);
+                true -> stale_artifact_findings(
+                    rest,
+                    0,
+                    cutoff_unix_ns,
+                    [String.append(
+    "superseded Cargo test executable escaped retention cleanup `",
+    String.append(artifact.path, "`"),
+) | diagnostics],
+                )
+            }
+    }.
+
+@pure
+artifact_findings(
+    inventory: ArtifactInventory,
+    now_unix_ns: Int,
+    diagnostics: List[String],
+): List[String] ->
+    if {
+        not inventory.valid -> ["cannot inventory Cargo test executables" | diagnostics];
+        true -> stale_artifact_findings(
+            inventory.artifacts,
+            retained_test_executable_generations(),
+            now_unix_ns - minimum_test_executable_age_ns(),
+            diagnostics,
+        )
+    }.
+
+workspace_artifact_findings(
+    target_root: String,
+    stems: List[String],
+    now_unix_ns: Int,
+    diagnostics: List[String],
+): List[String] ->
+    case stems {
+        [] -> diagnostics;
+        [stem | rest] ->
+            workspace_artifact_findings(
+                target_root,
+                rest,
+                now_unix_ns,
+                artifact_findings(artifact_inventory(target_root, stem), now_unix_ns, diagnostics),
+            )
+    }.
+
+@pure
+summarize_artifacts(
+    artifacts: List[CargoTestArtifact],
+    summary: ArtifactSummary,
+): ArtifactSummary ->
+    case artifacts {
+        [] -> summary;
+        [artifact | rest] ->
+            summarize_artifacts(
+                rest,
+                ArtifactSummary(
+                    bytes = summary.bytes + artifact.bytes,
+                    generation_count = summary.generation_count + 1,
+                    valid = summary.valid,
+                ),
+            )
+    }.
+
+workspace_artifact_summary_at(
+    target_root: String,
+    stems: List[String],
+    summary: ArtifactSummary,
+): ArtifactSummary ->
+    case stems {
+        [] -> summary;
+        [stem | rest] ->
+            let inventory = artifact_inventory(target_root, stem);
+            workspace_artifact_summary_at(
+                target_root,
+                rest,
+                summarize_artifacts(
+                    inventory.artifacts,
+                    ArtifactSummary(
+                        bytes = summary.bytes,
+                        generation_count = summary.generation_count,
+                        valid = summary.valid and inventory.valid,
+                    ),
+                ),
+            )
+    }.
+
+workspace_artifact_summary(target_root: String): ArtifactSummary ->
+    workspace_artifact_summary_at(
+        target_root,
+        workspace_executable_stems(),
+        ArtifactSummary(bytes = 0, generation_count = 0, valid = true),
+    ).
+
 findings(target_root: String, maximum: Int): List[String] ->
     let root_entries =
         case entries(target_root) {
@@ -78,19 +297,26 @@ findings(target_root: String, maximum: Int): List[String] ->
         };
     let isolated = isolated_findings(target_root, root_entries, ephemeral_names(), List.new[String]());
     let prefixed = prefixed_findings(root_entries, ephemeral_prefix(target_root), isolated);
+    let artifact_diagnostics =
+        workspace_artifact_findings(
+            target_root,
+            workspace_executable_stems(),
+            Clock.unix_time_ns(),
+            prefixed,
+        );
     let incremental = child(target_root, "debug/incremental");
     let incremental_bytes = usage_bytes(incremental);
     reverse_strings(
         if {
-            incremental_bytes < 0 -> [String.append("refusing unexpected incremental target `", String.append(incremental, "`")) | prefixed];
+            incremental_bytes < 0 -> [String.append("refusing unexpected incremental target `", String.append(incremental, "`")) | artifact_diagnostics];
             incremental_bytes > maximum -> [String.append(
     "shared debug incremental state ",
     String.append(
         Int.to_string(incremental_bytes),
         String.append(" bytes exceeds ", Int.to_string(maximum)),
     ),
-) | prefixed];
-            true -> prefixed
+) | artifact_diagnostics];
+            true -> artifact_diagnostics
         },
     ).
 
@@ -223,6 +449,141 @@ remove_owned_path(path: String): Bool ->
     };
     false.
 
+remove_test_artifact(artifact: CargoTestArtifact, outcome: CleanupOutcome): CleanupOutcome ->
+    let dependency_info = String.append(artifact.path, ".d");
+    let dependency_bytes = usage_bytes(dependency_info);
+    let dependency_exists = exists(dependency_info);
+    if {
+        dependency_bytes < 0 -> CleanupOutcome(
+            reclaimed_bytes = outcome.reclaimed_bytes,
+            removed_count = outcome.removed_count,
+            valid = false,
+        );
+        true -> remove_validated_test_artifact(
+            artifact,
+            dependency_info,
+            dependency_bytes,
+            dependency_exists,
+            outcome,
+        )
+    }.
+
+remove_validated_test_artifact(
+    artifact: CargoTestArtifact,
+    dependency_info: String,
+    dependency_bytes: Int,
+    dependency_exists: Bool,
+    outcome: CleanupOutcome,
+): CleanupOutcome ->
+    let artifact_path = artifact.path;
+    let artifact_removed = remove_owned_path(artifact_path);
+    finish_test_artifact_removal(
+        artifact,
+        dependency_info,
+        dependency_bytes,
+        dependency_exists,
+        artifact_removed,
+        outcome,
+    ).
+
+finish_test_artifact_removal(
+    artifact: CargoTestArtifact,
+    dependency_info: String,
+    dependency_bytes: Int,
+    dependency_exists: Bool,
+    artifact_removed: Bool,
+    outcome: CleanupOutcome,
+): CleanupOutcome ->
+    if {
+        not artifact_removed -> CleanupOutcome(
+            reclaimed_bytes = outcome.reclaimed_bytes,
+            removed_count = outcome.removed_count,
+            valid = false,
+        );
+        true -> let dependency_removed = remove_dependency_if_present(dependency_info, dependency_exists);
+        finish_test_dependency_removal(artifact, dependency_bytes, dependency_removed, outcome)
+    }.
+
+remove_dependency_if_present(path: String, present: Bool): Bool ->
+    if {
+        not present -> true;
+        true -> remove_owned_path(path)
+    }.
+
+@pure
+finish_test_dependency_removal(
+    artifact: CargoTestArtifact,
+    dependency_bytes: Int,
+    dependency_removed: Bool,
+    outcome: CleanupOutcome,
+): CleanupOutcome ->
+    CleanupOutcome(
+        reclaimed_bytes = outcome.reclaimed_bytes + artifact.bytes + dependency_bytes,
+        removed_count = outcome.removed_count + 1,
+        valid = outcome.valid and dependency_removed,
+    ).
+
+cleanup_stale_test_artifacts(
+    artifacts: List[CargoTestArtifact],
+    retained: Int,
+    cutoff_unix_ns: Int,
+    outcome: CleanupOutcome,
+): CleanupOutcome ->
+    case artifacts {
+        [] -> outcome;
+        [artifact | rest] ->
+            if {
+                retained > 0 -> cleanup_stale_test_artifacts(rest, retained - 1, cutoff_unix_ns, outcome);
+                artifact.modified_unix_ns > cutoff_unix_ns -> cleanup_stale_test_artifacts(rest, 0, cutoff_unix_ns, outcome);
+                true -> cleanup_stale_test_artifacts(
+                    rest,
+                    0,
+                    cutoff_unix_ns,
+                    remove_test_artifact(artifact, outcome),
+                )
+            }
+    }.
+
+cleanup_test_artifact_inventory(
+    inventory: ArtifactInventory,
+    now_unix_ns: Int,
+    outcome: CleanupOutcome,
+): CleanupOutcome ->
+    if {
+        not inventory.valid -> CleanupOutcome(
+            reclaimed_bytes = outcome.reclaimed_bytes,
+            removed_count = outcome.removed_count,
+            valid = false,
+        );
+        true -> cleanup_stale_test_artifacts(
+            inventory.artifacts,
+            retained_test_executable_generations(),
+            now_unix_ns - minimum_test_executable_age_ns(),
+            outcome,
+        )
+    }.
+
+cleanup_workspace_artifacts(
+    target_root: String,
+    stems: List[String],
+    now_unix_ns: Int,
+    outcome: CleanupOutcome,
+): CleanupOutcome ->
+    case stems {
+        [] -> outcome;
+        [stem | rest] ->
+            cleanup_workspace_artifacts(
+                target_root,
+                rest,
+                now_unix_ns,
+                cleanup_test_artifact_inventory(
+                    artifact_inventory(target_root, stem),
+                    now_unix_ns,
+                    outcome,
+                ),
+            )
+    }.
+
 clean(target_root: String, maximum: Int): CleanupOutcome ->
     let isolated =
         cleanup_named_targets(
@@ -236,48 +597,84 @@ clean(target_root: String, maximum: Int): CleanupOutcome ->
             Err(_reason) -> List.new[String]()
         };
     let prefixed = cleanup_prefixed_targets(root_entries, ephemeral_prefix(target_root), isolated);
+    let test_artifacts =
+        cleanup_workspace_artifacts(
+            target_root,
+            workspace_executable_stems(),
+            Clock.unix_time_ns(),
+            prefixed,
+        );
     let incremental = child(target_root, "debug/incremental");
     let incremental_bytes = usage_bytes(incremental);
     if {
-        not prefixed.valid or incremental_bytes < 0 -> CleanupOutcome(
-            reclaimed_bytes = prefixed.reclaimed_bytes,
-            removed_count = prefixed.removed_count,
+        not test_artifacts.valid or incremental_bytes < 0 -> CleanupOutcome(
+            reclaimed_bytes = test_artifacts.reclaimed_bytes,
+            removed_count = test_artifacts.removed_count,
             valid = false,
         );
-        incremental_bytes <= maximum -> prefixed;
+        incremental_bytes <= maximum -> test_artifacts;
         true -> case remove_all(incremental) {
             Ok(Unit) ->
                 CleanupOutcome(
-                    reclaimed_bytes = prefixed.reclaimed_bytes + incremental_bytes,
-                    removed_count = prefixed.removed_count + 1,
+                    reclaimed_bytes = test_artifacts.reclaimed_bytes + incremental_bytes,
+                    removed_count = test_artifacts.removed_count + 1,
                     valid = true,
                 );
             Err(_reason) ->
                 CleanupOutcome(
-                    reclaimed_bytes = prefixed.reclaimed_bytes,
-                    removed_count = prefixed.removed_count,
+                    reclaimed_bytes = test_artifacts.reclaimed_bytes,
+                    removed_count = test_artifacts.removed_count,
                     valid = false,
                 )
         }
     }.
 
 @pure
-report_text(debug_bytes: Int): String ->
+report_text(debug_bytes: Int, artifacts: ArtifactSummary): String ->
     let warning = debug_bytes > warning_debug_bytes();
     String.append(
-        "{\n  \"maintenance_command\": \"make rust-artifact-retention-clean-shared-debug\",\n  \"schema_version\": 1,\n  \"shared_debug_bytes\": ",
+        "{\n  \"maintenance_command\": \"make rust-artifact-retention-clean-shared-debug\",\n  \"schema_version\": 2,\n  \"retained_hashed_executable_bytes\": ",
         String.append(
-            Int.to_string(debug_bytes),
+            Int.to_string(artifacts.bytes),
             String.append(
-                ",\n  \"warning\": ",
+                ",\n  \"retained_hashed_executable_generation_count\": ",
                 String.append(
-                    if {
-                        warning -> "true";
-                        true -> "false"
-                    },
+                    Int.to_string(artifacts.generation_count),
                     String.append(
-                        ",\n  \"warning_bytes\": ",
-                        String.append(Int.to_string(warning_debug_bytes()), "\n}\n"),
+                        ",\n  \"retained_generation_maximum_per_stem\": ",
+                        String.append(
+                            Int.to_string(retained_test_executable_generations()),
+                            String.append(
+                                ",\n  \"shared_debug_bytes\": ",
+                                String.append(
+                                    Int.to_string(debug_bytes),
+                                    String.append(
+                                        ",\n  \"warning\": ",
+                                        String.append(
+                                            if {
+                                                warning -> "true";
+                                                true -> "false"
+                                            },
+                                            String.append(
+                                                ",\n  \"warning_bytes\": ",
+                                                String.append(
+                                                    Int.to_string(warning_debug_bytes()),
+                                                    String.append(
+                                                        ",\n  \"writer_grace_period_ns\": ",
+                                                        String.append(
+                                                            Int.to_string(
+                                                                minimum_test_executable_age_ns(),
+                                                            ),
+                                                            "\n}\n",
+                                                        ),
+                                                    ),
+                                                ),
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
                     ),
                 ),
             ),
@@ -286,11 +683,12 @@ report_text(debug_bytes: Int): String ->
 
 write_report(target_root: String, report_path: String): Bool ->
     let debug_bytes = usage_bytes(child(target_root, "debug"));
+    let artifacts = workspace_artifact_summary(target_root);
     if {
-        debug_bytes < 0 -> false;
+        debug_bytes < 0 or not artifacts.valid -> false;
         true -> let {
             Ok(Unit) <- create_all(child(target_root, "quality"));
-            Ok(Unit) <- write_text(report_path, report_text(debug_bytes))
+            Ok(Unit) <- write_text(report_path, report_text(debug_bytes, artifacts))
         } else {
             _ -> false
         };
@@ -364,20 +762,20 @@ clean_and_check(target_root: String, report_path: String): Bool ->
     }.
 
 clean_shared_debug(target_root: String): Bool ->
-    let debug = child(target_root, "debug");
-    let reclaimed = usage_bytes(debug);
-    let debug_exists = exists(debug);
+    let incremental = child(target_root, "debug/incremental");
+    let reclaimed = usage_bytes(incremental);
+    let incremental_exists = exists(incremental);
     if {
         reclaimed < 0 -> false;
-        not debug_exists -> let _empty = println("Cargo shared debug maintenance reclaimed 0 bytes");
+        not incremental_exists -> let _empty = println("Cargo shared debug incremental maintenance reclaimed 0 bytes");
         true;
-        true -> case remove_all(debug) {
+        true -> case remove_all(incremental) {
             Err(_reason) -> false;
             Ok(Unit) ->
                 let _cleaned =
                     println(
                         String.append(
-                            "Cargo shared debug maintenance reclaimed ",
+                            "Cargo shared debug incremental maintenance reclaimed ",
                             String.append(Int.to_string(reclaimed), " bytes"),
                         ),
                     );
@@ -398,6 +796,12 @@ run_self_test(workspace: String): Bool ->
     let escaped = child(target_root, "terlan-partial-build");
     let debug = child(target_root, "debug");
     let incremental = child(debug, "incremental");
+    let dependencies = child(debug, "deps");
+    let newest = child(dependencies, "terlan-4444444444444444");
+    let previous = child(dependencies, "terlan-3333333333333333");
+    let stale_a = child(dependencies, "terlan-2222222222222222");
+    let stale_b = child(dependencies, "terlan-1111111111111111");
+    let now = Clock.unix_time_ns();
     let made_isolated = create_all(isolated);
     let artifact = write_text(child(isolated, "artifact"), "artifact");
     let made_coverage = create_all(coverage);
@@ -405,36 +809,75 @@ run_self_test(workspace: String): Bool ->
     let made_escaped = create_all(escaped);
     let escaped_artifact = write_text(child(escaped, "artifact"), "partial");
     let made_incremental = create_all(incremental);
+    let made_dependencies = create_all(dependencies);
+    let newest_written = write_text(newest, "newest");
+    let previous_written = write_text(previous, "previous");
+    let stale_a_written = write_text(stale_a, "old-a");
+    let stale_b_written = write_text(stale_b, "old-b");
+    let stale_a_dep = write_text(String.append(stale_a, ".d"), "dep");
+    let stale_b_dep = write_text(String.append(stale_b, ".d"), "dep");
+    let newest_time = set_timestamps(newest, now - 1000000000, now - 1000000000);
+    let previous_time = set_timestamps(previous, now - 2000000000, now - 2000000000);
+    let stale_a_time = set_timestamps(stale_a, now - 600000000000, now - 600000000000);
+    let stale_b_time = set_timestamps(stale_b, now - 700000000000, now - 700000000000);
     let preserved = write_text(child(debug, "preserved"), "keep");
     let cache = write_text(child(incremental, "cache"), "incremental");
     let before = findings(target_root, 4);
     let cleaned = clean(target_root, 4);
     let after_findings = findings(target_root, 4);
     let retained = read_text(child(debug, "preserved"));
+    let newest_retained = read_text(newest);
+    let previous_retained = read_text(previous);
+    let stale_a_exists = exists(stale_a);
+    let stale_a_dep_exists = exists(String.append(stale_a, ".d"));
+    let stale_b_exists = exists(stale_b);
+    let stale_b_dep_exists = exists(String.append(stale_b, ".d"));
+    let stale_a_path_removed = not stale_a_exists;
+    let stale_a_dep_removed = not stale_a_dep_exists;
+    let stale_b_path_removed = not stale_b_exists;
+    let stale_b_dep_removed = not stale_b_dep_exists;
+    let stale_a_removed = stale_a_path_removed and stale_a_dep_removed;
+    let stale_b_removed = stale_b_path_removed and stale_b_dep_removed;
     let shared = clean_shared_debug(target_root);
+    let retained_after_shared = read_text(child(debug, "preserved"));
     let removed = remove_all(workspace);
-    case {
-    made_isolated,
-    artifact,
-    made_coverage,
-    coverage_artifact,
-    made_escaped,
-    escaped_artifact,
-    made_incremental,
-    preserved,
-    cache,
-    retained,
-    removed,
-} {
-        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok("keep"), Ok(Unit)} ->
-            before != List.new[String]()
-                and cleaned.valid
-                and cleaned.reclaimed_bytes == 34
-                and cleaned.removed_count == 4
-                and after_findings == List.new[String]()
-                and shared;
+    let {
+        Ok(Unit) <- made_isolated;
+        Ok(Unit) <- artifact;
+        Ok(Unit) <- made_coverage;
+        Ok(Unit) <- coverage_artifact;
+        Ok(Unit) <- made_escaped;
+        Ok(Unit) <- escaped_artifact;
+        Ok(Unit) <- made_incremental;
+        Ok(Unit) <- made_dependencies;
+        Ok(Unit) <- newest_written;
+        Ok(Unit) <- previous_written;
+        Ok(Unit) <- stale_a_written;
+        Ok(Unit) <- stale_b_written;
+        Ok(Unit) <- stale_a_dep;
+        Ok(Unit) <- stale_b_dep;
+        Ok(Unit) <- newest_time;
+        Ok(Unit) <- previous_time;
+        Ok(Unit) <- stale_a_time;
+        Ok(Unit) <- stale_b_time;
+        Ok(Unit) <- preserved;
+        Ok(Unit) <- cache;
+        Ok("keep") <- retained;
+        Ok("newest") <- newest_retained;
+        Ok("previous") <- previous_retained;
+        Ok("keep") <- retained_after_shared;
+        Ok(Unit) <- removed
+    } else {
         _ -> false
-    }.
+    };
+    before != List.new[String]()
+        and cleaned.valid
+        and cleaned.reclaimed_bytes == 50
+        and cleaned.removed_count == 6
+        and stale_a_removed
+        and stale_b_removed
+        and after_findings == List.new[String]()
+        and shared.
 
 repository_gate(): Bool ->
     let mode = environment_or("TERLAN_CARGO_ARTIFACT_RETENTION_MODE", "check");

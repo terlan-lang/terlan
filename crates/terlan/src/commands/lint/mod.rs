@@ -1,5 +1,7 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+#[cfg(test)]
+use std::path::Path;
+use std::path::PathBuf;
 use std::process::ExitCode;
 
 mod diagnostic;
@@ -25,22 +27,22 @@ use rules::{fix_semicolon_chains, lint_source};
 /// - Exit code `2` for malformed command arguments.
 ///
 /// Transformation:
-/// - Walks one file or directory for `.terl`/`.terli` sources, emits stable
-///   rule diagnostics, and applies only narrow source-preserving fixes when
-///   `--fix` is requested.
+/// - Walks one or more files or directories for Terlan sources, deduplicates
+///   overlapping inputs, emits stable rule diagnostics, and applies only
+///   narrow source-preserving fixes when `--fix` is requested.
 pub(crate) fn run(args: &[String]) -> ExitCode {
     let options = match parse_args(args) {
         Ok(options) => options,
         Err(message) => {
             eprintln!("{message}");
             eprintln!(
-                "usage: terlc lint [--fix] [--only <rule-id>] <file.terl|file.terli|file.terls|dir>"
+                "usage: terlc lint [--fix] [--only <rule-id>]... <file.terl|file.terli|file.terls|dir>..."
             );
             return ExitCode::from(2);
         }
     };
 
-    match run_lint_selected(&options.path, options.fix, options.only_rule.as_deref()) {
+    match run_lint_rules_many(&options.paths, options.fix, &options.only_rules) {
         Ok(diagnostics) if diagnostics.is_empty() => ExitCode::SUCCESS,
         Ok(diagnostics) => {
             for diagnostic in diagnostics {
@@ -58,14 +60,14 @@ pub(crate) fn run(args: &[String]) -> ExitCode {
 /// Parsed lint command options.
 struct LintOptions {
     fix: bool,
-    only_rule: Option<String>,
-    path: PathBuf,
+    only_rules: Vec<String>,
+    paths: Vec<PathBuf>,
 }
 
 /// Parses command-local lint arguments.
 fn parse_args(args: &[String]) -> Result<LintOptions, String> {
     let mut fix = false;
-    let mut only_rule = None;
+    let mut only_rules = Vec::new();
     let mut paths = Vec::new();
 
     let mut args = args.iter();
@@ -76,8 +78,8 @@ fn parse_args(args: &[String]) -> Result<LintOptions, String> {
                 let rule_id = args
                     .next()
                     .ok_or_else(|| "missing rule ID after --only".to_string())?;
-                if only_rule.replace(rule_id.clone()).is_some() {
-                    return Err("--only may be specified only once".to_string());
+                if !only_rules.contains(rule_id) {
+                    only_rules.push(rule_id.clone());
                 }
             }
             flag if flag.starts_with('-') => return Err(format!("unknown lint option: {flag}")),
@@ -85,23 +87,22 @@ fn parse_args(args: &[String]) -> Result<LintOptions, String> {
         }
     }
 
-    if fix && only_rule.is_some() {
+    if fix && !only_rules.is_empty() {
         return Err("--fix and --only cannot be combined".to_string());
     }
-    if let Some(rule_id) = only_rule.as_deref() {
-        if !KNOWN_RULE_IDS.contains(&rule_id) {
+    for rule_id in &only_rules {
+        if !KNOWN_RULE_IDS.contains(&rule_id.as_str()) {
             return Err(format!("unknown lint rule ID: {rule_id}"));
         }
     }
 
-    match paths.as_slice() {
-        [path] => Ok(LintOptions {
+    match paths.is_empty() {
+        false => Ok(LintOptions {
             fix,
-            only_rule,
-            path: path.clone(),
+            only_rules,
+            paths,
         }),
-        [] => Err("missing path argument".to_string()),
-        _ => Err("terlc lint accepts exactly one path".to_string()),
+        true => Err("missing path argument".to_string()),
     }
 }
 
@@ -117,12 +118,39 @@ fn run_lint(root: &Path, fix: bool) -> Result<Vec<LintDiagnostic>, String> {
     run_lint_selected(root, fix, None)
 }
 
+#[cfg(test)]
 fn run_lint_selected(
     root: &Path,
     fix: bool,
     only_rule: Option<&str>,
 ) -> Result<Vec<LintDiagnostic>, String> {
-    let paths = collect_lint_paths(root)?;
+    run_lint_selected_many(&[root.to_path_buf()], fix, only_rule)
+}
+
+#[cfg(test)]
+fn run_lint_selected_many(
+    roots: &[PathBuf],
+    fix: bool,
+    only_rule: Option<&str>,
+) -> Result<Vec<LintDiagnostic>, String> {
+    let only_rules = only_rule
+        .into_iter()
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+    run_lint_rules_many(roots, fix, &only_rules)
+}
+
+fn run_lint_rules_many(
+    roots: &[PathBuf],
+    fix: bool,
+    only_rules: &[String],
+) -> Result<Vec<LintDiagnostic>, String> {
+    let mut paths = Vec::new();
+    for root in roots {
+        paths.extend(collect_lint_paths(root)?);
+    }
+    paths.sort();
+    paths.dedup();
     if fix {
         apply_safe_fixes(&paths).map_err(|error| error.to_string())?;
     }
@@ -131,9 +159,10 @@ fn run_lint_selected(
     for path in paths {
         let source = fs::read_to_string(&path)
             .map_err(|err| format!("failed to read {}: {err}", path.display()))?;
-        diagnostics.extend(match only_rule {
-            Some(rule_id) => rules::lint_source_only(&path, &source, rule_id),
-            None => rules::lint_source(&path, &source),
+        diagnostics.extend(if only_rules.is_empty() {
+            rules::lint_source(&path, &source)
+        } else {
+            rules::lint_source_only_many(&path, &source, only_rules)
         });
     }
     Ok(diagnostics)

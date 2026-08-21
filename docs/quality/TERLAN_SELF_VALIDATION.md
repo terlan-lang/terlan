@@ -48,10 +48,6 @@ replacement, and the Python sources have been deleted.
   sibling package closure, executes the external CUDA package from a temporary
   workspace, validates and seals its JSON evidence, and owns
   `make cuda-package-check`; the replaced repository Python checker is deleted.
-- `scripts.self_validation.RoadmapLegacyRuntimeCleanupTest` now owns exact
-  legacy-runtime reference classification, malformed/duplicate/stale-row
-  rejection, and active-roadmap root selection; its Python checker and test are
-  deleted.
 - `scripts.self_validation.TerlanPytorchBaselinePolicyTest` now owns the
   CPU-required/CUDA-optional package policy, placeholder-symbol rejection,
   consumer/report validation, manifest hashing, and deterministic evidence;

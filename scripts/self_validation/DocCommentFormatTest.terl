@@ -8,7 +8,7 @@ import std.core.Option.{Some}.
 import std.core.Result.{Ok}.
 import std.core.{String, Unit}.
 import std.io.Console.{println}.
-import std.io.Directory.{create_all}.
+import std.io.Directory.{create_all, create_temporary, remove_all}.
 import std.io.File.{read_text, read_text_tree_matching, write_text}.
 import std.system.Arguments.{get}.
 
@@ -213,16 +213,21 @@ pub normalization_preserves_tabs_and_trailing_newline_choice(): Bool ->
 
 @test
 pub fix_mode_rewrites_discovered_std_sources(): Bool ->
-    let directory = create_all("target/terlan-doc-format-fix/std/example");
-    let written =
-        write_text(
-            "target/terlan-doc-format-fix/std/example/Example.terl",
-            "/**\n *Text\n */\nmodule example.Example.\n",
-        );
-    let fixed = fix_repository("target/terlan-doc-format-fix");
-    let read = read_text("target/terlan-doc-format-fix/std/example/Example.terl");
-    case {directory, written, fixed, read} {
-        {Ok(Unit), Ok(Unit), true, Ok(text)} ->
+    case create_temporary("terlan-doc-format-fix.") {
+        Ok(root) -> fix_mode_fixture_holds(root);
+        _ -> false
+    }.
+
+fix_mode_fixture_holds(root: String): Bool ->
+    let directory = String.append(root, "/std/example");
+    let source = String.append(directory, "/Example.terl");
+    let created = create_all(directory);
+    let written = write_text(source, "/**\n *Text\n */\nmodule example.Example.\n");
+    let fixed = fix_repository(root);
+    let read = read_text(source);
+    let removed = remove_all(root);
+    case {created, written, fixed, read, removed} {
+        {Ok(Unit), Ok(Unit), true, Ok(text), Ok(Unit)} ->
             text == "/**\n * Text\n */\nmodule example.Example.\n";
         _ -> false
     }.

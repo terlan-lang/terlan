@@ -2,11 +2,10 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
-use super::roadmap_gate_integrity::parse_make_list_variable_values;
+use super::makefile_list::parse_make_list_variable_values;
 use crate::terlan_quality::{render_failure, QualityResult};
 
 const PROFILE_PATH: &str = "docs/compiler/TERLAN_LINT_STYLE_PROFILE.md";
-const ROADMAP_PATH: &str = "../docs/roadmap/ROADMAP_0_0_7.md";
 
 const REQUIRED_FAMILIES: &[&str] = &[
     "Readability",
@@ -83,7 +82,7 @@ pub struct TerlanLintStyleProfileSummary {
 ///
 /// Output:
 /// - Success when the lint profile names required rule families, commands,
-///   severities, diagnostics, pipe-fix guardrails, and roadmap/Make gates.
+///   severities, diagnostics, pipe-fix guardrails, and Make gates.
 /// - Stable diagnostics when the profile drifts or becomes non-executable.
 ///
 /// Transformation:
@@ -92,7 +91,6 @@ pub struct TerlanLintStyleProfileSummary {
 pub fn run_terlan_lint_style_profile(root: &Path) -> QualityResult<TerlanLintStyleProfileSummary> {
     let profile = read_text(root, PROFILE_PATH)?;
     let makefile = read_text(root, "Makefile")?;
-    let roadmap = read_text(root, ROADMAP_PATH)?;
 
     let mut diagnostics = Vec::new();
     diagnostics.extend(validate_required_markers(
@@ -146,7 +144,7 @@ pub fn run_terlan_lint_style_profile(root: &Path) -> QualityResult<TerlanLintSty
     diagnostics.extend(validate_diagnostic_contract(&profile));
     diagnostics.extend(validate_rule_id_shapes(&profile));
     diagnostics.extend(validate_no_placeholder_terms(&profile));
-    diagnostics.extend(validate_make_and_roadmap_hooks(&makefile, &roadmap));
+    diagnostics.extend(validate_make_hooks(&makefile));
 
     if diagnostics.is_empty() {
         Ok(TerlanLintStyleProfileSummary {
@@ -227,7 +225,7 @@ fn validate_no_placeholder_terms(profile: &str) -> Vec<String> {
         .collect()
 }
 
-fn validate_make_and_roadmap_hooks(makefile: &str, roadmap: &str) -> Vec<String> {
+fn validate_make_hooks(makefile: &str) -> Vec<String> {
     let mut diagnostics = Vec::new();
     for target in [
         "terlan-lint-style-profile-check",
@@ -235,11 +233,6 @@ fn validate_make_and_roadmap_hooks(makefile: &str, roadmap: &str) -> Vec<String>
     ] {
         if !has_make_target(makefile, target) {
             diagnostics.push(format!("Makefile: missing target `{target}`"));
-        }
-        if !roadmap.contains(target) {
-            diagnostics.push(format!(
-                "{ROADMAP_PATH}: missing roadmap reference to `{target}`"
-            ));
         }
     }
     diagnostics.extend(validate_make_check_order(makefile));

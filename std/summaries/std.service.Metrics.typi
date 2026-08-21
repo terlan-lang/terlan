@@ -1,0 +1,21 @@
+//! Statically bounded service metric declarations and samples.
+
+module std.service.Metrics.
+
+pub struct Instrument {
+    name: String,
+    kind: Atom,
+    label_keys: List[String],
+    cardinality_limit: Int
+}.
+
+pub declared_counter(name: String, label_keys: List[String], cardinality_limit: Int): Instrument.
+
+pub declared_gauge(name: String, label_keys: List[String], cardinality_limit: Int): Instrument.
+
+pub declared_histogram(name: String, label_keys: List[String], cardinality_limit: Int): Instrument.
+
+/// Records a value. Hosts reject undeclared names or a mismatched label shape.
+
+@pure
+pub record(instrument: Instrument, value: Float, labels: List[String]): Unit.

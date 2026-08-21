@@ -163,10 +163,15 @@ where
         http::header::CONTENT_LENGTH,
         http::HeaderValue::from(content_length as u64),
     );
-    headers.insert(
-        http::header::CACHE_CONTROL,
-        http::HeaderValue::from_static("no-cache"),
-    );
+    if !extra_headers
+        .iter()
+        .any(|(name, _)| name == http::header::CACHE_CONTROL)
+    {
+        headers.insert(
+            http::header::CACHE_CONTROL,
+            http::HeaderValue::from_static("no-cache"),
+        );
+    }
     headers.insert(
         http::HeaderName::from_static("x-content-type-options"),
         http::HeaderValue::from_static("nosniff"),

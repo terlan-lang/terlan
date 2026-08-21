@@ -10,6 +10,7 @@
 **/node_modules/
 /editors/intellij/.intellijPlatform/
 /editors/intellij/.kotlin/
+/editors/intellij/bin/
 /editors/intellij/build/
 *.rlib
 

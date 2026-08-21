@@ -308,6 +308,24 @@ initials(first, family) ->
     assert_eq!(initials.params[1].name, "family");
 }
 
+/// Identifiers that merely extend contextual keywords remain ordinary names.
+#[test]
+fn parses_plural_keyword_prefix_parameter_names() {
+    let source = r#"
+module keyword_prefix_parameters.
+
+collect(modules: Int, functions: Int): Int ->
+    modules + functions.
+"#;
+
+    let module = parse_module(source).expect("plural keyword prefixes should parse");
+    let Decl::Function(function) = &module.declarations[0] else {
+        panic!("expected function declaration");
+    };
+    assert_eq!(function.params[0].name, "modules");
+    assert_eq!(function.params[1].name, "functions");
+}
+
 /// Verifies required callable parameters may not follow defaults.
 ///
 /// Inputs:

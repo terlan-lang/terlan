@@ -3,16 +3,20 @@
 use std::ffi::c_void;
 
 /// Bytes in one sparse dispatch-index entry.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) const TVM_DISPATCH_INDEX_ENTRY_BYTES: usize = 4;
 /// Bytes in one dense dispatch record.
 pub(crate) const TVM_DISPATCH_RECORD_ENTRY_BYTES: usize = 24;
 /// Byte offset of the export identity inside one dense record.
 pub(crate) const TVM_DISPATCH_RECORD_EXPORT_ID_OFFSET: usize = 0;
 /// Byte offset of the native function pointer inside one dense record.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) const TVM_DISPATCH_RECORD_FUNCTION_POINTER_OFFSET: usize = 8;
 /// Byte offset of the transition count inside one dense record.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) const TVM_DISPATCH_RECORD_TRANSITION_COUNT_OFFSET: usize = 16;
 /// Byte offset of the compact ABI shape inside one dense record.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) const TVM_DISPATCH_RECORD_SHAPE_OFFSET: usize = 20;
 
 /// Runtime-ABI-3 callback used by every admitted AOT image for entry lookup.

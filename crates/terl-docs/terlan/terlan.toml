@@ -1,0 +1,8 @@
+[package]
+name = "terl-docs-search"
+version = "0.0.7"
+namespace = "terl_docs"
+
+[build]
+source_roots = ["src"]
+artifact = "library"

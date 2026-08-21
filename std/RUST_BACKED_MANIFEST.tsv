@@ -27,6 +27,7 @@ std.data.Json	std/data/Json.terl	serde_json	std.data.json.array_push	push	2
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.array_extend	extend	2
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.array_set	set	3
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.object_put	put	3
+std.data.Json	std/data/Json.terl	serde_json	std.data.json.object_remove	remove	2
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.parse	parse	1
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.stringify	stringify	1
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.stringify_pretty	stringify_pretty	1
@@ -49,10 +50,12 @@ std.data.Json	std/data/Json.terl	serde_json	std.data.json.as_float	as_float	1
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.as_bool	as_bool	1
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.is_null	is_null	1
 std.data.Toml	std/data/Toml.terl	basic-toml	std.data.toml.parse	parse	1
+std.package.Registry	std/package/Registry.terl	terlan	std.package.registry.parse_publish_request	parse_publish_request	1
 std.crypto.Hash	std/crypto/Hash.terl	sha2	std.crypto.hash.sha256_bytes	sha256_bytes	1
 std.crypto.Hash	std/crypto/Hash.terl	sha2	std.crypto.hash.sha256_framed	sha256_framed	1
 std.crypto.Hash	std/crypto/Hash.terl	sha2	std.crypto.hash.sha256_domain_framed	sha256_domain_framed	2
 std.crypto.Hash	std/crypto/Hash.terl	sha2	std.crypto.hash.sha256_nul_separated	sha256_nul_separated	1
+std.crypto.Ed25519	std/crypto/Ed25519.terl	rustls	std.crypto.ed25519.verify	verify	3
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.encode	encode	1
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.decode	decode	1
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.encode_url	encode_url	1
@@ -107,6 +110,7 @@ std.http.Request	std/http/Request.terl	std::http	std.http.request.header	header	
 std.http.Request	std/http/Request.terl	std::http	std.http.request.cookie	cookie	2
 std.http.Request	std/http/Request.terl	std::http	std.http.request.cookies	cookies	1
 std.http.Request	std/http/Request.terl	std::http	std.http.request.body_text	body_text	1
+std.http.Request	std/http/Request.terl	std::http	std.http.request.body_file_path	body_file_path	1
 std.http.Request	std/http/Request.terl	std::http	std.http.request.body_json	body_json	1
 std.http.Cookies	std/http/Cookies.terl	std::http	std.http.cookies.get	get	2
 std.http.Cookies	std/http/Cookies.terl	std::http	std.http.cookies.set	set	6

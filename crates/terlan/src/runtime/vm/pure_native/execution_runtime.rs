@@ -176,6 +176,7 @@ impl PureNativeExecutionRuntime {
     }
 
     /// Reconstructs parked capture words without consuming resume authority.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn debugger_continuation_capture_words(
         &self,
         owner_id: u64,

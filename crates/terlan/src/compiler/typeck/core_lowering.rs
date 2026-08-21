@@ -80,9 +80,12 @@ pub fn lower_syntax_module_output_to_core(
         &import_maps.function_imports,
     );
     default_arguments::materialize_default_call_arguments(&mut prepared_module, resolved);
+    let (mut prepared_module, _) =
+        super::prepare_syntax_constants_with_interfaces(&prepared_module, &resolved.interface_map);
     annotate_syntax_comprehension_lifts(&mut prepared_module, resolved);
     let module = &prepared_module;
     let mut core = lower_resolved_module_to_core(resolved);
+    core.functions = core_syntax_functions(module);
     let macro_functions = module
         .declarations
         .iter()
@@ -145,7 +148,7 @@ pub fn lower_syntax_module_output_to_core(
         );
     for function in &mut structural_impl_functions {
         function_clauses.insert(
-            (function.name.clone(), function.arity),
+            core_callable_signature_from_function(function),
             std::mem::take(&mut function.clauses),
         );
     }
@@ -158,12 +161,11 @@ pub fn lower_syntax_module_output_to_core(
     refresh_core_evidence_in_function_clauses(&mut function_clauses);
     core.functions.extend(structural_impl_functions);
     for function in &mut core.functions {
-        if let Some(clauses) = function_clauses.get(&(function.name.clone(), function.arity)) {
+        let signature = core_callable_signature_from_function(function);
+        if let Some(clauses) = function_clauses.get(&signature) {
             function.clauses = clauses.clone();
         }
-        function.native_operation = native_operations
-            .get(&(function.name.clone(), function.arity))
-            .cloned();
+        function.native_operation = native_operations.get(&signature).cloned();
     }
     rewrite_structural_impl_calls(&mut core.functions, &structural_impl_dispatch);
     core.functions.sort_by(|left, right| {
@@ -456,7 +458,9 @@ fn canonicalize_core_expr_selected_function_imports(
 }
 
 /// Collects explicit compiler-native operation identities by callable ABI.
-fn core_syntax_native_operations(module: &SyntaxModuleOutput) -> HashMap<(String, usize), String> {
+fn core_syntax_native_operations(
+    module: &SyntaxModuleOutput,
+) -> HashMap<CoreCallableSignature, String> {
     module
         .declarations
         .iter()
@@ -473,16 +477,110 @@ fn core_syntax_native_operations(module: &SyntaxModuleOutput) -> HashMap<(String
                     })
             })?;
             match &declaration.payload {
-                SyntaxDeclarationPayload::Function { name, params, .. } => {
-                    Some(((name.clone(), params.len()), operation))
-                }
-                SyntaxDeclarationPayload::Method { name, params, .. } => {
-                    Some(((name.clone(), params.len() + 1), operation))
+                SyntaxDeclarationPayload::Function { name, params, .. } => Some((
+                    core_callable_signature_from_syntax_params(name, params),
+                    operation,
+                )),
+                SyntaxDeclarationPayload::Method {
+                    receiver,
+                    name,
+                    params,
+                    ..
+                } => {
+                    let mut receiver_first_params = Vec::with_capacity(params.len() + 1);
+                    receiver_first_params.push(receiver.as_ref().clone());
+                    receiver_first_params.extend(params.iter().cloned());
+                    Some((
+                        core_callable_signature_from_syntax_params(name, &receiver_first_params),
+                        operation,
+                    ))
                 }
                 _ => None,
             }
         })
         .collect()
+}
+
+/// Lowers exact syntax-backed callable declarations into typed CoreIR.
+///
+/// The resolver interface also contains compatibility projections and
+/// qualified import signatures. Executable CoreIR must instead retain one
+/// function per source declaration so bodies, native annotations, and typed
+/// overload identities stay aligned before application-wide qualification.
+fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
+    let mut functions = module
+        .declarations
+        .iter()
+        .filter_map(|declaration| match &declaration.payload {
+            SyntaxDeclarationPayload::Function {
+                name,
+                generic_params,
+                params,
+                return_type,
+                is_public,
+                is_macro: false,
+                ..
+            } => Some(CoreFunction {
+                name: name.clone(),
+                arity: params.len(),
+                public: *is_public,
+                generic_params: generic_params.clone(),
+                native_operation: None,
+                params: params.iter().map(core_syntax_param).collect(),
+                return_type: return_type.text.clone(),
+                core_return_type: core_type_from_text(&return_type.text),
+                clauses: Vec::new(),
+            }),
+            SyntaxDeclarationPayload::Method {
+                receiver,
+                name,
+                generic_params,
+                params,
+                return_type,
+                is_public,
+                ..
+            } => {
+                let mut core_params = Vec::with_capacity(params.len() + 1);
+                core_params.push(core_syntax_param(receiver));
+                core_params.extend(params.iter().map(core_syntax_param));
+                Some(CoreFunction {
+                    name: name.clone(),
+                    arity: core_params.len(),
+                    public: *is_public,
+                    generic_params: generic_params.clone(),
+                    native_operation: None,
+                    params: core_params,
+                    return_type: return_type.text.clone(),
+                    core_return_type: core_type_from_text(&return_type.text),
+                    clauses: Vec::new(),
+                })
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    functions.sort_by(|left, right| {
+        left.name
+            .cmp(&right.name)
+            .then_with(|| left.arity.cmp(&right.arity))
+            .then_with(|| {
+                left.params
+                    .iter()
+                    .map(|param| param.ty.as_str())
+                    .cmp(right.params.iter().map(|param| param.ty.as_str()))
+            })
+    });
+    functions
+}
+
+/// Converts one syntax parameter into its typed CoreIR representation.
+fn core_syntax_param(
+    parameter: &crate::terlan_syntax::syntax_output::SyntaxParamOutput,
+) -> CoreParam {
+    CoreParam {
+        name: parameter.name.clone(),
+        ty: parameter.annotation.text.clone(),
+        core_ty: core_type_from_text(&parameter.annotation.text),
+    }
 }
 
 /// Collects declaration-order template props for CoreIR template-call lowering.

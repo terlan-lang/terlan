@@ -2941,7 +2941,7 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
     external `terlan-vm` checkout. The concurrency investigation must build on
     migrated VM semantics, not on parallel benchmark-only machinery.
   - Context: current benchmarks validate the performance improvement over the
-    old OTP/SafeNative HTTP handler path, but that legacy lane is only
+    old OTP/NativeBoundary HTTP handler path, but that legacy lane is only
     historical context after the VM pivot. Future performance comparisons must
     use a maintained Rust HTTP baseline such as Axum on Tokio. The current
     loopback socket lane exposed that Terlan VM fell apart under high
@@ -2955,7 +2955,7 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
     socket HTTP/1 must remain benchmarked separately so handler execution,
     protocol parsing, VM streams, and OS sockets are not collapsed into one
     opaque number.
-  - Requirement: keep the historical OTP/SafeNative report available for
+  - Requirement: keep the historical OTP/NativeBoundary report available for
     migration notes only. Do not use it as the future performance target once
     this slice starts.
   - Requirement: add executable Rust HTTP benchmark baselines outside the
@@ -3576,7 +3576,7 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
   - Requirement: require one theorem family proving deterministic ABI lowering for
     Wasm call/return/abort paths used by 0.0.7 runtime features.
   - Requirement: add explicit rejection theorems for host-side side-effectful
-    invocations that are not represented as SafeNative contracts.
+    invocations that are not represented as NativeBoundary contracts.
   - Requirement: update evidence matrix and slice mapping so `wasm` feature slices
     are covered by executable theorem families or explicit accepted gaps.
   - Requirement: add `make lean-proof-wasm-bridge-check` that runs theorem

@@ -20,6 +20,7 @@ pub const FUNCTIONS: &[(&str, usize)] = &[
     ("cookie", 2),
     ("cookies", 1),
     ("body_text", 1),
+    ("body_file_path", 1),
     ("body_json", 1),
 ];
 
@@ -33,6 +34,7 @@ pub const OPERATIONS: &[(&str, &str, usize)] = &[
     ("cookie", "std.http.request.cookie", 2),
     ("cookies", "std.http.request.cookies", 1),
     ("body_text", "std.http.request.body_text", 1),
+    ("body_file_path", "std.http.request.body_file_path", 1),
     ("body_json", "std.http.request.body_json", 1),
 ];
 
@@ -170,6 +172,7 @@ fn worker_loop(rx: Receiver<NativeBoundaryCommand>, credit_window: usize) {
                         "std.http.request.cookie" => native_unimplemented_operation(operation),
                         "std.http.request.cookies" => native_unimplemented_operation(operation),
                         "std.http.request.body_text" => native_unimplemented_operation(operation),
+                        "std.http.request.body_file_path" => native_unimplemented_operation(operation),
                         "std.http.request.body_json" => native_unimplemented_operation(operation),
                         _ => native_unknown_operation(operation),
                     },

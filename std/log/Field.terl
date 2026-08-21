@@ -1,0 +1,30 @@
+/**
+ * Bounded portable structured-log fields.
+ *
+ * The constructors expose only scalar values. `std.core.Secret` deliberately
+ * has no constructor here, so secret handles cannot become log fields through
+ * the typed API. The runtime repeats name, count, and size validation at the
+ * host ABI boundary.
+ */
+module std.log.Field.
+
+pub struct Field {
+    name: String,
+    kind: Atom,
+    text: String,
+    int: Int,
+    float: Float,
+    bool: Bool,
+}.
+
+pub string(name: String, value: String): Field ->
+    Field(name = name, kind = Atom["string"], text = value, int = 0, float = 0.0, bool = false).
+
+pub int(name: String, value: Int): Field ->
+    Field(name = name, kind = Atom["int"], text = "", int = value, float = 0.0, bool = false).
+
+pub float(name: String, value: Float): Field ->
+    Field(name = name, kind = Atom["float"], text = "", int = 0, float = value, bool = false).
+
+pub bool(name: String, value: Bool): Field ->
+    Field(name = name, kind = Atom["bool"], text = "", int = 0, float = 0.0, bool = value).

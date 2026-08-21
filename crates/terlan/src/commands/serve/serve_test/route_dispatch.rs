@@ -11,7 +11,7 @@ pub(super) fn vm_stream_request_dispatches_pattern_head_route_handler_without_hy
     fs::create_dir_all(web_root.join("assets/js/modules")).expect("create package dirs");
     fs::write(
         project_root.join("terlan.toml"),
-        "[package]\nname = \"serve_vm_stream_pattern_head_demo\"\nversion = \"0.0.7\"\n",
+        "[package]\nname = \"serve_vm_stream_pattern_head_demo\"\nversion = \"0.0.7\"\nnamespace = \"app\"\n",
     )
     .expect("write project manifest");
     fs::write(web_root.join("index.html"), "<!doctype html>\n").expect("write index");
@@ -22,7 +22,7 @@ pub(super) fn vm_stream_request_dispatches_pattern_head_route_handler_without_hy
     .expect("write js asset");
     fs::write(
         source_dir.join("Api.terl"),
-        "module app.Api.\n\nimport std.collections.Map.\nimport std.core.Option.\nimport std.http.Response.\nimport type std.http.Response.{Response}.\n\npub show(\n    {Atom[\"request\"], _method, _path, params, _body, _query, _query_pairs, _headers, _cookies}: {Atom[\"request\"], String, String, Map[String, String], String, String, Map[String, String], Map[String, String], Map[String, String]},\n    id: String,\n    name: String\n): Response ->\n    Response.text(Option.with_default(params.get(\"id\"), \"missing\") + \":\" + id + \":\" + name).with_status(222).\n",
+        "module app.Api.\n\nimport std.collections.Map.\nimport std.core.Option.\nimport std.http.Response.\nimport type std.http.Response.{Response}.\n\npub show(\n    {Atom[\"request\"], _method, _path, params, _body, _query, _query_pairs, _headers, _cookies, _body_file_path}: {Atom[\"request\"], String, String, Map[String, String], String, String, Map[String, String], Map[String, String], Map[String, String], String},\n    id: String,\n    name: String\n): Response ->\n    Response.text(Option.with_default(params.get(\"id\"), \"missing\") + \":\" + id + \":\" + name).with_status(222).\n",
     )
     .expect("write handler source");
     fs::write(
@@ -86,7 +86,7 @@ pub(super) fn vm_stream_request_reports_pattern_head_route_handler_miss_without_
     fs::create_dir_all(web_root.join("assets/js/modules")).expect("create package dirs");
     fs::write(
         project_root.join("terlan.toml"),
-        "[package]\nname = \"serve_vm_stream_pattern_head_miss_demo\"\nversion = \"0.0.7\"\n",
+        "[package]\nname = \"serve_vm_stream_pattern_head_miss_demo\"\nversion = \"0.0.7\"\nnamespace = \"app\"\n",
     )
     .expect("write project manifest");
     fs::write(web_root.join("index.html"), "<!doctype html>\n").expect("write index");
@@ -97,7 +97,7 @@ pub(super) fn vm_stream_request_reports_pattern_head_route_handler_miss_without_
     .expect("write js asset");
     fs::write(
         source_dir.join("Api.terl"),
-        "module app.Api.\n\nimport std.collections.Map.\nimport std.http.Response.\nimport type std.http.Response.{Response}.\n\npub show(\n    {Atom[\"not_request\"], _method, _path, _params, _body, _query, _query_pairs, _headers, _cookies}: {Atom[\"not_request\"], String, String, Map[String, String], String, String, Map[String, String], Map[String, String], Map[String, String]},\n    _id: String,\n    _name: String\n): Response ->\n    Response.text(\"unreachable\").with_status(299).\n",
+        "module app.Api.\n\nimport std.collections.Map.\nimport std.http.Response.\nimport type std.http.Response.{Response}.\n\npub show(\n    {Atom[\"not_request\"], _method, _path, _params, _body, _query, _query_pairs, _headers, _cookies, _body_file_path}: {Atom[\"not_request\"], String, String, Map[String, String], String, String, Map[String, String], Map[String, String], Map[String, String], String},\n    _id: String,\n    _name: String\n): Response ->\n    Response.text(\"unreachable\").with_status(299).\n",
     )
     .expect("write handler source");
     fs::write(
@@ -164,7 +164,7 @@ pub(super) fn vm_stream_head_request_falls_back_to_get_dynamic_handler_without_b
     fs::create_dir_all(web_root.join("assets/js/modules")).expect("create package dirs");
     fs::write(
         project_root.join("terlan.toml"),
-        "[package]\nname = \"serve_vm_stream_head_demo\"\nversion = \"0.0.7\"\n",
+        "[package]\nname = \"serve_vm_stream_head_demo\"\nversion = \"0.0.7\"\nnamespace = \"app\"\n",
     )
     .expect("write project manifest");
     fs::write(web_root.join("index.html"), "<!doctype html>\n").expect("write index");
@@ -745,7 +745,7 @@ pub(super) fn vm_stream_sse_route_activates_materialized_router_middleware() {
     fs::create_dir_all(&web_root).expect("create package dir");
     fs::write(
         dir.join("terlan.toml"),
-        "[package]\nname = \"serve_sse_router\"\nversion = \"0.0.7\"\n",
+        "[package]\nname = \"serve_sse_router\"\nversion = \"0.0.7\"\nnamespace = \"app\"\n",
     )
     .expect("write project manifest");
     fs::write(web_root.join("index.html"), "<!doctype html>\n").expect("write index");

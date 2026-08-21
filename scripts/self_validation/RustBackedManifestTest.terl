@@ -226,6 +226,8 @@ allowed_crate(value: String): Bool ->
         or value == "base64"
         or value == "md-5"
         or value == "sha2"
+        or value == "rustls"
+        or value == "terlan"
         or value == "std::path"
         or value == "std::env::consts"
         or value == "url"
@@ -715,12 +717,15 @@ expected_source(module_name: String): String ->
     case module_name {
         "std.data.Json" -> "std/data/Json.terl";
         "std.data.Toml" -> "std/data/Toml.terl";
+        "std.crypto.Ed25519" -> "std/crypto/Ed25519.terl";
+        "std.crypto.Hash" -> "std/crypto/Hash.terl";
         "std.encoding.Base64" -> "std/encoding/Base64.terl";
         "std.encoding.Md5" -> "std/encoding/Md5.terl";
         "std.io.Path" -> "std/io/Path.terl";
         "std.net.Uri" -> "std/net/Uri.terl";
         "std.random.Random" -> "std/random/Random.terl";
         "std.regex.Regex" -> "std/regex/Regex.terl";
+        "std.package.Registry" -> "std/package/Registry.terl";
         "std.http.Request" -> "std/http/Request.terl";
         "std.http.Cookies" -> "std/http/Cookies.terl";
         "std.http.Session" -> "std/http/Session.terl";

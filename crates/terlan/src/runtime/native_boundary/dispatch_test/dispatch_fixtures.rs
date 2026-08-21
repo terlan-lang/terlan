@@ -495,6 +495,15 @@ pub(super) fn dispatch_http_request_and_response_operations_return_native_values
     );
     assert_eq!(
         dispatch_ok(
+            "std.http.request.body_file_path",
+            &[NativeBoundaryValue::HttpRequest(
+                request.clone().with_body_file_path("/tmp/body-upload")
+            )],
+        ),
+        Some(NativeBoundaryValue::Text("/tmp/body-upload".to_string()))
+    );
+    assert_eq!(
+        dispatch_ok(
             "std.http.request.method",
             &[NativeBoundaryValue::HttpRequest(request.clone())],
         ),

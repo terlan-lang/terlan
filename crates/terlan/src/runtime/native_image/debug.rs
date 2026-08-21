@@ -1,6 +1,7 @@
 //! Canonical source identities embedded in admitted TVM native images.
 
 use object::{BinaryFormat, Object, ObjectSection};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use sha2::{Digest, Sha256};
 
 const MAGIC: &[u8; 8] = b"TVMDBG05";
@@ -8,6 +9,7 @@ const COFF_DEBUG_SECTION: &str = ".tdbg$D";
 const PE_DEBUG_SECTION: &str = ".tdbg";
 
 /// Returns the canonical digest used to bind debug records to compiler input.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) fn tvm_debug_source_sha256(source: &[u8]) -> String {
     Sha256::digest(source)
         .iter()
@@ -55,6 +57,7 @@ pub(crate) struct TvmNativeDebugContinuationRecord {
 }
 
 /// Encodes ordered native source records into the canonical debug section.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) fn encode_tvm_native_debug(records: &[TvmNativeDebugRecord]) -> Result<Vec<u8>, String> {
     let mut bytes = Vec::new();
     bytes.extend_from_slice(MAGIC);
@@ -180,6 +183,7 @@ pub(crate) fn inspect_tvm_native_debug(
 }
 
 /// Appends one length-prefixed UTF-8 field.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn push_string(output: &mut Vec<u8>, value: &str) -> Result<(), String> {
     push_u32(output, value.len())?;
     output.extend_from_slice(value.as_bytes());
@@ -187,6 +191,7 @@ fn push_string(output: &mut Vec<u8>, value: &str) -> Result<(), String> {
 }
 
 /// Appends one checked little-endian `u32` value.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn push_u32(output: &mut Vec<u8>, value: usize) -> Result<(), String> {
     let value = u32::try_from(value)
         .map_err(|_| "error[tvm.debug.size]: native debug value exceeds u32".to_string())?;
@@ -195,6 +200,7 @@ fn push_u32(output: &mut Vec<u8>, value: usize) -> Result<(), String> {
 }
 
 /// Appends one checked little-endian `u64` value.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn push_u64(output: &mut Vec<u8>, value: usize) -> Result<(), String> {
     let value = u64::try_from(value)
         .map_err(|_| "error[tvm.debug.size]: native debug value exceeds u64".to_string())?;
@@ -202,6 +208,7 @@ fn push_u64(output: &mut Vec<u8>, value: usize) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn push_u64_value(output: &mut Vec<u8>, value: u64) {
     output.extend_from_slice(&value.to_le_bytes());
 }

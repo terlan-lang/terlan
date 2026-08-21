@@ -632,6 +632,14 @@ pub(super) fn specialize_expr(
                                 constructor: "Option".to_string(),
                                 args: vec![list.clone()],
                             },
+                            CorePrimitiveIntrinsic::ListIterator => CoreType::Apply {
+                                constructor: "Iterator".to_string(),
+                                args: vec![element.clone()],
+                            },
+                            CorePrimitiveIntrinsic::ListConcat
+                            | CorePrimitiveIntrinsic::ListSubtract
+                            | CorePrimitiveIntrinsic::ListPush
+                            | CorePrimitiveIntrinsic::ListClear => list.clone(),
                             _ => call.return_type.clone(),
                         };
                         if *intrinsic == CorePrimitiveIntrinsic::MapFromEntries {
@@ -801,9 +809,11 @@ pub(super) fn specialize_expr(
             }
             if matches!(operator.as_str(), "==" | "!=") {
                 if let Some(expected) = right_type.as_ref() {
+                    specialize_expected_collection_new(left, expected, functions, module);
                     annotate_expected_structural_constructors(left, expected);
                 }
                 if let Some(expected) = left_type.as_ref() {
+                    specialize_expected_collection_new(right, expected, functions, module);
                     annotate_expected_structural_constructors(right, expected);
                 }
             }

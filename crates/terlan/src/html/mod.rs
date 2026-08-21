@@ -19,7 +19,7 @@ pub use artifact::{
     TERLAN_YAML_TEMPLATE_SUFFIX, TERLAN_YML_TEMPLATE_SUFFIX,
 };
 pub use attribute::{render_template_attribute, TemplateAttributeValue};
-pub use base_path::inject_html_base_path;
+pub use base_path::{inject_html_base_path, qualify_html_fragment_links};
 pub use escaping::{escape_html_attr, escape_html_text};
 pub use interpolation::{
     format_template_interpolations, scan_template_interpolations, template_attribute_slot_kind,
@@ -30,6 +30,10 @@ pub use metadata::{
     extract_page_metadata, extract_template_metadata, PageMetadata, TemplateMetadata,
     TemplateParamMetadata,
 };
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use parser::is_html_void_element;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use parser::parse_html_output_nodes;
 pub use parser::{
     parse_html_template, parse_markdown, parse_markdown_template, parse_template, validate_css,
     validate_html_output,
@@ -164,14 +168,28 @@ pub struct HtmlSpan {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Parsed Markdown document and rendered HTML representation.
 ///
-/// Inputs: Markdown source and path. Output: raw Markdown, rendered HTML, and
-/// parsed HTML nodes. Transformation: renders Markdown through `comrak` and
-/// parses the resulting HTML with the same template parser.
+/// Inputs: Markdown source and path. Output: raw Markdown, rendered HTML,
+/// parsed HTML nodes, and stable headings. Transformation: renders Markdown
+/// through `comrak` and parses the resulting HTML with the same template
+/// parser.
 pub struct MarkdownDocument {
     pub source_path: Option<PathBuf>,
     pub raw_source: String,
     pub rendered_html: String,
     pub nodes: Vec<HtmlNode>,
+    pub headings: Vec<MarkdownHeading>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Stable heading metadata extracted from rendered Markdown.
+///
+/// Inputs: parsed Markdown heading nodes. Output: heading depth, text, and the
+/// generated fragment identifier. Transformation: removes presentation markup
+/// while retaining the anchor identity used by static-site consumers.
+pub struct MarkdownHeading {
+    pub level: u8,
+    pub title: String,
+    pub id: String,
 }
 
 impl HtmlSlot {

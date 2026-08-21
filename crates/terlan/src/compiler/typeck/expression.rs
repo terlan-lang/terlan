@@ -290,9 +290,10 @@ pub(super) fn infer_syntax_expr(
         .and_then(|raw| raw.strip_prefix("const_union:"))
         .and_then(|qualified| qualified.rsplit_once('.').map(|(union, _)| union))
     {
+        let (module, name) = split_module_name(union);
         return Type::Named {
-            module: None,
-            name: union.to_string(),
+            module,
+            name,
             args: Vec::new(),
         };
     }

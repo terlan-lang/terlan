@@ -64,6 +64,9 @@ struct CAbiBindingPackage {
     workspace_member: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     rust_extension: Option<CAbiRustExtension>,
+    /// Maps generated module names to package-authored Terlan declarations.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    terlan_module_extensions: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -377,9 +380,20 @@ struct CAbiBindingModule {
     module: String,
     documentation: String,
     #[serde(default)]
+    imports: Vec<CAbiBindingImport>,
+    #[serde(default)]
     types: Vec<CAbiBindingType>,
     #[serde(default)]
     functions: Vec<CAbiBindingFunction>,
+}
+
+/// One explicit selective import required by generated module extensions.
+#[derive(Debug, Serialize, Deserialize)]
+struct CAbiBindingImport {
+    /// Dotted Terlan module path that owns the imported declarations.
+    module: String,
+    /// Declaration names merged into the generated selective import.
+    names: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -392,6 +406,10 @@ struct CAbiBindingType {
 #[derive(Debug, Serialize, Deserialize)]
 struct CAbiBindingFunction {
     name: String,
+    #[serde(default)]
+    adapter_name: Option<String>,
+    #[serde(default)]
+    visibility: CAbiTerlanVisibility,
     operation: String,
     c_symbol: String,
     role: CAbiFunctionRole,
@@ -405,6 +423,24 @@ struct CAbiBindingFunction {
     dispatcher: Option<CDispatcherBinding>,
     #[serde(default)]
     generated_smoke: CGeneratedSmokePolicy,
+}
+
+/// Source-level visibility of one generated Terlan native declaration.
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum CAbiTerlanVisibility {
+    /// Exposes the declaration as package API.
+    #[default]
+    Public,
+    /// Keeps the declaration callable only from its generated module.
+    Private,
+}
+
+impl CAbiBindingFunction {
+    /// Returns whether this declaration belongs to the public Terlan API.
+    fn is_public(&self) -> bool {
+        self.visibility == CAbiTerlanVisibility::Public
+    }
 }
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -490,6 +526,24 @@ enum CDispatcherOutputKind {
 struct CAbiBindingArg {
     name: String,
     ty: String,
+    #[serde(default)]
+    abi_ty: Option<String>,
+    #[serde(default)]
+    default: Option<String>,
+}
+
+impl CAbiBindingArg {
+    /// Returns the concrete boundary representation for this public argument.
+    fn abi_ty(&self) -> &str {
+        self.abi_ty.as_deref().unwrap_or(&self.ty)
+    }
+}
+
+impl CAbiBindingFunction {
+    /// Returns the Rust adapter identifier used behind the public Terlan name.
+    fn adapter_name(&self) -> &str {
+        self.adapter_name.as_deref().unwrap_or(&self.name)
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -576,7 +630,13 @@ pub(in crate::commands::bind) fn generate_c_abi_bindings(
     })?;
 
     for module in &manifest.modules {
-        let rendered_module_source = render_module_source(&manifest, module);
+        let mut rendered_module_source = render_module_source(&manifest, module);
+        append_terlan_module_extension(
+            &mut rendered_module_source,
+            &manifest.package,
+            &module.module,
+            input_dir,
+        )?;
         let formatted_module_source = crate::terlan_syntax::format_source_module(
             &rendered_module_source,
         )
@@ -621,9 +681,21 @@ pub(in crate::commands::bind) fn generate_c_abi_bindings(
     )?;
     let rust_adapter = render_rust_ffi_and_adapter(&manifest, &symbols)?;
     write_file(&out_dir.join("native/rust/src/lib.rs"), &rust_adapter.root)?;
-    for (index, chunk) in rust_adapter.chunks.iter().enumerate() {
+    for (index, chunk) in rust_adapter.ffi_chunks.iter().enumerate() {
+        write_file(
+            &out_dir.join(format!("native/rust/src/generated_ffi_{index}.rs")),
+            chunk,
+        )?;
+    }
+    for (index, chunk) in rust_adapter.owned_chunks.iter().enumerate() {
         write_file(
             &out_dir.join(format!("native/rust/src/generated_adapter_{index}.rs")),
+            chunk,
+        )?;
+    }
+    for (index, chunk) in rust_adapter.free_chunks.iter().enumerate() {
+        write_file(
+            &out_dir.join(format!("native/rust/src/generated_free_adapter_{index}.rs")),
             chunk,
         )?;
     }
@@ -782,9 +854,33 @@ fn validate_manifest<'a>(
     if manifest.modules.is_empty() {
         return Err("C ABI binding manifest must declare at least one module".into());
     }
+    validate_terlan_module_extensions(manifest, input_dir)?;
     let mut operations = BTreeSet::new();
     for module in &manifest.modules {
         validate_identifier_path("module", &module.module)?;
+        let mut imported_names = BTreeSet::new();
+        for import in &module.imports {
+            validate_identifier_path("import module", &import.module)?;
+            if import.names.is_empty() {
+                return Err(format!(
+                    "module `{}` import `{}` must name at least one declaration",
+                    module.module, import.module
+                ));
+            }
+            for name in &import.names {
+                if name.chars().next().is_some_and(char::is_uppercase) {
+                    validate_upper_identifier("import", name)?;
+                } else {
+                    validate_lower_identifier("import", name)?;
+                }
+                if !imported_names.insert((import.module.as_str(), name.as_str())) {
+                    return Err(format!(
+                        "module `{}` repeats import `{}.{name}`",
+                        module.module, import.module
+                    ));
+                }
+            }
+        }
         if module.documentation.trim().is_empty() {
             return Err(format!(
                 "module `{}` documentation cannot be empty",
@@ -808,7 +904,9 @@ fn validate_manifest<'a>(
         }
         for function in &module.functions {
             validate_lower_identifier("function", &function.name)?;
+            validate_lower_identifier("adapter function", function.adapter_name())?;
             validate_identifier_path("native operation", &function.operation)?;
+            validate_argument_defaults(function)?;
             if !operations.insert(function.operation.as_str()) {
                 return Err(format!(
                     "duplicate native operation `{}`",
@@ -824,6 +922,7 @@ fn validate_manifest<'a>(
             for argument in &function.args {
                 validate_lower_identifier("argument", &argument.name)?;
                 reject_terlan_pointer_or_reference(&function.name, &argument.ty)?;
+                reject_terlan_pointer_or_reference(&function.name, argument.abi_ty())?;
             }
             reject_terlan_pointer_or_reference(&function.name, &function.returns)?;
             let symbol = symbols.get(function.c_symbol.as_str()).ok_or_else(|| {

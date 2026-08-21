@@ -41,6 +41,7 @@ pub(super) fn is_session_operation(encoded: &[u8]) -> bool {
 }
 
 /// Reports whether one managed session operation returns an opaque reference.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(super) fn session_operation_result_is_reference(encoded: &[u8]) -> bool {
     encoded
         .get(6)

@@ -105,7 +105,11 @@ pub(super) fn load_checked_implementation(
     {
         return None;
     }
-    let interfaces = crate::formal_pipeline::load_external_interfaces(path, Some(cache_dir));
+    let interfaces = crate::formal_pipeline::load_external_interfaces_for_module(
+        path,
+        Some(cache_dir),
+        &cached.syntax_output,
+    );
     let dependencies = collect_syntax_dependency_hashes(
         &cached.syntax_output,
         &interfaces,
@@ -134,6 +138,12 @@ pub(super) fn publish_checked_implementation(
     let Some(cache_dir) = state.cache_dir.as_deref() else {
         return Ok(());
     };
+    fs::create_dir_all(cache_dir).map_err(|error| {
+        BuildOneError::Message(format!(
+            "error[build.checked_cache_directory]: cannot create `{}`: {error}",
+            cache_dir.display()
+        ))
+    })?;
     let dependency_manifest = DependencyManifest {
         module: compiled.syntax_output.module_name.clone(),
         syntax_contract_identity: compiled.syntax_output.syntax_contract.clone(),
@@ -222,7 +232,12 @@ fn checked_cache_location(
 
 /// Returns the current compiler identity embedded into checked cache entries.
 fn compiler_identity() -> String {
-    format!("terlc-{}-{CHECKED_CACHE_SCHEMA}", env!("CARGO_PKG_VERSION"))
+    format!(
+        "terlc-{}-{}-{}-{CHECKED_CACHE_SCHEMA}",
+        env!("CARGO_PKG_VERSION"),
+        env!("TERLAN_CHECKED_FRONTEND_REVISION_SHA256"),
+        env!("TERLAN_NATIVE_BUILD_POLICY_SHA256")
+    )
 }
 
 /// Returns the target validation policy identity used by checked CoreIR.

@@ -9,9 +9,9 @@ active release roadmap promotes one of its named gates.
 
 ## Current State And Activation
 
-Status as of 2026-08-13: the original contiguous CPU package baseline is
-complete. NumPy-compatible CPU array behavior is now required for 0.0.7 and is
-tracked by ND8 through ND19; remote immutable publication remains pending.
+Status as of 2026-08-20: the original contiguous CPU package baseline and the
+frozen NumPy 1.21.5 callable classification are complete. Behavioral test
+parity is active and remote immutable publication remains pending.
 
 - The external `terlan-ndarray` package checkout now freezes ABI v1 and owns
   deterministic generated bindings, native/Terlan execution tests, and native
@@ -32,9 +32,10 @@ tracked by ND8 through ND19; remote immutable publication remains pending.
 - ND7 completed the original executable technical baseline. Publishing the
   package repositories and replacing integration revisions with the resulting
   remote commits remains a release action.
-- ND8 through ND19 replace the former MVP boundary with the required NumPy
-  behavioral-compatibility program. The package is not complete for 0.0.7
-  until those milestones pass.
+- ND8 through ND20 establish the implementation and callable-classification
+  baseline. ND21 measures the admitted surface against the pinned upstream
+  NumPy test suite and remains incomplete while any test lacks executable
+  Terlan evidence or a reviewed exclusion.
 
 The compiler release gate invokes the package closure gate. PyTorch autograd
 remains PyTorch-owned, while NumPy-compatible CPU array semantics belong to
@@ -961,37 +962,37 @@ Status: Complete.
   complex-to-real policies for every dtype pair.
 - [x] Implement scalar indexing, negative indexes, indexed assignment, and
   bounds diagnostics for arbitrary rank.
-- [ ] Implement basic slices with optional start/stop, nonzero positive or
+- [x] Implement basic slices with optional start/stop, nonzero positive or
   negative steps, axis insertion/removal, and ellipsis expansion.
 - [x] Implement shared non-contiguous views, explicit owned copies, contiguous
   materialization, and source/view mutation visibility.
 - [x] Make metadata, readback, DLPack, tensor packets, and disposal correct for
   offsets, arbitrary strides, zero-sized dimensions, and shared storage.
-- [ ] Inventory this milestone after its gate passes and update ND9.
+- [x] Inventory this milestone after its gate passes and update ND9.
 
 Gate: `make indexing-view-check`.
 
 ### ND9 - Broadcasting And Dtype Promotion
 
-Status: Required for 0.0.7.
+Status: Complete.
 
 - [x] Implement one checked trailing-axis broadcast planner shared by every
   elementwise operation.
 - [x] Implement `broadcast_to` as a zero-stride read-only view and reject
   mutation that would alias one storage element through multiple coordinates.
-- [ ] Apply the canonical promotion table to mixed-dtype arithmetic,
+- [x] Apply the canonical promotion table to mixed-dtype arithmetic,
   comparison, selection, concatenation, reduction, and linear algebra.
 - [x] Implement scalar-array and array-array add, subtract, multiply, true
   divide, floor divide, remainder, and power with broadcasting.
-- [ ] Cover scalars, zero dimensions, rank mismatch, incompatible dimensions,
+- [x] Cover scalars, zero dimensions, rank mismatch, incompatible dimensions,
   extreme rank, integer overflow, divide-by-zero, and allocation failure.
-- [ ] Inventory this milestone after its gate passes and update ND10.
+- [x] Inventory this milestone after its gate passes and update ND10.
 
 Gate: `make broadcasting-promotion-check`.
 
 ### ND10 - Elementwise Functions, Comparisons, And Reductions
 
-Status: Required for 0.0.7.
+Status: Complete.
 
 - [x] Implement equal/not-equal and ordered comparisons with Bool outputs plus
   logical not/and/or/xor for Bool arrays.
@@ -1000,36 +1001,36 @@ Status: Required for 0.0.7.
 - [x] Implement `where` over broadcast-compatible condition/branch arrays.
 - [x] Implement sum, product, mean, minimum, maximum, any, all, argmin, argmax,
   variance, and standard deviation over normalized axis sets with `keep_dims`.
-- [ ] Freeze empty-input, NaN, infinity, integer accumulation, tie-breaking,
+- [x] Freeze empty-input, NaN, infinity, integer accumulation, tie-breaking,
   degrees-of-freedom, and overflow semantics.
 - [x] Ensure every operation executes directly over arbitrary strides or uses
   one explicit shared materialization helper when a native library requires it.
-- [ ] Inventory this milestone after its gate passes and update ND11.
+- [x] Inventory this milestone after its gate passes and update ND11.
 
 Gate: `make elementwise-reduction-check`.
 
 ### ND11 - Shape Composition
 
-Status: Required for 0.0.7.
+Status: Complete.
 
 - [x] Implement two-input concatenate and stack, exact split, uneven
   array-split, indexed split, repeat, tile, flip, roll, squeeze, and
   expand-dims.
-- [ ] Generalize concatenate and stack to arbitrary input lists and implement
+- [x] Generalize concatenate and stack to arbitrary input lists and implement
   deterministic constant, edge, reflect, symmetric, wrap, and statistical
   padding modes.
 - [x] Implement full axis permutations and a canonical transpose shorthand.
-- [ ] Preserve dtype promotion, non-contiguous inputs, empty dimensions,
+- [x] Preserve dtype promotion, non-contiguous inputs, empty dimensions,
   independent output ownership, and deterministic result ordering.
 - [x] Return multiple owned arrays through one reviewed generated resource-list
   ABI with complete partial-failure cleanup.
-- [ ] Inventory this milestone after its gate passes and update ND12.
+- [x] Inventory this milestone after its gate passes and update ND12.
 
 Gate: `make shape-composition-check`.
 
 ### ND12 - Creation And Deterministic Random Generation
 
-Status: Required for 0.0.7.
+Status: Complete.
 
 - [x] Implement zeros, ones, full, identity, arange, linspace, and diagonal
   construction for all applicable dtypes.
@@ -1050,7 +1051,7 @@ Gate: `make creation-random-check`.
 
 ### ND13 - CPU Linear Algebra
 
-Status: Required for 0.0.7.
+Status: Complete.
 
 - [x] Generalize dot and matmul across vector, matrix, and broadcast batched
   forms using maintained BLAS kernels where applicable.
@@ -1114,7 +1115,7 @@ Gate: `make indexing-ordering-set-check`.
 
 ### ND16 - Statistics, Histograms, And Numerical Utilities
 
-Status: Required for 0.0.7.
+Status: Complete.
 
 - [x] Implement median, quantile, percentile, covariance, correlation,
   weighted average, peak-to-peak range, NaN-aware reductions, and cumulative
@@ -1134,7 +1135,7 @@ Gate: `make statistics-numerical-check`.
 
 ### ND17 - Discrete Fourier Transforms
 
-Status: Required for 0.0.7.
+Status: Complete.
 
 - [x] Integrate a maintained CPU FFT provider and implement one-dimensional,
   multidimensional, real, Hermitian, inverse, frequency-bin, and shift APIs
@@ -1149,7 +1150,7 @@ Gate: `make fft-check`.
 
 ### ND18 - Polynomial And General Numerical Algebra
 
-Status: Required for 0.0.7.
+Status: Complete.
 
 - [x] Implement polynomial evaluation, roots, fitting, arithmetic,
   differentiation, integration, basis conversion, and companion matrices for
@@ -1165,7 +1166,7 @@ Gate: `make polynomial-numerical-algebra-check`.
 
 ### ND19 - Device-Native Arrays And Feature-Complete Closure
 
-Status: Required for 0.0.7.
+Status: Complete.
 
 - [x] Extend the package-neutral array resource contract to CPU and admitted
   accelerator storage without exposing pointers or backend handles.
@@ -1184,6 +1185,249 @@ Status: Required for 0.0.7.
   release while any required 0.0.7 checkbox remains open.
 
 Gate: `make feature-complete-release-check`.
+
+### ND20 - Exhaustive NumPy API Classification
+
+Status: Complete.
+
+- [x] Freeze the public callable inventories for NumPy, `ndarray`, linear
+  algebra, FFT, `Generator`, and the admitted polynomial basis modules from
+  the exact NumPy 1.21.5 reference installation.
+- [x] Add a deterministic report that classifies each reference callable as a
+  direct implementation, typed equivalent, intentional non-applicable runtime
+  mechanism, or unclassified missing operation.
+- [x] Review every provisional non-applicable classification and separate
+  specialized-package ownership from Python-only runtime mechanisms.
+- [x] Implement or map every missing homogeneous numerical creation, indexing,
+  shape-composition, elementwise, reduction, and I/O operation.
+- [x] Implement or map every missing admitted linear-algebra, FFT, random, and
+  polynomial operation.
+- [x] Preserve the existing operation-family evidence while handing exhaustive
+  behavioral proof to ND21's upstream-test ledger.
+- [x] Make `make numpy-api-inventory-check` report zero unclassified callables,
+  then include it in `make feature-complete-release-check`.
+- [x] Inventory this milestone after its gate passes and update the next
+  ndarray roadmap milestone if necessary.
+
+Gate: `make numpy-api-inventory-check`.
+
+Current callable closure: the deterministic NumPy 1.21.5 inventory reports zero
+unclassified callables across top-level NumPy, `ndarray`, linear algebra, FFT,
+`Generator`, and the polynomial, Chebyshev, and Legendre modules. The report
+records 66 typed equivalents and a reviewed reason for every non-applicable
+Python runtime, dynamic type-reflection, callback, iterator, text/archive I/O,
+class-wrapper, and excluded value-domain API. This is name and ownership
+classification, not proof of signature or behavioral parity. The C ABI
+generator shards raw declarations, owned adapters, free adapters, and native
+worker dispatch before generated roots exceed source-size policy.
+
+### ND21 - Pinned NumPy Test Parity
+
+Status: In progress.
+
+- [x] Clone the exact NumPy 1.21.5 revision with a filtered checkout of the
+  core, lib, linear-algebra, FFT, random, polynomial, and typing test trees.
+- [x] Freeze every upstream logical test that directly invokes or passes an
+  admitted callable or array method through a test helper, including its source
+  path, line, operations, and source-file digest.
+- [x] Add a deterministic parity ledger that maps upstream test IDs to
+  executable Terlan-native evidence or a reviewed exclusion with a reason.
+- [x] Port the upstream filter-window and Kaiser tests and correct non-positive,
+  singleton, negative-beta, and non-finite-beta behavior.
+- [x] Port admitted scalar, broadcast-array, complex, axis, integer-rounding,
+  dtype, endpoint, denormal, and `retstep` `linspace` tests.
+- [x] Port admitted integer and floating `arange` call forms, named start/stop
+  arguments, exact Int64 boundaries, infinite and underflowing steps, dtype
+  selection, descending ranges, and size-overflow rejection.
+- [x] Port admitted scalar, broadcast-array, complex, axis, integer-dtype,
+  endpoint, exact-boundary, and opposite-sign NaN-interior `logspace` and
+  `geomspace` tests; exclude only Python subclass and physical-quantity
+  propagation.
+- [x] Port admitted `eye` square, rectangular, diagonal, bounds, Bool, dtype,
+  and C/Fortran memory-order tests through a typed `MemoryOrder` API; exclude
+  only fixed-width string dtype.
+- [x] Port admitted `tri`, `tril`, and `triu` defaults, Bool and all numerical
+  dtypes, rank-two and rank-three masks, offsets, infinities, immutable inputs,
+  and invalid-output cleanup; retain Terlan's finite public `Float` contract.
+- [x] Port admitted `diag` vector construction, matrix extraction, positive and
+  negative offsets, rectangular bounds, Fortran-strided input, exact Int64
+  dtype preservation, default arguments, and rank-rejection tests.
+- [x] Port admitted `fliplr` and `flipud` matrix reversal and rank-rejection
+  tests; preserve shared writable storage and exact negative-stride views.
+- [x] Port admitted `histogram2d` inferred-range, symmetric/asymmetric bins,
+  explicit and mixed edge vectors, density normalization, empty input, and
+  outlier tests through typed APIs; exclude only Python callback dispatch.
+- [x] Port admitted one-dimensional histogram counts, inferred/ranged/explicit
+  edges, weighted and complex-weighted results, density normalization, dtype
+  propagation, right-edge inclusion, non-finite handling, immutable inputs,
+  and all eight NumPy bin estimators through typed public Terlan APIs.
+- [x] Port admitted multidimensional histogram scalar/per-axis bins, explicit
+  edge vectors, ranges, weights, density normalization, empty and constant
+  samples, mixed edge dtypes, exact large integers, non-finite values, and
+  malformed shape/range/edge rejection through typed public Terlan APIs.
+- [x] Port admitted lower/upper triangular index generation for square,
+  rectangular, offset, empty, and rank-rejection cases; expose typed
+  `TriangleMask` selection and prove coordinate gather plus atomic assignment
+  through public Terlan workflows.
+- [x] Port convolution, correlation, trimming, sinc, modified-Bessel, unique,
+  matrix-sort, and bit-packing tests; align modes, dtype preservation, empty
+  axes, bit order, signed counts, zero padding, strided input, and large-array
+  behavior with the pinned NumPy contracts.
+- [x] Port admitted integer NaN reductions and comparison tests; add elementwise
+  `isclose`, explicit NaN-aware equality, immutable inputs, broadcasted scalar
+  results, and correct finite, infinity, and complex-NaN comparison rules.
+- [x] Port admitted angle, complex-sort, and real-if-close tests; preserve
+  radians/degrees, lexicographic complex order, NumPy promotion precision, and
+  relative-versus-absolute tolerance behavior.
+- [x] Port admitted real/complex type checks, signed-infinity masks, and
+  `nan_to_num` tests; preserve dtype and apply replacement keywords in one pass.
+- [x] Port direct `any`, `all`, `sometrue`, and `alltrue` truth-reduction tests;
+  preserve scalar defaults, normalized axes, retained dimensions, empty
+  identities, real/complex truth, and exhaustive strided Bool positions.
+- [x] Port admitted `clip` scalar, broadcast-bound, one-sided, complex,
+  promoted-dtype, non-contiguous, scalar-NaN, inverted-bound, in-place,
+  transposed-output, and overlapping-output tests through typed allocating and
+  destination-writing APIs; exclude only Python coercion, object/datetime,
+  endian-metadata, and dynamically invalid call forms.
+- [x] Port admitted `astype`, `copy`, `copyto`, and relaxed contiguity tests;
+  preserve C, Fortran, keep, and any ordering, no-copy shared storage,
+  NumPy casting rules, scalar and array broadcasting, masked assignment,
+  strided destinations, and overlapping source/destination stabilization
+  through typed `ArrayOrder` and `CastingRule` APIs.
+- [x] Port admitted `atleast_1d`, `atleast_2d`, `atleast_3d`, `hstack`,
+  `vstack`, `dstack`, `column_stack`, `hsplit`, `vsplit`, and `dsplit` rank
+  semantics; preserve scalar promotion, NumPy axis placement, shared views,
+  one-dimensional horizontal splitting, and typed rank rejection.
+- [x] Port admitted concatenate/stack copy, axis, rank, empty-input, and dtype
+  behavior; integer and indexed split boundaries; multi-axis `expand_dims`,
+  selected/all-axis `squeeze`, rank-promoting `tile`, and broadcasted
+  `take_along_axis`/`put_along_axis` with alias-safe atomic mutation. Preserve
+  the type-distinct `expand_dims(Array, Int | List[Int])` public overloads
+  through CoreIR and NativeIR instead of introducing package-specific names.
+- [x] Port admitted numerical `sort` and `argsort` dtype, complex-NaN,
+  stable-order, axis, default-axis, empty-shape, flattened, non-contiguous, and
+  in-place tests; exclude only datetime, endian metadata, and
+  string/object/void/structured ordering.
+- [x] Port all 31 pinned FFT tests through one-dimensional, multidimensional,
+  real, inverse-real, Hermitian, frequency-bin, and shift APIs; preserve
+  explicit-length truncation and zero-padding, arbitrary axes, all three
+  normalization modes, NumPy Float64/Complex128 promotion, strided layouts,
+  and thread-safe execution through public Terlan overloads.
+- [x] Port admitted condition-number norm orders, singular behavior,
+  dtype-preserving and stacked integer matrix powers, negative integral
+  promotion, optimized matrix chains, vector endpoints, and atomic
+  destination-writing `multi_dot`; record 13 narrow Python protocol, dtype
+  metadata, provider-internal, disabled-upstream, and arbitrary-precision
+  exclusions.
+- [x] Port generalized vector and matrix norms across named and finite orders,
+  normalized one- and two-axis reductions, retained dimensions, batched
+  matrices, complex magnitudes, empty inputs, and NumPy-compatible result
+  dtypes through public Terlan overloads.
+- [x] Port stacked Cholesky, reduced/complete QR, SVD, Hermitian eigen, and
+  Hermitian eigenvalue dtype, complex, empty-shape, batching, and selected
+  lower/upper triangle behavior through one maintained decomposition core.
+- [x] Port stacked determinant, inverse, square solve with NumPy 1.21 vector
+  and matrix right-hand-side broadcasting, general eigen/eigenvalue dtype and
+  empty-shape behavior, and stacked singular condition numbers through one
+  shared matrix-stack model; retire 13 pinned linear-algebra tests.
+- [x] Port scalar, vector, stacked, Hermitian, tolerance, and reduced-rank
+  `matrix_rank`; NumPy-shaped empty, promoted-dtype, residual, singular-value,
+  and incompatible-dimension `lstsq`; and reduced, complete, R-only, raw, and
+  empty QR modes through typed public Terlan contracts; retire eight pinned
+  linear-algebra tests.
+- [x] Close the remaining pinned linear-algebra inventory with tensor inverse
+  shape, limit, result, and non-square behavior; values-only and regression-size
+  SVD; large complex right-hand-side least squares; eigen build references;
+  atomic stacked failures; unsupported-dtype rejection; and typed exclusion of
+  two Python-only string selector tests. No `numpy/linalg` test remains
+  uncovered.
+- [x] Port numerical NumPy `.npy` byte and exact-path round trips, preserve C
+  and Fortran layout across owned decode and read-only/read-write mmap, bound
+  file loading before allocation, flush writable mappings, and expose the
+  lifecycle through public Terlan `save_npy`/`load_npy` operations. Retire six
+  pinned executable serialization tests and one structured-format exclusion.
+- [x] Close numerical `.npy` v1/v2 and mmap lifecycle gaps with aligned v2
+  payload decoding, mapped-view ownership after base disposal, mutation and
+  flush persistence, and exact classifications for raw Python memmap,
+  structured/object, file-like, NPZ, and version-selector behavior. Retire nine
+  additional executable tests and 28 narrow exclusions.
+- [x] Port all 78 pinned `pad` tests through typed constant, edge, ramp,
+  statistical, even/odd reflection, symmetric, wrap, and empty modes; preserve
+  exact typed endpoints, normalize shared/rank widths, clip statistical lengths,
+  support empty axes and strided inputs, and record 10 narrow Python/object or
+  layout exclusions.
+- [x] Port all 30 pinned `arraysetops` tests through sorted set algebra,
+  shape-preserving and flattened membership, indexed intersection,
+  order-preserving difference, exact typed `ediff1d`, and lexicographic
+  axis-wise unique values/indexes/inverses/counts; record 11 narrow
+  Python-coercion, object/string/structured, or masked-array exclusions.
+- [x] Classify all remaining pinned tests dedicated to datetime/timedelta,
+  record/structured, character/Unicode, Python rendering/coercion/dispatch, and
+  polynomial rendering modules as 258 explicit test-specific exclusions from
+  the homogeneous numerical CPU surface.
+- [x] Reconcile `ndarray.Polynomial` with NumPy's ascending power-series
+  coefficient order and port arithmetic, evaluation, multivariate grid,
+  Vandermonde, roots, companion, trimming, and line tests.
+- [x] Review all 42 pinned `test_deprecations.py` IDs; retain `alen`,
+  non-contiguous dtype views, and concatenate casting as admitted numerical
+  work, port `alen`, and record 38 test-specific Python protocol, deprecated
+  alias, dynamic dtype, text parser, or deliberate bounds-safety exclusions.
+- [x] Port the first `TestMethods` output-contract slice with broadcast masked
+  `any`/`all`, alias-safe `choose(out=)`, decimal and complex ties-to-even
+  rounding, conjugate output, exact contiguous `dot(out=)`, strided and
+  overlapping batched `matmul(out=)`, and offset/axis-aware `trace(out=)`;
+  record seven narrow Python coercion, subclass, and object-protocol
+  exclusions.
+- [x] Port the admitted `TestMethods` ordering slice with stable numerical and
+  complex `argsort`, scalar and array-valued partition positions, flattened
+  and in-place partitioning, empty-axis behavior, deterministic fuzz vectors,
+  all-dtype `searchsorted`, and strided integer sorters; record ten narrow
+  Python coercion, string/structured dtype, and dynamic selector exclusions.
+- [x] Port all 18 pinned Einstein-summation tests through checked ellipsis,
+  whitespace, scalar, uppercase-label, singleton-broadcast, diagonal-view,
+  multi-operand, all-real-dtype, integer-wrap, strided-output, overlapping
+  destination, and typed C/Fortran/keep/any output-order behavior; record two
+  narrow Python optimizer-path and returned-object-identity exclusions.
+- [x] Port all 16 admitted complex exponential, logarithm, square-root, power,
+  absolute, square, and conjugate tests; preserve C99 special values and signed
+  zeros, both complex dtypes, non-contiguous and reversed views, broadcasting,
+  immutable inputs, and NumPy's component-wise non-finite square semantics.
+- [x] Audit all 16 pinned Float16 tests; port the 12 admitted numerical cases
+  with exact Float32 and Float64 round-to-even conversion, exhaustive binary16
+  decoding and ordering, dtype-preserving spacing, adjacent-value stepping,
+  special-value classification, array operations, ufunc rounding, and
+  promotion behavior; record four narrow string, Python array-interface, and
+  ambient FPE-mode exclusions.
+- [ ] Review tests that only exercise Python objects, subclasses, callbacks,
+  dynamic dtype reflection, datetime/string/object arrays, or CPython memory
+  protocols and record narrow, test-specific exclusions.
+- [ ] Port all admitted creation, dtype, indexing, shape, mutation, sorting,
+  set, and memory-sharing tests.
+- [ ] Port all admitted elementwise, broadcasting, reduction, statistics,
+  histogram, interpolation, padding, and numerical tests.
+- [ ] Port all admitted linear-algebra, FFT, random-generator, polynomial,
+  serialization, and interchange tests.
+- [ ] Complete polynomial calculus axis/scaling semantics, tensor-valued root
+  evaluation, degree-set/weighted/matrix fitting, and the remaining admitted
+  polynomial test IDs.
+- [ ] Require every upstream test to have exactly one classification and reject
+  stale evidence markers, empty patterns, duplicate classifications, and
+  revision drift.
+- [ ] Reduce `uncovered_count` to zero, run the parity report twice with
+  byte-identical output, and add `make numpy-test-parity-check` to
+  `make feature-complete-release-check`.
+- [ ] Inventory this milestone after its gate passes and update the next
+  ndarray roadmap milestone if necessary.
+
+Gate: `make numpy-test-parity-check`.
+
+Current baseline: 3,554 pinned NumPy logical tests directly touch the admitted
+surface. 604 tests have executable native or public Terlan evidence,
+1,001 Python/object tests have narrow reviewed exclusions, and 1,949 tests
+remain uncovered. This is 23.7% coverage of the 2,553 admitted tests. Existing
+family-level quality markers do not count
+toward this ledger until their assertions are audited against specific upstream
+test IDs.
 
 ## Required Conformance Matrix
 
@@ -1252,6 +1496,37 @@ it does not replace deterministic adversarial rows.
 The compiler repository may expose convenience targets, but one package-owned
 orchestrator must own test selection, process reuse, reports, and timing. Do not
 create one shell/Make process per individual test.
+
+### Terlan-Owned Self-Validation
+
+Package gates and report producers are Terlan programs. Make may select a gate,
+but it must invoke `terlc` rather than Python validation scripts. A validator may
+invoke bounded native tools such as Cargo, a C compiler, Git, and `pkg-config`
+through `std.system.Process`; orchestration, typed result handling, report
+construction, and policy decisions remain Terlan code.
+
+When a package validator cannot express a reusable operation, implementation
+belongs in the compiler or portable standard library before package code uses
+it. Package scripts must not compensate with embedded shell programs or a
+package-specific host utility. Terlan scripts are required to exercise these
+new capabilities so compiler self-hosting pressure remains part of package
+validation.
+
+Current executable migration status:
+
+- [x] NumPy API, fixture, parity, feature-complete, integration-report, source
+  quality, CBLAS, and DLPack report drivers execute as Terlan scripts.
+- [x] `blas-check` and `dlpack-check` invoke no Python process.
+- [x] `CheckAbi.terls` owns deterministic ABI generation and adversarial
+  metadata validation.
+- [x] Generated helper prior-request references and `CheckPackage.terls` cover
+  the bounded line-protocol helper lifecycle without a package-specific host
+  utility.
+- [x] `CheckReleaseReports.terls` reproduces release reports twice and requires
+  byte-identical output before running ecosystem integration gates.
+- [x] Superseded Python validators and fixture generators are removed, and
+  `CheckQuality.terls` rejects Python commands from package Makefiles and
+  workflows. The package contains no Python source files.
 
 ### Fast developer gate
 

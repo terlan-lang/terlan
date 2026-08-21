@@ -4,6 +4,7 @@ pub(crate) mod api;
 pub(crate) mod artifacts;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod bind;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod build;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod check;
@@ -76,4 +77,3 @@ pub(crate) mod test;
 pub(crate) mod vm;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod wasm_runtime;
-pub(crate) mod web_route;

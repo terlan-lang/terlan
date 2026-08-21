@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
 
@@ -459,11 +459,13 @@ fn vm_file_response(
         return Err("error[serve_handler]: Response.file expects String path".to_string());
     };
     let (status, content_type_override) = vm_file_status_and_content_type(tail)?;
-    let response_path = package_relative_path(package_root, relative_path).ok_or_else(|| {
-        format!(
-            "error[serve_handler]: Response.file path `{relative_path}` is not package-relative"
-        )
-    })?;
+    let response_path = package_relative_path(package_root, relative_path)
+        .or_else(|| trusted_response_file_path(relative_path))
+        .ok_or_else(|| {
+            format!(
+                "error[serve_handler]: Response.file path `{relative_path}` is not package-relative or admitted by a trusted file root"
+            )
+        })?;
     if !response_path.is_file() {
         return Err(format!(
             "error[serve_handler]: Response.file path `{relative_path}` does not name a file"
@@ -476,6 +478,25 @@ fn vm_file_response(
         .filter(|value| !value.is_empty())
         .unwrap_or_else(|| native_http::content_type_for_path(&response_path));
     Ok((status, content_type, body, Vec::new()))
+}
+
+/// Resolves an absolute service-owned file only under explicitly admitted roots.
+fn trusted_response_file_path(path: &str) -> Option<PathBuf> {
+    if std::env::var("TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES").as_deref() != Ok("1") {
+        return None;
+    }
+    let candidate = Path::new(path);
+    if !candidate.is_absolute() {
+        return None;
+    }
+    let candidate = candidate.canonicalize().ok()?;
+    std::env::var_os("TERLAN_SERVE_TRUSTED_FILE_ROOTS")?
+        .to_string_lossy()
+        .split(':')
+        .filter(|root| !root.is_empty())
+        .filter_map(|root| Path::new(root).canonicalize().ok())
+        .any(|root| candidate.starts_with(root))
+        .then_some(candidate)
 }
 
 /// Reads optional `Response.file` status and content-type constructor fields.
@@ -712,7 +733,7 @@ pub(crate) fn static_response_header_tuples(
 ///
 /// Transformation:
 /// - Rejects empty names, non-token characters, CR/LF injection, and
-///   server-owned headers whose values are produced by the local HTTP writer.
+///   transport-owned headers whose values are produced by the HTTP writer.
 pub(super) fn validate_response_header(
     name: &str,
     value: &str,
@@ -776,10 +797,10 @@ fn is_http_token_byte(byte: u8) -> bool {
 ///
 /// Transformation:
 /// - Keeps handler metadata from conflicting with the local server's required
-///   HTTP framing and bridge-owned representation headers.
+///   HTTP framing. Cache policy remains application-owned.
 fn is_server_owned_response_header(name: &str) -> bool {
     matches!(
         name.to_ascii_lowercase().as_str(),
-        "content-type" | "content-length" | "connection" | "cache-control"
+        "content-type" | "content-length" | "connection"
     )
 }

@@ -249,7 +249,7 @@ impl CoreType {
 ///
 /// Transformation:
 /// - Converts optional payload state into stable snapshot text.
-pub(super) fn core_type_contract_text(ty: Option<&CoreType>) -> String {
+pub(crate) fn core_type_contract_text(ty: Option<&CoreType>) -> String {
     ty.map(CoreType::contract_text)
         .unwrap_or_else(|| "unsupported".to_string())
 }

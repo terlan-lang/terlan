@@ -3,6 +3,7 @@ use crate::runtime::vm::VmRuntimeResult;
 use crate::terlan_native_boundary::dispatch::{dispatch, NativeBoundaryValue};
 use crate::terlan_native_boundary::term::{NativeBoundaryReplyTerm, NativeBoundaryTerm};
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) fn dispatch_vm_capability(
     request: &PureNativeCapabilityRequest,
 ) -> VmRuntimeResult<NativeBoundaryReplyTerm> {
@@ -14,6 +15,13 @@ pub(crate) fn dispatch_vm_capability_with_program_arguments(
     request: &PureNativeCapabilityRequest,
     program_arguments: &[String],
 ) -> VmRuntimeResult<NativeBoundaryReplyTerm> {
+    #[cfg(any(
+        test,
+        all(not(feature = "serve-runtime-bin"), feature = "postgres-libpq")
+    ))]
+    if let Some(reply) = super::sql::dispatch(request) {
+        return reply;
+    }
     match request.operation.as_str() {
         "std.system.arguments.count" => {
             let count = i64::try_from(program_arguments.len()).map_err(|_| {
@@ -115,6 +123,14 @@ pub(crate) fn dispatch_vm_capability_with_program_arguments(
             &arguments,
         )?));
     }
+    if matches!(
+        request.operation.as_str(),
+        "std.package.registry.parse_publish_request" | "std.package.registry.parse_yank_request"
+    ) {
+        return Ok(NativeBoundaryReplyTerm::Ok(
+            dispatch_registry_publish_request(&request.operation, &arguments)?,
+        ));
+    }
     let value = dispatch(&request.operation, &arguments).map_err(|error| {
         format!(
             "error[capability.{}]: {} at byte {}",
@@ -125,6 +141,44 @@ pub(crate) fn dispatch_vm_capability_with_program_arguments(
     })?;
     let term = boundary_value_to_term(&request.operation, value)?;
     Ok(NativeBoundaryReplyTerm::Ok(term))
+}
+
+fn dispatch_registry_publish_request(
+    operation: &str,
+    arguments: &[NativeBoundaryValue],
+) -> VmRuntimeResult<NativeBoundaryTerm> {
+    match dispatch(operation, arguments) {
+        Ok(value) => Ok(NativeBoundaryTerm::Record {
+            name: "Ok".to_string(),
+            fields: vec![(
+                "value".to_string(),
+                boundary_value_to_term(operation, value)?,
+            )],
+        }),
+        Err(error) => Ok(NativeBoundaryTerm::Record {
+            name: "Err".to_string(),
+            fields: vec![(
+                "reason".to_string(),
+                NativeBoundaryTerm::Record {
+                    name: "RegistryProtocolError".to_string(),
+                    fields: vec![
+                        (
+                            "code".to_string(),
+                            NativeBoundaryTerm::Atom(error.code().to_string()),
+                        ),
+                        (
+                            "message".to_string(),
+                            NativeBoundaryTerm::Text(error.message().to_string()),
+                        ),
+                        (
+                            "offset".to_string(),
+                            NativeBoundaryTerm::Int(i64::try_from(error.offset()).unwrap_or(0)),
+                        ),
+                    ],
+                },
+            )],
+        }),
+    }
 }
 
 fn dispatch_git_result(

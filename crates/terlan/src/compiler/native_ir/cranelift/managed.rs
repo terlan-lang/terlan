@@ -33,6 +33,30 @@ impl ManagedLayouts {
                 collect_layouts(&continuation.body, &mut layouts);
             }
         }
+        let admitted = natives
+            .iter()
+            .flat_map(|native| native.managed_layouts.iter().cloned())
+            .collect::<HashSet<_>>();
+        for layout in &layouts {
+            if admitted.contains(layout) {
+                continue;
+            }
+            let Ok(descriptor) =
+                crate::runtime::native_image::managed::decode_aggregate_layout(layout)
+            else {
+                continue;
+            };
+            return Err(format!(
+                "error[cranelift.managed_layout_metadata]: body layout `{}` variant {:?} with fields {:?} is absent from image metadata",
+                descriptor.canonical_type(),
+                descriptor.variant_name(),
+                descriptor
+                    .fields()
+                    .iter()
+                    .map(|field| (field.name(), field.field_type()))
+                    .collect::<Vec<_>>()
+            ));
+        }
         let atom_words = natives
             .iter()
             .flat_map(|native| native.atoms.iter().cloned())
@@ -213,7 +237,7 @@ pub(super) fn emit_managed_allocation(
 /// Recursively inventories every managed constructor descriptor in one body.
 fn collect_layouts(expr: &NativeExpr, layouts: &mut Vec<Arc<[u8]>>) {
     match expr {
-        NativeExpr::StringLiteral { encoded } => layouts.push(encoded.clone()),
+        NativeExpr::ManagedLiteral { encoded } => layouts.push(encoded.clone()),
         NativeExpr::ManagedOperation { encoded, args } => {
             layouts.push(encoded.clone());
             args.iter()

@@ -1,0 +1,16 @@
+module terlan.registry.Http.
+
+import std.http.Router.
+import std.http.Response.
+
+import type std.http.Request.Request.
+import type std.http.Response.Response.
+import type std.http.Router.Router.
+
+pub router(): Router ->
+    let router = Router.get(Router.new(), "/health", health);
+    router.get("/packages/:name", package).
+
+pub health(_request: Request): Response -> Response.text("ok").
+
+pub package(_request: Request): Response -> Response.text("package").

@@ -165,6 +165,51 @@ fn managed_core_types_map_to_closed_pointer_width_native_kinds() {
         super::super::native_type(Some(&response), "std.http.Response.Response"),
         Some(NativeType::ManagedRef(response_expected))
     );
+
+    let request = CoreType::Named("std.http.Request.Request".to_string());
+    let request_expected =
+        SemanticTypeId::from_canonical("Named(Request)").expect("HTTP request semantic type");
+    assert_eq!(
+        super::super::native_type(Some(&request), "std.http.Request.Request"),
+        Some(NativeType::ManagedRef(request_expected))
+    );
+
+    let structural_option = CoreType::Union(vec![
+        CoreType::AtomLiteral("none".to_string()),
+        CoreType::Tuple(vec![
+            CoreTupleTypeElem::Type(CoreType::AtomLiteral("some".to_string())),
+            CoreTupleTypeElem::Field {
+                name: "value".to_string(),
+                ty: CoreType::String,
+            },
+        ]),
+    ]);
+    let option_expected = SemanticTypeId::from_canonical("Apply(Option;String)")
+        .expect("Option[String] semantic type");
+    assert_eq!(
+        super::super::native_type(Some(&structural_option), &structural_option.contract_text()),
+        Some(NativeType::ManagedRef(option_expected))
+    );
+
+    let structural_middleware_result = CoreType::Union(vec![
+        CoreType::AtomLiteral("continue".to_string()),
+        CoreType::Tuple(vec![
+            CoreTupleTypeElem::Type(CoreType::AtomLiteral("respond".to_string())),
+            CoreTupleTypeElem::Field {
+                name: "response".to_string(),
+                ty: CoreType::Named("std.http.Response.Response".to_string()),
+            },
+        ]),
+    ]);
+    let middleware_expected = SemanticTypeId::from_canonical("Named(MiddlewareResult)")
+        .expect("MiddlewareResult semantic type");
+    assert_eq!(
+        super::super::native_type(
+            Some(&structural_middleware_result),
+            &structural_middleware_result.contract_text(),
+        ),
+        Some(NativeType::ManagedRef(middleware_expected))
+    );
 }
 
 #[test]
@@ -310,7 +355,7 @@ fn polymorphic_with_default_infers_the_checked_default_native_type() {
 fn typed_public_mailbox_operations_lower_to_fixed_native_transition_frames() {
     let syntax = parse_module_as_syntax_output(
         concat!(
-            "module typed_mailbox.\n\nimport std.vm.Process.\nimport std.vm.Message.\nimport type std.vm.Process.{Process}.\nimport type std.vm.Message.{Message}.\n\n",
+            "module typed_mailbox.\n\nimport std.core.String.\nimport std.vm.Process.\nimport std.vm.Message.\nimport type std.vm.Process.{Process}.\nimport type std.vm.Message.{Message}.\n\n",
             "pub struct Pair {left: Int, right: Int}.\n",
             "pub send_string(recipient: Int, payload: String): Unit -> Process.send_string(recipient, payload).\n",
             "pub receive_string(): String -> Process.receive_string().\n",
@@ -326,6 +371,8 @@ fn typed_public_mailbox_operations_lower_to_fixed_native_transition_frames() {
             "pub unwrap_pair(message: Message[Pair]): Pair -> Message.unwrap[Pair](message).\n",
             "pub identity(value: String): String -> value.\n",
             "pub composed_receive(): String -> identity(receive_string()).\n",
+            "pub string_size(value: String): Int -> String.length(value).\n",
+            "pub composed_receive_size(): Int -> string_size(receive_string()).\n",
         ),
     )
     .expect("typed mailbox source");
@@ -406,6 +453,15 @@ fn typed_public_mailbox_operations_lower_to_fixed_native_transition_frames() {
         NativeExpr::CallThen { .. } | NativeExpr::Let { .. } | NativeExpr::TailCall { .. }
     ));
     let composed_export = composed.export_id;
+    let composed_size = functions
+        .iter()
+        .find(|function| function.name == "composed_receive_size")
+        .expect("non-identity composed typed receive function");
+    assert!(matches!(
+        composed_size.body,
+        NativeExpr::CallThen { .. } | NativeExpr::Let { .. }
+    ));
+    let composed_size_export = composed_size.export_id;
     for name in ["wrap_pair", "unwrap_pair"] {
         let function = functions
             .iter()
@@ -420,7 +476,11 @@ fn typed_public_mailbox_operations_lower_to_fixed_native_transition_frames() {
         .export_id;
     let object = emit_native_application_object("typed_mailbox", &modules)
         .expect("composed typed receive must emit native code");
-    assert_typed_receive_frame(&object, composed_export, [5, 0, 0], true);
+    // The exact identity wrapper is erased, leaving a tail receive with no
+    // completion callable. A semantically observable wrapper still composes a
+    // five-word continuation frame.
+    assert_typed_receive_frame(&object, composed_export, [5, 0, 0], false);
+    assert_typed_receive_frame(&object, composed_size_export, [5, 0, 0], true);
     assert_typed_receive_frame(&object, pair_receive_export, pair_transition_words, false);
 }
 

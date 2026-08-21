@@ -252,7 +252,9 @@ impl ApiContract {
 /// Transformation:
 /// - Walks each router body and recognizes direct static and receiver-style
 ///   `std.http.Router` builder calls.
-fn routes_from_syntax_module(syntax: &SyntaxModuleOutput) -> Result<Vec<ApiRoute>, String> {
+pub(crate) fn routes_from_syntax_module(
+    syntax: &SyntaxModuleOutput,
+) -> Result<Vec<ApiRoute>, String> {
     let mut routes = Vec::new();
     for declaration in &syntax.declarations {
         let SyntaxDeclarationPayload::Function {
@@ -417,7 +419,7 @@ fn route_from_expr(expr: &SyntaxExprOutput) -> Result<Option<Vec<ApiRoute>>, Str
 }
 
 /// Returns whether a source module imports `std.http.Router`.
-fn imports_std_http_router(syntax: &SyntaxModuleOutput) -> bool {
+pub(crate) fn imports_std_http_router(syntax: &SyntaxModuleOutput) -> bool {
     syntax.declarations.iter().any(|declaration| {
         matches!(
             &declaration.payload,

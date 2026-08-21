@@ -32,7 +32,8 @@ pub(super) fn dispatch(
         "std.data.json.array_extend"
         | "std.data.json.array_push"
         | "std.data.json.array_set"
-        | "std.data.json.object_put" => Err(DispatchError::new(
+        | "std.data.json.object_put"
+        | "std.data.json.object_remove" => Err(DispatchError::new(
             "dispatch.mutable_receiver_requires_direct_lowering",
             format!(
                 "operation `{operation}` mutates a receiver and must use direct native lowering"

@@ -311,6 +311,16 @@ pub (mut json: Json) put(key: String, value: Json): Json.
 @pure
 pub quote_string(value: String): String.
 
+/// Removes one existing member from a JSON object.
+///
+/// Input: a mutable JSON object receiver and one UTF-8 member key.
+/// Output: the same JSON object for fluent mutation.
+/// Transformation: removes exactly one existing member without exposing the
+/// backend object representation; a non-object receiver or missing key fails
+/// through the native JSON error boundary.
+
+pub (mut json: Json) remove(key: String): Json.
+
 /// Returns required array lengths in requested order.
 
 @pure

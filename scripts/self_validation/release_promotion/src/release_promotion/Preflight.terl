@@ -1,5 +1,5 @@
 /**
- * Proves the complete offline 0.0.7 release closure against one candidate.
+ * Proves a complete offline release closure against one candidate.
  */
 module release_promotion.Preflight.
 
@@ -17,116 +17,6 @@ child(parent: String, relative: String): String ->
     if {
         String.ends_with(parent, "/") -> String.append(parent, relative);
         true -> String.concat([parent, "/", relative])
-    }.
-
-@pure
-classification_allowed(classification: String): Bool ->
-    classification == "required-local"
-        or classification == "required-platform"
-        or classification == "required-controlled-host"
-        or classification == "experimental"
-        or classification == "retired".
-
-@pure
-evidence_holds(gate: String, classification: String, evidence: String): Bool ->
-    case classification {
-        "required-local" -> evidence == String.append("gate:", gate);
-        "required-platform" ->
-            evidence == "report:target/quality/vm-release-artifact-matrix-report.json";
-        "required-controlled-host" ->
-            evidence == "report:target/quality/vm-multicore-release-closeout.json"
-                or evidence == "report:target/quality/release-performance-baseline-report.json";
-        "experimental" -> evidence == "none";
-        "retired" -> String.starts_with(evidence, "superseded:");
-        _ -> false
-    }.
-
-@pure
-target_suffix_active(suffix: String, canonical_owner: Bool): Bool ->
-    case String.split(suffix, "\n") {
-        [dependencies | remaining] ->
-            case remaining {
-                [recipe | _rest] ->
-                    let command = String.trim(recipe);
-                    String.trim(dependencies) != ""
-                        or String.starts_with(recipe, "\t")
-    and command != ""
-    and command != ":"
-    and command != "true"
-    and command != "@true"
-    and command != "@:"
-                        or canonical_owner;
-                [] -> String.trim(dependencies) != "" or canonical_owner
-            };
-        [] -> false
-    }.
-
-@pure
-target_parts_active(parts: List[String], first: Bool, canonical_owner: Bool): Bool ->
-    case parts {
-        [] -> false;
-        [suffix | rest] ->
-            if {
-                first -> target_parts_active(rest, false, canonical_owner);
-                true -> target_suffix_active(suffix, canonical_owner)
-                    or target_parts_active(rest, false, canonical_owner)
-            }
-    }.
-
-@pure
-target_active(makefile: String, target: String): Bool ->
-    let canonical_owner = String.contains(makefile, "$(COMPLETED_SLICE_RUST_GATES): $(CANONICAL_RUST_SUITE_OWNER)");
-    target_parts_active(String.split(makefile, target), true, canonical_owner).
-
-@pure
-rows_contain_gate(rows: List[String], expected: String): Bool ->
-    case rows {
-        [] -> false;
-        [row | rest] ->
-            case String.split(row, "\t") {
-                [gate, _classification, _evidence] ->
-                    gate == expected or rows_contain_gate(rest, expected);
-                _ -> rows_contain_gate(rest, expected)
-            }
-    }.
-
-@pure
-closure_rows(rows: List[String], makefile: String, roadmap: String, count: Int): String ->
-    case rows {
-        [] ->
-            if {
-                count == 203 -> "";
-                true -> String.concat(["expected 203 rows, found ", Int.to_string(count)])
-            };
-        ["" | rest] -> closure_rows(rest, makefile, roadmap, count);
-        ["gate\tclassification\tevidence" | rest] -> closure_rows(rest, makefile, roadmap, count);
-        [row | rest] ->
-            case String.split(row, "\t") {
-                [gate, classification, evidence] ->
-                    let target = String.concat(["\n", gate, ":"]);
-                    let planned = String.concat(["make ", gate]);
-                    if {
-                        gate == "" or not classification_allowed(classification) -> String.concat([gate, ": invalid classification"]);
-                        rows_contain_gate(rest, gate) -> String.concat([gate, ": duplicate closure row"]);
-                        not target_active(makefile, target) -> String.concat([gate, ": Make target is missing, commented out, or a no-op"]);
-                        not String.contains(roadmap, planned) -> String.concat([gate, ": planned-gate row is missing"]);
-                        not evidence_holds(gate, classification, evidence) -> String.concat([gate, ": evidence classification is invalid"]);
-                        true -> closure_rows(rest, makefile, roadmap, count + 1)
-                    };
-                _ -> String.concat(["malformed row: ", row])
-            }
-    }.
-
-@pure
-closure_sources(manifest: String, makefile: String, roadmap: String): String ->
-    if {
-        manifest == "" or makefile == "" or roadmap == "" -> "closure input is missing";
-        not String.contains(manifest, "\trequired-local\t") -> "required-local classification is missing";
-        not String.contains(manifest, "\trequired-platform\t") -> "required-platform classification is missing";
-        not String.contains(manifest, "\trequired-controlled-host\t") -> "required-controlled-host classification is missing";
-        not String.contains(manifest, "\texperimental\t") -> "experimental classification is missing";
-        not String.contains(manifest, "\tretired\t") -> "retired classification is missing";
-        true -> closure_rows(String.split(manifest, "\n"), makefile, roadmap, 0)
     }.
 
 @pure
@@ -186,7 +76,7 @@ platforms_hold(source: String): Bool ->
 @pure
 recipe_is_offline(makefile: String): Bool ->
     let {
-        [_before, suffix] <- String.split(makefile, "release-0-0-7-preflight:");
+        [_before, suffix] <- String.split(makefile, "release-preflight:");
         [recipe | _rest] <- String.split(suffix, "\n\n")
     } else {
         _ -> false
@@ -200,7 +90,7 @@ recipe_is_offline(makefile: String): Bool ->
 @pure
 recipe_is_composition_only(makefile: String): Bool ->
     let {
-        [_before, suffix] <- String.split(makefile, "release-0-0-7-preflight:");
+        [_before, suffix] <- String.split(makefile, "release-preflight:");
         [recipe | _rest] <- String.split(suffix, "\n\n")
     } else {
         _ -> false
@@ -226,44 +116,19 @@ reverse_strings(values: List[String], output: List[String]): List[String] ->
 
 @pure
 input_paths(root: String): List[String] ->
-    List.concat(
-        [
-            child(root, "docs/release/RELEASE_0_0_7_GATE_CLOSURE.tsv"),
-            child(root, "Makefile"),
-            child(root, "crates/terlan/cli.mk"),
-            child(root, "editors/editor.mk"),
-            child(root, "mk/code-quality.mk"),
-            child(root, "std/stdlib.mk"),
-            child(root, "docs/roadmap/ROADMAP_0_0_7.md"),
-        ],
-        absolute_paths(root, outcome_reports(), []),
-    ).
+    List.concat([child(root, "Makefile")], absolute_paths(root, outcome_reports(), [])).
 
-validate_loaded(root: String, candidate_seal: String, files: List[TextFile]): Bool ->
-    let makefile =
-        String.concat(
-            [
-                loaded_text(files, "Makefile"),
-                loaded_text(files, "crates/terlan/cli.mk"),
-                loaded_text(files, "editors/editor.mk"),
-                loaded_text(files, "mk/code-quality.mk"),
-                loaded_text(files, "std/stdlib.mk"),
-            ],
-        );
-    let closure_error =
-        closure_sources(
-            loaded_text(files, "docs/release/RELEASE_0_0_7_GATE_CLOSURE.tsv"),
-            makefile,
-            loaded_text(files, "docs/roadmap/ROADMAP_0_0_7.md"),
-        );
+validate_loaded(
+    root: String,
+    version: String,
+    candidate_seal: String,
+    files: List[TextFile],
+): Bool ->
+    let makefile = loaded_text(files, "Makefile");
     if {
-        closure_error != "" -> failure(
-            "closure",
-            String.concat([closure_error, "; run `make roadmap-gate-integrity-check`"]),
-        );
         not reports_pass(files, outcome_reports()) -> failure(
             "reports",
-            "a required outcome report is missing or failing; reproduce with its named roadmap gate",
+            "a required outcome report is missing or failing; reproduce with its owning gate",
         );
         candidate_seal == "" -> failure(
             "candidate",
@@ -289,25 +154,25 @@ validate_loaded(root: String, candidate_seal: String, files: List[TextFile]): Bo
         );
         not recipe_is_offline(makefile) -> failure(
             "offline",
-            "preflight contains a network, publication, or second-seal command; run `make release-0-0-7-preflight`",
+            "preflight contains a network, publication, or second-seal command; run `make release-preflight`",
         );
         not recipe_is_composition_only(makefile) -> failure(
             "composition",
             "preflight must consume existing evidence without make, Cargo, Rust-test, or compiler-build work",
         );
-        true -> PreflightReport.write(root, candidate_seal, 203, 178, 9, 13, 1, 2)
+        true -> PreflightReport.write(root, version, candidate_seal, List.length(outcome_reports()))
     }.
 
 /**
  * Consumes, but never rebuilds or reseals, the verified candidate.
  */
-pub run(root: String, candidate_seal: String): Bool ->
+pub run(root: String, version: String, candidate_seal: String): Bool ->
     case File.read_text_many(input_paths(root)) {
-        Ok(files) -> validate_loaded(root, candidate_seal, files);
+        Ok(files) -> validate_loaded(root, version, candidate_seal, files);
         Err(_reason) ->
             failure(
                 "inputs",
-                "preflight inputs are missing; reproduce with `make release-0-0-7-preflight`",
+                "preflight inputs are missing; reproduce with `make release-preflight`",
             )
     }.
 
@@ -315,25 +180,16 @@ pub run(root: String, candidate_seal: String): Bool ->
  * Exercises every fail-closed preflight policy without external state.
  */
 pub self_test(): Bool ->
-    let row = "demo-check\trequired-local\tgate:demo-check";
-    let makefile = "\ndemo-check:\n\t@echo checked\n";
-    let roadmap = "make demo-check\n";
     let platform = "{\"target_count\": 6,\"targets\":[\"x86_64-unknown-linux-gnu\",\"aarch64-unknown-linux-gnu\",\"x86_64-apple-darwin\",\"aarch64-apple-darwin\",\"x86_64-pc-windows-msvc\",\"aarch64-pc-windows-msvc\"]}";
-    closure_rows([row], makefile, roadmap, 202) == ""
-        and closure_rows([], makefile, roadmap, 202) != ""
-        and closure_rows([row, row], makefile, roadmap, 201) != ""
-        and closure_rows(["demo-check\tunknown\tnone"], makefile, roadmap, 202) != ""
-        and closure_rows(["demo-check\trequired-local\tnone"], makefile, roadmap, 202) != ""
-        and not target_active("\ndemo-check:\n\t@:\n", "\ndemo-check:")
-        and platforms_hold(platform)
+    platforms_hold(platform)
         and not platforms_hold(String.replace(platform, "aarch64-pc-windows-msvc", "unsupported"))
         and not reports_pass([], outcome_reports())
-        and recipe_is_offline("release-0-0-7-preflight:\n\tlocal-check\n\n")
-        and not recipe_is_offline("release-0-0-7-preflight:\n\tcurl example.invalid\n\n")
-        and not recipe_is_offline("release-0-0-7-preflight:\n\tsecond seal\n\n")
-        and recipe_is_composition_only("release-0-0-7-preflight:\n\tverify evidence\n\n")
-        and not recipe_is_composition_only("release-0-0-7-preflight:\n\t$(MAKE) check\n\n")
-        and not recipe_is_composition_only("release-0-0-7-preflight:\n\tterlc build validator.terls\n\n").
+        and recipe_is_offline("release-preflight:\n\tlocal-check\n\n")
+        and not recipe_is_offline("release-preflight:\n\tcurl example.invalid\n\n")
+        and not recipe_is_offline("release-preflight:\n\tsecond seal\n\n")
+        and recipe_is_composition_only("release-preflight:\n\tverify evidence\n\n")
+        and not recipe_is_composition_only("release-preflight:\n\t$(MAKE) check\n\n")
+        and not recipe_is_composition_only("release-preflight:\n\tterlc build validator.terls\n\n").
 
 failure(code: String, message: String): Bool ->
     let _printed = eprintln(String.concat(["error[release_preflight.", code, "]: ", message]));

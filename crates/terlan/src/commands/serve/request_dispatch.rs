@@ -376,6 +376,11 @@ pub(super) fn handle_vm_stream_request(
     channel: &mut Option<VmHttpChannelTransport>,
 ) -> Result<::http::Response<Bytes>, String> {
     let (request, body) = request.into_parts();
+    let body_file_path = request
+        .extensions
+        .get::<RequestBodyFilePath>()
+        .map(|path| path.0.clone())
+        .unwrap_or_default();
     let method = request.method.as_str();
     let request_path = request.uri.path();
     let request_query = request.uri.query().unwrap_or("");
@@ -531,6 +536,25 @@ pub(super) fn handle_vm_stream_request(
                 unreachable!("WebSocket routes are handled before reserved endpoints")
             }
             MatchedWebPackageRoute::Handler(handler) => {
+                let source = handler.handler.source.as_ref();
+                let traceparent = request
+                    .headers
+                    .get("traceparent")
+                    .and_then(|value| value.to_str().ok());
+                let context = crate::service_foundation::next_request_context(
+                    crate::service_foundation::RequestContextDescriptor {
+                        service: "terlc-serve",
+                        route: &handler.handler.route,
+                        module: &handler.handler.module,
+                        function: &handler.handler.function,
+                        release_id: &manifest_build_id(web_root),
+                        source_file: source.map_or("", |source| source.path.as_str()),
+                        source_line: source.map_or(0, |source| source.line),
+                    },
+                    traceparent,
+                );
+                let _request_context_scope =
+                    crate::service_foundation::RequestContextScope::enter(context);
                 let response = match with_cached_vm_handler_runtime_for_request(
                     web_root,
                     &handler.handler,
@@ -582,6 +606,15 @@ pub(super) fn handle_vm_stream_request(
                                         ) { query_pairs(request_query) } else { Default::default() },
                                     headers: projected_headers,
                                     cookies: projected_cookies,
+                                },
+                            )
+                            .with_body_file_path(
+                                if projection.requires(
+                                    crate::runtime::native::http::RequestFieldProjection::BODY_FILE_PATH,
+                                ) {
+                                    body_file_path.clone()
+                                } else {
+                                    String::new()
                                 },
                             );
                         execute_dynamic_vm_handler_with_runtime(

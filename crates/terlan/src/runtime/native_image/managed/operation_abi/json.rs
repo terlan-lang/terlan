@@ -42,6 +42,7 @@ pub(super) fn is_json_operation(encoded: &[u8]) -> bool {
 }
 
 /// Reports whether one managed JSON operation returns a managed reference.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(super) fn json_operation_result_is_reference(encoded: &[u8]) -> bool {
     encoded.get(6).copied() != Some(RESULT_IS_OK)
 }

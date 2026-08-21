@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>${title} · Terlan</title>
+  <link rel="stylesheet" href="angular.css" />
+  <link rel="stylesheet" href="site.css" />
+  <script type="module" src="assets/terl-docs/search.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="./" aria-label="Terlan home">terlan</a>
+      <nav class="primary-nav" aria-label="Primary navigation">
+        <a href="https://github.com/terlan-lang/terlan">GitHub</a>
+      </nav>
+      <form class="site-search" role="search" data-slot="command"
+            ng-app="terlDocs" data-terl-docs-search>
+        <label class="visually-hidden" for="site-search">Search documentation</label>
+        <div data-slot="command-input-wrapper">
+          <input id="site-search" type="search" autocomplete="off"
+                 placeholder="Search documentation"
+                 aria-autocomplete="list" aria-controls="site-search-results"
+                 data-slot="command-input" data-terl-docs-search-input />
+          <kbd data-slot="kbd">/</kbd>
+        </div>
+        <ul id="site-search-results" class="site-search__results"
+            data-slot="command-list" role="listbox" aria-live="polite"
+            data-terl-docs-search-results></ul>
+      </form>
+    </div>
+  </header>
+  <main id="main-content" class="docs-shell" data-slot="sidebar-layout">
+    <aside class="docs-sidebar" data-slot="sidebar">
+      ${navigation}
+    </aside>
+    <div class="page-shell" data-slot="sidebar-inset">
+      ${breadcrumbs}
+      <div class="docs-content-grid">
+        <aside class="docs-toc-shell">${toc}</aside>
+        <article class="prose">
+          <header class="page-header">
+            <p class="eyebrow">Terlan documentation</p>
+            <h1>${title}</h1>
+          </header>
+          ${children}
+        </article>
+      </div>
+      ${pagination}
+    </div>
+  </main>
+  <footer class="site-footer">
+    <p>Terlan is open source under the Apache-2.0 license.</p>
+  </footer>
+</body>
+</html>

@@ -8,12 +8,15 @@ import std.test.Test.{assert_equal}.
 
 @test
 pub entries_returns_sorted_children(): Bool ->
-    let create = create_all("target/terlan-directory-entries-success");
+    let root = "target/terlan-directory-entries-success";
+    let _old = remove_all(root);
+    let create = create_all(root);
     let second = write_text("target/terlan-directory-entries-success/b.txt", "second");
     let first = write_text("target/terlan-directory-entries-success/a.txt", "first");
-    let entries_result = entries("target/terlan-directory-entries-success");
-    case {create, first, second, entries_result} {
-        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(paths)} ->
+    let entries_result = entries(root);
+    let removed = remove_all(root);
+    case {create, first, second, entries_result, removed} {
+        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(paths), Ok(Unit)} ->
             assert_equal(
                 [
                     "target/terlan-directory-entries-success/a.txt",
@@ -33,12 +36,15 @@ pub missing_directory_is_typed_error(): Bool ->
 
 @test
 pub traversal_is_sorted_and_recursive(): Bool ->
+    let root = "target/terlan-directory-test";
+    let _old = remove_all(root);
     let create = create_all("target/terlan-directory-test/nested");
     let second = write_text("target/terlan-directory-test/z.txt", "z");
     let first = write_text("target/terlan-directory-test/nested/a.txt", "a");
-    let files = files_recursive("target/terlan-directory-test");
-    case {create, second, first, files} {
-        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(paths)} ->
+    let files = files_recursive(root);
+    let removed = remove_all(root);
+    case {create, second, first, files, removed} {
+        {Ok(Unit), Ok(Unit), Ok(Unit), Ok(paths), Ok(Unit)} ->
             assert_equal(
                 ["target/terlan-directory-test/nested/a.txt", "target/terlan-directory-test/z.txt"],
                 paths,
@@ -170,8 +176,10 @@ pub directory_symbolic_link_exposes_target_contents_without_copying(): Bool ->
 
 @test
 pub remove_all_removes_tree(): Bool ->
-    let removed = remove_all("target/terlan-directory-test");
-    case removed {
+    let Ok(root) <- create_temporary("terlan-directory-remove-test.") else {
+        _ -> false
+    };
+    case remove_all(root) {
         Ok(Unit) -> true;
         _ -> false
     }.

@@ -1,7 +1,29 @@
 # TVM Native Data ABI Specification
 
-Status: normative semantic contract; native ABI version 1 and managed-layout
-profile 1 are drafts.
+Status: current implemented normative semantic contract for Terlan 0.0.7; native ABI
+version 1 and managed-layout profile 1 are pre-freeze.
+
+The compiler and VM MUST use ABI 1 as the sole current native execution
+contract. New compiler, runtime, image, and NativeBoundary work MUST conform to
+this specification. ABI 1 is implemented but not yet frozen: its versioned
+layouts and metadata may change before the 0.0.7 compatibility freeze, and
+third-party precompiled objects MUST NOT assume compatibility across Terlan
+releases until that freeze is declared.
+
+ABI 1 exposes three deliberately separate guarantee classes:
+
+1. **Language guarantee**: unrestricted low-level Terlan code has no
+   language-level memory-safety guarantee.
+2. **Managed VM guarantee**: admitted actor heaps, managed references,
+   descriptors, roots, continuations, messages, and resources are validated by
+   semantic identity, physical layout, owner, generation, and bounded work.
+3. **NativeBoundary guarantee**: generated adapters convert declared external
+   values explicitly, while unsafe Rust, C, C++, CUDA, and other foreign code
+   executes outside the execution shard by default and exchanges only owned
+   typed values or opaque capabilities.
+
+No implementation, package, or release document may collapse these classes
+into a claim that the Terlan language or arbitrary foreign code is memory-safe.
 
 This document defines the data, call, memory, actor, continuation, and transport
 contracts used by AOT-compiled Terlan code. It is subordinate to
@@ -1084,6 +1106,33 @@ wherever possible.
 
 ## 28. Conformance And Performance Gates
 
+### 28.1 Current 0.0.7 Pre-Freeze Gate
+
+ABI 1 remains the current implementation only while all of these invariants
+are executable and fail closed:
+
+- one canonical descriptor codec and identity model is shared by compiler
+  emission and VM admission;
+- descriptor, target, ABI, signature, fingerprint, stack-map, reference-map,
+  capability, and ownership mismatches reject before image publication;
+- malformed admission leaves no executable generation, actor state, resource,
+  or partial value visible;
+- C, C++, and Rust bindings reject unknown ownership, escaping references,
+  unresolved lifetimes, missing disposal authority, ambiguous calls, and
+  uncontained unwinding;
+- unsafe external adapters remain process-isolated by default;
+- descriptor bytes, recursive conversion, transport frames, requests, worker
+  credits, retained resources, and cancellation work have explicit limits;
+- adversarial cases cover successful counterparts plus malformed metadata,
+  forged or stale handles, cross-owner access, worker failure, panic,
+  exception, timeout, late reply, cancellation, and cleanup;
+- release evidence records throughput and p50, p95, p99, and p99.9 latency for
+  actor and NativeBoundary workloads without using performance as a substitute
+  for correctness.
+
+A failed invariant removes the corresponding safety or support claim; it must
+not silently downgrade ABI validation or select an in-shard unsafe path.
+
 Before native ABI 1 or managed-layout profile 1 freezes, executable gates prove:
 
 - direct object compilation and calls on x86-64 and AArch64;
@@ -1134,6 +1183,23 @@ Metadata-only fixtures, mocked calls, JSON round trips, Rust layout assumptions,
 and interpreter execution are insufficient.
 
 ## 29. Freeze Boundary
+
+ABI 1 uses the following lifecycle:
+
+1. **current-pre-freeze**: sole implemented ABI; normative semantics with no
+   cross-release binary-compatibility promise.
+2. **release-candidate**: layouts and metadata are locked while cross-target,
+   adversarial, fuzz, sanitizer, and performance gates run.
+3. **frozen**: the declared compatibility range accepts conforming ABI 1
+   objects and rejects incompatible inputs with stable diagnostics.
+4. **deprecated**: loading remains available only for an explicit migration
+   period with replacement guidance.
+5. **rejected**: loaders fail before admission and identify the required
+   supported ABI.
+
+Terlan 0.0.7 MUST remain at current-pre-freeze. A later release may enter
+release-candidate or frozen status only through the complete gate set in this
+section; changing a status label without that evidence has no normative effect.
 
 ABI 1 freezes observable compiled-object and runtime-entry behavior only after
 the direct backend, two target classifiers, moving-root tests, actor heap,

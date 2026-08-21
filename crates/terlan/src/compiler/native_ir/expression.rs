@@ -5,7 +5,7 @@ use crate::runtime::native_image::managed::{
     encode_list_prepend_operation, encode_managed_value_equal_operation,
     encode_string_append_operation, encode_string_literal,
 };
-use crate::terlan_typeck::{CoreExpr, CorePattern};
+use crate::terlan_typeck::{CoreExpr, CorePattern, CoreType};
 
 use super::{
     constructors::{
@@ -68,14 +68,86 @@ mod value_intrinsics;
 use equality::{lower_equality_operand, managed_equality_semantic};
 use field_access::lower_managed_field_access;
 pub(super) use free_variable_analysis::free_variables;
-use type_mapping::{core_string_runtime_value, is_empty_list};
-pub(super) use type_mapping::{literal_collection_type, native_type};
+use type_mapping::is_empty_list;
+pub(super) use type_mapping::{
+    core_string_runtime_value, literal_collection_type, managed_semantic_contract, native_type,
+    witnessed_collection_type,
+};
 
 mod inference;
 mod scalar_detection;
 
 pub(super) use inference::*;
 pub(super) use scalar_detection::expr_is_scalar;
+
+struct ExpectedFieldContext<'a> {
+    params: &'a HashMap<String, usize>,
+    param_types: &'a HashMap<String, NativeType>,
+    functions: &'a HashMap<(String, usize), usize>,
+    function_types: &'a HashMap<(String, usize), NativeType>,
+    constructors: &'a NativeConstructorLayouts,
+}
+
+/// Lowers one field against its checked type, including scalar control flow
+/// embedded inside a constructor or record value.
+fn lower_expected_field(
+    field: &CoreExpr,
+    expected: &CoreType,
+    type_error_code: &str,
+    context: &ExpectedFieldContext<'_>,
+) -> Result<(NativeExpr, NativeType), String> {
+    let expected_native = native_type(Some(expected), &expected.contract_text())
+        .ok_or_else(|| format!("error[{type_error_code}]: expected field type is not native"))?;
+    let lowered = super::collection_values::try_lower_typed_value(
+        field,
+        expected,
+        context.params,
+        context.param_types,
+        context.functions,
+        context.function_types,
+        context.constructors,
+    )
+    .map_err(|error| remap_field_type_error(error, type_error_code))?;
+    if let Some(lowered) = lowered {
+        return Ok((lowered, expected_native));
+    }
+    let actual = infer_native_type_for_lowering(
+        field,
+        context.param_types,
+        context.function_types,
+        context.constructors,
+    )?
+    .ok_or_else(|| {
+        format!("error[native_ir.constructor_control_field]: cannot infer `{field:?}`")
+    })?;
+    if actual != expected_native {
+        return Err(format!(
+            "error[{type_error_code}]: expected {expected_native:?}, found {actual:?}"
+        ));
+    }
+    let lowered = lower_expr_with_constructors(
+        field,
+        context.params,
+        context.param_types,
+        context.functions,
+        context.function_types,
+        context.constructors,
+    )?;
+    Ok((lowered, expected_native))
+}
+
+fn remap_field_type_error(error: String, type_error_code: &str) -> String {
+    if error.starts_with("error[native_ir.collection_value]:")
+        || error.starts_with("error[native_ir.collection_control_type]:")
+    {
+        let detail = error
+            .split_once(": ")
+            .map_or(error.as_str(), |(_, detail)| detail);
+        format!("error[{type_error_code}]: {detail}")
+    } else {
+        error
+    }
+}
 
 /// Lowers CoreIR with the fixed managed constructors visible to the module.
 pub(super) fn lower_expr_with_constructors(
@@ -131,7 +203,7 @@ pub(super) fn lower_expr_with_constructors(
             let value = core_string_runtime_value(value)?;
             let encoded = encode_string_literal(&value)
                 .map_err(|error| format!("error[native_ir.string_literal]: {error}"))?;
-            Ok(NativeExpr::StringLiteral {
+            Ok(NativeExpr::ManagedLiteral {
                 encoded: encoded.into(),
             })
         }
@@ -227,21 +299,18 @@ pub(super) fn lower_expr_with_constructors(
         expr @ CoreExpr::ConstructorCall { .. } => {
             lower_constructor_call(expr, constructors, |field, expected_core| {
                 if let Some(expected_core) = expected_core {
-                    let lowered = super::collection_values::lower_typed_value(
+                    return lower_expected_field(
                         field,
                         expected_core,
-                        params,
-                        param_types,
-                        functions,
-                        function_types,
-                        constructors,
-                    )?;
-                    let ty = native_type(Some(expected_core), &expected_core.contract_text())
-                        .ok_or_else(|| {
-                        "error[native_ir.constructor_field]: expected field type is not native"
-                            .to_string()
-                    })?;
-                    return Ok((lowered, ty));
+                        "native_ir.collection_value",
+                        &ExpectedFieldContext {
+                            params,
+                            param_types,
+                            functions,
+                            function_types,
+                            constructors,
+                        },
+                    );
                 }
                 let ty = infer_native_type_for_lowering(
                     field,
@@ -273,7 +342,21 @@ pub(super) fn lower_expr_with_constructors(
                 .copied()
                 .max()
                 .map_or(0, |index| index.saturating_add(1));
-            lower_record_construct(expr, constructors, local_base, |field| {
+            lower_record_construct(expr, constructors, local_base, |field, expected_core| {
+                if let Some(expected_core) = expected_core {
+                    return lower_expected_field(
+                        field,
+                        expected_core,
+                        "native_ir.record_field_type",
+                        &ExpectedFieldContext {
+                            params,
+                            param_types,
+                            functions,
+                            function_types,
+                            constructors,
+                        },
+                    );
+                }
                 let ty = infer_native_type_for_lowering(
                     field,
                     param_types,
@@ -486,6 +569,18 @@ pub(super) fn lower_expr_with_constructors(
                 if right_type.is_none() && is_empty_list(right) {
                     right_type = left_type;
                 }
+                if left_type.is_none()
+                    && matches!(right_type, Some(NativeType::ManagedRef(_)))
+                    && matches!(left.as_ref(), CoreExpr::Tuple(_) | CoreExpr::Map(_))
+                {
+                    left_type = right_type;
+                }
+                if right_type.is_none()
+                    && matches!(left_type, Some(NativeType::ManagedRef(_)))
+                    && matches!(right.as_ref(), CoreExpr::Tuple(_) | CoreExpr::Map(_))
+                {
+                    right_type = left_type;
+                }
             }
             let left_type = left_type.ok_or_else(|| {
                     format!(
@@ -696,6 +791,19 @@ pub(super) fn lower_expr_with_constructors(
             })
         }
         CoreExpr::Cast { expr, target_type } => {
+            if matches!(expr.as_ref(), CoreExpr::Binary(_))
+                && matches!(target_type, CoreType::Binary)
+            {
+                return super::collection_values::lower_typed_value(
+                    expr,
+                    target_type,
+                    params,
+                    param_types,
+                    functions,
+                    function_types,
+                    constructors,
+                );
+            }
             if super::collection_values::is_none_option_value(expr, target_type) {
                 return super::collection_values::lower_typed_value(
                     expr,
@@ -721,8 +829,10 @@ pub(super) fn lower_expr_with_constructors(
                     constructors,
                 )?
                 .ok_or_else(|| {
-                    "error[native_ir.cast_empty_list]: cast target is not a concrete native list"
-                        .to_string()
+                    format!(
+                        "error[native_ir.cast_collection]: cast target `{}` is not a concrete native collection",
+                        target_type.contract_text()
+                    )
                 });
             }
             if matches!(

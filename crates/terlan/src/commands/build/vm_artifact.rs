@@ -31,6 +31,8 @@ mod parallel_compile;
 mod parallel_compile_test;
 mod std_source;
 
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+pub(crate) use orchestration::compile_serve_application;
 pub(super) use orchestration::{
     build_one_vm_artifact, build_vm_application_artifacts,
     build_vm_application_artifacts_with_entry,

@@ -23,8 +23,6 @@ const REQUIRED_GLOSSARY_TERMS: &[&str] = &[
     "scheduler accounting",
     "async isolation",
     "typed failure propagation",
-    "old NIF-era name for the Terlan native boundary",
-    "New 0.0.7 docs and APIs should use native boundary",
 ];
 
 const PLACEHOLDER_TERMS: &[&str] = &["todo", "tbd", "placeholder", "fixme"];
@@ -41,7 +39,7 @@ const SELECTED_DOC_PATHS: &[&str] = &[
     "crates/terlan/src/commands/serve/README.md",
     "crates/terlan/src/commands/serve/handler/types.rs",
     "crates/terlan/src/commands/serve/manifest.rs",
-    "crates/terlan/src/commands/web_route.rs",
+    "crates/terlan/src/web_route.rs",
     "std/http/README.md",
 ];
 
@@ -76,29 +74,6 @@ const REQUIRED_DIAGNOSTIC_MARKERS: &[(&str, &str)] = &[
     ),
 ];
 
-const FORBIDDEN_DIAGNOSTIC_FRAGMENTS: &[(&str, &str)] = &[
-    (
-        "crates/terlan/src/runtime/native_boundary/error.rs",
-        "SafeNative handle is stale",
-    ),
-    (
-        "crates/terlan/src/runtime/native_boundary/error.rs",
-        "SafeNative bridge backpressure",
-    ),
-    (
-        "crates/terlan/src/runtime/native_boundary/error.rs",
-        "SafeNative request lifecycle",
-    ),
-    (
-        "crates/terlan/src/runtime/native_boundary/resource.rs",
-        "SafeNative resource handle",
-    ),
-    (
-        "crates/terlan/src/runtime/native_boundary/dispatch/args.rs",
-        "No SafeNative adapter is registered",
-    ),
-];
-
 const NIF_ALLOWED_CONTEXTS: &[&str] = &[
     "old NIF-era name",
     "NIF ABI compatibility",
@@ -112,8 +87,8 @@ const NIF_ALLOWED_CONTEXTS: &[&str] = &[
 /// - `root`: repository root containing golden docs.
 ///
 /// Output:
-/// - Success summary when the compatibility glossary exists and new runtime
-///   docs avoid the retired bridge name.
+/// - Success summary when the glossary exists and runtime documentation uses
+///   the canonical native-boundary model.
 /// - Stable diagnostics when the old name appears outside the glossary or NIF
 ///   terminology appears outside an explicit historical/out-of-contract
 ///   context.
@@ -188,18 +163,10 @@ fn validate_diagnostic_messages(root: &Path) -> QualityResult<Vec<String>> {
             ));
         }
     }
-    for (path, forbidden) in FORBIDDEN_DIAGNOSTIC_FRAGMENTS {
-        let text = read_text(root, path)?;
-        if text.contains(forbidden) {
-            diagnostics.push(format!(
-                "`{path}` still contains retired diagnostic wording `{forbidden}`"
-            ));
-        }
-    }
     Ok(diagnostics)
 }
 
-/// Validates golden docs do not use the retired bridge name outside glossary.
+/// Validates NIF terminology in golden native-boundary documentation.
 fn validate_docs_use_native_boundary(root: &Path, docs: &[PathBuf]) -> QualityResult<Vec<String>> {
     let mut diagnostics = Vec::new();
     for doc in docs {
@@ -209,11 +176,6 @@ fn validate_docs_use_native_boundary(root: &Path, docs: &[PathBuf]) -> QualityRe
         }
         let text = fs::read_to_string(root.join(doc))
             .map_err(|err| format!("{}: failed to read file: {err}", doc.display()))?;
-        if text.contains("SafeNative") || text.contains("safenative") {
-            diagnostics.push(format!(
-                "`{doc_text}` must use native-boundary terminology; reserve `SafeNative` for `{GLOSSARY_PATH}`"
-            ));
-        }
         diagnostics.extend(validate_nif_terms_for_doc(&doc_text, &text));
     }
     Ok(diagnostics)

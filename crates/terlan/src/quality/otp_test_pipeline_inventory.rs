@@ -36,7 +36,7 @@ const REQUIRED_INVENTORY_PATHS: &[&str] = &[
     "std/stdlib.mk",
     "scripts/self_validation/NativeArtifactsTest.terl",
     "crates/terlan/src/commands/emit_native_metadata",
-    "scripts/check_release_boundary.sh",
+    "scripts/self_validation/RepositoryValidation.terls",
     "crates/terlan/src/commands/build/build_test/tests",
     "crates/terlan/src/commands/build/build_test/tests/artifact_test.rs",
     "crates/terlan/src/commands/build/build_test/tests/args_test.rs",
@@ -99,12 +99,10 @@ const SELECTED_SURFACES: &[&str] = &[
     ".github/workflows/release.yml",
     "crates/terlan/cli.mk",
     "std/stdlib.mk",
-    "std/scripts/run_release_tests.sh",
-    "std/scripts/check_negative_api_tests.sh",
-    "std/scripts/check_io_negative_api_tests.sh",
+    "scripts/self_validation/StdlibValidation.terls",
     "scripts/self_validation/NativeArtifactsTest.terl",
     "crates/terlan/src/commands/emit_native_metadata",
-    "scripts/check_release_boundary.sh",
+    "scripts/self_validation/RepositoryValidation.terls",
     "scripts/self_validation/HttpRuntimeStackTest.terl",
 ];
 

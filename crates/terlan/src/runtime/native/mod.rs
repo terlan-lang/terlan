@@ -13,6 +13,7 @@
 //! contract layer; this module owns concrete storage and target-native logic.
 
 pub mod base64;
+pub mod ed25519;
 pub mod hash;
 pub mod http;
 pub mod json;

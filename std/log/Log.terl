@@ -10,6 +10,8 @@ module std.log.Log.
 
 import std.core.Unit.
 
+import type std.log.Field.
+
 /**
  * Writes a debug-level log message.
  *
@@ -57,3 +59,13 @@ pub warn(message: String): Unit ->
 @compiler.intrinsic
 pub error(message: String): Unit ->
     Unit.
+
+/**
+ * Emits a structured event while preserving the existing level helpers.
+ *
+ * Fields are built through `std.log.Field`; the active service host validates
+ * the same bounded scalar set again before accepting the event. The local
+ * console fallback writes the message and never renders secret handles.
+ */
+pub event(message: String, fields: List[Field]): Unit ->
+    info(message).

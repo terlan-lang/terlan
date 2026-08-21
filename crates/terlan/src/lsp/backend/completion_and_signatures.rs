@@ -725,7 +725,7 @@ impl Backend {
         callee: &str,
         active_parameter: usize,
     ) -> Option<SignatureHelp> {
-        let interfaces = OpenDocuments::interfaces_for_uri(uri);
+        let interfaces = OpenDocuments::imported_interfaces_for_uri(uri, module);
         let mut signatures = Self::target_compatible_completion_imported_modules(module)
             .into_iter()
             .filter_map(|module_name| interfaces.get(&module_name))
@@ -775,7 +775,7 @@ impl Backend {
         callee: &str,
         active_parameter: usize,
     ) -> Option<SignatureHelp> {
-        let interfaces = OpenDocuments::interfaces_for_uri(uri);
+        let interfaces = OpenDocuments::imported_interfaces_for_uri(uri, module);
         let mut signatures = Self::target_compatible_completion_imported_modules(module)
             .into_iter()
             .filter_map(|module_name| interfaces.get(&module_name))

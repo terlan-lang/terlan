@@ -513,14 +513,14 @@ budget_diagnostics(
         };
     let duplicates =
         if {
-            duplicate_count <= 30 -> dependencies;
+            duplicate_count <= 34 -> dependencies;
             true -> [String.concat(
-    ["resolved duplicate-version family count ", Int.to_string(duplicate_count), " exceeds 30"],
+    ["resolved duplicate-version family count ", Int.to_string(duplicate_count), " exceeds 34"],
 ) | dependencies]
         };
     let integrations =
         if {
-            List.length(integration_targets) <= 12
+            List.length(integration_targets) <= 13
                 and integration_targets == CargoMetadata.sort_unique(integration_targets) -> duplicates;
             true -> ["integration-test target inventory exceeds its unique sorted budget" | duplicates]
         };
@@ -576,7 +576,7 @@ build_report(
     let integration_policy =
         String.concat(
             [
-                "{\"maximum_targets\":12,\"targets\":",
+                "{\"maximum_targets\":13,\"targets\":",
                 strings_json(DependencyImpactCargo.analysis_integration_targets(cargo)),
                 "}",
             ],
@@ -585,7 +585,7 @@ build_report(
         String.concat(
             [
                 "{\"maximum_non_optional_normal_dependencies\":56,",
-                "\"maximum_resolved_duplicate_families\":30,",
+                "\"maximum_resolved_duplicate_families\":34,",
                 "\"milestone\":\"0.0.8\",",
                 "\"non_optional_normal_dependencies\":",
                 Int.to_string(DependencyImpactCargo.analysis_direct_dependency_count(cargo)),

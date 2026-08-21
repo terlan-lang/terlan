@@ -10,6 +10,9 @@ repository.workspace = true
 [lints]
 workspace = true
 
+[dependencies]
+serde_json.workspace = true
+
 [[bin]]
 name = "terlan-test-orchestrator"
 path = "src/main.rs"

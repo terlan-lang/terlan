@@ -3,6 +3,10 @@ use std::fs;
 use std::path::{Component, Path};
 
 use accelerator::ProjectAcceleratorBuilder;
+use deployment::{
+    parse_rollback_compatibility, ProjectDeployHealthBuilder, ProjectDeployResourcesBuilder,
+    ProjectDeploymentBuilder,
+};
 
 use config::{
     parse_bool, parse_non_negative_u64, parse_server_profile, parse_server_tls_mode,
@@ -18,6 +22,10 @@ pub(crate) use model::{
     ProjectServerTlsMode, ProjectServerTlsProvider, ProjectTarget, ProjectWasiProfile,
     ProjectWasmProfile,
 };
+#[cfg(test)]
+pub(crate) use model::{ProjectDeployHealth, ProjectDeployResources};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use model::{ProjectDeployment, ProjectRollbackCompatibility};
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use model::{ProjectNativeRust, ProjectWebAssets};
 use native_rust::finish_native_rust;
@@ -34,6 +42,7 @@ use validation::{
 mod accelerator;
 mod config;
 mod dependencies;
+mod deployment;
 mod inline_table;
 mod model;
 mod native_rust;
@@ -41,8 +50,6 @@ mod parser;
 mod strings;
 mod targets;
 mod validation;
-#[cfg(all(feature = "serve-runtime-bin", not(test)))]
-pub(crate) use config::read_runtime_server_tls;
 #[cfg(test)]
 mod vm_tls;
 #[cfg(test)]

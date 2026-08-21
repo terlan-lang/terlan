@@ -510,6 +510,7 @@ impl PureNativeBoundary {
     }
 
     /// Returns whether another boundary names the already admitted generation.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     fn is_same_generation(&self, candidate: &Self) -> Result<bool, String> {
         let current = self.artifact.as_ref().ok_or_else(|| {
             "error[execution_shard.admission]: current image metadata is unavailable".to_string()

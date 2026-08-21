@@ -66,7 +66,7 @@ theorem callAndAbortPathsAreDeterministic (success : Bool) :
     deterministicOutcome success = if success then .returned else .aborted := by
   cases success <;> rfl
 
-def hostSideEffectAdmitted (declaredSafeNative : Bool) : Bool := declaredSafeNative
+def hostSideEffectAdmitted (declaredNativeBoundary : Bool) : Bool := declaredNativeBoundary
 
 theorem undeclaredHostSideEffectRejected :
     hostSideEffectAdmitted false = false := by

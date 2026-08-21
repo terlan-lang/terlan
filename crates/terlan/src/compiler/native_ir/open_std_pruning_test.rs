@@ -55,6 +55,36 @@ fn qualified_call_resolves_without_an_import() {
 }
 
 #[test]
+fn mutable_receiver_call_resolves_with_receiver_arity() {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module app.Mutable.
+
+pub struct Buffer { value: Int }.
+pub (mut buffer: Buffer) replace(value: Int): Buffer -> Buffer {value: value}.
+pub main(): Buffer ->
+    let buffer = Buffer {value: 1};
+    let _buffer = buffer.replace(2);
+    buffer.
+"#,
+    )
+    .expect("parse mutable receiver reachability fixture");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+    let mut core = lower_syntax_module_output_to_core(&syntax, &resolved);
+
+    prune_module_to_function_roots(&mut core, &["main"]);
+
+    let retained = core
+        .functions
+        .iter()
+        .map(|function| function.name.as_str())
+        .collect::<HashSet<_>>();
+    assert_eq!(retained, HashSet::from(["main", "replace"]));
+}
+
+#[test]
 fn selected_test_roots_retain_only_their_local_function_closure() {
     let syntax = parse_module_as_syntax_output(
         r#"

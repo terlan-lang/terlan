@@ -622,6 +622,7 @@ filename_finding(path: String, findings: List[Finding]): List[Finding] ->
 pub scan_source(path: String, contents: String): List[Finding] ->
     let findings = List.new[Finding]();
     if {
+        not String.contains(contents, "include!") -> filename_finding(path, findings);
         SourceInventory.looks_generated(path, contents) -> findings;
         true -> scan_pages_at(
             path,

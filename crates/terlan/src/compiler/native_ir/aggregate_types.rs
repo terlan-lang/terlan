@@ -10,7 +10,11 @@ use crate::terlan_typeck::{
     CoreExpr, CoreIntrinsicId, CorePrimitiveIntrinsic, CoreTupleTypeElem, CoreType,
 };
 
-use super::{constructors::managed_field_type, native_type};
+use super::{
+    constructors::{canonical_structural_field_name, managed_field_type},
+    expression::managed_semantic_contract,
+    native_type,
+};
 
 pub(super) fn managed_aggregate_layouts<'a>(
     types: impl IntoIterator<Item = &'a CoreType>,
@@ -156,10 +160,11 @@ fn inventory(ty: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), Strin
         }
         CoreType::Union(args) if tagged_union_variants(args).is_some() => {
             let variants = tagged_union_variants(args).expect("tagged union checked above");
-            for (discriminant, (name, fields)) in variants.iter().enumerate() {
+            let canonical = managed_semantic_contract(ty);
+            for (discriminant, (variant_name, fields)) in variants.iter().enumerate() {
                 let descriptor = ManagedAggregateDescriptor::constructor(
-                    &ty.contract_text(),
-                    name,
+                    &canonical,
+                    variant_name,
                     u32::try_from(discriminant).map_err(|_| {
                         "error[native_ir.union_layout]: discriminant exceeds u32".to_string()
                     })?,
@@ -168,7 +173,8 @@ fn inventory(ty: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), Strin
                     })?,
                     fields
                         .iter()
-                        .map(|(name, field)| {
+                        .enumerate()
+                        .map(|(index, (name, field))| {
                             native_type(Some(field), &field.contract_text())
                                 .ok_or_else(|| {
                                     format!(
@@ -177,7 +183,17 @@ fn inventory(ty: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), Strin
                                     )
                                 })
                                 .and_then(managed_field_type)
-                                .map(|ty| (name.clone(), ty))
+                                .map(|ty| {
+                                    (
+                                        canonical_structural_field_name(
+                                            &canonical,
+                                            variant_name,
+                                            index,
+                                            name.as_deref(),
+                                        ),
+                                        ty,
+                                    )
+                                })
                         })
                         .collect::<Result<Vec<_>, _>>()?,
                 )

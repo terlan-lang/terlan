@@ -1,0 +1,3 @@
+module managed.web.Main.
+
+pub title(): String -> "Managed Terlan dashboard".

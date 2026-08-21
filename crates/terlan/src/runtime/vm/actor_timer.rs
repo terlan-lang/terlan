@@ -233,18 +233,21 @@ impl VmActorRuntime {
         for event in &timer_events {
             let timer_id = event.timer_id();
             let Some(delayed) = self.delayed_messages.remove(&timer_id) else {
-                match self.consume_postgres_timer_event(event) {
-                    Ok(Some(control)) => {
-                        self.postgres_controls.push_back(control);
-                        #[cfg(test)]
-                        postgres_controls.push(control);
-                    }
-                    Ok(None) => {}
-                    Err(diagnostic) => {
-                        #[cfg(test)]
-                        postgres_diagnostics.push(diagnostic);
-                        #[cfg(not(test))]
-                        drop(diagnostic);
+                #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+                {
+                    match self.consume_postgres_timer_event(event) {
+                        Ok(Some(control)) => {
+                            self.postgres_controls.push_back(control);
+                            #[cfg(test)]
+                            postgres_controls.push(control);
+                        }
+                        Ok(None) => {}
+                        Err(diagnostic) => {
+                            #[cfg(test)]
+                            postgres_diagnostics.push(diagnostic);
+                            #[cfg(not(test))]
+                            drop(diagnostic);
+                        }
                     }
                 }
                 continue;

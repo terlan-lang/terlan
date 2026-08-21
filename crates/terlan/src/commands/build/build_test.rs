@@ -67,6 +67,8 @@ mod tests {
     #[cfg(test)]
     mod project_layout_test;
     #[cfg(test)]
+    mod release_bundle_test;
+    #[cfg(test)]
     mod shape_js_test;
     #[cfg(test)]
     mod std_runtime_test;

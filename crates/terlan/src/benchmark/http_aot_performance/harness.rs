@@ -175,7 +175,7 @@ pub(super) fn write_package(
         .map_err(|error| format!("failed to create HTTP benchmark source root: {error}"))?;
     fs::write(
         workspace.join("terlan.toml"),
-        "[package]\nname = \"http_aot_performance\"\nversion = \"0.0.7\"\n",
+        "[package]\nname = \"http_aot_performance\"\nversion = \"0.0.7\"\nnamespace = \"app\"\n",
     )
     .map_err(|error| format!("failed to write HTTP benchmark manifest: {error}"))?;
     fs::write(web_root.join("index.html"), "<!doctype html>\n")
@@ -325,7 +325,7 @@ pub(super) fn spawn_server(
             "25",
         ])
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stderr(Stdio::inherit())
         .spawn()
         .map_err(|error| format!("failed to start HTTP benchmark server: {error}"))
 }

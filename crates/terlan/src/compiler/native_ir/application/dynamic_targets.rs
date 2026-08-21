@@ -283,7 +283,10 @@ fn collect_argument_targets(
     }
 }
 
-pub(super) fn walk_calls(expr: &CoreExpr, visit: &mut impl FnMut(&str, &[CoreExpr])) {
+pub(in crate::compiler::native_ir) fn walk_calls(
+    expr: &CoreExpr,
+    visit: &mut impl FnMut(&str, &[CoreExpr]),
+) {
     if let CoreExpr::Call { function, args } = expr {
         visit(function, args);
     }
@@ -372,9 +375,28 @@ pub(super) fn walk_calls(expr: &CoreExpr, visit: &mut impl FnMut(&str, &[CoreExp
                 .for_each(|generator| walk_calls(&generator.source, visit));
             guards.iter().for_each(|guard| walk_calls(guard, visit));
         }
-        CoreExpr::Try { .. }
-        | CoreExpr::SqlQuery { .. }
-        | CoreExpr::Int(_)
+        CoreExpr::Try {
+            body,
+            of_clauses,
+            catch_clauses,
+            after_clause,
+        } => {
+            walk_calls(body, visit);
+            of_clauses.iter().chain(catch_clauses).for_each(|clause| {
+                if let Some(guard) = &clause.guard {
+                    walk_calls(guard, visit);
+                }
+                walk_calls(&clause.body, visit);
+            });
+            if let Some(after) = after_clause {
+                walk_calls(&after.trigger, visit);
+                walk_calls(&after.body, visit);
+            }
+        }
+        CoreExpr::SqlQuery { parameters, .. } => parameters
+            .iter()
+            .for_each(|parameter| walk_calls(parameter, visit)),
+        CoreExpr::Int(_)
         | CoreExpr::Float(_)
         | CoreExpr::Binary(_)
         | CoreExpr::Atom(_)

@@ -1,0 +1,111 @@
+//! Strict public Terlan Registry protocol boundary.
+//!
+//! This module owns the exact signed publication-request decoder shared by
+//! Terlan tooling and Terlan Registry services. Parsing and admission happen in
+//! one native operation so services do not need to reconstruct security policy
+//! with partial JSON projections.
+
+module std.package.Registry.
+
+/// Registry-owned fields needed to begin one durable publication attempt.
+
+pub struct PublishRequestProjection {
+    publisher_key_id: String,
+    request_id: String,
+    package_name: String,
+    version: String,
+    repository_url: String,
+    description: String,
+    license_expression: String,
+    archive_sha256: String,
+    archive_bytes: Int,
+    documentation_sha256: String,
+    documentation_bytes: Int,
+    built_with: String,
+    requires_terlan: String,
+    source_identity_kind: String,
+    source_identity: String,
+    source_identity_verification: String,
+    provenance_sha256: String
+}.
+
+/// Stable failure returned for malformed or inadmissible signed metadata.
+
+pub struct RegistryProtocolError {
+    offset: Int
+}.
+
+@pure
+pub (value: PublishRequestProjection) archive_bytes(): Int.
+
+@pure
+pub (value: PublishRequestProjection) archive_sha256(): String.
+
+@pure
+pub (value: PublishRequestProjection) built_with(): String.
+
+@pure
+pub (value: PublishRequestProjection) description(): String.
+
+@pure
+pub (value: PublishRequestProjection) documentation_bytes(): Int.
+
+@pure
+pub (value: PublishRequestProjection) documentation_sha256(): String.
+
+/// Returns the stable protocol error code.
+
+@pure
+pub error_code(error: RegistryProtocolError): Atom.
+
+/// Returns the safe protocol diagnostic.
+
+@pure
+pub error_message(error: RegistryProtocolError): String.
+
+/// Returns the JSON column for syntax failures, or zero for policy failures.
+
+@pure
+pub error_offset(error: RegistryProtocolError): Int.
+
+@pure
+pub (value: PublishRequestProjection) license_expression(): String.
+
+@pure
+pub (value: PublishRequestProjection) package_name(): String.
+
+/// Strictly decodes and admits an exact version-one publication request.
+///
+/// Unknown and duplicate fields are rejected by the compiler-owned public
+/// protocol model. The shared Registry admission policy validates immutable
+/// dependency identities, archive limits, artifact provenance, source
+/// identity, compiler compatibility, and documentation-object consistency.
+
+pub parse_publish_request(text: String): Result[PublishRequestProjection, RegistryProtocolError].
+
+@pure
+pub (value: PublishRequestProjection) provenance_sha256(): String.
+
+@pure
+pub (value: PublishRequestProjection) publisher_key_id(): String.
+
+@pure
+pub (value: PublishRequestProjection) repository_url(): String.
+
+@pure
+pub (value: PublishRequestProjection) request_id(): String.
+
+@pure
+pub (value: PublishRequestProjection) requires_terlan(): String.
+
+@pure
+pub (value: PublishRequestProjection) source_identity(): String.
+
+@pure
+pub (value: PublishRequestProjection) source_identity_kind(): String.
+
+@pure
+pub (value: PublishRequestProjection) source_identity_verification(): String.
+
+@pure
+pub (value: PublishRequestProjection) version(): String.

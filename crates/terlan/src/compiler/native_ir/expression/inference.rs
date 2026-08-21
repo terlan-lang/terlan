@@ -1,5 +1,5 @@
 use super::*;
-use crate::terlan_typeck::{CoreIntrinsicId, CorePrimitiveIntrinsic};
+use crate::terlan_typeck::{CoreIntrinsicId, CorePrimitiveIntrinsic, CoreType};
 
 pub(in crate::compiler::native_ir) fn infer_native_type(
     expr: &CoreExpr,
@@ -257,10 +257,28 @@ pub(super) fn infer_native_type_impl(
             let mut types = clauses.iter().map(|clause| {
                 infer_native_type_impl(&clause.body, variables, functions, constructors)
             });
-            let first = types.next()??;
-            types.all(|ty| ty == Some(first)).then_some(first)
+            let direct = types
+                .next()
+                .flatten()
+                .filter(|first| types.all(|ty| ty == Some(*first)));
+            direct.or_else(|| {
+                let constructors = constructors?;
+                let core_variables = core_types_from_native(variables, constructors);
+                let core_functions = core_types_from_native(functions, constructors);
+                let core_type = super::super::structured_case::core_expr_type(
+                    expr,
+                    &core_variables,
+                    &core_functions,
+                )?;
+                native_type(Some(&core_type), &core_type.contract_text())
+            })
         }
         CoreExpr::Cast { expr, target_type } => {
+            if matches!(expr.as_ref(), CoreExpr::Binary(_))
+                && matches!(target_type, CoreType::Binary | CoreType::String)
+            {
+                return native_type(Some(target_type), &target_type.contract_text());
+            }
             if matches!(
                 expr.as_ref(),
                 CoreExpr::List(_) | CoreExpr::Tuple(_) | CoreExpr::Map(_)
@@ -275,5 +293,43 @@ pub(super) fn infer_native_type_impl(
             (source == target).then_some(target)
         }
         _ => None,
+    }
+}
+
+/// Recovers checked CoreIR types for native values whose source identities are
+/// retained by scalar kinds or managed constructor layouts.
+pub(in crate::compiler::native_ir) fn core_types_from_native<K>(
+    values: &HashMap<K, NativeType>,
+    constructors: &NativeConstructorLayouts,
+) -> HashMap<K, CoreType>
+where
+    K: Clone + Eq + std::hash::Hash,
+{
+    values
+        .iter()
+        .filter_map(|(name, ty)| {
+            core_type_from_native(*ty, constructors).map(|core| (name.clone(), core))
+        })
+        .collect()
+}
+
+/// Maps one compact native kind back to the checked type needed for lexical
+/// case-pattern inference.
+fn core_type_from_native(
+    ty: NativeType,
+    constructors: &NativeConstructorLayouts,
+) -> Option<CoreType> {
+    match ty {
+        NativeType::Unit => Some(CoreType::Named("Unit".into())),
+        NativeType::Int => Some(CoreType::Int),
+        NativeType::Float => Some(CoreType::Float),
+        NativeType::Bool => Some(CoreType::Bool),
+        NativeType::Atom => Some(CoreType::Atom),
+        NativeType::StringRef => Some(CoreType::String),
+        NativeType::BytesRef => Some(CoreType::Named("Bytes".into())),
+        NativeType::BinaryRef => Some(CoreType::Named("BitString".into())),
+        NativeType::ManagedRef(_) => {
+            super::super::constructors::result_core_type_for_native(ty, constructors)
+        }
     }
 }

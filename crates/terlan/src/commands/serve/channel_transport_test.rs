@@ -78,7 +78,7 @@ fn channel_package() -> std::path::PathBuf {
     fs::create_dir_all(&source_dir).expect("create source directory");
     fs::write(
         root.join("terlan.toml"),
-        "[package]\nname = \"channel_transport\"\nversion = \"0.0.7\"\n",
+        "[package]\nname = \"app\"\nversion = \"0.0.7\"\n",
     )
     .expect("write package manifest");
     fs::write(source_dir.join("SocketTransport.terl"), WEBSOCKET_SOURCE)

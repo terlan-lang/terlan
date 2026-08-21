@@ -5,7 +5,9 @@ f7f42dfd8c72092c	equal-shape	boundary-conversion	native-bindings	C ABI and C++ n
 87fda32d09290439	equal-shape	distinct-invariant	http-benchmarks	Protocol and lifecycle scenario evidence occupy separate report fields whose nominal types prevent cross-category benchmark attribution.
 4825bfa7639b34e5	equal-shape	distinct-invariant	vm-observability	Call count memory and time keys select different test instrumentation tables and cannot be substituted across measurement dimensions.
 9cdd5493a0bc26f5	equal-shape	distinct-invariant	vm-observability	Local and meta tracing keys select different production instrumentation tables and cannot be substituted across trace ownership domains.
+9d69d1c171067b5e	equal-shape	distinct-invariant	domain-errors	Registry semantic versions and normalized web routes enforce unrelated validation invariants and must not be substituted across domain boundaries.
 9ff09c957f6d120c	equal-shape	boundary-conversion	native-bindings	C and C++ metadata producer identities belong to distinct generated manifest schemas and are converted only by package tooling.
+a1cd4aa53aeacab9	equal-shape	distinct-invariant	boundary-errors	Publication URLs, yank arguments, support bundles, and SQL capabilities expose separate failure contracts whose nominal wrappers prevent cross-domain error substitution.
 bf4b8c54ad685466	same-name	distinct-invariant	vm-memory	The managed-image A-CHAMP node owns actor-heap references while the VM map node owns persistent host-side entry indexes.
 90376633f23fe47a	same-name	distinct-invariant	command-boundaries	Support bundle and accelerator value-contract commands accept different schemas whose typed argument records remain nominally distinct.
 a0da7b1de2472ac4	same-name	boundary-conversion	quality-tools	Repository quality internals use textual errors while standalone quality executables preserve typed boundary failures and convert explicitly at their interface.

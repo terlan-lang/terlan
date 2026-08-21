@@ -18,7 +18,7 @@ import type std.data.Json.
 
 report_relative(): String -> "target/quality/http-paired-performance.json".
 
-server_relative(): String -> "target/release/terlan-serve-runtime".
+server_relative(): String -> "target/serve-runtime/terlan-serve-runtime".
 
 required_workloads(): List[String] ->
     [

@@ -17,7 +17,7 @@ pub(super) fn emit_expr(
         NativeExpr::AtomLiteral(identity) => Ok(builder
             .ins()
             .iconst(types::I64, managed_layouts.atom_word(identity)?)),
-        NativeExpr::StringLiteral { encoded } => managed::emit_managed_allocation(
+        NativeExpr::ManagedLiteral { encoded } => managed::emit_managed_allocation(
             builder,
             module,
             managed_layouts,

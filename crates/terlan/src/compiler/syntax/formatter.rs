@@ -19,7 +19,7 @@ mod grouped_cases;
 mod html;
 mod import_analysis;
 mod let_else;
-mod literals;
+pub(crate) mod literals;
 mod metadata;
 mod precedence;
 mod reference_rewriting;

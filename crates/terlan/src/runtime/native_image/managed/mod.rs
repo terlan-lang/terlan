@@ -23,6 +23,7 @@ mod sets;
 mod slots;
 
 pub use atoms::{AtomIndex, AtomTable};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use closure_abi::encode_closure_allocation;
 pub(crate) use closure_abi::{execute_closure_allocation, is_closure_allocation};
 pub use closure_dispatch::{
@@ -46,17 +47,20 @@ pub use layout::{
 };
 pub(crate) use layout_registry::ManagedLayoutRegistry;
 pub use lists::{ManagedList, ManagedListBuilder, ManagedListDescriptor, ManagedListProfile};
-pub use literal_abi::{encode_string_literal, MAX_MANAGED_LITERAL_ABI_BYTES};
+pub use literal_abi::{
+    encode_binary_literal, encode_string_literal, MAX_MANAGED_LITERAL_ABI_BYTES,
+};
 pub use mailbox::ManagedMailboxFragment;
 pub use maps::{
     ManagedKeySemantics, ManagedMap, ManagedMapDescriptor, ManagedMapProfile,
     ManagedScalarKeySemantics, ManagedStringKeySemantics,
 };
+pub(crate) use operation_abi::execute_managed_operation_with_context;
 #[cfg(any(test, feature = "native-codegen"))]
 pub(crate) use operation_abi::managed_abi_result_is_reference;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use operation_abi::{
-    decode_aggregate_field_projection, execute_managed_operation_with_context,
-    scalar_string_projection_rewrite,
+    decode_aggregate_field_projection, scalar_string_projection_rewrite,
 };
 pub use operation_abi::{
     encode_aggregate_append_pair_operation, encode_aggregate_append_value_operation,

@@ -73,9 +73,19 @@ pub(super) fn assemble_native_module(
     };
 
     let mut managed_layouts = constructor_layouts[&core.module]
-        .values()
-        .map(|layout| layout.encoded_layout.clone())
-        .collect::<Vec<_>>();
+        .iter()
+        .map(|((identity, arity), layout)| {
+            if let NativeType::ManagedRef(expected) = layout.result {
+                let actual = layout.descriptor.managed().semantic_id();
+                if actual != expected {
+                    return Err(format!(
+                        "error[native_ir.constructor_semantic]: `{identity}/{arity}` result semantic does not match its managed descriptor"
+                    ));
+                }
+            }
+            Ok(layout.encoded_layout.clone())
+        })
+        .collect::<Result<Vec<_>, String>>()?;
     managed_layouts.extend(managed_aggregate_layouts(candidate_types())?);
     managed_layouts.extend(managed_aggregate_layouts(inferred_dynamic_returns.iter())?);
     managed_layouts.extend(managed_expression_layouts(candidate_expressions())?);

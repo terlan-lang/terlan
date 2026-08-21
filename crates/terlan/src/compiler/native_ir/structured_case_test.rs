@@ -101,7 +101,7 @@ fn contains_managed_operation(expr: &NativeExpr, magic: &[u8; 4], tag: u8) -> bo
         | NativeExpr::Float(_)
         | NativeExpr::Bool(_)
         | NativeExpr::AtomLiteral(_)
-        | NativeExpr::StringLiteral { .. }
+        | NativeExpr::ManagedLiteral { .. }
         | NativeExpr::Param(_) => false,
     }
 }

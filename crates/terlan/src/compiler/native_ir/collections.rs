@@ -137,7 +137,9 @@ fn inventory_expr(expr: &CoreExpr, layouts: &mut BTreeSet<Vec<u8>>) -> Result<()
             inventory_expr(expr, layouts)
         }
         CoreExpr::List(items) => {
-            if let Some(ty) = super::expression::literal_collection_type(expr) {
+            if let Some(ty) = super::expression::literal_collection_type(expr)
+                .or_else(|| super::expression::witnessed_collection_type(expr))
+            {
                 inventory_type(&ty, layouts)?;
             }
             inventory_exprs(items, layouts)

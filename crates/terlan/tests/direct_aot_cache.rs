@@ -8,6 +8,52 @@ use sha2::{Digest, Sha256};
 const SOURCE_41: &str = "module cache_probe.\n\npub value(): Int -> 41.\n";
 const SOURCE_42: &str = "module cache_probe.\n\npub value(): Int -> 42.\n";
 
+/// Proves the final-link tool is part of native cache identity, while a warm
+/// hit with the same linker remains reusable.
+#[cfg(unix)]
+#[test]
+fn native_linker_drift_publishes_a_distinct_verified_cache_entry() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = std::env::temp_dir().join(format!(
+        "terlan-direct-aot-linker-policy-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time")
+            .as_nanos()
+    ));
+    let source = root.join("cache_probe.terl");
+    let output_dir = root.join("build");
+    let first_linker = root.join("first-linker");
+    let second_linker = root.join("second-linker");
+    fs::create_dir_all(&root).expect("create linker-policy fixture root");
+    fs::write(&source, SOURCE_41).expect("write linker-policy fixture source");
+    for (path, marker) in [(&first_linker, "first"), (&second_linker, "second")] {
+        fs::write(path, format!("#!/bin/sh\n# {marker}\nexec ld \"$@\"\n"))
+            .expect("write linker-policy fixture");
+        let mut permissions = fs::metadata(path)
+            .expect("read linker permissions")
+            .permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(path, permissions).expect("make fixture linker executable");
+    }
+
+    run_build(&root, &source, &output_dir, true, Some(&first_linker));
+    run_build(&root, &source, &output_dir, true, Some(&first_linker));
+    assert_eq!(
+        cache_directories(&output_dir.join(".terlan/native-aot")).len(),
+        1
+    );
+    run_build(&root, &source, &output_dir, true, Some(&second_linker));
+    assert_eq!(
+        cache_directories(&output_dir.join(".terlan/native-aot")).len(),
+        2
+    );
+
+    fs::remove_dir_all(root).expect("remove linker-policy fixture root");
+}
+
 /// Proves development and release builds cannot reuse each other's native cache.
 #[test]
 fn native_codegen_policies_publish_and_reuse_distinct_cache_entries() {
@@ -595,7 +641,11 @@ fn run_build(
         .arg(output_dir)
         .env("RUSTC", root.join("rustc-must-not-run"));
     if let Some(linker) = linker {
-        command.env("TERLAN_NATIVE_LINKER", linker);
+        if linker.file_name().and_then(|name| name.to_str()) == Some("linker-must-not-run") {
+            command.env("TERLAN_NATIVE_CACHE_MISS_POLICY", "error");
+        } else {
+            command.env("TERLAN_NATIVE_LINKER", linker);
+        }
     }
     let output = command.output().expect("start native cache build");
     assert!(

@@ -12,14 +12,21 @@ fn complete_makefile() -> String {
     let mut text = String::from(concat!(
         "CHECK_GATES := \\\n",
         "\tcompiler-check\n\n",
-        "check: rust-test-suite terlan-self-validation-bootstrap\n",
+        "RELEASE_EVIDENCE_GATES := \\\n",
+        "\trelease-failure-reproduction-check\n\n",
+        "check: rust-test-suite\n",
+        "\tTERLAN_RUST_SUITE_ALREADY_RUN=1 \\\n",
+        "\t\t$(MAKE) --no-print-directory --jobs=4 \\\n",
+        "\t\tterlan-self-validation-bootstrap\n",
         "\tTERLAN_RUST_SUITE_ALREADY_RUN=1 \\\n",
         "\tTERLAN_VALIDATION_BOOTSTRAPPED=1 \\\n",
-        "\t\t$(MAKE) --no-print-directory check-gates\n\n",
+        "\t\t$(MAKE) --no-print-directory \\\n",
+        "\t\tTERLAN_QUALITY=target/debug/terlan-quality \\\n",
+        "\t\tcheck-gates\n\n",
         "check-gates: $(CHECK_GATES)\n\n",
-        "release-0-0-7-evidence-refresh: check release-failure-reproduction-check\n",
-        "\t@echo refreshed\n\n",
-        "release-0-0-7-preflight:\n",
+        "release-evidence-refresh: check\n",
+        "\t$(MAKE) --no-print-directory $(RELEASE_EVIDENCE_GATES)\n\n",
+        "release-preflight:\n",
         "\ttest -s release-evidence.json\n",
         "\tterlan-vm run release-preflight.tvm\n\n",
         "lean-proof-track-release-closeout-check: rust-test-suite\n",
@@ -37,8 +44,8 @@ fn complete_makefile() -> String {
 #[test]
 fn release_gate_shard_resume_rejects_preflight_replay() {
     let makefile = complete_makefile().replace(
-        "release-0-0-7-preflight:\n",
-        "release-0-0-7-preflight: check\n\t$(MAKE) check-gates\n",
+        "release-preflight:\n",
+        "release-preflight: check\n\t$(MAKE) check-gates\n",
     );
 
     let diagnostics = validate_release_makefile(&makefile);

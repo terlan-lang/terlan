@@ -187,7 +187,7 @@ pub(super) fn vm_stream_websocket_upgrade_activates_materialized_router_middlewa
     fs::create_dir_all(web_root.join("assets/js/modules")).expect("create package dirs");
     fs::write(
         dir.join("terlan.toml"),
-        "[package]\nname = \"serve_websocket_router\"\nversion = \"0.0.7\"\n",
+        "[package]\nname = \"serve_websocket_router\"\nversion = \"0.0.7\"\nnamespace = \"app\"\n",
     )
     .expect("write project manifest");
     fs::write(web_root.join("index.html"), "<!doctype html>\n").expect("write index");

@@ -113,40 +113,44 @@ pub(super) fn discover_tests(
     }
 }
 
-/// Selects all discovered tests or one named test.
+/// Selects all discovered tests or an exact named subset.
 ///
 /// Inputs:
 /// - `tests`: discovered and validated source-level test functions.
-/// - `test_name`: optional exact function-name selector from `terlc test
-///   --name`.
+/// - `test_names`: exact function-name selectors from repeated `terlc test
+///   --name` flags, or an empty slice for every declaration of the requested
+///   kind.
 /// - `path`: source path used only for diagnostics.
 ///
 /// Output:
-/// - `Ok(Vec<DiscoveredTest>)` containing all tests or the exact selected test.
-/// - `Err(message)` when a selector is present but no matching test exists.
+/// - `Ok(Vec<DiscoveredTest>)` containing all tests or the exact selected set.
+/// - `Err(message)` when any requested selector has no matching declaration.
 ///
 /// Transformation:
 /// - Applies exact function-name filtering after test discovery so compiler
 ///   diagnostics still validate every `@test` declaration in the file.
 pub(super) fn select_tests(
     tests: Vec<DiscoveredTest>,
-    test_name: Option<&str>,
+    test_names: &[String],
     path: &str,
     kind: TestKind,
 ) -> Result<Vec<DiscoveredTest>, String> {
+    if let Some(missing) = test_names.iter().find(|name| {
+        !tests
+            .iter()
+            .any(|test| test.kind == kind && test.name == name.as_str())
+    }) {
+        return Err(format!(
+            "no {} declaration named `{missing}` found in {path}",
+            kind.annotation()
+        ));
+    }
     let selected = tests
         .into_iter()
         .filter(|test| test.kind == kind)
-        .filter(|test| test_name.is_none_or(|name| test.name == name))
+        .filter(|test| test_names.is_empty() || test_names.contains(&test.name))
         .collect::<Vec<_>>();
-    if let (true, Some(test_name)) = (selected.is_empty(), test_name) {
-        Err(format!(
-            "no {} declaration named `{test_name}` found in {path}",
-            kind.annotation()
-        ))
-    } else {
-        Ok(selected)
-    }
+    Ok(selected)
 }
 
 /// Extracts a literal boolean test result when the function body is trivial.

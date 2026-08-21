@@ -1,8 +1,14 @@
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+use crate::runtime::vm::aot_metadata::{
+    AotRouterCallable, AotRouterPlan, AotRouterRoute, AotRouterRouteTarget,
+};
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 use crate::runtime::vm::sse::VmSseCallbackPlan;
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 use crate::runtime::vm::sse::VmSseEndpointPlan;
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 use crate::runtime::vm::websocket::VmWebSocketCallbackPlan;
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
 use crate::runtime::vm::websocket::VmWebSocketEndpointPlan;
 use crate::terlan_syntax::{SyntaxExprKind, SyntaxExprOutput};
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
@@ -12,60 +18,6 @@ use std::collections::HashMap;
 
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 const ROUTER_MODULE: &str = "std.http.Router";
-
-/// One statically resolved callable retained by an AOT router plan.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub(crate) struct AotRouterCallable {
-    /// Module that owns the generated native entry export.
-    pub(crate) module: String,
-    /// Source function name retained without a closure allocation.
-    pub(crate) function: String,
-    /// Exact native entry arity.
-    pub(crate) arity: usize,
-}
-
-/// One method/path route and its statically resolved native callback.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub(crate) struct AotRouterRoute {
-    /// Canonical uppercase HTTP method.
-    pub(crate) method: String,
-    /// Source route pattern after group-prefix composition.
-    pub(crate) path: String,
-    /// Canonical native target selected for the route.
-    pub(crate) target: AotRouterRouteTarget,
-    /// Group-scoped request middleware applied after root middleware.
-    pub(crate) middleware: Vec<AotRouterCallable>,
-    /// Group-scoped response middleware applied before root middleware unwinds.
-    pub(crate) response_middleware: Vec<AotRouterCallable>,
-}
-
-/// Canonical executable target retained by one AOT router route.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub(crate) enum AotRouterRouteTarget {
-    /// Static native callback invoked for an ordinary HTTP request.
-    Handler(AotRouterCallable),
-    /// VM-owned bounded server-sent event endpoint policy.
-    Sse(VmSseEndpointPlan),
-    /// VM-owned bounded WebSocket endpoint policy.
-    WebSocket(VmWebSocketEndpointPlan),
-}
-
-/// Closure-free router metadata extracted from checked CoreIR.
-#[derive(Clone, Debug, Default, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub(crate) struct AotRouterPlan {
-    /// Module whose `router/0` declaration produced this plan.
-    pub(crate) module: String,
-    /// Ordered exact and parameterized route declarations.
-    pub(crate) routes: Vec<AotRouterRoute>,
-    /// Root request middleware in declaration order.
-    pub(crate) middleware: Vec<AotRouterCallable>,
-    /// Root response middleware in declaration order.
-    pub(crate) response_middleware: Vec<AotRouterCallable>,
-    /// Root fallback callback for unmatched methods and paths.
-    pub(crate) fallback: Option<AotRouterCallable>,
-    /// Root typed error callback.
-    pub(crate) error: Option<AotRouterCallable>,
-}
 
 /// Extracts static router metadata and removes `router/0` from native execution.
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]

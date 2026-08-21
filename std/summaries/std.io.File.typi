@@ -99,9 +99,10 @@ pub code(error: FileError): Atom.
 
 /// Copies one regular file to a new path while preserving host permissions.
 ///
-/// The destination parent must already exist. The operation rejects directory
-/// sources and normalizes host failures into `FileError` without exposing file
-/// descriptors or host-language values.
+/// The destination parent must already exist and the destination itself must
+/// be absent. Creation is atomic and fails instead of overwriting an existing
+/// file. The operation rejects directory sources and normalizes host failures
+/// into `FileError` without exposing file descriptors or host-language values.
 
 pub copy(source: String, destination: String): Result[Unit, FileError].
 

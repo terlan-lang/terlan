@@ -30,10 +30,9 @@ scripts/self_validation/LeanProofExecutionTest.terl	checker	migrated	environment
 scripts/self_validation/MakeRecipeThinness.terls	checker	migrated	environment,filesystem,bounded-recursive-text-read,string-normalization,inline-assertions
 scripts/self_validation/MlExperimentsCheck.terls	checker	migrated	arguments,environment,filesystem,json,hash,process,temp-workspace,path,bounded-recursive-text-read,string-normalization,deterministic-reporting,inline-assertions
 scripts/self_validation/NativeArtifactsTest.terl	bootstrap-generator	migrated	environment,filesystem,process,temp-workspace,batch-text-read,string-normalization
-scripts/self_validation/OtpStdlibMigrationEvidenceTest.terl	checker	migrated	filesystem,regex,string-search,tsv
 scripts/self_validation/ReleaseTransitionScanTest.terl	quality-tool	migrated	filesystem,binary-read,string-normalization
 scripts/self_validation/ReleaseVersionChannelTest.terl	release-orchestration-test	migrated	environment,filesystem,json,regex,process,temp-workspace,deterministic-reporting
-scripts/self_validation/RoadmapLegacyRuntimeCleanupTest.terl	checker	migrated	filesystem,regex,string-normalization,tsv
+scripts/self_validation/RepositoryValidation.terls	checker	migrated	arguments,environment,filesystem,process,regex,sha256,temp-workspace,inline-assertions
 scripts/self_validation/RustBackedAdapterTest.terl	bootstrap-generator	migrated	environment,filesystem,batch-text-read,string-normalization
 scripts/self_validation/RustBackedManifestTest.terl	bootstrap-generator	migrated	environment,filesystem,json,batch-text-read,string-normalization,tsv
 scripts/self_validation/RustCodeQualityAdversarialTest.terl	quality-tool	migrated	filesystem,process,temp-workspace,string-search
@@ -42,8 +41,8 @@ scripts/self_validation/SelfValidationCheckout.terls	checker	migrated	arguments,
 scripts/self_validation/SharedHelperCheck.terls	checker	migrated	arguments,environment,filesystem,batch-text-read,string-normalization,hash,tsv,deterministic-reporting
 scripts/self_validation/SingleRootContractTest.terl	checker	migrated	filesystem,string-search
 scripts/self_validation/SqlFormBoundaryTest.terl	checker	migrated	filesystem,bounded-recursive-text-read,regex,string-search
-scripts/self_validation/StdlibReleaseTestsVmDefaultTest.terl	checker	migrated	filesystem,string-search
 scripts/self_validation/StaticRouteBoundaryTest.terl	checker	migrated	filesystem,regex,string-search
+scripts/self_validation/StdlibValidation.terls	checker	migrated	arguments,environment,filesystem,process,regex,tsv,inline-assertions
 scripts/self_validation/SummaryDriftTest.terl	bootstrap-generator	migrated	environment,filesystem,process,temp-workspace,batch-text-read,string-normalization
 scripts/self_validation/SummaryInventoryTest.terl	bootstrap-generator	migrated	filesystem,bounded-recursive-text-read,string-normalization
 scripts/self_validation/TerlanPytorchBaselinePolicyTest.terl	checker	migrated	environment,filesystem,json,sha256,string-normalization
@@ -66,7 +65,6 @@ scripts/self_validation/OpenCvCppPackageCheck.terls	checker	migrated	arguments,e
 scripts/self_validation/proof_release_evidence/scripts/ProofReleaseEvidence.terls	checker	migrated	arguments,environment,filesystem,hash,process,json,platform,deterministic-reporting,inline-assertions
 scripts/self_validation/TvmPackageInstallConsumer.terls	checker	migrated	arguments,environment,filesystem,json,process,temp-workspace,platform,deterministic-reporting,inline-assertions
 scripts/self_validation/tvm_aot_platform_matrix/scripts/TvmAotPlatformMatrix.terls	checker	migrated	arguments,environment,filesystem,json,hash,process,platform,markdown,deterministic-reporting,inline-assertions
-scripts/self_validation/rust_quality/src/rust_quality/CodeQualityCloseout.terl	quality-tool	migrated	arguments,environment,filesystem,json,deterministic-reporting,inline-assertions
 scripts/self_validation/rust_quality/src/rust_quality/DocsLight.terl	quality-tool	migrated	arguments,environment,filesystem,batch-text-read,string-normalization,deterministic-reporting,inline-assertions
 scripts/self_validation/ExternalPackageExecutionMatrix.terls	quality-tool	migrated	arguments,environment,filesystem,json,temp-workspace,deterministic-reporting,inline-assertions
 scripts/self_validation/release_promotion/scripts/ReleasePromotion.terls	quality-tool	migrated	arguments,environment,filesystem,hash,json,temp-workspace,deterministic-reporting,inline-assertions

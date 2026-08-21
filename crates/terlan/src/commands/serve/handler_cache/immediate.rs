@@ -21,6 +21,10 @@ use crate::commands::serve::handler::request_materialization::{
     replace_vm_request_descriptor, vm_request_descriptor_owned,
 };
 
+/// Prevents one generated callback from monopolizing its protocol owner with
+/// an unbounded chain of synchronously serviceable transitions.
+const MAX_LOCAL_TRANSITIONS_PER_STEP: usize = 1_024;
+
 pub(super) struct LocalImmediateShard {
     shard: PureNativeExecutionShard,
     owner: VmProcessId,
@@ -236,6 +240,7 @@ impl LocalImmediateShard {
         owner: VmProcessId,
         mut execution: PureNativeExecution,
     ) -> Result<OwnedInvocationStep, String> {
+        let mut local_transitions = 0_usize;
         loop {
             match execution {
                 PureNativeExecution::Complete(value) => {
@@ -294,6 +299,15 @@ impl LocalImmediateShard {
                     });
                 }
                 PureNativeExecution::Suspended(suspension) => {
+                    local_transitions += 1;
+                    if local_transitions > MAX_LOCAL_TRANSITIONS_PER_STEP {
+                        let operation = suspension.operation().clone();
+                        let reason = format!(
+                            "error[serve.aot.transition_budget]: generated callback exceeded {MAX_LOCAL_TRANSITIONS_PER_STEP} local transitions; last operation was {operation:?}"
+                        );
+                        self.shard.cancel_call(owner, reason.clone())?;
+                        return Err(reason);
+                    }
                     execution = self.shard.resume_call(owner, *suspension)?;
                 }
             }

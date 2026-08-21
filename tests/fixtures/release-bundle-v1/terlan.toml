@@ -1,0 +1,25 @@
+[package]
+name = "terlan-registry"
+version = "0.1.0"
+namespace = "terlan.registry"
+
+[build]
+source_roots = ["src"]
+artifact = "terlan-vm"
+
+[deploy]
+environment = ["PORT", "DATABASE_URL"]
+secrets = ["DATABASE_URL"]
+migrations = ["priv/migrations/001_packages.sql"]
+outbound_network = ["objects.example.test:443"]
+rollback = "migration-compatible"
+
+[deploy.health]
+path = "/health"
+interval_secs = 10
+timeout_secs = 2
+
+[deploy.resources]
+cpu_millis = 500
+memory_mb = 512
+processes = 2

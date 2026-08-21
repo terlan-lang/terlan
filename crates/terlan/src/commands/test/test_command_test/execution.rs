@@ -208,18 +208,18 @@ fn validation_pass_report_marks_all_tests_as_validated() {
     assert_eq!(report.results[0].span_end, 19);
 }
 
-/// Verifies exact test selection keeps only the named test.
+/// Verifies repeated exact test selection keeps the complete named subset.
 ///
 /// Inputs:
-/// - Synthetic discovered tests and selector `second`.
+/// - Synthetic discovered tests and selectors `first` and `second`.
 ///
 /// Output:
-/// - A one-element selected test list.
+/// - A two-element selected test list in declaration order.
 ///
 /// Transformation:
 /// - Applies the same exact-name filter used by `terlc test --name`.
 #[test]
-fn select_tests_keeps_exact_selected_test() {
+fn select_tests_keeps_exact_selected_tests() {
     let selected = select_tests(
         vec![
             DiscoveredTest {
@@ -237,14 +237,19 @@ fn select_tests_keeps_exact_selected_test() {
                 literal_bool_result: Some(true),
             },
         ],
-        Some("second"),
+        &["first".to_string(), "second".to_string()],
         "tests/SampleTest.terl",
         TestKind::Test,
     )
     .expect("selected tests");
 
-    assert_eq!(selected.len(), 1);
-    assert_eq!(selected[0].name, "second");
+    assert_eq!(
+        selected
+            .iter()
+            .map(|test| test.name.as_str())
+            .collect::<Vec<_>>(),
+        ["first", "second"]
+    );
 }
 
 /// Verifies missing exact test selection produces a clear diagnostic.
@@ -267,7 +272,7 @@ fn select_tests_rejects_missing_test_name() {
             span_end: 2,
             literal_bool_result: Some(true),
         }],
-        Some("missing"),
+        &["present".to_string(), "missing".to_string()],
         "tests/SampleTest.terl",
         TestKind::Test,
     )
@@ -357,15 +362,16 @@ fn run_js_tests_writes_validation_manifests() {
 /// Verifies scalar Terlan VM tests execute from a native image.
 ///
 /// Inputs:
-/// - A temporary `*Test.terl` module with one passing boolean `@test`.
+/// - A temporary `*Test.terl` module with multiple passing boolean `@test`
+///   declarations.
 ///
 /// Output:
 /// - Successful command exit code.
 ///
 /// Transformation:
-/// - Runs `terlc test --target terlan-vm` through the public command entry
-///   point and verifies that it emits a `.tvm` image without transitional
-///   JSON.
+/// - Runs two repeated exact-name selectors through the public command entry
+///   point and verifies that their shared native closure emits one `.tvm`
+///   image without transitional JSON.
 #[test]
 fn run_terlan_vm_tests_executes_bool_test() {
     let root = std::env::temp_dir().join(format!(
@@ -414,6 +420,10 @@ pub managed_smoke(): Bool ->
                 source_path.to_string_lossy().into_owned(),
                 "--target".to_string(),
                 "terlan-vm".to_string(),
+                "--name".to_string(),
+                "smoke".to_string(),
+                "--name".to_string(),
+                "managed_smoke".to_string(),
             ],
         },
         CliState {

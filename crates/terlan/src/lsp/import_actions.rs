@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 
-use crate::terlan_hir::load_interfaces_from_file_set;
+use crate::terlan_hir::load_discovery_interfaces_for_symbol_from_file_set;
 use tower_lsp::lsp_types::{
     CodeAction, CodeActionKind, Position, Range, TextEdit, Url, WorkspaceEdit,
 };
@@ -101,7 +101,9 @@ pub(crate) fn import_candidates_for_symbol(
     let file_path = source_path_for_uri(uri);
     let interfaces = file_path
         .as_ref()
-        .map(|path| load_interfaces_from_file_set(&path.to_string_lossy()))
+        .map(|path| {
+            load_discovery_interfaces_for_symbol_from_file_set(&path.to_string_lossy(), symbol)
+        })
         .unwrap_or_default();
 
     let mut candidates = BTreeMap::new();

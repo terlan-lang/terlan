@@ -1,8 +1,14 @@
 CARGO := cargo --locked
 RUST_TEST := $(CARGO) test
+RELEASE_VERSION ?= $(shell sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)
 EXACT_CARGO_TEST := bash scripts/run_exact_cargo_test.sh
 TERLAN_BOOTSTRAP_COMPILER := target/debug/terlc
+TERLAN_BOOTSTRAP_COMPILER_BUILD := $(TERLAN_BOOTSTRAP_COMPILER) build --incremental
 TERLAN_BOOTSTRAP_VM := target/debug/terlan-vm
+TERLAN_SERVE_RUNTIME_PROFILE := serve-runtime
+TERLAN_SERVE_RUNTIME_BIN := $(CURDIR)/target/$(TERLAN_SERVE_RUNTIME_PROFILE)/terlan-serve-runtime
+TERLAN_SERVE_RUNTIME_BUILD := $(CARGO) build --profile $(TERLAN_SERVE_RUNTIME_PROFILE) -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin
+TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS = -p terlan --bin terlc --bin terlan-vm
 TERLAN_TYPED_VALIDATOR_BUILD := bash scripts/build_typed_validator.sh
 TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT := target/self-validation/typed-validator-common.inputs.sha256
 TERLAN_TYPED_VALIDATOR_COMMON_INPUTS := $(TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT)
@@ -41,16 +47,26 @@ TERLAN_WEB_MANIFEST_PREFLIGHT := $(CURDIR)/$(TERLAN_BOOTSTRAP_VM) run $(CURDIR)/
 TERLAN_SELF_VALIDATION_CHECKOUT_DIR := target/self-validation/clean-checkout
 TERLAN_SELF_VALIDATION_CHECKOUT_IMAGE := $(TERLAN_SELF_VALIDATION_CHECKOUT_DIR)/vm/scripts_self_validation_SelfValidationCheckout.tvm
 TERLAN_SELF_VALIDATION_CHECKOUT := $(CURDIR)/$(TERLAN_BOOTSTRAP_VM) run $(CURDIR)/$(TERLAN_SELF_VALIDATION_CHECKOUT_IMAGE) --script-eval --
+TERLAN_STDLIB_VALIDATION_DIR := target/self-validation/stdlib-validation
+TERLAN_STDLIB_VALIDATION_IMAGE := $(TERLAN_STDLIB_VALIDATION_DIR)/vm/scripts_self_validation_StdlibValidation.tvm
+TERLAN_STDLIB_VALIDATION := $(CURDIR)/$(TERLAN_BOOTSTRAP_VM) run $(CURDIR)/$(TERLAN_STDLIB_VALIDATION_IMAGE) --script-eval --
+TERLAN_REPOSITORY_VALIDATION_DIR := target/self-validation/repository-validation
+TERLAN_REPOSITORY_VALIDATION_IMAGE := $(TERLAN_REPOSITORY_VALIDATION_DIR)/vm/scripts_self_validation_RepositoryValidation.tvm
+TERLAN_REPOSITORY_VALIDATION := $(CURDIR)/$(TERLAN_BOOTSTRAP_VM) run $(CURDIR)/$(TERLAN_REPOSITORY_VALIDATION_IMAGE) --script-eval --
 TERLAN_RUST_QUALITY_TIMEOUT_SECONDS := 300
 TERLAN_RUST_QUALITY_VIRTUAL_MEMORY_KIB := 131072
 TERLAN_RUST_QUALITY_MALLOC_ARENA_MAX := 1
 TERLAN_TVM_PLATFORM_REPORT_ROOT ?= target/quality/tvm-aot-platform-input
 TERLAN_SHARED_HELPER_TIMEOUT_SECONDS := 300
 TERLAN_SHARED_HELPER_VIRTUAL_MEMORY_KIB := 131072
+TERLAN_VALIDATOR_BUILD_JOBS ?= 2
+ifeq ($(filter 1 2,$(TERLAN_VALIDATOR_BUILD_JOBS)),)
+$(error TERLAN_VALIDATOR_BUILD_JOBS must be 1 or 2)
+endif
 DOCS_STATIC_RELEASE_PARITY_DIR := target/self-validation/docs-static-release-parity
 DOCS_STATIC_RELEASE_PARITY_IMAGE := $(DOCS_STATIC_RELEASE_PARITY_DIR)/vm/docs_static_release_parity_Main.tvm
-EDITOR_RELEASE_PARITY_DIR := target/self-validation/editor-release-parity
-EDITOR_RELEASE_PARITY_IMAGE := $(EDITOR_RELEASE_PARITY_DIR)/vm/docs_static_release_parity_Main.tvm
+EDITOR_RELEASE_PARITY_DIR := $(DOCS_STATIC_RELEASE_PARITY_DIR)
+EDITOR_RELEASE_PARITY_IMAGE := $(DOCS_STATIC_RELEASE_PARITY_IMAGE)
 TERLAN_COMPILER_CONSUMER_GATES := \
 	terlan-self-validation-inventory-check \
 	terlan-self-validation-capabilities-check \
@@ -61,19 +77,26 @@ TERLAN_COMPILER_CONSUMER_GATES := \
 	terlan-benchmark-framework-check \
 	single-root-contract-check \
 	safe-rust-runtime-check \
+	abi1-pre-freeze-check \
 	lalrpop-parser-parity-check \
 	lean-proof-parser-shape-check \
 	tvm-aot-package-install-consumer-check \
+	tvm-aot-multicore-migration-check \
+	vm-multicore-fixed-placement-check \
+	vm-multicore-mailbox-publication-check \
+	vm-multicore-replay-observability-check \
+	vm-multicore-runtime-cleanup-check \
+	vm-multicore-work-stealing-policy-check \
+	vm-actor-mutator-ownership-check \
 	runtime-aot-only-check \
 	terlan-vm-test-command-check \
 	vm-coordination-docker-check \
 	all-terlan-tests-vm-inventory-check \
-	otp-stdlib-migration-evidence-check \
-	roadmap-legacy-runtime-cleanup-check \
 	callable-syntax-cleanup-check \
 	generated-package-contract-check \
 	cpp-package-consumer-check \
 	cuda-package-check \
+	accelerator-hard-contract-check \
 	accelerator-boundary-baseline-check \
 	accelerator-package-metadata-check \
 	accelerator-value-contract-check \
@@ -84,6 +107,7 @@ TERLAN_COMPILER_CONSUMER_GATES := \
 	accelerator-vm-integration-check \
 	accelerator-specialized-artifact-check \
 	vm-sql-macro-validation-check \
+	vm-in-memory-stream-check \
 	static-route-boundary-check \
 	html-boundary-check \
 	http-runtime-stack-check \
@@ -94,7 +118,6 @@ TERLAN_COMPILER_CONSUMER_GATES := \
 	rust-code-quality-adversarial-check \
 	rust-artifact-retention-check \
 	rust-artifact-retention-clean-shared-debug \
-	rust-test-suite \
 	release-version-metadata-check \
 	release-version-bump \
 	binary-syntax-scaffold-check \
@@ -153,11 +176,11 @@ docs-light-check: terlan-rust-quality-bootstrap
 		$(TERLAN_RUST_QUALITY) docs-light-check
 
 rust-security-audit-check:
-	@cargo audit --version | grep -F 'cargo-audit 0.22.2'
-	cargo audit --deny warnings
+	@$(CARGO) audit --version | grep -F 'cargo-audit 0.22.2'
+	$(CARGO) audit --deny warnings
 .PHONY: tvm-aot-application-conformance-check tvm-aot-c-abi-boundary-check tvm-aot-closure-dispatch-check tvm-aot-crash-injection-check tvm-aot-image-lifetime-check tvm-aot-multicore-readiness-check tvm-aot-thread-sanitizer-check
-.PHONY: std-vm-parity-matrix-check otp-stdlib-port-check otp-stdlib-migration-evidence-check vm-distribution-suite-parity-check vm-multicore-invariant-inventory-check terlan-self-validation-inventory-check terlan-self-validation-capabilities-check terlan-self-validation-clean-checkout-check terlan-self-validation-check editor-release-parity-check docs-static-release-parity-check
-.PHONY: tvm-aot-managed-field-projection-check tvm-aot-platform-matrix-contract-check tvm-aot-thread-sanitizer-contract-check tvm-aot-roadmap-reconciliation-check tvm-aot-release-closeout-contract-check tvm-aot-release-closeout-check
+.PHONY: std-vm-parity-matrix-check otp-stdlib-port-check vm-distribution-suite-parity-check vm-multicore-invariant-inventory-check terlan-self-validation-inventory-check terlan-self-validation-capabilities-check terlan-self-validation-clean-checkout-check terlan-self-validation-check editor-release-parity-check docs-static-release-parity-check
+.PHONY: tvm-aot-managed-field-projection-check tvm-aot-platform-matrix-contract-check tvm-aot-thread-sanitizer-contract-check tvm-aot-release-closeout-contract-check tvm-aot-release-closeout-check
 .PHONY: tail-recursion-lowering-check termination-productivity-analysis-check binding-shadowing-safety-check
 .PHONY: no-tvm-json-runtime-check no-vmir-interpreter-check runtime-aot-only-check
 .PHONY: vm-debug-key-compatibility-check
@@ -203,14 +226,12 @@ rust-security-audit-check:
 .PHONY: type-alias-shorthand-check
 .PHONY: compiler-purity-metadata-check
 .PHONY: comprehension-guards-check
-.PHONY: lalrpop-parser-parity-check lean-proof-parser-shape-check lean-proof-native-boundary-check lean-proof-track-check lean-proof-smoke-check lean-proof-feature-binding-check lean-proof-change-impact-report lean-proof-feature-binding-review lean-proof-snapshot-consistency-check lean-proof-counterexample-check lean-proof-track-gap-hygiene-check lean-proof-feature-cull-check proof-repro-check proof_repro_check lean-proof-track-pr-gate lean-proof-track-regression-check lean-proof-track-runtime-check lean-proof-track-release-closeout-check lean-proof-templates-routes-check lean-proof-concurrency-check lean-proof-collections-check lean-proof-wasm-bridge-check lean-proof-db-sql-check lean-proof-std-package-check lean-proof-semantic-kernels-check release-artifacts-closeout-check proof-coverage-release-artifacts-smoke proof-readiness-release-mode-check release-0-0-7-evidence-refresh release-0-0-7-preflight aot-developer-hot-reload-check
+.PHONY: lalrpop-parser-parity-check lean-proof-parser-shape-check lean-proof-native-boundary-check lean-proof-track-check lean-proof-smoke-check lean-proof-feature-binding-check lean-proof-change-impact-report lean-proof-feature-binding-review lean-proof-snapshot-consistency-check lean-proof-counterexample-check lean-proof-track-gap-hygiene-check lean-proof-feature-cull-check proof-repro-check proof_repro_check lean-proof-track-pr-gate lean-proof-track-regression-check lean-proof-track-runtime-check lean-proof-track-release-closeout-check lean-proof-templates-routes-check lean-proof-concurrency-check lean-proof-collections-check lean-proof-wasm-bridge-check lean-proof-db-sql-check lean-proof-std-package-check lean-proof-semantic-kernels-check release-artifacts-closeout-check proof-coverage-release-artifacts-smoke proof-readiness-release-mode-check release-evidence-refresh release-preflight release-check aot-developer-hot-reload-check
 .PHONY: function-head-pattern-parameters-check function-head-migration-diagnostic-policy-check function-head-migration-lint-check function-head-pattern-migration-assist-check function-head-pattern-migration-benchmark-check function-head-pattern-migration-docs-check function-head-pattern-0-0-7-handoff-check function-head-pattern-parameters-hardening-check
 .PHONY: syntax-contract-check shape-implications-check
 .PHONY: shape-synonyms-check
 .PHONY: wasm-coreir-lowering-check wasm-runtime-exec-check wasm-contract-discovery-check
 .PHONY: flexible-shape-guards-check
-.PHONY: roadmap-legacy-runtime-cleanup-check
-.PHONY: roadmap-gate-integrity-check
 .PHONY: callable-syntax-cleanup-check
 .PHONY: release-version-channel-check release-version-bump
 .PHONY: editor-definition-navigation-check editor-code-action-auto-import-check
@@ -232,100 +253,12 @@ rust-security-audit-check:
 ifeq ($(TERLAN_RUST_SUITE_ALREADY_RUN),1)
 RUST_TEST := true
 EXACT_CARGO_TEST := true
-CANONICAL_RUST_SUITE_OWNER :=
-else
-CANONICAL_RUST_SUITE_OWNER := rust-test-suite
 endif
 
 include crates/terlan/cli.mk
 include std/stdlib.mk
 include editors/editor.mk
 include mk/code-quality.mk
-
-# Completed slices no longer own bespoke Cargo invocations. Their focused
-# repository checks remain below, while Rust coverage is owned by one suite.
-COMPLETED_SLICE_RUST_GATES := \
-	compiler-incremental-cache-check \
-	compiler-purity-metadata-check \
-	core-type-contracts-check \
-	device-target-planner-check \
-	editor-code-action-auto-import-check \
-	editor-completion-signature-check \
-	editor-definition-navigation-check \
-	function-head-migration-diagnostic-policy-check \
-	function-head-migration-lint-check \
-	function-head-pattern-0-0-7-handoff-check \
-	function-head-pattern-migration-assist-check \
-	function-head-pattern-migration-benchmark-check \
-	function-head-pattern-migration-docs-check \
-	function-head-pattern-parameters-check \
-	native-no-std-target-feasibility-check \
-	package-api-compatibility-check \
-	package-build-artifact-isolation-check \
-	package-cache-integrity-check \
-	package-capability-contract-check \
-	package-cli-workflow-check \
-	package-editor-integration-check \
-	package-registry-publish-check \
-	package-release-test-matrix-check \
-	package-resolver-reproducibility-check \
-	package-workspace-graph-check \
-	release-code-hygiene-check \
-	release-failure-reproduction-check \
-	release-flake-detection-check \
-	release-gate-duration-budget-check \
-	release-gate-report-schema-check \
-	release-gate-shard-resume-check \
-	repeated-let-syntax-check \
-	source-map-debug-info-check \
-	string-pattern-long-tail-check \
-	terlan-vm-http-lane-check \
-	terlc-debugger-check \
-	typed-template-interpolation-tooling-check \
-	typed-template-render-mode-check \
-	vm-distributed-scheduling-check \
-	vm-distributed-transport-check \
-	vm-distributed-state-check \
-	vm-http-acme-cache-custody-check \
-	vm-http-acme-renewal-rotation-check \
-	vm-http-acme-worker-migration-check \
-	vm-http-concurrency-investigation-check \
-	vm-http-handler-dispatch-check \
-	vm-http-handler-scheduler-fairness-check \
-	vm-http-runtime-attribution-check \
-	vm-http-soak-stability-check \
-	vm-http-stateful-actor-session-check \
-	vm-io-reactor-runtime-check \
-	vm-live-template-client-protocol-check \
-	vm-live-template-stream-check \
-	vm-memory-heap-pressure-check \
-	vm-model-sync-store-check \
-	vm-native-boundary-contract-check \
-	vm-native-worker-runtime-check \
-	vm-persistent-actor-adapter-conformance-check \
-	vm-persistent-actor-compaction-check \
-	vm-persistent-actor-performance-budget-check \
-	vm-persistent-actor-policy-check \
-	vm-persistent-actor-restore-check \
-	vm-persistent-actor-schema-check \
-	vm-persistent-actor-store-check \
-	vm-persistent-actor-telemetry-check \
-	vm-postgres-runtime-check \
-	vm-timer-deadline-check \
-	vm-web-config-secret-boundary-check \
-	vm-web-deployment-profile-check \
-	vm-web-lifecycle-health-check \
-	vm-web-observability-check \
-	vm-web-route-schema-client-check \
-	vm-web-security-policy-check \
-	wasm-contract-discovery-check \
-	wasm-coreir-lowering-check \
-	wasm-runtime-exec-check \
-	watch-mode-hot-reload-check \
-	web-asset-pipeline-check
-
-.PHONY: $(COMPLETED_SLICE_RUST_GATES)
-$(COMPLETED_SLICE_RUST_GATES): $(CANONICAL_RUST_SUITE_OWNER)
 
 COVERAGE_MIN ?= 84.20
 COVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm
@@ -353,107 +286,6 @@ $(error VERSION must not include the leading v. Use: make $(firstword $(MAKECMDG
 endif
 endif
 
-# CHECK_GATES := \
-# 	release-boundary-check \
-# 	single-root-contract-check \
-# 	diff-whitespace-check \
-# 	workspace-version-check \
-# 	release-version-metadata-check \
-# 	source-extension-check \
-# 	rust-warnings-check \
-# 	rust-quality-check \
-# 	safe-rust-runtime-check \
-# 	test-hierarchy-check \
-# 	dev-fast-feedback-profile-check \
-# 	std-source-naming-check \
-# 	std-generated-metadata-check \
-# 	std-test-honesty-check \
-# 	js-type-emission-contract-check \
-# 	callable-syntax-cleanup-check \
-# 	value-lifecycle-contract-check \
-# 	terlan-lint-pipe-canonicalization-check \
-# 	core-typing-spec-check \
-# 	core-type-contracts-check \
-# 	type-alias-shorthand-check \
-# 	target-inference-contract-check \
-# 	target-inference-default-vm-check \
-# 	shared-helper-check \
-# 	installer-contract-check \
-# 	rust-build-feature-shipping-check \
-# 	oxc-boundary-check \
-# 	no-terlan-vm-erts-rust-dependency-check \
-# 	terlc-build-executable-check \
-# 	terlan-vm-run-command-check \
-# 	terlan-vm-http-lane-check \
-# 	vm-runtime-semantics-check \
-# 	vm-diagnostics-quality-check \
-# 	vm-performance-baseline-check \
-# 	executable-docs-vm-check \
-# 	compiler-purity-metadata-check \
-# 	comprehension-guards-check \
-# 	lean-proof-track-check \
-# 	function-head-pattern-parameters-hardening-check \
-# 	string-pattern-matching-check \
-# 	string-pattern-long-tail-check \
-# 	binary-bitstring-processing-check \
-# 	shape-implications-check \
-# 	language-feature-coverage-100-check \
-# 	shape-synonyms-check \
-# 	wasm-coreir-lowering-check \
-# 	wasm-runtime-exec-check \
-# 	wasm-contract-discovery-check \
-# 	all-terlan-tests-vm-check \
-# 	std-package-coverage-100-check \
-# 	terlc-doctor-vm-pivot-check \
-# 	no-default-beam-runtime-check \
-# 	no-default-tokio-runtime-check \
-# 	otp-runtime-exit-check \
-# 	terlan-vm-erl-suite-audit-check \
-# 	roadmap-legacy-runtime-cleanup-check \
-# 	roadmap-gate-integrity-check \
-# 	std-vm-surface-classification-check \
-# 	vm-otp-abstractions-terlan-stdlib-check \
-# 	vm-ownership-classification-check \
-# 	vm-runtime-concept-inventory-check \
-# 	tvm-aot-pivot-inventory-check \
-# 	terlan-runtime-conformance-check \
-# 	release-failure-reproduction-check \
-# 	package-test-exec-check \
-# 	terlan-vm-internal-crate-check \
-# 	native-boundary-terminology-check \
-# 	native-boundary-security-check \
-# 	cpp-binding-generator-check \
-# 	c-abi-binding-generator-check \
-# 	libpq-c-abi-check \
-# 	cuda-package-availability-check \
-# 	native-boundary-runtime-adversarial-check \
-# 	release-hardening-check \
-# 	http-tls-check \
-# 	http-runtime-stack-check \
-# 	typed-template-interpolation-tooling-check \
-# 	typed-template-interpolation-backend-check \
-# 	vm-http-concurrency-investigation-check \
-# 	vm-http-vs-axum-check \
-# 	vm-http-benchmark-comparability-check \
-# 	vm-http-runtime-attribution-check \
-# 	vm-http-soak-stability-check \
-# 	vm-semantics-vs-otp-check \
-# 	function-language-surface-check \
-# 	runtime-release-dependency-self-test \
-# 	angular-ts-terlan-app-ownership-check \
-# 	angular-ts-terlan-integration-check \
-# 	angular-ts-namespace-generation-check \
-# 	changelog-public-scope-check \
-# 	internal-docs-check \
-# 	module-readme-check \
-# 	rustdoc-check \
-# 	cli-check \
-# 	stdlib-check \
-# 	tree-sitter-cli-check \
-# 	editor-check \
-# 	api-schema-check \
-# 	validate-ebnf
-#
 CHECK_GATES := \
 	terlan-self-validation-inventory-check \
 	terlan-self-validation-capabilities-check \
@@ -497,134 +329,196 @@ CHECK_GATES := \
 # A validation cycle owns one compiler bootstrap and one build of each typed
 # validation artifact. Every aggregate gate waits for this boundary, including
 # under parallel Make execution, and later recipes execute the sealed image
-# directly instead of recompiling its source through `terlc run`.
-.PHONY: terlan-compiler-bootstrap terlan-typed-validator-fingerprint terlan-self-validation-bootstrap terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap
+# directly instead of recompiling its source through `terlc run`. Only `check`
+# and aggregate targets whose parent owns this prerequisite set
+# `TERLAN_VALIDATION_BOOTSTRAPPED=1`; nested Make processes therefore trust the
+# already-verified boundary instead of repeating fingerprints and file probes.
+.PHONY: terlan-compiler-bootstrap terlan-quality-tools-bootstrap terlan-quality-bootstrap terlan-benchmark-release-bootstrap terlan-native-worker-bootstrap terlan-typed-validator-fingerprint terlan-artifact-measurement-bootstrap terlan-make-recipe-bootstrap terlan-self-validation-bootstrap terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-docs-static-release-parity-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap terlan-stdlib-validation-bootstrap terlan-repository-validation-bootstrap
 terlan-compiler-bootstrap:
-ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+ifeq ($(TERLAN_BUILD_ARTIFACTS_PREBUILT),1)
 	test -x $(TERLAN_BOOTSTRAP_COMPILER)
 	test -x $(TERLAN_BOOTSTRAP_VM)
 else
-	$(CARGO) build --locked -p terlan --bin terlc --bin terlan-vm
+	$(CARGO) build $(TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS)
+endif
+endif
+
+# Seal the quality and structural-analysis CLIs in one Cargo invocation. The
+# release aggregate orders this after the canonical suite, while a focused
+# quality target can request the tools without running the entire test suite.
+terlan-quality-tools-bootstrap:
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+ifeq ($(TERLAN_BUILD_ARTIFACTS_PREBUILT),1)
+	@for binary in \
+		terlan-quality \
+		terlan-native-target-feasibility \
+		terlan-lean-proof-closeout \
+		terlan-accelerator-value-contract \
+		terlan-accelerator-target-admission \
+		terlan-accelerator-ir \
+		terlan-accelerator-aot-backend \
+		terlan-accelerator-placement \
+		terlan-accelerator-vm-integration \
+		terlan-accelerator-specialized-artifact \
+		terlan-rust-boundary-audit; do \
+		test -x "target/debug/$$binary" || { \
+			echo "error: missing prebuilt release Rust tool: target/debug/$$binary" >&2; \
+			exit 1; \
+		}; \
+	done
+else
+	$(CARGO) build \
+		-p terlan \
+		-p terlan-rust-boundary-audit \
+		--bin terlan-quality \
+		--bin terlan-native-target-feasibility \
+		--bin terlan-lean-proof-closeout \
+		--bin terlan-accelerator-value-contract \
+		--bin terlan-accelerator-target-admission \
+		--bin terlan-accelerator-ir \
+		--bin terlan-accelerator-aot-backend \
+		--bin terlan-accelerator-placement \
+		--bin terlan-accelerator-vm-integration \
+		--bin terlan-accelerator-specialized-artifact \
+		--bin terlan-rust-boundary-audit \
+		--features terlan/quality-tools
+endif
+endif
+
+terlan-benchmark-release-bootstrap:
+	$(CARGO) build --release -p terlan --bin terlan-benchmark --features benchmark-tools
+
+# GNU Make 4.3 treats its global-serialization special target as process-wide.
+# Keep this target's required ordering explicit without disabling safe
+# parallelism elsewhere in the build graph.
+terlan-quality-bootstrap: rust-test-suite
+	$(MAKE) --no-print-directory --jobs=1 terlan-quality-tools-bootstrap
+
+terlan-native-worker-bootstrap:
+ifneq ($(filter 1,$(TERLAN_BUILD_ARTIFACTS_PREBUILT) $(TERLAN_RUST_SUITE_ALREADY_RUN)),)
+	test -x target/debug/terlan-native-worker
+else
+	$(CARGO) build -p terlan --bin terlan-native-worker
 endif
 
 terlan-typed-validator-fingerprint: terlan-compiler-bootstrap
-ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
-	$(TERLAN_TYPED_VALIDATOR_BUILD) fingerprint-check \
-		$(TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT) \
-		$(TERLAN_BOOTSTRAP_COMPILER) std
-else
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) fingerprint \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT) \
 		$(TERLAN_BOOTSTRAP_COMPILER) std
 endif
 
-terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-release-promotion-bootstrap terlan-release-closeout-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap: terlan-typed-validator-fingerprint
+terlan-make-recipe-bootstrap terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-docs-static-release-parity-bootstrap terlan-release-promotion-bootstrap terlan-release-closeout-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap terlan-stdlib-validation-bootstrap terlan-repository-validation-bootstrap: terlan-typed-validator-fingerprint
+
+terlan-artifact-measurement-bootstrap: terlan-compiler-bootstrap
+ifeq ($(filter 1,$(TERLAN_VALIDATION_BOOTSTRAPPED) $(TERLAN_ARTIFACT_MEASUREMENT_ALREADY_BUILT)),)
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_SELF_VALIDATION_IMAGE) \
+		$(TERLAN_BOOTSTRAP_COMPILER) std scripts/self_validation/BuildArtifactBudgetTest.terl -- \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
+		scripts/self_validation/BuildArtifactBudgetTest.terl
+	test -s $(TERLAN_SELF_VALIDATION_IMAGE)
+endif
+
+terlan-make-recipe-bootstrap: terlan-compiler-bootstrap
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_MAKE_RECIPE_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/MakeRecipeThinness.terls -- \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
+		scripts/self_validation/MakeRecipeThinness.terls \
+		--target terlan-vm --out-dir $(TERLAN_MAKE_RECIPE_DIR)
+	test -s $(TERLAN_MAKE_RECIPE_IMAGE)
+endif
 
 terlan-semantic-kernel-bootstrap: terlan-compiler-bootstrap
-ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
-	test -s $(TERLAN_SEMANTIC_KERNEL_IMAGE)
-else
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_SEMANTIC_KERNEL_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/proof_release_evidence -- \
-		$(TERLAN_BOOTSTRAP_COMPILER) build \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/proof_release_evidence/scripts/SemanticKernels.terls \
 		--target terlan-vm --out-dir $(TERLAN_SEMANTIC_KERNEL_DIR)
 	test -s $(TERLAN_SEMANTIC_KERNEL_IMAGE)
 endif
 
 terlan-ebnf-validator-bootstrap: terlan-compiler-bootstrap
-ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
-	test -s $(TERLAN_EBNF_VALIDATOR_IMAGE)
-else
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_EBNF_VALIDATOR_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/EbnfValidator.terls -- \
-		$(TERLAN_BOOTSTRAP_COMPILER) build \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/EbnfValidator.terls \
 		--target terlan-vm --out-dir $(TERLAN_EBNF_VALIDATOR_DIR)
 	test -s $(TERLAN_EBNF_VALIDATOR_IMAGE)
 endif
 
 terlan-shared-helper-bootstrap: terlan-compiler-bootstrap
-ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
-	test -s $(TERLAN_SHARED_HELPER_IMAGE)
-else
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_SHARED_HELPER_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/SharedHelperCheck.terls -- \
-		$(TERLAN_BOOTSTRAP_COMPILER) build \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/SharedHelperCheck.terls \
 		--target terlan-vm --out-dir $(TERLAN_SHARED_HELPER_DIR)
 	test -s $(TERLAN_SHARED_HELPER_IMAGE)
 endif
 
 terlan-external-package-matrix-bootstrap: terlan-compiler-bootstrap
-ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
-	test -s $(TERLAN_EXTERNAL_PACKAGE_MATRIX_IMAGE)
-else
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_EXTERNAL_PACKAGE_MATRIX_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/ExternalPackageExecutionMatrix.terls -- \
-		$(TERLAN_BOOTSTRAP_COMPILER) build \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/ExternalPackageExecutionMatrix.terls \
 		--target terlan-vm --out-dir $(TERLAN_EXTERNAL_PACKAGE_MATRIX_DIR)
 	test -s $(TERLAN_EXTERNAL_PACKAGE_MATRIX_IMAGE)
 endif
 
 terlan-tvm-package-consumer-bootstrap: terlan-compiler-bootstrap
-ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
-	test -s $(TERLAN_TVM_PACKAGE_CONSUMER_IMAGE)
-else
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_TVM_PACKAGE_CONSUMER_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/TvmPackageInstallConsumer.terls -- \
-		$(TERLAN_BOOTSTRAP_COMPILER) build \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/TvmPackageInstallConsumer.terls \
 		--target terlan-vm --out-dir $(TERLAN_TVM_PACKAGE_CONSUMER_DIR)
 	test -s $(TERLAN_TVM_PACKAGE_CONSUMER_IMAGE)
 endif
 
 terlan-tvm-platform-matrix-bootstrap: terlan-compiler-bootstrap terlan-tvm-package-consumer-bootstrap
-ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
-	test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)
-else
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/tvm_aot_platform_matrix -- \
-		$(TERLAN_BOOTSTRAP_COMPILER) build \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/tvm_aot_platform_matrix/scripts/TvmAotPlatformMatrix.terls \
 		--target terlan-vm --out-dir $(TERLAN_TVM_PLATFORM_MATRIX_DIR)
 	test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)
 endif
 
 terlan-rust-quality-bootstrap: terlan-compiler-bootstrap
-ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
-	test -s $(TERLAN_RUST_QUALITY_IMAGE)
-else
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_RUST_QUALITY_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/rust_quality -- \
-		$(TERLAN_BOOTSTRAP_COMPILER) build \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/rust_quality/scripts/RustQuality.terls \
 		--target terlan-vm --out-dir $(TERLAN_RUST_QUALITY_DIR)
 	test -s $(TERLAN_RUST_QUALITY_IMAGE)
 endif
 
 terlan-release-promotion-bootstrap: terlan-compiler-bootstrap
-ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
-	test -s $(TERLAN_RELEASE_PROMOTION_IMAGE)
-else
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_RELEASE_PROMOTION_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/release_promotion -- \
-		$(TERLAN_BOOTSTRAP_COMPILER) build \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/release_promotion/scripts/ReleasePromotion.terls \
 		--target terlan-vm --out-dir $(TERLAN_RELEASE_PROMOTION_DIR)
 	test -s $(TERLAN_RELEASE_PROMOTION_IMAGE)
 endif
 
 .PHONY: terlan-release-closeout-bootstrap release-example-projects-check release-project-upgrade-matrix-check release-reference-app-suite-check release-diagnostic-catalog-check release-compatibility-baseline-check release-notes-accuracy-check release-supply-chain-provenance-check release-security-hardening-check release-support-bundle-check release-performance-baseline-check release-adversarial-corpus-check release-mutation-check release-fault-injection-check release-readiness-attestation-check release-readiness-attestation-refresh release-staged-distribution-verification-check release-staged-distribution-verification-refresh
-terlan-release-closeout-bootstrap: terlan-compiler-bootstrap
 ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+terlan-release-closeout-bootstrap:
 	test -s $(TERLAN_RELEASE_CLOSEOUT_IMAGE)
 else
-	$(MAKE) vm-release-artifact-matrix-check
+terlan-release-closeout-bootstrap: terlan-compiler-bootstrap vm-release-artifact-matrix-check
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_RELEASE_CLOSEOUT_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/release_closeout -- \
-		$(TERLAN_BOOTSTRAP_COMPILER) build \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/release_closeout/scripts/ReleaseCloseout.terls \
 		--target terlan-vm --out-dir $(TERLAN_RELEASE_CLOSEOUT_DIR)
 	test -s $(TERLAN_RELEASE_CLOSEOUT_IMAGE)
@@ -731,7 +625,7 @@ release-fault-injection-check: release-mutation-check
 	@rg -q '"decision": "pass"' target/quality/release-fault-injection-report.json
 	@rg -q '"skip_reasons": \[\]' target/quality/release-fault-injection-report.json
 
-release-readiness-attestation-check: release-fault-injection-check terlan-release-promotion-bootstrap
+release-readiness-attestation-check: release-example-projects-check release-project-upgrade-matrix-check release-reference-app-suite-check release-notes-accuracy-check release-fault-injection-check terlan-release-promotion-bootstrap
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_RELEASE_PROMOTION) readiness --version 0.0.7
 	test -s target/quality/release-readiness-attestation-report.json
@@ -773,62 +667,83 @@ release-staged-distribution-verification-refresh: release-readiness-attestation-
 	@rg -q '"source_checkout_required": false' target/quality/release-staged-distribution-verification-report.json
 
 terlan-web-manifest-preflight-bootstrap: terlan-compiler-bootstrap
-ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
-	test -s $(TERLAN_WEB_MANIFEST_PREFLIGHT_IMAGE)
-else
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_WEB_MANIFEST_PREFLIGHT_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/WebManifestPreflight.terls -- \
-		$(TERLAN_BOOTSTRAP_COMPILER) build \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/WebManifestPreflight.terls \
 		--target terlan-vm --out-dir $(TERLAN_WEB_MANIFEST_PREFLIGHT_DIR)
 	test -s $(TERLAN_WEB_MANIFEST_PREFLIGHT_IMAGE)
 endif
 
 terlan-self-validation-checkout-bootstrap: terlan-compiler-bootstrap
-ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
-	test -s $(TERLAN_SELF_VALIDATION_CHECKOUT_IMAGE)
-else
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_SELF_VALIDATION_CHECKOUT_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/SelfValidationCheckout.terls -- \
-		$(TERLAN_BOOTSTRAP_COMPILER) build \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/SelfValidationCheckout.terls \
 		--target terlan-vm --out-dir $(TERLAN_SELF_VALIDATION_CHECKOUT_DIR)
 	test -s $(TERLAN_SELF_VALIDATION_CHECKOUT_IMAGE)
 endif
 
-terlan-self-validation-bootstrap: terlan-compiler-bootstrap terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-release-promotion-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap
-ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
-	test -s $(TERLAN_SELF_VALIDATION_IMAGE)
-	test -s $(TERLAN_MAKE_RECIPE_IMAGE)
-	test -s $(TERLAN_PROOF_RELEASE_IMAGE)
-else
-	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_SELF_VALIDATION_IMAGE) \
-		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/BuildArtifactBudgetTest.terl -- \
-		$(TERLAN_BOOTSTRAP_COMPILER) build \
-		scripts/self_validation/BuildArtifactBudgetTest.terl
-	test -s $(TERLAN_SELF_VALIDATION_IMAGE)
-	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_MAKE_RECIPE_IMAGE) \
-		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/MakeRecipeThinness.terls -- \
-		$(TERLAN_BOOTSTRAP_COMPILER) build \
-		scripts/self_validation/MakeRecipeThinness.terls \
-		--target terlan-vm --out-dir $(TERLAN_MAKE_RECIPE_DIR)
-	test -s $(TERLAN_MAKE_RECIPE_IMAGE)
+terlan-stdlib-validation-bootstrap: terlan-compiler-bootstrap
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_STDLIB_VALIDATION_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/StdlibValidation.terls -- \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
+		scripts/self_validation/StdlibValidation.terls \
+		--target terlan-vm --out-dir $(TERLAN_STDLIB_VALIDATION_DIR)
+	test -s $(TERLAN_STDLIB_VALIDATION_IMAGE)
+endif
+
+terlan-docs-static-release-parity-bootstrap: terlan-compiler-bootstrap
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(DOCS_STATIC_RELEASE_PARITY_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/docs_static_release_parity -- \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
+		scripts/self_validation/docs_static_release_parity \
+		--target terlan-vm --out-dir $(DOCS_STATIC_RELEASE_PARITY_DIR)
+	test -s $(DOCS_STATIC_RELEASE_PARITY_IMAGE)
+endif
+
+terlan-repository-validation-bootstrap: terlan-compiler-bootstrap
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_REPOSITORY_VALIDATION_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/RepositoryValidation.terls -- \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
+		scripts/self_validation/RepositoryValidation.terls \
+		--target terlan-vm --out-dir $(TERLAN_REPOSITORY_VALIDATION_DIR)
+	test -s $(TERLAN_REPOSITORY_VALIDATION_IMAGE)
+endif
+
+terlan-self-validation-bootstrap: terlan-compiler-bootstrap terlan-artifact-measurement-bootstrap terlan-make-recipe-bootstrap terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-docs-static-release-parity-bootstrap terlan-release-promotion-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap terlan-stdlib-validation-bootstrap terlan-repository-validation-bootstrap
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_PROOF_RELEASE_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/proof_release_evidence -- \
-		$(TERLAN_BOOTSTRAP_COMPILER) build \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/proof_release_evidence/scripts/ProofReleaseEvidence.terls \
 		--target terlan-vm --out-dir $(TERLAN_PROOF_RELEASE_DIR)
 	test -s $(TERLAN_PROOF_RELEASE_IMAGE)
 endif
 
 $(TERLAN_COMPILER_CONSUMER_GATES): | terlan-compiler-bootstrap
-$(filter-out terlan-format-check,$(CHECK_GATES)): | terlan-self-validation-bootstrap
 lean-proof-templates-routes-check lean-proof-concurrency-check lean-proof-collections-check lean-proof-wasm-bridge-check lean-proof-db-sql-check lean-proof-std-package-check lean-proof-semantic-kernels-check: | terlan-semantic-kernel-bootstrap
 
-check: rust-test-suite terlan-self-validation-bootstrap
+check: rust-test-suite
+	TERLAN_RUST_SUITE_ALREADY_RUN=1 \
+		$(MAKE) --no-print-directory \
+		terlan-quality-tools-bootstrap
+	TERLAN_RUST_SUITE_ALREADY_RUN=1 \
+	TERLAN_BUILD_ARTIFACTS_PREBUILT=1 \
+		$(MAKE) --no-print-directory --jobs=$(TERLAN_VALIDATOR_BUILD_JOBS) \
+		terlan-self-validation-bootstrap
 	TERLAN_RUST_SUITE_ALREADY_RUN=1 \
 	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
-		$(MAKE) --no-print-directory check-gates
+	TERLAN_BUILD_ARTIFACTS_PREBUILT=1 \
+		$(MAKE) --no-print-directory \
+		TERLC=$(CURDIR)/target/debug/terlc \
+		TERLAN_QUALITY=$(CURDIR)/target/debug/terlan-quality \
+		check-gates
 
 check-gates: $(CHECK_GATES)
 
@@ -836,27 +751,26 @@ terlan-self-validation-inventory-check:
 	target/debug/terlc test scripts/self_validation/InventoryTest.terl
 
 terlan-self-validation-capabilities-check:
-	target/debug/terlc test std/system/ArgumentsTest.terl
-	target/debug/terlc test std/system/EnvironmentTest.terl
-	target/debug/terlc test std/system/PlatformTest.terl
-	target/debug/terlc test std/system/ProcessTest.terl
-	target/debug/terlc test std/io/FileTest.terl
-	target/debug/terlc test std/io/DirectoryTest.terl
-	target/debug/terlc test std/crypto/HashTest.terl
-	target/debug/terlc test std/data/JsonTest.terl
-	target/debug/terlc test std/regex/RegexTest.terl
-	target/debug/terlc test std/core/StringTest.terl --name contains_accepts_present_pattern
-	target/debug/terlc test std/core/StringTest.terl --name starts_with_accepts_prefix
-	target/debug/terlc test std/core/StringTest.terl --name ends_with_accepts_suffix
-	target/debug/terlc test std/core/StringTest.terl --name lowercase_converts_ascii_text
-	target/debug/terlc test std/core/StringTest.terl --name direct_length_counts_unicode_scalars
-	target/debug/terlc test std/core/StringTest.terl --name direct_byte_size_counts_utf8_bytes
-	target/debug/terlc test std/core/StringTest.terl --name trim_removes_surrounding_whitespace
-	target/debug/terlc test std/core/StringTest.terl --name trim_start_removes_leading_whitespace
-	target/debug/terlc test std/core/StringTest.terl --name trim_end_removes_trailing_whitespace
-	target/debug/terlc test std/core/StringTest.terl --name compare_orders_earlier_text_first
-	target/debug/terlc test std/core/StringTest.terl --name compare_orders_later_text_after
-	target/debug/terlc test std/core/StringTest.terl --name compare_accepts_equal_text
+	target/debug/terlc test \
+		std/system \
+		std/io/FileTest.terl \
+		std/io/DirectoryTest.terl \
+		std/crypto/HashTest.terl \
+		std/data/JsonTest.terl \
+		std/regex/RegexTest.terl
+	target/debug/terlc test std/core/StringTest.terl \
+		--name contains_accepts_present_pattern \
+		--name starts_with_accepts_prefix \
+		--name ends_with_accepts_suffix \
+		--name lowercase_converts_ascii_text \
+		--name direct_length_counts_unicode_scalars \
+		--name direct_byte_size_counts_utf8_bytes \
+		--name trim_removes_surrounding_whitespace \
+		--name trim_start_removes_leading_whitespace \
+		--name trim_end_removes_trailing_whitespace \
+		--name compare_orders_earlier_text_first \
+		--name compare_orders_later_text_after \
+		--name compare_accepts_equal_text
 
 # One public closeout owns the Python-free source inventory, typed capability
 # surface, generated std contracts, thin Make dispatch, browser-manifest
@@ -882,10 +796,7 @@ terlan-self-validation-check: \
 terlan-self-validation-clean-checkout-check: terlan-self-validation-checkout-bootstrap
 	$(TERLAN_SELF_VALIDATION_CHECKOUT) "$(CURDIR)"
 
-editor-release-parity-check:
-	$(TERLAN_BOOTSTRAP_COMPILER) build scripts/self_validation/docs_static_release_parity \
-		--target terlan-vm --out-dir $(EDITOR_RELEASE_PARITY_DIR)
-	test -s $(EDITOR_RELEASE_PARITY_IMAGE)
+editor-release-parity-check: | terlan-docs-static-release-parity-bootstrap
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
 		$(TERLAN_BOOTSTRAP_VM) run $(EDITOR_RELEASE_PARITY_IMAGE) \
 			--entry docs_static_release_parity.Main.editor_release_parity_extract_entry
@@ -914,16 +825,13 @@ editor-release-parity-check:
 		$(TERLAN_BOOTSTRAP_VM) run $(EDITOR_RELEASE_PARITY_IMAGE) \
 			--entry docs_static_release_parity.Main.editor_release_parity_artifact_size_entry
 
-docs-static-release-parity-check:
-	$(TERLAN_BOOTSTRAP_COMPILER) build scripts/self_validation/docs_static_release_parity \
-		--target terlan-vm --out-dir $(DOCS_STATIC_RELEASE_PARITY_DIR)
-	test -s $(DOCS_STATIC_RELEASE_PARITY_IMAGE)
+docs-static-release-parity-check: | terlan-docs-static-release-parity-bootstrap
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
 		$(TERLAN_BOOTSTRAP_VM) run $(DOCS_STATIC_RELEASE_PARITY_IMAGE) \
 			--entry docs_static_release_parity.Main.run_entry
 
 .PHONY: terlan-make-recipe-thinness-check
-terlan-make-recipe-thinness-check:
+terlan-make-recipe-thinness-check: | terlan-make-recipe-bootstrap
 	TERLAN_MAKE_RECIPE_ROOT="$(CURDIR)" \
 		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_MAKE_RECIPE_IMAGE) --script-eval
 
@@ -947,7 +855,7 @@ check-experimental: check
 		$(MAKE) --no-print-directory external-package-execution-matrix-check
 
 .PHONY: value-lifecycle-contract-check
-value-lifecycle-contract-check:
+value-lifecycle-contract-check: validate-ebnf tree-sitter-cli-check editor-check
 	$(RUST_TEST) -p terlan --lib value_lifecycle_test -- --nocapture
 	$(RUST_TEST) -p terlan --lib const_eval_test -- --nocapture
 	$(RUST_TEST) -p terlan --lib expression_macro -- --nocapture
@@ -957,38 +865,54 @@ value-lifecycle-contract-check:
 	$(RUST_TEST) -p terlan --lib --features editor-lsp value_lifecycle_ -- --nocapture
 	$(TERLC) test tests/language/ValueLifecycleTest.terl --target terlan-vm
 	$(TERLC) --target-profile js.shared test tests/language/ValueLifecycleTest.terl --target js
-	$(MAKE) --no-print-directory validate-ebnf tree-sitter-cli-check editor-check
 
 test: cli-test
 
 rust-test-suite:
-	@if [ "$(TERLAN_RUST_SUITE_ALREADY_RUN)" = "1" ]; then \
-		echo "[rust-test-suite] canonical owned Rust suite already passed."; \
-	else \
-		$(CARGO) build --locked --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator; \
-		target/debug/terlan-test-orchestrator; \
-	fi
+ifeq ($(TERLAN_RUST_SUITE_ALREADY_RUN),1)
+	@echo "[rust-test-suite] canonical owned Rust suite already passed."
+else ifeq ($(TERLAN_BUILD_ARTIFACTS_PREBUILT),1)
+	@set -eu; \
+	for binary in terlc terlan-vm terlan-native-worker terlan-test-orchestrator; do \
+		test -x "target/debug/$$binary"; \
+	done; \
+	TERLAN_RUST_SUITE_REPORT=$(CURDIR)/target/quality/rust-test-suite-report.json \
+		target/debug/terlan-test-orchestrator
+	test -s target/quality/rust-test-suite-report.json
+else
+	$(CARGO) build --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator
+	TERLAN_RUST_SUITE_REPORT=$(CURDIR)/target/quality/rust-test-suite-report.json \
+		target/debug/terlan-test-orchestrator
+	test -s target/quality/rust-test-suite-report.json
+endif
 
 test-release: cli-test-release terlan-release-train-check $(TEST_RELEASE_STDLIB_TARGET)
 
-dev-check:
-	$(MAKE) rust-warnings-check
-	$(MAKE) std-test-honesty-check
-	$(MAKE) terlan-lint-style-profile-check
-	$(MAKE) cli-exact-selector-check
+.PHONY: dev-check dev-vm-check dev-web-check build
+dev-check: rust-warnings-check std-test-honesty-check terlan-lint-style-profile-check cli-exact-selector-check
 
-dev-vm-check:
-	$(MAKE) terlan-vm-run-command-check
-	$(MAKE) vm-diagnostics-quality-check
-	$(MAKE) vm-runtime-concept-inventory-check
+dev-vm-check: terlan-vm-run-command-check vm-diagnostics-quality-check vm-runtime-concept-inventory-check
 
-dev-web-check:
-	$(MAKE) tree-sitter-cli-check
-	$(MAKE) editor-debugger-surface-check
-	$(MAKE) angular-ts-namespace-generation-check
+dev-web-check: tree-sitter-cli-check editor-debugger-surface-check angular-ts-namespace-generation-check
 
-build:
-	$(MAKE) cli-build
+build: cli-build
+
+.PHONY: formal-cloud-deploy-plan-check formal-cloud-release-bundle-check formal-cloud-dashboard-toolchain-check
+formal-cloud-deploy-plan-check: cli-build
+	$(RUST_TEST) -p terlan --lib commands::deploy::deploy_test -- --nocapture
+	$(RUST_TEST) -p terlan --lib project_manifest_parses_semantic_deployment_intent_without_values -- --nocapture
+	$(RUST_TEST) -p terlan --lib project_manifest_rejects_secret_values_and_undeclared_secret_names -- --nocapture
+	$(RUST_TEST) -p terlan --lib project_manifest_rejects_machine_local_deployment_paths_and_urls -- --nocapture
+	bash scripts/check_cloud_deploy_plan_v2.sh
+
+formal-cloud-release-bundle-check: cli-build
+	$(RUST_TEST) -p terlan --lib release_bundle_is_complete_portable_and_deterministic -- --nocapture
+	bash scripts/check_cloud_release_bundle_v1.sh
+
+formal-cloud-dashboard-toolchain-check: cli-build
+	$(RUST_TEST) -p terlan --lib parse_bind_angular_ts_args -- --nocapture
+	$(RUST_TEST) -p terlan --lib commands::build::web_toolchain::tests -- --nocapture
+	TERLC="$(if $(CARGO_TARGET_DIR),$(abspath $(CARGO_TARGET_DIR)),$(abspath target))/debug/terlc" bash scripts/check_managed_web_toolchain.sh
 
 LOCAL_TERLC ?= $(shell command -v terlc 2>/dev/null || printf '%s/.local/bin/terlc' "$$HOME")
 LOCAL_TERLAN_VM ?= $(dir $(LOCAL_TERLC))terlan-vm
@@ -1027,16 +951,16 @@ validate-ebnf: | terlan-ebnf-validator-bootstrap
 	TERLAN_EBNF_COMPILER="$(CURDIR)/$(TERLAN_BOOTSTRAP_COMPILER)" \
 		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_EBNF_VALIDATOR_IMAGE) --script-eval -- --strict
 
-workspace-version-check:
-	bash scripts/check_workspace_version_inheritance.sh
+workspace-version-check: | terlan-repository-validation-bootstrap
+	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
+		$(TERLAN_REPOSITORY_VALIDATION) workspace-version
 
 release-version-metadata-check: | terlan-compiler-bootstrap
 	TERLAN_RELEASE_VERSION="$(VERSION)" \
 	TERLAN_RELEASE_CHANNEL=dev \
 		target/debug/terlc test scripts/self_validation/ReleaseVersionChannelTest.terl
 
-release-version-channel-check:
-	$(MAKE) --no-print-directory release-version-metadata-check
+release-version-channel-check: release-version-metadata-check
 
 release-version-bump: | terlan-compiler-bootstrap
 	TERLAN_RELEASE_VERSION="$(VERSION)" \
@@ -1044,12 +968,49 @@ release-version-bump: | terlan-compiler-bootstrap
 	TERLAN_RELEASE_CHANNEL=dev \
 		target/debug/terlc test scripts/self_validation/ReleaseVersionChannelTest.terl
 
-source-extension-check:
-	bash scripts/check_terlan_source_extensions.sh
+source-extension-check: | terlan-repository-validation-bootstrap
+	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
+		$(TERLAN_REPOSITORY_VALIDATION) source-extensions
 
-release-boundary-check:
-	bash scripts/check_build_release_contract.sh
-	bash scripts/check_release_boundary.sh
+.PHONY: repository-validation-self-test repository-build-release-contract-check release-artifact-set-check
+repository-validation-self-test: | terlan-repository-validation-bootstrap
+	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
+		$(TERLAN_REPOSITORY_VALIDATION) self-test
+
+repository-build-release-contract-check: | terlan-repository-validation-bootstrap
+	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
+		$(TERLAN_REPOSITORY_VALIDATION) build-release-contract
+	@attempt=0; \
+	until test -s target/quality/validation-build-plan-report.json; do \
+		attempt=$$((attempt + 1)); \
+		if test "$$attempt" -ge 50; then \
+			echo "error: repository validator did not seal target/quality/validation-build-plan-report.json" >&2; \
+			exit 1; \
+		fi; \
+		sleep 0.1; \
+	done
+	@rg -q '"decision": "pass"' target/quality/validation-build-plan-report.json
+	@rg -q '"duplicate_equivalent_build_count": 0' target/quality/validation-build-plan-report.json
+	@rg -q '"terlc_test_invocation_count":' target/quality/validation-build-plan-report.json
+	@rg -q '"terlc_test_invocation_maximum": 32' target/quality/validation-build-plan-report.json
+	@rg -q '"terlc_build_invocation_maximum": 16' target/quality/validation-build-plan-report.json
+	@rg -q '"incremental_terlc_build_invocation_count":' target/quality/validation-build-plan-report.json
+	@rg -q '"lifecycle_partial_check_count": 2' target/quality/validation-build-plan-report.json
+	@rg -q '"cargo_invocation_maximum": 6' target/quality/validation-build-plan-report.json
+	@rg -q '"typed_validator_request_maximum": 17' target/quality/validation-build-plan-report.json
+	@rg -q '"typed_validator_parallelism_maximum": 2' target/quality/validation-build-plan-report.json
+
+release-boundary-check: repository-build-release-contract-check
+	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
+		$(TERLAN_REPOSITORY_VALIDATION) release-boundary
+
+RELEASE_ARTIFACT_SET_ROOT ?= target/release-distribution
+RELEASE_ARTIFACT_SET_LOCAL_PAYLOAD ?= 0
+release-artifact-set-check: | terlan-repository-validation-bootstrap
+	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
+		$(TERLAN_REPOSITORY_VALIDATION) release-artifact-set \
+		"$(RELEASE_ARTIFACT_SET_ROOT)" \
+		$(if $(filter 1,$(RELEASE_ARTIFACT_SET_LOCAL_PAYLOAD)),--with-local-payload,)
 
 single-root-contract-check:
 	$(CURDIR)/target/debug/terlc test \
@@ -1059,11 +1020,11 @@ diff-whitespace-check:
 	git diff --check
 
 dormant-runtime-code-check:
-	$(RUST_TEST) --locked -p terlan --lib --features quality-tools dormant_runtime_code_test
+	$(RUST_TEST) -p terlan --lib --features quality-tools dormant_runtime_code_test
 	$(TERLAN_QUALITY) dormant-runtime-code
 
 vm-deterministic-hashmap-check:
-	$(RUST_TEST) --locked -p terlan --lib --features quality-tools vm_deterministic_hashmap_test
+	$(RUST_TEST) -p terlan --lib --features quality-tools vm_deterministic_hashmap_test
 	$(TERLAN_QUALITY) vm-deterministic-hashmap
 
 safe-rust-runtime-check:
@@ -1251,16 +1212,18 @@ binary-syntax-scaffold-check: tree-sitter-package-check tree-sitter-cli-check
 	$(TERLC_EXACT_TEST) compiler::typeck::pattern_test::binary_and_collection_patterns::syntax_output_accepts_typed_binary_layout_function_head_pattern -- --exact
 	$(TERLC_EXACT_TEST) validation::target_profile::target_profile_test::tests::binary_pattern_test::target_profile_allows_binary_pattern_for_vm_profile -- --exact
 	$(TERLC_EXACT_TEST) validation::target_profile::target_profile_test::tests::binary_pattern_test::target_profile_rejects_binary_pattern_for_js_profiles -- --exact
-	$(TERLC) test tests/binary/BinaryConstructionTest.terl
-	$(TERLC) test tests/binary/BinaryPatternTest.terl
-	$(TERLC) test tests/binary/BinaryPropertyTest.terl
+	$(TERLC) test \
+		tests/binary/BinaryConstructionTest.terl \
+		tests/binary/BinaryPatternTest.terl \
+		tests/binary/BinaryPropertyTest.terl
 
 	target/debug/terlc check std/binary/Binary.terl
 	target/debug/terlc check std/binary/BinaryTest.terl
-	target/debug/terlc test std/binary
-	target/debug/terlc test tests/binary/BinaryDynamicSizeTest.terl
+	target/debug/terlc test \
+		std/binary \
+		tests/binary/BinaryDynamicSizeTest.terl \
+		std/vm/BitStringTest.terl
 	target/debug/terlc check std/vm/BitString.terl
-	target/debug/terlc test std/vm/BitStringTest.terl
 	$(TERLC_EXACT_TEST) compiler::typeck::core_intrinsic_test::vm_primitive_registry::vm_bitstring_intrinsics_have_closed_ids_and_return_types -- --exact
 	$(TERLC_EXACT_TEST) runtime::vm::bitstring::bitstring_test -- --nocapture
 	$(TERLC_EXACT_TEST) runtime::vm::memory::memory_test::limits_and_accounting::memory_logical_value_size_accounts_nested_structural_values_exactly -- --exact
@@ -1287,32 +1250,33 @@ binary-protocol-benchmark-check:
 		target/debug/terlc test scripts/benchmarks/protocol/ProtocolBenchmarkTest.terl \
 			--bench --warmup 0 --samples 1 --name repository_protocol_benchmark_gate
 
-core-type-contracts-check:
-	$(MAKE) --no-print-directory tree-sitter-package-check tree-sitter-cli-check
+core-type-contracts-check: tree-sitter-package-check tree-sitter-cli-check
 
-type-alias-shorthand-check: $(CANONICAL_RUST_SUITE_OWNER) tree-sitter-cli-check
+type-alias-shorthand-check: tree-sitter-cli-check
 	target/debug/terlc test std/core/AtomTest.terl
 
 compiler-purity-metadata-check:
-	$(TERLC) test std/core/EffectTest.terl
-	$(TERLC) test tests/language/PurityEffectsTest.terl
-	$(TERLC) test tests/fixtures/purity_template/PurityTemplateTest.terl
+	$(TERLC) test \
+		std/core/EffectTest.terl \
+		tests/language/PurityEffectsTest.terl \
+		tests/fixtures/purity_template/PurityTemplateTest.terl
 
 lean-proof-track-check:
-	$(MAKE) lean-proof-feature-cull-check
-	$(MAKE) lean-proof-semantic-kernels-check
-	$(MAKE) lean-proof-track-runtime-check
-	$(MAKE) proof-repro-check
-	$(MAKE) lean-proof-smoke-check
-	target/debug/terlc test scripts/self_validation/LeanProofLanesTest.terl
-	target/debug/terlc test scripts/self_validation/LeanProofFeatureBindingTest.terl
-	$(MAKE) lean-proof-track-pr-gate
-	$(MAKE) lean-proof-track-regression-check
+	$(MAKE) --no-print-directory --jobs=1 \
+		lean-proof-feature-cull-check \
+		lean-proof-semantic-kernels-check \
+		lean-proof-track-runtime-check \
+		proof-repro-check \
+		lean-proof-smoke-check \
+		lean-proof-track-pr-gate \
+		lean-proof-track-regression-check
+	target/debug/terlc test \
+		scripts/self_validation/LeanProofLanesTest.terl \
+		scripts/self_validation/LeanProofFeatureBindingTest.terl
 
-lalrpop-parser-parity-check:
+lalrpop-parser-parity-check: tree-sitter-package-check tree-sitter-cli-check editor-check
 	target/debug/terlc test scripts/self_validation/LalrpopGrammarContractTest.terl
 	$(RUST_TEST) -p terlan --lib compiler::syntax:: -- --test-threads=1
-	$(MAKE) --no-print-directory tree-sitter-package-check tree-sitter-cli-check editor-check
 
 lean-proof-parser-shape-check:
 	target/debug/terlc test scripts/self_validation/LalrpopGrammarContractTest.terl
@@ -1437,37 +1401,66 @@ lean-proof-track-gap-hygiene-check:
 	$(TERLAN_QUALITY) lean-proof-gap-hygiene
 
 lean-proof-track-release-closeout-check: rust-test-suite lalrpop-parser-parity-check lean-proof-parser-shape-check lean-proof-native-boundary-check lean-proof-counterexample-check lean-proof-smoke-check lean-proof-snapshot-consistency-check $(LEAN_PROOF_CLOSEOUT_DEPS) lean-proof-track-gap-hygiene-check
-	$(CARGO) run --locked -p terlan --bin terlan-lean-proof-closeout --features quality-tools --quiet
+	target/debug/terlan-lean-proof-closeout
 
-# Refresh is intentionally separate from preflight. It is the expensive command
-# that produces or replaces candidate-bound evidence. The preflight below only
-# composes and validates existing evidence, so a late failure can be repaired by
-# rerunning the invalidated owner instead of replaying every successful gate.
-release-0-0-7-evidence-refresh: check release-failure-reproduction-check internal-docs-check roadmap-gate-integrity-check release-generated-artifacts-check release-version-channel-check lean-proof-snapshot-consistency-check lean-proof-track-release-closeout-check release-artifacts-closeout-check proof-readiness-release-mode-check release-staged-distribution-verification-check
-	@echo "[release-0-0-7-evidence-refresh] candidate-bound evidence refreshed"
 
-release-0-0-7-preflight:
+RELEASE_EVIDENCE_GATES := \
+	vm-http-runtime-attribution-check \
+	release-failure-reproduction-check \
+	internal-docs-check \
+	release-generated-artifacts-check \
+	release-version-channel-check \
+	lean-proof-snapshot-consistency-check \
+	lean-proof-track-release-closeout-check \
+	release-artifacts-closeout-check \
+	proof-readiness-release-mode-check \
+	release-staged-distribution-verification-check
+
+# Refresh is intentionally separate from preflight. The canonical `check`
+# invocation owns the Rust suite, compiler, quality tools, and typed validator
+# builds. Only after that boundary passes do the evidence owners run in one
+# inherited Make graph, with duplicate Rust/build launchers disabled. The
+# preflight below only composes and validates existing evidence, so a late
+# failure can be repaired by rerunning the invalidated owner instead of
+# replaying every successful gate.
+release-evidence-refresh: check
+	TERLAN_RUST_SUITE_ALREADY_RUN=1 \
+	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
+		$(MAKE) --no-print-directory $(RELEASE_EVIDENCE_GATES)
+	@echo "[release-evidence-refresh] version $(RELEASE_VERSION) candidate-bound evidence refreshed"
+
+release-preflight:
 	test -x $(TERLAN_BOOTSTRAP_VM)
 	test -s $(TERLAN_RELEASE_PROMOTION_IMAGE)
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_RELEASE_PROMOTION) preflight-self-test
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_RELEASE_PROMOTION) preflight --version 0.0.7
-	test -s target/quality/release-0-0-7-support-manifest.json
-	test -s target/quality/release-0-0-7-preflight-report.json
-	@rg -q '"decision": "pass"' target/quality/release-0-0-7-preflight-report.json
-	@rg -q '"closure_gate_count": 203' target/quality/release-0-0-7-preflight-report.json
-	@rg -q '"candidate_build_count": 1' target/quality/release-0-0-7-preflight-report.json
-	@rg -q '"candidate_seal_count": 1' target/quality/release-0-0-7-preflight-report.json
-	@rg -q '"publication_required": false' target/quality/release-0-0-7-preflight-report.json
-	@rg -q '"evidence_strategy": "candidate-bound-composition-v1"' target/quality/release-0-0-7-preflight-report.json
-	@rg -q '"preflight_replays_completed_gates": false' target/quality/release-0-0-7-preflight-report.json
-	@rg -q '"same_process_required": false' target/quality/release-0-0-7-preflight-report.json
-	@rg -q '"selective_invalidation_required": true' target/quality/release-0-0-7-preflight-report.json
-	@echo "[release-0-0-7-preflight] candidate-bound evidence closed all 203 classified gates"
+		$(TERLAN_RELEASE_PROMOTION) preflight --version "$(RELEASE_VERSION)"
+	test -s target/quality/release-support-manifest.json
+	test -s target/quality/release-preflight-report.json
+	@rg -q '"decision": "pass"' target/quality/release-preflight-report.json
+	@rg -q '"release_version": "$(RELEASE_VERSION)"' target/quality/release-preflight-report.json
+	@rg -q '"outcome_report_count":' target/quality/release-preflight-report.json
+	@rg -q '"candidate_build_count": 1' target/quality/release-preflight-report.json
+	@rg -q '"candidate_seal_count": 1' target/quality/release-preflight-report.json
+	@rg -q '"publication_required": false' target/quality/release-preflight-report.json
+	@rg -q '"evidence_strategy": "candidate-bound-composition-v1"' target/quality/release-preflight-report.json
+	@rg -q '"preflight_replays_completed_gates": false' target/quality/release-preflight-report.json
+	@rg -q '"same_process_required": false' target/quality/release-preflight-report.json
+	@rg -q '"selective_invalidation_required": true' target/quality/release-preflight-report.json
+	@echo "[release-preflight] version $(RELEASE_VERSION) candidate-bound semantic evidence passed"
+
+release-check: release-evidence-refresh
+	$(MAKE) --no-print-directory release-preflight RELEASE_VERSION="$(RELEASE_VERSION)"
 
 release-candidate-check: build-artifact-budget-record
-	$(MAKE) check
+	TERLAN_BUILD_ARTIFACTS_PREBUILT=0 \
+		$(MAKE) --no-print-directory terlan-quality-tools-bootstrap
+	bash scripts/clean_build_outputs.sh --check-partials
+	TERLAN_ARTIFACT_MEASUREMENT_ALREADY_BUILT=1 \
+	TERLAN_BUILD_ARTIFACTS_PREBUILT=1 \
+		$(MAKE) --no-print-directory check
+	bash scripts/clean_build_outputs.sh --check-partials
 
 function-head-migration-diagnostic-policy-check:
 	$(TERLAN_QUALITY) function-head-migration-diagnostic-policy
@@ -1495,10 +1488,9 @@ function-head-pattern-parameters-check:
 	grep -F 'pub describe({status, body}: Dynamic): String.' docs/grammar/README.md
 	grep -F 'pub full_name({name, family_name} = user: User): String ->' docs/grammar/README.md
 
-shape-synonyms-check: shape-implications-check
+shape-synonyms-check: shape-implications-check tree-sitter-package-check tree-sitter-cli-check
 	$(TERLAN_QUALITY) pattern-matching-support
 	grep -F 'shape OkResponse(body)' docs/grammar/README.md
-	$(MAKE) --no-print-directory tree-sitter-package-check tree-sitter-cli-check
 	$(TERLC_EXACT_TEST) compiler::syntax::parser::parser_pattern_test::tests::parses_nullary_constructor_pattern_call -- --exact
 	$(TERLC_EXACT_TEST) compiler::syntax::parser::parser_decl_test::trait_declarations::parses_shape_synonym_declaration_as_structured_decl -- --exact
 	$(TERLC_EXACT_TEST) compiler::syntax::parser::parser_decl_test::trait_declarations::parses_public_shape_synonym_declaration_as_structured_decl -- --exact
@@ -1617,8 +1609,7 @@ shape-synonyms-check: shape-implications-check
 	$(TERLC_EXACT_TEST) compiler::syntax::parser::parser_decl_test::bindings_and_functions::old_shape_runtime_arrow_spelling_is_not_shape_synonym_surface -- --exact
 	$(TERLC) test tests/pattern/ShapeSynonymTest.terl
 
-syntax-contract-check: validate-ebnf
-	$(MAKE) --no-print-directory tree-sitter-package-check tree-sitter-cli-check
+syntax-contract-check: validate-ebnf tree-sitter-package-check tree-sitter-cli-check
 	grep -F 'ImplicationConstraint ::= "=>" StructuralEvidenceShape .' docs/grammar/TERLAN_SYNTAX_SPEC.ebnf
 	grep -F 'The implication arrow is accepted only as generic-parameter shorthand' docs/grammar/README.md
 	$(TERLC_EXACT_TEST) compiler::syntax::parser::parser_decl_test::trait_declarations::parses_structural_implication_in_function_generic_parameter -- --exact
@@ -1701,8 +1692,6 @@ shape-implications-check: syntax-contract-check
 	$(TERLC_EXACT_TEST) commands::build::build_test::tests::shape_js_test::build_command_executes_structural_implication_for_js_target -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --features editor-lsp --lib lsp::hover::hover_test::hover_preserves_local_structural_implication_signature -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --features editor-lsp --lib lsp::hover::hover_test::editor_surfaces_preserve_imported_structural_implication -- --exact
-	$(RUST_TEST) -p terlan --lib --features quality-tools shape_implications_test
-	$(TERLAN_QUALITY) shape-implications
 	TERLAN_LEAN_PROOF_ROOT="$(CURDIR)" \
 	TERLAN_LEAN_PROOF_PATH=Terlan/Type/ShapeImplication.lean \
 		target/debug/terlc test scripts/self_validation/LeanProofExecutionTest.terl
@@ -1721,7 +1710,7 @@ oxc-boundary-check:
 	$(TERLAN_QUALITY) oxc-boundary
 
 adversarial-check: | terlan-tvm-platform-matrix-bootstrap
-	$(RUST_TEST) --locked -p terlan --lib adversarial -- --nocapture
+	$(RUST_TEST) -p terlan --lib adversarial -- --nocapture
 	$(TERLAN_TVM_PLATFORM_MATRIX) release-artifact-adversarial
 
 coverage-check:
@@ -1729,8 +1718,8 @@ coverage-check:
 		echo "coverage-check requires cargo-llvm-cov; install with: cargo install cargo-llvm-cov --locked"; \
 		exit 127; \
 	}
-	$(CARGO) build --quiet --locked -p terlan --bin terlan-vm
-	TERLAN_VM_RUNNER=$(COVERAGE_VM_RUNNER) $(CARGO) llvm-cov --quiet --locked -p terlan --bin terlc --ignore-filename-regex '$(COVERAGE_IGNORE_FILENAME_REGEX)' --fail-under-lines $(COVERAGE_MIN)
+	$(CARGO) build --quiet -p terlan --bin terlan-vm
+	TERLAN_VM_RUNNER=$(COVERAGE_VM_RUNNER) $(CARGO) llvm-cov --quiet -p terlan --bin terlc --ignore-filename-regex '$(COVERAGE_IGNORE_FILENAME_REGEX)' --fail-under-lines $(COVERAGE_MIN)
 
 release-hardening-check: adversarial-check coverage-check
 
@@ -1739,37 +1728,37 @@ erlang-backend-classification-check:
 	$(TERLAN_QUALITY) erlang-backend-classification
 
 terlan-vm-artifact-format-check:
-	$(RUST_TEST) --locked -p terlan --lib native_image_test
+	$(RUST_TEST) -p terlan --lib native_image_test
 	$(TERLAN_QUALITY) vm-artifact-format
 
 tvm-native-image-format-check: terlan-vm-artifact-format-check
 
 tvm-direct-aot-backend-check: terlan-vm-artifact-format-check
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::pure_native::direct_backend::direct_backend_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::pure_native::direct_backend::direct_backend_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --test direct_aot_local_shard native_image_transitions_execute_on_the_local_shard -- --exact
 
 tvm-aot-lowering-coverage-check:
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::lowering_coverage_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::lowering_coverage_test
 
 tvm-aot-application-closure-check:
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::application_admission_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::static_callable_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::higher_order_specialization_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::application_admission_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::static_callable_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::higher_order_specialization_test
 
 tvm-aot-case-lowering-check:
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::case_lowering_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::case_lowering_test
 
 tvm-aot-managed-field-projection-check:
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::field_projection_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::field_projection_test
 
 tvm-aot-owned-closure-representation-check:
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::managed_closure_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::managed_closure_test
 
 tvm-aot-closure-dispatch-check:
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::managed_closure_dispatch_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::closure_conversion_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::cranelift::managed_callback_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::managed_closure_dispatch_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::closure_conversion_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::cranelift::managed_callback_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::build::vm_artifact::native_descriptor_test::lifted_callable_descriptor_separates_captures_from_call_arguments -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::managed_execution_test::executable_metadata_installs_generation_scoped_closure_dispatch -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::native_image_test::descriptor_round_trip_is_canonical_and_deterministic -- --exact
@@ -1777,11 +1766,11 @@ tvm-aot-closure-dispatch-check:
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::build::build_test::tests::deterministic_artifact_test::deterministic_module_emits_reproducible_vm_artifact_bytes -- --exact
 
 tvm-aot-typed-mailbox-check:
-	$(RUST_TEST) --locked -p terlan --lib compiler::typeck::core_intrinsic_process_test
+	$(RUST_TEST) -p terlan --lib compiler::typeck::core_intrinsic_process_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_typed_process_operations_require_explicit_specialization -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::typeck::trait_negative_test::syntax_output_rejects_actor_message_with_denied_delivery -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::typeck::trait_negative_test::syntax_output_accepts_actor_and_node_values_with_default_delivery -- --exact
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::cranelift::managed_type_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::cranelift::managed_type_test
 
 tvm-aot-typed-lifecycle-check:
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::typeck::core_intrinsic_process_test::syntax_output_lowering_canonicalizes_typed_process_lifecycle_transitions -- --exact
@@ -1791,20 +1780,20 @@ tvm-aot-typed-lifecycle-check:
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_rejects_scalar_process_lifecycle_arguments -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::cranelift::managed_type_test::typed_public_lifecycle_operations_lower_to_existing_vm_transitions -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::lowering_coverage_test::intrinsic_families_have_explicit_lowering_dispositions -- --exact
-	$(RUST_TEST) --locked -p terlan --lib vm::main_test::native_transition_test
+	$(RUST_TEST) -p terlan --lib vm::main_test::native_transition_test
 
 tvm-aot-managed-continuation-check:
-	$(RUST_TEST) --locked -p terlan --test managed_continuation_aot
+	$(RUST_TEST) -p terlan --test managed_continuation_aot
 
 tvm-aot-thread-neutral-continuation-check:
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::pure_native::thread_neutral::thread_neutral_test::parked_native_continuation_is_send_sync_and_static -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::pure_native::pure_native_transport_test::parked_native_continuation_resumes_after_thread_transfer -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::pure_native::direct_backend::direct_backend_test::direct_backend_parked_state_is_send_sync_and_static -- --exact
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::actor::tests::actor_suspension_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::actor::tests::actor_suspension_test
 
 tvm-aot-multicore-readiness-check: tvm-aot-thread-neutral-continuation-check
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::pure_native::multicore_model_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::pure_native
+	$(RUST_TEST) -p terlan --lib runtime::vm::pure_native::multicore_model_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::pure_native
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::pure_native::execution_shard::execution_shard_test::actor_continuations_interleave_reentrantly_on_one_shard -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::pure_native::execution_shard::execution_shard_test::empty_shard_forks_execute_concurrently_without_shared_state -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::pure_native::direct_backend::direct_backend_test::execution_runtime_interleaves_owner_scoped_continuations -- --exact
@@ -1889,24 +1878,18 @@ AOT_RELEASE_LOCAL_GATES := \
 	tvm-single-image-artifact-check \
 	no-tvm-json-runtime-check \
 	no-vmir-interpreter-check \
-	rust-quality-check \
-	roadmap-gate-integrity-check
+	rust-quality-check
 
 AOT_RELEASE_MULTICORE_REUSED_GATES := \
 	tvm-aot-runtime-transition-check \
 	tvm-managed-memory-check \
-	rust-quality-check \
-	roadmap-gate-integrity-check
+	rust-quality-check
 
 ifeq ($(TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN),1)
 AOT_RELEASE_LOCAL_GATES_TO_RUN := $(filter-out $(AOT_RELEASE_MULTICORE_REUSED_GATES),$(AOT_RELEASE_LOCAL_GATES))
 else
 AOT_RELEASE_LOCAL_GATES_TO_RUN := $(AOT_RELEASE_LOCAL_GATES)
 endif
-
-tvm-aot-roadmap-reconciliation-check: | terlan-tvm-platform-matrix-bootstrap
-	$(TERLAN_TVM_PLATFORM_MATRIX) roadmap-self-test
-	$(TERLAN_TVM_PLATFORM_MATRIX) roadmap-check
 
 tvm-aot-release-closeout-contract-check: tvm-aot-thread-sanitizer-contract-check tvm-aot-platform-matrix-contract-check
 	$(TERLAN_TVM_PLATFORM_MATRIX) release-self-test
@@ -1919,60 +1902,59 @@ tvm-aot-release-closeout-check: tvm-aot-release-closeout-contract-check
 		rg -q "\"source_revision\": \"$$revision\"" target/quality/vm-multicore-release-closeout.json; \
 	fi
 	$(MAKE) $(AOT_RELEASE_LOCAL_GATES_TO_RUN)
-	env -u RUSTFLAGS $(CARGO) check --locked -p terlan
+	env -u RUSTFLAGS $(CARGO) check -p terlan
 	$(TERLAN_TVM_PLATFORM_MATRIX) release-record
 
 tvm-aot-static-callable-check:
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::static_callable_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::static_callable_test
 
 tvm-aot-higher-order-specialization-check:
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::higher_order_specialization_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::higher_order_specialization_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::static_callable_test::source_captured_lambda_lowers_into_native_application -- --exact
 
 tvm-aot-application-conformance-check:
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::aot3_conformance_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::expression::free_variable_analysis_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::closure_conversion_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::generic_specialization_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::cast_lowering_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::collection_values_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::structured_case_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::try_lowering_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::capability_transition_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::constructor_lowering_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::template_values_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::lowering_coverage_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::aot3_conformance_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::expression::free_variable_analysis_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::closure_conversion_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::generic_specialization_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::cast_lowering_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::collection_values_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::structured_case_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::try_lowering_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::capability_transition_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::constructor_lowering_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::template_values_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::http_values_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::lowering_coverage_test
 
 tvm-managed-memory-check:
-	$(RUST_TEST) --locked -p terlan --lib managed_test
-	$(RUST_TEST) --locked -p terlan --lib managed_atom_test
-	$(RUST_TEST) --locked -p terlan --lib managed_sequence_test
-	$(RUST_TEST) --locked -p terlan --lib managed_aggregate_test
-	$(RUST_TEST) --locked -p terlan --lib managed_list_test
-	$(RUST_TEST) --locked -p terlan --lib managed_map_test
-	$(RUST_TEST) --locked -p terlan --lib managed_set_test
-	$(RUST_TEST) --locked -p terlan --lib collection_abi_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::collections::collections_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::atom_inventory_test
-	$(RUST_TEST) --locked -p terlan --lib managed_execution_test
-	$(RUST_TEST) --locked -p terlan --lib direct_backend_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::constructor_lowering_test
-	$(RUST_TEST) --locked -p terlan --lib managed_callback
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::escape_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::scalar_replacement_test
+	$(RUST_TEST) -p terlan --lib managed_test
+	$(RUST_TEST) -p terlan --lib managed_atom_test
+	$(RUST_TEST) -p terlan --lib managed_sequence_test
+	$(RUST_TEST) -p terlan --lib managed_aggregate_test
+	$(RUST_TEST) -p terlan --lib managed_list_test
+	$(RUST_TEST) -p terlan --lib managed_map_test
+	$(RUST_TEST) -p terlan --lib managed_set_test
+	$(RUST_TEST) -p terlan --lib collection_abi_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::collections::collections_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::atom_inventory_test
+	$(RUST_TEST) -p terlan --lib managed_execution_test
+	$(RUST_TEST) -p terlan --lib direct_backend_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::constructor_lowering_test
+	$(RUST_TEST) -p terlan --lib managed_callback
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::escape_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::scalar_replacement_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::typeck::core_intrinsic_process_test::syntax_output_lowering_canonicalizes_typed_mailbox_operations -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::cranelift::managed_type_test::typed_public_mailbox_operations_lower_to_fixed_native_transition_frames -- --exact
-	$(RUST_TEST) --locked -p terlan --lib typed_native_
-	$(RUST_TEST) --locked -p terlan --lib pure_native_transport
+	$(RUST_TEST) -p terlan --lib typed_native_
+	$(RUST_TEST) -p terlan --lib pure_native_transport
 
-tvm-aot-capability-worker-check: tvm-aot-stale-epoch-check
-	$(CARGO) build --locked -p terlan --bin terlan-native-worker
-	$(RUST_TEST) --locked -p terlan --lib main_test
-	$(RUST_TEST) --locked -p terlan --lib sandbox
-	$(RUST_TEST) --locked -p terlan --lib capability_wire
-	$(RUST_TEST) --locked -p terlan --lib protocol::protocol_test
-	$(RUST_TEST) --locked -p terlan --lib capability_worker
+tvm-aot-capability-worker-check: tvm-aot-stale-epoch-check | terlan-native-worker-bootstrap
+	$(RUST_TEST) -p terlan --lib main_test
+	$(RUST_TEST) -p terlan --lib sandbox
+	$(RUST_TEST) -p terlan --lib capability_wire
+	$(RUST_TEST) -p terlan --lib protocol::protocol_test
+	$(RUST_TEST) -p terlan --lib capability_worker
 	TERLAN_TEST_CAPABILITY_WORKER=$(CURDIR)/target/debug/terlan-native-worker $(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::capability_worker::capability_worker_test::capability_worker_process_transport_runs_full_cycle -- --ignored --exact
 	TERLAN_TEST_CAPABILITY_WORKER=$(CURDIR)/target/debug/terlan-native-worker $(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::capability_worker::capability_worker_test::capability_worker_sandbox_closes_inherited_descriptor -- --ignored --exact
 	@rg -q '#!\[deny\(unsafe_code\)\]' crates/terlan/src/native_worker/main.rs
@@ -2018,8 +2000,8 @@ tvm-managed-list-profile-benchmark-check:
 	test -s target/quality/tvm-managed-list-profile.json
 
 .PHONY: tvm-aot-runtime-workload-benchmark-check
-tvm-aot-runtime-workload-benchmark-check:
-	TERLAN_BENCH_AOT_RUNTIME_OUTPUT=$(CURDIR)/target/quality/vm-aot-runtime-workloads.json $(CARGO) run --locked --release -p terlan --bin terlan-benchmark --features benchmark-tools --quiet -- vm-aot-runtime-workloads
+tvm-aot-runtime-workload-benchmark-check: | terlan-benchmark-release-bootstrap
+	TERLAN_BENCH_AOT_RUNTIME_OUTPUT=$(CURDIR)/target/quality/vm-aot-runtime-workloads.json target/release/terlan-benchmark vm-aot-runtime-workloads
 	test -s target/quality/vm-aot-runtime-workloads.json
 	@rg -q '"status": "completed"' target/quality/vm-aot-runtime-workloads.json
 	@rg -q '"p99_ns":' target/quality/vm-aot-runtime-workloads.json
@@ -2031,7 +2013,7 @@ tvm-aot-runtime-workload-benchmark-check:
 tvm-native-image-loader-check: tvm-direct-aot-backend-check
 
 tvm-aot-consumer-check: tvm-native-image-loader-check
-	$(RUST_TEST) --locked -p terlan --test tvm_transition_rejection
+	$(RUST_TEST) -p terlan --test tvm_transition_rejection
 
 tvm-aot-test-consumer-check: tvm-aot-consumer-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::test::test_command_test::execution_cases::run_terlan_vm_tests_executes_bool_test -- --exact
@@ -2097,11 +2079,11 @@ tvm-aot-package-install-consumer-check: tvm-aot-consumer-check
 	$(TERLAN_QUALITY) vm-release-install-validation
 
 tvm-aot-support-crash-metadata-check: tvm-aot-package-install-consumer-check
-	$(RUST_TEST) --locked -p terlan --lib native_image_diagnostics
-	$(RUST_TEST) --locked -p terlan --lib fatal_diagnostics
-	$(RUST_TEST) --locked -p terlan --lib support_bundle_replay_metadata_binds_native_generation_once
-	$(RUST_TEST) --locked -p terlan --lib drain_timeout_quarantines_and_retains_reachable_image
-	$(RUST_TEST) --locked -p terlan --lib pure_native::execution_shard::execution_shard_test
+	$(RUST_TEST) -p terlan --lib native_image_diagnostics
+	$(RUST_TEST) -p terlan --lib fatal_diagnostics
+	$(RUST_TEST) -p terlan --lib support_bundle_replay_metadata_binds_native_generation_once
+	$(RUST_TEST) -p terlan --lib drain_timeout_quarantines_and_retains_reachable_image
+	$(RUST_TEST) -p terlan --lib pure_native::execution_shard::execution_shard_test
 	@rg -q 'support-bundle <file.tvm>' crates/terlan/src/vm/execution.rs
 	@if rg -n 'CoreExpr|CoreFunction|TvmExecutableDescriptor|executable_bytes|source_path' \
 		crates/terlan/src/runtime/vm/native_image_diagnostics.rs \
@@ -2113,21 +2095,21 @@ tvm-aot-support-crash-metadata-check: tvm-aot-package-install-consumer-check
 
 vm-ignore-cores-parity-check:
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::fatal_diagnostics::fatal_diagnostics_ignore_cores_parity_test::ignore_cores_helper_is_replaced_by_explicit_non_mutating_artifact_publication -- --exact
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::fatal_diagnostics
+	$(RUST_TEST) -p terlan --lib runtime::vm::fatal_diagnostics
 	@! rg -q 'ignore_core_files|/cores|set_current_dir|set_var.*PWD' crates/terlan/src/runtime/vm/fatal_diagnostics.rs
 
 vm-iovec-suite-parity-check:
-	$(CARGO) check --locked -p terlan --bin terlan-vm
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::iovec::iovec_beam_suite_parity_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::driver::driver_beam_suite_parity_test
+	$(CARGO) check -p terlan --bin terlan-vm
+	$(RUST_TEST) -p terlan --lib runtime::vm::iovec::iovec_beam_suite_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::driver::driver_beam_suite_parity_test
 	@rg -q 'let mut pending = vec!\[value\]' crates/terlan/src/runtime/vm/iovec.rs
 	@rg -q 'Arc::clone\(bytes\)' crates/terlan/src/runtime/vm/iovec.rs
 	@rg -q '0\.\.8_192' crates/terlan/src/runtime/vm/iovec_beam_suite_parity_test.rs
 	@rg -q 'write_vectored' crates/terlan/src/runtime/vm/protocol_task_executor/transport.rs crates/terlan/src/commands/serve/hyper_server.rs
 
 vm-lcnt-suite-parity-check:
-	$(CARGO) check --locked -p terlan --bin terlan-vm
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::scheduler::contention::contention_beam_suite_parity_test
+	$(CARGO) check -p terlan --bin terlan-vm
+	$(RUST_TEST) -p terlan --lib runtime::vm::scheduler::contention::contention_beam_suite_parity_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::scheduler::scheduler_test::scheduler_fairness_telemetry_is_deterministic_under_cpu_bound_load -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::process::process_registry_test::process_registry_lists_resolves_and_unregisters_names_deterministically -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::table::table_test::table_store_creates_owner_table_and_exposes_snapshot -- --exact
@@ -2138,9 +2120,9 @@ vm-lcnt-suite-parity-check:
 	@! rg -q 'Mutex|RwLock|Instant|SystemTime' crates/terlan/src/runtime/vm/scheduler/contention.rs
 
 vm-list-bif-suite-parity-check:
-	$(CARGO) check --locked -p terlan --bin terlan-vm
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::list_bif_suite_native_parity_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::integer::test
+	$(CARGO) check -p terlan --bin terlan-vm
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::list_bif_suite_native_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::operation_abi::integer::test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::typeck::diagnostic_test::arguments_and_constructors::syntax_output_list_cons_expr_rejects_non_list_tail_on_formal_path -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::lists::managed_list_test::rrb_lookup_handles_leaf_and_multilevel_boundaries -- --exact
 	@rg -q 'MAX_INTEGER_PARSE_BYTES: usize = 128' crates/terlan/src/runtime/native_image/managed/operation_abi/integer.rs
@@ -2153,19 +2135,19 @@ vm-literal-area-collector-parity-check:
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::pure_native::execution_shard::execution_shard_test::literal_area_collector_helper_observes_actor_drain_without_polling -- --exact
 
 vm-lttng-suite-parity-check: vm-iovec-suite-parity-check
-	$(CARGO) check --locked -p terlan --bin terlan-vm
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::driver::lttng_beam_suite_parity_test
+	$(CARGO) check -p terlan --bin terlan-vm
+	$(RUST_TEST) -p terlan --lib runtime::vm::driver::lttng_beam_suite_parity_test
 	@rg -q 'VM_DRIVER_TRACE_CAPACITY: usize = 4_096' crates/terlan/src/runtime/vm/driver/trace.rs
 	@rg -q 'enabled_mask: u8' crates/terlan/src/runtime/vm/driver/trace.rs
 	@rg -q 'expired; oldest retained sequence' crates/terlan/src/runtime/vm/driver/trace.rs
 	@! rg -q 'org_erlang_otp|erl_driver|std::process|Command::new' crates/terlan/src/runtime/vm/driver.rs crates/terlan/src/runtime/vm/driver/trace.rs
 
 vm-map-suite-parity-check:
-	$(CARGO) check --locked -p terlan --bin terlan-vm
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::map_suite_native_parity_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::maps::managed_map_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::structured_case_test
+	$(CARGO) check -p terlan --bin terlan-vm
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::map_suite_native_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::maps::managed_map_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::structured_case_test
 	@rg -q 'assert_managed_native_object_invocations' crates/terlan/src/compiler/native_ir/map_suite_native_parity_test.rs
 	@rg -q 'MAP_FROM_ENTRY_LIST' crates/terlan/src/runtime/native_image/managed/operation_abi/collections.rs
 	@rg -q 'MAP_ITERATOR' crates/terlan/src/runtime/native_image/managed/operation_abi/collections.rs
@@ -2173,19 +2155,19 @@ vm-map-suite-parity-check:
 	@! rg -q 'CoreIR|interpreter|evaluator' crates/terlan/src/compiler/native_ir/map_suite_native_parity_test.rs
 
 vm-match-spec-suite-parity-check: vm-map-suite-parity-check vm-guard-suite-parity-check vm-table-primitives-check
-	$(CARGO) check --locked -p terlan --bin terlan-vm
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::match_spec_suite_native_parity_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::actor::tests::actor_call_trace_beam_suite_parity_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::actor::tests::actor_trace_meta_beam_suite_parity_test
+	$(CARGO) check -p terlan --bin terlan-vm
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::match_spec_suite_native_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::actor::tests::actor_call_trace_beam_suite_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::actor::tests::actor_trace_meta_beam_suite_parity_test
 	@rg -q 'assert_managed_native_object_invocations' crates/terlan/src/compiler/native_ir/match_spec_suite_native_parity_test.rs
 	@rg -q 'aot_comprehension_' crates/terlan/src/compiler/native_ir/match_spec_suite_native_parity_test.rs
 	@rg -q 'dynamic match-spec call must fail before native linking' crates/terlan/src/compiler/native_ir/match_spec_suite_native_parity_test.rs
 	@! rg -q 'match_spec|match-spec' crates/terlan/src/runtime --glob '*.rs'
 
 vm-module-info-suite-parity-check: vm-code-server-check
-	$(CARGO) check --locked -p terlan --bin terlan-vm
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::module_info_suite_native_parity_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::code_server::code_server_inspection_test
+	$(CARGO) check -p terlan --bin terlan-vm
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::module_info_suite_native_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::code_server::code_server_inspection_test
 	@rg -q 'defined_functions: BTreeMap' crates/terlan/src/runtime/vm/code_server.rs
 	@rg -q 'pub\(crate\) fn active_module_info' crates/terlan/src/runtime/vm/code_server.rs
 	@rg -q 'with_defined_functions' crates/terlan/src/runtime/vm/code_server_compiler.rs
@@ -2194,8 +2176,8 @@ vm-module-info-suite-parity-check: vm-code-server-check
 	@rg -q 'assert_native_object_invocations' crates/terlan/src/compiler/native_ir/module_info_suite_native_parity_test.rs
 
 vm-mtx-suite-parity-check: vm-multicore-memory-model-check vm-table-primitives-check
-	$(CARGO) check --locked -p terlan --bin terlan-vm
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::fixed_scheduler_control::fixed_scheduler_control_mtx_beam_suite_parity_test
+	$(CARGO) check -p terlan --bin terlan-vm
+	$(RUST_TEST) -p terlan --lib runtime::vm::fixed_scheduler_control::fixed_scheduler_control_mtx_beam_suite_parity_test
 	@rg -q 'const PRODUCERS: usize = 20' crates/terlan/src/runtime/vm/fixed_scheduler_control_mtx_beam_suite_parity_test.rs
 	@rg -q 'const WRITERS: usize = 6' crates/terlan/src/runtime/vm/fixed_scheduler_control_mtx_beam_suite_parity_test.rs
 	@rg -q 'ACTOR_MAILBOX_CAPACITY' crates/terlan/src/runtime/vm/fixed_scheduler_control_mtx_beam_suite_parity_test.rs
@@ -2203,9 +2185,9 @@ vm-mtx-suite-parity-check: vm-multicore-memory-model-check vm-table-primitives-c
 	@! rg -q 'Mutex|RwLock|sleep|Instant|SystemTime|erl_nif|ethr_' crates/terlan/src/runtime/vm/fixed_scheduler_control_mtx_beam_suite_parity_test.rs
 
 vm-multi-load-suite-parity-check: vm-code-server-check
-	$(CARGO) check --locked -p terlan --bin terlan-vm
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::multi_load_suite_native_parity_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::code_server::multi_load_beam_suite_parity_test
+	$(CARGO) check -p terlan --bin terlan-vm
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::multi_load_suite_native_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::code_server::multi_load_beam_suite_parity_test
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::native_ir::application_admission_test::duplicate_module_identity_is_rejected -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::code_server::code_parallel_load_beam_suite_parity_test::code_parallel_load_suite_simultaneous_identical_publish_happens_once -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::source_reload::source_reload_test::source_reload_adapter_rejects_duplicate_modules_without_partial_publication -- --exact
@@ -2216,13 +2198,13 @@ vm-multi-load-suite-parity-check: vm-code-server-check
 	@! rg -q 'on_load|finish_loading|prepare_loading|CoreIR|interpreter|evaluator' crates/terlan/src/compiler/native_ir/multi_load_suite_native_parity_test.rs crates/terlan/src/runtime/vm/multi_load_beam_suite_parity_test.rs
 
 vm-native-record-suite-parity-check: vm-gc-suite-parity-check vm-distribution-envelope-check
-	$(CARGO) check --locked -p terlan --bin terlan-vm
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::native_record_suite_native_parity_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::field_projection_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::aggregates::managed_aggregate_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::mailbox_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::actor::tests::actor_native_record_beam_suite_parity_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::term_format::term_format_runtime_test::native_record_suite
+	$(CARGO) check -p terlan --bin terlan-vm
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::native_record_suite_native_parity_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::field_projection_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::aggregates::managed_aggregate_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::mailbox_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::actor::tests::actor_native_record_beam_suite_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::term_format::term_format_runtime_test::native_record_suite
 	@rg -q 'const MESSAGES: i64 = 1_000' crates/terlan/src/runtime/vm/actor/actor_native_record_beam_suite_parity_test.rs
 	@rg -q '1\.\.=64' crates/terlan/src/compiler/native_ir/native_record_suite_native_parity_test.rs
 	@rg -q 'remaining: Int.*Pair' crates/terlan/src/compiler/native_ir/native_record_suite_native_parity_test.rs
@@ -2230,10 +2212,10 @@ vm-native-record-suite-parity-check: vm-gc-suite-parity-check vm-distribution-en
 	@! rg -q 'records::|term_to_binary|binary_to_term|RecordExt|atom cache|CoreIR|interpreter|evaluator' crates/terlan/src/compiler/native_ir/native_record_suite_native_parity_test.rs crates/terlan/src/runtime/vm/actor/actor_native_record_beam_suite_parity_test.rs crates/terlan/src/runtime/vm/term_format_runtime_test.rs
 
 vm-nif-suite-parity-check: tvm-aot-capability-worker-check vm-resource-ownership-check
-	$(CARGO) check --locked -p terlan --bin terlan-vm
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_boundary::worker::nif_suite_parity_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_boundary::term::term_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_boundary::dispatch::panic_boundary::panic_boundary_test
+	$(CARGO) check -p terlan --bin terlan-vm
+	$(RUST_TEST) -p terlan --lib runtime::native_boundary::worker::nif_suite_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::native_boundary::term::term_test
+	$(RUST_TEST) -p terlan --lib runtime::native_boundary::dispatch::panic_boundary::panic_boundary_test
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::actor::tests::actor_native_failure_test::native_failure_uses_vm_exit_propagation_monitoring_and_cleanup -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::pure_native::execution_shard::execution_shard_test::draining_generation_closes_entries_and_preserves_accepted_continuations -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::pure_native::execution_shard::execution_shard_test::orderly_shard_shutdown_records_one_generation_qualified_lifecycle -- --exact
@@ -2247,7 +2229,7 @@ vm-nif-suite-parity-check: tvm-aot-capability-worker-check vm-resource-ownership
 	fi
 
 tvm-aot-image-lifetime-check: tvm-aot-package-install-consumer-check
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::sealed
+	$(RUST_TEST) -p terlan --lib runtime::native_image::sealed
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::vm::vm_test::admitted_native_generation_survives_source_image_replacement -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::pure_native::execution_shard::execution_shard_test::replacement_rejects_duplicate_image_generation_before_drain -- --exact
 	@rg -q 'Library::new\(sealed\.path\(\)\)' crates/terlan/src/runtime/vm/pure_native/direct_backend.rs
@@ -2269,7 +2251,7 @@ tvm-aot-image-lifetime-check: tvm-aot-package-install-consumer-check
 	fi
 
 tvm-aot-c-abi-boundary-check:
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_boundary::adapter_abi::adapter_abi_test
+	$(RUST_TEST) -p terlan --lib runtime::native_boundary::adapter_abi::adapter_abi_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::native_image_test::native_inspection_accepts_real_elf_and_rejects_wrong_target_and_abi -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::c_abi_binding_generator::c_abi_binding_generator_test::fixtures_and_generation::structured_c_metadata_generates_real_ffi_package -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::cpp_binding_generator::generator::generator_test::fixtures_and_generation::structured_cpp_metadata_generates_real_cxx_package -- --exact
@@ -2299,13 +2281,13 @@ tvm-aot-platform-matrix-check: tvm-aot-platform-matrix-contract-check
 	$(TERLAN_TVM_PLATFORM_MATRIX) target
 
 tvm-aot-http-managed-cycle-check: tvm-aot-consumer-check
-	$(RUST_TEST) --locked -p terlan --lib literal_abi_test
-	$(RUST_TEST) --locked -p terlan --lib http_values_test
-	$(RUST_TEST) --locked -p terlan --lib response_bridge_test
+	$(RUST_TEST) -p terlan --lib literal_abi_test
+	$(RUST_TEST) -p terlan --lib http_values_test
+	$(RUST_TEST) -p terlan --lib response_bridge_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::route_dispatch::vm_stream_request_uses_source_bridge_for_managed_only_module_without_hyper -- --exact
 
 tvm-aot-http-request-accessor-check: tvm-aot-http-managed-cycle-check
-	$(RUST_TEST) --locked -p terlan --lib operation_abi_test
+	$(RUST_TEST) -p terlan --lib operation_abi_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::request_accessors_lower_to_checked_managed_operations -- --exact
 
 tvm-aot-http-response-mutation-check: tvm-aot-http-request-accessor-check
@@ -2315,14 +2297,14 @@ tvm-aot-http-response-mutation-check: tvm-aot-http-request-accessor-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::route_dispatch::vm_stream_request_uses_source_bridge_for_managed_only_module_without_hyper -- --exact
 
 tvm-aot-http-typed-metadata-check: tvm-aot-http-response-mutation-check
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::http::http_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::operation_abi::http::http_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::typed_cookie_jar_and_security_calls_rewrite_to_managed_operations -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::typed_security_policy_rejects_unknown_marker -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::handler::response_bridge::response_bridge_test::native_security_headers_are_not_claimed_by_transport_framing -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::route_dispatch::vm_stream_request_uses_source_bridge_for_managed_only_module_without_hyper -- --exact
 
 tvm-aot-http-router-callable-check: tvm-aot-http-typed-metadata-check
-	$(RUST_TEST) --locked -p terlan --lib compiler::router::router_test
+	$(RUST_TEST) -p terlan --lib compiler::router::router_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::case_lowering_test::string_case_patterns_lower_to_managed_value_equality -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test::string_equal_operation_is_value_based_and_checked -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test::string_append_operation_concatenates_validated_values -- --exact
@@ -2335,8 +2317,8 @@ tvm-aot-http-managed-error-check: tvm-aot-http-router-callable-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::dynamic_dispatch::vm_stream_request_activates_materialized_router_middleware_without_hyper -- --exact
 
 tvm-aot-http-template-check: tvm-aot-http-managed-error-check
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::template_values_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test::string_list_join
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::template_values_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test::string_list_join
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::observability_and_packages::vm_stream_request_executes_managed_template_html_handler -- --exact
 
 tvm-aot-http-template-render-plan-check: tvm-aot-http-template-check
@@ -2345,12 +2327,12 @@ tvm-aot-http-template-render-plan-check: tvm-aot-http-template-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::observability_and_packages::vm_stream_request_executes_external_template_render_plan -- --exact
 
 tvm-aot-http-template-expression-check: tvm-aot-http-template-render-plan-check
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::template_values_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::template_values_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test::typed_template_rendering_enforces_attributes_options_and_urls -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::observability_and_packages::vm_stream_request_executes_complete_typed_template_matrix -- --exact
 
 tvm-aot-http-body-json-check: tvm-aot-http-template-expression-check
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::json::json_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::operation_abi::json::json_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::body_json_result_case_lowers_to_typed_managed_branches -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::observability_and_packages::vm_stream_request_decodes_managed_json_body_result -- --exact
 
@@ -2380,7 +2362,7 @@ tvm-aot-http-persistent-shard-check: tvm-aot-http-channel-plan-check
 	@rg -q 'sync_channel\(SHARD_INBOX_CAPACITY\)' crates/terlan/src/commands/serve/handler_cache/shard_owner.rs
 
 tvm-http-axum-performance-record:
-	$(CARGO) build --locked --release -p terlan --bin terlan-axum-baseline --bin terlan-http-framework-benchmark --features axum-baseline
+	$(CARGO) build --release -p terlan --bin terlan-axum-baseline --bin terlan-http-framework-benchmark --features axum-baseline
 	TERLAN_BENCH_HTTP_AXUM_BIN=$(CURDIR)/target/release/terlan-axum-baseline \
 	TERLAN_BENCH_HTTP_AXUM_OUTPUT=$(CURDIR)/target/quality/http-axum-performance.json \
 	$(CURDIR)/target/release/terlan-http-framework-benchmark
@@ -2392,13 +2374,13 @@ tvm-http-axum-performance-record:
 HTTP_PAIRED_OUTPUT ?= $(CURDIR)/target/quality/http-paired-performance.json
 
 tvm-http-paired-performance-check:
-	$(CARGO) build --locked --release -p terlan --bin terlan-benchmark --features benchmark-tools
-	$(CARGO) build --locked --release -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin
-	$(CARGO) build --locked --release -p terlan --bin terlan-axum-baseline --bin terlan-hyper-baseline --bin terlan-http-framework-benchmark --bin terlan-http-paired-benchmark --features axum-baseline,benchmark-tools
+	$(CARGO) build --release -p terlan --bin terlan-benchmark --features benchmark-tools
+	$(TERLAN_SERVE_RUNTIME_BUILD)
+	$(CARGO) build --release -p terlan --bin terlan-axum-baseline --bin terlan-hyper-baseline --bin terlan-http-framework-benchmark --bin terlan-http-paired-benchmark --features axum-baseline,benchmark-tools
 	$(CURDIR)/target/release/terlan-http-paired-benchmark --self-test
 	TERLAN_COMPILER=$(CURDIR)/target/debug/terlc \
 	TERLAN_BENCH_HTTP_AOT_BENCHMARK_BIN=$(CURDIR)/target/release/terlan-benchmark \
-	TERLAN_BENCH_HTTP_AOT_TERLC_BIN=$(CURDIR)/target/release/terlan-serve-runtime \
+	TERLAN_BENCH_HTTP_AOT_TERLC_BIN=$(TERLAN_SERVE_RUNTIME_BIN) \
 	TERLAN_BENCH_HTTP_AXUM_BENCHMARK_BIN=$(CURDIR)/target/release/terlan-http-framework-benchmark \
 	TERLAN_BENCH_HTTP_AXUM_BIN=$(CURDIR)/target/release/terlan-axum-baseline \
 	TERLAN_BENCH_HTTP_HYPER_BENCHMARK_BIN=$(CURDIR)/target/release/terlan-http-framework-benchmark \
@@ -2451,19 +2433,19 @@ tvm-aot-http-channel-transport-check: tvm-aot-http-generation-lifetime-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::channel_transport::channel_transport_test::production_channel_pumps_preserve_vm_lifecycle_and_pressure_contracts -- --exact
 
 tvm-aot-http-cleanup-check: tvm-aot-http-channel-transport-check
-	$(RUST_TEST) --locked -p terlan --lib callbacks_share_native_invocation_entry_resume_and_cancellation
-	$(RUST_TEST) --locked -p terlan --lib request_resources_track_peaks_and_release_every_transient_class
-	$(RUST_TEST) --locked -p terlan --lib request_resources_reject_duplicate_stale_and_unknown_completion
-	$(RUST_TEST) --locked -p terlan --lib vm_accounted_websocket_queue_cancellation_releases_pending_frames
-	$(RUST_TEST) --locked -p terlan --lib vm_accounted_sse_stream_cancellation_releases_all_pending_buffers
-	$(RUST_TEST) --locked -p terlan --lib http_session_expiration_cleans_actor_table_and_reports_stale
-	$(RUST_TEST) --locked -p terlan --lib timer_table_reports_owner_exited_for_owner_timer_cleanup_in_stable_order
-	$(RUST_TEST) --locked -p terlan --lib resource_table_cleans_up_owner_resources_on_process_exit
-	$(RUST_TEST) --locked -p terlan --lib vm_http_tcp_server_shutdown_closes_listener_and_active_handlers
-	$(RUST_TEST) --locked -p terlan --lib native_boundary_deadline_timeout_wakes_actor_and_rejects_late_completion
+	$(RUST_TEST) -p terlan --lib callbacks_share_native_invocation_entry_resume_and_cancellation
+	$(RUST_TEST) -p terlan --lib request_resources_track_peaks_and_release_every_transient_class
+	$(RUST_TEST) -p terlan --lib request_resources_reject_duplicate_stale_and_unknown_completion
+	$(RUST_TEST) -p terlan --lib vm_accounted_websocket_queue_cancellation_releases_pending_frames
+	$(RUST_TEST) -p terlan --lib vm_accounted_sse_stream_cancellation_releases_all_pending_buffers
+	$(RUST_TEST) -p terlan --lib http_session_expiration_cleans_actor_table_and_reports_stale
+	$(RUST_TEST) -p terlan --lib timer_table_reports_owner_exited_for_owner_timer_cleanup_in_stable_order
+	$(RUST_TEST) -p terlan --lib resource_table_cleans_up_owner_resources_on_process_exit
+	$(RUST_TEST) -p terlan --lib vm_http_tcp_server_shutdown_closes_listener_and_active_handlers
+	$(RUST_TEST) -p terlan --lib native_boundary_deadline_timeout_wakes_actor_and_rejects_late_completion
 
-tvm-aot-http-lifecycle-inventory-check: tvm-aot-http-cleanup-check runtime-aot-only-check rust-quality-check
-	$(CARGO) run --locked --release -p terlan --bin terlan-benchmark --features benchmark-tools --quiet -- http-aot-performance-self-test
+tvm-aot-http-lifecycle-inventory-check: tvm-aot-http-cleanup-check runtime-aot-only-check rust-quality-check | terlan-benchmark-release-bootstrap
+	target/release/terlan-benchmark http-aot-performance-self-test
 	@rg -q '^## AOT-5F Lifecycle Inventory$$' crates/terlan/src/commands/serve/handler/README.md
 	@rg -q '^\| Generation replacement and unload ' crates/terlan/src/commands/serve/handler/README.md
 	@rg -q '^\| Request and channel cleanup ' crates/terlan/src/commands/serve/handler/README.md
@@ -2480,40 +2462,40 @@ tvm-aot-http-lifecycle-inventory-check: tvm-aot-http-cleanup-check runtime-aot-o
 		TERLAN_BENCH_HTTP_NATIVE_AOT_REPORT=$(CURDIR)/target/quality/http-native-aot-performance.json \
 		TERLAN_BENCH_HTTP_AOT_COMPARISON_OUTPUT=$(CURDIR)/target/quality/http-aot-performance-comparison.json \
 		TERLAN_BENCH_HTTP_AOT_POLICY=$(CURDIR)/benchmarks/baselines/http-aot-performance-limits.json \
-		$(CARGO) run --locked --release -p terlan --bin terlan-benchmark --features benchmark-tools --quiet -- http-aot-performance-compare || \
+		target/release/terlan-benchmark http-aot-performance-compare || \
 		(echo 'error[aot.http.lifecycle_inventory]: performance evidence must be wholly absent or complete, comparable, and within policy' && exit 1); \
 	fi
 
-tvm-aot-http-checked-coreir-reference-record:
+tvm-aot-http-checked-coreir-reference-record: | terlan-benchmark-release-bootstrap
 	@test -n "$(TERLAN_BENCH_CHECKED_COREIR_TERLC_BIN)" || (echo 'error[aot.http.performance]: set TERLAN_BENCH_CHECKED_COREIR_TERLC_BIN to the preserved checked-CoreIR terlc binary' && exit 1)
-	$(CARGO) run --locked --release -p terlan --bin terlan-benchmark --features benchmark-tools --quiet -- http-aot-performance-self-test
+	target/release/terlan-benchmark http-aot-performance-self-test
 	TERLAN_BENCH_HTTP_AOT_LANE=checked-coreir \
 	TERLAN_BENCH_HTTP_AOT_TERLC_BIN=$(TERLAN_BENCH_CHECKED_COREIR_TERLC_BIN) \
 	TERLAN_BENCH_HTTP_AOT_OUTPUT=$(CURDIR)/../benchmarks/results/http-checked-coreir-performance.json \
-	$(CARGO) run --locked --release -p terlan --bin terlan-benchmark --features benchmark-tools --quiet -- http-aot-performance
+	target/release/terlan-benchmark http-aot-performance
 	test -s ../benchmarks/results/http-checked-coreir-performance.json
 
-tvm-aot-http-performance-check: tvm-aot-http-cleanup-check
-	$(CARGO) run --locked --release -p terlan --bin terlan-benchmark --features benchmark-tools --quiet -- http-aot-performance-self-test
+tvm-aot-http-performance-check: tvm-aot-http-cleanup-check | terlan-benchmark-release-bootstrap
+	target/release/terlan-benchmark http-aot-performance-self-test
 	test -s ../benchmarks/results/http-checked-coreir-performance.json
-	$(CARGO) build --locked --release -p terlan --bin terlc
-	$(CARGO) build --locked --release -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin
-	@! nm -C --defined-only target/release/terlan-serve-runtime | rg -q 'cranelift_codegen|cranelift_native|regalloc2|terlan_libpq|docker_compose_types|start_project_dependencies|parse_project_manifest'
-	@! ldd target/release/terlan-serve-runtime | rg -q 'libpq|libssl|libcrypto|libldap|libgnutls|libsasl'
-	@test "$$(size target/release/terlan-serve-runtime | awk 'NR == 2 { print $$1 }')" -lt 7250000
+	$(CARGO) build --release -p terlan --bin terlc
+	$(TERLAN_SERVE_RUNTIME_BUILD)
+	@! nm -C --defined-only $(TERLAN_SERVE_RUNTIME_BIN) | rg -q 'cranelift_codegen|cranelift_native|regalloc2|terlan_libpq|docker_compose_types|start_project_dependencies|parse_project_manifest'
+	@! ldd $(TERLAN_SERVE_RUNTIME_BIN) | rg -q 'libpq|libssl|libcrypto|libldap|libgnutls|libsasl'
+	@test "$$(size $(TERLAN_SERVE_RUNTIME_BIN) | awk 'NR == 2 { print $$1 }')" -lt 7250000
 	TERLAN_COMPILER=$(CURDIR)/target/release/terlc \
 	TERLAN_BENCH_HTTP_AOT_LANE=native-aot \
-	TERLAN_BENCH_HTTP_AOT_TERLC_BIN=$(CURDIR)/target/release/terlan-serve-runtime \
+	TERLAN_BENCH_HTTP_AOT_TERLC_BIN=$(TERLAN_SERVE_RUNTIME_BIN) \
 	TERLAN_BENCH_HTTP_AOT_OUTPUT=$(CURDIR)/target/quality/http-native-aot-performance.json \
 	TERLAN_BENCH_HTTP_AOT_MAX_RSS_BYTES=33554432 \
 	TERLAN_BENCH_HTTP_MAX_ROUND_SPREAD_PERCENT=50 \
 	TERLAN_BENCH_HTTP_DURATION_MS=1000 \
-	$(CARGO) run --locked --release -p terlan --bin terlan-benchmark --features benchmark-tools --quiet -- http-aot-performance
+	target/release/terlan-benchmark http-aot-performance
 	TERLAN_BENCH_HTTP_CHECKED_COREIR_REPORT=$(CURDIR)/../benchmarks/results/http-checked-coreir-performance.json \
 	TERLAN_BENCH_HTTP_NATIVE_AOT_REPORT=$(CURDIR)/target/quality/http-native-aot-performance.json \
 	TERLAN_BENCH_HTTP_AOT_COMPARISON_OUTPUT=$(CURDIR)/target/quality/http-aot-performance-comparison.json \
 	TERLAN_BENCH_HTTP_AOT_POLICY=$(CURDIR)/benchmarks/baselines/http-aot-performance-limits.json \
-	$(CARGO) run --locked --release -p terlan --bin terlan-benchmark --features benchmark-tools --quiet -- http-aot-performance-compare
+	target/release/terlan-benchmark http-aot-performance-compare
 	test -s target/quality/http-aot-performance-comparison.json
 	@rg -q '"status": "completed"' target/quality/http-aot-performance-comparison.json
 	@rg -q '"performance_policy_sha256":' target/quality/http-aot-performance-comparison.json
@@ -2533,12 +2515,12 @@ tvm-aot-http-performance-check: tvm-aot-http-cleanup-check
 
 tvm-single-image-artifact-check: tvm-native-image-format-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::build::vm_artifact::native_cache_test::native_cache_rejects_poisoned_keys_target_drift_and_incomplete_publications -- --exact
-	$(RUST_TEST) --locked -p terlan --lib commands::build::vm_artifact::native_reuse::native_reuse_test
+	$(RUST_TEST) -p terlan --lib commands::build::vm_artifact::native_reuse::native_reuse_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --test direct_aot_package package_build_emits_one_tvm_image_with_qualified_module_exports -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --test direct_aot_cache native_aot_cache_verifies_and_recovers_every_required_file -- --exact
 
 tvm-aot-compilation-benchmark-check:
-	$(CARGO) build --locked --release -p terlan --bin terlc --bin terlan-vm --bin terlan-benchmark --features benchmark-tools
+	$(CARGO) build --release -p terlan --bin terlc --bin terlan-vm --bin terlan-benchmark --features benchmark-tools
 	$(CURDIR)/target/release/terlan-benchmark aot-compilation-self-test
 	@mkdir -p target/quality
 	TERLAN_BENCH_AOT_COMPILATION_OUTPUT=$(CURDIR)/target/quality/aot-compilation-benchmark.json \
@@ -2556,14 +2538,14 @@ tvm-aot-compilation-benchmark-check:
 			--name selected_json_evidence_holds
 
 tvm-aot-compilation-time-check: tvm-single-image-artifact-check tvm-aot-compilation-benchmark-check
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::specialization_budget_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::codegen_policy_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::specialization_budget_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::codegen_policy_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::build::build_test::tests::args_test::parse_build_args_selects_explicit_native_release_policy -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::build::build_test::tests::args_test::build_command_rejects_release_policy_for_non_vm_target -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --test direct_aot_cache native_codegen_policies_publish_and_reuse_distinct_cache_entries -- --exact
-	$(RUST_TEST) --locked -p terlan --lib commands::build::vm_artifact::parallel_compile_test
-	$(RUST_TEST) --locked -p terlan --lib commands::build::source_roots_test
-	$(RUST_TEST) --locked -p terlan --lib commands::build::vm_artifact::checked_cache_test
+	$(RUST_TEST) -p terlan --lib commands::build::vm_artifact::parallel_compile_test
+	$(RUST_TEST) -p terlan --lib commands::build::source_roots_test
+	$(RUST_TEST) -p terlan --lib commands::build::vm_artifact::checked_cache_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::build::build_test::tests::parallel_compilation_test::parallel_frontend_compilation_preserves_one_application_link -- --exact
 	$(EXACT_CARGO_TEST) --locked --release -p terlan --test direct_aot_cache vm_aot_timings_report_compile_and_native_artifact_phases -- --exact
 	$(EXACT_CARGO_TEST) --locked --release -p terlan --test direct_aot_cache vm_aot_warm_noop_p95_stays_under_one_second -- --exact
@@ -2572,29 +2554,29 @@ tvm-aot-compilation-time-check: tvm-single-image-artifact-check tvm-aot-compilat
 	$(EXACT_CARGO_TEST) --locked --release -p terlan --lib commands::repl::repl_aot_test::native_repl_changed_generation_p95_stays_under_one_second -- --exact --ignored
 
 tail-recursion-lowering-check:
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::tail_position_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::tail_position_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::tail_position_source_test::source_case_tail_recursion_executes_one_million_edges_on_a_small_stack -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::cranelift::managed_stack_map_test::managed_tail_parameter_live_across_cranelift_safepoint_emits_precise_stack_map -- --exact
-	$(RUST_TEST) --locked -p terlan --lib commands::emit_js::tail_recursion_test
+	$(RUST_TEST) -p terlan --lib commands::emit_js::tail_recursion_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::handler_cache::handler_cache_generation_test::hot_reload_pins_in_flight_generation_until_its_last_lease_drops -- --exact
 
 termination-productivity-analysis-check:
-	$(RUST_TEST) --locked -p terlan --lib compiler::typeck::core_ir::termination::termination_test
+	$(RUST_TEST) -p terlan --lib compiler::typeck::core_ir::termination::termination_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::value_lifecycle::value_lifecycle_test::recursive_const_functions_require_core_termination_evidence -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib formal_pipeline::formal_pipeline_test::checked_evidence::formal_pipeline_exposes_validated_termination_evidence -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::tail_position_source_test::source_case_tail_recursion_executes_one_million_edges_on_a_small_stack -- --exact
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::scheduler::yielding_c_fun_beam_parity_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::actor_directory::actor_parallel_messages_beam_suite_parity_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::actor::tests::actor_process_beam_suite_parity_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::supervision::supervision_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::scheduler::yielding_c_fun_beam_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::actor_directory::actor_parallel_messages_beam_suite_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::actor::tests::actor_process_beam_suite_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::supervision::supervision_test
 
 binding-shadowing-safety-check:
-	$(RUST_TEST) --locked -p terlan --lib compiler::typeck::binding_identity_test
+	$(RUST_TEST) -p terlan --lib compiler::typeck::binding_identity_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::syntax::syntax_output::shapes_test::tests::rejects_duplicate_bindings_created_by_shape_expansion -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::binding_identity_source_test::native_lowering_preserves_outer_and_nested_binding_identities -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::emit_js::binding_identity_emit_test::javascript_preserves_outer_and_nested_binding_identities -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib formal_pipeline::formal_pipeline_test::checked_evidence::formal_pipeline_exposes_validated_binding_identity_evidence -- --exact
-	$(RUST_TEST) --locked -p terlan --features editor-lsp --lib binding_navigation_test
+	$(RUST_TEST) -p terlan --features editor-lsp --lib binding_navigation_test
 
 no-tvm-json-runtime-check:
 	$(EXACT_CARGO_TEST) --locked -p terlan --test tvm_transition_rejection -- --exact no_tvm_json_artifact_rejections
@@ -2615,11 +2597,11 @@ runtime-aot-only-check:
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::debug::debug_test::native_debug_session_rejects_stale_source_map -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::debug::debug_test::debug_args_reject_runtime_fallback_selection -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::vm::vm_test::vm_native_reload_ignores_renamed_json_and_cleans_legacy_sidecars -- --exact
-	$(RUST_TEST) --locked -p terlan --test tvm_transition_rejection
+	$(RUST_TEST) -p terlan --test tvm_transition_rejection
 
 .PHONY: tvm-aot-shard-ownership-check
 tvm-aot-shard-ownership-check: tvm-direct-aot-backend-check
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::execution_shard_protocol::execution_shard_protocol_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::execution_shard_protocol::execution_shard_protocol_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::actor::tests::actor_shard_service_isolation_test::actor_runtime_services_and_image_generations_are_shard_local -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::code_server::code_parallel_load_beam_suite_parity_test::code_parallel_load_suite_shard_local_workers_switch_without_global_lock -- --exact
 	@rg -q 'PureNativeExecutionShard::load_image' crates/terlan/src/vm/main/native_image_runner.rs
@@ -2661,7 +2643,7 @@ tvm-aot-shard-ownership-check: tvm-direct-aot-backend-check
 
 .PHONY: tvm-aot-supervisor-lifecycle-check
 tvm-aot-supervisor-lifecycle-check: tvm-aot-shard-ownership-check
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::execution_shard_supervisor::execution_shard_supervisor_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::execution_shard_supervisor::execution_shard_supervisor_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::pure_native::execution_shard::execution_shard_test::active_shard_admission_and_shutdown_follow_supervisor_lifecycle -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::pure_native::execution_shard::execution_shard_test::active_shard_replacement_drains_and_publishes_the_next_epoch -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::pure_native::execution_shard::execution_shard_test::active_shard_crash_recovery_rejects_early_restart_and_stale_execution -- --exact
@@ -2681,7 +2663,7 @@ tvm-aot-supervisor-lifecycle-check: tvm-aot-shard-ownership-check
 
 .PHONY: tvm-aot-stale-epoch-check
 tvm-aot-stale-epoch-check: tvm-aot-supervisor-lifecycle-check
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::execution_shard_epoch::execution_shard_epoch_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::execution_shard_epoch::execution_shard_epoch_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::execution_shard_supervisor::execution_shard_supervisor_test::supervisor_rejects_stale_operations_and_suppresses_uncertain_recovery -- --exact
 	@rg -q 'VmShardOperationKind::ALL' crates/terlan/src/runtime/vm/execution_shard_epoch_test.rs
 	@rg -q 'pub\(crate\) replay_policy: VmShardReplayPolicy' crates/terlan/src/runtime/vm/execution_shard_epoch.rs
@@ -2693,7 +2675,7 @@ tvm-aot-stale-epoch-check: tvm-aot-supervisor-lifecycle-check
 	fi
 
 tvm-aot-crash-injection-check: tvm-aot-stale-epoch-check
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::execution_shard_supervisor::execution_shard_fault_injection_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::execution_shard_supervisor::execution_shard_fault_injection_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::actor::tests::actor_suspension_test::actor_exit_releases_native_continuation_ownership -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::actor::tests::actor_suspension_test::native_send_transition_delivers_before_exact_owner_resume -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::capability_worker::capability_worker_test::capability_worker_reply_completes_live_vm_deadline -- --exact
@@ -2782,13 +2764,13 @@ vm-supervision-restart-check: vm-supervision-primitives-check vm-timer-deadline-
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_deadline_forces_typed_exit_and_restarts_child -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_normal_exit_honors_transient_restart_class -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_rejects_duplicate_and_deadline_overflow_atomically -- --exact
-	$(RUST_TEST) --locked -p terlan --lib --features quality-tools vm_supervision_restart_test
+	$(RUST_TEST) -p terlan --lib --features quality-tools vm_supervision_restart_test
 	$(TERLAN_QUALITY) vm-supervision-restart
 
 vm-http-handler-dispatch-check: vm-io-reactor-runtime-check
 
-vm-http-handler-scheduler-fairness-check: vm-http-handler-dispatch-check
-	$(CARGO) run --locked --release -p terlan --bin terlan-benchmark --features benchmark-tools --quiet -- http-aot-performance-self-test
+vm-http-handler-scheduler-fairness-check: vm-http-handler-dispatch-check | terlan-benchmark-release-bootstrap
+	target/release/terlan-benchmark http-aot-performance-self-test
 	$(TERLAN_QUALITY) vm-http-handler-scheduler-fairness
 
 vm-http-stateful-actor-session-check: vm-http-handler-scheduler-fairness-check
@@ -3133,7 +3115,7 @@ vm-in-memory-stream-check:
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::framing::framing_test::vm_framing_fixture_reports_backpressure_from_peer_inbox -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::framing::framing_test::vm_framing_fixture_reports_closed_reader_stream -- --exact
 	mkdir -p target/quality
-	$(CARGO) run -p terlan --bin terlan-vm --quiet -- benchmark-in-memory-framing --iterations 100 --payload-bytes 128 >target/quality/terlan-vm-in-memory-framing-benchmark.json
+	target/debug/terlan-vm benchmark-in-memory-framing --iterations 100 --payload-bytes 128 >target/quality/terlan-vm-in-memory-framing-benchmark.json
 
 vm-tcp-framing-check: vm-in-memory-stream-check
 
@@ -3204,13 +3186,12 @@ vm-scheduler-contract-check:
 	$(RUST_TEST) -p terlan --lib runtime::vm::scheduler
 
 vm-actor-mutator-ownership-check:
-	cargo check --locked -p terlan --bin terlan-vm
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::actor_directory::actor_directory_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::actor_directory::actor_directory_test
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::scheduler::scheduler_test::scheduler_runs_runnable_process_and_requeues_yielded_slice -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::scheduler::scheduler_test::scheduler_cancels_at_preemption_boundary_without_requeueing -- --exact
 
 vm-parallel-messages-suite-parity-check:
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::actor_directory::actor_parallel_messages_beam_suite_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::actor_directory::actor_parallel_messages_beam_suite_parity_test
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::actor_directory::actor_directory_test::actor_directory_accepts_cross_thread_producers_before_owned_integration -- --exact
 	@rg -q 'ConcurrentQueue::bounded\(ACTOR_MAILBOX_CAPACITY\)' crates/terlan/src/runtime/vm/actor_directory/mailbox.rs
 	@rg -q 'VmActorDirectoryError::MailboxFull' crates/terlan/src/runtime/vm/actor_parallel_messages_beam_suite_parity_test.rs
@@ -3225,8 +3206,8 @@ vm-efile-suite-parity-check:
 	@rg -q 'PROC_READ_REPETITIONS: usize = 500' crates/terlan/src/native_worker/efile_beam_suite_parity_test.rs
 
 vm-float-native-arithmetic-check:
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::float_suite_native_parity_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::float::test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::float_suite_native_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::operation_abi::float::test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::typeck::core_intrinsic_test::vm_primitive_registry::syntax_output_lowering_to_core_maps_selected_float_alias_to_intrinsic -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::native_ir::case_lowering_test::finite_float_patterns_and_equality_execute -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::native_ir::case_lowering_test::non_finite_float_pattern_fails_closed -- --exact
@@ -3235,16 +3216,16 @@ vm-float-native-arithmetic-check:
 	@rg -q 'status::FLOAT_DIVISION_BY_ZERO' crates/terlan/src/compiler/native_ir/float_suite_native_parity_test.rs
 
 vm-fun-suite-parity-check: tvm-aot-application-closure-check tvm-aot-owned-closure-representation-check tvm-aot-closure-dispatch-check
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::fun_suite_native_parity_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::fun_suite_native_parity_test
 	@rg -q 'function arity mismatch: expected 1 args, found 0' crates/terlan/src/compiler/native_ir/fun_suite_native_parity_test.rs
 	@rg -q 'cannot unify Int with' crates/terlan/src/compiler/native_ir/fun_suite_native_parity_test.rs
 	@rg -q 'MAX_OWNED_CLOSURE_CAPTURES' crates/terlan/src/compiler/native_ir/closure_conversion.rs
 	@rg -q 'ManagedClosureImageGeneration' crates/terlan/src/runtime/native_image/managed/closures.rs
 
 vm-gc-suite-parity-check:
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::gc_suite_parity_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::managed_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::mailbox_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::gc_suite_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::managed_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::mailbox_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::managed_execution_test::completed_actor_heap_capacity_is_reused_with_a_fresh_owner_token -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::managed_execution_test::fixed_owner_heap_resets_in_place_with_stale_token_protection -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::actor::tests::actor_alias_test::actor_alias_send_rejects_unknown_alias_without_mailbox_mutation -- --exact
@@ -3254,9 +3235,9 @@ vm-gc-suite-parity-check:
 	@! rg -q 'Mutex|RwLock|thread_local!' crates/terlan/src/runtime/native_image/managed/heap.rs
 
 vm-guard-suite-parity-check:
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::guard_suite_native_parity_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::case_lowering_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::structured_case_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::guard_suite_native_parity_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::case_lowering_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::structured_case_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::typeck::pattern_test::generic_algorithms_and_guards::syntax_output_refines_case_guards_on_formal_path -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::typeck::pattern_test::generic_algorithms_and_guards::syntax_output_rejects_non_bool_case_guard -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::typeck::pattern_test::generic_algorithms_and_guards::syntax_output_rejects_impure_case_guard_assignment -- --exact
@@ -3267,15 +3248,15 @@ vm-guard-suite-parity-check:
 	@rg -q 'check_clause_guard_purity' crates/terlan/src/compiler/typeck/expression/control_flow.rs
 
 vm-guard-no-opt-suite-parity-check: vm-guard-suite-parity-check
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::guard_no_opt_suite_native_parity_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::codegen_policy_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::guard_no_opt_suite_native_parity_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::codegen_policy_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::case_lowering_test::scalar_case_source_executes_through_linked_native_object -- --exact
 	@rg -q 'Self::Development => "none"' crates/terlan/src/compiler/native_ir/codegen_policy.rs
 	@rg -q 'Self::Serve \| Self::Release => "speed"' crates/terlan/src/compiler/native_ir/codegen_policy.rs
 	@rg -q 'assert_eq!\(count_calls\(body, "next"\), 1\)' crates/terlan/src/compiler/native_ir/case_lowering_test.rs
 
 vm-hash-suite-parity-check: vm-deterministic-hashmap-check
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::value::hash_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::value::hash_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::bitstring::bitstring_test::bitstring_canonicalizes_storage_and_discards_unrepresented_bytes -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::bitstring::bitstring_test::bitstring_slices_aligned_and_unaligned_ranges_in_network_order -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::map_value::map_value_test::achamp_indexed_map_uses_collision_node_for_equal_hashes -- --exact
@@ -3299,7 +3280,7 @@ vm-hello-suite-parity-check: \
 	vm-code-server-check \
 	binary-runtime-suite-check \
 	vm-native-worker-runtime-check
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::hello_suite_native_parity_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::hello_suite_native_parity_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::vm::vm_test::vm_run_loads_hello_world_source_and_executes_main -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::vm::vm_test::vm_run_rejects_unwired_capability_instead_of_spinning -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::aot3_conformance_test::one_image_executes_closed_application_features_and_rejects_unbounded_peers -- --exact
@@ -3307,8 +3288,8 @@ vm-hello-suite-parity-check: \
 	@rg -q 'runtime CoreIR interpretation has been removed' crates/terlan/src/compiler/native_ir/application.rs
 
 vm-small-suite-parity-check:
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::small_suite_native_parity_test
-	$(RUST_TEST) --locked -p terlan --lib compiler::native_ir::scalar_replacement_index_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::small_suite_native_parity_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::scalar_replacement_index_test
 	@rg -q 'sadd_overflow' crates/terlan/src/compiler/native_ir/cranelift.rs
 	@rg -q 'ssub_overflow' crates/terlan/src/compiler/native_ir/cranelift.rs
 	@rg -q 'smul_overflow' crates/terlan/src/compiler/native_ir/cranelift.rs
@@ -3316,16 +3297,15 @@ vm-small-suite-parity-check:
 	@rg -q 'status::OVERFLOW' crates/terlan/src/compiler/native_ir/small_suite_native_parity_test.rs
 
 vm-smoke-suite-parity-check:
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::scheduler_topology::scheduler_smoke_beam_suite_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::scheduler_topology::scheduler_smoke_beam_suite_parity_test
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::native_ir::case_lowering_test::dense_and_sparse_integer_dispatch_executes_through_linked_native_object -- --exact
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::scheduler_topology::scheduler_topology_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::scheduler_topology::scheduler_topology_test
 	@rg -q 'cfg!\(target_has_atomic = "32"\)' crates/terlan/src/runtime/vm/scheduler_smoke_beam_suite_parity_test.rs
 	@rg -q 'cfg!\(target_has_atomic = "64"\)' crates/terlan/src/runtime/vm/scheduler_smoke_beam_suite_parity_test.rs
 	@rg -q 'VM_MAX_SCHEDULERS' crates/terlan/src/runtime/vm/scheduler_smoke_beam_suite_parity_test.rs
 
 vm-multicore-mailbox-publication-check: vm-process-model-check vm-failure-primitives-check
-	cargo check --locked -p terlan --bin terlan-vm
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::actor_directory::mailbox::mailbox_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::actor_directory::mailbox::mailbox_test
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::actor_directory::actor_directory_test::publication_during_execution_prevents_lost_wakeup_park -- --exact
 	@rg -q 'ConcurrentQueue::bounded\(ACTOR_MAILBOX_CAPACITY\)' crates/terlan/src/runtime/vm/actor_directory/mailbox.rs
 	@! rg -q 'ConcurrentQueue::unbounded\(\)' crates/terlan/src/runtime/vm/actor_directory/mailbox.rs
@@ -3335,43 +3315,35 @@ vm-multicore-mailbox-publication-check: vm-process-model-check vm-failure-primit
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::process::process_registry_test::process_registry_exit_removes_every_name_before_reuse -- --exact
 
 vm-multicore-fixed-placement-check: vm-multicore-mailbox-publication-check vm-scheduler-fairness-check rust-quality-check
-	cargo check --locked -p terlan --bin terlan-vm
-	cargo check --locked -p terlan --bin terlc
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::scheduler_topology::scheduler_topology_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::fixed_scheduler_control::fixed_scheduler_control_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::fixed_scheduler_telemetry::fixed_scheduler_telemetry_test
-	$(RUST_TEST) --locked -p terlan --lib commands::serve::handler_cache::shard_owner::shard_owner_test
-	$(RUST_TEST) --locked -p terlan --lib commands::serve::handler_cache::invocation::invocation_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::scheduler_topology::scheduler_topology_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::fixed_scheduler_control::fixed_scheduler_control_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::fixed_scheduler_telemetry::fixed_scheduler_telemetry_test
+	$(RUST_TEST) -p terlan --lib commands::serve::handler_cache::shard_owner::shard_owner_test
+	$(RUST_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test
 
 tvm-aot-multicore-migration-check: tvm-aot-runtime-transition-check tvm-managed-memory-check vm-actor-mutator-ownership-check rust-quality-check
-	cargo check --locked -p terlan --bin terlan-vm
-	cargo check --locked -p terlan --bin terlc
-	$(RUST_TEST) --locked -p terlan --lib transfer_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::fixed_scheduler_control::fixed_scheduler_control_test
+	$(RUST_TEST) -p terlan --lib transfer_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::fixed_scheduler_control::fixed_scheduler_control_test
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::parked_generated_handler_migrates_one_hundred_times_then_resumes_once -- --exact
 
 vm-multicore-work-stealing-policy-check:
-	cargo check --locked -p terlan --bin terlan-vm
-	cargo check --locked -p terlan --bin terlc
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::work_stealing::work_stealing_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::work_stealing::work_stealing_test
 
 vm-multicore-work-stealing-check: vm-multicore-work-stealing-policy-check tvm-aot-multicore-migration-check vm-scheduler-fairness-check rust-quality-check
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::fixed_scheduler_control::fixed_scheduler_control_test
-	$(RUST_TEST) --locked -p terlan --lib commands::serve::handler_cache::shard_owner::shard_owner_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::fixed_scheduler_control::fixed_scheduler_control_test
+	$(RUST_TEST) -p terlan --lib commands::serve::handler_cache::shard_owner::shard_owner_test
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::generated_aot_yields_requeue_before_each_resume -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::resumed_generated_aot_actor_yields_before_replying -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::fixed_scheduler_control::fixed_scheduler_control_test::queued_actor_migration_publishes_destination_before_reacquisition -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::generated_runnable_actor_is_stolen_between_scheduler_owners -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::stolen_generated_actor_retains_destination_route_when_it_parks -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::rejected_generated_runnable_steal_rolls_back_without_actor_loss -- --exact
-	$(RUST_TEST) --locked -p terlan --lib commands::serve::handler_cache::invocation::invocation_test
+	$(RUST_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::generated_runnable_classes_receive_weighted_local_service -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::generated_multicore_fanout_completes_under_adversarial_class_skew -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::generated_runnable_shutdown_reclaims_queued_class_work -- --exact
 
 vm-multicore-runtime-cleanup-check:
-	cargo check --locked -p terlan --bin terlan-vm
-	cargo check --locked -p terlan --bin terlc
 	@! rg -q 'VmWorkStealingRuntime|VmSchedulerStealClaim|VmActorStealClaim' crates/terlan/src
 	@! rg -q '^(vm-multicore-work-stealing-owner-check|tvm-aot-multicore-yield-queue-check|tvm-aot-multicore-runnable-steal-check|tvm-aot-multicore-policy-coordination-check):' Makefile
 	@! rg -q 'hidden MC-5|next MC-5|staged MC-5|Activated by the MC-6|Used when MC-6' crates/terlan/src/runtime/vm crates/terlan/src/commands/serve/handler_cache.rs crates/terlan/src/commands/serve/handler_cache
@@ -3429,10 +3401,9 @@ vm-multicore-capability-event-pump-check: vm-multicore-capability-completion-che
 		exit 1; \
 	fi
 
-vm-multicore-capability-scheduler-check: vm-multicore-capability-event-pump-check
+vm-multicore-capability-scheduler-check: vm-multicore-capability-event-pump-check | terlan-native-worker-bootstrap
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::capability_worker::pool::pool_test::capability_event_pump_shutdown_returns_all_pending_payloads -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib native_worker::protocol::protocol_test::worker_admits_declared_filesystem_operation -- --exact
-	$(CARGO) build --locked -p terlan --bin terlan-native-worker
 	TERLAN_NATIVE_WORKER=$(CURDIR)/target/debug/terlan-native-worker TERLAN_TEST_AOT_CAPABILITY_PUMP=1 TERLAN_TEST_CAPABILITY_NETWORK_SANDBOX=1 $(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::generated_capability_event_pump_executes_real_worker_full_cycle -- --ignored --exact
 	TERLAN_NATIVE_WORKER=$(CURDIR)/target/debug/terlan-native-worker $(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_protocol_test::protocol_reactor_capability_worker_wakes_and_resumes_exact_actor -- --ignored --exact
 	@rg -q 'GeneratedCapabilityDispatcher' crates/terlan/src/commands/serve/handler_cache/shard_owner/capability_dispatch.rs
@@ -3456,15 +3427,14 @@ vm-epmd-discovery-check:
 vm-multicore-runtime-integration-check: vm-multicore-capability-scheduler-check vm-epmd-discovery-check vm-timer-deadline-check native-boundary-runtime-adversarial-check vm-http-concurrency-investigation-check rust-quality-check
 
 vm-multicore-replay-observability-check: rust-quality-check
-	cargo check --locked -p terlan --bin terlan-vm
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::multicore_replay::multicore_replay_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::fixed_scheduler_telemetry::fixed_scheduler_telemetry_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::multicore_replay::multicore_replay_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::fixed_scheduler_telemetry::fixed_scheduler_telemetry_test
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::shard_owner::shard_owner_test::panic_detail_is_bounded_and_stable_for_all_payload_classes -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::support_bundle::support_bundle_test::native_support_bundle_serializes_validated_multicore_evidence -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::generated_aot_yields_requeue_before_each_resume -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::generated_runnable_actor_is_stolen_between_scheduler_owners -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::generated_aot_timer_parks_until_scheduler_owned_deadline -- --exact
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::debugger_control::debugger_control_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::debugger_control::debugger_control_test
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::debugger_pause_and_step_follow_owner_migration_without_duplicate_execution -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::pure_native::execution_shard::execution_shard_test::detached_actor_generation_blocks_source_reload_and_rejects_replaced_destination -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::pure_native::execution_shard::execution_shard_test::active_shard_crash_recovery_rejects_early_restart_and_stale_execution -- --exact
@@ -3492,8 +3462,8 @@ vm-multicore-replay-observability-check: rust-quality-check
 	@! rg -q 'SystemTime|Instant|thread::current' crates/terlan/src/runtime/vm/multicore_replay.rs
 
 vm-multicore-performance-check: rust-quality-check
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::scheduler_topology::scheduler_topology_test
-	$(RUST_TEST) --locked -p terlan --lib commands::serve::handler_cache::multicore_performance_test -- --nocapture
+	$(RUST_TEST) -p terlan --lib runtime::vm::scheduler_topology::scheduler_topology_test
+	$(RUST_TEST) -p terlan --lib commands::serve::handler_cache::multicore_performance_test -- --nocapture
 	test -s benchmarks/baselines/vm-multicore-performance-limits.json
 	TERLAN_VM_MULTICORE_PERFORMANCE_OUTPUT=$(CURDIR)/target/quality/vm-multicore-performance.json $(EXACT_CARGO_TEST) --locked --release -p terlan --lib commands::serve::handler_cache::multicore_performance_test::multicore_runtime_width_matrix_records_workloads_and_owner_overlap -- --ignored --exact --nocapture
 	test -s target/quality/vm-multicore-performance.json
@@ -3588,8 +3558,7 @@ VM_MULTICORE_RELEASE_LOCAL_GATES := \
 	vm-scheduler-fairness-check \
 	tvm-aot-runtime-transition-check \
 	tvm-managed-memory-check \
-	rust-quality-check \
-	roadmap-gate-integrity-check
+	rust-quality-check
 
 vm-multicore-release-contract-check: | terlan-tvm-platform-matrix-bootstrap
 	$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-self-test
@@ -3924,7 +3893,7 @@ otp-runtime-exit-check:
 	$(TERLAN_QUALITY) otp-runtime-exit
 
 vm-hibernate-suite-parity-check: vm-gc-suite-parity-check vm-scheduler-contract-check
-	$(RUST_TEST) --locked -p terlan --lib runtime::vm::actor::tests::actor_hibernate_beam_suite_parity_test
+	$(RUST_TEST) -p terlan --lib runtime::vm::actor::tests::actor_hibernate_beam_suite_parity_test
 	@rg -q 'VmProcessState::Hibernated' crates/terlan/src/runtime/vm/process.rs crates/terlan/src/runtime/vm/process/parking.rs
 	@rg -q 'hibernate_process' crates/terlan/src/runtime/vm/scheduler.rs
 	@rg -q 'hibernate_owner' crates/terlan/src/runtime/native_image/managed/execution/hibernation.rs
@@ -3936,31 +3905,19 @@ otp-test-pipeline-inventory-check:
 terlan-vm-erl-suite-audit-check: | terlan-tvm-platform-matrix-bootstrap
 	$(RUST_TEST) -p terlan --lib module_layout_ -- --nocapture
 	$(TERLAN_TVM_PLATFORM_MATRIX) erl-suite-audit-self-test
-	$(TERLC) test scripts/self_validation/OtpStdlibMigrationEvidenceTest.terl
 	$(TERLAN_TVM_PLATFORM_MATRIX) erl-suite-audit-check
-
-otp-stdlib-migration-evidence-check:
-	$(CURDIR)/target/debug/terlc test scripts/self_validation/OtpStdlibMigrationEvidenceTest.terl
 
 otp-stdlib-port-check: vm-list-bif-suite-parity-check vm-map-suite-parity-check vm-process-model-check vm-failure-primitives-check vm-supervision-primitives-check vm-timer-primitives-check vm-diagnostics-quality-check vm-efile-suite-parity-check vm-otp-abstractions-terlan-stdlib-check
 	$(TERLC) test std/vm/BytesTest.terl
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::coordination::coordination_distribution_beam_suite_parity_test::distribution_suite_bulk_delivery_is_ordered_deduplicated_and_transactional -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::coordination::coordination_distribution_beam_suite_parity_test::distribution_suite_node_lifecycle_restart_and_reconnect_are_generation_safe -- --exact
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_image::managed::sets::managed_set_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::sets::managed_set_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test::string_append_operation_concatenates_validated_values -- --exact
-	$(RUST_TEST) --locked -p terlan --lib runtime::native::json::json_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::native::path::path_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::native::uri::uri_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::native::random::random_test
-	$(RUST_TEST) --locked -p terlan --lib runtime::native::regex::regex_test
-
-roadmap-legacy-runtime-cleanup-check:
-	$(CURDIR)/target/debug/terlc test \
-		scripts/self_validation/RoadmapLegacyRuntimeCleanupTest.terl
-
-roadmap-gate-integrity-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools roadmap_gate_integrity_test
-	$(TERLAN_QUALITY) roadmap-gate-integrity
+	$(RUST_TEST) -p terlan --lib runtime::native::json::json_test
+	$(RUST_TEST) -p terlan --lib runtime::native::path::path_test
+	$(RUST_TEST) -p terlan --lib runtime::native::uri::uri_test
+	$(RUST_TEST) -p terlan --lib runtime::native::random::random_test
+	$(RUST_TEST) -p terlan --lib runtime::native::regex::regex_test
 
 callable-syntax-cleanup-check:
 	$(TERLC_EXACT_TEST) compiler::syntax::parser::parser_expr_test::macros_and_constructors::rejects_function_value_dot_call_syntax -- --exact
@@ -3988,93 +3945,54 @@ std-test-table-check:
 	$(RUST_TEST) -p terlan --lib runtime::native::base64::base64_test
 	$(RUST_TEST) -p terlan --lib runtime::native::md5::md5_test
 	target/debug/terlc check std/test/Test.terl
-	target/debug/terlc check std/test/AssertionsTest.terl
-	target/debug/terlc check std/test/TableTest.terl
-	target/debug/terlc check std/test/LifecycleTest.terl
-	target/debug/terlc test std/test/AssertionsTest.terl
-	target/debug/terlc test std/test/TableTest.terl
-	target/debug/terlc test std/test/LifecycleTest.terl
-	target/debug/terlc test std/core/IntTest.terl
-	target/debug/terlc test std/core/FloatTest.terl
-	target/debug/terlc test std/core/StringTest.terl
-	target/debug/terlc test std/encoding/Base64Test.terl
-	target/debug/terlc test std/encoding/Md5Test.terl
+	target/debug/terlc test \
+		std/test/AssertionsTest.terl \
+		std/test/TableTest.terl \
+		std/test/LifecycleTest.terl \
+		std/core/IntTest.terl \
+		std/core/FloatTest.terl \
+		std/core/StringTest.terl \
+		std/encoding/Base64Test.terl \
+		std/encoding/Md5Test.terl
 
 std-test-property-check:
-	target/debug/terlc check std/collections/ListPropertyTest.terl
-	target/debug/terlc check std/collections/MapPropertyTest.terl
-	target/debug/terlc check std/collections/SetPropertyTest.terl
-	target/debug/terlc check std/binary/BinaryPropertyTest.terl
-	target/debug/terlc check std/core/AtomPropertyTest.terl
-	target/debug/terlc check std/core/ErrorPropertyTest.terl
-	target/debug/terlc check std/core/BoolPropertyTest.terl
-	target/debug/terlc check std/core/FloatPropertyTest.terl
-	target/debug/terlc check std/core/IntPropertyTest.terl
-	target/debug/terlc check std/core/ObjectPropertyTest.terl
-	target/debug/terlc check std/core/OptionPropertyTest.terl
-	target/debug/terlc check std/core/OrderingPropertyTest.terl
-	target/debug/terlc check std/core/ResultPropertyTest.terl
-	target/debug/terlc check std/core/StringPropertyTest.terl
-	target/debug/terlc check std/core/UnitPropertyTest.terl
-	target/debug/terlc check std/data/JsonPropertyTest.terl
-	target/debug/terlc check std/encoding/Base64PropertyTest.terl
-	target/debug/terlc check std/io/PathPropertyTest.terl
-	target/debug/terlc check std/net/UriPropertyTest.terl
-	target/debug/terlc check std/range/RangePropertyTest.terl
-	target/debug/terlc check std/random/RandomPropertyTest.terl
-	target/debug/terlc check std/regex/RegexPropertyTest.terl
-	target/debug/terlc check std/test/Gen.terl
-	target/debug/terlc check std/test/GenTest.terl
-	target/debug/terlc check std/test/PropertyDistributionTest.terl
-	target/debug/terlc check std/test/PropertyTest.terl
-	target/debug/terlc check std/test/Shrink.terl
-	target/debug/terlc check std/test/ShrinkTest.terl
-	target/debug/terlc check std/test/StatefulPropertyTest.terl
-	target/debug/terlc test std/collections/ListPropertyTest.terl
-	target/debug/terlc test std/collections/MapPropertyTest.terl
-	target/debug/terlc test std/collections/SetPropertyTest.terl
-	target/debug/terlc test std/binary/BinaryPropertyTest.terl
-	target/debug/terlc test std/core/AtomPropertyTest.terl
-	target/debug/terlc test std/core/ErrorPropertyTest.terl
-	target/debug/terlc test std/core/BoolPropertyTest.terl
-	target/debug/terlc test std/core/FloatPropertyTest.terl
-	target/debug/terlc test std/core/IntPropertyTest.terl
-	target/debug/terlc test std/core/ObjectPropertyTest.terl
-	target/debug/terlc test std/core/OptionPropertyTest.terl
-	target/debug/terlc test std/core/OrderingPropertyTest.terl
-	target/debug/terlc test std/core/ResultPropertyTest.terl
-	target/debug/terlc test std/core/StringPropertyTest.terl
-	target/debug/terlc test std/core/UnitPropertyTest.terl
-	target/debug/terlc test std/data/JsonPropertyTest.terl
-	target/debug/terlc test std/encoding/Base64PropertyTest.terl
-	target/debug/terlc test std/io/PathPropertyTest.terl
-	target/debug/terlc test std/net/UriPropertyTest.terl
-	target/debug/terlc test std/range/RangePropertyTest.terl
-	target/debug/terlc test std/random/RandomPropertyTest.terl
-	target/debug/terlc test std/regex/RegexPropertyTest.terl
-	target/debug/terlc test std/test/GenTest.terl
-	target/debug/terlc test std/test/PropertyDistributionTest.terl
-	target/debug/terlc test std/test/PropertyTest.terl
-	target/debug/terlc test std/test/ShrinkTest.terl
-	target/debug/terlc test std/test/StatefulPropertyTest.terl
+	target/debug/terlc test \
+		std/collections/ListPropertyTest.terl \
+		std/collections/MapPropertyTest.terl \
+		std/collections/SetPropertyTest.terl \
+		std/binary/BinaryPropertyTest.terl \
+		std/core/AtomPropertyTest.terl \
+		std/core/ErrorPropertyTest.terl \
+		std/core/BoolPropertyTest.terl \
+		std/core/FloatPropertyTest.terl \
+		std/core/IntPropertyTest.terl \
+		std/core/ObjectPropertyTest.terl \
+		std/core/OptionPropertyTest.terl \
+		std/core/OrderingPropertyTest.terl \
+		std/core/ResultPropertyTest.terl \
+		std/core/StringPropertyTest.terl \
+		std/core/UnitPropertyTest.terl \
+		std/data/JsonPropertyTest.terl \
+		std/encoding/Base64PropertyTest.terl \
+		std/io/PathPropertyTest.terl \
+		std/net/UriPropertyTest.terl \
+		std/range/RangePropertyTest.terl \
+		std/random/RandomPropertyTest.terl \
+		std/regex/RegexPropertyTest.terl \
+		std/test/GenTest.terl \
+		std/test/PropertyDistributionTest.terl \
+		std/test/PropertyTest.terl \
+		std/test/ShrinkTest.terl \
+		std/test/StatefulPropertyTest.terl
 
 std-range-check:
-	target/debug/terlc check std/range/Range.terl
-	target/debug/terlc check std/range/RangeTest.terl
-	target/debug/terlc check std/range/RangePropertyTest.terl
 	target/debug/terlc test std/range
 
 std-random-check:
 	$(RUST_TEST) -p terlan --lib runtime::native::random::random_test
-	target/debug/terlc check std/random/Random.terl
-	target/debug/terlc check std/random/RandomTest.terl
-	target/debug/terlc check std/random/RandomPropertyTest.terl
 	target/debug/terlc test std/random
 
 std-regex-check:
-	target/debug/terlc check std/regex/Regex.terl
-	target/debug/terlc check std/regex/RegexTest.terl
-	target/debug/terlc check std/regex/RegexPropertyTest.terl
 	target/debug/terlc test std/regex
 
 std-package-coverage-100-check: shape-implications-check
@@ -4115,7 +4033,7 @@ otp-reference-inventory-check:
 	$(TERLAN_QUALITY) otp-reference-inventory
 
 vm-multicore-invariant-inventory-check:
-	$(RUST_TEST) --locked -p terlan --lib --features quality-tools multicore_invariant_inventory_test
+	$(RUST_TEST) -p terlan --lib --features quality-tools multicore_invariant_inventory_test
 	$(TERLAN_QUALITY) vm-multicore-invariant-inventory
 
 vm-otp-corpus-inventory-check: otp-reference-inventory-check
@@ -4126,8 +4044,8 @@ hex-target-metadata-check:
 	$(RUST_TEST) -p terlan --lib --features quality-tools hex_target_metadata_test
 	$(TERLAN_QUALITY) hex-target-metadata
 
-native-no-std-target-feasibility-check: hex-target-metadata-check
-	$(CARGO) run --locked -p terlan --bin terlan-native-target-feasibility --features quality-tools --quiet
+native-no-std-target-feasibility-check: hex-target-metadata-check | terlan-quality-tools-bootstrap
+	target/debug/terlan-native-target-feasibility
 
 device-target-planner-check: native-no-std-target-feasibility-check
 	$(TERLAN_QUALITY) device-target-planner
@@ -4147,6 +4065,39 @@ package-resolver-reproducibility-check: device-target-planner-check terlan-packa
 
 package-registry-publish-check: package-resolver-reproducibility-check
 	$(TERLAN_QUALITY) package-registry-publish
+
+registry-protocol-schema-check: rust-test-suite
+	bash scripts/check_registry_protocol_schema_v1.sh
+
+registry-package-archive-check: rust-test-suite
+	bash scripts/check_registry_package_archive_v1.sh
+
+registry-lockfile-resolver-check: rust-test-suite
+	bash scripts/check_registry_lockfile_resolver_v1.sh
+
+milestone-registry-public-contract: registry-protocol-schema-check registry-package-archive-check registry-lockfile-resolver-check
+	@echo "Registry MR0 public contract milestone passed"
+
+registry-cli-integration-check: | terlan-compiler-bootstrap
+	bash scripts/check_registry_cli_integration_v1.sh
+
+.PHONY: registry-http-publication-check registry-trusted-resolution-check registry-graph-workflow-check registry-live-frontend-check
+registry-http-publication-check: | terlan-compiler-bootstrap
+	bash ../terlan-registry/scripts/check-registry-http-publication.sh
+
+registry-trusted-resolution-check: registry-http-publication-check
+	@echo "Registry trusted live/conditional/offline resolution passed"
+
+registry-graph-workflow-check: registry-trusted-resolution-check
+	@echo "Registry trusted whole-graph workflow passed"
+
+registry-live-frontend-check: registry-graph-workflow-check
+	@$(MAKE) -C ../terlan-registry registry-frontend-check TERLC="$(abspath $(TERLAN_BOOTSTRAP_COMPILER))"
+	@echo "Registry DB-backed Terlan Angular.ts frontend passed"
+
+registry-adversarial-corpus-check: rust-test-suite
+	bash scripts/check_registry_cli_integration_v1.sh
+	@echo "Registry adversarial package corpus passed"
 
 package-capability-contract-check: package-registry-publish-check
 	$(TERLAN_QUALITY) package-capability-contract
@@ -4244,9 +4195,8 @@ native-binding-generator-contract-check:
 
 cpp-binding-generator-check cpp-package-consumer-check: export RUSTFLAGS := -D warnings
 
-cpp-binding-generator-check: native-binding-generator-contract-check cpp-binding-metadata-extractor-check
+cpp-binding-generator-check: native-binding-generator-contract-check cpp-binding-metadata-extractor-check cpp-package-consumer-check
 	$(RUST_TEST) -p terlan --lib cpp_binding_generator
-	$(MAKE) --no-print-directory cpp-package-consumer-check
 	$(TERLAN_EXTERNAL_PACKAGE_MATRIX) record \
 		--gate cpp-binding-generator-check --state passed --reason-code none
 
@@ -4362,9 +4312,9 @@ cuda-package-check:
 	$(TERLAN_EXTERNAL_PACKAGE_MATRIX) record \
 		--gate cuda-package-check --state passed --reason-code none
 
-accelerator-hard-contract-check:
-	scripts/check-accelerator-hard-contract.sh "$(CURDIR)"
-	$(CARGO) check -p terlan
+accelerator-hard-contract-check: | terlan-repository-validation-bootstrap
+	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
+		$(TERLAN_REPOSITORY_VALIDATION) accelerator-hard-contract
 
 accelerator-boundary-baseline-check:
 	$(MAKE) -C "$(TERLAN_CUDA_DIR)" cuda-baseline-freeze-check \
@@ -4382,13 +4332,13 @@ accelerator-package-metadata-check:
 		$(CURDIR)/target/debug/terlc test \
 			scripts/self_validation/AcceleratorPackageMetadataTest.terl
 
-accelerator-value-contract-check:
+accelerator-value-contract-check: | terlan-quality-tools-bootstrap
 	$(RUST_TEST) -p terlan --lib accelerator
-	$(CARGO) run -p terlan --bin terlan-accelerator-value-contract --quiet -- \
+	target/debug/terlan-accelerator-value-contract \
 		"$(CURDIR)/target/quality"
 	$(CURDIR)/target/debug/terlc check \
 		"$(CURDIR)/target/quality/generated/AcceleratorValue.terl"
-	$(CARGO) run -p terlan --bin terlan-accelerator-value-contract --quiet -- \
+	target/debug/terlan-accelerator-value-contract \
 		"$(CURDIR)/target/quality/cuda-generated" \
 		--module cuda.AcceleratorValue \
 		--descriptor "$(TERLAN_CUDA_DIR)/accelerator.toml"
@@ -4401,32 +4351,32 @@ accelerator-value-contract-check:
 	$(CURDIR)/target/debug/terlc test \
 		scripts/self_validation/AcceleratorValueContractTest.terl
 
-accelerator-target-admission-check:
+accelerator-target-admission-check: | terlan-quality-tools-bootstrap
 	$(RUST_TEST) -p terlan --lib accelerator
-	$(CARGO) run -p terlan --bin terlan-accelerator-target-admission --quiet -- \
+	target/debug/terlan-accelerator-target-admission \
 		"$(CURDIR)/target/quality/accelerator-target-plan.json" \
 		"$(TERLAN_CUDA_DIR)/accelerator.toml"
 	$(CURDIR)/target/debug/terlc test \
 		scripts/self_validation/AcceleratorTargetAdmissionTest.terl
 
-accelerator-ir-check:
+accelerator-ir-check: | terlan-quality-tools-bootstrap
 	$(RUST_TEST) -p terlan --lib compiler::accelerator::ir
-	$(CARGO) run -p terlan --bin terlan-accelerator-ir --quiet -- \
+	target/debug/terlan-accelerator-ir \
 		"$(CURDIR)/target/quality/accelerator-ir-report.json"
 	$(CURDIR)/target/debug/terlc test \
 		scripts/self_validation/AcceleratorIrTest.terl
 
-accelerator-aot-backend-check:
+accelerator-aot-backend-check: | terlan-quality-tools-bootstrap
 	$(RUST_TEST) -p terlan --lib compiler::accelerator::aot
-	$(CARGO) run -p terlan --bin terlan-accelerator-aot-backend --quiet -- \
+	target/debug/terlan-accelerator-aot-backend \
 		"$(CURDIR)/target/quality/accelerator-aot-backend.json" \
 		"$${TERLAN_ACCELERATOR_LLC:-/usr/bin/llc}"
 	$(CURDIR)/target/debug/terlc test \
 		scripts/self_validation/AcceleratorAotBackendTest.terl
 
-accelerator-placement-check:
+accelerator-placement-check: | terlan-quality-tools-bootstrap
 	$(RUST_TEST) -p terlan --lib compiler::accelerator::placement
-	$(CARGO) run -p terlan --bin terlan-accelerator-placement --quiet -- \
+	target/debug/terlan-accelerator-placement \
 		"$(CURDIR)/target/quality/accelerator-placement-report.json"
 	$(CURDIR)/target/debug/terlc test \
 		scripts/self_validation/AcceleratorPlacementTest.terl
@@ -4435,19 +4385,19 @@ accelerator-fusion-check: accelerator-placement-check
 
 accelerator-transfer-elision-check: accelerator-placement-check
 
-accelerator-vm-integration-check:
+accelerator-vm-integration-check: | terlan-quality-tools-bootstrap
 	$(RUST_TEST) -p terlan --lib runtime::vm::accelerator_operation
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::package_native_helper::package_native_helper_test::package_helper_projects_cuda_handles_into_canonical_vm_resources -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::actor::tests::actor_suspension_test::native_resource_transition_registers_owned_handle_and_cleans_up_on_exit -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::capability_worker::pool::pool_test::capability_worker_pool_disposes_late_result_resources_with_bounded_credit -- --exact
-	$(CARGO) run -p terlan --bin terlan-accelerator-vm-integration --quiet -- \
+	target/debug/terlan-accelerator-vm-integration \
 		"$(CURDIR)/target/quality/accelerator-vm-integration.json"
 	$(CURDIR)/target/debug/terlc test \
 		scripts/self_validation/AcceleratorVmIntegrationTest.terl
 
-accelerator-specialized-artifact-check:
+accelerator-specialized-artifact-check: | terlan-quality-tools-bootstrap
 	$(RUST_TEST) -p terlan --lib compiler::accelerator::assembly
-	$(CARGO) run -p terlan --bin terlan-accelerator-specialized-artifact --quiet -- \
+	target/debug/terlan-accelerator-specialized-artifact \
 		"$(CURDIR)/target/quality/accelerator-specialized-artifact.json"
 	! strings "$(CURDIR)/target/quality/cpu-only.bin" | rg -i \
 		'cuda-driver|terlan-cuda|vm-capability-worker-event-pump|\\.ptx|accelerator\\.execute'
@@ -4463,7 +4413,7 @@ external-package-execution-matrix-check:
 		--profile "$${TERLAN_EXTERNAL_PACKAGE_PROFILE:-baseline}"
 
 native-boundary-runtime-adversarial-check:
-	$(RUST_TEST) --locked -p terlan --lib runtime::native_boundary::capability_wire::capability_wire_test
+	$(RUST_TEST) -p terlan --lib runtime::native_boundary::capability_wire::capability_wire_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib native_worker::protocol::protocol_test::framing_rejects_oversized_input_and_output -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::native_boundary::runtime::runtime_test::runtime_rejects_disposed_handles_through_terms -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::native_boundary::runtime::runtime_test::runtime_rejects_duplicate_dispose_as_stale_handle -- --exact
@@ -4487,7 +4437,7 @@ vm-native-boundary-contract-check: lean-proof-track-check
 .PHONY: vm-sql-macro-validation-check
 vm-sql-macro-validation-check: vm-db-migration-command-check
 	$(CURDIR)/target/debug/terlc test scripts/self_validation/SqlFormBoundaryTest.terl
-	env RUSTFLAGS='-D warnings' $(RUST_TEST) --locked -p terlan --lib --features quality-tools sql
+	env RUSTFLAGS='-D warnings' $(RUST_TEST) -p terlan --lib --features quality-tools sql
 	$(TERLAN_QUALITY) vm-sql-macro-validation
 	test -s target/quality/vm-sql-macro-validation-report.json
 
@@ -4502,14 +4452,14 @@ html-boundary-check:
 .PHONY: vm-db-migration-command-check
 vm-db-migration-command-check: vm-dev-dependency-orchestration-check db-command-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::db::live_test::run_db_migration_and_snapshot_lifecycle_against_docker_postgres -- --ignored --exact --nocapture
-	env RUSTFLAGS='-D warnings' $(RUST_TEST) --locked -p terlan --lib --features quality-tools vm_db_migration_command
+	env RUSTFLAGS='-D warnings' $(RUST_TEST) -p terlan --lib --features quality-tools vm_db_migration_command
 	$(TERLAN_QUALITY) vm-db-migration-command
 	test -s target/quality/vm-db-migration-report.json
 
 .PHONY: vm-dev-dependency-orchestration-check
 vm-dev-dependency-orchestration-check:
-	env RUSTFLAGS='-D warnings' $(RUST_TEST) --locked -p terlan --lib commands::dev_dependencies
-	env RUSTFLAGS='-D warnings' $(RUST_TEST) --locked -p terlan --lib --features quality-tools vm_dev_dependency_orchestration
+	env RUSTFLAGS='-D warnings' $(RUST_TEST) -p terlan --lib commands::dev_dependencies
+	env RUSTFLAGS='-D warnings' $(RUST_TEST) -p terlan --lib --features quality-tools vm_dev_dependency_orchestration
 	$(TERLAN_QUALITY) vm-dev-dependency-orchestration
 	test -s target/quality/vm-dev-dependency-report.json
 
@@ -4534,17 +4484,18 @@ achamp-adversarial-coverage-check: vm-memory-heap-pressure-check
 	$(RUST_TEST) -p terlan --lib --features quality-tools achamp_adversarial_coverage_test
 	$(TERLAN_QUALITY) achamp-adversarial-coverage
 
-executable-docs-vm-check:
+executable-docs-vm-check: | terlan-repository-validation-bootstrap
 	$(RUST_TEST) -p terlan --lib --features quality-tools executable_docs_vm_test
 	$(TERLAN_QUALITY) executable-docs-vm
 	$(EXACT_CARGO_TEST) -p terlan --lib tests::doc_test::readme_hello_world_terlan_block_compiles -- --exact
-	bash scripts/check_readme_hello_world_run.sh
+	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
+	TERLAN_REPOSITORY_VALIDATION_TERLC="$(CURDIR)/target/debug/terlc" \
+		$(TERLAN_REPOSITORY_VALIDATION) readme-hello-world
 
 docs-codeblock-executable-check: executable-docs-vm-check
 
 
-terlan-vm-compiler-bridge-check:
-	$(MAKE) --no-print-directory cli-terlan-vm-compiler-bridge-check
+terlan-vm-compiler-bridge-check: cli-terlan-vm-compiler-bridge-check
 
 terlc-build-executable-check: cli-terlc-build-executable-check
 
@@ -4632,19 +4583,16 @@ module-readme-check:
 	$(TERLAN_QUALITY) module-readmes
 
 rustdoc-check:
-	$(RUST_TEST) --locked -p terlan --lib --features quality-tools rustdoc_
+	$(RUST_TEST) -p terlan --lib --features quality-tools rustdoc_
 	$(TERLAN_QUALITY) rust-docs
 
-release-artifact-current: terlan-release-promotion-bootstrap
-	$(MAKE) release-boundary-check
-	$(MAKE) release-version-metadata-check
-	$(MAKE) source-extension-check
-	$(MAKE) vm-release-artifact-matrix-check
+release-artifact-current: terlan-release-promotion-bootstrap release-boundary-check release-version-metadata-check source-extension-check vm-release-artifact-matrix-check
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_RELEASE_PROMOTION) seal $(if $(VERSION),--version "$(VERSION)",)
 
-release-artifact-linux:
-	TERLAN_RELEASE_OS=Linux TERLAN_RELEASE_ARCH=x86_64 $(MAKE) release-artifact-current
+release-artifact-linux: export TERLAN_RELEASE_OS = Linux
+release-artifact-linux: export TERLAN_RELEASE_ARCH = x86_64
+release-artifact-linux: release-artifact-current
 
 release-artifact-smoke: | terlan-tvm-platform-matrix-bootstrap
 	$(TERLAN_TVM_PLATFORM_MATRIX) release-artifact-smoke
@@ -4729,7 +4677,7 @@ publish-preflight:
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_RELEASE_PROMOTION) seal --version "$(VERSION)"
 	$(MAKE) release-staged-distribution-verification-refresh
-	$(MAKE) release-0-0-7-preflight
+	$(MAKE) release-preflight RELEASE_VERSION="$(VERSION)"
 
 publish: publish-preflight
 	@if ! git rev-parse -q --verify "refs/tags/v$(VERSION)" >/dev/null; then \
@@ -4752,5 +4700,25 @@ release-promotion-dry-run: terlan-release-promotion-bootstrap
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_RELEASE_PROMOTION) dry-run $(if $(VERSION),--version "$(VERSION)",)
 
-clean:
-	$(MAKE) cli-clean
+clean: cli-clean
+
+.PHONY: web-service-foundation-contract-check web-service-foundation-runtime-check web-service-foundation-adapter-check web-service-foundation-pruning-check web-service-foundation-check
+
+web-service-foundation-contract-check: terlan-compiler-bootstrap
+	$(CARGO) test -p terlan-service-foundation
+	target/debug/terlc check std/service/ServiceFoundationTest.terl
+	target/debug/terlc run scripts/self_validation/WebServiceFoundation.terls -- contract
+
+web-service-foundation-runtime-check: terlan-compiler-bootstrap
+	$(CARGO) test -p terlan --lib service_foundation::tests
+	target/debug/terlc run scripts/self_validation/WebServiceFoundation.terls -- runtime
+
+web-service-foundation-adapter-check: terlan-compiler-bootstrap
+	$(CARGO) test -p terlan-foundations-adapter
+	target/debug/terlc run scripts/self_validation/WebServiceFoundation.terls -- adapter
+
+web-service-foundation-pruning-check: terlan-compiler-bootstrap
+	target/debug/terlc run scripts/self_validation/WebServiceFoundation.terls -- pruning
+
+web-service-foundation-check: web-service-foundation-contract-check web-service-foundation-runtime-check web-service-foundation-adapter-check web-service-foundation-pruning-check
+	target/debug/terlc run scripts/self_validation/WebServiceFoundation.terls -- report

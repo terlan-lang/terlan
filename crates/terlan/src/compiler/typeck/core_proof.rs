@@ -8,6 +8,41 @@ use super::*;
 
 use std::collections::HashSet;
 
+/// Full source callable identity used while attaching typed CoreIR bodies.
+pub(crate) type CoreCallableSignature = (String, usize, Vec<String>);
+
+/// Builds a full callable identity from syntax parameter annotations.
+pub(crate) fn core_callable_signature_from_syntax_params(
+    name: &str,
+    params: &[crate::terlan_syntax::syntax_output::SyntaxParamOutput],
+) -> CoreCallableSignature {
+    (
+        name.to_string(),
+        params.len(),
+        params
+            .iter()
+            .map(|param| {
+                core_type_contract_text(core_type_from_text(&param.annotation.text).as_ref())
+            })
+            .collect(),
+    )
+}
+
+/// Builds a full callable identity from one typed CoreIR declaration.
+pub(crate) fn core_callable_signature_from_function(
+    function: &CoreFunction,
+) -> CoreCallableSignature {
+    (
+        function.name.clone(),
+        function.arity,
+        function
+            .params
+            .iter()
+            .map(|param| core_type_contract_text(param.core_ty.as_ref()))
+            .collect(),
+    )
+}
+
 mod evidence;
 mod module_facts;
 mod structural_impl;
@@ -32,7 +67,7 @@ pub(crate) use metadata::core_module_metadata;
 /// - `module`: compiler-facing syntax output.
 ///
 /// Output:
-/// - Map keyed by function name and arity.
+/// - Map keyed by function name, arity, and normalized parameter types.
 ///
 /// Transformation:
 /// - Converts syntax-output clause patterns, guards, and bodies into stable
@@ -42,7 +77,7 @@ pub(crate) fn core_syntax_function_clauses(
     functions: &[CoreFunction],
     receiver_methods: &HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
     template_prop_order: &HashMap<String, Vec<String>>,
-) -> HashMap<(String, usize), Vec<CoreFunctionClause>> {
+) -> HashMap<CoreCallableSignature, Vec<CoreFunctionClause>> {
     let mut clauses = HashMap::new();
     for declaration in &module.declarations {
         match &declaration.payload {
@@ -57,7 +92,7 @@ pub(crate) fn core_syntax_function_clauses(
                 }
                 let function_value_locals = function_value_parameter_names(params);
                 clauses.insert(
-                    (name.clone(), params.len()),
+                    core_callable_signature_from_syntax_params(name, params),
                     function_clauses
                         .iter()
                         .map(|clause| {
@@ -86,7 +121,7 @@ pub(crate) fn core_syntax_function_clauses(
                 }
                 let function_value_locals = function_value_parameter_names(&receiver_first_params);
                 clauses.insert(
-                    (name.clone(), receiver_first_params.len()),
+                    core_callable_signature_from_syntax_params(name, &receiver_first_params),
                     receiver_method_clauses_with_bindings(receiver, params, method_clauses)
                         .iter()
                         .map(|clause| {
@@ -106,25 +141,20 @@ pub(crate) fn core_syntax_function_clauses(
     clauses
 }
 
-/// Selects the source overload represented by the compatibility Core
-/// signature. CoreIR does not yet encode overload identity independently of
-/// `(name, arity)`, so attaching a different overload's clauses would create a
-/// malformed typed function and let backend behavior depend on declaration
-/// order.
+/// Checks whether CoreIR retains the exact typed source overload.
 fn core_signature_matches(
     functions: &[CoreFunction],
     name: &str,
     params: &[crate::terlan_syntax::syntax_output::SyntaxParamOutput],
 ) -> bool {
-    let Some(function) = functions
+    functions
         .iter()
-        .find(|function| function.name == name && function.arity == params.len())
-    else {
-        return false;
-    };
-    function.params.iter().zip(params).all(|(core, syntax)| {
-        core_type_from_text(&core.ty) == core_type_from_text(&syntax.annotation.text)
-    })
+        .filter(|function| function.name == name && function.arity == params.len())
+        .any(|function| {
+            function.params.iter().zip(params).all(|(core, syntax)| {
+                core_type_from_text(&core.ty) == core_type_from_text(&syntax.annotation.text)
+            })
+        })
 }
 
 /// Annotates syntax-lowered Core clauses with resolved constructor identities.
@@ -144,7 +174,7 @@ fn core_signature_matches(
 ///   type alias, or imported public constructor/type-alias surface. Unknown
 ///   uppercase calls and patterns remain candidate-only.
 pub(crate) fn resolve_constructor_identities_in_function_clauses(
-    clauses: &mut HashMap<(String, usize), Vec<CoreFunctionClause>>,
+    clauses: &mut HashMap<CoreCallableSignature, Vec<CoreFunctionClause>>,
     constructor_identities: &HashMap<String, String>,
 ) {
     if constructor_identities.is_empty() {
@@ -183,7 +213,7 @@ pub(crate) fn resolve_constructor_identities_in_function_clauses(
 /// - Recomputes proof coverage for forms whose coverage depends on final
 ///   semantic annotation, such as resolved constructor calls.
 pub(crate) fn refresh_core_evidence_in_function_clauses(
-    clauses: &mut HashMap<(String, usize), Vec<CoreFunctionClause>>,
+    clauses: &mut HashMap<CoreCallableSignature, Vec<CoreFunctionClause>>,
 ) {
     for function_clauses in clauses.values_mut() {
         for clause in function_clauses {

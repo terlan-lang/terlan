@@ -156,11 +156,9 @@ pub use super::release_gate_report_schema::{
 pub use super::release_gate_shard_resume::{
     run_release_gate_shard_resume, ReleaseGateShardResumeSummary,
 };
-pub use super::roadmap_gate_integrity::{run_roadmap_gate_integrity, RoadmapGateIntegritySummary};
 pub use super::rust_build_feature_shipping::{
     run_rust_build_feature_shipping, RustBuildFeatureShippingSummary,
 };
-pub use super::shape_implications::{run_shape_implications, ShapeImplicationsSummary};
 pub use super::source_map_debug_info::{run_source_map_debug_info, SourceMapDebugInfoSummary};
 pub use super::std_generated_metadata::{run_std_generated_metadata, StdGeneratedMetadataSummary};
 pub use super::std_package_full_coverage::{

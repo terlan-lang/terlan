@@ -2,11 +2,15 @@ use super::*;
 
 mod argument_rendering;
 mod dispatch_rendering;
+mod native_helper_template;
 use argument_rendering::{
     render_argument_binding, render_immutable_resource_borrows,
-    render_immutable_resource_list_borrows,
+    render_immutable_resource_list_borrows, render_mutable_resource_list_borrows,
 };
 use dispatch_rendering::{render_dispatch_calls, render_dispatch_modules};
+use native_helper_template::NATIVE_HELPER_TEMPLATE;
+
+const NATIVE_HELPER_FUNCTION_CHUNK_SIZE: usize = 16;
 
 fn render_multi_helper_match_arm(
     manifest: &CAbiBindingManifest,
@@ -18,7 +22,7 @@ fn render_multi_helper_match_arm(
     let patterns = function
         .args
         .iter()
-        .map(|argument| match argument.ty.as_str() {
+        .map(|argument| match argument.abi_ty() {
             "Int" => Ok(format!("Arg::Int({})", argument.name)),
             "Float" => Ok(format!("Arg::Float({})", argument.name)),
             "Bool" => Ok(format!("Arg::Bool({})", argument.name)),
@@ -77,7 +81,7 @@ fn render_multi_helper_match_arm(
             let qualified = qualified_type_name(manifest, &output_ty.name)?;
             arm.push_str(&format!(
                 "{borrows}                let value = match {}::{}({bindings}) {{\n                    Ok(value) => value,\n                    Err(error) => return native_error(&error),\n                }};\n                let (id, generation) = match self.store_handle(HandleValue::{}(value)) {{\n                    Ok(handle) => handle,\n                    Err(error) => return error,\n                }};\n                format!(\"ok_handle {{}} {{id}} {{generation}} {{}}\", STANDARD.encode(self.owner.as_bytes()), STANDARD.encode({qualified:?}))\n",
-                output_ty.name, function.name, output_ty.name
+                output_ty.name, function.adapter_name(), output_ty.name
             ));
         }
         CAbiFunctionRole::ImmutableMethod | CAbiFunctionRole::MutableMethod => {
@@ -93,8 +97,20 @@ fn render_multi_helper_match_arm(
                     function.name
                 ));
             }
-            let mut borrows = String::new();
-            if function.role == CAbiFunctionRole::MutableMethod && handle_arguments.len() > 1 {
+            let has_mutable_resource_list = function.role == CAbiFunctionRole::MutableMethod
+                && function
+                    .args
+                    .iter()
+                    .any(|argument| resource_list(&argument.ty).is_some());
+            let (mut borrows, restore) = if has_mutable_resource_list {
+                render_mutable_resource_list_borrows(manifest, &function.args)?
+            } else {
+                (String::new(), String::new())
+            };
+            if !has_mutable_resource_list
+                && function.role == CAbiFunctionRole::MutableMethod
+                && handle_arguments.len() > 1
+            {
                 let receiver = handle_arguments[0];
                 for argument in &handle_arguments {
                     let qualified = qualified_type_name(manifest, &argument.ty)?;
@@ -150,7 +166,7 @@ fn render_multi_helper_match_arm(
                         ));
                     }
                 }
-            } else {
+            } else if !has_mutable_resource_list {
                 for argument in &handle_arguments {
                     let accessor = if function.role == CAbiFunctionRole::MutableMethod
                         && argument.name == handle_arguments[0].name
@@ -165,21 +181,12 @@ fn render_multi_helper_match_arm(
                     ));
                 }
             }
-            if function.role == CAbiFunctionRole::MutableMethod
-                && function
-                    .args
-                    .iter()
-                    .any(|argument| resource_list(&argument.ty).is_some())
-            {
-                return Err(format!(
-                    "error[native_bindgen.unsupported_wrapper_shape]: mutable method `{}` cannot borrow a resource list",
-                    function.name
+            if !has_mutable_resource_list {
+                borrows.push_str(&render_immutable_resource_list_borrows(
+                    manifest,
+                    &function.args,
                 ));
             }
-            borrows.push_str(&render_immutable_resource_list_borrows(
-                manifest,
-                &function.args,
-            ));
             let method_arguments = function
                 .args
                 .iter()
@@ -188,7 +195,18 @@ fn render_multi_helper_match_arm(
                 .collect::<Vec<_>>()
                 .join(", ");
             let receiver = &handle_arguments[0].name;
-            let call = format!("value_{receiver}.{}({method_arguments})", function.name);
+            let direct_call = format!(
+                "value_{receiver}.{}({method_arguments})",
+                function.adapter_name()
+            );
+            let call = if has_mutable_resource_list {
+                borrows.push_str(&format!(
+                    "                let call_result = {direct_call};\n{restore}"
+                ));
+                "call_result".to_string()
+            } else {
+                direct_call
+            };
             if let Some((_, output_ty)) = list_binding_type(manifest, &function.returns) {
                 if !fallible {
                     return Err(format!(
@@ -257,7 +275,7 @@ fn render_multi_helper_match_arm(
                 .collect::<Vec<_>>()
                 .join(", ");
             let borrows = render_immutable_resource_borrows(manifest, &function.args);
-            let call = format!("{}({bindings})", function.name);
+            let call = format!("{}({bindings})", function.adapter_name());
             if let Some((_, output_ty)) = binding_type(manifest, &function.returns) {
                 if !fallible {
                     return Err(format!(
@@ -332,7 +350,7 @@ pub(super) fn render_native_helper(
         .iter()
         .flat_map(|module| &module.functions)
         .filter(|function| function.role == CAbiFunctionRole::FreeFunction)
-        .map(|function| function.name.clone())
+        .map(|function| function.adapter_name().to_string())
         .collect::<Vec<_>>();
     imports.push("CAbiError".to_string());
     imports.extend(types.iter().map(|(_, ty)| ty.name.clone()));
@@ -349,8 +367,18 @@ pub(super) fn render_native_helper(
             )?);
         }
     } else {
-        for (chunk_index, chunk_functions) in functions.chunks(32).enumerate() {
-            let mut chunk = String::from("use super::*;\n\nimpl Worker {\n");
+        for (chunk_index, chunk_functions) in functions
+            .chunks(NATIVE_HELPER_FUNCTION_CHUNK_SIZE)
+            .enumerate()
+        {
+            let accepted_operations = chunk_functions
+                .iter()
+                .map(|function| format!("{:?}", function.operation))
+                .collect::<Vec<_>>()
+                .join(" | ");
+            let mut chunk = format!(
+                "use super::*;\n\npub(super) fn accepts_chunk_{chunk_index}(operation: &str) -> bool {{\n    matches!(operation, {accepted_operations})\n}}\n\nimpl Worker {{\n"
+            );
             chunk.push_str(&format!(
                 "    pub(super) fn execute_chunk_{chunk_index}(&mut self, request: Request) -> String {{\n        match request.operation.as_str() {{\n"
             ));
@@ -436,412 +464,7 @@ pub(super) fn render_native_helper(
             }
         }
     }
-    let template = r##"#![forbid(unsafe_code)]
-
-@DISPATCH_MODULES@use std::collections::HashMap;
-use std::io::{self, BufRead, Read, Write};
-
-use base64::engine::general_purpose::STANDARD;
-use base64::Engine;
-use @CRATE@::{@IMPORTS@};
-
-const MAX_ADAPTER_FRAME_BYTES: usize = @MAX_FRAME_BYTES@;
-const MAX_ADAPTER_TRANSFER_BYTES: usize = @MAX_TRANSFER_BYTES@;
-
-fn main() {
-    let mut worker = match Worker::new() {
-        Ok(worker) => worker,
-        Err(error) => {
-            eprintln!("native worker identity initialization failed: {error}");
-            return;
-        }
-    };
-    let stdin = io::stdin();
-    let mut input = stdin.lock();
-    let mut stdout = io::stdout().lock();
-    loop {
-        let mut frame = Vec::new();
-        let read = Read::by_ref(&mut input)
-            .take((MAX_ADAPTER_FRAME_BYTES + 1) as u64)
-            .read_until(b'\n', &mut frame);
-        let (payload, terminate) = match read {
-            Ok(0) => break,
-            Ok(_) if frame.len() > MAX_ADAPTER_FRAME_BYTES => (
-                protocol_error("frame_too_large", "native adapter frame exceeds its bound"),
-                true,
-            ),
-            Ok(_) => match String::from_utf8(frame) {
-                Ok(line) => (
-                    worker.execute_line(line.trim_end_matches(['\r', '\n'])),
-                    false,
-                ),
-                Err(error) => (protocol_error("invalid_utf8", &error.to_string()), false),
-            },
-            Err(error) => (protocol_error("native_read_error", &error.to_string()), true),
-        };
-        if writeln!(stdout, "{payload}").is_err() || stdout.flush().is_err() || terminate {
-            break;
-        }
-    }
-}
-
-@RESOURCE_DEAD_CODE@struct Worker {
-    owner: String,
-    last_request_id: Option<u64>,
-    next_id: u64,
-    free_ids: Vec<u64>,
-    generations: HashMap<u64, u64>,
-    handles: HashMap<u64, HandleEntry>,
-}
-
-@RESOURCE_DEAD_CODE@struct HandleEntry {
-    generation: u64,
-    value: HandleValue,
-}
-
-@RESOURCE_DEAD_CODE@enum HandleValue {
-@HANDLE_VARIANTS@
-}
-
-@RESOURCE_DEAD_CODE@impl HandleValue {
-    fn type_name(&self) -> &'static str {
-        match self {
-@HANDLE_TYPE_ARMS@
-        }
-    }
-}
-
-@RESOURCE_DEAD_CODE@#[derive(Clone)]
-struct HandleArg {
-    owner: String,
-    id: u64,
-    generation: u64,
-    type_name: String,
-}
-
-enum Arg {
-    Int(i64),
-    Float(f64),
-    Bool(bool),
-    String(String),
-    Bytes(Vec<u8>),
-    Ints(Vec<i64>),
-    Floats(Vec<f64>),
-    Bools(Vec<bool>),
-    Handles(Vec<HandleArg>),
-    EmptyList,
-    Handle(HandleArg),
-}
-
-struct Request {
-    operation: String,
-    args: Vec<Arg>,
-}
-
-@RESOURCE_DEAD_CODE@impl Worker {
-    fn new() -> Result<Self, getrandom::Error> {
-        let mut owner = [0_u8; 32];
-        getrandom::fill(&mut owner)?;
-        Ok(Self {
-            owner: STANDARD.encode(owner),
-            last_request_id: None,
-            next_id: 0,
-            free_ids: Vec::new(),
-            generations: HashMap::new(),
-            handles: HashMap::new(),
-        })
-    }
-
-    fn store_handle(&mut self, value: HandleValue) -> Result<(u64, u64), String> {
-        while let Some(id) = self.free_ids.pop() {
-            let previous = self.generations.get(&id).copied().unwrap_or_default();
-            if let Some(generation) = previous.checked_add(1) {
-                self.generations.insert(id, generation);
-                self.handles.insert(id, HandleEntry { generation, value });
-                return Ok((id, generation));
-            }
-        }
-        let Some(id) = self.next_id.checked_add(1) else {
-            return Err(protocol_error(
-                "resource_table_exhausted",
-                "NativeBoundary handle table exhausted",
-            ));
-        };
-        self.next_id = id;
-        let generation = 1;
-        self.generations.insert(id, generation);
-        self.handles.insert(id, HandleEntry { generation, value });
-        Ok((id, generation))
-    }
-
-    fn release_handle(&mut self, id: u64) {
-        if self.handles.remove(&id).is_some() {
-            self.free_ids.push(id);
-        }
-    }
-
-    fn execute_line(&mut self, line: &str) -> String {
-        let Some(request_id) = request_id(line) else {
-            return match parse_request(line) {
-                Ok(_) => protocol_error("invalid_request", "request id is missing"),
-                Err(error) => error,
-            };
-        };
-        if self
-            .last_request_id
-            .is_some_and(|last_request_id| request_id <= last_request_id)
-        {
-            return format!(
-                "reply {request_id} 1 {}",
-                protocol_error(
-                    "request_not_monotonic",
-                    "native adapter request id was already completed"
-                )
-            );
-        }
-        self.last_request_id = Some(request_id);
-        let request = match parse_request(line) {
-            Ok(request) => request,
-            Err(error) => return format!("reply {request_id} 1 {error}"),
-        };
-        let payload = self.execute(request);
-        format!("reply {request_id} 1 {payload}")
-    }
-
-    fn execute(&mut self, request: Request) -> String {
-@DISPATCH_CALLS@
-    }
-
-    fn validate(&self, handle: &HandleArg, expected_type: &str) -> Result<(), String> {
-        if handle.owner != self.owner {
-            return Err(protocol_error(
-                "cross_owner_handle",
-                "native resource belongs to another worker",
-            ));
-        }
-        if handle.type_name != expected_type {
-            return Err(protocol_error("handle_type_mismatch", &handle.type_name));
-        }
-        match self.handles.get(&handle.id) {
-            Some(entry) if entry.generation != handle.generation => {
-                Err(protocol_error("stale_handle", "NativeBoundary handle is stale"))
-            }
-            Some(entry) if entry.value.type_name() != expected_type => Err(protocol_error(
-                "handle_storage_mismatch",
-                "NativeBoundary handle resource type does not match",
-            )),
-            Some(_) => Ok(()),
-            _ => Err(protocol_error("stale_handle", "NativeBoundary handle is stale")),
-        }
-    }
-
-@HANDLE_ACCESSORS@
-}
-
-fn request_id(line: &str) -> Option<u64> {
-    let mut fields = line.split_whitespace();
-    (fields.next() == Some("call"))
-        .then(|| fields.next()?.parse::<u64>().ok())
-        .flatten()
-}
-
-fn parse_request(line: &str) -> Result<Request, String> {
-    let mut fields = line.split_whitespace();
-    if fields.next() != Some("call") {
-        return Err(protocol_error("invalid_request", "expected call request"));
-    }
-    let _request_id = fields
-        .next()
-        .ok_or_else(|| protocol_error("invalid_request", "missing request id"))?
-        .parse::<u64>()
-        .map_err(|error| protocol_error("invalid_request", &error.to_string()))?;
-    let operation = decode_text(fields.next().ok_or_else(|| {
-        protocol_error("invalid_request", "missing encoded operation")
-    })?)?;
-    let args = fields.map(parse_arg).collect::<Result<Vec<_>, _>>()?;
-    for argument in &args {
-        validate_decoded_arg_shape(argument);
-    }
-    Ok(Request { operation, args })
-}
-
-fn parse_arg(value: &str) -> Result<Arg, String> {
-    // The VM uses `ls:` for an empty list. Preserve the empty value here and
-    // resolve it against each generated operation's declared list type.
-    if value == "ls:" {
-        return Ok(Arg::EmptyList);
-    }
-    if let Some(value) = value.strip_prefix("i:") {
-        return value
-            .parse::<i64>()
-            .map(Arg::Int)
-            .map_err(|error| protocol_error("invalid_argument", &error.to_string()));
-    }
-    if let Some(value) = value.strip_prefix("f:") {
-        return value
-            .parse::<f64>()
-            .map(Arg::Float)
-            .map_err(|error| protocol_error("invalid_argument", &error.to_string()));
-    }
-    if let Some(value) = value.strip_prefix("b:") {
-        return value
-            .parse::<bool>()
-            .map(Arg::Bool)
-            .map_err(|error| protocol_error("invalid_argument", &error.to_string()));
-    }
-    if let Some(value) = value.strip_prefix("s:") {
-        return decode_text(value).map(Arg::String);
-    }
-    if let Some(value) = value.strip_prefix("x:") {
-        let bytes = STANDARD
-            .decode(value)
-            .map_err(|error| protocol_error("invalid_base64", &error.to_string()))?;
-        if bytes.len() > MAX_ADAPTER_TRANSFER_BYTES {
-            return Err(protocol_error(
-                "transfer_too_large",
-                "copied byte argument exceeds the native adapter transfer bound",
-            ));
-        }
-        return Ok(Arg::Bytes(bytes));
-    }
-    if let Some(value) = value.strip_prefix("li:") {
-        if value.is_empty() {
-            return Ok(Arg::Ints(Vec::new()));
-        }
-        return value
-            .split(',')
-            .map(|value| {
-                value.parse::<i64>().map_err(|error| {
-                    protocol_error("invalid_argument", &error.to_string())
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map(Arg::Ints);
-    }
-    if let Some(value) = value.strip_prefix("lf:") {
-        if value.is_empty() {
-            return Ok(Arg::Floats(Vec::new()));
-        }
-        return value
-            .split(',')
-            .map(|value| {
-                value.parse::<f64>().map_err(|error| {
-                    protocol_error("invalid_argument", &error.to_string())
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map(Arg::Floats);
-    }
-    if let Some(value) = value.strip_prefix("lb:") {
-        if value.is_empty() {
-            return Ok(Arg::Bools(Vec::new()));
-        }
-        return value
-            .split(',')
-            .map(|value| {
-                value.parse::<bool>().map_err(|error| {
-                    protocol_error("invalid_argument", &error.to_string())
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map(Arg::Bools);
-    }
-    if let Some(value) = value.strip_prefix("lh:") {
-        if value.is_empty() {
-            return Ok(Arg::Handles(Vec::new()));
-        }
-        return value
-            .split(',')
-            .map(parse_handle_arg)
-            .collect::<Result<Vec<_>, _>>()
-            .map(Arg::Handles);
-    }
-    if let Some(value) = value.strip_prefix("h:") {
-        return parse_handle_arg(value).map(Arg::Handle);
-    }
-    Err(protocol_error("invalid_argument", "unsupported argument encoding"))
-}
-
-fn parse_handle_arg(value: &str) -> Result<HandleArg, String> {
-    let fields = value.split(':').collect::<Vec<_>>();
-    let [owner, id, generation, type_name] = fields.as_slice() else {
-        return Err(protocol_error("invalid_argument", "malformed handle"));
-    };
-    Ok(HandleArg {
-        owner: decode_text(owner)?,
-        id: id.parse().map_err(|error: std::num::ParseIntError| protocol_error("invalid_argument", &error.to_string()))?,
-        generation: generation.parse().map_err(|error: std::num::ParseIntError| protocol_error("invalid_argument", &error.to_string()))?,
-        type_name: decode_text(type_name)?,
-    })
-}
-
-fn decode_text(value: &str) -> Result<String, String> {
-    let bytes = STANDARD
-        .decode(value)
-        .map_err(|error| protocol_error("invalid_base64", &error.to_string()))?;
-    String::from_utf8(bytes)
-        .map_err(|error| protocol_error("invalid_utf8", &error.to_string()))
-}
-
-fn arg_ints(value: &Arg) -> &[i64] {
-    match value {
-        Arg::Ints(values) => values.as_slice(),
-        Arg::EmptyList => &[],
-        _ => unreachable!("generated argument pattern admits only integer lists"),
-    }
-}
-
-fn arg_floats(value: &Arg) -> &[f64] {
-    match value {
-        Arg::Floats(values) => values.as_slice(),
-        Arg::EmptyList => &[],
-        _ => unreachable!("generated argument pattern admits only float lists"),
-    }
-}
-
-fn arg_bools(value: &Arg) -> &[bool] {
-    match value {
-        Arg::Bools(values) => values.as_slice(),
-        Arg::EmptyList => &[],
-        _ => unreachable!("generated argument pattern admits only boolean lists"),
-    }
-}
-
-fn arg_handles(value: &Arg) -> &[HandleArg] {
-    match value {
-        Arg::Handles(values) => values.as_slice(),
-        Arg::EmptyList => &[],
-        _ => unreachable!("generated argument pattern admits only resource lists"),
-    }
-}
-
-fn validate_decoded_arg_shape(value: &Arg) {
-    match value {
-        Arg::Int(value) => { let _ = value; }
-        Arg::Float(value) => { let _ = value; }
-        Arg::Bool(value) => { let _ = value; }
-        Arg::String(value) => { let _ = value; }
-        Arg::Bytes(value) => { let _ = value; }
-        Arg::Ints(_) => { let _ = arg_ints(value); }
-        Arg::Floats(_) => { let _ = arg_floats(value); }
-        Arg::Bools(_) => { let _ = arg_bools(value); }
-        Arg::Handles(_) => { let _ = arg_handles(value); }
-        Arg::EmptyList => {}
-        Arg::Handle(value) => { let _ = value; }
-    }
-}
-
-@FALLIBLE_DEAD_CODE@fn native_error(error: &CAbiError) -> String {
-    protocol_error(
-        &format!("c_abi_status_{}", error.status),
-        error.operation,
-    )
-}
-
-fn protocol_error(code: &str, message: &str) -> String {
-    format!("err {} {}", STANDARD.encode(code), STANDARD.encode(message))
-}
-"##;
+    let template = NATIVE_HELPER_TEMPLATE;
     let crate_ident = manifest.package.crate_name.replace('-', "_");
     let resource_dead_code = if types.is_empty() {
         "#[allow(dead_code)]\n"
@@ -858,7 +481,7 @@ fn protocol_error(code: &str, message: &str) -> String {
         ""
     };
     let dispatch_modules = render_dispatch_modules(dispatch_chunks.len());
-    let dispatch_calls = render_dispatch_calls(&functions, &dispatch_chunks, &inline_match_arms);
+    let dispatch_calls = render_dispatch_calls(dispatch_chunks.len(), &inline_match_arms);
     let root = template
         .replace("@CRATE@", &crate_ident)
         .replace("@IMPORTS@", &imports.join(", "))

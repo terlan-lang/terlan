@@ -1,0 +1,12 @@
+[package]
+name = "registry_leaked_secret"
+version = "1.0.0"
+namespace = "registry_leaked_secret"
+description = "A rejected Registry secret-scanning fixture."
+license = "Apache-2.0"
+repository = "https://github.com/terlan-lang/terlan"
+links = ["https://terlan.org/packages/registry_leaked_secret"]
+
+[build]
+source_roots = ["src"]
+artifact = "library"

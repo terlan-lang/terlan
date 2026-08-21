@@ -752,15 +752,15 @@ Task.result[Int](task, 1).\n",
 ///   `std.net.Uri`.
 ///
 /// Output:
-/// - Test passes when VM target-profile validation accepts the direct-safe Path
-///   adapter and reports stable unsupported diagnostics for Base64 and URI.
+/// - Test passes when VM target-profile validation accepts the direct-safe
+///   Base64 and Path adapters and reports a stable unsupported URI diagnostic.
 ///
 /// Transformation:
 /// - Resolves the portable utility std contracts from checked-in summaries,
 ///   lowers the module to CoreIR, and validates that executable utility use
 ///   is blocked until the selected target owns the Rust/NativeBoundary bridge.
 #[test]
-fn vm_profile_accepts_direct_path_and_rejects_unsupported_web_data_adapters() {
+fn vm_profile_accepts_direct_base64_and_path_and_rejects_unsupported_uri() {
     let module = lower(
         "\
 module profile_web_data_operation.\n\
@@ -793,10 +793,7 @@ Uri.parse(text).\n",
         .collect::<Vec<_>>()
         .join("\n");
 
-    assert!(
-        messages.contains("rust-backed std module std.encoding.Base64"),
-        "expected Base64 target-profile diagnostic, got {violations:?}"
-    );
+    assert!(!messages.contains("rust-backed std module std.encoding.Base64"));
     assert!(!messages.contains("rust-backed std module std.io.Path"));
     assert!(
         messages.contains("rust-backed std module std.net.Uri"),

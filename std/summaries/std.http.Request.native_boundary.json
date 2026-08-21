@@ -47,6 +47,11 @@
     },
     {
       "arity": 1,
+      "name": "body_file_path",
+      "operation": "std.http.request.body_file_path"
+    },
+    {
+      "arity": 1,
       "name": "body_json",
       "operation": "std.http.request.body_json"
     }

@@ -271,7 +271,7 @@ pub value(error: CoreError): CoreError -> error.
 /// Verifies the command wrapper rejects malformed argument counts.
 ///
 /// Inputs:
-/// - Empty and overfull command-local argument lists.
+/// - Empty arguments and ambiguous multi-path print mode.
 ///
 /// Output:
 /// - Usage exit code `2`.
@@ -285,6 +285,26 @@ fn fmt_command_rejects_missing_or_extra_path_argument() {
     assert_eq!(
         run(&["one.terl".to_owned(), "two.terl".to_owned()]),
         ExitCode::from(2)
+    );
+}
+
+/// Verifies check mode accepts several roots in one compiler process.
+#[test]
+fn fmt_check_accepts_multiple_paths() {
+    let dir = temp_dir("fmt", "multiple_check_paths");
+    let first = dir.join("First.terl");
+    let second = dir.join("Second.terl");
+    let canonical = "module sample.\n\npub value(input: Int): Int ->\n    input.\n";
+    write_file(&first, canonical);
+    write_file(&second, canonical);
+
+    assert_eq!(
+        run(&[
+            "--check".to_owned(),
+            first.display().to_string(),
+            second.display().to_string(),
+        ]),
+        ExitCode::SUCCESS
     );
 }
 

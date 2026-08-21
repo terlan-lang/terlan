@@ -123,6 +123,127 @@ pub(super) fn structured_c_metadata_rejects_unmaintained_producer_and_unknown_sk
     fs::remove_dir_all(shape_manifest.parent().expect("shape root")).expect("remove shape variant");
 }
 
+/// Verifies malformed or non-trailing Terlan defaults fail before source
+/// generation with one stable diagnostic family.
+#[test]
+pub(super) fn structured_c_metadata_rejects_invalid_terlan_argument_defaults() {
+    let cases: &[(&str, fn(&mut Value))] = &[
+        ("empty_default", |metadata| {
+            metadata["modules"][0]["functions"][6]["args"][1]["default"] =
+                Value::String("  ".to_string());
+        }),
+        ("multiline_default", |metadata| {
+            metadata["modules"][0]["functions"][6]["args"][1]["default"] =
+                Value::String("0\n+ 1".to_string());
+        }),
+        ("required_after_default", |metadata| {
+            metadata["modules"][0]["functions"][2]["args"][0]["default"] =
+                Value::String("missing".to_string());
+        }),
+    ];
+
+    for (name, mutate) in cases {
+        let manifest = write_fixture_variant(name, *mutate);
+        let out_dir = temp_dir(&format!("{name}_out"));
+        let error = generate_c_abi_bindings(&manifest, &out_dir)
+            .expect_err("invalid Terlan default must fail");
+        assert!(
+            error.contains("error[native_bindgen.terlan_default_argument]"),
+            "unexpected {name} diagnostic: {error}"
+        );
+        fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
+    }
+}
+
+/// Verifies generated public and Rust adapter identities remain unique.
+#[test]
+pub(super) fn structured_c_metadata_rejects_binding_identity_collisions() {
+    let cases: &[(&str, &str, fn(&mut Value))] = &[
+        (
+            "terlan_overload_collision",
+            "native_bindgen.terlan_overload_collision",
+            |metadata| {
+                metadata["modules"][0]["functions"][1]["name"] = Value::String("new".to_string());
+                metadata["modules"][0]["functions"][1]["args"][0]["ty"] =
+                    Value::String("Int".to_string());
+            },
+        ),
+        (
+            "adapter_name_collision",
+            "native_bindgen.adapter_name_collision",
+            |metadata| {
+                metadata["modules"][0]["functions"][7]["adapter_name"] =
+                    Value::String("unsqueeze".to_string());
+            },
+        ),
+    ];
+
+    for (name, family, mutate) in cases {
+        let manifest = write_fixture_variant(name, *mutate);
+        let out_dir = temp_dir(&format!("{name}_out"));
+        let error = generate_c_abi_bindings(&manifest, &out_dir)
+            .expect_err("ambiguous binding identity must fail");
+        assert!(
+            error.contains(&format!("error[{family}]")),
+            "unexpected {name} diagnostic: {error}"
+        );
+        fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
+    }
+}
+
+/// Verifies generated Terlan APIs retain same-name, same-arity overloads when
+/// their public parameter types are distinct.
+#[test]
+pub(super) fn structured_c_metadata_accepts_type_distinct_terlan_overloads() {
+    let manifest = write_fixture_variant("typed_overload", |metadata| {
+        metadata["modules"][0]["functions"][1]["name"] = Value::String("new".to_string());
+        metadata["modules"][0]["functions"][1]["adapter_name"] =
+            Value::String("read_new".to_string());
+    });
+    let out_dir = temp_dir("typed_overload_out");
+    generate_c_abi_bindings(&manifest, &out_dir).expect("typed overload must generate");
+    let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
+        .expect("read generated Terlan overloads");
+    assert!(source.contains("pub new(value: Int): NativeBoundary"));
+    assert!(source.contains("pub new(boundary: NativeBoundary): Int"));
+    fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
+    fs::remove_dir_all(out_dir).expect("remove output");
+}
+
+/// Verifies a nominal Terlan argument can retain its public type while using a
+/// reviewed primitive boundary representation.
+#[test]
+pub(super) fn structured_c_metadata_separates_public_and_abi_argument_types() {
+    let manifest = write_fixture_variant("public_abi_type", |metadata| {
+        metadata["modules"][0]["functions"][2]["args"][1]["ty"] =
+            Value::String("ExampleCode".to_string());
+        metadata["modules"][0]["functions"][2]["args"][1]["abi_ty"] =
+            Value::String("Int".to_string());
+        metadata["modules"][0]["functions"][2]["visibility"] = Value::String("private".to_string());
+        metadata["modules"][0]["imports"] = serde_json::json!([
+            {"module": "std.core.Int", "names": ["to_string"]}
+        ]);
+    });
+    let out_dir = temp_dir("public_abi_type_out");
+    generate_c_abi_bindings(&manifest, &out_dir).expect("typed ABI generation");
+    let module = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
+        .expect("generated Terlan module");
+    let adapter =
+        fs::read_to_string(out_dir.join("native/rust/src/lib.rs")).expect("generated Rust adapter");
+    let helper = fs::read_to_string(out_dir.join("native/rust/src/bin/native_boundary_helper.rs"))
+        .expect("generated helper");
+    assert!(module.contains("delta: ExampleCode"));
+    assert!(module.contains("import std.core.Int.{to_string}."));
+    assert!(module.contains("\nadd(boundary: NativeBoundary"));
+    assert!(!module.contains("\npub add(boundary: NativeBoundary"));
+    assert!(adapter.contains("delta: i64"));
+    assert!(helper.contains("Arg::Int(delta)"));
+    let consumer = fs::read_to_string(out_dir.join("tests/c_abi_fixture/NativeBoundaryTest.terl"))
+        .expect("generated consumer");
+    assert!(!consumer.contains("add"));
+    fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
+}
+
 #[test]
 pub(super) fn dispatcher_metadata_rejects_ambiguous_or_unsupported_stack_contracts() {
     let cases: &[(&str, &str, fn(&mut Value))] = &[

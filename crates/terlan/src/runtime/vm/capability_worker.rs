@@ -24,6 +24,7 @@ use std::task::Waker;
 use std::thread::{self, JoinHandle};
 
 use crate::runtime::vm::execution_shard_epoch::{VmShardEpochOperation, VmShardOperationKind};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use crate::runtime::vm::native_boundary::deadline::{
     VmNativeBoundaryDeadlineCompletion, VmNativeBoundaryDeadlineQueue,
 };
@@ -55,17 +56,11 @@ use crate::terlan_native_boundary::term::NativeBoundaryTerm;
 
 /// Default maximum bytes admitted by one capability-worker frame.
 const DEFAULT_MAX_PAYLOAD_BYTES: usize = 1024 * 1024;
-
-/// Default number of calls admitted during one worker lifetime.
 const DEFAULT_MAX_REQUESTS: u64 = 1_024;
-
-/// Default number of requests that may be parked concurrently.
 const DEFAULT_CREDIT_LIMIT: u64 = 64;
 
-/// Stable logical identity of one capability-worker slot.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct VmCapabilityWorkerId(
-    /// Validated non-empty logical worker name.
     String,
 );
 
@@ -336,6 +331,7 @@ pub(crate) enum VmCapabilityWorkerCompletion {
         /// Exact worker process whose response stream closed.
         worker: VmCapabilityWorkerIdentity,
         /// VM deadline completions produced while draining pending calls.
+        #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
         cancelled: Vec<VmNativeBoundaryDeadlineCompletion>,
     },
     /// Worker I/O failed and pending calls were cancelled.
@@ -345,6 +341,7 @@ pub(crate) enum VmCapabilityWorkerCompletion {
         /// Typed transport failure.
         error: String,
         /// VM deadline completions produced while draining pending calls.
+        #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
         cancelled: Vec<VmNativeBoundaryDeadlineCompletion>,
     },
 }
@@ -366,6 +363,7 @@ pub(crate) struct VmCapabilityWorkerClient {
     /// Bounded nonblocking scheduler-to-process transport.
     transport: VmCapabilityWorkerTransport,
     /// VM-owned parking, deadline, and single-completion state.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     deadlines: VmNativeBoundaryDeadlineQueue,
     /// Capability and epoch ownership for each live request.
     #[cfg(test)]
@@ -495,6 +493,7 @@ impl VmCapabilityWorkerClient {
         Ok(Self {
             identity,
             transport,
+            #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
             deadlines: VmNativeBoundaryDeadlineQueue::new(policy.credit_limit),
             #[cfg(test)]
             pending_contexts: BTreeMap::new(),
@@ -635,9 +634,10 @@ impl VmCapabilityWorkerClient {
 
     /// Returns the number of VM requests currently parked on this worker.
     pub(crate) fn pending_len(&self) -> usize {
-        self.deadlines.pending_len()
-            + self.parked_contexts.len()
-            + self.late_cleanup.in_flight_len()
+        let pending = self.parked_contexts.len() + self.late_cleanup.in_flight_len();
+        #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+        let pending = pending + self.deadlines.pending_len();
+        pending
     }
 
     /// Registers a protocol task for the next background transport event.

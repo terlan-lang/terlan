@@ -56,6 +56,7 @@ pub fn encode_bitstring_operation(operation: ManagedBitStringOperation) -> Vec<u
     encoded
 }
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(super) fn bitstring_result_is_reference(encoded: &[u8]) -> bool {
     encoded.get(7) == Some(&1)
 }

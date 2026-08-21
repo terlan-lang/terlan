@@ -13,7 +13,7 @@ fn editor_definition_navigation_report_writes_expected_artifact() {
     let root = temp_root("editor-definition-navigation-report-ok");
     fs::create_dir_all(root.join("editors")).expect("create editors dir");
     fs::create_dir_all(root.join("crates/terlan/src/lsp")).expect("create lsp dir");
-    fs::write(root.join("Makefile"), canonical_owner_makefile()).expect("write Makefile");
+    fs::write(root.join("Makefile"), "include editors/editor.mk\n").expect("write Makefile");
     fs::write(root.join("editors/editor.mk"), editor_gate_body()).expect("write editor makefile");
     fs::write(
         root.join("crates/terlan/src/lsp/lib_test.rs"),
@@ -77,7 +77,7 @@ fn editor_definition_navigation_report_rejects_category_count_drift() {
 
 #[test]
 fn editor_definition_navigation_report_rejects_missing_selector() {
-    let body = format!("{}{}", canonical_owner_makefile(), editor_gate_body());
+    let body = editor_gate_body();
     let fixtures = format!("fn {}() {{}}\n", REQUIRED_SELECTORS[0].fixture);
 
     let diagnostics = validate_gate_and_fixtures(&body, &fixtures);
@@ -112,10 +112,6 @@ fn editor_definition_navigation_report_rejects_placeholder_report_entries() {
 
 fn editor_gate_body() -> String {
     format!("{TARGET}:\n\tterlan-quality editor-definition-navigation-report\n")
-}
-
-fn canonical_owner_makefile() -> String {
-    format!("COMPLETED_SLICE_RUST_GATES := {TARGET}\ninclude editors/editor.mk\n")
 }
 
 fn fixture_source() -> String {

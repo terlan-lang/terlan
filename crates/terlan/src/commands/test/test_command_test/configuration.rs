@@ -78,8 +78,9 @@ fn compile_native_filter_fixture(source: &str) -> CoreModule {
 fn parse_test_args_accepts_default_terlan_vm_target() {
     let parsed = parse_test_args(&args(&["tests/sample.terl"])).expect("test args");
     assert_eq!(parsed.path, "tests/sample.terl");
+    assert!(parsed.additional_paths.is_empty());
     assert_eq!(parsed.target, TestTarget::TerlanVm);
-    assert_eq!(parsed.test_name, None);
+    assert!(parsed.test_names.is_empty());
     assert_eq!(parsed.emit_test_manifest, None);
     assert_eq!(parsed.emit_test_result_manifest, None);
 }
@@ -100,10 +101,38 @@ fn parse_test_args_defaults_to_tests_directory() {
     let parsed = parse_test_args(&[]).expect("test args");
 
     assert_eq!(parsed.path, "tests");
+    assert!(parsed.additional_paths.is_empty());
     assert_eq!(parsed.target, TestTarget::TerlanVm);
-    assert_eq!(parsed.test_name, None);
+    assert!(parsed.test_names.is_empty());
     assert_eq!(parsed.emit_test_manifest, None);
     assert_eq!(parsed.emit_test_result_manifest, None);
+}
+
+/// Verifies one test process can own several explicitly listed source roots.
+///
+/// Inputs:
+/// - Three positional paths with a shared VM target.
+///
+/// Output:
+/// - The first path remains the primary compatibility field and the remaining
+///   paths retain their command-line order.
+///
+/// Transformation:
+/// - Parses a batched test request without touching the filesystem.
+#[test]
+fn parse_test_args_accepts_multiple_source_paths() {
+    let parsed = parse_test_args(&args(&[
+        "std/system",
+        "std/io/FileTest.terl",
+        "std/data/JsonTest.terl",
+    ]))
+    .expect("batched test args");
+
+    assert_eq!(parsed.path, "std/system");
+    assert_eq!(
+        parsed.additional_paths,
+        ["std/io/FileTest.terl", "std/data/JsonTest.terl"]
+    );
 }
 
 #[test]
@@ -161,14 +190,14 @@ fn discovery_separates_test_and_benchmark_annotations() {
 
     let tests = select_tests(
         discovered.clone(),
-        None,
+        &[],
         "BenchmarkTest.terl",
         crate::commands::test::discovery::TestKind::Test,
     )
     .expect("ordinary tests");
     let benchmarks = select_tests(
         discovered,
-        None,
+        &[],
         "BenchmarkTest.terl",
         crate::commands::test::discovery::TestKind::Benchmark,
     )
@@ -217,7 +246,7 @@ fn parse_test_args_accepts_explicit_terlan_vm_target() {
 
     assert_eq!(parsed.path, "tests/SampleTest.terl");
     assert_eq!(parsed.target, TestTarget::TerlanVm);
-    assert_eq!(parsed.test_name, None);
+    assert!(parsed.test_names.is_empty());
     assert_eq!(parsed.emit_test_manifest, None);
     assert_eq!(parsed.emit_test_result_manifest, None);
 }
@@ -238,7 +267,7 @@ fn parse_test_args_accepts_explicit_js_target() {
         parse_test_args(&args(&["std/js/StringTest.terl", "--target", "js"])).expect("test args");
     assert_eq!(parsed.path, "std/js/StringTest.terl");
     assert_eq!(parsed.target, TestTarget::Js);
-    assert_eq!(parsed.test_name, None);
+    assert!(parsed.test_names.is_empty());
     assert_eq!(parsed.emit_test_manifest, None);
     assert_eq!(parsed.emit_test_result_manifest, None);
 }
@@ -268,31 +297,45 @@ fn parse_test_args_accepts_test_name_selector() {
         .expect("test args");
 
     assert_eq!(parsed.path, "tests/SampleTest.terl");
-    assert_eq!(parsed.test_name.as_deref(), Some("smoke_test"));
+    assert_eq!(parsed.test_names, ["smoke_test"]);
 }
 
-/// Verifies duplicate test-name selectors are rejected.
+/// Verifies distinct test-name selectors are accumulated.
 ///
 /// Inputs:
 /// - Synthetic CLI arguments with two `--name` flags.
 ///
 /// Output:
-/// - Assertion over the exact parser diagnostic.
+/// - Assertions over the exact ordered selector set.
 ///
 /// Transformation:
-/// - Parses command-local arguments and expects a duplicate-flag error.
+/// - Parses command-local arguments without recompiling the selected source.
 #[test]
-fn parse_test_args_rejects_duplicate_test_name_selector() {
-    let error = parse_test_args(&args(&[
+fn parse_test_args_accepts_repeated_test_name_selectors() {
+    let parsed = parse_test_args(&args(&[
         "tests/SampleTest.terl",
         "--name",
         "one",
         "--name",
         "two",
     ]))
-    .expect_err("error");
+    .expect("test args");
 
-    assert_eq!(error, "duplicate --name");
+    assert_eq!(parsed.test_names, ["one", "two"]);
+}
+
+#[test]
+fn parse_test_args_rejects_duplicate_test_name_selector() {
+    let error = parse_test_args(&args(&[
+        "tests/SampleTest.terl",
+        "--name",
+        "same",
+        "--name",
+        "same",
+    ]))
+    .expect_err("duplicate selector");
+
+    assert_eq!(error, "duplicate --name selector: same");
 }
 
 /// Verifies parsing for the opt-in test manifest flag.
@@ -317,6 +360,32 @@ fn parse_test_args_accepts_test_manifest_path() {
     assert_eq!(
         parsed.emit_test_manifest,
         Some(PathBuf::from("target/sample.test-manifest.json"))
+    );
+}
+
+/// Verifies one output manifest cannot ambiguously describe several roots.
+///
+/// Inputs:
+/// - Two positional paths and one manifest destination.
+///
+/// Output:
+/// - The stable single-source manifest diagnostic.
+///
+/// Transformation:
+/// - Rejects the request before any source discovery or output creation.
+#[test]
+fn parse_test_args_rejects_manifest_output_for_multiple_paths() {
+    let error = parse_test_args(&args(&[
+        "tests/FirstTest.terl",
+        "tests/SecondTest.terl",
+        "--emit-test-manifest",
+        "target/tests.json",
+    ]))
+    .expect_err("multiple manifest roots");
+
+    assert_eq!(
+        error,
+        "test manifest output requires exactly one source path"
     );
 }
 

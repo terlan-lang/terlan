@@ -17,6 +17,10 @@ use super::{project_manifest_path, CliCommand, TERLAN_PROJECT_MANIFEST_FILE};
 const LOCKFILE_NAME: &str = "terlan.lock";
 const LOCKFILE_VERSION: u32 = 1;
 const RESOLVER_VERSION: &str = "terlan-0.0.7";
+const LEGACY_REGISTRY_LOCKFILE_VERSION: u32 = 2;
+const LEGACY_REGISTRY_RESOLVER_VERSION: &str = "terlan-registry-resolver-v1";
+const REGISTRY_LOCKFILE_VERSION: u32 = 3;
+const REGISTRY_RESOLVER_VERSION: &str = "terlan-registry-resolver-v2";
 
 /// Runs explicit package source operations.
 pub(super) fn run(cmd: CliCommand) -> ExitCode {
@@ -337,7 +341,9 @@ impl GitPackageFetcher {
                     );
                     self.resolve_package(&checkout, &dependency_manifest)?;
                 }
-                ProjectDependencySource::Npm { .. } | ProjectDependencySource::Cargo { .. } => {}
+                ProjectDependencySource::Registry { .. }
+                | ProjectDependencySource::Npm { .. }
+                | ProjectDependencySource::Cargo { .. } => {}
             }
         }
 
@@ -569,6 +575,19 @@ fn read_lockfile(path: &Path) -> Result<ParsedPackageLockfile, String> {
         .map_err(|error| format!("{}: failed to read lockfile: {error}", path.display()))?;
     let lock: PackageLockfile = basic_toml::from_str(&text)
         .map_err(|error| format!("{}: invalid Terlan lockfile: {error}", path.display()))?;
+    let registry_lock = (lock.version == REGISTRY_LOCKFILE_VERSION
+        && lock.resolver == REGISTRY_RESOLVER_VERSION)
+        || (lock.version == LEGACY_REGISTRY_LOCKFILE_VERSION
+            && lock.resolver == LEGACY_REGISTRY_RESOLVER_VERSION);
+    if registry_lock {
+        if !lock.package.is_empty() || !lock.artifact.is_empty() {
+            return Err(format!(
+                "error[package_lockfile_entry_invalid]: {} mixes a Registry lock with legacy Git entries",
+                path.display()
+            ));
+        }
+        return Ok(ParsedPackageLockfile::default());
+    }
     if lock.version != LOCKFILE_VERSION || lock.resolver != RESOLVER_VERSION {
         return Err(format!(
             "error[package_lockfile_version_unsupported]: {} requires version {LOCKFILE_VERSION} and resolver `{RESOLVER_VERSION}`",

@@ -709,7 +709,7 @@ normal developer builds.
   gates.
   - Run the standard Rust preflight, module-structure, build-graph, API-boundary,
     canonical-type, test hierarchy, shared-helper, dormant-code, safe-runtime,
-    roadmap-integrity, and release-code-hygiene gates.
+    and release-code-hygiene gates.
   - Rerun the CQ-0 compile-timing matrix using the same toolchain, target,
     features, machine policy, and sample procedure.
   - Publish baseline-to-closeout deltas, remaining accepted exceptions, and
@@ -718,14 +718,15 @@ normal developer builds.
   - Exercise one representative change in parser/type checking, native
     lowering, runtime, LSP, and quality tooling to prove that the new boundaries
     improve or at least preserve the intended feedback loop.
-  - Gate: add `make code-quality-0-0-7-closeout-check`.
+  - Gate: compose the code-quality closeout aggregate for the stabilization
+    window.
   - Acceptance: CQ-0 through CQ-5 are checked, every named gate is executable,
     no handwritten numbered fragment or textual implementation include remains,
     every in-crate domain concept has one canonical type definition, shared
     cross-crate types have one owner, no lint allowance remains, standard Rust
     checks are clean, and all product release behavior remains green.
-  - Completion evidence: `make code-quality-0-0-7-closeout-check` passed on
-    2026-07-29. Its permanent aggregate ran every named structural and release
+  - Completion evidence: the code-quality closeout aggregate passed on
+    2026-07-29. It ran every named structural and release
     gate, the representative parser, type-checking, native-lowering, runtime,
     LSP, and quality-tooling tests, and the seven-scenario timing check.
   - Completion evidence: the closeout census reports zero numbered fragments,
@@ -797,8 +798,7 @@ normal developer builds.
     `target/quality/cargo-artifact-retention.json`, warns above 128 GiB, and has
     an explicit maintenance command. The closeout retained approximately
     98.1 GB without deleting reusable build outputs.
-  - Completion evidence: the post-hardening
-    `make code-quality-0-0-7-closeout-check` rerun passed with 2,109 Rust files,
+  - Completion evidence: the post-hardening closeout rerun passed with 2,109 Rust files,
     673,203 physical lines, 443,043 logical lines, zero structural debt, 21
     production domains, 16 production coupling edges, 14 test-only coupling
     edges, five workspace packages, and both default and all-feature Clippy.
@@ -821,6 +821,6 @@ gates. The report is evidence, not a replacement for any executable subgate.
 ## Freeze Exit
 
 CQ-6 passed on 2026-07-29, so the architectural expansion freeze is lifted.
-The permanent `make code-quality-0-0-7-closeout-check` aggregate remains
-release-blocking and prevents the structural debt addressed by CQ-0 through
-CQ-6 from returning.
+The milestone-only closeout aggregate was retired after completion. Its durable
+semantic subgates remain release-blocking through `make check` and prevent the
+structural debt addressed by CQ-0 through CQ-6 from returning.

@@ -96,7 +96,7 @@ validate_discovered_web_routes duplicate or ambiguous
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/web_route_test.rs",
+            "crates/terlan/src/web_route_test.rs",
             r#"
 route_param_types_extracts_defaults_and_typed_captures
 validate_route_pattern_rejects_unsupported_route_param_type

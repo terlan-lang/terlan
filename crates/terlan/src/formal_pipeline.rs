@@ -2,12 +2,9 @@ use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use std::sync::OnceLock;
 
 use crate::terlan_hir::{
-    expand_syntax_shape_imports, load_interfaces_from_dir,
-    resolve_syntax_module_output_with_interfaces, syntax_module_output_to_interface,
-    ModuleInterface,
+    expand_syntax_shape_imports, resolve_syntax_module_output_with_interfaces, ModuleInterface,
 };
 use crate::terlan_syntax::{
     parse_interface_module_as_syntax_output, parse_module_as_syntax_output,
@@ -23,9 +20,17 @@ use crate::validation::target_profile::{
 };
 use crate::validation::template_contract::type_check_syntax_module_output_with_template_inputs;
 
+#[path = "formal_pipeline/interface_loading.rs"]
+mod interface_loading;
+#[path = "formal_pipeline/phase_timings.rs"]
+mod phase_timings;
 #[path = "formal_pipeline/templates.rs"]
 mod templates;
 use crate::DiagnosticFormat;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use interface_loading::{
+    load_embedded_std_interfaces, load_external_interfaces, load_external_interfaces_for_module,
+};
 
 /// Checked artifacts produced by the formal compile pipeline.
 ///
@@ -65,102 +70,6 @@ pub(crate) struct CompileSyntaxModuleThroughPhasesResult {
     pub(crate) typecheck_diagnostics: Vec<PhaseManifestDiagnostic>,
     pub(crate) core_diagnostics: Vec<PhaseManifestDiagnostic>,
     pub(crate) exit_code: ExitCode,
-}
-
-/// Loads external module interfaces visible to a source file.
-///
-/// Inputs:
-/// - `path`: source path used to locate adjacent interface files.
-/// - `cache_dir`: optional cache directory containing emitted interfaces.
-///
-/// Output:
-/// - Interface map keyed by module name.
-///
-/// Transformation:
-/// - Starts with interfaces adjacent to the source file, loads
-///   cached/generated interfaces when a cache directory is configured, then
-///   fills only missing stdlib interfaces from summaries embedded in the
-///   compiler binary. The formal path intentionally avoids recursively
-///   scanning `std/summaries` because generated platform bindings can contain
-///   thousands of summaries and release std contracts are embedded.
-pub(crate) fn load_external_interfaces(
-    path: &str,
-    cache_dir: Option<&Path>,
-) -> HashMap<String, ModuleInterface> {
-    let mut interfaces = load_adjacent_interfaces_from_file_set(path);
-    if let Some(cache_dir) = cache_dir {
-        load_interfaces_from_dir(cache_dir, &mut interfaces);
-    }
-    load_embedded_std_interfaces(&mut interfaces);
-    interfaces
-}
-
-/// Loads interfaces that sit next to one source file.
-///
-/// Inputs:
-/// - `path`: source file path used to locate sibling `.terli`/`.typi` files.
-///
-/// Output:
-/// - Interface map keyed by module name.
-///
-/// Transformation:
-/// - Resolves the source directory and loads only direct interface files from
-///   that directory. Standard-library contracts are added separately from the
-///   compiler-embedded release summaries, keeping normal compile startup
-///   bounded even when the repository contains a large generated std inventory.
-fn load_adjacent_interfaces_from_file_set(path: &str) -> HashMap<String, ModuleInterface> {
-    let mut interfaces = HashMap::new();
-    let current = Path::new(path);
-    let base = current.parent().unwrap_or(Path::new("."));
-    load_interfaces_from_dir(base, &mut interfaces);
-    interfaces
-}
-
-/// Loads compiler-embedded stdlib interface summaries as a fallback.
-///
-/// Inputs:
-/// - `interfaces`: mutable interface map already populated from the source
-///   file set.
-///
-/// Output:
-/// - `interfaces` contains packaged stdlib summaries for modules not already
-///   discovered locally.
-///
-/// Transformation:
-/// - Parses the checked-in `.typi` summaries embedded into the compiler binary
-///   and inserts each parsed interface only when the caller has not already
-///   supplied an interface for that module.
-pub(crate) fn load_embedded_std_interfaces(interfaces: &mut HashMap<String, ModuleInterface>) {
-    static EMBEDDED_INTERFACES: OnceLock<HashMap<String, ModuleInterface>> = OnceLock::new();
-    let embedded = EMBEDDED_INTERFACES.get_or_init(|| {
-        EMBEDDED_STD_INTERFACE_SUMMARIES
-            .iter()
-            .filter_map(|summary| parse_embedded_std_interface(summary))
-            .collect()
-    });
-    for (module_name, interface) in embedded {
-        interfaces
-            .entry(module_name.clone())
-            .or_insert_with(|| interface.clone());
-    }
-}
-
-/// Parses one embedded stdlib interface summary.
-///
-/// Inputs:
-/// - `summary`: `.typi` source text embedded at compile time.
-///
-/// Output:
-/// - Parsed module name and compiler interface when the summary is valid.
-///
-/// Transformation:
-/// - Reuses the normal interface parser and HIR interface extraction so
-///   embedded std summaries have the same shape as file-loaded summaries.
-fn parse_embedded_std_interface(summary: &str) -> Option<(String, ModuleInterface)> {
-    let parsed = parse_interface_module_as_syntax_output(summary).ok()?;
-    let module_name = parsed.module_name.clone();
-    let interface = syntax_module_output_to_interface(&parsed);
-    Some((module_name, interface))
 }
 
 const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
@@ -208,6 +117,7 @@ const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
     include_str!("../../../std/summaries/std.data.Toml.typi"),
     include_str!("../../../std/summaries/std.db.Postgres.typi"),
     include_str!("../../../std/summaries/std.crypto.Hash.typi"),
+    include_str!("../../../std/summaries/std.crypto.Ed25519.typi"),
     include_str!("../../../std/summaries/std.encoding.Base64.typi"),
     include_str!("../../../std/summaries/std.encoding.Md5.typi"),
     include_str!("../../../std/summaries/std.http.typi"),
@@ -229,6 +139,7 @@ const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
     include_str!("../../../std/summaries/std.range.Range.typi"),
     include_str!("../../../std/summaries/std.random.Random.typi"),
     include_str!("../../../std/summaries/std.regex.Regex.typi"),
+    include_str!("../../../std/summaries/std.package.Registry.typi"),
     include_str!("../../../std/summaries/std.core.String.typi"),
     include_str!("../../../std/summaries/std.core.Task.typi"),
     include_str!("../../../std/summaries/std.core.Unit.typi"),
@@ -239,7 +150,13 @@ const EMBEDDED_STD_INTERFACE_SUMMARIES: &[&str] = &[
     include_str!("../../../std/summaries/std.io.File.typi"),
     include_str!("../../../std/summaries/std.io.Path.typi"),
     include_str!("../../../std/summaries/std.io.typi"),
+    include_str!("../../../std/summaries/std.log.Field.typi"),
     include_str!("../../../std/summaries/std.log.Log.typi"),
+    include_str!("../../../std/summaries/std.service.Config.typi"),
+    include_str!("../../../std/summaries/std.service.Context.typi"),
+    include_str!("../../../std/summaries/std.service.Lifecycle.typi"),
+    include_str!("../../../std/summaries/std.service.Metrics.typi"),
+    include_str!("../../../std/summaries/std.service.Trace.typi"),
     include_str!("../../../std/summaries/std.js.Array.typi"),
     include_str!("../../../std/summaries/std.js.Dom.Document.typi"),
     include_str!("../../../std/summaries/std.js.Dom.HTMLElement.typi"),
@@ -553,6 +470,7 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
     target_profile: TargetProfile,
     target_profile_options: TargetProfileCheckOptions,
 ) -> CompileSyntaxModuleThroughPhasesResult {
+    let mut timings = phase_timings::FormalPipelineTimings::new(path);
     let mut result = CompileSyntaxModuleThroughPhasesResult {
         artifacts: None,
         parse_diagnostics: Vec::new(),
@@ -578,6 +496,7 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
         result.exit_code = ExitCode::from(1);
         return result;
     }
+    timings.mark("native-policy");
 
     let syntax_output = match parse_source_as_syntax_output(path, source) {
         Ok(output) => output,
@@ -617,10 +536,14 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
             return result;
         }
     };
+    timings.mark("parse");
 
-    let interfaces = load_external_interfaces(path, cache_dir);
+    let interfaces =
+        interface_loading::load_external_interfaces_for_module(path, cache_dir, &syntax_output);
+    timings.mark("interfaces");
     let (mut syntax_output, macro_expansion_diagnostics) =
         expand_syntax_macros_with_interfaces(syntax_output, &interfaces);
+    timings.mark("macros");
     for diag in macro_expansion_diagnostics.iter() {
         crate::support::emit_diagnostic(
             "type_error",
@@ -675,8 +598,10 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
         result.exit_code = ExitCode::from(1);
         return result;
     }
+    timings.mark("shapes");
 
     let resolved = resolve_syntax_module_output_with_interfaces(&syntax_output, &interfaces).module;
+    timings.mark("resolve");
     for diag in resolved.diagnostics.iter() {
         crate::support::emit_diagnostic(
             "type_error",
@@ -699,6 +624,7 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
 
     let (syntax_output, include_expansion_diagnostics) =
         expand_syntax_includes(syntax_output, &resolved);
+    timings.mark("includes");
     for diag in include_expansion_diagnostics.iter() {
         crate::support::emit_diagnostic(
             "type_error",
@@ -731,6 +657,7 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
         &resolved,
         Path::new(path),
     );
+    timings.mark("typecheck");
     let checked_template_inputs = template_typecheck.template_inputs;
     let mut typecheck_diagnostics = template_typecheck.diagnostics;
     typecheck_diagnostics.extend(check_config_declarations_syntax_output(&syntax_output));
@@ -771,6 +698,7 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
     } else {
         let mut core =
             crate::terlan_typeck::lower_syntax_module_output_to_core(&syntax_output, &resolved);
+        timings.mark("core-lowering");
         core.source.source_path = Some(path.to_string());
         match templates::core_template_render_plans(checked_template_inputs, &core) {
             Ok(templates) => core.templates = templates,
@@ -796,6 +724,7 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
                 return result;
             }
         }
+        timings.mark("templates");
         if let Err(message) = core.binding_identities.validate() {
             let message = message.to_string();
             crate::support::emit_diagnostic("type_error", &message, path, 0, 0, diagnostic_format);
@@ -811,6 +740,7 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
             result.exit_code = ExitCode::from(1);
             return result;
         }
+        timings.mark("binding-identities");
         if let Err(message) = crate::terlan_typeck::validate_core_termination_evidence(&core) {
             let message = message.to_string();
             crate::support::emit_diagnostic("type_error", &message, path, 0, 0, diagnostic_format);
@@ -826,8 +756,10 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
             result.exit_code = ExitCode::from(1);
             return result;
         }
+        timings.mark("termination");
         let target_profile_violations =
             target_profile_checks_with_options(&core, target_profile, target_profile_options);
+        timings.mark("target-profile");
         if !target_profile_violations.is_empty() {
             for violation in target_profile_violations {
                 crate::support::emit_diagnostic(

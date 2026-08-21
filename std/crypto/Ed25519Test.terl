@@ -1,0 +1,7 @@
+module std.crypto.Ed25519Test.
+
+import std.crypto.Ed25519.
+
+@test
+pub invalid_material_fails_closed(): Bool ->
+    not Ed25519.verify("invalid", "payload", "invalid").

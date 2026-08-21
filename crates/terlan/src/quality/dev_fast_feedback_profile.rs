@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-use super::roadmap_gate_integrity::parse_make_list_variable_values;
+use super::makefile_list::parse_make_list_variable_values;
 use super::support::{make_target_body, write_json_report};
 use crate::terlan_quality::{render_failure, QualityResult};
 

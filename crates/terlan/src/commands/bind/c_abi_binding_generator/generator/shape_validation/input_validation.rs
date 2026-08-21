@@ -133,7 +133,7 @@ pub(in super::super) fn validate_input_array_binding(
                     ));
                 }
                 let expected = format!("List[{element_type}]");
-                if argument.ty != expected {
+                if argument.abi_ty() != expected {
                     return Err(format!(
                         "error[native_bindgen.c_input_array_contract]: `{}` requires `{expected}` for `{}`",
                         parameter.name, function.name
@@ -148,7 +148,7 @@ pub(in super::super) fn validate_input_array_binding(
                 ));
             }
         };
-        if argument.ty != expected {
+        if argument.abi_ty() != expected {
             return Err(format!(
                 "error[native_bindgen.c_input_array_contract]: `{}` requires `{expected}` for `{}`",
                 parameter.name, function.name

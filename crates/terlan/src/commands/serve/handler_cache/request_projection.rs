@@ -4,9 +4,8 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
-use crate::compiler::native_ir::NativeRequestProjection;
-use crate::compiler::router::AotRouterPlan;
 use crate::runtime::native::http::RequestFieldProjection;
+use crate::runtime::vm::aot_metadata::{AotRouterPlan, NativeRequestProjection};
 use crate::runtime::vm::http_session::VmHttpSessionService;
 
 use super::{
@@ -68,16 +67,41 @@ impl AotHandlerRuntime {
         if module != self.module || self.router.is_some() {
             return RequestFieldProjection::Complete;
         }
+        self.admitted_request_projection(function, arity)
+            .map(|projection| projection.fields)
+            .unwrap_or(RequestFieldProjection::Complete)
+    }
+
+    /// Returns the exact handler proof when static router dispatch has already
+    /// established that no middleware or recovery callback can observe the
+    /// Request envelope.
+    pub(in crate::commands::serve) fn direct_request_projection(
+        &self,
+        module: &str,
+        function: &str,
+        arity: usize,
+    ) -> RequestFieldProjection {
+        if module != self.module {
+            return RequestFieldProjection::Complete;
+        }
+        self.admitted_request_projection(function, arity)
+            .map(|projection| projection.fields)
+            .unwrap_or(RequestFieldProjection::Complete)
+    }
+
+    fn admitted_request_projection(
+        &self,
+        function: &str,
+        arity: usize,
+    ) -> Option<&AdmittedRequestProjection> {
         if let Some(primary) = &self.primary_request_projection {
             if primary.function == function && primary.arity == arity {
-                return primary.projection.fields;
+                return Some(&primary.projection);
             }
         }
         self.request_projections
             .get(function)
             .and_then(|arities| arities.get(&arity))
-            .map(|projection| projection.fields)
-            .unwrap_or(RequestFieldProjection::Complete)
     }
 
     /// Returns a generated scalar ingress only when it matches this exact
@@ -107,26 +131,58 @@ impl AotHandlerRuntime {
         ))
     }
 
-    /// Returns compiler-proven suspension behavior for this exact generation.
-    pub(in crate::commands::serve) fn request_handler_may_suspend(
+    /// Returns suspension behavior for a handler selected by a router route
+    /// whose middleware contract has separately been proven empty.
+    pub(in crate::commands::serve) fn direct_request_handler_may_suspend(
         &self,
         module: &str,
         function: &str,
         arity: usize,
     ) -> bool {
-        if module != self.module || self.router.is_some() {
+        module == self.module
+            && self
+                .admitted_request_projection(function, arity)
+                .is_some_and(|projection| projection.suspending)
+    }
+
+    /// Proves a matched router route can invoke its handler directly without
+    /// skipping request middleware, response middleware, or error recovery.
+    pub(in crate::commands::serve) fn direct_router_handler_is_safe(
+        &self,
+        method: &str,
+        path: &str,
+        module: &str,
+        function: &str,
+        arity: usize,
+    ) -> bool {
+        let Some(router) = &self.router else {
+            return true;
+        };
+        if router.error_handler().is_some() {
             return false;
         }
-        self.primary_request_projection
-            .as_ref()
-            .filter(|primary| primary.function == function && primary.arity == arity)
-            .map(|primary| primary.projection.suspending)
-            .or_else(|| {
-                self.request_projections
-                    .get(function)
-                    .and_then(|arities| arities.get(&arity))
-                    .map(|projection| projection.suspending)
+        let Some(method) = crate::runtime::vm::http_router::VmHttpRouteMethod::from_name(method)
+        else {
+            return false;
+        };
+        let Ok(crate::runtime::vm::http_router::VmHttpRouterOutcome::Matched(dispatch)) =
+            router.dispatch(method, path)
+        else {
+            return false;
+        };
+        if !dispatch.middleware.is_empty() || !dispatch.response_middleware.is_empty() {
+            return false;
+        }
+        let crate::runtime::vm::http_router::VmHttpRouteTarget::Handler(callable) =
+            &dispatch.target
+        else {
+            return false;
+        };
+        crate::runtime::vm::http_router::VmHttpCompiledCallableRef::from_value(callable)
+            .is_some_and(|callable| {
+                callable.module == module
+                    && callable.function == function
+                    && callable.arity == arity
             })
-            .unwrap_or(false)
     }
 }

@@ -1,0 +1,12 @@
+[package]
+name = "registry_math"
+version = "1.0.0"
+namespace = "registry_math"
+description = "Deterministic arithmetic for Registry self-validation."
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/terlan-lang/terlan"
+links = ["https://terlan.org/packages/registry_math"]
+
+[build]
+source_roots = ["src"]
+artifact = "library"

@@ -35,6 +35,32 @@ upload, registry publication, hosted service, or external account.
 
 The normative runtime artifact contract is
 [`TVM_EXECUTABLE_IMAGE_SPEC.md`](../runtime/TVM_EXECUTABLE_IMAGE_SPEC.md).
+The current native data and call contract is ABI 1 in
+[`TVM_NATIVE_DATA_ABI_SPEC.md`](../../terlan/docs/runtime/TVM_NATIVE_DATA_ABI_SPEC.md).
+
+## Native ABI 1 Current Pre-Freeze Contract
+
+0.0.7 ships ABI 1 as the sole current implementation but does not freeze
+cross-release binary compatibility. Correctness and containment are release
+requirements now; optimization and compatibility stability belong to 0.0.8.
+
+| Requirement | Current implementation owner | 0.0.7 evidence |
+| --- | --- | --- |
+| Canonical descriptor and layout identity | `runtime/native_image/descriptor.rs`, compiler NativeIR managed-layout emission | native image, managed-layout, and artifact contract gates |
+| Fail-closed transactional admission | `runtime/native_image/{descriptor,image,sealed,package_validation}.rs` | malformed image, descriptor mismatch, seal drift, and package admission tests |
+| Managed owner and generation validation | `runtime/native_image/managed`, `runtime/native_boundary/resource.rs` | foreign-owner, stale-generation, wrong-kind, cleanup, and relocation tests |
+| Strict foreign ownership mapping | C ABI and C++ binding-generator validation modules | unknown pointer ownership, borrowed lifetime, missing destructor, ambiguity, and exception rejection tests |
+| Default unsafe-worker isolation | `runtime/native_boundary/{capability_sandbox,capability_wire,worker}.rs` | capability admission, bounded frame, worker crash, cancellation, and backpressure tests |
+| Explicit work and memory budgets | descriptor codec limits, capability term/frame limits, specialization budgets, worker credits | boundary, overflow, depth/work, oversized frame, and credit tests |
+| Adversarial positive/negative parity | native image, NativeBoundary, generated binding, sanitizer, mutation, and fault suites | `release-adversarial-corpus-check`, `release-mutation-check`, `release-fault-injection-check` |
+| Narrow safety claims | native ABI specification and release documentation | `release-notes-accuracy-check`, `release-security-hardening-check` |
+
+The 0.0.7 release must fail rather than defer any missing row in this table.
+Trusted in-shard unsafe adapters, zero-copy foreign layouts, and relaxed
+validation are not permitted as release shortcuts. ABI status remains
+`current-pre-freeze` for the complete 0.0.7 line.
+
+Gate: `make abi1-pre-freeze-check`.
 
 ## Scope Audit
 
@@ -452,16 +478,15 @@ when user-facing.
     external state change is required.
 
 - [x] Slice 70: compose one offline proof of the complete 0.0.7 release.
-  - Scope: use a machine-readable closure manifest that classifies every planned
-    gate as required-local, required-platform, required-controlled-host,
-    experimental, or retired. Required checks may not remain commented out or
-    callable only by convention. Build and seal each candidate once; later gates
-    consume candidate-bound evidence without rebuilding or mutation.
+  - Scope: use candidate-bound outcome reports for each durable release
+    contract. Build and seal each candidate once; later gates consume that
+    semantic evidence without rebuilding or mutation. Roadmap prose and
+    completed-slice inventories are not executable validation inputs.
   - Scope: separate expensive evidence refresh from release preflight. A refresh
     produces candidate-bound reports and outputs; the candidate manifest records
     their hashes together with component, platform, toolchain, and environment
-    evidence. Preflight validates the live gate-definition closure and composes
-    those sealed reports; it never reruns a completed gate merely because an
+    evidence. Preflight validates and composes those sealed reports; it never
+    reruns a completed gate merely because an
     unrelated later gate failed. The owning gate and its transitive dependants
     are the explicit refresh boundary. Automatic per-gate source dependency
     fingerprinting remains V8-1 work rather than a false 0.0.7 claim.
@@ -477,243 +502,39 @@ when user-facing.
     may be source-controlled but must not enter installed or staged public docs;
     documentation hashes and links are computed from the staged manifest rather
     than the entire repository `docs/` tree.
-  - Tests: delete or stale each manifest row/report in turn; inject a different
-    candidate hash, unsupported platform claim, skipped required gate, hidden
-    no-op gate, second build, post-seal mutation, missing controlled-host
+  - Tests: delete or stale each required report in turn; inject a different
+    candidate hash, unsupported platform claim, second build, post-seal
+    mutation, missing controlled-host
     evidence, internal-roadmap leakage into public docs, and accidental network/
     publication command. Every case must fail with the responsible gate and
     reproduction command.
   - Gate: repair and run `make internal-docs-check` against the staged public
     documentation manifest.
-  - Refresh command: `make release-0-0-7-evidence-refresh` after all preceding
+  - Refresh command: `make release-evidence-refresh` after all preceding
     checklist items and their closeout gates pass. After a failure, rerun only
     the invalidated owner and its transitive dependants. Candidate-only drift is
     repaired with `make release-staged-distribution-verification-refresh`.
-  - Gate: `make release-0-0-7-preflight` composes existing candidate-bound
+  - Gate: `make release-preflight` composes existing candidate-bound
     evidence and runs only final integration/sealing validation.
   - Acceptance: one offline composition command proves the complete release
     surface and emits one deterministic final summary. A no-op warm preflight
     executes no completed test suite or equivalent build. It cannot pass with a
-    disabled, stale, missing, cross-candidate, unclassified, or publication-
+    stale, missing, cross-candidate, or publication-
     dependent requirement, and it does not require a clean commit, a shared
     process lifetime, or remote state change.
 
-### Roadmap Gate Integrity
+## Validation
 
-Current validated inventory: 203 planned gates, 0 unchecked slices, and 664 Make targets.
+The release sequence has three semantic owners:
 
-- Gate: `make roadmap-gate-integrity-check`.
-- Purpose: keep the active plan synchronized with its executable gate inventory,
-  unchecked ownership, Make graph, multicore closeout, and quality policy.
-- Policy: completed narration belongs in the archive, not this file.
+1. `make check` validates repository behavior and architecture once.
+2. `make release-evidence-refresh` produces candidate-bound outcome evidence.
+3. `make release-preflight` validates and composes that existing evidence
+   without replaying completed suites.
 
-## Planned Gates
+`make release-check` is the version-neutral end-to-end entry point. It resolves
+the release version from workspace metadata, refreshes the evidence, and then
+runs the composition-only preflight.
 
-These commands define the closeout surface. Newly named gates must be added to
-the Make graph before 0.0.7 release.
-
-```bash
-make callable-syntax-cleanup-check
-make value-lifecycle-contract-check
-make repeated-let-syntax-check
-make language-feature-coverage-100-check
-make operator-coverage-100-check
-make core-type-contracts-check
-make type-alias-shorthand-check
-make compiler-purity-metadata-check
-make comprehension-guards-check
-make string-pattern-matching-check
-make flexible-shape-guards-check
-make shape-implications-check
-make shape-synonyms-check
-make binary-bitstring-processing-check
-make function-head-pattern-parameters-check
-make pattern-matching-support-check
-make lean-proof-track-check
-make lean-proof-feature-binding-check
-make lean-proof-change-impact-report
-make lean-proof-feature-binding-review
-make lean-proof-snapshot-consistency-check
-make lean-proof-counterexample-check
-make lean-proof-feature-cull-check
-make lean-proof-track-pr-gate
-make lean-proof-track-regression-check
-make lean-proof-track-runtime-check
-make release-artifacts-closeout-check
-make proof-readiness-release-mode-check
-make terlan-lint-style-profile-check
-make terlan-lint-style-check
-make terlan-lint-pipe-canonicalization-check
-make std-test-honesty-check
-make std-test-table-check
-make std-test-property-check
-make js-type-emission-contract-check
-make std-package-coverage-100-check
-make std-range-check
-make std-random-check
-make std-regex-check
-make stdlib-release-tests-vm-default-check
-make all-terlan-tests-vm-check
-make terlc-build-executable-check
-make terlan-vm-run-command-check
-make vm-release-install-validation-check
-make rust-build-feature-shipping-check
-make wasm-coreir-lowering-check
-make wasm-runtime-exec-check
-make cpp-binding-generator-check
-make cuda-package-availability-check
-make cuda-package-check
-make typed-template-interpolation-check
-make angular-ts-terlan-integration-check
-make terlan-vm-erl-suite-audit-check
-make vm-http-concurrency-investigation-check
-make vm-http-vs-axum-check
-make vm-http-benchmark-comparability-check
-make vm-http-runtime-attribution-check
-make vm-http-soak-stability-check
-make vm-http-acme-tls-production-check
-make vm-http-acme-worker-migration-check
-make vm-http-acme-cache-custody-check
-make vm-http-acme-renewal-rotation-check
-make vm-http-protocol-readiness-check
-make vm-http-serve-config-check
-make vm-runtime-observability-check
-make vm-supervision-restart-check
-make vm-timer-deadline-check
-make vm-memory-heap-pressure-check
-make vm-native-boundary-contract-check
-make vm-postgres-runtime-check
-make vm-sql-macro-validation-check
-make vm-db-migration-command-check
-make vm-dev-dependency-orchestration-check
-make vm-release-artifact-matrix-check
-make release-promotion-pipeline-check
-make release-example-projects-check
-make release-diagnostic-catalog-check
-make release-compatibility-baseline-check
-make release-supply-chain-provenance-check
-make release-security-hardening-check
-make release-support-bundle-check
-make release-performance-baseline-check
-make release-readiness-attestation-check
-make release-staged-distribution-verification-check
-make release-notes-accuracy-check
-make release-version-channel-check
-make release-generated-artifacts-check
-make release-code-hygiene-check
-make release-project-upgrade-matrix-check
-make release-reference-app-suite-check
-make release-adversarial-corpus-check
-make release-mutation-check
-make release-fault-injection-check
-make native-no-std-target-feasibility-check
-make device-target-planner-check
-make package-resolver-reproducibility-check
-make package-capability-contract-check
-make package-release-test-matrix-check
-make package-api-compatibility-check
-make package-cli-workflow-check
-make package-editor-integration-check
-make package-cache-integrity-check
-make package-workspace-graph-check
-make package-build-artifact-isolation-check
-make build-artifact-budget-check
-make source-map-debug-info-check
-make compiler-incremental-cache-check
-make watch-mode-hot-reload-check
-make aot-developer-hot-reload-check
-make release-flake-detection-check
-make release-gate-shard-resume-check
-make release-gate-duration-budget-check
-make release-gate-report-schema-check
-make release-failure-reproduction-check
-make dev-fast-feedback-profile-check
-make docs-codeblock-executable-check
-make internal-docs-check
-make editor-definition-navigation-check
-make editor-code-action-auto-import-check
-make editor-completion-signature-check
-make editor-runnable-debug-launch-check
-make editor-semantic-token-icon-check
-make editor-diagnostic-parity-check
-make editor-extension-install-update-check
-make target-inference-default-vm-check
-make runtime-aot-only-check
-make tvm-direct-aot-backend-check
-make tvm-managed-list-profile-benchmark-check
-make terlan-vm-artifact-format-check
-make tvm-native-image-format-check
-make tvm-native-image-loader-check
-make tvm-aot-consumer-check
-make tvm-aot-shard-ownership-check
-make tvm-aot-supervisor-lifecycle-check
-make tvm-aot-capability-worker-check
-make tvm-aot-image-lifetime-check
-make tvm-aot-lowering-coverage-check
-make tail-recursion-lowering-check
-make termination-productivity-analysis-check
-make binding-shadowing-safety-check
-make tvm-aot-http-performance-check
-make tvm-aot-platform-matrix-check
-make vm-multicore-invariant-inventory-check
-make vm-actor-mutator-ownership-check
-make vm-multicore-mailbox-publication-check
-make vm-multicore-fixed-placement-check
-make tvm-aot-multicore-migration-check
-make vm-multicore-work-stealing-check
-make vm-multicore-runtime-cleanup-check
-make vm-multicore-runtime-integration-check
-make vm-epmd-discovery-check
-make vm-multicore-replay-observability-check
-make vm-multicore-performance-check
-make vm-multicore-memory-model-check
-make vm-multicore-thread-sanitizer-check
-make vm-multicore-mc9-evidence-check
-make vm-scheduler-fairness-check
-make tvm-aot-runtime-transition-check
-make tvm-managed-memory-check
-make rust-quality-check
-make roadmap-gate-integrity-check
-make check
-make vm-multicore-release-check
-make tvm-aot-multicore-readiness-check
-make tvm-aot-roadmap-reconciliation-check
-make tvm-aot-c-abi-boundary-check
-make tvm-aot-compilation-time-check
-make tvm-single-image-artifact-check
-make no-tvm-json-runtime-check
-make no-vmir-interpreter-check
-make vm-native-worker-runtime-check
-make vm-io-reactor-runtime-check
-make vm-http-handler-dispatch-check
-make vm-http-handler-scheduler-fairness-check
-make vm-http-stateful-actor-session-check
-make vm-live-template-stream-check
-make vm-live-template-client-protocol-check
-make typed-template-render-mode-check
-make web-asset-pipeline-check
-make vm-web-security-policy-check
-make vm-web-config-secret-boundary-check
-make vm-web-observability-check
-make vm-web-lifecycle-health-check
-make vm-web-deployment-profile-check
-make vm-web-route-schema-client-check
-make vm-model-sync-store-check
-make vm-persistent-actor-store-check
-make vm-persistent-actor-schema-check
-make vm-persistent-actor-compaction-check
-make vm-persistent-actor-restore-check
-make vm-persistent-actor-adapter-conformance-check
-make vm-persistent-actor-performance-budget-check
-make vm-persistent-actor-telemetry-check
-make vm-persistent-actor-policy-check
-make vm-semantics-vs-otp-check
-make terlc-debugger-check
-make achamp-adversarial-coverage-check
-make roadmap-legacy-runtime-cleanup-check
-make dormant-runtime-code-check
-make no-default-tokio-runtime-check
-make vm-tcp-stream-check
-make terlan-vm-http-lane-check
-make release-0-0-7-preflight
-```
+This roadmap records intent and completion history. It is deliberately not parsed
+by the build, and it does not duplicate the executable validation graph.

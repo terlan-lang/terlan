@@ -67,7 +67,7 @@ where
         "build" => commands::build::run(cmd, state),
         "run" => commands::run::run(cmd, state),
         "scripts" => commands::scripts::run(cmd),
-        "package" => commands::build::run_package_command(cmd),
+        "package" => commands::build::run_package_command(cmd, state),
         "clean" => commands::clean::run(cmd),
         "doctor" => commands::doctor::run(cmd),
         "inspect" => commands::inspect::run(cmd),

@@ -38,7 +38,7 @@ pub(super) fn lower_boolean_intrinsic(
     )?;
     let text = |value: &str| {
         encode_string_literal(value)
-            .map(|encoded| NativeExpr::StringLiteral {
+            .map(|encoded| NativeExpr::ManagedLiteral {
                 encoded: Arc::from(encoded),
             })
             .map_err(|error| format!("error[native_ir.bool_intrinsic]: {error}"))

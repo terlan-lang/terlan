@@ -6,6 +6,7 @@ use crate::terlan_html::HtmlDiagnostic;
 
 use super::{
     format_html_diagnostics, validate_static_css_output_files, validate_static_html_output,
+    validate_static_internal_links,
 };
 
 /// Creates a unique temporary path for static-output validation tests.
@@ -154,4 +155,58 @@ fn format_html_diagnostics_formats_pathful_and_pathless_messages() {
     ]);
 
     assert_eq!(message, "public/page.html: bad tag\nglobal error");
+}
+
+#[test]
+fn validate_static_internal_links_accepts_project_base_links_and_fragments() {
+    let root = temp_path("valid-links");
+    fs::create_dir_all(root.join("docs")).expect("create docs output");
+    fs::write(
+        root.join("index.html"),
+        "<main><a href=\"docs/#install\">Install</a><a href=\"https://terlan.io\">External</a></main>",
+    )
+    .expect("write index");
+    fs::write(
+        root.join("docs/index.html"),
+        "<main><h2 id=\"install\">Install</h2><a href=\"/terlan/\">Home</a></main>",
+    )
+    .expect("write docs");
+
+    validate_static_internal_links(&root, Some("/terlan/"))
+        .expect("valid project-base links should pass");
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn validate_static_internal_links_rejects_missing_routes() {
+    let root = temp_path("missing-link");
+    fs::create_dir_all(&root).expect("create output");
+    fs::write(
+        root.join("index.html"),
+        "<main><a href=\"missing/\">Missing</a></main>",
+    )
+    .expect("write index");
+
+    let message =
+        validate_static_internal_links(&root, Some("/")).expect_err("missing route should fail");
+    assert!(message.contains("broken static link"));
+    assert!(message.contains("missing/index.html"));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn validate_static_internal_links_applies_base_to_fragment_only_links() {
+    let root = temp_path("base-fragment");
+    fs::create_dir_all(root.join("docs")).expect("create docs output");
+    fs::write(root.join("index.html"), "<main id=\"home\"></main>").expect("write index");
+    fs::write(
+        root.join("docs/index.html"),
+        "<main id=\"local\"><a href=\"#local\">Local</a></main>",
+    )
+    .expect("write docs");
+
+    let message = validate_static_internal_links(&root, Some("/"))
+        .expect_err("base-rooted fragment should resolve against root index");
+    assert!(message.contains("fragment-only link `#local` is unsafe"));
+    let _ = fs::remove_dir_all(root);
 }

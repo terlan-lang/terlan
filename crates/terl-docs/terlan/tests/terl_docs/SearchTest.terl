@@ -1,0 +1,21 @@
+module terl_docs.SearchTest.
+
+import terl_docs.Search.
+
+@test
+pub exact_title_match_has_highest_weight(): Bool ->
+    Search.score_term("language", "", "", "", "language") == 40.
+
+@test
+pub partial_title_and_metadata_scores_accumulate(): Bool ->
+    Search.score_term("language guide", "language reference", "language", "language syntax", "language") == 34.
+
+@test
+pub missing_term_scores_zero(): Bool ->
+    Search.score_term(
+    "getting started",
+    "install the compiler",
+    "documentation",
+    "build a first program",
+    "language",
+) == 0.

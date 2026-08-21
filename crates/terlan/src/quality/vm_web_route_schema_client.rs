@@ -217,7 +217,7 @@ pub fn run_vm_web_route_schema_client(root: &Path) -> QualityResult<VmWebRouteSc
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/commands/web_route_test.rs",
+        "crates/terlan/src/web_route_test.rs",
         REQUIRED_ROUTE_TEST_ANCHORS,
         "typed route parameter tests",
     )?);

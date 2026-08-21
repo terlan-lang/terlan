@@ -1,8 +1,13 @@
 //! Read-only process and mailbox inspection records.
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use crate::runtime::vm::ReplValue;
 
-use super::{VmMessagePriority, VmProcessId, VmProcessLocation, VmProcessSource, VmProcessState};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+use super::VmMessagePriority;
+use super::{VmProcessId, VmProcessLocation, VmProcessSource, VmProcessState};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+use super::{VmProcessInspectionError, VmProcessTable};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[cfg(test)]
@@ -32,6 +37,7 @@ pub(crate) struct VmProcessSnapshot {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) struct VmMailboxMessageSnapshot {
     pub(crate) id: u64,
     pub(crate) publication_sequence: u64,
@@ -43,9 +49,45 @@ pub(crate) struct VmMailboxMessageSnapshot {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) struct VmMailboxSnapshot {
     pub(crate) process: VmProcessId,
     pub(crate) selective_receive_cursor: usize,
     pub(crate) messages: Vec<VmMailboxMessageSnapshot>,
     pub(crate) omitted_messages: usize,
+}
+
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+impl VmProcessTable {
+    /// Captures at most `limit` messages without changing selective-receive order.
+    pub(crate) fn mailbox_snapshot(
+        &self,
+        pid: VmProcessId,
+        limit: usize,
+    ) -> Result<VmMailboxSnapshot, VmProcessInspectionError> {
+        let process = self
+            .processes
+            .get(pid)
+            .ok_or(VmProcessInspectionError::MissingProcess(pid))?;
+        let messages = process
+            .mailbox
+            .iter()
+            .take(limit)
+            .map(|message| VmMailboxMessageSnapshot {
+                id: message.id,
+                publication_sequence: message.publication_sequence,
+                sender: message.sender,
+                payload: message.payload.clone(),
+                managed: message.managed_fragment.is_some(),
+                accounted_bytes: message.accounted_bytes,
+                priority: message.priority,
+            })
+            .collect();
+        Ok(VmMailboxSnapshot {
+            process: pid,
+            selective_receive_cursor: 0,
+            messages,
+            omitted_messages: process.mailbox.len().saturating_sub(limit),
+        })
+    }
 }

@@ -84,13 +84,23 @@ impl VmActorRuntime {
             self.scheduler.forget_process(*exited);
             self.remove_native_continuation_for_owner(*exited);
             self.resources.cleanup_owner(*exited);
+            #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
             self.code_server.release_process_bindings(*exited)?;
             #[cfg(test)]
             self.dynamic_modules.cleanup_owner(*exited);
-            for event in self.remove_delayed_messages_for_owner(*exited) {
-                self.consume_postgres_timer_event(&event)?;
+            #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+            {
+                for event in self.remove_delayed_messages_for_owner(*exited) {
+                    self.consume_postgres_timer_event(&event)?;
+                }
+                self.cleanup_postgres_owner(*exited);
             }
-            self.cleanup_postgres_owner(*exited);
+            #[cfg(all(
+                feature = "serve-runtime-bin",
+                not(test),
+                not(feature = "native-codegen")
+            ))]
+            self.remove_delayed_messages_for_owner(*exited);
             self.aliases.remove_process(*exited);
             self.memory.synchronize_process(&self.processes, *exited)?;
         }

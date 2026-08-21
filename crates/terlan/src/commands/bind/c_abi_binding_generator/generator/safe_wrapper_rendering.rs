@@ -66,7 +66,7 @@ pub(super) fn render_safe_wrapper(
             receiver_skipped = true;
             continue;
         }
-        let rust_ty = match argument.ty.as_str() {
+        let rust_ty = match argument.abi_ty() {
             "Int" => "i64",
             "Float" => "f64",
             "Bool" => "bool",
@@ -138,7 +138,7 @@ pub(super) fn render_safe_wrapper(
     };
     let mut rendered = format!(
         "{indent}pub fn {}({}) -> {public_return} {{\n",
-        function.name,
+        function.adapter_name(),
         signature_args.join(", ")
     );
 
@@ -391,7 +391,7 @@ pub(super) fn render_safe_wrapper(
             let argument = function
                 .args
                 .iter()
-                .find(|argument| argument.name == parameter.name && argument.ty == "String")
+                .find(|argument| argument.name == parameter.name && argument.abi_ty() == "String")
                 .ok_or_else(|| {
                     format!(
                         "error[native_bindgen.unsupported_wrapper_shape]: C string parameter `{}` in `{}` requires a matching String argument",
@@ -417,6 +417,10 @@ pub(super) fn render_safe_wrapper(
                     )
                 })?;
                 if inside_impl
+                    && matches!(
+                        function.role,
+                        CAbiFunctionRole::ImmutableMethod | CAbiFunctionRole::MutableMethod
+                    )
                     && function.args.first().is_some_and(|receiver| {
                         receiver.name == argument.name && owner_name == Some(receiver.ty.as_str())
                     })
@@ -487,7 +491,7 @@ pub(super) fn render_safe_wrapper(
                     .args
                     .iter()
                     .find(|argument| argument.name == parameter.name)
-                    .map(|argument| argument.ty.as_str());
+                    .map(CAbiBindingArg::abi_ty);
                 let source_rust_ty = match source_ty {
                     Some("Int") => Some("i64"),
                     Some("Float") => Some("f64"),
@@ -678,7 +682,11 @@ pub(super) fn render_dispatcher_wrapper_body(
     for (index, argument) in handle_arguments.iter().enumerate() {
         let raw = format!("dispatcher_raw_{}", argument.name);
         let guard = format!("dispatcher_input_{}", argument.name);
-        let source = if index == 0 {
+        let source = if index == 0
+            && matches!(
+                function.role,
+                CAbiFunctionRole::ImmutableMethod | CAbiFunctionRole::MutableMethod
+            ) {
             "self.raw.as_ptr()".to_string()
         } else {
             format!("{}.raw.as_ptr()", argument.name)
