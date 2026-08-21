@@ -29,7 +29,6 @@ on:
       - ".github/workflows/release.yml"
       - ".github/workflows/security.yml"
       - ".github/actions/**"
-      - ".github/actionlint.yml"
       - ".github/dependabot.yml"
       - ".github/WORKFLOWS.md"
   push:
@@ -62,7 +61,6 @@ on:
       - ".github/workflows/release.yml"
       - ".github/workflows/security.yml"
       - ".github/actions/**"
-      - ".github/actionlint.yml"
       - ".github/dependabot.yml"
       - ".github/WORKFLOWS.md"
 

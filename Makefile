@@ -210,7 +210,7 @@ rust-security-audit-check:
 .PHONY: vm-distributed-state-check
 .PHONY: vm-supervision-restart-check
 .PHONY: vm-timer-deadline-check
-.PHONY: vm-scheduler-fairness-check vm-actor-mutator-ownership-check vm-parallel-messages-suite-parity-check vm-efile-suite-parity-check vm-float-native-arithmetic-check vm-fun-suite-parity-check vm-gc-suite-parity-check vm-guard-suite-parity-check vm-guard-no-opt-suite-parity-check vm-hash-suite-parity-check vm-hello-suite-parity-check vm-hibernate-suite-parity-check vm-small-suite-parity-check vm-smoke-suite-parity-check vm-multicore-mailbox-publication-check vm-multicore-fixed-placement-check tvm-aot-multicore-migration-check vm-multicore-work-stealing-policy-check vm-multicore-work-stealing-check vm-multicore-runtime-cleanup-check tvm-aot-multicore-io-epoch-check vm-multicore-timer-epoch-check vm-multicore-timer-scheduler-check vm-multicore-protocol-reactor-check vm-multicore-capability-worker-check vm-multicore-capability-completion-check vm-multicore-capability-event-pump-check vm-multicore-capability-scheduler-check vm-epmd-discovery-check vm-multicore-runtime-integration-check vm-multicore-replay-observability-check vm-multicore-performance-check vm-multicore-memory-model-check vm-multicore-thread-sanitizer-contract-check vm-multicore-thread-sanitizer-check vm-multicore-mc9-evidence-contract-check vm-multicore-mc9-evidence-check vm-multicore-mc9-local-evidence-check vm-multicore-release-contract-check vm-multicore-release-check
+.PHONY: vm-scheduler-fairness-check vm-actor-mutator-ownership-check vm-parallel-messages-suite-parity-check vm-efile-suite-parity-check vm-float-native-arithmetic-check vm-fun-suite-parity-check vm-gc-suite-parity-check vm-guard-suite-parity-check vm-guard-no-opt-suite-parity-check vm-hash-suite-parity-check vm-hello-suite-parity-check vm-hibernate-suite-parity-check vm-small-suite-parity-check vm-smoke-suite-parity-check vm-multicore-mailbox-publication-check vm-multicore-fixed-placement-check tvm-aot-multicore-migration-check vm-multicore-work-stealing-policy-check vm-multicore-work-stealing-check vm-multicore-runtime-cleanup-check tvm-aot-multicore-io-epoch-check vm-multicore-timer-epoch-check vm-multicore-timer-scheduler-check vm-multicore-protocol-reactor-check vm-multicore-capability-worker-check vm-multicore-capability-completion-check vm-multicore-capability-event-pump-check vm-multicore-capability-scheduler-check vm-epmd-discovery-check vm-multicore-runtime-integration-check vm-multicore-replay-observability-check vm-multicore-performance-check vm-multicore-memory-model-check vm-multicore-thread-sanitizer-contract-check vm-multicore-thread-sanitizer-check vm-multicore-mc9-evidence-contract-check vm-multicore-mc9-evidence-check vm-multicore-mc9-local-evidence-check vm-multicore-release-contract-check vm-multicore-release-record vm-multicore-release-check vm-multicore-publish-check
 .PHONY: tvm-http-axum-performance-record tvm-http-paired-performance-check tvm-http-decisive-performance-check
 .PHONY: vm-memory-heap-pressure-check
 .PHONY: std-generated-metadata-check
@@ -278,9 +278,7 @@ HTTP_SOAK_PROFILE ?= short
 HTTP_SOAK_REPORT = target/quality/vm-http-soak-$(if $(filter release,$(HTTP_SOAK_PROFILE)),release-,)stability-report.json
 
 ifneq ($(filter publish publish-preflight,$(MAKECMDGOALS)),)
-ifndef VERSION
-$(error VERSION is required. Use: make $(firstword $(MAKECMDGOALS)) VERSION=<release-version>)
-endif
+VERSION ?= $(RELEASE_VERSION)
 ifneq ($(filter v%,$(VERSION)),)
 $(error VERSION must not include the leading v. Use: make $(firstword $(MAKECMDGOALS)) VERSION=$(patsubst v%,%,$(VERSION)))
 endif
@@ -3560,17 +3558,33 @@ VM_MULTICORE_RELEASE_LOCAL_GATES := \
 	tvm-managed-memory-check \
 	rust-quality-check
 
+VM_MULTICORE_PUBLISH_REUSED_GATES := \
+	vm-multicore-memory-model-check \
+	rust-quality-check
+
+VM_MULTICORE_PUBLISH_LOCAL_GATES := $(filter-out $(VM_MULTICORE_PUBLISH_REUSED_GATES),$(VM_MULTICORE_RELEASE_LOCAL_GATES))
+
 vm-multicore-release-contract-check: | terlan-tvm-platform-matrix-bootstrap
 	$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-self-test
 
-vm-multicore-release-check: vm-multicore-release-contract-check
-	$(MAKE) vm-multicore-mc9-evidence-check
-	$(MAKE) $(VM_MULTICORE_RELEASE_LOCAL_GATES)
+vm-multicore-release-record:
 	$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-record
 	test -s target/quality/vm-multicore-release-closeout.json
 	@rg -q '"schema": "terlan.vm-multicore-release-closeout.v3"' target/quality/vm-multicore-release-closeout.json
 	@rg -q '"decision": "pass"' target/quality/vm-multicore-release-closeout.json
 	@rg -q '"source_tree_sha256":' target/quality/vm-multicore-release-closeout.json
+
+vm-multicore-release-check: vm-multicore-release-contract-check
+	$(MAKE) vm-multicore-mc9-evidence-check
+	$(MAKE) $(VM_MULTICORE_RELEASE_LOCAL_GATES)
+	$(MAKE) vm-multicore-release-record
+
+vm-multicore-publish-check: vm-multicore-release-contract-check
+	$(MAKE) vm-multicore-mc9-local-evidence-check
+	@rg -q '"provenance_mode": "local"' target/quality/vm-multicore-mc9-evidence.json
+	@rg -q '"source_tree_clean": true' target/quality/vm-multicore-mc9-evidence.json
+	$(MAKE) $(VM_MULTICORE_PUBLISH_LOCAL_GATES)
+	$(MAKE) vm-multicore-release-record
 
 vm-final-health-check:
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::resource::resource_test::resource_table_cleans_up_owner_resources_on_process_exit -- --exact
@@ -4611,7 +4625,7 @@ publish-preflight:
 		if [ "$$changed_count" -gt 20 ]; then \
 			echo "... $$((changed_count - 20)) more changed files omitted"; \
 		fi; \
-		echo "next step: review and commit the release contents, then rerun make publish VERSION=$(VERSION)"; \
+		echo "next step: review and commit the release contents, then rerun make publish"; \
 		exit 1; \
 	fi
 	@command -v gh >/dev/null 2>&1 || { \
@@ -4671,6 +4685,8 @@ publish-preflight:
 		echo "remote tag v$(VERSION) already exists at HEAD; release upload can be retried"; \
 	fi
 	bash scripts/download_validated_release_artifacts.sh "$$(git rev-parse HEAD)"
+	$(MAKE) --no-print-directory vm-multicore-publish-check
+	$(MAKE) --no-print-directory tvm-aot-release-closeout-check TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN=1
 	$(MAKE) release-boundary-check
 	$(MAKE) source-extension-check
 	$(MAKE) terlan-release-promotion-bootstrap

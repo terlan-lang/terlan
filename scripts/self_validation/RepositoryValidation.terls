@@ -845,12 +845,16 @@ build_release_contract(repository: String): Bool ->
         "TERLC=$(CURDIR)/target/debug/terlc",
         "TERLAN_QUALITY=$(CURDIR)/target/debug/terlan-quality",
         "TERLAN_VALIDATION_BOOTSTRAPPED=1",
+        "VERSION ?= $(RELEASE_VERSION)",
+        "vm-multicore-publish-check: vm-multicore-release-contract-check",
+        "$(MAKE) vm-multicore-mc9-local-evidence-check",
+        "$(MAKE) --no-print-directory vm-multicore-publish-check",
     ];
 let release_fragments =
     [
-        "TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN=1",
-        "multicore-runner-watchdog:",
-        "cancelWorkflowRun",
+        "name: release VM multicore ThreadSanitizer",
+        "name: release-hosted-validation-evidence",
+        "run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
         "name: release-distribution-${{ matrix.target }}",
         "make release-artifact-set-check",
         "actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d",
@@ -882,6 +886,14 @@ if {
         String.append("shell check bypasses shared Cargo ownership: ", unowned_script_cargo),
     );
     missing_release != "" -> failure("build_release.workflow", String.append("missing invariant: ", missing_release));
+    String.contains(release, "self-hosted") -> failure(
+        "build_release.self_hosted",
+        "release validation must not depend on a self-hosted runner",
+    );
+    String.contains(release, "run: make vm-multicore-performance-check") -> failure(
+        "build_release.performance_owner",
+        "controlled multicore performance belongs to local publication",
+    );
     not String.contains(editor, "npm ci --prefix tree-sitter-terlan --no-audit --no-fund")
         or not String.contains(editor, "NPM_PACK_CACHE ?= $(CURDIR)/target/tmp/npm-cache") -> failure("build_release.editor", "editor dependency/cache ownership drifted");
     String.contains(release, "tags:") -> failure("build_release.tag", "tag pushes must not replay validation");
@@ -905,7 +917,17 @@ if {
         "only canonical exhaustive jobs may install Rustfmt and Clippy",
     );
     not String.contains(downloader, "release-validation/run")
-        or not String.contains(downloader, "gh attestation verify") -> failure("build_release.download", "validated artifact download contract drifted");
+        or not String.contains(downloader, "gh attestation verify")
+        or not String.contains(downloader, "release-hosted-validation-evidence")
+        or not contains_all(
+    downloader,
+    [
+        "tvm-aot-platform-matrix-report.json",
+        "tvm-aot-thread-sanitizer-report.json",
+        "vm-multicore-thread-sanitizer-report.json",
+        "vm-multicore-memory-model-tsan.json",
+    ],
+) -> failure("build_release.download", "validated artifact download contract drifted");
     not contains_all(
     publisher,
     ["--draft --verify-tag", "uploaded asset set does not exactly match", "--draft=false"],

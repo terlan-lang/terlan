@@ -182,14 +182,10 @@ pub required_checks(): List[String] ->
 
 release_evidence(): List[String] ->
     [
-        "tvm-aot-release-closeout-report.json",
-        "tvm-aot-release-clean-checkout.json",
         "tvm-aot-platform-matrix-report.json",
         "tvm-aot-thread-sanitizer-report.json",
-        "vm-multicore-release-closeout.json",
-        "aot-compilation-benchmark.json",
-        "http-aot-performance-comparison.json",
-        "tvm-managed-list-profile.json",
+        "vm-multicore-thread-sanitizer-report.json",
+        "vm-multicore-memory-model-tsan.json",
     ].
 
 pub string_array(values: List[String]): Json ->
@@ -736,7 +732,12 @@ pub workflow_contract(): Bool ->
         not ci_trigger_valid(ci) -> failure("workflow", "CI trigger contract drifted");
         occurrences(ci, "      - \"docs/**\"") != 2 -> failure("workflow", "CI path filters drifted");
         release.contains("    tags:\n") -> failure("workflow", "release validation must not rerun after tagging");
-        not release.contains("run: make tvm-aot-release-closeout-check") -> failure("workflow", "release closeout gate is missing");
+        not release
+    .contains(
+        "run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
+    ) -> failure("workflow", "hosted release contract gate is missing");
+        release.contains("self-hosted") -> failure("workflow", "release validation must use hosted runners only");
+        release.contains("run: make vm-multicore-performance-check") -> failure("workflow", "controlled performance belongs to local publication");
         not evidence_present(release, release_evidence()) -> failure("workflow", "release evidence retention is incomplete");
         true -> true
     }.

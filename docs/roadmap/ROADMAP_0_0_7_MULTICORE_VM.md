@@ -1257,14 +1257,13 @@ and progress evidence.
       seed, stale revision, unofficial repository, or incomplete CI identity.
   - Sixth executable slice completed:
     - [x] Qualify every performance report with the full checked-out source
-      revision, clean-tree attestation, and local or official GitHub Actions
-      provenance. A hosted dedicated-policy run requires complete run, attempt,
-      commit, workflow, repository, runner-name, and self-hosted runner
-      evidence.
-    - [x] Add the release-only
-      `terlan-linux-x86_64-multicore-v1` self-hosted runner lane. It uses Rust
-      1.96.0, declares controlled background load, requests dedicated policy
-      enforcement, and retains the resulting performance artifact.
+      revision, clean-tree attestation, and local publication provenance.
+      Retain fail-closed parsing of historical Actions producer identities
+      without allowing them to satisfy publication's local-evidence policy.
+    - [x] Make the release publisher own controlled performance locally. The
+      hosted workflow uses GitHub-hosted runners only; `make publish` uses Rust
+      1.96.0, declares controlled background load, enforces the dedicated
+      policy, and seals the resulting performance artifact before tagging.
     - [x] Add `make vm-multicore-mc9-evidence-check`. It rejects record-only
       performance, hosted-runner substitution, policy or workload drift,
       missing overlap, unpinned sanitizer evidence, malformed provenance,

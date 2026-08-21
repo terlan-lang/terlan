@@ -27,7 +27,7 @@ contract_holds(makefile: String, ci: String, release: String): Bool ->
         and contains_all(ci, ["run: make release-candidate-check"])
         and contains_all(
     release,
-    ["run: make vm-multicore-release-check", "run: make tvm-aot-release-closeout-check"],
+    ["run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check"],
 ).
 
 @pure
@@ -48,9 +48,12 @@ makefile_holds(makefile: String): Bool ->
         and contains_all(
     makefile,
     [
-        "check: rust-test-suite terlan-self-validation-bootstrap",
-        "$(MAKE) --no-print-directory check-gates",
-        "publish-preflight: release-candidate-check",
+        "check: rust-test-suite",
+        "TERLAN_VALIDATION_BOOTSTRAPPED=1",
+        "check-gates",
+        "VERSION ?= $(RELEASE_VERSION)",
+        "publish-preflight:",
+        "$(MAKE) --no-print-directory vm-multicore-publish-check",
         "COVERAGE_MIN ?= 84.20",
         "COVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm",
     ],
@@ -62,7 +65,8 @@ makefile_holds(makefile: String): Bool ->
 
 @pure
 workflow_holds(workflow: String): Bool ->
-    String.contains(workflow, "uses: actions/checkout@v4")
+    String.contains(workflow, "uses: actions/checkout@")
+        and String.contains(workflow, "# v4")
         and not contains_any(
     workflow,
     [
@@ -172,17 +176,17 @@ valid_makefile(): String ->
         "COVERAGE_MIN ?= 84.20\nCOVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm\n",
         String.append(
             "CHECK_GATES := \\\n\tterlan-self-validation-inventory-check \\\n\tterlan-self-validation-capabilities-check \\\n\truntime-aot-only-check \\\n\tno-vmir-interpreter-check\n",
-            "check: rust-test-suite terlan-self-validation-bootstrap\n\t$(MAKE) --no-print-directory check-gates\ntest: cli-test\npublish-preflight: release-candidate-check\nrelease-candidate-check:\nrelease-artifact-current:\nrelease-artifact-linux:\nrelease-boundary-check:\ninstaller-contract-check:\n",
+            "check: rust-test-suite\n\tTERLAN_VALIDATION_BOOTSTRAPPED=1 $(MAKE) --no-print-directory check-gates\ntest: cli-test\nVERSION ?= $(RELEASE_VERSION)\npublish-preflight:\n\t$(MAKE) --no-print-directory vm-multicore-publish-check\nrelease-candidate-check:\nrelease-artifact-current:\nrelease-artifact-linux:\nrelease-boundary-check:\ninstaller-contract-check:\n",
         ),
     ).
 
 @pure
 valid_ci_workflow(): String ->
-    "steps:\n  - uses: actions/checkout@v4\n  - run: make release-candidate-check\n".
+    "steps:\n  - uses: actions/checkout@aaaaaaaa # v4\n  - run: make release-candidate-check\n".
 
 @pure
 valid_release_workflow(): String ->
-    "steps:\n  - uses: actions/checkout@v4\n  - uses: actions/download-artifact@v4\n  - run: make vm-multicore-release-check\n  - run: make tvm-aot-release-closeout-check\n".
+    "steps:\n  - uses: actions/checkout@aaaaaaaa # v4\n  - uses: actions/download-artifact@bbbbbbbb # v4\n  - run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check\n".
 
 @test
 pub repository_release_entrypoints_are_single_rooted(): Bool ->

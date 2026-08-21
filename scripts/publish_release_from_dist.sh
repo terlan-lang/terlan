@@ -63,7 +63,7 @@ read_remote_assets() {
 }
 
 if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-  echo "local tag $tag is missing; run make publish VERSION=$version" >&2
+  echo "local tag $tag is missing; run make publish" >&2
   exit 1
 fi
 if [[ "$(git cat-file -t "refs/tags/$tag")" != "tag" ]]; then

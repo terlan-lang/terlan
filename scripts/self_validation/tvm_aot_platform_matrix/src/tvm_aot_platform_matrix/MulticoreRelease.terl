@@ -69,7 +69,7 @@ invariant_revision(inventory: String, contract: String): String ->
     sha256_domain_framed("terlan.vm-multicore-invariants.v1", [inventory, contract]).
 
 release_target(): String ->
-    "vm-multicore-release-check: vm-multicore-release-contract-check\n\t$(MAKE) vm-multicore-mc9-evidence-check\n\t$(MAKE) $(VM_MULTICORE_RELEASE_LOCAL_GATES)\n\t$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-record\n\ttest -s target/quality/vm-multicore-release-closeout.json\n\t@rg -q '\"schema\": \"terlan.vm-multicore-release-closeout.v3\"' target/quality/vm-multicore-release-closeout.json\n\t@rg -q '\"decision\": \"pass\"' target/quality/vm-multicore-release-closeout.json\n".
+    "vm-multicore-release-check: vm-multicore-release-contract-check\n\t$(MAKE) vm-multicore-mc9-evidence-check\n\t$(MAKE) $(VM_MULTICORE_RELEASE_LOCAL_GATES)\n\t$(MAKE) vm-multicore-release-record\n".
 
 pub validate_makefile(makefile: String): Bool ->
     case make_list_variable(makefile, "VM_MULTICORE_RELEASE_LOCAL_GATES") {
@@ -87,6 +87,10 @@ pub validate_makefile(makefile: String): Bool ->
                         "VM_MULTICORE_RELEASE_LOCAL_GATES := \\\n\tvm-multicore-thread-sanitizer-check",
                     ) -> false;
                 not makefile.contains(release_target()) -> false;
+                not makefile.contains("vm-multicore-publish-check: vm-multicore-release-contract-check") -> false;
+                not makefile.contains("$(MAKE) vm-multicore-mc9-local-evidence-check") -> false;
+                not makefile.contains("$(MAKE) $(VM_MULTICORE_PUBLISH_LOCAL_GATES)") -> false;
+                not makefile.contains("$(MAKE) --no-print-directory vm-multicore-publish-check") -> false;
                 true -> fragments_present(
                     makefile,
                     [
@@ -107,11 +111,14 @@ count_requirements(workflow: String, requirements: List[{String, Int}]): Bool ->
     }.
 
 final_check_ordered(workflow: String): Bool ->
-    case String.split_once(workflow, "run: make vm-multicore-release-check") {
+    case String.split_once(
+    workflow,
+    "run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
+) {
         None -> false;
         Some({prefix, suffix}) ->
-            prefix.contains("Download joined multicore evidence")
-                and suffix.contains("Validate and seal complete AOT closeout")
+            prefix.contains("Download hosted multicore ThreadSanitizer evidence")
+                and suffix.contains("Upload hosted release evidence")
     }.
 
 pub validate_workflow(workflow: String): Bool ->
@@ -119,35 +126,34 @@ pub validate_workflow(workflow: String): Bool ->
         not count_requirements(
     workflow,
     [
-        {"multicore-evidence:", 1},
-        {"seal VM multicore MC-9 evidence", 1},
-        {"run: make vm-multicore-mc9-evidence-check", 1},
-        {"name: release-vm-multicore-evidence", 2},
-        {"Download joined multicore evidence", 1},
+        {"multicore-evidence:", 0},
+        {"multicore-performance:", 0},
+        {"run: make vm-multicore-mc9-evidence-check", 0},
+        {"run: make vm-multicore-performance-check", 0},
+        {"self-hosted", 0},
         {"Install pinned Rust ThreadSanitizer toolchain", 1},
         {"rustup toolchain install nightly-2026-07-16 --profile minimal --component rust-src", 1},
-        {"context: \"release-validation/run\"", 3},
-        {"      - name: Install release utilities\n", 4},
+        {"context: \"release-validation/run\"", 2},
+        {"      - name: Install release utilities\n", 3},
         {"run: make vm-multicore-thread-sanitizer-check", 1},
-        {"run: make vm-multicore-performance-check", 1},
-        {"run: make vm-multicore-release-check", 1},
+        {"name: release-vm-multicore-thread-sanitizer", 2},
+        {"run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check", 1},
     ],
 ) -> false;
         not fragments_present(
     workflow,
     [
         "statuses: write",
-        "actions: write",
         "release-validation-identity:",
-        "multicore-runner-watchdog:",
-        "listJobsForWorkflowRun",
-        "cancelWorkflowRun",
+        "multicore-thread-sanitizer:",
+        "release-hosted-validation-evidence",
+        "target/quality/vm-multicore-thread-sanitizer-report.json",
+        "target/quality/vm-multicore-memory-model-tsan.json",
         "release-validation-result:",
         "const targetUrl =",
         "/actions/runs/${context.runId}",
         "needs: validate",
         "if: always()",
-        "target/quality/vm-multicore-release-closeout.json",
     ],
 ) -> false;
         true -> final_check_ordered(workflow)

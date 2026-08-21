@@ -46,8 +46,24 @@ fi
 
 download_dir="$(mktemp -d)"
 extract_dir="$(mktemp -d)"
-trap 'rm -rf "$download_dir" "$extract_dir"' EXIT
+hosted_evidence_dir="$(mktemp -d)"
+trap 'rm -rf "$download_dir" "$extract_dir" "$hosted_evidence_dir"' EXIT
 gh run download "$run_id" --name release-distribution --dir "$download_dir"
+gh run download "$run_id" --name release-hosted-validation-evidence --dir "$hosted_evidence_dir"
+hosted_evidence_files=(
+  tvm-aot-platform-matrix-report.json
+  tvm-aot-thread-sanitizer-report.json
+  vm-multicore-thread-sanitizer-report.json
+  vm-multicore-memory-model-tsan.json
+)
+mkdir -p target/quality
+for evidence in "${hosted_evidence_files[@]}"; do
+  [[ -f "$hosted_evidence_dir/$evidence" && ! -L "$hosted_evidence_dir/$evidence" ]] || {
+    echo "hosted release evidence is missing $evidence" >&2
+    exit 1
+  }
+  install -m 0644 "$hosted_evidence_dir/$evidence" "target/quality/$evidence"
+done
 make --no-print-directory release-artifact-set-check \
   RELEASE_ARTIFACT_SET_ROOT="$download_dir"
 for artifact in "$download_dir"/terlc-*; do

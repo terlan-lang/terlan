@@ -40,58 +40,6 @@ jobs:
               target_url: targetUrl,
             });
 
-  multicore-runner-watchdog:
-    name: bound controlled multicore runner queue
-    runs-on: ubuntu-24.04
-    needs: release-validation-identity
-    timeout-minutes: 15
-    permissions:
-      actions: write
-      contents: read
-      statuses: write
-
-    steps:
-      - name: Cancel the run if the controlled lane remains queued
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
-        with:
-          script: |
-            const jobName = "release VM multicore controlled performance";
-            for (let attempt = 0; attempt < 20; attempt += 1) {
-              const jobs = await github.paginate(
-                github.rest.actions.listJobsForWorkflowRun,
-                {
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  run_id: context.runId,
-                  per_page: 100,
-                },
-              );
-              const controlled = jobs.find((job) => job.name === jobName);
-              if (controlled && controlled.status !== "queued") {
-                core.info(`controlled lane reached ${controlled.status}`);
-                return;
-              }
-              await new Promise((resolve) => setTimeout(resolve, 30000));
-            }
-            const targetUrl =
-              `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}` +
-              `/actions/runs/${context.runId}`;
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: "failure",
-              context: "release-validation/run",
-              description: "controlled multicore runner queued for more than 10 minutes",
-              target_url: targetUrl,
-            });
-            await github.rest.actions.cancelWorkflowRun({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              run_id: context.runId,
-            });
-            core.setFailed("controlled multicore runner queue exceeded 10 minutes");
-
   dependency-audit:
     name: release Rust dependency security audit
     runs-on: ubuntu-24.04
@@ -316,95 +264,6 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-  multicore-performance:
-    name: release VM multicore controlled performance
-    runs-on: [self-hosted, linux, x64, terlan-linux-x86_64-multicore-v1]
-    needs: release-validation-identity
-    timeout-minutes: 60
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-
-      - name: Verify controlled runner prerequisites
-        run: |
-          command -v cargo
-          command -v make
-          command -v pkg-config
-          command -v rg
-          pkg-config --exists libpq
-
-      - name: Install pinned Rust toolchain
-        uses: ./.github/actions/setup-rust
-        with:
-          components: ""
-
-      - name: Enforce multicore performance policy
-        run: make vm-multicore-performance-check
-        env:
-          RUSTUP_TOOLCHAIN: 1.96.0
-          TERLAN_VM_MULTICORE_DEDICATED_RUNNER: terlan-linux-x86_64-multicore-v1
-          TERLAN_BENCH_BACKGROUND_LOAD: controlled
-
-      - name: Upload controlled multicore performance evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: release-vm-multicore-performance
-          path: target/quality/vm-multicore-performance.json
-          if-no-files-found: error
-          retention-days: 90
-
-  multicore-evidence:
-    name: seal VM multicore MC-9 evidence
-    runs-on: ubuntu-24.04
-    needs:
-      - multicore-thread-sanitizer
-      - multicore-performance
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-
-      - name: Install release utilities
-        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
-
-      - name: Install Rust toolchain
-        uses: ./.github/actions/setup-rust
-        with:
-          components: ""
-
-      - name: Download multicore ThreadSanitizer evidence
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: release-vm-multicore-thread-sanitizer
-          path: target/quality
-
-      - name: Download controlled multicore performance evidence
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: release-vm-multicore-performance
-          path: target/quality
-
-      - name: Seal same-run MC-9 evidence
-        run: make vm-multicore-mc9-evidence-check
-
-      - name: Upload joined multicore evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: release-vm-multicore-evidence
-          path: |
-            target/quality/vm-multicore-thread-sanitizer-report.json
-            target/quality/vm-multicore-memory-model-tsan.json
-            target/quality/vm-multicore-performance.json
-            target/quality/vm-multicore-mc9-evidence.json
-          if-no-files-found: error
-          retention-days: 90
-
   validate:
     name: validate release
     runs-on: ubuntu-24.04
@@ -412,8 +271,7 @@ jobs:
       - dependency-audit
       - platform-matrix
       - thread-sanitizer
-      - multicore-evidence
-      - multicore-runner-watchdog
+      - multicore-thread-sanitizer
     timeout-minutes: 180
     permissions:
       artifact-metadata: write
@@ -445,10 +303,10 @@ jobs:
           name: release-tvm-aot-thread-sanitizer
           path: target/quality
 
-      - name: Download joined multicore evidence
+      - name: Download hosted multicore ThreadSanitizer evidence
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: release-vm-multicore-evidence
+          name: release-vm-multicore-thread-sanitizer
           path: target/quality
 
       - name: Download native release archives
@@ -461,29 +319,18 @@ jobs:
       - name: Validate the complete release artifact set
         run: make release-artifact-set-check RELEASE_ARTIFACT_SET_ROOT=target/release-distribution
 
-      - name: Validate complete multicore release
-        run: make vm-multicore-release-check
+      - name: Validate local-publication release contracts
+        run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check
 
-      - name: Validate and seal complete AOT closeout
-        run: make tvm-aot-release-closeout-check TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN=1
-
-      - name: Upload AOT closeout evidence
+      - name: Upload hosted release evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: release-tvm-aot-closeout
+          name: release-hosted-validation-evidence
           path: |
-            target/quality/tvm-aot-release-closeout-report.json
-            target/quality/tvm-aot-release-clean-checkout.json
             target/quality/tvm-aot-platform-matrix-report.json
             target/quality/tvm-aot-thread-sanitizer-report.json
             target/quality/vm-multicore-thread-sanitizer-report.json
             target/quality/vm-multicore-memory-model-tsan.json
-            target/quality/vm-multicore-performance.json
-            target/quality/vm-multicore-mc9-evidence.json
-            target/quality/vm-multicore-release-closeout.json
-            target/quality/aot-compilation-benchmark.json
-            target/quality/http-aot-performance-comparison.json
-            target/quality/tvm-managed-list-profile.json
           if-no-files-found: error
           retention-days: 90
 

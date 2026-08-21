@@ -106,28 +106,13 @@ deadlock watchdog. CI fails when the pinned sanitizer target or its evidence
 is absent; unsupported local hosts may still run the portable memory-model
 gate.
 
-Release validation also requires a Linux x86-64 self-hosted runner carrying
-the `terlan-linux-x86_64-multicore-v1` label. That controlled runner executes
-the release-profile benchmark with hardware policy enforcement. A hosted
-watchdog monitors that job and cancels the run with a failing commit status if
-the controlled lane remains queued for more than ten minutes. This also works
-for organization-level runners, which a repository token cannot reliably list.
-The final release job runs:
+Release validation uses hosted runners only. It proves portable multicore
+correctness and retains the pinned multicore ThreadSanitizer report, but it
+does not pretend a shared hosted machine provides controlled performance
+measurements. The final hosted job validates the local-publication contracts;
+it does not produce MC-9 performance evidence.
 
-```sh
-make vm-multicore-mc9-evidence-check
-```
-
-The join accepts passing controlled performance and pinned ThreadSanitizer
-artifacts from local execution, one GitHub attempt, or independently rerun
-producers when they describe the same source revision. The report preserves
-each producer's provenance and classifies it as local, single-attempt, or
-distributed; provenance is descriptive rather than a technical pass
-condition. Record-only performance, unpinned sanitizer execution, and
-GitHub-hosted substitution for the controlled performance runner still fail
-closed.
-
-The complete technical evidence can be produced without Actions:
+Controlled MC-9 evidence belongs to the publication machine and is produced by:
 
 ```sh
 make vm-multicore-mc9-local-evidence-check
@@ -135,7 +120,9 @@ make vm-multicore-mc9-local-evidence-check
 
 This requires the Rust 1.96.0 `x86_64-unknown-linux-gnutsan` target locally,
 runs the controlled performance policy, records local source state, and seals
-the two revision-matched reports.
+the two revision-matched reports. `make publish` derives the version from the
+workspace manifest, invokes the check automatically, and refuses to publish
+unless the resulting MC-9 evidence is local, clean, current, and passing.
 
 The release-candidate entry point first measures the canonical artifact budget
 from a clean Cargo output tree, then bootstraps validators and runs the reduced
@@ -335,7 +322,7 @@ Publication is an explicit local promotion after the exact commit has passed
 the hosted `release-validation/run` status. From a clean `main` checkout:
 
 ```sh
-make publish VERSION=0.0.7
+make publish
 ```
 
 The preflight rejects a non-fast-forward `main`, mismatched local or remote
@@ -345,8 +332,10 @@ binding, and runs the offline 203-gate composition before pushing anything.
 
 The publisher downloads the exact six-platform distribution from the successful
 status-bearing run, verifies its workflow identity, archive checksums, and
-Sigstore-backed GitHub build-provenance attestations, then seals those immutable
-inputs into the local candidate evidence. It creates an annotated release tag
+Sigstore-backed GitHub build-provenance attestations. It also downloads the
+hosted platform and sanitizer evidence, runs controlled MC-9 performance and
+multicore ThreadSanitizer locally, records multicore and AOT closeout, and then
+seals those immutable inputs into the local candidate evidence. It creates an annotated release tag
 and uploads every archive, detached checksum, and the sealed candidate manifest
 to a draft release. It verifies that GitHub contains exactly
 the sealed asset names and only then makes the release public. Interrupted

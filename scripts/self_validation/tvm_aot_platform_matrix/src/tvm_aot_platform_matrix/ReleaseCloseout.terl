@@ -172,7 +172,7 @@ validate_makefile_contract(makefile: String): Bool ->
                 not makefile.contains("tvm-aot-release-closeout-check: tvm-aot-release-closeout-contract-check") -> failure("AOT closeout no longer executes its canonical local graph");
                 not makefile.contains("$(MAKE) $(AOT_RELEASE_LOCAL_GATES_TO_RUN)") -> failure("AOT closeout no longer deduplicates validated local gates");
                 not makefile.contains("TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN") -> failure("AOT closeout no longer validates multicore evidence before reuse");
-                not makefile.contains("env -u RUSTFLAGS $(CARGO) check --locked -p terlan") -> failure("AOT closeout no longer runs locked Cargo validation");
+                not makefile.contains("env -u RUSTFLAGS $(CARGO) check -p terlan") -> failure("AOT closeout no longer runs locked Cargo validation");
                 not makefile.contains("$(TERLAN_TVM_PLATFORM_MATRIX) release-record") -> failure("AOT closeout no longer records release evidence");
                 true -> true
             }

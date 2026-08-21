@@ -776,15 +776,15 @@ contract_files_valid(root: String): Bool ->
     makefile.contains("vm-multicore-mc9-evidence-contract-check:")
         and makefile.contains("vm-multicore-mc9-evidence-check:")
         and makefile.contains("vm-multicore-mc9-local-evidence-check:")
+        and makefile.contains("vm-multicore-publish-check: vm-multicore-release-contract-check")
         and makefile.contains("$(TERLAN_TVM_PLATFORM_MATRIX) multicore-mc9-seal")
-        and makefile.contains("$(MAKE) vm-multicore-mc9-evidence-check")
-        and release.contains("runs-on: [self-hosted, linux, x64, terlan-linux-x86_64-multicore-v1]")
-        and release.contains("TERLAN_VM_MULTICORE_DEDICATED_RUNNER: terlan-linux-x86_64-multicore-v1")
-        and release.contains("TERLAN_BENCH_BACKGROUND_LOAD: controlled")
-        and release.contains("multicore-runner-watchdog:")
-        and release.contains("cancelWorkflowRun")
-        and release.contains("make vm-multicore-release-check")
-        and release.contains("vm-multicore-mc9-evidence.json").
+        and makefile.contains("$(MAKE) vm-multicore-mc9-local-evidence-check")
+        and makefile.contains("$(MAKE) --no-print-directory vm-multicore-publish-check")
+        and release.contains("run: make vm-multicore-thread-sanitizer-check")
+        and release.contains("release-hosted-validation-evidence")
+        and not release.contains("self-hosted")
+        and not release.contains("multicore-runner-watchdog:")
+        and not release.contains("run: make vm-multicore-performance-check").
 
 mutation_rejected(performance: Json, sanitizer: Json, field: String, value: Json): Bool ->
     case json_clone(performance) {
