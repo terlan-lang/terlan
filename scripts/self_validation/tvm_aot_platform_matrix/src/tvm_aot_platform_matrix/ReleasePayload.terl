@@ -85,11 +85,11 @@ publishable_doc_rows(
 ): Option[List[Payload]] ->
     case rows {
         [] -> Some(reverse(output, []));
-        ["" | rest] -> publishable_doc_rows(root, rest, output);
-        ["path" | rest] -> publishable_doc_rows(root, rest, output);
-        [path | rest] ->
+        [row | rest] ->
+            let path = String.trim(row);
             let source = child(root, path);
             if {
+                path == "" or path == "path" -> publishable_doc_rows(root, rest, output);
                 not String.starts_with(path, "docs/") -> None;
                 String.contains(String.lowercase(path), "roadmap") -> None;
                 String.contains(String.lowercase(path), "archive") -> None;
@@ -334,4 +334,8 @@ pub self_test(): Bool ->
             {Some(unix), Some(windows)} -> unix == "core/A.terl" and windows == unix;
             _ -> false
         };
-    accepted("a.terl") and not accepted("a.pyc") and not accepted("a.vsix") and relative_paths.
+    accepted("a.terl")
+        and not accepted("a.pyc")
+        and not accepted("a.vsix")
+        and String.trim("docs/release/README.md\r") == "docs/release/README.md"
+        and relative_paths.
