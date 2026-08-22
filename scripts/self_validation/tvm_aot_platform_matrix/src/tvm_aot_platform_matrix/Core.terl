@@ -398,6 +398,8 @@ cargo_test(root: String, binary: String, test_name: String): Bool ->
     [
         "test",
         "--locked",
+        "--target-dir",
+        child(root, "target/self-validation/tvm-aot-platform-cargo-tests"),
         "--no-default-features",
         "--features",
         "native-codegen",
