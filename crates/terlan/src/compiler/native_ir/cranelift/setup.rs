@@ -1,10 +1,11 @@
 //! Shared Cranelift object and application inventory construction.
 
-use cranelift_codegen::ir::{FuncRef, Function};
+use cranelift_codegen::ir::{FuncRef, Function, GlobalValue, GlobalValueData};
 use cranelift_codegen::isa;
 use cranelift_codegen::settings::{self, Configurable};
-use cranelift_module::{default_libcall_names, FuncId, Module};
+use cranelift_module::{default_libcall_names, DataId, FuncId, Module};
 use cranelift_object::{ObjectBuilder, ObjectModule};
+use target_lexicon::{Architecture, OperatingSystem};
 
 use super::super::{NativeCodegenPolicy, NativeFunction, NativeModule};
 
@@ -25,8 +26,10 @@ pub(super) fn object_module_for_isa(
     isa: isa::Builder,
 ) -> Result<ObjectModule, String> {
     let mut flags = settings::builder();
+    let windows_aarch64 = matches!(isa.triple().architecture, Architecture::Aarch64(_))
+        && isa.triple().operating_system == OperatingSystem::Windows;
     flags
-        .set("is_pic", "true")
+        .set("is_pic", if windows_aarch64 { "false" } else { "true" })
         .map_err(|error| format!("error[cranelift.flags]: {error}"))?;
     flags
         .set("opt_level", policy.cranelift_opt_level())
@@ -57,6 +60,24 @@ pub(super) fn declare_image_func_in_func(
     let function_ref = module.declare_func_in_func(function_id, function);
     function.dfg.ext_funcs[function_ref].colocated = true;
     function_ref
+}
+
+/// Declares image-local data using relocations supported by every object format.
+///
+/// Cranelift's AArch64 COFF backend does not implement either its PIC GOT
+/// relocations or the page-relative relocation used for nearby data. Windows
+/// AArch64 objects therefore use the supported absolute 64-bit relocation for
+/// these immutable image tables. PIC targets ignore this distance metadata.
+pub(super) fn declare_image_data_in_func(
+    module: &mut ObjectModule,
+    data_id: DataId,
+    function: &mut Function,
+) -> GlobalValue {
+    let global_value = module.declare_data_in_func(data_id, function);
+    if let GlobalValueData::Symbol { colocated, .. } = &mut function.global_values[global_value] {
+        *colocated = false;
+    }
+    global_value
 }
 
 /// Flattens module metadata into the canonical application function order.

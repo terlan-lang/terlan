@@ -18,7 +18,7 @@ use crate::runtime::native_image::dispatch_lookup::{
 };
 
 use super::super::{status, DISPATCH_SYMBOL};
-use super::setup::declare_image_func_in_func;
+use super::setup::{declare_image_data_in_func, declare_image_func_in_func};
 use super::signature::native_signature;
 use super::transition::transition_flags;
 use super::RUNTIME_ARGUMENT_COUNT;
@@ -113,8 +113,8 @@ pub(super) fn define_dispatch(
     let mut context = Context::new();
     context.func =
         Function::with_name_signature(UserFuncName::user(0, dispatch_id.as_u32()), signature);
-    let index_global = module.declare_data_in_func(index_id, &mut context.func);
-    let records_global = module.declare_data_in_func(records_id, &mut context.func);
+    let index_global = declare_image_data_in_func(module, index_id, &mut context.func);
+    let records_global = declare_image_data_in_func(module, records_id, &mut context.func);
     let rare_dispatch_ref = rare_dispatch_id
         .map(|function_id| declare_image_func_in_func(module, function_id, &mut context.func));
     let mut frontend_context = FunctionBuilderContext::new();

@@ -1,12 +1,12 @@
-//! Cross-target regression coverage for image-local function relocations.
+//! Cross-target regression coverage for image-local function and data relocations.
 
-use cranelift_codegen::ir::{Function, InstBuilder, UserFuncName};
+use cranelift_codegen::ir::{types, Function, InstBuilder, UserFuncName};
 use cranelift_codegen::Context;
 use cranelift_frontend::{FunctionBuilder, FunctionBuilderContext};
-use cranelift_module::{Linkage, Module};
+use cranelift_module::{DataDescription, Linkage, Module};
 
 use super::super::NativeCodegenPolicy;
-use super::setup::{declare_image_func_in_func, object_module_for_isa};
+use super::setup::{declare_image_data_in_func, declare_image_func_in_func, object_module_for_isa};
 
 #[test]
 fn image_local_function_calls_emit_on_windows_aarch64_coff() {
@@ -25,6 +25,14 @@ fn image_local_function_calls_emit_on_windows_aarch64_coff() {
     let caller = module
         .declare_function("image_caller", Linkage::Export, &signature)
         .expect("declare image caller");
+    let data = module
+        .declare_data("image_data", Linkage::Local, false, false)
+        .expect("declare image data");
+    let mut data_description = DataDescription::new();
+    data_description.define(vec![1_u8].into_boxed_slice());
+    module
+        .define_data(data, &data_description)
+        .expect("define image data");
 
     define_return_only_function(&mut module, callee, signature.clone());
 
@@ -35,9 +43,12 @@ fn image_local_function_calls_emit_on_windows_aarch64_coff() {
         let mut builder = FunctionBuilder::new(&mut context.func, &mut frontend_context);
         let entry = builder.create_block();
         builder.switch_to_block(entry);
+        let data_global = declare_image_data_in_func(&mut module, data, builder.func);
+        let _data_pointer = builder.ins().global_value(types::I64, data_global);
         let callee_ref = declare_image_func_in_func(&mut module, callee, builder.func);
         builder.ins().call(callee_ref, &[]);
         builder.ins().return_(&[]);
+        builder.seal_all_blocks();
         builder.finalize();
     }
     module
@@ -65,6 +76,7 @@ fn define_return_only_function(
         let entry = builder.create_block();
         builder.switch_to_block(entry);
         builder.ins().return_(&[]);
+        builder.seal_all_blocks();
         builder.finalize();
     }
     module
