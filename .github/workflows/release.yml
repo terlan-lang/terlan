@@ -65,6 +65,11 @@ jobs:
     runs-on: ${{ matrix.runner }}
     needs: release-validation-identity
     timeout-minutes: 60
+    # LLVM's optimized Terlan codegen can exhaust rustc's default worker stack
+    # on the Intel macOS runner. Keep one explicit envelope for validation and
+    # the subsequent archive build so they exercise the same compiler setup.
+    env:
+      RUST_MIN_STACK: "33554432"
     strategy:
       fail-fast: false
       matrix:
