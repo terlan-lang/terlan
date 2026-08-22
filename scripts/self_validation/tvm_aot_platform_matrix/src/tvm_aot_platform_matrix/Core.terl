@@ -391,6 +391,9 @@ run_command(root: String, program: String, arguments: List[String]): Option[Outp
             }
     }.
 
+cargo_validation_target(root: String): String ->
+    child(root, "target/self-validation/tvm-aot-platform-cargo").
+
 cargo_test(root: String, binary: String, test_name: String): Bool ->
     case run_command(
     root,
@@ -399,7 +402,7 @@ cargo_test(root: String, binary: String, test_name: String): Bool ->
         "test",
         "--locked",
         "--target-dir",
-        child(root, "target/self-validation/tvm-aot-platform-cargo-tests"),
+        cargo_validation_target(root),
         "--no-default-features",
         "--features",
         "native-codegen",
@@ -419,7 +422,7 @@ cargo_test(root: String, binary: String, test_name: String): Bool ->
 run_package_consumer(root: String): Bool ->
     case run_command(
     root,
-    child(root, "target/debug/terlan-vm"),
+    child(cargo_validation_target(root), "debug/terlan-vm"),
     [
         "run",
         child(
@@ -592,6 +595,8 @@ pub run_target(): Bool ->
                     [
                         "build",
                         "--locked",
+                        "--target-dir",
+                        cargo_validation_target(root),
                         "--no-default-features",
                         "--features",
                         "native-codegen",
