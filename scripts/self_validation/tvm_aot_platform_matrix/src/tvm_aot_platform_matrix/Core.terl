@@ -685,12 +685,13 @@ runner_rows_valid(workflow: String, values: List[Target]): Bool ->
     }.
 
 pub workflow_text_valid(workflow: String): Bool ->
+    let normalized_workflow = String.replace(workflow, "\r\n", "\n");
     if {
-        not workflow.contains("  workflow_dispatch:\n") -> false;
-        occurrences(workflow, "          - target:") != 6 -> false;
-        not runner_rows_valid(workflow, targets()) -> false;
+        not normalized_workflow.contains("  workflow_dispatch:\n") -> false;
+        occurrences(normalized_workflow, "          - target:") != 6 -> false;
+        not runner_rows_valid(normalized_workflow, targets()) -> false;
         true -> fragments_present(
-            workflow,
+            normalized_workflow,
             [
                 "make tvm-aot-platform-target-check",
                 "TERLAN_MATRIX_TARGET: ${{ matrix.target }}",
@@ -707,8 +708,9 @@ pub workflow_text_valid(workflow: String): Bool ->
     }.
 
 ci_trigger_valid(workflow: String): Bool ->
-    workflow.contains("  pull_request:\n")
-        and workflow.contains("    branches:\n      - main\n      - \"agent/aot-*\"\n").
+    let normalized_workflow = String.replace(workflow, "\r\n", "\n");
+    normalized_workflow.contains("  pull_request:\n")
+        and normalized_workflow.contains("    branches:\n      - main\n      - \"agent/aot-*\"\n").
 
 evidence_present(release: String, files: List[String]): Bool ->
     case files {

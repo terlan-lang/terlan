@@ -20,6 +20,9 @@ mod managed_stack_map_test;
 #[path = "managed_type_test.rs"]
 mod managed_type_test;
 mod setup;
+#[cfg(all(test, target_arch = "aarch64"))]
+#[path = "cranelift/setup_test.rs"]
+mod setup_test;
 mod signature;
 mod tail_call;
 #[cfg(test)]

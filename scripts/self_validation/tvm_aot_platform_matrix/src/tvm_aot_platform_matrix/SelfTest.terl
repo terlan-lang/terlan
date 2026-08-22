@@ -131,12 +131,14 @@ provenance_self_test(): Bool ->
     }.
 
 self_test_assertions(ci: String, valid_matrix: Json, incomplete: List[Report]): Bool ->
+    let crlf_ci = String.replace(ci, "\n", "\r\n");
     let missing_dispatch = String.replace(ci, "  workflow_dispatch:\n", "");
     let wrong_runner = String.replace(ci, "runner: windows-11-arm", "runner: windows-2025");
     let missing_row = String.replace(ci, "          - target: linux-x86_64\n", "");
     let missing_install = String.replace(ci, "          $installedBin = Join-Path $installed \"bin\"\n", "");
     if {
         not workflow_contract() -> false;
+        not workflow_text_valid(crlf_ci) -> failure("workflow checker rejected Windows line endings");
         workflow_text_valid(missing_dispatch)
             or workflow_text_valid(wrong_runner)
             or workflow_text_valid(missing_row)

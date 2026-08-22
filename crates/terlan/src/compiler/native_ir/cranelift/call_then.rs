@@ -2,11 +2,11 @@
 
 use cranelift_codegen::ir::{types, Block, BlockArg, InstBuilder, Value};
 use cranelift_frontend::FunctionBuilder;
-use cranelift_module::Module;
 use cranelift_object::ObjectModule;
 
 use super::super::NativeExpr;
 use super::function::{component_lane_widths, pack_component_values};
+use super::setup::declare_image_func_in_func;
 use super::{NativeFunctionCatalog, NativeTailFrame, NativeTransitionFrame};
 
 /// Synchronous result and continuation expression of one suspension-aware call.
@@ -144,7 +144,7 @@ pub(super) fn return_from_synchronous_completion(
         builder.ins().jump(tail.loop_header, &arguments);
         return Ok(());
     }
-    let completion_ref = module.declare_func_in_func(completion_id, builder.func);
+    let completion_ref = declare_image_func_in_func(module, completion_id, builder.func);
     let completion_call = builder.ins().call(completion_ref, &completion_args);
     let completion_results = builder.inst_results(completion_call).to_vec();
     builder.ins().return_(&completion_results);
