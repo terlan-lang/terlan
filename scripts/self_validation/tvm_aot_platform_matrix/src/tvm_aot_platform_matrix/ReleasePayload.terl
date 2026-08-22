@@ -122,18 +122,20 @@ fixed_payloads(root: String): List[Payload] ->
     ].
 
 relative_path(root: String, path: String): Option[String] ->
+    let normalized_root = String.replace(root, "\\", "/");
+    let normalized_path = String.replace(path, "\\", "/");
     let prefix =
         if {
-            String.ends_with(root, "/") -> root;
-            true -> String.append(root, "/")
+            String.ends_with(normalized_root, "/") -> normalized_root;
+            true -> String.append(normalized_root, "/")
         };
     if {
-        not String.starts_with(path, prefix) -> None;
+        not String.starts_with(normalized_path, prefix) -> None;
         true -> Some(
             String.utf8_slice(
-                path,
+                normalized_path,
                 String.length(prefix),
-                String.length(path) - String.length(prefix),
+                String.length(normalized_path) - String.length(prefix),
             ),
         )
     }.
@@ -324,4 +326,12 @@ pub write_install_metadata(
  * Contract probe for payload path filtering.
  */
 pub self_test(): Bool ->
-    accepted("a.terl") and not accepted("a.pyc") and not accepted("a.vsix").
+    let relative_paths =
+        case {
+    relative_path("/repo/std", "/repo/std/core/A.terl"),
+    relative_path("C:/repo/std", "C:\\repo\\std\\core\\A.terl"),
+} {
+            {Some(unix), Some(windows)} -> unix == "core/A.terl" and windows == unix;
+            _ -> false
+        };
+    accepted("a.terl") and not accepted("a.pyc") and not accepted("a.vsix") and relative_paths.
