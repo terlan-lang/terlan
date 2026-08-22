@@ -1,9 +1,13 @@
 //! Runtime-only support surface for the compiler-free serve binary.
 
 use std::collections::hash_map::DefaultHasher;
+use std::fmt::Write as _;
+use std::fs;
 use std::hash::{Hash, Hasher};
+use std::io::Read;
 use std::path::Path;
-use std::process::Command;
+
+use sha2::{Digest, Sha256};
 
 #[path = "support/boundary_error.rs"]
 pub mod boundary_error;
@@ -17,59 +21,38 @@ pub(crate) fn fingerprint(bytes: &[u8]) -> u64 {
     hasher.finish()
 }
 
-fn is_valid_sha256_hex(value: &str) -> bool {
-    value.len() == 64
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-}
-
 /// Computes the checksum used to admit persisted AOT images.
 pub(crate) fn sha256sum_file(path: &Path) -> Result<String, BoundaryError> {
-    let output = Command::new("sha256sum")
-        .arg(path)
-        .output()
-        .map_err(|error| {
-            BoundaryError::sourced(
-                ErrorDomain::CommandExecution,
-                "command.sha256.spawn",
-                "sha256sum_file",
-                format!("cannot run sha256sum for `{}`: {error}", path.display()),
-                error,
-            )
-        })?;
-    if !output.status.success() {
-        return Err(BoundaryError::message(
-            ErrorDomain::CommandExecution,
-            "sha256sum_file",
-            format!(
-                "error[command.sha256.exit]: sha256sum failed for `{}`",
-                path.display()
-            ),
-        ));
-    }
-    let stdout = String::from_utf8(output.stdout).map_err(|error| {
+    let mut file = fs::File::open(path).map_err(|error| {
         BoundaryError::sourced(
             ErrorDomain::CommandExecution,
-            "command.sha256.utf8",
+            "command.sha256.open",
             "sha256sum_file",
-            format!("sha256sum output was not UTF-8: {error}"),
+            format!("cannot open `{}` for SHA-256: {error}", path.display()),
             error,
         )
     })?;
-    let hash = stdout.split_whitespace().next().ok_or_else(|| {
-        BoundaryError::message(
-            ErrorDomain::CommandExecution,
-            "sha256sum_file",
-            "error[command.sha256.empty]: sha256sum output was empty",
-        )
-    })?;
-    if !is_valid_sha256_hex(hash) {
-        return Err(BoundaryError::message(
-            ErrorDomain::CommandExecution,
-            "sha256sum_file",
-            format!("error[command.sha256.format]: sha256sum output was not SHA-256 hex: `{hash}`"),
-        ));
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let count = file.read(&mut buffer).map_err(|error| {
+            BoundaryError::sourced(
+                ErrorDomain::CommandExecution,
+                "command.sha256.read",
+                "sha256sum_file",
+                format!("cannot read `{}` for SHA-256: {error}", path.display()),
+                error,
+            )
+        })?;
+        if count == 0 {
+            break;
+        }
+        hasher.update(&buffer[..count]);
     }
-    Ok(hash.to_string())
+    let digest = hasher.finalize();
+    let mut hash = String::with_capacity(64);
+    for byte in digest {
+        write!(&mut hash, "{byte:02x}").expect("writing to a String cannot fail");
+    }
+    Ok(hash)
 }
