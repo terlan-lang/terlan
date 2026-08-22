@@ -371,7 +371,7 @@ configured(root: String, program: String, arguments: List[String]): std.system.P
                 Process.with_arguments(Process.command(program), arguments),
                 root,
             ),
-            300000,
+            900000,
         ),
         8388608,
     ).

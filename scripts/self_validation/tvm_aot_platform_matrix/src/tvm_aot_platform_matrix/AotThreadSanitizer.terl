@@ -151,6 +151,31 @@ pub validate_report(value: Json, require_ci: Bool): Bool ->
     true -> true
 }.
 
+attach_provenance(mut report: Json, evidence: Json): Option[Json] ->
+    case json_string(evidence, "execution_environment") {
+        Some("local") -> Some(report.put("execution_environment", Json.string("local")));
+        Some("github-actions") ->
+            let {
+                Some(repository) <- json_string(evidence, "repository");
+                Some(workflow_ref) <- json_string(evidence, "workflow_ref");
+                Some(run_id) <- json_int(evidence, "run_id");
+                Some(run_attempt) <- json_int(evidence, "run_attempt");
+                Some(commit) <- json_string(evidence, "commit_sha")
+            } else {
+                _ -> None
+            };
+            Some(
+                report
+                    .put("execution_environment", Json.string("github-actions"))
+                    .put("repository", Json.string(repository))
+                    .put("workflow_ref", Json.string(workflow_ref))
+                    .put("run_id", Json.int(run_id))
+                    .put("run_attempt", Json.int(run_attempt))
+                    .put("commit_sha", Json.string(commit)),
+            );
+        _ -> None
+    }.
+
 base_report(revision: String, rustc: String): Json ->
     Json.object()
         .put("schema", Json.string(schema()))
@@ -215,17 +240,23 @@ mutations_rejected(valid: Json): Bool ->
  */
 pub self_test(): Bool ->
     let revision = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-    let valid =
-        base_report(revision, "rustc 1.96.0\nbinary: rustc")
-            .put("execution_environment", Json.string("github-actions"))
-            .put("repository", Json.string(official_repository()))
-            .put(
-                "workflow_ref",
-                Json.string("terlan-lang/terlan/.github/workflows/ci.yml@refs/heads/main"),
-            )
-            .put("run_id", Json.int(7))
-            .put("run_attempt", Json.int(1))
-            .put("commit_sha", Json.string(revision));
+    let {
+        Some(execution) <-
+            provenance(
+                revision,
+                provenance_input(
+                    true,
+                    official_repository(),
+                    "terlan-lang/terlan/.github/workflows/ci.yml@refs/heads/main",
+                    "7",
+                    "1",
+                    revision,
+                ),
+            );
+        Some(valid) <- attach_provenance(base_report(revision, "rustc 1.96.0\nbinary: rustc"), execution)
+    } else {
+        _ -> failure("cannot construct valid provenance fixture")
+    };
     if {
         not validate_report(valid, true) -> failure("valid report was rejected");
         not mutations_rejected(valid) -> failure("an invalid report mutation was accepted");
@@ -248,16 +279,17 @@ write_report(root: String, value: Json): Bool ->
     true.
 
 finish_report(root: String, revision: String, rustc: String): Bool ->
-    case provenance(revision, current_provenance_input()) {
-        None -> false;
-        Some(execution) ->
-            let value = base_report(revision, rustc).extend(execution);
-            if {
-                not validate_report(value, local_ci_required()) -> failure("generated report is invalid");
-                not write_report(root, value) -> false;
-                true -> let _printed = println(String.append("TVM AOT ThreadSanitizer passed: ", target()));
-                true
-            }
+    let {
+        Some(execution) <- provenance(revision, current_provenance_input());
+        Some(value) <- attach_provenance(base_report(revision, rustc), execution)
+    } else {
+        _ -> failure("cannot attach ThreadSanitizer provenance")
+    };
+    if {
+        not validate_report(value, local_ci_required()) -> failure("generated report is invalid");
+        not write_report(root, value) -> false;
+        true -> let _printed = println(String.append("TVM AOT ThreadSanitizer passed: ", target()));
+        true
     }.
 
 current_provenance_input(): tvm_aot_platform_matrix.Core.ProvenanceInput ->

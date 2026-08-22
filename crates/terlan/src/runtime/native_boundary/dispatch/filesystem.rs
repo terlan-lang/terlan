@@ -457,9 +457,9 @@ fn set_host_file_executable(
 
 #[cfg(windows)]
 fn host_file_is_executable(path: &str, _metadata: &std::fs::Metadata) -> bool {
-    Path::new(path)
+    std::path::Path::new(path)
         .extension()
-        .and_then(OsStr::to_str)
+        .and_then(std::ffi::OsStr::to_str)
         .is_some_and(|extension| {
             matches!(
                 extension.to_ascii_lowercase().as_str(),
