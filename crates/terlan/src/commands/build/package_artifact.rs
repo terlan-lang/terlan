@@ -284,19 +284,27 @@ pub(super) fn active_artifact_target(explicit: Option<&str>) -> Result<String, S
         validate_target(target)?;
         return Ok(target.to_string());
     }
-    let target = match (env::consts::ARCH, env::consts::OS) {
-        ("x86_64", "linux") => "x86_64-unknown-linux-gnu",
-        ("aarch64", "linux") => "aarch64-unknown-linux-gnu",
-        ("aarch64", "macos") => "aarch64-apple-darwin",
-        ("x86_64", "macos") => "x86_64-apple-darwin",
-        ("x86_64", "windows") => "x86_64-pc-windows-msvc",
-        (arch, os) => {
-            return Err(format!(
-                "error[package_artifact_target_unknown]: no default package artifact target for {arch}-{os}; pass --target <triple>"
-            ));
-        }
-    };
+    let arch = env::consts::ARCH;
+    let os = env::consts::OS;
+    let target = default_artifact_target(arch, os).ok_or_else(|| {
+        format!(
+            "error[package_artifact_target_unknown]: no default package artifact target for {arch}-{os}; pass --target <triple>"
+        )
+    })?;
     Ok(target.to_string())
+}
+
+/// Maps every release host identity to its canonical package artifact triple.
+fn default_artifact_target(arch: &str, os: &str) -> Option<&'static str> {
+    match (arch, os) {
+        ("x86_64", "linux") => Some("x86_64-unknown-linux-gnu"),
+        ("aarch64", "linux") => Some("aarch64-unknown-linux-gnu"),
+        ("x86_64", "macos") => Some("x86_64-apple-darwin"),
+        ("aarch64", "macos") => Some("aarch64-apple-darwin"),
+        ("x86_64", "windows") => Some("x86_64-pc-windows-msvc"),
+        ("aarch64", "windows") => Some("aarch64-pc-windows-msvc"),
+        _ => None,
+    }
 }
 
 /// Validates one persisted artifact lock entry before filesystem use.

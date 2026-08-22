@@ -83,6 +83,31 @@ fn active_target_accepts_supported_explicit_triples() {
     assert!(active_artifact_target(Some("../target")).is_err());
 }
 
+/// Keeps package artifact defaults aligned with the complete release matrix.
+#[test]
+fn default_artifact_targets_cover_every_release_host() {
+    assert_eq!(
+        [
+            ("x86_64", "linux"),
+            ("aarch64", "linux"),
+            ("x86_64", "macos"),
+            ("aarch64", "macos"),
+            ("x86_64", "windows"),
+            ("aarch64", "windows"),
+        ]
+        .map(|(arch, os)| default_artifact_target(arch, os)),
+        [
+            Some("x86_64-unknown-linux-gnu"),
+            Some("aarch64-unknown-linux-gnu"),
+            Some("x86_64-apple-darwin"),
+            Some("aarch64-apple-darwin"),
+            Some("x86_64-pc-windows-msvc"),
+            Some("aarch64-pc-windows-msvc"),
+        ]
+    );
+    assert_eq!(default_artifact_target("wasm32", "unknown"), None);
+}
+
 /// Creates one minimal valid package artifact fixture.
 pub(super) fn write_test_artifact(root: &Path, target: &str) -> PathBuf {
     write_named_test_artifact(root, target, "vision", "1.0.0")
