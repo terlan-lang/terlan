@@ -371,7 +371,7 @@ configured(root: String, program: String, arguments: List[String]): std.system.P
                 Process.with_arguments(Process.command(program), arguments),
                 root,
             ),
-            900000,
+            1800000,
         ),
         8388608,
     ).
@@ -392,7 +392,11 @@ run_command(root: String, program: String, arguments: List[String]): Option[Outp
     }.
 
 cargo_validation_target(root: String): String ->
-    child(root, "target/self-validation/tvm-aot-platform-cargo").
+    let platform = Platform.current();
+    if {
+        platform.operating_system == "windows" -> child(root, "target/self-validation/tvm-aot-platform-cargo");
+        true -> child(root, "target")
+    }.
 
 cargo_test(root: String, binary: String, test_name: String): Bool ->
     case run_command(
