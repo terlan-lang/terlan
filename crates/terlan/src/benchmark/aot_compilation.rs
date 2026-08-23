@@ -648,8 +648,8 @@ fn apply_warm_mutation(sample: &SampleWorkspace, mutation: WarmMutation) -> Resu
         WarmMutation::Dependency => {
             replace_text(
                 &sample.terlan_input.join("src/aotbench/Math.terl"),
-                "    7.",
-                "    8.",
+                "-> 7.",
+                "-> 8.",
             )?;
             replace_text(
                 &sample.go_root.join("internal/mathvalue/value.go"),

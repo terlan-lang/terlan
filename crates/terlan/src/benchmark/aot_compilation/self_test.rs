@@ -146,10 +146,10 @@ fn fixture_contract() -> Result<(), String> {
     let result = (|| {
         copy_tree(&fixtures, &copy)?;
         let dependency = copy.join("terlan/multi/src/aotbench/Math.terl");
-        replace_text(&dependency, "    7.", "    8.")?;
+        replace_text(&dependency, "-> 7.", "-> 8.")?;
         let edited = fs::read_to_string(&dependency)
             .map_err(|error| format!("failed to read edited fixture: {error}"))?;
-        if !edited.contains("    8.") {
+        if !edited.contains("-> 8.") {
             return Err("compilation fixture edit did not persist".to_string());
         }
         Ok(())
