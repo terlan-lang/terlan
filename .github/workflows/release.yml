@@ -141,8 +141,14 @@ jobs:
       - name: Stress the portable multicore memory model
         run: cargo test --locked --no-default-features --features native-codegen -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test -- --nocapture
 
-      - name: Build and smoke the native release archive
-        run: make cli-release-artifact-current release-artifact-installer-smoke
+      # The target validator has already built, packaged, smoked, and installer-
+      # smoked this exact archive. Rebuilding it here duplicated the release
+      # cycle and could exhaust slower hosted runners after all checks passed.
+      - name: Require validated native release archive
+        shell: bash
+        run: |
+          test -s "dist/${{ matrix.archive }}"
+          test -s "dist/${{ matrix.archive }}.sha256"
 
       - name: Upload native release archive
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

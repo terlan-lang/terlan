@@ -516,15 +516,32 @@ fn persist_generation_batch(
             active_path.display()
         )
     })?;
-    fs::File::open(runtime_dir)
+    sync_generation_directory(runtime_dir)?;
+    Ok(identity)
+}
+
+/// Flushes the directory entry that publishes an active generation where the
+/// host exposes directory fsync through ordinary file handles.
+#[cfg(all(any(test, not(feature = "serve-runtime-bin")), not(windows)))]
+fn sync_generation_directory(path: &Path) -> ServeResult<()> {
+    fs::File::open(path)
         .and_then(|directory| directory.sync_all())
         .map_err(|error| {
             format!(
                 "error[serve.aot.runtime_generation]: sync `{}`: {error}",
-                runtime_dir.display()
+                path.display()
             )
-        })?;
-    Ok(identity)
+            .into()
+        })
+}
+
+/// Windows does not permit `File::open` on directories without a specialized
+/// directory handle, and `FlushFileBuffers` does not provide the Unix fsync
+/// contract for that handle. The generation files are already individually
+/// synced before their atomic rename, so there is no unsupported second flush.
+#[cfg(all(any(test, not(feature = "serve-runtime-bin")), windows))]
+fn sync_generation_directory(_path: &Path) -> ServeResult<()> {
+    Ok(())
 }
 
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
