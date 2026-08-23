@@ -911,39 +911,41 @@ cleanup(workspace: String, result: Bool): Bool ->
 pub windows_installer_retains_the_required_static_contract(): Bool ->
     case read_text("install.ps1") {
         Ok(source) ->
-            contains_all(
-    source,
-    [
-        "Version = \"v0.0.7\"",
-        "terlc-windows-$terlanArch.zip",
-        "Invoke-WebRequest",
-        "Invoke-TerlanDownload",
-        "TimeoutSec 600",
-        "SecurityProtocolType]::Tls12",
-        "release URL must use https:// or file://",
-        "invalid SHA-256 file",
-        "Expand-Archive",
-        "TERLAN_INSTALL_DRY_RUN",
-        "Get-TerlanSha256",
-        "System.Security.Cryptography.SHA256",
-        "System.IO.Compression.ZipFile",
-        "release artifact contains a symbolic link",
-        "release artifact contains a duplicate path",
-        "release artifact contains a special filesystem entry",
-        "SHA256SUMS contains an unsafe path",
-        "SHA256SUMS contains a duplicate path",
-        "internal checksum verification failed",
-        "must not be a filesystem root",
-        "\"Arm64\"",
-        "shareSource",
-        "terlc.exe",
-        "terlan-vm.exe",
-        "terlan-native-worker.exe",
-        "terlan-lsp.exe",
-        "--version",
-    ],
-)
-                and not String.contains(source, "Get-FileHash");
+            if {
+                String.contains(source, "Get-FileHash") -> false;
+                true -> contains_all(
+                    source,
+                    [
+                        "Version = \"v0.0.7\"",
+                        "terlc-windows-$terlanArch.zip",
+                        "Invoke-WebRequest",
+                        "Invoke-TerlanDownload",
+                        "TimeoutSec 600",
+                        "SecurityProtocolType]::Tls12",
+                        "release URL must use https:// or file://",
+                        "invalid SHA-256 file",
+                        "Expand-Archive",
+                        "TERLAN_INSTALL_DRY_RUN",
+                        "Get-TerlanSha256",
+                        "System.Security.Cryptography.SHA256",
+                        "System.IO.Compression.ZipFile",
+                        "release artifact contains a symbolic link",
+                        "release artifact contains a duplicate path",
+                        "release artifact contains a special filesystem entry",
+                        "SHA256SUMS contains an unsafe path",
+                        "SHA256SUMS contains a duplicate path",
+                        "internal checksum verification failed",
+                        "must not be a filesystem root",
+                        "\"Arm64\"",
+                        "shareSource",
+                        "terlc.exe",
+                        "terlan-vm.exe",
+                        "terlan-native-worker.exe",
+                        "terlan-lsp.exe",
+                        "--version",
+                    ],
+                )
+            };
         Err(_reason) -> false
     }.
 
