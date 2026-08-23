@@ -204,6 +204,8 @@ wasm-encoder = "0.252.0"
 wasmparser = "0.252.0"
 
 [dev-dependencies]
+cxx.workspace = true
+cxx-build.workspace = true
 ratatui = { version = "0.30.2", default-features = false, features = ["std"] }
 tar.workspace = true
 tokio = { workspace = true, features = ["io-util", "macros", "time"] }
