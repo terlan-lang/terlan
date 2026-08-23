@@ -35,6 +35,27 @@ function Invoke-TerlanDownload {
     }
 }
 
+function Get-TerlanSha256 {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $hasher = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $digest = $hasher.ComputeHash($stream)
+            return ([System.BitConverter]::ToString($digest)).Replace("-", "").ToLowerInvariant()
+        }
+        finally {
+            $hasher.Dispose()
+        }
+    }
+    finally {
+        $stream.Dispose()
+    }
+}
+
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = "v0.0.7"
 }
@@ -105,7 +126,7 @@ try {
         throw "invalid SHA-256 file for $artifact"
     }
     $expectedChecksum = $Matches[1].ToLowerInvariant()
-    $actualChecksum = (Get-FileHash -Path $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+    $actualChecksum = Get-TerlanSha256 -Path $archive
     if ($actualChecksum -ne $expectedChecksum) {
         throw "checksum verification failed for $artifact"
     }
@@ -180,7 +201,7 @@ try {
         if (-not $checksumPaths.Add($relative)) {
             throw "SHA256SUMS contains a duplicate path: $relative"
         }
-        $internalActual = (Get-FileHash -Path $candidate -Algorithm SHA256).Hash.ToLowerInvariant()
+        $internalActual = Get-TerlanSha256 -Path $candidate
         if ($internalActual -ne $Matches[1].ToLowerInvariant()) {
             throw "internal checksum verification failed for $relative"
         }
