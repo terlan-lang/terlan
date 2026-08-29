@@ -65,6 +65,11 @@ candidate before merge:
 - `Makefile`
 - workflow and shared action configuration
 
+On a pull request whose head is `release-validation/**`, Compiler CI runs only
+the general compiler/release-candidate job. The release workflow is the sole
+owner of that commit's dependency audit, native AOT matrix, and sanitizer
+families; launching those jobs from both workflows is a validation error.
+
 The direct-AOT portable matrix contract covers Linux, macOS, and Windows on
 x86-64 and AArch64. Each available native runner may compile, package, install,
 execute, reload, crash, and reject incompatible images, while local closeout
