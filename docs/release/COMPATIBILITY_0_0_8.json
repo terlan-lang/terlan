@@ -1,0 +1,47 @@
+{
+  "schema": "terlan.release-compatibility-baseline.v1",
+  "baseline": "0.0.7",
+  "candidate": "0.0.8",
+  "changes": [
+    {
+      "surface": "release.required-checks",
+      "classification": "compatible-tightening",
+      "previous": "the release status could pass while unrelated commit checks remained red",
+      "current": "the release candidate requires every applicable commit check to pass",
+      "guidance": "Treat a green aggregate release status as necessary but not sufficient evidence.",
+      "evidence": ".github/workflows/ci.yml"
+    },
+    {
+      "surface": "security.codeql-languages",
+      "classification": "compatible-tightening",
+      "previous": "automatic CodeQL setup attempted to analyze removed Python sources",
+      "current": "repository-owned CodeQL analyzes the GitHub Actions and Rust source surfaces",
+      "guidance": "Add a language to the explicit matrix only when maintained source for it enters the repository.",
+      "evidence": ".github/workflows/codeql.yml"
+    },
+    {
+      "surface": "adapter.foundations-telemetry",
+      "classification": "breaking",
+      "previous": "the optional Foundations adapter exposed tracing and OTLP features backed by OpenTelemetry 0.31",
+      "current": "the adapter exposes safe logging and metrics while tracing and OTLP remain unavailable",
+      "guidance": "Keep tracing and OTLP disabled until Foundations supports a patched OpenTelemetry SDK.",
+      "evidence": "crates/terlan-foundations-adapter/Cargo.toml"
+    },
+    {
+      "surface": "ci.linux-capability-sandbox",
+      "classification": "compatible-tightening",
+      "previous": "the direct compiler CI omitted the bubblewrap dependency required by Linux sandbox tests",
+      "current": "Linux validation provisions bubblewrap before running the release candidate suite",
+      "guidance": "Provision the declared sandbox implementation before exercising capability-worker tests.",
+      "evidence": ".github/workflows/ci.yml"
+    },
+    {
+      "surface": "planning.feature-roadmap",
+      "classification": "private",
+      "previous": "feature work was planned under the 0.0.8 release number",
+      "current": "0.0.8 is a release-correction line and feature work begins with 0.0.9",
+      "guidance": "Use ROADMAP_0_0_9.md for post-correction feature work.",
+      "evidence": "docs/roadmap/ROADMAP_0_0_9.md"
+    }
+  ]
+}

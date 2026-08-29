@@ -640,7 +640,7 @@ normal developer builds.
   - Require error sources and structured context at I/O, parsing, process,
     protocol, and code-generation boundaries.
   - Ban new `Result<_, String>` on public and cross-subsystem APIs. Remaining
-    internal string errors need a measured inventory and 0.0.8 owner.
+    internal string errors need a measured inventory and 0.0.9 owner.
   - Replace repeated long argument lists with responsibility-specific context,
     options, or state types, reusing an existing canonical type whenever the
     concept already exists. This work must not create feature-local `Context`,
@@ -713,7 +713,7 @@ normal developer builds.
   - Rerun the CQ-0 compile-timing matrix using the same toolchain, target,
     features, machine policy, and sample procedure.
   - Publish baseline-to-closeout deltas, remaining accepted exceptions, and
-    their owners. No exception may expire later than 0.0.8 without an explicit
+    their owners. No exception may expire later than 0.0.9 without an explicit
     main-roadmap decision.
   - Exercise one representative change in parser/type checking, native
     lowering, runtime, LSP, and quality tooling to prove that the new boundaries
@@ -739,7 +739,7 @@ normal developer builds.
     covering 3,006 sites. The support-error owner reached its scheduled target
     at 8 rows/25 sites and was ratcheted to a further 6/20 target. Seven
     domain-owner budgets prevent growth and require lower targets through their
-    0.0.8 expiry.
+    0.0.9 expiry.
   - Completion evidence: Direct-AOT integration coverage retains twelve
     isolated integration-test targets and a checked no-growth ceiling. The
     line-table-only test profile reduces debug metadata without conflating
@@ -766,7 +766,7 @@ normal developer builds.
     already at 900 implementation or 1,800 test lines at exact no-growth
     ceilings after the declaration formatter and native-image descriptor were
     split below the warning band. The typed-error budget now includes strictly
-    lower 0.0.8 reduction targets rather than only no-growth maxima.
+    lower 0.0.9 reduction targets rather than only no-growth maxima.
   - Post-closeout hardening: recurring compilation evidence uses at least
     three samples and per-scenario medians with affinity, governor, load, and
     dispersion provenance. Dependency evidence now includes resolved version
@@ -781,14 +781,14 @@ normal developer builds.
     artifacts are preserved.
   - Post-closeout hardening: dependency-impact schema 4 separates production
     coupling from test-only coupling, classifies all 30 resolved duplicate
-    dependency families with owners and expiry, and exposes executable 0.0.8
+    dependency families with owners and expiry, and exposes executable 0.0.9
     targets for dependency count, duplicate families, and production blast
     radius. Direct canonical runtime-ABI imports reduced the maximum production
     blast radius from 11 to 7 and `support` from 10 to 6 dependents.
   - Post-closeout hardening: HIR symbol construction, managed-operation codec
     decoding, and database configuration resolution moved out of three
     997–998-line owners. The warning-band inventory fell from 82 to 79 files,
-    and an executable 0.0.8 milestone gate requires 65 or fewer.
+    and an executable 0.0.9 milestone gate requires 65 or fewer.
   - Post-closeout hardening: database configuration now has a typed subsystem
     error with stable rendering, reducing internal string-error sites from
     3,006 to 3,001 and ratcheting the command-owner ceiling to 901 sites.

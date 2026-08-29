@@ -1,11 +1,11 @@
-# Terlan 0.0.8 Roadmap
+# Terlan 0.0.9 Roadmap
 
 Most of this roadmap begins after the 0.0.7 candidate is sealed. The validation
 throughput foundation in V8-1 was pulled forward into 0.0.7 Slice 70 because a
-monolithic same-run closeout proved operationally unreasonable; 0.0.8 retains
+monolithic same-run closeout proved operationally unreasonable; 0.0.9 retains
 the broader tiering, cleanup, measurement, and ratcheting follow-through. Work
 is selected in document order. Accelerator-specific work remains owned by
-`ROADMAP_0_0_8_CUDA.md`; this file owns cross-cutting compiler, VM, tooling,
+`ROADMAP_0_0_9_CUDA.md`; this file owns cross-cutting compiler, VM, tooling,
 and release work.
 
 ## Validation Throughput And Evidence Reuse

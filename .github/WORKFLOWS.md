@@ -80,6 +80,14 @@ Final AOT roadmap retirement runs
 complete. Ordinary compiler CI keeps running the implementation gates while an
 AOT slice is deliberately open.
 
+## CodeQL
+
+`codeql.yml` owns security analysis for maintained repository languages. Its
+explicit matrix contains GitHub Actions and Rust; removed language surfaces are
+not retained as empty jobs because CodeQL treats an empty extraction as a
+configuration failure. Default setup is disabled so one commit cannot receive
+duplicate automatic and repository-owned analyses.
+
 A separate Linux x86-64 job installs the pinned
 `nightly-2026-07-16` toolchain with `rust-src` and runs:
 
@@ -309,7 +317,7 @@ set without deleting anything with `bash scripts/clean_build_outputs.sh --dry-ru
 Review the staged local distribution plan without contacting GitHub with:
 
 ```sh
-make release-promotion-dry-run VERSION=0.0.7
+make release-promotion-dry-run VERSION=0.0.8
 ```
 
 The dry run writes `target/quality/release-promotion-pipeline-report.json` with

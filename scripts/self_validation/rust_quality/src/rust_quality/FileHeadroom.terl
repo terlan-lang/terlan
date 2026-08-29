@@ -42,7 +42,7 @@ struct RowsLoad {
 header(): String -> "path\tcategory\trecorded_lines\theadroom_limit\thard_limit\towner\tmilestone".
 
 @pure
-milestone(): String -> "0.0.8".
+milestone(): String -> "0.0.9".
 
 @pure
 target_rows(): Int -> 65.

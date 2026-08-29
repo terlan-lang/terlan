@@ -89,13 +89,13 @@ Internal `Result<_, String>` migration is governed by
 `RUST_STRING_ERROR_BUDGETS.tsv`. Budgets are grouped by compiler, runtime,
 native-boundary, command, benchmark, quality, and support ownership. The exact
 path inventory may shrink, but neither rows nor sites may exceed an owner's
-0.0.8 ceiling. Every nonzero ceiling also carries a strictly lower row or site
-target for 0.0.8, so an unchanged inventory is not considered completion.
+0.0.9 ceiling. Every nonzero ceiling also carries a strictly lower row or site
+target for 0.0.9, so an unchanged inventory is not considered completion.
 
 The hard Rust file limits remain 999 physical lines for implementation and
 2,000 for tests. `make rust-file-headroom-check` adds an earlier warning-band
 ratchet at 900 and 1,800 lines. Every file already inside that band has an
-exact no-growth ceiling, structural owner, and 0.0.8 split milestone in
+exact no-growth ceiling, structural owner, and 0.0.9 split milestone in
 `RUST_FILE_HEADROOM.tsv`; a newly near-limit file fails instead of silently
 settling just below the hard gate.
 

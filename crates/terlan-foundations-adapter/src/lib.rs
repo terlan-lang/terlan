@@ -6,8 +6,6 @@
 
 use foundations::telemetry::log;
 use foundations::telemetry::metrics::{metrics, Counter};
-#[cfg(feature = "tracing")]
-use foundations::telemetry::tracing;
 use terlan_service_foundation::{InMemorySink, ServiceEvent, ServiceSink, SinkError, SinkSnapshot};
 
 #[metrics(unprefixed)]
@@ -17,15 +15,9 @@ mod adapter_metrics {
 }
 
 /// Exact upstream version validated by this adapter.
-pub const FOUNDATIONS_VERSION: &str = "5.9.0";
-/// Explicit features selected with `default-features = false`.
-pub const FOUNDATIONS_FEATURES: &[&str] = &[
-    "logging",
-    "metrics",
-    "tracing",
-    "telemetry-otlp-grpc",
-    "testing",
-];
+pub const FOUNDATIONS_VERSION: &str = "5.9.2";
+/// Safe default features selected with `default-features = false`.
+pub const FOUNDATIONS_FEATURES: &[&str] = &["logging", "metrics", "testing"];
 /// Explicitly rejected feature bundles and platform facilities.
 pub const EXCLUDED_FEATURES: &[&str] = &[
     "default",
@@ -37,6 +29,8 @@ pub const EXCLUDED_FEATURES: &[&str] = &[
     "sentry",
     "jemalloc",
     "memory-profiling",
+    "tracing",
+    "telemetry-otlp-grpc",
     "telemetry-server",
 ];
 
@@ -96,12 +90,6 @@ impl ServiceSink for FoundationsSink {
                     log::error!("{}", message; "terlan_event" => payload)
                 }
             },
-            #[cfg(feature = "tracing")]
-            ServiceEvent::Span { name, .. } => {
-                let _scope = tracing::span(name.clone());
-                log::debug!("Terlan span"; "terlan_event" => payload);
-            }
-            #[cfg(not(feature = "tracing"))]
             ServiceEvent::Span { .. } => {
                 log::debug!("Terlan span"; "terlan_event" => payload);
             }

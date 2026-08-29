@@ -21,7 +21,7 @@ TERLAN_RUST_BUILD_GRAPH_VIRTUAL_MEMORY_KIB := 196608
 .PHONY: rust-canonical-type-ownership-check
 .PHONY: rust-file-headroom-check
 .PHONY: rust-artifact-retention-check
-.PHONY: rust-code-quality-0-0-8-milestone-check
+.PHONY: rust-code-quality-0-0-9-milestone-check
 .PHONY: code-quality-0-0-7-feedback-loop-check
 
 rust-format-check:
@@ -196,7 +196,7 @@ rust-artifact-retention-clean-shared-debug:
 	TERLAN_CARGO_ARTIFACT_RETENTION_TARGET="$(CURDIR)/target" \
 		target/debug/terlc test scripts/self_validation/CargoArtifactRetentionTest.terl
 
-rust-code-quality-0-0-8-milestone-check: \
+rust-code-quality-0-0-9-milestone-check: \
 	rust-boundary-audit-report \
 	rust-dependency-impact-check \
 	rust-file-headroom-check \
@@ -205,11 +205,11 @@ rust-code-quality-0-0-8-milestone-check: \
 		timeout $(TERLAN_RUST_QUALITY_TIMEOUT_SECONDS)s env \
 			MALLOC_ARENA_MAX=$(TERLAN_RUST_QUALITY_MALLOC_ARENA_MAX) \
 			TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
-			$(TERLAN_RUST_QUALITY) api-boundary-milestone-0.0.8
+			$(TERLAN_RUST_QUALITY) api-boundary-milestone-0.0.9
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
-		$(TERLAN_RUST_QUALITY) file-headroom-milestone-0.0.8
+		$(TERLAN_RUST_QUALITY) file-headroom-milestone-0.0.9
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
-		$(TERLAN_RUST_QUALITY) dependency-impact-milestone-0.0.8
+		$(TERLAN_RUST_QUALITY) dependency-impact-milestone-0.0.9
 
 rust-build-graph-boundary-check: \
 	rust-dependency-impact-check \

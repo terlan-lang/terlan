@@ -8,8 +8,8 @@ predictable software.
 It is designed for industrial systems across VM-hosted, web, native, and future
 embedded targets.
 
-The 0.0.7 development line makes the compiler-owned Rust `terlan-vm` the
-default runtime direction. Terlan keeps the supervision, actor, mailbox,
+The 0.0.8 release line uses the compiler-owned Rust `terlan-vm` as the default
+runtime direction. Terlan keeps the supervision, actor, mailbox,
 hot-reload, and fault-tolerance goals that made BEAM attractive, but the product
 runtime is no longer the old OTP/BEAM execution path.
 
@@ -21,7 +21,7 @@ native bindings, and VM-owned HTTP/networking.
 
 ## Status
 
-Current version: `0.0.7`.
+Current version: `0.0.8`.
 
 Terlan is still early and experimental. The syntax, runtime, standard library,
 VM, editor integrations, and release tooling are changing quickly. The current
@@ -50,7 +50,7 @@ curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh 
 Pin a published release through the installer:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh | env TERLAN_VERSION=v0.0.7 sh
+curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh | env TERLAN_VERSION=v0.0.8 sh
 ```
 
 On Windows, use PowerShell:
@@ -166,7 +166,7 @@ only.
 
 ## Runtime Model
 
-Terlan 0.0.7 is centered on `terlan-vm`.
+Terlan 0.0.8 is centered on `terlan-vm`.
 
 The VM owns the runtime semantics that should not leak into application code:
 processes, mailboxes, scheduling, resources, VM-owned collections, native
@@ -228,7 +228,7 @@ another framework. The long-term split is strict:
 
 `std.http` currently covers request, response, cookies, routing, sessions, TLS
 configuration, and VM transport work. ACME/Let's Encrypt support remains part
-of the 0.0.7 hardening track.
+of the later hardening track.
 
 ## Standard Library
 

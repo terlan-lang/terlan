@@ -1,14 +1,14 @@
 {
   "blast_radius_policy": {
     "maximum_dependents": 13,
-    "milestone": "0.0.8",
+    "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "72754ab6135ae64a60ba545ab6b45dd30ae47a55d7e744a32db709a4f75ca036",
+  "compilation_input_sha256": "39e1a96e9ad2e85c0579aa51357497a2999a9e19d8ae23297570cc2e3e15e0e3",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 56,
     "maximum_resolved_duplicate_families": 34,
-    "milestone": "0.0.8",
+    "milestone": "0.0.9",
     "non_optional_normal_dependencies": 56,
     "package": "terlan",
     "target_non_optional_normal_dependencies": 50,
@@ -338,7 +338,7 @@
   "duplicate_dependency_classifications": [
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "bitflags",
       "owner": "dependency-health",
       "rationale": "Foundations compatibility dependencies and current workspace crates select different bitflags APIs",
@@ -346,7 +346,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "block-buffer",
       "owner": "dependency-health",
       "rationale": "sha1 and sha2 currently select different digest generations",
@@ -354,7 +354,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "cpufeatures",
       "owner": "dependency-health",
       "rationale": "sha1 and sha2 currently select different cpufeatures generations",
@@ -362,7 +362,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "crypto-common",
       "owner": "dependency-health",
       "rationale": "digest generations require their matching crypto-common generation",
@@ -370,7 +370,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "darling",
       "owner": "dependency-health",
       "rationale": "derive_builder and bon/instability currently select different darling generations",
@@ -378,7 +378,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "darling_core",
       "owner": "dependency-health",
       "rationale": "darling generations require their matching core generation",
@@ -386,7 +386,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "darling_macro",
       "owner": "dependency-health",
       "rationale": "darling generations require their matching macro generation",
@@ -394,7 +394,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "digest",
       "owner": "dependency-health",
       "rationale": "sha1 and sha2 currently select different digest generations",
@@ -402,7 +402,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "erased-serde",
       "owner": "dependency-health",
       "rationale": "Foundations and its slog adapter currently select different erased-serde APIs",
@@ -410,7 +410,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "foldhash",
       "owner": "dependency-health",
       "rationale": "hashbrown generations require different foldhash generations",
@@ -418,7 +418,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "getrandom",
       "owner": "dependency-health",
       "rationale": "ring and workspace consumers currently span three getrandom APIs",
@@ -426,15 +426,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
-      "name": "gimli",
-      "owner": "dependency-health",
-      "rationale": "Foundations tracing backtraces and Cranelift currently select adjacent gimli generations",
-      "versions": "0.32.3,0.33.0"
-    },
-    {
-      "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "hashbrown",
       "owner": "dependency-health",
       "rationale": "Foundations, parser, and code-generation dependencies span supported hashbrown generations",
@@ -442,7 +434,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "indexmap",
       "owner": "dependency-health",
       "rationale": "Foundations schema dependencies retain indexmap 1 while workspace consumers use indexmap 2",
@@ -450,7 +442,7 @@
     },
     {
       "classification": "platform-compatibility",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "linux-raw-sys",
       "owner": "dependency-health",
       "rationale": "rustix generations retain matching Linux syscall bindings",
@@ -458,7 +450,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "object",
       "owner": "dependency-health",
       "rationale": "psm build tooling retains object 0.37 while AOT uses object 0.39",
@@ -466,31 +458,15 @@
     },
     {
       "classification": "platform-compatibility",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "r-efi",
       "owner": "dependency-health",
       "rationale": "getrandom generations retain matching UEFI bindings",
       "versions": "5.3.0,6.0.0"
     },
     {
-      "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
-      "name": "rand",
-      "owner": "dependency-health",
-      "rationale": "Foundations tracing and workspace consumers currently select adjacent rand APIs",
-      "versions": "0.10.2,0.9.5"
-    },
-    {
-      "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
-      "name": "rand_core",
-      "owner": "dependency-health",
-      "rationale": "rand generations require their matching rand_core generation",
-      "versions": "0.10.1,0.9.5"
-    },
-    {
       "classification": "platform-compatibility",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "rustix",
       "owner": "dependency-health",
       "rationale": "transitive consumers currently support different rustix APIs",
@@ -498,7 +474,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "schemars",
       "owner": "dependency-health",
       "rationale": "Foundations settings dependencies currently span two schema APIs",
@@ -506,7 +482,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "syn",
       "owner": "dependency-health",
       "rationale": "Foundations and workspace procedural macros currently span three syn APIs",
@@ -514,7 +490,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "thiserror",
       "owner": "dependency-health",
       "rationale": "instant-acme retains thiserror 1 while newer protocol dependencies use 2",
@@ -522,7 +498,7 @@
     },
     {
       "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "thiserror-impl",
       "owner": "dependency-health",
       "rationale": "thiserror generations require their matching derive implementation",
@@ -530,15 +506,15 @@
     },
     {
       "classification": "platform-compatibility",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "windows-sys",
       "owner": "dependency-health",
       "rationale": "cross-platform transitive dependencies retain several supported Windows API generations",
-      "versions": "0.52.0,0.59.0,0.60.2,0.61.2"
+      "versions": "0.52.0,0.60.2,0.61.2"
     },
     {
       "classification": "platform-compatibility",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "windows-targets",
       "owner": "dependency-health",
       "rationale": "windows-sys generations require their matching target metadata",
@@ -546,7 +522,7 @@
     },
     {
       "classification": "platform-compatibility",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "windows_aarch64_gnullvm",
       "owner": "dependency-health",
       "rationale": "windows-targets generations require matching architecture packages",
@@ -554,7 +530,7 @@
     },
     {
       "classification": "platform-compatibility",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "windows_aarch64_msvc",
       "owner": "dependency-health",
       "rationale": "windows-targets generations require matching architecture packages",
@@ -562,7 +538,7 @@
     },
     {
       "classification": "platform-compatibility",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "windows_i686_gnu",
       "owner": "dependency-health",
       "rationale": "windows-targets generations require matching architecture packages",
@@ -570,7 +546,7 @@
     },
     {
       "classification": "platform-compatibility",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "windows_i686_gnullvm",
       "owner": "dependency-health",
       "rationale": "windows-targets generations require matching architecture packages",
@@ -578,7 +554,7 @@
     },
     {
       "classification": "platform-compatibility",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "windows_i686_msvc",
       "owner": "dependency-health",
       "rationale": "windows-targets generations require matching architecture packages",
@@ -586,7 +562,7 @@
     },
     {
       "classification": "platform-compatibility",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "windows_x86_64_gnu",
       "owner": "dependency-health",
       "rationale": "windows-targets generations require matching architecture packages",
@@ -594,7 +570,7 @@
     },
     {
       "classification": "platform-compatibility",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "windows_x86_64_gnullvm",
       "owner": "dependency-health",
       "rationale": "windows-targets generations require matching architecture packages",
@@ -602,7 +578,7 @@
     },
     {
       "classification": "platform-compatibility",
-      "milestone": "0.0.8",
+      "milestone": "0.0.9",
       "name": "windows_x86_64_msvc",
       "owner": "dependency-health",
       "rationale": "windows-targets generations require matching architecture packages",
@@ -744,12 +720,12 @@
     },
     {
       "name": "commands",
-      "physical_lines": 127130,
+      "physical_lines": 127155,
       "rust_files": 333
     },
     {
       "name": "compiler",
-      "physical_lines": 164619,
+      "physical_lines": 164643,
       "rust_files": 416
     },
     {
@@ -829,7 +805,7 @@
     },
     {
       "name": "root:support_runtime",
-      "physical_lines": 75,
+      "physical_lines": 58,
       "rust_files": 1
     },
     {
@@ -844,7 +820,7 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 139844,
+      "physical_lines": 139861,
       "rust_files": 408
     },
     {
@@ -854,7 +830,7 @@
     },
     {
       "name": "support",
-      "physical_lines": 1034,
+      "physical_lines": 1021,
       "rust_files": 3
     },
     {
@@ -948,13 +924,6 @@
       ]
     },
     {
-      "name": "gimli",
-      "versions": [
-        "0.32.3",
-        "0.33.0"
-      ]
-    },
-    {
       "name": "hashbrown",
       "versions": [
         "0.12.3",
@@ -990,20 +959,6 @@
       "versions": [
         "5.3.0",
         "6.0.0"
-      ]
-    },
-    {
-      "name": "rand",
-      "versions": [
-        "0.10.2",
-        "0.9.5"
-      ]
-    },
-    {
-      "name": "rand_core",
-      "versions": [
-        "0.10.1",
-        "0.9.5"
       ]
     },
     {
@@ -1046,7 +1001,6 @@
       "name": "windows-sys",
       "versions": [
         "0.52.0",
-        "0.59.0",
         "0.60.2",
         "0.61.2"
       ]
@@ -1176,18 +1130,18 @@
     },
     {
       "name": "benchmark",
-      "physical_lines": 962,
+      "physical_lines": 975,
       "rust_files": 8
     },
     {
       "name": "commands",
-      "physical_lines": 39008,
+      "physical_lines": 39033,
       "rust_files": 166
     },
     {
       "name": "compiler",
-      "physical_lines": 37959,
-      "rust_files": 161
+      "physical_lines": 38044,
+      "rust_files": 162
     },
     {
       "name": "formal_pipeline",
@@ -1307,6 +1261,20 @@
           "features": [],
           "kind": "build",
           "name": "sha2",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "dev",
+          "name": "cxx",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "dev",
+          "name": "cxx-build",
           "optional": false
         },
         {

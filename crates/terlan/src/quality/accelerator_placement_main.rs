@@ -211,7 +211,7 @@ fn fixture() -> QualityResult<(AcceleratorPlacementProgram, AcceleratorDependenc
     let closure = AcceleratorDependencyClosure::resolve(
         vec![AcceleratorPackageDescriptor {
             package: "terlan-cuda".to_string(),
-            version: "0.0.8".to_string(),
+            version: "0.0.9".to_string(),
             source: "target/quality/placement/accelerator.toml".to_string(),
             descriptor,
         }],

@@ -53,7 +53,7 @@ fn project_manifest_parses_package_namespace() {
 #[test]
 fn project_manifest_parses_backend_neutral_accelerator_descriptor() {
     let parsed = parse_project_manifest(
-        "[package]\nname = \"demo\"\nversion = \"0.0.8\"\n\n[accelerator]\nschema = 1\ndescriptor = \"accelerator.toml\"\n",
+        "[package]\nname = \"demo\"\nversion = \"0.0.9\"\n\n[accelerator]\nschema = 1\ndescriptor = \"accelerator.toml\"\n",
         &manifest_path(),
     )
     .expect("manifest should parse generic accelerator metadata");
@@ -71,14 +71,14 @@ fn project_manifest_parses_backend_neutral_accelerator_descriptor() {
 #[test]
 fn project_manifest_rejects_unknown_or_unsafe_accelerator_descriptors() {
     let unknown = parse_project_manifest(
-        "[package]\nname = \"demo\"\nversion = \"0.0.8\"\n\n[accelerator]\nschema = 2\ndescriptor = \"accelerator.toml\"\n",
+        "[package]\nname = \"demo\"\nversion = \"0.0.9\"\n\n[accelerator]\nschema = 2\ndescriptor = \"accelerator.toml\"\n",
         &manifest_path(),
     )
     .expect_err("unknown schema must fail");
     assert!(unknown.contains("unsupported [accelerator] schema `2`"));
 
     let traversal = parse_project_manifest(
-        "[package]\nname = \"demo\"\nversion = \"0.0.8\"\n\n[accelerator]\nschema = 1\ndescriptor = \"../accelerator.toml\"\n",
+        "[package]\nname = \"demo\"\nversion = \"0.0.9\"\n\n[accelerator]\nschema = 1\ndescriptor = \"../accelerator.toml\"\n",
         &manifest_path(),
     )
     .expect_err("descriptor traversal must fail");
@@ -98,7 +98,7 @@ fn project_manifest_read_validates_and_loads_accelerator_contract() {
     std::fs::create_dir_all(&root).expect("create fixture");
     std::fs::write(
         root.join("terlan.toml"),
-        "[package]\nname = \"demo\"\nversion = \"0.0.8\"\n\n[accelerator]\nschema = 1\ndescriptor = \"accelerator.toml\"\n",
+        "[package]\nname = \"demo\"\nversion = \"0.0.9\"\n\n[accelerator]\nschema = 1\ndescriptor = \"accelerator.toml\"\n",
     )
     .expect("write manifest");
     std::fs::write(

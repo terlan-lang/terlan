@@ -77,7 +77,7 @@ fn closure(
     Ok(AcceleratorDependencyClosure::resolve(
         vec![AcceleratorPackageDescriptor {
             package: package.to_string(),
-            version: "0.0.8".to_string(),
+            version: "0.0.9".to_string(),
             source: provenance.to_string_lossy().into_owned(),
             descriptor,
         }],

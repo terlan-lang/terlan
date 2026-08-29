@@ -132,7 +132,7 @@ fn write_bundle(arguments: &Arguments) -> Result<PathBuf, SupportBundleError> {
         .transpose()?;
     let diagnostic_catalog = share_root
         .as_deref()
-        .map(|root| root.join("docs/release/DIAGNOSTIC_CATALOG_0_0_7.json"))
+        .map(|root| root.join("docs/release/DIAGNOSTIC_CATALOG_0_0_8.json"))
         .map(|path| optional_file_evidence(&path, "diagnostic-catalog"))
         .transpose()?
         .flatten();

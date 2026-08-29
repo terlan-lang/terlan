@@ -19,8 +19,9 @@ It proves:
   release, actor, and trace identity around VM handler output;
 - disabled, local, bounded-memory, and Foundations adapters consume the same
   ordered semantic corpus;
-- Foundations 5.9.0 is exact-pinned with `default-features = false`, and only
-  `logging`, `metrics`, `tracing`, `telemetry-otlp-grpc`, and `testing` enabled;
+- Foundations 5.9.2 is exact-pinned with `default-features = false`, and only
+  `logging`, `metrics`, and `testing` enabled; tracing and OTLP remain excluded
+  until their upstream OpenTelemetry dependency closure is patched;
 - the portable contract and normal Terlan runtime dependency closures exclude
   the optional Foundations adapter and its telemetry stack;
 - the complete dependency, feature, platform, security, lifecycle, semantic,

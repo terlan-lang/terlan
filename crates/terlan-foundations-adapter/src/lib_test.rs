@@ -26,8 +26,8 @@ fn maps_portable_event_without_owning_lifecycle() {
 
 #[test]
 fn upstream_selection_is_narrow_and_default_free() {
-    assert_eq!(FOUNDATIONS_VERSION, "5.9.0");
-    assert!(FOUNDATIONS_FEATURES.contains(&"telemetry-otlp-grpc"));
+    assert_eq!(FOUNDATIONS_VERSION, "5.9.2");
+    assert!(!FOUNDATIONS_FEATURES.contains(&"telemetry-otlp-grpc"));
     assert!(EXCLUDED_FEATURES.contains(&"platform-common-default"));
     let info = FoundationsSink::service_info();
     assert_eq!(info.name_in_metrics, "terlan_service");

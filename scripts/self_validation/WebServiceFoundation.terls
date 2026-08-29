@@ -177,6 +177,7 @@ excluded_packages(): List[String] ->
         "foundations",
         "opentelemetry",
         "opentelemetry-proto",
+        "opentelemetry_sdk",
         "prometheus",
         "prometheus-client",
         "sentry-core",
@@ -243,20 +244,31 @@ adapter_report(): Option[Json] ->
     } else {
         _ -> None
     };
-    (let forbidden = first_present(tree.names, ["sentry-core", "tikv-jemallocator", "serde_yaml", "clap"]);
+    (let forbidden =
+    first_present(
+        tree.names,
+        [
+            "sentry-core",
+            "tikv-jemallocator",
+            "serde_yaml",
+            "clap",
+            "opentelemetry",
+            "opentelemetry-proto",
+            "opentelemetry_sdk",
+        ],
+    );
 if {
-    not String.contains(manifest, "version = \"=5.9.0\"") -> let _reported = failure("Foundations must be pinned exactly to 5.9.0");
+    not String.contains(manifest, "version = \"=5.9.2\"") -> let _reported = failure("Foundations must be pinned exactly to 5.9.2");
     None;
     not String.contains(manifest, "default-features = false") -> let _reported = failure("Foundations default features must remain disabled");
     None;
     not String.contains(manifest, "features = [\"logging\", \"metrics\", \"testing\"]") -> let _reported = failure("Foundations base feature closure drifted");
     None;
-    not String.contains(manifest, "default = [\"tracing\", \"telemetry-otlp-grpc\"]")
-        or not String.contains(manifest, "tracing = [\"foundations/tracing\"]")
-        or not String.contains(
-    manifest,
-    "telemetry-otlp-grpc = [\"tracing\", \"foundations/telemetry-otlp-grpc\"]",
-) -> let _reported = failure("Foundations selectable features drifted");
+    String.contains(manifest, "foundations/tracing")
+        or String.contains(manifest, "foundations/telemetry-otlp-grpc") -> let _reported =
+        failure(
+            "Foundations tracing and OTLP features must remain excluded until their dependency closure is patched",
+        );
     None;
     forbidden != "" -> let _reported = failure(String.append("forbidden adapter dependency: ", forbidden));
     None;
@@ -280,16 +292,15 @@ if {
                         "jemalloc",
                         "memory-profiling",
                         "telemetry-server",
+                        "tracing",
+                        "telemetry-otlp-grpc",
                     ],
                 ),
             )
-            .put(
-                "features",
-                string_array(["logging", "metrics", "telemetry-otlp-grpc", "testing", "tracing"]),
-            )
+            .put("features", string_array(["logging", "metrics", "testing"]))
             .put("license", Json.string("BSD-3-Clause"))
-            .put("selectable_features", string_array(["tracing", "telemetry-otlp-grpc"]))
-            .put("version", Json.string("5.9.0")),
+            .put("selectable_features", string_array(List.new[String]()))
+            .put("version", Json.string("5.9.2")),
     )
 }).
 

@@ -199,7 +199,7 @@ pub attest(root: String, candidate: Json): Bool ->
     let {archive, digest} = candidate_archive(candidate);
     if {
         string_field(candidate, "schema") != "terlan.release-candidate.v1" -> failure("schema", "candidate schema is not terlan.release-candidate.v1");
-        string_field(candidate, "version") != "0.0.7" -> failure("version", "candidate version is not 0.0.7");
+        string_field(candidate, "version") != "0.0.8" -> failure("version", "candidate version is not 0.0.8");
         seal_digest(candidate) == "" -> failure("seal", "candidate seal is missing");
         metadata_identity(root) == "" -> failure("identity", "release candidate identity is missing");
         archive == "" or digest == "" -> failure("artifact", "sealed archive row is missing");

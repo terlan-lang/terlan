@@ -1,4 +1,4 @@
-# Terlan 0.0.8 Accelerator And CUDA Integration Roadmap
+# Terlan 0.0.9 Accelerator And CUDA Integration Roadmap
 
 This roadmap defines compiler and VM work required to make external accelerator
 packages first-class AOT execution targets. `terlan-cuda` is the first proof
@@ -13,7 +13,7 @@ inspection.
 
 ## Release Objective
 
-Terlan 0.0.8 must be able to:
+Terlan 0.0.9 must be able to:
 
 1. resolve an external accelerator package without compiler source changes;
 2. typecheck device resources and asynchronous operations through ordinary
@@ -381,7 +381,7 @@ Gate: `make accelerator-vm-integration-check`.
 
 ## AC8: Specialized Artifact Assembly
 
-- [x] Connect accelerator package reachability to the 0.0.8 runtime capability
+- [x] Connect accelerator package reachability to the 0.0.9 runtime capability
   graph and whole-program requirement analysis.
 - [x] Exclude accelerator backend adapters, package workers, artifacts,
   descriptors, native libraries, and diagnostics when no reachable operation
@@ -402,7 +402,7 @@ Gate: `make accelerator-vm-integration-check`.
 - [x] Persist `target/quality/accelerator-specialized-artifact.json` with
   included/excluded closure, artifact hashes, size, imports, and provenance.
 - [x] Inventory assembly after the gate passes and merge generic capability
-  evidence into the main 0.0.8 specialization reports.
+  evidence into the main 0.0.9 specialization reports.
 
 Gate: `make accelerator-specialized-artifact-check`.
 

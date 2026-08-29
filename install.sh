@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-VERSION="${TERLAN_VERSION:-v0.0.7}"
+VERSION="${TERLAN_VERSION:-v0.0.8}"
 INSTALL_DIR="${TERLAN_INSTALL_DIR:-/usr/local/bin}"
 SHARE_DIR="${TERLAN_INSTALL_SHARE_DIR:-$(dirname "$INSTALL_DIR")/share/terlan}"
 RELEASE_BASE_URL="${TERLAN_RELEASE_BASE_URL:-https://github.com/terlan-lang/terlan/releases/download}"

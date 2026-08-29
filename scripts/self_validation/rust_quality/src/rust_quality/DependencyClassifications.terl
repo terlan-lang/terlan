@@ -193,8 +193,8 @@ row_diagnostics(rows: List[Classification], output: List[String]): List[String] 
                 };
             let milestone_diagnostics =
                 if {
-                    row.milestone == "0.0.8" -> ownership_diagnostics;
-                    true -> [String.concat([row.name, ": duplicate classification must expire at 0.0.8"]) | ownership_diagnostics]
+                    row.milestone == "0.0.9" -> ownership_diagnostics;
+                    true -> [String.concat([row.name, ": duplicate classification must expire at 0.0.9"]) | ownership_diagnostics]
                 };
             row_diagnostics(rest, milestone_diagnostics)
     }.
@@ -258,7 +258,7 @@ pub check(root: String, duplicates: List[Duplicate]): ClassificationResult ->
 pub self_test(): Bool ->
     let parsed =
         parse(
-            "name\tversions\tclassification\towner\trationale\tmilestone\na\t1,2\tdirectly-actionable\towner\trationale\t0.0.8\n",
+            "name\tversions\tclassification\towner\trationale\tmilestone\na\t1,2\tdirectly-actionable\towner\trationale\t0.0.9\n",
         );
     let checked = validate([Duplicate(name = "a", versions = ["1", "2"])], parsed);
     checked.valid
