@@ -2,7 +2,7 @@
   "schema": "terlan.std.js.input-manifest.v1",
   "generator": {
     "name": "terlc",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "profile": "typescript-standard-js-dom",
     "oxc_parser": true
   },
