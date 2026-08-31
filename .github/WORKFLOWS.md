@@ -65,10 +65,11 @@ candidate before merge:
 - `Makefile`
 - workflow and shared action configuration
 
-On a pull request whose head is `release-validation/**`, Compiler CI runs only
-the general compiler/release-candidate job. The release workflow is the sole
-owner of that commit's dependency audit, native AOT matrix, and sanitizer
-families; launching those jobs from both workflows is a validation error.
+On `main`, and on a pull request whose head is `release-validation/**`, Compiler
+CI runs only the general compiler/release-candidate job. The release workflow
+starts automatically for `main` pushes and is the sole owner of that commit's
+dependency audit, native AOT matrix, and sanitizer families; launching those
+jobs from both workflows is a validation error.
 The compiler job installs the exact Lean channel named by
 `proofs/lean/lean-toolchain` before any executable proof gate runs; a missing
 host toolchain is an infrastructure failure, not a failed theorem.
