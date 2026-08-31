@@ -294,7 +294,10 @@ jobs:
           persist-credentials: false
 
       - name: Install native build dependencies
-        run: sudo apt-get update && sudo apt-get install --yes bubblewrap libpq-dev pkg-config ripgrep
+        run: sudo apt-get update && sudo apt-get install --yes bubblewrap elan libpq-dev pkg-config ripgrep
+
+      - name: Install pinned Lean toolchain
+        run: elan toolchain install "$(cat proofs/lean/lean-toolchain)"
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust

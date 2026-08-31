@@ -5,7 +5,7 @@ module scripts.self_validation.LeanProofExecutionTest.
 
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
-import std.core.String.
+import std.core.{Int, String}.
 import std.io.Console.{println}.
 import std.io.File.{read_text}.
 import std.system.{Environment, Process}.
@@ -53,8 +53,38 @@ proof_holds(root: String, proof_path: String): Bool ->
                 8388608,
             );
         case Process.run(command) {
-            Ok(output) -> Process.status(output) == 0;
-            Err(_reason) -> false
+            Ok(output) ->
+                if {
+                    Process.status(output) == 0 -> true;
+                    true -> let _reported =
+                        println(
+                            String.concat(
+                                [
+                                    "Lean proof failed with status ",
+                                    Int.to_string(Process.status(output)),
+                                    "\nstdout:\n",
+                                    Process.stdout(output),
+                                    "\nstderr:\n",
+                                    Process.stderr(output),
+                                ],
+                            ),
+                        );
+                    false
+                };
+            Err(reason) ->
+                let _reported =
+                    println(
+                        String.concat(
+                            [
+                                "Lean proof process failed: ",
+                                Process.error_message(reason),
+                                " (program: ",
+                                Process.error_program(reason),
+                                ")",
+                            ],
+                        ),
+                    );
+                false
         }
     }.
 
