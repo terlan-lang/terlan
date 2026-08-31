@@ -195,6 +195,7 @@ pub(crate) fn validate_gap_toml_mirror(
             &relative,
             &record.deadline_or_exception,
             today,
+            record.lifecycle_status != "closed",
         ));
         let gap = LeanProofGap {
             feature: record.feature,
@@ -292,7 +293,7 @@ pub(crate) fn validate_gap_lifecycle(
                         "`{GAP_PATH}` row `{}` blocker timestamp `{}` is in the future",
                         gap.feature, gap.blocker_updated_at
                     ));
-                } else if age > policy.max_blocker_age_days {
+                } else if gap.lifecycle_status != "closed" && age > policy.max_blocker_age_days {
                     diagnostics.push(format!(
                         "`{GAP_PATH}` row `{}` blocker is {age} days old, exceeding the {} day TTL",
                         gap.feature, policy.max_blocker_age_days
@@ -361,6 +362,7 @@ pub(crate) fn write_gap_metrics(
         .collect::<QualityResult<Vec<_>>>()?;
     let max_staleness = metrics
         .iter()
+        .filter(|metric| metric.lifecycle_status != "closed")
         .map(|metric| metric.gap_staleness_days)
         .max()
         .unwrap_or(0);
@@ -453,7 +455,12 @@ fn has_deadline_or_exception(value: &str) -> bool {
     })
 }
 
-fn validate_lane_exception(path: &str, value: &str, today: Date) -> Vec<String> {
+fn validate_lane_exception(
+    path: &str,
+    value: &str,
+    today: Date,
+    enforce_expiry: bool,
+) -> Vec<String> {
     let Some(exception) = value.strip_prefix("exception:") else {
         return vec![format!(
             "`{path}` must carry an owner-approved `exception:<lane>@YYYY-MM-DD` window"
@@ -469,7 +476,7 @@ fn validate_lane_exception(path: &str, value: &str, today: Date) -> Vec<String> 
         diagnostics.push(format!("`{path}` exception names unknown lane `{lane}`"));
     }
     match parse_date(expiry) {
-        Ok(expiry) if expiry >= today => {}
+        Ok(expiry) if !enforce_expiry || expiry >= today => {}
         Ok(_) => diagnostics.push(format!("`{path}` exception expired on `{expiry}`")),
         Err(error) => diagnostics.push(format!(
             "`{path}` exception expiry `{expiry}` is invalid: {error}"
