@@ -49,7 +49,7 @@ const README_REQUIRED_TERMS: &[&str] = &[
 const ROADMAP_README_REQUIRED_TERMS: &[&str] = &[
     "Function-Head Pattern Migration Deprecation Timeline",
     "0.0.7 slice completion date",
-    "0.0.8",
+    "0.0.9",
     "support matrix for VM/JS targets",
     "accepted with warning",
     "migration.function_head_pattern.invalid_alias_style",
@@ -78,7 +78,7 @@ const FORBIDDEN_CLAIMS: &[&str] = &[
     "release note entry can state completion before this gate is green",
     "legacy alias order is silently accepted",
     "docs links are optional for migration diagnostics",
-    "0.0.8 removal timeline is unknown",
+    "0.0.9 removal timeline is unknown",
     "JS backend fallback is implicit",
 ];
 

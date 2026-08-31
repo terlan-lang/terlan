@@ -155,7 +155,7 @@ replacement, and the Python sources have been deleted.
   measures through the VM monotonic clock, bounds Cargo subprocesses, updates
   deterministic JSON, and removes only its typed isolated target tree.
 - `rust_quality.ApiBoundary` now owns the Rust AST boundary report, exact
-  string-error inventory, owner budgets, and 0.0.8 milestone enforcement. A
+  string-error inventory, owner budgets, and 0.0.9 milestone enforcement. A
   bounded heterogeneous JSON projection streams the 22,000-row report without
   weakening the VM's managed-value conversion ceiling; Python and Terlan
   record modes produce byte-identical inventory and budget artifacts.

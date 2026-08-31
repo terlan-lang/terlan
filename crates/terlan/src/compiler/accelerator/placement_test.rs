@@ -42,7 +42,7 @@ fn packages() -> AcceleratorDependencyClosure {
     AcceleratorDependencyClosure::resolve(
         vec![AcceleratorPackageDescriptor {
             package: "terlan-cuda".to_string(),
-            version: "0.0.8".to_string(),
+            version: "0.0.9".to_string(),
             source: "fixtures/cuda/accelerator.toml".to_string(),
             descriptor: AcceleratorDescriptor::parse(
                 PACKAGE,

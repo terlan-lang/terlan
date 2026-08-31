@@ -151,10 +151,10 @@ commands, edit simulation, and sampling order produced:
 | Focused test compile | 140,370 | 68,702 | 0.4894 |
 | Full test compile | 95,254 | 82,780 | 0.8690 |
 
-One reviewed migration inventory remains, expiring at 0.0.8:
+One reviewed migration inventory remains, expiring at 0.0.9:
 
 - 453 internal string-error rows covering 3,018 sites, divided among seven
-  domain owners with checked no-growth ceilings and lower 0.0.8 targets.
+  domain owners with checked no-growth ceilings and lower 0.0.9 targets.
 
 There are no lint allowances, oversized files, undocumented unsafe blocks,
 Rustdoc debt rows, inline-test debt rows, or file-size debt rows. The 30

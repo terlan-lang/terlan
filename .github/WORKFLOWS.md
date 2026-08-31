@@ -65,6 +65,14 @@ candidate before merge:
 - `Makefile`
 - workflow and shared action configuration
 
+On a pull request whose head is `release-validation/**`, Compiler CI runs only
+the general compiler/release-candidate job. The release workflow is the sole
+owner of that commit's dependency audit, native AOT matrix, and sanitizer
+families; launching those jobs from both workflows is a validation error.
+The compiler job installs the exact Lean channel named by
+`proofs/lean/lean-toolchain` before any executable proof gate runs; a missing
+host toolchain is an infrastructure failure, not a failed theorem.
+
 The direct-AOT portable matrix contract covers Linux, macOS, and Windows on
 x86-64 and AArch64. Each available native runner may compile, package, install,
 execute, reload, crash, and reject incompatible images, while local closeout
@@ -79,6 +87,14 @@ Final AOT roadmap retirement runs
 `make tvm-aot-roadmap-reconciliation-check` only after every owned AOT slice is
 complete. Ordinary compiler CI keeps running the implementation gates while an
 AOT slice is deliberately open.
+
+## CodeQL
+
+`codeql.yml` owns security analysis for maintained repository languages. Its
+explicit matrix contains GitHub Actions and Rust; removed language surfaces are
+not retained as empty jobs because CodeQL treats an empty extraction as a
+configuration failure. Default setup is disabled so one commit cannot receive
+duplicate automatic and repository-owned analyses.
 
 A separate Linux x86-64 job installs the pinned
 `nightly-2026-07-16` toolchain with `rust-src` and runs:
@@ -309,7 +325,7 @@ set without deleting anything with `bash scripts/clean_build_outputs.sh --dry-ru
 Review the staged local distribution plan without contacting GitHub with:
 
 ```sh
-make release-promotion-dry-run VERSION=0.0.7
+make release-promotion-dry-run VERSION=0.0.8
 ```
 
 The dry run writes `target/quality/release-promotion-pipeline-report.json` with

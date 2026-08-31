@@ -115,6 +115,31 @@ fn lean_proof_gap_lifecycle_rejects_stale_and_future_timestamps() {
 }
 
 #[test]
+fn lean_proof_gap_lifecycle_preserves_closed_blocker_history_past_ttl() {
+    let mut closed = gap("closed", "model_gap", "exception:coreir@2026-07-15");
+    closed.blocker_updated_at = "2026-06-15".to_string();
+    closed.blocker_hash = blocker_hash(
+        &closed.feature,
+        &closed.category,
+        &closed.reason,
+        &closed.blocker_updated_at,
+    );
+
+    assert!(validate_gap_lifecycle(&[closed], &policy(), today()).is_empty());
+}
+
+#[test]
+fn lean_proof_gap_closed_exception_retains_history_after_expiry() {
+    assert!(validate_lane_exception(
+        "proofs/lean/gaps/closed.toml",
+        "exception:coreir@2026-07-15",
+        today(),
+        false,
+    )
+    .is_empty());
+}
+
+#[test]
 fn lean_proof_gap_metrics_preserve_gate_report_and_emit_freshness() {
     let root = std::env::temp_dir().join(format!(
         "terlan_lean_gap_metrics_{}_{}",

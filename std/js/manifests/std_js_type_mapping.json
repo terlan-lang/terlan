@@ -2,7 +2,7 @@
   "schema": "terlan.std.js.type-mapping.v1",
   "generator": "terlc",
   "generator_profile": "typescript-standard-js-dom",
-  "generator_version": "0.0.7",
+  "generator_version": "0.0.8",
   "input_manifest": "std/js/manifests/std_js_dom_inputs.json",
   "categories": [
     {

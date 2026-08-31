@@ -110,7 +110,7 @@ budget_header(): String ->
     "owner\tmaximum_rows\tmaximum_sites\ttarget_rows\ttarget_sites\tmilestone".
 
 @pure
-milestone(): String -> "0.0.8".
+milestone(): String -> "0.0.9".
 
 @pure
 report_failure(message: String): ReportLoad ->

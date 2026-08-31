@@ -2,7 +2,7 @@
   "name": "terlan-vscode",
   "displayName": "Terlan",
   "description": "Syntax highlighting and language-server integration for Terlan source files.",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "publisher": "terlan-lang",
   "license": "Apache-2.0",
   "icon": "icons/png/terlan-extension-128.png",

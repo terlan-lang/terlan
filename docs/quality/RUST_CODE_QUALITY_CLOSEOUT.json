@@ -111,7 +111,7 @@
     {
       "budget": "docs/quality/RUST_STRING_ERROR_BUDGETS.tsv",
       "entries": 450,
-      "expires": "0.0.8",
+      "expires": "0.0.9",
       "kind": "internal-string-errors",
       "owners": [
         "benchmark-errors",

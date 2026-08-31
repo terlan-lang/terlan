@@ -1,8 +1,8 @@
 owner	maximum_rows	maximum_sites	target_rows	target_sites	milestone
-benchmark-errors	22	234	17	187	0.0.8
-command-errors	158	985	126	788	0.0.8
-compiler-errors	100	372	80	297	0.0.8
-native-boundary-errors	8	40	6	32	0.0.8
-quality-errors	3	3	2	2	0.0.8
-runtime-errors	170	1417	136	1133	0.0.8
-support-errors	9	31	7	24	0.0.8
+benchmark-errors	22	234	17	187	0.0.9
+command-errors	158	985	126	788	0.0.9
+compiler-errors	100	372	80	297	0.0.9
+native-boundary-errors	8	40	6	32	0.0.9
+quality-errors	3	3	2	2	0.0.9
+runtime-errors	170	1417	136	1133	0.0.9
+support-errors	9	31	7	24	0.0.9

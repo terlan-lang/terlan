@@ -73,12 +73,14 @@ The gate is `make lean-proof-track-check`.
   current blocker hash.
 - A released exception uses `exception:<lane>@YYYY-MM-DD`, must name a fixed
   proof lane, must be approved by the remediation owner in the TOML record,
-  and fails after its expiry. The blocker update date is ISO `YYYY-MM-DD` and cannot
-  exceed the TTL in `lean_proof_gap_policy.toml`. The blocker hash is SHA-256
+  and fails after its expiry while the gap is unresolved. The blocker update date
+  is ISO `YYYY-MM-DD`; unresolved blockers cannot exceed the TTL in
+  `lean_proof_gap_policy.toml`, while closed rows retain their historical closure
+  date. The blocker hash is SHA-256
   over the UTF-8 feature, category, reason, and update date fields, each
   terminated by a zero byte. Editing the blocker or refreshing its timestamp
   without renewing the hash therefore fails the gate.
-- `lean-proof-gate.json` records maximum `gap_staleness_days`, aggregate
+- `lean-proof-gate.json` records maximum unresolved `gap_staleness_days`, aggregate
   `gap_classification_confidence`, unresolved-open count, and per-gap metrics.
 - A proof gap planned gate must be an existing `*-check` Make target, and the
   owner must be one of the accepted proof-track owner groups.

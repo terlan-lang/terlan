@@ -1,6 +1,6 @@
 //! Accelerator policy over the VM's generic asynchronous capability path.
 //!
-//! This implementation is kept production-compiled so the 0.0.8 accelerator
+//! This implementation is kept production-compiled so the 0.0.9 accelerator
 //! assembly can wire the checked contract without introducing a feature-only
 //! variant. It is not part of the 0.0.7 runtime closure yet.
 
@@ -8,7 +8,7 @@
     not(test),
     expect(
         dead_code,
-        reason = "the 0.0.8 accelerator assembly has not wired its worker pool yet"
+        reason = "the 0.0.9 accelerator assembly has not wired its worker pool yet"
     )
 )]
 

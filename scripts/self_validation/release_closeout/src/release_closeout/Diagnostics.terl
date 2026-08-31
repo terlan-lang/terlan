@@ -263,7 +263,7 @@ rows_valid(root: String, changes: Json, index: Int, count: Int, surfaces: List[S
 
 compatibility_document(root: String): {Bool, Int, String} ->
     let {
-        Ok(source) <- File.read_text(Support.child(root, "docs/release/COMPATIBILITY_0_0_7.json"));
+        Ok(source) <- File.read_text(Support.child(root, "docs/release/COMPATIBILITY_0_0_8.json"));
         Ok(document) <- Json.parse(source)
     } else {
         _ -> {false, 0, ""}
@@ -278,8 +278,8 @@ compatibility_document(root: String): {Bool, Int, String} ->
 };
 {
     schema == "terlan.release-compatibility-baseline.v1"
-        and baseline == "0.0.6"
-        and candidate == "0.0.7"
+        and baseline == "0.0.7"
+        and candidate == "0.0.8"
         and count > 0
         and rows_valid(root, changes, 0, count, []),
     count,
@@ -287,7 +287,7 @@ compatibility_document(root: String): {Bool, Int, String} ->
 }).
 
 /**
- * Validates the classified 0.0.6-to-0.0.7 public-surface baseline.
+ * Validates the classified 0.0.7-to-0.0.8 public-surface baseline.
  */
 pub compatibility_baseline(root: String): Bool ->
     let {valid, count, source} = compatibility_document(root);
@@ -317,8 +317,8 @@ pub compatibility_baseline(root: String): Bool ->
                     },
                 ),
             )
-            .put("baseline", Json.string("0.0.6"))
-            .put("candidate", Json.string("0.0.7"))
+            .put("baseline", Json.string("0.0.7"))
+            .put("candidate", Json.string("0.0.8"))
             .put("change_count", Json.int(count))
             .put("baseline_sha256", Json.string(Hash.sha256(source)))
             .put(
@@ -346,12 +346,12 @@ report_passes(path: String): Bool ->
 
 release_notes_valid(source: String, references_ready: Bool): Bool ->
     references_ready
-        and String.contains(source, "# Terlan 0.0.7 Release Notes")
+        and String.contains(source, "# Terlan 0.0.8 Release Notes")
         and String.contains(source, "direct-AOT")
         and String.contains(source, "fixed-owner multicore execution shards")
         and String.contains(source, "Installed-candidate validation")
         and String.contains(source, "Executable `.terls` scripts")
-        and String.contains(source, "COMPATIBILITY_0_0_7.json")
+        and String.contains(source, "COMPATIBILITY_0_0_8.json")
         and not String.contains(source, "guaranteed faster")
         and not String.contains(source, "all platforms are supported").
 
@@ -359,7 +359,7 @@ release_notes_valid(source: String, references_ready: Bool): Bool ->
  * Validates factual release notes against current-candidate evidence.
  */
 pub release_notes(root: String): Bool ->
-    case File.read_text(Support.child(root, "docs/release/RELEASE_NOTES_0_0_7.md")) {
+    case File.read_text(Support.child(root, "docs/release/RELEASE_NOTES_0_0_8.md")) {
         Err(_reason) -> false;
         Ok(source) ->
             let artifact =

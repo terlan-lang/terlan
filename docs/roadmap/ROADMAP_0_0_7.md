@@ -42,7 +42,7 @@ The current native data and call contract is ABI 1 in
 
 0.0.7 ships ABI 1 as the sole current implementation but does not freeze
 cross-release binary compatibility. Correctness and containment are release
-requirements now; optimization and compatibility stability belong to 0.0.8.
+requirements now; optimization and compatibility stability belong to 0.0.9.
 
 | Requirement | Current implementation owner | 0.0.7 evidence |
 | --- | --- | --- |
@@ -75,9 +75,9 @@ The 2026-07-31 audit corrected both ordering and scope:
 | Build-graph extraction repeated completed code-quality work | Shrink | CQ-3 already established thin binaries and canonical ownership; only measured artifact/incremental budgets remain. |
 | Database orchestration and migrations were separate despite one lifecycle | Consolidate | They share admission, live-Postgres evidence, cleanup, and reporting. |
 | Fifteen release micro-slices | Consolidate to five release outcomes | Installed use, compatibility, security, resilience, and sealing are the durable contracts. |
-| Runtime inspector TUI | Defer to 0.0.8 | Useful tooling, but not required to prove the runtime or release boundary. |
-| Durable process checkpoint/migration | Defer to 0.0.8 | Supervised restart is required now; durable state migration needs its own persistence design. |
-| Mandatory HTTP/3 | Defer to 0.0.8 | 0.0.7 must report it honestly as unsupported/experimental; HTTP/1.1 and HTTP/2 are the production requirement. |
+| Runtime inspector TUI | Defer to 0.0.9 | Useful tooling, but not required to prove the runtime or release boundary. |
+| Durable process checkpoint/migration | Defer to 0.0.9 | Supervised restart is required now; durable state migration needs its own persistence design. |
+| Mandatory HTTP/3 | Defer to 0.0.9 | 0.0.7 must report it honestly as unsupported/experimental; HTTP/1.1 and HTTP/2 are the production requirement. |
 | General multi-service Docker orchestration | Shrink | 0.0.7 needs deterministic Postgres/serve dependencies, not a general container orchestrator. |
 
 The release-completeness pass found four requirements that were present in

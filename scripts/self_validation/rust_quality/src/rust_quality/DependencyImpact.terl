@@ -547,17 +547,17 @@ budget_diagnostics(
         };
     let milestone_dependencies =
         if {
-            enforce_milestone and direct_dependencies > 50 -> ["0.0.8 main dependency target 50 not met" | semantic];
+            enforce_milestone and direct_dependencies > 50 -> ["0.0.9 main dependency target 50 not met" | semantic];
             true -> semantic
         };
     let milestone_duplicates =
         if {
-            enforce_milestone and duplicate_count > 24 -> ["0.0.8 duplicate-family target 24 not met" | milestone_dependencies];
+            enforce_milestone and duplicate_count > 24 -> ["0.0.9 duplicate-family target 24 not met" | milestone_dependencies];
             true -> milestone_dependencies
         };
     if {
         enforce_milestone and maximum_blast > 9 -> [String.concat(
-    ["0.0.8 production blast-radius target 9 not met (actual ", Int.to_string(maximum_blast), ")"],
+    ["0.0.9 production blast-radius target 9 not met (actual ", Int.to_string(maximum_blast), ")"],
 ) | milestone_duplicates];
         true -> milestone_duplicates
     }.
@@ -586,7 +586,7 @@ build_report(
             [
                 "{\"maximum_non_optional_normal_dependencies\":56,",
                 "\"maximum_resolved_duplicate_families\":34,",
-                "\"milestone\":\"0.0.8\",",
+                "\"milestone\":\"0.0.9\",",
                 "\"non_optional_normal_dependencies\":",
                 Int.to_string(DependencyImpactCargo.analysis_direct_dependency_count(cargo)),
                 ",\"package\":\"terlan\",",
@@ -595,7 +595,7 @@ build_report(
             ],
         );
     let cycle_policy = String.concat(["{\"cycles\":", cycles_json(domain_cycles), ",\"maximum_cycles\":0}"]);
-    let blast_policy = "{\"maximum_dependents\":13,\"milestone\":\"0.0.8\",\"target_dependents\":9}";
+    let blast_policy = "{\"maximum_dependents\":13,\"milestone\":\"0.0.9\",\"target_dependents\":9}";
     String.concat(
         [
             "{\"blast_radius_policy\":",

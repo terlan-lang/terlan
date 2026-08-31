@@ -4,6 +4,20 @@ All notable release-facing changes to Terlan are tracked here.
 
 ## Unreleased
 
+## 0.0.8
+
+- Require a completely green release commit instead of accepting only the
+  aggregate release-validation status.
+- Replace automatic CodeQL language detection with explicit Rust and GitHub
+  Actions analysis, and enable the workflow-owned GitHub Pages deployment.
+- Provision bubblewrap in Linux compiler CI so capability-sandbox tests run
+  against their declared environment.
+- Remove the vulnerable OpenTelemetry 0.31 graph from the Foundations adapter;
+  logging and metrics remain available while tracing and OTLP await an upstream
+  patched dependency line.
+- Move the planned compiler, VM, validation, and accelerator feature work to
+  the 0.0.9 roadmaps.
+
 ## 0.0.7
 
 - Make `terlan-vm` the default build, run, and test runtime path while rejecting

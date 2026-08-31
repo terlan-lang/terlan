@@ -625,7 +625,7 @@ release-fault-injection-check: release-mutation-check
 
 release-readiness-attestation-check: release-example-projects-check release-project-upgrade-matrix-check release-reference-app-suite-check release-notes-accuracy-check release-fault-injection-check terlan-release-promotion-bootstrap
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_RELEASE_PROMOTION) readiness --version 0.0.7
+		$(TERLAN_RELEASE_PROMOTION) readiness --version $(RELEASE_VERSION)
 	test -s target/quality/release-readiness-attestation-report.json
 	@rg -q '"decision": "pass"' target/quality/release-readiness-attestation-report.json
 	@rg -q '"publication_required": false' target/quality/release-readiness-attestation-report.json
@@ -636,14 +636,14 @@ release-readiness-attestation-refresh:
 	test -x $(TERLAN_BOOTSTRAP_VM)
 	test -s $(TERLAN_RELEASE_PROMOTION_IMAGE)
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_RELEASE_PROMOTION) readiness --version 0.0.7
+		$(TERLAN_RELEASE_PROMOTION) readiness --version $(RELEASE_VERSION)
 	test -s target/quality/release-readiness-attestation-report.json
 	@rg -q '"decision": "pass"' target/quality/release-readiness-attestation-report.json
 	@rg -q '"publication_required": false' target/quality/release-readiness-attestation-report.json
 
 release-staged-distribution-verification-check: release-readiness-attestation-check | terlan-tvm-platform-matrix-bootstrap
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_RELEASE_PROMOTION) verify --version 0.0.7
+		$(TERLAN_RELEASE_PROMOTION) verify --version $(RELEASE_VERSION)
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_TVM_PLATFORM_MATRIX) release-staged-distribution
 	test -s target/quality/release-staged-distribution-verification-report.json
@@ -656,7 +656,7 @@ release-staged-distribution-verification-check: release-readiness-attestation-ch
 release-staged-distribution-verification-refresh: release-readiness-attestation-refresh | terlan-tvm-platform-matrix-bootstrap
 	test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_RELEASE_PROMOTION) verify --version 0.0.7
+		$(TERLAN_RELEASE_PROMOTION) verify --version $(RELEASE_VERSION)
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_TVM_PLATFORM_MATRIX) release-staged-distribution
 	test -s target/quality/release-staged-distribution-verification-report.json

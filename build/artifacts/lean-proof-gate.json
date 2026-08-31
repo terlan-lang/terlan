@@ -323,54 +323,54 @@
   "proof_gap_metrics": {
     "gap_classification_confidence": 1.0,
     "gap_count": 8,
-    "gap_staleness_days": 21,
+    "gap_staleness_days": 12,
     "gaps": [
       {
         "feature": "EBNF syntax preservation",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 21,
+        "gap_staleness_days": 31,
         "lifecycle_status": "closed"
       },
       {
         "feature": "typed CoreIR preservation",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 2,
+        "gap_staleness_days": 12,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "target-profile inference",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 2,
+        "gap_staleness_days": 12,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "VM execution subset",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 2,
+        "gap_staleness_days": 12,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "pattern and operator coverage",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 2,
+        "gap_staleness_days": 12,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "native-boundary contracts",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 21,
+        "gap_staleness_days": 31,
         "lifecycle_status": "closed"
       },
       {
         "feature": "Wasm CoreIR lowering",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 2,
+        "gap_staleness_days": 12,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "Aeneas Rust verification bridge",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 2,
+        "gap_staleness_days": 12,
         "lifecycle_status": "blocked"
       }
     ],

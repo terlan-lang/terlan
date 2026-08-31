@@ -23,7 +23,7 @@ entry(): Bool ->
         Some("file-headroom-self-test") -> FileHeadroom.self_test();
         Some("file-headroom-check") -> FileHeadroom.check(repository_root(), false);
         Some("file-headroom-record") -> FileHeadroom.record(repository_root());
-        Some("file-headroom-milestone-0.0.8") -> FileHeadroom.check(repository_root(), true);
+        Some("file-headroom-milestone-0.0.9") -> FileHeadroom.check(repository_root(), true);
         Some("lint-allowance-self-test") -> LintAllowances.self_test();
         Some("lint-allowance-check") -> LintAllowances.check(repository_root());
         Some("lint-allowance-record") -> LintAllowances.record_new(repository_root());
@@ -83,7 +83,7 @@ entry(): Bool ->
         Some("dependency-impact-record") ->
             let root = repository_root();
             DependencyImpact.record(root);
-        Some("dependency-impact-milestone-0.0.8") ->
+        Some("dependency-impact-milestone-0.0.9") ->
             let root = repository_root();
             DependencyImpact.check(root, true);
         Some("cargo-metadata-self-test") -> CargoMetadata.self_test();
@@ -97,7 +97,7 @@ entry(): Bool ->
         Some("api-boundary-record-budgets") ->
             let root = repository_root();
             ApiBoundary.record_budgets(root);
-        Some("api-boundary-milestone-0.0.8") ->
+        Some("api-boundary-milestone-0.0.9") ->
             let root = repository_root();
             ApiBoundary.check(root, true);
         Some(value) -> failure(String.append("unknown command `", String.append(value, "`")));
