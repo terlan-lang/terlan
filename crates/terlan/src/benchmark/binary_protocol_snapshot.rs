@@ -140,7 +140,7 @@ fn snapshot_path() -> PathBuf {
         .map(PathBuf::from)
         .unwrap_or_else(|| {
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../..")
+                .join("../..")
                 .join(SNAPSHOT_RELATIVE_PATH)
         })
 }
