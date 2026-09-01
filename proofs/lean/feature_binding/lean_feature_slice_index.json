@@ -214,7 +214,7 @@
       "slice_id": "Slice 20"
     },
     {
-      "blocker_expiry": "exception:coreir@2026-08-31",
+      "blocker_expiry": "exception:coreir@2026-09-30",
       "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
       "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
       "coverage_status": "slice_blocked",
@@ -229,7 +229,7 @@
       "slice_id": "Slice 22"
     },
     {
-      "blocker_expiry": "exception:coreir@2026-08-31",
+      "blocker_expiry": "exception:coreir@2026-09-30",
       "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
       "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
       "coverage_status": "slice_blocked",
@@ -244,7 +244,7 @@
       "slice_id": "Slice 23"
     },
     {
-      "blocker_expiry": "exception:vm_runtime@2026-08-31",
+      "blocker_expiry": "exception:vm_runtime@2026-09-30",
       "blocker_hash": "sha256:1e3fff408b73ba8eabc55dedb0030ecf5e926b966de6bed1b2ee23933c34691e",
       "blocker_reason": "Terlan VM semantics are expanding and currently proven by Rust unit/adversarial gates.",
       "coverage_status": "slice_blocked",
@@ -259,7 +259,7 @@
       "slice_id": "Slice 24"
     },
     {
-      "blocker_expiry": "exception:coreir@2026-08-31",
+      "blocker_expiry": "exception:coreir@2026-09-30",
       "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
       "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
       "coverage_status": "slice_blocked",
@@ -274,7 +274,7 @@
       "slice_id": "Slice 25"
     },
     {
-      "blocker_expiry": "exception:coreir@2026-08-31",
+      "blocker_expiry": "exception:coreir@2026-09-30",
       "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
       "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
       "coverage_status": "slice_blocked",
@@ -289,7 +289,7 @@
       "slice_id": "Slice 26"
     },
     {
-      "blocker_expiry": "exception:coreir@2026-08-31",
+      "blocker_expiry": "exception:coreir@2026-09-30",
       "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
       "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
       "coverage_status": "slice_blocked",
@@ -304,7 +304,7 @@
       "slice_id": "Slice 27"
     },
     {
-      "blocker_expiry": "exception:coreir@2026-08-31",
+      "blocker_expiry": "exception:coreir@2026-09-30",
       "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
       "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
       "coverage_status": "slice_blocked",

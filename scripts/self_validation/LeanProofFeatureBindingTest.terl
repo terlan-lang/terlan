@@ -177,6 +177,10 @@ matrix_rows_hold(lines: List[String], inputs: Inputs, count: Int): Bool ->
         String.append("\"coverage_status\": \"", String.append(status, "\"")),
         String.append("\"owner\": \"", String.append(owner, "\"")),
         String.append("\"blocker_hash\": \"", String.append(blocker, "\"")),
+        String.append(
+            "\"blocker_expiry\": \"",
+            String.append(gap_expiry_for(inputs.gaps, gaps), "\""),
+        ),
     ],
 ) -> false;
                         not list_fragments_hold(block, families) -> false;
@@ -227,6 +231,7 @@ gaps_at(source: String, gaps: List[String], owner: String, blocker: String): Boo
         [gap | rest] ->
             let feature = gap_feature(gap);
             let row = tsv_row(source, feature);
+            let expiry = gap_expiry_for(source, gap);
             feature != ""
                 and contains_all(
     row,
@@ -234,11 +239,26 @@ gaps_at(source: String, gaps: List[String], owner: String, blocker: String): Boo
         "\tblocked\t",
         String.append("\t", String.append(owner, "\t")),
         "exception:",
-        "@2026-08-31",
+        String.append("\t", String.append(expiry, "\t")),
         blocker,
     ],
 )
                 and gaps_at(source, rest, owner, blocker)
+    }.
+
+@pure
+gap_expiry_for(source: String, gap: String): String ->
+    if {
+        gap == "" -> "none";
+        true -> gap_expiry_from_row(tsv_row(source, gap_feature(gap)))
+    }.
+
+@pure
+gap_expiry_from_row(row: String): String ->
+    case String.split(row, "\t") {
+        [_feature, _status, _category, _reason, _owner, _gate, expiry, _updated, _hash, _manifests] ->
+            expiry;
+        _ -> "missing"
     }.
 
 @pure
@@ -373,6 +393,14 @@ report_success(root: String): Bool ->
 pub stable_gap_slug_is_canonical(): Bool ->
     gap_feature("vm-execution-subset") == "VM execution subset"
         and gap_feature("typed-coreir-preservation") == "typed CoreIR preservation".
+
+@test
+pub canonical_gap_expiry_is_read_from_registry(): Bool ->
+    gap_expiry_for(
+    "typed CoreIR preservation\tblocked\tmodel_gap\treason\tcompiler\tgate\texception:coreir@2026-09-30\t2026-08-19\tsha256:test\tmanifest\n",
+    "typed-coreir-preservation",
+) == "exception:coreir@2026-09-30"
+        and gap_expiry_for("", "") == "none".
 
 @test
 pub regression_metrics_are_stable(): Bool ->
