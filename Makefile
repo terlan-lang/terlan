@@ -3590,6 +3590,8 @@ vm-final-health-check:
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::resource::resource_test::resource_table_cleans_up_owner_resources_on_process_exit -- --exact
 
 vm-memory-heap-pressure-check: vm-process-model-check vm-resource-ownership-check
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::memory::memory_test::limits_and_accounting::memory_accounting_writes_deterministic_pressure_report -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::memory::memory_test::shared_ownership_and_soak::memory_accounting_soak_preserves_ownership_and_writes_benchmark_report -- --exact
 	test -f target/quality/vm-memory-pressure-report.json
 	test -f target/quality/vm-memory-soak-report.json
 
