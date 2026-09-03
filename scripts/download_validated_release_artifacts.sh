@@ -33,6 +33,11 @@ if [[ "$state" != "success" || ! "$target_url" =~ /actions/runs/([0-9]+)$ ]]; th
 fi
 run_id="${BASH_REMATCH[1]}"
 
+download_dir="$(mktemp -d)"
+extract_dir="$(mktemp -d)"
+hosted_evidence_dir="$(mktemp -d)"
+trap 'rm -rf "$download_dir" "$extract_dir" "$hosted_evidence_dir"' EXIT
+
 run_json="$(gh api "repos/{owner}/{repo}/actions/runs/$run_id")"
 run_revision="$(jq -r '.head_sha // ""' <<<"$run_json")"
 run_conclusion="$(jq -r '.conclusion // ""' <<<"$run_json")"
@@ -44,10 +49,39 @@ if [[ "$run_revision" != "$revision" \
   exit 1
 fi
 
-download_dir="$(mktemp -d)"
-extract_dir="$(mktemp -d)"
-hosted_evidence_dir="$(mktemp -d)"
-trap 'rm -rf "$download_dir" "$extract_dir" "$hosted_evidence_dir"' EXIT
+# Publication consumes the exhaustive candidate validation instead of
+# replaying it locally. Require the exact GitHub Actions check run and then
+# resolve its workflow run so a similarly named third-party check cannot
+# satisfy the contract.
+candidate_check_json="$(gh api \
+  -H 'Accept: application/vnd.github+json' \
+  "repos/$repository/commits/$revision/check-runs?filter=latest&per_page=100" \
+  --jq '[.check_runs[] | select(.name == "Compiler check and test" and .conclusion == "success" and .app.slug == "github-actions")] | first // {}')"
+candidate_details_url="$(jq -r '.details_url // ""' <<<"$candidate_check_json")"
+if [[ ! "$candidate_details_url" =~ /actions/runs/([0-9]+)/job/ ]]; then
+  echo "revision $revision has no successful canonical Compiler check and test" >&2
+  exit 1
+fi
+candidate_run_id="${BASH_REMATCH[1]}"
+candidate_run_json="$(gh api "repos/$repository/actions/runs/$candidate_run_id")"
+candidate_revision="$(jq -r '.head_sha // ""' <<<"$candidate_run_json")"
+candidate_conclusion="$(jq -r '.conclusion // ""' <<<"$candidate_run_json")"
+candidate_path="$(jq -r '.path // ""' <<<"$candidate_run_json")"
+if [[ "$candidate_revision" != "$revision" \
+  || "$candidate_conclusion" != "success" \
+  || "$candidate_path" != ".github/workflows/ci.yml" ]]; then
+  echo "Compiler check does not identify a successful canonical workflow for $revision" >&2
+  exit 1
+fi
+jq -n \
+  --arg revision "$revision" \
+  --argjson run_id "$candidate_run_id" \
+  '{schema:"terlan.hosted-candidate-validation.v1",decision:"pass",source_revision:$revision,workflow:".github/workflows/ci.yml",run_id:$run_id}' \
+  >"$hosted_evidence_dir/hosted-candidate-validation.json"
+mkdir -p target/quality
+install -m 0644 \
+  "$hosted_evidence_dir/hosted-candidate-validation.json" \
+  target/quality/hosted-candidate-validation.json
 gh run download "$run_id" --name release-distribution --dir "$download_dir"
 gh run download "$run_id" --name release-hosted-validation-evidence --dir "$hosted_evidence_dir"
 hosted_evidence_files=(
@@ -56,7 +90,6 @@ hosted_evidence_files=(
   vm-multicore-thread-sanitizer-report.json
   vm-multicore-memory-model-tsan.json
 )
-mkdir -p target/quality
 for evidence in "${hosted_evidence_files[@]}"; do
   [[ -f "$hosted_evidence_dir/$evidence" && ! -L "$hosted_evidence_dir/$evidence" ]] || {
     echo "hosted release evidence is missing $evidence" >&2
@@ -144,3 +177,4 @@ make --no-print-directory release-artifact-set-check \
   RELEASE_ARTIFACT_SET_LOCAL_PAYLOAD=1
 
 echo "downloaded validated release artifacts from run $run_id for $revision"
+echo "verified exhaustive candidate validation from run $candidate_run_id"

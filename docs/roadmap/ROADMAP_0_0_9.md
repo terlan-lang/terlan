@@ -86,11 +86,11 @@ and release work.
     disjoint fast-unit and integration partitions from that binary, removing
     the second feature-profile build and cross-tier test replay. Cargo's JSON
     artifact identity now seals that exact harness after one bounded no-run
-    build; four Terlan partitions execute it directly, leaving only the separate
+    build; nine Terlan partitions execute it directly, leaving only the separate
     workspace-support Cargo phase and reducing orchestrator Cargo launches from
     five to two. The measured
-    libtest selection domains cover all 7,101 discovered test names (6,007
-    fast-unit and 1,094 integration) with zero overlap; this removes the
+    libtest selection domains cover all 7,193 discovered test names (6,097
+    library and 1,096 integration) with zero overlap; this removes the
     separate default-profile harness rebuild that took 2m26s after the same
     compiler source change. The remaining monolithic union harness is roughly
     421 MB; changing one adjacent test module still forced 55–124 seconds of
@@ -174,6 +174,15 @@ and release work.
     Fixed-path standard-library and documentation fixtures clean
     themselves in their owning tests; release lifecycle boundaries reject and
     clean any residue left by an interrupted process.
+    Publication is now a read-only consumer of candidate-bound evidence: an
+    explicit refresh owns MC-9, AOT closeout, and release evidence once, while
+    retries verify the sealed source identity and file digests without Cargo or
+    test replay. The exhaustive hosted Compiler check is resolved back to the
+    canonical workflow run before local evidence may reuse its Rust results.
+    Five formerly external ignored capability/EPMD cases now execute directly
+    from the union-feature harness. The remaining evidence refresh is capped at
+    six distinct Cargo invocations and two isolated benchmark selectors, and a
+    cross-worktree performance lease rejects a busy host before measurement.
   - Split Rust validation into explicitly inventoried fast unit, integration,
     AOT/native-link, concurrency/timeout, performance, and controlled-host
     tiers. Every test belongs to exactly one tier, and the release aggregate

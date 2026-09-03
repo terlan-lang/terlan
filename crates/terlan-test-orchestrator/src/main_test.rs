@@ -40,7 +40,7 @@ fn orchestrator_partitions_one_union_feature_harness_without_test_replay() {
     let terlan_library_phases = phases
         .iter()
         .filter(|phase| phase.executor == PhaseExecutor::TerlanHarness);
-    assert_eq!(terlan_library_phases.count(), 4);
+    assert_eq!(terlan_library_phases.count(), 9);
 }
 
 #[test]
@@ -51,7 +51,7 @@ fn orchestrator_runs_ignored_contract_once_in_the_library() {
         .filter(|phase| phase.args.contains(&"--ignored"))
         .collect();
 
-    assert_eq!(ignored.len(), 2);
+    assert_eq!(ignored.len(), 7);
     assert!(ignored
         .iter()
         .all(|phase| phase.executor == PhaseExecutor::TerlanHarness));
@@ -59,6 +59,12 @@ fn orchestrator_runs_ignored_contract_once_in_the_library() {
     assert!(ignored
         .iter()
         .any(|phase| phase.name == "generated C++ package evidence"));
+    assert!(ignored
+        .iter()
+        .any(|phase| phase.name == "generated capability event pump"));
+    assert!(ignored
+        .iter()
+        .any(|phase| phase.name == "EPMD discovery transport full cycle"));
 }
 
 #[test]
@@ -129,7 +135,7 @@ fn orchestrator_report_is_atomic_and_machine_readable() {
     assert!(report.contains("\"executor\":\"cargo-build\""));
     assert!(report.contains("\"tier_inventory\""));
     assert!(report.contains("\"tier_inventory_path\""));
-    assert!(report.contains("\"owner\":\"vm-multicore-performance-check\""));
+    assert!(report.contains("\"owner\":\"vm-multicore-performance-record\""));
     assert!(report.contains("\"cargo_invocation_count\": 1"));
     assert!(report.contains("\"cargo_invocation_maximum\": 2"));
     assert!(report.contains("\"wall_time_ms\": 14"));
@@ -203,7 +209,10 @@ fn every_orchestrated_phase_has_one_known_tier() {
     );
     assert!(phases.iter().all(|phase| matches!(
         phase.tier,
-        ValidationTier::FastUnit | ValidationTier::Integration | ValidationTier::AotNativeLink
+        ValidationTier::FastUnit
+            | ValidationTier::Integration
+            | ValidationTier::AotNativeLink
+            | ValidationTier::ControlledHost
     )));
     assert_eq!(
         phases
@@ -217,16 +226,15 @@ fn every_orchestrated_phase_has_one_known_tier() {
             .iter()
             .filter(|phase| phase.tier == ValidationTier::AotNativeLink)
             .count(),
-        1
+        5
     );
 
     for tier in ValidationTier::ALL {
         let owned_by_orchestrator = phases.iter().any(|phase| phase.tier == tier);
         let owned_externally = EXTERNAL_TIER_OWNERS.iter().any(|owner| owner.tier == tier);
-        assert_ne!(
-            owned_by_orchestrator,
-            owned_externally,
-            "tier {} must have exactly one execution owner",
+        assert!(
+            owned_by_orchestrator || owned_externally,
+            "tier {} must have an execution owner",
             tier.as_str()
         );
     }

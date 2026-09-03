@@ -12,8 +12,9 @@ import std.io.Console.{eprintln, println}.
 import std.io.Directory.{create_all}.
 import std.io.File.{exists, read_text}.
 import std.system.{Environment, Platform, Process}.
+import std.vcs.Git.{clean, revision as source_revision, sha256 as source_sha256, source_tree_identity}.
 import tvm_aot_platform_matrix.AotThreadSanitizer.{target as sanitizer_target, validate_report as validate_sanitizer_report}.
-import tvm_aot_platform_matrix.Core.{child, host_target, is_sha256, json_bool, json_string, json_value, load_json, report_valid, string_array, targets, write_json}.
+import tvm_aot_platform_matrix.Core.{child, host_target, is_sha256, json_bool, json_equals, json_string, json_value, load_json, report_valid, string_array, targets, write_json}.
 
 import type std.core.Option.
 import type std.data.Json.
@@ -29,7 +30,7 @@ struct InventoryCounts {
     valid: Bool,
 }.
 
-pub schema(): String -> "terlan.tvm-aot-local-closeout.v2".
+pub schema(): String -> "terlan.tvm-aot-local-closeout.v3".
 
 pub local_gates(): List[String] ->
     [
@@ -172,8 +173,9 @@ validate_makefile_contract(makefile: String): Bool ->
                 not makefile.contains("tvm-aot-release-closeout-check: tvm-aot-release-closeout-contract-check") -> failure("AOT closeout no longer executes its canonical local graph");
                 not makefile.contains("$(MAKE) $(AOT_RELEASE_LOCAL_GATES_TO_RUN)") -> failure("AOT closeout no longer deduplicates validated local gates");
                 not makefile.contains("TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN") -> failure("AOT closeout no longer validates multicore evidence before reuse");
-                not makefile.contains("env -u RUSTFLAGS $(CARGO) check -p terlan") -> failure("AOT closeout no longer runs locked Cargo validation");
+                not makefile.contains("AOT_RELEASE_CARGO_CHECK := env -u RUSTFLAGS $(CARGO) check -p terlan") -> failure("AOT closeout no longer owns locked Cargo validation");
                 not makefile.contains("$(TERLAN_TVM_PLATFORM_MATRIX) release-record") -> failure("AOT closeout no longer records release evidence");
+                not makefile.contains("$(TERLAN_TVM_PLATFORM_MATRIX) release-verify") -> failure("AOT publication no longer verifies sealed evidence without replay");
                 true -> true
             }
     }.
@@ -493,44 +495,47 @@ retained_evidence(root: String): Option[Json] ->
             .put("inventory", inventory),
     ).
 
-write_closeout(
-    root: String,
+closeout_report(
     revision: String,
+    source_digest: String,
+    source_clean: Bool,
     rustc: String,
     cargo: String,
     platform_contract: Json,
     sanitizer: Json,
     evidence: Json,
-): Bool ->
+): Json ->
     let host = Platform.current();
-    let report =
-        Json.object()
-            .put("schema", Json.string(schema()))
-            .put("decision", Json.string("pass"))
-            .put("source_revision", Json.string(revision))
-            .put("worktree_committed", Json.bool(false))
-            .put(
-                "host",
-                Json.object()
-                    .put("system", Json.string(host.operating_system))
-                    .put("machine", Json.string(host.architecture)),
-            )
-            .put(
-                "toolchain",
-                Json.object().put("rustc", Json.string(rustc)).put("cargo", Json.string(cargo)),
-            )
-            .put("local_gates", string_array(local_gates()))
-            .put("platform_contract", platform_contract)
-            .put("thread_sanitizer", sanitizer)
-            .put("evidence", evidence)
-            .put(
-                "semantic_preservation",
-                Json.object()
-                    .put("runtime_fallbacks", Json.int(0))
-                    .put("temporary_migration_support", Json.int(0))
-                    .put("deletion_debt", Json.int(0)),
-            )
-            .put("publishing_required", Json.bool(false));
+    Json.object()
+        .put("schema", Json.string(schema()))
+        .put("decision", Json.string("pass"))
+        .put("source_revision", Json.string(revision))
+        .put("source_tree_sha256", Json.string(source_digest))
+        .put("source_tree_clean", Json.bool(source_clean))
+        .put(
+            "host",
+            Json.object()
+                .put("system", Json.string(host.operating_system))
+                .put("machine", Json.string(host.architecture)),
+        )
+        .put(
+            "toolchain",
+            Json.object().put("rustc", Json.string(rustc)).put("cargo", Json.string(cargo)),
+        )
+        .put("local_gates", string_array(local_gates()))
+        .put("platform_contract", platform_contract)
+        .put("thread_sanitizer", sanitizer)
+        .put("evidence", evidence)
+        .put(
+            "semantic_preservation",
+            Json.object()
+                .put("runtime_fallbacks", Json.int(0))
+                .put("temporary_migration_support", Json.int(0))
+                .put("deletion_debt", Json.int(0)),
+        )
+        .put("publishing_required", Json.bool(false)).
+
+write_closeout(root: String, report: Json, revision: String): Bool ->
     let _directory = create_all(child(root, "target/quality"));
     if {
         not write_json(child(root, "target/quality/tvm-aot-release-closeout-report.json"), report) -> false;
@@ -544,16 +549,69 @@ write_closeout(
 pub record_local(): Bool ->
     let root = Environment.current_directory();
     let {
-        Some(revision) <- command_output(root, "git", ["rev-parse", "HEAD"]);
+        Ok(identity) <- source_tree_identity(root);
         Some(rustc) <- command_output(root, "rustc", ["--version", "--verbose"]);
         Some(cargo) <- command_output(root, "cargo", ["--version"]);
-        Some(platform_contract) <- host_contract(root, revision);
-        Some(sanitizer) <- sanitizer_evidence(root, revision);
+        Some(platform_contract) <- host_contract(root, source_revision(identity));
+        Some(sanitizer) <- sanitizer_evidence(root, source_revision(identity));
         Some(evidence) <- retained_evidence(root)
     } else {
         _ -> false
     };
-    write_closeout(root, revision, rustc, cargo, platform_contract, sanitizer, evidence).
+    (let report =
+    closeout_report(
+        source_revision(identity),
+        source_sha256(identity),
+        clean(identity),
+        rustc,
+        cargo,
+        platform_contract,
+        sanitizer,
+        evidence,
+    );
+write_closeout(root, report, source_revision(identity))).
+
+local_report(root: String): Option[Json] ->
+    let {
+        Ok(identity) <- source_tree_identity(root);
+        true <- clean(identity);
+        Some(rustc) <- command_output(root, "rustc", ["--version", "--verbose"]);
+        Some(cargo) <- command_output(root, "cargo", ["--version"]);
+        Some(platform_contract) <- host_contract(root, source_revision(identity));
+        Some(sanitizer) <- sanitizer_evidence(root, source_revision(identity));
+        Some(evidence) <- retained_evidence(root)
+    } else {
+        _ -> None
+    };
+    Some(
+        closeout_report(
+            source_revision(identity),
+            source_sha256(identity),
+            true,
+            rustc,
+            cargo,
+            platform_contract,
+            sanitizer,
+            evidence,
+        ),
+    ).
+
+/**
+ * Verifies candidate-bound AOT evidence without rerunning its owners.
+ */
+pub verify_local(): Bool ->
+    let root = Environment.current_directory();
+    let {
+        Some(actual) <- load_json(child(root, "target/quality/tvm-aot-release-closeout-report.json"));
+        Some(expected) <- local_report(root)
+    } else {
+        _ -> failure("sealed AOT publication evidence is missing, stale, or not from a clean tree")
+    };
+    if {
+        not json_equals(actual, expected) -> failure("sealed AOT publication evidence is stale");
+        true -> let _printed = println("TVM AOT publication evidence verified");
+        true
+    }.
 
 valid_inventory_fixture(): String ->
     String.concat(

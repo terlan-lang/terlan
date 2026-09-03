@@ -344,15 +344,23 @@ make publish
 
 The preflight rejects a non-fast-forward `main`, mismatched local or remote
 tags, stale candidate evidence, and a missing or non-successful validation
-status. It reseals the existing artifacts, refreshes the staged-distribution
-binding, and runs the offline 203-gate composition before pushing anything.
+status. It requires both the exhaustive compiler check and release validation
+to be successful for the exact candidate commit. Candidate validation happens
+once in those hosted workflows; publication does not replay the full Rust test
+suite.
 
 The publisher downloads the exact six-platform distribution from the successful
 status-bearing run, verifies its workflow identity, archive checksums, and
 Sigstore-backed GitHub build-provenance attestations. It also downloads the
-hosted platform and sanitizer evidence, runs controlled MC-9 performance and
-multicore ThreadSanitizer locally, records multicore and AOT closeout, and then
-seals those immutable inputs into the local candidate evidence. It creates an annotated release tag
+hosted platform and sanitizer evidence. If candidate-bound local evidence is
+missing or stale, the first invocation builds the required tools once, runs the
+two isolated performance measurements once under a cross-worktree resource
+lease, and seals multicore and AOT closeout. Later invocations verify that
+evidence read-only, so an interrupted upload does not repeat compilation,
+tests, or performance work. A busy host fails the controlled measurement
+quickly; wait for the competing workload to finish and rerun the same command.
+
+The publisher then creates an annotated release tag
 and uploads every archive, detached checksum, and the sealed candidate manifest
 to a draft release. It verifies that GitHub contains exactly
 the sealed asset names and only then makes the release public. Interrupted

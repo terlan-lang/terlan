@@ -168,7 +168,23 @@ SHELL := bash
 
 .PHONY: tvm-native-image-format-check tvm-direct-aot-backend-check tvm-aot-application-closure-check tvm-aot-case-lowering-check tvm-aot-higher-order-specialization-check tvm-aot-lowering-coverage-check tvm-aot-managed-continuation-check tvm-aot-owned-closure-representation-check tvm-aot-static-callable-check tvm-aot-thread-neutral-continuation-check tvm-aot-typed-lifecycle-check tvm-aot-typed-mailbox-check tvm-managed-memory-check tvm-native-image-loader-check tvm-aot-consumer-check tvm-aot-test-consumer-check tvm-aot-repl-consumer-check tvm-aot-debugger-consumer-check tvm-aot-hot-reload-consumer-check tvm-aot-package-install-consumer-check tvm-aot-support-crash-metadata-check tvm-aot-platform-target-check tvm-aot-platform-matrix-check tvm-aot-http-managed-cycle-check tvm-aot-http-request-accessor-check tvm-aot-http-response-mutation-check tvm-aot-http-typed-metadata-check tvm-aot-http-router-callable-check tvm-aot-http-managed-error-check tvm-aot-http-template-check tvm-aot-http-template-render-plan-check tvm-aot-http-template-expression-check tvm-aot-http-body-json-check tvm-aot-http-session-check tvm-aot-http-managed-boundary-check tvm-aot-http-channel-plan-check tvm-aot-http-persistent-shard-check tvm-aot-http-native-invocation-check tvm-aot-http-websocket-invocation-check tvm-aot-http-sse-invocation-check tvm-aot-http-generation-lifetime-check tvm-aot-http-channel-transport-check tvm-aot-http-cleanup-check tvm-aot-http-lifecycle-inventory-check tvm-aot-http-checked-coreir-reference-record tvm-aot-http-performance-check tvm-single-image-artifact-check tvm-aot-runtime-transition-check tvm-aot-runtime-transition-focused-check tvm-aot-compilation-benchmark-check tvm-aot-compilation-time-check tvm-aot-capability-worker-check
 
-.PHONY: docs-light-check rust-security-audit-check
+.PHONY: docs-light-check rust-security-audit-check terlan-serve-runtime-bootstrap terlan-http-benchmark-release-bootstrap
+
+terlan-serve-runtime-bootstrap:
+ifeq ($(TERLAN_RELEASE_BINARIES_PREBUILT),1)
+	test -x $(TERLAN_SERVE_RUNTIME_BIN)
+else
+	$(TERLAN_SERVE_RUNTIME_BUILD)
+endif
+
+terlan-http-benchmark-release-bootstrap:
+ifeq ($(TERLAN_RELEASE_BINARIES_PREBUILT),1)
+	@for binary in terlan-axum-baseline terlan-hyper-baseline terlan-http-framework-benchmark terlan-http-paired-benchmark; do \
+		test -x "target/release/$$binary"; \
+	done
+else
+	$(CARGO) build --release -p terlan --bin terlan-axum-baseline --bin terlan-hyper-baseline --bin terlan-http-framework-benchmark --bin terlan-http-paired-benchmark --features axum-baseline,benchmark-tools
+endif
 docs-light-check: terlan-rust-quality-bootstrap
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
 		$(TERLAN_RUST_QUALITY) docs-light-self-test
@@ -180,7 +196,7 @@ rust-security-audit-check:
 	cargo-audit audit --deny warnings
 .PHONY: tvm-aot-application-conformance-check tvm-aot-c-abi-boundary-check tvm-aot-closure-dispatch-check tvm-aot-crash-injection-check tvm-aot-image-lifetime-check tvm-aot-multicore-readiness-check tvm-aot-thread-sanitizer-check
 .PHONY: std-vm-parity-matrix-check otp-stdlib-port-check vm-distribution-suite-parity-check vm-multicore-invariant-inventory-check terlan-self-validation-inventory-check terlan-self-validation-capabilities-check terlan-self-validation-clean-checkout-check terlan-self-validation-check editor-release-parity-check docs-static-release-parity-check
-.PHONY: tvm-aot-managed-field-projection-check tvm-aot-platform-matrix-contract-check tvm-aot-thread-sanitizer-contract-check tvm-aot-release-closeout-contract-check tvm-aot-release-closeout-check
+.PHONY: tvm-aot-managed-field-projection-check tvm-aot-platform-matrix-contract-check tvm-aot-thread-sanitizer-contract-check tvm-aot-release-closeout-contract-check tvm-aot-release-closeout-check tvm-aot-publish-evidence-check
 .PHONY: tail-recursion-lowering-check termination-productivity-analysis-check binding-shadowing-safety-check
 .PHONY: no-tvm-json-runtime-check no-vmir-interpreter-check runtime-aot-only-check
 .PHONY: vm-debug-key-compatibility-check
@@ -210,7 +226,7 @@ rust-security-audit-check:
 .PHONY: vm-distributed-state-check
 .PHONY: vm-supervision-restart-check
 .PHONY: vm-timer-deadline-check
-.PHONY: vm-scheduler-fairness-check vm-actor-mutator-ownership-check vm-parallel-messages-suite-parity-check vm-efile-suite-parity-check vm-float-native-arithmetic-check vm-fun-suite-parity-check vm-gc-suite-parity-check vm-guard-suite-parity-check vm-guard-no-opt-suite-parity-check vm-hash-suite-parity-check vm-hello-suite-parity-check vm-hibernate-suite-parity-check vm-small-suite-parity-check vm-smoke-suite-parity-check vm-multicore-mailbox-publication-check vm-multicore-fixed-placement-check tvm-aot-multicore-migration-check vm-multicore-work-stealing-policy-check vm-multicore-work-stealing-check vm-multicore-runtime-cleanup-check tvm-aot-multicore-io-epoch-check vm-multicore-timer-epoch-check vm-multicore-timer-scheduler-check vm-multicore-protocol-reactor-check vm-multicore-capability-worker-check vm-multicore-capability-completion-check vm-multicore-capability-event-pump-check vm-multicore-capability-scheduler-check vm-epmd-discovery-check vm-multicore-runtime-integration-check vm-multicore-replay-observability-check vm-multicore-performance-check vm-multicore-memory-model-check vm-multicore-thread-sanitizer-contract-check vm-multicore-thread-sanitizer-check vm-multicore-mc9-evidence-contract-check vm-multicore-mc9-evidence-check vm-multicore-mc9-local-evidence-check vm-multicore-release-contract-check vm-multicore-release-record vm-multicore-release-check vm-multicore-publish-check
+.PHONY: vm-scheduler-fairness-check vm-actor-mutator-ownership-check vm-parallel-messages-suite-parity-check vm-efile-suite-parity-check vm-float-native-arithmetic-check vm-fun-suite-parity-check vm-gc-suite-parity-check vm-guard-suite-parity-check vm-guard-no-opt-suite-parity-check vm-hash-suite-parity-check vm-hello-suite-parity-check vm-hibernate-suite-parity-check vm-small-suite-parity-check vm-smoke-suite-parity-check vm-multicore-mailbox-publication-check vm-multicore-fixed-placement-check tvm-aot-multicore-migration-check vm-multicore-work-stealing-policy-check vm-multicore-work-stealing-check vm-multicore-runtime-cleanup-check tvm-aot-multicore-io-epoch-check vm-multicore-timer-epoch-check vm-multicore-timer-scheduler-check vm-multicore-protocol-reactor-check vm-multicore-capability-worker-check vm-multicore-capability-completion-check vm-multicore-capability-event-pump-check vm-multicore-capability-scheduler-check vm-epmd-discovery-check vm-multicore-runtime-integration-check vm-multicore-replay-observability-check vm-multicore-performance-record vm-multicore-performance-check vm-multicore-memory-model-check vm-multicore-thread-sanitizer-contract-check vm-multicore-thread-sanitizer-check vm-multicore-mc9-evidence-contract-check vm-multicore-mc9-evidence-check vm-multicore-mc9-local-evidence-check vm-multicore-release-contract-check vm-multicore-release-record vm-multicore-release-check vm-multicore-publish-evidence-refresh vm-multicore-publish-check
 .PHONY: tvm-http-axum-performance-record tvm-http-paired-performance-check tvm-http-decisive-performance-check
 .PHONY: vm-memory-heap-pressure-check
 .PHONY: std-generated-metadata-check
@@ -226,7 +242,7 @@ rust-security-audit-check:
 .PHONY: type-alias-shorthand-check
 .PHONY: compiler-purity-metadata-check
 .PHONY: comprehension-guards-check
-.PHONY: lalrpop-parser-parity-check lean-proof-parser-shape-check lean-proof-native-boundary-check lean-proof-track-check lean-proof-smoke-check lean-proof-feature-binding-check lean-proof-change-impact-report lean-proof-feature-binding-review lean-proof-snapshot-consistency-check lean-proof-counterexample-check lean-proof-track-gap-hygiene-check lean-proof-feature-cull-check proof-repro-check proof_repro_check lean-proof-track-pr-gate lean-proof-track-regression-check lean-proof-track-runtime-check lean-proof-track-release-closeout-check lean-proof-templates-routes-check lean-proof-concurrency-check lean-proof-collections-check lean-proof-wasm-bridge-check lean-proof-db-sql-check lean-proof-std-package-check lean-proof-semantic-kernels-check release-artifacts-closeout-check proof-coverage-release-artifacts-smoke proof-readiness-release-mode-check release-evidence-refresh release-preflight release-check aot-developer-hot-reload-check
+.PHONY: lalrpop-parser-parity-check lean-proof-parser-shape-check lean-proof-native-boundary-check lean-proof-track-check lean-proof-smoke-check lean-proof-feature-binding-check lean-proof-change-impact-report lean-proof-feature-binding-review lean-proof-snapshot-consistency-check lean-proof-counterexample-check lean-proof-track-gap-hygiene-check lean-proof-feature-cull-check proof-repro-check proof_repro_check lean-proof-track-pr-gate lean-proof-track-regression-check lean-proof-track-runtime-check lean-proof-track-release-closeout-check lean-proof-templates-routes-check lean-proof-concurrency-check lean-proof-collections-check lean-proof-wasm-bridge-check lean-proof-db-sql-check lean-proof-std-package-check lean-proof-semantic-kernels-check release-artifacts-closeout-check proof-coverage-release-artifacts-smoke proof-readiness-release-mode-check release-evidence-compose release-evidence-refresh release-preflight release-check publish-evidence-refresh publish-evidence-check publish-evidence-plan-check publish-evidence-refresh-plan-check aot-developer-hot-reload-check
 .PHONY: function-head-pattern-parameters-check function-head-migration-diagnostic-policy-check function-head-migration-lint-check function-head-pattern-migration-assist-check function-head-pattern-migration-benchmark-check function-head-pattern-migration-docs-check function-head-pattern-0-0-7-handoff-check function-head-pattern-parameters-hardening-check
 .PHONY: syntax-contract-check shape-implications-check
 .PHONY: shape-synonyms-check
@@ -385,7 +401,13 @@ endif
 endif
 
 terlan-benchmark-release-bootstrap:
-	$(CARGO) build --release -p terlan --bin terlan-benchmark --features benchmark-tools
+ifeq ($(TERLAN_RELEASE_BINARIES_PREBUILT),1)
+	test -x target/release/terlc
+	test -x target/release/terlan-vm
+	test -x target/release/terlan-benchmark
+else
+	$(CARGO) build --release -p terlan --bin terlc --bin terlan-vm --bin terlan-benchmark --features benchmark-tools
+endif
 
 # GNU Make 4.3 treats its global-serialization special target as process-wide.
 # Keep this target's required ordering explicit without disabling safe
@@ -1421,11 +1443,14 @@ RELEASE_EVIDENCE_GATES := \
 # preflight below only composes and validates existing evidence, so a late
 # failure can be repaired by rerunning the invalidated owner instead of
 # replaying every successful gate.
-release-evidence-refresh: check
+release-evidence-compose:
 	TERLAN_RUST_SUITE_ALREADY_RUN=1 \
 	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
 		$(MAKE) --no-print-directory $(RELEASE_EVIDENCE_GATES)
-	@echo "[release-evidence-refresh] version $(RELEASE_VERSION) candidate-bound evidence refreshed"
+	@echo "[release-evidence-compose] version $(RELEASE_VERSION) candidate-bound evidence composed"
+
+release-evidence-refresh: check
+	$(MAKE) --no-print-directory release-evidence-compose
 
 release-preflight:
 	test -x $(TERLAN_BOOTSTRAP_VM)
@@ -1883,6 +1908,12 @@ AOT_RELEASE_MULTICORE_REUSED_GATES := \
 	tvm-managed-memory-check \
 	rust-quality-check
 
+ifeq ($(TERLAN_RUST_SUITE_ALREADY_RUN),1)
+AOT_RELEASE_CARGO_CHECK := true
+else
+AOT_RELEASE_CARGO_CHECK := env -u RUSTFLAGS $(CARGO) check -p terlan
+endif
+
 ifeq ($(TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN),1)
 AOT_RELEASE_LOCAL_GATES_TO_RUN := $(filter-out $(AOT_RELEASE_MULTICORE_REUSED_GATES),$(AOT_RELEASE_LOCAL_GATES))
 else
@@ -1900,8 +1931,13 @@ tvm-aot-release-closeout-check: tvm-aot-release-closeout-contract-check
 		rg -q "\"source_revision\": \"$$revision\"" target/quality/vm-multicore-release-closeout.json; \
 	fi
 	$(MAKE) $(AOT_RELEASE_LOCAL_GATES_TO_RUN)
-	env -u RUSTFLAGS $(CARGO) check -p terlan
+	$(AOT_RELEASE_CARGO_CHECK)
 	$(TERLAN_TVM_PLATFORM_MATRIX) release-record
+
+tvm-aot-publish-evidence-check:
+	test -x $(TERLAN_BOOTSTRAP_VM)
+	test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)
+	$(TERLAN_TVM_PLATFORM_MATRIX) release-verify
 
 tvm-aot-static-callable-check:
 	$(RUST_TEST) -p terlan --lib compiler::native_ir::static_callable_test
@@ -2359,8 +2395,7 @@ tvm-aot-http-persistent-shard-check: tvm-aot-http-channel-plan-check
 	@! rg -q 'Mutex<PureNativeExecutionShard' crates/terlan/src/commands/serve/handler_cache.rs crates/terlan/src/commands/serve/handler_cache/
 	@rg -q 'sync_channel\(SHARD_INBOX_CAPACITY\)' crates/terlan/src/commands/serve/handler_cache/shard_owner.rs
 
-tvm-http-axum-performance-record:
-	$(CARGO) build --release -p terlan --bin terlan-axum-baseline --bin terlan-http-framework-benchmark --features axum-baseline
+tvm-http-axum-performance-record: terlan-http-benchmark-release-bootstrap
 	TERLAN_BENCH_HTTP_AXUM_BIN=$(CURDIR)/target/release/terlan-axum-baseline \
 	TERLAN_BENCH_HTTP_AXUM_OUTPUT=$(CURDIR)/target/quality/http-axum-performance.json \
 	$(CURDIR)/target/release/terlan-http-framework-benchmark
@@ -2371,10 +2406,7 @@ tvm-http-axum-performance-record:
 
 HTTP_PAIRED_OUTPUT ?= $(CURDIR)/target/quality/http-paired-performance.json
 
-tvm-http-paired-performance-check:
-	$(CARGO) build --release -p terlan --bin terlan-benchmark --features benchmark-tools
-	$(TERLAN_SERVE_RUNTIME_BUILD)
-	$(CARGO) build --release -p terlan --bin terlan-axum-baseline --bin terlan-hyper-baseline --bin terlan-http-framework-benchmark --bin terlan-http-paired-benchmark --features axum-baseline,benchmark-tools
+tvm-http-paired-performance-check: terlan-benchmark-release-bootstrap terlan-serve-runtime-bootstrap terlan-http-benchmark-release-bootstrap
 	$(CURDIR)/target/release/terlan-http-paired-benchmark --self-test
 	TERLAN_COMPILER=$(CURDIR)/target/debug/terlc \
 	TERLAN_BENCH_HTTP_AOT_BENCHMARK_BIN=$(CURDIR)/target/release/terlan-benchmark \
@@ -2473,11 +2505,12 @@ tvm-aot-http-checked-coreir-reference-record: | terlan-benchmark-release-bootstr
 	target/release/terlan-benchmark http-aot-performance
 	test -s ../benchmarks/results/http-checked-coreir-performance.json
 
-tvm-aot-http-performance-check: tvm-aot-http-cleanup-check | terlan-benchmark-release-bootstrap
+tvm-aot-http-performance-check: tvm-aot-http-cleanup-check | terlan-benchmark-release-bootstrap terlan-serve-runtime-bootstrap
 	target/release/terlan-benchmark http-aot-performance-self-test
 	test -s ../benchmarks/results/http-checked-coreir-performance.json
+ifneq ($(TERLAN_RELEASE_BINARIES_PREBUILT),1)
 	$(CARGO) build --release -p terlan --bin terlc
-	$(TERLAN_SERVE_RUNTIME_BUILD)
+endif
 	@! nm -C --defined-only $(TERLAN_SERVE_RUNTIME_BIN) | rg -q 'cranelift_codegen|cranelift_native|regalloc2|terlan_libpq|docker_compose_types|start_project_dependencies|parse_project_manifest'
 	@! ldd $(TERLAN_SERVE_RUNTIME_BIN) | rg -q 'libpq|libssl|libcrypto|libldap|libgnutls|libsasl'
 	@test "$$(size $(TERLAN_SERVE_RUNTIME_BIN) | awk 'NR == 2 { print $$1 }')" -lt 7250000
@@ -2518,7 +2551,13 @@ tvm-single-image-artifact-check: tvm-native-image-format-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --test direct_aot_cache native_aot_cache_verifies_and_recovers_every_required_file -- --exact
 
 tvm-aot-compilation-benchmark-check:
+ifeq ($(TERLAN_RELEASE_BINARIES_PREBUILT),1)
+	test -x target/release/terlc
+	test -x target/release/terlan-vm
+	test -x target/release/terlan-benchmark
+else
 	$(CARGO) build --release -p terlan --bin terlc --bin terlan-vm --bin terlan-benchmark --features benchmark-tools
+endif
 	$(CURDIR)/target/release/terlan-benchmark aot-compilation-self-test
 	@mkdir -p target/quality
 	TERLAN_BENCH_AOT_COMPILATION_OUTPUT=$(CURDIR)/target/quality/aot-compilation-benchmark.json \
@@ -3462,6 +3501,9 @@ vm-multicore-replay-observability-check: rust-quality-check
 vm-multicore-performance-check: rust-quality-check
 	$(RUST_TEST) -p terlan --lib runtime::vm::scheduler_topology::scheduler_topology_test
 	$(RUST_TEST) -p terlan --lib commands::serve::handler_cache::multicore_performance_test -- --nocapture
+	$(MAKE) vm-multicore-performance-record
+
+vm-multicore-performance-record:
 	test -s benchmarks/baselines/vm-multicore-performance-limits.json
 	TERLAN_VM_MULTICORE_PERFORMANCE_OUTPUT=$(CURDIR)/target/quality/vm-multicore-performance.json $(EXACT_CARGO_TEST) --locked --release -p terlan --lib commands::serve::handler_cache::multicore_performance_test::multicore_runtime_width_matrix_records_workloads_and_owner_overlap -- --ignored --exact --nocapture
 	test -s target/quality/vm-multicore-performance.json
@@ -3533,12 +3575,13 @@ vm-multicore-mc9-local-evidence-check:
 		echo 'error[vm.multicore.mc9.local]: install Rust 1.96.0 x86_64-unknown-linux-gnutsan first'; \
 		exit 1; \
 	}
-	env -u GITHUB_ACTIONS \
+	bash scripts/run_controlled_performance.sh -- \
+		env -u GITHUB_ACTIONS \
 		RUSTUP_TOOLCHAIN=1.96.0 \
 		TERLAN_VM_MULTICORE_DEDICATED_RUNNER=terlan-linux-x86_64-multicore-v1 \
 		TERLAN_BENCH_BACKGROUND_LOAD=controlled \
-		$(MAKE) vm-multicore-performance-check
-	env -u GITHUB_ACTIONS $(MAKE) vm-multicore-thread-sanitizer-check
+		$(MAKE) vm-multicore-performance-record
+	test -s target/quality/vm-multicore-thread-sanitizer-report.json
 	$(MAKE) vm-multicore-mc9-evidence-check
 
 VM_MULTICORE_RELEASE_LOCAL_GATES := \
@@ -3579,12 +3622,18 @@ vm-multicore-release-check: vm-multicore-release-contract-check
 	$(MAKE) $(VM_MULTICORE_RELEASE_LOCAL_GATES)
 	$(MAKE) vm-multicore-release-record
 
-vm-multicore-publish-check: vm-multicore-release-contract-check
+vm-multicore-publish-evidence-refresh: vm-multicore-release-contract-check
+	test -s target/quality/hosted-candidate-validation.json
+	@revision=$$(git rev-parse HEAD); rg -q "\"source_revision\": \"$$revision\"" target/quality/hosted-candidate-validation.json
 	$(MAKE) vm-multicore-mc9-local-evidence-check
-	@rg -q '"provenance_mode": "local"' target/quality/vm-multicore-mc9-evidence.json
 	@rg -q '"source_tree_clean": true' target/quality/vm-multicore-mc9-evidence.json
-	$(MAKE) $(VM_MULTICORE_PUBLISH_LOCAL_GATES)
+	TERLAN_RUST_SUITE_ALREADY_RUN=1 $(MAKE) $(VM_MULTICORE_PUBLISH_LOCAL_GATES)
 	$(MAKE) vm-multicore-release-record
+
+vm-multicore-publish-check:
+	test -x $(TERLAN_BOOTSTRAP_VM)
+	test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)
+	$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify
 
 vm-final-health-check:
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::resource::resource_test::resource_table_cleans_up_owner_resources_on_process_exit -- --exact
@@ -4687,8 +4736,13 @@ publish-preflight:
 		echo "remote tag v$(VERSION) already exists at HEAD; release upload can be retried"; \
 	fi
 	bash scripts/download_validated_release_artifacts.sh "$$(git rev-parse HEAD)"
-	$(MAKE) --no-print-directory vm-multicore-publish-check
-	$(MAKE) --no-print-directory tvm-aot-release-closeout-check TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN=1
+	$(MAKE) --no-print-directory publish-evidence-plan-check
+	$(MAKE) --no-print-directory publish-evidence-refresh-plan-check
+	@if ! $(MAKE) --no-print-directory publish-evidence-check; then \
+		echo '[publish] candidate evidence is absent or stale; refreshing its owners once'; \
+		$(MAKE) --no-print-directory publish-evidence-refresh; \
+	fi
+	$(MAKE) --no-print-directory publish-evidence-check
 	$(MAKE) release-boundary-check
 	$(MAKE) source-extension-check
 	$(MAKE) terlan-release-promotion-bootstrap
@@ -4696,6 +4750,74 @@ publish-preflight:
 		$(TERLAN_RELEASE_PROMOTION) seal --version "$(VERSION)"
 	$(MAKE) release-staged-distribution-verification-refresh
 	$(MAKE) release-preflight RELEASE_VERSION="$(VERSION)"
+
+publish-evidence-refresh:
+	$(MAKE) --no-print-directory \
+		terlan-self-validation-bootstrap \
+		terlan-quality-tools-bootstrap \
+		terlan-native-worker-bootstrap \
+		terlan-benchmark-release-bootstrap \
+		terlan-serve-runtime-bootstrap \
+		terlan-http-benchmark-release-bootstrap
+	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
+	TERLAN_RELEASE_BINARIES_PREBUILT=1 \
+		$(MAKE) --no-print-directory vm-multicore-publish-evidence-refresh
+	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
+	TERLAN_RELEASE_BINARIES_PREBUILT=1 \
+		$(MAKE) --no-print-directory tvm-managed-list-profile-benchmark-check
+	TERLAN_RUST_SUITE_ALREADY_RUN=1 \
+	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
+	TERLAN_RELEASE_BINARIES_PREBUILT=1 \
+		$(MAKE) --no-print-directory tvm-aot-release-closeout-check TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN=1
+	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
+	TERLAN_RELEASE_BINARIES_PREBUILT=1 \
+		$(MAKE) --no-print-directory release-evidence-compose
+
+publish-evidence-check:
+	$(MAKE) --no-print-directory vm-multicore-publish-check
+	$(MAKE) --no-print-directory tvm-aot-publish-evidence-check
+
+publish-evidence-plan-check:
+	@set -eu; \
+	plan=$$(mktemp); \
+	trap 'rm -f "$$plan"' EXIT; \
+	env -u TERLAN_VALIDATION_BOOTSTRAPPED \
+		-u TERLAN_BUILD_ARTIFACTS_PREBUILT \
+		-u TERLAN_RUST_SUITE_ALREADY_RUN \
+		-u TERLAN_RELEASE_BINARIES_PREBUILT \
+		$(MAKE) --no-print-directory -n publish-evidence-check >"$$plan"; \
+	if rg -n '(^|[[:space:]])cargo([[:space:]]|$$)|run_exact_cargo_test|terlc (test|build)' "$$plan"; then \
+		echo 'error[publish.evidence.plan]: verification replays build or test work' >&2; \
+		exit 1; \
+	fi; \
+	echo '[publish-evidence-plan] zero build and test replays'
+
+publish-evidence-refresh-plan-check:
+	@set -eu; \
+	plan=$$(mktemp); \
+	trap 'rm -f "$$plan"' EXIT; \
+	env -u TERLAN_VALIDATION_BOOTSTRAPPED \
+		-u TERLAN_BUILD_ARTIFACTS_PREBUILT \
+		-u TERLAN_RUST_SUITE_ALREADY_RUN \
+		-u TERLAN_RELEASE_BINARIES_PREBUILT \
+		$(MAKE) --no-print-directory -Bn publish-evidence-refresh >"$$plan"; \
+	cargo_count=$$(rg -c '^cargo --locked ' "$$plan" || true); \
+	exact_count=$$(rg -c 'run_exact_cargo_test' "$$plan" || true); \
+	duplicate_cargo=$$(rg '^cargo --locked ' "$$plan" | sort | uniq -d || true); \
+	if test "$$cargo_count" -gt 6; then \
+		echo "error[publish.evidence.refresh_plan]: $$cargo_count Cargo invocations exceed the six-invocation budget" >&2; \
+		exit 1; \
+	fi; \
+	if test "$$exact_count" -gt 2; then \
+		echo "error[publish.evidence.refresh_plan]: $$exact_count exact Cargo selectors exceed the two isolated-benchmark budget" >&2; \
+		exit 1; \
+	fi; \
+	if test -n "$$duplicate_cargo"; then \
+		echo 'error[publish.evidence.refresh_plan]: duplicate equivalent Cargo build:' >&2; \
+		echo "$$duplicate_cargo" >&2; \
+		exit 1; \
+	fi; \
+	echo "[publish-evidence-refresh-plan] cargo=$$cargo_count exact-isolated=$$exact_count duplicate-builds=0"
 
 publish: publish-preflight
 	@if ! git rev-parse -q --verify "refs/tags/v$(VERSION)" >/dev/null; then \

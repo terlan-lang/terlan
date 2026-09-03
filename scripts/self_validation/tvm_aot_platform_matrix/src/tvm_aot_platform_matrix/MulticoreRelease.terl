@@ -12,7 +12,7 @@ import std.io.Console.{eprintln, println}.
 import std.io.Directory.{create_all}.
 import std.io.File.{read_text}.
 import std.system.Environment.
-import std.vcs.Git.{revision, sha256 as source_sha256, source_tree_identity}.
+import std.vcs.Git.{clean, revision, sha256 as source_sha256, source_tree_identity}.
 import tvm_aot_platform_matrix.Core.{child, fragments_present, is_sha256, json_bool, json_equals, json_string, json_value, load_json, occurrences, string_array, write_json}.
 import tvm_aot_platform_matrix.MulticoreMc9Evidence as Mc9.
 import tvm_aot_platform_matrix.ReleaseCloseout.{list_equal, make_list_variable}.
@@ -87,10 +87,13 @@ pub validate_makefile(makefile: String): Bool ->
                         "VM_MULTICORE_RELEASE_LOCAL_GATES := \\\n\tvm-multicore-thread-sanitizer-check",
                     ) -> false;
                 not makefile.contains(release_target()) -> false;
-                not makefile.contains("vm-multicore-publish-check: vm-multicore-release-contract-check") -> false;
+                not makefile.contains("vm-multicore-publish-evidence-refresh: vm-multicore-release-contract-check") -> false;
+                not makefile.contains("vm-multicore-publish-check:") -> false;
                 not makefile.contains("$(MAKE) vm-multicore-mc9-local-evidence-check") -> false;
                 not makefile.contains("$(MAKE) $(VM_MULTICORE_PUBLISH_LOCAL_GATES)") -> false;
                 not makefile.contains("$(MAKE) --no-print-directory vm-multicore-publish-check") -> false;
+                not makefile.contains("$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify") -> false;
+                not makefile.contains("publish-evidence-plan-check:") -> false;
                 true -> fragments_present(
                     makefile,
                     [
@@ -354,6 +357,49 @@ pub record(): Bool ->
     if {
         not write_json(child(root, "target/quality/vm-multicore-release-closeout.json"), report) -> false;
         true -> let _printed = println(String.append("VM multicore release closeout passed: ", revision(identity)));
+        true
+    }.
+
+/**
+ * Verifies the sealed closeout against the current clean source identity and
+ * every file digest used to construct it. This is intentionally read-only so
+ * publication retries cannot silently replace candidate evidence.
+ */
+pub verify(): Bool ->
+    let root = Environment.current_directory();
+    let report_path = child(root, "target/quality/vm-multicore-release-closeout.json");
+    let mc9_path = child(root, "target/quality/vm-multicore-mc9-evidence.json");
+    let inventory_path = child(root, "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json");
+    let contract_path = child(root, "docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md");
+    let {
+        Some(actual) <- load_json(report_path);
+        Some(joined_mc9) <- load_json(mc9_path);
+        Ok(inventory_source) <- read_text(inventory_path);
+        Ok(inventory) <- Json.parse(inventory_source);
+        Ok(contract_source) <- read_text(contract_path);
+        Ok(identity) <- source_tree_identity(root);
+        Ok(mc9_digest) <- sha256_file(mc9_path);
+        Some(expected) <-
+            build_closeout(
+                joined_mc9,
+                inventory,
+                inventory_source,
+                contract_source,
+                revision(identity),
+                source_sha256(identity),
+                mc9_digest,
+            )
+    } else {
+        _ -> failure("sealed publication evidence is missing or malformed")
+    };
+    if {
+        not clean(identity) -> failure("publication evidence requires a clean source tree");
+        not validate_closeout(actual) -> failure("sealed publication evidence is invalid");
+        not json_equals(actual, expected) -> failure("sealed publication evidence is stale");
+        true -> let _printed =
+            println(
+                String.append("VM multicore publication evidence verified: ", revision(identity)),
+            );
         true
     }.
 

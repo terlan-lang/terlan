@@ -846,7 +846,9 @@ build_release_contract(repository: String): Bool ->
         "TERLAN_QUALITY=$(CURDIR)/target/debug/terlan-quality",
         "TERLAN_VALIDATION_BOOTSTRAPPED=1",
         "VERSION ?= $(RELEASE_VERSION)",
-        "vm-multicore-publish-check: vm-multicore-release-contract-check",
+        "vm-multicore-publish-evidence-refresh: vm-multicore-release-contract-check",
+        "publish-evidence-plan-check:",
+        "$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify",
         "$(MAKE) vm-multicore-mc9-local-evidence-check",
         "$(MAKE) --no-print-directory vm-multicore-publish-check",
     ];
@@ -926,6 +928,9 @@ if {
         "tvm-aot-thread-sanitizer-report.json",
         "vm-multicore-thread-sanitizer-report.json",
         "vm-multicore-memory-model-tsan.json",
+        "hosted-candidate-validation.json",
+        "Compiler check and test",
+        ".github/workflows/ci.yml",
     ],
 ) -> failure("build_release.download", "validated artifact download contract drifted");
     not contains_all(

@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
-if [[ ! -f Cargo.toml || ! -d crates/terlan || ! -d .git ]]; then
+if [[ ! -f Cargo.toml || ! -d crates/terlan || ! -e .git ]]; then
   echo "build cleanup must run from the Terlan repository root" >&2
   exit 1
 fi

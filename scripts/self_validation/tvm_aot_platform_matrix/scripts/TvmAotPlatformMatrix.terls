@@ -10,10 +10,10 @@ import tvm_aot_platform_matrix.AotThreadSanitizer.{run as run_tsan, self_test as
 import tvm_aot_platform_matrix.Core.{aggregate, run_target}.
 import tvm_aot_platform_matrix.ErlSuiteAudit.{check as check_erl_suite, self_test as erl_suite_self_test}.
 import tvm_aot_platform_matrix.MulticoreMc9Evidence.{seal as seal_multicore_mc9, self_test as multicore_mc9_self_test}.
-import tvm_aot_platform_matrix.MulticoreRelease.{record as record_multicore_release, self_test as multicore_release_self_test}.
+import tvm_aot_platform_matrix.MulticoreRelease.{record as record_multicore_release, self_test as multicore_release_self_test, verify as verify_multicore_release}.
 import tvm_aot_platform_matrix.MulticoreThreadSanitizer.{run as run_multicore_tsan, self_test as multicore_tsan_self_test}.
 import tvm_aot_platform_matrix.ReleaseArtifact.{adversarial as adversarial_release_artifact, describe as describe_release_artifact, installer_smoke as smoke_release_installer, matrix as release_artifact_matrix, metadata as release_artifact_metadata, package as package_release_artifact, repository_root, self_test as release_artifact_self_test, smoke as smoke_release_artifact}.
-import tvm_aot_platform_matrix.ReleaseCloseout.{record_local as record_release, self_test as release_self_test}.
+import tvm_aot_platform_matrix.ReleaseCloseout.{record_local as record_release, self_test as release_self_test, verify_local as verify_release}.
 import tvm_aot_platform_matrix.ReleaseGeneratedArtifacts.{finalize as finalize_release_generated_artifacts, record as record_release_generated_artifacts, self_test as release_generated_artifacts_self_test}.
 import tvm_aot_platform_matrix.ReleaseInstallerSmoke.{staged as verify_staged_distribution}.
 import tvm_aot_platform_matrix.RuntimeReleaseDependencies.{check as check_runtime_release_dependencies, self_test as runtime_release_dependencies_self_test}.
@@ -31,12 +31,14 @@ entry(): Bool ->
         Some("tsan-run") -> run_tsan();
         Some("tsan-self-test") -> tsan_self_test();
         Some("release-record") -> record_release();
+        Some("release-verify") -> verify_release();
         Some("release-self-test") -> release_self_test();
         Some("multicore-tsan-run") -> run_multicore_tsan();
         Some("multicore-tsan-self-test") -> multicore_tsan_self_test();
         Some("multicore-mc9-seal") -> seal_multicore_mc9();
         Some("multicore-mc9-self-test") -> multicore_mc9_self_test();
         Some("multicore-release-record") -> record_multicore_release();
+        Some("multicore-release-verify") -> verify_multicore_release();
         Some("multicore-release-self-test") -> multicore_release_self_test();
         Some("release-artifact-describe") -> describe_release_artifact();
         Some("release-artifact-metadata") -> release_artifact_metadata();
