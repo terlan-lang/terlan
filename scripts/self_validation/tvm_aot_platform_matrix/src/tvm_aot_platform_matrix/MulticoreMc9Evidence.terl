@@ -779,7 +779,7 @@ contract_files_valid(root: String): Bool ->
         and makefile.contains("vm-multicore-publish-evidence-refresh: vm-multicore-release-contract-check")
         and makefile.contains("vm-multicore-publish-check:")
         and makefile.contains("$(TERLAN_TVM_PLATFORM_MATRIX) multicore-mc9-seal")
-        and makefile.contains("bash scripts/run_controlled_performance.sh --")
+        and makefile.contains("$(TERLAN_TVM_PLATFORM_MATRIX) controlled-performance --")
         and makefile.contains("$(MAKE) vm-multicore-mc9-local-evidence-check")
         and makefile.contains("$(MAKE) --no-print-directory vm-multicore-publish-check")
         and release.contains("run: make vm-multicore-thread-sanitizer-check")

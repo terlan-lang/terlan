@@ -3575,7 +3575,7 @@ vm-multicore-mc9-local-evidence-check:
 		echo 'error[vm.multicore.mc9.local]: install Rust 1.96.0 x86_64-unknown-linux-gnutsan first'; \
 		exit 1; \
 	}
-	bash scripts/run_controlled_performance.sh -- \
+	$(TERLAN_TVM_PLATFORM_MATRIX) controlled-performance -- \
 		env -u GITHUB_ACTIONS \
 		RUSTUP_TOOLCHAIN=1.96.0 \
 		TERLAN_VM_MULTICORE_DEDICATED_RUNNER=terlan-linux-x86_64-multicore-v1 \
