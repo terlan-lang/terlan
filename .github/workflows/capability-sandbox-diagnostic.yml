@@ -2,6 +2,11 @@ name: Capability sandbox diagnostic
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - "release-validation/**"
+    paths:
+      - ".github/workflows/capability-sandbox-diagnostic.yml"
 
 permissions:
   contents: read
