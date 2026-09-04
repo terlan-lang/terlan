@@ -10,7 +10,7 @@ import std.data.Json.
 import std.io.Console.{eprintln, println}.
 import std.io.File.{read_text}.
 import std.system.Environment.
-import tvm_aot_platform_matrix.Core.{build_matrix, json_string, matrix_schema, official_repository, provenance, provenance_input, put_execution_fields, put_target_artifact, put_target_identity, report, string_array, targets, workflow_contract, workflow_text_valid}.
+import tvm_aot_platform_matrix.Core.{build_matrix, json_string, matrix_schema, native_setup_text_valid, official_repository, provenance, provenance_input, put_execution_fields, put_target_artifact, put_target_identity, report, string_array, targets, workflow_contract, workflow_text_valid}.
 
 import type std.core.Option.
 import type std.data.Json.
@@ -130,7 +130,12 @@ provenance_self_test(): Bool ->
 )
     }.
 
-self_test_assertions(ci: String, valid_matrix: Json, incomplete: List[Report]): Bool ->
+self_test_assertions(
+    ci: String,
+    native_setup: String,
+    valid_matrix: Json,
+    incomplete: List[Report],
+): Bool ->
     let normalized_ci = String.replace(ci, "\r\n", "\n");
     let crlf_ci = String.replace(normalized_ci, "\n", "\r\n");
     let missing_dispatch = String.replace(normalized_ci, "  workflow_dispatch:\n", "");
@@ -139,9 +144,11 @@ self_test_assertions(ci: String, valid_matrix: Json, incomplete: List[Report]): 
     let missing_install =
         String.replace(
             normalized_ci,
-            "          $installedBin = Join-Path $installed \"bin\"\n",
+            "        uses: ./.github/actions/setup-native-dependencies\n",
             "",
         );
+    let missing_pkgconf = String.replace(native_setup, " \"pkgconf:$triplet\"", "");
+    let masked_installer_failure = String.replace(native_setup, "$LASTEXITCODE -ne 0", "$false");
     if {
         not workflow_contract() -> false;
         not workflow_text_valid(crlf_ci) -> failure("workflow checker rejected Windows line endings");
@@ -149,6 +156,9 @@ self_test_assertions(ci: String, valid_matrix: Json, incomplete: List[Report]): 
             or workflow_text_valid(wrong_runner)
             or workflow_text_valid(missing_row)
             or workflow_text_valid(missing_install) -> failure("workflow checker admitted invalid input");
+        not native_setup_text_valid(native_setup) -> failure("native dependency action rejected valid input");
+        native_setup_text_valid(missing_pkgconf)
+            or native_setup_text_valid(masked_installer_failure) -> failure("native dependency checker admitted invalid input");
         not provenance_self_test() -> failure("provenance checker admitted invalid input");
         not matrix_schema_valid(valid_matrix) -> failure("valid matrix did not aggregate");
         matrix_present(incomplete) -> failure("incomplete executable checks passed");
@@ -166,23 +176,26 @@ self_test_assertions(ci: String, valid_matrix: Json, incomplete: List[Report]): 
         true
     }.
 
-self_test_with_matrix(ci: String, valid_matrix: Json): Bool ->
+self_test_with_matrix(ci: String, native_setup: String, valid_matrix: Json): Bool ->
     case replace_last_with("executed_checks", string_array(["compiler-generated-image"])) {
-        Some(incomplete) -> self_test_assertions(ci, valid_matrix, incomplete);
+        Some(incomplete) -> self_test_assertions(ci, native_setup, valid_matrix, incomplete);
         None -> failure("cannot construct incomplete fixture")
     }.
 
-self_test_with_ci(ci: String): Bool ->
+self_test_with_ci(ci: String, native_setup: String): Bool ->
     let fixture_targets = targets();
     let reports = fixture_reports(fixture_targets);
     case build_matrix(reports) {
-        Some(valid_matrix) -> self_test_with_matrix(ci, valid_matrix);
+        Some(valid_matrix) -> self_test_with_matrix(ci, native_setup, valid_matrix);
         None -> failure("cannot construct valid matrix fixture")
     }.
 
 pub self_test(): Bool ->
     let root = Environment.current_directory();
-    case read_text(String.append(root, "/.github/workflows/ci.yml")) {
-        Ok(ci) -> self_test_with_ci(ci);
-        _ -> failure("cannot read CI workflow fixture")
+    case {
+    read_text(String.append(root, "/.github/workflows/ci.yml")),
+    read_text(String.append(root, "/.github/actions/setup-native-dependencies/action.yml")),
+} {
+        {Ok(ci), Ok(native_setup)} -> self_test_with_ci(ci, native_setup);
+        _ -> failure("cannot read platform workflow fixtures")
     }.

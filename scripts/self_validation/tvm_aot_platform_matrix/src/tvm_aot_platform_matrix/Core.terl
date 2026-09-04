@@ -707,8 +707,7 @@ pub workflow_text_valid(workflow: String): Bool ->
                 "make tvm-aot-platform-target-check",
                 "TERLAN_MATRIX_TARGET: ${{ matrix.target }}",
                 "make tvm-aot-platform-aggregate-check",
-                "$installedBin = Join-Path $installed \"bin\"",
-                "Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append",
+                "uses: ./.github/actions/setup-native-dependencies",
                 "cargo test --locked --no-default-features --features native-codegen -p terlan --bin terlan-vm",
                 "retention-days: 90",
                 "uses: actions/checkout@",
@@ -717,6 +716,24 @@ pub workflow_text_valid(workflow: String): Bool ->
             ],
         )
     }.
+
+pub native_setup_text_valid(action: String): Bool ->
+    let normalized_action = String.replace(action, "\r\n", "\n");
+    not normalized_action.contains("pkgconfiglite")
+        and fragments_present(
+    normalized_action,
+    [
+        "if: startsWith(inputs.target, 'linux-')",
+        "if: startsWith(inputs.target, 'macos-')",
+        "if: startsWith(inputs.target, 'windows-')",
+        "choco install make --yes --no-progress",
+        "\"libpq:$triplet\" \"pkgconf:$triplet\"",
+        "$installedBin = Join-Path $installed \"bin\"",
+        "$pkgConfig = Join-Path $installed \"tools\\pkgconf\\pkgconf.exe\"",
+        "\"PKG_CONFIG=$pkgConfig\"",
+        "$LASTEXITCODE -ne 0",
+    ],
+).
 
 ci_trigger_valid(workflow: String): Bool ->
     let normalized_workflow = String.replace(workflow, "\r\n", "\n");
@@ -736,12 +753,14 @@ pub workflow_contract(): Bool ->
     let {
         Ok(ci) <- read_text(child(root, ".github/workflows/ci.yml"));
         Ok(release) <- read_text(child(root, ".github/workflows/release.yml"));
+        Ok(native_setup) <- read_text(child(root, ".github/actions/setup-native-dependencies/action.yml"));
         Ok(makefile) <- read_text(child(root, "Makefile"))
     } else {
         _ -> failure("workflow", "cannot read workflow contract inputs")
     };
     if {
         not workflow_text_valid(ci) or not workflow_text_valid(release) -> failure("workflow", "native platform matrix workflow drifted");
+        not native_setup_text_valid(native_setup) -> failure("workflow", "target-native dependency action drifted");
         not ci_trigger_valid(ci) -> failure("workflow", "CI trigger contract drifted");
         occurrences(ci, "      - \"docs/**\"") != 2 -> failure("workflow", "CI path filters drifted");
         release.contains("    tags:\n") -> failure("workflow", "release validation must not rerun after tagging");
