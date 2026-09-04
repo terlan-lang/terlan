@@ -450,7 +450,7 @@ impl VmCapabilityWorkerClient {
             .current_dir(sandbox_dir.path())
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null());
+            .stderr(capability_worker_stderr());
         for capability in &policy.capabilities {
             command.arg("--allow").arg(capability);
         }
@@ -826,6 +826,19 @@ impl VmCapabilityWorkerClient {
             )?);
         }
         Ok(completions)
+    }
+}
+
+/// Keeps untrusted worker diagnostics out of the production process while
+/// exposing sandbox-launch failures to the real-process integration tests.
+fn capability_worker_stderr() -> Stdio {
+    #[cfg(test)]
+    {
+        Stdio::inherit()
+    }
+    #[cfg(not(test))]
+    {
+        Stdio::null()
     }
 }
 
