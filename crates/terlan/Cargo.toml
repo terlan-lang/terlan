@@ -137,7 +137,7 @@ ammonia = "4.1.4"
 axum = { version = "0.8.9", optional = true }
 base64.workspace = true
 basic-toml = "0.1.10"
-comrak = { version = "0.52", default-features = false }
+comrak = { version = "0.54", default-features = false }
 concurrent-queue = "2.5.0"
 cookie = "0.18"
 cranelift-codegen = { version = "=0.133.1", optional = true }
