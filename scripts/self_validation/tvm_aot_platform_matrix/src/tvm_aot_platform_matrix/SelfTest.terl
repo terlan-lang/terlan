@@ -88,6 +88,12 @@ matrix_rejects(field: String, value: Json): Bool ->
         None -> false
     }.
 
+matrix_accepts(field: String, value: Json): Bool ->
+    case replace_last_with(field, value) {
+        Some(reports) -> matrix_present(reports);
+        None -> false
+    }.
+
 json_option_present(value: Option[Json]): Bool ->
     case value {
         Some(_json) -> true;
@@ -167,6 +173,8 @@ self_test_assertions(
         not matrix_rejects("source_revision", Json.string("mixed-revision")) -> failure("mixed revision passed");
         not matrix_rejects("execution_environment", Json.string("local")) -> failure("local row passed");
         not matrix_rejects("run_id", Json.int(101)) -> failure("mixed run passed");
+        not matrix_rejects("run_attempt", Json.int(0)) -> failure("non-positive run attempt passed");
+        not matrix_accepts("run_attempt", Json.int(2)) -> failure("independent retry attempt was rejected");
         not matrix_rejects("commit_sha", Json.string("unrelated-commit")) -> failure("unrelated commit passed");
         not matrix_rejects("descriptor_digest", Json.string("not-a-digest")) -> failure("invalid descriptor digest passed");
         not matrix_rejects("image_sha256", Json.string("CDCD")) -> failure("invalid image digest passed");

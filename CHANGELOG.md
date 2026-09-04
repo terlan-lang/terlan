@@ -14,6 +14,9 @@ All notable release-facing changes to Terlan are tracked here.
   against their declared environment, and close arbitrary inherited runner
   descriptors before starting a worker instead of assuming single-digit file
   descriptor identities.
+- Permit independently retried native platform jobs to contribute to one
+  commit- and workflow-bound release matrix without rerunning successful
+  platforms after an artifact-service failure.
 - Remove the vulnerable OpenTelemetry 0.31 graph from the Foundations adapter;
   logging and metrics remain available while tracing and OTLP await an upstream
   patched dependency line.

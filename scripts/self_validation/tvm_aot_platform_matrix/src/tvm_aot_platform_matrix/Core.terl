@@ -68,7 +68,7 @@ pub provenance_input(
 
 pub target_schema(): String -> "terlan.tvm-aot-platform-target.v2".
 
-pub matrix_schema(): String -> "terlan.tvm-aot-platform-matrix.v2".
+pub matrix_schema(): String -> "terlan.tvm-aot-platform-matrix.v3".
 
 pub official_repository(): String -> "terlan-lang/terlan".
 
@@ -899,8 +899,9 @@ common_provenance(report: Json, reference: Json): Bool ->
     };
     if {
         environment != "github-actions" or repository != official_repository() -> false;
+        run_attempt <= 0 or reference_attempt <= 0 -> false;
         repository != reference_repository or workflow_ref != reference_workflow -> false;
-        run_id != reference_run or run_attempt != reference_attempt -> false;
+        run_id != reference_run -> false;
         commit != reference_commit or version != reference_version -> false;
         revision != reference_revision -> false;
         true -> String.starts_with(commit, revision)
@@ -955,7 +956,6 @@ pub build_matrix(reports: List[Report]): Option[Json] ->
                     Some(revision) <- json_string(reference, "source_revision");
                     Some(workflow_ref) <- json_string(reference, "workflow_ref");
                     Some(run_id) <- json_int(reference, "run_id");
-                    Some(run_attempt) <- json_int(reference, "run_attempt");
                     Some(commit) <- json_string(reference, "commit_sha")
                 } else {
                     _ -> None
@@ -967,15 +967,13 @@ pub build_matrix(reports: List[Report]): Option[Json] ->
         .put("version", Json.string(version))
         .put("source_revision", Json.string(revision));
 let execution =
-    put_execution_fields(
-        identity,
-        Json.string("github-actions"),
-        Json.string(official_repository()),
-        Json.string(workflow_ref),
-        Json.int(run_id),
-        Json.int(run_attempt),
-        Json.string(commit),
-    );
+    identity
+        .put("execution_environment", Json.string("github-actions"))
+        .put("repository", Json.string(official_repository()))
+        .put("workflow_ref", Json.string(workflow_ref))
+        .put("run_id", Json.int(run_id))
+        .put("run_attempt_policy", Json.string("independent-target-producers"))
+        .put("commit_sha", Json.string(commit));
 Some(
     execution
         .put("target_count", Json.int(6))

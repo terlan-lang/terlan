@@ -44,6 +44,14 @@
       "evidence": ".github/actions/setup-native-dependencies/action.yml"
     },
     {
+      "surface": "release.platform-retry-provenance",
+      "classification": "compatible-tightening",
+      "previous": "one transient platform artifact upload required every successful native platform job to be rebuilt in a new workflow attempt",
+      "current": "independent platform attestations may retain distinct positive retry attempts while remaining bound to one official workflow run, source commit, release version, and target",
+      "guidance": "Re-run only failed independent platform jobs; retain same-attempt enforcement for temporally coupled evidence.",
+      "evidence": "scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl"
+    },
+    {
       "surface": "planning.feature-roadmap",
       "classification": "private",
       "previous": "feature work was planned under the 0.0.8 release number",

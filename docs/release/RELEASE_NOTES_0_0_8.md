@@ -17,6 +17,13 @@ Native platform setup is now shared by compiler and release matrices. Windows
 uses target-matched vcpkg `libpq` and `pkgconf` packages and fails immediately
 when any installer or tool smoke check fails.
 
+Native platform attestations remain bound to the official repository, workflow
+run, source commit, release version, and target. Each independent platform job
+retains its own positive run-attempt identity, allowing a failed artifact upload
+to be retried without rebuilding the five successful platforms. Evidence that
+depends on temporal coupling, including performance and sanitizer pairing,
+continues to require its stricter provenance policy.
+
 Security analysis is repository-owned and limited to maintained GitHub Actions
 and Rust source. The removed Python surface is no longer submitted to CodeQL.
 The Foundations adapter updates to 5.9.2 and removes tracing and OTLP feature
