@@ -137,7 +137,7 @@ ammonia = "4.1.4"
 axum = { version = "0.8.9", optional = true }
 base64.workspace = true
 basic-toml = "0.1.10"
-comrak = { version = "0.52", default-features = false }
+comrak = { version = "0.54", default-features = false }
 concurrent-queue = "2.5.0"
 cookie = "0.18"
 cranelift-codegen = { version = "=0.133.1", optional = true }
@@ -152,7 +152,7 @@ mime_guess = "2"
 lalrpop-util = { version = "=0.23.1", default-features = false }
 md-5 = "0.11.0"
 mio = { version = "1.2.2", features = ["net", "os-poll"] }
-oxc_allocator = "0.134.0"
+oxc_allocator = "0.146.0"
 oxc_ast = "0.134.0"
 oxc_codegen = "0.134.0"
 oxc_parser = "0.134.0"
@@ -173,7 +173,7 @@ openapiv3 = "2.2.0"
 percent-encoding = "2.3.2"
 quick-xml = "0.41.0"
 rcgen = "0.13"
-rand = "0.9.4"
+rand = "0.10.2"
 regex = "1"
 rustls = "0.23"
 rustls-webpki = "0.103.13"
