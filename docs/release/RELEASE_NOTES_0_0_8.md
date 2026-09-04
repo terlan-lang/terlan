@@ -10,6 +10,9 @@ worker, standard library, editor payloads, reference applications, and platform
 artifacts. Linux compiler CI now installs bubblewrap and enables its required
 unprivileged-user-namespace host prerequisite before capability-sandbox tests,
 instead of allowing the environment to produce a false runtime failure.
+Native platform setup is now shared by compiler and release matrices. Windows
+uses target-matched vcpkg `libpq` and `pkgconf` packages and fails immediately
+when any installer or tool smoke check fails.
 
 Security analysis is repository-owned and limited to maintained GitHub Actions
 and Rust source. The removed Python surface is no longer submitted to CodeQL.

@@ -1,0 +1,63 @@
+name: Set up native build dependencies
+description: Install the target-native tools and libpq payload used by AOT validation.
+
+inputs:
+  target:
+    description: Terlan release platform identifier.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install Linux native dependencies
+      if: startsWith(inputs.target, 'linux-')
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
+
+    - name: Install macOS native dependencies
+      if: startsWith(inputs.target, 'macos-')
+      shell: bash
+      run: |
+        brew install libpq pkg-config
+        echo "$(brew --prefix libpq)/bin" >> "$GITHUB_PATH"
+        echo "PKG_CONFIG_PATH=$(brew --prefix libpq)/lib/pkgconfig" >> "$GITHUB_ENV"
+
+    - name: Install Windows native dependencies
+      if: startsWith(inputs.target, 'windows-')
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        $triplet = if ("${{ inputs.target }}" -eq "windows-aarch64") {
+          "arm64-windows"
+        } else {
+          "x64-windows"
+        }
+
+        choco install make --yes --no-progress
+        if ($LASTEXITCODE -ne 0) {
+          throw "Chocolatey failed to install make with exit code $LASTEXITCODE"
+        }
+
+        $vcpkg = Join-Path $env:VCPKG_INSTALLATION_ROOT "vcpkg.exe"
+        & $vcpkg install "libpq:$triplet" "pkgconf:$triplet"
+        if ($LASTEXITCODE -ne 0) {
+          throw "vcpkg failed to install native dependencies for $triplet with exit code $LASTEXITCODE"
+        }
+
+        $installed = Join-Path $env:VCPKG_INSTALLATION_ROOT "installed\$triplet"
+        $installedBin = Join-Path $installed "bin"
+        $pkgConfig = Join-Path $installed "tools\pkgconf\pkgconf.exe"
+        if (-not (Test-Path -PathType Leaf $pkgConfig)) {
+          throw "vcpkg did not install pkgconf at $pkgConfig"
+        }
+        & $pkgConfig --version
+        if ($LASTEXITCODE -ne 0) {
+          throw "pkgconf smoke check failed with exit code $LASTEXITCODE"
+        }
+
+        $installedBin |
+          Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        "PKG_CONFIG=$pkgConfig" |
+          Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "PKG_CONFIG_PATH=$installed\lib\pkgconfig;$installed\share\pkgconfig" |
+          Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append

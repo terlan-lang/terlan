@@ -187,6 +187,10 @@ and release work.
     bootstrap inside `release-candidate-check`; removing its preliminary CI
     step eliminates a compiler and platform-validator build that the clean
     artifact measurement immediately discarded.
+    Compiler and release matrices now share one target-native dependency action;
+    Windows obtains both `libpq` and `pkgconf` from its exact vcpkg triplet and
+    treats every native installer status as authoritative instead of allowing a
+    later PowerShell command to mask a failed package download.
   - Split Rust validation into explicitly inventoried fast unit, integration,
     AOT/native-link, concurrency/timeout, performance, and controlled-host
     tiers. Every test belongs to exactly one tier, and the release aggregate

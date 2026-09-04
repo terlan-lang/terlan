@@ -36,6 +36,14 @@
       "evidence": ".github/workflows/ci.yml"
     },
     {
+      "surface": "ci.windows-native-dependencies",
+      "classification": "compatible-tightening",
+      "previous": "Windows validation requested an external pkgconfiglite download and could continue after its native installer failed",
+      "current": "compiler and release matrices share target-matched vcpkg libpq and pkgconf setup with explicit exit-code and executable checks",
+      "guidance": "Use the shared native-dependency action for every target-native AOT matrix.",
+      "evidence": ".github/actions/setup-native-dependencies/action.yml"
+    },
+    {
       "surface": "planning.feature-roadmap",
       "classification": "private",
       "previous": "feature work was planned under the 0.0.8 release number",

@@ -123,6 +123,13 @@ deadlock watchdog. CI fails when the pinned sanitizer target or its evidence
 is absent; unsupported local hosts may still run the portable memory-model
 gate.
 
+Compiler and release platform matrices share
+`.github/actions/setup-native-dependencies/action.yml`. Windows validation
+installs `libpq` and `pkgconf` from the same vcpkg target triplet, exports the
+exact `pkgconf` executable to Cargo, and checks every native installer exit
+status. A failed package download therefore cannot be hidden by a later
+successful PowerShell command.
+
 Release validation uses hosted runners only. It proves portable multicore
 correctness and retains the pinned multicore ThreadSanitizer report, but it
 does not pretend a shared hosted machine provides controlled performance

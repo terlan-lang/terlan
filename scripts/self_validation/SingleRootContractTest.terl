@@ -25,9 +25,13 @@ contract_holds(makefile: String, ci: String, release: String): Bool ->
         and workflow_holds(ci)
         and workflow_holds(release)
         and contains_all(ci, ["run: make release-candidate-check"])
+        and contains_all(ci, ["uses: ./.github/actions/setup-native-dependencies"])
         and contains_all(
     release,
-    ["run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check"],
+    [
+        "uses: ./.github/actions/setup-native-dependencies",
+        "run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
+    ],
 ).
 
 @pure
@@ -184,11 +188,11 @@ valid_makefile(): String ->
 
 @pure
 valid_ci_workflow(): String ->
-    "steps:\n  - uses: actions/checkout@aaaaaaaa # v4\n  - run: make release-candidate-check\n".
+    "steps:\n  - uses: actions/checkout@aaaaaaaa # v4\n  - uses: ./.github/actions/setup-native-dependencies\n  - run: make release-candidate-check\n".
 
 @pure
 valid_release_workflow(): String ->
-    "steps:\n  - uses: actions/checkout@aaaaaaaa # v4\n  - uses: actions/download-artifact@bbbbbbbb # v4\n  - run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check\n".
+    "steps:\n  - uses: actions/checkout@aaaaaaaa # v4\n  - uses: ./.github/actions/setup-native-dependencies\n  - uses: actions/download-artifact@bbbbbbbb # v4\n  - run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check\n".
 
 @test
 pub repository_release_entrypoints_are_single_rooted(): Bool ->

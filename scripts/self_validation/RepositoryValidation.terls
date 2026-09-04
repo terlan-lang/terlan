@@ -790,6 +790,7 @@ build_release_contract(repository: String): Bool ->
             ".github/workflows/docs.yml",
             ".github/workflows/release.yml",
             ".github/workflows/security.yml",
+            ".github/actions/setup-native-dependencies/action.yml",
             "scripts/self_validation/RepositoryValidation.terls",
             "scripts/build_typed_validator.sh",
             "scripts/run_prebuilt_terlan_binary.sh",
@@ -808,6 +809,7 @@ build_release_contract(repository: String): Bool ->
         Some(docs) <- read(repository, ".github/workflows/docs.yml");
         Some(pages) <- read(repository, ".github/workflows/pages.yml");
         Some(security) <- read(repository, ".github/workflows/security.yml");
+        Some(native_setup) <- read(repository, ".github/actions/setup-native-dependencies/action.yml");
         Some(cleanup) <- read(repository, "scripts/clean_build_outputs.sh");
         Some(downloader) <- read(repository, "scripts/download_validated_release_artifacts.sh");
         Some(publisher) <- read(repository, "scripts/publish_release_from_dist.sh");
@@ -914,6 +916,16 @@ if {
         "actionlint-go1.25.0-v1.7.12",
     ],
 ) -> failure("build_release.actionlint", "actionlint toolchain/cache ownership drifted");
+    count_occurrences(ci, "uses: ./.github/actions/setup-native-dependencies") != 1
+        or count_occurrences(release, "uses: ./.github/actions/setup-native-dependencies") != 1
+        or not contains_all(
+    native_setup,
+    ["libpq:$triplet", "pkgconf:$triplet", "PKG_CONFIG=$pkgConfig", "$LASTEXITCODE -ne 0"],
+)
+        or String.contains(native_setup, "pkgconfiglite") -> failure(
+        "build_release.native_setup",
+        "platform workflows must share fail-closed target-native dependency setup",
+    );
     count_occurrences(ci, "uses: ./.github/actions/setup-rust") != count_occurrences(ci, "components: \"\"") + 1
         or count_occurrences(release, "uses: ./.github/actions/setup-rust") != count_occurrences(release, "components: \"\"") + 1
         or count_occurrences(docs, "uses: ./.github/actions/setup-rust") != count_occurrences(docs, "components: \"\"")
