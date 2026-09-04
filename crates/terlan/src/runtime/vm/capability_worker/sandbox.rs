@@ -1,7 +1,7 @@
 //! Fail-closed platform sandbox planning for external capability workers.
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 #[cfg(target_os = "linux")]
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -99,6 +99,19 @@ pub(super) fn worker_command(
         CapabilitySandboxProfile::LinuxBwrapV1 => {
             linux_worker_command(executable, capabilities, work_dir)
         }
+    }
+}
+
+/// Keeps untrusted worker diagnostics out of the production process while
+/// exposing sandbox-launch failures to the real-process integration tests.
+pub(super) fn worker_stderr() -> Stdio {
+    #[cfg(test)]
+    {
+        Stdio::inherit()
+    }
+    #[cfg(not(test))]
+    {
+        Stdio::null()
     }
 }
 
