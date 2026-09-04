@@ -31,9 +31,9 @@
       "surface": "ci.linux-capability-sandbox",
       "classification": "compatible-tightening",
       "previous": "the direct compiler CI omitted the bubblewrap dependency and Ubuntu 24.04 user-namespace prerequisite required by Linux sandbox tests",
-      "current": "Linux validation provisions bubblewrap and enables its user-namespace host prerequisite before running the release candidate suite",
-      "guidance": "Provision the declared sandbox implementation and permit its user namespace before exercising capability-worker tests.",
-      "evidence": ".github/workflows/ci.yml"
+      "current": "Linux validation provisions bubblewrap and its user-namespace prerequisite, while the worker launcher closes arbitrary inherited descriptor identities before entering the sandbox",
+      "guidance": "Provision the declared sandbox implementation, permit its user namespace, and use the Bash descriptor sanitizer required for numeric descriptors above nine.",
+      "evidence": "crates/terlan/src/runtime/vm/capability_worker/sandbox.rs"
     },
     {
       "surface": "ci.windows-native-dependencies",

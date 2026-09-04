@@ -706,10 +706,10 @@ fn capability_worker_sandbox_closes_inherited_descriptor() {
         .map(|argument| argument.to_os_string())
         .collect::<Vec<_>>();
 
-    let mut command = Command::new("/bin/sh");
+    let mut command = Command::new("/bin/bash");
     command
         .arg("-c")
-        .arg("exec 9</dev/null; exec \"$@\"")
+        .arg("exec 142</dev/null; exec \"$@\"")
         .arg("terlan-capability-worker-fd-test")
         .arg(program)
         .args(arguments)

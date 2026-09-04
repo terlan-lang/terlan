@@ -7,6 +7,9 @@ on:
       - "release-validation/**"
     paths:
       - ".github/workflows/capability-sandbox-diagnostic.yml"
+      - "crates/terlan/src/runtime/vm/capability_worker.rs"
+      - "crates/terlan/src/runtime/vm/capability_worker/**"
+      - "crates/terlan/src/runtime/vm/capability_worker_test.rs"
 
 permissions:
   contents: read

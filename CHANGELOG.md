@@ -11,7 +11,9 @@ All notable release-facing changes to Terlan are tracked here.
 - Replace automatic CodeQL language detection with explicit Rust and GitHub
   Actions analysis, and enable the workflow-owned GitHub Pages deployment.
 - Provision bubblewrap in Linux compiler CI so capability-sandbox tests run
-  against their declared environment.
+  against their declared environment, and close arbitrary inherited runner
+  descriptors before starting a worker instead of assuming single-digit file
+  descriptor identities.
 - Remove the vulnerable OpenTelemetry 0.31 graph from the Foundations adapter;
   logging and metrics remain available while tracing and OTLP await an upstream
   patched dependency line.

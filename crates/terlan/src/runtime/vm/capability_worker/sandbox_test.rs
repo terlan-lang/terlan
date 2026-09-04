@@ -15,7 +15,7 @@ fn linux_sandbox_command_is_closed_and_bounded() {
         .map(|argument| argument.to_string_lossy().into_owned())
         .collect::<Vec<_>>();
 
-    assert_eq!(program, POSIX_SHELL_PATH);
+    assert_eq!(program, BASH_PATH);
     assert!(arguments.contains(&CLOSE_INHERITED_DESCRIPTORS.to_string()));
     assert!(arguments.contains(&BUBBLEWRAP_PATH.to_string()));
     assert!(arguments.contains(&"--as=536870912:536870912".to_string()));
@@ -51,6 +51,25 @@ fn linux_sandbox_network_authority_follows_capability_allowlist() {
         .collect::<Vec<_>>();
 
     assert!(!arguments.contains(&"--unshare-net".to_string()));
+}
+
+/// Uses a shell that can close descriptors above the POSIX single-digit range.
+#[test]
+fn linux_sandbox_descriptor_sanitizer_closes_high_numbered_descriptors() {
+    let status = Command::new(BASH_PATH)
+        .arg("-c")
+        .arg(concat!(
+            "exec 142</dev/null; ",
+            "for fd_path in /proc/self/fd/*; do ",
+            "fd=${fd_path##*/}; ",
+            "case \"$fd\" in 0|1|2) ;; *[!0-9]*) exit 125 ;; ",
+            "*) eval \"exec ${fd}>&-\" ;; esac; ",
+            "done; test ! -e /proc/self/fd/142"
+        ))
+        .status()
+        .expect("run high-descriptor sanitizer");
+
+    assert!(status.success());
 }
 
 /// Rejects absent worker executables before any wrapper process is started.

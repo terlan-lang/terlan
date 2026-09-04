@@ -16,7 +16,7 @@ const BUBBLEWRAP_PATH: &str = "/usr/bin/bwrap";
 #[cfg(target_os = "linux")]
 const PRLIMIT_PATH: &str = "/usr/bin/prlimit";
 #[cfg(target_os = "linux")]
-const POSIX_SHELL_PATH: &str = "/bin/sh";
+const BASH_PATH: &str = "/bin/bash";
 #[cfg(target_os = "linux")]
 const SANDBOX_WORKER_PATH: &str = "/run/terlan/worker";
 #[cfg(target_os = "linux")]
@@ -118,7 +118,7 @@ pub(super) fn linux_worker_command(
     }
     #[cfg(target_os = "linux")]
     {
-        require_regular_file(Path::new(POSIX_SHELL_PATH), "POSIX shell")?;
+        require_regular_file(Path::new(BASH_PATH), "Bash descriptor sanitizer")?;
         require_regular_file(Path::new(BUBBLEWRAP_PATH), "bubblewrap")?;
         require_regular_file(Path::new(PRLIMIT_PATH), "prlimit")?;
         require_regular_file(executable, "capability worker")?;
@@ -134,7 +134,7 @@ pub(super) fn linux_worker_command(
             )
         })?;
         let limits = CapabilitySandboxLimits::linux_default();
-        let mut command = Command::new(POSIX_SHELL_PATH);
+        let mut command = Command::new(BASH_PATH);
         command
             .arg("-c")
             .arg(CLOSE_INHERITED_DESCRIPTORS)
