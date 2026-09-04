@@ -7,9 +7,9 @@ be green across every applicable GitHub workflow.
 
 Installed-candidate validation continues to cover the compiler, VM, native
 worker, standard library, editor payloads, reference applications, and platform
-artifacts. Linux compiler CI now installs the bubblewrap dependency required by
-capability-sandbox tests instead of allowing the environment to produce a false
-runtime failure.
+artifacts. Linux compiler CI now installs bubblewrap and enables its required
+unprivileged-user-namespace host prerequisite before capability-sandbox tests,
+instead of allowing the environment to produce a false runtime failure.
 
 Security analysis is repository-owned and limited to maintained GitHub Actions
 and Rust source. The removed Python surface is no longer submitted to CodeQL.

@@ -155,6 +155,11 @@ validation begins. The repository build/release contract remains part of
 `release-candidate-check`; it is not run in a second job that would rebuild the
 compiler and typed repository validator from an empty runner.
 
+The Ubuntu 24.04 compiler runner explicitly enables unprivileged user
+namespaces before the candidate gate. This is a host prerequisite for the real
+bubblewrap capability-worker test, not a sandbox bypass: worker launch remains
+fail-closed and still executes through the declared bubblewrap profile.
+
 Non-AOT feature jobs remain paused during the hard AOT cutover.
 
 ## Release Validation

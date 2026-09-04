@@ -659,13 +659,16 @@ fn capability_worker_process_transport_runs_full_cycle() {
         .expect("park real worker call");
 
     let completion = wait_for_completion(&mut client, &mut timers, &mut processes, &mut scheduler);
-    assert!(matches!(
-        completion,
+    assert!(
+        matches!(
+        &completion,
         VmCapabilityWorkerCompletion::Reply {
-            reply: NativeBoundaryReplyTerm::Error { ref code, .. },
+            reply: NativeBoundaryReplyTerm::Error { code, .. },
             ..
         } if code == "resource.stale_handle"
-    ));
+        ),
+        "unexpected real-worker completion: {completion:?}"
+    );
     assert_eq!(
         processes.get(owner).expect("owner").state,
         VmProcessState::Runnable
