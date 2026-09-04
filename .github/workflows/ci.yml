@@ -324,9 +324,6 @@ jobs:
       - name: Validate workflow syntax
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml
 
-      - name: Validate MC-9 evidence contract
-        run: make vm-multicore-mc9-evidence-contract-check
-
       - name: Validate AOT cutover
         run: make release-candidate-check
 

@@ -151,9 +151,10 @@ make release-candidate-check
 ```
 
 Workflow syntax is checked in that same canonical CI job before release
-validation begins. The repository build/release contract remains part of
-`release-candidate-check`; it is not run in a second job that would rebuild the
-compiler and typed repository validator from an empty runner.
+validation begins. The MC-9 contract and repository build/release contract are
+part of `release-candidate-check`; they are not run in preliminary steps that
+would build the compiler and typed validators only to discard them during the
+candidate's clean artifact measurement.
 
 The Ubuntu 24.04 compiler runner explicitly enables unprivileged user
 namespaces before the candidate gate. This is a host prerequisite for the real

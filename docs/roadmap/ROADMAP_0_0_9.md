@@ -183,6 +183,10 @@ and release work.
     from the union-feature harness. The remaining evidence refresh is capped at
     six distinct Cargo invocations and two isolated benchmark selectors, and a
     cross-worktree performance lease rejects a busy host before measurement.
+    The MC-9 contract now executes after the canonical typed-validator
+    bootstrap inside `release-candidate-check`; removing its preliminary CI
+    step eliminates a compiler and platform-validator build that the clean
+    artifact measurement immediately discarded.
   - Split Rust validation into explicitly inventoried fast unit, integration,
     AOT/native-link, concurrency/timeout, performance, and controlled-host
     tiers. Every test belongs to exactly one tier, and the release aggregate

@@ -888,6 +888,10 @@ if {
         String.append("shell check bypasses shared Cargo ownership: ", unowned_script_cargo),
     );
     missing_release != "" -> failure("build_release.workflow", String.append("missing invariant: ", missing_release));
+    String.contains(ci, "run: make vm-multicore-mc9-evidence-contract-check") -> failure(
+        "build_release.duplicate_mc9",
+        "MC-9 contract must run inside the canonical release-candidate graph",
+    );
     String.contains(release, "self-hosted") -> failure(
         "build_release.self_hosted",
         "release validation must not depend on a self-hosted runner",

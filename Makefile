@@ -333,6 +333,7 @@ CHECK_GATES := \
 	tvm-aot-crash-injection-check \
 	tvm-aot-capability-worker-check \
 	tvm-aot-multicore-readiness-check \
+	vm-multicore-mc9-evidence-contract-check \
 	cpp-binding-generator-check \
 	generated-package-contract-check \
 	cuda-package-availability-check \
