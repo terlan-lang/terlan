@@ -532,7 +532,12 @@ ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 terlan-release-closeout-bootstrap:
 	test -s $(TERLAN_RELEASE_CLOSEOUT_IMAGE)
 else
-terlan-release-closeout-bootstrap: terlan-compiler-bootstrap vm-release-artifact-matrix-check
+terlan-release-closeout-bootstrap: terlan-release-closeout-image-bootstrap vm-release-artifact-matrix-check
+endif
+
+.PHONY: terlan-release-closeout-image-bootstrap
+terlan-release-closeout-image-bootstrap: terlan-compiler-bootstrap terlan-typed-validator-fingerprint
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_RELEASE_CLOSEOUT_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/release_closeout -- \
 		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
@@ -1444,7 +1449,7 @@ release-evidence-compose:
 		$(MAKE) --no-print-directory $(RELEASE_EVIDENCE_GATES)
 	@echo "[release-evidence-compose] version $(RELEASE_VERSION) candidate-bound evidence composed"
 
-release-evidence-refresh: check
+release-evidence-refresh: check terlan-release-closeout-image-bootstrap
 	$(MAKE) --no-print-directory release-evidence-compose
 
 release-preflight:
@@ -1479,6 +1484,8 @@ release-candidate-check: build-artifact-budget-record
 	TERLAN_BUILD_ARTIFACTS_PREBUILT=1 \
 		$(MAKE) --no-print-directory check
 	bash scripts/clean_build_outputs.sh --check-partials
+	TERLAN_PROOF_RELEASE_ROOT="$(CURDIR)" \
+		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_PROOF_RELEASE_IMAGE) --script-eval -- check
 
 function-head-migration-diagnostic-policy-check:
 	$(TERLAN_QUALITY) function-head-migration-diagnostic-policy
@@ -4680,6 +4687,10 @@ publish-preflight:
 		echo "remote tag v$(VERSION) already exists at HEAD; release upload can be retried"; \
 	fi
 	bash scripts/download_validated_release_artifacts.sh "$$(git rev-parse HEAD)"
+	@if ! dist/terlc --version; then \
+		echo 'publication requires a host that can execute the verified Linux x86_64 artifact (Ubuntu 24.04-compatible userspace); use a compatible container if needed' >&2; \
+		exit 1; \
+	fi
 	$(MAKE) --no-print-directory publish-evidence-plan-check
 	$(MAKE) --no-print-directory publish-evidence-refresh-plan-check
 	@if ! $(MAKE) --no-print-directory publish-evidence-check; then \
@@ -4690,14 +4701,13 @@ publish-preflight:
 	$(MAKE) release-boundary-check
 	$(MAKE) source-extension-check
 	$(MAKE) terlan-release-promotion-bootstrap
-	TERLAN_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_RELEASE_PROMOTION) seal --version "$(VERSION)"
 	$(MAKE) release-staged-distribution-verification-refresh
 	$(MAKE) release-preflight RELEASE_VERSION="$(VERSION)"
 
 publish-evidence-refresh:
 	$(MAKE) --no-print-directory \
 		terlan-self-validation-bootstrap \
+		terlan-release-closeout-image-bootstrap \
 		terlan-quality-tools-bootstrap \
 		terlan-native-worker-bootstrap \
 		terlan-benchmark-release-bootstrap
@@ -4711,6 +4721,8 @@ publish-evidence-refresh:
 	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
 	TERLAN_RELEASE_BINARIES_PREBUILT=1 \
 		$(MAKE) --no-print-directory tvm-aot-release-closeout-check TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN=1
+	bash scripts/download_validated_release_artifacts.sh "$$(git rev-parse HEAD)" --restore
+	$(TERLAN_TVM_PLATFORM_MATRIX) release-artifact-matrix
 	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
 	TERLAN_RELEASE_BINARIES_PREBUILT=1 \
 		$(MAKE) --no-print-directory release-evidence-compose

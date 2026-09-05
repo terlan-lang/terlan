@@ -1,6 +1,6 @@
 {
-  "candidate_id": "sha256:2118c3869a34ecbbe7578ed73c333ac360098a4781903d7c9cbe4afc696d511d",
-  "normalized_digest": "sha256:c21a275a82595529236f894e3aeef15c58a695d71de08a3b624ae779a528259d",
+  "candidate_id": "sha256:d279f0c5a86eab4061bd422260a5ef803b1918cdf65ac82abe760ebffdd4de25",
+  "normalized_digest": "sha256:91c75ecc57bf6dbe2abbd493c06a0df088546de2f8f19c8a06d20403e558f98f",
   "schema": "terlan.proof-release-evidence-baseline.v1",
   "slice_traces": {
     "Slice 10": "sha256:c2c9d469822baef2eb9ebf7951cabdc3f052e5197670f28bcce7dae3bd354e23",

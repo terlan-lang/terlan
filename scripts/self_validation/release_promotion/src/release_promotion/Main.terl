@@ -908,7 +908,7 @@ pub entry(): Bool ->
             };
         "self-test" ->
             let report = argument(1) == "--report";
-            let passed = self_test(root, report);
+            let passed = self_test(root, report) and Readiness.archive_selection_self_test();
             if {
                 passed -> let _printed = println("release promotion adversarial self-tests passed");
                 true;

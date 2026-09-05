@@ -252,11 +252,12 @@ impl DirectNativeBackend {
         };
         let result = self.entry_result(entry_id)?;
         if result.is_managed_reference() {
-            context.managed_ref().validate_boundary_reference(
-                context.owner_id(),
-                result,
-                *value,
-            )?;
+            context
+                .managed_ref()
+                .validate_boundary_reference(context.owner_id(), result, *value)
+                .map_err(|error| {
+                    format!("{error}; native entry {entry_id} returned {value:#x} for {result:?}")
+                })?;
         }
         Ok(())
     }

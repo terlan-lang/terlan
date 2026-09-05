@@ -639,6 +639,9 @@ pub(super) fn pkg_config_external_c_distribution_compiles_package_owned_adapter_
     assert!(build.contains("library.include_paths"));
     assert!(!build.contains("PathBuf"));
 
+    // This adapter gets its headers exclusively from pkg-config, as libpq
+    // does. An absent local header directory must not invalidate every build.
+    fs::remove_dir_all(out_dir.join("native/rust/include")).expect("remove unused fixture headers");
     let target_dir = temp_dir("pkg_config_external_link_target");
     let build_output =
         std::process::Command::new(std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string()))
@@ -653,6 +656,26 @@ pub(super) fn pkg_config_external_c_distribution_compiles_package_owned_adapter_
         "pkg-config adapter build failed\nstdout:\n{}\nstderr:\n{}",
         String::from_utf8_lossy(&build_output.stdout),
         String::from_utf8_lossy(&build_output.stderr)
+    );
+
+    let incremental =
+        std::process::Command::new(std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string()))
+            .args(["build", "--manifest-path"])
+            .arg(out_dir.join("native/rust/Cargo.toml"))
+            .args(["--offline", "--lib", "--message-format=json"])
+            .env("CARGO_TARGET_DIR", &target_dir)
+            .output()
+            .expect("repeat build to verify Cargo freshness");
+    assert!(incremental.status.success(), "{incremental:?}");
+    let artifacts: Vec<Value> = String::from_utf8_lossy(&incremental.stdout)
+        .lines()
+        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+        .filter(|event| event["reason"] == "compiler-artifact")
+        .collect();
+    assert!(!artifacts.is_empty(), "Cargo must report checked artifacts");
+    assert!(
+        artifacts.iter().all(|event| event["fresh"] == true),
+        "unchanged generated adapter must reuse every artifact: {artifacts:?}"
     );
 
     fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant root");

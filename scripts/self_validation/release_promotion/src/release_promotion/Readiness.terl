@@ -122,28 +122,59 @@ seal_digest(candidate: Json): String ->
         Err(_reason) -> ""
     }.
 
-archive_row(rows: List[RequiredFieldRow]): {String, String} ->
+archive_row(rows: List[RequiredFieldRow], expected: String): {String, String} ->
     case rows {
         [] -> {"", ""};
         [row | rest] ->
             case Json.required_field_row_strings(row) {
                 [path, digest] ->
                     if {
-                        String.ends_with(path, ".tar.gz") or String.ends_with(path, ".zip") -> {path, digest};
-                        true -> archive_row(rest)
+                        path == expected -> {path, digest};
+                        true -> archive_row(rest, expected)
                     };
-                _ -> archive_row(rest)
+                _ -> archive_row(rest, expected)
             }
     }.
 
-candidate_archive(candidate: Json): {String, String} ->
+candidate_archive(root: String, candidate: Json): {String, String} ->
     let {
+        Ok(metadata) <- Json.parse(text(root, "dist/terlan-release.json"));
         Ok(artifacts) <- candidate.get("artifacts");
         Ok(rows) <- Json.required_field_rows(artifacts, ["path", "sha256"], [], [])
     } else {
         _ -> {"", ""}
     };
-    archive_row(rows).
+    (let os = string_field(metadata, "os");
+let suffix =
+    if {
+        os == "windows" -> ".zip";
+        true -> ".tar.gz"
+    };
+let expected = String.concat(["dist/terlc-", os, "-", string_field(metadata, "arch"), suffix]);
+archive_row(rows, expected)).
+
+/**
+ * Local evidence must bind the installed platform, not the first sorted archive.
+ */
+pub archive_selection_self_test(): Bool ->
+    let {
+        Ok(document) <-
+            Json.string_object_rows(
+                ["path", "sha256"],
+                [
+                    ["dist/terlc-linux-aarch64.tar.gz", "arm"],
+                    ["dist/terlc-linux-x86_64.tar.gz.sha256", "sidecar"],
+                    ["dist/terlc-linux-x86_64.tar.gz", "x86"],
+                    ["dist/terlc-windows-aarch64.zip", "windows"],
+                ],
+            );
+        Ok(rows) <- Json.required_field_rows(document, ["path", "sha256"], [], [])
+    } else {
+        _ -> false
+    };
+    archive_row(rows, "dist/terlc-linux-x86_64.tar.gz") == {"dist/terlc-linux-x86_64.tar.gz", "x86"}
+        and archive_row(rows, "dist/terlc-windows-aarch64.zip") == {"dist/terlc-windows-aarch64.zip", "windows"}
+        and archive_row(rows, "dist/terlc-macos-x86_64.tar.gz") == {"", ""}.
 
 metadata_identity(root: String): String ->
     case Json.parse(text(root, "dist/terlan-release.json")) {
@@ -196,7 +227,7 @@ write_report(root: String, candidate: Json, archive: String, digest: String): Bo
  */
 pub attest(root: String, candidate: Json): Bool ->
     let rows = required_reports();
-    let {archive, digest} = candidate_archive(candidate);
+    let {archive, digest} = candidate_archive(root, candidate);
     if {
         string_field(candidate, "schema") != "terlan.release-candidate.v1" -> failure("schema", "candidate schema is not terlan.release-candidate.v1");
         string_field(candidate, "version") != "0.0.8" -> failure("version", "candidate version is not 0.0.8");

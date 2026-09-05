@@ -196,9 +196,7 @@ pub(super) fn render_c_build(metadata: &CMetadata) -> String {
                 );
             }
             if !metadata.sources.is_empty() {
-                build.push_str(
-                    "    println!(\"cargo:rerun-if-changed=include\");\n    println!(\"cargo:rerun-if-changed=c\");\n",
-                );
+                append_adapter_input_watches(&mut build);
             }
             build.push_str("}\n");
             return build;
@@ -262,9 +260,7 @@ pub(super) fn render_c_build(metadata: &CMetadata) -> String {
             ));
         }
         if !metadata.sources.is_empty() {
-            build.push_str(
-                "    println!(\"cargo:rerun-if-changed=include\");\n    println!(\"cargo:rerun-if-changed=c\");\n",
-            );
+            append_adapter_input_watches(&mut build);
         }
         for directory in &link.library_dirs {
             build.push_str(&format!(
@@ -324,10 +320,17 @@ pub(super) fn render_c_build(metadata: &CMetadata) -> String {
             "    cpp_build.include(\"include\").include(\".\").warnings_into_errors(true).flag_if_supported(\"-std={cpp_standard}\").compile(\"terlan_native_boundary_cpp_abi\");\n"
         ));
     }
-    build.push_str(
-        "    println!(\"cargo:rerun-if-changed=include\");\n    println!(\"cargo:rerun-if-changed=c\");\n}\n",
-    );
+    append_adapter_input_watches(&mut build);
+    build.push_str("}\n");
     build
+}
+
+fn append_adapter_input_watches(build: &mut String) {
+    // External packages can supply all headers through pkg-config. Watching
+    // an absent local include directory makes Cargo rebuild on every call.
+    build.push_str(
+        "    for directory in [\"include\", \"c\"] {\n        if std::path::Path::new(directory).is_dir() {\n            println!(\"cargo:rerun-if-changed={directory}\");\n        }\n    }\n",
+    );
 }
 
 pub(super) fn is_cpp_adapter_source(source: &str) -> bool {

@@ -24,6 +24,44 @@ copy_many_after_directory_creation(
 pub exists_rejects_missing_file(): Bool ->
     assert_equal(false, exists("missing-terlan-test-file.txt")).
 
+short_circuit_and_tuple(first: String, second: String, third: String): {Bool, Int} ->
+    let present = exists(first) and exists(second) and exists(third);
+    {present, 42}.
+
+short_circuit_or_tuple(first: String, second: String, third: String): {Bool, Int} ->
+    let present = exists(first) or exists(second) or exists(third);
+    {present, 42}.
+
+@test
+pub suspending_and_binding_preserves_managed_tuple_completion(): Bool ->
+    let file = "target/terlan-and-completion-test.txt";
+    let missing = "missing-terlan-and-completion-test.txt";
+    let written = write_text(file, "present");
+    let first = short_circuit_and_tuple(missing, file, file);
+    let second = short_circuit_and_tuple(file, missing, file);
+    let third = short_circuit_and_tuple(file, file, missing);
+    let all = short_circuit_and_tuple(file, file, file);
+    let removed = delete(file);
+    let leading = first == {false, 42} and second == {false, 42};
+    let trailing = third == {false, 42} and all == {true, 42};
+    let file_operations = written == Ok(Unit) and removed == Ok(Unit);
+    file_operations and leading and trailing.
+
+@test
+pub suspending_or_binding_preserves_managed_tuple_completion(): Bool ->
+    let file = "target/terlan-or-completion-test.txt";
+    let missing = "missing-terlan-or-completion-test.txt";
+    let written = write_text(file, "present");
+    let first = short_circuit_or_tuple(file, missing, missing);
+    let second = short_circuit_or_tuple(missing, file, missing);
+    let third = short_circuit_or_tuple(missing, missing, file);
+    let none = short_circuit_or_tuple(missing, missing, missing);
+    let removed = delete(file);
+    let leading = first == {true, 42} and second == {true, 42};
+    let trailing = third == {true, 42} and none == {false, 42};
+    let file_operations = written == Ok(Unit) and removed == Ok(Unit);
+    file_operations and leading and trailing.
+
 @test
 pub read_text_reports_missing_file(): Bool ->
     case read_text("missing-terlan-test-file.txt") {

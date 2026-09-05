@@ -6,6 +6,13 @@ All notable release-facing changes to Terlan are tracked here.
 
 ## 0.0.8
 
+- Preserve enclosing managed results when suspending AOT expressions
+  short-circuit, including filesystem checks used by release scripts.
+- Preserve verified hosted archives across local evidence refresh, bind
+  publication evidence to the installed platform, and detect stale proof
+  baselines during candidate validation.
+- Avoid rebuilding generated native adapters for nonexistent include
+  directories, and accept line-wrapped release-note claims.
 - Require a completely green release commit instead of accepting only the
   aggregate release-validation status.
 - Replace automatic CodeQL language detection with explicit Rust and GitHub

@@ -4,6 +4,43 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
+revision="${1:-$(git rev-parse HEAD)}"
+if [[ ! "$revision" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "validated artifact revision must be a full Git commit SHA: $revision" >&2
+  exit 2
+fi
+publication_inputs="target/publication-inputs/$revision"
+if [[ "${2:-}" == "--restore" ]]; then
+  [[ "$(git rev-parse HEAD)" == "$revision" ]] || {
+    echo "publication inputs must belong to the current commit" >&2
+    exit 1
+  }
+  [[ -d "$publication_inputs" && ! -L "$publication_inputs" ]] || {
+    echo "verified publication inputs are missing for $revision" >&2
+    exit 1
+  }
+  (
+    cd "$publication_inputs"
+    sha256sum --check --quiet verified-inputs.sha256
+  )
+  for payload in "$publication_inputs"/terlc-* \
+    "$publication_inputs"/terlc "$publication_inputs"/terlan-vm \
+    "$publication_inputs"/terlan-native-worker "$publication_inputs"/terlan-lsp \
+    "$publication_inputs"/terlan-release.json "$publication_inputs"/SHA256SUMS \
+    "$publication_inputs"/terlan-install-manifest.json; do
+    [[ -f "$payload" && ! -L "$payload" ]] || exit 1
+    cp -p "$payload" "dist/$(basename "$payload")"
+  done
+  # Local target smokes leave these build inputs beside the public payload.
+  rm -f dist/release-self-test.tvm
+  rm -rf dist/release-self-test-source dist/release-self-test-build
+  echo "restored verified hosted publication inputs for $revision"
+  exit 0
+fi
+if [[ -n "${2:-}" ]]; then
+  echo "usage: $0 <revision> [--restore]" >&2
+  exit 2
+fi
 command -v gh >/dev/null 2>&1 || {
   echo "validated artifact download requires GitHub CLI" >&2
   exit 127
@@ -16,12 +53,6 @@ command -v jq >/dev/null 2>&1 || {
   echo "validated artifact download requires jq" >&2
   exit 127
 }
-
-revision="${1:-$(git rev-parse HEAD)}"
-if [[ ! "$revision" =~ ^[0-9a-f]{40}$ ]]; then
-  echo "validated artifact revision must be a full Git commit SHA: $revision" >&2
-  exit 2
-fi
 repository="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
 status_json="$(gh api "repos/{owner}/{repo}/commits/$revision/status" \
   --jq '[.statuses[] | select(.context == "release-validation/run")] | sort_by(.created_at) | last // {}')"
@@ -199,6 +230,23 @@ done
 make --no-print-directory release-artifact-set-check \
   RELEASE_ARTIFACT_SET_ROOT=dist \
   RELEASE_ARTIFACT_SET_LOCAL_PAYLOAD=1
+
+# Evidence refresh exercises the local packager, which writes to dist/ too.
+# Retain the verified hosted bytes so final sealing cannot publish that local
+# rebuild in place of the attested distribution, or require another download.
+[[ ! -L "$publication_inputs" ]] || exit 1
+mkdir -p "$publication_inputs"
+for payload in dist/terlc-* dist/terlc dist/terlan-vm \
+  dist/terlan-native-worker dist/terlan-lsp dist/terlan-release.json \
+  dist/SHA256SUMS dist/terlan-install-manifest.json; do
+  cp -p "$payload" "$publication_inputs/$(basename "$payload")"
+done
+(
+  cd "$publication_inputs"
+  sha256sum terlc-* terlc terlan-vm terlan-native-worker terlan-lsp \
+    terlan-release.json SHA256SUMS terlan-install-manifest.json \
+    >verified-inputs.sha256
+)
 
 echo "downloaded validated release artifacts from run $run_id for $revision"
 echo "verified exhaustive candidate validation from run $candidate_run_id"

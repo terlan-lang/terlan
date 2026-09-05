@@ -1,23 +1,23 @@
 {
   "candidate": {
-    "candidate_id": "sha256:2118c3869a34ecbbe7578ed73c333ac360098a4781903d7c9cbe4afc696d511d",
+    "candidate_id": "sha256:d279f0c5a86eab4061bd422260a5ef803b1918cdf65ac82abe760ebffdd4de25",
     "compiler_target": "x86_64-unknown-linux-gnu",
     "feature_set": [
       "quality-tools"
     ],
-    "release": "0.0.7",
+    "release": "0.0.8",
     "rustc_version": "rustc 1.96.0 (ac68faa20 2026-05-25)",
-    "source_revision": "11c63bf4ae73db3328244b157567517aff9382ec",
+    "source_revision": "6c3011184a00f4c0172428ebc9e54d64b27913a2",
     "target_profile": "native"
   },
   "candidate_materials": [
     {
       "path": "Cargo.lock",
-      "sha256": "sha256:17b6a4ebe6115dac90649e74dced05d41c3696e506053f2ac0d7dc11f644c15c"
+      "sha256": "sha256:aaa104a8e72cff5feb134043d4fa2b8acc2447d0a325097ef7864a8d57415f1b"
     },
     {
       "path": "Cargo.toml",
-      "sha256": "sha256:74f0c024576157e14a47369f0aa477759e324e5bcf0e3690526cc60c217f24a9"
+      "sha256": "sha256:3146d98ffb5cdc42ea8a2222f68eae7d5f06b08e0017174d8da3f8c350f5c1c3"
     },
     {
       "path": "crates/terlan/src/backends/wasm/README.md",
@@ -109,7 +109,7 @@
     },
     {
       "path": "proofs/lean/feature_binding/lean_feature_slice_index.json",
-      "sha256": "sha256:8ec3e580eb464bda25ae07ce7030e3a0228b2e628402c12760dccaf0a3ef6a9f"
+      "sha256": "sha256:2b425f617e468bcdf14a12ced9bccd63694eb7c60ee0f5289c1643af12a61f7c"
     },
     {
       "path": "proofs/lean/native_boundary/NativeBoundary.lean",
@@ -1081,19 +1081,19 @@
   "runtime_evidence": {
     "lane_statuses": [
       {
-        "checksum": "sha256:1105051c6450d2b5a5a06579327418e061d2555c77b15479db78345377a6a6ab",
+        "checksum": "sha256:99e37651b3c9fdd3ea14bd526a7fadbfee5d18bcf73f28848fe25b4ac8fccb11",
         "coverage_status": "executable_current",
         "lane": "coreir",
         "status": "pass"
       },
       {
-        "checksum": "sha256:ab457a5cca69080d5933a97f1178aff9bfe5feb1d6ca08831bd5ec8d47397f45",
+        "checksum": "sha256:930deb60e802960baf8c7b5ee6918398ef1c8b84c7948e7465f81b272233b03c",
         "coverage_status": "accepted_gap",
         "lane": "distribution",
         "status": "pass"
       },
       {
-        "checksum": "sha256:65aa59cdf597ca5ac48cdd3d7738e05f6cdc6dfab0c9f22eaa479d1d3f9feca2",
+        "checksum": "sha256:ba66cceda9e02327f28626f6d9228999686fa0866dd067787e6267fb2d2cfd77",
         "coverage_status": "executable_current",
         "lane": "native_boundary",
         "status": "pass"
@@ -1105,25 +1105,25 @@
         "status": "pass"
       },
       {
-        "checksum": "sha256:dbe515908922ae3942cab88374df2cce2dd67fa4a79678834f7e19aa94ed415b",
+        "checksum": "sha256:935257d034f37a80d949dd01736a725395d95ea3700345bff3bfd86854b6e285",
         "coverage_status": "accepted_gap",
         "lane": "std_packages",
         "status": "pass"
       },
       {
-        "checksum": "sha256:a6863ca1c89805c74ca45a8d3a490e54dd2c4bf1354fabc64e03bf93c31b275d",
+        "checksum": "sha256:b8405437b880e9660c6e275202e3f188ad3742f8ea78a2f1bbb9fae38dcf474f",
         "coverage_status": "executable_current",
         "lane": "target_profile",
         "status": "pass"
       },
       {
-        "checksum": "sha256:6dcf1691335ed34f4393ae5eae7ef349eee6ebcbd977a6f2cb67cba31dde1df8",
+        "checksum": "sha256:44a497e3d598c954ca674122aefc55366d1fd8d5c503bdbba81bf168f5d65cb9",
         "coverage_status": "executable_current",
         "lane": "vm_runtime",
         "status": "pass"
       },
       {
-        "checksum": "sha256:4e14d316e2d3c4269c8a4901e2764f8c1e2f881329d305fad627765d1eb76900",
+        "checksum": "sha256:bfa4d898062e1c4124b61ffe15e532b250c21bcb4dc722993a04c9951bf1face",
         "coverage_status": "executable_current",
         "lane": "wasm",
         "status": "pass"

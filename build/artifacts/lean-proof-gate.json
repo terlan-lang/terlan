@@ -308,14 +308,14 @@
     "lean"
   ],
   "lane_checksums": {
-    "coreir": "sha256:1105051c6450d2b5a5a06579327418e061d2555c77b15479db78345377a6a6ab",
-    "distribution": "sha256:ab457a5cca69080d5933a97f1178aff9bfe5feb1d6ca08831bd5ec8d47397f45",
-    "native_boundary": "sha256:65aa59cdf597ca5ac48cdd3d7738e05f6cdc6dfab0c9f22eaa479d1d3f9feca2",
+    "coreir": "sha256:99e37651b3c9fdd3ea14bd526a7fadbfee5d18bcf73f28848fe25b4ac8fccb11",
+    "distribution": "sha256:930deb60e802960baf8c7b5ee6918398ef1c8b84c7948e7465f81b272233b03c",
+    "native_boundary": "sha256:ba66cceda9e02327f28626f6d9228999686fa0866dd067787e6267fb2d2cfd77",
     "parser": "sha256:9084cd33e37456a7f035b708885c16703dfb2b011af6b878f0a508cade83bcbf",
-    "std_packages": "sha256:dbe515908922ae3942cab88374df2cce2dd67fa4a79678834f7e19aa94ed415b",
-    "target_profile": "sha256:a6863ca1c89805c74ca45a8d3a490e54dd2c4bf1354fabc64e03bf93c31b275d",
-    "vm_runtime": "sha256:6dcf1691335ed34f4393ae5eae7ef349eee6ebcbd977a6f2cb67cba31dde1df8",
-    "wasm": "sha256:4e14d316e2d3c4269c8a4901e2764f8c1e2f881329d305fad627765d1eb76900"
+    "std_packages": "sha256:935257d034f37a80d949dd01736a725395d95ea3700345bff3bfd86854b6e285",
+    "target_profile": "sha256:b8405437b880e9660c6e275202e3f188ad3742f8ea78a2f1bbb9fae38dcf474f",
+    "vm_runtime": "sha256:44a497e3d598c954ca674122aefc55366d1fd8d5c503bdbba81bf168f5d65cb9",
+    "wasm": "sha256:bfa4d898062e1c4124b61ffe15e532b250c21bcb4dc722993a04c9951bf1face"
   },
   "lane_matrix_checksum": "sha256:994f2f7b4e39fdfb20ba9cae9280ea839420c3d01d0edad2acd1a2e2c9ddb8b0",
   "lean_version": "4.31.0",
@@ -323,54 +323,54 @@
   "proof_gap_metrics": {
     "gap_classification_confidence": 1.0,
     "gap_count": 8,
-    "gap_staleness_days": 12,
+    "gap_staleness_days": 17,
     "gaps": [
       {
         "feature": "EBNF syntax preservation",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 31,
+        "gap_staleness_days": 36,
         "lifecycle_status": "closed"
       },
       {
         "feature": "typed CoreIR preservation",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 12,
+        "gap_staleness_days": 17,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "target-profile inference",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 12,
+        "gap_staleness_days": 17,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "VM execution subset",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 12,
+        "gap_staleness_days": 17,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "pattern and operator coverage",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 12,
+        "gap_staleness_days": 17,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "native-boundary contracts",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 31,
+        "gap_staleness_days": 36,
         "lifecycle_status": "closed"
       },
       {
         "feature": "Wasm CoreIR lowering",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 12,
+        "gap_staleness_days": 17,
         "lifecycle_status": "blocked"
       },
       {
         "feature": "Aeneas Rust verification bridge",
         "gap_classification_confidence": 1.0,
-        "gap_staleness_days": 12,
+        "gap_staleness_days": 17,
         "lifecycle_status": "blocked"
       }
     ],

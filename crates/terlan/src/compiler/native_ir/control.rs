@@ -759,16 +759,14 @@ pub(super) fn lower_owned_expr_with_yields(
                     stable_ids,
                 },
             )?;
+            // Both outcomes must finish the surrounding binding before the
+            // caller resumes. Returning the bypass Boolean directly loses a
+            // pending join, including construction of a managed result.
+            let bypass = complete(NativeExpr::Bool(operator == "or"), completion, params)?;
             let clauses = if operator == "and" {
-                vec![
-                    (left, right),
-                    (NativeExpr::Bool(true), NativeExpr::Bool(false)),
-                ]
+                vec![(left, right), (NativeExpr::Bool(true), bypass)]
             } else {
-                vec![
-                    (left, NativeExpr::Bool(true)),
-                    (NativeExpr::Bool(true), right),
-                ]
+                vec![(left, bypass), (NativeExpr::Bool(true), right)]
             };
             return Ok((NativeExpr::If { clauses }, continuations));
         }

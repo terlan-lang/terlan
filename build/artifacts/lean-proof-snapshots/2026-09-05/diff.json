@@ -1,0 +1,12 @@
+{
+  "accepted_digest": "sha256:54c5e7a7008b430ce2d32999c1abce07095ed5fe9c05fb9ceff11a16e68e433d",
+  "accepted_snapshot": "proofs/lean/feature_binding/lean-proof-accepted-snapshot.tsv",
+  "added_rows": [],
+  "coverage_status_delta": [],
+  "current_digest": "sha256:54c5e7a7008b430ce2d32999c1abce07095ed5fe9c05fb9ceff11a16e68e433d",
+  "new_blockers": [],
+  "owner_delta": [],
+  "removed_rows": [],
+  "resolved_blockers": [],
+  "schema": "terlan.lean-proof-binding-diff.v1"
+}

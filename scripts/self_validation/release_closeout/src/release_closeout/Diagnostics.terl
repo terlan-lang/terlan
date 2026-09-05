@@ -345,12 +345,13 @@ report_passes(path: String): Bool ->
     }.
 
 release_notes_valid(source: String, references_ready: Bool): Bool ->
+    let normalized = String.replace(String.replace(source, "\r\n", " "), "\n", " ");
     references_ready
         and String.contains(source, "# Terlan 0.0.8 Release Notes")
         and String.contains(source, "direct-AOT")
         and String.contains(source, "fixed-owner multicore execution shards")
         and String.contains(source, "Installed-candidate validation")
-        and String.contains(source, "Executable `.terls` scripts")
+        and String.contains(normalized, "Executable `.terls` scripts")
         and String.contains(source, "COMPATIBILITY_0_0_8.json")
         and not String.contains(source, "guaranteed faster")
         and not String.contains(source, "all platforms are supported").
@@ -408,7 +409,8 @@ pub release_notes(root: String): Bool ->
                     and docs_ready;
             let valid = release_notes_valid(source, references_ready);
             let adversarial =
-                not release_notes_valid(String.replace(source, "direct-AOT", "unsupported claim"), references_ready)
+                release_notes_valid(String.replace(source, "Executable\n", "Executable\r\n"), references_ready)
+                    and not release_notes_valid(String.replace(source, "direct-AOT", "unsupported claim"), references_ready)
                     and not release_notes_valid(String.append(source, "\nall platforms are supported\n"), references_ready)
                     and not release_notes_valid(source, false);
             let passed = valid and adversarial;

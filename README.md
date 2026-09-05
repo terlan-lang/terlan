@@ -278,6 +278,24 @@ Release correctness is defined by semantic validation aggregates and their
 candidate-bound evidence. Roadmaps describe planning history and are not build
 inputs.
 
+### Publication
+
+From a clean `main` commit with successful Compiler CI and Release validation:
+
+```sh
+make publish
+```
+
+The version comes from the workspace. Publication requires authenticated GitHub
+CLI access and a Linux x86_64 environment capable of running the hosted artifact
+(Ubuntu 24.04-compatible userspace), with Node 24 for installed JavaScript
+examples. An older Linux host can use a compatible container; CPU quietness and
+a self-hosted GitHub runner are not prerequisites.
+
+Publication retains the verified hosted archives while refreshing stale local
+evidence, then restores those exact bytes before sealing installed-candidate
+reports. Successful candidate tests are not replayed during publication retries.
+
 ## Documentation
 
 Important design documents:
