@@ -27,11 +27,30 @@ status_json="$(gh api "repos/{owner}/{repo}/commits/$revision/status" \
   --jq '[.statuses[] | select(.context == "release-validation/run")] | sort_by(.created_at) | last // {}')"
 state="$(jq -r '.state // "missing"' <<<"$status_json")"
 target_url="$(jq -r '.target_url // ""' <<<"$status_json")"
-if [[ "$state" != "success" || ! "$target_url" =~ /actions/runs/([0-9]+)$ ]]; then
+run_id=""
+if [[ "$state" == "success" && "$target_url" =~ /actions/runs/([0-9]+)$ ]]; then
+  run_id="${BASH_REMATCH[1]}"
+fi
+
+# A later duplicate run can be cancelled after this exact revision has already
+# passed. GitHub's mutable combined-status endpoint then points at the cancelled
+# run. Fall back to the immutable successful `validate release` check run; the
+# workflow path, revision, conclusion, artifacts, and attestations are still
+# verified below.
+if [[ -z "$run_id" ]]; then
+  release_check_json="$(gh api \
+    -H 'Accept: application/vnd.github+json' \
+    "repos/$repository/commits/$revision/check-runs?filter=all&per_page=100" \
+    --jq '[.check_runs[] | select(.name == "validate release" and .conclusion == "success" and .app.slug == "github-actions")] | sort_by(.completed_at) | last // {}')"
+  release_details_url="$(jq -r '.details_url // ""' <<<"$release_check_json")"
+  if [[ "$release_details_url" =~ /actions/runs/([0-9]+)/job/ ]]; then
+    run_id="${BASH_REMATCH[1]}"
+  fi
+fi
+if [[ -z "$run_id" ]]; then
   echo "revision $revision has no successful release-validation/run artifact producer" >&2
   exit 1
 fi
-run_id="${BASH_REMATCH[1]}"
 
 download_dir="$(mktemp -d)"
 extract_dir="$(mktemp -d)"
@@ -163,6 +182,11 @@ done
 )
 
 mkdir -p dist
+# The target-native packaging smoke creates these internal inputs in `dist/`.
+# They are not publication payload and must not poison a retry after a later
+# preflight failure.
+rm -f dist/release-self-test.tvm
+rm -rf dist/release-self-test-source dist/release-self-test-build
 for artifact in "$download_dir"/terlc-*; do
   install -m 0644 "$artifact" "dist/$(basename "$artifact")"
 done

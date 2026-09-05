@@ -331,7 +331,14 @@ fn validate_release_makefile(makefile: &str) -> Vec<String> {
             let owns_through_manifest =
                 release_evidence_gates.iter().any(|gate| gate == final_gate)
                     && make_recipe_invokes(&refresh_commands, "$(RELEASE_EVIDENCE_GATES)");
-            if !owns_directly && !owns_through_manifest {
+            let owns_through_composer =
+                make_recipe_invokes(&refresh_commands, "release-evidence-compose")
+                    && make_target(makefile, "release-evidence-compose").is_some_and(|composer| {
+                        let composer_commands = logical_recipe_commands(&composer.recipe);
+                        make_recipe_invokes(&composer_commands, "$(RELEASE_EVIDENCE_GATES)")
+                    })
+                    && release_evidence_gates.iter().any(|gate| gate == final_gate);
+            if !owns_directly && !owns_through_manifest && !owns_through_composer {
                 diagnostics.push(format!(
                     "{MAKEFILE}: `{refresh_name}` must own the release-only `{final_gate}` chain"
                 ));

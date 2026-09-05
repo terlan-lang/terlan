@@ -24,8 +24,10 @@ fn complete_makefile() -> String {
         "\t\tTERLAN_QUALITY=target/debug/terlan-quality \\\n",
         "\t\tcheck-gates\n\n",
         "check-gates: $(CHECK_GATES)\n\n",
-        "release-evidence-refresh: check\n",
+        "release-evidence-compose:\n",
         "\t$(MAKE) --no-print-directory $(RELEASE_EVIDENCE_GATES)\n\n",
+        "release-evidence-refresh: check\n",
+        "\t$(MAKE) --no-print-directory release-evidence-compose\n\n",
         "release-preflight:\n",
         "\ttest -s release-evidence.json\n",
         "\tterlan-vm run release-preflight.tvm\n\n",
@@ -38,6 +40,23 @@ fn complete_makefile() -> String {
         ));
     }
     text
+}
+
+/// Verifies an evidence composer cannot hide a missing release-only gate.
+#[test]
+fn release_gate_shard_resume_rejects_incomplete_composer_manifest() {
+    let makefile = complete_makefile().replace(
+        "RELEASE_EVIDENCE_GATES := \\\n\trelease-failure-reproduction-check",
+        "RELEASE_EVIDENCE_GATES := \\\n\tcompiler-check",
+    );
+
+    let diagnostics = validate_release_makefile(&makefile);
+
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic
+            .contains("must own the release-only `release-failure-reproduction-check` chain")),
+        "diagnostics should reject an incomplete composer manifest: {diagnostics:?}"
+    );
 }
 
 /// Verifies final composition cannot acquire an expensive prerequisite graph.
