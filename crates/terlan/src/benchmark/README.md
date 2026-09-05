@@ -117,22 +117,15 @@ Important invariants:
 - `http_runtime_lane.rs` contains focused tests for typed VM HTTP lane
   reporting.
 - `http-aot-performance-self-test` validates timing, comparison, fingerprint,
-  incomplete-evidence rejection, every performance-budget dimension, and the
-  hard policy ceilings without requiring a loopback socket.
-- `make tvm-aot-http-performance-check` records the native lane and rejects
-  latency, throughput, peak resident-memory, or generation-reload ratios that
-  exceed the committed checked-CoreIR comparison policy.
+  and incomplete-evidence handling without requiring a loopback socket.
+- `make tvm-aot-http-performance-check` is a manually requested diagnostic. It
+  records native-lane latency, throughput, peak resident memory, and
+  generation-reload ratios; it is not a release or publication prerequisite.
 - `make tvm-http-paired-performance-check` rotates all six
-  native-AOT/Axum/plain-Hyper orders, rejects samples contaminated on reserved
-  CPUs, validates every decisive route and payload with maintained `curl` and
-  `wrk`, and records deterministic 10,000-resample bootstrap intervals. The
-  internal client rows remain diagnostic and cannot decide the comparison when
-  maintained workload evidence is present.
-- `make tvm-http-decisive-performance-check` requires at least ten paired
-  10-second samples, explicit disjoint server/client CPU sets, the performance
-  governor, a single server NUMA node, and no IRQ affinity overlap. It fails
-  before measurement when those controls are not satisfied; the shorter target
-  emits explicitly advisory evidence.
+  native-AOT/Axum/plain-Hyper orders, validates every route and payload with
+  maintained `curl` and `wrk`, and records deterministic 10,000-resample
+  bootstrap intervals. Host load, governor, affinity, and headroom observations
+  are metadata only and cannot reject a run or a release.
 - The maintained matrix covers sequential and pressure traffic, bounded
   oversubscription, keep-alive and connection teardown, empty/4KiB/64KiB/1MiB
   bodies, header pressure, JSON parsing, request metadata, static responses,
@@ -141,8 +134,8 @@ Important invariants:
   HTTP/2 negotiation evidence without pretending plaintext HTTP/1.1 proves it.
 - Reports attribute idle, warmed, peak, retained RSS/PSS, thread count, process
   efficiency, soak growth, exact binary and Cargo.lock hashes, target CPU, LTO,
-  codegen-unit, panic, allocator, and socket policies. Paired comparison rejects
-  unequal workload, hardware, build, affinity, or socket-policy evidence.
+  codegen-unit, panic, allocator, and socket policies. These measurements support
+  investigation and trend analysis; they never decide release correctness.
 - Long-form paired runs are controlled by `TERLAN_BENCH_HTTP_PAIRS`,
   `TERLAN_BENCH_HTTP_DURATION_MS`, and `TERLAN_BENCH_HTTP_SOAK_SECONDS`.
   Optional hardware counters use `TERLAN_BENCH_HTTP_PERF_SECONDS`; unavailable
@@ -152,7 +145,7 @@ Important invariants:
   report, percentile, malformed-evidence, serialization, and fixture checks.
 - Run `terlan-benchmark aot-compilation` with release-built `terlc` and
   `terlan-vm` siblings to record the complete same-machine compilation report.
-- Run `terlan-benchmark aot-compilation-validate` to enforce the committed
+- Run `terlan-benchmark aot-compilation-validate` to compare against the committed
   cold and incremental Terlan-to-Go ratio ceilings and warm p95 limit from
   `benchmarks/baselines/aot-compilation-limits.json`.
 - Keep large performance sweeps outside normal unit tests; release gates should

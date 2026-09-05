@@ -41,7 +41,6 @@ const REPORT_SCHEMA: &str = "terlan.vm-multicore-performance.v1";
 const REPORT_OUTPUT_ENV: &str = "TERLAN_VM_MULTICORE_PERFORMANCE_OUTPUT";
 const DEFAULT_REPORT_OUTPUT: &str = "target/quality/vm-multicore-performance.json";
 const OFFICIAL_REPOSITORY: &str = "terlan-lang/terlan";
-const DEDICATED_RUNNER_ENV: &str = "TERLAN_VM_MULTICORE_DEDICATED_RUNNER";
 const SAMPLE_COUNT: usize = 9;
 const WIDTHS: [usize; 3] = [1, 2, 4];
 /// Untimed executions used to initialize images, owner threads, and actor heaps
@@ -90,7 +89,6 @@ struct BackgroundLoad {
     one_minute: Option<f64>,
     five_minutes: Option<f64>,
     fifteen_minutes: Option<f64>,
-    declared_state: String,
 }
 
 /// Stable latency distribution for one scheduler width.
@@ -159,7 +157,7 @@ struct SourceTreeIdentity {
     sha256: String,
 }
 
-/// Machine-readable first-slice MC-9 performance report.
+/// Machine-readable multicore performance observation.
 #[derive(Debug, Serialize)]
 struct MulticorePerformanceReport {
     schema: &'static str,
@@ -191,7 +189,7 @@ struct MulticorePerformanceReport {
     pending_policy: &'static str,
 }
 
-/// Generates the first MC-9 fixed-scheduler performance artifact.
+/// Generates a fixed-scheduler performance artifact for manual analysis.
 #[test]
 #[ignore = "records host-specific release performance evidence"]
 fn multicore_runtime_width_matrix_records_workloads_and_owner_overlap() {
@@ -226,18 +224,9 @@ fn multicore_runtime_width_matrix_records_workloads_and_owner_overlap() {
         mixed_tail::measure_mixed_tail(&fixture.image, &fixture.root, cpu_actor::CPU_SAMPLE_COUNT)
             .expect("measure mixed CPU and I/O tails");
     let performance_policy = policy::canonical_policy().expect("load multicore policy");
-    let runner_context = policy::DedicatedRunnerContext::capture(
-        optimization_profile,
-        hardware.effective_parallelism(),
-        background_load.declared_state.clone(),
-    );
-    let performance_policy_evidence = policy::evaluate_policy(
-        &performance_policy,
-        &runner_context,
-        &cpu_bound_actor,
-        &mixed_load_tail,
-    )
-    .expect("enforce dedicated multicore runner policy");
+    let performance_policy_evidence =
+        policy::evaluate_policy(&performance_policy, &cpu_bound_actor, &mixed_load_tail)
+            .expect("record multicore performance observation");
     let workload_measurements = workloads::measure_runtime_workloads(
         &fixture.image,
         fixture.router.clone(),
@@ -296,7 +285,7 @@ fn multicore_runtime_width_matrix_records_workloads_and_owner_overlap() {
         mixed_load_tail,
         performance_policy: performance_policy_evidence,
         workload_measurements,
-        pending_policy: "same-revision performance and sanitizer evidence remain MC-9 work",
+        pending_policy: "performance observations are diagnostic and never gate a release",
     };
     write_report(&report).expect("write multicore performance report");
     fs::remove_dir_all(fixture.root).expect("cleanup multicore performance fixture");
@@ -583,11 +572,6 @@ fn performance_provenance(
             "performance workflow commit `{commit_sha}` does not match `{source_revision}`"
         ));
     }
-    if env::var_os(DEDICATED_RUNNER_ENV).is_some() && runner_environment != "self-hosted" {
-        return Err(
-            "dedicated performance policy requires a self-hosted GitHub runner".to_string(),
-        );
-    }
     Ok(PerformanceProvenance {
         execution_environment: "github-actions",
         source_tree_clean,
@@ -707,7 +691,7 @@ fn required_environment(name: &str) -> Result<String, String> {
         })
 }
 
-/// Captures Linux load averages and the caller's background-load declaration.
+/// Captures Linux load averages as informational benchmark metadata.
 fn background_load() -> BackgroundLoad {
     let values = fs::read_to_string("/proc/loadavg")
         .ok()
@@ -724,8 +708,6 @@ fn background_load() -> BackgroundLoad {
         one_minute: values.first().copied(),
         five_minutes: values.get(1).copied(),
         fifteen_minutes: values.get(2).copied(),
-        declared_state: env::var("TERLAN_BENCH_BACKGROUND_LOAD")
-            .unwrap_or_else(|_| "uncontrolled".to_string()),
     }
 }
 

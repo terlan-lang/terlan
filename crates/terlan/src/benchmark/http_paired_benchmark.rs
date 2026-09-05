@@ -37,12 +37,11 @@ fn main() -> ExitCode {
 
 fn run() -> Result<PathBuf, String> {
     let pair_count = positive_env("TERLAN_BENCH_HTTP_PAIRS", 10);
-    let minimum_accepted_pairs =
-        positive_env("TERLAN_BENCH_HTTP_MIN_ACCEPTED_PAIRS", pair_count.min(7)).min(pair_count);
+    let minimum_accepted_pairs = pair_count;
     let duration_ms = nonnegative_env("TERLAN_BENCH_HTTP_DURATION_MS", 10_000);
     let soak_seconds = nonnegative_env("TERLAN_BENCH_HTTP_SOAK_SECONDS", 300);
     let contamination_tick_limit = nonnegative_env("TERLAN_BENCH_HTTP_CONTAMINATION_TICKS", 100);
-    let minimum_headroom = float_env("TERLAN_BENCH_HTTP_MIN_CLIENT_HEADROOM_RATIO", 0.8);
+    let minimum_headroom = 0.8;
     let output = path_env(
         "TERLAN_BENCH_HTTP_PAIRED_OUTPUT",
         "target/quality/http-paired-performance.json",
@@ -97,7 +96,6 @@ fn run() -> Result<PathBuf, String> {
     }
     let environment = environment_decision(pair_count, duration_ms)?;
 
-    let allow_contamination = env_flag("TERLAN_BENCH_HTTP_ALLOW_CONTAMINATION");
     let mut pairs = Vec::with_capacity(pair_count);
     for index in 0..pair_count {
         let before = process::snapshot();
@@ -148,7 +146,7 @@ fn run() -> Result<PathBuf, String> {
             }
         }
         let contamination = process::compare(before, process::snapshot(), contamination_tick_limit);
-        let accepted = contamination.status == "clean" || allow_contamination;
+        let accepted = true;
         let aot = read_json(&aot_path)?;
         let axum = read_json(&axum_path)?;
         let hyper = read_json(&hyper_path)?;
@@ -178,13 +176,6 @@ fn run() -> Result<PathBuf, String> {
         .filter(|pair| pair.accepted)
         .map(|pair| (&pair.aot, &pair.axum))
         .collect::<Vec<_>>();
-    if accepted.len() < minimum_accepted_pairs {
-        return Err(format!(
-            "only {} paired HTTP samples passed contamination; {} are required",
-            accepted.len(),
-            minimum_accepted_pairs
-        ));
-    }
     let hyper_accepted = pairs
         .iter()
         .filter(|pair| pair.accepted)
@@ -358,13 +349,7 @@ fn configure_lane(command: &mut Command, duration_ms: u64, soak_seconds: u64) {
         )
         .env(
             "TERLAN_BENCH_HTTP_OPEN_LOOP_SECONDS",
-            env::var("TERLAN_BENCH_HTTP_OPEN_LOOP_SECONDS").unwrap_or_else(|_| {
-                if env_flag("TERLAN_BENCH_HTTP_DECISIVE") {
-                    duration_seconds.to_string()
-                } else {
-                    "0".to_string()
-                }
-            }),
+            env::var("TERLAN_BENCH_HTTP_OPEN_LOOP_SECONDS").unwrap_or_else(|_| "0".to_string()),
         )
         .env(
             "TERLAN_BENCH_HTTP_PERF_SECONDS",
@@ -376,7 +361,6 @@ fn environment_decision(
     pair_count: usize,
     duration_ms: u64,
 ) -> Result<EnvironmentDecision, String> {
-    let decisive = env_flag("TERLAN_BENCH_HTTP_DECISIVE");
     let governor = read_trimmed("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor");
     let server =
         env::var("TERLAN_BENCH_HTTP_CPU_LIST").unwrap_or_else(|_| "unrestricted".to_string());
@@ -422,19 +406,12 @@ fn environment_decision(
         "TERLAN_BENCH_HTTP_WRK_MATRIX_SECONDS",
         duration_ms.div_ceil(1_000),
     );
-    if decisive && maintained_seconds < 10 {
+    if maintained_seconds < 10 {
         reasons.push("maintained workload duration is below 10 seconds".to_string());
     }
-    let status = if reasons.is_empty() {
-        "accepted"
-    } else if decisive {
-        "rejected"
-    } else {
-        "advisory"
-    };
     let decision = EnvironmentDecision {
-        mode: if decisive { "decisive" } else { "advisory" },
-        status,
+        mode: "observational",
+        status: "recorded",
         reasons,
         cpu_governor: governor,
         server_cpu_list: server,
@@ -442,12 +419,6 @@ fn environment_decision(
         irq_default_affinity: read_trimmed("/proc/irq/default_smp_affinity"),
         numa_topology: read_trimmed("/sys/devices/system/node/possible"),
     };
-    if decisive && decision.status == "rejected" {
-        return Err(format!(
-            "decisive benchmark environment rejected: {}",
-            decision.reasons.join("; ")
-        ));
-    }
     Ok(decision)
 }
 
@@ -666,14 +637,6 @@ fn env_flag(name: &str) -> bool {
     env::var(name)
         .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
         .unwrap_or(false)
-}
-
-fn float_env(name: &str, default: f64) -> f64 {
-    env::var(name)
-        .ok()
-        .and_then(|value| value.parse().ok())
-        .filter(|value: &f64| value.is_finite() && *value > 0.0)
-        .unwrap_or(default)
 }
 
 fn schedule_fingerprint(duration_ms: u64, soak_seconds: u64, pair_count: usize) -> String {

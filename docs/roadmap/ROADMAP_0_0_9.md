@@ -175,26 +175,26 @@ and release work.
     themselves in their owning tests; release lifecycle boundaries reject and
     clean any residue left by an interrupted process.
     Publication is now a read-only consumer of candidate-bound evidence: an
-    explicit refresh owns MC-9, AOT closeout, and release evidence once, while
-    retries verify the sealed source identity and file digests without Cargo or
-    test replay. The exhaustive hosted Compiler check is resolved back to the
-    canonical workflow run before local evidence may reuse its Rust results.
-    Five formerly external ignored capability/EPMD cases now execute directly
-    from the union-feature harness. The remaining evidence refresh is capped at
-    six distinct Cargo invocations and two isolated benchmark selectors, and a
-    cross-worktree performance lease rejects a busy host before measurement.
-    The MC-9 contract now executes after the canonical typed-validator
-    bootstrap inside `release-candidate-check`; removing its preliminary CI
-    step eliminates a compiler and platform-validator build that the clean
-    artifact measurement immediately discarded.
+    explicit refresh owns deterministic multicore, AOT, and release closeout
+    once, while retries verify the sealed source identity and file digests
+    without Cargo or test replay. The exhaustive hosted Compiler check is
+    resolved back to the canonical workflow run before local evidence may reuse
+    its Rust results. Five formerly external ignored capability/EPMD cases now
+    execute directly from the union-feature harness. Performance measurements
+    remain manual diagnostics; no evidence refresh or publication gate depends
+    on CPU quietness, affinity, governor state, host load, or a wall-clock
+    threshold. The deterministic multicore contract executes after the
+    canonical typed-validator bootstrap inside `release-candidate-check`;
+    removing its preliminary CI step eliminates a compiler and platform-
+    validator build that the clean artifact measurement immediately discarded.
     Compiler and release matrices now share one target-native dependency action;
     Windows obtains both `libpq` and `pkgconf` from its exact vcpkg triplet and
     treats every native installer status as authoritative instead of allowing a
     later PowerShell command to mask a failed package download.
   - Split Rust validation into explicitly inventoried fast unit, integration,
-    AOT/native-link, concurrency/timeout, performance, and controlled-host
-    tiers. Every test belongs to exactly one tier, and the release aggregate
-    still executes every required tier.
+    AOT/native-link, concurrency/timeout, and diagnostic-performance tiers.
+    Every correctness test belongs to exactly one release tier; host-sensitive
+    performance measurements remain outside the release aggregate.
   - Run EOF-dependent CLI, REPL, and debugger tests with closed plain pipes.
     No automated gate may inherit a live terminal accidentally. Add an
     adversarial test that fails quickly when a child waits for undeclared

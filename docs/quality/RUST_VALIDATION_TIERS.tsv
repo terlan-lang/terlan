@@ -11,8 +11,6 @@ commands::serve::handler_cache::invocation::invocation_test::generated_capabilit
 commands::bind::cpp_package_consumer_test::generated_cpp_git_package_executes_and_rejects_stale_handles	aot-native-link	terlan-test-orchestrator	serial-native-toolchain
 compiler::typeck::std_contract_test::syntax_output_accepts_release_core_collection_contracts	integration	terlan-test-orchestrator	serial-release-scale
 runtime::vm::epmd::epmd_test::logical_node_bootstrap_runs_discovery_transport_and_shutdown_full_cycle	controlled-host	terlan-test-orchestrator	declared-loopback-socket
-commands::repl::repl_aot_test::native_repl_unchanged_generation_p95_stays_under_one_second	performance	tvm-aot-compilation-time-check	isolated-release-profile
-commands::repl::repl_aot_test::native_repl_changed_generation_p95_stays_under_one_second	performance	tvm-aot-compilation-time-check	isolated-release-profile
-commands::serve::handler_cache::multicore_performance_test::multicore_runtime_width_matrix_records_workloads_and_owner_overlap	performance	vm-multicore-performance-record	dedicated-controlled-host
+commands::serve::handler_cache::multicore_performance_test::multicore_runtime_width_matrix_records_workloads_and_owner_overlap	performance	vm-multicore-performance-record	manual-observation
 runtime::vm::postgres::libpq_worker::libpq_docker_gate_test::libpq_docker_gate_validates_success_failure_cancellation_and_cleanup	controlled-host	native-boundary-postgres-docker-check	declared-docker-host
 commands::db::live_test::run_db_migration_and_snapshot_lifecycle_against_docker_postgres	controlled-host	native-boundary-postgres-docker-check	declared-docker-host

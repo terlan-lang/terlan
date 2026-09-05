@@ -10,7 +10,7 @@
 .PHONY: rust-build-graph-timings-self-test rust-build-graph-timings-record
 .PHONY: rust-structure-census-record-closeout-timings
 .PHONY: rust-structure-closeout-timings-check
-.PHONY: rust-structure-periodic-timings-check rust-dependency-impact-check rust-dependency-impact-record
+.PHONY: rust-dependency-impact-check rust-dependency-impact-record
 
 # Dependency impact performs the broadest structural analysis and retains a
 # somewhat larger bounded VM allowance than the narrower quality gates.
@@ -149,12 +149,6 @@ rust-structure-census-record-closeout-timings: terlan-rust-quality-bootstrap
 rust-structure-closeout-timings-check: rust-structure-timings-self-test
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
 		$(TERLAN_RUST_QUALITY) structure-timings-closeout-check
-
-rust-structure-periodic-timings-check: rust-structure-timings-self-test
-	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
-		$(TERLAN_RUST_QUALITY) structure-timing-regression-self-test
-	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
-		$(TERLAN_RUST_QUALITY) structure-timing-regression-measure
 
 rust-dependency-impact-check: rust-boundary-audit-report rust-cargo-metadata-report terlan-rust-quality-bootstrap
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \

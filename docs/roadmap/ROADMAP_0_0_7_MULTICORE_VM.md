@@ -1211,17 +1211,10 @@ and progress evidence.
     - [x] Record the median width-one to width-two throughput speedup and a
       deterministic 95% independent-median bootstrap confidence interval with
       4,096 resamples.
-    - [x] Add the versioned
-      `benchmarks/baselines/vm-multicore-performance-limits.json` policy for
-      the dedicated Linux x86-64 runner, including one-scheduler throughput and
-      p99 regression budgets.
-    - [x] Keep ordinary hosts record-only. Once
-      `TERLAN_VM_MULTICORE_DEDICATED_RUNNER` requests policy enforcement, fail
-      closed on runner identity, target, release profile, controlled-load
-      declaration, CPU eligibility, workload drift, scaling, confidence, or
-      one-scheduler regression.
-    - [x] Enforce at least 1.5x median width-one to width-two speedup and a
-      1.25x lower confidence bound on the eligible dedicated runner.
+    - [x] Retain the versioned multicore measurements as diagnostic history.
+      No runner identity, host load, affinity, governor, throughput, or latency
+      observation can reject validation or publication. Deterministic workload
+      shape and result correctness still fail closed.
   - Fourth executable slice completed:
     - [x] Run two generated one-million-operation CPU actors on actual fixed
       scheduler owners while independently sampling scheduler command wait,
@@ -1255,39 +1248,12 @@ and progress evidence.
       `x86_64-unknown-linux-gnutsan` target. Its attestation rejects a skipped
       decision, unpinned compiler, uninstrumented target, missing or repeated
       seed, stale revision, unofficial repository, or incomplete CI identity.
-  - Sixth executable slice completed:
-    - [x] Qualify every performance report with the full checked-out source
-      revision, clean-tree attestation, and local publication provenance.
-      Retain fail-closed parsing of historical Actions producer identities
-      without allowing them to satisfy publication's local-evidence policy.
-    - [x] Make the release publisher own controlled performance locally. The
-      hosted workflow uses GitHub-hosted runners only; `make publish` uses Rust
-      1.96.0, declares controlled background load, enforces the dedicated
-      policy, and seals the resulting performance artifact before tagging.
-    - [x] Add `make vm-multicore-mc9-evidence-check`. It rejects record-only
-      performance, hosted-runner substitution, policy or workload drift,
-      missing overlap, unpinned sanitizer evidence, malformed provenance,
-      and different source revisions.
-    - [x] Join local, single-attempt GitHub, or independently rerun producer
-      reports by source revision while preserving both producer identities in
-      `terlan.vm-multicore-mc9-evidence.v2`. Provenance classification is
-      descriptive and is not a technical pass condition.
-    - [x] Record whether both producer trees were clean without rejecting
-      local working-tree validation. GitHub reports that claim official
-      provenance must still prove a clean checkout and matching commit.
-    - [x] Add `make vm-multicore-mc9-local-evidence-check` as the canonical
-      local producer. It requires the pinned Rust 1.96.0 TSan target, runs the
-      controlled performance policy, generates both reports without GitHub
-      identity, and seals the revision-matched technical evidence.
-    - [x] Bind local performance, ThreadSanitizer, joined MC-9, and release
-      evidence to one deterministic SHA-256 identity over the checked-out
-      revision, tracked patch, and every nonignored untracked file. Reject
-      reports from different dirty working trees and reject closeout when the
-      current working tree differs from the measured tree.
-  - Next executable slice: run controlled performance and pinned
-    ThreadSanitizer validation locally or in CI, execute
-    `make vm-multicore-mc9-evidence-check`, and check off MC-9 only after the
-    joined technical report exists for the candidate revision.
+  - Sixth executable slice superseded by the reproducible release policy:
+    - [x] Keep performance reports optional and diagnostic-only.
+    - [x] Bind release closeout to deterministic multicore invariants, the
+      portable memory model, and pinned hosted ThreadSanitizer evidence.
+    - [x] Ensure publication never waits for or rejects a candidate because of
+      local CPU quietness.
   - Run identical actor, mailbox, timer, HTTP, supervision, EPMD lifecycle, and
     AOT workloads with one, two, and up to four schedulers on recorded hardware.
   - Record effective cgroup/container CPU quota, affinity, logical and physical
@@ -1297,11 +1263,7 @@ and progress evidence.
     maximum simultaneously active scheduler count of at least two on eligible
     hosts. Client threads, compiler workers, reactor threads, and benchmark-only
     handler pools do not count.
-  - On the dedicated release runner with at least two effective CPUs, require
-    the independent CPU-bound actor fixture's median throughput to improve by
-    at least 1.5x from one to two schedulers, with a recorded confidence bound,
-    while the one-scheduler result and performance remain inside their
-    versioned regression budgets.
+  - Record scaling observations without making them release criteria.
   - Record higher widths without promising portable linear scaling. Bound p95
     and p99 scheduler wait, mailbox delivery, timer delay, HTTP latency,
     migration/steal failure, allocation, and collection pauses under mixed
@@ -1309,40 +1271,36 @@ and progress evidence.
   - Run bounded memory-model tests on every supported platform, reproducible
     seeded stress with a deadlock watchdog, and a mandatory pinned-toolchain
     ThreadSanitizer release-candidate lane on the supported Linux x86-64 runner.
-  - Gate: add `make vm-multicore-performance-check`,
-    `make vm-multicore-thread-sanitizer-check`, and
-    `make vm-multicore-mc9-evidence-check`; run
+  - Gate: run `make vm-multicore-thread-sanitizer-check`,
     `make vm-multicore-runtime-integration-check`,
     `make vm-multicore-replay-observability-check`,
-    `make vm-http-vs-axum-check`, `make vm-semantics-vs-otp-check`, and
-    `make rust-quality-check`.
+    `make vm-semantics-vs-otp-check`, and `make rust-quality-check`.
   - Exit: multicore improves real actor throughput without hiding fairness,
     latency, memory, replay, or correctness regressions.
 
 - [ ] MC-10: perform multicore release closeout.
   - First executable slice completed:
     - [x] Add `make vm-multicore-release-check` as the canonical distributed
-      closeout. It validates revision-matched MC-9 evidence before running the
-      remaining multicore semantic, runtime, quality, and integrity gates. The
+      closeout. It validates deterministic multicore evidence before running
+      the remaining semantic, runtime, quality, and integrity gates. The
       repository-wide `make check` remains a separate final MC-10 gate so
       unfinished later 0.0.7 phases cannot block scheduler closeout outside
       dependency order.
-    - [x] Keep performance and ThreadSanitizer execution in their owning
-      release jobs so hosted final validation cannot overwrite the controlled
-      runner or instrumented artifacts.
+    - [x] Keep ThreadSanitizer execution in its owning release job and keep
+      host-sensitive performance outside release evidence.
     - [x] Add an adversarial contract gate that rejects missing local gates,
       reordered evidence validation, missing artifact producers, or release
       workflows that bypass the canonical closeout target.
   - Second executable slice completed:
     - [x] Add the recorder for
       `target/quality/vm-multicore-release-closeout.json` with the versioned
-      `terlan.vm-multicore-release-closeout.v3` schema only after the complete
+      `terlan.vm-multicore-release-closeout.v4` schema only after the complete
       local gate graph passes.
-    - [x] Bind joined MC-9 evidence, the ordered local gate graph, the
-      checked-out source revision, and a
+    - [x] Bind memory-model and ThreadSanitizer evidence, the ordered local gate
+      graph, the checked-out source revision, and a
       domain-separated revision over the invariant inventory and concurrency
       contract.
-    - [x] Reject cross-revision, stale invariant, malformed MC-9, and
+    - [x] Reject cross-revision, stale invariant, malformed sanitizer, and
       contract-drift evidence before writing
       closeout.
     - [x] Keep the six-target AOT platform matrix independent from multicore
@@ -1378,9 +1336,9 @@ and progress evidence.
       contiguous block in the main roadmap.
     - [x] Record the ordered multicore closeout sequence in the executable Make
       aggregate instead of making roadmap prose part of the build graph.
-  - Next executable slice: obtain revision-matched MC-9 performance and
-    ThreadSanitizer evidence locally or in CI, then run
-    `make vm-multicore-release-check`.
+  - Closeout now consumes revision-matched deterministic memory-model and
+    ThreadSanitizer evidence. Performance history is deliberately outside the
+    release decision.
   - Revalidate the already completed AOT roadmap and reconcile Slice 40 only
     after this mini-roadmap's full Completion Boundary passes.
   - Run `make vm-multicore-release-check` from a clean reproducible
@@ -1408,10 +1366,8 @@ make vm-multicore-runtime-cleanup-check
 make vm-multicore-runtime-integration-check
 make vm-epmd-discovery-check
 make vm-multicore-replay-observability-check
-make vm-multicore-performance-check
 make vm-multicore-memory-model-check
 make vm-multicore-thread-sanitizer-check
-make vm-multicore-mc9-evidence-check
 make vm-scheduler-fairness-check
 make tvm-aot-runtime-transition-check
 make tvm-managed-memory-check

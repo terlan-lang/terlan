@@ -767,18 +767,16 @@ normal developer builds.
     ceilings after the declaration formatter and native-image descriptor were
     split below the warning band. The typed-error budget now includes strictly
     lower 0.0.9 reduction targets rather than only no-growth maxima.
-  - Post-closeout hardening: recurring compilation evidence uses at least
-    three samples and per-scenario medians with affinity, governor, load, and
-    dispersion provenance. Dependency evidence now includes resolved version
-    and feature fanout, domain API fan-in, cycle budgets, and transitive change
+  - Post-closeout hardening: compilation timings are retained only as
+    diagnostic observations. Dependency evidence includes resolved version and
+    feature fanout, domain API fan-in, cycle budgets, and transitive change
     blast radius.
   - Post-closeout hardening: the closeout Make DAG runs shared Clippy and
-    structure self-tests once per traversal. Recurring timings reject unstable
-    affinity/governor, normalized load above 0.50 per CPU, and coefficient of
-    variation above 0.10. Isolated CQ-0/CQ-3/sanitizer targets are now removed
-    automatically after compact evidence is copied. Shared debug incremental
-    state is capped at 64 GiB while compiled dependencies, outputs, and quality
-    artifacts are preserved.
+    structure self-tests once per traversal. No code-quality or release gate
+    depends on host load, affinity, governor, or timing variance. Isolated
+    CQ-0/CQ-3/sanitizer targets are removed automatically after compact
+    evidence is copied. Shared debug incremental state is capped at 64 GiB
+    while compiled dependencies, outputs, and quality artifacts are preserved.
   - Post-closeout hardening: dependency-impact schema 4 separates production
     coupling from test-only coupling, classifies all 30 resolved duplicate
     dependency families with owners and expiry, and exposes executable 0.0.9

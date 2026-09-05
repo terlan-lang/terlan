@@ -108,7 +108,7 @@ const EXTERNAL_TIER_OWNERS: [ExternalTierOwner; 3] = [
     ExternalTierOwner {
         tier: ValidationTier::Performance,
         make_target: "vm-multicore-performance-record",
-        isolation: "dedicated-controlled-host",
+        isolation: "manual-observation",
     },
     ExternalTierOwner {
         tier: ValidationTier::ControlledHost,

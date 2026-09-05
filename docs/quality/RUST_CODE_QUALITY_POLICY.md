@@ -109,24 +109,10 @@ inventories for drift auditing, while their normal gates execute canonical
 module batches. Make aggregates express quality subgates as prerequisites, so
 one top-level invocation traverses each shared prerequisite once.
 
-Recurring compile measurement is intentionally separate from the fast
-closeout aggregate:
-
-```bash
-TERLAN_RUST_TIMING_DEDICATED=1 make rust-structure-periodic-timings-check
-```
-
-The command reruns all seven CQ scenarios at least three times on the dedicated
-host, compares the median of each scenario, writes
-`target/quality/rust-structure-timings-current.json`, and rejects per-scenario
-regressions beyond the checked noise budgets. Evidence records the compilation
-input hash, Git revision and dirty state, kernel, operating system, CPU model,
-memory, CPU affinity, scaling governor, ambient load averages, Rust toolchain,
-every raw timing sample, dispersion, and Cargo timing artifact hashes.
-Recurring measurements additionally reject unavailable governor/affinity
-evidence, normalized one-minute host load above 0.50 per available CPU, timing
-coefficient of variation above 0.10, and governor or affinity changes during a
-run.
+Compile timings are diagnostic evidence. Release and code-quality correctness
+never depend on CPU quietness, scaling-governor state, affinity, ambient load,
+or a timing threshold measured in one run. Timing history can guide an
+investigation, but it cannot reject a candidate.
 
 Isolated Cargo build trees are temporary evidence-generation state. Timing
 tools copy their compact HTML/report evidence under `target/quality` and remove

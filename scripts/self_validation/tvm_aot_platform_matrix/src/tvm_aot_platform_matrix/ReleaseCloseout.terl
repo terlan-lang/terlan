@@ -14,7 +14,7 @@ import std.io.File.{exists, read_text}.
 import std.system.{Environment, Platform, Process}.
 import std.vcs.Git.{clean, revision as source_revision, sha256 as source_sha256, source_tree_identity}.
 import tvm_aot_platform_matrix.AotThreadSanitizer.{target as sanitizer_target, validate_report as validate_sanitizer_report}.
-import tvm_aot_platform_matrix.Core.{child, host_target, is_sha256, json_bool, json_equals, json_string, json_value, load_json, report_valid, string_array, targets, write_json}.
+import tvm_aot_platform_matrix.Core.{child, host_target, json_bool, json_equals, json_string, load_json, report_valid, string_array, targets, write_json}.
 
 import type std.core.Option.
 import type std.data.Json.
@@ -30,7 +30,7 @@ struct InventoryCounts {
     valid: Bool,
 }.
 
-pub schema(): String -> "terlan.tvm-aot-local-closeout.v3".
+pub schema(): String -> "terlan.tvm-aot-local-closeout.v4".
 
 pub local_gates(): List[String] ->
     [
@@ -54,7 +54,6 @@ pub local_gates(): List[String] ->
         "tvm-aot-lowering-coverage-check",
         "tvm-aot-http-persistent-shard-check",
         "tvm-aot-http-generation-lifetime-check",
-        "tvm-aot-http-performance-check",
         "tvm-aot-multicore-readiness-check",
         "tvm-aot-c-abi-boundary-check",
         "tvm-aot-compilation-time-check",
@@ -312,41 +311,19 @@ counts_json(counts: InventoryCounts): Json ->
         .put("temporary-migration-support", Json.int(counts.temporary_migration_support))
         .put("deletion-debt", Json.int(counts.deletion_debt)).
 
-required_cache_state(value: Json): Bool ->
-    case {
-    json_value(value, "terlan_cold"),
-    json_value(value, "go_cold"),
-    json_value(value, "warm"),
-    json_value(value, "dependency_downloads_timed"),
-} {
-        {Some(_), Some(_), Some(_), Some(_)} -> true;
-        _ -> false
-    }.
-
 validate_local_evidence(name: String, value: Json): Bool ->
     let expected_schema =
         case name {
-            "compilation" -> "terlan-aot-compilation-benchmark-v1";
-            "http_performance" -> "terlan-http-aot-performance-comparison-v2";
             "managed_list" -> "terlan.tvm.managed-list-profile.v1";
             _ -> ""
         };
-    let requires_status = name != "managed_list";
     let Some(actual_schema) <- json_string(value, "schema") else {
         _ -> false
     };
     if {
         expected_schema == "" or actual_schema != expected_schema -> false;
-        requires_status and not json_string_equals(value, "status", "completed") -> false;
-        name == "compilation" -> validate_compilation_evidence(value);
         name == "managed_list" -> json_bool_equals(value, "correctness_verified", true);
         true -> true
-    }.
-
-json_string_equals(value: Json, field: String, expected: String): Bool ->
-    case json_string(value, field) {
-        Some(actual) -> actual == expected;
-        None -> false
     }.
 
 json_bool_equals(value: Json, field: String, expected: Bool): Bool ->
@@ -354,16 +331,6 @@ json_bool_equals(value: Json, field: String, expected: Bool): Bool ->
         Some(actual) -> actual == expected;
         None -> false
     }.
-
-validate_compilation_evidence(value: Json): Bool ->
-    let {
-        Some(cache_state) <- json_value(value, "cache_state");
-        Some(fixtures) <- json_value(value, "fixtures");
-        Some(digest) <- json_string(fixtures, "sha256")
-    } else {
-        _ -> false
-    };
-    required_cache_state(cache_state) and is_sha256(digest).
 
 evidence_entry(path: String): Option[Json] ->
     case file_digest(path) {
@@ -475,25 +442,12 @@ inventory_evidence(root: String): Option[Json] ->
 
 retained_evidence(root: String): Option[Json] ->
     let {
-        Some(compilation) <- validated_evidence(root, "compilation", "target/quality/aot-compilation-benchmark.json");
-        Some(http) <-
-            validated_evidence(
-                root,
-                "http_performance",
-                "target/quality/http-aot-performance-comparison.json",
-            );
         Some(managed) <- validated_evidence(root, "managed_list", "target/quality/tvm-managed-list-profile.json");
         Some(inventory) <- inventory_evidence(root)
     } else {
         _ -> None
     };
-    Some(
-        Json.object()
-            .put("compilation", compilation)
-            .put("http_performance", http)
-            .put("managed_list", managed)
-            .put("inventory", inventory),
-    ).
+    Some(Json.object().put("managed_list", managed).put("inventory", inventory)).
 
 closeout_report(
     revision: String,

@@ -203,11 +203,6 @@ pub(super) fn load_generator_headroom(
     let axum_internal = named_throughput(axum, "persistent-small-body")?;
     let aot_ratio = aot_external / aot_internal.max(f64::EPSILON);
     let axum_ratio = axum_external / axum_internal.max(f64::EPSILON);
-    if aot_ratio < minimum_ratio || axum_ratio < minimum_ratio {
-        return Err(format!(
-            "maintained load generator lacks headroom: AOT={aot_ratio:.3}, Axum={axum_ratio:.3}, required={minimum_ratio:.3}"
-        ));
-    }
     Ok(Some(LoadGeneratorHeadroom {
         aot_external_requests_per_second: aot_external,
         aot_internal_persistent_requests_per_second: aot_internal,
@@ -215,7 +210,11 @@ pub(super) fn load_generator_headroom(
         axum_external_requests_per_second: axum_external,
         axum_internal_persistent_requests_per_second: axum_internal,
         axum_headroom_ratio: axum_ratio,
-        status: "validated",
+        status: if aot_ratio >= minimum_ratio && axum_ratio >= minimum_ratio {
+            "observed"
+        } else {
+            "limited"
+        },
     }))
 }
 

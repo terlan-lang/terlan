@@ -7,10 +7,8 @@ import std.core.{String, Unit}.
 import std.io.Console.{eprintln}.
 import std.system.Arguments.{get}.
 import tvm_aot_platform_matrix.AotThreadSanitizer.{run as run_tsan, self_test as tsan_self_test}.
-import tvm_aot_platform_matrix.ControlledPerformance.{run as run_controlled_performance, self_test as controlled_performance_self_test}.
 import tvm_aot_platform_matrix.Core.{aggregate, run_target}.
 import tvm_aot_platform_matrix.ErlSuiteAudit.{check as check_erl_suite, self_test as erl_suite_self_test}.
-import tvm_aot_platform_matrix.MulticoreMc9Evidence.{seal as seal_multicore_mc9, self_test as multicore_mc9_self_test}.
 import tvm_aot_platform_matrix.MulticoreRelease.{record as record_multicore_release, self_test as multicore_release_self_test, verify as verify_multicore_release}.
 import tvm_aot_platform_matrix.MulticoreThreadSanitizer.{run as run_multicore_tsan, self_test as multicore_tsan_self_test}.
 import tvm_aot_platform_matrix.ReleaseArtifact.{adversarial as adversarial_release_artifact, describe as describe_release_artifact, installer_smoke as smoke_release_installer, matrix as release_artifact_matrix, metadata as release_artifact_metadata, package as package_release_artifact, repository_root, self_test as release_artifact_self_test, smoke as smoke_release_artifact}.
@@ -29,8 +27,6 @@ entry(): Bool ->
     case get(0) {
         Some("target") -> run_target();
         Some("self-test") -> self_test();
-        Some("controlled-performance") -> run_controlled_performance();
-        Some("controlled-performance-self-test") -> controlled_performance_self_test();
         Some("tsan-run") -> run_tsan();
         Some("tsan-self-test") -> tsan_self_test();
         Some("release-record") -> record_release();
@@ -38,8 +34,6 @@ entry(): Bool ->
         Some("release-self-test") -> release_self_test();
         Some("multicore-tsan-run") -> run_multicore_tsan();
         Some("multicore-tsan-self-test") -> multicore_tsan_self_test();
-        Some("multicore-mc9-seal") -> seal_multicore_mc9();
-        Some("multicore-mc9-self-test") -> multicore_mc9_self_test();
         Some("multicore-release-record") -> record_multicore_release();
         Some("multicore-release-verify") -> verify_multicore_release();
         Some("multicore-release-self-test") -> multicore_release_self_test();
@@ -79,8 +73,7 @@ entry(): Bool ->
                 None -> failure("aggregate requires REPORT_ROOT")
             };
         Some(value) -> failure(String.append("unknown command `", String.append(value, "`")));
-        None ->
-            failure("expected a TVM AOT platform, sanitizer, MC-9, release, or self-test command")
+        None -> failure("expected a TVM AOT platform, sanitizer, release, or self-test command")
     }.
 
 assert(entry());

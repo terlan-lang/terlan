@@ -1,4 +1,4 @@
-//! Deterministic multicore confidence and dedicated-runner policy tests.
+//! Deterministic multicore confidence and observational policy tests.
 
 use super::cpu_actor::{
     speedup_confidence, CpuBoundActorEvidence, CpuBoundSpeedupConfidence, CpuBoundWidthMeasurement,
@@ -8,7 +8,7 @@ use super::mixed_tail::{
     MixedTailEvidence, MixedTailMeasurement, MIXED_CPU_PASSES, MIXED_LOAD_SCHEDULERS,
     MIXED_TAIL_METRICS, MIXED_TAIL_OPERATIONS,
 };
-use super::policy::{canonical_policy, evaluate_policy, parse_policy, DedicatedRunnerContext};
+use super::policy::{canonical_policy, evaluate_policy, parse_policy};
 use super::TimingDistribution;
 
 /// Canonical policy is strict and rejects unknown or weakened limits.
@@ -65,9 +65,9 @@ fn cpu_speedup_confidence_is_reproducible() {
     assert_eq!(first.upper_bound, second.upper_bound);
 }
 
-/// Ordinary hosts record evidence while an activated runner fails closed.
+/// Performance policy is observational on every host.
 #[test]
-fn dedicated_runner_policy_cannot_silently_fall_back_to_record_only() {
+fn performance_policy_never_rejects_a_measurement() {
     let policy = canonical_policy().expect("canonical policy");
     let strong = evidence(
         1.75,
@@ -76,88 +76,19 @@ fn dedicated_runner_policy_cannot_silently_fall_back_to_record_only() {
         policy.reference_one_scheduler_p99_ns,
     );
     let mixed = mixed_tail_evidence(&policy);
-    let ordinary = DedicatedRunnerContext {
-        requested_runner_label: None,
-        target_os: "linux",
-        target_arch: "x86_64",
-        optimization_profile: "debug",
-        effective_cpus: 1,
-        background_load_state: "uncontrolled".to_string(),
-    };
-    let record =
-        evaluate_policy(&policy, &ordinary, &strong, &mixed).expect("record-only evidence");
+    let record = evaluate_policy(&policy, &strong, &mixed).expect("record evidence");
     assert!(!record.enforced);
     assert_eq!(record.status, "record_only");
 
-    let mut dedicated = ordinary;
-    dedicated.requested_runner_label = Some(policy.dedicated_runner_label.clone());
-    let error = evaluate_policy(&policy, &dedicated, &strong, &mixed)
-        .expect_err("activated runner must reject debug profile");
-    assert!(error.contains("optimization profile"), "{error}");
-
-    dedicated.optimization_profile = "release";
-    dedicated.effective_cpus = 2;
-    dedicated.background_load_state = "controlled".to_string();
-    let passed = evaluate_policy(&policy, &dedicated, &strong, &mixed).expect("dedicated policy");
-    assert!(passed.enforced);
-    assert_eq!(passed.status, "passed");
-
     let weak = evidence(1.49, 1.3, 1_200, 1_000_000);
-    let error =
-        evaluate_policy(&policy, &dedicated, &weak, &mixed).expect_err("weak scaling must fail");
-    assert!(error.contains("median speedup"), "{error}");
-
-    let weak_confidence = evidence(1.75, 1.24, 1_200, 1_000_000);
-    let error = evaluate_policy(&policy, &dedicated, &weak_confidence, &mixed)
-        .expect_err("weak confidence must fail");
-    assert!(error.contains("confidence lower bound"), "{error}");
-
-    let minimum_throughput = (policy.reference_one_scheduler_actors_per_second as f64
-        * policy.minimum_one_scheduler_throughput_ratio) as u128;
-    let weak_throughput = evidence(
-        1.75,
-        1.4,
-        minimum_throughput.saturating_sub(1),
-        policy.reference_one_scheduler_p99_ns,
-    );
-    let error = evaluate_policy(&policy, &dedicated, &weak_throughput, &mixed)
-        .expect_err("one-scheduler throughput regression must fail");
-    assert!(error.contains("throughput ratio"), "{error}");
-
-    let maximum_p99 = (policy.reference_one_scheduler_p99_ns as f64
-        * policy.maximum_one_scheduler_p99_ratio) as u128;
-    let slow_p99 = evidence(
-        1.75,
-        1.4,
-        policy.reference_one_scheduler_actors_per_second,
-        maximum_p99 + 1,
-    );
-    let error = evaluate_policy(&policy, &dedicated, &slow_p99, &mixed)
-        .expect_err("one-scheduler p99 regression must fail");
-    assert!(error.contains("p99 ratio"), "{error}");
-
-    let mut slow_tail = mixed;
-    slow_tail.measurements[0].timing.p99_ns = policy.mixed_tail_budgets[0].reference_p99_ns * 2 + 1;
-    let error = evaluate_policy(&policy, &dedicated, &strong, &slow_tail)
-        .expect_err("mixed-load p99 regression must fail");
-    assert!(
-        error.contains("scheduler_wait mixed-load p99 ratio"),
-        "{error}"
-    );
-
-    let mut slow_tail = mixed_tail_evidence(&policy);
-    slow_tail.measurements[1].timing.p95_ns = policy.mixed_tail_budgets[1].reference_p95_ns * 2 + 1;
-    let error = evaluate_policy(&policy, &dedicated, &strong, &slow_tail)
-        .expect_err("mixed-load p95 regression must fail");
-    assert!(
-        error.contains("mailbox_delivery mixed-load p95 ratio"),
-        "{error}"
-    );
+    let weak_record =
+        evaluate_policy(&policy, &weak, &mixed).expect("a slow observation must remain reportable");
+    assert_eq!(weak_record.status, "record_only");
 }
 
-/// Dedicated-runner identity and workload eligibility fail closed.
+/// Deterministic workload-shape drift still fails closed.
 #[test]
-fn dedicated_runner_policy_rejects_ineligible_context_and_workload_drift() {
+fn performance_policy_rejects_workload_drift() {
     let policy = canonical_policy().expect("canonical policy");
     let strong = evidence(
         1.75,
@@ -166,61 +97,27 @@ fn dedicated_runner_policy_rejects_ineligible_context_and_workload_drift() {
         policy.reference_one_scheduler_p99_ns,
     );
     let mixed = mixed_tail_evidence(&policy);
-    let mut dedicated = DedicatedRunnerContext {
-        requested_runner_label: Some(policy.dedicated_runner_label.clone()),
-        target_os: "linux",
-        target_arch: "x86_64",
-        optimization_profile: "release",
-        effective_cpus: 2,
-        background_load_state: "controlled".to_string(),
-    };
-
-    dedicated.requested_runner_label = Some("unknown-runner".to_string());
-    let error = evaluate_policy(&policy, &dedicated, &strong, &mixed)
-        .expect_err("runner identity must match");
-    assert!(error.contains("runner label"), "{error}");
-
-    dedicated.requested_runner_label = Some(policy.dedicated_runner_label.clone());
-    dedicated.target_arch = "aarch64";
-    let error =
-        evaluate_policy(&policy, &dedicated, &strong, &mixed).expect_err("architecture must match");
-    assert!(error.contains("target architecture"), "{error}");
-
-    dedicated.target_arch = "x86_64";
-    dedicated.effective_cpus = 1;
-    let error =
-        evaluate_policy(&policy, &dedicated, &strong, &mixed).expect_err("CPU admission must fail");
-    assert!(error.contains("effective CPUs"), "{error}");
-
-    dedicated.effective_cpus = 2;
-    dedicated.background_load_state = "uncontrolled".to_string();
-    let error = evaluate_policy(&policy, &dedicated, &strong, &mixed)
-        .expect_err("background load must be known");
-    assert!(error.contains("background load state"), "{error}");
-
-    dedicated.background_load_state = "controlled".to_string();
     let mut drifted = strong.clone();
     drifted.iterations_per_actor += 1;
-    let error = evaluate_policy(&policy, &dedicated, &drifted, &mixed)
-        .expect_err("workload drift must fail");
+    let error = evaluate_policy(&policy, &drifted, &mixed).expect_err("workload drift must fail");
     assert!(error.contains("workload_drift"), "{error}");
 
     let mut mixed_drift = mixed;
     mixed_drift.samples_per_metric -= 1;
-    let error = evaluate_policy(&policy, &dedicated, &strong, &mixed_drift)
+    let error = evaluate_policy(&policy, &strong, &mixed_drift)
         .expect_err("mixed workload drift must fail");
     assert!(error.contains("workload_drift"), "{error}");
 
     let mut mixed_drift = mixed_tail_evidence(&policy);
     mixed_drift.measurements[0].operations_per_sample += 1;
-    let error = evaluate_policy(&policy, &dedicated, &strong, &mixed_drift)
+    let error = evaluate_policy(&policy, &strong, &mixed_drift)
         .expect_err("mixed operation drift must fail");
     assert!(error.contains("workload_drift"), "{error}");
 
     let mut mixed_drift = mixed_tail_evidence(&policy);
     mixed_drift.cpu_overlap_proven = false;
-    let error = evaluate_policy(&policy, &dedicated, &strong, &mixed_drift)
-        .expect_err("missing CPU overlap must fail");
+    let error =
+        evaluate_policy(&policy, &strong, &mixed_drift).expect_err("missing CPU overlap must fail");
     assert!(error.contains("workload_drift"), "{error}");
 }
 

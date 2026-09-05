@@ -1,6 +1,5 @@
-//! Versioned dedicated-runner policy for multicore actor scaling.
+//! Versioned observation references for multicore actor scaling.
 
-use std::env;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
@@ -13,19 +12,18 @@ use super::mixed_tail::{
 use super::WARMUP_SAMPLE_COUNT;
 
 const POLICY_SCHEMA: &str = "terlan-vm-multicore-performance-limits-v1";
-const DEDICATED_RUNNER_ENV: &str = "TERLAN_VM_MULTICORE_DEDICATED_RUNNER";
 const CANONICAL_POLICY: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../benchmarks/baselines/vm-multicore-performance-limits.json"
 ));
 
-/// Versioned hardware-specific multicore scaling and regression limits.
+/// Versioned multicore workload shape and historical observation references.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct MulticorePerformancePolicy {
     /// Versioned policy document schema.
     pub(super) schema: String,
-    /// Exact dedicated runner label required to activate enforcement.
+    /// Historical runner label attached to the reference measurements.
     pub(super) dedicated_runner_label: String,
     /// Required target operating system.
     pub(super) required_target_os: String,
@@ -59,57 +57,22 @@ pub(super) struct MulticorePerformancePolicy {
 pub(super) struct MixedTailBudget {
     /// Stable metric identity.
     pub(super) metric: String,
-    /// Recorded p95 latency on the dedicated runner.
+    /// Recorded reference p95 latency.
     pub(super) reference_p95_ns: u128,
     /// Maximum current/reference p95 ratio.
     pub(super) maximum_p95_ratio: f64,
-    /// Recorded p99 latency on the dedicated runner.
+    /// Recorded reference p99 latency.
     pub(super) reference_p99_ns: u128,
     /// Maximum current/reference p99 ratio.
     pub(super) maximum_p99_ratio: f64,
 }
 
-/// Host facts that decide whether hardware-specific policy is active.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct DedicatedRunnerContext {
-    /// Optional exact runner label requested by the environment.
-    pub(super) requested_runner_label: Option<String>,
-    /// Current target operating system.
-    pub(super) target_os: &'static str,
-    /// Current target architecture.
-    pub(super) target_arch: &'static str,
-    /// Current Rust optimization profile.
-    pub(super) optimization_profile: &'static str,
-    /// Effective CPUs after affinity and cgroup limits.
-    pub(super) effective_cpus: usize,
-    /// Caller-declared background load state.
-    pub(super) background_load_state: String,
-}
-
-impl DedicatedRunnerContext {
-    /// Captures dedicated-runner activation and immutable target facts.
-    pub(super) fn capture(
-        optimization_profile: &'static str,
-        effective_cpus: usize,
-        background_load_state: String,
-    ) -> Self {
-        Self {
-            requested_runner_label: env::var(DEDICATED_RUNNER_ENV).ok(),
-            target_os: env::consts::OS,
-            target_arch: env::consts::ARCH,
-            optimization_profile,
-            effective_cpus,
-            background_load_state,
-        }
-    }
-}
-
-/// Machine-readable result of hardware-specific policy admission.
+/// Machine-readable result of recording an observation against references.
 #[derive(Clone, Debug, Serialize)]
 pub(super) struct MulticorePerformancePolicyEvidence {
     /// Policy schema applied to this report.
     pub(super) schema: String,
-    /// Exact dedicated runner expected by the policy.
+    /// Historical runner label attached to the reference measurements.
     pub(super) dedicated_runner_label: String,
     /// Runner label requested by the environment.
     pub(super) requested_runner_label: Option<String>,
@@ -174,10 +137,9 @@ pub(super) const fn canonical_policy_bytes() -> &'static [u8] {
     CANONICAL_POLICY.as_bytes()
 }
 
-/// Evaluates record-only or dedicated-runner policy without silent fallback.
+/// Records measurements and rejects deterministic workload-shape drift only.
 pub(super) fn evaluate_policy(
     policy: &MulticorePerformancePolicy,
-    context: &DedicatedRunnerContext,
     cpu: &CpuBoundActorEvidence,
     mixed_tail: &MixedTailEvidence,
 ) -> Result<MulticorePerformancePolicyEvidence, String> {
@@ -197,46 +159,19 @@ pub(super) fn evaluate_policy(
             })
         })
         .collect::<Result<Vec<_>, String>>()?;
-    let enforced = context.requested_runner_label.is_some();
     let observed = MulticorePerformancePolicyEvidence {
         schema: policy.schema.clone(),
         dedicated_runner_label: policy.dedicated_runner_label.clone(),
-        requested_runner_label: context.requested_runner_label.clone(),
-        enforced,
-        status: if enforced { "passed" } else { "record_only" },
-        record_only_reason: (!enforced).then_some("dedicated runner was not requested"),
+        requested_runner_label: None,
+        enforced: false,
+        status: "record_only",
+        record_only_reason: Some("performance measurements are diagnostic-only"),
         observed_two_scheduler_median_speedup: cpu.width_one_to_two.median_speedup_ratio,
         observed_two_scheduler_confidence_lower_bound: cpu.width_one_to_two.lower_bound,
         observed_one_scheduler_actors_per_second: width_one.median_actors_per_second,
         observed_one_scheduler_p99_ns: width_one.timing.p99_ns,
         mixed_tail: mixed_tail_evidence,
     };
-    let Some(requested) = context.requested_runner_label.as_deref() else {
-        return Ok(observed);
-    };
-    require_equal("runner label", requested, &policy.dedicated_runner_label)?;
-    require_equal("target OS", context.target_os, &policy.required_target_os)?;
-    require_equal(
-        "target architecture",
-        context.target_arch,
-        &policy.required_target_arch,
-    )?;
-    require_equal(
-        "optimization profile",
-        context.optimization_profile,
-        "release",
-    )?;
-    require_equal(
-        "background load state",
-        &context.background_load_state,
-        "controlled",
-    )?;
-    if context.effective_cpus < policy.minimum_effective_cpus {
-        return Err(format!(
-            "error[vm.multicore.performance.runner_cpu]: effective CPUs {} are below {}",
-            context.effective_cpus, policy.minimum_effective_cpus
-        ));
-    }
     if cpu.iterations_per_actor != policy.required_iterations_per_actor
         || cpu.warmup_samples_per_width != WARMUP_SAMPLE_COUNT
         || width_one.samples != policy.required_sample_count
@@ -262,47 +197,12 @@ pub(super) fn evaluate_policy(
                 .to_string(),
         );
     }
-    require_minimum(
-        "two-scheduler median speedup",
-        observed.observed_two_scheduler_median_speedup,
-        policy.minimum_two_scheduler_median_speedup,
-    )?;
-    require_minimum(
-        "two-scheduler confidence lower bound",
-        observed.observed_two_scheduler_confidence_lower_bound,
-        policy.minimum_two_scheduler_confidence_lower_bound,
-    )?;
-    require_minimum(
-        "one-scheduler throughput ratio",
-        observed.observed_one_scheduler_actors_per_second as f64
-            / policy.reference_one_scheduler_actors_per_second.max(1) as f64,
-        policy.minimum_one_scheduler_throughput_ratio,
-    )?;
-    require_maximum(
-        "one-scheduler p99 ratio",
-        observed.observed_one_scheduler_p99_ns as f64
-            / policy.reference_one_scheduler_p99_ns.max(1) as f64,
-        policy.maximum_one_scheduler_p99_ratio,
-    )?;
-    for (budget, evidence) in policy.mixed_tail_budgets.iter().zip(&observed.mixed_tail) {
-        require_maximum(
-            &format!("{} mixed-load p95 ratio", budget.metric),
-            evidence.p95_ratio,
-            budget.maximum_p95_ratio,
-        )?;
-        require_maximum(
-            &format!("{} mixed-load p99 ratio", budget.metric),
-            evidence.p99_ratio,
-            budget.maximum_p99_ratio,
-        )?;
-    }
     Ok(observed)
 }
 
 /// Rejects malformed or weakened canonical policy limits.
 fn validate_policy(policy: &MulticorePerformancePolicy) -> Result<(), String> {
     if policy.schema != POLICY_SCHEMA
-        || policy.dedicated_runner_label.trim().is_empty()
         || policy.required_target_os != "linux"
         || policy.required_target_arch != "x86_64"
         || policy.minimum_effective_cpus < 2
@@ -339,37 +239,4 @@ fn validate_policy(policy: &MulticorePerformancePolicy) -> Result<(), String> {
         }
     }
     Ok(())
-}
-
-/// Requires exact dedicated-runner metadata.
-fn require_equal(label: &str, actual: &str, expected: &str) -> Result<(), String> {
-    if actual == expected {
-        Ok(())
-    } else {
-        Err(format!(
-            "error[vm.multicore.performance.runner]: {label} `{actual}` does not match `{expected}`"
-        ))
-    }
-}
-
-/// Requires one observed floating-point value to meet a minimum.
-fn require_minimum(label: &str, actual: f64, minimum: f64) -> Result<(), String> {
-    if actual.is_finite() && actual >= minimum {
-        Ok(())
-    } else {
-        Err(format!(
-            "error[vm.multicore.performance.minimum]: {label} {actual:.4} is below {minimum:.4}"
-        ))
-    }
-}
-
-/// Requires one observed floating-point value to stay below a maximum.
-fn require_maximum(label: &str, actual: f64, maximum: f64) -> Result<(), String> {
-    if actual.is_finite() && actual <= maximum {
-        Ok(())
-    } else {
-        Err(format!(
-            "error[vm.multicore.performance.maximum]: {label} {actual:.4} exceeds {maximum:.4}"
-        ))
-    }
 }

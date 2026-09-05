@@ -131,22 +131,11 @@ status. A failed package download therefore cannot be hidden by a later
 successful PowerShell command.
 
 Release validation uses hosted runners only. It proves portable multicore
-correctness and retains the pinned multicore ThreadSanitizer report, but it
-does not pretend a shared hosted machine provides controlled performance
-measurements. The final hosted job validates the local-publication contracts;
-it does not produce MC-9 performance evidence.
-
-Controlled MC-9 evidence belongs to the publication machine and is produced by:
-
-```sh
-make vm-multicore-mc9-local-evidence-check
-```
-
-This requires the Rust 1.96.0 `x86_64-unknown-linux-gnutsan` target locally,
-runs the controlled performance policy, records local source state, and seals
-the two revision-matched reports. `make publish` derives the version from the
-workspace manifest, invokes the check automatically, and refuses to publish
-unless the resulting MC-9 evidence is local, clean, current, and passing.
+correctness and retains the pinned multicore ThreadSanitizer report. Throughput
+benchmarks that depend on CPU quietness are diagnostic-only: they are never
+part of `check`, release closeout, or publication evidence. This keeps release
+correctness reproducible on shared hosts while preserving the benchmark
+commands for deliberate performance investigations.
 
 The release-candidate entry point first measures the canonical artifact budget
 from a clean Cargo output tree, then bootstraps validators and runs the reduced
@@ -158,10 +147,10 @@ make release-candidate-check
 ```
 
 Workflow syntax is checked in that same canonical CI job before release
-validation begins. The MC-9 contract and repository build/release contract are
-part of `release-candidate-check`; they are not run in preliminary steps that
-would build the compiler and typed validators only to discard them during the
-candidate's clean artifact measurement.
+validation begins. The deterministic multicore release contract and repository
+build/release contract are part of `release-candidate-check`; they are not run
+in preliminary steps that would build the compiler and typed validators only
+to discard them during the candidate's clean artifact measurement.
 
 The Ubuntu 24.04 compiler runner explicitly enables unprivileged user
 namespaces before the candidate gate. This is a host prerequisite for the real
@@ -263,9 +252,10 @@ preflights cheap without allowing stale clean-build evidence to pass.
 Rust validation ownership is explicit in
 `docs/quality/RUST_VALIDATION_TIERS.tsv`. The canonical orchestrator verifies
 that every ignored Rust test has exactly one inventory row and records each
-executed phase under one of six tiers. Controlled-host, performance, and
-concurrency evidence remain under their named external Make owners. All
-orchestrated children receive closed stdin and a phase timeout.
+executed phase under one of six tiers. Host-sensitive performance measurements
+remain manual diagnostics outside validation; concurrency correctness retains
+its named Make owner. All orchestrated children receive closed stdin and a
+phase timeout.
 
 The direct-AOT cache identity binds the dependency lock, profile, enabled Cargo
 features, target, codegen policy, and bytes of the resolved linker. Set
@@ -298,7 +288,7 @@ Audit, platform, aggregation, and sanitizer jobs install the minimal Rust
 compiler profile with no Rustfmt/Clippy payload; those components are owned only
 by the canonical compiler-check and final release-validation jobs that execute
 their gates. This ownership also covers Docs, Pages, scheduled security, and
-the controlled multicore evidence jobs.
+the hosted multicore sanitizer job.
 
 `target/quality/validation-build-plan-report.json` records the expanded release
 plan and enforces the current ratchets: no `cargo run`, no duplicate equivalent
@@ -366,12 +356,10 @@ The publisher downloads the exact six-platform distribution from the successful
 status-bearing run, verifies its workflow identity, archive checksums, and
 Sigstore-backed GitHub build-provenance attestations. It also downloads the
 hosted platform and sanitizer evidence. If candidate-bound local evidence is
-missing or stale, the first invocation builds the required tools once, runs the
-two isolated performance measurements once under a cross-worktree resource
-lease, and seals multicore and AOT closeout. Later invocations verify that
-evidence read-only, so an interrupted upload does not repeat compilation,
-tests, or performance work. A busy host fails the controlled measurement
-quickly; wait for the competing workload to finish and rerun the same command.
+missing or stale, the first invocation builds the required tools once and seals
+deterministic multicore and AOT closeout. Later invocations verify that evidence
+read-only, so an interrupted upload does not repeat compilation or tests. No
+publication step measures or qualifies host performance.
 
 The publisher then creates an annotated release tag
 and uploads every archive, detached checksum, and the sealed candidate manifest

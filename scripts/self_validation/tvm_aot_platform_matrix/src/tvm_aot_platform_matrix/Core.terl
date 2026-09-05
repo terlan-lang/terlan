@@ -769,7 +769,7 @@ pub workflow_contract(): Bool ->
         "run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
     ) -> failure("workflow", "hosted release contract gate is missing");
         release.contains("self-hosted") -> failure("workflow", "release validation must use hosted runners only");
-        release.contains("run: make vm-multicore-performance-check") -> failure("workflow", "controlled performance belongs to local publication");
+        release.contains("run: make vm-multicore-performance-check") -> failure("workflow", "host-sensitive performance must remain diagnostic-only");
         not evidence_present(release, release_evidence()) -> failure("workflow", "release evidence retention is incomplete");
         true -> true
     }.

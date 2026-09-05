@@ -48,7 +48,7 @@ support_document(version: String, candidate_seal: String): Json ->
         .put(
             "known_limitations",
             Json.string(
-                "cross-host execution and controlled performance require their classified runners",
+                "cross-host execution requires its classified runners; performance is diagnostic-only",
             ),
         ).
 

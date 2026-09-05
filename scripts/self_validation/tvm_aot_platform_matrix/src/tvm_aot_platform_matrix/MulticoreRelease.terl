@@ -11,18 +11,24 @@ import std.data.Json.
 import std.io.Console.{eprintln, println}.
 import std.io.Directory.{create_all}.
 import std.io.File.{read_text}.
+import std.regex.Regex.
 import std.system.Environment.
 import std.vcs.Git.{clean, revision, sha256 as source_sha256, source_tree_identity}.
 import tvm_aot_platform_matrix.Core.{child, fragments_present, is_sha256, json_bool, json_equals, json_string, json_value, load_json, occurrences, string_array, write_json}.
-import tvm_aot_platform_matrix.MulticoreMc9Evidence as Mc9.
 import tvm_aot_platform_matrix.ReleaseCloseout.{list_equal, make_list_variable}.
 
 import type std.core.Option.
 import type std.data.Json.
 
-pub schema(): String -> "terlan.vm-multicore-release-closeout.v3".
+pub schema(): String -> "terlan.vm-multicore-release-closeout.v4".
 
 invariant_schema(): String -> "terlan.tvm-multicore-invariant-inventory.v1".
+
+is_revision(value: String): Bool ->
+    case Regex.compile("^[0-9a-f]{40}$") {
+        Ok(pattern) -> Regex.is_match(pattern, value);
+        Err(_reason) -> false
+    }.
 
 pub local_gates(): List[String] ->
     [
@@ -69,7 +75,7 @@ invariant_revision(inventory: String, contract: String): String ->
     sha256_domain_framed("terlan.vm-multicore-invariants.v1", [inventory, contract]).
 
 release_target(): String ->
-    "vm-multicore-release-check: vm-multicore-release-contract-check\n\t$(MAKE) vm-multicore-mc9-evidence-check\n\t$(MAKE) $(VM_MULTICORE_RELEASE_LOCAL_GATES)\n\t$(MAKE) vm-multicore-release-record\n".
+    "vm-multicore-release-check: vm-multicore-release-contract-check\n\t$(MAKE) $(VM_MULTICORE_RELEASE_LOCAL_GATES)\n\t$(MAKE) vm-multicore-release-record\n".
 
 pub validate_makefile(makefile: String): Bool ->
     case make_list_variable(makefile, "VM_MULTICORE_RELEASE_LOCAL_GATES") {
@@ -89,7 +95,6 @@ pub validate_makefile(makefile: String): Bool ->
                 not makefile.contains(release_target()) -> false;
                 not makefile.contains("vm-multicore-publish-evidence-refresh: vm-multicore-release-contract-check") -> false;
                 not makefile.contains("vm-multicore-publish-check:") -> false;
-                not makefile.contains("$(MAKE) vm-multicore-mc9-local-evidence-check") -> false;
                 not makefile.contains("$(MAKE) $(VM_MULTICORE_PUBLISH_LOCAL_GATES)") -> false;
                 not makefile.contains("$(MAKE) --no-print-directory vm-multicore-publish-check") -> false;
                 not makefile.contains("$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify") -> false;
@@ -131,7 +136,6 @@ pub validate_workflow(workflow: String): Bool ->
     [
         {"multicore-evidence:", 0},
         {"multicore-performance:", 0},
-        {"run: make vm-multicore-mc9-evidence-check", 0},
         {"run: make vm-multicore-performance-check", 0},
         {"self-hosted", 0},
         {"Install pinned Rust ThreadSanitizer toolchain", 1},
@@ -187,12 +191,12 @@ validate_invariants(inventory: Json): Bool ->
     if {
         report_schema != invariant_schema() -> false;
         contract != "docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md" -> false;
-        not Mc9.is_revision(upstream_revision) -> false;
+        not is_revision(upstream_revision) -> false;
         true -> not product_dependency
     }.
 
 mode_valid(mode: String): Bool ->
-    mode == "local" or mode == "distributed" or mode == "github-single-attempt".
+    mode == "composed".
 
 digest_field_valid(value: Json, field: String): Bool ->
     case json_string(value, field) {
@@ -221,20 +225,22 @@ pub validate_closeout(report: Json): Bool ->
         Some(inventory) <- json_value(invariants, "inventory");
         Some(contract) <- json_value(invariants, "contract");
         Some(evidence) <- json_value(report, "evidence");
-        Some(mc9) <- json_value(evidence, "mc9")
+        Some(memory_model) <- json_value(evidence, "memory_model");
+        Some(thread_sanitizer) <- json_value(evidence, "thread_sanitizer")
     } else {
         _ -> false
     };
     if {
         report_schema != schema() or decision != "pass" -> false;
         scope != "technical" or not mode_valid(mode) -> false;
-        not Mc9.is_revision(source_revision) or not is_sha256(source_digest) -> false;
+        not is_revision(source_revision) or not is_sha256(source_digest) -> false;
         not json_equals(gates, string_array(local_gates())) -> false;
         not string_field_is(gate_graph, "sha256", local_gate_graph_sha256()) -> false;
         not digest_field_valid(invariants, "revision") -> false;
         not digest_field_valid(inventory, "sha256") -> false;
         not digest_field_valid(contract, "sha256") -> false;
-        true -> digest_field_valid(mc9, "sha256")
+        not digest_field_valid(memory_model, "sha256") -> false;
+        true -> digest_field_valid(thread_sanitizer, "sha256")
     }.
 
 gate_graph_report(): Json ->
@@ -261,66 +267,83 @@ runtime_invariants_report(inventory_source: String, contract_source: String): Js
         .put("inventory", inventory)
         .put("contract", contract).
 
-mc9_report(mc9_digest: String): Json ->
+memory_model_report(memory_model_digest: String): Json ->
     Json.object()
-        .put("path", Json.string("target/quality/vm-multicore-mc9-evidence.json"))
-        .put("schema", Json.string(Mc9.schema()))
-        .put("sha256", Json.string(mc9_digest)).
+        .put("path", Json.string("target/quality/vm-multicore-memory-model.json"))
+        .put("schema", Json.string("terlan.vm-multicore-memory-model.v1"))
+        .put("sha256", Json.string(memory_model_digest)).
+
+thread_sanitizer_report(thread_sanitizer_digest: String): Json ->
+    Json.object()
+        .put("path", Json.string("target/quality/vm-multicore-thread-sanitizer-report.json"))
+        .put("schema", Json.string("terlan.vm-multicore-thread-sanitizer.v1"))
+        .put("sha256", Json.string(thread_sanitizer_digest)).
 
 release_report(
     source_revision: String,
     source_digest: String,
-    mode: String,
     source_clean: Bool,
     inventory_source: String,
     contract_source: String,
-    mc9_digest: String,
+    memory_model_digest: String,
+    thread_sanitizer_digest: String,
 ): Json ->
     let gate_graph = gate_graph_report();
     let invariants = runtime_invariants_report(inventory_source, contract_source);
-    let evidence = Json.object().put("mc9", mc9_report(mc9_digest));
+    let evidence =
+        Json.object()
+            .put("memory_model", memory_model_report(memory_model_digest))
+            .put("thread_sanitizer", thread_sanitizer_report(thread_sanitizer_digest));
     Json.object()
         .put("schema", Json.string(schema()))
         .put("decision", Json.string("pass"))
         .put("source_revision", Json.string(source_revision))
         .put("source_tree_sha256", Json.string(source_digest))
         .put("evidence_scope", Json.string("technical"))
-        .put("provenance_mode", Json.string(mode))
+        .put("provenance_mode", Json.string("composed"))
         .put("source_tree_clean", Json.bool(source_clean))
         .put("local_gate_graph", gate_graph)
         .put("runtime_invariants", invariants)
         .put("evidence", evidence).
 
 pub build_closeout(
-    joined_mc9: Json,
+    memory_model: Json,
+    thread_sanitizer: Json,
     inventory: Json,
     inventory_source: String,
     contract_source: String,
     source_revision: String,
     source_digest: String,
-    mc9_digest: String,
+    source_clean: Bool,
+    memory_model_digest: String,
+    thread_sanitizer_digest: String,
 ): Option[Json] ->
     let {
-        Some(joined_revision) <- json_string(joined_mc9, "source_revision");
-        Some(joined_digest) <- json_string(joined_mc9, "source_tree_sha256");
-        Some(mode) <- json_string(joined_mc9, "provenance_mode");
-        Some(source_clean) <- json_bool(joined_mc9, "source_tree_clean")
+        Some(memory_schema) <- json_string(memory_model, "schema");
+        Some(memory_decision) <- json_string(memory_model, "decision");
+        Some(sanitizer_schema) <- json_string(thread_sanitizer, "schema");
+        Some(sanitizer_decision) <- json_string(thread_sanitizer, "decision");
+        Some(sanitizer_revision) <- json_string(thread_sanitizer, "source_revision");
+        Some(sanitizer_digest) <- json_string(thread_sanitizer, "source_tree_sha256")
     } else {
         _ -> None
     };
     if {
-        not Mc9.validate_closeout(joined_mc9) -> None;
-        joined_revision != source_revision or joined_digest != source_digest -> None;
-        not validate_invariants(inventory) or not is_sha256(mc9_digest) -> None;
+        memory_schema != "terlan.vm-multicore-memory-model.v1" or memory_decision != "pass" -> None;
+        sanitizer_schema != "terlan.vm-multicore-thread-sanitizer.v1"
+            or sanitizer_decision != "pass" -> None;
+        sanitizer_revision != source_revision or sanitizer_digest != source_digest -> None;
+        not validate_invariants(inventory) -> None;
+        not is_sha256(memory_model_digest) or not is_sha256(thread_sanitizer_digest) -> None;
         true -> let report =
             release_report(
                 source_revision,
                 source_digest,
-                mode,
                 source_clean,
                 inventory_source,
                 contract_source,
-                mc9_digest,
+                memory_model_digest,
+                thread_sanitizer_digest,
             );
         if {
             validate_closeout(report) -> Some(report);
@@ -330,25 +353,31 @@ pub build_closeout(
 
 pub record(): Bool ->
     let root = Environment.current_directory();
-    let mc9_path = child(root, "target/quality/vm-multicore-mc9-evidence.json");
+    let memory_model_path = child(root, "target/quality/vm-multicore-memory-model.json");
+    let thread_sanitizer_path = child(root, "target/quality/vm-multicore-thread-sanitizer-report.json");
     let inventory_path = child(root, "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json");
     let contract_path = child(root, "docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md");
     let {
-        Some(joined_mc9) <- load_json(mc9_path);
+        Some(memory_model) <- load_json(memory_model_path);
+        Some(thread_sanitizer) <- load_json(thread_sanitizer_path);
         Ok(inventory_source) <- read_text(inventory_path);
         Ok(inventory) <- Json.parse(inventory_source);
         Ok(contract_source) <- read_text(contract_path);
         Ok(identity) <- source_tree_identity(root);
-        Ok(mc9_digest) <- sha256_file(mc9_path);
+        Ok(memory_model_digest) <- sha256_file(memory_model_path);
+        Ok(thread_sanitizer_digest) <- sha256_file(thread_sanitizer_path);
         Some(report) <-
             build_closeout(
-                joined_mc9,
+                memory_model,
+                thread_sanitizer,
                 inventory,
                 inventory_source,
                 contract_source,
                 revision(identity),
                 source_sha256(identity),
-                mc9_digest,
+                clean(identity),
+                memory_model_digest,
+                thread_sanitizer_digest,
             );
         Ok(_created) <- create_all(child(root, "target/quality"))
     } else {
@@ -368,26 +397,32 @@ pub record(): Bool ->
 pub verify(): Bool ->
     let root = Environment.current_directory();
     let report_path = child(root, "target/quality/vm-multicore-release-closeout.json");
-    let mc9_path = child(root, "target/quality/vm-multicore-mc9-evidence.json");
+    let memory_model_path = child(root, "target/quality/vm-multicore-memory-model.json");
+    let thread_sanitizer_path = child(root, "target/quality/vm-multicore-thread-sanitizer-report.json");
     let inventory_path = child(root, "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json");
     let contract_path = child(root, "docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md");
     let {
         Some(actual) <- load_json(report_path);
-        Some(joined_mc9) <- load_json(mc9_path);
+        Some(memory_model) <- load_json(memory_model_path);
+        Some(thread_sanitizer) <- load_json(thread_sanitizer_path);
         Ok(inventory_source) <- read_text(inventory_path);
         Ok(inventory) <- Json.parse(inventory_source);
         Ok(contract_source) <- read_text(contract_path);
         Ok(identity) <- source_tree_identity(root);
-        Ok(mc9_digest) <- sha256_file(mc9_path);
+        Ok(memory_model_digest) <- sha256_file(memory_model_path);
+        Ok(thread_sanitizer_digest) <- sha256_file(thread_sanitizer_path);
         Some(expected) <-
             build_closeout(
-                joined_mc9,
+                memory_model,
+                thread_sanitizer,
                 inventory,
                 inventory_source,
                 contract_source,
                 revision(identity),
                 source_sha256(identity),
-                mc9_digest,
+                clean(identity),
+                memory_model_digest,
+                thread_sanitizer_digest,
             )
     } else {
         _ -> failure("sealed publication evidence is missing or malformed")
@@ -419,22 +454,29 @@ pub self_test(): Bool ->
         Ok(inventory_source) <- read_text(child(root, "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json"));
         Ok(inventory) <- Json.parse(inventory_source);
         Ok(contract_source) <- read_text(child(root, "docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md"));
-        Some(joined_mc9) <-
-            Mc9.build_closeout(
-                Mc9.synthetic_performance(),
-                Mc9.synthetic_sanitizer(),
-                "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-            );
         Some(closeout) <-
             build_closeout(
-                joined_mc9,
+                Json.object()
+                    .put("schema", Json.string("terlan.vm-multicore-memory-model.v1"))
+                    .put("decision", Json.string("pass")),
+                Json.object()
+                    .put("schema", Json.string("terlan.vm-multicore-thread-sanitizer.v1"))
+                    .put("decision", Json.string("pass"))
+                    .put("source_revision", Json.string("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+                    .put(
+                        "source_tree_sha256",
+                        Json.string(
+                            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                        ),
+                    ),
                 inventory,
                 inventory_source,
                 contract_source,
                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                true,
                 "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
             )
     } else {
         _ -> false

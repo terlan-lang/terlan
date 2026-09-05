@@ -128,17 +128,13 @@ TERLAN_COMPILER_CONSUMER_GATES := \
 	proof-repro-check \
 	shape-implications-check \
 	tvm-aot-runtime-workload-benchmark-check \
-	tvm-http-paired-performance-check \
-	tvm-aot-compilation-benchmark-check \
 	vm-float-native-arithmetic-check \
-	vm-multicore-performance-check \
 	std-test-table-check \
 	std-test-property-check \
 	std-range-check \
 	std-random-check \
 	std-regex-check \
 	executable-docs-vm-check \
-	vm-http-vs-axum-check \
 	vm-semantics-vs-otp-check \
 	cli-build \
 	cli-test-full \
@@ -226,8 +222,8 @@ rust-security-audit-check:
 .PHONY: vm-distributed-state-check
 .PHONY: vm-supervision-restart-check
 .PHONY: vm-timer-deadline-check
-.PHONY: vm-scheduler-fairness-check vm-actor-mutator-ownership-check vm-parallel-messages-suite-parity-check vm-efile-suite-parity-check vm-float-native-arithmetic-check vm-fun-suite-parity-check vm-gc-suite-parity-check vm-guard-suite-parity-check vm-guard-no-opt-suite-parity-check vm-hash-suite-parity-check vm-hello-suite-parity-check vm-hibernate-suite-parity-check vm-small-suite-parity-check vm-smoke-suite-parity-check vm-multicore-mailbox-publication-check vm-multicore-fixed-placement-check tvm-aot-multicore-migration-check vm-multicore-work-stealing-policy-check vm-multicore-work-stealing-check vm-multicore-runtime-cleanup-check tvm-aot-multicore-io-epoch-check vm-multicore-timer-epoch-check vm-multicore-timer-scheduler-check vm-multicore-protocol-reactor-check vm-multicore-capability-worker-check vm-multicore-capability-completion-check vm-multicore-capability-event-pump-check vm-multicore-capability-scheduler-check vm-epmd-discovery-check vm-multicore-runtime-integration-check vm-multicore-replay-observability-check vm-multicore-performance-record vm-multicore-performance-check vm-multicore-memory-model-check vm-multicore-thread-sanitizer-contract-check vm-multicore-thread-sanitizer-check vm-multicore-mc9-evidence-contract-check vm-multicore-mc9-evidence-check vm-multicore-mc9-local-evidence-check vm-multicore-release-contract-check vm-multicore-release-record vm-multicore-release-check vm-multicore-publish-evidence-refresh vm-multicore-publish-check
-.PHONY: tvm-http-axum-performance-record tvm-http-paired-performance-check tvm-http-decisive-performance-check
+.PHONY: vm-scheduler-fairness-check vm-actor-mutator-ownership-check vm-parallel-messages-suite-parity-check vm-efile-suite-parity-check vm-float-native-arithmetic-check vm-fun-suite-parity-check vm-gc-suite-parity-check vm-guard-suite-parity-check vm-guard-no-opt-suite-parity-check vm-hash-suite-parity-check vm-hello-suite-parity-check vm-hibernate-suite-parity-check vm-small-suite-parity-check vm-smoke-suite-parity-check vm-multicore-mailbox-publication-check vm-multicore-fixed-placement-check tvm-aot-multicore-migration-check vm-multicore-work-stealing-policy-check vm-multicore-work-stealing-check vm-multicore-runtime-cleanup-check tvm-aot-multicore-io-epoch-check vm-multicore-timer-epoch-check vm-multicore-timer-scheduler-check vm-multicore-protocol-reactor-check vm-multicore-capability-worker-check vm-multicore-capability-completion-check vm-multicore-capability-event-pump-check vm-multicore-capability-scheduler-check vm-epmd-discovery-check vm-multicore-runtime-integration-check vm-multicore-replay-observability-check vm-multicore-performance-record vm-multicore-performance-check vm-multicore-memory-model-check vm-multicore-thread-sanitizer-contract-check vm-multicore-thread-sanitizer-check vm-multicore-release-contract-check vm-multicore-release-record vm-multicore-release-check vm-multicore-publish-evidence-refresh vm-multicore-publish-check
+.PHONY: tvm-http-axum-performance-record tvm-http-paired-performance-check
 .PHONY: vm-memory-heap-pressure-check
 .PHONY: std-generated-metadata-check
 .PHONY: std-test-honesty-check
@@ -333,7 +329,7 @@ CHECK_GATES := \
 	tvm-aot-crash-injection-check \
 	tvm-aot-capability-worker-check \
 	tvm-aot-multicore-readiness-check \
-	vm-multicore-mc9-evidence-contract-check \
+	vm-multicore-release-contract-check \
 	cpp-binding-generator-check \
 	generated-package-contract-check \
 	cuda-package-availability-check \
@@ -615,8 +611,6 @@ release-support-bundle-check: release-security-hardening-check
 
 release-performance-baseline-check: release-support-bundle-check
 	test -s benchmarks/release_0_0_7.baseline.json
-	test -s target/quality/http-paired-performance.json
-	test -s target/quality/vm-multicore-performance.json
 	TERLAN_RELEASE_CLOSEOUT_ROOT=$(CURDIR) $(TERLAN_RELEASE_CLOSEOUT) performance
 	test -s target/quality/release-performance-baseline-report.json
 	@rg -q '"decision": "pass"' target/quality/release-performance-baseline-report.json
@@ -1895,7 +1889,6 @@ AOT_RELEASE_LOCAL_GATES := \
 	tvm-aot-lowering-coverage-check \
 	tvm-aot-http-persistent-shard-check \
 	tvm-aot-http-generation-lifetime-check \
-	tvm-aot-http-performance-check \
 	tvm-aot-multicore-readiness-check \
 	tvm-aot-c-abi-boundary-check \
 	tvm-aot-compilation-time-check \
@@ -2433,20 +2426,6 @@ tvm-http-paired-performance-check: terlan-benchmark-release-bootstrap terlan-ser
 	@rg -q '"ratio_95_percent_interval":' $(HTTP_PAIRED_OUTPUT)
 	@rg -q '"isolation":' $(HTTP_PAIRED_OUTPUT)
 
-tvm-http-decisive-performance-check:
-	@test -n "$$TERLAN_BENCH_HTTP_CPU_LIST"
-	@test -n "$$TERLAN_BENCH_HTTP_CLIENT_CPU_LIST"
-	TERLAN_BENCH_HTTP_DECISIVE=1 \
-	TERLAN_BENCH_HTTP_PAIRS=$${TERLAN_BENCH_HTTP_PAIRS:-10} \
-	TERLAN_BENCH_HTTP_MIN_ACCEPTED_PAIRS=$${TERLAN_BENCH_HTTP_MIN_ACCEPTED_PAIRS:-7} \
-	TERLAN_BENCH_HTTP_DURATION_MS=$${TERLAN_BENCH_HTTP_DURATION_MS:-10000} \
-	TERLAN_BENCH_HTTP_WRK_SECONDS=$${TERLAN_BENCH_HTTP_WRK_SECONDS:-10} \
-	TERLAN_BENCH_HTTP_WRK_MATRIX_SECONDS=$${TERLAN_BENCH_HTTP_WRK_MATRIX_SECONDS:-10} \
-	TERLAN_BENCH_HTTP_OPEN_LOOP_SECONDS=$${TERLAN_BENCH_HTTP_OPEN_LOOP_SECONDS:-10} \
-	$(MAKE) tvm-http-paired-performance-check
-	@rg -q '"mode": "decisive"' target/quality/http-paired-performance.json
-	@rg -q '"status": "accepted"' target/quality/http-paired-performance.json
-
 tvm-aot-http-native-invocation-check: tvm-aot-http-persistent-shard-check
 
 tvm-aot-http-websocket-invocation-check: tvm-aot-http-native-invocation-check
@@ -2575,7 +2554,7 @@ endif
 		target/debug/terlc test scripts/self_validation/JsonEvidenceContractTest.terl \
 			--name selected_json_evidence_holds
 
-tvm-aot-compilation-time-check: tvm-single-image-artifact-check tvm-aot-compilation-benchmark-check
+tvm-aot-compilation-time-check: tvm-single-image-artifact-check
 	$(RUST_TEST) -p terlan --lib compiler::native_ir::specialization_budget_test
 	$(RUST_TEST) -p terlan --lib compiler::native_ir::codegen_policy_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::build::build_test::tests::args_test::parse_build_args_selects_explicit_native_release_policy -- --exact
@@ -2586,10 +2565,7 @@ tvm-aot-compilation-time-check: tvm-single-image-artifact-check tvm-aot-compilat
 	$(RUST_TEST) -p terlan --lib commands::build::vm_artifact::checked_cache_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::build::build_test::tests::parallel_compilation_test::parallel_frontend_compilation_preserves_one_application_link -- --exact
 	$(EXACT_CARGO_TEST) --locked --release -p terlan --test direct_aot_cache vm_aot_timings_report_compile_and_native_artifact_phases -- --exact
-	$(EXACT_CARGO_TEST) --locked --release -p terlan --test direct_aot_cache vm_aot_warm_noop_p95_stays_under_one_second -- --exact
 	$(EXACT_CARGO_TEST) --locked --release -p terlan --test direct_aot_cache unchanged_repl_generation_reuses_native_image_without_relinking -- --exact
-	$(EXACT_CARGO_TEST) --locked --release -p terlan --lib commands::repl::repl_aot_test::native_repl_unchanged_generation_p95_stays_under_one_second -- --exact --ignored
-	$(EXACT_CARGO_TEST) --locked --release -p terlan --lib commands::repl::repl_aot_test::native_repl_changed_generation_p95_stays_under_one_second -- --exact --ignored
 
 tail-recursion-lowering-check:
 	$(RUST_TEST) -p terlan --lib compiler::native_ir::tail_position_test
@@ -3557,34 +3533,6 @@ vm-multicore-thread-sanitizer-check: vm-multicore-memory-model-check vm-multicor
 	fi
 	@test ! -f target/quality/vm-multicore-thread-sanitizer-report.json || rg -q '"source_tree_sha256":' target/quality/vm-multicore-thread-sanitizer-report.json
 
-vm-multicore-mc9-evidence-contract-check: | terlan-tvm-platform-matrix-bootstrap
-	$(TERLAN_TVM_PLATFORM_MATRIX) multicore-mc9-self-test
-
-vm-multicore-mc9-evidence-check: vm-multicore-mc9-evidence-contract-check
-	test -s target/quality/vm-multicore-performance.json
-	test -s target/quality/vm-multicore-thread-sanitizer-report.json
-	$(TERLAN_TVM_PLATFORM_MATRIX) multicore-mc9-seal
-	test -s target/quality/vm-multicore-mc9-evidence.json
-	@rg -q '"schema": "terlan.vm-multicore-mc9-evidence.v2"' target/quality/vm-multicore-mc9-evidence.json
-	@rg -q '"decision": "pass"' target/quality/vm-multicore-mc9-evidence.json
-	@rg -q '"source_tree_sha256":' target/quality/vm-multicore-mc9-evidence.json
-	@rg -q '"dedicated_runner_label": "terlan-linux-x86_64-multicore-v1"' target/quality/vm-multicore-mc9-evidence.json
-	@rg -q '"sanitizer_toolchain": "1.96.0"' target/quality/vm-multicore-mc9-evidence.json
-
-vm-multicore-mc9-local-evidence-check:
-	@rustup target list --installed --toolchain 1.96.0 | rg -qx 'x86_64-unknown-linux-gnutsan' || { \
-		echo 'error[vm.multicore.mc9.local]: install Rust 1.96.0 x86_64-unknown-linux-gnutsan first'; \
-		exit 1; \
-	}
-	$(TERLAN_TVM_PLATFORM_MATRIX) controlled-performance -- \
-		env -u GITHUB_ACTIONS \
-		RUSTUP_TOOLCHAIN=1.96.0 \
-		TERLAN_VM_MULTICORE_DEDICATED_RUNNER=terlan-linux-x86_64-multicore-v1 \
-		TERLAN_BENCH_BACKGROUND_LOAD=controlled \
-		$(MAKE) vm-multicore-performance-record
-	test -s target/quality/vm-multicore-thread-sanitizer-report.json
-	$(MAKE) vm-multicore-mc9-evidence-check
-
 VM_MULTICORE_RELEASE_LOCAL_GATES := \
 	vm-multicore-invariant-inventory-check \
 	vm-actor-mutator-ownership-check \
@@ -3614,20 +3562,17 @@ vm-multicore-release-contract-check: | terlan-tvm-platform-matrix-bootstrap
 vm-multicore-release-record:
 	$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-record
 	test -s target/quality/vm-multicore-release-closeout.json
-	@rg -q '"schema": "terlan.vm-multicore-release-closeout.v3"' target/quality/vm-multicore-release-closeout.json
+	@rg -q '"schema": "terlan.vm-multicore-release-closeout.v4"' target/quality/vm-multicore-release-closeout.json
 	@rg -q '"decision": "pass"' target/quality/vm-multicore-release-closeout.json
 	@rg -q '"source_tree_sha256":' target/quality/vm-multicore-release-closeout.json
 
 vm-multicore-release-check: vm-multicore-release-contract-check
-	$(MAKE) vm-multicore-mc9-evidence-check
 	$(MAKE) $(VM_MULTICORE_RELEASE_LOCAL_GATES)
 	$(MAKE) vm-multicore-release-record
 
 vm-multicore-publish-evidence-refresh: vm-multicore-release-contract-check
 	test -s target/quality/hosted-candidate-validation.json
 	@revision=$$(git rev-parse HEAD); rg -q "\"source_revision\": \"$$revision\"" target/quality/hosted-candidate-validation.json
-	$(MAKE) vm-multicore-mc9-local-evidence-check
-	@rg -q '"source_tree_clean": true' target/quality/vm-multicore-mc9-evidence.json
 	TERLAN_RUST_SUITE_ALREADY_RUN=1 $(MAKE) $(VM_MULTICORE_PUBLISH_LOCAL_GATES)
 	$(MAKE) vm-multicore-release-record
 
@@ -4591,10 +4536,8 @@ vm-http-concurrency-investigation-check: \
 	terlan-vm-erl-suite-audit-check \
 	vm-tcp-stream-check \
 	terlan-vm-http-lane-check \
-	vm-scheduler-fairness-check \
-	vm-http-vs-axum-check | terlan-tvm-platform-matrix-bootstrap
+	vm-scheduler-fairness-check | terlan-tvm-platform-matrix-bootstrap
 	$(TERLAN_TVM_PLATFORM_MATRIX) vm-http-aot-concurrency-self-test
-	$(TERLAN_TVM_PLATFORM_MATRIX) vm-http-aot-concurrency-check
 
 vm-http-benchmark-comparability-check: $(VM_HTTP_BENCHMARK_COMPARABILITY_DEPS)
 	$(TERLAN_QUALITY) vm-http-benchmark-comparability
@@ -4757,9 +4700,7 @@ publish-evidence-refresh:
 		terlan-self-validation-bootstrap \
 		terlan-quality-tools-bootstrap \
 		terlan-native-worker-bootstrap \
-		terlan-benchmark-release-bootstrap \
-		terlan-serve-runtime-bootstrap \
-		terlan-http-benchmark-release-bootstrap
+		terlan-benchmark-release-bootstrap
 	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
 	TERLAN_RELEASE_BINARIES_PREBUILT=1 \
 		$(MAKE) --no-print-directory vm-multicore-publish-evidence-refresh

@@ -493,7 +493,7 @@ when user-facing.
   - Scope: bind Linux/macOS/Windows on x86-64 and AArch64 attestations, runtime/
     image/NativeBoundary ABI versions, compiler/VM/worker/editor/stdlib versions,
     CPU and OS deployment baselines, installed smoke, documentation, language/
-    std/JS/Wasm/native-package coverage, multicore controlled-host evidence,
+    std/JS/Wasm/native-package coverage, deterministic multicore and sanitizer evidence,
     and every report produced by the preceding 17 outcomes to one candidate
     identity. Generate one stable supported/experimental/unsupported and known-
     limitation manifest from those reports.
@@ -504,7 +504,7 @@ when user-facing.
     than the entire repository `docs/` tree.
   - Tests: delete or stale each required report in turn; inject a different
     candidate hash, unsupported platform claim, second build, post-seal
-    mutation, missing controlled-host
+    mutation, missing multicore sanitizer
     evidence, internal-roadmap leakage into public docs, and accidental network/
     publication command. Every case must fail with the responsible gate and
     reproduction command.

@@ -851,7 +851,6 @@ build_release_contract(repository: String): Bool ->
         "vm-multicore-publish-evidence-refresh: vm-multicore-release-contract-check",
         "publish-evidence-plan-check:",
         "$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify",
-        "$(MAKE) vm-multicore-mc9-local-evidence-check",
         "$(MAKE) --no-print-directory vm-multicore-publish-check",
     ];
 let release_fragments =
@@ -890,17 +889,13 @@ if {
         String.append("shell check bypasses shared Cargo ownership: ", unowned_script_cargo),
     );
     missing_release != "" -> failure("build_release.workflow", String.append("missing invariant: ", missing_release));
-    String.contains(ci, "run: make vm-multicore-mc9-evidence-contract-check") -> failure(
-        "build_release.duplicate_mc9",
-        "MC-9 contract must run inside the canonical release-candidate graph",
-    );
     String.contains(release, "self-hosted") -> failure(
         "build_release.self_hosted",
         "release validation must not depend on a self-hosted runner",
     );
     String.contains(release, "run: make vm-multicore-performance-check") -> failure(
         "build_release.performance_owner",
-        "controlled multicore performance belongs to local publication",
+        "host-sensitive multicore performance must remain diagnostic-only",
     );
     not String.contains(editor, "npm ci --prefix tree-sitter-terlan --no-audit --no-fund")
         or not String.contains(editor, "NPM_PACK_CACHE ?= $(CURDIR)/target/tmp/npm-cache") -> failure("build_release.editor", "editor dependency/cache ownership drifted");
@@ -911,7 +906,7 @@ if {
     not contains_all(
     ci,
     [
-        "actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16",
+        "actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
         "go-version: \"1.25.0\"",
         "actionlint-go1.25.0-v1.7.12",
     ],

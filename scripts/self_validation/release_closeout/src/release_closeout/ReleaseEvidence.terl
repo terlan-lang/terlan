@@ -359,18 +359,6 @@ let benchmarked =
         ],
         directory,
     );
-let linked_http =
-    file_has(
-        root,
-        "target/quality/http-paired-performance.json",
-        ["terlan-http-paired-performance-v1", "response_body_verified"],
-    );
-let linked_vm =
-    file_has(
-        root,
-        "target/quality/vm-multicore-performance.json",
-        ["\"schema\"", "p95_ns", "p99_ns"],
-    );
 let baseline_path = Support.child(root, "benchmarks/release_0_0_7.baseline.json");
 let baseline =
     file_has(
@@ -397,14 +385,7 @@ let commands_ok =
         and Support.all_succeeded(checked)
         and Support.all_succeeded(built)
         and Support.all_succeeded(benchmarked);
-let valid =
-    fixture_ready
-        and commands_ok
-        and benchmark_output
-        and linked_http
-        and linked_vm
-        and baseline
-        and metrics.available;
+let valid = fixture_ready and commands_ok and benchmark_output and baseline and metrics.available;
 let raw_directory = Support.child(root, "target/quality/release-performance");
 let raw_path = Support.child(raw_directory, "installed-benchmark-result.json");
 let copied =
@@ -445,15 +426,7 @@ let report =
         .put("baseline_sha256", Json.string(file_hash(baseline_path)))
         .put("regressions", Json.array())
         .put("accepted_regressions", Json.array())
-        .put(
-            "linked_evidence",
-            Support.string_array(
-                [
-                    "target/quality/http-paired-performance.json",
-                    "target/quality/vm-multicore-performance.json",
-                ],
-            ),
-        )
+        .put("linked_evidence", Support.string_array(List.new[String]()))
         .put(
             "raw_outputs",
             Support.string_array(
@@ -779,8 +752,8 @@ let linked =
 )
         and file_has(
     root,
-    "target/quality/vm-multicore-performance.json",
-    ["terlan.vm-multicore-performance.v1", "supervision_restart"],
+    "target/quality/vm-multicore-memory-model.json",
+    ["terlan.vm-multicore-memory-model.v1", "\"decision\": \"pass\""],
 )
         and file_has(
     root,
@@ -840,7 +813,7 @@ let report =
             Support.string_array(
                 [
                     "target/quality/vm-multicore-release-closeout.json",
-                    "target/quality/vm-multicore-performance.json",
+                    "target/quality/vm-multicore-memory-model.json",
                     "target/quality/vm-web-lifecycle-health-report.json",
                 ],
             ),

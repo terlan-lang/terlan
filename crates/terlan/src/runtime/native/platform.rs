@@ -13,7 +13,7 @@ pub struct HostPlatform {
     pub executable_suffix: String,
 }
 
-/// Dynamic host measurements used to qualify controlled performance runs.
+/// Dynamic host measurements recorded as informational performance metadata.
 #[derive(Clone, Debug, PartialEq)]
 pub struct HostMetrics {
     /// Whether every required measurement was available.

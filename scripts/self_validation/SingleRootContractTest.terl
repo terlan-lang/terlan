@@ -66,7 +66,7 @@ makefile_holds(makefile: String): Bool ->
         and make_variable_contains(makefile, "CHECK_GATES", "terlan-self-validation-inventory-check")
         and make_variable_contains(makefile, "CHECK_GATES", "terlan-self-validation-capabilities-check")
         and make_variable_contains(makefile, "CHECK_GATES", "runtime-aot-only-check")
-        and make_variable_contains(makefile, "CHECK_GATES", "vm-multicore-mc9-evidence-contract-check")
+        and make_variable_contains(makefile, "CHECK_GATES", "vm-multicore-release-contract-check")
         and make_variable_contains(makefile, "CHECK_GATES", "no-vmir-interpreter-check").
 
 @pure
@@ -181,7 +181,7 @@ valid_makefile(): String ->
     String.append(
         "COVERAGE_MIN ?= 84.20\nCOVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm\n",
         String.append(
-            "CHECK_GATES := \\\n\tterlan-self-validation-inventory-check \\\n\tterlan-self-validation-capabilities-check \\\n\truntime-aot-only-check \\\n\tvm-multicore-mc9-evidence-contract-check \\\n\tno-vmir-interpreter-check\n",
+            "CHECK_GATES := \\\n\tterlan-self-validation-inventory-check \\\n\tterlan-self-validation-capabilities-check \\\n\truntime-aot-only-check \\\n\tvm-multicore-release-contract-check \\\n\tno-vmir-interpreter-check\n",
             "check: rust-test-suite\n\tTERLAN_VALIDATION_BOOTSTRAPPED=1 $(MAKE) --no-print-directory check-gates\ntest: cli-test\nVERSION ?= $(RELEASE_VERSION)\npublish-preflight:\n\t$(MAKE) --no-print-directory publish-evidence-check\npublish-evidence-plan-check:\nrelease-candidate-check:\nrelease-artifact-current:\nrelease-artifact-linux:\nrelease-boundary-check:\ninstaller-contract-check:\n",
         ),
     ).

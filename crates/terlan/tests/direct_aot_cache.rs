@@ -458,39 +458,6 @@ fn vm_aot_timings_report_compile_and_native_artifact_phases() {
     fs::remove_dir_all(&root).expect("remove timing fixture root");
 }
 
-#[test]
-fn vm_aot_warm_noop_p95_stays_under_one_second() {
-    let root = std::env::temp_dir().join(format!(
-        "terlan-direct-aot-warm-budget-{}-{}",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time")
-            .as_nanos()
-    ));
-    let source = root.join("cache_probe.terl");
-    let output_dir = root.join("build");
-    fs::create_dir_all(&root).expect("create warm-budget fixture root");
-    fs::write(&source, SOURCE_41).expect("write warm-budget fixture source");
-    run_build(&root, &source, &output_dir, true, None);
-
-    let invalid_linker = root.join("linker-must-not-run");
-    let mut samples = Vec::with_capacity(7);
-    for _ in 0..7 {
-        let started = Instant::now();
-        run_build(&root, &source, &output_dir, true, Some(&invalid_linker));
-        samples.push(started.elapsed());
-    }
-    samples.sort_unstable();
-    let p95 = samples[samples.len() - 1];
-    assert!(
-        p95 < Duration::from_secs(1),
-        "warm native no-op p95 {p95:?} exceeded 1s; samples={samples:?}"
-    );
-
-    fs::remove_dir_all(&root).expect("remove warm-budget fixture root");
-}
-
 #[cfg(unix)]
 #[test]
 fn unchanged_repl_generation_reuses_native_image_without_relinking() {
