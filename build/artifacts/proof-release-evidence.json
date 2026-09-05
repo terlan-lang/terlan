@@ -7,7 +7,7 @@
     ],
     "release": "0.0.8",
     "rustc_version": "rustc 1.96.0 (ac68faa20 2026-05-25)",
-    "source_revision": "6c3011184a00f4c0172428ebc9e54d64b27913a2",
+    "source_revision": "491d556acc1e7948edd4ab81724c8d070ed2a1d0",
     "target_profile": "native"
   },
   "candidate_materials": [

@@ -1484,6 +1484,11 @@ release-candidate-check: build-artifact-budget-record
 	TERLAN_BUILD_ARTIFACTS_PREBUILT=1 \
 		$(MAKE) --no-print-directory check
 	bash scripts/clean_build_outputs.sh --check-partials
+	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
+		$(MAKE) --no-print-directory release-proof-baseline-check
+
+.PHONY: release-proof-baseline-check
+release-proof-baseline-check: | terlan-self-validation-bootstrap
 	TERLAN_PROOF_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_PROOF_RELEASE_IMAGE) --script-eval -- check
 
