@@ -21,7 +21,7 @@ authors = ["Terlan contributors"]
 repository = "https://github.com/terlan-lang/terlan"
 
 [workspace.dependencies]
-base64 = "0.22.1"
+base64 = "0.23.1"
 cc = "=1.2.67"
 cxx = "=1.0.197"
 cxx-build = "=1.0.197"
