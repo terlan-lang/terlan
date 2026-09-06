@@ -141,7 +141,7 @@ jobs:
         run: cargo test --locked --no-default-features --features native-codegen -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test -- --nocapture
 
       - name: Upload target execution attestation
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: tvm-aot-platform-${{ matrix.target }}
           path: target/quality/tvm-aot-platform/${{ matrix.target }}.json
@@ -181,7 +181,7 @@ jobs:
           TERLAN_TVM_PLATFORM_REPORT_ROOT: target/quality/tvm-aot-platform-input
 
       - name: Upload aggregate evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: tvm-aot-platform-matrix
           path: target/quality/tvm-aot-platform-matrix-report.json
@@ -216,7 +216,7 @@ jobs:
         run: make tvm-aot-thread-sanitizer-check
 
       - name: Upload ThreadSanitizer evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: tvm-aot-thread-sanitizer
           path: target/quality/tvm-aot-thread-sanitizer-report.json
@@ -248,7 +248,7 @@ jobs:
         run: make vm-multicore-thread-sanitizer-check
 
       - name: Upload multicore ThreadSanitizer evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: vm-multicore-thread-sanitizer
           path: |
@@ -305,7 +305,7 @@ jobs:
 
       - name: Upload failure evidence
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: compiler-ci-failure-${{ github.run_id }}
           path: |

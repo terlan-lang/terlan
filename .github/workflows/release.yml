@@ -128,7 +128,7 @@ jobs:
           test -s "dist/${{ matrix.archive }}.sha256"
 
       - name: Upload native release archive
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-distribution-${{ matrix.target }}
           path: |
@@ -138,7 +138,7 @@ jobs:
           retention-days: 7
 
       - name: Upload target execution attestation
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-tvm-aot-platform-${{ matrix.target }}
           path: target/quality/tvm-aot-platform/${{ matrix.target }}.json
@@ -177,7 +177,7 @@ jobs:
           TERLAN_TVM_PLATFORM_REPORT_ROOT: target/quality/tvm-aot-platform-input
 
       - name: Upload aggregate evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-tvm-aot-platform-matrix
           path: target/quality/tvm-aot-platform-matrix-report.json
@@ -211,7 +211,7 @@ jobs:
         run: make tvm-aot-thread-sanitizer-check
 
       - name: Upload ThreadSanitizer evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-tvm-aot-thread-sanitizer
           path: target/quality/tvm-aot-thread-sanitizer-report.json
@@ -243,7 +243,7 @@ jobs:
         run: make vm-multicore-thread-sanitizer-check
 
       - name: Upload multicore ThreadSanitizer evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-vm-multicore-thread-sanitizer
           path: |
@@ -311,7 +311,7 @@ jobs:
         run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check
 
       - name: Upload hosted release evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-hosted-validation-evidence
           path: |
@@ -328,7 +328,7 @@ jobs:
           subject-path: target/release-distribution/*
 
       - name: Upload validated release distribution
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-distribution
           path: target/release-distribution
@@ -337,7 +337,7 @@ jobs:
 
       - name: Upload failure evidence
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-validation-failure-${{ github.run_id }}
           path: |
