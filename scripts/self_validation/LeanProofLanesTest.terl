@@ -686,8 +686,20 @@ merge_gate_gaps(
 named_values_json(values: List[NamedJson], output: Json): Json ->
     case values {
         [] -> output;
-        [value | rest] -> named_values_json(rest, output.push(value.value))
+        [value | rest] -> named_values_json(rest, output.push(gap_checksum_value(value.value)))
     }.
+
+/**
+ * Keeps elapsed review age observable without making proof identity date-dependent.
+ */
+gap_checksum_value(value: Json): Json ->
+    let {
+        Ok(source) <- Json.stringify(value);
+        Ok(copy) <- Json.parse(source)
+    } else {
+        _ -> Json.null()
+    };
+    copy.remove("gap_staleness_days").
 
 proof_source(files: List[TextFile], path: String): String ->
     case files {
@@ -835,7 +847,7 @@ selected_gaps(names: List[String], gaps: List[NamedJson], output: Json): Json ->
         [] -> output;
         [name | rest] ->
             case find_named(gaps, name) {
-                Some(value) -> selected_gaps(rest, gaps, output.push(value));
+                Some(value) -> selected_gaps(rest, gaps, output.push(gap_checksum_value(value)));
                 None -> Json.array()
             }
     }.
@@ -1320,3 +1332,25 @@ pub unapproved_proof_root_is_rejected(): Bool ->
 @test
 pub repository_lean_proof_lanes_are_current(): Bool ->
     run_repository_check().
+
+checksum_gap(age: Int, status: String, source: String): Json ->
+    let origin = Json.object().put("toml_checksum", Json.string(source));
+    Json.object()
+        .put("feature", Json.string("VM execution subset"))
+        .put("gap_staleness_days", Json.int(age))
+        .put("lifecycle_status", Json.string(status))
+        .put("source", origin).
+
+@test
+pub gap_checksum_is_stable_across_days_without_mutating_age_evidence(): Bool ->
+    let earlier = checksum_gap(17, "blocked", "proof-source");
+    let later = checksum_gap(18, "blocked", "proof-source");
+    canonical_checksum(gap_checksum_value(earlier)) == canonical_checksum(gap_checksum_value(later))
+        and json_int_is(earlier, "gap_staleness_days", 17)
+        and json_int_is(later, "gap_staleness_days", 18).
+
+@test
+pub gap_checksum_still_detects_status_and_source_changes(): Bool ->
+    let original = canonical_checksum(gap_checksum_value(checksum_gap(17, "blocked", "proof-source")));
+    original != canonical_checksum(gap_checksum_value(checksum_gap(17, "closed", "proof-source")))
+        and original != canonical_checksum(gap_checksum_value(checksum_gap(17, "blocked", "changed-source"))).
