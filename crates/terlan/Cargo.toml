@@ -141,7 +141,7 @@ comrak = { version = "0.52", default-features = false }
 concurrent-queue = "2.5.0"
 cookie = "0.18"
 cranelift-codegen = { version = "=0.133.1", optional = true }
-cranelift-frontend = { version = "=0.133.1", optional = true }
+cranelift-frontend = { version = "=0.134.4", optional = true }
 cranelift-module = { version = "=0.133.1", optional = true }
 cranelift-native = { version = "=0.133.1", optional = true }
 cranelift-object = { version = "=0.133.1", optional = true }
