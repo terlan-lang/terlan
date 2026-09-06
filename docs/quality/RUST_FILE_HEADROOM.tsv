@@ -5,7 +5,7 @@ crates/terlan/src/benchmark/http_benchmark_support.rs	implementation	973	900	100
 crates/terlan/src/commands/bind/c_abi_binding_generator/generator.rs	implementation	994	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/bind/c_abi_binding_generator_test/fixtures_and_generation.rs	implementation	1104	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/bind/c_abi_binding_generator_test/ownership_adapters.rs	implementation	1125	900	1000	commands-structure	0.0.9
-crates/terlan/src/commands/bind/c_abi_binding_generator_test/validation_and_distribution.rs	implementation	999	900	1000	commands-structure	0.0.9
+crates/terlan/src/commands/bind/c_abi_binding_generator_test/validation_and_distribution.rs	implementation	905	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/bind/ts_dom_generator.rs	implementation	967	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/build/project_manifest/parser.rs	implementation	948	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/doc/render.rs	implementation	996	900	1000	commands-structure	0.0.9
@@ -79,7 +79,6 @@ crates/terlan/src/runtime/vm/persistent_actor_telemetry.rs	implementation	984	90
 crates/terlan/src/runtime/vm/postgres/libpq_worker.rs	implementation	958	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/postgres/runtime.rs	implementation	952	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/process.rs	implementation	944	900	1000	runtime-structure	0.0.9
-crates/terlan/src/runtime/vm/pure_native/direct_backend.rs	implementation	909	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/pure_native/direct_backend/managed_values.rs	implementation	903	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/pure_native/execution.rs	implementation	930	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/pure_native/execution_shard.rs	implementation	934	900	1000	runtime-structure	0.0.9

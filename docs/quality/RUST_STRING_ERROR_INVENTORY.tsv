@@ -414,7 +414,8 @@ crates/terlan/src/runtime/vm/protocol_task_executor/process_ids.rs	3	internal-he
 crates/terlan/src/runtime/vm/protocol_task_executor/server.rs	3	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/protocol_task_executor/transport.rs	1	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/pure_native.rs	27	internal-helper	runtime-errors	0.0.9
-crates/terlan/src/runtime/vm/pure_native/direct_backend.rs	29	internal-helper	runtime-errors	0.0.9
+crates/terlan/src/runtime/vm/pure_native/direct_backend.rs	27	internal-helper	runtime-errors	0.0.9
+crates/terlan/src/runtime/vm/pure_native/direct_backend/frames.rs	2	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/pure_native/direct_backend/managed_http_response.rs	6	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/pure_native/direct_backend/managed_values.rs	17	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/pure_native/execution.rs	12	internal-helper	runtime-errors	0.0.9

@@ -16,5 +16,8 @@ use fixtures_and_generation::*;
 #[path = "c_abi_binding_generator_test/ownership_adapters.rs"]
 mod ownership_adapters;
 #[cfg(test)]
+#[path = "c_abi_binding_generator_test/pkg_config_distribution.rs"]
+mod pkg_config_distribution;
+#[cfg(test)]
 #[path = "c_abi_binding_generator_test/validation_and_distribution.rs"]
 mod validation_and_distribution;
