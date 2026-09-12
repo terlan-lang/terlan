@@ -7,7 +7,7 @@ pub(crate) fn public_usage_lines() -> &'static [&'static str] {
         "terlc help [command]",
         "terlc init [project-name] [--profile default|web|static]",
         "terlc check <file.terl|file.terli|dir>",
-        "terlc build [file.terl|file.terls|dir] [--target terlan-vm|js|wasm.core] [--release] [--out-dir <dir>]",
+        "terlc build [file.terl|file.terls|dir] [--target terlan-vm|js|wasm.core] [--release] [--out-dir <dir>]\nterlc build --print-toolchain-identity",
         "terlc run [project-dir|file.terl|file.terls] [--target terlan-vm]",
         "terlc run <artifact.wasm> [--export <name>] [--arg <type:value>] [--host-return <module.name=type:value>] [--expect <type:value>] [--repeat <count>] [--timeout-ms <ms>]",
         "terlc scripts [project-dir]",
@@ -79,7 +79,7 @@ pub(super) fn print_command_usage(command: &str) -> bool {
         ),
         "check" => println!("terlc check <file.terl|file.terli|dir> [--emit-phase-manifest <path>]"),
         "build" => println!(
-            "terlc build [file.terl|dir] [--target terlan-vm|js|wasm.core] [--release] [--out-dir <dir>]"
+            "terlc build [file.terl|dir] [--target terlan-vm|js|wasm.core] [--release] [--out-dir <dir>]\nterlc build --print-toolchain-identity"
         ),
         "run" => {
             println!("terlc run [project-dir|file.terl] [--target terlan-vm]");

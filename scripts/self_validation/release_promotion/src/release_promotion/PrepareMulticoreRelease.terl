@@ -1,0 +1,114 @@
+/**
+ * Checkpoints multicore report composition only, not the preceding local gates.
+ * Make holds the preparation flock through validation, execution, and sealing.
+ */
+module release_promotion.PrepareMulticoreRelease.
+
+import release_promotion.{OwnerStorage, OwnerTools, PreparationContext, PreparationOwner}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.Console.
+
+import type release_promotion.PreparationContext.Context.
+import type release_promotion.PreparationOwner.{Decision, Owner}.
+import type std.core.Result.
+
+require(condition: Bool, message: String): Result[Bool, String] ->
+    if {
+        condition -> Ok(true);
+        true -> Err(message)
+    }.
+
+pub declare(root: String, vm: String, image: String, context: Context): Result[Owner, String] ->
+    let env = context.environment;
+    let {
+        Ok(_paths) <-
+            require(
+                PreparationContext.tool_path(vm) and PreparationContext.tool_path(image),
+                "preparation tools must be inside target/",
+            );
+        Ok(version) <- OwnerTools.run(root, OwnerStorage.child(root, vm), ["--version"], env)
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    declare_with_version(root, vm, image, context, version).
+
+/**
+ * Reuses the enclosing graph's observed VM version; owner inputs still bind bytes.
+ */
+pub declare_with_version(
+    root: String,
+    vm: String,
+    image: String,
+    context: Context,
+    version: String,
+): Result[Owner, String] ->
+    let Ok(_paths) <-
+        require(
+            PreparationContext.tool_path(vm) and PreparationContext.tool_path(image),
+            "preparation tools must be inside target/",
+        ) else {
+        Err(reason) -> Err(reason)
+    };
+    Ok(
+        PreparationOwner.owner(
+            "multicore-release-record",
+            context.revision,
+            "x86_64-unknown-linux-gnu",
+            "report-composition",
+            String.concat([version, "\n", context.runtime_tools]),
+            context.sources,
+            [
+                vm,
+                image,
+                "target/quality/hosted-candidate-validation.json",
+                "target/quality/vm-multicore-memory-model.json",
+                "target/quality/vm-multicore-thread-sanitizer-report.json",
+            ],
+            OwnerStorage.child(root, vm),
+            [
+                "run",
+                OwnerStorage.child(root, image),
+                "--script-eval",
+                "--",
+                "multicore-release-record",
+            ],
+            context.environment,
+            "target/quality/vm-multicore-release-closeout.json",
+            "TERLAN_MULTICORE_RELEASE_OUTPUT",
+            "terlan.vm-multicore-release-closeout.v4",
+            "VM multicore release closeout passed:",
+            300000,
+        ),
+    ).
+
+pub prepare(root: String, vm: String, image: String): Result[Decision, String] ->
+    let {
+        Ok(_paths) <-
+            require(
+                PreparationContext.tool_path(vm) and PreparationContext.tool_path(image),
+                "preparation tools must be inside target/",
+            );
+        Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
+        Ok(owner) <- declare(root, vm, image, context)
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    Ok(PreparationOwner.run_locked(root, owner)).
+
+pub run_locked(root: String, vm: String, image: String): Bool ->
+    case prepare(root, vm, image) {
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false;
+        Ok(result) ->
+            let _printed =
+                Console.println(
+                    if {
+                        not result.valid -> result.message;
+                        result.reused -> "[preparation] multicore release report reused: zero validator launches";
+                        true -> "[preparation] multicore release report completed and checkpointed"
+                    },
+                );
+            result.valid
+    }.

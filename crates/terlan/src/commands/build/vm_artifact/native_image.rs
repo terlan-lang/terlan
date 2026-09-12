@@ -6,6 +6,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::OnceLock;
+use std::time::Duration;
+
+#[cfg(target_os = "windows")]
+use crate::runtime::native_boundary::dispatch::capture_tool_command;
+use crate::runtime::native_boundary::dispatch::capture_tool_command_with_launch;
 
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 use crate::compiler::native_ir::native_request_projections;
@@ -23,6 +28,7 @@ use crate::runtime::vm::aot_metadata::NativeRequestProjection;
 use crate::terlan_typeck::CoreModule;
 
 use super::super::{write_build_file, BuildOneError};
+use super::build_activity::{Activity, Operation};
 use super::native_debug::{encode_native_debug, NativeDebugInput};
 use super::native_descriptor::native_application_image_descriptor;
 use super::native_units::prepare_native_object_units;
@@ -516,6 +522,7 @@ fn compile_and_publish_image(input: NativeImageBuildInput<'_>) -> Result<Vec<u8>
             )
         })
         .transpose()?;
+    let activity = Activity::begin(Operation::ApplicationObject, input.input_sha256)?;
     let object = if module_units.is_some() {
         emit_native_application_dispatch_object_with_policy(
             input.application_identity,
@@ -529,7 +536,12 @@ fn compile_and_publish_image(input: NativeImageBuildInput<'_>) -> Result<Vec<u8>
             input.policy,
         )
     }
-    .map_err(|error| BuildOneError::Message(error.into()))?;
+    .map_err(|error| BuildOneError::Message(error.into()));
+    activity.finish(
+        object.is_ok(),
+        object.as_ref().ok().map(|bytes| bytes.len() as u64),
+    )?;
+    let object = object?;
     native_cache::publish_file(input.object_path, &object)?;
     let descriptor = native_application_image_descriptor(
         input.application_identity,
@@ -542,17 +554,34 @@ fn compile_and_publish_image(input: NativeImageBuildInput<'_>) -> Result<Vec<u8>
             .map_err(|error| BuildOneError::Message(error.into()))?;
     native_cache::publish_file(input.descriptor_object_path, &descriptor_object)?;
     let linked_image = native_cache::TemporaryCacheFile::beside(input.cached_image_path)?;
-    let unit_paths = module_units
+    let unit_links = module_units
         .as_ref()
         .map(|units| units.paths.as_slice())
-        .unwrap_or_default();
+        .unwrap_or_default()
+        .iter()
+        .enumerate()
+        .map(|(index, source)| {
+            native_cache::TemporaryCacheFile::linked_beside(
+                source,
+                &input.native_dir.join(format!("link-input-{index}.o")),
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    // A surviving linker must not depend on the parent compiler's lock alone.
+    // These private names survive parent termination even if canonical units
+    // are subsequently retired. They never alias mutable staging payloads.
+    let unit_paths = unit_links
+        .iter()
+        .map(|link| link.path().to_path_buf())
+        .collect::<Vec<_>>();
     link_native_image(
-        unit_paths,
+        &unit_paths,
         input.object_path,
         input.descriptor_object_path,
         linked_image.path(),
         input.linker_policy,
         input.policy,
+        input.input_sha256,
     )?;
     let mut image = fs::read(linked_image.path()).map_err(|error| {
         BuildOneError::Message(format!(
@@ -590,6 +619,7 @@ fn link_native_image(
     image_path: &Path,
     linker_policy: &NativeLinkerPolicy,
     policy: NativeCodegenPolicy,
+    input_sha256: &str,
 ) -> Result<(), BuildOneError> {
     let mut command = Command::new(&linker_policy.program);
     if cfg!(target_os = "macos") {
@@ -638,12 +668,25 @@ fn link_native_image(
             .arg(object_path)
             .arg(descriptor_object_path);
     }
-    let output = command.output().map_err(|error| {
-        BuildOneError::Message(format!(
-            "failed to start native linker `{}`: {error}",
-            Path::new(&linker_policy.program).display()
-        ))
-    })?;
+    let label = format!(
+        "native linker `{}` for `{}`",
+        Path::new(&linker_policy.program).display(),
+        image_path.display()
+    );
+    let mut activity = Activity::begin(Operation::NativeLink, input_sha256)?;
+    let output = capture_tool_command_with_launch(
+        &mut command,
+        &label,
+        Duration::from_secs(300),
+        16 * 1024 * 1024,
+        |pid| activity.spawned(pid),
+    )
+    .map_err(|error| BuildOneError::Message(format!("error[tvm.native_link.execution]: {error}")));
+    activity.finish(
+        output.as_ref().is_ok_and(|output| output.status.success()),
+        None,
+    )?;
+    let output = output?;
     if !output.status.success() {
         return Err(BuildOneError::Message(format!(
             "native linker failed for `{}`:\n{}",
@@ -683,9 +726,10 @@ fn native_linker_policy() -> Result<&'static NativeLinkerPolicy, BuildOneError> 
             })?;
             let cache_identity = native_cache::sha256_hex(
                 format!(
-                    "terlan-native-linker-v1\0{}\0{}",
+                    "terlan-native-linker-v2\0{}\0{}\0{}",
                     bundled_windows_linker,
-                    native_cache::sha256_hex(&bytes)
+                    native_cache::sha256_hex(&bytes),
+                    super::linker_identity::environment_digest(),
                 )
                 .as_bytes(),
             );
@@ -701,6 +745,33 @@ fn native_linker_policy() -> Result<&'static NativeLinkerPolicy, BuildOneError> 
 
 pub(super) fn native_linker_cache_identity() -> Result<&'static str, BuildOneError> {
     native_linker_policy().map(|policy| policy.cache_identity.as_str())
+}
+
+/// Reports host AOT tool identity without parsing sources or compiling an image.
+pub(in crate::commands::build) fn print_toolchain_identity() -> Result<(), BuildOneError> {
+    let target = host_tvm_target().map_err(|error| BuildOneError::Message(error.into()))?;
+    let adapter = NativeAdapterAbiContract::current()
+        .cache_identity(&target.triple, &target.calling_convention)
+        .map_err(|error| BuildOneError::Message(error.into()))?;
+    let linker = native_linker_cache_identity()?;
+    println!(
+        "{}",
+        serde_json::json!({
+            "schema": "terlan.native-toolchain-identity.v1",
+            "compiler_version": env!("CARGO_PKG_VERSION"),
+            "backend": DIRECT_AOT_BACKEND,
+            "cache_schema": DIRECT_AOT_CACHE_SCHEMA,
+            "codegen_revision": DIRECT_AOT_CODEGEN_REVISION,
+            "build_policy": DIRECT_AOT_BUILD_POLICY,
+            "target": target.triple,
+            "architecture": target.architecture,
+            "operating_system": target.operating_system,
+            "calling_convention": target.calling_convention,
+            "adapter_abi": adapter,
+            "linker_identity": linker,
+        })
+    );
+    Ok(())
 }
 
 fn resolve_linker_program(program: &OsStr) -> Option<PathBuf> {
@@ -752,15 +823,18 @@ fn default_native_linker() -> Result<(OsString, bool), BuildOneError> {
 #[cfg(target_os = "windows")]
 fn bundled_rust_lld() -> Result<OsString, BuildOneError> {
     let rustc = std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into());
-    let output = Command::new(&rustc)
-        .args(["--print", "target-libdir"])
-        .output()
-        .map_err(|error| {
-            BuildOneError::Message(format!(
-                "failed to locate the Rust target library directory with `{}`: {error}",
-                Path::new(&rustc).display()
-            ))
-        })?;
+    let output = capture_tool_command(
+        Command::new(&rustc).args(["--print", "target-libdir"]),
+        "Rust target library directory probe",
+        Duration::from_secs(30),
+        1024 * 1024,
+    )
+    .map_err(|error| {
+        BuildOneError::Message(format!(
+            "failed to locate the Rust target library directory with `{}`: {error}",
+            Path::new(&rustc).display()
+        ))
+    })?;
     if !output.status.success() {
         return Err(BuildOneError::Message(format!(
             "`{}` could not locate the Rust target library directory:\n{}",

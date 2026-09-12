@@ -1,0 +1,315 @@
+/**
+ * Exercises the real publisher with isolated local Git/GitHub/VM stand-ins.
+ * No test contacts GitHub or writes into the repository's release distribution.
+ */
+module release_promotion.PublicationChecks.
+
+import release_promotion.DownloadChecks.
+import std.core.Option.{Some}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+import std.system.{Environment, Process}.
+
+child(root: String, path: String): String ->
+    String.concat([root, "/", path]).
+
+git_stub(): String ->
+    "#!/usr/bin/env bash\nset -eu\ncase $1 in\ncat-file) echo tag;;\nrev-parse) echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;;\n*) exit 91;;\nesac\n".
+
+vm_stub(): String ->
+    "#!/usr/bin/env bash\nset -eu\ncase \"$*\" in *publication-plan*) ;; *) exit 92;; esac\necho plan >> \"$PUBLICATION_FIXTURE/calls\"\nif [ \"$PUBLICATION_MODE\" = producer-failure ]; then exit 23; fi\ncat \"$PUBLICATION_FIXTURE/plan.json\"\n".
+
+gh_stub(): String ->
+    String.concat(
+        [
+            "#!/usr/bin/env bash\nset -eu\nroot=$PUBLICATION_FIXTURE\n",
+            "case \"$1 $2\" in\n",
+            "'auth status') exit 0;;\n",
+            "'repo view') echo fixture/repository;;\n",
+            "'release view') case $PUBLICATION_MODE in lookup-failure|draft-lookup-failure) exit 1;; esac; cat \"$root/release.json\";;\n",
+            "'api --paginate') if [ \"$PUBLICATION_MODE\" = lookup-failure ]; then exit 24; fi; jq '{tag_name: \"v0.0.8\", id: .databaseId, draft: .isDraft, body}' \"$root/release.json\";;\n",
+            "'release edit') case \"$*\" in *--draft=false*) echo publish >> \"$root/calls\";; *) test \"$5\" = 'Terlan 0.0.8'; cp \"$7\" \"$root/rendered-notes.md\";; esac;;\n",
+            "'release upload') echo upload >> \"$root/calls\"; cp \"$root/complete.json\" \"$root/remote.json\";;\n",
+            "'api repos/fixture/repository/releases/42') jq -r \"${@: -1}\" \"$root/remote.json\";;\n",
+            "*) echo \"unexpected GitHub operation: $*\" >&2; exit 93;;\nesac\n",
+        ],
+    ).
+
+asset(path: String, digest: String): Json ->
+    Json.object()
+        .put("path", Json.string(path))
+        .put("size_bytes", Json.int(1))
+        .put("sha256", Json.string(digest)).
+
+remote_asset(name: String, digest: String): Json ->
+    Json.object()
+        .put("name", Json.string(name))
+        .put("size", Json.int(1))
+        .put("digest", Json.string(digest)).
+
+write_json(path: String, value: Json): Bool ->
+    let {
+        Ok(source) <- Json.stringify(value);
+        Ok(_written) <- File.write_text(path, source)
+    } else {
+        _ -> false
+    };
+    true.
+
+prepare(root: String, mode: String): Bool ->
+    let digest = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    let assets =
+        Json.array()
+            .push(asset("dist/terlc-linux-x86_64.tar.gz", digest))
+            .push(asset("dist/release-candidate.json", digest));
+    let plan =
+        Json.object()
+            .put("schema", Json.string("terlan.publication-plan.v1"))
+            .put("version", Json.string("0.0.8"))
+            .put("candidate_seal", Json.string(digest))
+            .put("artifacts", assets);
+    let complete =
+        Json.object()
+            .put(
+                "assets",
+                Json.array()
+                    .push(remote_asset("terlc-linux-x86_64.tar.gz", digest))
+                    .push(remote_asset("release-candidate.json", digest)),
+            );
+    let remote =
+        if {
+            mode == "partial" -> Json.object()
+                .put("assets", Json.array().push(remote_asset("terlc-linux-x86_64.tar.gz", digest)));
+            mode == "public-mismatch" -> Json.object().put("assets", Json.array());
+            mode == "extra-asset" -> Json.object()
+                .put(
+                    "assets",
+                    Json.array()
+                        .push(remote_asset("terlc-linux-x86_64.tar.gz", digest))
+                        .push(remote_asset("release-candidate.json", digest))
+                        .push(remote_asset("unexpected.zip", digest)),
+                );
+            true -> complete
+        };
+    let release =
+        Json.object()
+            .put("databaseId", Json.int(42))
+            .put("isDraft", Json.bool(mode != "public-mismatch" and mode != "public-matching"))
+            .put("body", Json.string("Human-written release announcement.\n"));
+    let {
+        Ok(_scripts) <- Directory.create_all(child(root, "scripts"));
+        Ok(_bin) <- Directory.create_all(child(root, "bin"));
+        Ok(_debug) <- Directory.create_all(child(root, "target/debug"));
+        Ok(_dist) <- Directory.create_all(child(root, "dist"));
+        Ok(publisher) <- File.read_text("scripts/publish_release_from_dist.sh");
+        Ok(_publisher) <- File.write_text(child(root, "scripts/publish_release_from_dist.sh"), publisher);
+        Ok(_git) <- File.write_text(child(root, "bin/git"), git_stub());
+        Ok(_gh) <- File.write_text(child(root, "bin/gh"), gh_stub());
+        Ok(_vm) <- File.write_text(child(root, "target/debug/terlan-vm"), vm_stub());
+        Ok(_archive) <- File.write_text(child(root, "dist/terlc-linux-x86_64.tar.gz"), "a");
+        Ok(_manifest) <- File.write_text(child(root, "dist/release-candidate.json"), "a");
+        Ok(_notes) <- File.write_text(child(root, "CHANGELOG.md"), "## 0.0.8\n\nRelease fixture.\n");
+        true <- write_json(child(root, "plan.json"), plan);
+        true <- write_json(child(root, "release.json"), release);
+        true <- write_json(child(root, "remote.json"), remote);
+        true <- write_json(child(root, "complete.json"), complete);
+        Ok(output) <-
+            Process.run(
+                Process.command("chmod")
+                    .with_arguments(
+                        [
+                            "+x",
+                            child(root, "bin/git"),
+                            child(root, "bin/gh"),
+                            child(root, "target/debug/terlan-vm"),
+                        ],
+                    ),
+            )
+    } else {
+        _ -> false
+    };
+    Process.status(output) == 0.
+
+exercise(root: String, mode: String, status: Int, calls: String): Bool ->
+    let {
+        true <- prepare(root, mode);
+        Some(path) <- Environment.get("PATH");
+        Ok(output) <-
+            Process.run(
+                Process.command("bash")
+                    .with_arguments([child(root, "scripts/publish_release_from_dist.sh"), "0.0.8"])
+                    .with_environment(
+                        [
+                            Process.environment_entry(
+                                "PATH",
+                                String.concat([child(root, "bin"), ":", path]),
+                            ),
+                            Process.environment_entry("PUBLICATION_FIXTURE", root),
+                            Process.environment_entry("PUBLICATION_MODE", mode),
+                        ],
+                    ),
+            );
+        Ok(actual) <- File.read_text(child(root, "calls"))
+    } else {
+        _ -> false
+    };
+    Process.status(output) == status and actual == calls and curated_notes(root, mode, status).
+
+curated_notes(root: String, mode: String, status: Int): Bool ->
+    if {
+        status == 0 and mode != "public-matching" -> let Ok(notes) <- File.read_text(child(root, "rendered-notes.md")) else {
+            _ -> false
+        };
+        notes == "\nRelease fixture.\n";
+        true -> true
+    }.
+
+scenario(mode: String, status: Int, calls: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-publication-retry-") else {
+        _ -> false
+    };
+    (let passed = exercise(root, mode, status, calls);
+(let Ok(_removed) <- Directory.remove_all(root) else {
+    _ -> false
+};
+passed)).
+
+matching_draft_reuses_uploads_and_verifies_once(): Bool ->
+    scenario("matching", 0, "plan\npublish\n").
+
+partial_draft_uploads_only_the_missing_asset(): Bool ->
+    scenario("partial", 0, "plan\nupload\npublish\n").
+
+failed_plan_stops_before_upload_or_publication(): Bool ->
+    scenario("producer-failure", 23, "plan\n").
+
+public_release_mismatch_is_never_mutated(): Bool ->
+    scenario("public-mismatch", 1, "plan\n").
+
+/**
+ * Covers retries and failure boundaries in the canonical promotion self-test.
+ */
+pub self_test(): Bool ->
+    matching_draft_reuses_uploads_and_verifies_once()
+        and partial_draft_uploads_only_the_missing_asset()
+        and failed_plan_stops_before_upload_or_publication()
+        and public_release_mismatch_is_never_mutated()
+        and scenario("public-matching", 0, "plan\n")
+        and scenario("extra-asset", 1, "plan\n")
+        and scenario("lookup-failure", 24, "plan\n")
+        and scenario("draft-lookup-failure", 0, "plan\npublish\n")
+        and cache_scenario(false)
+        and cache_scenario(true)
+        and DownloadChecks.self_test().
+
+write_cache(root: String, names: List[String]): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            let Ok(_written) <- File.write_text(child(root, name), "cached") else {
+                _ -> false
+            };
+            write_cache(root, rest)
+    }.
+
+checksum_rows(names: List[String], digest: String): String ->
+    case names {
+        [] -> "";
+        [name | rest] -> String.concat([digest, "  ", name, "\n", checksum_rows(rest, digest)])
+    }.
+
+has_retired_candidate(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            if {
+                String.ends_with(path, "/release-candidate.json") -> let Ok(contents) <- File.read_text(path) else {
+                    _ -> false
+                };
+                contents == "a";
+                true -> has_retired_candidate(rest)
+            }
+    }.
+
+exercise_cache(root: String, corrupt: Bool): Bool ->
+    let revision = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    let cache = child(root, String.append("target/publication-inputs/", revision));
+    let names =
+        [
+            "terlc-linux-x86_64.tar.gz",
+            "terlc-linux-x86_64.tar.gz.sha256",
+            "terlc",
+            "terlan-vm",
+            "terlan-native-worker",
+            "terlan-lsp",
+            "terlan-release.json",
+            "SHA256SUMS",
+            "terlan-install-manifest.json",
+        ];
+    let {
+        true <- prepare(root, "matching");
+        Ok(_created) <- Directory.create_all(cache);
+        true <- write_cache(cache, names);
+        Ok(_sums) <-
+            File.write_text(
+                child(cache, "verified-inputs.sha256"),
+                checksum_rows(names, Hash.sha256("cached")),
+            );
+        Ok(script) <- File.read_text("scripts/download_validated_release_artifacts.sh");
+        Ok(_script) <- File.write_text(child(root, "scripts/download_validated_release_artifacts.sh"), script);
+        Ok(_payload) <-
+            File.write_text(
+                child(cache, "terlc-linux-x86_64.tar.gz"),
+                if {
+                    corrupt -> "changed";
+                    true -> "cached"
+                },
+            );
+        Some(path) <- Environment.get("PATH");
+        Ok(output) <-
+            Process.run(
+                Process.command("bash")
+                    .with_arguments(
+                        [
+                            child(root, "scripts/download_validated_release_artifacts.sh"),
+                            revision,
+                            "--restore",
+                        ],
+                    )
+                    .with_environment(
+                        [
+                            Process.environment_entry(
+                                "PATH",
+                                String.concat([child(root, "bin"), ":", path]),
+                            ),
+                        ],
+                    ),
+            );
+        Ok(restored) <- File.read_text(child(root, "dist/terlc-linux-x86_64.tar.gz"));
+        Ok(files) <- Directory.files_recursive_excluding(child(root, "target/publication-inputs"), [])
+    } else {
+        _ -> false
+    };
+    if {
+        corrupt -> Process.status(output) != 0
+            and restored == "a"
+            and File.exists(child(root, "dist/release-candidate.json"))
+            and not has_retired_candidate(files);
+        true -> Process.status(output) == 0
+            and restored == "cached"
+            and not File.exists(child(root, "dist/release-candidate.json"))
+            and has_retired_candidate(files)
+    }.
+
+cache_scenario(corrupt: Bool): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-publication-cache-") else {
+        _ -> false
+    };
+    (let passed = exercise_cache(root, corrupt);
+(let Ok(_removed) <- Directory.remove_all(root) else {
+    _ -> false
+};
+passed)).

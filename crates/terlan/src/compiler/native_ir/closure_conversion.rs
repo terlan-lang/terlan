@@ -399,6 +399,7 @@ fn lower_escaping_lambda_at(
         CoreExpr::Lam {
             params: lambda_patterns,
             body: lambda_body,
+            ..
         },
         Some(CoreType::Arrow {
             params: expected_params,
@@ -519,6 +520,7 @@ fn lower_escaping_lambda_at(
         );
     }
     let closure_contract = CoreFunction {
+        source: None,
         name: format!("$closure_contract_{owner_name}_{owner_arity}"),
         arity: lambda_names.len(),
         public: false,

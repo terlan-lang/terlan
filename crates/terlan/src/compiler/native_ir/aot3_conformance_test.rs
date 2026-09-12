@@ -10,16 +10,14 @@ use crate::runtime::native_image::dispatch_lookup::{tvm_dispatch_lookup_v1, TvmD
 use crate::runtime::native_image::managed::{
     decode_aggregate_layout, decode_collection_layout, ManagedExecutionRuntime,
 };
-use crate::runtime::native_image::{
-    TvmCallableDescriptor, TvmManagedCollectionDescriptor, TvmManagedLayoutDescriptor,
-};
+use crate::runtime::native_image::{TvmManagedCollectionDescriptor, TvmManagedLayoutDescriptor};
 use crate::terlan_hir::resolve_syntax_module_output;
 use crate::terlan_syntax::parse_module_as_syntax_output;
 use crate::terlan_typeck::{
     lower_syntax_module_output_to_core, CoreExpr, CoreImport, CoreImportKind, CoreModule,
 };
 
-use super::{emit_native_application_object, NativeModule, NativeType};
+use super::{emit_native_application_object, NativeModule};
 
 type NativeDispatch = unsafe extern "C" fn(
     *mut c_void,
@@ -142,28 +140,7 @@ fn one_image_executes_closed_application_features_and_rejects_unbounded_peers() 
             .unwrap_or_else(|| panic!("missing {name}"))
             .export_id
     };
-    let callables = modules
-        .iter()
-        .flat_map(|module| &module.functions)
-        .filter(|function| !function.callable_captures.is_empty())
-        .map(|function| TvmCallableDescriptor {
-            id: function.export_id,
-            parameters: function
-                .params
-                .iter()
-                .skip(function.callable_captures.len())
-                .copied()
-                .map(NativeType::boundary_type)
-                .collect(),
-            results: vec![function.return_type.boundary_type()],
-            captures: function
-                .callable_captures
-                .iter()
-                .copied()
-                .map(NativeType::boundary_type)
-                .collect(),
-        })
-        .collect::<Vec<_>>();
+    let callables = crate::compiler::native_ir::native_callable_descriptors(&modules);
     let layouts = modules
         .iter()
         .flat_map(|module| module.managed_layouts.iter().cloned())

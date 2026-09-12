@@ -1,0 +1,90 @@
+module release_promotion.ProofInputsTest.
+
+import release_promotion.{OwnerStorage, ProofInputs}.
+import std.core.Result.{Err, Ok}.
+import std.io.{Console, Directory, File}.
+
+write(root: String, path: String, contents: String): Bool ->
+    case File.write_text(OwnerStorage.child(root, path), contents) {
+        Ok(_written) -> true;
+        _ -> false
+    }.
+
+invalid(root: String, values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let true <- write(root, "proofs/lean/ci/a.json", value) else {
+                _ -> false
+            };
+            case ProofInputs.replay(root) {
+                Err(_reason) -> invalid(root, rest);
+                _ -> false
+            }
+    }.
+
+run(root: String): Bool ->
+    let {
+        Ok(_proofs) <- Directory.create_all(OwnerStorage.child(root, "proofs/lean/ci"));
+        Ok(_generated) <- Directory.create_all(OwnerStorage.child(root, "target/generated"));
+        true <-
+            write(
+                root,
+                "proofs/lean/ci/lean-proof-artifacts.tsv",
+                "header\nproofs/lean/a.lean\tcurrent\tCoreIR\tgrammar.ebnf\t0\tnone\tdigest\tproofs/lean/ci/a.json\tnone\n",
+            );
+        true <- write(root, "proofs/lean/a.lean", "theorem source");
+        true <- write(root, "grammar.ebnf", "syntax");
+        true <- write(root, "target/generated/dependency", "first");
+        true <-
+            write(
+                root,
+                "proofs/lean/ci/a.json",
+                "{\"manifest_fingerprints\":{\"grammar.ebnf\":\"digest\"},\"dependency_files\":[\"target/generated/dependency\",\"grammar.ebnf\"]}",
+            );
+        Ok(paths) <- ProofInputs.replay(root);
+        true <-
+            paths == [
+    "grammar.ebnf",
+    "proofs/lean/a.lean",
+    "proofs/lean/ci/a.json",
+    "proofs/lean/ci/lean-proof-artifacts.tsv",
+    "target/generated/dependency",
+];
+        Ok(before) <- OwnerStorage.files(root, paths);
+        true <- write(root, "target/generated/dependency", "changed");
+        Ok(changed_inputs) <- OwnerStorage.files(root, paths);
+        true <- OwnerStorage.digest(before) != OwnerStorage.digest(changed_inputs)
+    } else {
+        _ -> false
+    };
+    invalid(
+        root,
+        [
+            "{\"manifest_fingerprints\":{}}",
+            "{\"manifest_fingerprints\":{},\"dependency_files\":{}}",
+            "{\"manifest_fingerprints\":{},\"dependency_files\":[123]}",
+            "{\"manifest_fingerprints\":{},\"dependency_files\":[\"../escape\"]}",
+            "{\"manifest_fingerprints\":{},\"dependency_files\":[\"/absolute\"]}",
+            "{\"manifest_fingerprints\":{},\"dependency_files\":[\"\"]}",
+        ],
+    ).
+
+pub self_test(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-proof-inputs-") else {
+        _ -> false
+    };
+    (let valid = run(root);
+let cleaned = Directory.remove_all(root);
+let _printed =
+    Console.println(
+        if {
+            valid -> "[proof inputs test] passed";
+            true -> "[proof inputs test] failed"
+        },
+    );
+valid
+    and case cleaned {
+    Ok(_removed) -> true;
+    _ -> false
+}).

@@ -21,6 +21,11 @@ pub(super) fn eager_argument_yield(
         let mut resumed = args.to_vec();
         let mut prefix = Vec::with_capacity(yield_index + region.prefix.len());
         for (index, earlier) in args[..yield_index].iter().enumerate() {
+            // In particular, preserve tagged-tuple discriminants across a
+            // direct runtime transition; a literal needs no capture slot.
+            if matches!(earlier, CoreExpr::Atom(_)) {
+                continue;
+            }
             let name = format!("$native_eager_arg_{depth}_{index}");
             prefix.push(CoreLetBinding {
                 pattern: CorePattern::Var(name.clone()),

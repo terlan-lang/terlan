@@ -1,7 +1,7 @@
 module=std.js.Dom.LockOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+syntax_contract_fingerprint=fnv1a64:eadfc8d7c5c2271b
 source_hash=7409340109124554211
 interface_hash=5805546638876173377
 interface_doc_hash=5805546638876173377

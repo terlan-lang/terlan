@@ -165,7 +165,7 @@ fn capability_worker_rejects_undeclared_capability_before_parking() {
                 scheduler: &mut scheduler,
             },
             crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
-                owner: owner,
+                owner,
                 context: request_context("filesystem"),
                 operation: ("std.fs.read").into(),
                 arguments: Vec::new(),
@@ -209,7 +209,7 @@ fn capability_worker_restart_generation_attributes_reused_request_ids() {
                     scheduler: &mut scheduler,
                 },
                 crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
-                    owner: owner,
+                    owner,
                     context: request_context("example"),
                     operation: ("std.example.call").into(),
                     arguments: Vec::new(),
@@ -323,7 +323,7 @@ fn capability_worker_reply_completes_live_vm_deadline() {
                 scheduler: &mut scheduler,
             },
             crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
-                owner: owner,
+                owner,
                 context: context.clone(),
                 operation: ("std.example.call").into(),
                 arguments: vec![NativeBoundaryTerm::Text("input".to_string())],
@@ -391,7 +391,7 @@ fn capability_worker_cancellation_wins_over_late_reply() {
                 scheduler: &mut scheduler,
             },
             crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
-                owner: owner,
+                owner,
                 context: request_context("example"),
                 operation: ("std.example.call").into(),
                 arguments: Vec::new(),
@@ -452,7 +452,7 @@ fn capability_worker_timeout_wakes_owner_and_delivers_cancellation() {
                 scheduler: &mut scheduler,
             },
             crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
-                owner: owner,
+                owner,
                 context: request_context("example"),
                 operation: ("std.example.slow").into(),
                 arguments: Vec::new(),
@@ -501,7 +501,7 @@ fn capability_worker_eof_cancels_pending_vm_requests() {
                 scheduler: &mut scheduler,
             },
             crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
-                owner: owner,
+                owner,
                 context: request_context("example"),
                 operation: ("std.example.call").into(),
                 arguments: Vec::new(),
@@ -550,7 +550,7 @@ fn capability_worker_protocol_failure_closes_transport_and_cancels_pending() {
                 scheduler: &mut scheduler,
             },
             crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
-                owner: owner,
+                owner,
                 context: request_context("example"),
                 operation: ("std.example.call").into(),
                 arguments: Vec::new(),
@@ -642,7 +642,7 @@ fn capability_worker_process_transport_runs_full_cycle() {
                 scheduler: &mut scheduler,
             },
             crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
-                owner: owner,
+                owner,
                 context: request_context("postgres"),
                 operation: ("std.db.postgres.string").into(),
                 arguments: vec![
@@ -764,7 +764,7 @@ fn capability_worker_sandbox_closes_inherited_descriptor() {
                 scheduler: &mut scheduler,
             },
             crate::runtime::vm::capability_worker::VmCapabilityWorkerCall {
-                owner: owner,
+                owner,
                 context: request_context("postgres"),
                 operation: ("std.db.postgres.string").into(),
                 arguments: vec![

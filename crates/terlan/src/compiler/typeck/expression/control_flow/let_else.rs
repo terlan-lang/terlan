@@ -50,6 +50,7 @@ fn check_binding_exhaustiveness(
         expr.patterns.iter().zip(binding_types).enumerate()
     {
         let success_clause = crate::terlan_syntax::SyntaxClauseOutput {
+            parameter_types: Vec::new(),
             patterns: vec![success_pattern.clone()],
             guard: expr.let_guards.get(index).cloned().flatten(),
             body: Box::new(expr.children[expr.patterns.len()].clone()),

@@ -27,6 +27,14 @@ fn lean_proof_pr_accepts_complete_owner_map() {
     let report = fs::read_to_string(summary.report_path).expect("read report");
     assert!(report.contains("\"owner_bucket\": \"cli\""));
     assert!(report.contains("Core preservation remains unresolved"));
+    assert!(report.contains("terlan.lean-proof-pr.v1"));
+    let staged = root.join("target/quality/preparation/policy.work/report.json");
+    run_to(&root, &staged).unwrap();
+    assert_eq!(fs::read_to_string(&staged).unwrap(), report);
+    write_fixture(&root, owners_fixture().replace("\tcli\t", "\tinvalid\t"));
+    assert!(run_to(&root, &staged).is_err());
+    assert_eq!(fs::read_to_string(root.join(REPORT_PATH)).unwrap(), report);
+    assert_eq!(fs::read_to_string(&staged).unwrap(), report);
     fs::remove_dir_all(root).expect("remove fixture");
 }
 

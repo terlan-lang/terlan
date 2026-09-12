@@ -74,7 +74,7 @@ run_config(): RunConfig ->
         write = environment_flag("TERLAN_RELEASE_VERSION_WRITE"),
         report = environment_or(
             "TERLAN_RELEASE_VERSION_REPORT",
-            child(root, "build/artifacts/release-version-channel-report.json"),
+            child(root, "target/quality/proof-artifacts/release-version-channel-report.json"),
         ),
     ).
 

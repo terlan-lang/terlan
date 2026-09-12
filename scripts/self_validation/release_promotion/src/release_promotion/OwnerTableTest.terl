@@ -1,0 +1,207 @@
+/**
+ * Mixed JSON/table output admission and recovery use real bounded producers.
+ */
+module release_promotion.OwnerTableTest.
+
+import release_promotion.{OwnerArtifacts, OwnerStorage, PreparationOwner}.
+import std.core.Result.{Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+import std.io.{Console, Directory, File}.
+import std.system.Process.{environment_entry}.
+
+import type release_promotion.OwnerArtifacts.Artifact.
+import type release_promotion.PreparationOwner.Owner.
+
+table(header: String): Artifact ->
+    OwnerArtifacts.declare_tsv("target/quality/baseline.tsv", "TABLE_OUTPUT", header).
+
+selected(mode: String): Owner ->
+    PreparationOwner.with_additional_outputs(
+        PreparationOwner.owner(
+            "table",
+            "candidate",
+            "linux-x64",
+            "fixture",
+            "fixture-v1",
+            ["producer.sh"],
+            [],
+            "/bin/sh",
+            ["producer.sh", mode],
+            [environment_entry("PATH", "/usr/bin:/bin")],
+            "target/quality/report.json",
+            "JSON_OUTPUT",
+            "table-fixture.v1",
+            "completed",
+            30000,
+        ),
+        [table("name\tstatus")],
+    ).
+
+write(root: String, path: String, source: String): Bool ->
+    case File.write_text(OwnerStorage.child(root, path), source) {
+        Ok(_written) -> true;
+        _ -> false
+    }.
+
+declarations(): Bool ->
+    let json = OwnerArtifacts.declare_artifact("target/quality/report.json", "OUTPUT", "fixture.v1");
+    let expected =
+        Json.array()
+            .push(
+                Json.object()
+                    .put("path", Json.string("target/quality/report.json"))
+                    .put("variable", Json.string("OUTPUT"))
+                    .put("schema", Json.string("fixture.v1")),
+            );
+    OwnerStorage.digest(OwnerArtifacts.describe([json])) == OwnerStorage.digest(expected)
+        and OwnerArtifacts.valid([table("name\tstatus")], [])
+        and not OwnerArtifacts.valid([table("")], [])
+        and not OwnerArtifacts.valid([table("name")], [])
+        and not OwnerArtifacts.valid([table("name\tname")], [])
+        and not OwnerArtifacts.valid([table("name\t")], [])
+        and not OwnerArtifacts.valid([table("name\t status")], [])
+        and not OwnerArtifacts.valid([table("name\tstatus\n")], [])
+        and not OwnerArtifacts.valid([table("name\tstatus\r")], [])
+        and OwnerStorage.digest(OwnerArtifacts.describe([table("name\tstatus")])) != OwnerStorage.digest(OwnerArtifacts.describe([table("name\tresult")])).
+
+accepts(root: String, source: String, expected: Bool): Bool ->
+    write(root, "target/quality/baseline.tsv", source)
+        and OwnerArtifacts.schemas(root, "", [table("name\tstatus")]) == expected.
+
+formats(root: String): Bool ->
+    accepts(root, "name\tstatus\nproof\tpass\n", true)
+        and accepts(root, "name\tstatus\r\nproof\tpass\r\n", true)
+        and accepts(root, "name\tstatus\nproof\tpass", true)
+        and accepts(root, "name\tstatus\n", false)
+        and accepts(root, "name\twrong\nproof\tpass\n", false)
+        and accepts(root, "name\tstatus\nproof\n", false)
+        and accepts(root, "name\tstatus\nproof\tpass\textra\n", false)
+        and accepts(root, "name\tstatus\nproof\tpass\n\n", false)
+        and accepts(root, "name\tstatus\nproof\tpass\r", false)
+        and accepts(root, "{\"schema\":\"fixture.v1\"}", false).
+
+optional_rows(root: String, source: String, expected: Bool): Bool ->
+    let optional =
+        OwnerArtifacts.declare_optional_rows_tsv(
+            "target/quality/baseline.tsv",
+            "TABLE_OUTPUT",
+            "name\tstatus",
+        );
+    write(root, "target/quality/baseline.tsv", source)
+        and OwnerArtifacts.schemas(root, "", [optional]) == expected.
+
+optional_formats(root: String): Bool ->
+    let optional =
+        OwnerArtifacts.declare_optional_rows_tsv(
+            "target/quality/baseline.tsv",
+            "TABLE_OUTPUT",
+            "name\tstatus",
+        );
+    OwnerStorage.digest(OwnerArtifacts.describe([optional])) != OwnerStorage.digest(OwnerArtifacts.describe([table("name\tstatus")]))
+        and optional_rows(root, "name\tstatus\n", true)
+        and optional_rows(root, "name\tstatus\r\n", true)
+        and optional_rows(root, "name\tstatus\nproof\tpass\n", true)
+        and optional_rows(root, "", false)
+        and optional_rows(root, "name\tstatus", false)
+        and optional_rows(root, "name\twrong\n", false)
+        and optional_rows(root, "name\tstatus\n\n", false)
+        and optional_rows(root, "name\tstatus\nproof\n", false).
+
+double(value: String, count: Int): String ->
+    if {
+        count == 0 -> value;
+        true -> double(String.append(value, value), count - 1)
+    }.
+
+columns(count: Int, values: List[String]): String ->
+    if {
+        count == 0 -> String.join(values, "\t");
+        true -> columns(count - 1, [Int.to_string(count) | values])
+    }.
+
+bounds(root: String): Bool ->
+    let header = "name\tstatus\n";
+    let rows = double("p\tok\n", 16);
+    let row = String.append(double("x", 15), String.append("\t", double("x", 15).utf8_slice(1, 32767)));
+    OwnerArtifacts.valid([table(columns(64, []))], [])
+        and not OwnerArtifacts.valid([table(columns(65, []))], [])
+        and not OwnerArtifacts.valid([table(String.append(double("x", 12), "\tstatus"))], [])
+        and accepts(root, String.append(header, rows), true)
+        and accepts(root, String.concat([header, rows, "p\tok\n"]), false)
+        and accepts(root, String.append(header, row), true)
+        and accepts(root, String.concat([header, row, "x"]), false)
+        and accepts(root, String.concat([header, double("x", 20)]), false).
+
+exercise(root: String): Bool ->
+    let first = PreparationOwner.run_locked(root, selected("pass"));
+    let warm = PreparationOwner.run_locked(root, selected("pass"));
+    let {
+        true <- first.valid and not first.reused and warm.valid and warm.reused;
+        Ok(prior) <- OwnerStorage.files(root, PreparationOwner.output_paths(selected("pass")));
+        Ok("run\n") <- File.read_text(OwnerStorage.child(root, "calls"))
+    } else {
+        _ -> false
+    };
+    (let failed = PreparationOwner.run_locked(root, selected("wrong"));
+(let {
+    false <- failed.valid;
+    Ok(retained) <- OwnerStorage.files(root, PreparationOwner.output_paths(selected("pass")));
+    true <- OwnerStorage.digest(prior) == OwnerStorage.digest(retained)
+} else {
+    _ -> false
+};
+(let resumed = PreparationOwner.run_locked(root, selected("pass"));
+(let {
+    true <- resumed.valid and not resumed.reused;
+    true <- write(root, "target/quality/baseline.tsv", "name\tstatus\ncorrupt\n")
+} else {
+    _ -> false
+};
+(let repaired = PreparationOwner.run_locked(root, selected("pass"));
+(let {
+    Ok(final_outputs) <- OwnerStorage.files(root, PreparationOwner.output_paths(selected("pass")));
+    Ok("run\nrun\nrun\nrun\n") <- File.read_text(OwnerStorage.child(root, "calls"))
+} else {
+    _ -> false
+};
+repaired.valid
+    and not repaired.reused
+    and OwnerStorage.digest(prior) == OwnerStorage.digest(final_outputs))))))).
+
+run(root: String): Bool ->
+    let Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, "target/quality")) else {
+        _ -> false
+    };
+    declarations()
+        and formats(root)
+        and optional_formats(root)
+        and bounds(root)
+        and write(
+    root,
+    "producer.sh",
+    "set -eu\necho run >> calls\nprintf '{\"schema\":\"table-fixture.v1\"}\\n' > \"$JSON_OUTPUT\"\ncase $1 in wrong) printf 'name\\tstatus\\nwrong\\n' > \"$TABLE_OUTPUT\";; *) printf 'name\\tstatus\\nproof\\tpass\\n' > \"$TABLE_OUTPUT\";; esac\necho completed\n",
+)
+        and exercise(root).
+
+pub self_test(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-owner-table-") else {
+        _ -> false
+    };
+    (let valid = run(root);
+let cleaned = Directory.remove_all(root);
+let _printed =
+    Console.println(
+        String.append(
+            "[owner table test] ",
+            if {
+                valid -> "passed";
+                true -> "failed"
+            },
+        ),
+    );
+valid
+    and case cleaned {
+    Ok(_removed) -> true;
+    _ -> false
+}).

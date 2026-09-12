@@ -14,7 +14,7 @@ use crate::terlan_syntax::{parse_module, parse_terlan_expr};
 /// - Parses one expression through the recursive-descent parser and
 ///   inspects the binary operator identity preserved for syntax-output and
 ///   backend lowering.
-
+///
 /// Verifies that `rem` keeps a distinct parse tree operator instead of collapsing
 /// into `div`.
 ///
@@ -248,7 +248,7 @@ pub(super) fn formal_list_comprehension_rejects_where_filter_spelling() {
 /// Transformation:
 /// - Parses each expression through the recursive-descent parser and
 ///   inspects the collection-specific parse tree shape.
-
+///
 /// Verifies collection expressions accepted by the A0.24 syntax baseline.
 ///
 /// Inputs:
@@ -298,7 +298,7 @@ pub(super) fn formal_collection_exprs_preserve_ast_shapes() {
 ///
 /// Transformation:
 /// - Keeps backend Vm binary syntax out of canonical Terlan source.
-
+///
 /// Verifies Vm binary segment syntax is rejected by the syntax parser.
 ///
 /// Inputs:
@@ -328,7 +328,7 @@ pub(super) fn formal_binary_segments_are_rejected_as_erlang_source_syntax() {
 /// Transformation:
 /// - Parses the removed VM-shaped syntax through the normal expression
 ///   parser and confirms it does not produce a Terlan expression node.
-
+///
 /// Verifies process-message receive syntax is not canonical Terlan source.
 ///
 /// Inputs:
@@ -428,7 +428,7 @@ pub(super) fn formal_try_expr_parses_after_clause() {
 /// Transformation:
 /// - Parses a module through the recursive-descent parser, locates the
 ///   function bodies, and inspects the keyword-expression clause guards.
-
+///
 /// Verifies guarded clauses in keyword expressions.
 ///
 /// Inputs:
@@ -533,7 +533,7 @@ pub(super) fn formal_keyword_exprs_reject_when_clause_guards() {
 /// Transformation:
 /// - Parses one expression through the recursive-descent parser and checks
 ///   the exact nested keyword-expression parse tree shape.
-
+///
 /// Verifies quote and unquote participate in formal keyword-expression
 /// coverage.
 ///
@@ -568,7 +568,7 @@ pub(super) fn formal_quote_unquote_exprs_parse_as_keyword_expressions() {
 /// Transformation:
 /// - Parses the canonical method-call postfix syntax and validates the parse tree
 ///   shape used by later receiver-method resolution.
-
+///
 /// Verifies receiver method-call suffixes parse before field suffixes.
 ///
 /// Inputs:

@@ -1290,7 +1290,7 @@ impact_paths(root: String): List[String] ->
     [
         root_path(root, "proofs/lean/feature_binding/lean_feature_slice_index.json"),
         root_path(root, "proofs/lean/feature_binding/lean-proof-accepted-snapshot.tsv"),
-        root_path(root, "build/artifacts/lean-proof-binding-diff.json"),
+        root_path(root, "target/quality/proof-artifacts/lean-proof-binding-diff.json"),
     ].
 
 review_paths(root: String): List[String] ->
@@ -1299,8 +1299,8 @@ review_paths(root: String): List[String] ->
         root_path(root, "proofs/lean/feature_binding/lean-proof-accepted-snapshot.tsv"),
         root_path(root, "proofs/lean/feature_binding/lean-proof-block-exceptions.json"),
         root_path(root, "docs/runtime/lean-proof-block-policy.toml"),
-        root_path(root, "build/artifacts/lean-proof-binding-diff.json"),
-        root_path(root, "build/artifacts/lean-proof-change-impact.json"),
+        root_path(root, "target/quality/proof-artifacts/lean-proof-binding-diff.json"),
+        root_path(root, "target/quality/proof-artifacts/lean-proof-change-impact.json"),
     ].
 
 snapshot_paths(root: String): List[String] ->
@@ -1309,10 +1309,10 @@ snapshot_paths(root: String): List[String] ->
         root_path(root, "proofs/lean/feature_binding/lean-proof-accepted-snapshot.tsv"),
         root_path(root, "proofs/lean/feature_binding/lean-proof-block-exceptions.json"),
         root_path(root, "docs/runtime/lean-proof-block-policy.toml"),
-        root_path(root, "build/artifacts/lean-proof-coverage-matrix.tsv"),
-        root_path(root, "build/artifacts/lean-proof-binding-diff.json"),
-        root_path(root, "build/artifacts/lean-proof-change-impact.json"),
-        root_path(root, "build/artifacts/lean-proof-binding-review.json"),
+        root_path(root, "target/quality/proof-artifacts/lean-proof-coverage-matrix.tsv"),
+        root_path(root, "target/quality/proof-artifacts/lean-proof-binding-diff.json"),
+        root_path(root, "target/quality/proof-artifacts/lean-proof-change-impact.json"),
+        root_path(root, "target/quality/proof-artifacts/lean-proof-binding-review.json"),
     ].
 
 inputs_from_task_files(task: String, files: List[TextFile]): Option[Inputs] ->
@@ -1387,7 +1387,7 @@ inputs_from_task_files(task: String, files: List[TextFile]): Option[Inputs] ->
 write_json(root: String, relative: String, value: Json): Bool ->
     let {
         Some(source) <- render(value);
-        Ok(Unit) <- create_all(root_path(root, "build/artifacts"));
+        Ok(Unit) <- create_all(root_path(root, "target/quality/proof-artifacts"));
         Ok(Unit) <- write_text(root_path(root, relative), source)
     } else {
         _ -> false
@@ -1432,7 +1432,11 @@ diff_counts(diff: DiffData): String ->
 
 run_diff(root: String, diff: DiffData): Bool ->
     if {
-        write_json(root, "build/artifacts/lean-proof-binding-diff.json", diff_json(diff)) -> let _printed = println(String.append("[lean-proof-snapshot] diff written: ", diff_counts(diff)));
+        write_json(
+            root,
+            "target/quality/proof-artifacts/lean-proof-binding-diff.json",
+            diff_json(diff),
+        ) -> let _printed = println(String.append("[lean-proof-snapshot] diff written: ", diff_counts(diff)));
         true;
         true -> fail("diff artifact could not be written")
     }.
@@ -1519,7 +1523,7 @@ run_impact(root: String, inputs: Inputs, diff: DiffData): Bool ->
     let impact_value = impact(diff);
     if {
         not json_equal_source(inputs.observed_diff, diff_value) -> fail("diff artifact is missing or stale");
-        not write_json(root, "build/artifacts/lean-proof-change-impact.json", impact_value.value) -> fail("impact artifact could not be written");
+        not write_json(root, "target/quality/proof-artifacts/lean-proof-change-impact.json", impact_value.value) -> fail("impact artifact could not be written");
         true -> print_impact(impact_value, diff)
     }.
 
@@ -1546,7 +1550,7 @@ run_review(root: String, today: String, inputs: Inputs, diff: DiffData): Bool ->
     if {
         not json_equal_source(inputs.observed_diff, diff_json(diff)) -> fail("diff artifact is missing or stale");
         not json_equal_source(inputs.observed_impact, impact_value.value) -> fail("impact artifact is missing or stale");
-        not write_json(root, "build/artifacts/lean-proof-binding-review.json", review) -> fail("review artifact could not be written");
+        not write_json(root, "target/quality/proof-artifacts/lean-proof-binding-review.json", review) -> fail("review artifact could not be written");
         true -> print_review(review, impact_value.changed)
     }.
 
@@ -1617,7 +1621,7 @@ persist_snapshot(
     review: Json,
     policy: Policy,
 ): Bool ->
-    let relative = String.append("build/artifacts/lean-proof-snapshots/", today);
+    let relative = String.append("target/quality/proof-artifacts/lean-proof-snapshots/", today);
     let canonical_index =
         Json.object()
             .put("records", records_json(diff.current))

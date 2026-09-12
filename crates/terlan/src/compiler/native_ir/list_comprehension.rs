@@ -195,6 +195,7 @@ fn lower_expr(
                         target_type: output_type.clone(),
                     },
                     CoreExpr::Lam {
+                        parameter_types: vec![Some(element.clone())],
                         params: vec![CorePattern::Var(callback_parameter)],
                         body: Box::new(callback_body),
                     },

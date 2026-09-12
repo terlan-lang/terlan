@@ -259,15 +259,20 @@ pub(in crate::compiler::native_ir) fn refresh_recursive_call_contract(
     if let NativeExpr::CallThen {
         function: target,
         resumes,
+        completion_continuation_id,
         values,
         ..
     } = expr
     {
-        // A tail-recursive component contributes no caller-owned frame, so a
-        // deeper component yield can retain its existing identity. A non-tail
-        // recursive call requires a real wrapper; silently forwarding it
-        // would discard an unbounded chain of caller frames.
-        if *target == function && values.is_empty() {
+        // Preserve forwarding only when the existing contract proves it.
+        // Non-tail recursive calls retain their caller-owned completion frame,
+        // including zero-capture frames with a nontrivial result consumer.
+        let forwards = values.is_empty()
+            && !resumes.is_empty()
+            && resumes
+                .iter()
+                .all(|resume| resume.continuation_id == resume.callee_continuation_id);
+        if *target == function {
             for (callee_continuation_id, callee_capture_count) in entries {
                 if resumes
                     .iter()
@@ -278,8 +283,12 @@ pub(in crate::compiler::native_ir) fn refresh_recursive_call_contract(
                 resumes.push(crate::compiler::native_ir::NativeCallResume {
                     callee_continuation_id: *callee_continuation_id,
                     callee_capture_count: *callee_capture_count,
-                    continuation_id: *callee_continuation_id,
-                    caller_value_start: values.len(),
+                    continuation_id: if forwards {
+                        *callee_continuation_id
+                    } else {
+                        *completion_continuation_id
+                    },
+                    caller_value_start: 0,
                 });
             }
         }

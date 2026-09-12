@@ -606,17 +606,43 @@ fn managed_value_equality_supports_immediate_zero_field_union_variants() {
         .expect("Some value");
     let operation = encode_managed_value_equal_operation(semantic);
 
+    let none = i64::from(layouts.atom_index("none").expect("None atom").get());
+    let none_layout = layouts
+        .layouts(semantic)
+        .iter()
+        .find(|layout| layout.variant_name() == Some("None"))
+        .cloned()
+        .expect("None layout");
+    let allocated_none = heap
+        .allocate_aggregate(none_layout, &[])
+        .expect("allocated None");
+
     assert_eq!(
-        execute_managed_operation(&mut heap, &layouts, &operation, &[20, 20]),
+        execute_managed_operation(&mut heap, &layouts, &operation, &[none, none]),
         Ok(1)
     );
+    for operands in [[none, word(allocated_none)], [word(allocated_none), none]] {
+        assert_eq!(
+            execute_managed_operation(&mut heap, &layouts, &operation, &operands),
+            Ok(1)
+        );
+    }
     assert_eq!(
         execute_managed_operation(&mut heap, &layouts, &operation, &[20, 24]),
-        Ok(0)
+        Err(ManagedMemoryError::UnknownAtom)
     );
     assert_eq!(
-        execute_managed_operation(&mut heap, &layouts, &operation, &[20, word(some)]),
+        execute_managed_operation(&mut heap, &layouts, &operation, &[none, word(some)]),
         Ok(0)
+    );
+    let payload_variant = i64::from(layouts.atom_index("some").expect("Some atom").get());
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &operation, &[payload_variant, none]),
+        Err(ManagedMemoryError::ManagedTypeMismatch)
+    );
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &operation, &[none, word(value)]),
+        Err(ManagedMemoryError::ManagedTypeMismatch)
     );
 
     let mut foreign = ActorHeap::new(
@@ -974,7 +1000,8 @@ fn registry() -> ManagedLayoutRegistry {
             encoded_layout: encode_collection_layout(&collection).expect("encode collection"),
         }
     });
-    ManagedLayoutRegistry::from_image(&layouts, &collections, &[]).expect("layout registry")
+    ManagedLayoutRegistry::from_image(&layouts, &collections, &["none".into(), "some".into()])
+        .expect("layout registry")
 }
 
 /// Allocates one request and returns its request/map/string references.

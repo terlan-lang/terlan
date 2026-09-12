@@ -31,3 +31,21 @@ fn exact_angular_ts_dependency_is_managed() {
     assert!(!is_managed_js_dependency(ANGULAR_TS_PACKAGE, "latest"));
     assert!(!is_managed_js_dependency("angular", ANGULAR_TS_VERSION));
 }
+
+#[cfg(unix)]
+#[test]
+fn managed_bundler_closes_stdin_preserves_diagnostics_and_rejects_excess_output() {
+    let output = run_managed_bundler(Command::new("/bin/sh").args([
+        "-c",
+        "if read value; then exit 9; fi; printf bundled; printf diagnostic >&2; exit 7",
+    ]))
+    .expect("bounded completed bundler");
+    assert_eq!(output.status.code(), Some(7));
+    assert_eq!(output.stdout, b"bundled");
+    assert_eq!(output.stderr, b"diagnostic");
+    let error =
+        run_managed_bundler(Command::new("/bin/sh").args(["-c", "head -c 16777217 /dev/zero"]))
+            .expect_err("bundler output must be bounded");
+    assert!(error.contains("output_limit_exceeded"), "{error}");
+    assert!(error.contains("managed browser bundler"), "{error}");
+}

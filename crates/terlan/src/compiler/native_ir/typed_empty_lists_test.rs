@@ -8,6 +8,59 @@ use crate::terlan_typeck::{
 use super::typed_empty_lists::annotate;
 
 #[test]
+fn nested_empty_lists_recover_the_checked_nonempty_witness() {
+    let empty = CoreExpr::List(Vec::new());
+    let value = CoreExpr::List(vec![CoreExpr::Int(7)]);
+    for items in [
+        vec![empty.clone(), value.clone()],
+        vec![value.clone(), empty.clone()],
+        vec![empty.clone(), value, empty],
+    ] {
+        assert_eq!(
+            super::structured_case::core_expr_type(
+                &CoreExpr::List(items),
+                &HashMap::new(),
+                &HashMap::new(),
+            ),
+            Some(CoreType::List(Box::new(CoreType::List(Box::new(
+                CoreType::Int
+            )))))
+        );
+    }
+}
+
+#[test]
+fn nested_list_witness_does_not_hide_unknown_or_incompatible_elements() {
+    let integers = CoreExpr::List(vec![CoreExpr::Int(7)]);
+    let empty = CoreExpr::List(Vec::new());
+    for items in [
+        vec![empty.clone(), CoreExpr::Int(7)],
+        vec![empty.clone(), empty.clone()],
+        vec![integers.clone(), CoreExpr::Var("unknown".to_string())],
+        vec![
+            integers.clone(),
+            CoreExpr::List(vec![CoreExpr::Atom("true".to_string())]),
+        ],
+        vec![
+            integers,
+            CoreExpr::Cast {
+                expr: Box::new(empty),
+                target_type: CoreType::List(Box::new(CoreType::Bool)),
+            },
+        ],
+    ] {
+        assert_eq!(
+            super::structured_case::core_expr_type(
+                &CoreExpr::List(items),
+                &HashMap::new(),
+                &HashMap::new(),
+            ),
+            None
+        );
+    }
+}
+
+#[test]
 fn runtime_tree_matching_empty_filters_inherit_string_list_types() {
     let mut expression = CoreExpr::Intrinsic(CoreIntrinsicCall {
         id: CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileReadTextTreeMatching),

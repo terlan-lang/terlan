@@ -195,7 +195,7 @@ pub impl Show[Int] for Int {\n\
 /// - Parses and resolves the syntax-output module, lowers it through the
 ///   formal CoreIR path, and inspects the typed Core payload attached to the
 ///   caller function body.
-
+///
 /// Verifies mutable receiver calls are explicit effectful CoreIR nodes.
 ///
 /// Inputs:
@@ -413,7 +413,7 @@ pub find_user(id: Int, active: Bool): Result[Option[UserRow], Error] ->\n\
 /// Transformation:
 /// - Exercises producer-side readiness derivation directly without parsing
 ///   source or building a full Core module.
-
+///
 /// Verifies CoreIR proof-readiness precedence remains stable.
 ///
 /// Inputs:
@@ -498,7 +498,7 @@ pub(super) fn syntax_output_lowering_to_core_readiness_precedence_matches_metada
 /// Transformation:
 /// - Exercises module-level readiness derivation without parsing source or
 ///   building a full Core module.
-
+///
 /// Verifies summary-only CoreType payloads contribute proof-model debt.
 ///
 /// Inputs:

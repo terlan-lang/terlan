@@ -160,8 +160,13 @@ impl HigherOrderSpecializer<'_> {
                 callee: Box::new(self.rewrite(callee)?),
                 args: self.rewrite_many(args)?,
             }),
-            CoreExpr::Lam { params, body } => Ok(CoreExpr::Lam {
+            CoreExpr::Lam {
+                params,
+                parameter_types,
+                body,
+            } => Ok(CoreExpr::Lam {
                 params: params.clone(),
+                parameter_types: parameter_types.clone(),
                 body: Box::new(self.rewrite(body)?),
             }),
             CoreExpr::Cast { expr, target_type } => Ok(CoreExpr::Cast {
@@ -303,8 +308,8 @@ impl HigherOrderSpecializer<'_> {
         argument_index: usize,
     ) -> Result<CoreExpr, String> {
         match argument {
-            CoreExpr::Lam { params, body } if params.len() == expected_arity => {
-                Ok(CoreExpr::Lam { params, body })
+            CoreExpr::Lam { params, parameter_types, body } if params.len() == expected_arity => {
+                Ok(CoreExpr::Lam { params, parameter_types, body })
             }
             CoreExpr::RemoteFunRef {
                 module,
@@ -328,6 +333,7 @@ impl HigherOrderSpecializer<'_> {
                     })
                     .collect::<Vec<_>>();
                 Ok(CoreExpr::Lam {
+                    parameter_types: Vec::new(),
                     params: params
                         .iter()
                         .cloned()

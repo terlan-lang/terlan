@@ -89,7 +89,7 @@
       ],
       "runtime": [
         "cargo", "test", "--locked", "-p", "terlan", "--lib",
-        "runtime::native::postgres::postgres_test::config_builders_set_pool_limits_and_timeouts",
+        "runtime::native::postgres_test::config_builders_set_pool_limits_and_timeouts",
         "--", "--exact"
       ]
     },

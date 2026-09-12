@@ -233,7 +233,7 @@ pub(super) fn rejects_path_style_wildcard_imports() {
 /// Transformation:
 /// - Parses source through `parse_module` and inspects the
 ///   `Decl::AnnotationSchema` payload directly.
-
+///
 /// Verifies annotation schema declarations parse as structured parse tree.
 ///
 /// Inputs:
@@ -353,7 +353,7 @@ pub(super) fn parses_annotation_schema_declarations() {
 /// Transformation:
 /// - Parses the module through the recursive-descent parser and inspects
 ///   selected preserved `TypeExpr` text and opaque/public flags.
-
+///
 /// Verifies the A0.27 type-family syntax inventory.
 ///
 /// Inputs:
@@ -442,7 +442,7 @@ pub(super) fn formal_type_family_inventory_preserves_type_expr_text() {
 /// Transformation:
 /// - Parses one malformed module and asserts the stable runtime-token
 ///   diagnostic remains attached to type parsing.
-
+///
 /// Verifies type-position diagnostics for runtime expression syntax.
 ///
 /// Inputs:
@@ -492,7 +492,7 @@ pub(super) fn formal_type_family_rejects_runtime_expression_tokens() {
 /// - Parses the module through the recursive-descent parser and inspects
 ///   the structured receiver-method parse tree used by later syntax output,
 ///   typechecking, and backend lowering.
-
+///
 /// Verifies the A0.28 method receiver syntax baseline.
 ///
 /// Inputs:
@@ -557,7 +557,7 @@ pub(super) fn formal_method_receiver_inventory_preserves_validated_methods() {
 /// Transformation:
 /// - Parses the contextual `mut` marker before the receiver binding and
 ///   stores it on the receiver parameter for later semantic validation.
-
+///
 /// Verifies mutable receiver syntax is parsed without enabling semantics.
 ///
 /// Inputs:
@@ -607,7 +607,7 @@ pub(super) fn formal_method_receiver_inventory_preserves_mutable_receiver_marker
 /// Transformation:
 /// - Parses each module independently and compares the diagnostic message
 ///   against the receiver/method grammar rule that was violated.
-
+///
 /// Verifies method receiver/name diagnostics required by A0.28.
 ///
 /// Inputs:
@@ -682,7 +682,7 @@ pub(super) fn formal_method_receiver_diagnostics_reject_invalid_method_heads() {
 /// Transformation:
 /// - Parses each source module and confirms annotation subjects are stopped
 ///   before declaration routing or backend phases can observe them.
-
+///
 /// Verifies unsupported annotation subjects fail with a stable diagnostic.
 ///
 /// Inputs:
@@ -747,7 +747,7 @@ pub(super) fn formal_annotation_subjects_are_rejected_before_declaration_routing
 /// Transformation:
 /// - Exercises the ambiguous lower-identifier case that is intentionally
 ///   left to declaration parsing until lexer line-boundary data exists.
-
+///
 /// Verifies declaration-leading annotations still support lower-case
 /// functions despite the subject rejection pass.
 ///

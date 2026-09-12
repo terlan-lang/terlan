@@ -1,6 +1,9 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
+use std::time::Duration;
+
+use crate::runtime::native_boundary::dispatch::capture_optional_tool_command;
 
 use crate::commands::artifacts::collect_syntax_asset_imports;
 use crate::commands::emit_js::target_contract::{
@@ -647,13 +650,14 @@ fn validate_release_js_module(
 /// - Uses Node only as a runtime syntax smoke check. Oxc validation remains the
 ///   mandatory correctness gate, so missing Node does not make builds fail.
 fn run_js_runtime_smoke(artifact_path: &Path) -> Result<String, String> {
-    match Command::new("node")
-        .arg("--check")
-        .arg(artifact_path)
-        .output()
-    {
-        Ok(output) if output.status.success() => Ok("passed".to_string()),
-        Ok(output) => {
+    match capture_optional_tool_command(
+        Command::new("node").arg("--check").arg(artifact_path),
+        "Node syntax check",
+        Duration::from_secs(30),
+        1024 * 1024,
+    ) {
+        Ok(Some(output)) if output.status.success() => Ok("passed".to_string()),
+        Ok(Some(output)) => {
             let stderr = String::from_utf8_lossy(&output.stderr);
             Err(format!(
                 "error[js_validate_runtime]: JavaScript runtime smoke failed for {}: {}",
@@ -661,9 +665,7 @@ fn run_js_runtime_smoke(artifact_path: &Path) -> Result<String, String> {
                 stderr.trim()
             ))
         }
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-            Ok("skipped:node_unavailable".to_string())
-        }
+        Ok(None) => Ok("skipped:node_unavailable".to_string()),
         Err(err) => Err(format!(
             "error[js_validate_runtime]: cannot run JavaScript runtime smoke for {}: {}",
             artifact_path.display(),
@@ -863,3 +865,7 @@ fn write_js_manifest_and_browser_package(
 fn js_build_root(state: &CliState) -> PathBuf {
     state.out_dir.join("js")
 }
+
+#[cfg(test)]
+#[path = "js_runtime_smoke_test.rs"]
+mod js_runtime_smoke_test;

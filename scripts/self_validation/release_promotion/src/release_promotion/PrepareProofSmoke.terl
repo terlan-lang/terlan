@@ -1,0 +1,166 @@
+/**
+ * Owns the semantic smoke producer and its current-attempt handoff.
+ *
+ * The smoke script keeps its standalone output defaults, while publication
+ * preparation supplies private output paths through the owner environment.
+ */
+module release_promotion.PrepareProofSmoke.
+
+import release_promotion.{OwnerArtifacts, OwnerStorage, PreparationContext, PreparationGraph, PreparationOwner}.
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.io.{Console, Directory, File}.
+import std.system.Process.{environment_entry}.
+
+import type release_promotion.PreparationContext.Context.
+import type release_promotion.PreparationGraph.Summary.
+import type release_promotion.PreparationOwner.Owner.
+import type std.core.Result.
+
+smoke_owner(root: String, quality: String, context: Context): Owner ->
+    PreparationOwner.with_additional_outputs(
+        PreparationOwner.owner(
+            "proof-smoke",
+            context.revision,
+            "x86_64-unknown-linux-gnu",
+            "proof-smoke",
+            context.runtime_tools,
+            context.sources,
+            [quality, "target/quality/proof-artifacts/lean-proof-track.json"],
+            "/bin/sh",
+            [
+                "-c",
+                "set -eu; exec \"$1\" test --incremental scripts/self_validation/LeanProofSmokeTest.terl",
+                "proof-smoke",
+                quality,
+            ],
+            List.concat(context.environment, [environment_entry("TERLAN_LEAN_PROOF_ROOT", root)]),
+            "target/quality/proof-artifacts/lean-proof-smoke.json",
+            "TERLAN_PROOF_SMOKE_OUTPUT",
+            "terlan.lean-proof-smoke.v1",
+            "Lean proof smoke passed:",
+            1800000,
+        ),
+        [
+            OwnerArtifacts.declare_optional_rows_tsv(
+                "target/quality/proof-artifacts/lean-proof-smoke-blockers.tsv",
+                "TERLAN_PROOF_SMOKE_BLOCKERS_OUTPUT",
+                "smoke_id\tblocker\tremediation_plan\treviewed_by",
+            ),
+            OwnerArtifacts.declare_artifact(
+                "target/quality/proof-artifacts/lean-proof-smoke-attempt.json",
+                "TERLAN_PROOF_SMOKE_ATTEMPT_OUTPUT",
+                "terlan.lean-proof-smoke-attempt.v1",
+            ),
+        ],
+    ).
+
+/**
+ * Exercises private outputs, inherited observation and unchanged warm reuse.
+ * The fixture compiler validates its actual environment before emitting reports.
+ */
+pub self_test(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-proof-smoke-owner-") else {
+        _ -> false
+    };
+    (let valid = fixture(root);
+let removed = Directory.remove_all(root);
+let _printed =
+    Console.println(
+        if {
+            valid -> "proof smoke owner rehearsal passed";
+            true -> "proof smoke owner rehearsal failed"
+        },
+    );
+valid
+    and case removed {
+    Ok(_removed) -> true;
+    _ -> false
+}).
+
+fixture(root: String): Bool ->
+    let {
+        Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
+        Ok(_reports) <- Directory.create_all(OwnerStorage.child(root, "target/quality/proof-artifacts"));
+        Ok(_track) <-
+            File.write_text(
+                OwnerStorage.child(root, "target/quality/proof-artifacts/lean-proof-track.json"),
+                "{}",
+            );
+        Ok(_tool) <-
+            File.write_text(
+                OwnerStorage.child(root, "target/tools/quality"),
+                "#!/bin/sh\nset -eu\ntest \"$1\" = test\ntest \"$2\" = --incremental\ntest \"$3\" = scripts/self_validation/LeanProofSmokeTest.terl\ntest -n \"$TERLAN_BUILD_ACTIVITY_LOG\"\ntest -n \"$TERLAN_PROCESS_ACTIVITY_LOG\"\ncommand -v ld >/dev/null\nprintf 'run\\n' >> calls\nprintf '{\"schema\":\"terlan.lean-proof-smoke.v1\"}\\n' > \"$TERLAN_PROOF_SMOKE_OUTPUT\"\nprintf 'smoke_id\\tblocker\\tremediation_plan\\treviewed_by\\n' > \"$TERLAN_PROOF_SMOKE_BLOCKERS_OUTPUT\"\nprintf '{\"schema\":\"terlan.lean-proof-smoke-attempt.v1\"}\\n' > \"$TERLAN_PROOF_SMOKE_ATTEMPT_OUTPUT\"\necho 'Lean proof smoke passed:'\n",
+            );
+        true <- OwnerStorage.command(root, "/bin/chmod", ["+x", "target/tools/quality"])
+    } else {
+        _ -> false
+    };
+    (let context =
+    PreparationContext.from_parts(
+        revision = "fixture-revision",
+        sources = [],
+        environment = [environment_entry("PATH", "/usr/bin:/bin")],
+        runtime_tools = "fixture-tools-v1",
+    );
+let owner = smoke_owner(root, "target/tools/quality", context);
+let nodes = [PreparationGraph.declare_node(owner, [])];
+let cold = PreparationGraph.run_locked(root, "proof-smoke", nodes);
+let warm = PreparationGraph.run_locked(root, "proof-smoke", nodes);
+(let Ok(calls) <- File.read_text(OwnerStorage.child(root, "calls")) else {
+    _ -> false
+};
+cold.valid
+    and cold.completed == 1
+    and cold.reused == 0
+    and warm.valid
+    and warm.completed == 0
+    and warm.reused == 1
+    and calls == "run\n")).
+
+pub prepare(root: String, quality: String): Result[Summary, String] ->
+    let {
+        true <- PreparationContext.tool_path(quality);
+        Ok(context) <-
+            PreparationContext.capture(
+                root,
+                [
+                    "PATH",
+                    "HOME",
+                    "ELAN_HOME",
+                    "CARGO_HOME",
+                    "RUSTUP_HOME",
+                    "RUSTUP_TOOLCHAIN",
+                    "TERLAN_RUST_COVERAGE_CONTEXT",
+                    "TERLAN_RUST_COVERAGE_SCOPE",
+                ],
+            )
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("proof smoke requires the compiler tool and a clean Linux source")
+    };
+    (let owner = smoke_owner(root, quality, context); let result = PreparationGraph.run_locked(root, "proof-smoke", [PreparationGraph.declare_node(owner, [])]); Ok(result)).
+
+pub run_locked(root: String, quality: String): Bool ->
+    let Ok(result) <- prepare(root, quality) else {
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false
+    };
+    (let _printed =
+    Console.println(
+        String.concat(
+            [
+                "[preparation] proof smoke: completed=",
+                Int.to_string(result.completed),
+                " reused=",
+                Int.to_string(result.reused),
+            ],
+        ),
+    );
+if {
+    result.valid -> true;
+    true -> let _error = Console.eprintln(result.message);
+    false
+}).

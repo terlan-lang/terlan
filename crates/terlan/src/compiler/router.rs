@@ -192,7 +192,7 @@ fn apply_group(
         return Err(router_arity("group", 3, args.len()));
     };
     let prefix = string_literal(prefix)?;
-    let CoreExpr::Lam { params, body } = configure else {
+    let CoreExpr::Lam { params, body, .. } = configure else {
         return Err(
             "error[native_ir.http_router]: Router.group requires a static lambda".to_string(),
         );

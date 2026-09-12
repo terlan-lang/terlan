@@ -262,6 +262,8 @@ jobs:
     runs-on: ubuntu-24.04
     if: ${{ github.event_name != 'push' || !startsWith(github.ref_name, 'release-validation/') }}
     timeout-minutes: 120
+    outputs:
+      coverage-artifact-id: ${{ steps.coverage.outputs.artifact-id }}
 
     steps:
       - name: Checkout
@@ -303,12 +305,55 @@ jobs:
       - name: Validate AOT cutover
         run: make release-candidate-check
 
+      - name: Upload completed compiler coverage
+        id: coverage
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: compiler-test-coverage-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            target/quality/rust-test-suite-report.json
+            target/quality/rust-test-suite-report.json.selections.json
+            target/quality/rust-test-suite-report.json.make-coverage.json
+          if-no-files-found: error
+          retention-days: 90
+
       - name: Upload failure evidence
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: compiler-ci-failure-${{ github.run_id }}
-          path: |
-            target/quality
-            build/artifacts
+          path: target/quality
           if-no-files-found: ignore
+
+  attest-compiler-coverage:
+    name: Attest compiler test coverage
+    needs: check
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      # The successful producer's immutable ID survives a signing-only retry.
+      # Never execute downloaded compiler artifacts in this privileged job.
+      - name: Require the completed producer artifact
+        env:
+          COVERAGE_ARTIFACT_ID: ${{ needs.check.outputs.coverage-artifact-id }}
+        run: '[[ "$COVERAGE_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]'
+
+      - name: Download completed compiler coverage
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: ${{ needs.check.outputs.coverage-artifact-id }}
+          path: coverage
+          merge-multiple: true
+
+      - name: Attest completed compiler records
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-path: |
+            coverage/rust-test-suite-report.json
+            coverage/rust-test-suite-report.json.selections.json
+            coverage/rust-test-suite-report.json.make-coverage.json

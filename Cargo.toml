@@ -3,7 +3,9 @@ resolver = "2"
 members = [
   "crates/terlan",
   "crates/terlan-archive",
+  "crates/terlan-build-cache",
   "crates/terlan-foundations-adapter",
+  "crates/terlan-process-owner",
   "crates/terl-docs",
   "crates/terlan-runtime-abi",
   "crates/terlan-service-foundation",
@@ -39,6 +41,7 @@ tokio = "1"
 terlan-archive = { path = "crates/terlan-archive" }
 terl-docs = { path = "crates/terl-docs" }
 terlan-runtime-abi = { path = "crates/terlan-runtime-abi" }
+terlan-process-owner = { path = "crates/terlan-process-owner" }
 terlan-service-foundation = { path = "crates/terlan-service-foundation" }
 zstd = "0.13.3"
 
@@ -54,6 +57,15 @@ debug = "line-tables-only"
 
 [profile.test]
 debug = "line-tables-only"
+
+# Validation hashes complete toolchains and artifacts. Keep SHA-2's compression
+# backend optimized in developer/test tools without optimizing the whole compiler
+# or removing its line tables. CPU feature selection remains portable.
+[profile.dev.package.sha2]
+opt-level = 3
+
+[profile.test.package.sha2]
+opt-level = 3
 
 # The compiler-free service runtime is distributed independently from compiler
 # tooling. Whole-graph optimization keeps its always-resident protocol and VM

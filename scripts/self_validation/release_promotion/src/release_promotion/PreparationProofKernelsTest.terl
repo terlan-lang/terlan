@@ -1,0 +1,138 @@
+/**
+ * Replay precedes semantic consumption; unchanged owners never repeat producers.
+ */
+module release_promotion.PreparationProofKernelsTest.
+
+import release_promotion.{OwnerStorage, PreparationProofTrackTest, PrepareProofKernels}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.{Console, Directory, File}.
+
+write(root: String, path: String, value: String): Bool ->
+    case File.write_text(OwnerStorage.child(root, path), value) {
+        Ok(_written) -> true;
+        _ -> false
+    }.
+
+fixture(root: String): Bool ->
+    PreparationProofTrackTest.fixture(root)
+        and write(root, "target/tools/semantic.tvm", "semantic-v1")
+        and write(
+    root,
+    "target/tools/vm",
+    "#!/bin/sh\nset -eu\nif test \"$1\" = --version; then echo fixture-vm; exit 0; fi\ntest \"$1\" = run\ntest \"$5\" = check-cached\ntest -s target/quality/proof-artifacts/lean-proof-repro-report.json\ntest -s \"$TERLAN_PROOF_TOOL_ADMISSION\"\ntest -n \"$TERLAN_PROOF_TOOL_ADMISSION_SHA256\"\ntest -x \"$TERLAN_PROOF_QUALITY_EXECUTABLE\"\necho semantic >> target/semantic-calls\nif test -f target/semantic-fail; then exit 7; fi\nprintf '{\"schema\":\"terlan.lean-semantic-kernels.v1\"}\\n' > \"$TERLAN_PROOF_SEMANTIC_OUTPUT\"\necho 'Lean semantic kernels passed: fixture'\n",
+)
+        and OwnerStorage.command(root, "/bin/chmod", ["+x", "target/tools/vm"]).
+
+stage(root: String, valid: Bool, completed: Int, reused: Int): Bool ->
+    case PrepareProofKernels.prepare(
+    root,
+    "target/tools/quality",
+    "target/tools/vm",
+    "target/tools/semantic.tvm",
+) {
+        Ok(result) ->
+            result.valid == valid and result.completed == completed and result.reused == reused;
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false
+    }.
+
+calls(root: String, track: String, semantic: String): Bool ->
+    let {
+        Ok(actual_track) <- File.read_text(OwnerStorage.child(root, "target/calls"));
+        Ok(actual_semantic) <- File.read_text(OwnerStorage.child(root, "target/semantic-calls"))
+    } else {
+        _ -> false
+    };
+    actual_track == track and actual_semantic == semantic.
+
+exercise(root: String): Bool ->
+    let output = "target/quality/proof-artifacts/lean-semantic-kernels.json";
+    let {
+        true <- stage(root, true, 2, 0);
+        Ok(before) <- File.read_text(OwnerStorage.child(root, output));
+        true <- stage(root, true, 0, 2);
+        true <- calls(root, "run\n", "semantic\n");
+        true <- write(root, output, "damaged");
+        true <- stage(root, true, 1, 1);
+        true <- write(root, "target/tools/semantic.tvm", "semantic-v2");
+        true <- write(root, "target/semantic-fail", "fail");
+        true <- stage(root, false, 0, 1);
+        Ok(retained) <- File.read_text(OwnerStorage.child(root, output));
+        true <- retained == before;
+        Ok(_removed) <- File.delete(OwnerStorage.child(root, "target/semantic-fail"));
+        true <- stage(root, true, 1, 1);
+        true <- write(root, "target/dependency", "changed dependency");
+        true <- stage(root, true, 2, 0);
+        true <- write(root, "target/tool-seed", "changed tools");
+        true <- stage(root, true, 2, 0);
+        true <- stage(root, true, 0, 2);
+        true <-
+            calls(
+                root,
+                "run\nrun\nrun\n",
+                "semantic\nsemantic\nsemantic\nsemantic\nsemantic\nsemantic\n",
+            );
+        true <- write(root, "target/admission-fail", "fail")
+    } else {
+        _ -> false
+    };
+    case PrepareProofKernels.prepare(
+    root,
+    "target/tools/quality",
+    "target/tools/vm",
+    "target/tools/semantic.tvm",
+) {
+        Err(_reason) -> true;
+        _ -> false
+    }.
+
+recover_parent(root: String): Bool ->
+    let {
+        Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
+        true <- write(root, "target/quality/proof-artifacts", "blocked");
+        true <- stage(root, false, 0, 0);
+        Ok(_removed) <- File.delete(OwnerStorage.child(root, "target/quality/proof-artifacts"));
+        true <- stage(root, true, 1, 1);
+        true <- stage(root, true, 0, 2)
+    } else {
+        _ -> false
+    };
+    calls(root, "run\n", "semantic\n").
+
+scenario(recovery: Bool): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-proof-kernels-") else {
+        _ -> false
+    };
+    (let valid =
+    fixture(root)
+        and if {
+    recovery -> recover_parent(root);
+    true -> exercise(root)
+};
+let cleaned = Directory.remove_all(root);
+let _printed =
+    Console.println(
+        String.concat(
+            [
+                "[proof kernel owners] ",
+                if {
+                    recovery -> "parent recovery";
+                    true -> "selective reuse"
+                },
+                if {
+                    valid -> ": passed";
+                    true -> ": failed"
+                },
+            ],
+        ),
+    );
+valid
+    and case cleaned {
+    Ok(_removed) -> true;
+    _ -> false
+}).
+
+pub self_test(): Bool ->
+    scenario(false) and scenario(true).

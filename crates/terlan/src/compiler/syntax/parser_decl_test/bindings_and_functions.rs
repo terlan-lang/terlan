@@ -111,7 +111,7 @@ shape OkResponse(body) ->
 /// Transformation:
 /// - Parses default trait behavior without introducing an external impl
 ///   declaration, matching the Java-style default-method model.
-
+///
 /// Verifies traits may provide default method bodies.
 ///
 /// Inputs:
@@ -156,7 +156,7 @@ fn formal_trait_conformance_syntax_supports_trait_default_methods() {
 /// Transformation:
 /// - Parses mutable parameter syntax in trait contracts so collection
 ///   mutation traits can express receiver-like mutation requirements.
-
+///
 /// Verifies trait method parameters may require mutability.
 ///
 /// Inputs:
@@ -627,7 +627,7 @@ full_name({name, family}) ->
 /// Transformation:
 /// - Exercises all callable parser paths that share the canonical
 ///   `[TraitRef]` constraint-list syntax.
-
+///
 /// Verifies canonical constraint lists on non-function callable forms.
 ///
 /// Inputs:

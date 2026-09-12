@@ -1,0 +1,165 @@
+/**
+ * Candidate sealing and readiness share an input inventory and recovery graph.
+ * The caller holds the preparation flock through both output transactions.
+ */
+module release_promotion.PrepareReadiness.
+
+import release_promotion.{CandidateFiles, CandidateInputs, OwnerStorage, OwnerTools, PreparationContext, PreparationGraph, PreparationOwner}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.io.Console.
+
+import type release_promotion.CandidateInputs.Inputs.
+import type release_promotion.PreparationContext.Context.
+import type release_promotion.PreparationGraph.{Node, Summary}.
+import type release_promotion.PreparationOwner.Owner.
+import type std.core.Result.
+
+struct Binding {
+    root: String,
+    vm: String,
+    image: String,
+    context: Context,
+    inputs: List[String],
+    tools: String,
+    version: String,
+}.
+
+struct Producer {
+    name: String,
+    command: String,
+    output: String,
+    variable: String,
+    schema: String,
+    marker: String,
+}.
+
+seal_producer(): Producer ->
+    Producer(
+        name = "candidate-seal",
+        command = "seal",
+        output = "dist/release-candidate.json",
+        variable = "TERLAN_RELEASE_CANDIDATE_OUTPUT",
+        schema = "terlan.release-candidate.v1",
+        marker = "sealed release candidate:",
+    ).
+
+readiness_producer(): Producer ->
+    Producer(
+        name = "candidate-readiness",
+        command = "attest-existing",
+        output = "target/quality/release-readiness-attestation-report.json",
+        variable = "TERLAN_READINESS_OUTPUT",
+        schema = "terlan.release-readiness-attestation.v1",
+        marker = "release readiness attestation passed",
+    ).
+
+make_owner(binding: Binding, producer: Producer): Owner ->
+    PreparationOwner.owner(
+        producer.name,
+        binding.context.revision,
+        "x86_64-unknown-linux-gnu",
+        "release-readiness",
+        binding.tools,
+        binding.inputs,
+        [binding.vm, binding.image],
+        OwnerStorage.child(binding.root, binding.vm),
+        [
+            "run",
+            OwnerStorage.child(binding.root, binding.image),
+            "--script-eval",
+            "--",
+            producer.command,
+            "--version",
+            binding.version,
+        ],
+        binding.context.environment,
+        producer.output,
+        producer.variable,
+        producer.schema,
+        producer.marker,
+        300000,
+    ).
+
+nodes(binding: Binding): List[Node] ->
+    let seal = make_owner(binding, seal_producer());
+    let readiness = make_owner(binding, readiness_producer());
+    [PreparationGraph.declare_node(seal, []), PreparationGraph.declare_node(readiness, [seal.name])].
+
+bound_nodes(
+    root: String,
+    vm: String,
+    image: String,
+    context: Context,
+    inputs: Inputs,
+    vm_version: String,
+): List[Node] ->
+    let sources = CandidateFiles.merge_unique(context.sources, CandidateInputs.all_files(inputs));
+    let binding =
+        Binding(
+            root = root,
+            vm = vm,
+            image = image,
+            context = context,
+            inputs = sources,
+            tools = String.concat([vm_version, "\n", context.runtime_tools]),
+            version = inputs.identity.version,
+        );
+    nodes(binding).
+
+tool_paths(vm: String, image: String): Result[Bool, String] ->
+    if {
+        PreparationContext.tool_path(vm) and PreparationContext.tool_path(image) -> Ok(true);
+        true -> Err("preparation tools must be inside target/")
+    }.
+
+/**
+ * Source, tool and dynamic path discovery precede any candidate writes.
+ */
+pub declare(root: String, vm: String, image: String, version: String): Result[List[Node], String] ->
+    let {
+        Ok(_paths) <- tool_paths(vm, image);
+        Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
+        Ok(inputs) <- CandidateInputs.collect(root, version);
+        true <- inputs.identity.revision == context.revision;
+        true <- inputs.identity.target == "x86_64-unknown-linux-gnu";
+        true <- inputs.identity.operating_system == "linux";
+        Ok(vm_version) <- OwnerTools.run(root, OwnerStorage.child(root, vm), ["--version"], context.environment)
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("candidate metadata does not match clean Linux publication source")
+    };
+    Ok(bound_nodes(root, vm, image, context, inputs, vm_version)).
+
+/**
+ * Restores successful matching outputs without replaying their producer.
+ */
+pub prepare(root: String, vm: String, image: String, version: String): Result[Summary, String] ->
+    let Ok(nodes) <- declare(root, vm, image, version) else {
+        Err(reason) -> Err(reason)
+    };
+    Ok(PreparationGraph.run_locked(root, "readiness", nodes)).
+
+/**
+ * CLI entry point used under Make's exclusive preparation flock.
+ */
+pub run_locked(root: String, vm: String, image: String, version: String): Bool ->
+    let Ok(result) <- prepare(root, vm, image, version) else {
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false
+    };
+    (let message =
+    if {
+        result.valid -> String.concat(
+            [
+                "[preparation] readiness: completed=",
+                Int.to_string(result.completed),
+                " reused=",
+                Int.to_string(result.reused),
+            ],
+        );
+        true -> result.message
+    };
+let _printed = Console.println(message);
+result.valid).

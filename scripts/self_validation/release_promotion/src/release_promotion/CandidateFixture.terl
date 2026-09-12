@@ -1,0 +1,89 @@
+/**
+ * Synthetic artifacts for candidate verification tests, never release evidence.
+ */
+module release_promotion.CandidateFixture.
+
+import release_promotion.CandidateFiles.{child}.
+import release_promotion.OwnerStorage.{atomic_json}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+import std.io.{Directory, File}.
+
+/**
+ * Creates one disposable candidate fixture, including selector metadata.
+ */
+pub create(root: String): Bool ->
+    let directories =
+        [
+            "dist",
+            "std",
+            "docs/release",
+            "editors",
+            "tree-sitter-terlan",
+            "benchmarks",
+            "target/quality",
+        ];
+    if {
+        not create_directories(root, directories) -> false;
+        true -> write_fixture_files(root)
+    }.
+
+create_directories(root: String, values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            case Directory.create_all(child(root, value)) {
+                Err(_reason) -> false;
+                Ok(_created) -> create_directories(root, rest)
+            }
+    }.
+
+fixture_identity(): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.release-artifact.v1"))
+        .put("version", Json.string("0.0.7"))
+        .put("source_revision", Json.string("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")).
+
+fixture_metadata(): Json ->
+    let platform =
+        fixture_identity()
+            .put("target_triple", Json.string("x86_64-unknown-linux-gnu"))
+            .put("os", Json.string("linux"));
+    platform.put("arch", Json.string("x86_64")).put("release_candidate_id", Json.string("fixture")).
+
+write_fixture_files(root: String): Bool ->
+    write_texts(
+    root,
+    [
+        {"README.md", "fixture\n"},
+        {"CHANGELOG.md", "## 0.0.7\n\nfixture\n"},
+        {"std/core.terl", "std/core.terl\n"},
+        {"docs/index.md", "docs/index.md\n"},
+        {"docs/release/PUBLISHABLE_DOCUMENTATION.tsv", "path\ndocs/index.md\n"},
+        {"editors/editor.json", "editors/editor.json\n"},
+        {"tree-sitter-terlan/grammar.js", "tree-sitter-terlan/grammar.js\n"},
+        {"benchmarks/http.baseline.json", "{}\n"},
+        {
+            "target/quality/self-test-report.json",
+            "{\"schema\":\"terlan.release-self-test.v1\",\"decision\":\"pass\"}\n",
+        },
+        {"dist/terlc-linux-x86_64.tar.gz", "archive"},
+        {
+            "dist/terlc-linux-x86_64.tar.gz.sha256",
+            "0eb3e36bfb24dcd9bb1d1bece1531216b59539a8fde17ee80224af0653c92aa3  terlc-linux-x86_64.tar.gz\n",
+        },
+        {"dist/terlan-vm", "vm"},
+        {"dist/terlan-native-worker", "native-worker"},
+    ],
+)
+        and atomic_json(root, "dist/terlan-release.json", fixture_metadata()).
+
+write_texts(root: String, values: List[{String, String}]): Bool ->
+    case values {
+        [] -> true;
+        [{path, contents} | rest] ->
+            case File.write_text(child(root, path), contents) {
+                Err(_reason) -> false;
+                Ok(_written) -> write_texts(root, rest)
+            }
+    }.

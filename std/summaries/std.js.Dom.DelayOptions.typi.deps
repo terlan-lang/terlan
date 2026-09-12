@@ -1,7 +1,7 @@
 module=std.js.Dom.DelayOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+syntax_contract_fingerprint=fnv1a64:eadfc8d7c5c2271b
 source_hash=1140061446146984673
 interface_hash=11056072567105066581
 interface_doc_hash=11056072567105066581

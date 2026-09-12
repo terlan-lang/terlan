@@ -172,9 +172,7 @@ pub(super) fn specialize_expr(
             .collect::<Option<Vec<_>>>()
             .map(CoreType::Tuple),
         CoreExpr::List(items) => {
-            let element = items
-                .iter_mut()
-                .find_map(|item| specialize_expr(item, variables, functions, module))
+            let element = specialize_elements(items, variables, functions, module)
                 .unwrap_or(CoreType::Dynamic);
             Some(CoreType::List(Box::new(element)))
         }
@@ -197,9 +195,7 @@ pub(super) fn specialize_expr(
             constructor_identity,
             args,
         } if is_std_list_constructor(constructor, constructor_identity.as_deref()) => {
-            let element = args
-                .iter_mut()
-                .find_map(|item| specialize_expr(item, variables, functions, module));
+            let element = specialize_elements(args, variables, functions, module);
             let items = CoreExpr::List(std::mem::take(args));
             let Some(element) = element else {
                 *expr = items;
@@ -217,9 +213,7 @@ pub(super) fn specialize_expr(
             constructor_identity,
             args,
         } if is_std_set_constructor(constructor, constructor_identity.as_deref()) => {
-            let element = args
-                .iter_mut()
-                .find_map(|item| specialize_expr(item, variables, functions, module))
+            let element = specialize_elements(args, variables, functions, module)
                 .unwrap_or_else(|| CoreType::Named("Unit".to_string()));
             let set_type = CoreType::Apply {
                 constructor: "Set".to_string(),
@@ -606,6 +600,7 @@ pub(super) fn specialize_expr(
                 .iter_mut()
                 .map(|argument| specialize_expr(argument, variables, functions, module))
                 .collect::<Vec<_>>();
+            preserve_list_operands(&mut call.args, &argument_types, functions, module);
             if let CoreIntrinsicId::Primitive(intrinsic) = &call.id {
                 if *intrinsic == CorePrimitiveIntrinsic::SetNew
                     && set_element(&call.return_type).is_some_and(is_dynamic_type)

@@ -8,14 +8,18 @@ if [[ ! -f Cargo.toml || ! -d crates/terlan || ! -e .git ]]; then
   exit 1
 fi
 
-dry_run=0
 check_partials=0
-if [[ "${1:-}" == "--dry-run" ]]; then
-  dry_run=1
-elif [[ "${1:-}" == "--check-partials" ]]; then
+if [[ "$#" -eq 1 && "$1" == "--dry-run" ]]; then
+  : # Inventory only: path membership is not authority to delete build state.
+elif [[ "$#" -eq 1 && "$1" == "--check-partials" ]]; then
   check_partials=1
-elif [[ "$#" -ne 0 ]]; then
-  echo "usage: scripts/clean_build_outputs.sh [--dry-run|--check-partials]" >&2
+elif [[ "$#" -eq 0 ]]; then
+  echo "blanket build cleanup cannot prove exclusive ownership; no files were removed" >&2
+  echo "Use --dry-run to inventory outputs; resume interrupted producers to recover their journals." >&2
+  echo "For owned Rust cache retention, use make rust-incremental-cache-prune." >&2
+  exit 1
+else
+  echo "usage: scripts/clean_build_outputs.sh --dry-run|--check-partials" >&2
   exit 2
 fi
 
@@ -64,23 +68,18 @@ if [[ "$check_partials" -eq 1 ]]; then
   exit 0
 fi
 
-remove_tree() {
+inventory_tree() {
   local relative="$1" absolute
   absolute="$repo_root/$relative"
   [[ -e "$absolute" ]] || return 0
   case "$absolute" in
     "$repo_root"/*) ;;
     *)
-      echo "refusing to clean path outside repository: $absolute" >&2
+      echo "refusing to inventory path outside repository: $absolute" >&2
       return 1
       ;;
   esac
-  if [[ "$dry_run" -eq 1 ]]; then
-    printf 'would remove %s\n' "$relative"
-  else
-    find "$absolute" -depth -delete
-    printf 'removed %s\n' "$relative"
-  fi
+  printf 'generated output (owner authorization required): %s\n' "$relative"
 }
 
 for relative in \
@@ -101,14 +100,14 @@ for relative in \
   editors/intellij/.intellijPlatform \
   editors/intellij/.kotlin \
   editors/intellij/build; do
-  remove_tree "$relative"
+  inventory_tree "$relative"
 done
 
 for root in benchmarks crates editors proofs scripts std tests tools; do
   [[ -d "$root" ]] || continue
   while IFS= read -r cache; do
     relative="${cache#"$repo_root/"}"
-    remove_tree "$relative"
+    inventory_tree "$relative"
   done < <(
     find "$repo_root/$root" \
       \( -type d -name .terlan -o -type d -name _build \) \
@@ -116,24 +115,18 @@ for root in benchmarks crates editors proofs scripts std tests tools; do
   )
 done
 
-# Interrupted typed-validator builds and marked temporary validation workspaces
-# are never reusable. Valid image seals and explicitly owned caches remain
-# available for a warm validation cycle.
+# Partial state may belong to a live producer or a recoverable publication.
+# Only its owner may decide whether to resume, roll back or discard it.
 while IFS= read -r partial; do
   [[ -n "$partial" ]] || continue
   relative="${partial#"$repo_root/"}"
-  remove_tree "$relative"
+  inventory_tree "$relative"
 done < <(partial_builds)
 
 if [[ -d std/summaries ]]; then
   while IFS= read -r generated; do
     relative="${generated#"$repo_root/"}"
-    if [[ "$dry_run" -eq 1 ]]; then
-      printf 'would remove %s\n' "$relative"
-    else
-      find "$generated" -maxdepth 0 -type f -delete
-      printf 'removed %s\n' "$relative"
-    fi
+    inventory_tree "$relative"
   done < <(
     find "$repo_root/std/summaries" -maxdepth 1 -type f \
       \( -name '*.erl' -o -name '*.hrl' \) -print | LC_ALL=C sort

@@ -1,5 +1,43 @@
 use super::*;
 
+/// Visits every checked homogeneous element while retaining its first type
+/// witness. Finding that witness must not skip normalization of later items.
+pub(super) fn specialize_elements(
+    items: &mut [CoreExpr],
+    variables: &HashMap<String, CoreType>,
+    functions: &FunctionTypes,
+    module: &str,
+) -> Option<CoreType> {
+    let mut witness = None;
+    for item in items {
+        let inferred = specialize_expr(item, variables, functions, module);
+        if witness.is_none() {
+            witness = inferred;
+        }
+    }
+    witness
+}
+
+/// Intrinsics retain their result type but no parameter signature for metadata
+/// assembly. Preserve inferred list operands through the normal checked-argument
+/// path so lists of factory results retain their runtime collection descriptor.
+pub(super) fn preserve_list_operands(
+    args: &mut [CoreExpr],
+    types: &[Option<CoreType>],
+    functions: &FunctionTypes,
+    module: &str,
+) {
+    for (argument, inferred) in args.iter_mut().zip(types) {
+        if let Some(ty @ CoreType::List(_)) = inferred {
+            if matches!(argument, CoreExpr::List(_))
+                && super::super::collections::managed_collection_layouts([ty]).is_ok()
+            {
+                specialize_expected_collection_new(argument, ty, functions, module);
+            }
+        }
+    }
+}
+
 pub(super) fn visit_children(
     expr: &mut CoreExpr,
     variables: &HashMap<String, CoreType>,
@@ -87,6 +125,11 @@ pub(super) fn bind_pattern(
         CorePattern::Alias { alias, pattern } => {
             variables.insert(alias.clone(), ty.clone());
             bind_pattern(pattern, ty, variables);
+        }
+        CorePattern::List(_) | CorePattern::ListCons { .. } => {
+            // Share lexical list binding with generic and receiver resolution;
+            // dropping these bindings leaves element methods as raw calls.
+            super::super::generic_specialization::bind_pattern_types(pattern, ty, variables);
         }
         CorePattern::Constructor { name, args, .. } if name == "Some" => {
             if let (Some(element), [pattern]) = (option_element(ty), args.as_slice()) {

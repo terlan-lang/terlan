@@ -2,17 +2,39 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
 use std::process::{Command, Output};
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
+use super::outputs::ReportPaths;
 use super::{sha256_file, ArtifactRow};
+use crate::commands::process_runner::run_command_with_timeout;
 use crate::terlan_quality::QualityResult;
 
-const REPRO_REPORT_PATH: &str = "build/artifacts/lean-proof-repro-report.json";
-const GATE_REPORT_PATH: &str = "build/artifacts/lean-proof-gate.json";
-const BASELINE_PATH: &str = "build/artifacts/lean-proof-baseline.tsv";
+#[path = "lean_proof_workspace.rs"]
+mod workspace;
+use workspace::ProofWorkspace;
+
+#[path = "lean_proof_environment.rs"]
+mod environment;
+use environment::ProofEnvironment;
+
+#[cfg(target_os = "linux")]
+#[path = "lean_proof_cached_replay.rs"]
+mod cached;
+#[cfg(target_os = "linux")]
+#[path = "lean_proof_checkpoint.rs"]
+mod checkpoint;
+#[cfg(target_os = "linux")]
+#[path = "lean_proof_tools.rs"]
+mod tools;
+
+#[cfg(target_os = "linux")]
+#[path = "lean_proof_admission.rs"]
+pub(super) mod admission;
+
 const BASELINE_CLASSES: &[&str] = &[
     "coreir",
     "lowering",
@@ -25,7 +47,7 @@ const BASELINE_CLASSES: &[&str] = &[
     "aeneas-bridge",
 ];
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 struct ReplayMetadata {
     schema: String,
     family: String,
@@ -41,14 +63,14 @@ struct ReplayMetadata {
     toolchain: ToolchainContract,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 struct OutputSignature {
     stdout_class: String,
     stderr_class: String,
     exit_class: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Eq, Ord, PartialEq, PartialOrd)]
 struct ToolchainContract {
     lean_version: String,
     elan_channel: String,
@@ -78,7 +100,7 @@ struct ProofFamilyStatus {
     remediation_gates: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct NormalizedExecution {
     exit: i32,
     stdout: String,
@@ -88,35 +110,118 @@ struct NormalizedExecution {
 pub(super) fn run_proof_reproducibility(
     root: &Path,
     artifacts: &[ArtifactRow],
+    gap_metrics: &Value,
+    outputs: &ReportPaths,
 ) -> QualityResult<Vec<ProofReplayVerdict>> {
+    let verdicts = run_replicas(root, artifacts)?;
+    let statuses = build_family_statuses(root, artifacts, &verdicts)?;
+    write_reports(outputs, &verdicts, &statuses, gap_metrics)?;
+    Ok(verdicts)
+}
+
+/// Runs selected replicas without replacing the complete track's reports.
+pub(super) fn run_replicas(
+    root: &Path,
+    artifacts: &[ArtifactRow],
+) -> QualityResult<Vec<ProofReplayVerdict>> {
+    replicas(root, artifacts, false)
+}
+
+/// Consumes completed replicas under fresh admission; never launches proof tools.
+pub(super) fn require_replicas(
+    root: &Path,
+    artifacts: &[ArtifactRow],
+) -> QualityResult<Vec<ProofReplayVerdict>> {
+    replicas(root, artifacts, true)
+}
+
+fn replicas(
+    root: &Path,
+    artifacts: &[ArtifactRow],
+    completed_only: bool,
+) -> QualityResult<Vec<ProofReplayVerdict>> {
+    #[cfg(not(target_os = "linux"))]
+    if completed_only {
+        return Err("completed proof consumption requires Linux checkpoint ownership".into());
+    }
     let current = artifacts
         .iter()
         .filter(|artifact| artifact.status == "current")
-        .collect::<Vec<_>>();
+        .map(|artifact| {
+            let metadata = read_metadata(root, &artifact.replay_metadata)?;
+            validate_metadata(root, artifact, &metadata)?;
+            Ok((artifact, metadata))
+        })
+        .collect::<QualityResult<Vec<_>>>()?;
     let mut verdicts = Vec::new();
-    for artifact in current {
-        let metadata = read_metadata(root, &artifact.replay_metadata)?;
-        validate_metadata(root, artifact, &metadata)?;
-        validate_toolchain(root, &metadata.toolchain)?;
-
-        clean_proof_build_state(root, &metadata.family)?;
-        let first_result = execute_metadata(root, &metadata);
-        let first_cleanup = clean_proof_build_state(root, &metadata.family);
-        let first = first_result?;
-        first_cleanup?;
-        let second_result = execute_metadata(root, &metadata);
-        let second_cleanup = clean_proof_build_state(root, &metadata.family);
-        let second = second_result?;
-        second_cleanup?;
-        let first_signature = execution_signature(&first);
-        let second_signature = execution_signature(&second);
-        if first_signature != second_signature {
-            return Err(format!(
-                "proof_gap[nondeterministic]: proof family `{}` produced signatures `{first_signature}` and `{second_signature}`; first={first:?}; second={second:?}; classify it as nondeterministic with a remediation plan",
-                metadata.family,
-            ));
-        }
-        validate_output_signature(&metadata, &first)?;
+    let mut validated_toolchains = BTreeSet::new();
+    let environment = ProofEnvironment::capture()?;
+    #[cfg(target_os = "linux")]
+    let admitted = admission::from_environment(
+        root,
+        &environment,
+        &current
+            .iter()
+            .map(|(_, metadata)| metadata.toolchain.clone())
+            .collect(),
+    )?;
+    #[cfg(target_os = "linux")]
+    if completed_only && admitted.is_none() {
+        return Err("completed proof consumption requires fresh tool admission".into());
+    }
+    #[cfg(target_os = "linux")]
+    let mut pinned_tools = admitted.unwrap_or_default();
+    #[cfg(target_os = "linux")]
+    validated_toolchains.extend(pinned_tools.keys().cloned());
+    #[cfg(not(target_os = "linux"))]
+    if [
+        "TERLAN_PROOF_TOOL_ADMISSION",
+        "TERLAN_PROOF_TOOL_ADMISSION_SHA256",
+    ]
+    .iter()
+    .any(|key| std::env::var_os(key).is_some())
+    {
+        return Err("proof tool admission is only supported on Linux".into());
+    }
+    // Fail cheap contracts across every family before starting proof replicas.
+    for (_, metadata) in &current {
+        validate_toolchain_once(&mut validated_toolchains, &metadata.toolchain, || {
+            validate_toolchain(root, &metadata.toolchain, &environment)?;
+            #[cfg(target_os = "linux")]
+            pinned_tools.insert(
+                metadata.toolchain.clone(),
+                tools::ProofTools::capture(root, &environment, &metadata.toolchain)?,
+            );
+            Ok(())
+        })?;
+    }
+    #[cfg(target_os = "linux")]
+    let mut checkpoints = cached::open(root, &current, &pinned_tools)?;
+    for (artifact, metadata) in current {
+        #[cfg(target_os = "linux")]
+        let mut replica = 0;
+        let (first_signature, second_signature) =
+            validate_replay_pair(&metadata, artifact.expected_exit, || {
+                #[cfg(target_os = "linux")]
+                {
+                    replica += 1;
+                    cached::execute(
+                        root,
+                        &metadata,
+                        artifact.expected_exit,
+                        if completed_only {
+                            None
+                        } else {
+                            Some(&environment)
+                        },
+                        &pinned_tools[&metadata.toolchain],
+                        &mut checkpoints,
+                        replica,
+                    )
+                }
+                #[cfg(not(target_os = "linux"))]
+                execute_metadata(root, &metadata, &environment)
+            })?;
         verdicts.push(ProofReplayVerdict {
             family: metadata.family,
             proof_path: artifact.path.clone(),
@@ -127,9 +232,46 @@ pub(super) fn run_proof_reproducibility(
             verdict: "pass".to_string(),
         });
     }
-    let statuses = build_family_statuses(root, artifacts, &verdicts)?;
-    write_reports(root, &verdicts, &statuses)?;
+    #[cfg(target_os = "linux")]
+    eprintln!(
+        "[proof-replay] {} completed replicas, {} verified reused replicas",
+        checkpoints.completed, checkpoints.reused
+    );
     Ok(verdicts)
+}
+
+fn validate_replay_pair(
+    metadata: &ReplayMetadata,
+    expected_exit: i32,
+    mut execute: impl FnMut() -> QualityResult<NormalizedExecution>,
+) -> QualityResult<(String, String)> {
+    let first = execute()?;
+    validate_execution(metadata, expected_exit, &first)?;
+    let second = execute()?;
+    validate_execution(metadata, expected_exit, &second)?;
+    let first_signature = execution_signature(&first);
+    let second_signature = execution_signature(&second);
+    if first_signature != second_signature {
+        return Err(format!(
+            "proof_gap[nondeterministic]: proof family `{}` produced signatures `{first_signature}` and `{second_signature}`; first={first:?}; second={second:?}; classify it as nondeterministic with a remediation plan",
+            metadata.family,
+        ));
+    }
+    Ok((first_signature, second_signature))
+}
+
+fn validate_execution(
+    metadata: &ReplayMetadata,
+    expected_exit: i32,
+    execution: &NormalizedExecution,
+) -> QualityResult<()> {
+    if execution.exit < 0 || execution.exit != expected_exit {
+        return Err(format!(
+            "proof family `{}` exit mismatch: expected {expected_exit}, found {}; signals are not proof verdicts",
+            metadata.family, execution.exit
+        ));
+    }
+    validate_output_signature(metadata, execution)
 }
 
 fn build_family_statuses(
@@ -195,6 +337,13 @@ fn validate_metadata(
     metadata: &ReplayMetadata,
 ) -> QualityResult<()> {
     let mut diagnostics = Vec::new();
+    if !workspace::relative_input(&artifact.path)
+        || !artifact.path.starts_with("proofs/lean/")
+        || !artifact.path.ends_with(".lean")
+    {
+        diagnostics
+            .push("proof path must be a repository-relative Lean source under proofs/lean".into());
+    }
     if metadata.schema != "terlan.lean-proof-replay.v1" {
         diagnostics.push(format!("unsupported replay schema `{}`", metadata.schema));
     }
@@ -290,7 +439,22 @@ fn dependency_drift_diagnostic(expected: &str, actual: &str) -> String {
     )
 }
 
-fn validate_toolchain(root: &Path, toolchain: &ToolchainContract) -> QualityResult<()> {
+/// Identical families share one successful toolchain probe within this replay.
+/// Failed probes are never recorded and distinct toolchain contracts cannot
+/// reuse one another's validation.
+fn validate_toolchain_once(
+    validated: &mut BTreeSet<ToolchainContract>,
+    toolchain: &ToolchainContract,
+    probe: impl FnOnce() -> QualityResult<()>,
+) -> QualityResult<()> {
+    if !validated.contains(toolchain) {
+        probe()?;
+        validated.insert(toolchain.clone());
+    }
+    Ok(())
+}
+
+fn validate_toolchain_inputs(root: &Path, toolchain: &ToolchainContract) -> QualityResult<String> {
     let channel = fs::read_to_string(root.join("proofs/lean/lean-toolchain"))
         .map_err(|err| format!("failed to read pinned Lean toolchain: {err}"))?;
     if channel.trim() != toolchain.elan_channel {
@@ -303,21 +467,32 @@ fn validate_toolchain(root: &Path, toolchain: &ToolchainContract) -> QualityResu
     if toolchain.lake_flags != ["env", "lean"] {
         return Err("replay Lake flags must be exactly `env lean`".to_string());
     }
-    let output = Command::new("lake")
+    Ok(channel)
+}
+
+fn validate_toolchain(
+    root: &Path,
+    toolchain: &ToolchainContract,
+    environment: &ProofEnvironment,
+) -> QualityResult<()> {
+    let channel = validate_toolchain_inputs(root, toolchain)?;
+    let workspace = ProofWorkspace::create(root, &[])?;
+    let copied_channel = fs::read_to_string(workspace.root().join("proofs/lean/lean-toolchain"))
+        .map_err(|error| format!("cannot read private Lean toolchain pin: {error}"))?;
+    if copied_channel != channel {
+        return Err("Lean toolchain pin changed before isolated probe".into());
+    }
+    let mut command = Command::new(environment.program("lake")?);
+    command
         .args(["env", "lean", "--version"])
-        .current_dir(root.join("proofs/lean"))
-        .env_remove("LEAN_PATH")
-        .env("ELAN_NO_UPDATE_CHECK", "1")
-        .output()
-        .map_err(|err| {
-            if err.kind() == std::io::ErrorKind::NotFound {
-                "lean_unavailable: failed to launch pinned Lake/Lean toolchain".to_string()
-            } else {
-                format!("failed to launch pinned Lake/Lean toolchain: {err}")
-            }
-        })?;
+        .current_dir(workspace.root().join("proofs/lean"));
+    environment.configure(&mut command, workspace.root(), &toolchain.elan_channel)?;
+    let result = run_proof_command(&mut command, Duration::from_secs(30));
+    let cleanup = workspace.close();
+    let output = result?;
+    cleanup?;
     let version = String::from_utf8_lossy(&output.stdout);
-    if !output.status.success() || !version.contains(&format!("version {}", toolchain.lean_version))
+    if !output.status.success() || !environment::matches_version(&version, &toolchain.lean_version)
     {
         return Err(format!(
             "pinned Lean version mismatch: expected `{}`, output `{}`",
@@ -336,6 +511,9 @@ fn dependency_set_hash(root: &Path, paths: &[String]) -> QualityResult<String> {
     }
     let mut hasher = Sha256::new();
     for relative in sorted {
+        if !workspace::relative_input(&relative) {
+            return Err(format!("unsafe proof dependency `{relative}`"));
+        }
         hasher.update(relative.as_bytes());
         hasher.update([0]);
         hasher.update(
@@ -347,42 +525,57 @@ fn dependency_set_hash(root: &Path, paths: &[String]) -> QualityResult<String> {
     Ok(format_digest(&digest))
 }
 
-fn clean_proof_build_state(root: &Path, family: &str) -> QualityResult<()> {
-    for path in [
-        root.join("proofs/lean/.lake/build"),
-        root.join("proofs/lean/.lake/config"),
-        root.join("build/tmp/lean-proof").join(family),
-    ] {
-        if path.exists() {
-            fs::remove_dir_all(&path).map_err(|err| {
-                format!(
-                    "{}: failed to clean proof build state: {err}",
-                    path.display()
-                )
-            })?;
+#[cfg(not(target_os = "linux"))]
+fn execute_metadata(
+    root: &Path,
+    metadata: &ReplayMetadata,
+    environment: &ProofEnvironment,
+) -> QualityResult<NormalizedExecution> {
+    let command = &metadata.execution_command;
+    let mut dependencies = metadata.dependency_files.clone();
+    dependencies.extend(metadata.manifest_fingerprints.keys().cloned());
+    let workspace = ProofWorkspace::create(root, &dependencies)?;
+    validate_snapshot(workspace.root(), metadata)?;
+    let mut process = Command::new(environment.program(&command[0])?);
+    process
+        .args(&command[1..])
+        .current_dir(workspace.root().join(&metadata.working_directory));
+    environment.configure(
+        &mut process,
+        workspace.root(),
+        &metadata.toolchain.elan_channel,
+    )?;
+    let result = run_proof_command(&mut process, Duration::from_secs(600));
+    let normalized = result.map(|output| normalize_execution(workspace.root(), output));
+    let cleanup = workspace.close();
+    let output = normalized?;
+    cleanup?;
+    Ok(output)
+}
+
+fn run_proof_command(command: &mut Command, timeout: Duration) -> QualityResult<Output> {
+    run_command_with_timeout(command, "Lean proof process", timeout)
+}
+
+fn validate_snapshot(root: &Path, metadata: &ReplayMetadata) -> QualityResult<()> {
+    let proof = root
+        .join(&metadata.working_directory)
+        .join(&metadata.execution_command[3]);
+    if sha256_file(&proof)? != metadata.source_digest {
+        return Err("proof source changed before isolated replay".into());
+    }
+    if dependency_set_hash(root, &metadata.dependency_files)? != metadata.proof_dependency_set_hash
+    {
+        return Err("proof dependencies changed before isolated replay".into());
+    }
+    for (path, expected) in &metadata.manifest_fingerprints {
+        if sha256_file(&root.join(path))? != *expected {
+            return Err(format!(
+                "proof manifest changed before isolated replay: {path}"
+            ));
         }
     }
     Ok(())
-}
-
-fn execute_metadata(root: &Path, metadata: &ReplayMetadata) -> QualityResult<NormalizedExecution> {
-    let command = &metadata.execution_command;
-    let output = Command::new(&command[0])
-        .args(&command[1..])
-        .current_dir(root.join(&metadata.working_directory))
-        .env_remove("LEAN_PATH")
-        .env("ELAN_NO_UPDATE_CHECK", "1")
-        .output()
-        .map_err(|err| unavailable_error(&command[0], err))?;
-    Ok(normalize_execution(root, output))
-}
-
-fn unavailable_error(command: &str, err: std::io::Error) -> String {
-    if err.kind() == std::io::ErrorKind::NotFound {
-        format!("lean_unavailable: failed to launch proof command `{command}`")
-    } else {
-        format!("failed to launch proof command `{command}`: {err}")
-    }
 }
 
 fn normalize_execution(root: &Path, output: Output) -> NormalizedExecution {
@@ -459,11 +652,12 @@ fn validate_output_signature(
 }
 
 fn write_reports(
-    root: &Path,
+    paths: &ReportPaths,
     verdicts: &[ProofReplayVerdict],
     statuses: &[ProofFamilyStatus],
+    gap_metrics: &Value,
 ) -> QualityResult<()> {
-    let repro_path = root.join(REPRO_REPORT_PATH);
+    let repro_path = &paths.replay;
     if let Some(parent) = repro_path.parent() {
         fs::create_dir_all(parent).map_err(|err| {
             format!(
@@ -477,46 +671,21 @@ fn write_reports(
         "timestamp_strategy": "none-content-addressed",
         "families": verdicts,
     });
-    write_json(&repro_path, &repro)?;
+    write_json(repro_path, &repro)?;
 
-    let gate_path = root.join(GATE_REPORT_PATH);
-    let mut gate = if gate_path.is_file() {
-        serde_json::from_str::<Value>(&fs::read_to_string(&gate_path).map_err(|err| {
-            format!(
-                "{}: failed to read Lean gate report: {err}",
-                gate_path.display()
-            )
-        })?)
-        .map_err(|err| {
-            format!(
-                "{}: invalid Lean gate report JSON: {err}",
-                gate_path.display()
-            )
-        })?
-    } else {
-        json!({"schema": "terlan.lean-proof-gate.v1"})
-    };
-    let object = gate.as_object_mut().ok_or_else(|| {
-        format!(
-            "{}: Lean gate report must be a JSON object",
-            gate_path.display()
-        )
-    })?;
-    object.insert(
-        "reproducibility".to_string(),
-        serde_json::to_value(verdicts)
-            .map_err(|err| format!("failed to serialize Lean reproducibility verdicts: {err}"))?,
-    );
-    object.insert(
-        "families".to_string(),
-        serde_json::to_value(statuses)
-            .map_err(|err| format!("failed to serialize Lean family statuses: {err}"))?,
-    );
-    write_json(&gate_path, &gate)?;
-    write_baseline(root, statuses)
+    // A producer never reads its previous output or the downstream lane seal.
+    // Every field describes this execution; old lane checksums cannot survive.
+    let track = json!({
+        "schema": "terlan.lean-proof-track.v1",
+        "reproducibility": verdicts,
+        "families": statuses,
+        "proof_gap_metrics": gap_metrics,
+    });
+    write_json(&paths.track, &track)?;
+    write_baseline(&paths.baseline, statuses)
 }
 
-fn write_baseline(root: &Path, statuses: &[ProofFamilyStatus]) -> QualityResult<()> {
+fn write_baseline(path: &Path, statuses: &[ProofFamilyStatus]) -> QualityResult<()> {
     let mut text = String::from("feature_class\texpected_status\tlast_confirmed_hash\n");
     for feature_class in BASELINE_CLASSES {
         let class_statuses = statuses
@@ -545,8 +714,7 @@ fn write_baseline(root: &Path, statuses: &[ProofFamilyStatus]) -> QualityResult<
             .join(";");
         text.push_str(&format!("{feature_class}\t{expected_status}\t{hashes}\n"));
     }
-    let path = root.join(BASELINE_PATH);
-    fs::write(&path, text).map_err(|err| {
+    fs::write(path, text).map_err(|err| {
         format!(
             "{}: failed to write Lean proof baseline: {err}",
             path.display()
@@ -562,11 +730,14 @@ fn write_json(path: &Path, value: &Value) -> QualityResult<()> {
 }
 
 fn format_digest(bytes: &[u8]) -> String {
-    let hexadecimal = bytes
+    format!("sha256:{}", hex_digest(bytes))
+}
+
+fn hex_digest(bytes: &[u8]) -> String {
+    bytes
         .iter()
         .map(|byte| format!("{byte:02x}"))
-        .collect::<String>();
-    format!("sha256:{hexadecimal}")
+        .collect::<String>()
 }
 
 fn render_failure(family: &str, diagnostics: &[String]) -> String {

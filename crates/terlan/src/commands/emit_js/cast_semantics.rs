@@ -48,8 +48,20 @@ fn inferred_core_expr_type(expr: &CoreExpr) -> Option<CoreType> {
         CoreExpr::FixedArray(items) => inferred_homogeneous_list_type(items),
         CoreExpr::Cast { target_type, .. } => Some(target_type.clone()),
         CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
-        CoreExpr::Lam { params, body } => Some(CoreType::Arrow {
-            params: vec![CoreType::Dynamic; params.len()],
+        CoreExpr::Lam {
+            params,
+            parameter_types,
+            body,
+        } => Some(CoreType::Arrow {
+            params: (0..params.len())
+                .map(|index| {
+                    parameter_types
+                        .get(index)
+                        .and_then(Option::as_ref)
+                        .cloned()
+                        .unwrap_or(CoreType::Dynamic)
+                })
+                .collect(),
             return_type: Box::new(inferred_core_expr_type(body).unwrap_or(CoreType::Dynamic)),
         }),
         _ => None,
@@ -106,3 +118,7 @@ fn core_type_is_js_identity_assignable(source_type: &CoreType, target_type: &Cor
                 | (_, CoreType::Term)
         )
 }
+
+#[cfg(test)]
+#[path = "cast_semantics_test.rs"]
+mod tests;

@@ -28,9 +28,26 @@ fn lean_proof_regression_accepts_unchanged_baseline() {
 
     assert_eq!(summary.feature_class_count, 1);
     assert_eq!(summary.warning_count, 0);
-    let report = fs::read_to_string(summary.report_path).expect("read report");
+    let report = fs::read_to_string(&summary.report_path).expect("read report");
     assert!(report.contains("\"feature_class\": \"Core preservation\""));
+    assert!(report.contains("terlan.lean-proof-regression.v1"));
+    let staged = root.join("target/quality/preparation/policy.work/report.json");
+    run_to(&root, &staged, &today_utc()).unwrap();
+    assert_eq!(fs::read_to_string(&staged).unwrap(), report);
+    assert!(run_to(&root, &staged, "2000-01-01").is_err());
+    assert_eq!(fs::read_to_string(&summary.report_path).unwrap(), report);
+    assert_eq!(fs::read_to_string(&staged).unwrap(), report);
     fs::remove_dir_all(root).expect("remove fixture");
+}
+
+#[test]
+fn lean_proof_regression_admission_requires_current_utc_day() {
+    use std::ffi::OsStr;
+    assert!(validate_date("2026-09-10", None).is_ok());
+    assert!(validate_date("2026-09-10", Some(OsStr::new("2026-09-10"))).is_ok());
+    for value in ["", "2026-09-09", "2026-09-11", "2026-9-10", "2026-09-10\n"] {
+        assert!(validate_date("2026-09-10", Some(OsStr::new(value))).is_err());
+    }
 }
 
 /// Verifies proof-count drops fail.

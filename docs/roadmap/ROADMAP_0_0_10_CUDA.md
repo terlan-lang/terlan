@@ -1,4 +1,8 @@
-# Terlan 0.0.9 Accelerator And CUDA Integration Roadmap
+# Terlan 0.0.10 Accelerator And CUDA Integration Roadmap
+
+Scope updated 2026-09-10: accelerator follow-ups are postponed to 0.0.10.
+Existing checked items retain their recorded evidence; this move does not
+rerun or recertify them. 0.0.9 is limited to build/release optimization.
 
 This roadmap defines compiler and VM work required to make external accelerator
 packages first-class AOT execution targets. `terlan-cuda` is the first proof
@@ -13,7 +17,7 @@ inspection.
 
 ## Release Objective
 
-Terlan 0.0.9 must be able to:
+Terlan 0.0.10 must be able to:
 
 1. resolve an external accelerator package without compiler source changes;
 2. typecheck device resources and asynchronous operations through ordinary

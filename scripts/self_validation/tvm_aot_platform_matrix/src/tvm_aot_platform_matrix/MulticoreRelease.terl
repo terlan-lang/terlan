@@ -95,7 +95,10 @@ pub validate_makefile(makefile: String): Bool ->
                 not makefile.contains(release_target()) -> false;
                 not makefile.contains("vm-multicore-publish-evidence-refresh: vm-multicore-release-contract-check") -> false;
                 not makefile.contains("vm-multicore-publish-check:") -> false;
-                not makefile.contains("$(MAKE) $(VM_MULTICORE_PUBLISH_LOCAL_GATES)") -> false;
+                not makefile
+    .contains(
+        "vm-multicore-publish-prerequisites: vm-multicore-release-contract-check $(VM_MULTICORE_PUBLISH_LOCAL_GATES)",
+    ) -> false;
                 not makefile.contains("$(MAKE) --no-print-directory vm-multicore-publish-check") -> false;
                 not makefile.contains("$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify") -> false;
                 not makefile.contains("publish-evidence-plan-check:") -> false;
@@ -353,6 +356,11 @@ pub build_closeout(
 
 pub record(): Bool ->
     let root = Environment.current_directory();
+    let output =
+        case Environment.get("TERLAN_MULTICORE_RELEASE_OUTPUT") {
+            Some(path) -> path;
+            None -> child(root, "target/quality/vm-multicore-release-closeout.json")
+        };
     let memory_model_path = child(root, "target/quality/vm-multicore-memory-model.json");
     let thread_sanitizer_path = child(root, "target/quality/vm-multicore-thread-sanitizer-report.json");
     let inventory_path = child(root, "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json");
@@ -384,7 +392,7 @@ pub record(): Bool ->
         _ -> false
     };
     if {
-        not write_json(child(root, "target/quality/vm-multicore-release-closeout.json"), report) -> false;
+        not write_json(output, report) -> false;
         true -> let _printed = println(String.append("VM multicore release closeout passed: ", revision(identity)));
         true
     }.

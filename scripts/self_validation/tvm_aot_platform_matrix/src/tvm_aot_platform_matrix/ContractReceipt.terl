@@ -1,0 +1,37 @@
+/**
+ * An optional owner-local receipt for a contract self-test that actually passed.
+ * PreparationOwner publishes the staged receipt after checking the subprocess.
+ */
+module tvm_aot_platform_matrix.ContractReceipt.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.{Console, File}.
+import std.system.Environment.
+
+pub record(command: String, passed: Bool): Bool ->
+    if {
+        not passed -> false;
+        true -> case Environment.get("TERLAN_TVM_CONTRACT_OUTPUT") {
+            None -> true;
+            Some(path) -> write(path, command)
+        }
+    }.
+
+write(path: String, command: String): Bool ->
+    let report =
+        Json.object()
+            .put("schema", Json.string("terlan.validator-contract-receipt.v1"))
+            .put("decision", Json.string("pass"))
+            .put("command", Json.string(command));
+    let {
+        Ok(source) <- Json.stringify_pretty(report);
+        Ok(_written) <- File.write_text(path, String.append(source, "\n"))
+    } else {
+        _ ->
+            let _printed = Console.eprintln("cannot write completed validator contract receipt");
+            false
+    };
+    true.

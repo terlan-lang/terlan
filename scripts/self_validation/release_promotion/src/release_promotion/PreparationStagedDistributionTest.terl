@@ -1,0 +1,188 @@
+/**
+ * Real public-installer rehearsal with the existing host archive in private Git
+ * fixtures. Constructed candidate/readiness records do not certify a release.
+ */
+module release_promotion.PreparationStagedDistributionTest.
+
+import release_promotion.{OwnerStorage, PreparationFixture, PrepareStagedDistribution}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.{Console, Directory, File}.
+
+readiness(root: String, attempt: Int, decision: String): Bool ->
+    OwnerStorage.atomic_json(
+        root,
+        "target/quality/release-readiness-attestation-report.json",
+        Json.object()
+            .put("schema", Json.string("terlan.release-readiness-attestation.v1"))
+            .put("decision", Json.string(decision))
+            .put("candidate_seal", Json.string("fixture-seal"))
+            .put("attempt", Json.int(attempt)),
+    ).
+
+fixture(root: String, origin: String, vm: String, image: String): Bool ->
+    let {
+        Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
+        Ok(_quality) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
+        Ok(_dist) <- Directory.create_all(OwnerStorage.child(root, "dist"));
+        Ok(installer) <- File.read_text(OwnerStorage.child(origin, "install.sh"));
+        Ok(_source) <-
+            File.write_text(
+                OwnerStorage.child(root, "install.sh"),
+                String.concat(
+                    [
+                        "test \"$HOME\" = \"$TMPDIR\" || exit 81\n",
+                        "case \"$TMPDIR\" in '",
+                        root,
+                        "/target/quality/preparation/'*'/staged-distribution.work') ;; *) exit 82;; esac\n",
+                        "printf 'install\\n' >> '",
+                        root,
+                        "/target/installer-calls'\n",
+                        installer,
+                    ],
+                ),
+            );
+        Ok(_cargo) <-
+            File.copy(
+                OwnerStorage.child(origin, "Cargo.toml"),
+                OwnerStorage.child(root, "Cargo.toml"),
+            );
+        Ok(_ignore) <- File.write_text(OwnerStorage.child(root, ".gitignore"), "/target/\n/dist/\n");
+        Ok(_copies) <-
+            File.copy_many(
+                [
+                    File.copy_plan(
+                        OwnerStorage.child(origin, vm),
+                        OwnerStorage.child(root, "target/tools/terlan-vm"),
+                    ),
+                    File.copy_plan(
+                        OwnerStorage.child(origin, image),
+                        OwnerStorage.child(root, "target/tools/matrix.tvm"),
+                    ),
+                    File.copy_plan(
+                        OwnerStorage.child(origin, "dist/terlan-release.json"),
+                        OwnerStorage.child(root, "dist/terlan-release.json"),
+                    ),
+                    File.copy_plan(
+                        OwnerStorage.child(origin, "dist/terlc-linux-x86_64.tar.gz"),
+                        OwnerStorage.child(root, "dist/terlc-linux-x86_64.tar.gz"),
+                    ),
+                    File.copy_plan(
+                        OwnerStorage.child(origin, "dist/terlc-linux-x86_64.tar.gz.sha256"),
+                        OwnerStorage.child(root, "dist/terlc-linux-x86_64.tar.gz.sha256"),
+                    ),
+                ],
+            );
+        true <-
+            OwnerStorage.atomic_json(
+                root,
+                "dist/release-candidate.json",
+                Json.object().put("seal", Json.object().put("digest", Json.string("fixture-seal"))),
+            );
+        true <- readiness(root, 1, "pass");
+        true <- PreparationFixture.commit(root)
+    } else {
+        _ -> false
+    };
+    OwnerStorage.command(root, "/bin/chmod", ["+x", "target/tools/terlan-vm"]).
+
+stage(root: String, label: String, reused: Bool): Bool ->
+    let _printed = Console.println(label);
+    case PrepareStagedDistribution.prepare(root, "target/tools/terlan-vm", "target/tools/matrix.tvm") {
+        Ok(result) -> result.valid and result.reused == reused;
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false
+    }.
+
+count(root: String, expected: Int): Bool ->
+    let Ok(source) <- File.read_text(OwnerStorage.child(root, "target/installer-calls")) else {
+        _ -> false
+    };
+    count_lines(String.split(source, "\n"), expected).
+
+count_lines(lines: List[String], remaining: Int): Bool ->
+    case lines {
+        [""] -> remaining == 0;
+        ["install" | rest] -> count_lines(rest, remaining - 1);
+        _ -> false
+    }.
+
+exercise(root: String, origin: String, vm: String, image: String): Bool ->
+    let output = OwnerStorage.child(root, PrepareStagedDistribution.output());
+    let checksum = OwnerStorage.child(root, "dist/terlc-linux-x86_64.tar.gz.sha256");
+    let {
+        true <- fixture(root, origin, vm, image);
+        Err(_unsafe) <- PrepareStagedDistribution.declare(root, "../outside", "target/tools/matrix.tvm");
+        true <- stage(root, "[staged rehearsal] cold installed verification", false);
+        true <- count(root, 5);
+        Ok(cold) <- File.read_text(output);
+        true <- stage(root, "[staged rehearsal] unchanged warm reuse", true);
+        true <- count(root, 5);
+        Ok(warm) <- File.read_text(output);
+        true <- cold == warm;
+        true <- readiness(root, 1, "fail");
+        Err(_failed_readiness) <-
+            PrepareStagedDistribution.prepare(
+                root,
+                "target/tools/terlan-vm",
+                "target/tools/matrix.tvm",
+            );
+        true <- count(root, 5);
+        true <- readiness(root, 1, "pass");
+        Ok(original_checksum) <- File.read_text(checksum);
+        Ok(_corrupt) <- File.write_text(checksum, "invalid checksum\n");
+        Ok(failed) <-
+            PrepareStagedDistribution.prepare(
+                root,
+                "target/tools/terlan-vm",
+                "target/tools/matrix.tvm",
+            );
+        true <- not failed.valid;
+        true <- count(root, 6);
+        Ok(preserved) <- File.read_text(output);
+        true <- cold == preserved;
+        Ok(_restore) <- File.write_text(checksum, original_checksum);
+        true <- stage(root, "[staged rehearsal] recover failed installation", false);
+        true <- count(root, 11);
+        true <- readiness(root, 2, "pass");
+        true <- stage(root, "[staged rehearsal] changed readiness input", false);
+        true <- count(root, 16);
+        Ok(final) <- File.read_text(output);
+        Ok(owner) <-
+            PrepareStagedDistribution.declare(
+                root,
+                "target/tools/terlan-vm",
+                "target/tools/matrix.tvm",
+            );
+        Ok(usage) <-
+            Directory.tree_usage(
+                OwnerStorage.child(
+                    root,
+                    String.concat(["target/quality/preparation/", owner.candidate]),
+                ),
+            )
+    } else {
+        _ -> false
+    };
+    cold == final and usage.directory_count == 1 and usage.regular_file_count == 3.
+
+pub self_test(origin: String, vm: String, image: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-staged-owner-rehearsal-") else {
+        _ -> false
+    };
+    (let valid = exercise(root, origin, vm, image);
+let removed =
+    case Directory.remove_all(root) {
+        Ok(_removed) -> true;
+        _ -> false
+    };
+let _printed =
+    Console.println(
+        if {
+            valid and removed -> "staged distribution owner passed: real installer, warm reuse, failure preservation, recovery and owned scratch";
+            true -> "staged distribution owner rehearsal failed"
+        },
+    );
+valid and removed).

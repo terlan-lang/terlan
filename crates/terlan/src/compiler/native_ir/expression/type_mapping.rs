@@ -236,11 +236,7 @@ pub(crate) fn literal_collection_type(expr: &CoreExpr) -> Option<CoreType> {
     let CoreExpr::List(items) = expr else {
         return None;
     };
-    let mut item_types = items.iter().map(literal_value_type);
-    let element = item_types.next()??;
-    item_types
-        .all(|item| item.as_ref() == Some(&element))
-        .then_some(CoreType::List(Box::new(element)))
+    super::collection_literal_types::homogeneous_list_type(items, literal_value_type)
 }
 
 /// Recovers a checked homogeneous list type when at least one item has a

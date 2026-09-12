@@ -12,6 +12,67 @@ use super::yield_regions::{
 };
 use super::NativeTransitionOperation;
 
+/// Discarding a result never authorizes removing the call that produced it.
+#[test]
+fn unused_prefix_call_executes_without_becoming_a_continuation_capture() {
+    use super::yield_regions::{lower_yield_region, YieldRegionEnvironment, YieldRegionRequest};
+    use super::{CoreLetBinding, NativeExpr, NativeType};
+    use std::collections::HashMap;
+
+    let region = YieldRegion {
+        prefix: vec![CoreLetBinding {
+            pattern: CorePattern::Var("discarded".to_string()),
+            value: CoreExpr::Call {
+                function: "effect".to_string(),
+                args: Vec::new(),
+            },
+        }],
+        operation: NativeTransitionOperation::Yield,
+        arguments: Vec::new(),
+        result: None,
+        result_core_type: None,
+        resume: CoreExpr::Atom("Unit".to_string()),
+        source_span: None,
+    };
+    let lowered = lower_yield_region(
+        YieldRegionRequest {
+            region: &region,
+            param_names: &[],
+            required_captures: &[],
+            continuation_id: 99,
+        },
+        YieldRegionEnvironment {
+            params: &HashMap::new(),
+            param_types: &HashMap::new(),
+            param_core_types: &HashMap::new(),
+            functions: &HashMap::from([(("effect".to_string(), 0), 3)]),
+            function_types: &HashMap::from([(("effect".to_string(), 0), NativeType::Unit)]),
+            function_core_types: &HashMap::from([(
+                ("effect".to_string(), 0),
+                CoreType::Named("Unit".to_string()),
+            )]),
+            constructors: &HashMap::new(),
+        },
+    )
+    .expect("preserve discarded call before yield");
+    assert_eq!(
+        lowered.entry,
+        NativeExpr::Let {
+            bindings: vec![NativeExpr::Call {
+                function: 3,
+                args: Vec::new()
+            }],
+            body: Box::new(NativeExpr::Suspend {
+                operation: NativeTransitionOperation::Yield,
+                arguments: Vec::new(),
+                continuation_id: 99,
+                values: Vec::new()
+            }),
+        }
+    );
+    assert!(lowered.continuation_params.is_empty());
+}
+
 /// Constructs one native operation intrinsic with the requested source span.
 fn native_operation(span: Span) -> CoreExpr {
     CoreExpr::Intrinsic(CoreIntrinsicCall {
@@ -145,6 +206,62 @@ fn generated_yield_prefix_is_alpha_renamed_around_prior_captures() {
         vec![CoreExpr::Var(freshened_name.clone())]
     );
     assert_eq!(freshened.resume, CoreExpr::Var(freshened_name.clone()));
+}
+
+/// A lexical scope can have holes after shadowing or dropping dead names.
+/// Appending a native local uses physical slots, never the map's entry count.
+#[test]
+fn yield_prefix_appends_after_the_highest_live_native_slot() {
+    use super::yield_regions::{lower_yield_region, YieldRegionEnvironment, YieldRegionRequest};
+    use super::{NativeExpr, NativeType};
+    use std::collections::HashMap;
+    let region = YieldRegion {
+        prefix: vec![crate::terlan_typeck::CoreLetBinding {
+            pattern: CorePattern::Var("$native_eager_arg_0_0".into()),
+            value: CoreExpr::Var("root".into()),
+        }],
+        operation: NativeTransitionOperation::Yield,
+        arguments: Vec::new(),
+        result: None,
+        result_core_type: None,
+        resume: CoreExpr::Var("$native_eager_arg_0_0".into()),
+        source_span: None,
+    };
+    let names = vec!["root".into()];
+    let params = HashMap::from([("root".into(), 3)]);
+    let types = HashMap::from([("root".into(), NativeType::StringRef)]);
+    let cores = HashMap::from([("root".into(), CoreType::String)]);
+    let lowered = lower_yield_region(
+        YieldRegionRequest {
+            region: &region,
+            param_names: &names,
+            required_captures: &[],
+            continuation_id: 99,
+        },
+        YieldRegionEnvironment {
+            params: &params,
+            param_types: &types,
+            param_core_types: &cores,
+            functions: &HashMap::new(),
+            function_types: &HashMap::new(),
+            function_core_types: &HashMap::new(),
+            constructors: &HashMap::new(),
+        },
+    )
+    .expect("lower sparse native scope");
+    assert_eq!(
+        lowered.entry,
+        NativeExpr::Let {
+            bindings: vec![NativeExpr::Param(3)],
+            body: Box::new(NativeExpr::Suspend {
+                operation: NativeTransitionOperation::Yield,
+                arguments: Vec::new(),
+                continuation_id: 99,
+                values: vec![NativeExpr::Param(4)],
+            }),
+        }
+    );
+    assert_eq!(lowered.continuation_params, vec![NativeType::StringRef]);
 }
 
 /// A nested process transition must preserve values required by the enclosing

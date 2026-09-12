@@ -1,10 +1,10 @@
 module=std.system.Process
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5376931271485870024
+syntax_contract_fingerprint=fnv1a64:eadfc8d7c5c2271b
+source_hash=10901311277704251158
 interface_hash=15734354385641150389
-interface_doc_hash=16334088358810825465
+interface_doc_hash=609343831521468114
 deps=3
 std.collections.List=5599785960849014878
 std.core.Option=11539230284316612175

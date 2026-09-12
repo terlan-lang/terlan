@@ -65,6 +65,7 @@ mod type_mapping;
 #[path = "expression/value_intrinsics.rs"]
 mod value_intrinsics;
 
+pub(super) use collection_literal_types::homogeneous_list_type;
 use equality::{lower_equality_operand, managed_equality_semantic};
 use field_access::lower_managed_field_access;
 pub(super) use free_variable_analysis::free_variables;
@@ -74,80 +75,13 @@ pub(super) use type_mapping::{
     witnessed_collection_type,
 };
 
+mod expected_field;
+use expected_field::{lower_expected_field, ExpectedFieldContext};
 mod inference;
 mod scalar_detection;
 
 pub(super) use inference::*;
 pub(super) use scalar_detection::expr_is_scalar;
-
-struct ExpectedFieldContext<'a> {
-    params: &'a HashMap<String, usize>,
-    param_types: &'a HashMap<String, NativeType>,
-    functions: &'a HashMap<(String, usize), usize>,
-    function_types: &'a HashMap<(String, usize), NativeType>,
-    constructors: &'a NativeConstructorLayouts,
-}
-
-/// Lowers one field against its checked type, including scalar control flow
-/// embedded inside a constructor or record value.
-fn lower_expected_field(
-    field: &CoreExpr,
-    expected: &CoreType,
-    type_error_code: &str,
-    context: &ExpectedFieldContext<'_>,
-) -> Result<(NativeExpr, NativeType), String> {
-    let expected_native = native_type(Some(expected), &expected.contract_text())
-        .ok_or_else(|| format!("error[{type_error_code}]: expected field type is not native"))?;
-    let lowered = super::collection_values::try_lower_typed_value(
-        field,
-        expected,
-        context.params,
-        context.param_types,
-        context.functions,
-        context.function_types,
-        context.constructors,
-    )
-    .map_err(|error| remap_field_type_error(error, type_error_code))?;
-    if let Some(lowered) = lowered {
-        return Ok((lowered, expected_native));
-    }
-    let actual = infer_native_type_for_lowering(
-        field,
-        context.param_types,
-        context.function_types,
-        context.constructors,
-    )?
-    .ok_or_else(|| {
-        format!("error[native_ir.constructor_control_field]: cannot infer `{field:?}`")
-    })?;
-    if actual != expected_native {
-        return Err(format!(
-            "error[{type_error_code}]: expected {expected_native:?}, found {actual:?}"
-        ));
-    }
-    let lowered = lower_expr_with_constructors(
-        field,
-        context.params,
-        context.param_types,
-        context.functions,
-        context.function_types,
-        context.constructors,
-    )?;
-    Ok((lowered, expected_native))
-}
-
-fn remap_field_type_error(error: String, type_error_code: &str) -> String {
-    if error.starts_with("error[native_ir.collection_value]:")
-        || error.starts_with("error[native_ir.collection_control_type]:")
-    {
-        let detail = error
-            .split_once(": ")
-            .map_or(error.as_str(), |(_, detail)| detail);
-        format!("error[{type_error_code}]: {detail}")
-    } else {
-        error
-    }
-}
 
 /// Lowers CoreIR with the fixed managed constructors visible to the module.
 pub(super) fn lower_expr_with_constructors(

@@ -349,7 +349,17 @@ fn qualify_expr(expr: &mut CoreExpr, scope: &NominalScope<'_>) {
                 qualify_expr(&mut clause.body, scope);
             }
         }
-        CoreExpr::Lam { body, .. } => qualify_expr(body, scope),
+        CoreExpr::Lam {
+            parameter_types,
+            body,
+            ..
+        } => {
+            parameter_types
+                .iter_mut()
+                .flatten()
+                .for_each(|ty| qualify_type(ty, scope));
+            qualify_expr(body, scope);
+        }
         CoreExpr::UnaryOp { operand, .. } => qualify_expr(operand, scope),
         CoreExpr::BinaryOp { left, right, .. } => {
             qualify_expr(left, scope);

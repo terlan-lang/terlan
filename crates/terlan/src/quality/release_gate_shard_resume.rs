@@ -204,28 +204,35 @@ struct MakeTarget<'a> {
 }
 
 fn make_target<'a>(makefile: &'a str, name: &str) -> Option<MakeTarget<'a>> {
-    let mut lines = makefile.lines();
-    while let Some(line) = lines.next() {
+    let mut target = None::<MakeTarget<'a>>;
+    let mut active = false;
+    for line in makefile.lines() {
+        if let Some(command) = line.strip_prefix('\t') {
+            if active {
+                target.as_mut()?.recipe.push(command.trim());
+            }
+            continue;
+        }
+        if line.trim().is_empty() || line.trim_start().starts_with('#') {
+            continue;
+        }
+        active = false;
         let Some((targets, prerequisites)) = line.split_once(':') else {
             continue;
         };
-        if !targets.split_whitespace().any(|target| target == name) {
+        if prerequisites.contains('=') || !targets.split_whitespace().any(|target| target == name) {
             continue;
         }
-        let mut recipe = Vec::new();
-        for recipe_line in lines.by_ref() {
-            if let Some(command) = recipe_line.strip_prefix('\t') {
-                recipe.push(command.trim());
-            } else if !recipe_line.trim().is_empty() {
-                break;
-            }
-        }
-        return Some(MakeTarget {
-            prerequisites: prerequisites.split_whitespace().collect(),
-            recipe,
-        });
+        active = true;
+        target
+            .get_or_insert_with(|| MakeTarget {
+                prerequisites: Vec::new(),
+                recipe: Vec::new(),
+            })
+            .prerequisites
+            .extend(prerequisites.split_whitespace());
     }
-    None
+    target
 }
 
 fn logical_recipe_commands(recipe: &[&str]) -> Vec<String> {
@@ -304,14 +311,20 @@ fn validate_release_makefile(makefile: &str) -> Vec<String> {
             && command.split_whitespace().any(|word| word == "check-gates")
     });
     for required_fragment in [
-        "TERLAN_RUST_SUITE_ALREADY_RUN=1",
-        "TERLAN_VALIDATION_BOOTSTRAPPED=1",
+        "$(TERLAN_RUST_ORCHESTRATOR) --with-cargo-coverage",
+        "$(CURDIR)/target/quality/rust-test-suite-report.json -- $(MAKE)",
     ] {
         if !validation_command.is_some_and(|command| command.contains(required_fragment)) {
             diagnostics.push(format!(
                 "{MAKEFILE}: `check` must propagate `{required_fragment}` to the owned validation cycle"
             ));
         }
+    }
+    if validation_command.is_some_and(|command| command.contains("TERLAN_RUST_SUITE_ALREADY_RUN="))
+    {
+        diagnostics.push(format!(
+            "{MAKEFILE}: `check` must use live coverage admission, not an unchecked suite skip flag"
+        ));
     }
     if validation_command.is_none() {
         diagnostics.push(format!(
@@ -325,22 +338,36 @@ fn validate_release_makefile(makefile: &str) -> Vec<String> {
         Some(refresh) => {
             let release_evidence_gates =
                 parse_make_list_variable_values(makefile, "RELEASE_EVIDENCE_GATES");
-            let refresh_commands = logical_recipe_commands(&refresh.recipe);
-            let owns_directly = refresh.prerequisites.contains(&final_gate)
-                || make_recipe_invokes(&refresh_commands, final_gate);
-            let owns_through_manifest =
-                release_evidence_gates.iter().any(|gate| gate == final_gate)
-                    && make_recipe_invokes(&refresh_commands, "$(RELEASE_EVIDENCE_GATES)");
-            let owns_through_composer =
-                make_recipe_invokes(&refresh_commands, "release-evidence-compose")
-                    && make_target(makefile, "release-evidence-compose").is_some_and(|composer| {
-                        let composer_commands = logical_recipe_commands(&composer.recipe);
-                        make_recipe_invokes(&composer_commands, "$(RELEASE_EVIDENCE_GATES)")
+            let exports_release_scope = makefile.lines().any(|line| {
+                line.strip_prefix("release-evidence-refresh:")
+                    .is_some_and(|value| {
+                        value.split_whitespace().eq([
+                            "export",
+                            "TERLAN_CHECK_RELEASE_EVIDENCE",
+                            ":=",
+                            "1",
+                        ])
                     })
-                    && release_evidence_gates.iter().any(|gate| gate == final_gate);
-            if !owns_directly && !owns_through_manifest && !owns_through_composer {
+            });
+            let shares_composer = validation_command.is_some_and(|command| {
+                command.contains(
+                    "$(if $(filter 1,$(TERLAN_CHECK_RELEASE_EVIDENCE)),release-evidence-compose)",
+                )
+            }) && make_target(makefile, "release-evidence-compose")
+                .is_some_and(|composer| {
+                    composer
+                        .prerequisites
+                        .contains(&"$(RELEASE_EVIDENCE_GATES)")
+                        && !composer.recipe.iter().any(|line| line.contains("$(MAKE)"))
+                });
+            if !refresh.prerequisites.contains(&"check")
+                || !refresh.recipe.is_empty()
+                || !exports_release_scope
+                || !shares_composer
+                || !release_evidence_gates.iter().any(|gate| gate == final_gate)
+            {
                 diagnostics.push(format!(
-                    "{MAKEFILE}: `{refresh_name}` must own the release-only `{final_gate}` chain"
+                    "{MAKEFILE}: `{refresh_name}` must own the release-only `{final_gate}` chain through the live shared Make graph"
                 ));
             }
         }

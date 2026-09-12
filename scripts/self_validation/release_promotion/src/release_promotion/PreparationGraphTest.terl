@@ -1,0 +1,606 @@
+/**
+ * Dependency recovery uses actual owned subprocesses in disposable directories.
+ */
+module release_promotion.PreparationGraphTest.
+
+import release_promotion.{NativeActivityTest, NativeCycle, OwnerCommit, OwnerNative, OwnerStorage, PreparationGraph, PreparationOwner}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.data.Json.{length}.
+import std.io.File.{NotFound as FileNotFound}.
+import std.io.{Console, Directory, File}.
+import std.system.Process.{environment_entry}.
+
+import type release_promotion.PreparationGraph.{Node, Summary}.
+import type release_promotion.PreparationOwner.Owner.
+
+owner(name: String, candidate: String, output: String, argument: String): Owner ->
+    PreparationOwner.with_optional_dependencies(
+        PreparationOwner.owner(
+            name,
+            candidate,
+            "linux-x64",
+            "fixture",
+            "fixture-v1",
+            [String.append(name, ".input"), "producer.sh"],
+            [],
+            "/bin/sh",
+            ["producer.sh", argument],
+            [environment_entry("PATH", "/usr/bin:/bin")],
+            output,
+            "OWNER_OUTPUT",
+            "fixture.v1",
+            "producer completed",
+            30000,
+        ),
+        [String.append(name, ".native")],
+    ).
+
+node(name: String, parents: List[String]): Node ->
+    PreparationGraph.declare_node(
+        owner(name, "candidate", String.concat(["target/quality/", name, ".json"]), name),
+        parents,
+    ).
+
+nodes(): List[Node] ->
+    [node("a", []), node("b", ["a"]), node("c", []), node("d", ["b"])].
+
+write(root: String, path: String, source: String): Bool ->
+    case File.write_text(OwnerStorage.child(root, path), source) {
+        Ok(_written) -> true;
+        Err(_reason) -> false
+    }.
+
+prepare(root: String): Bool ->
+    let Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, "target/quality")) else {
+        _ -> false
+    };
+    write(root, "a.input", "original")
+        and write(root, "b.input", "original")
+        and write(root, "c.input", "original")
+        and write(root, "d.input", "original")
+        and write(root, "calls", "")
+        and write(
+    root,
+    "producer.sh",
+    "set -eu\necho \"$1\" >> calls\nif test -f \"$1.native\"; then cat -- \"$1.native\" >> \"$TERLAN_BUILD_ACTIVITY_LOG\"; fi\ncase $(cat \"$1.input\") in fail) exit 7;; kill) kill -KILL $$;; esac\nprintf '{\"schema\":\"fixture.v1\"}\\n' > \"$OWNER_OUTPUT\"\necho 'producer completed'\n",
+).
+
+calls(root: String, expected: String): Bool ->
+    let Ok(actual) <- File.read_text(OwnerStorage.child(root, "calls")) else {
+        _ -> false
+    };
+    actual == expected.
+
+recorded(root: String, expected: String, completed: Int, reused: Int): Bool ->
+    let {
+        Ok(document) <-
+            OwnerStorage.read_json(
+                OwnerStorage.child(root, PreparationGraph.ledger_path("candidate", "fixture")),
+            );
+        Some(outcome) <- OwnerStorage.text(document, "outcome");
+        Ok(completed_value) <- document.get("completed_owners");
+        Ok(actual_completed) <- completed_value.as_int();
+        Ok(reused_value) <- document.get("reused_owners");
+        Ok(actual_reused) <- reused_value.as_int();
+        Ok(rows) <- document.get("owners");
+        Ok(row_count) <- length(rows)
+    } else {
+        _ -> false
+    };
+    (let failures =
+    if {
+        expected == "failed" -> 1;
+        true -> 0
+    };
+outcome == expected
+    and actual_completed == completed
+    and actual_reused == reused
+    and row_count == completed + reused + failures).
+
+successful(value: Summary, completed: Int, reused: Int): Bool ->
+    value.valid and value.completed == completed and value.reused == reused.
+
+cold_warm(root: String): Bool ->
+    let cold = PreparationGraph.run_locked(root, "fixture", nodes());
+    let warm = PreparationGraph.run_locked(root, "fixture", nodes());
+    successful(cold, 4, 0)
+        and successful(warm, 0, 4)
+        and calls(root, "a\nb\nc\nd\n")
+        and recorded(root, "pass", 0, 4).
+
+changed_parent(root: String): Bool ->
+    let first = PreparationGraph.run_locked(root, "fixture", nodes());
+    let {
+        true <- first.valid;
+        Ok(before) <- File.read_text(OwnerStorage.child(root, "target/quality/a.json"));
+        true <- write(root, "a.input", "changed upstream source")
+    } else {
+        _ -> false
+    };
+    verify_changed_parent(root, before).
+
+verify_changed_parent(root: String, before: String): Bool ->
+    let changed = PreparationGraph.run_locked(root, "fixture", nodes());
+    let Ok(current) <- File.read_text(OwnerStorage.child(root, "target/quality/a.json")) else {
+        _ -> false
+    };
+    successful(changed, 3, 1)
+        and before == current
+        and calls(root, "a\nb\nc\nd\na\nb\nd\n")
+        and recorded(root, "pass", 3, 1).
+
+interrupted(root: String, mode: String): Bool ->
+    let first = PreparationGraph.run_locked(root, "fixture", nodes());
+    let {
+        true <- first.valid;
+        Ok(before) <- File.read_text(OwnerStorage.child(root, "target/quality/b.json"));
+        true <- write(root, "b.input", mode)
+    } else {
+        _ -> false
+    };
+    recover_interrupted(root, before).
+
+recover_interrupted(root: String, before: String): Bool ->
+    let failed = PreparationGraph.run_locked(root, "fixture", nodes());
+    let {
+        true <- not failed.valid and failed.completed == 0 and failed.reused == 1;
+        true <- recorded(root, "failed", 0, 1);
+        true <- calls(root, "a\nb\nc\nd\nb\n");
+        Ok(retained) <- File.read_text(OwnerStorage.child(root, "target/quality/b.json"));
+        true <- before == retained;
+        true <- write(root, "b.input", "changed and repaired")
+    } else {
+        _ -> false
+    };
+    verify_resume(root, 2, 2, "a\nb\nc\nd\nb\nb\nd\n").
+
+verify_resume(root: String, completed: Int, reused: Int, expected_calls: String): Bool ->
+    let resumed = PreparationGraph.run_locked(root, "fixture", nodes());
+    successful(resumed, completed, reused)
+        and calls(root, expected_calls)
+        and recorded(root, "pass", completed, reused).
+
+summary_is_not_authority(root: String): Bool ->
+    let first = PreparationGraph.run_locked(root, "fixture", nodes());
+    let path = PreparationGraph.ledger_path("candidate", "fixture");
+    let {
+        true <- first.valid;
+        true <- write(root, path, "{partial");
+        true <- write(root, String.append(path, ".pending"), "{partial")
+    } else {
+        _ -> false
+    };
+    verify_resume(root, 0, 4, "a\nb\nc\nd\n").
+
+invalid_graphs(root: String): Bool ->
+    let duplicate_output = PreparationGraph.declare_node(owner("b", "candidate", "target/quality/a.json", "b"), []);
+    let duplicate_producer = PreparationGraph.declare_node(owner("b", "candidate", "target/quality/b.json", "a"), []);
+    let foreign = PreparationGraph.declare_node(owner("b", "different", "target/quality/b.json", "b"), []);
+    let hidden =
+        PreparationGraph.declare_node(
+            PreparationOwner.with_dependencies(
+                owner("b", "candidate", "target/quality/b.json", "b"),
+                ["target/quality/a.json"],
+            ),
+            [],
+        );
+    let hidden_optional =
+        PreparationGraph.declare_node(
+            PreparationOwner.with_optional_dependencies(
+                owner("b", "candidate", "target/quality/b.json", "b"),
+                ["target/quality/a.json"],
+            ),
+            [],
+        );
+    let invalid =
+        [
+            [],
+            [node("a", []), node("a", [])],
+            [node("a", []), duplicate_output],
+            [node("a", []), duplicate_producer],
+            [node("a", []), foreign],
+            [node("a", []), hidden],
+            [node("a", []), hidden_optional],
+            [
+                node("a", []),
+                PreparationGraph.declare_node(
+                    PreparationOwner.with_dependencies(
+                        owner("b", "candidate", "target/quality/b.json", "b"),
+                        [
+                            PreparationOwner.activity_path(
+                                owner("a", "candidate", "target/quality/a.json", "a"),
+                            ),
+                        ],
+                    ),
+                    [],
+                ),
+            ],
+            [
+                node("a", []),
+                PreparationGraph.declare_node(
+                    PreparationOwner.with_optional_dependencies(
+                        owner("b", "candidate", "target/quality/b.json", "b"),
+                        [
+                            PreparationOwner.activity_path(
+                                owner("a", "candidate", "target/quality/a.json", "a"),
+                            ),
+                        ],
+                    ),
+                    [],
+                ),
+            ],
+            [node("a", ["b"]), node("b", ["a"])],
+            [node("a", []), node("b", ["missing"])],
+            [node("a", []), node("b", ["a", "a"])],
+        ];
+    rejects_each(root, invalid)
+        and not PreparationGraph.run_locked(root, "../unsafe", nodes()).valid
+        and calls(root, "").
+
+rejects_each(root: String, graphs: List[List[Node]]): Bool ->
+    case graphs {
+        [] -> true;
+        [selected | rest] ->
+            not PreparationGraph.run_locked(root, "fixture", selected).valid
+                and rejects_each(root, rest)
+    }.
+
+scenario(mode: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-preparation-graph-") else {
+        _ -> false
+    };
+    (let valid =
+    prepare(root)
+        and case mode {
+    "cold-warm" -> cold_warm(root);
+    "changed-parent" -> changed_parent(root);
+    "summary" -> summary_is_not_authority(root);
+    "invalid" -> invalid_graphs(root);
+    "native-warm" -> native_warm(root);
+    "native-duplicate" -> native_duplicate(root);
+    "native-gap" -> native_commit_gap(root, false);
+    "native-prepared-gap" -> native_commit_gap(root, true);
+    "native-resume" -> native_resume(root);
+    "native-corrupt" -> native_corrupt(root);
+    "native-owner-fail" -> failed_native_owner(root, false, false);
+    "native-owner-gap" -> failed_native_owner(root, true, false);
+    "native-owner-corrupt" -> failed_native_owner(root, false, true);
+    "native-owner-pending" -> pending_native_owner(root);
+    _ -> interrupted(root, mode)
+};
+let removed =
+    case Directory.remove_all(root) {
+        Ok(_removed) -> true;
+        _ -> false
+    };
+let _printed =
+    Console.println(
+        String.concat(
+            [
+                "[preparation graph test] ",
+                mode,
+                if {
+                    valid and removed -> ": passed";
+                    true -> ": failed"
+                },
+            ],
+        ),
+    );
+valid and removed).
+
+native_nodes(): List[Node] ->
+    [node("a", []), node("b", [])].
+
+native_count(root: String, expected: Int): Bool ->
+    let {
+        Ok(document) <-
+            OwnerStorage.read_json(
+                OwnerStorage.child(root, NativeCycle.path("candidate", "fixture")),
+            );
+        Ok(body) <- document.get("body");
+        Ok(claims) <- body.get("claims");
+        Ok(count) <- claims.object_length()
+    } else {
+        _ -> false
+    };
+    count == expected.
+
+native_launches(root: String, expected: Int): Bool ->
+    let {
+        Ok(document) <-
+            OwnerStorage.read_json(
+                OwnerStorage.child(root, NativeCycle.path("candidate", "fixture")),
+            );
+        Ok(body) <- document.get("body");
+        Ok(value) <- body.get("native_link_launches");
+        Ok(count) <- value.as_int()
+    } else {
+        _ -> false
+    };
+    count == expected.
+
+native_scratch_absent(root: String): Bool ->
+    case File.size(OwnerStorage.child(root, "target/quality/preparation/candidate/a.work/native.jsonl")) {
+        Ok(_size) -> false;
+        Err(reason) -> File.code(reason) == FileNotFound
+    }.
+
+native_warm(root: String): Bool ->
+    let true <- write(root, "a.native", NativeActivityTest.object("a")) else {
+        _ -> false
+    };
+    (let cold = PreparationGraph.run_locked(root, "fixture", native_nodes());
+(let true <- successful(cold, 2, 0) and native_count(root, 1) else {
+    _ -> false
+};
+(let warm = PreparationGraph.run_locked(root, "fixture", native_nodes()); successful(warm, 0, 2) and native_count(root, 0) and calls(root, "a\nb\n")))).
+
+native_duplicate(root: String): Bool ->
+    let {
+        true <- write(root, "a.native", NativeActivityTest.object("a"));
+        true <- write(root, "b.native", NativeActivityTest.object("b"))
+    } else {
+        _ -> false
+    };
+    (let duplicate = PreparationGraph.run_locked(root, "fixture", native_nodes()); let retry = PreparationGraph.run_locked(root, "fixture", native_nodes()); not duplicate.valid and duplicate.completed == 2 and not retry.valid and calls(root, "a\nb\n")).
+
+native_commit_gap(root: String, prepared: Bool): Bool ->
+    let selected = owner("a", "candidate", "target/quality/a.json", "a");
+    let {
+        true <- write(root, "a.native", NativeActivityTest.object("a"));
+        true <- write(root, "b.native", NativeActivityTest.object("b"));
+        Ok(_directory) <-
+            Directory.create_all(
+                OwnerStorage.child(root, "target/quality/preparation/candidate/graphs"),
+            );
+        Ok(cycle) <- NativeCycle.open(root, "candidate", "fixture");
+        true <- NativeCycle.before(root, NativeCycle.path("candidate", "fixture"), cycle, selected)
+    } else {
+        _ -> false
+    };
+    (let first = PreparationOwner.run_locked(root, selected);
+(let true <- first.valid and not first.reused and (not prepared or prepared_residue(root, selected)) else {
+    _ -> false
+};
+(let resumed = PreparationGraph.run_locked(root, "fixture", native_nodes()); not resumed.valid and resumed.reused == 1 and calls(root, "a\nb\n")))).
+
+prepared_residue(root: String, selected: Owner): Bool ->
+    let work = "target/quality/preparation/candidate/a.work";
+    let staged = String.append(work, "/output.json");
+    let retained = String.append(work, "/retained-native.jsonl");
+    let {
+        Ok(state) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(selected)));
+        Ok(snapshot) <-
+            OwnerNative.read_snapshot(
+                OwnerStorage.child(root, PreparationOwner.activity_path(selected)),
+            );
+        Ok(output) <- File.read_text(OwnerStorage.child(root, selected.output));
+        Ok(_work) <- Directory.create_all(OwnerStorage.child(root, work));
+        true <- write(root, staged, output);
+        true <- write(root, String.append(work, "/native.jsonl"), snapshot.raw);
+        true <-
+            OwnerCommit.prepare(
+                root,
+                PreparationOwner.ledger_path(selected),
+                staged,
+                selected.output,
+                retained,
+                PreparationOwner.activity_path(selected),
+                state,
+                snapshot,
+            );
+        Ok(prepared) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(selected)));
+        Ok(outputs) <- prepared.get("outputs");
+        Ok(primary) <- outputs.at(0)
+    } else {
+        _ -> false
+    };
+    OwnerCommit.publish_file(root, staged, selected.output, primary).
+
+native_resume(root: String): Bool ->
+    let {
+        true <- write(root, "a.native", NativeActivityTest.object("a"));
+        true <- write(root, "b.input", "fail")
+    } else {
+        _ -> false
+    };
+    (let failed = PreparationGraph.run_locked(root, "fixture", native_nodes());
+(let {
+    true <- not failed.valid and native_count(root, 1);
+    true <- write(root, "b.input", "repaired");
+    true <- write(root, "b.native", NativeActivityTest.object("b"))
+} else {
+    _ -> false
+};
+(let resumed = PreparationGraph.run_locked(root, "fixture", native_nodes()); not resumed.valid and resumed.reused == 1 and calls(root, "a\nb\nb\n")))).
+
+native_corrupt(root: String): Bool ->
+    let first = PreparationGraph.run_locked(root, "fixture", native_nodes());
+    let journal = NativeCycle.path("candidate", "fixture");
+    let {
+        true <- first.valid;
+        Ok(document) <- OwnerStorage.read_json(OwnerStorage.child(root, journal));
+        Ok(body) <- document.get("body")
+    } else {
+        _ -> false
+    };
+    (let _changed = body.put("native_link_launches", Json.int(1));
+let _updated = document.put("body", body);
+(let true <- OwnerStorage.atomic_json(root, journal, document) else {
+    _ -> false
+};
+not PreparationGraph.run_locked(root, "fixture", native_nodes()).valid and calls(root, "a\nb\n"))).
+
+failed_native_owner(root: String, gap: Bool, corrupt: Bool): Bool ->
+    let selected = owner("a", "candidate", "target/quality/a.json", "a");
+    let raw =
+        String.append(
+            NativeActivityTest.object("completed-before-failure"),
+            NativeActivityTest.failed_link(),
+        );
+    let {
+        true <- write(root, "a.native", raw);
+        true <- write(root, "a.input", "fail");
+        Ok(_directory) <-
+            Directory.create_all(
+                OwnerStorage.child(root, "target/quality/preparation/candidate/graphs"),
+            );
+        Ok(cycle) <- NativeCycle.open(root, "candidate", "fixture");
+        true <- NativeCycle.before(root, NativeCycle.path("candidate", "fixture"), cycle, selected)
+    } else {
+        _ -> false
+    };
+    (let failed =
+    if {
+        gap -> not PreparationOwner.run_locked(root, selected).valid;
+        true -> not PreparationGraph.run_locked(root, "fixture", [node("a", [])]).valid
+    };
+(let {
+    true <- failed;
+    Ok(retained) <- File.read_text(OwnerStorage.child(root, PreparationOwner.failed_activity_path(selected)));
+    true <- NativeActivityTest.owned_log(retained, raw);
+    true <- write(root, "a.input", "repaired");
+    true <- write(root, "a.native", NativeActivityTest.object("replayed-after-failure"));
+    true <-
+        if {
+            corrupt -> write(root, PreparationOwner.failed_activity_path(selected), "corrupt evidence");
+            true -> true
+        }
+} else {
+    _ -> false
+};
+(let resumed = PreparationGraph.run_locked(root, "fixture", [node("a", [])]);
+not resumed.valid
+    and calls(
+    root,
+    if {
+        corrupt -> "a\n";
+        true -> "a\na\n"
+    },
+)
+    and native_count(root, 1)
+    and native_launches(root, 1)
+    and native_scratch_absent(root)))).
+
+pending_native_owner(root: String): Bool ->
+    let selected = owner("a", "candidate", "target/quality/a.json", "a");
+    let first = PreparationOwner.run_locked(root, selected);
+    let {
+        true <- first.valid;
+        Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(selected)));
+        Ok(_directory) <-
+            Directory.create_all(
+                OwnerStorage.child(root, "target/quality/preparation/candidate/graphs"),
+            );
+        Ok(cycle) <- NativeCycle.open(root, "candidate", "fixture");
+        true <- NativeCycle.before(root, NativeCycle.path("candidate", "fixture"), cycle, selected);
+        Ok(_work) <-
+            Directory.create_all(
+                OwnerStorage.child(root, "target/quality/preparation/candidate/a.work"),
+            );
+        true <-
+            write(
+                root,
+                "target/quality/preparation/candidate/a.work/native.jsonl",
+                NativeActivityTest.object("interrupted-completed"),
+            );
+        true <-
+            OwnerStorage.atomic_json(
+                root,
+                PreparationOwner.ledger_path(selected),
+                ledger.put("outcome", Json.string("running")),
+            );
+        true <- write(root, "a.native", NativeActivityTest.object("replayed-after-interruption"))
+    } else {
+        _ -> false
+    };
+    (let resumed = PreparationGraph.run_locked(root, "fixture", [node("a", [])]);
+not resumed.valid
+    and native_count(root, 1)
+    and calls(root, "a\na\n")
+    and native_scratch_absent(root)).
+
+@test
+pub failed_owner_native_work_is_retained_and_not_replayed(): Bool ->
+    scenario("native-owner-fail").
+
+@test
+pub failed_owner_commit_gap_retains_native_work(): Bool ->
+    scenario("native-owner-gap").
+
+@test
+pub corrupted_failed_native_evidence_rejects_before_launch(): Bool ->
+    scenario("native-owner-corrupt").
+
+@test
+pub interrupted_owner_scratch_is_accounted_before_retry(): Bool ->
+    scenario("native-owner-pending").
+
+@test
+pub native_cycle_separates_historical_reuse_from_new_work(): Bool ->
+    scenario("native-warm").
+
+@test
+pub duplicate_native_work_remains_rejected_on_warm_retry(): Bool ->
+    scenario("native-duplicate").
+
+@test
+pub interrupted_owner_graph_commit_gap_preserves_native_claims(): Bool ->
+    scenario("native-gap").
+
+@test
+pub native_claims_survive_failed_graph_resume(): Bool ->
+    scenario("native-resume").
+
+@test
+pub corrupt_native_cycle_rejects_before_any_launch(): Bool ->
+    scenario("native-corrupt").
+
+@test
+pub unchanged_graph_reuses_all_owners_without_producer_replay(): Bool ->
+    scenario("cold-warm").
+
+@test
+pub identical_parent_output_still_invalidates_only_transitive_consumers(): Bool ->
+    scenario("changed-parent").
+
+@test
+pub failed_owner_stops_graph_and_resume_preserves_independent_owners(): Bool ->
+    scenario("fail").
+
+@test
+pub killed_producer_resumes_without_replaying_completed_owners(): Bool ->
+    scenario("kill").
+
+@test
+pub interrupted_graph_summary_does_not_discard_verified_owner_evidence(): Bool ->
+    scenario("summary").
+
+@test
+pub invalid_ownership_and_dependencies_reject_before_first_launch(): Bool ->
+    scenario("invalid").
+
+@test
+pub prepared_publication_recovery_preserves_native_claims(): Bool ->
+    scenario("native-prepared-gap").
+
+pub self_test(): Bool ->
+    unchanged_graph_reuses_all_owners_without_producer_replay()
+        and identical_parent_output_still_invalidates_only_transitive_consumers()
+        and failed_owner_stops_graph_and_resume_preserves_independent_owners()
+        and killed_producer_resumes_without_replaying_completed_owners()
+        and interrupted_graph_summary_does_not_discard_verified_owner_evidence()
+        and invalid_ownership_and_dependencies_reject_before_first_launch()
+        and native_cycle_separates_historical_reuse_from_new_work()
+        and duplicate_native_work_remains_rejected_on_warm_retry()
+        and interrupted_owner_graph_commit_gap_preserves_native_claims()
+        and prepared_publication_recovery_preserves_native_claims()
+        and native_claims_survive_failed_graph_resume()
+        and corrupt_native_cycle_rejects_before_any_launch()
+        and failed_owner_native_work_is_retained_and_not_replayed()
+        and failed_owner_commit_gap_retains_native_work()
+        and corrupted_failed_native_evidence_rejects_before_launch()
+        and interrupted_owner_scratch_is_accounted_before_retry().

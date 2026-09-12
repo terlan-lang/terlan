@@ -152,13 +152,7 @@ pub(super) fn recursive_reduction_component(
         }
     }
     let evidence = evidence?;
-    if evidence.component.is_empty()
-        || evidence.recursive_calls.is_empty()
-        || evidence
-            .recursive_calls
-            .iter()
-            .all(|edge| !edge.tail_position)
-    {
+    if evidence.component.is_empty() || evidence.recursive_calls.is_empty() {
         return None;
     }
     let component_names = evidence.component.iter().cloned().collect::<HashSet<_>>();

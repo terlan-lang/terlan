@@ -2,6 +2,81 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+/// Owns one exclusively created scratch directory through normal exit and unwind.
+/// This does not claim cleanup after process abort or forced termination.
+pub(crate) struct TestDirectory {
+    path: Option<PathBuf>,
+}
+
+impl TestDirectory {
+    /// Creates scratch without deleting or adopting a pre-existing directory.
+    pub(crate) fn new(prefix: &str, name: &str) -> Self {
+        for label in [prefix, name] {
+            assert!(
+                !label.is_empty()
+                    && label
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric()
+                            || matches!(byte, b'_' | b'-' | b'.')),
+                "invalid scratch label"
+            );
+        }
+        for _ in 0..64 {
+            let path = temp_path(prefix, name);
+            match fs::create_dir(&path) {
+                Ok(()) => return Self { path: Some(path) },
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(error) => panic!("create test scratch {}: {error}", path.display()),
+            }
+        }
+        panic!("could not reserve unique test scratch");
+    }
+
+    /// Returns the owned path without transferring cleanup responsibility.
+    pub(crate) fn path(&self) -> &Path {
+        self.path.as_deref().expect("owned test scratch")
+    }
+
+    /// Removes scratch on success, surfacing cleanup errors as test failures.
+    pub(crate) fn close(mut self) {
+        fs::remove_dir_all(self.path()).expect("remove test scratch");
+        self.path = None;
+    }
+}
+
+impl std::ops::Deref for TestDirectory {
+    type Target = Path;
+
+    fn deref(&self) -> &Self::Target {
+        self.path()
+    }
+}
+
+impl AsRef<Path> for TestDirectory {
+    fn as_ref(&self) -> &Path {
+        self.path()
+    }
+}
+
+impl Drop for TestDirectory {
+    fn drop(&mut self) {
+        if let Some(path) = &self.path {
+            if let Err(error) = fs::remove_dir_all(path) {
+                if error.kind() != std::io::ErrorKind::NotFound {
+                    eprintln!(
+                        "test scratch cleanup failed for {}: {error}",
+                        path.display()
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "test_fs_test.rs"]
+mod tests;
+
 /// Returns the repository root for filesystem-backed tests.
 ///
 /// Inputs:

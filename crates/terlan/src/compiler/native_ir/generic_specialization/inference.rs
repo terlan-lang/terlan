@@ -214,7 +214,7 @@ fn contextual_lambda_type(
     templates: &CallableTemplates,
     module: &str,
 ) -> Option<CoreType> {
-    let CoreExpr::Lam { params, body } = argument else {
+    let CoreExpr::Lam { params, body, .. } = argument else {
         return None;
     };
     let CoreType::Arrow {

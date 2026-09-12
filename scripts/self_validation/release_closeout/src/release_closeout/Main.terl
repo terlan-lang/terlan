@@ -3,7 +3,7 @@
  */
 module release_closeout.Main.
 
-import release_closeout.{Diagnostics, Examples, ReferenceApps, ReleaseEvidence, SupplyChain, Support, Upgrade}.
+import release_closeout.{Diagnostics, Examples, ReferenceApps, ReleaseEvidence, SupplyChain, SupplyChainMetadata, Support, Upgrade}.
 import std.core.Option.{None, Some}.
 import std.core.String.
 import std.system.Arguments.
@@ -24,6 +24,7 @@ pub entry(): Bool ->
         "compatibility-baseline" -> Diagnostics.compatibility_baseline(root);
         "release-notes" -> Diagnostics.release_notes(root);
         "supply-chain" -> SupplyChain.provenance(root);
+        "supply-chain-metadata-self-test" -> SupplyChainMetadata.self_test();
         "security" -> SupplyChain.security(root);
         "support-bundle" -> ReleaseEvidence.support_bundle(root);
         "performance" -> ReleaseEvidence.performance(root);

@@ -56,7 +56,7 @@ pub(super) fn syntax_output_includes_recursive_expression_and_pattern_trees() {
 /// Transformation:
 /// - Parses the expression through the public syntax-output entry point
 ///   and inspects the compiler-facing serialized expression shape.
-
+///
 /// Verifies syntax output preserves explicit cast expressions.
 ///
 /// Inputs:
@@ -234,7 +234,7 @@ pub(super) fn syntax_output_preserves_expression_precedence_tree() {
 /// Transformation:
 /// - Parses source to `SyntaxModuleOutput` and inspects the nested
 ///   expression tree used by the formal compiler path.
-
+///
 /// Verifies that boolean operators are preserved in formal syntax output.
 ///
 /// Inputs:
@@ -299,7 +299,7 @@ pub(super) fn syntax_output_preserves_boolean_expression_precedence_tree() {
 /// Transformation:
 /// - Parses source through syntax output and inspects the formal tree
 ///   shape used by typecheck/CoreIR lowering.
-
+///
 /// Verifies local `let` expressions preserve binding order and explicit
 /// body shape.
 ///
@@ -532,7 +532,7 @@ pub(super) fn syntax_output_includes_named_call_argument_metadata() {
 /// Transformation:
 /// - Parses source through `parse_module_as_syntax_output` and inspects the
 ///   emitted `SyntaxExprKind::Call` children and remote marker.
-
+///
 /// Verifies function-value invocation uses expression-call syntax output.
 ///
 /// Inputs:
@@ -586,7 +586,7 @@ pub(super) fn syntax_output_includes_function_value_invocation_trees() {
 /// Transformation:
 /// - Parses source through `parse_module_as_syntax_output` and inspects the
 ///   emitted call tree consumed by later method-resolution phases.
-
+///
 /// Verifies receiver method calls are syntax-output calls over field access.
 ///
 /// Inputs:

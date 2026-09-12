@@ -90,6 +90,44 @@ pub(super) fn build_command_builds_atom_alias_for_vm() {
     );
 }
 
+/// Verifies nested effectful case operands survive lists, calls and field projection.
+#[test]
+pub(super) fn build_command_compiles_script_eager_case_operands() {
+    let dir = crate::support::test_fs::TestDirectory::new("build", "eager-case-script");
+    let script = dir.join("EagerCase.terls");
+    let output = dir.join("build");
+    fs::write(
+        &script,
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/eager_case.terls"
+        )),
+    )
+    .expect("write eager case script");
+    assert_eq!(
+        run(
+            CliCommand {
+                verb: Some("build".into()),
+                args: vec![
+                    script.display().to_string(),
+                    "--target".into(),
+                    "terlan-vm".into()
+                ],
+            },
+            CliState {
+                out_dir: output.clone(),
+                ..CliState::default()
+            },
+        ),
+        ExitCode::SUCCESS
+    );
+    let descriptor = inspect_native_descriptor(&output.join("vm/script_EagerCase.tvm"));
+    assert!(descriptor
+        .exports
+        .iter()
+        .any(|export| export.name == "script.EagerCase.main/0"));
+}
+
 /// Verifies a project-owned script, not the package `Main`, roots direct script AOT builds.
 #[test]
 pub(super) fn build_command_roots_project_script_at_synthetic_main() {

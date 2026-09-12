@@ -10,6 +10,24 @@ if [[ ! "$revision" =~ ^[0-9a-f]{40}$ ]]; then
   exit 2
 fi
 publication_inputs="target/publication-inputs/$revision"
+# One download/restore owner per worktree; concurrent writers share dist/.
+mkdir -p target
+exec 9>target/publication-inputs.lock
+flock -n 9 || { echo "another publication input owner is running" >&2; exit 1; }
+
+retire_previous_candidate() {
+  if [[ -e dist/release-candidate.json || -L dist/release-candidate.json ]]; then
+    [[ -f dist/release-candidate.json && ! -L dist/release-candidate.json ]] || {
+      echo "previous candidate manifest must be a regular, non-symlink file" >&2
+      return 1
+    }
+    mkdir -p target/publication-inputs
+    retired_candidate="$(mktemp -d target/publication-inputs/retired-candidate.XXXXXX)"
+    mv dist/release-candidate.json "$retired_candidate/"
+    echo "preserved previous candidate in $retired_candidate"
+  fi
+}
+
 if [[ "${2:-}" == "--restore" ]]; then
   [[ "$(git rev-parse HEAD)" == "$revision" ]] || {
     echo "publication inputs must belong to the current commit" >&2
@@ -23,6 +41,7 @@ if [[ "${2:-}" == "--restore" ]]; then
     cd "$publication_inputs"
     sha256sum --check --quiet verified-inputs.sha256
   )
+  retire_previous_candidate
   for payload in "$publication_inputs"/terlc-* \
     "$publication_inputs"/terlc "$publication_inputs"/terlan-vm \
     "$publication_inputs"/terlan-native-worker "$publication_inputs"/terlan-lsp \
@@ -86,7 +105,8 @@ fi
 download_dir="$(mktemp -d)"
 extract_dir="$(mktemp -d)"
 hosted_evidence_dir="$(mktemp -d)"
-trap 'rm -rf "$download_dir" "$extract_dir" "$hosted_evidence_dir"' EXIT
+cache_stage=""
+trap 'rm -rf "$download_dir" "$extract_dir" "$hosted_evidence_dir"; if [[ -n "$cache_stage" ]]; then rm -rf "$cache_stage"; fi' EXIT
 
 run_json="$(gh api "repos/{owner}/{repo}/actions/runs/$run_id")"
 run_revision="$(jq -r '.head_sha // ""' <<<"$run_json")"
@@ -108,11 +128,13 @@ candidate_check_json="$(gh api \
   "repos/$repository/commits/$revision/check-runs?filter=latest&per_page=100" \
   --jq '[.check_runs[] | select(.name == "Compiler check and test" and .conclusion == "success" and .app.slug == "github-actions")] | first // {}')"
 candidate_details_url="$(jq -r '.details_url // ""' <<<"$candidate_check_json")"
-if [[ ! "$candidate_details_url" =~ /actions/runs/([0-9]+)/job/ ]]; then
+if [[ ! "$candidate_details_url" =~ ^https://github.com/([^/]+/[^/]+)/actions/runs/([0-9]+)/job/([0-9]+)$ \
+  || "${BASH_REMATCH[1]:-}" != "$repository" ]]; then
   echo "revision $revision has no successful canonical Compiler check and test" >&2
   exit 1
 fi
-candidate_run_id="${BASH_REMATCH[1]}"
+candidate_run_id="${BASH_REMATCH[2]}"
+candidate_job_id="${BASH_REMATCH[3]}"
 candidate_run_json="$(gh api "repos/$repository/actions/runs/$candidate_run_id")"
 candidate_revision="$(jq -r '.head_sha // ""' <<<"$candidate_run_json")"
 candidate_conclusion="$(jq -r '.conclusion // ""' <<<"$candidate_run_json")"
@@ -123,17 +145,70 @@ if [[ "$candidate_revision" != "$revision" \
   echo "Compiler check does not identify a successful canonical workflow for $revision" >&2
   exit 1
 fi
+# A signing-only rerun increments the workflow attempt, not the successful
+# compiler job's attempt. Bind the producer job itself rather than replay tests.
+candidate_job_json="$(gh api "repos/$repository/actions/jobs/$candidate_job_id")"
+jq -e --arg revision "$revision" --argjson run "$candidate_run_id" \
+  --argjson job "$candidate_job_id" --argjson workflow "$candidate_run_json" \
+  '.id == $job and .run_id == $run and .head_sha == $revision
+    and .name == "Compiler check and test" and .status == "completed" and .conclusion == "success"
+    and (.run_attempt | type == "number" and . > 0 and floor == .)
+    and .run_attempt <= $workflow.run_attempt' <<<"$candidate_job_json" >/dev/null || {
+  echo "compiler coverage does not identify the successful producing job" >&2
+  exit 1
+}
+candidate_attempt="$(jq -r .run_attempt <<<"$candidate_job_json")"
 jq -n \
   --arg revision "$revision" \
   --argjson run_id "$candidate_run_id" \
   '{schema:"terlan.hosted-candidate-validation.v1",decision:"pass",source_revision:$revision,workflow:".github/workflows/ci.yml",run_id:$run_id}' \
   >"$hosted_evidence_dir/hosted-candidate-validation.json"
-mkdir -p target/quality
-install -m 0644 \
-  "$hosted_evidence_dir/hosted-candidate-validation.json" \
-  target/quality/hosted-candidate-validation.json
-gh run download "$run_id" --name release-distribution --dir "$download_dir"
-gh run download "$run_id" --name release-hosted-validation-evidence --dir "$hosted_evidence_dir"
+# Cache identity includes both successful producers, their attempts, and the
+# verification implementation. Live workflow checks above are never cached.
+cache_context="$(jq -cnS \
+  --arg repository "$repository" --arg revision "$revision" \
+  --arg implementation "$(sha256sum "${BASH_SOURCE[0]}" | awk '{print $1}')" \
+  --argjson release "$run_json" --argjson compiler "$candidate_run_json" \
+  --argjson compiler_job "$candidate_job_json" \
+  '{schema:"terlan.hosted-download-cache.v1",repository:$repository,revision:$revision,implementation:$implementation,
+    release:{id:$release.id,attempt:$release.run_attempt,path:$release.path},
+    compiler:{id:$compiler.id,attempt:$compiler_job.run_attempt,job_id:$compiler_job.id,path:$compiler.path}}')"
+jq -e 'all(.release, .compiler; (.id | type == "number" and . > 0) and (.attempt | type == "number" and . > 0))' \
+  <<<"$cache_context" >/dev/null
+cache_key="$(printf '%s\n' "$cache_context" | sha256sum | awk '{print $1}')"
+download_cache="target/publication-downloads/$cache_key"
+coverage_dir="$hosted_evidence_dir/compiler-coverage"
+hosted_reports_dir="$hosted_evidence_dir/release-reports"
+mkdir "$coverage_dir" "$hosted_reports_dir"
+printf '%s\n' "$cache_context" > "$hosted_evidence_dir/context.json"
+cache_hit=0
+artifact_set_bootstrapped="${TERLAN_VALIDATION_BOOTSTRAPPED:-0}"
+if [[ -e "$download_cache" || -L "$download_cache" ]]; then
+  [[ -d "$download_cache" && ! -L "$download_cache" ]] || exit 1
+  # Recompute the complete inventory, rejecting symlinks and extra files as
+  # well as changed bytes. A corrupt cache is an error, not a silent download.
+  [[ -z "$(find "$download_cache" ! -type d ! -type f -print -quit)" ]] || exit 1
+  [[ "$(cat "$download_cache/context.json")" == "$cache_context" ]] || exit 1
+  (
+    cd "$download_cache"
+    find . -type f ! -path './verified-files.sha256' -print0 \
+      | LC_ALL=C sort -z | xargs -0 sha256sum
+  ) > "$hosted_evidence_dir/cache-files.sha256"
+  if ! cmp -s "$hosted_evidence_dir/cache-files.sha256" "$download_cache/verified-files.sha256"; then
+    echo "verified hosted download cache is corrupt: $download_cache; quarantine it before retrying" >&2
+    exit 1
+  fi
+  cp -p "$download_cache/archives/"* "$download_dir/"
+  cp -a "$download_cache/extracted/." "$extract_dir/"
+  cp -p "$download_cache/evidence/"* "$hosted_evidence_dir/"
+  cp -p "$download_cache/coverage/"* "$coverage_dir/"
+  cache_hit=1
+  echo "reusing verified hosted downloads from run $run_id attempt $(jq -r .release.attempt <<<"$cache_context")"
+else
+  gh run download "$run_id" --name release-distribution --dir "$download_dir"
+  gh run download "$run_id" --name release-hosted-validation-evidence --dir "$hosted_reports_dir"
+  gh run download "$candidate_run_id" --name "compiler-test-coverage-$candidate_run_id-$candidate_attempt" --dir "$coverage_dir"
+fi
 hosted_evidence_files=(
   tvm-aot-platform-matrix-report.json
   tvm-aot-thread-sanitizer-report.json
@@ -141,20 +216,55 @@ hosted_evidence_files=(
   vm-multicore-memory-model-tsan.json
 )
 for evidence in "${hosted_evidence_files[@]}"; do
+  if [[ "$cache_hit" == 0 ]]; then
+    [[ -f "$hosted_reports_dir/$evidence" && ! -L "$hosted_reports_dir/$evidence" ]] || exit 1
+    cp -p "$hosted_reports_dir/$evidence" "$hosted_evidence_dir/$evidence"
+  fi
   [[ -f "$hosted_evidence_dir/$evidence" && ! -L "$hosted_evidence_dir/$evidence" ]] || {
     echo "hosted release evidence is missing $evidence" >&2
     exit 1
   }
-  install -m 0644 "$hosted_evidence_dir/$evidence" "target/quality/$evidence"
 done
+coverage_files=(
+  rust-test-suite-report.json
+  rust-test-suite-report.json.selections.json
+  rust-test-suite-report.json.make-coverage.json
+)
+if [[ "$cache_hit" == 0 ]]; then
 make --no-print-directory release-artifact-set-check \
   RELEASE_ARTIFACT_SET_ROOT="$download_dir"
+artifact_set_bootstrapped=1
 for artifact in "$download_dir"/terlc-*; do
   gh attestation verify "$artifact" \
     --repo "$repository" \
     --signer-workflow "$repository/.github/workflows/release.yml" \
     >/dev/null
 done
+for evidence in "${coverage_files[@]}"; do
+  [[ -f "$coverage_dir/$evidence" && ! -L "$coverage_dir/$evidence" ]] || exit 1
+  gh attestation verify "$coverage_dir/$evidence" \
+    --repo "$repository" --signer-workflow "$repository/.github/workflows/ci.yml" \
+    --source-ref refs/heads/main --source-digest "$revision" >/dev/null
+done
+fi
+
+# Integrity is checked by the shared prebuilt reader on both cold and warm
+# preparation. It is not itself authentication or local-current test coverage.
+coverage_reader="target/validation-tools/terlan-test-orchestrator"
+[[ -x "$coverage_reader" && ! -L "$coverage_reader" ]] || {
+  echo "hosted coverage requires the bootstrapped Rust validation driver" >&2
+  exit 1
+}
+"$coverage_reader" --check-hosted-coverage-records "$coverage_dir" \
+  "$hosted_evidence_dir/context.json" > "$hosted_evidence_dir/coverage-records.json"
+jq --arg cache_key "$cache_key" --argjson job "$candidate_job_json" \
+  --slurpfile coverage "$hosted_evidence_dir/coverage-records.json" \
+  '. + {coverage:{cache_key:$cache_key,producer_job_id:$job.id,producer_attempt:$job.run_attempt,
+    authentication:"github-attestation",records:$coverage[0]}}' \
+  "$hosted_evidence_dir/hosted-candidate-validation.json" > "$hosted_evidence_dir/candidate.pending"
+mv -f "$hosted_evidence_dir/candidate.pending" "$hosted_evidence_dir/hosted-candidate-validation.json"
+
+if [[ "$cache_hit" == 0 ]]; then
 
 if tar -tzf "$download_dir/terlc-linux-x86_64.tar.gz" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
   echo "validated Linux release archive contains an unsafe path" >&2
@@ -212,7 +322,34 @@ done
   fi
 )
 
+# Commit a complete verified checkpoint before any local distribution checks.
+# An interrupted producer leaves no cache entry that another run could reuse.
+mkdir -p target/publication-downloads
+cache_stage="$(mktemp -d target/publication-downloads/.partial.XXXXXX)"
+mkdir "$cache_stage/archives" "$cache_stage/extracted" "$cache_stage/evidence" "$cache_stage/coverage"
+cp -p "$coverage_dir/"* "$cache_stage/coverage/"
+cp -p "$download_dir/"* "$cache_stage/archives/"
+cp -a "$extract_dir/." "$cache_stage/extracted/"
+for evidence in "${hosted_evidence_files[@]}" hosted-candidate-validation.json; do
+  cp -p "$hosted_evidence_dir/$evidence" "$cache_stage/evidence/"
+done
+printf '%s\n' "$cache_context" > "$cache_stage/context.json"
+(
+  cd "$cache_stage"
+  find . -type f ! -path './verified-files.sha256' -print0 \
+    | LC_ALL=C sort -z | xargs -0 sha256sum > verified-files.sha256
+)
+mv -T "$cache_stage" "$download_cache"
+cache_stage=""
+fi
+
+mkdir -p target/quality
+for evidence in "${hosted_evidence_files[@]}" hosted-candidate-validation.json; do
+  install -m 0644 "$hosted_evidence_dir/$evidence" "target/quality/$evidence"
+done
+
 mkdir -p dist
+retire_previous_candidate
 # The target-native packaging smoke creates these internal inputs in `dist/`.
 # They are not publication payload and must not poison a retry after a later
 # preflight failure.
@@ -229,7 +366,8 @@ for executable in terlc terlan-vm terlan-native-worker terlan-lsp; do
 done
 make --no-print-directory release-artifact-set-check \
   RELEASE_ARTIFACT_SET_ROOT=dist \
-  RELEASE_ARTIFACT_SET_LOCAL_PAYLOAD=1
+  RELEASE_ARTIFACT_SET_LOCAL_PAYLOAD=1 \
+  TERLAN_VALIDATION_BOOTSTRAPPED="$artifact_set_bootstrapped"
 
 # Evidence refresh exercises the local packager, which writes to dist/ too.
 # Retain the verified hosted bytes so final sealing cannot publish that local
@@ -241,10 +379,16 @@ for payload in dist/terlc-* dist/terlc dist/terlan-vm \
   dist/SHA256SUMS dist/terlan-install-manifest.json; do
   cp -p "$payload" "$publication_inputs/$(basename "$payload")"
 done
+# Pin the exact verified cache generation; the candidate retains independent
+# payload copies. Include this binding in the immutable input inventory.
+[[ ! -L "$publication_inputs/download-cache-key" \
+  && ! -L "$publication_inputs/download-cache-key.pending" ]] || exit 1
+printf '%s\n' "$cache_key" > "$publication_inputs/download-cache-key.pending"
+mv -f -T "$publication_inputs/download-cache-key.pending" "$publication_inputs/download-cache-key"
 (
   cd "$publication_inputs"
   sha256sum terlc-* terlc terlan-vm terlan-native-worker terlan-lsp \
-    terlan-release.json SHA256SUMS terlan-install-manifest.json \
+    terlan-release.json SHA256SUMS terlan-install-manifest.json download-cache-key \
     >verified-inputs.sha256
 )
 

@@ -121,6 +121,11 @@ impl NativeModule {
             ));
         }
         super::application_admission::reject_ambiguous_source_import_calls(&normalized_cores)?;
+        for core in &mut normalized_cores {
+            for function in &mut core.functions {
+                function.source = Some(function.source_declaration(&core.module));
+            }
+        }
         super::open_std_pruning::prune_compile_time_router_builders(&mut normalized_cores);
         super::nominal_identity::qualify_application_nominal_types(&mut normalized_cores);
         super::atom_alias_values::lower_atom_alias_values(&mut normalized_cores);
@@ -215,6 +220,7 @@ impl NativeModule {
         super::short_circuit_normalization::right_associate_short_circuit_chains(
             &mut normalized_cores,
         );
+        super::dynamic_return::close_application_returns(&mut normalized_cores);
         super::open_std_pruning::prune_unreachable_open_std_functions(&mut normalized_cores);
         for core in &mut normalized_cores {
             // Specialization may clone a typed constructor-chain expression

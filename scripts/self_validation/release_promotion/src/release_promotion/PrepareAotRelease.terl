@@ -1,0 +1,106 @@
+/**
+ * Owns AOT report composition after Make has executed the prerequisite gates.
+ * It never substitutes a reused report for those correctness checks.
+ */
+module release_promotion.PrepareAotRelease.
+
+import release_promotion.{OwnerStorage, OwnerTools, PreparationContext, PreparationOwner}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.Console.
+
+import type release_promotion.OwnerTools.BuildIdentity.
+import type release_promotion.PreparationContext.Context.
+import type release_promotion.PreparationOwner.{Decision, Owner}.
+import type std.core.Result.
+
+pub declare(root: String, vm: String, image: String, context: Context): Result[Owner, String] ->
+    let true <- PreparationContext.tool_path(vm) and PreparationContext.tool_path(image) else {
+        _ -> Err("preparation tools must be inside target/")
+    };
+    (let env = context.environment;
+(let {
+    Ok(version) <- OwnerTools.run(root, OwnerStorage.child(root, vm), ["--version"], env);
+    Ok(tools) <- OwnerTools.build_identity(root, env, context.runtime_tools)
+} else {
+    Err(reason) -> Err(reason)
+};
+declare_with_tools(root, vm, image, context, version, tools))).
+
+/**
+ * Uses VM/build identities already inspected by the enclosing graph.
+ */
+pub declare_with_tools(
+    root: String,
+    vm: String,
+    image: String,
+    context: Context,
+    version: String,
+    tools: BuildIdentity,
+): Result[Owner, String] ->
+    let true <- PreparationContext.tool_path(vm) and PreparationContext.tool_path(image) else {
+        _ -> Err("preparation tools must be inside target/")
+    };
+    (let dependencies =
+    [
+        vm,
+        image,
+        "target/quality/hosted-candidate-validation.json",
+        "target/quality/tvm-managed-list-profile.json",
+        "target/quality/tvm-aot-platform/linux-x86_64.json",
+    ];
+Ok(
+    PreparationOwner.with_optional_dependencies(
+        PreparationOwner.owner(
+            "aot-release-record",
+            context.revision,
+            "x86_64-unknown-linux-gnu",
+            "report-composition",
+            String.concat([version, "\n", tools.rustc, "\n", tools.cargo, "\n", tools.digest]),
+            context.sources,
+            dependencies,
+            OwnerStorage.child(root, vm),
+            ["run", OwnerStorage.child(root, image), "--script-eval", "--", "release-record"],
+            context.environment,
+            "target/quality/tvm-aot-release-closeout-report.json",
+            "TERLAN_AOT_RELEASE_OUTPUT",
+            "terlan.tvm-aot-local-closeout.v4",
+            "TVM AOT local closeout passed:",
+            300000,
+        ),
+        ["target/quality/tvm-aot-thread-sanitizer-report.json"],
+    ),
+)).
+
+pub prepare(root: String, vm: String, image: String): Result[Decision, String] ->
+    let true <- PreparationContext.tool_path(vm) and PreparationContext.tool_path(image) else {
+        _ -> Err("preparation tools must be inside target/")
+    };
+    (let {
+    Ok(context) <-
+        PreparationContext.capture(
+            root,
+            ["PATH", "HOME", "CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"],
+        );
+    Ok(owner) <- declare(root, vm, image, context)
+} else {
+    Err(reason) -> Err(reason)
+};
+Ok(PreparationOwner.run_locked(root, owner))).
+
+pub run_locked(root: String, vm: String, image: String): Bool ->
+    case prepare(root, vm, image) {
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false;
+        Ok(result) ->
+            let _printed =
+                Console.println(
+                    if {
+                        not result.valid -> result.message;
+                        result.reused -> "[preparation] AOT release report reused: zero validator launches";
+                        true -> "[preparation] AOT release report completed and checkpointed"
+                    },
+                );
+            result.valid
+    }.

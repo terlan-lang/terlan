@@ -10,6 +10,7 @@ import std.core.{Int, String, Unit}.
 import std.crypto.Hash.
 import std.data.Json.
 import std.io.Console.{println}.
+import std.io.Directory.{create_all}.
 import std.io.File.{exists, read_text_many, write_text}.
 import std.system.Environment.
 
@@ -72,8 +73,8 @@ input_paths(root: String): List[String] ->
         child(root, "docs/compiler/proof_track/lean_proof_gaps.tsv"),
         child(root, "proofs/lean/feature_binding/lean_feature_slice_index.json"),
         child(root, "proofs/lean/feature_binding/lean-proof-coverage-baseline.tsv"),
-        child(root, "build/artifacts/lean-proof-gate.json"),
-        child(root, "build/artifacts/lean-proof-repro-report.json"),
+        child(root, "target/quality/proof-artifacts/lean-proof-gate.json"),
+        child(root, "target/quality/proof-artifacts/lean-proof-repro-report.json"),
         child(root, "Makefile"),
     ].
 
@@ -367,8 +368,11 @@ pub repository_feature_binding_holds(): Bool ->
     }.
 
 write_matrix(root: String, gaps: String): Bool ->
+    let Ok(Unit) <- create_all(child(root, "target/quality/proof-artifacts")) else {
+        _ -> fail("coverage matrix directory could not be created")
+    };
     case write_text(
-    child(root, "build/artifacts/lean-proof-coverage-matrix.tsv"),
+    child(root, "target/quality/proof-artifacts/lean-proof-coverage-matrix.tsv"),
     current_expected_matrix(gaps),
 ) {
         Ok(Unit) -> report_success(root);
@@ -376,7 +380,7 @@ write_matrix(root: String, gaps: String): Bool ->
     }.
 
 report_success(root: String): Bool ->
-    case Hash.sha256_file(child(root, "build/artifacts/lean-proof-coverage-matrix.tsv")) {
+    case Hash.sha256_file(child(root, "target/quality/proof-artifacts/lean-proof-coverage-matrix.tsv")) {
         Ok(digest) ->
             let _printed =
                 println(

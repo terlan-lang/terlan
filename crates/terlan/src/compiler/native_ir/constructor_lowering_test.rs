@@ -19,6 +19,43 @@ use super::native_object_test_support::{
 };
 use super::{emit_native_application_object, status, NativeExpr, NativeModule, NativeType};
 
+/// Collection field types must survive constructor argument suspension splitting.
+#[test]
+fn struct_collection_field_survives_a_later_yielding_constructor_argument() -> Result<(), String> {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module fixture.CollectionState.
+import std.collections.Map.
+import std.vm.Process.
+import type std.collections.Map.
+
+struct Event { value: Int }.
+struct State { entries: Map[String, Event], marker: Int }.
+
+yielded(): Int ->
+    let _yielded = Process.yield_now();
+    7.
+
+pub make_state(): State ->
+    State(entries = Map.new[String, Event](), marker = yielded()).
+"#,
+    )
+    .map_err(|error| format!("{error:?}"))?;
+    let interfaces = checked_in_std_interfaces_for_module(&syntax);
+    let resolved = resolve_syntax_module_output_with_interfaces(&syntax, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = NativeModule::lower_application(&[&core]).map_err(|error| error.to_string())?;
+    assert!(modules
+        .iter()
+        .any(|module| !module.continuations.is_empty()));
+    let object = emit_native_application_object("constructor_collection", &modules)
+        .map_err(|error| error.to_string())?;
+    assert!(!object.is_empty());
+    Ok(())
+}
+
 #[test]
 fn transparent_generic_variant_return_keeps_the_declared_union_layout() {
     let syntax = parse_module_as_syntax_output(

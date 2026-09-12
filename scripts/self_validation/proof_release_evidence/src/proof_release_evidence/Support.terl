@@ -9,8 +9,10 @@ import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.crypto.Hash.
 import std.data.Json.
+import std.io.Directory.{create_all}.
 import std.io.File.{read_text, write_text}.
-import std.system.Process.
+import std.io.Path.
+import std.system.{Environment, Process}.
 
 import type std.core.Option.
 import type std.data.Json.
@@ -214,13 +216,41 @@ pub file_digest(root: String, relative: String): Option[String] ->
     }.
 
 pub write_json(root: String, relative: String, value: Json): Bool ->
+    let destination = output_path(root, relative);
     let {
         Ok(source) <- Json.stringify_pretty(value);
-        Ok(Unit) <- write_text(root_path(root, relative), String.append(source, "\n"))
+        Ok(parsed) <- Path.from_string(destination);
+        Some(parent) <- parsed.parent();
+        Ok(Unit) <- create_all(parent.to_string());
+        Ok(Unit) <- write_text(destination, String.append(source, "\n"))
     } else {
         _ -> false
     };
     true.
+
+/**
+ * Owned composer and semantic reports accept private staging destinations.
+ */
+output_path(root: String, relative: String): String ->
+    let variable =
+        case relative {
+            "target/quality/proof-artifacts/proof-release-evidence.json" ->
+                "TERLAN_PROOF_EVIDENCE_OUTPUT";
+            "target/quality/proof-artifacts/proof-release-evidence-diff.json" ->
+                "TERLAN_PROOF_DIFF_OUTPUT";
+            "target/quality/proof-artifacts/proof-readiness-release-mode.json" ->
+                "TERLAN_PROOF_READINESS_OUTPUT";
+            "target/quality/proof-artifacts/lean-semantic-kernels.json" ->
+                "TERLAN_PROOF_SEMANTIC_OUTPUT";
+            _ -> ""
+        };
+    if {
+        variable == "" -> root_path(root, relative);
+        true -> case Environment.get(variable) {
+            Some(path) -> path;
+            None -> root_path(root, relative)
+        }
+    }.
 
 command_stdout(root: String, program: String, arguments: List[String]): Option[String] ->
     let configured = Process.with_arguments(Process.command(program), arguments);

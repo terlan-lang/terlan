@@ -4,7 +4,7 @@
 # callable from the repository root while stdlib recipes live with stdlib
 # sources and policy documents.
 
-.PHONY: stdlib-help stdlib-check stdlib-release-check stdlib-release-runtime-check stdlib-release-runtime-owned-by-check stdlib-build-interfaces stdlib-doc-format-check stdlib-summary-inventory-check stdlib-summary-drift-check stdlib-embedded-interface-contract-check stdlib-js-bindings-drift-check stdlib-js-review-surface-check stdlib-release-manifest-check stdlib-rust-backed-manifest-check stdlib-native-artifacts-check stdlib-validation-self-test stdlib-io-negative-api-tests-check stdlib-release-api-tests-check stdlib-negative-api-tests-check stdlib-core-backend-primitive-calls-check stdlib-receiver-methods-check stdlib-release-tests-vm-default-check stdlib-data-check stdlib-db-check stdlib-http-check stdlib-log-check stdlib-sync-check stdlib-release-contracts-check stdlib-release-tests
+.PHONY: stdlib-help stdlib-check stdlib-release-check stdlib-release-runtime-check stdlib-build-interfaces stdlib-doc-format-check stdlib-summary-inventory-check stdlib-summary-drift-check stdlib-embedded-interface-contract-check stdlib-js-bindings-drift-check stdlib-js-review-surface-check stdlib-release-manifest-check stdlib-rust-backed-manifest-check stdlib-native-artifacts-check stdlib-validation-self-test stdlib-io-negative-api-tests-check stdlib-release-api-tests-check stdlib-negative-api-tests-check stdlib-core-backend-primitive-calls-check stdlib-receiver-methods-check stdlib-release-tests-vm-default-check stdlib-data-check stdlib-db-check stdlib-http-check stdlib-log-check stdlib-sync-check stdlib-release-contracts-check stdlib-release-tests
 
 stdlib-help:
 	@echo "  make stdlib-check      - verify fast stdlib drift, manifest, and API coverage checks"
@@ -38,13 +38,6 @@ stdlib-check: stdlib-doc-format-check stdlib-summary-inventory-check stdlib-summ
 stdlib-release-check: stdlib-check stdlib-release-runtime-check
 
 stdlib-release-runtime-check: stdlib-release-contracts-check stdlib-release-tests
-
-stdlib-release-runtime-owned-by-check:
-	@test "$(TERLAN_CHECK_ALREADY_RUN)" = "1" || { \
-		echo "stdlib release runtime ownership requires TERLAN_CHECK_ALREADY_RUN=1" >&2; \
-		exit 1; \
-	}
-	@echo "[stdlib-release-runtime] canonical check already passed contracts and VM-default release tests."
 
 stdlib-build-interfaces:
 	@TERLAN_BUILD_INTERFACES_ROOT="$(CURDIR)" \

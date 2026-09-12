@@ -3,6 +3,7 @@ use crate::terlan_syntax::syntax_output::SyntaxAnnotationValueOutput;
 
 #[path = "core_lowering/default_arguments.rs"]
 mod default_arguments;
+mod imported_atoms;
 
 /// Lowers resolved formal compiler state to the current core boundary.
 ///
@@ -83,6 +84,8 @@ pub fn lower_syntax_module_output_to_core(
     let (mut prepared_module, _) =
         super::prepare_syntax_constants_with_interfaces(&prepared_module, &resolved.interface_map);
     annotate_syntax_comprehension_lifts(&mut prepared_module, resolved);
+    let binding_identities = analyze_syntax_bindings(&prepared_module).evidence;
+    imported_atoms::canonicalize(&mut prepared_module, resolved);
     let module = &prepared_module;
     let mut core = lower_resolved_module_to_core(resolved);
     core.functions = core_syntax_functions(module);
@@ -174,7 +177,7 @@ pub fn lower_syntax_module_output_to_core(
             .then_with(|| left.arity.cmp(&right.arity))
     });
     core.metadata = core_module_metadata(&core.functions, &core.types, &core.constructors);
-    core.binding_identities = analyze_syntax_bindings(module).evidence;
+    core.binding_identities = binding_identities;
     core.termination = analyze_core_termination(&core);
     core
 }
@@ -521,6 +524,7 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                 is_macro: false,
                 ..
             } => Some(CoreFunction {
+                source: None,
                 name: name.clone(),
                 arity: params.len(),
                 public: *is_public,
@@ -544,6 +548,7 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                 core_params.push(core_syntax_param(receiver));
                 core_params.extend(params.iter().map(core_syntax_param));
                 Some(CoreFunction {
+                    source: None,
                     name: name.clone(),
                     arity: core_params.len(),
                     public: *is_public,

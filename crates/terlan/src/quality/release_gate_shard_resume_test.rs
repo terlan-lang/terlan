@@ -15,19 +15,18 @@ fn complete_makefile() -> String {
         "RELEASE_EVIDENCE_GATES := \\\n",
         "\trelease-failure-reproduction-check\n\n",
         "check: rust-test-suite\n",
-        "\tTERLAN_RUST_SUITE_ALREADY_RUN=1 \\\n",
         "\t\t$(MAKE) --no-print-directory --jobs=4 \\\n",
         "\t\tterlan-self-validation-bootstrap\n",
-        "\tTERLAN_RUST_SUITE_ALREADY_RUN=1 \\\n",
-        "\tTERLAN_VALIDATION_BOOTSTRAPPED=1 \\\n",
+        "\t$(TERLAN_RUST_ORCHESTRATOR) --with-cargo-coverage \\\n",
+        "\t\t$(CURDIR)/target/quality/rust-test-suite-report.json -- \\\n",
         "\t\t$(MAKE) --no-print-directory \\\n",
-        "\t\tTERLAN_QUALITY=target/debug/terlan-quality \\\n",
-        "\t\tcheck-gates\n\n",
+        "\t\tcheck-gates $(if $(filter 1,$(TERLAN_CHECK_RELEASE_EVIDENCE)),release-evidence-compose)\n\n",
         "check-gates: $(CHECK_GATES)\n\n",
-        "release-evidence-compose:\n",
-        "\t$(MAKE) --no-print-directory $(RELEASE_EVIDENCE_GATES)\n\n",
+        "release-evidence-compose: $(RELEASE_EVIDENCE_GATES)\n",
+        "\t@echo composed\n\n",
+        "release-evidence-refresh: export TERLAN_CHECK_RELEASE_EVIDENCE := 1\n",
         "release-evidence-refresh: check\n",
-        "\t$(MAKE) --no-print-directory release-evidence-compose\n\n",
+        "\n",
         "release-preflight:\n",
         "\ttest -s release-evidence.json\n",
         "\tterlan-vm run release-preflight.tvm\n\n",
@@ -57,6 +56,53 @@ fn release_gate_shard_resume_rejects_incomplete_composer_manifest() {
             .contains("must own the release-only `release-failure-reproduction-check` chain")),
         "diagnostics should reject an incomplete composer manifest: {diagnostics:?}"
     );
+}
+
+/// The live owner, release scope and shared graph must survive independent mutations.
+#[test]
+fn release_gate_shard_resume_rejects_owner_bypass_and_recursive_composition() {
+    for (before, after) in [
+        (
+            "$(TERLAN_RUST_ORCHESTRATOR) --with-cargo-coverage",
+            "TERLAN_RUST_SUITE_ALREADY_RUN=1",
+        ),
+        ("--with-cargo-coverage", "--cargo-coverage-report"),
+        (
+            "$(CURDIR)/target/quality/rust-test-suite-report.json --",
+            "other-report.json --",
+        ),
+        (
+            "release-evidence-refresh: export TERLAN_CHECK_RELEASE_EVIDENCE := 1",
+            "release-evidence-refresh: export TERLAN_CHECK_RELEASE_EVIDENCE := 0",
+        ),
+        (
+            "release-evidence-refresh: check",
+            "release-evidence-refresh:\n\t$(MAKE) check",
+        ),
+        (
+            "release-evidence-compose: $(RELEASE_EVIDENCE_GATES)",
+            "release-evidence-compose:\n\t$(MAKE) $(RELEASE_EVIDENCE_GATES)",
+        ),
+        (
+            "$(if $(filter 1,$(TERLAN_CHECK_RELEASE_EVIDENCE)),release-evidence-compose)",
+            "",
+        ),
+    ] {
+        let makefile = complete_makefile();
+        assert!(makefile.contains(before));
+        assert!(
+            !validate_release_makefile(&makefile.replace(before, after)).is_empty(),
+            "accepted {before} -> {after}"
+        );
+    }
+}
+
+/// Production declarations, including target-specific exports, satisfy the contract.
+#[test]
+fn release_gate_shard_resume_accepts_repository_live_coverage_graph() {
+    let makefile =
+        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    assert_eq!(validate_release_makefile(&makefile), Vec::<String>::new());
 }
 
 /// Verifies final composition cannot acquire an expensive prerequisite graph.

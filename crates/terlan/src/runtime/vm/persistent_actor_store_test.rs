@@ -473,7 +473,7 @@ fn snapshot(
         Vec::new(),
         VmPersistentActorDurability {
             resource_handles: Vec::new(),
-            last_event_sequence: last_event_sequence,
+            last_event_sequence,
         },
     )
     .expect("snapshot should be valid")

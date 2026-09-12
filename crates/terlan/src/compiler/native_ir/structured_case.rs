@@ -20,14 +20,22 @@ mod binary;
 mod lowering;
 #[path = "structured_case/suspending.rs"]
 mod suspending;
+mod tagged_union;
 #[path = "structured_case/type_support.rs"]
 mod type_support;
+#[cfg(test)]
+#[path = "structured_case/type_support_test.rs"]
+mod type_support_test;
 use binary::binary_plan;
 pub(super) use lowering::{
     contains_case, lower_lexical_expr, lower_structured_case, structured_result_type,
     StructuredCaseEnvironment,
 };
 pub(super) use suspending::lower_suspending_case;
+use tagged_union::{
+    tagged_union_by_atom, tagged_union_constructor, tagged_union_constructor_plan,
+    TaggedUnionPattern,
+};
 use type_support::{
     list_element_type, map_key, map_types, native_core_type, option_element_type,
     struct_field_type, tuple_element_type,
@@ -369,109 +377,6 @@ fn result_element_types(core_type: Option<&CoreType>) -> Option<(&CoreType, &Cor
         _ => None,
     }
 }
-struct TaggedUnionPattern<'a> {
-    name: &'a str,
-    fields: &'a [CorePattern],
-    discriminant: u32,
-    field_types: &'a [CoreType],
-}
-
-fn tagged_union_constructor_plan(
-    pattern: TaggedUnionPattern<'_>,
-    value: NativeExpr,
-    value_type: NativeType,
-    constructors: &NativeConstructorLayouts,
-    depth: usize,
-) -> Result<PatternPlan, String> {
-    let TaggedUnionPattern {
-        name,
-        fields: patterns,
-        discriminant,
-        field_types: fields,
-    } = pattern;
-    if patterns.len() != fields.len() {
-        return Err(format!(
-            "error[native_ir.union_pattern_arity]: `{name}` expects {} fields",
-            fields.len()
-        ));
-    }
-    let semantic = managed_semantic(value_type)?;
-    let mut plans = vec![PatternPlan {
-        predicate: NativeExpr::ManagedOperation {
-            encoded: Arc::from(encode_managed_variant_is_operation(semantic, discriminant)),
-            args: vec![value.clone()],
-        },
-        bindings: Vec::new(),
-    }];
-    for (index, (pattern, field)) in patterns.iter().zip(fields).enumerate() {
-        let field_type = native_core_type(field)?;
-        plans.push(pattern_plan(
-            pattern,
-            project(value.clone(), semantic, index, field_type)?,
-            field_type,
-            Some(field),
-            constructors,
-            depth + 1,
-        )?);
-    }
-    merge(plans)
-}
-
-fn tagged_union_constructor(
-    name: &str,
-    core_type: Option<&CoreType>,
-) -> Option<(u32, u32, Vec<CoreType>)> {
-    let CoreType::Union(variants) = core_type? else {
-        return None;
-    };
-    let expected = match name.rsplit('.').next()? {
-        "Err" => "error",
-        other => return tagged_union_by_constructor_name(other, variants),
-    };
-    tagged_union_by_atom(expected, variants)
-}
-
-fn tagged_union_by_constructor_name(
-    name: &str,
-    variants: &[CoreType],
-) -> Option<(u32, u32, Vec<CoreType>)> {
-    let mut chars = name.chars();
-    let expected = chars
-        .next()?
-        .to_lowercase()
-        .chain(chars)
-        .collect::<String>();
-    tagged_union_by_atom(&expected, variants)
-}
-
-fn tagged_union_by_atom(
-    expected: &str,
-    variants: &[CoreType],
-) -> Option<(u32, u32, Vec<CoreType>)> {
-    variants.iter().enumerate().find_map(|(index, variant)| {
-        let CoreType::Tuple(elements) = variant else {
-            return None;
-        };
-        let (first, fields) = elements.split_first()?;
-        let atom = match first {
-            CoreTupleTypeElem::Type(CoreType::AtomLiteral(atom))
-            | CoreTupleTypeElem::Field {
-                ty: CoreType::AtomLiteral(atom),
-                ..
-            } => atom,
-            _ => return None,
-        };
-        if atom != expected {
-            return None;
-        }
-        Some((
-            u32::try_from(index).ok()?,
-            u32::try_from(variants.len()).ok()?,
-            fields.iter().map(tuple_element_type).cloned().collect(),
-        ))
-    })
-}
-
 fn option_constructor_plan(
     name: &str,
     patterns: &[CorePattern],

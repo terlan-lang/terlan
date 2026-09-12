@@ -166,7 +166,7 @@ fn syntax_output_preserves_function_parameter_defaults() {
 /// - Parses source through `parse_module_as_syntax_output` and confirms
 ///   parser annotation metadata is serialized beside the routed
 ///   declarations.
-
+///
 /// Verifies declaration annotations are preserved in syntax output.
 ///
 /// Inputs:
@@ -236,7 +236,7 @@ fn syntax_output_preserves_declaration_annotations() {
 /// Transformation:
 /// - Proves source declarations can mark compiler-owned lowering without
 ///   repeating an internal intrinsic key in source metadata.
-
+///
 /// Verifies marker intrinsic annotations do not require metadata.
 ///
 /// Inputs:
@@ -404,7 +404,7 @@ fn syntax_output_rejects_pure_annotation_metadata() {
 /// Transformation:
 /// - Parses source through `parse_module_as_syntax_output` and checks the
 ///   built-in annotation schema diagnostic.
-
+///
 /// Verifies `@test` is function-only syntax metadata.
 ///
 /// Inputs:
@@ -485,7 +485,7 @@ fn syntax_output_rejects_benchmark_annotation_metadata() {
 /// Transformation:
 /// - Exercises the built-in marker annotation schema after parser metadata
 ///   has been converted into typed syntax output.
-
+///
 /// Verifies `@test` stays marker-only.
 ///
 /// Inputs:
@@ -527,7 +527,7 @@ fn syntax_output_rejects_test_annotation_metadata() {
 /// Transformation:
 /// - Checks that target metadata is typechecked by syntax output instead of
 ///   being deferred to backend-specific string handling.
-
+///
 /// Verifies target-owned annotation schemas reject unknown keys.
 ///
 /// Inputs:
@@ -679,7 +679,7 @@ fn syntax_output_rejects_target_js_wrong_value_type() {
 /// Transformation:
 /// - Parses a future native adapter contract shape through the formal syntax
 ///   output boundary without lowering it to a backend.
-
+///
 /// Verifies native annotations accept the current typed metadata shape.
 ///
 /// Inputs:
@@ -746,7 +746,7 @@ fn syntax_output_accepts_native_annotation_metadata() {
 /// Transformation:
 /// - Parses source through `parse_module_as_syntax_output` and inspects the
 ///   formal schema payload used by later annotation validation phases.
-
+///
 /// Verifies user-declared annotation schemas survive syntax output.
 ///
 /// Inputs:
@@ -838,7 +838,7 @@ fn syntax_output_preserves_annotation_schema_declarations() {
 /// Transformation:
 /// - Proves user schema validation runs after declaration routing and
 ///   before any semantic/backend phase.
-
+///
 /// Verifies user-declared annotation schemas validate matching annotations.
 ///
 /// Inputs:

@@ -129,81 +129,28 @@ fn reject_duplicate_functions(core: &CoreModule) -> Result<(), String> {
     Ok(())
 }
 
-/// Walks the executable native subset and validates every ordinary call.
+/// Validates all ordinary calls and references through the shared exhaustive walker.
 fn validate_expr_calls(
     expr: &CoreExpr,
     caller: &CoreModule,
     cores: &[CoreModule],
 ) -> Result<(), String> {
-    match expr {
-        CoreExpr::Call { function, args } => {
-            for arg in args {
-                validate_expr_calls(arg, caller, cores)?;
-            }
-            validate_call(function, args.len(), caller, cores)
+    let mut result = Ok(());
+    super::application::dynamic_targets::walk_expressions(expr, &mut |expression| {
+        if result.is_err() {
+            return;
         }
-        CoreExpr::RemoteFunRef {
-            module,
-            function,
-            arity,
-        } => validate_call(&format!("{module}.{function}"), *arity, caller, cores),
-        CoreExpr::FunctionCall { callee, args } => {
-            validate_expr_calls(callee, caller, cores)?;
-            validate_expr_sequence(args, caller, cores)
-        }
-        CoreExpr::Lam { body, .. } => validate_expr_calls(body, caller, cores),
-        CoreExpr::ConstructorCall { args, .. }
-        | CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => {
-            validate_expr_sequence(args, caller, cores)
-        }
-        CoreExpr::RecordConstruct { fields, .. } => {
-            for field in fields {
-                validate_expr_calls(&field.value, caller, cores)?;
-            }
-            Ok(())
-        }
-        CoreExpr::RecordUpdate { base, fields, .. } => {
-            validate_expr_calls(base, caller, cores)?;
-            for field in fields {
-                validate_expr_calls(&field.value, caller, cores)?;
-            }
-            Ok(())
-        }
-        CoreExpr::UnaryOp { operand, .. } => validate_expr_calls(operand, caller, cores),
-        CoreExpr::FieldAccess { base, .. } | CoreExpr::RecordAccess { base, .. } => {
-            validate_expr_calls(base, caller, cores)
-        }
-        CoreExpr::BinaryOp { left, right, .. } => {
-            validate_expr_calls(left, caller, cores)?;
-            validate_expr_calls(right, caller, cores)
-        }
-        CoreExpr::Let { bindings, body } => {
-            for binding in bindings {
-                validate_expr_calls(&binding.value, caller, cores)?;
-            }
-            validate_expr_calls(body, caller, cores)
-        }
-        CoreExpr::If { clauses } => {
-            for clause in clauses {
-                validate_expr_calls(&clause.condition, caller, cores)?;
-                validate_expr_calls(&clause.body, caller, cores)?;
-            }
-            Ok(())
-        }
-        _ => Ok(()),
-    }
-}
-
-/// Validates an ordered expression sequence.
-fn validate_expr_sequence(
-    expressions: &[CoreExpr],
-    caller: &CoreModule,
-    cores: &[CoreModule],
-) -> Result<(), String> {
-    for expression in expressions {
-        validate_expr_calls(expression, caller, cores)?;
-    }
-    Ok(())
+        result = match expression {
+            CoreExpr::Call { function, args } => validate_call(function, args.len(), caller, cores),
+            CoreExpr::RemoteFunRef {
+                module,
+                function,
+                arity,
+            } => validate_call(&format!("{module}.{function}"), *arity, caller, cores),
+            _ => Ok(()),
+        };
+    });
+    result
 }
 
 /// Resolves one call and rejects missing or conflicting providers.
@@ -269,7 +216,7 @@ fn conflicting_call_diagnostic_from_providers(
     )
 }
 
-/// Returns every local or explicitly imported provider for one call identity.
+/// Resolves local names, fully qualified public calls, and explicit imports.
 fn call_providers<'a>(
     name: &str,
     arity: usize,
@@ -295,9 +242,9 @@ fn call_providers<'a>(
                 .filter(move |function| {
                     function.public
                         && function.arity == arity
-                        && imports_module(caller, &core.module, &function.name)
-                        && (function.name == name
-                            || format!("{}.{}", core.module, function.name) == name)
+                        && (format!("{}.{}", core.module, function.name) == name
+                            || (function.name == name
+                                && imports_module(caller, &core.module, &function.name)))
                 })
                 .map(move |function| Provider {
                     module: &core.module,

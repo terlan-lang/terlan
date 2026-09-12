@@ -330,10 +330,12 @@ pub(super) fn run_terlan_vm_tests(args: &TestArgs, state: CliState) -> ExitCode 
     }
 
     let project_core_modules = match project_context.as_ref() {
-        Some(context) => match compile_project_source_core_modules(context, &state) {
-            Ok(modules) => modules,
-            Err(exit_code) => return exit_code,
-        },
+        Some(context) => {
+            match compile_project_source_core_modules(context, &state, Path::new(path)) {
+                Ok(modules) => modules,
+                Err(exit_code) => return exit_code,
+            }
+        }
         None => Vec::new(),
     };
     let std_import_roots = std::iter::once(&compiled.core)
@@ -434,6 +436,7 @@ pub(super) fn run_terlan_vm_tests(args: &TestArgs, state: CliState) -> ExitCode 
 /// Inputs:
 /// - `context`: project test context discovered from `terlan.toml`.
 /// - `state`: VM test command state with project cache and target profile.
+/// - `active_test`: already compiled test file, excluded by filesystem identity.
 ///
 /// Output:
 /// - Checked CoreIR modules for all source-root `.terl` files, or a command
@@ -446,7 +449,16 @@ pub(super) fn run_terlan_vm_tests(args: &TestArgs, state: CliState) -> ExitCode 
 pub(super) fn compile_project_source_core_modules(
     context: &TestProjectContext,
     state: &CliState,
+    active_test: &Path,
 ) -> Result<Vec<CoreModule>, ExitCode> {
+    let active_test = active_test.canonicalize().map_err(|error| {
+        eprintln!(
+            "cannot resolve active test {}: {error}",
+            active_test.display()
+        );
+        ExitCode::from(1)
+    })?;
+    let mut compiled_paths = BTreeSet::from([active_test]);
     let mut modules = Vec::new();
     for root in &context.source_roots {
         let files = match crate::formal_pipeline::terlan_sources_in_dir(root) {
@@ -457,6 +469,13 @@ pub(super) fn compile_project_source_core_modules(
             }
         };
         for file in files {
+            let canonical = file.canonicalize().map_err(|error| {
+                eprintln!("cannot resolve project source {}: {error}", file.display());
+                ExitCode::from(1)
+            })?;
+            if !compiled_paths.insert(canonical) {
+                continue;
+            }
             let path = file.to_string_lossy().into_owned();
             let source = match crate::support::read_file(&path) {
                 Ok(source) => source,

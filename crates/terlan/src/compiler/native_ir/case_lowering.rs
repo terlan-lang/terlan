@@ -2,6 +2,8 @@
 
 use std::collections::{HashMap, HashSet};
 
+mod eager_operands;
+
 use crate::terlan_typeck::{
     CoreCaseClause, CoreExpr, CoreFunction, CoreIfClause, CoreLetBinding, CoreModule, CorePattern,
     CoreType,
@@ -254,7 +256,12 @@ impl ScalarCaseLowerer {
                 body: Box::new(rewritten_body),
             });
         }
-        if let CoreExpr::Lam { params, body } = expr {
+        if let CoreExpr::Lam {
+            params,
+            parameter_types,
+            body,
+        } = expr
+        {
             if params
                 .iter()
                 .any(|pattern| !matches!(pattern, CorePattern::Var(_)))
@@ -277,6 +284,7 @@ impl ScalarCaseLowerer {
                 }
                 lowered_params.reverse();
                 let mut lowered = CoreExpr::Lam {
+                    parameter_types: parameter_types.clone(),
                     params: lowered_params,
                     body: Box::new(lowered_body),
                 };
@@ -329,7 +337,11 @@ impl ScalarCaseLowerer {
                         ],
                     });
                 }
-                return Ok(self.hoist_eager_binary_cases(operator, left, right));
+                return Ok(self.hoist_eager_cases(CoreExpr::BinaryOp {
+                    operator: operator.clone(),
+                    left: Box::new(left),
+                    right: Box::new(right),
+                }));
             }
             return Ok(CoreExpr::BinaryOp {
                 operator: operator.clone(),
@@ -340,47 +352,7 @@ impl ScalarCaseLowerer {
 
         let mut lowered = expr.clone();
         self.rewrite_children(&mut lowered, case_depth)?;
-        Ok(lowered)
-    }
-
-    /// Hoists control-valued eager operands without changing left-to-right order.
-    fn hoist_eager_binary_cases(
-        &mut self,
-        operator: &str,
-        left: CoreExpr,
-        right: CoreExpr,
-    ) -> CoreExpr {
-        let mut bindings = Vec::new();
-        let left = self.hoist_case_operand(left, &mut bindings);
-        let right = self.hoist_case_operand(right, &mut bindings);
-        let body = CoreExpr::BinaryOp {
-            operator: operator.to_string(),
-            left: Box::new(left),
-            right: Box::new(right),
-        };
-        CoreExpr::Let {
-            bindings,
-            body: Box::new(body),
-        }
-    }
-
-    /// Replaces one control-valued operand with a compiler temporary.
-    fn hoist_case_operand(
-        &mut self,
-        operand: CoreExpr,
-        bindings: &mut Vec<CoreLetBinding>,
-    ) -> CoreExpr {
-        if !expression_contains_case(&operand) {
-            return operand;
-        }
-        let ordinal = self.scrutinee_ordinal;
-        self.scrutinee_ordinal = self.scrutinee_ordinal.saturating_add(1);
-        let temporary = format!("$native_case_{ordinal}_result");
-        bindings.push(CoreLetBinding {
-            pattern: CorePattern::Var(temporary.clone()),
-            value: operand,
-        });
-        CoreExpr::Var(temporary)
+        Ok(self.hoist_eager_cases(lowered))
     }
 
     /// Rewrites ordered destructuring bindings into single-evaluation cases.

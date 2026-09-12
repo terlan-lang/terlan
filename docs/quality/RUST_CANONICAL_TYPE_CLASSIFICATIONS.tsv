@@ -30,3 +30,6 @@ a8d8c61bca66a87f	same-name	distinct-invariant	runtime-protocols	Native HTTP requ
 844758efcd0afa1a	same-name	distinct-invariant	test-infrastructure	Each server guard owns teardown for a different process harness and cannot safely stop another harness type.
 7381b1f123f3ca6e	same-name	phase-boundary	compiler	HIR trait method signatures preserve declarations while type-check signatures own resolved generic and conformance state.
 dab291978032205f	same-name	platform-alternative	postgres-runtime	The in-process and capability-required workers are mutually exclusive cfg-selected implementations of one VM-owned interface.
+ee233b221b8fff67	same-name	distinct-invariant	compiler-cache-owners	Persistent artifact budgets include reserved staging bytes and leased generations while interface parsing budgets bound in-memory source keys and monotonic idle time.
+846b837bb8cda20a	same-name	distinct-invariant	cache-and-evidence-owners	Disk retention entries track persistent byte usage, parse entries own shared syntax results, and multicore inventory entries describe invariant evidence rather than cached values.
+1e5ec195e6b46c5e	same-name	distinct-invariant	native-build-and-runtime	Native build operations classify emission and linker accounting while binary-pattern operations decode versioned runtime instruction fields; neither is a representation of the other.

@@ -1,0 +1,233 @@
+/**
+ * State-machine fixtures for actual native work, retries, and malformed logs.
+ */
+module release_promotion.NativeActivityTest.
+
+import release_promotion.{NativeActivity, OwnerStorage}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.Console.
+
+import type std.data.Json.
+
+nullable(value: Int): Json ->
+    if {
+        value < 0 -> Json.null();
+        true -> Json.int(value)
+    }.
+
+event(
+    attempt: String,
+    operation: String,
+    phase: String,
+    child: Int,
+    bytes: Int,
+    elapsed: Int,
+): String ->
+    let row =
+        Json.object()
+            .put("schema", Json.string("terlan.native-build-activity.v1"))
+            .put("attempt", Json.string(attempt))
+            .put("operation", Json.string(operation))
+            .put(
+                "input_sha256",
+                Json.string("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+            )
+            .put("compiler_pid", Json.int(17))
+            .put("child_pid", nullable(child))
+            .put("state", Json.string(phase))
+            .put("elapsed_micros", Json.int(elapsed))
+            .put("artifact_bytes", nullable(bytes));
+    case Json.stringify(row) {
+        Err(_reason) -> "invalid fixture\n";
+        Ok(source) -> String.append(source, "\n")
+    }.
+
+pub start(attempt: String, operation: String): String ->
+    event(attempt, operation, "started", -1, -1, 0).
+
+/**
+ * Confirms the native fixture and one complete real producer observation coexist.
+ */
+pub owned_log(source: String, native: String): Bool ->
+    let {
+        Ok(report) <- NativeActivity.inspect(source);
+        Ok(processes) <- report.get("process_inventory");
+        Ok(launches) <- processes.get("launches");
+        Ok(1) <- launches.as_int();
+        Ok(reaped) <- processes.get("reaped");
+        Ok(1) <- reaped.as_int();
+        Ok(events) <- processes.get("events");
+        Ok(3) <- events.as_int()
+    } else {
+        _ -> false
+    };
+    String.contains(source, native).
+
+complete(attempt: String, operation: String): String ->
+    event(attempt, operation, "completed", -1, 128, 3).
+
+pub object(attempt: String): String ->
+    String.append(start(attempt, "module-object"), complete(attempt, "module-object")).
+
+link(): String ->
+    String.concat(
+        [
+            start("link", "native-link"),
+            event("link", "native-link", "spawned", 18, -1, 1),
+            event("link", "native-link", "completed", 18, -1, 2),
+        ],
+    ).
+
+pub failed_link(): String ->
+    String.concat(
+        [
+            start("failed-link", "native-link"),
+            event("failed-link", "native-link", "spawned", 18, -1, 1),
+            event("failed-link", "native-link", "failed", 18, -1, 2),
+        ],
+    ).
+
+inspect_failure(): Bool ->
+    let source = String.append(object("completed-before-failure"), failed_link());
+    let {
+        Ok(report) <- NativeActivity.inspect(source);
+        Some("failed") <- OwnerStorage.text(report, "decision");
+        Ok(completed) <- report.get("completed_work");
+        Ok(1) <- completed.as_int();
+        Ok(spawns) <- report.get("native_link_launches");
+        Ok(1) <- spawns.as_int();
+        Ok(pending) <- NativeActivity.inspect(start("interrupted", "module-object"));
+        Some("interrupted") <- OwnerStorage.text(pending, "decision")
+    } else {
+        _ -> false
+    };
+    rejected(source) and rejected(start("interrupted", "module-object")).
+
+accepted(source: String, spawns: Int, completed: Int, failed: Int): Bool ->
+    let {
+        Ok(report) <- NativeActivity.validate(source);
+        Ok(spawn_value) <- report.get("native_link_launches");
+        Ok(actual_spawns) <- spawn_value.as_int();
+        Ok(complete_value) <- report.get("completed_work");
+        Ok(actual_completed) <- complete_value.as_int();
+        Ok(failed_value) <- report.get("failed_attempts");
+        Ok(actual_failed) <- failed_value.as_int()
+    } else {
+        _ -> false
+    };
+    actual_spawns == spawns and actual_completed == completed and actual_failed == failed.
+
+rejected(source: String): Bool ->
+    case NativeActivity.validate(source) {
+        Err(_reason) -> true;
+        Ok(_report) -> false
+    }.
+
+/**
+ * A failed attempt may be retried once its own terminal state is recorded.
+ */
+retry(): String ->
+    String.concat(
+        [
+            start("failed", "module-object"),
+            event("failed", "module-object", "failed", -1, -1, 1),
+            object("retry"),
+        ],
+    ).
+
+/**
+ * Completed work cannot be replayed even when a second attempt also succeeds.
+ */
+duplicates(): Bool ->
+    rejected(String.append(object("first"), object("second")))
+        and rejected(
+    String.concat(
+        [
+            start("first", "module-object"),
+            start("second", "module-object"),
+            complete("first", "module-object"),
+            complete("second", "module-object"),
+        ],
+    ),
+)
+        and rejected(String.append(object("first"), start("second", "module-object"))).
+
+bad_transitions(): Bool ->
+    rejected(complete("missing", "module-object"))
+        and rejected(
+    String.append(
+        start("link", "native-link"),
+        event("link", "native-link", "completed", 18, -1, 1),
+    ),
+)
+        and rejected(
+    String.append(
+        start("object", "module-object"),
+        event("object", "module-object", "spawned", 18, -1, 1),
+    ),
+)
+        and rejected(
+    String.concat(
+        [
+            start("link", "native-link"),
+            event("link", "native-link", "spawned", 18, -1, 2),
+            event("link", "native-link", "completed", 19, -1, 3),
+        ],
+    ),
+)
+        and rejected(
+    String.concat(
+        [
+            start("link", "native-link"),
+            event("link", "native-link", "spawned", 18, -1, 2),
+            event("link", "native-link", "completed", 18, -1, 1),
+        ],
+    ),
+)
+        and rejected(String.append(start("first", "module-object"), complete("first", "application-object"))).
+
+incomplete(): Bool ->
+    rejected(start("unfinished", "module-object"))
+        and rejected(
+    String.append(
+        start("failed", "module-object"),
+        event("failed", "module-object", "failed", -1, -1, 1),
+    ),
+)
+        and rejected(
+    String.append(
+        start("abandoned", "module-object"),
+        event("abandoned", "module-object", "abandoned", -1, -1, 1),
+    ),
+).
+
+malformed(): Bool ->
+    rejected("{broken}\n")
+        and rejected("{}\n")
+        and rejected("{}")
+        and rejected(String.append("\n", object("valid")))
+        and rejected(event("bad", "unknown", "started", -1, -1, 0))
+        and rejected(event("bad", "module-object", "started", 0, -1, 0))
+        and rejected(event("bad", "module-object", "started", -1, -1, -1)).
+
+pub self_test(): Bool ->
+    let passed =
+        accepted("", 0, 0, 0)
+            and accepted(String.append(object("object"), link()), 1, 2, 0)
+            and accepted(retry(), 0, 1, 1)
+            and duplicates()
+            and bad_transitions()
+            and incomplete()
+            and inspect_failure()
+            and malformed();
+    let _printed =
+        Console.println(
+            if {
+                passed -> "native activity validation self-test passed";
+                true -> "native activity validation self-test failed"
+            },
+        );
+    passed.

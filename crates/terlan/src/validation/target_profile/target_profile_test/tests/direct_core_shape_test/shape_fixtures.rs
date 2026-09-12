@@ -307,6 +307,7 @@ pub(super) fn module_with_core_body_and_evidence(
         exports: Vec::new(),
         types: Vec::new(),
         functions: vec![CoreFunction {
+            source: None,
             name: "value".to_string(),
             arity: 1,
             public: true,
@@ -407,6 +408,7 @@ pub(super) fn target_profile_accepts_documented_core_v0_shape_matrix() {
                                 constructor: "Ok".to_string(),
                                 constructor_identity: Some("Ok/1".to_string()),
                                 args: vec![CoreExpr::Lam {
+                                    parameter_types: Vec::new(),
                                     params: vec![CorePattern::Var("x".to_string())],
                                     body: Box::new(CoreExpr::FieldAccess {
                                         base: Box::new(CoreExpr::Var("x".to_string())),

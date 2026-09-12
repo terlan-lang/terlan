@@ -74,6 +74,11 @@ pub(in crate::compiler::native_ir) fn yield_region(expr: &CoreExpr) -> Option<Yi
                     source_span: process_transition_span(&binding.value),
                 });
             }
+            // A nested transition belongs to this binding's own control flow.
+            // Do not move a later yield ahead of it as a scalar prefix.
+            if contains_process_yield(&binding.value) {
+                return None;
+            }
             prefix.push(binding.clone());
         }
         current = body;
@@ -310,27 +315,15 @@ pub(in crate::compiler::native_ir) fn lower_yield_region(
     }
 
     let capture_set = yield_capture_set(region, required_captures);
-    let mut needed = capture_set.clone();
-    for argument in &region.arguments {
-        needed.extend(free_variables(argument));
-    }
-    let mut selected = vec![false; region.prefix.len()];
-    for (index, binding) in region.prefix.iter().enumerate().rev() {
-        let name = &prefix_names[index];
-        if needed.contains(name) {
-            selected[index] = true;
-            needed.extend(free_variables(&binding.value));
-        }
-    }
 
     let mut entry_vars = params.clone();
     let mut entry_types = param_types.clone();
     let mut entry_core_types = param_core_types.clone();
     let mut entry_bindings = Vec::new();
+    let first_local = super::super::control::next_local_index(params);
+    // Liveness determines continuation captures, not which source expressions
+    // execute. An unused result can still mutate state, perform I/O, or fail.
     for (index, binding) in region.prefix.iter().enumerate() {
-        if !selected[index] {
-            continue;
-        }
         let value_type = infer_native_type_with_constructors(
             &binding.value,
             &entry_types,
@@ -360,7 +353,7 @@ pub(in crate::compiler::native_ir) fn lower_yield_region(
             },
         )?;
         entry_bindings.push(value);
-        let value_index = params.len() + entry_bindings.len() - 1;
+        let value_index = first_local + entry_bindings.len() - 1;
         entry_vars.insert(prefix_names[index].clone(), value_index);
         entry_types.insert(prefix_names[index].clone(), value_type);
         if let Some(core_type) =

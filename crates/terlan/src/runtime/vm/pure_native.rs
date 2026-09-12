@@ -1,5 +1,6 @@
 //! Execution-shard-owned execution of compiler-produced AOT artifacts.
 
+mod continuation_table;
 mod direct_backend;
 pub(super) mod execution;
 mod execution_runtime;
@@ -13,7 +14,6 @@ mod thread_neutral;
 mod multicore_model_test;
 
 use std::path::Path;
-use std::sync::Arc;
 
 use crate::runtime::native_image::control::TvmControlFrame;
 use crate::runtime::native_image::managed::ManagedExecutionRuntime;
@@ -26,6 +26,7 @@ use crate::runtime::vm::execution_shard_protocol::VmSealedShardImage;
 use crate::runtime::vm::process::{VmManagedMailboxToken, VmMessage, VmProcessSource};
 use crate::runtime::vm::ReplValue;
 use crate::runtime::vm::VmAotHttpResponse;
+use continuation_table::NativeContinuationTable;
 
 pub(crate) use crate::runtime::vm::native_image_diagnostics::{
     VmNativeGenerationReferenceClass, VmNativeGenerationReferenceSnapshot,
@@ -312,7 +313,7 @@ struct ResolvedPureArtifact {
     /// Verified descriptor digest admitted by the execution-shard supervisor.
     descriptor_digest: [u8; 32],
     exports: Vec<PureNativeExportSpec>,
-    continuations: Vec<TvmContinuationDescriptor>,
+    continuations: NativeContinuationTable,
 }
 
 struct PreparedNativeCall {
@@ -321,7 +322,7 @@ struct PreparedNativeCall {
     export_id: u64,
     result_type: TvmBoundaryType,
     /// Populated only after generated code actually returns a transition.
-    continuations: Option<Vec<TvmContinuationDescriptor>>,
+    continuations: Option<NativeContinuationTable>,
     trace_source: Option<VmProcessSource>,
     result_projection: NativeResultProjection,
 }
@@ -332,7 +333,7 @@ struct NativeCallCache {
     requested_function: String,
     arity: usize,
     export_index: usize,
-    continuations: Arc<[TvmContinuationDescriptor]>,
+    continuations: NativeContinuationTable,
 }
 
 /// Call-scoped result representation selected by the VM consumer.
@@ -408,7 +409,7 @@ impl PureNativeBoundary {
                     requested_function: function.to_owned(),
                     arity: args.len(),
                     export_index: index,
-                    continuations: Arc::from(artifact.continuations.clone()),
+                    continuations: artifact.continuations.clone(),
                 });
                 index
             }
@@ -454,15 +455,7 @@ impl PureNativeBoundary {
             "error[execution_shard.admission]: native image metadata is unavailable".to_string()
         })?;
         VmSealedShardImage::new(artifact.image_identity.clone(), artifact.descriptor_digest)
-            .map(|image| {
-                image.with_continuations(
-                    artifact
-                        .continuations
-                        .iter()
-                        .map(|continuation| continuation.id)
-                        .collect(),
-                )
-            })
+            .map(|image| image.with_continuations(artifact.continuations.ids().collect()))
             .map_err(|error| format!("error[execution_shard.admission]: {error:?}"))
     }
 
@@ -479,11 +472,7 @@ impl PureNativeBoundary {
         crate::runtime::vm::native_image_diagnostics::VmNativeImageDiagnosticMetadata::new(
             artifact.image_identity.clone(),
             artifact.descriptor_digest,
-            artifact
-                .continuations
-                .iter()
-                .map(|continuation| continuation.id)
-                .collect(),
+            artifact.continuations.ids().collect(),
             generation_epoch,
             references,
         )

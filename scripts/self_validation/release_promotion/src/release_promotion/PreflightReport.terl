@@ -3,6 +3,8 @@
  */
 module release_promotion.PreflightReport.
 
+import release_promotion.EvidenceReports.
+import std.core.Option.Some.
 import std.core.Result.{Ok}.
 import std.core.{Int, String, Unit}.
 import std.crypto.Hash.
@@ -99,6 +101,9 @@ final_document(
 pub write(root: String, version: String, candidate_seal: String, outcome_report_count: Int): Bool ->
     let docs_manifest = "docs/release/PUBLISHABLE_DOCUMENTATION.tsv";
     let {
+        Ok(metadata) <- Json.parse(text(root, "dist/terlan-release.json"));
+        Some(actual_version) <- EvidenceReports.string_field(metadata, "version");
+        true <- version != "" and actual_version == version;
         Ok(docs_digest) <- Hash.sha256_file(child(root, docs_manifest));
         Ok(support_rendered) <- Json.stringify_pretty(support_document(version, candidate_seal));
         Ok(Unit) <-
@@ -108,16 +113,7 @@ pub write(root: String, version: String, candidate_seal: String, outcome_report_
             );
         Ok(final_rendered) <-
             Json.stringify_pretty(
-                final_document(
-                    version,
-                    candidate_seal,
-                    String.contains(
-                        text(root, "dist/terlan-release.json"),
-                        String.concat(["\"version\": \"", version, "\""]),
-                    ),
-                    docs_digest,
-                    outcome_report_count,
-                ),
+                final_document(version, candidate_seal, true, docs_digest, outcome_report_count),
             );
         Ok(Unit) <-
             File.write_text(

@@ -1,9 +1,10 @@
-use crate::terlan_typeck::CoreFunction;
+use crate::terlan_typeck::{CoreFunction, CoreFunctionSource};
 
 use super::source_declaration_identity;
 
 fn function(name: &str, arity: usize) -> CoreFunction {
     CoreFunction {
+        source: None,
         name: name.to_string(),
         arity,
         public: false,
@@ -16,10 +17,15 @@ fn function(name: &str, arity: usize) -> CoreFunction {
     }
 }
 
-/// Cross-module concrete generic clones retain their defining declaration.
+/// Cross-module clones retain provenance even after symbol and ABI changes.
 #[test]
-fn qualified_generic_symbol_recovers_source_declaration() {
-    let generic = function("$aot_generic_rust_quality.SourceInventory.reverse_0", 1);
+fn explicit_generic_provenance_retains_source_declaration() {
+    let mut generic = function("$generated_opaque_identity", 5);
+    generic.source = Some(CoreFunctionSource {
+        module: "rust_quality.SourceInventory".into(),
+        function: "reverse".into(),
+        arity: 1,
+    });
 
     assert_eq!(
         source_declaration_identity("rust_quality.FileHeadroom", &generic),
@@ -48,7 +54,7 @@ fn ordinary_symbol_retains_local_source_declaration() {
 
 /// Malformed generated-looking symbols cannot forge a foreign source owner.
 #[test]
-fn malformed_generic_symbol_falls_back_to_runtime_owner() {
+fn generated_symbol_spelling_cannot_forge_a_source_owner() {
     let malformed = function("$aot_generic_reverse_0", 1);
 
     assert_eq!(

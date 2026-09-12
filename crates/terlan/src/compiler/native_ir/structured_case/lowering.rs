@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use crate::terlan_typeck::{CoreExpr, CoreFunction, CorePattern, CoreType};
 
+use super::type_support::type_excludes_pattern;
 use super::{
     bind_values, bool_and, core_expr_type, extend_bindings, pattern_plan, validate_bindings,
 };
@@ -313,6 +314,9 @@ fn lower_case(
 
     let mut native_clauses = Vec::with_capacity(clauses.len());
     for clause in clauses {
+        if type_excludes_pattern(&clause.pattern, scrutinee_core.as_ref()) {
+            continue;
+        }
         let plan = pattern_plan(
             &clause.pattern,
             scrutinee_value.clone(),
@@ -592,7 +596,7 @@ pub(super) fn lower_plain(
         function_core_types,
         constructors,
     } = environment;
-    if matches!(expr, CoreExpr::Tuple(_)) {
+    if matches!(expr, CoreExpr::Tuple(_) | CoreExpr::List(_)) {
         if let Some(core_type) = core_expr_type(expr, core_types, function_core_types) {
             if let Some(lowered) =
                 crate::compiler::native_ir::collection_values::lower_boundary_collection_value(
@@ -752,6 +756,9 @@ pub(in crate::compiler::native_ir) fn structured_result_type(
             let scrutinee_core = core_expr_type(scrutinee, core_types, function_core_types);
             let mut result = None;
             for clause in clauses {
+                if type_excludes_pattern(&clause.pattern, scrutinee_core.as_ref()) {
+                    continue;
+                }
                 let plan = pattern_plan(
                     &clause.pattern,
                     NativeExpr::Param(0),

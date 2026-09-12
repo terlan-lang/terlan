@@ -1,0 +1,269 @@
+//! Receipt-backed ownership for the root compiler bootstrap.
+//!
+//! The publication preparation graph owns one invocation of this command. A
+//! successful receipt is reusable only when its caller-supplied input
+//! fingerprint and every declared output byte match. Failed or interrupted
+//! commands never publish a successful receipt.
+use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
+use std::collections::BTreeMap;
+use std::ffi::OsString;
+use std::fs::{self, File, OpenOptions};
+use std::io::{self, Read, Write};
+use std::path::{Component, Path, PathBuf};
+use std::process::Command;
+use std::time::Duration;
+use terlan_process_owner::ProcessControl;
+
+const SCHEMA: &str = "terlan.build-owner.v1";
+const MAX_RECEIPT_BYTES: u64 = 16 * 1024 * 1024;
+
+struct Options {
+    root: PathBuf,
+    receipt: PathBuf,
+    input_sha256: String,
+    timeout: Duration,
+    outputs: Vec<PathBuf>,
+    command: Command,
+}
+
+/// Runs a receipt-backed producer, returning false only for a producer failure.
+pub(crate) fn run(root: &Path, args: &[OsString]) -> io::Result<bool> {
+    let mut options = parse(root, args)?;
+    if reusable(&options)? {
+        println!(
+            "{}",
+            json!({
+                "schema": SCHEMA,
+                "decision": "reused",
+                "receipt": options.receipt,
+                "input_sha256": options.input_sha256,
+            })
+        );
+        return Ok(true);
+    }
+
+    options.command.current_dir(root);
+    let status = match ProcessControl::new(options.timeout).run(&mut options.command, |_| Ok(())) {
+        Ok(()) => "pass",
+        Err(error) => {
+            eprintln!("error[build.owner.{}]: {}", error.kind, error.detail);
+            return Ok(false);
+        }
+    };
+    let outputs = match output_hashes(root, &options.outputs) {
+        Ok(outputs) => outputs,
+        Err(error) => {
+            eprintln!("error[build.owner.outputs]: {error}");
+            return Ok(false);
+        }
+    };
+    let receipt = json!({
+        "schema": SCHEMA,
+        "outcome": status,
+        "input_sha256": options.input_sha256,
+        "outputs": outputs,
+    });
+    publish_receipt(&options.receipt, &receipt)?;
+    println!("{}", receipt);
+    Ok(true)
+}
+
+fn parse(root: &Path, args: &[OsString]) -> io::Result<Options> {
+    let mut index = 0;
+    let mut receipt = None;
+    let mut input_sha256 = None;
+    let mut timeout = None;
+    let mut outputs: Vec<PathBuf> = Vec::new();
+    let command_start = loop {
+        if index >= args.len() {
+            return Err(io::Error::other(usage()));
+        }
+        let flag = args[index].to_str().unwrap_or("");
+        index += 1;
+        match flag {
+            "--receipt" => receipt = Some(next_value(args, &mut index, "--receipt")?),
+            "--input-sha256" => {
+                input_sha256 = Some(next_value(args, &mut index, "--input-sha256")?)
+            }
+            "--timeout-seconds" => {
+                let value = next_value(args, &mut index, "--timeout-seconds")?;
+                let seconds = value
+                    .to_str()
+                    .filter(|value| {
+                        !value.is_empty() && value.bytes().all(|byte| byte.is_ascii_digit())
+                    })
+                    .and_then(|value| value.parse::<u64>().ok())
+                    .filter(|value| (1..=86400).contains(value))
+                    .ok_or_else(|| io::Error::other("invalid owner timeout"))?;
+                timeout = Some(Duration::from_secs(seconds));
+            }
+            "--output" => outputs.push(next_value(args, &mut index, "--output")?.into()),
+            "--" => break index,
+            _ => return Err(io::Error::other(usage())),
+        }
+    };
+    let program = args
+        .get(command_start)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| io::Error::other(usage()))?;
+    let mut command = Command::new(program);
+    command.args(&args[command_start + 1..]);
+    let receipt = receipt.ok_or_else(|| io::Error::other(usage()))?;
+    let input_sha256 = input_sha256
+        .and_then(|value| value.into_string().ok())
+        .filter(|value| value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit()))
+        .ok_or_else(|| io::Error::other("invalid owner input fingerprint"))?;
+    if outputs.is_empty() {
+        return Err(io::Error::other("owner requires at least one output"));
+    }
+    let receipt = root.join(receipt);
+    if !receipt.starts_with(root)
+        || receipt
+            .components()
+            .any(|component| component == Component::ParentDir)
+    {
+        return Err(io::Error::other("owner receipt escapes repository root"));
+    }
+    if outputs.iter().any(|path| {
+        path.is_absolute()
+            || path
+                .components()
+                .any(|component| component == Component::ParentDir)
+    }) {
+        return Err(io::Error::other("owner output escapes repository root"));
+    }
+    Ok(Options {
+        root: root.to_path_buf(),
+        receipt,
+        input_sha256,
+        timeout: timeout.ok_or_else(|| io::Error::other(usage()))?,
+        outputs,
+        command,
+    })
+}
+
+fn next_value(args: &[OsString], index: &mut usize, flag: &str) -> io::Result<OsString> {
+    let value = args
+        .get(*index)
+        .filter(|value| !value.is_empty())
+        .cloned()
+        .ok_or_else(|| io::Error::other(format!("{flag} requires a value")))?;
+    *index += 1;
+    Ok(value)
+}
+
+fn usage() -> &'static str {
+    "usage: owner --receipt <path> --input-sha256 <hex> --timeout-seconds <1..86400> --output <path>... -- <program> [args...]"
+}
+
+fn reusable(options: &Options) -> io::Result<bool> {
+    let source = match fs::read(&options.receipt) {
+        Ok(source) => source,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(error),
+    };
+    if source.len() as u64 > MAX_RECEIPT_BYTES {
+        return Ok(false);
+    }
+    let document: Value = match serde_json::from_slice(&source) {
+        Ok(document) => document,
+        Err(_) => return Ok(false),
+    };
+    if document.get("schema").and_then(Value::as_str) != Some(SCHEMA)
+        || document.get("outcome").and_then(Value::as_str) != Some("pass")
+        || document.get("input_sha256").and_then(Value::as_str) != Some(&options.input_sha256)
+    {
+        return Ok(false);
+    }
+    let Some(expected) = document.get("outputs").and_then(Value::as_object) else {
+        return Ok(false);
+    };
+    let mut expected_hashes = BTreeMap::new();
+    for (path, value) in expected {
+        let Some(hash) = value.as_str() else {
+            return Ok(false);
+        };
+        expected_hashes.insert(path.clone(), hash.to_string());
+    }
+    let actual = match output_hashes(&options.root, &options.outputs) {
+        Ok(actual) => actual,
+        Err(_) => return Ok(false),
+    };
+    Ok(expected_hashes == actual)
+}
+
+fn output_hashes(root: &Path, paths: &[PathBuf]) -> io::Result<BTreeMap<String, String>> {
+    let mut hashes = BTreeMap::new();
+    for path in paths {
+        let absolute = if path.is_absolute() {
+            path.clone()
+        } else {
+            root.join(path)
+        };
+        let metadata = fs::symlink_metadata(&absolute)?;
+        if !metadata.is_file() {
+            return Err(io::Error::other(format!(
+                "output is not a regular file: {}",
+                absolute.display()
+            )));
+        }
+        let mut file = File::open(&absolute)?;
+        let mut digest = Sha256::new();
+        let mut buffer = [0_u8; 64 * 1024];
+        loop {
+            let count = file.read(&mut buffer)?;
+            if count == 0 {
+                break;
+            }
+            digest.update(&buffer[..count]);
+        }
+        let relative = absolute
+            .strip_prefix(root)
+            .unwrap_or(&absolute)
+            .to_string_lossy()
+            .into_owned();
+        hashes.insert(
+            relative,
+            digest
+                .finalize()
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect(),
+        );
+    }
+    Ok(hashes)
+}
+
+fn publish_receipt(path: &Path, receipt: &Value) -> io::Result<()> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| io::Error::other("owner receipt has no parent"))?;
+    fs::create_dir_all(parent)?;
+    let pending = path.with_extension("json.pending");
+    let bytes = serde_json::to_vec_pretty(receipt)?;
+    match fs::symlink_metadata(&pending) {
+        Ok(metadata) => {
+            if !metadata.is_file() {
+                return Err(io::Error::other(
+                    "owner receipt pending path is not a regular file",
+                ));
+            }
+            fs::remove_file(&pending)?;
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error),
+    }
+    let mut file = OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(&pending)?;
+    file.write_all(&bytes)?;
+    file.sync_all()?;
+    drop(file);
+    fs::rename(pending, path)
+}
+
+#[cfg(test)]
+#[path = "owner_test.rs"]
+mod tests;
